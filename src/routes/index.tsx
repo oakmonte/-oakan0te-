@@ -227,9 +227,6 @@ function Index() {
               <a href="#buyers" className="text-center px-6 py-4 md:py-5 bg-brand-text text-brand-bg text-[11px] uppercase tracking-widest font-bold hover:bg-brand-accent transition-colors">Define Your Style</a>
             </div>
           </div>
-          <div className="col-span-12 lg:col-span-5">
-            <img src={heroImg} alt="Editorial portrait of a model in tailored monochrome fashion, styled to evoke Oakmonte's curated aesthetic" width={1080} height={1350} className="w-full aspect-[4/5] object-cover rounded-sm outline outline-1 -outline-offset-1 outline-black/5" />
-          </div>
         </div>
       </section>
 
