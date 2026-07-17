@@ -1,24 +1,360 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useRef, useState } from "react";
+import heroImg from "@/assets/hero-editorial.jpg";
+import fabricImg from "@/assets/fabric-detail.jpg";
+import logoO from "@/assets/logo-o.png";
 
-// No head() here: the home route inherits title/description/og/twitter from
-// __root.tsx, and ships no og:image so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
 export const Route = createFileRoute("/")({
   component: Index,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
+type MenuKey = "product" | "solutions" | "resources" | "blog";
+
+const MENUS: Record<MenuKey, { label: string; items: { title: string; desc: string; href: string }[] }> = {
+  product: {
+    label: "Product",
+    items: [
+      { title: "Content-to-Cart", desc: "Buy directly from creative content — no third-party links, no leaving the feed.", href: "#product" },
+      { title: "Trust Layer", desc: "No payment reaches a seller without customer satisfaction.", href: "#product" },
+      { title: "Sales Accountability", desc: "Every sale is traced back to the creator or brand who promoted it.", href: "#product" },
+      { title: "Handled Logistics", desc: "A dedicated delivery service for every seller.", href: "#product" },
+      { title: "Sellers Dashboard", desc: "Performance analysis, order handling, and content marketing in one place.", href: "#product" },
+      { title: "Find Your Fit", desc: "A recommendation system tuned for fit — and fewer returns.", href: "#product" },
+      { title: "Oakmonte Studio", desc: "Dedicated tools for creators and brands to express creativity through content.", href: "#product" },
+      { title: "Customizable Storefronts", desc: "Communicate your identity to customers at a glance.", href: "#product" },
+      { title: "Improved Marketing", desc: "Human help plus tools for story-telling and brand positioning.", href: "#product" },
+      { title: "Collaboration Tools", desc: "Sellers and creators collaborate for income and a better customer experience.", href: "#product" },
+    ],
+  },
+  solutions: {
+    label: "Solutions",
+    items: [
+      { title: "For Sellers", desc: "Customizable storefronts for vetted brands and boutiques.", href: "#sellers" },
+      { title: "For Creators", desc: "Monetize your style through content.", href: "#creators" },
+      { title: "For Buyers", desc: "Protected access to the trust triangle.", href: "#buyers" },
+    ],
+  },
+  resources: {
+    label: "Resources",
+    items: [
+      { title: "Docs", desc: "Integration guides for sellers and creators.", href: "#" },
+      { title: "About / Manifesto", desc: "Our vetting standards and why we built Oakmonte.", href: "#" },
+      { title: "Support", desc: "Help with verification, escrow, and payouts.", href: "#" },
+    ],
+  },
+  blog: {
+    label: "Blog",
+    items: [
+      { title: "Journal", desc: "Editorial fashion features and style curation.", href: "#" },
+      { title: "Creator Spotlights", desc: "Stories from creators building on Oakmonte.", href: "#" },
+      { title: "Style Guides", desc: "Curated collections from our style curators.", href: "#" },
+    ],
+  },
+};
+
+const SECTION_IDS = ["ecosystem", "product", "sellers", "creators", "buyers", "register"];
+
 function Index() {
+  const [openMenu, setOpenMenu] = useState<MenuKey | null>(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileGroup, setMobileGroup] = useState<MenuKey | null>(null);
+  const [scrolled, setScrolled] = useState(false);
+  const [activeSection, setActiveSection] = useState<string>("");
+  const [role, setRole] = useState<string>("");
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const onScroll = () => {
+      setScrolled(window.scrollY > 24);
+      let current = "";
+      for (const id of SECTION_IDS) {
+        const el = document.getElementById(id);
+        if (el && el.getBoundingClientRect().top <= 120) current = id;
+      }
+      setActiveSection(current);
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const openWithKey = (key: MenuKey) => {
+    if (closeTimer.current) { clearTimeout(closeTimer.current); closeTimer.current = null; }
+    setOpenMenu(key);
+  };
+  const scheduleClose = () => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    closeTimer.current = setTimeout(() => setOpenMenu(null), 150);
+  };
+
+  const navLinkClass = "relative inline-flex items-center gap-1 py-1 text-[11px] uppercase tracking-[0.2em] font-semibold transition-colors duration-500 hover:text-brand-accent";
+
+  const underline = (active: boolean) =>
+    `pointer-events-none absolute left-0 -bottom-0.5 h-px w-full origin-left bg-brand-accent transition-transform duration-200 ease-out ${active ? "scale-x-100" : "scale-x-0"} group-hover:scale-x-100`;
+
+  const isSectionActive = (key: MenuKey) => {
+    if (key === "solutions") return ["sellers", "creators", "buyers"].includes(activeSection);
+    if (key === "product") return activeSection === "product" || activeSection === "ecosystem";
+    return false;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    await new Promise((r) => setTimeout(r, 900));
+    setSubmitting(false);
+    setSubmitted(true);
+  };
+
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
+    <div className="min-h-screen bg-brand-bg text-brand-text font-sans">
+      {/* NAV */}
+      <nav className={`fixed top-0 w-full z-50 px-6 md:px-8 flex justify-between items-center border-b border-brand-text/5 bg-brand-bg/80 backdrop-blur-md transition-[padding] duration-300 ${scrolled ? "py-4" : "py-6"}`}>
+        <a href="#top" className="flex items-baseline gap-0 shrink-0">
+          <img src={logoO} alt="Oakmonte" className="h-11 w-auto inline-block align-baseline mt-1" />
+          <span className="font-sans font-normal text-3xl tracking-tight leading-none">akmonte</span>
+          <span className="ml-3 text-[9px] uppercase tracking-[0.25em] opacity-40 font-sans font-normal leading-none pb-1">Style First</span>
+        </a>
+
+        <div className="hidden lg:flex gap-10" onMouseLeave={scheduleClose}>
+          {(Object.keys(MENUS) as MenuKey[]).map((key) => {
+            const m = MENUS[key];
+            const isOpen = openMenu === key;
+            const active = isSectionActive(key);
+            return (
+              <div key={key} className="group relative" onMouseEnter={() => openWithKey(key)}>
+                <button
+                  className={navLinkClass}
+                  onFocus={() => openWithKey(key)}
+                  aria-expanded={isOpen}
+                >
+                  {m.label}
+                  <svg width="8" height="8" viewBox="0 0 8 8" className={`opacity-60 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}>
+                    <path d="M1 2l3 3 3-3" stroke="currentColor" strokeWidth="1.2" fill="none" />
+                  </svg>
+                  <span className={underline(active)} />
+                </button>
+                {isOpen && (
+                  <div
+                    className="absolute top-full left-1/2 -translate-x-1/2 pt-4"
+                    style={{ animation: "ddFadeIn 180ms ease-out both" }}
+                  >
+                    <div className={`bg-brand-bg border border-brand-text/10 shadow-xl normal-case tracking-normal py-3 ${key === "product" ? "w-[560px] grid grid-cols-2" : "w-80"}`}>
+                      {m.items.map((it, i) => (
+                        <a
+                          key={it.title}
+                          href={it.href}
+                          className="block px-5 py-3 hover:bg-brand-muted/40 transition-colors"
+                          style={{ animation: `ddItemIn 220ms ease-out ${i * 30}ms both` }}
+                        >
+                          <div className="text-sm font-semibold">{it.title}</div>
+                          <div className="text-xs text-brand-text/60 font-light mt-0.5 leading-snug">{it.desc}</div>
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="flex items-center gap-4">
+          <a href="#" className="hidden md:inline text-[11px] uppercase tracking-[0.2em] font-semibold hover:text-brand-accent transition-colors duration-500">Sign in</a>
+          <a href="#register" className="px-5 md:px-6 py-2 border border-brand-text text-[10px] uppercase tracking-widest hover:bg-brand-text hover:text-brand-bg transition-all">Access Dashboard</a>
+          <button
+            className="lg:hidden ml-1 p-2 -mr-2"
+            aria-label="Menu"
+            onClick={() => setMobileOpen((v) => !v)}
+          >
+            <span className="block w-5 h-px bg-brand-text mb-1.5" />
+            <span className="block w-5 h-px bg-brand-text mb-1.5" />
+            <span className="block w-5 h-px bg-brand-text" />
+          </button>
+        </div>
+
+        {/* Mobile menu */}
+        {mobileOpen && (
+          <div className="lg:hidden absolute top-full left-0 right-0 bg-brand-bg border-b border-brand-text/10 shadow-xl">
+            {(Object.keys(MENUS) as MenuKey[]).map((key) => {
+              const m = MENUS[key];
+              const open = mobileGroup === key;
+              return (
+                <div key={key} className="border-b border-brand-text/5">
+                  <button
+                    onClick={() => setMobileGroup(open ? null : key)}
+                    className="w-full flex justify-between items-center px-6 py-4 text-[11px] uppercase tracking-[0.2em] font-semibold"
+                  >
+                    {m.label}
+                    <span className={`transition-transform duration-300 ${open ? "rotate-180" : ""}`}>▾</span>
+                  </button>
+                  <div className={`grid transition-all duration-300 ease-out ${open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
+                    <div className="overflow-hidden">
+                      {m.items.map((it) => (
+                        <a key={it.title} href={it.href} onClick={() => setMobileOpen(false)} className="block px-6 py-3 hover:bg-brand-muted/40">
+                          <div className="text-sm font-semibold">{it.title}</div>
+                          <div className="text-xs text-brand-text/60 font-light mt-0.5">{it.desc}</div>
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </nav>
+
+      {/* HERO */}
+      <section id="top" className="pt-32 md:pt-40 pb-20 px-6 md:px-8">
+        <div className="max-w-7xl mx-auto grid grid-cols-12 gap-8 items-end">
+          <div className="col-span-12 lg:col-span-7">
+            <h1 className="leading-[0.85] tracking-tight mb-8 text-7xl md:text-8xl lg:text-[150px] uppercase" style={{ fontFamily: "Anton, Impact, sans-serif", fontWeight: 400 }}>
+              Content <br />
+              <span className="text-brand-accent">is</span> Commerce.
+            </h1>
+            <p className="max-w-md text-lg text-brand-text/70 font-light leading-relaxed mb-6">
+              Oakmonte is an ecosystem designed for those who expect more. We connect vetted sellers, honest creators and style curators through a content driven marketplace.
+            </p>
+            <p className="max-w-md text-base italic text-brand-text/50 leading-relaxed mb-12">
+              style is proof that you <span className="font-bold not-italic">think different</span>, don't have to be so different.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl">
+              <a href="#register" className="text-center px-6 py-4 md:py-5 bg-brand-text text-brand-bg text-[11px] uppercase tracking-widest font-bold hover:bg-brand-accent transition-colors">Set up a Store</a>
+              <a href="#register" className="text-center px-6 py-4 md:py-5 bg-brand-text text-brand-bg text-[11px] uppercase tracking-widest font-bold hover:bg-brand-accent transition-colors">Become a Creator</a>
+              <a href="#buyers" className="text-center px-6 py-4 md:py-5 bg-brand-text text-brand-bg text-[11px] uppercase tracking-widest font-bold hover:bg-brand-accent transition-colors">Define Your Style</a>
+            </div>
+          </div>
+          <div className="col-span-12 lg:col-span-5">
+            <img src={heroImg} alt="Editorial portrait of a model in tailored monochrome fashion, styled to evoke Oakmonte's curated aesthetic" width={1080} height={1350} className="w-full aspect-[4/5] object-cover rounded-sm outline outline-1 -outline-offset-1 outline-black/5" />
+          </div>
+        </div>
+      </section>
+
+      {/* TRUST TRIANGLE */}
+      <section id="ecosystem" className="py-24 md:py-32 px-6 md:px-8 border-y border-brand-text/5">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex flex-col mb-16 md:mb-20">
+            <span className="text-[10px] uppercase tracking-[0.3em] text-brand-accent font-bold mb-4">Protocol</span>
+            <h2 className="text-4xl font-serif">The Trust Triangle</h2>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-px bg-brand-text/10">
+            <div id="buyers" className="bg-brand-bg lg:pr-12 py-8">
+              <span className="text-sm font-serif italic mb-6 block">01. Buyers</span>
+              <h3 className="text-xl font-semibold mb-4">Verified Access</h3>
+              <p className="text-sm text-brand-text/60 leading-relaxed">Purchase with absolute confidence. Every piece is vetted by our community of curators and creators.</p>
+            </div>
+            <div id="sellers" className="bg-brand-bg lg:px-12 py-8">
+              <span className="text-sm font-serif italic mb-6 block">02. Sellers</span>
+              <h3 className="text-xl font-semibold mb-4">Curated Stores</h3>
+              <p className="text-sm text-brand-text/60 leading-relaxed">A platform built for fashion brands and high-end boutiques. Direct integration with your creative content.</p>
+            </div>
+            <div id="creators" className="bg-brand-bg lg:pl-12 py-8">
+              <span className="text-sm font-serif italic mb-6 block">03. Creators</span>
+              <h3 className="text-xl font-semibold mb-4">Creative Commerce</h3>
+              <p className="text-sm text-brand-text/60 leading-relaxed">Monetize your taste. Tag products directly in your editorial content and earn on every verified sale.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FEATURES */}
+      <section id="product" className="py-24 md:py-32 px-6 md:px-8">
+        <div className="max-w-7xl mx-auto grid grid-cols-12 gap-12 lg:gap-16 items-center">
+          <div className="col-span-12 lg:col-span-6">
+            <img src={fabricImg} alt="Close-up of luxury woven fabric with soft neutral tones, highlighting texture and craftsmanship" loading="lazy" width={1200} height={1600} className="w-full aspect-[3/4] object-cover outline outline-1 -outline-offset-1 outline-black/5" />
+          </div>
+          <div className="col-span-12 lg:col-span-6">
+            <h2 className="text-4xl md:text-5xl font-serif leading-tight mb-8">
+              Eliminate the Friction.<br />
+              <span className="italic">Elevate the Sale.</span>
+            </h2>
+            <div className="space-y-6">
+              {[
+                { t: "Direct Content-to-Cart", n: "Feature 01", d: "No third-party links. Buy directly from the image or video within the native Oakmonte interface." },
+                { t: "Trust-First Verification", n: "Feature 02", d: "Every seller is manually vetted. No fast-fashion noise, just curated luxury and authentic archives." },
+                { t: "Creator Attribution", n: "Feature 03", d: "Every conversion is traced to the creator who inspired it. Fair credit, transparent payout." },
+              ].map((f) => (
+                <div key={f.t} className="group cursor-default p-4 -mx-4 rounded-sm border border-transparent transition-all duration-200 hover:-translate-y-1 hover:border-brand-text/10 hover:shadow-[0_10px_30px_-15px_rgba(0,0,0,0.15)]">
+                  <div className="flex justify-between items-end border-b border-brand-text/10 pb-4 group-hover:border-brand-text transition-colors">
+                    <span className="text-xl md:text-2xl font-light">{f.t}</span>
+                    <span className="text-[10px] uppercase font-bold pb-2 shrink-0 ml-4">{f.n}</span>
+                  </div>
+                  <p className="mt-4 text-sm text-brand-text/60 leading-relaxed max-w-[52ch]">{f.d}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* REGISTER */}
+      <section id="register" className="py-24 md:py-32 bg-brand-text text-brand-bg">
+        <div className="max-w-3xl mx-auto text-center px-6 md:px-8">
+          <h2 className="text-5xl md:text-6xl font-serif mb-12 italic">Join the Front Row</h2>
+          <div className="bg-white/5 p-8 md:p-12 rounded-lg backdrop-blur-sm border border-white/10">
+            <p className="text-xs md:text-sm uppercase tracking-[0.2em] mb-8 opacity-60 font-semibold">Seller &amp; Creator Registration</p>
+            {submitted ? (
+              <div className="py-10 text-center">
+                <div className="text-2xl font-serif italic mb-3">Request received.</div>
+                <p className="text-sm opacity-70">We'll be in touch after our curator review — usually within 3 business days.</p>
+              </div>
+            ) : (
+              <form className="space-y-6 text-left" onSubmit={handleSubmit}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <input required type="text" placeholder="First Name" className="w-full bg-transparent border-b border-white/20 py-3 focus:outline-none focus:border-brand-bg transition-colors placeholder:text-brand-bg/30 text-sm text-brand-bg" />
+                  <input required type="text" placeholder="Last Name" className="w-full bg-transparent border-b border-white/20 py-3 focus:outline-none focus:border-brand-bg transition-colors placeholder:text-brand-bg/30 text-sm text-brand-bg" />
+                </div>
+                <input required type="email" placeholder="Professional Email" className="w-full bg-transparent border-b border-white/20 py-3 focus:outline-none focus:border-brand-bg transition-colors placeholder:text-brand-bg/30 text-sm text-brand-bg" />
+
+                <div>
+                  <div className="text-[10px] uppercase tracking-[0.25em] opacity-60 mb-3">I am a…</div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { v: "creator", l: "Creator" },
+                      { v: "seller", l: "Seller" },
+                      { v: "both", l: "Creator & Seller" },
+                    ].map((o) => {
+                      const selected = role === o.v;
+                      return (
+                        <button
+                          type="button"
+                          key={o.v}
+                          onClick={() => setRole(o.v)}
+                          className={`px-3 py-3 text-[11px] uppercase tracking-widest font-semibold border transition-all duration-300 ${selected ? "bg-brand-accent text-brand-bg border-brand-accent shadow-[0_0_0_2px_rgba(139,115,91,0.25)]" : "bg-transparent border-white/20 text-brand-bg/80 hover:border-brand-bg/60"}`}
+                          aria-pressed={selected}
+                        >
+                          {o.l}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="w-full py-5 bg-brand-bg text-brand-text text-[11px] uppercase tracking-[0.3em] font-bold mt-8 hover:bg-brand-accent hover:text-brand-bg transition-all disabled:opacity-60"
+                >
+                  {submitting ? "Submitting…" : "Request Invite Access"}
+                </button>
+              </form>
+            )}
+            <p className="mt-8 text-[10px] opacity-40 uppercase tracking-widest leading-loose">By requesting access, you agree to our curator vetting process and privacy guidelines.</p>
+          </div>
+        </div>
+      </section>
+
+      <footer className="py-12 px-6 md:px-8 border-t border-brand-text/5 flex flex-col md:flex-row gap-6 justify-between items-start md:items-center text-[10px] uppercase tracking-widest opacity-50">
+        <div>© 2026 Oakmonte Collective</div>
+        <div className="flex gap-8">
+          <a href="#">Terms</a>
+          <a href="#">Privacy</a>
+          <a href="#">Manifesto</a>
+        </div>
+      </footer>
     </div>
   );
 }
