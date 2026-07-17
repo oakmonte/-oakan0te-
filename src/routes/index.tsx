@@ -64,6 +64,30 @@ function Index() {
   const [submitted, setSubmitted] = useState(false);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const typeText = "Oakmonte is an ecosystem designed for those who expect more. We connect vetted sellers, honest creators and style curators through a content driven marketplace.";
+  const typeRef = useRef<HTMLParagraphElement>(null);
+  const [typedLength, setTypedLength] = useState(0);
+
+  useEffect(() => {
+    const el = typeRef.current;
+    if (!el) return;
+    const update = () => {
+      const rect = el.getBoundingClientRect();
+      const windowHeight = window.innerHeight;
+      const start = windowHeight * 0.85;
+      const end = windowHeight * 0.45;
+      let progress = 0;
+      if (rect.top < start) {
+        progress = (start - rect.top) / (start - end);
+      }
+      progress = Math.max(0, Math.min(1, progress));
+      setTypedLength(Math.round(progress * typeText.length));
+    };
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    return () => window.removeEventListener("scroll", update);
+  }, []);
+
   useEffect(() => {
     const onScroll = () => {
       setScrolled(window.scrollY > 24);
