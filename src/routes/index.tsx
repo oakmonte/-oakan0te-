@@ -64,6 +64,30 @@ function Index() {
   const [submitted, setSubmitted] = useState(false);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const typeText = "Oakmonte is an ecosystem designed for those who expect more. We connect vetted sellers, honest creators and style curators through a content driven marketplace.";
+  const typeRef = useRef<HTMLParagraphElement>(null);
+  const [typedLength, setTypedLength] = useState(0);
+
+  useEffect(() => {
+    const el = typeRef.current;
+    if (!el) return;
+    const update = () => {
+      const rect = el.getBoundingClientRect();
+      const windowHeight = window.innerHeight;
+      const start = windowHeight * 0.85;
+      const end = windowHeight * 0.45;
+      let progress = 0;
+      if (rect.top < start) {
+        progress = (start - rect.top) / (start - end);
+      }
+      progress = Math.max(0, Math.min(1, progress));
+      setTypedLength(Math.round(progress * typeText.length));
+    };
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    return () => window.removeEventListener("scroll", update);
+  }, []);
+
   useEffect(() => {
     const onScroll = () => {
       setScrolled(window.scrollY > 24);
@@ -214,8 +238,9 @@ function Index() {
               Content <br />
               <span className="text-brand-accent">is</span> Commerce.
             </h1>
-            <p className="max-w-md text-lg text-brand-text/70 font-light leading-relaxed mb-6">
-              Oakmonte is an ecosystem designed for those who expect more. We connect vetted sellers, honest creators and style curators through a content driven marketplace.
+            <p ref={typeRef} className="max-w-md text-lg text-brand-text/70 font-light leading-relaxed mb-6 min-h-[5rem]" aria-label={typeText}>
+              {typeText.slice(0, typedLength)}
+              <span className="inline-block w-px h-[1em] bg-brand-text/70 align-middle ml-0.5 animate-pulse" aria-hidden="true" />
             </p>
             <p className="max-w-md text-base italic text-brand-text/50 leading-relaxed mb-12">
               style is proof that you <span className="font-bold not-italic">think different.</span>
