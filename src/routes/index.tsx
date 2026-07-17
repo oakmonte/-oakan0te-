@@ -240,15 +240,15 @@ function Index() {
             </h1>
             <p ref={typeRef} className="max-w-md text-lg text-brand-text/70 font-light leading-relaxed mb-6 min-h-[5rem]" aria-label={typeText}>
               {typeText.slice(0, typedLength)}
-              <span className="inline-block w-px h-[1em] bg-brand-text/70 align-middle ml-0.5 animate-pulse" aria-hidden="true" />
+              <span className="inline-block w-px h-[1em] bg-brand-text/70 align-middle ml-0.5" style={{ animation: 'cursor-blink 0.7s steps(1) infinite' }} aria-hidden="true" />
             </p>
             <p className="max-w-md text-base italic text-brand-text/50 leading-relaxed mb-12">
-              style is proof that you <span className="font-bold not-italic">think different.</span>
+              style is proof that you <span className="font-bold not-italic" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, sans-serif' }}>think different.</span>
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl">
               <a href="#register" className="text-center px-6 py-4 md:py-5 bg-brand-text text-brand-bg text-[11px] uppercase tracking-widest font-bold hover:bg-brand-accent transition-colors">Set up a Store</a>
               <a href="#register" className="text-center px-6 py-4 md:py-5 bg-brand-text text-brand-bg text-[11px] uppercase tracking-widest font-bold hover:bg-brand-accent transition-colors">Become a Creator</a>
-              <a href="#buyers" className="text-center px-6 py-4 md:py-5 bg-brand-text text-brand-bg text-[11px] uppercase tracking-widest font-bold hover:bg-brand-accent transition-colors">Define Your Style</a>
+              <a href="#buyers" className="text-center px-6 py-4 md:py-5 bg-brand-bg text-brand-text border border-brand-text text-[11px] uppercase tracking-widest font-bold hover:border-brand-accent transition-colors">Define Your Style</a>
             </div>
           </div>
         </div>
