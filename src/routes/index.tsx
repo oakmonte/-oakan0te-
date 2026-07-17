@@ -218,7 +218,7 @@ function Index() {
               Oakmonte is an ecosystem designed for those who expect more. We connect vetted sellers, honest creators and style curators through a content driven marketplace.
             </p>
             <p className="max-w-md text-base italic text-brand-text/50 leading-relaxed mb-12">
-              style is proof that you <span className="font-bold not-italic">think different</span>, don't have to be so different.
+              style is proof that you <span className="font-bold not-italic">think different.</span>
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl">
               <a href="#register" className="text-center px-6 py-4 md:py-5 bg-brand-text text-brand-bg text-[11px] uppercase tracking-widest font-bold hover:bg-brand-accent transition-colors">Set up a Store</a>
