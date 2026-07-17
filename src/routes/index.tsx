@@ -238,8 +238,9 @@ function Index() {
               Content <br />
               <span className="text-brand-accent">is</span> Commerce.
             </h1>
-            <p className="max-w-md text-lg text-brand-text/70 font-light leading-relaxed mb-6">
-              Oakmonte is an ecosystem designed for those who expect more. We connect vetted sellers, honest creators and style curators through a content driven marketplace.
+            <p ref={typeRef} className="max-w-md text-lg text-brand-text/70 font-light leading-relaxed mb-6 min-h-[5rem]" aria-label={typeText}>
+              {typeText.slice(0, typedLength)}
+              <span className="inline-block w-px h-[1em] bg-brand-text/70 align-middle ml-0.5 animate-pulse" aria-hidden="true" />
             </p>
             <p className="max-w-md text-base italic text-brand-text/50 leading-relaxed mb-12">
               style is proof that you <span className="font-bold not-italic">think different.</span>
