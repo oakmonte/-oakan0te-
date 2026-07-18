@@ -186,7 +186,7 @@ function Index() {
 
         <div className="flex items-center gap-4">
           <a href="#" className="hidden md:inline text-[11px] uppercase tracking-[0.2em] font-semibold hover:text-brand-accent transition-colors duration-500">Sign in</a>
-          <a href="#register" className="hidden md:inline text-[11px] uppercase tracking-[0.2em] font-semibold hover:text-brand-accent transition-colors duration-500">Contact us</a>
+          <a href="mailto:hello@oakmonte.com" className="hidden md:inline text-[11px] uppercase tracking-[0.2em] font-semibold hover:text-brand-accent transition-colors duration-500">Contact us</a>
           <a href="#register" className="px-5 md:px-6 py-2 border border-brand-text text-[10px] uppercase tracking-widest hover:bg-brand-text hover:text-brand-bg transition-all">Access Dashboard</a>
           <button
             className="lg:hidden ml-1 p-2 -mr-2"
