@@ -235,7 +235,7 @@ function Index() {
       </div>
 
       {/* HERO */}
-      <section id="top" className="pt-4 md:pt-6 pb-20 px-6 md:px-8">
+      <section id="top" className="pt-32 md:pt-6 pb-20 px-6 md:px-8">
         <div className="max-w-7xl mx-auto grid grid-cols-12 gap-8 items-end">
           <div className="col-span-12 lg:col-span-7">
             <h1 className="leading-[0.85] tracking-tight mb-8 text-7xl md:text-8xl lg:text-[150px] uppercase" style={{ fontFamily: "Anton, Impact, sans-serif", fontWeight: 400 }}>
