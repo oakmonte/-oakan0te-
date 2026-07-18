@@ -13,7 +13,7 @@ const MENUS: Record<MenuKey, { label: string; items: { title: string; desc: stri
   product: {
     label: "Product",
     items: [
-      { title: "Content-to-Cart", desc: "Buy directly from creative content — no third-party links, higher conversion rate.", href: "#product" },
+      { title: "Content to\u00a0", desc: "Buy directly from creative content — no third-party links, higher conversion rate.", href: "#product" },
       { title: "Trust Layer", desc: "No payment reaches a seller without customer satisfaction.", href: "#product" },
       { title: "Seller Accountability", desc: "Every product is easily traced back to the creator or brand who promoted it.", href: "#product" },
       { title: "Handled Logistics", desc: "A dedicated delivery service for every seller.", href: "#product" },
