@@ -13,15 +13,15 @@ const MENUS: Record<MenuKey, { label: string; items: { title: string; desc: stri
   product: {
     label: "Product",
     items: [
-      { title: "Content to\u00a0", desc: "Buy directly from creative content — no third-party links, higher conversion rate.", href: "#product" },
+      { title: "Content to sale", desc: "Buy directly from creative content — no third-party links, higher conversion rate.", href: "#product" },
       { title: "Trust Layer", desc: "No payment reaches a seller without customer satisfaction.", href: "#product" },
       { title: "Seller Accountability", desc: "Every product is easily traced back to the creator or brand who promoted it.", href: "#product" },
       { title: "Handled Logistics", desc: "A dedicated delivery service for every seller.", href: "#product" },
-      { title: "Sellers Dashboard", desc: "Performance analysis, order handling, and content marketing in one place.", href: "#product" },
+      { title: "Sellers Dashboard", desc: "Performance analysis, order handling, and content marketing all in one place.", href: "#product" },
       { title: "Find Your Fit", desc: "A recommendation system tuned for fit — and fewer returns.", href: "#product" },
       { title: "Oakmonte Studio", desc: "Dedicated tools for creators and brands to express creativity through content.", href: "#product" },
       { title: "Customizable Storefronts", desc: "Communicate your identity to customers at a glance.", href: "#product" },
-      { title: "Improved Marketing", desc: "Human help plus tools for story-telling and brand positioning.", href: "#product" },
+      { title: "Improved Marketing", desc: "Human help\u00a0 tools for story-telling and brand positioning.", href: "#product" },
       { title: "Collaboration Tools", desc: "Sellers and creators collaborate for income and a better customer experience.", href: "#product" },
     ],
   },
