@@ -14,7 +14,7 @@ const MENUS: Record<MenuKey, { label: string; items: { title: string; desc: stri
     label: "Product",
     items: [
       { title: "Content to Sale", desc: "Buy directly from creative content — no third-party links, higher conversion rate.", href: "#product" },
-      { title: "S", desc: "No payment reaches a seller without customer satisfaction.", href: "#product" },
+      { title: "Scam Protection", desc: "No payment reaches a seller without customer satisfaction.", href: "#product" },
       { title: "Seller Accountability", desc: "Every product is easily traced back to the creator or brand who promoted it.", href: "#product" },
       { title: "Handled Logistics", desc: "A dedicated delivery service for every seller.", href: "#product" },
       { title: "Sellers Dashboard", desc: "Performance analysis, order handling, and content marketing all in one place.", href: "#product" },
