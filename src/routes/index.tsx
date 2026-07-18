@@ -14,11 +14,11 @@ const MENUS: Record<MenuKey, { label: string; items: { title: string; desc: stri
     label: "Product",
     items: [
       { title: "Content to Sale", desc: "Buy directly from creative content — no third-party links, higher conversion rate.", href: "#product" },
-      { title: "Scam Protection", desc: "No payment reaches a seller without customer satisfaction.", href: "#product" },
+      { title: "Scam Proof", desc: "No payment reaches a seller without customer satisfaction.", href: "#product" },
       { title: "Seller Accountability", desc: "Every product is easily traced back to the creator or brand who promoted it.", href: "#product" },
       { title: "Handled Logistics", desc: "A dedicated delivery service for every seller.", href: "#product" },
       { title: "Sellers Dashboard", desc: "Performance analysis, order handling, and content marketing all in one place.", href: "#product" },
-      { title: "Find Your Fit", desc: "A recommendation system tuned for fit — and fewer returns.", href: "#product" },
+      { title: "Find Your Fit", desc: "A recommendation system tuned for\u00a0 and fewer returns.", href: "#product" },
       { title: "Oakmonte Studio", desc: "Dedicated tools for creators and brands to express creativity through content.", href: "#product" },
       { title: "Customizable Storefronts", desc: "Communicate your identity to customers at a glance.", href: "#product" },
       { title: "Improved Marketing", desc: "Human help and intuitive tools for\u00a0 \u00a0 \u00a0 story-telling and brand positioning.", href: "#product" },
