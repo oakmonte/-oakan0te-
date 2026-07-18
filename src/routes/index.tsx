@@ -18,7 +18,7 @@ const MENUS: Record<MenuKey, { label: string; items: { title: string; desc: stri
       { title: "Seller Accountability", desc: "Every product is easily traced back to the creator or brand who promoted it.", href: "#product" },
       { title: "Handled Logistics", desc: "A dedicated delivery service for every seller.", href: "#product" },
       { title: "Sellers Dashboard", desc: "Performance analysis, order handling, and content marketing all in one place.", href: "#product" },
-      { title: "Find Your Fit", desc: "A recommendation system built to improve product-customer fit and\u00a0", href: "#product" },
+      { title: "Find Your Fit", desc: "A recommendation system built to improve product-customer fit\u00a0\u00a0", href: "#product" },
       { title: "Oakmonte Studio", desc: "Dedicated tools for creators and brands to express creativity through content.", href: "#product" },
       { title: "Customizable Storefronts", desc: "Communicate your identity to customers at a glance.", href: "#product" },
       { title: "Improved Marketing", desc: "Human help and intuitive tools for\u00a0effective story-telling and brand positioning.", href: "#product" },
