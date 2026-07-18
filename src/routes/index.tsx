@@ -22,7 +22,7 @@ const MENUS: Record<MenuKey, { label: string; items: { title: string; desc: stri
       { title: "Oakmonte Studio", desc: "Dedicated tools for creators and brands to express creativity through content.", href: "#product" },
       { title: "Customizable Storefronts", desc: "Communicate your identity to customers at a glance.", href: "#product" },
       { title: "Improved Marketing", desc: "Human help and intuitive tools for\u00a0effective story-telling and brand positioning.", href: "#product" },
-      { title: "Collaboration Tools", desc: "Sellers and creators collaborate for income stre and a better customer experience.", href: "#product" },
+      { title: "Collaboration Tools", desc: "Sellers and creators collaborate for income streams and a better customer experience.", href: "#product" },
     ],
   },
   solutions: {
