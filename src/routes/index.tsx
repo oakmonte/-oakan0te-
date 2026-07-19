@@ -375,7 +375,7 @@ function Index() {
       <footer className="py-12 px-6 md:px-8 border-t border-brand-text/5 flex flex-col md:flex-row gap-6 justify-between items-start md:items-center text-[10px] uppercase tracking-widest opacity-50">
         <div>© 2026 Oakmonte Collective</div>
         <div className="flex gap-8">
-          <a href="/terms">Terms</a>
+          <a href="/terms">TERMS&nbsp;OF SERVICE&nbsp;</a>
           <a href="#">Privacy</a>
           <a href="#">Manifesto</a>
         </div>
