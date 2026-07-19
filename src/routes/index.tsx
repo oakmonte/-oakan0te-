@@ -376,7 +376,7 @@ function Index() {
         <div>© 2026 Oakmonte Collective</div>
         <div className="flex gap-8">
           <a href="/terms">TERMS&nbsp;OF SERVICE&nbsp;</a>
-          <a href="#">Privacy</a>
+          <a href="#">PRIVACY POLICY</a>
           <a href="#">Manifesto</a>
         </div>
       </footer>
