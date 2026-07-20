@@ -134,11 +134,11 @@ function Index() {
   return (
     <div className="min-h-screen bg-brand-bg text-brand-text font-sans">
       {/* NAV */}
-      <nav className={`fixed top-0 w-full z-50 px-6 md:px-8 flex justify-between items-center border-b border-brand-text/5 bg-brand-bg/80 backdrop-blur-md transition-[padding] duration-300 ${scrolled ? "py-4" : "py-6"}`}>
-        <a href="#top" className="flex items-baseline gap-0 shrink-0">
-          <img src={logoO} alt="Oakmonte" className="h-11 w-auto inline-block align-baseline mt-1" />
-          <span className="font-sans font-normal text-3xl tracking-tight leading-none">akmonte</span>
-          <span className="ml-3 text-[9px] uppercase tracking-[0.25em] opacity-40 font-sans font-normal leading-none pb-1">Style First</span>
+      <nav className={`fixed top-0 w-full z-50 px-4 sm:px-6 md:px-8 flex justify-between items-center gap-3 border-b border-brand-text/5 bg-brand-bg/80 backdrop-blur-md transition-[padding] duration-300 ${scrolled ? "py-3 md:py-4" : "py-4 md:py-6"}`}>
+        <a href="#top" className="flex items-baseline gap-0 shrink-0 min-w-0">
+          <img src={logoO} alt="Oakmonte" className="h-8 sm:h-10 md:h-11 w-auto inline-block align-baseline mt-1" />
+          <span className="font-sans font-normal text-2xl sm:text-3xl tracking-tight leading-none">akmonte</span>
+          <span className="hidden sm:inline ml-3 text-[9px] uppercase tracking-[0.25em] opacity-40 font-sans font-normal leading-none pb-1">Style First</span>
         </a>
 
         <div className="hidden lg:flex gap-10" onMouseLeave={scheduleClose}>
@@ -184,11 +184,11 @@ function Index() {
           })}
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4 shrink-0">
           <a href="#" className="hidden md:inline text-[11px] uppercase tracking-[0.2em] font-semibold hover:text-brand-accent transition-colors duration-500">Sign in</a>
-          <a href="#register" className="px-5 md:px-6 py-2 border border-brand-text text-[10px] uppercase tracking-widest hover:bg-brand-text hover:text-brand-bg transition-all">Access Dashboard</a>
+          <a href="#register" className="px-3 sm:px-5 md:px-6 py-2 border border-brand-text text-[9px] sm:text-[10px] uppercase tracking-widest whitespace-nowrap hover:bg-brand-text hover:text-brand-bg transition-all">Access Dashboard</a>
           <button
-            className="lg:hidden ml-1 p-2 -mr-2"
+            className="lg:hidden p-2 -mr-2"
             aria-label="Menu"
             onClick={() => setMobileOpen((v) => !v)}
           >
@@ -230,40 +230,40 @@ function Index() {
         )}
       </nav>
 
-      <div className="hidden md:flex justify-end px-6 md:px-8 pt-28 md:pt-36 pb-2">
+      <div className="flex justify-end px-4 sm:px-6 md:px-8 pt-24 sm:pt-28 md:pt-36 pb-2">
         <a href="mailto:hello@oakmonte.com" className="text-[11px] uppercase tracking-[0.2em] font-semibold hover:text-brand-accent transition-colors duration-500">Contact us</a>
       </div>
 
       {/* HERO */}
-      <section id="top" className="pt-32 md:pt-6 pb-20 px-6 md:px-8">
+      <section id="top" className="pt-4 md:pt-6 pb-16 md:pb-20 px-4 sm:px-6 md:px-8">
         <div className="max-w-7xl mx-auto grid grid-cols-12 gap-8 items-end">
           <div className="col-span-12 lg:col-span-7">
-            <h1 className="leading-[0.85] tracking-tight mb-8 text-7xl md:text-8xl lg:text-[150px] uppercase" style={{ fontFamily: "Anton, Impact, sans-serif", fontWeight: 400 }}>
+            <h1 className="leading-[0.85] tracking-tight mb-6 md:mb-8 text-[3.25rem] sm:text-6xl md:text-8xl lg:text-[150px] uppercase break-words" style={{ fontFamily: "Anton, Impact, sans-serif", fontWeight: 400 }}>
               Content <br />
               <span className="text-brand-accent">is</span> Commerce.
             </h1>
-            <p ref={typeRef} className="max-w-md text-lg text-brand-text/70 font-light leading-relaxed mb-6 min-h-[5rem]" aria-label={typeText}>
+            <p ref={typeRef} className="max-w-md text-base sm:text-lg text-brand-text/70 font-light leading-relaxed mb-6 min-h-[6rem] sm:min-h-[5rem]" aria-label={typeText}>
               {typeText.slice(0, typedLength)}
               <span className="inline-block w-px h-[1em] bg-brand-text/70 align-middle ml-0.5" style={{ animation: 'cursor-blink 0.7s steps(1) infinite' }} aria-hidden="true" />
             </p>
-            <p className="max-w-md text-base italic text-brand-text/50 leading-relaxed mb-12">
+            <p className="max-w-md text-sm sm:text-base italic text-brand-text/50 leading-relaxed mb-10 md:mb-12">
               style is proof that you <span className="font-bold not-italic" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, sans-serif' }}>think different.</span>
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl">
-              <a href="#register" className="text-center px-6 py-4 md:py-5 bg-brand-text text-brand-bg text-[11px] uppercase tracking-widest font-bold hover:bg-brand-accent transition-colors duration-300">Set up a Store</a>
-              <a href="#register" className="text-center px-6 py-4 md:py-5 bg-brand-text text-brand-bg text-[11px] uppercase tracking-widest font-bold hover:bg-brand-accent transition-colors duration-300">Become a Creator</a>
-              <a href="#buyers" className="text-center px-6 py-4 md:py-5 bg-brand-bg text-brand-text border border-brand-text text-[11px] uppercase tracking-widest font-bold hover:border-brand-accent hover:text-brand-accent transition-colors duration-300">Define Your Style</a>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 max-w-2xl">
+              <a href="#register" className="text-center px-4 sm:px-6 py-4 md:py-5 bg-brand-text text-brand-bg text-[11px] uppercase tracking-widest font-bold hover:bg-brand-accent transition-colors duration-300">Set up a Store</a>
+              <a href="#register" className="text-center px-4 sm:px-6 py-4 md:py-5 bg-brand-text text-brand-bg text-[11px] uppercase tracking-widest font-bold hover:bg-brand-accent transition-colors duration-300">Become a Creator</a>
+              <a href="#buyers" className="text-center px-4 sm:px-6 py-4 md:py-5 bg-brand-bg text-brand-text border border-brand-text text-[11px] uppercase tracking-widest font-bold hover:border-brand-accent hover:text-brand-accent transition-colors duration-300">Define Your Style</a>
             </div>
           </div>
         </div>
       </section>
 
       {/* TRUST TRIANGLE */}
-      <section id="ecosystem" className="py-24 md:py-32 px-6 md:px-8 border-y border-brand-text/5">
+      <section id="ecosystem" className="py-16 sm:py-24 md:py-32 px-4 sm:px-6 md:px-8 border-y border-brand-text/5">
         <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col mb-16 md:mb-20">
+          <div className="flex flex-col mb-10 sm:mb-16 md:mb-20">
             <span className="text-[10px] uppercase tracking-[0.3em] text-brand-accent font-bold mb-4">Protocol</span>
-            <h2 className="text-4xl font-serif">The Trust Triangle</h2>
+            <h2 className="text-3xl sm:text-4xl font-serif">The Trust Triangle</h2>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-px bg-brand-text/10">
             <div id="buyers" className="bg-brand-bg lg:pr-12 py-8">
@@ -286,13 +286,13 @@ function Index() {
       </section>
 
       {/* FEATURES */}
-      <section id="product" className="py-24 md:py-32 px-6 md:px-8">
-        <div className="max-w-7xl mx-auto grid grid-cols-12 gap-12 lg:gap-16 items-center">
+      <section id="product" className="py-16 sm:py-24 md:py-32 px-4 sm:px-6 md:px-8">
+        <div className="max-w-7xl mx-auto grid grid-cols-12 gap-8 md:gap-12 lg:gap-16 items-center">
           <div className="col-span-12 lg:col-span-6">
             <img src={fabricImg} alt="Close-up of luxury woven fabric with soft neutral tones, highlighting texture and craftsmanship" loading="lazy" width={1200} height={1600} className="w-full aspect-[3/4] object-cover outline outline-1 -outline-offset-1 outline-black/5" />
           </div>
           <div className="col-span-12 lg:col-span-6">
-            <h2 className="text-4xl md:text-5xl font-serif leading-tight mb-8">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif leading-tight mb-6 md:mb-8">
               Eliminate the Friction.<br />
               <span className="italic">Elevate the Sale.</span>
             </h2>
@@ -302,9 +302,9 @@ function Index() {
                 { t: "Trust-First Verification", n: "Feature 02", d: "Every seller is manually vetted. No fast-fashion noise, just curated luxury and authentic archives." },
                 { t: "Creator Attribution", n: "Feature 03", d: "Every conversion is traced to the creator who inspired it. Fair credit, transparent payout." },
               ].map((f) => (
-                <div key={f.t} className="group cursor-default p-4 -mx-4 rounded-sm border border-transparent transition-all duration-200 hover:-translate-y-1 hover:border-brand-text/10 hover:shadow-[0_10px_30px_-15px_rgba(0,0,0,0.15)]">
+                <div key={f.t} className="group cursor-default p-4 -mx-2 sm:-mx-4 rounded-sm border border-transparent transition-all duration-200 hover:-translate-y-1 hover:border-brand-text/10 hover:shadow-[0_10px_30px_-15px_rgba(0,0,0,0.15)]">
                   <div className="flex justify-between items-end border-b border-brand-text/10 pb-4 group-hover:border-brand-text transition-colors">
-                    <span className="text-xl md:text-2xl font-light">{f.t}</span>
+                    <span className="text-lg sm:text-xl md:text-2xl font-light min-w-0 break-words">{f.t}</span>
                     <span className="text-[10px] uppercase font-bold pb-2 shrink-0 ml-4">{f.n}</span>
                   </div>
                   <p className="mt-4 text-sm text-brand-text/60 leading-relaxed max-w-[52ch]">{f.d}</p>
@@ -316,10 +316,10 @@ function Index() {
       </section>
 
       {/* REGISTER */}
-      <section id="register" className="py-24 md:py-32 bg-brand-text text-brand-bg">
-        <div className="max-w-3xl mx-auto text-center px-6 md:px-8">
-          <h2 className="text-5xl md:text-6xl font-serif mb-12 italic">Join the Front Row</h2>
-          <div className="bg-white/5 p-8 md:p-12 rounded-lg backdrop-blur-sm border border-white/10">
+      <section id="register" className="py-16 sm:py-24 md:py-32 bg-brand-text text-brand-bg">
+        <div className="max-w-3xl mx-auto text-center px-4 sm:px-6 md:px-8">
+          <h2 className="text-4xl sm:text-5xl md:text-6xl font-serif mb-10 md:mb-12 italic">Join the Front Row</h2>
+          <div className="bg-white/5 p-6 sm:p-8 md:p-12 rounded-lg backdrop-blur-sm border border-white/10">
             <p className="text-xs md:text-sm uppercase tracking-[0.2em] mb-8 opacity-60 font-semibold">Seller &amp; Creator Registration</p>
             {submitted ? (
               <div className="py-10 text-center">
@@ -336,7 +336,7 @@ function Index() {
 
                 <div>
                   <div className="text-[10px] uppercase tracking-[0.25em] opacity-60 mb-3">I am a…</div>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     {[
                       { v: "creator", l: "Creator" },
                       { v: "seller", l: "Seller" },
@@ -372,9 +372,9 @@ function Index() {
         </div>
       </section>
 
-      <footer className="py-12 px-6 md:px-8 border-t border-brand-text/5 flex flex-col md:flex-row gap-6 justify-between items-start md:items-center text-[10px] uppercase tracking-widest opacity-50">
+      <footer className="py-10 md:py-12 px-4 sm:px-6 md:px-8 border-t border-brand-text/5 flex flex-col md:flex-row gap-6 justify-between items-start md:items-center text-[10px] uppercase tracking-widest opacity-50">
         <div>© 2026 Oakmonte Collective</div>
-        <div className="flex gap-8">
+        <div className="flex flex-wrap gap-4 sm:gap-8">
           <a href="/terms">TERMS&nbsp;OF SERVICE&nbsp;</a>
           <a href="/privacy">PRIVACY POLICY</a>
           <a href="#">Manifesto</a>
