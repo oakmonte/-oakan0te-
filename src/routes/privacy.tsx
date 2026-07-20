@@ -55,7 +55,7 @@ function PrivacyPage() {
 
   return (
     <div className="min-h-screen bg-brand-bg text-brand-text">
-      <header className="px-6 md:px-8 py-6 border-b border-brand-text/10 flex items-center justify-between">
+      <header className="px-4 sm:px-6 lg:px-8 py-6 border-b border-brand-text/10 flex items-center justify-between">
         <Link to="/" className="font-display text-2xl tracking-wide">OAKMONTE</Link>
         <div className="flex gap-6 text-[11px] uppercase tracking-widest">
           <Link to="/" className="opacity-70 hover:opacity-100 transition-opacity">Home</Link>
@@ -68,7 +68,7 @@ function PrivacyPage() {
         </div>
       </header>
 
-      <div className="max-w-6xl mx-auto px-6 md:px-8 py-12 md:py-20">
+      <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
         <div className="mb-10">
           <p className="text-[10px] uppercase tracking-[0.25em] opacity-50 mb-4">Legal</p>
           <h1 className="font-display text-5xl md:text-7xl leading-none tracking-tight">Privacy Policy</h1>
@@ -323,7 +323,7 @@ function PrivacyPage() {
         </div>
       </div>
 
-      <footer className="py-12 px-6 md:px-8 border-t border-brand-text/5 flex flex-col md:flex-row gap-6 justify-between items-start md:items-center text-[10px] uppercase tracking-widest opacity-50 print:hidden">
+      <footer className="py-12 px-4 sm:px-6 lg:px-8 border-t border-brand-text/5 flex flex-col md:flex-row gap-6 justify-between items-start md:items-center text-[10px] uppercase tracking-widest opacity-50 print:hidden">
         <div>© 2026 Oakmonte Collective</div>
         <div className="flex gap-8">
           <Link to="/terms">Terms of Service</Link>
