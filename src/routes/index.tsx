@@ -93,7 +93,9 @@ function Index() {
         effective = progress - pauseHold;
       }
       effective = Math.max(0, Math.min(1, effective));
-      setTypedLength(Math.round(effective * total));
+      const next = Math.round(effective * total);
+      console.log('type update', { rectTop: rect.top, progress, effective, next });
+      setTypedLength(next);
     };
     update();
     window.addEventListener("scroll", update, { passive: true });
