@@ -74,6 +74,50 @@ function Index() {
     if (!el) return;
     const total = typeText.length;
     const periodIndex = typeText.indexOf('.') + 1;
+    const isMobile = window.matchMedia("(max-width: 767px)").matches;
+
+    if (isMobile) {
+      let raf = 0;
+      let timer: ReturnType<typeof setTimeout> | null = null;
+      let started = false;
+      const run = () => {
+        const startTime = performance.now();
+        const perChar = 25; // ms
+        const pauseMs = 700;
+        const tick = (now: number) => {
+          const elapsed = now - startTime;
+          let count: number;
+          const preDuration = periodIndex * perChar;
+          if (elapsed < preDuration) {
+            count = Math.floor(elapsed / perChar);
+          } else if (elapsed < preDuration + pauseMs) {
+            count = periodIndex;
+          } else {
+            const after = elapsed - preDuration - pauseMs;
+            count = Math.min(total, periodIndex + Math.floor(after / perChar));
+          }
+          setTypedLength(count);
+          if (count < total) raf = requestAnimationFrame(tick);
+        };
+        raf = requestAnimationFrame(tick);
+      };
+      const io = new IntersectionObserver((entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting && !started) {
+            started = true;
+            timer = setTimeout(run, 150);
+            io.disconnect();
+          }
+        }
+      }, { threshold: 0.4 });
+      io.observe(el);
+      return () => {
+        io.disconnect();
+        if (timer) clearTimeout(timer);
+        cancelAnimationFrame(raf);
+      };
+    }
+
     const pauseStart = periodIndex / total;
     const pauseHold = 0.2;
     const pauseEnd = pauseStart + pauseHold;
