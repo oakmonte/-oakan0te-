@@ -231,7 +231,7 @@ function Index() {
           onClick={() => { setMobileOpen(false); setMobileGroup(null); }}
         />
         <aside
-          className={`absolute top-0 left-0 h-full w-[85%] max-w-sm bg-brand-bg shadow-2xl flex flex-col transition-transform duration-300 ease-out ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
+          className={`absolute top-0 right-0 h-full w-full bg-brand-bg shadow-2xl flex flex-col transition-transform duration-300 ease-out ${mobileOpen ? "translate-x-0" : "translate-x-full"}`}
         >
           <div className="flex items-center justify-between px-5 py-4 border-b border-brand-text/10">
             {mobileGroup ? (
