@@ -160,6 +160,31 @@ function Index() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // Re-evaluate :hover during scroll (Chrome/Safari don't update hover state
+  // on scroll until the mouse moves). Track last pointer position and
+  // dispatch a synthetic mousemove after each scroll tick.
+  useEffect(() => {
+    let lastX = -1, lastY = -1, raf = 0;
+    const onMove = (e: MouseEvent) => { lastX = e.clientX; lastY = e.clientY; };
+    const onScroll = () => {
+      if (raf || lastX < 0) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        const el = document.elementFromPoint(lastX, lastY);
+        if (el) el.dispatchEvent(new MouseEvent("mousemove", {
+          bubbles: true, cancelable: true, clientX: lastX, clientY: lastY,
+        }));
+      });
+    };
+    window.addEventListener("mousemove", onMove, { passive: true });
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("scroll", onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, []);
+
   const openWithKey = (key: MenuKey) => {
     if (closeTimer.current) { clearTimeout(closeTimer.current); closeTimer.current = null; }
     setOpenMenu(key);
