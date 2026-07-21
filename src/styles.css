@@ -16,6 +16,7 @@
 
 @layer base {
   html { scroll-behavior: smooth; }
+  html, body { overflow-x: hidden; overscroll-behavior-x: none; }
   body { font-family: var(--font-sans); font-weight: 300; -webkit-font-smoothing: antialiased; background: var(--color-brand-bg); color: var(--color-brand-text); }
   :focus-visible { outline: 2px solid var(--color-brand-accent); outline-offset: 3px; border-radius: 2px; }
 }
