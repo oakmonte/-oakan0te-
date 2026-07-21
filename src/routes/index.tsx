@@ -291,7 +291,7 @@ function Index() {
 
       {/* Mobile side drawer */}
       <div
-        className={`lg:hidden fixed inset-0 z-40 transition-opacity duration-300 ${mobileOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
+        className={`lg:hidden fixed inset-0 z-40 transition-opacity duration-500 ${mobileOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
         aria-hidden={!mobileOpen}
       >
         <div
@@ -299,7 +299,7 @@ function Index() {
           onClick={() => { setMobileOpen(false); setMobileGroup(null); }}
         />
         <aside
-          className={`absolute top-0 right-0 h-full w-full bg-brand-bg shadow-2xl flex flex-col transition-transform duration-300 ease-out ${mobileOpen ? "translate-x-0" : "translate-x-full"}`}
+          className={`absolute top-0 right-0 h-full w-full bg-brand-bg shadow-2xl flex flex-col transition-transform duration-500 ease-out ${mobileOpen ? "translate-x-0" : "translate-x-full"}`}
         >
           {/* Drawer header spacer — top nav owns logo/back/close */}
           <div className="h-[64px] border-b border-brand-text/10" aria-hidden="true" />
@@ -307,7 +307,7 @@ function Index() {
           <div className="relative flex-1 overflow-hidden">
             {/* Top-level list */}
             <div
-              className={`absolute inset-0 overflow-y-auto transition-transform duration-300 ease-out ${mobileGroup ? "-translate-x-full" : "translate-x-0"}`}
+              className={`absolute inset-0 overflow-y-auto transition-transform duration-500 ease-out ${mobileGroup ? "-translate-x-full" : "translate-x-0"}`}
             >
               {(Object.keys(MENUS) as MenuKey[]).map((key) => {
                 const m = MENUS[key];
@@ -335,7 +335,7 @@ function Index() {
 
             {/* Subgroup panel */}
             <div
-              className={`absolute inset-0 overflow-y-auto transition-transform duration-300 ease-out ${mobileGroup ? "translate-x-0" : "translate-x-full"}`}
+              className={`absolute inset-0 overflow-y-auto transition-transform duration-500 ease-out ${mobileGroup ? "translate-x-0" : "translate-x-full"}`}
             >
               {mobileGroup && (
                 <div>
