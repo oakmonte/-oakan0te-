@@ -290,7 +290,11 @@ function Index() {
             <div id="sellers" className="bg-brand-bg lg:px-12 py-8">
               <span className="text-sm font-serif italic mb-6 block">Creators</span>
               <h3 className="text-xl font-semibold mb-4">{"\n"}</h3>
-              <p className="text-sm text-brand-text/60 leading-relaxed whitespace-pre-line">Make money from your content{"\n"}Intuitive creator and collaboration tools{"\n"}Greater visibility{"\n"}&nbsp;</p>
+              <ul className="text-sm text-brand-text/60 leading-relaxed list-disc list-inside space-y-1">
+                <li>Make money from your content</li>
+                <li>Intuitive creator and collaboration tools</li>
+                <li>Greater visibility</li>
+              </ul>
             </div>
             <div id="creators" className="bg-brand-bg lg:pl-12 py-8">
               <span className="text-sm font-serif italic mb-6 block">Curators</span>
