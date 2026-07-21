@@ -252,7 +252,7 @@ function Index() {
           <div className="col-span-12 lg:col-span-7">
             <h1 className="leading-[0.85] tracking-tight mb-6 md:mb-8 text-[3.25rem] sm:text-6xl md:text-8xl lg:text-[150px] uppercase break-words" style={{ fontFamily: "Anton, Impact, sans-serif", fontWeight: 400 }}>
               SHARE <br />
-              <span className="text-brand-accent">YOUR</span> STYLE
+              <span className="text-brand-accent">YOUR</span> STYLE.
             </h1>
             <p ref={typeRef} className="max-w-full sm:max-w-md text-base sm:text-lg text-brand-text/70 font-light leading-relaxed mb-6 min-h-[6rem] sm:min-h-[5rem]" aria-label={typeText}>
               {typeText.slice(0, typedLength)}
