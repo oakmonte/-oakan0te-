@@ -257,31 +257,8 @@ function Index() {
         <aside
           className={`absolute top-0 right-0 h-full w-full bg-brand-bg shadow-2xl flex flex-col transition-transform duration-300 ease-out ${mobileOpen ? "translate-x-0" : "translate-x-full"}`}
         >
-          <div className="flex items-center justify-between px-5 py-4 border-b border-brand-text/10">
-            {mobileGroup ? (
-              <button
-                onClick={() => setMobileGroup(null)}
-                className="inline-flex items-center gap-2 text-[12px] uppercase tracking-[0.2em] font-semibold hover:text-brand-accent transition-colors"
-                aria-label="Back"
-              >
-                <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
-                  <path d="M9 2L4 7l5 5" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                Back
-              </button>
-            ) : (
-              <img src={oakmonteO.url} alt="Oakmonte" className="h-9 w-auto" />
-            )}
-            <button
-              onClick={() => { setMobileOpen(false); setMobileGroup(null); }}
-              className="p-2 -mr-2"
-              aria-label="Close menu"
-            >
-              <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true">
-                <path d="M4 4l14 14M18 4L4 18" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" />
-              </svg>
-            </button>
-          </div>
+          {/* Drawer header spacer — top nav owns logo/back/close */}
+          <div className="h-[64px] border-b border-brand-text/10" aria-hidden="true" />
 
           <div className="relative flex-1 overflow-hidden">
             {/* Top-level list */}
