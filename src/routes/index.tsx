@@ -274,8 +274,8 @@ function Index() {
       <section id="ecosystem" className="py-16 sm:py-24 md:py-32 px-4 sm:px-6 lg:px-8 border-y border-brand-text/5">
         <div className="w-full max-w-7xl mx-auto">
           <div className="flex flex-col mb-10 sm:mb-16 md:mb-20">
-            <span className="text-[10px] uppercase tracking-[0.3em] text-brand-accent font-bold mb-4">Protocol</span>
-            <h2 className="text-3xl sm:text-4xl font-serif">The Trust Triangle</h2>
+            <span className="text-[10px] uppercase tracking-[0.3em] text-brand-accent font-bold mb-4">{"\n"}</span>
+            <h2 className="text-3xl sm:text-4xl font-serif">{"\n"}</h2>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-px bg-brand-text/10">
             <div id="buyers" className="bg-brand-bg lg:pr-12 py-8">
