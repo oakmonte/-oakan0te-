@@ -279,19 +279,19 @@ function Index() {
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-px bg-brand-text/10">
             <div id="buyers" className="bg-brand-bg lg:pr-12 py-8">
-              <span className="text-sm font-serif italic mb-6 block">01. Buyers</span>
-              <h3 className="text-xl font-semibold mb-4">Verified Access</h3>
-              <p className="text-sm text-brand-text/60 leading-relaxed">Purchase with absolute confidence. Every piece is vetted by our community of curators and creators.</p>
+              <span className="text-sm font-serif italic mb-6 block">&nbsp;Sellers</span>
+              <h3 className="text-xl font-semibold mb-4">{"\n"}</h3>
+              <p className="text-sm text-brand-text/60 leading-relaxed whitespace-pre-line">Logistics Handled{"\n"}Wider Customer Base{"\n"}Custom Stores{"\n"}{"\n"}</p>
             </div>
             <div id="sellers" className="bg-brand-bg lg:px-12 py-8">
-              <span className="text-sm font-serif italic mb-6 block">02. Sellers</span>
-              <h3 className="text-xl font-semibold mb-4">Curated Stores</h3>
-              <p className="text-sm text-brand-text/60 leading-relaxed">A platform built for fashion brands and high-end boutiques. Direct integration with your creative content.</p>
+              <span className="text-sm font-serif italic mb-6 block">Creators</span>
+              <h3 className="text-xl font-semibold mb-4">{"\n"}</h3>
+              <p className="text-sm text-brand-text/60 leading-relaxed whitespace-pre-line">Make money from your content{"\n"}Intuitive creator and collaboration tools{"\n"}Greater visibility{"\n"}&nbsp;</p>
             </div>
             <div id="creators" className="bg-brand-bg lg:pl-12 py-8">
-              <span className="text-sm font-serif italic mb-6 block">03. Creators</span>
-              <h3 className="text-xl font-semibold mb-4">Creative Commerce</h3>
-              <p className="text-sm text-brand-text/60 leading-relaxed">Monetize your taste. Tag products directly in your editorial content and earn on every verified sale.</p>
+              <span className="text-sm font-serif italic mb-6 block">Curators</span>
+              <h3 className="text-xl font-semibold mb-4">{"\n"}</h3>
+              <p className="text-sm text-brand-text/60 leading-relaxed whitespace-pre-line">Get pieces that actually fit{"\n"}Stay scam proof{"\n"}Find and share inspirations and recommendations&nbsp;</p>
             </div>
           </div>
         </div>
