@@ -149,9 +149,19 @@ function Index() {
       {/* NAV */}
       <nav className={`fixed top-0 left-0 right-0 w-full z-50 px-4 sm:px-6 lg:px-8 flex justify-between items-center gap-3 border-b border-brand-text/5 bg-brand-bg/80 backdrop-blur-md transition-[padding] duration-300 ${scrolled ? "py-3 md:py-4" : "py-4 md:py-6"}`}>
         <a href="#top" className="flex items-baseline gap-0 shrink-0 min-w-0">
-          <img src={logoO} alt="Oakmonte" className="h-8 sm:h-10 md:h-11 w-auto inline-block align-baseline mt-1" />
-          <span className="font-sans font-normal text-2xl sm:text-3xl tracking-tight leading-none">akmonte</span>
-          <span className="hidden sm:inline ml-3 text-[9px] uppercase tracking-[0.25em] opacity-40 font-sans font-normal leading-none pb-1">Style First</span>
+          {mobileOpen ? (
+            <img
+              src={oakmonteO.url}
+              alt="Oakmonte"
+              className="h-9 w-auto inline-block align-baseline transition-all duration-300 animate-fade-in"
+            />
+          ) : (
+            <>
+              <img src={logoO} alt="Oakmonte" className="h-8 sm:h-10 md:h-11 w-auto inline-block align-baseline mt-1 transition-all duration-300" />
+              <span className="font-sans font-normal text-2xl sm:text-3xl tracking-tight leading-none">akmonte</span>
+              <span className="hidden sm:inline ml-3 text-[9px] uppercase tracking-[0.25em] opacity-40 font-sans font-normal leading-none pb-1">Style First</span>
+            </>
+          )}
         </a>
 
         <div className="hidden lg:flex gap-10" onMouseLeave={scheduleClose}>
