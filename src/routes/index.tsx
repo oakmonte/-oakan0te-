@@ -90,7 +90,7 @@ function Index() {
       if (progress > pauseStart && progress < pauseEnd) {
         effective = pauseStart;
       } else if (progress >= pauseEnd) {
-        effective = progress - pauseHold;
+        effective = pauseStart + ((progress - pauseEnd) / (1 - pauseEnd)) * (1 - pauseStart);
       }
       effective = Math.max(0, Math.min(1, effective));
       setTypedLength(Math.round(effective * total));
