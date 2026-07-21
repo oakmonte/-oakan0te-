@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import fabricImg from "@/assets/fabric-detail.jpg";
 import logoO from "@/assets/logo-o.png";
+import oakmonteO from "@/assets/oakmonte-o.png.asset.json";
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -201,46 +202,118 @@ function Index() {
           <a href="#register" className="px-3 sm:px-5 md:px-6 py-2 border border-brand-text text-[9px] sm:text-[10px] uppercase tracking-widest whitespace-nowrap hover:bg-brand-text hover:text-brand-bg transition-all">Access Dashboard</a>
           <button
             className="lg:hidden p-2 -mr-2"
-            aria-label="Menu"
-            onClick={() => setMobileOpen((v) => !v)}
+            aria-label={mobileOpen ? "Close menu" : "Open menu"}
+            onClick={() => { setMobileOpen((v) => !v); setMobileGroup(null); }}
           >
-            <span className="block w-5 h-px bg-brand-text mb-1.5" />
-            <span className="block w-5 h-px bg-brand-text mb-1.5" />
-            <span className="block w-5 h-px bg-brand-text" />
+            {mobileOpen ? (
+              <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true">
+                <path d="M4 4l14 14M18 4L4 18" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+              </svg>
+            ) : (
+              <>
+                <span className="block w-5 h-px bg-brand-text mb-1.5" />
+                <span className="block w-5 h-px bg-brand-text mb-1.5" />
+                <span className="block w-5 h-px bg-brand-text" />
+              </>
+            )}
           </button>
         </div>
 
-        {/* Mobile menu */}
-        {mobileOpen && (
-          <div className="lg:hidden absolute top-full left-0 right-0 bg-brand-bg border-b border-brand-text/10 shadow-xl">
-            {(Object.keys(MENUS) as MenuKey[]).map((key) => {
-              const m = MENUS[key];
-              const open = mobileGroup === key;
-              return (
-                <div key={key} className="border-b border-brand-text/5">
+      </nav>
+
+      {/* Mobile side drawer */}
+      <div
+        className={`lg:hidden fixed inset-0 z-40 transition-opacity duration-300 ${mobileOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
+        aria-hidden={!mobileOpen}
+      >
+        <div
+          className="absolute inset-0 bg-brand-text/30"
+          onClick={() => { setMobileOpen(false); setMobileGroup(null); }}
+        />
+        <aside
+          className={`absolute top-0 left-0 h-full w-[85%] max-w-sm bg-brand-bg shadow-2xl flex flex-col transition-transform duration-300 ease-out ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
+        >
+          <div className="flex items-center justify-between px-5 py-4 border-b border-brand-text/10">
+            {mobileGroup ? (
+              <button
+                onClick={() => setMobileGroup(null)}
+                className="inline-flex items-center gap-2 text-[12px] uppercase tracking-[0.2em] font-semibold hover:text-brand-accent transition-colors"
+                aria-label="Back"
+              >
+                <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
+                  <path d="M9 2L4 7l5 5" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                Back
+              </button>
+            ) : (
+              <img src={oakmonteO.url} alt="Oakmonte" className="h-9 w-auto" />
+            )}
+            <button
+              onClick={() => { setMobileOpen(false); setMobileGroup(null); }}
+              className="p-2 -mr-2"
+              aria-label="Close menu"
+            >
+              <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true">
+                <path d="M4 4l14 14M18 4L4 18" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+              </svg>
+            </button>
+          </div>
+
+          <div className="relative flex-1 overflow-hidden">
+            {/* Top-level list */}
+            <div
+              className={`absolute inset-0 overflow-y-auto transition-transform duration-300 ease-out ${mobileGroup ? "-translate-x-full" : "translate-x-0"}`}
+            >
+              {(Object.keys(MENUS) as MenuKey[]).map((key) => {
+                const m = MENUS[key];
+                return (
                   <button
-                    onClick={() => setMobileGroup(open ? null : key)}
-                    className="w-full flex justify-between items-center px-6 py-4 text-[11px] uppercase tracking-[0.2em] font-semibold"
+                    key={key}
+                    onClick={() => setMobileGroup(key)}
+                    className="w-full flex justify-between items-center px-6 py-5 text-[13px] uppercase tracking-[0.2em] font-semibold border-b border-brand-text/10 hover:bg-brand-muted/40 transition-colors"
                   >
                     {m.label}
-                    <span className={`transition-transform duration-300 ${open ? "rotate-180" : ""}`}>▾</span>
+                    <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
+                      <path d="M3 1l4 4-4 4" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
                   </button>
-                  <div className={`grid transition-all duration-300 ease-out ${open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
-                    <div className="overflow-hidden">
-                      {m.items.map((it) => (
-                        <a key={it.title} href={it.href} onClick={() => setMobileOpen(false)} className="block px-6 py-3 hover:bg-brand-muted/40">
-                          <div className="text-sm font-semibold">{it.title}</div>
-                          <div className="text-xs text-brand-text/60 font-light mt-0.5">{it.desc}</div>
-                        </a>
-                      ))}
-                    </div>
+                );
+              })}
+              <a
+                href="mailto:hello@oakmonte.com"
+                onClick={() => setMobileOpen(false)}
+                className="w-full flex justify-between items-center px-6 py-5 text-[13px] uppercase tracking-[0.2em] font-semibold border-b border-brand-text/10 hover:bg-brand-muted/40 transition-colors"
+              >
+                Contact us
+              </a>
+            </div>
+
+            {/* Subgroup panel */}
+            <div
+              className={`absolute inset-0 overflow-y-auto transition-transform duration-300 ease-out ${mobileGroup ? "translate-x-0" : "translate-x-full"}`}
+            >
+              {mobileGroup && (
+                <div>
+                  <div className="px-6 pt-6 pb-3 text-[11px] uppercase tracking-[0.25em] text-brand-text/50">
+                    {MENUS[mobileGroup].label}
                   </div>
+                  {MENUS[mobileGroup].items.map((it) => (
+                    <a
+                      key={it.title}
+                      href={it.href}
+                      onClick={() => { setMobileOpen(false); setMobileGroup(null); }}
+                      className="block px-6 py-4 border-b border-brand-text/10 hover:bg-brand-muted/40 transition-colors"
+                    >
+                      <div className="text-sm font-semibold">{it.title}</div>
+                      <div className="text-xs text-brand-text/60 font-light mt-1 leading-snug">{it.desc}</div>
+                    </a>
+                  ))}
                 </div>
-              );
-            })}
+              )}
+            </div>
           </div>
-        )}
-      </nav>
+        </aside>
+      </div>
 
       <div className="w-full flex justify-end px-4 sm:px-6 lg:px-8 pt-24 sm:pt-28 md:pt-36 pb-2">
         <a href="mailto:hello@oakmonte.com" className="text-[11px] uppercase tracking-[0.2em] font-semibold hover:text-brand-accent transition-colors duration-500">Contact us</a>
