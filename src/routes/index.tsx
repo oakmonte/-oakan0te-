@@ -71,6 +71,11 @@ function Index() {
   useEffect(() => {
     const el = typeRef.current;
     if (!el) return;
+    const total = typeText.length;
+    const periodIndex = typeText.indexOf('.') + 1;
+    const pauseStart = periodIndex / total;
+    const pauseHold = 0.2;
+    const pauseEnd = pauseStart + pauseHold;
     const update = () => {
       const rect = el.getBoundingClientRect();
       const windowHeight = window.innerHeight;
@@ -81,7 +86,14 @@ function Index() {
         progress = (start - rect.top) / (start - end);
       }
       progress = Math.max(0, Math.min(1, progress));
-      setTypedLength(Math.round(progress * typeText.length));
+      let effective = progress;
+      if (progress > pauseStart && progress < pauseEnd) {
+        effective = pauseStart;
+      } else if (progress >= pauseEnd) {
+        effective = progress - pauseHold;
+      }
+      effective = Math.max(0, Math.min(1, effective));
+      setTypedLength(Math.round(effective * total));
     };
     update();
     window.addEventListener("scroll", update, { passive: true });
