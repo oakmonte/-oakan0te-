@@ -264,7 +264,7 @@ function Index() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 w-full max-w-2xl">
               <a href="#register" className="text-center px-4 sm:px-6 py-4 md:py-5 bg-brand-text text-brand-bg text-[11px] uppercase tracking-widest font-bold hover:bg-brand-accent transition-colors duration-300">Set up a Store</a>
               <a href="#register" className="text-center px-4 sm:px-6 py-4 md:py-5 bg-brand-text text-brand-bg text-[11px] uppercase tracking-widest font-bold hover:bg-brand-accent transition-colors duration-300">Become a Creator</a>
-              <a href="#buyers" className="text-center px-4 sm:px-6 py-4 md:py-5 bg-brand-bg text-brand-text border border-brand-text text-[11px] uppercase tracking-widest font-bold hover:border-brand-accent hover:text-brand-accent transition-colors duration-300">Define Your Style</a>
+              <a href="#buyers" className="text-center px-4 sm:px-6 py-4 md:py-5 bg-brand-bg text-brand-text border border-brand-text text-[11px] uppercase tracking-widest font-bold hover:border-brand-accent hover:text-brand-accent transition-colors duration-300">DEFINE YOUR WARDROBE</a>
             </div>
           </div>
         </div>
