@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import fabricImg from "@/assets/fabric-detail.jpg";
 import logoO from "@/assets/logo-o.png";
-import oakmonteO from "@/assets/oakmonte-o.png.asset.json";
+import oakmonteO from "@/assets/oakmonte-o-mark.png.asset.json";
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -153,7 +153,7 @@ function Index() {
             <img
               src={oakmonteO.url}
               alt="Oakmonte"
-              className="h-9 w-auto inline-block align-baseline transition-all duration-300 animate-fade-in"
+              className="h-14 sm:h-16 w-auto -my-2 inline-block align-middle transition-all duration-300 animate-fade-in"
             />
           ) : (
             <>
