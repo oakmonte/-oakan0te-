@@ -148,21 +148,35 @@ function Index() {
     <div className="min-h-screen bg-brand-bg text-brand-text font-sans">
       {/* NAV */}
       <nav className={`fixed top-0 left-0 right-0 w-full z-50 px-4 sm:px-6 lg:px-8 flex justify-between items-center gap-3 border-b border-brand-text/5 bg-brand-bg/80 backdrop-blur-md transition-[padding] duration-300 ${scrolled ? "py-3 md:py-4" : "py-4 md:py-6"}`}>
-        <a href="#top" className="flex items-baseline gap-0 shrink-0 min-w-0">
-          {mobileOpen ? (
-            <img
-              src={oakmonteO.url}
-              alt="Oakmonte"
-              className="h-14 sm:h-16 w-auto -my-2 inline-block align-middle transition-all duration-300 animate-fade-in"
-            />
-          ) : (
-            <>
-              <img src={logoO} alt="Oakmonte" className="h-8 sm:h-10 md:h-11 w-auto inline-block align-baseline mt-1 transition-all duration-300" />
-              <span className="font-sans font-normal text-2xl sm:text-3xl tracking-tight leading-none">akmonte</span>
-              <span className="hidden sm:inline ml-3 text-[9px] uppercase tracking-[0.25em] opacity-40 font-sans font-normal leading-none pb-1">Style First</span>
-            </>
-          )}
-        </a>
+        {mobileOpen && mobileGroup ? (
+          <button
+            type="button"
+            onClick={() => setMobileGroup(null)}
+            aria-label="Back"
+            className="flex items-center gap-2 shrink-0 min-w-0 text-[12px] uppercase tracking-[0.2em] font-semibold hover:text-brand-accent transition-colors duration-300 animate-fade-in"
+          >
+            <svg width="18" height="18" viewBox="0 0 14 14" aria-hidden="true">
+              <path d="M9 2L4 7l5 5" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Back
+          </button>
+        ) : (
+          <a href="#top" className="flex items-baseline gap-0 shrink-0 min-w-0">
+            {mobileOpen ? (
+              <img
+                src={oakmonteO.url}
+                alt="Oakmonte"
+                className="h-14 sm:h-16 w-auto -my-2 inline-block align-middle transition-all duration-300 animate-fade-in"
+              />
+            ) : (
+              <>
+                <img src={logoO} alt="Oakmonte" className="h-8 sm:h-10 md:h-11 w-auto inline-block align-baseline mt-1 transition-all duration-300" />
+                <span className="font-sans font-normal text-2xl sm:text-3xl tracking-tight leading-none">akmonte</span>
+                <span className="hidden sm:inline ml-3 text-[9px] uppercase tracking-[0.25em] opacity-40 font-sans font-normal leading-none pb-1">Style First</span>
+              </>
+            )}
+          </a>
+        )}
 
         <div className="hidden lg:flex gap-10" onMouseLeave={scheduleClose}>
           {(Object.keys(MENUS) as MenuKey[]).map((key) => {
@@ -243,31 +257,8 @@ function Index() {
         <aside
           className={`absolute top-0 right-0 h-full w-full bg-brand-bg shadow-2xl flex flex-col transition-transform duration-300 ease-out ${mobileOpen ? "translate-x-0" : "translate-x-full"}`}
         >
-          <div className="flex items-center justify-between px-5 py-4 border-b border-brand-text/10">
-            {mobileGroup ? (
-              <button
-                onClick={() => setMobileGroup(null)}
-                className="inline-flex items-center gap-2 text-[12px] uppercase tracking-[0.2em] font-semibold hover:text-brand-accent transition-colors"
-                aria-label="Back"
-              >
-                <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
-                  <path d="M9 2L4 7l5 5" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                Back
-              </button>
-            ) : (
-              <img src={oakmonteO.url} alt="Oakmonte" className="h-9 w-auto" />
-            )}
-            <button
-              onClick={() => { setMobileOpen(false); setMobileGroup(null); }}
-              className="p-2 -mr-2"
-              aria-label="Close menu"
-            >
-              <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true">
-                <path d="M4 4l14 14M18 4L4 18" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" />
-              </svg>
-            </button>
-          </div>
+          {/* Drawer header spacer — top nav owns logo/back/close */}
+          <div className="h-[64px] border-b border-brand-text/10" aria-hidden="true" />
 
           <div className="relative flex-1 overflow-hidden">
             {/* Top-level list */}
