@@ -533,7 +533,7 @@ function Index() {
 
           {/* Full width closing feature */}
           <FeatureBox className="mt-6 md:mt-8 p-6 sm:p-10 md:p-14">
-            <h3 className="text-3xl sm:text-4xl md:text-5xl font-display uppercase tracking-tight leading-[0.95] mb-6">
+            <h3 className="text-3xl sm:text-4xl md:text-5xl font-serif mb-6">
               Oakmonte Studio
             </h3>
             <p className="text-sm sm:text-base text-brand-text/70 leading-relaxed max-w-[70ch]">
