@@ -59,9 +59,7 @@ function Index() {
   const [mobileGroup, setMobileGroup] = useState<MenuKey | null>(null);
   const [scrolled, setScrolled] = useState(false);
   const [activeSection, setActiveSection] = useState<string>("");
-  const [role, setRole] = useState<string>("");
-  const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+  // register section removed
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const typeText = "Oakmonte is an ecosystem designed for those who expect more. We connect vetted sellers, honest creators and style curators through a content driven marketplace.";
@@ -202,14 +200,6 @@ function Index() {
     if (key === "solutions") return ["sellers", "creators", "buyers"].includes(activeSection);
     if (key === "product") return activeSection === "product" || activeSection === "ecosystem";
     return false;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitting(true);
-    await new Promise((r) => setTimeout(r, 900));
-    setSubmitting(false);
-    setSubmitted(true);
   };
 
   return (
@@ -461,85 +451,85 @@ function Index() {
 
       {/* FEATURES */}
       <section id="product" className="py-16 sm:py-24 md:py-32 px-4 sm:px-6 lg:px-8">
-        <div className="w-full max-w-7xl mx-auto grid grid-cols-12 gap-8 md:gap-12 lg:gap-16 items-center">
-          <div className="col-span-12">
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif leading-tight mb-6 md:mb-8">
-              Eliminate the Friction.<br />
-              <span className="italic">Elevate the Sale.</span>
-            </h2>
-            <div className="space-y-6">
-              {[
-                { t: "Direct Content-to-Cart", n: "Feature 01", d: "No third-party links. Buy directly from the image or video within the native Oakmonte interface." },
-                { t: "Trust-First Verification", n: "Feature 02", d: "Every seller is manually vetted. No fast-fashion noise, just curated luxury and authentic archives." },
-                { t: "Creator Attribution", n: "Feature 03", d: "Every conversion is traced to the creator who inspired it. Fair credit, transparent payout." },
-              ].map((f) => (
-                <div key={f.t} className="group cursor-default p-4 -mx-2 sm:-mx-4 rounded-sm border border-transparent transition-all duration-200 hover:-translate-y-1 hover:border-brand-text/10 hover:shadow-[0_10px_30px_-15px_rgba(0,0,0,0.15)]">
-                  <div className="flex justify-between items-end border-b border-brand-text/10 pb-4 group-hover:border-brand-text transition-colors">
-                    <span className="text-lg sm:text-xl md:text-2xl font-light min-w-0 break-words">{f.t}</span>
-                    <span className="text-[10px] uppercase font-bold pb-2 shrink-0 ml-4">{f.n}</span>
-                  </div>
-                  <p className="mt-4 text-sm text-brand-text/60 leading-relaxed max-w-[52ch]">{f.d}</p>
-                </div>
-              ))}
+        <div className="w-full max-w-7xl mx-auto">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif leading-tight mb-10 md:mb-16">
+            Eliminate the Friction.<br />
+            <span className="italic">Elevate the Sale.</span>
+          </h2>
+
+          {/* Hero feature card with phone mockup */}
+          <FeatureBox className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center p-6 sm:p-10 md:p-14 mb-6 md:mb-8">
+            <div>
+              <h3 className="text-3xl sm:text-4xl md:text-5xl font-display uppercase tracking-tight leading-[0.95] mb-6">
+                Content to Cart
+              </h3>
+              <p className="text-sm sm:text-base text-brand-text/70 leading-relaxed max-w-[46ch]">
+                Buy directly from creative content — not third party links, all within the native oakmonte interface meaning Higher sale conversion rate for sellers and Easyier collaboration with creators.
+              </p>
             </div>
-          </div>
-        </div>
-      </section>
+            <div className="flex justify-center md:justify-end">
+              <PhoneMockup src="/videos/content-to-cart-demo.mp4" />
+            </div>
+          </FeatureBox>
 
-      {/* REGISTER */}
-      <section id="register" className="py-16 sm:py-24 md:py-32 bg-brand-text text-brand-bg">
-        <div className="w-full max-w-3xl mx-auto text-center px-4 sm:px-6 lg:px-8">
-          <h2 className="text-4xl sm:text-5xl md:text-6xl font-serif mb-10 md:mb-12 italic">Join the Front Row</h2>
-          <div className="bg-white/5 p-6 sm:p-8 md:p-12 rounded-lg backdrop-blur-sm border border-white/10">
-            <p className="text-xs md:text-sm uppercase tracking-[0.2em] mb-8 opacity-60 font-semibold">Seller &amp; Creator Registration</p>
-            {submitted ? (
-              <div className="py-10 text-center">
-                <div className="text-2xl font-serif italic mb-3">Request received.</div>
-                <p className="text-sm opacity-70">We'll be in touch after our curator review — usually within 3 business days.</p>
+          {/* 2-column bento grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+            <FeatureBox className="p-6 sm:p-8 md:p-10">
+              <h3 className="text-2xl sm:text-3xl font-serif mb-2">Stay Scam Proof</h3>
+              <p className="text-xs sm:text-sm font-display uppercase tracking-[0.15em] mb-5 text-brand-text/80">Stop Getting Scammed</p>
+              <div className="space-y-3 text-sm text-brand-text/70 leading-relaxed">
+                <p>No payment reaches any seller without customer satisfaction, no fast-fashion noise, just curated luxury and authentic pieces.</p>
+                <p>Creators won't make numbers and not get paid.</p>
+                <p>Sellers won't get one-upped by crafty curators — every complaint goes through a thorough dispute pipeline.</p>
               </div>
-            ) : (
-              <form className="space-y-6 text-left" onSubmit={handleSubmit}>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <input required type="text" placeholder="First Name" className="w-full bg-transparent border-b border-white/20 py-3 focus:outline-none focus:border-brand-bg transition-colors placeholder:text-brand-bg/30 text-sm text-brand-bg" />
-                  <input required type="text" placeholder="Last Name" className="w-full bg-transparent border-b border-white/20 py-3 focus:outline-none focus:border-brand-bg transition-colors placeholder:text-brand-bg/30 text-sm text-brand-bg" />
-                </div>
-                <input required type="email" placeholder="Professional Email" className="w-full bg-transparent border-b border-white/20 py-3 focus:outline-none focus:border-brand-bg transition-colors placeholder:text-brand-bg/30 text-sm text-brand-bg" />
+            </FeatureBox>
 
-                <div>
-                  <div className="text-[10px] uppercase tracking-[0.25em] opacity-60 mb-3">I am a…</div>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                    {[
-                      { v: "creator", l: "Creator" },
-                      { v: "seller", l: "Seller" },
-                      { v: "both", l: "Creator & Seller" },
-                    ].map((o) => {
-                      const selected = role === o.v;
-                      return (
-                        <button
-                          type="button"
-                          key={o.v}
-                          onClick={() => setRole(o.v)}
-                          className={`px-3 py-3 text-[11px] uppercase tracking-widest font-semibold border transition-all duration-300 ${selected ? "bg-brand-accent text-brand-bg border-brand-accent shadow-[0_0_0_2px_rgba(139,115,91,0.25)]" : "bg-transparent border-white/20 text-brand-bg/80 hover:border-brand-bg/60"}`}
-                          aria-pressed={selected}
-                        >
-                          {o.l}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
+            <FeatureBox className="p-6 sm:p-8 md:p-10">
+              <h3 className="text-2xl sm:text-3xl font-serif mb-5">Find Your Fit</h3>
+              <p className="text-sm text-brand-text/70 leading-relaxed">
+                A dedicated recommendation system tailored to improve curator-piece fit, and reduce returns as all pieces go through our personal size chart.
+              </p>
+            </FeatureBox>
 
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="w-full py-5 bg-brand-bg text-brand-text text-[11px] uppercase tracking-[0.3em] font-bold mt-8 hover:bg-brand-accent hover:text-brand-bg transition-all disabled:opacity-60"
-                >
-                  {submitting ? "Submitting…" : "Request Invite Access"}
-                </button>
-              </form>
-            )}
-            <p className="mt-8 text-[10px] opacity-40 uppercase tracking-widest leading-loose">By requesting access, you agree to our curator vetting process and privacy guidelines.</p>
+            <FeatureBox className="p-6 sm:p-8 md:p-10">
+              <h3 className="text-2xl sm:text-3xl font-serif mb-2">Customizable Storefronts</h3>
+              <p className="text-xs sm:text-sm font-display uppercase tracking-[0.15em] mb-5 text-brand-text/80">Who Needs A Website?</p>
+              <p className="text-sm text-brand-text/70 leading-relaxed">
+                Oakmonte offers a fully customizable storefront in-app so your customers can feel your aesthetic at a glance. This means improved customer retention, visibility, and wider profit margins.
+              </p>
+            </FeatureBox>
+
+            <FeatureBox className="p-6 sm:p-8 md:p-10">
+              <h3 className="text-2xl sm:text-3xl font-serif mb-5">Handled Logistics</h3>
+              <p className="text-sm text-brand-text/70 leading-relaxed">
+                Get a dedicated delivery service for your brand and a purposefully designed seller dashboard to handle sales and marketing, on and off Oakmonte.
+              </p>
+            </FeatureBox>
+
+            <FeatureBox className="p-6 sm:p-8 md:p-10">
+              <h3 className="text-2xl sm:text-3xl font-serif mb-5">Seller &amp; Creator Accountability</h3>
+              <p className="text-sm text-brand-text/70 leading-relaxed">
+                Unlike other marketplaces, every product is easily traced back to the creator or seller who promoted it. Fair credit, transparent payout.
+              </p>
+            </FeatureBox>
+
+            <FeatureBox className="p-6 sm:p-8 md:p-10">
+              <h3 className="text-2xl sm:text-3xl font-serif mb-5">Improved Marketing</h3>
+              <p className="text-sm text-brand-text/70 leading-relaxed">
+                Get help from us to tell the stories behind your brand — raising your products beyond their functional value.
+              </p>
+            </FeatureBox>
           </div>
+
+          {/* Full width closing feature */}
+          <FeatureBox className="mt-6 md:mt-8 p-6 sm:p-10 md:p-14">
+            <h3 className="text-3xl sm:text-4xl md:text-5xl font-display uppercase tracking-tight leading-[0.95] mb-6">
+              Oakmonte Studio
+            </h3>
+            <p className="text-sm sm:text-base text-brand-text/70 leading-relaxed max-w-[70ch]">
+              A dedicated dashboard for creators to produce and upload premium content, manage and flex collaborations, maintain customer relationships, and earn money.
+            </p>
+          </FeatureBox>
         </div>
       </section>
 
@@ -551,6 +541,49 @@ function Index() {
           <a href="#">Manifesto</a>
         </div>
       </footer>
+    </div>
+  );
+}
+
+function FeatureBox({ className = "", children }: { className?: string; children: React.ReactNode }) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) if (e.isIntersecting) { setVisible(true); io.disconnect(); break; }
+      },
+      { threshold: 0.15 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return (
+    <div
+      ref={ref}
+      className={`border border-brand-text/15 bg-brand-bg transition-all duration-500 ease-out hover:border-brand-text hover:-translate-y-[2px] ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"} ${className}`}
+    >
+      {children}
+    </div>
+  );
+}
+
+function PhoneMockup({ src }: { src: string }) {
+  return (
+    <div className="relative w-[220px] sm:w-[240px] md:w-[260px] aspect-[9/19.5] rounded-[2.25rem] border border-brand-text/80 bg-brand-text p-[6px] shadow-[0_20px_50px_-20px_rgba(0,0,0,0.35)]">
+      <div className="relative w-full h-full rounded-[1.85rem] overflow-hidden bg-brand-muted">
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-10 h-[22px] w-[90px] rounded-full bg-brand-text" aria-hidden="true" />
+        <video
+          src={src}
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="w-full h-full object-cover"
+        />
+      </div>
     </div>
   );
 }
