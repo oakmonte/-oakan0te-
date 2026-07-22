@@ -468,15 +468,17 @@ function Index() {
                 Buy directly from creative content — not third party links, all within the native oakmonte interface meaning Higher sale conversion rate for sellers and Easyier collaboration with creators.
               </p>
             </div>
-            <div className="flex justify-center md:justify-end bg-brand-bg">
-              <video
-                src={contentToCartVideo.url}
-                autoPlay
-                muted
-                loop
-                playsInline
-                className="w-full max-w-[420px] h-auto rounded-lg"
-              />
+            <div className="flex justify-center md:justify-end">
+              <div className="w-full max-w-[420px] aspect-[9/18.5] overflow-hidden rounded-lg bg-brand-bg">
+                <video
+                  src={contentToCartVideo.url}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  className="w-full h-full object-cover"
+                />
+              </div>
             </div>
           </FeatureBox>
 
