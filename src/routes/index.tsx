@@ -459,7 +459,7 @@ function Index() {
           </h2>
 
           {/* Hero feature card with phone mockup */}
-          <FeatureBox className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center p-6 sm:p-10 md:p-14 mb-6 md:mb-8 border-brand-bg">
+          <FeatureBox className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center p-6 sm:p-10 md:p-14 mb-6 md:mb-8 border-transparent hover:border-transparent">
             <div>
               <h3 className="text-3xl sm:text-4xl md:text-5xl font-display uppercase tracking-tight leading-[0.95] mb-6">
                 Content to Cart
@@ -468,7 +468,7 @@ function Index() {
                 Buy directly from creative content — not third party links, all within the native oakmonte interface meaning Higher sale conversion rate for sellers and Easyier collaboration with creators.
               </p>
             </div>
-            <div className="flex justify-center md:justify-end">
+            <div className="flex justify-center md:justify-end bg-brand-bg">
               <video
                 src={contentToCartVideo.url}
                 autoPlay
