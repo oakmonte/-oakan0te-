@@ -469,7 +469,7 @@ function Index() {
               </p>
             </div>
             <div className="flex justify-center md:justify-end">
-              <div className="w-full max-w-[420px] aspect-[9/18.5] overflow-hidden rounded-lg bg-brand-bg">
+              <div className="w-full max-w-[420px] aspect-[9/18.5] overflow-hidden rounded-[15px] bg-brand-bg">
                 <video
                   src={contentToCartVideo.url}
                   autoPlay
