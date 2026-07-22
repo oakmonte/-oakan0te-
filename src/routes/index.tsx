@@ -59,9 +59,7 @@ function Index() {
   const [mobileGroup, setMobileGroup] = useState<MenuKey | null>(null);
   const [scrolled, setScrolled] = useState(false);
   const [activeSection, setActiveSection] = useState<string>("");
-  const [role, setRole] = useState<string>("");
-  const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+  // register section removed
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const typeText = "Oakmonte is an ecosystem designed for those who expect more. We connect vetted sellers, honest creators and style curators through a content driven marketplace.";
@@ -202,14 +200,6 @@ function Index() {
     if (key === "solutions") return ["sellers", "creators", "buyers"].includes(activeSection);
     if (key === "product") return activeSection === "product" || activeSection === "ecosystem";
     return false;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitting(true);
-    await new Promise((r) => setTimeout(r, 900));
-    setSubmitting(false);
-    setSubmitted(true);
   };
 
   return (
