@@ -469,7 +469,14 @@ function Index() {
               </p>
             </div>
             <div className="flex justify-center md:justify-end">
-              <PhoneMockup src={contentToCartVideo.url} />
+              <video
+                src={contentToCartVideo.url}
+                autoPlay
+                muted
+                loop
+                playsInline
+                className="w-full max-w-[420px] h-auto rounded-lg"
+              />
             </div>
           </FeatureBox>
 
