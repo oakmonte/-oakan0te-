@@ -486,7 +486,7 @@ function Index() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
             <FeatureBox className="p-6 sm:p-8 md:p-10">
               <h3 className="text-2xl sm:text-3xl font-serif mb-2">Stay Scam Proof</h3>
-              <p className="text-xs sm:text-sm font-display uppercase tracking-[0.15em] mb-5 text-brand-text/80">Stop Getting Scammed</p>
+              <p className="text-xs sm:text-sm font-display uppercase tracking-[0.15em] mb-5 text-brand-text/80">STOP GETTING SCAMMED !</p>
               <div className="space-y-3 text-sm text-brand-text/70 leading-relaxed">
                 <p>No payment reaches any seller without customer satisfaction, no fast-fashion noise, just curated luxury and authentic pieces.</p>
                 <p>Creators won't make numbers and not get paid.</p>
