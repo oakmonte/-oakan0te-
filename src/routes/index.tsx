@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import fabricImg from "@/assets/fabric-detail.jpg";
 import logoO from "@/assets/logo-o.png";
 import oakmonteO from "@/assets/oakmonte-o-mark.png.asset.json";
 
@@ -463,10 +462,7 @@ function Index() {
       {/* FEATURES */}
       <section id="product" className="py-16 sm:py-24 md:py-32 px-4 sm:px-6 lg:px-8">
         <div className="w-full max-w-7xl mx-auto grid grid-cols-12 gap-8 md:gap-12 lg:gap-16 items-center">
-          <div className="col-span-12 lg:col-span-6">
-            <img src={fabricImg} alt="Close-up of luxury woven fabric with soft neutral tones, highlighting texture and craftsmanship" loading="lazy" width={1200} height={1600} className="w-full aspect-[3/4] object-cover outline outline-1 -outline-offset-1 outline-black/5" />
-          </div>
-          <div className="col-span-12 lg:col-span-6">
+          <div className="col-span-12">
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif leading-tight mb-6 md:mb-8">
               Eliminate the Friction.<br />
               <span className="italic">Elevate the Sale.</span>
