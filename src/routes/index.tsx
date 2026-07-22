@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import logoO from "@/assets/logo-o.png";
 import oakmonteO from "@/assets/oakmonte-o-mark.png.asset.json";
-import contentToCartVideo from "@/assets/content-to-cart-v2.mp4.asset.json";
+import contentToCartVideo from "@/assets/content-to-cart-v3.mp4.asset.json";
 
 export const Route = createFileRoute("/")({
   component: Index,
