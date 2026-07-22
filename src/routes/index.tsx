@@ -476,7 +476,7 @@ function Index() {
                   muted
                   loop
                   playsInline
-                  className="w-full h-full object-cover"
+                  className="w-[calc(100%+4px)] h-full object-cover -ml-[2px]"
                 />
               </div>
             </div>
