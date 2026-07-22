@@ -544,3 +544,46 @@ function Index() {
     </div>
   );
 }
+
+function FeatureBox({ className = "", children }: { className?: string; children: React.ReactNode }) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) if (e.isIntersecting) { setVisible(true); io.disconnect(); break; }
+      },
+      { threshold: 0.15 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return (
+    <div
+      ref={ref}
+      className={`border border-brand-text/15 bg-brand-bg transition-all duration-500 ease-out hover:border-brand-text hover:-translate-y-[2px] ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"} ${className}`}
+    >
+      {children}
+    </div>
+  );
+}
+
+function PhoneMockup({ src }: { src: string }) {
+  return (
+    <div className="relative w-[220px] sm:w-[240px] md:w-[260px] aspect-[9/19.5] rounded-[2.25rem] border border-brand-text/80 bg-brand-text p-[6px] shadow-[0_20px_50px_-20px_rgba(0,0,0,0.35)]">
+      <div className="relative w-full h-full rounded-[1.85rem] overflow-hidden bg-brand-muted">
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-10 h-[22px] w-[90px] rounded-full bg-brand-text" aria-hidden="true" />
+        <video
+          src={src}
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="w-full h-full object-cover"
+        />
+      </div>
+    </div>
+  );
+}
