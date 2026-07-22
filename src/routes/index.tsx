@@ -469,14 +469,14 @@ function Index() {
               </p>
             </div>
             <div className="flex justify-center md:justify-end">
-              <div className="w-full max-w-[180px] md:max-w-[180px] aspect-[9/18.5] overflow-hidden rounded-[30px] bg-brand-bg">
+              <div className="w-full max-w-[175px] md:max-w-[175px] aspect-[9/18.5] overflow-hidden rounded-[30px] bg-brand-bg">
                 <video
                   src={contentToCartVideo.url}
                   autoPlay
                   muted
                   loop
                   playsInline
-                  className="w-[calc(100%+12px)] h-full object-cover -ml-[5px]"
+                  className="w-[calc(100%+16px)] h-full object-cover -ml-[5px]"
                 />
               </div>
             </div>
