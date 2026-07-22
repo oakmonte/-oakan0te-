@@ -459,7 +459,7 @@ function Index() {
           </h2>
 
           {/* Hero feature card with phone mockup */}
-          <FeatureBox className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center p-6 sm:p-10 md:p-14 mb-6 md:mb-8">
+          <FeatureBox className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center p-6 sm:p-10 md:p-14 mb-6 md:mb-8 border-brand-bg">
             <div>
               <h3 className="text-3xl sm:text-4xl md:text-5xl font-display uppercase tracking-tight leading-[0.95] mb-6">
                 Content to Cart
