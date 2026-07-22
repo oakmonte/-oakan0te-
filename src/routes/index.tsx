@@ -444,7 +444,7 @@ function Index() {
               <h3 className="text-xl font-semibold mb-4">{"\n"}</h3>
               <ul className="text-sm text-brand-text/60 leading-relaxed list-disc list-inside space-y-1">
                 <li>Get pieces that actually fit</li>
-                <li>Stay scam proof</li>
+                <li>Track your deliveries</li>
                 <li>Find and share inspirations and recommendations</li>
               </ul>
             </div>
