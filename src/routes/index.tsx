@@ -454,8 +454,8 @@ function Index() {
       <section id="product" className="py-16 sm:py-24 md:py-32 px-4 sm:px-6 lg:px-8">
         <div className="w-full max-w-7xl mx-auto">
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif leading-tight mb-10 md:mb-16">
-            Eliminate the Friction.<br />
-            <span className="italic">Elevate the Sale.</span>
+            A Better Way<br />
+            <span className="italic">To Shop.</span>
           </h2>
 
           {/* Hero feature card with phone mockup */}
