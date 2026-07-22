@@ -452,7 +452,7 @@ function Index() {
             <p className="text-[10px] uppercase tracking-[0.25em] text-brand-accent font-bold mb-5 text-center">{"\n"}</p>
             <ul className="flex flex-col sm:flex-row justify-center items-start sm:items-center gap-4 sm:gap-12 text-sm text-brand-text/60 leading-relaxed list-disc list-inside sm:list-outside">
               <li>Easy transfer of content from other platforms</li>
-              <li>0 Upfront Cost</li>
+              <li>Absolutely 0 Upfront Cost</li>
               <li>Stay scam proof</li>
             </ul>
           </div>
