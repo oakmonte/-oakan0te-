@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as SetUpStoreRouteImport } from './routes/set-up-store'
 import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as BecomeACreatorRouteImport } from './routes/become-a-creator'
 import { Route as IndexRouteImport } from './routes/index'
 
 const TermsRoute = TermsRouteImport.update({
@@ -29,6 +30,11 @@ const PrivacyRoute = PrivacyRouteImport.update({
   path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BecomeACreatorRoute = BecomeACreatorRouteImport.update({
+  id: '/become-a-creator',
+  path: '/become-a-creator',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -37,12 +43,14 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/become-a-creator': typeof BecomeACreatorRoute
   '/privacy': typeof PrivacyRoute
   '/set-up-store': typeof SetUpStoreRoute
   '/terms': typeof TermsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/become-a-creator': typeof BecomeACreatorRoute
   '/privacy': typeof PrivacyRoute
   '/set-up-store': typeof SetUpStoreRoute
   '/terms': typeof TermsRoute
@@ -50,20 +58,28 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/become-a-creator': typeof BecomeACreatorRoute
   '/privacy': typeof PrivacyRoute
   '/set-up-store': typeof SetUpStoreRoute
   '/terms': typeof TermsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/privacy' | '/set-up-store' | '/terms'
+  fullPaths: '/' | '/become-a-creator' | '/privacy' | '/set-up-store' | '/terms'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/privacy' | '/set-up-store' | '/terms'
-  id: '__root__' | '/' | '/privacy' | '/set-up-store' | '/terms'
+  to: '/' | '/become-a-creator' | '/privacy' | '/set-up-store' | '/terms'
+  id:
+    | '__root__'
+    | '/'
+    | '/become-a-creator'
+    | '/privacy'
+    | '/set-up-store'
+    | '/terms'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  BecomeACreatorRoute: typeof BecomeACreatorRoute
   PrivacyRoute: typeof PrivacyRoute
   SetUpStoreRoute: typeof SetUpStoreRoute
   TermsRoute: typeof TermsRoute
@@ -92,6 +108,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/become-a-creator': {
+      id: '/become-a-creator'
+      path: '/become-a-creator'
+      fullPath: '/become-a-creator'
+      preLoaderRoute: typeof BecomeACreatorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -104,6 +127,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  BecomeACreatorRoute: BecomeACreatorRoute,
   PrivacyRoute: PrivacyRoute,
   SetUpStoreRoute: SetUpStoreRoute,
   TermsRoute: TermsRoute,
@@ -111,13 +135,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
