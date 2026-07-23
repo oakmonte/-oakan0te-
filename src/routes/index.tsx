@@ -389,7 +389,9 @@ function Index() {
             </h1>
             <p ref={typeRef} className="max-w-full sm:max-w-md text-base sm:text-lg text-brand-text/70 font-light leading-relaxed mb-6 min-h-[6rem] sm:min-h-[5rem]" aria-label={typeText}>
               {typeText.slice(0, typedLength)}
-              <span className="inline-block w-px h-[1em] bg-brand-text/70 align-middle ml-0.5" style={{ animation: 'cursor-blink 0.7s steps(1) infinite' }} aria-hidden="true" />
+              {typedLength < typeText.length && (
+                <span className="inline-block w-px h-[1em] bg-brand-text/70 align-middle ml-0.5" style={{ animation: 'cursor-blink 0.7s steps(1) infinite' }} aria-hidden="true" />
+              )}
             </p>
             <p className={`max-w-full sm:max-w-md text-sm sm:text-base italic text-brand-text/50 leading-relaxed mb-10 md:mb-12 transition-all duration-300 ${typedLength === typeText.length ? 'opacity-100 translate-y-0 delay-500' : 'opacity-0 translate-y-3'}`}>
               style is proof that you <span className="font-bold not-italic" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, sans-serif' }}>think different.</span>
