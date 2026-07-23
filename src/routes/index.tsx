@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import logoO from "@/assets/logo-o.png";
 import oakmonteO from "@/assets/oakmonte-o-mark.png.asset.json";
@@ -395,7 +395,7 @@ function Index() {
               style is proof that you <span className="font-bold not-italic" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, sans-serif' }}>think different.</span>
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 w-full max-w-2xl">
-              <a href="#register" className="text-center px-4 sm:px-6 py-4 md:py-5 bg-brand-text text-brand-bg text-[11px] uppercase tracking-widest font-bold hover:bg-brand-accent transition-colors duration-300">Set up a Store</a>
+              <Link to="/set-up-store" className="text-center px-4 sm:px-6 py-4 md:py-5 bg-brand-text text-brand-bg text-[11px] uppercase tracking-widest font-bold hover:bg-brand-accent transition-colors duration-300">Set up a Store</Link>
               <a href="#register" className="text-center px-4 sm:px-6 py-4 md:py-5 bg-brand-text text-brand-bg text-[11px] uppercase tracking-widest font-bold hover:bg-brand-accent transition-colors duration-300">Become a Creator</a>
               <a href="#buyers" className="text-center px-4 sm:px-6 py-4 md:py-5 bg-brand-bg border text-[11px] uppercase tracking-widest font-bold border-brand-accent text-brand-accent sm:border-brand-text sm:text-brand-text hover:border-brand-accent hover:text-brand-accent transition-colors duration-300">DEFINE YOUR WARDROBE</a>
             </div>
@@ -543,7 +543,7 @@ function Index() {
 
           {/* Duplicated CTAs */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 w-full max-w-2xl mx-auto mt-10 md:mt-16">
-            <a href="#register" className="text-center px-4 sm:px-6 py-4 md:py-5 bg-brand-text text-brand-bg text-[11px] uppercase tracking-widest font-bold hover:bg-brand-accent transition-colors duration-300">Set up a Store</a>
+            <Link to="/set-up-store" className="text-center px-4 sm:px-6 py-4 md:py-5 bg-brand-text text-brand-bg text-[11px] uppercase tracking-widest font-bold hover:bg-brand-accent transition-colors duration-300">Set up a Store</Link>
             <a href="#register" className="text-center px-4 sm:px-6 py-4 md:py-5 bg-brand-text text-brand-bg text-[11px] uppercase tracking-widest font-bold hover:bg-brand-accent transition-colors duration-300">Become a Creator</a>
             <a href="#buyers" className="text-center px-4 sm:px-6 py-4 md:py-5 bg-brand-bg border text-[11px] uppercase tracking-widest font-bold border-brand-accent text-brand-accent sm:border-brand-text sm:text-brand-text hover:border-brand-accent hover:text-brand-accent transition-colors duration-300">DEFINE YOUR WARDROBE</a>
           </div>
