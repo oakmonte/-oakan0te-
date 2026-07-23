@@ -465,7 +465,7 @@ function Index() {
                 Content to Cart
               </h3>
               <p className="text-sm sm:text-base text-brand-text/70 leading-relaxed max-w-[46ch]">
-                Buy directly from creative content — not third party links, all within the native oakmonte interface meaning Higher sale conversion rate for sellers and Easyier collaboration with creators.
+                Buy directly from creative content — not third party links, all within the native oakmonte interface meaning Higher sale conversion rate for sellers and Easier collaboration with creators.
               </p>
             </div>
             <div className="flex justify-center md:justify-end">
