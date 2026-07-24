@@ -2,7 +2,6 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import logoO from "@/assets/logo-o.png";
 import oakmonteO from "@/assets/oakmonte-o-mark.png.asset.json";
-import contentToCartVideo from "@/assets/content-to-cart-v5.mp4.asset.json";
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -460,8 +459,8 @@ function Index() {
             <span className="italic">To Shop.</span>
           </h2>
 
-          {/* Hero feature card with phone mockup */}
-          <FeatureBox className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center p-6 sm:p-10 md:p-14 mb-6 md:mb-8">
+          {/* Hero feature card */}
+          <FeatureBox className="grid grid-cols-1 gap-8 md:gap-12 items-center p-6 sm:p-10 md:p-14 mb-6 md:mb-8">
             <div>
               <h3 className="text-3xl sm:text-4xl md:text-5xl font-display uppercase tracking-tight leading-[0.95] mb-6">
                 Content to Cart
@@ -469,18 +468,6 @@ function Index() {
               <p className="text-sm sm:text-base text-brand-text/70 leading-relaxed max-w-[46ch]">
                 Buy directly from creative content — not third party links, all within the native oakmonte interface meaning Higher sale conversion rate for sellers and Easier collaboration with creators.
               </p>
-            </div>
-            <div className="flex justify-center md:justify-end">
-              <div className="w-full max-w-[175px] md:max-w-[175px] aspect-[9/18.5] overflow-hidden rounded-[30px] bg-brand-bg">
-                <video
-                  src={contentToCartVideo.url}
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
-                  className="w-[calc(100%+16px)] h-full object-cover -ml-[5px]"
-                />
-              </div>
             </div>
           </FeatureBox>
 
