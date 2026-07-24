@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { signInWithGoogle, sendMagicLink } from "@/lib/auth";
 
 export const Route = createFileRoute("/become-a-creator")({
   head: () => ({
@@ -38,6 +39,8 @@ function BecomeCreatorPage() {
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [countdown, setCountdown] = useState(30);
+  const [loading, setLoading] = useState<"google" | "email" | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!sent) return;
@@ -46,15 +49,30 @@ function BecomeCreatorPage() {
     return () => clearInterval(t);
   }, [sent, countdown]);
 
-  const handleSend = (e: React.FormEvent) => {
+  const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
+    setError(null);
+    setLoading("email");
+    const { error } = await sendMagicLink(email);
+    setLoading(null);
+    if (error) { setError(error.message); return; }
     setSent(true);
     setCountdown(30);
   };
 
-  const handleResend = () => {
+  const handleResend = async () => {
+    setError(null);
+    const { error } = await sendMagicLink(email);
+    if (error) { setError(error.message); return; }
     setCountdown(30);
+  };
+
+  const handleGoogle = async () => {
+    setError(null);
+    setLoading("google");
+    const { error } = await signInWithGoogle();
+    if (error) { setError(error.message); setLoading(null); }
   };
 
   const mm = String(Math.floor(countdown / 60)).padStart(2, "0");
@@ -77,14 +95,18 @@ function BecomeCreatorPage() {
           <div className="space-y-3">
             <button
               type="button"
-              className="w-full flex items-center justify-center gap-3 bg-brand-text text-brand-bg rounded-full py-3.5 text-sm font-medium hover:bg-brand-text/85 hover:scale-[1.01] transition-all duration-300"
+              onClick={handleGoogle}
+              disabled={loading === "google"}
+              className="w-full flex items-center justify-center gap-3 bg-brand-text text-brand-bg rounded-full py-3.5 text-sm font-medium hover:bg-brand-text/85 hover:scale-[1.01] transition-all duration-300 disabled:opacity-60"
             >
               <GoogleIcon />
-              Continue with Google
+              {loading === "google" ? "Redirecting…" : "Continue with Google"}
             </button>
             <button
               type="button"
-              className="w-full flex items-center justify-center gap-3 bg-brand-text text-brand-bg rounded-full py-3.5 text-sm font-medium hover:bg-brand-text/85 hover:scale-[1.01] transition-all duration-300"
+              disabled
+              title="Apple sign-in coming soon"
+              className="w-full flex items-center justify-center gap-3 bg-brand-text text-brand-bg rounded-full py-3.5 text-sm font-medium opacity-60 cursor-not-allowed transition-all duration-300"
             >
               <AppleIcon />
               Continue with Apple
@@ -109,10 +131,12 @@ function BecomeCreatorPage() {
               />
               <button
                 type="submit"
-                className="w-full rounded-full bg-brand-accent text-brand-bg py-3.5 text-sm font-medium uppercase tracking-widest hover:bg-brand-accent/90 hover:scale-[1.01] transition-all duration-300"
+                disabled={loading === "email"}
+                className="w-full rounded-full bg-brand-accent text-brand-bg py-3.5 text-sm font-medium uppercase tracking-widest hover:bg-brand-accent/90 hover:scale-[1.01] transition-all duration-300 disabled:opacity-60"
               >
-                Send
+                {loading === "email" ? "Sending…" : "Send"}
               </button>
+              {error && <p className="text-xs text-red-600 text-center">{error}</p>}
             </form>
           ) : (
             <div className="text-center space-y-4">
@@ -122,6 +146,7 @@ function BecomeCreatorPage() {
                   We sent a sign-in link to <span className="text-brand-text">{email}</span>.
                 </p>
               </div>
+              {error && <p className="text-xs text-red-600">{error}</p>}
               <div className="text-sm text-brand-text/70">
                 {countdown > 0 ? (
                   <span>Resend code in <span className="text-brand-text tabular-nums">{mm}:{ss}</span></span>
