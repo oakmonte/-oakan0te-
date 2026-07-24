@@ -582,9 +582,9 @@ function FeatureBox({ className = "", children }: { className?: string; children
 
 function PhoneMockup({ src }: { src: string }) {
   return (
-    <div className="relative w-[220px] sm:w-[240px] md:w-[260px] aspect-[9/19.5] rounded-[2.25rem] border border-brand-text/80 bg-brand-text p-[6px] shadow-[0_20px_50px_-20px_rgba(0,0,0,0.35)]">
-      <div className="relative w-full h-full rounded-[1.85rem] overflow-hidden bg-brand-muted">
-        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-10 h-[22px] w-[90px] rounded-full bg-brand-text" aria-hidden="true" />
+    <div className="relative w-[160px] sm:w-[180px] md:w-[200px] aspect-[9/19.5] rounded-[2rem] border border-brand-text/80 bg-brand-text p-[5px] shadow-[0_16px_40px_-16px_rgba(0,0,0,0.35)]">
+      <div className="relative w-full h-full rounded-[1.65rem] overflow-hidden bg-brand-muted">
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-10 h-[18px] w-[72px] rounded-full bg-brand-text" aria-hidden="true" />
         <video
           src={src}
           autoPlay
