@@ -3,6 +3,50 @@ import { useEffect, useRef, useState } from "react";
 import logoO from "@/assets/logo-o.png";
 import oakmonteO from "@/assets/oakmonte-o-mark.png.asset.json";
 import contentToCartVideo from "@/assets/content-to-cart.mp4.asset.json";
+import { useSession } from "@/hooks/use-session";
+import { signOut } from "@/lib/auth";
+
+function HeaderAuth() {
+  const { user, loading } = useSession();
+  const [open, setOpen] = useState(false);
+
+  if (loading) {
+    return <div className="w-24 h-8" aria-hidden="true" />;
+  }
+
+  if (!user) {
+    return (
+      <>
+        <Link to="/set-up-store" className="hidden md:inline text-[11px] uppercase tracking-[0.2em] font-semibold hover:text-brand-accent transition-colors duration-500">Sign in</Link>
+        <Link to="/set-up-store" className="px-3 sm:px-5 md:px-6 py-2 border border-brand-accent text-brand-accent text-[9px] sm:text-[10px] uppercase tracking-widest whitespace-nowrap sm:border-brand-text sm:text-brand-text hover:border-brand-accent hover:text-brand-accent transition-colors duration-300">Access Dashboard</Link>
+      </>
+    );
+  }
+
+  const email = user.email ?? "Account";
+  const short = email.length > 22 ? email.slice(0, 20) + "…" : email;
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="px-3 sm:px-5 md:px-6 py-2 border border-brand-accent text-brand-accent text-[9px] sm:text-[10px] uppercase tracking-widest whitespace-nowrap sm:border-brand-text sm:text-brand-text hover:border-brand-accent hover:text-brand-accent transition-colors duration-300"
+      >
+        {short}
+      </button>
+      {open && (
+        <div className="absolute right-0 mt-2 w-48 bg-brand-bg border border-brand-text/15 shadow-lg z-50">
+          <button
+            onClick={async () => { setOpen(false); await signOut(); }}
+            className="w-full text-left px-4 py-3 text-[11px] uppercase tracking-widest hover:text-brand-accent transition-colors"
+          >
+            Sign out
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -281,8 +325,7 @@ function Index() {
         </div>
 
         <div className="flex items-center gap-2 sm:gap-4 shrink-0">
-          <a href="#" className="hidden md:inline text-[11px] uppercase tracking-[0.2em] font-semibold hover:text-brand-accent transition-colors duration-500">Sign in</a>
-          <a href="#register" className="px-3 sm:px-5 md:px-6 py-2 border border-brand-accent text-brand-accent text-[9px] sm:text-[10px] uppercase tracking-widest whitespace-nowrap sm:border-brand-text sm:text-brand-text hover:border-brand-accent hover:text-brand-accent transition-colors duration-300">Access Dashboard</a>
+          <HeaderAuth />
           <button
             className="lg:hidden p-2 -mr-2"
             aria-label={mobileOpen ? "Close menu" : "Open menu"}
