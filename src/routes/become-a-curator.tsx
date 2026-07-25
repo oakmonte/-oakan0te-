@@ -83,18 +83,14 @@ function BecomeCuratorPage() {
           <div className="space-y-3">
             <button
               type="button"
-              disabled
-              title="Google sign-in coming soon"
-              className="w-full flex items-center justify-center gap-3 bg-brand-text text-brand-bg rounded-full py-3.5 text-sm font-medium opacity-60 cursor-not-allowed transition-all duration-300"
+              className="w-full flex items-center justify-center gap-3 bg-brand-text text-brand-bg rounded-full py-3.5 text-sm font-medium hover:bg-brand-text/85 hover:scale-[1.01] transition-all duration-300"
             >
               <GoogleIcon />
               Continue with Google
             </button>
             <button
               type="button"
-              disabled
-              title="Apple sign-in coming soon"
-              className="w-full flex items-center justify-center gap-3 bg-brand-text text-brand-bg rounded-full py-3.5 text-sm font-medium opacity-60 cursor-not-allowed transition-all duration-300"
+              className="w-full flex items-center justify-center gap-3 bg-brand-text text-brand-bg rounded-full py-3.5 text-sm font-medium hover:bg-brand-text/85 hover:scale-[1.01] transition-all duration-300"
             >
               <AppleIcon />
               Continue with Apple
