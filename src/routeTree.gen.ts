@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as SetUpStoreRouteImport } from './routes/set-up-store'
 import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as BecomeACuratorRouteImport } from './routes/become-a-curator'
 import { Route as BecomeACreatorRouteImport } from './routes/become-a-creator'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
@@ -29,6 +30,11 @@ const SetUpStoreRoute = SetUpStoreRouteImport.update({
 const PrivacyRoute = PrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BecomeACuratorRoute = BecomeACuratorRouteImport.update({
+  id: '/become-a-curator',
+  path: '/become-a-curator',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BecomeACreatorRoute = BecomeACreatorRouteImport.update({
@@ -50,6 +56,7 @@ const AuthCallbackRoute = AuthCallbackRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/become-a-creator': typeof BecomeACreatorRoute
+  '/become-a-curator': typeof BecomeACuratorRoute
   '/privacy': typeof PrivacyRoute
   '/set-up-store': typeof SetUpStoreRoute
   '/terms': typeof TermsRoute
@@ -58,6 +65,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/become-a-creator': typeof BecomeACreatorRoute
+  '/become-a-curator': typeof BecomeACuratorRoute
   '/privacy': typeof PrivacyRoute
   '/set-up-store': typeof SetUpStoreRoute
   '/terms': typeof TermsRoute
@@ -67,6 +75,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/become-a-creator': typeof BecomeACreatorRoute
+  '/become-a-curator': typeof BecomeACuratorRoute
   '/privacy': typeof PrivacyRoute
   '/set-up-store': typeof SetUpStoreRoute
   '/terms': typeof TermsRoute
@@ -77,6 +86,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/become-a-creator'
+    | '/become-a-curator'
     | '/privacy'
     | '/set-up-store'
     | '/terms'
@@ -85,6 +95,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/become-a-creator'
+    | '/become-a-curator'
     | '/privacy'
     | '/set-up-store'
     | '/terms'
@@ -93,6 +104,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/become-a-creator'
+    | '/become-a-curator'
     | '/privacy'
     | '/set-up-store'
     | '/terms'
@@ -102,6 +114,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BecomeACreatorRoute: typeof BecomeACreatorRoute
+  BecomeACuratorRoute: typeof BecomeACuratorRoute
   PrivacyRoute: typeof PrivacyRoute
   SetUpStoreRoute: typeof SetUpStoreRoute
   TermsRoute: typeof TermsRoute
@@ -131,6 +144,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/become-a-curator': {
+      id: '/become-a-curator'
+      path: '/become-a-curator'
+      fullPath: '/become-a-curator'
+      preLoaderRoute: typeof BecomeACuratorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/become-a-creator': {
       id: '/become-a-creator'
       path: '/become-a-creator'
@@ -158,6 +178,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BecomeACreatorRoute: BecomeACreatorRoute,
+  BecomeACuratorRoute: BecomeACuratorRoute,
   PrivacyRoute: PrivacyRoute,
   SetUpStoreRoute: SetUpStoreRoute,
   TermsRoute: TermsRoute,
@@ -166,13 +187,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
