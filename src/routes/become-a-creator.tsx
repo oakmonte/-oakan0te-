@@ -37,6 +37,7 @@ function AppleIcon() {
 
 function BecomeCreatorPage() {
   const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [sent, setSent] = useState(false);
   const [countdown, setCountdown] = useState(30);
   const [loading, setLoading] = useState<"google" | "email" | null>(null);
@@ -54,7 +55,7 @@ function BecomeCreatorPage() {
     if (!email) return;
     setError(null);
     setLoading("email");
-    const { error } = await sendMagicLink(email);
+    const { error } = await sendMagicLink(email, username);
     setLoading(null);
     if (error) { setError(error.message); return; }
     setSent(true);
@@ -63,7 +64,7 @@ function BecomeCreatorPage() {
 
   const handleResend = async () => {
     setError(null);
-    const { error } = await sendMagicLink(email);
+    const { error } = await sendMagicLink(email, username);
     if (error) { setError(error.message); return; }
     setCountdown(30);
   };
@@ -122,11 +123,19 @@ function BecomeCreatorPage() {
           {!sent ? (
             <form onSubmit={handleSend} className="space-y-3">
               <input
+                type="text"
+                required
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Personal username"
+                className="w-full rounded-full border border-brand-text/25 bg-transparent px-5 py-3.5 text-sm placeholder:text-brand-text/40 focus:outline-none focus:border-brand-accent transition-colors"
+              />
+              <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@domain.com"
+                placeholder="personal email"
                 className="w-full rounded-full border border-brand-text/25 bg-transparent px-5 py-3.5 text-sm placeholder:text-brand-text/40 focus:outline-none focus:border-brand-accent transition-colors"
               />
               <button
@@ -162,7 +171,7 @@ function BecomeCreatorPage() {
               </div>
               <button
                 type="button"
-                onClick={() => { setSent(false); setEmail(""); }}
+                onClick={() => { setSent(false); setEmail(""); setUsername(""); }}
                 className="text-[11px] uppercase tracking-widest text-brand-text/60 hover:text-brand-text transition-colors"
               >
                 Use a different email
