@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/my-supabase/client";
+import { supabase } from "@/lib/integrations/my-supabase/client";
 
 export const Route = createFileRoute("/auth/callback")({
   head: () => ({ meta: [{ title: "Signing you in — Oakmonte" }] }),
@@ -20,13 +20,45 @@ function AuthCallback() {
       return;
     }
 
+    const finishSignIn = async (userId: string, email: string | undefined, usernameFromMetadata?: string) => {
+      const { data: existingProfile } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("id", userId)
+        .maybeSingle();
+
+      if (existingProfile) {
+        navigate({ to: "/", replace: true });
+        return;
+      }
+
+      if (usernameFromMetadata) {
+        const { error: insertError } = await supabase.from("profiles").insert({
+          id: userId,
+          personal_username: usernameFromMetadata,
+          personal_email: email,
+        });
+
+        if (insertError) {
+          console.error(insertError);
+          setError("We couldn't finish setting up your account.");
+          return;
+        }
+
+        navigate({ to: "/name-your-store", replace: true });
+      } else {
+        navigate({ to: "/choose-username", replace: true });
+      }
+    };
+
     (async () => {
       // Give supabase-js a tick to hydrate session from URL
       for (let i = 0; i < 30; i++) {
         const { data } = await supabase.auth.getSession();
         if (cancelled) return;
         if (data.session) {
-          navigate({ to: "/", replace: true });
+          const { user } = data.session;
+          await finishSignIn(user.id, user.email, user.user_metadata?.username as string | undefined);
           return;
         }
         await new Promise((r) => setTimeout(r, 100));

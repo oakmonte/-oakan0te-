@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/my-supabase/client";
+import { supabase } from "@/lib/integrations/my-supabase/client";
 
 function callbackUrl() {
   return `${window.location.origin}/auth/callback`;
@@ -11,13 +11,17 @@ export async function signInWithGoogle() {
   });
 }
 
-export async function sendMagicLink(email: string) {
+export async function sendMagicLink(email: string, username: string) {
   return supabase.auth.signInWithOtp({
     email,
-    options: { emailRedirectTo: callbackUrl() },
+    options: {
+      emailRedirectTo: callbackUrl(),
+      data: { username },
+    },
   });
 }
 
 export async function signOut() {
   return supabase.auth.signOut();
 }
+

@@ -36,6 +36,7 @@ function AppleIcon() {
 }
 
 function SetUpStorePage() {
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [countdown, setCountdown] = useState(30);
@@ -51,10 +52,10 @@ function SetUpStorePage() {
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) return;
+    if (!email || !username) return;
     setError(null);
     setLoading("email");
-    const { error } = await sendMagicLink(email);
+    const { error } = await sendMagicLink(email, username);
     setLoading(null);
     if (error) { setError(error.message); return; }
     setSent(true);
@@ -63,7 +64,7 @@ function SetUpStorePage() {
 
   const handleResend = async () => {
     setError(null);
-    const { error } = await sendMagicLink(email);
+    const { error } = await sendMagicLink(email, username);
     if (error) { setError(error.message); return; }
     setCountdown(30);
   };
@@ -121,6 +122,14 @@ function SetUpStorePage() {
 
           {!sent ? (
             <form onSubmit={handleSend} className="space-y-3">
+              <input
+                type="text"
+                required
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Personal username"
+                className="w-full rounded-full border border-brand-text/25 bg-transparent px-5 py-3.5 text-sm placeholder:text-brand-text/40 focus:outline-none focus:border-brand-accent transition-colors"
+              />
               <input
                 type="email"
                 required
