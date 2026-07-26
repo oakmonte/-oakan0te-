@@ -14,6 +14,7 @@ import { Route as BecomeACreatorRouteImport } from './routes/become-a-creator'
 import { Route as BecomeACuratorRouteImport } from './routes/become-a-curator'
 import { Route as ChooseUsernameRouteImport } from './routes/choose-username'
 import { Route as NameYourStoreRouteImport } from './routes/name-your-store'
+import { Route as PhoneNumberRouteImport } from './routes/phone-number'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as SetUpStoreRouteImport } from './routes/set-up-store'
 import { Route as TermsRouteImport } from './routes/terms'
@@ -44,6 +45,11 @@ const NameYourStoreRoute = NameYourStoreRouteImport.update({
   path: '/name-your-store',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PhoneNumberRoute = PhoneNumberRouteImport.update({
+  id: '/phone-number',
+  path: '/phone-number',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PrivacyRoute = PrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
@@ -71,6 +77,7 @@ export interface FileRoutesByFullPath {
   '/become-a-curator': typeof BecomeACuratorRoute
   '/choose-username': typeof ChooseUsernameRoute
   '/name-your-store': typeof NameYourStoreRoute
+  '/phone-number': typeof PhoneNumberRoute
   '/privacy': typeof PrivacyRoute
   '/set-up-store': typeof SetUpStoreRoute
   '/terms': typeof TermsRoute
@@ -82,6 +89,7 @@ export interface FileRoutesByTo {
   '/become-a-curator': typeof BecomeACuratorRoute
   '/choose-username': typeof ChooseUsernameRoute
   '/name-your-store': typeof NameYourStoreRoute
+  '/phone-number': typeof PhoneNumberRoute
   '/privacy': typeof PrivacyRoute
   '/set-up-store': typeof SetUpStoreRoute
   '/terms': typeof TermsRoute
@@ -94,6 +102,7 @@ export interface FileRoutesById {
   '/become-a-curator': typeof BecomeACuratorRoute
   '/choose-username': typeof ChooseUsernameRoute
   '/name-your-store': typeof NameYourStoreRoute
+  '/phone-number': typeof PhoneNumberRoute
   '/privacy': typeof PrivacyRoute
   '/set-up-store': typeof SetUpStoreRoute
   '/terms': typeof TermsRoute
@@ -107,6 +116,7 @@ export interface FileRouteTypes {
     | '/become-a-curator'
     | '/choose-username'
     | '/name-your-store'
+    | '/phone-number'
     | '/privacy'
     | '/set-up-store'
     | '/terms'
@@ -118,6 +128,7 @@ export interface FileRouteTypes {
     | '/become-a-curator'
     | '/choose-username'
     | '/name-your-store'
+    | '/phone-number'
     | '/privacy'
     | '/set-up-store'
     | '/terms'
@@ -129,6 +140,7 @@ export interface FileRouteTypes {
     | '/become-a-curator'
     | '/choose-username'
     | '/name-your-store'
+    | '/phone-number'
     | '/privacy'
     | '/set-up-store'
     | '/terms'
@@ -141,6 +153,7 @@ export interface RootRouteChildren {
   BecomeACuratorRoute: typeof BecomeACuratorRoute
   ChooseUsernameRoute: typeof ChooseUsernameRoute
   NameYourStoreRoute: typeof NameYourStoreRoute
+  PhoneNumberRoute: typeof PhoneNumberRoute
   PrivacyRoute: typeof PrivacyRoute
   SetUpStoreRoute: typeof SetUpStoreRoute
   TermsRoute: typeof TermsRoute
@@ -184,6 +197,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof NameYourStoreRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/phone-number': {
+      id: '/phone-number'
+      path: '/phone-number'
+      fullPath: '/phone-number'
+      preLoaderRoute: typeof PhoneNumberRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/privacy': {
       id: '/privacy'
       path: '/privacy'
@@ -221,6 +241,7 @@ const rootRouteChildren: RootRouteChildren = {
   BecomeACuratorRoute: BecomeACuratorRoute,
   ChooseUsernameRoute: ChooseUsernameRoute,
   NameYourStoreRoute: NameYourStoreRoute,
+  PhoneNumberRoute: PhoneNumberRoute,
   PrivacyRoute: PrivacyRoute,
   SetUpStoreRoute: SetUpStoreRoute,
   TermsRoute: TermsRoute,

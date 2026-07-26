@@ -7,16 +7,33 @@ export const Route = createFileRoute("/name-your-store")({
   component: NameYourStorePage,
 });
 
+function slugify(value: string) {
+  const slug = value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
+
+  // Fallback for names with no Latin/number characters at all
+  // (non-Latin scripts, emoji-only names, etc.)
+  if (!slug) {
+    return `store-${Math.random().toString(36).slice(2, 8)}`;
+  }
+
+  return slug;
+}
+
 function NameYourStorePage() {
   const navigate = useNavigate();
-  const [storeUsername, setStoreUsername] = useState("");
+  const [brandName, setBrandName] = useState("");
   const [businessEmail, setBusinessEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!storeUsername.trim()) return;
+    if (!brandName.trim()) return;
 
     setLoading(true);
     setError(null);
@@ -30,16 +47,16 @@ function NameYourStorePage() {
 
     const { error: insertError } = await supabase.from("stores").insert({
       owner_id: user.id,
-      store_username: storeUsername.trim(),
+      brand_name: brandName.trim(),
+      store_username: slugify(brandName),
       business_email: businessEmail.trim() || null,
-      brand_name: storeUsername.trim(), // placeholder until a dedicated brand-name step exists
     });
 
     setLoading(false);
 
     if (insertError) {
       if (insertError.code === "23505") {
-        setError("That store username is taken. Try another.");
+        setError("That store name is taken. Try another.");
       } else {
         setError("Something went wrong. Please try again.");
         console.error(insertError);
@@ -47,7 +64,7 @@ function NameYourStorePage() {
       return;
     }
 
-    navigate({ to: "/", replace: true });
+    navigate({ to: "/phone-number", replace: true });
   };
 
   return (
@@ -62,9 +79,9 @@ function NameYourStorePage() {
           <input
             type="text"
             required
-            value={storeUsername}
-            onChange={(e) => setStoreUsername(e.target.value)}
-            placeholder="Store username"
+            value={brandName}
+            onChange={(e) => setBrandName(e.target.value)}
+            placeholder="My Store"
             className="w-full rounded-full border border-brand-text/25 bg-transparent px-5 py-3.5 text-sm placeholder:text-brand-text/40 focus:outline-none focus:border-brand-accent transition-colors"
           />
           <input
