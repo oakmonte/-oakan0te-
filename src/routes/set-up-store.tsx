@@ -143,7 +143,7 @@ function SetUpStorePage() {
               <div className="rounded-2xl border border-brand-text/15 px-6 py-8">
                 <p className="font-serif text-2xl">Check your email</p>
                 <p className="mt-2 text-sm text-brand-text/70">
-                  We sent a sign-in link to <span className="text-brand-text">{email}</span>.
+                  We sent a sign-in code to <span className="text-brand-text">{email}</span>.
                 </p>
               </div>
               {error && <p className="text-xs text-red-600">{error}</p>}
