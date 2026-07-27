@@ -11,13 +11,10 @@ export async function signInWithGoogle() {
   });
 }
 
-export async function sendMagicLink(email: string, username: string) {
+export async function sendMagicLink(email: string) {
   return supabase.auth.signInWithOtp({
     email,
-    options: {
-      emailRedirectTo: callbackUrl(),
-      data: { username },
-    },
+    options: { emailRedirectTo: callbackUrl() },
   });
 }
 

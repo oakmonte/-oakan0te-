@@ -44,7 +44,7 @@ function ChooseUsernamePage() {
       return;
     }
 
-    navigate({ to: "/name-your-store", replace: true });
+    navigate({ to: "/seller-type", replace: true });
   };
 
   return (

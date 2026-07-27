@@ -13,11 +13,15 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as BecomeACreatorRouteImport } from './routes/become-a-creator'
 import { Route as BecomeACuratorRouteImport } from './routes/become-a-curator'
 import { Route as ChooseUsernameRouteImport } from './routes/choose-username'
+import { Route as DescribeYourselfRouteImport } from './routes/describe-yourself'
 import { Route as NameYourStoreRouteImport } from './routes/name-your-store'
 import { Route as PhoneNumberRouteImport } from './routes/phone-number'
 import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as ProductCategoryRouteImport } from './routes/product-category'
+import { Route as SellerTypeRouteImport } from './routes/seller-type'
 import { Route as SetUpStoreRouteImport } from './routes/set-up-store'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as WhereDidYouHearAboutUsRouteImport } from './routes/where-did-you-hear-about-us'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 
 const IndexRoute = IndexRouteImport.update({
@@ -40,6 +44,11 @@ const ChooseUsernameRoute = ChooseUsernameRouteImport.update({
   path: '/choose-username',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DescribeYourselfRoute = DescribeYourselfRouteImport.update({
+  id: '/describe-yourself',
+  path: '/describe-yourself',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const NameYourStoreRoute = NameYourStoreRouteImport.update({
   id: '/name-your-store',
   path: '/name-your-store',
@@ -55,6 +64,16 @@ const PrivacyRoute = PrivacyRouteImport.update({
   path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProductCategoryRoute = ProductCategoryRouteImport.update({
+  id: '/product-category',
+  path: '/product-category',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SellerTypeRoute = SellerTypeRouteImport.update({
+  id: '/seller-type',
+  path: '/seller-type',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SetUpStoreRoute = SetUpStoreRouteImport.update({
   id: '/set-up-store',
   path: '/set-up-store',
@@ -63,6 +82,11 @@ const SetUpStoreRoute = SetUpStoreRouteImport.update({
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WhereDidYouHearAboutUsRoute = WhereDidYouHearAboutUsRouteImport.update({
+  id: '/where-did-you-hear-about-us',
+  path: '/where-did-you-hear-about-us',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthCallbackRoute = AuthCallbackRouteImport.update({
@@ -76,11 +100,15 @@ export interface FileRoutesByFullPath {
   '/become-a-creator': typeof BecomeACreatorRoute
   '/become-a-curator': typeof BecomeACuratorRoute
   '/choose-username': typeof ChooseUsernameRoute
+  '/describe-yourself': typeof DescribeYourselfRoute
   '/name-your-store': typeof NameYourStoreRoute
   '/phone-number': typeof PhoneNumberRoute
   '/privacy': typeof PrivacyRoute
+  '/product-category': typeof ProductCategoryRoute
+  '/seller-type': typeof SellerTypeRoute
   '/set-up-store': typeof SetUpStoreRoute
   '/terms': typeof TermsRoute
+  '/where-did-you-hear-about-us': typeof WhereDidYouHearAboutUsRoute
   '/auth/callback': typeof AuthCallbackRoute
 }
 export interface FileRoutesByTo {
@@ -88,11 +116,15 @@ export interface FileRoutesByTo {
   '/become-a-creator': typeof BecomeACreatorRoute
   '/become-a-curator': typeof BecomeACuratorRoute
   '/choose-username': typeof ChooseUsernameRoute
+  '/describe-yourself': typeof DescribeYourselfRoute
   '/name-your-store': typeof NameYourStoreRoute
   '/phone-number': typeof PhoneNumberRoute
   '/privacy': typeof PrivacyRoute
+  '/product-category': typeof ProductCategoryRoute
+  '/seller-type': typeof SellerTypeRoute
   '/set-up-store': typeof SetUpStoreRoute
   '/terms': typeof TermsRoute
+  '/where-did-you-hear-about-us': typeof WhereDidYouHearAboutUsRoute
   '/auth/callback': typeof AuthCallbackRoute
 }
 export interface FileRoutesById {
@@ -101,11 +133,15 @@ export interface FileRoutesById {
   '/become-a-creator': typeof BecomeACreatorRoute
   '/become-a-curator': typeof BecomeACuratorRoute
   '/choose-username': typeof ChooseUsernameRoute
+  '/describe-yourself': typeof DescribeYourselfRoute
   '/name-your-store': typeof NameYourStoreRoute
   '/phone-number': typeof PhoneNumberRoute
   '/privacy': typeof PrivacyRoute
+  '/product-category': typeof ProductCategoryRoute
+  '/seller-type': typeof SellerTypeRoute
   '/set-up-store': typeof SetUpStoreRoute
   '/terms': typeof TermsRoute
+  '/where-did-you-hear-about-us': typeof WhereDidYouHearAboutUsRoute
   '/auth/callback': typeof AuthCallbackRoute
 }
 export interface FileRouteTypes {
@@ -115,11 +151,15 @@ export interface FileRouteTypes {
     | '/become-a-creator'
     | '/become-a-curator'
     | '/choose-username'
+    | '/describe-yourself'
     | '/name-your-store'
     | '/phone-number'
     | '/privacy'
+    | '/product-category'
+    | '/seller-type'
     | '/set-up-store'
     | '/terms'
+    | '/where-did-you-hear-about-us'
     | '/auth/callback'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -127,11 +167,15 @@ export interface FileRouteTypes {
     | '/become-a-creator'
     | '/become-a-curator'
     | '/choose-username'
+    | '/describe-yourself'
     | '/name-your-store'
     | '/phone-number'
     | '/privacy'
+    | '/product-category'
+    | '/seller-type'
     | '/set-up-store'
     | '/terms'
+    | '/where-did-you-hear-about-us'
     | '/auth/callback'
   id:
     | '__root__'
@@ -139,11 +183,15 @@ export interface FileRouteTypes {
     | '/become-a-creator'
     | '/become-a-curator'
     | '/choose-username'
+    | '/describe-yourself'
     | '/name-your-store'
     | '/phone-number'
     | '/privacy'
+    | '/product-category'
+    | '/seller-type'
     | '/set-up-store'
     | '/terms'
+    | '/where-did-you-hear-about-us'
     | '/auth/callback'
   fileRoutesById: FileRoutesById
 }
@@ -152,11 +200,15 @@ export interface RootRouteChildren {
   BecomeACreatorRoute: typeof BecomeACreatorRoute
   BecomeACuratorRoute: typeof BecomeACuratorRoute
   ChooseUsernameRoute: typeof ChooseUsernameRoute
+  DescribeYourselfRoute: typeof DescribeYourselfRoute
   NameYourStoreRoute: typeof NameYourStoreRoute
   PhoneNumberRoute: typeof PhoneNumberRoute
   PrivacyRoute: typeof PrivacyRoute
+  ProductCategoryRoute: typeof ProductCategoryRoute
+  SellerTypeRoute: typeof SellerTypeRoute
   SetUpStoreRoute: typeof SetUpStoreRoute
   TermsRoute: typeof TermsRoute
+  WhereDidYouHearAboutUsRoute: typeof WhereDidYouHearAboutUsRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
 }
 
@@ -190,6 +242,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChooseUsernameRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/describe-yourself': {
+      id: '/describe-yourself'
+      path: '/describe-yourself'
+      fullPath: '/describe-yourself'
+      preLoaderRoute: typeof DescribeYourselfRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/name-your-store': {
       id: '/name-your-store'
       path: '/name-your-store'
@@ -211,6 +270,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/product-category': {
+      id: '/product-category'
+      path: '/product-category'
+      fullPath: '/product-category'
+      preLoaderRoute: typeof ProductCategoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/seller-type': {
+      id: '/seller-type'
+      path: '/seller-type'
+      fullPath: '/seller-type'
+      preLoaderRoute: typeof SellerTypeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/set-up-store': {
       id: '/set-up-store'
       path: '/set-up-store'
@@ -223,6 +296,13 @@ declare module '@tanstack/react-router' {
       path: '/terms'
       fullPath: '/terms'
       preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/where-did-you-hear-about-us': {
+      id: '/where-did-you-hear-about-us'
+      path: '/where-did-you-hear-about-us'
+      fullPath: '/where-did-you-hear-about-us'
+      preLoaderRoute: typeof WhereDidYouHearAboutUsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/callback': {
@@ -240,13 +320,27 @@ const rootRouteChildren: RootRouteChildren = {
   BecomeACreatorRoute: BecomeACreatorRoute,
   BecomeACuratorRoute: BecomeACuratorRoute,
   ChooseUsernameRoute: ChooseUsernameRoute,
+  DescribeYourselfRoute: DescribeYourselfRoute,
   NameYourStoreRoute: NameYourStoreRoute,
   PhoneNumberRoute: PhoneNumberRoute,
   PrivacyRoute: PrivacyRoute,
+  ProductCategoryRoute: ProductCategoryRoute,
+  SellerTypeRoute: SellerTypeRoute,
   SetUpStoreRoute: SetUpStoreRoute,
   TermsRoute: TermsRoute,
+  WhereDidYouHearAboutUsRoute: WhereDidYouHearAboutUsRoute,
   AuthCallbackRoute: AuthCallbackRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

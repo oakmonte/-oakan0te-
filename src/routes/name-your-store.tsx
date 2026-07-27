@@ -15,8 +15,6 @@ function slugify(value: string) {
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-");
 
-  // Fallback for names with no Latin/number characters at all
-  // (non-Latin scripts, emoji-only names, etc.)
   if (!slug) {
     return `store-${Math.random().toString(36).slice(2, 8)}`;
   }
@@ -30,6 +28,12 @@ function NameYourStorePage() {
   const [businessEmail, setBusinessEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const storeType = typeof window !== "undefined" ? sessionStorage.getItem("oakmonte_store_type") : null;
+  const customOrders = typeof window !== "undefined" ? sessionStorage.getItem("oakmonte_custom_orders") === "true" : false;
+  const isBrand = storeType === "Brand";
+  const heading = isBrand ? "Name your brand" : "Name your store";
+  const placeholder = isBrand ? "My Brand" : "My Store";
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -50,6 +54,8 @@ function NameYourStorePage() {
       brand_name: brandName.trim(),
       store_username: slugify(brandName),
       business_email: businessEmail.trim() || null,
+      store_type: storeType,
+      offers_custom_orders: customOrders,
     });
 
     setLoading(false);
@@ -64,15 +70,17 @@ function NameYourStorePage() {
       return;
     }
 
+    sessionStorage.removeItem("oakmonte_store_type");
+    sessionStorage.removeItem("oakmonte_custom_orders");
     navigate({ to: "/phone-number", replace: true });
   };
 
   return (
     <div className="min-h-screen bg-brand-bg text-brand-text flex items-center justify-center px-6">
       <div className="w-full max-w-sm text-center">
-        <h1 className="font-serif text-4xl sm:text-5xl leading-tight mb-3">Name your store</h1>
+        <h1 className="font-serif text-4xl sm:text-5xl leading-tight mb-3">{heading}</h1>
         <p className="text-sm text-brand-text/70 mb-8">
-          Pick a store name that reflects your brand.
+          Pick a name that reflects your {isBrand ? "brand" : "store"}.
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-3">
@@ -81,7 +89,7 @@ function NameYourStorePage() {
             required
             value={brandName}
             onChange={(e) => setBrandName(e.target.value)}
-            placeholder="My Store"
+            placeholder={placeholder}
             className="w-full rounded-full border border-brand-text/25 bg-transparent px-5 py-3.5 text-sm placeholder:text-brand-text/40 focus:outline-none focus:border-brand-accent transition-colors"
           />
           <input

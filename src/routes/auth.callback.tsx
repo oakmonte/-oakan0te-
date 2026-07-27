@@ -20,7 +20,7 @@ function AuthCallback() {
       return;
     }
 
-    const finishSignIn = async (userId: string, email: string | undefined, usernameFromMetadata?: string) => {
+    const finishSignIn = async (userId: string) => {
       const { data: existingProfile } = await supabase
         .from("profiles")
         .select("id")
@@ -32,23 +32,7 @@ function AuthCallback() {
         return;
       }
 
-      if (usernameFromMetadata) {
-        const { error: insertError } = await supabase.from("profiles").insert({
-          id: userId,
-          personal_username: usernameFromMetadata,
-          personal_email: email,
-        });
-
-        if (insertError) {
-          console.error(insertError);
-          setError("We couldn't finish setting up your account.");
-          return;
-        }
-
-        navigate({ to: "/name-your-store", replace: true });
-      } else {
-        navigate({ to: "/choose-username", replace: true });
-      }
+      navigate({ to: "/choose-username", replace: true });
     };
 
     (async () => {
@@ -57,8 +41,7 @@ function AuthCallback() {
         const { data } = await supabase.auth.getSession();
         if (cancelled) return;
         if (data.session) {
-          const { user } = data.session;
-          await finishSignIn(user.id, user.email, user.user_metadata?.username as string | undefined);
+          await finishSignIn(data.session.user.id);
           return;
         }
         await new Promise((r) => setTimeout(r, 100));
