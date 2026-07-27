@@ -69,7 +69,9 @@ function CodeInput({ value, onChange }: { value: string; onChange: (v: string) =
       {digits.map((digit, i) => (
         <input
           key={i}
-          ref={(el) => (inputsRef.current[i] = el)}
+          ref={(el) => {
+  inputsRef.current[i] = el;
+}}
           type="text"
           inputMode="numeric"
           maxLength={1}
