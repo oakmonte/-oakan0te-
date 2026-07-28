@@ -116,7 +116,8 @@ function BecomeCreatorPage() {
 
   const handleResend = async () => {
     setError(null);
-    const { error } = await sendMagicLink(email, username);
+    setCode("");
+    const { error } = await sendMagicLink(email);
     if (error) { setError(error.message); return; }
     setCountdown(30);
   };
@@ -170,7 +171,7 @@ function BecomeCreatorPage() {
         <div className="w-full max-w-sm">
           <div className="text-center mb-10">
             <h1 className="font-serif text-4xl sm:text-5xl leading-tight">Become a Creator</h1>
-            <p className="mt-3 text-sm text-brand-text/70">Join Oakmonte and make money from your creative content.</p>
+            <p className="mt-3 text-sm text-brand-text/70">Join Oakmonte and make money from creative content.</p>
           </div>
 
           <div className="space-y-3">
