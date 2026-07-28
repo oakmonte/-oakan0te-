@@ -58,7 +58,7 @@ function PhoneNumberPage() {
       return;
     }
 
-    navigate({ to: "/", replace: true }); // or next onboarding step
+    navigate({ to: "/product-category", replace: true }); // or next onboarding step
   };
 
   return (
