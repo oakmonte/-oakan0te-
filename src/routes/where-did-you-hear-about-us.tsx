@@ -30,7 +30,7 @@ function WhereDidYouHearPage() {
       await supabase.from("profiles").update({ referral_source: value }).eq("id", user.id);
     }
     setLoading(false);
-    navigate({ to: "/describe-yourself" });
+    navigate({ to: "/name-your-store" });
   };
 
   return (
