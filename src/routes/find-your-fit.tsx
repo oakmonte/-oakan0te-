@@ -8,7 +8,7 @@ export const Route = createFileRoute("/find-your-fit")({
 
 type BodyType = {
   name: string;
-  shoulder: number; // relative width 0–1
+  shoulder: number;
   waist: number;
   hip: number;
 };
@@ -68,7 +68,7 @@ function BodySilhouette({ shoulder, waist, hip }: BodyType) {
   `;
 
   return (
-    <svg viewBox="0 0 60 124" className="w-10 h-16" fill="none" aria-hidden="true">
+    <svg viewBox="0 0 60 124" className="w-10 h-16 shrink-0" fill="none" aria-hidden="true">
       <circle cx={cx} cy={10} r={7} stroke="currentColor" strokeWidth="1.5" />
       <path d={path} stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
     </svg>
@@ -77,8 +77,15 @@ function BodySilhouette({ shoulder, waist, hip }: BodyType) {
 
 function FindYourFitPage() {
   const navigate = useNavigate();
-  const [height, setHeight] = useState("");
+
+  const [heightUnit, setHeightUnit] = useState<"cm" | "ftin">("cm");
+  const [heightCm, setHeightCm] = useState("");
+  const [heightFt, setHeightFt] = useState("");
+  const [heightIn, setHeightIn] = useState("");
+
+  const [weightUnit, setWeightUnit] = useState<"kg" | "lbs">("kg");
   const [weight, setWeight] = useState("");
+
   const [gender, setGender] = useState("");
   const [bodyTypeSetOverride, setBodyTypeSetOverride] = useState<"female" | "male" | "neutral" | null>(null);
   const [bodyType, setBodyType] = useState<string | null>(null);
@@ -113,11 +120,15 @@ function FindYourFitPage() {
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
 
+    const height = heightUnit === "cm"
+      ? { unit: "cm", value: heightCm }
+      : { unit: "ftin", feet: heightFt, inches: heightIn };
+
     sessionStorage.setItem(
       "oakmonte_creator_fit",
       JSON.stringify({
         height,
-        weight,
+        weight: { unit: weightUnit, value: weight },
         gender: gender || null,
         bodyType,
         measurements: measurementsOpen
@@ -156,22 +167,83 @@ function FindYourFitPage() {
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-3">
-            <input
-              type="text"
-              inputMode="numeric"
-              value={height}
-              onChange={(e) => setHeight(onlyDigits(e.target.value))}
-              placeholder="Height (cm)"
-              className="w-full rounded-full border border-brand-text/25 bg-transparent px-5 py-3.5 text-sm placeholder:text-brand-text/40 focus:outline-none focus:border-brand-accent transition-colors"
-            />
-            <input
-              type="text"
-              inputMode="numeric"
-              value={weight}
-              onChange={(e) => setWeight(onlyDigits(e.target.value))}
-              placeholder="Weight (kg)"
-              className="w-full rounded-full border border-brand-text/25 bg-transparent px-5 py-3.5 text-sm placeholder:text-brand-text/40 focus:outline-none focus:border-brand-accent transition-colors"
-            />
+            {/* Height */}
+            <div>
+              <div className="flex items-center justify-end gap-3 mb-1.5 px-1">
+                <button
+                  type="button"
+                  onClick={() => setHeightUnit("cm")}
+                  className={`text-[11px] uppercase tracking-widest transition-colors ${heightUnit === "cm" ? "text-brand-accent" : "text-brand-text/40"}`}
+                >
+                  cm
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setHeightUnit("ftin")}
+                  className={`text-[11px] uppercase tracking-widest transition-colors ${heightUnit === "ftin" ? "text-brand-accent" : "text-brand-text/40"}`}
+                >
+                  ft/in
+                </button>
+              </div>
+              {heightUnit === "cm" ? (
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={heightCm}
+                  onChange={(e) => setHeightCm(onlyDigits(e.target.value))}
+                  placeholder="Height (cm)"
+                  className="w-full rounded-full border border-brand-text/25 bg-transparent px-5 py-3.5 text-sm placeholder:text-brand-text/40 focus:outline-none focus:border-brand-accent transition-colors"
+                />
+              ) : (
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={heightFt}
+                    onChange={(e) => setHeightFt(onlyDigits(e.target.value))}
+                    placeholder="Feet"
+                    className="flex-1 rounded-full border border-brand-text/25 bg-transparent px-5 py-3.5 text-sm placeholder:text-brand-text/40 focus:outline-none focus:border-brand-accent transition-colors"
+                  />
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={heightIn}
+                    onChange={(e) => setHeightIn(onlyDigits(e.target.value))}
+                    placeholder="Inches"
+                    className="flex-1 rounded-full border border-brand-text/25 bg-transparent px-5 py-3.5 text-sm placeholder:text-brand-text/40 focus:outline-none focus:border-brand-accent transition-colors"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Weight */}
+            <div>
+              <div className="flex items-center justify-end gap-3 mb-1.5 px-1">
+                <button
+                  type="button"
+                  onClick={() => setWeightUnit("kg")}
+                  className={`text-[11px] uppercase tracking-widest transition-colors ${weightUnit === "kg" ? "text-brand-accent" : "text-brand-text/40"}`}
+                >
+                  kg
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setWeightUnit("lbs")}
+                  className={`text-[11px] uppercase tracking-widest transition-colors ${weightUnit === "lbs" ? "text-brand-accent" : "text-brand-text/40"}`}
+                >
+                  lbs
+                </button>
+              </div>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={weight}
+                onChange={(e) => setWeight(onlyDigits(e.target.value))}
+                placeholder={weightUnit === "kg" ? "Weight (kg)" : "Weight (lbs)"}
+                className="w-full rounded-full border border-brand-text/25 bg-transparent px-5 py-3.5 text-sm placeholder:text-brand-text/40 focus:outline-none focus:border-brand-accent transition-colors"
+              />
+            </div>
+
             <select
               value={gender}
               onChange={(e) => handleGenderChange(e.target.value)}
@@ -180,6 +252,7 @@ function FindYourFitPage() {
               <option value="">Gender (optional)</option>
               <option value="Female">Female</option>
               <option value="Male">Male</option>
+              <option value="Other">Other</option>
             </select>
 
             <div className="rounded-2xl border border-brand-text/15 overflow-hidden text-left">
@@ -240,7 +313,7 @@ function FindYourFitPage() {
                   See other options
                 </button>
               </div>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory scrollbar-thin">
                 {bodyTypeOptions.map((option) => {
                   const isSelected = bodyType === option.name;
                   return (
@@ -248,14 +321,14 @@ function FindYourFitPage() {
                       key={option.name}
                       type="button"
                       onClick={() => setBodyType(option.name)}
-                      className={`flex flex-col items-center gap-1.5 rounded-xl border py-3 px-1 transition-all duration-200 ${
+                      className={`flex flex-col items-center gap-1.5 rounded-xl border py-3 px-3 shrink-0 snap-start transition-all duration-200 ${
                         isSelected
                           ? "bg-brand-text text-brand-bg border-brand-text"
                           : "bg-transparent text-brand-text border-brand-text/25 hover:border-brand-text/50"
                       }`}
                     >
                       <BodySilhouette {...option} />
-                      <span className="text-[11px] leading-tight">{option.name}</span>
+                      <span className="text-[11px] leading-tight whitespace-nowrap">{option.name}</span>
                     </button>
                   );
                 })}

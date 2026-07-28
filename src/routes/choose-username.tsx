@@ -78,6 +78,7 @@ function ChooseUsernamePage() {
             <option value="">Gender (optional)</option>
             <option value="Female">Female</option>
             <option value="Male">Male</option>
+            <option value="prefer not to say">prefer not to say</option>
           </select>
           <button
             type="submit"
