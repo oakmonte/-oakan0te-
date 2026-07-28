@@ -498,9 +498,9 @@ function Index() {
       {/* FEATURES */}
       <section id="product" className="py-16 sm:py-24 md:py-32 px-4 sm:px-6 lg:px-8">
         <div className="w-full max-w-7xl mx-auto">
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif leading-tight mb-10 md:mb-16">
+          <h2 className="leading-[0.85] tracking-tight mb-10 md:mb-16 text-[3.25rem] sm:text-6xl md:text-8xl lg:text-[150px] uppercase break-words" style={{ fontFamily: "Anton, Impact, sans-serif", fontWeight: 400 }}>
             A Better Way<br />
-            <span className="italic">To Shop.</span>
+            <span className="text-brand-accent">To Shop.</span>
           </h2>
 
           {/* Hero feature card */}
