@@ -427,8 +427,8 @@ function Index() {
         <div className="w-full max-w-7xl mx-auto grid grid-cols-12 gap-4 sm:gap-8 items-end">
           <div className="col-span-12 lg:col-span-7">
             <h1 className="leading-[0.85] tracking-tight mb-6 md:mb-8 text-[3.25rem] sm:text-6xl md:text-8xl lg:text-[150px] uppercase break-words" style={{ fontFamily: "Anton, Impact, sans-serif", fontWeight: 400 }}>
-              FASHION HAS <br />
-              <span className="text-brand-accent">A NEW</span> HOME.
+              SHARE <br />
+              <span className="text-brand-accent">YOUR</span> STYLE.
             </h1>
             <p ref={typeRef} className="max-w-full sm:max-w-md text-base sm:text-lg text-brand-text/70 font-light leading-relaxed mb-6 min-h-[6rem] sm:min-h-[5rem]" aria-label={typeText}>
               {typeText.slice(0, typedLength)}
@@ -524,8 +524,8 @@ function Index() {
           {/* 2-column bento grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
             <FeatureBox className="p-6 sm:p-8 md:p-10">
-              <h3 className="text-2xl sm:text-3xl font-serif mb-2 font-bold">Stay Scam Proof</h3>
-              <p className="text-xs sm:text-sm font-display uppercase tracking-[0.15em] mb-5 text-brand-text/80">STOP GETTING SCAMMED !</p>
+              <h3 className="text-3xl sm:text-4xl md:text-5xl font-serif mb-6 font-bold">Stay Scam Proof</h3>
+              <p className="text-xs sm:text-sm font-bold uppercase tracking-[0.15em] mb-5 text-brand-text/80">STOP GETTING SCAMMED !</p>
               <div className="space-y-3 text-sm text-brand-text/70 leading-relaxed">
                 <p>No payment reaches any seller without customer satisfaction, no fast-fashion noise, just curated luxury and authentic pieces.</p>
                 <p>Creators won't make numbers and not get paid.</p>
@@ -534,14 +534,14 @@ function Index() {
             </FeatureBox>
 
             <FeatureBox className="p-6 sm:p-8 md:p-10">
-              <h3 className="text-2xl sm:text-3xl font-serif mb-5 font-bold">Find Your Fit</h3>
+              <h3 className="text-3xl sm:text-4xl md:text-5xl font-serif mb-6 font-bold">Find Your Fit</h3>
               <p className="text-sm text-brand-text/70 leading-relaxed">
                 A dedicated recommendation system tailored to improve curator-piece fit, and reduce returns as all pieces go through our personal size chart.
               </p>
             </FeatureBox>
 
             <FeatureBox className="p-6 sm:p-8 md:p-10">
-              <h3 className="text-2xl sm:text-3xl font-serif mb-2 font-bold">Customizable Storefronts</h3>
+              <h3 className="text-3xl sm:text-4xl md:text-5xl font-serif mb-6 font-bold">Customizable Storefronts</h3>
               <p className="text-xs sm:text-sm font-bold uppercase tracking-[0.15em] mb-5 text-brand-text/80">Who Needs A Website?</p>
               <p className="text-sm text-brand-text/70 leading-relaxed">
                 Oakmonte offers a fully customizable storefront in-app so your customers can feel your aesthetic at a glance. This means improved customer retention, visibility, and wider profit margins.
@@ -549,23 +549,23 @@ function Index() {
             </FeatureBox>
 
             <FeatureBox className="p-6 sm:p-8 md:p-10">
-              <h3 className="text-2xl sm:text-3xl font-serif mb-5 font-bold">Handled Logistics</h3>
+              <h3 className="text-3xl sm:text-4xl md:text-5xl font-serif mb-6 font-bold">Handled Logistics</h3>
               <p className="text-sm text-brand-text/70 leading-relaxed">
                 Get a dedicated delivery service for your brand and a purposefully designed seller dashboard to handle sales and marketing, on and off Oakmonte.
               </p>
             </FeatureBox>
 
             <FeatureBox className="p-6 sm:p-8 md:p-10">
-              <h3 className="text-2xl sm:text-3xl font-serif mb-5 font-bold">Seller &amp; Creator Accountability</h3>
+              <h3 className="text-3xl sm:text-4xl md:text-5xl font-serif mb-6 font-bold">Seller &amp; Creator Accountability</h3>
               <p className="text-sm text-brand-text/70 leading-relaxed">
                 Unlike other marketplaces, every product is easily traced back to the creator or seller who promoted it. Fair credit, transparent payout.
               </p>
             </FeatureBox>
 
             <FeatureBox className="p-6 sm:p-8 md:p-10">
-              <h3 className="text-2xl sm:text-3xl font-serif mb-5 font-bold">Improved Marketing</h3>
+              <h3 className="text-3xl sm:text-4xl md:text-5xl font-serif mb-6 font-bold">Improved Marketing</h3>
               <p className="text-sm text-brand-text/70 leading-relaxed">
-                Get help from us to tell stories behind your brand to raise it's products beyond their functional value.
+                Get help from us to tell stories behind your brand that raises it's products beyond their functional value.
               </p>
             </FeatureBox>
           </div>

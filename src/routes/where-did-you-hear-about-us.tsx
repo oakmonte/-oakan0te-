@@ -7,7 +7,7 @@ export const Route = createFileRoute("/where-did-you-hear-about-us")({
   component: WhereDidYouHearPage,
 });
 
-const OPTIONS = ["Instagram", "TikTok", "A friend", "Google search", "Other"];
+const OPTIONS = ["Instagram", "TikTok", "Youtube", "Online Articles", "A friend", "Google search", "Twitter", "Claude", "ChatGPT", "Perplexity", "Other"];
 
 function WhereDidYouHearPage() {
   const navigate = useNavigate();
@@ -39,7 +39,7 @@ function WhereDidYouHearPage() {
         <h1 className="font-serif text-4xl sm:text-5xl leading-tight mb-3">
           Where did you hear about us?
         </h1>
-        <p className="text-sm text-brand-text/70 mb-8">Just curious — helps us grow smarter.</p>
+        <p className="text-sm text-brand-text/70 mb-8">So we know who to appreciate.</p>
 
         {!showOther ? (
           <div className="space-y-3">

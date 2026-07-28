@@ -81,7 +81,7 @@ function ProductCategoryPage() {
           What will you sell?
         </h1>
         <p className="text-sm text-brand-text/70 mb-8">
-          Pick as many as fit — you can update this anytime.
+          Pick as many that fit — you can update this anytime.
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">

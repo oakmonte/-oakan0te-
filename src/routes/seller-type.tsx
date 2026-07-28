@@ -48,7 +48,7 @@ function SellerTypePage() {
         </div>
 
         <label className="flex items-center justify-between gap-3 px-2 py-3 mb-6 cursor-pointer">
-          <span className="text-sm text-left">Do you offer custom orders?</span>
+          <span className="text-sm text-left">I offer custom orders</span>
           <button
             type="button"
             role="switch"
