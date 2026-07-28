@@ -55,7 +55,7 @@ function BecomeCreatorPage() {
     if (!email) return;
     setError(null);
     setLoading("email");
-    const { error } = await sendMagicLink(email, username);
+    const { error } = await sendMagicLink(email);
     setLoading(null);
     if (error) { setError(error.message); return; }
     setSent(true);
@@ -64,7 +64,7 @@ function BecomeCreatorPage() {
 
   const handleResend = async () => {
     setError(null);
-    const { error } = await sendMagicLink(email, username);
+    const { error } = await sendMagicLink(email);
     if (error) { setError(error.message); return; }
     setCountdown(30);
   };
