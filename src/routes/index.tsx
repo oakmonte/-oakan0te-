@@ -506,9 +506,12 @@ function Index() {
           {/* Hero feature card */}
           <FeatureBox className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-8 md:gap-12 items-center p-6 sm:p-10 md:p-14 mb-6 md:mb-8">
             <div className="order-1">
-              <h3 className="text-3xl sm:text-4xl md:text-5xl font-serif tracking-tight leading-[0.95] mb-6 font-bold">
+              <h3 className="text-3xl sm:text-4xl md:text-5xl font-serif tracking-tight leading-[0.95] mb-4 font-bold">
                 Content to Cart
               </h3>
+              <p className="text-xs sm:text-sm font-bold uppercase tracking-[0.15em] mb-5 text-brand-text/80">
+                CONTENT IS COMMERCE!
+              </p>
               <p className="text-sm sm:text-base text-brand-text/70 leading-relaxed max-w-[46ch]">
                 Buy directly from creative content — not third party links, all within the native oakmonte interface meaning Higher sale conversion rate for sellers and Easier collaboration with creators.
               </p>
