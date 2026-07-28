@@ -18,7 +18,7 @@ function HeaderAuth() {
     return (
       <>
         <Link to="/set-up-store" className="hidden md:inline text-[11px] uppercase tracking-[0.2em] font-semibold hover:text-brand-accent transition-colors duration-500">Sign in</Link>
-        <Link to="/set-up-store" className="px-3 sm:px-5 md:px-6 py-2 border border-brand-accent text-brand-accent text-[9px] sm:text-[10px] uppercase tracking-widest whitespace-nowrap sm:border-brand-text sm:text-brand-text hover:border-brand-accent hover:text-brand-accent transition-colors duration-300">Access Dashboard</Link>
+        <Link to="/set-up-store" className="px-3 sm:px-5 md:px-6 py-2 border border-brand-accent text-brand-accent text-[9px] sm:text-[10px] uppercase tracking-widest whitespace-nowrap sm:border-brand-text sm:text-brand-text hover:border-brand-accent hover:text-brand-accent transition-colors duration-300">{"SIGN UP\n"}</Link>
       </>
     );
   }
@@ -498,17 +498,20 @@ function Index() {
       {/* FEATURES */}
       <section id="product" className="py-16 sm:py-24 md:py-32 px-4 sm:px-6 lg:px-8">
         <div className="w-full max-w-7xl mx-auto">
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif leading-tight mb-10 md:mb-16">
+          <h2 className="leading-[0.85] tracking-tight mb-10 md:mb-16 text-[3.25rem] sm:text-6xl md:text-8xl lg:text-[150px] uppercase break-words" style={{ fontFamily: "Anton, Impact, sans-serif", fontWeight: 400 }}>
             A Better Way<br />
-            <span className="italic">To Shop.</span>
+            <span className="text-brand-accent">To Shop.</span>
           </h2>
 
           {/* Hero feature card */}
           <FeatureBox className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-8 md:gap-12 items-center p-6 sm:p-10 md:p-14 mb-6 md:mb-8">
             <div className="order-1">
-              <h3 className="text-3xl sm:text-4xl md:text-5xl font-display uppercase tracking-tight leading-[0.95] mb-6">
+              <h3 className="text-3xl sm:text-4xl md:text-5xl font-serif tracking-tight leading-[0.95] mb-4 font-bold">
                 Content to Cart
               </h3>
+              <p className="text-xs sm:text-sm font-bold uppercase tracking-[0.15em] mb-5 text-brand-text/80">
+                CONTENT IS COMMERCE!
+              </p>
               <p className="text-sm sm:text-base text-brand-text/70 leading-relaxed max-w-[46ch]">
                 Buy directly from creative content — not third party links, all within the native oakmonte interface meaning Higher sale conversion rate for sellers and Easier collaboration with creators.
               </p>
@@ -521,7 +524,7 @@ function Index() {
           {/* 2-column bento grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
             <FeatureBox className="p-6 sm:p-8 md:p-10">
-              <h3 className="text-2xl sm:text-3xl font-serif mb-2">Stay Scam Proof</h3>
+              <h3 className="text-2xl sm:text-3xl font-serif mb-2 font-bold">Stay Scam Proof</h3>
               <p className="text-xs sm:text-sm font-display uppercase tracking-[0.15em] mb-5 text-brand-text/80">STOP GETTING SCAMMED !</p>
               <div className="space-y-3 text-sm text-brand-text/70 leading-relaxed">
                 <p>No payment reaches any seller without customer satisfaction, no fast-fashion noise, just curated luxury and authentic pieces.</p>
@@ -531,14 +534,14 @@ function Index() {
             </FeatureBox>
 
             <FeatureBox className="p-6 sm:p-8 md:p-10">
-              <h3 className="text-2xl sm:text-3xl font-serif mb-5">Find Your Fit</h3>
+              <h3 className="text-2xl sm:text-3xl font-serif mb-5 font-bold">Find Your Fit</h3>
               <p className="text-sm text-brand-text/70 leading-relaxed">
                 A dedicated recommendation system tailored to improve curator-piece fit, and reduce returns as all pieces go through our personal size chart.
               </p>
             </FeatureBox>
 
             <FeatureBox className="p-6 sm:p-8 md:p-10">
-              <h3 className="text-2xl sm:text-3xl font-serif mb-2">Customizable Storefronts</h3>
+              <h3 className="text-2xl sm:text-3xl font-serif mb-2 font-bold">Customizable Storefronts</h3>
               <p className="text-xs sm:text-sm font-display uppercase tracking-[0.15em] mb-5 text-brand-text/80">Who Needs A Website?</p>
               <p className="text-sm text-brand-text/70 leading-relaxed">
                 Oakmonte offers a fully customizable storefront in-app so your customers can feel your aesthetic at a glance. This means improved customer retention, visibility, and wider profit margins.
@@ -546,21 +549,21 @@ function Index() {
             </FeatureBox>
 
             <FeatureBox className="p-6 sm:p-8 md:p-10">
-              <h3 className="text-2xl sm:text-3xl font-serif mb-5">Handled Logistics</h3>
+              <h3 className="text-2xl sm:text-3xl font-serif mb-5 font-bold">Handled Logistics</h3>
               <p className="text-sm text-brand-text/70 leading-relaxed">
                 Get a dedicated delivery service for your brand and a purposefully designed seller dashboard to handle sales and marketing, on and off Oakmonte.
               </p>
             </FeatureBox>
 
             <FeatureBox className="p-6 sm:p-8 md:p-10">
-              <h3 className="text-2xl sm:text-3xl font-serif mb-5">Seller &amp; Creator Accountability</h3>
+              <h3 className="text-2xl sm:text-3xl font-serif mb-5 font-bold">Seller &amp; Creator Accountability</h3>
               <p className="text-sm text-brand-text/70 leading-relaxed">
                 Unlike other marketplaces, every product is easily traced back to the creator or seller who promoted it. Fair credit, transparent payout.
               </p>
             </FeatureBox>
 
             <FeatureBox className="p-6 sm:p-8 md:p-10">
-              <h3 className="text-2xl sm:text-3xl font-serif mb-5">Improved Marketing</h3>
+              <h3 className="text-2xl sm:text-3xl font-serif mb-5 font-bold">Improved Marketing</h3>
               <p className="text-sm text-brand-text/70 leading-relaxed">
                 Get help from us to tell the stories behind your brand — raising your products beyond their functional value.
               </p>
@@ -569,7 +572,7 @@ function Index() {
 
           {/* Full width closing feature */}
           <FeatureBox className="mt-6 md:mt-8 p-6 sm:p-10 md:p-14">
-            <h3 className="text-3xl sm:text-4xl md:text-5xl font-serif mb-6">
+            <h3 className="text-3xl sm:text-4xl md:text-5xl font-serif mb-6 font-bold">
               Oakmonte Studio
             </h3>
             <p className="text-sm sm:text-base text-brand-text/70 leading-relaxed max-w-[70ch]">

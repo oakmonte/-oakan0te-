@@ -116,8 +116,7 @@ function BecomeCreatorPage() {
 
   const handleResend = async () => {
     setError(null);
-    setCode("");
-    const { error } = await sendMagicLink(email);
+    const { error } = await sendMagicLink(email, username);
     if (error) { setError(error.message); return; }
     setCountdown(30);
   };
