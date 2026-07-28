@@ -30,7 +30,12 @@ function WhereDidYouHearPage() {
       await supabase.from("profiles").update({ referral_source: value }).eq("id", user.id);
     }
     setLoading(false);
-    navigate({ to: "/name-your-store" });
+
+    const intent = typeof window !== "undefined"
+      ? sessionStorage.getItem("oakmonte_intent") ?? "seller"
+      : "seller";
+
+    navigate({ to: intent === "creator" ? "/creator-niche" : "/name-your-store" });
   };
 
   return (

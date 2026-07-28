@@ -105,6 +105,7 @@ function SetUpStorePage() {
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
+    sessionStorage.setItem("oakmonte_intent", "seller");
     setError(null);
     setLoading("email");
     const { error } = await sendMagicLink(email);
@@ -117,12 +118,14 @@ function SetUpStorePage() {
   const handleResend = async () => {
     setError(null);
     setCode("");
+    sessionStorage.setItem("oakmonte_intent", "seller");
     const { error } = await sendMagicLink(email);
     if (error) { setError(error.message); return; }
     setCountdown(30);
   };
 
   const handleGoogle = async () => {
+    sessionStorage.setItem("oakmonte_intent", "seller");
     setError(null);
     setLoading("google");
     const { error } = await signInWithGoogle();

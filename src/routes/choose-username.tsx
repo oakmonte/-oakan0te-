@@ -10,6 +10,7 @@ export const Route = createFileRoute("/choose-username")({
 function ChooseUsernamePage() {
   const navigate = useNavigate();
   const [username, setUsername] = useState("");
+  const [gender, setGender] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,6 +31,7 @@ function ChooseUsernamePage() {
       id: user.id,
       personal_username: username,
       personal_email: user.email,
+      gender: gender || null,
     });
 
     setLoading(false);
@@ -44,7 +46,11 @@ function ChooseUsernamePage() {
       return;
     }
 
-    navigate({ to: "/seller-type", replace: true });
+    const intent = typeof window !== "undefined"
+      ? sessionStorage.getItem("oakmonte_intent") ?? "seller"
+      : "seller";
+
+    navigate({ to: intent === "creator" ? "/where-did-you-hear-about-us" : "/seller-type", replace: true });
   };
 
   return (
@@ -64,6 +70,15 @@ function ChooseUsernamePage() {
             placeholder="Username"
             className="w-full rounded-full border border-brand-text/25 bg-transparent px-5 py-3.5 text-sm placeholder:text-brand-text/40 focus:outline-none focus:border-brand-accent transition-colors"
           />
+          <select
+            value={gender}
+            onChange={(e) => setGender(e.target.value)}
+            className="w-full rounded-full border border-brand-text/25 bg-transparent px-5 py-3.5 text-sm text-brand-text/80 focus:outline-none focus:border-brand-accent transition-colors"
+          >
+            <option value="">Gender (optional)</option>
+            <option value="Female">Female</option>
+            <option value="Male">Male</option>
+          </select>
           <button
             type="submit"
             disabled={loading}

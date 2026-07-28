@@ -34,6 +34,7 @@ function NameYourStorePage() {
   const isBrand = storeType === "Brand";
   const heading = isBrand ? "Name your brand" : "Name your store";
   const placeholder = isBrand ? "My Brand" : "My Store";
+  const emailPlaceholder = isBrand ? "Brand email (optional for now)" : "Store email (optional for now)";
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -96,7 +97,7 @@ function NameYourStorePage() {
             type="email"
             value={businessEmail}
             onChange={(e) => setBusinessEmail(e.target.value)}
-            placeholder="Business email (optional for now)"
+            placeholder={emailPlaceholder}
             className="w-full rounded-full border border-brand-text/25 bg-transparent px-5 py-3.5 text-sm placeholder:text-brand-text/40 focus:outline-none focus:border-brand-accent transition-colors"
           />
           <button
