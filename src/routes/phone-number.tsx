@@ -1,5 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
+import PhoneInput, { isValidPhoneNumber } from "react-phone-number-input";
+import "react-phone-number-input/style.css";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 
 export const Route = createFileRoute("/phone-number")({
@@ -9,16 +11,29 @@ export const Route = createFileRoute("/phone-number")({
 
 function PhoneNumberPage() {
   const navigate = useNavigate();
-  const [personalPhone, setPersonalPhone] = useState("");
-  const [businessPhone, setBusinessPhone] = useState("");
+  const [personalPhone, setPersonalPhone] = useState<string | undefined>();
+  const [businessPhone, setBusinessPhone] = useState<string | undefined>();
   const [sameAsPersonal, setSameAsPersonal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
+
+    if (personalPhone && !isValidPhoneNumber(personalPhone)) {
+      setError("That personal phone number doesn't look valid.");
+      return;
+    }
+
+    const finalBusinessPhone = sameAsPersonal ? personalPhone : businessPhone;
+
+    if (finalBusinessPhone && !isValidPhoneNumber(finalBusinessPhone)) {
+      setError("That business phone number doesn't look valid.");
+      return;
+    }
+
+    setLoading(true);
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
@@ -27,13 +42,10 @@ function PhoneNumberPage() {
       return;
     }
 
-    const finalBusinessPhone = sameAsPersonal ? personalPhone.trim() : businessPhone.trim();
-
-    // Save personal phone to profiles
-    if (personalPhone.trim()) {
+    if (personalPhone) {
       const { error: profileError } = await supabase
         .from("profiles")
-        .update({ personal_phone: personalPhone.trim() })
+        .update({ personal_phone: personalPhone })
         .eq("id", user.id);
 
       if (profileError) {
@@ -44,7 +56,6 @@ function PhoneNumberPage() {
       }
     }
 
-    // Save business phone to this user's store
     const { error: storeError } = await supabase
       .from("stores")
       .update({ business_phone: finalBusinessPhone || null })
@@ -58,7 +69,7 @@ function PhoneNumberPage() {
       return;
     }
 
-    navigate({ to: "/product-category", replace: true }); // or next onboarding step
+    navigate({ to: "/product-category", replace: true });
   };
 
   return (
@@ -70,13 +81,15 @@ function PhoneNumberPage() {
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-3">
-          <input
-            type="tel"
-            value={personalPhone}
-            onChange={(e) => setPersonalPhone(e.target.value)}
-            placeholder="Personal phone number"
-            className="w-full rounded-full border border-brand-text/25 bg-transparent px-5 py-3.5 text-sm placeholder:text-brand-text/40 focus:outline-none focus:border-brand-accent transition-colors"
-          />
+          <div className="oakmonte-phone-input">
+            <PhoneInput
+              international
+              defaultCountry="NG"
+              value={personalPhone}
+              onChange={setPersonalPhone}
+              placeholder="Personal phone number"
+            />
+          </div>
 
           <label className="flex items-center gap-2 text-xs text-brand-text/70 px-2 py-1 cursor-pointer">
             <input
@@ -89,13 +102,15 @@ function PhoneNumberPage() {
           </label>
 
           {!sameAsPersonal && (
-            <input
-              type="tel"
-              value={businessPhone}
-              onChange={(e) => setBusinessPhone(e.target.value)}
-              placeholder="Business phone number (optional for now)"
-              className="w-full rounded-full border border-brand-text/25 bg-transparent px-5 py-3.5 text-sm placeholder:text-brand-text/40 focus:outline-none focus:border-brand-accent transition-colors"
-            />
+            <div className="oakmonte-phone-input">
+              <PhoneInput
+                international
+                defaultCountry="NG"
+                value={businessPhone}
+                onChange={setBusinessPhone}
+                placeholder="Business phone number (optional for now)"
+              />
+            </div>
           )}
 
           <p className="text-xs text-brand-text/50 px-2">
