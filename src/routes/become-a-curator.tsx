@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { AppleIcon, GoogleIcon } from "@/components/auth-icons";
 
 export const Route = createFileRoute("/become-a-curator")({
   head: () => ({

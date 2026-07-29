@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { signInWithGoogle, sendMagicLink } from "@/lib/auth";
+import { AppleIcon, GoogleIcon } from "@/components/auth-icons";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 
 export const Route = createFileRoute("/set-up-store")({
