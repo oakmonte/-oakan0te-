@@ -6,71 +6,88 @@ export const Route = createFileRoute("/find-your-fit")({
   component: FindYourFitPage,
 });
 
-type BodyType = {
-  name: string;
+type BodyShape = {
+  id: string;
   shoulder: number;
+  bust: number;
   waist: number;
   hip: number;
+  thigh: number;
 };
 
-const FEMALE_BODY_TYPES: BodyType[] = [
-  { name: "Hourglass", shoulder: 0.75, waist: 0.4, hip: 0.78 },
-  { name: "Pear", shoulder: 0.55, waist: 0.45, hip: 0.85 },
-  { name: "Apple", shoulder: 0.65, waist: 0.75, hip: 0.55 },
-  { name: "Rectangle", shoulder: 0.6, waist: 0.55, hip: 0.6 },
-  { name: "Inverted triangle", shoulder: 0.85, waist: 0.5, hip: 0.45 },
-  { name: "Athletic", shoulder: 0.7, waist: 0.5, hip: 0.62 },
+const FEMALE_BODY_TYPES: BodyShape[] = [
+  { id: "f1", shoulder: 0.5, bust: 0.5, waist: 0.42, hip: 0.5, thigh: 0.45 },
+  { id: "f2", shoulder: 0.55, bust: 0.55, waist: 0.48, hip: 0.58, thigh: 0.5 },
+  { id: "f3", shoulder: 0.5, bust: 0.5, waist: 0.45, hip: 0.7, thigh: 0.55 },
+  { id: "f4", shoulder: 0.5, bust: 0.5, waist: 0.45, hip: 0.78, thigh: 0.68 },
+  { id: "f5", shoulder: 0.5, bust: 0.45, waist: 0.48, hip: 0.8, thigh: 0.72 },
+  { id: "f6", shoulder: 0.6, bust: 0.85, waist: 0.55, hip: 0.65, thigh: 0.58 },
+  { id: "f7", shoulder: 0.62, bust: 0.75, waist: 0.42, hip: 0.82, thigh: 0.65 },
+  { id: "f8", shoulder: 0.7, bust: 0.55, waist: 0.48, hip: 0.58, thigh: 0.55 },
+  { id: "f9", shoulder: 0.78, bust: 0.58, waist: 0.5, hip: 0.55, thigh: 0.58 },
 ];
 
-const MALE_BODY_TYPES: BodyType[] = [
-  { name: "Trapezoid", shoulder: 0.85, waist: 0.45, hip: 0.5 },
-  { name: "Triangle", shoulder: 0.5, waist: 0.6, hip: 0.75 },
-  { name: "Oval", shoulder: 0.6, waist: 0.8, hip: 0.6 },
-  { name: "Rectangle", shoulder: 0.6, waist: 0.55, hip: 0.58 },
-  { name: "Athletic", shoulder: 0.8, waist: 0.45, hip: 0.55 },
+const MALE_BODY_TYPES: BodyShape[] = [
+  { id: "m1", shoulder: 0.45, bust: 0.4, waist: 0.38, hip: 0.4, thigh: 0.38 },
+  { id: "m2", shoulder: 0.55, bust: 0.48, waist: 0.42, hip: 0.45, thigh: 0.42 },
+  { id: "m3", shoulder: 0.68, bust: 0.58, waist: 0.45, hip: 0.5, thigh: 0.48 },
+  { id: "m4", shoulder: 0.85, bust: 0.75, waist: 0.48, hip: 0.55, thigh: 0.58 },
+  { id: "m5", shoulder: 0.65, bust: 0.65, waist: 0.68, hip: 0.62, thigh: 0.55 },
+  { id: "m6", shoulder: 0.68, bust: 0.75, waist: 0.82, hip: 0.68, thigh: 0.6 },
+  { id: "m7", shoulder: 0.72, bust: 0.88, waist: 0.95, hip: 0.78, thigh: 0.68 },
 ];
 
-const NEUTRAL_BODY_TYPES: BodyType[] = [
-  { name: "Slim", shoulder: 0.5, waist: 0.42, hip: 0.5 },
-  { name: "Athletic", shoulder: 0.72, waist: 0.48, hip: 0.58 },
-  { name: "Curvy", shoulder: 0.65, waist: 0.42, hip: 0.78 },
-  { name: "Broad", shoulder: 0.85, waist: 0.55, hip: 0.6 },
-  { name: "Average", shoulder: 0.6, waist: 0.55, hip: 0.6 },
+const NEUTRAL_BODY_TYPES: BodyShape[] = [
+  { id: "n1", shoulder: 0.5, bust: 0.5, waist: 0.42, hip: 0.5, thigh: 0.45 },
+  { id: "n2", shoulder: 0.65, bust: 0.55, waist: 0.48, hip: 0.55, thigh: 0.5 },
+  { id: "n3", shoulder: 0.55, bust: 0.6, waist: 0.42, hip: 0.68, thigh: 0.58 },
+  { id: "n4", shoulder: 0.78, bust: 0.62, waist: 0.55, hip: 0.6, thigh: 0.55 },
+  { id: "n5", shoulder: 0.6, bust: 0.55, waist: 0.55, hip: 0.6, thigh: 0.55 },
 ];
 
 function onlyDigits(value: string) {
   return value.replace(/\D/g, "");
 }
 
-function BodySilhouette({ shoulder, waist, hip }: BodyType) {
+function BodySilhouette({ shoulder, bust, waist, hip, thigh }: BodyShape) {
   const cx = 30;
-  const sW = 10 + shoulder * 20;
-  const wW = 10 + waist * 20;
-  const hW = 10 + hip * 20;
+  const w = (v: number) => 8 + v * 24;
 
-  const shoulderY = 22;
+  const sh = w(shoulder);
+  const bu = w(bust);
+  const wa = w(waist);
+  const hi = w(hip);
+  const th = w(thigh);
+
+  const shoulderY = 20;
+  const bustY = 36;
   const waistY = 58;
-  const hipY = 82;
-  const legY = 116;
+  const hipY = 78;
+  const thighY = 96;
+  const ankleY = 132;
 
   const path = `
-    M ${cx - sW} ${shoulderY}
-    C ${cx - sW} ${shoulderY + 14}, ${cx - wW} ${waistY - 10}, ${cx - wW} ${waistY}
-    C ${cx - wW} ${waistY + 10}, ${cx - hW} ${hipY - 8}, ${cx - hW} ${hipY}
-    L ${cx - hW * 0.5} ${legY}
-    L ${cx - hW * 0.15} ${hipY + 6}
-    L ${cx + hW * 0.15} ${hipY + 6}
-    L ${cx + hW * 0.5} ${legY}
-    L ${cx + hW} ${hipY}
-    C ${cx + hW} ${hipY - 8}, ${cx + wW} ${waistY + 10}, ${cx + wW} ${waistY}
-    C ${cx + wW} ${waistY - 10}, ${cx + sW} ${shoulderY + 14}, ${cx + sW} ${shoulderY}
+    M ${cx - sh} ${shoulderY}
+    C ${cx - sh} ${shoulderY + 8}, ${cx - bu} ${bustY - 6}, ${cx - bu} ${bustY}
+    C ${cx - bu} ${bustY + 8}, ${cx - wa} ${waistY - 10}, ${cx - wa} ${waistY}
+    C ${cx - wa} ${waistY + 8}, ${cx - hi} ${hipY - 8}, ${cx - hi} ${hipY}
+    C ${cx - hi} ${hipY + 6}, ${cx - th} ${thighY - 6}, ${cx - th} ${thighY}
+    L ${cx - th * 0.35} ${thighY + 6}
+    L ${cx - hi * 0.12} ${ankleY}
+    L ${cx + hi * 0.12} ${ankleY}
+    L ${cx + th * 0.35} ${thighY + 6}
+    L ${cx + th} ${thighY}
+    C ${cx + th} ${thighY - 6}, ${cx + hi} ${hipY + 6}, ${cx + hi} ${hipY}
+    C ${cx + hi} ${hipY - 8}, ${cx + wa} ${waistY + 8}, ${cx + wa} ${waistY}
+    C ${cx + wa} ${waistY - 10}, ${cx + bu} ${bustY + 8}, ${cx + bu} ${bustY}
+    C ${cx + bu} ${bustY - 6}, ${cx + sh} ${shoulderY + 8}, ${cx + sh} ${shoulderY}
     Z
   `;
 
   return (
-    <svg viewBox="0 0 60 124" className="w-10 h-16 shrink-0" fill="none" aria-hidden="true">
-      <circle cx={cx} cy={10} r={7} stroke="currentColor" strokeWidth="1.5" />
-      <path d={path} stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+    <svg viewBox="0 0 60 132" className="w-11 h-16 shrink-0" fill="none" aria-hidden="true">
+      <circle cx={cx} cy={9} r={7} stroke="currentColor" strokeWidth="1.4" />
+      <path d={path} stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -87,7 +104,6 @@ function FindYourFitPage() {
   const [weight, setWeight] = useState("");
 
   const [gender, setGender] = useState("");
-  const [bodyTypeSetOverride, setBodyTypeSetOverride] = useState<"female" | "male" | "neutral" | null>(null);
   const [bodyType, setBodyType] = useState<string | null>(null);
 
   const [measurementsOpen, setMeasurementsOpen] = useState(false);
@@ -97,23 +113,12 @@ function FindYourFitPage() {
   const [shoulderWidth, setShoulderWidth] = useState("");
 
   const bodyTypeOptions =
-    bodyTypeSetOverride === "female" ? FEMALE_BODY_TYPES
-    : bodyTypeSetOverride === "male" ? MALE_BODY_TYPES
-    : bodyTypeSetOverride === "neutral" ? NEUTRAL_BODY_TYPES
-    : gender === "Female" ? FEMALE_BODY_TYPES
+    gender === "Female" ? FEMALE_BODY_TYPES
     : gender === "Male" ? MALE_BODY_TYPES
     : NEUTRAL_BODY_TYPES;
 
   const handleGenderChange = (value: string) => {
     setGender(value);
-    setBodyTypeSetOverride(null);
-    setBodyType(null);
-  };
-
-  const cycleOverride = () => {
-    setBodyTypeSetOverride((prev) =>
-      prev === "female" ? "male" : prev === "male" ? "neutral" : "female"
-    );
     setBodyType(null);
   };
 
@@ -167,7 +172,6 @@ function FindYourFitPage() {
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-3">
-            {/* Height */}
             <div>
               <div className="flex items-center justify-end gap-3 mb-1.5 px-1">
                 <button
@@ -216,7 +220,6 @@ function FindYourFitPage() {
               )}
             </div>
 
-            {/* Weight */}
             <div>
               <div className="flex items-center justify-end gap-3 mb-1.5 px-1">
                 <button
@@ -252,6 +255,7 @@ function FindYourFitPage() {
               <option value="">Gender (optional)</option>
               <option value="Female">Female</option>
               <option value="Male">Male</option>
+              <option value="Other">Other</option>
             </select>
 
             <div className="rounded-2xl border border-brand-text/15 overflow-hidden text-left">
@@ -302,32 +306,23 @@ function FindYourFitPage() {
             </div>
 
             <div className="pt-4 text-left">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-sm text-brand-text/70">Pick a close resembling body type.</p>
-                <button
-                  type="button"
-                  onClick={cycleOverride}
-                  className="text-[11px] uppercase tracking-widest text-brand-text/50 hover:text-brand-text transition-colors shrink-0 ml-2"
-                >
-                  See other options
-                </button>
-              </div>
+              <p className="text-sm text-brand-text/70 mb-3">Pick a close resembling body type.</p>
               <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory scrollbar-thin">
                 {bodyTypeOptions.map((option) => {
-                  const isSelected = bodyType === option.name;
+                  const isSelected = bodyType === option.id;
                   return (
                     <button
-                      key={option.name}
+                      key={option.id}
                       type="button"
-                      onClick={() => setBodyType(option.name)}
-                      className={`flex flex-col items-center gap-1.5 rounded-xl border py-3 px-3 shrink-0 snap-start transition-all duration-200 ${
+                      onClick={() => setBodyType(option.id)}
+                      aria-label={`Body type option ${option.id}`}
+                      className={`flex items-center justify-center rounded-xl border py-3 px-3 shrink-0 snap-start transition-all duration-200 ${
                         isSelected
                           ? "bg-brand-text text-brand-bg border-brand-text"
                           : "bg-transparent text-brand-text border-brand-text/25 hover:border-brand-text/50"
                       }`}
                     >
                       <BodySilhouette {...option} />
-                      <span className="text-[11px] leading-tight whitespace-nowrap">{option.name}</span>
                     </button>
                   );
                 })}
