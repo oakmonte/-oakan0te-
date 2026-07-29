@@ -252,7 +252,6 @@ function FindYourFitPage() {
               <option value="">Gender (optional)</option>
               <option value="Female">Female</option>
               <option value="Male">Male</option>
-              <option value="Other">Other</option>
             </select>
 
             <div className="rounded-2xl border border-brand-text/15 overflow-hidden text-left">
