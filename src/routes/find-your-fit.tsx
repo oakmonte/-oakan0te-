@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 
 export const Route = createFileRoute("/find-your-fit")({
   head: () => ({ meta: [{ title: "Find your fit — Oakmonte" }] }),
@@ -71,7 +71,6 @@ const FEMALE_BODY_TYPES: TracedBodyShape[] = [
     "M 512 19 L 499 22 L 484 29 L 478 33 L 467 44 L 457 61 L 454 71 L 453 83 L 452 84 L 453 102 L 446 104 L 442 111 L 442 122 L 447 139 L 453 151 L 456 154 L 461 156 L 464 168 L 469 177 L 469 198 L 467 207 L 456 215 L 417 232 L 385 236 L 373 240 L 361 246 L 349 255 L 341 263 L 331 277 L 324 290 L 312 326 L 308 346 L 307 358 L 306 359 L 299 417 L 290 460 L 284 478 L 278 486 L 268 506 L 259 535 L 253 567 L 253 572 L 252 573 L 248 604 L 243 629 L 241 634 L 241 638 L 232 672 L 228 697 L 226 702 L 223 721 L 218 740 L 218 753 L 221 762 L 226 791 L 238 805 L 255 821 L 262 819 L 266 822 L 269 822 L 272 819 L 272 814 L 275 810 L 275 804 L 273 801 L 274 799 L 273 794 L 271 791 L 264 786 L 269 777 L 268 746 L 275 720 L 275 706 L 271 686 L 277 671 L 297 634 L 298 637 L 292 658 L 289 680 L 288 681 L 286 711 L 285 712 L 285 742 L 286 743 L 288 771 L 289 772 L 292 793 L 296 806 L 296 810 L 306 843 L 306 846 L 310 856 L 310 859 L 313 865 L 314 871 L 336 934 L 349 964 L 352 997 L 355 1011 L 355 1020 L 352 1029 L 352 1033 L 346 1058 L 344 1080 L 343 1081 L 343 1118 L 344 1119 L 344 1127 L 345 1128 L 345 1135 L 351 1166 L 362 1206 L 369 1225 L 369 1228 L 381 1265 L 385 1281 L 385 1286 L 388 1298 L 388 1306 L 389 1307 L 389 1313 L 387 1321 L 388 1347 L 377 1376 L 363 1403 L 356 1412 L 355 1415 L 355 1425 L 359 1430 L 365 1431 L 370 1436 L 378 1436 L 384 1440 L 388 1440 L 392 1438 L 397 1442 L 407 1442 L 413 1438 L 420 1443 L 433 1444 L 438 1443 L 445 1439 L 449 1432 L 449 1429 L 456 1422 L 458 1416 L 458 1406 L 456 1400 L 456 1395 L 459 1392 L 462 1385 L 462 1374 L 461 1373 L 461 1368 L 458 1355 L 458 1348 L 457 1347 L 461 1329 L 461 1322 L 458 1308 L 459 1288 L 460 1287 L 461 1274 L 465 1254 L 485 1186 L 494 1146 L 495 1131 L 496 1130 L 496 1118 L 497 1117 L 497 1097 L 496 1096 L 495 1071 L 494 1070 L 492 1045 L 491 1044 L 491 1031 L 502 1003 L 508 978 L 511 949 L 512 948 L 512 940 L 513 939 L 513 931 L 514 930 L 514 922 L 517 906 L 519 879 L 520 878 L 522 886 L 522 896 L 523 897 L 524 913 L 525 914 L 526 929 L 528 937 L 528 946 L 529 947 L 530 964 L 531 965 L 533 984 L 538 1005 L 548 1031 L 547 1053 L 546 1054 L 544 1081 L 543 1082 L 543 1094 L 542 1095 L 542 1116 L 543 1117 L 543 1129 L 544 1130 L 545 1146 L 548 1158 L 548 1163 L 552 1176 L 552 1180 L 573 1252 L 573 1256 L 577 1271 L 578 1284 L 579 1285 L 580 1312 L 578 1320 L 578 1329 L 581 1340 L 581 1354 L 577 1375 L 577 1384 L 579 1390 L 584 1395 L 582 1404 L 582 1416 L 585 1423 L 591 1429 L 593 1436 L 598 1441 L 602 1443 L 616 1444 L 623 1442 L 627 1438 L 633 1442 L 642 1442 L 648 1438 L 652 1440 L 659 1439 L 663 1435 L 669 1436 L 676 1431 L 681 1430 L 685 1426 L 686 1423 L 685 1412 L 678 1403 L 665 1378 L 652 1345 L 653 1340 L 653 1319 L 652 1318 L 651 1308 L 652 1307 L 653 1292 L 659 1265 L 687 1175 L 696 1129 L 697 1081 L 696 1080 L 696 1071 L 695 1070 L 693 1050 L 686 1021 L 686 1011 L 690 991 L 692 964 L 712 914 L 733 851 L 733 848 L 739 831 L 747 801 L 753 769 L 754 751 L 755 750 L 755 704 L 754 703 L 754 693 L 753 692 L 753 684 L 752 683 L 750 665 L 744 639 L 742 635 L 743 633 L 759 660 L 770 686 L 770 692 L 768 697 L 767 708 L 766 709 L 766 716 L 767 717 L 767 725 L 773 744 L 772 775 L 774 782 L 777 785 L 768 794 L 768 802 L 766 805 L 766 810 L 769 814 L 769 818 L 771 821 L 774 822 L 779 819 L 784 821 L 788 820 L 802 807 L 816 790 L 816 785 L 819 774 L 820 764 L 823 755 L 824 745 L 816 708 L 815 698 L 811 684 L 809 669 L 802 643 L 802 639 L 800 634 L 800 630 L 794 605 L 784 539 L 774 506 L 767 491 L 757 475 L 750 452 L 742 411 L 733 340 L 728 318 L 721 297 L 714 282 L 705 268 L 692 254 L 681 246 L 669 240 L 657 236 L 647 235 L 646 234 L 638 234 L 637 233 L 629 233 L 598 221 L 584 214 L 574 206 L 573 201 L 573 178 L 579 166 L 581 157 L 589 152 L 594 143 L 598 133 L 601 118 L 600 109 L 598 105 L 595 103 L 590 104 L 589 103 L 590 81 L 587 66 L 584 58 L 577 46 L 570 38 L 560 30 L 551 25 L 536 20 L 513 19",
     ],
   },
-
   {
     id: "f-skinny",
     viewBox: "0 0 178 612",
@@ -142,7 +141,6 @@ const FEMALE_BODY_TYPES: TracedBodyShape[] = [
       "M 120 89 L 111 92 L 102 101 L 98 113 L 98 126 L 95 128 L 96 139 L 98 143 L 102 146 L 104 152 L 109 158 L 109 167 L 106 177 L 94 184 L 82 187 L 77 187 L 68 190 L 60 198 L 55 210 L 54 220 L 53 221 L 50 283 L 48 293 L 40 313 L 36 331 L 35 342 L 28 376 L 28 384 L 25 400 L 25 411 L 27 414 L 30 425 L 41 436 L 42 434 L 36 424 L 38 422 L 38 417 L 39 416 L 40 417 L 41 424 L 44 432 L 44 436 L 50 455 L 57 472 L 64 485 L 70 501 L 71 514 L 69 521 L 68 538 L 67 539 L 67 552 L 68 553 L 69 569 L 77 596 L 88 621 L 95 647 L 94 648 L 94 657 L 96 661 L 96 669 L 95 670 L 93 688 L 91 693 L 91 699 L 93 702 L 105 706 L 108 705 L 115 706 L 117 705 L 122 696 L 121 683 L 120 682 L 120 666 L 118 660 L 119 652 L 116 643 L 116 634 L 115 633 L 115 621 L 116 620 L 116 608 L 117 607 L 117 599 L 118 598 L 119 582 L 120 581 L 120 571 L 121 570 L 121 549 L 120 548 L 120 539 L 118 529 L 118 514 L 121 501 L 123 470 L 124 469 L 125 470 L 126 498 L 130 519 L 128 539 L 127 540 L 127 548 L 126 549 L 126 573 L 127 574 L 127 584 L 128 585 L 130 614 L 131 615 L 131 636 L 130 637 L 130 643 L 127 651 L 128 661 L 126 668 L 127 680 L 126 681 L 125 695 L 127 701 L 132 706 L 137 706 L 138 705 L 142 706 L 150 704 L 154 702 L 156 699 L 156 694 L 154 689 L 151 667 L 150 666 L 150 660 L 152 655 L 151 645 L 158 621 L 172 588 L 178 564 L 179 530 L 176 514 L 176 506 L 178 498 L 194 463 L 202 436 L 204 434 L 206 436 L 217 423 L 218 416 L 221 409 L 221 403 L 219 394 L 218 376 L 217 375 L 211 334 L 209 328 L 209 323 L 205 307 L 200 296 L 197 284 L 195 241 L 194 240 L 194 222 L 191 207 L 185 195 L 179 190 L 171 187 L 156 185 L 145 180 L 140 175 L 138 166 L 139 157 L 144 151 L 145 146 L 149 144 L 153 133 L 152 128 L 149 126 L 149 110 L 146 102 L 138 93 L 128 89 L 121 89",
     ],
   },
-
   {
     id: "f-curvy",
     viewBox: "0 0 202 736",
@@ -297,21 +295,47 @@ function ParametricBodySilhouette({ shoulder, bust, waist, hip, thigh }: Paramet
 
 // New traced silhouette — female, and eventually all genders.
 // Renders every path from the source file, so the arm/torso separation and
-// interior detail lines (creases, folds) show exactly as traced.
-function TracedBodySilhouette({ viewBox, paths }: TracedBodyShape) {
-  const strokeScale = Number(viewBox.split(" ")[2]) || 1043;
+// interior detail lines (creases, folds) show exactly as traced. Auto-crops
+// to the real drawn bounding box on mount, since each traced source SVG has
+// a different amount of empty margin baked into its original viewBox —
+// without this, some shapes render visibly bigger/smaller than others even
+// though they're meant to be shown at the same relative scale.
+function TracedBodySilhouette({ id, viewBox, paths }: TracedBodyShape) {
+  const groupRef = useRef<SVGGElement | null>(null);
+  const [renderViewBox, setRenderViewBox] = useState(viewBox);
+
+  useEffect(() => {
+    if (!groupRef.current) return;
+    try {
+      const bbox = groupRef.current.getBBox();
+      if (bbox.width > 0 && bbox.height > 0) {
+        const padX = bbox.width * 0.06;
+        const padY = bbox.height * 0.04;
+        setRenderViewBox(
+          `${bbox.x - padX} ${bbox.y - padY} ${bbox.width + padX * 2} ${bbox.height + padY * 2}`
+        );
+      }
+    } catch {
+      // getBBox can throw if not yet mounted/visible — keep the fallback viewBox
+    }
+  }, [id]);
+
+  const strokeScale = Number(viewBox.split(" ")[2]) || 1000;
+
   return (
-    <svg viewBox={viewBox} className="w-28 h-52 shrink-0" fill="none" aria-hidden="true">
-      {paths.map((d, i) => (
-        <path
-          key={i}
-          d={d}
-          stroke="currentColor"
-          strokeWidth={Math.max(1, strokeScale / 700)}
-          strokeLinejoin="round"
-          strokeLinecap="round"
-        />
-      ))}
+    <svg viewBox={renderViewBox} className="w-28 h-52 shrink-0" fill="none" aria-hidden="true">
+      <g ref={groupRef}>
+        {paths.map((d, i) => (
+          <path
+            key={i}
+            d={d}
+            stroke="currentColor"
+            strokeWidth={Math.max(1, strokeScale / 700)}
+            strokeLinejoin="round"
+            strokeLinecap="round"
+          />
+        ))}
+      </g>
     </svg>
   );
 }
