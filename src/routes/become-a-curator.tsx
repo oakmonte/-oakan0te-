@@ -53,7 +53,9 @@ function BecomeCuratorPage() {
   return (
     <div className="min-h-screen bg-brand-bg text-brand-text flex flex-col">
       <header className="px-6 sm:px-10 py-6 flex items-center justify-between">
-        <Link to="/" className="font-display text-2xl tracking-wider">OAKMONTE</Link>
+        <Link to="/" className="flex items-center">
+          <img src="/favicon.png" alt="Oakmonte" className="h-9 w-auto" />
+        </Link>
         <Link to="/" className="text-[11px] uppercase tracking-widest hover:text-brand-accent transition-colors">← Back</Link>
       </header>
 
