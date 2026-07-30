@@ -9,80 +9,25 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as WhereDidYouHearAboutUsRouteImport } from './routes/where-did-you-hear-about-us'
-import { Route as TermsRouteImport } from './routes/terms'
-import { Route as SetUpStoreRouteImport } from './routes/set-up-store'
-import { Route as SellerTypeRouteImport } from './routes/seller-type'
-import { Route as ProductCategoryRouteImport } from './routes/product-category'
-import { Route as PrivacyRouteImport } from './routes/privacy'
-import { Route as PhoneNumberRouteImport } from './routes/phone-number'
-import { Route as NameYourStoreRouteImport } from './routes/name-your-store'
-import { Route as FindYourFitRouteImport } from './routes/find-your-fit'
-import { Route as CreatorNicheRouteImport } from './routes/creator-niche'
-import { Route as ChooseUsernameRouteImport } from './routes/choose-username'
-import { Route as BecomeACuratorRouteImport } from './routes/become-a-curator'
-import { Route as BecomeACreatorRouteImport } from './routes/become-a-creator'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as BecomeACreatorRouteImport } from './routes/become-a-creator'
+import { Route as BecomeACuratorRouteImport } from './routes/become-a-curator'
+import { Route as ChooseUsernameRouteImport } from './routes/choose-username'
+import { Route as CreatorNicheRouteImport } from './routes/creator-niche'
+import { Route as FindYourFitRouteImport } from './routes/find-your-fit'
+import { Route as NameYourStoreRouteImport } from './routes/name-your-store'
+import { Route as PhoneNumberRouteImport } from './routes/phone-number'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as ProductCategoryRouteImport } from './routes/product-category'
+import { Route as SellerTypeRouteImport } from './routes/seller-type'
+import { Route as SetUpStoreRouteImport } from './routes/set-up-store'
+import { Route as TermsRouteImport } from './routes/terms'
+import { Route as WhereDidYouHearAboutUsRouteImport } from './routes/where-did-you-hear-about-us'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 
-const WhereDidYouHearAboutUsRoute = WhereDidYouHearAboutUsRouteImport.update({
-  id: '/where-did-you-hear-about-us',
-  path: '/where-did-you-hear-about-us',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TermsRoute = TermsRouteImport.update({
-  id: '/terms',
-  path: '/terms',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SetUpStoreRoute = SetUpStoreRouteImport.update({
-  id: '/set-up-store',
-  path: '/set-up-store',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SellerTypeRoute = SellerTypeRouteImport.update({
-  id: '/seller-type',
-  path: '/seller-type',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProductCategoryRoute = ProductCategoryRouteImport.update({
-  id: '/product-category',
-  path: '/product-category',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PrivacyRoute = PrivacyRouteImport.update({
-  id: '/privacy',
-  path: '/privacy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PhoneNumberRoute = PhoneNumberRouteImport.update({
-  id: '/phone-number',
-  path: '/phone-number',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const NameYourStoreRoute = NameYourStoreRouteImport.update({
-  id: '/name-your-store',
-  path: '/name-your-store',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FindYourFitRoute = FindYourFitRouteImport.update({
-  id: '/find-your-fit',
-  path: '/find-your-fit',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CreatorNicheRoute = CreatorNicheRouteImport.update({
-  id: '/creator-niche',
-  path: '/creator-niche',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ChooseUsernameRoute = ChooseUsernameRouteImport.update({
-  id: '/choose-username',
-  path: '/choose-username',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BecomeACuratorRoute = BecomeACuratorRouteImport.update({
-  id: '/become-a-curator',
-  path: '/become-a-curator',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BecomeACreatorRoute = BecomeACreatorRouteImport.update({
@@ -90,9 +35,64 @@ const BecomeACreatorRoute = BecomeACreatorRouteImport.update({
   path: '/become-a-creator',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const BecomeACuratorRoute = BecomeACuratorRouteImport.update({
+  id: '/become-a-curator',
+  path: '/become-a-curator',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChooseUsernameRoute = ChooseUsernameRouteImport.update({
+  id: '/choose-username',
+  path: '/choose-username',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CreatorNicheRoute = CreatorNicheRouteImport.update({
+  id: '/creator-niche',
+  path: '/creator-niche',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FindYourFitRoute = FindYourFitRouteImport.update({
+  id: '/find-your-fit',
+  path: '/find-your-fit',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NameYourStoreRoute = NameYourStoreRouteImport.update({
+  id: '/name-your-store',
+  path: '/name-your-store',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PhoneNumberRoute = PhoneNumberRouteImport.update({
+  id: '/phone-number',
+  path: '/phone-number',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProductCategoryRoute = ProductCategoryRouteImport.update({
+  id: '/product-category',
+  path: '/product-category',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SellerTypeRoute = SellerTypeRouteImport.update({
+  id: '/seller-type',
+  path: '/seller-type',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SetUpStoreRoute = SetUpStoreRouteImport.update({
+  id: '/set-up-store',
+  path: '/set-up-store',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WhereDidYouHearAboutUsRoute = WhereDidYouHearAboutUsRouteImport.update({
+  id: '/where-did-you-hear-about-us',
+  path: '/where-did-you-hear-about-us',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthCallbackRoute = AuthCallbackRouteImport.update({
@@ -227,88 +227,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/where-did-you-hear-about-us': {
-      id: '/where-did-you-hear-about-us'
-      path: '/where-did-you-hear-about-us'
-      fullPath: '/where-did-you-hear-about-us'
-      preLoaderRoute: typeof WhereDidYouHearAboutUsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/terms': {
-      id: '/terms'
-      path: '/terms'
-      fullPath: '/terms'
-      preLoaderRoute: typeof TermsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/set-up-store': {
-      id: '/set-up-store'
-      path: '/set-up-store'
-      fullPath: '/set-up-store'
-      preLoaderRoute: typeof SetUpStoreRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/seller-type': {
-      id: '/seller-type'
-      path: '/seller-type'
-      fullPath: '/seller-type'
-      preLoaderRoute: typeof SellerTypeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/product-category': {
-      id: '/product-category'
-      path: '/product-category'
-      fullPath: '/product-category'
-      preLoaderRoute: typeof ProductCategoryRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/privacy': {
-      id: '/privacy'
-      path: '/privacy'
-      fullPath: '/privacy'
-      preLoaderRoute: typeof PrivacyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/phone-number': {
-      id: '/phone-number'
-      path: '/phone-number'
-      fullPath: '/phone-number'
-      preLoaderRoute: typeof PhoneNumberRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/name-your-store': {
-      id: '/name-your-store'
-      path: '/name-your-store'
-      fullPath: '/name-your-store'
-      preLoaderRoute: typeof NameYourStoreRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/find-your-fit': {
-      id: '/find-your-fit'
-      path: '/find-your-fit'
-      fullPath: '/find-your-fit'
-      preLoaderRoute: typeof FindYourFitRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/creator-niche': {
-      id: '/creator-niche'
-      path: '/creator-niche'
-      fullPath: '/creator-niche'
-      preLoaderRoute: typeof CreatorNicheRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/choose-username': {
-      id: '/choose-username'
-      path: '/choose-username'
-      fullPath: '/choose-username'
-      preLoaderRoute: typeof ChooseUsernameRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/become-a-curator': {
-      id: '/become-a-curator'
-      path: '/become-a-curator'
-      fullPath: '/become-a-curator'
-      preLoaderRoute: typeof BecomeACuratorRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/become-a-creator': {
@@ -318,11 +241,88 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BecomeACreatorRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/become-a-curator': {
+      id: '/become-a-curator'
+      path: '/become-a-curator'
+      fullPath: '/become-a-curator'
+      preLoaderRoute: typeof BecomeACuratorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/choose-username': {
+      id: '/choose-username'
+      path: '/choose-username'
+      fullPath: '/choose-username'
+      preLoaderRoute: typeof ChooseUsernameRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/creator-niche': {
+      id: '/creator-niche'
+      path: '/creator-niche'
+      fullPath: '/creator-niche'
+      preLoaderRoute: typeof CreatorNicheRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/find-your-fit': {
+      id: '/find-your-fit'
+      path: '/find-your-fit'
+      fullPath: '/find-your-fit'
+      preLoaderRoute: typeof FindYourFitRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/name-your-store': {
+      id: '/name-your-store'
+      path: '/name-your-store'
+      fullPath: '/name-your-store'
+      preLoaderRoute: typeof NameYourStoreRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/phone-number': {
+      id: '/phone-number'
+      path: '/phone-number'
+      fullPath: '/phone-number'
+      preLoaderRoute: typeof PhoneNumberRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/product-category': {
+      id: '/product-category'
+      path: '/product-category'
+      fullPath: '/product-category'
+      preLoaderRoute: typeof ProductCategoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/seller-type': {
+      id: '/seller-type'
+      path: '/seller-type'
+      fullPath: '/seller-type'
+      preLoaderRoute: typeof SellerTypeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/set-up-store': {
+      id: '/set-up-store'
+      path: '/set-up-store'
+      fullPath: '/set-up-store'
+      preLoaderRoute: typeof SetUpStoreRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/where-did-you-hear-about-us': {
+      id: '/where-did-you-hear-about-us'
+      path: '/where-did-you-hear-about-us'
+      fullPath: '/where-did-you-hear-about-us'
+      preLoaderRoute: typeof WhereDidYouHearAboutUsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/callback': {
@@ -355,3 +355,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
