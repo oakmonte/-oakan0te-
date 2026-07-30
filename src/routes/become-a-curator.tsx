@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AppleIcon, GoogleIcon } from "@/components/auth-icons";
+import { Spinner } from "@/components/spinner";
 
 export const Route = createFileRoute("/become-a-curator")({
   head: () => ({
@@ -52,7 +53,9 @@ function BecomeCuratorPage() {
   return (
     <div className="min-h-screen bg-brand-bg text-brand-text flex flex-col">
       <header className="px-6 sm:px-10 py-6 flex items-center justify-between">
-        <Link to="/" className="font-display text-2xl tracking-wider">OAKMONTE</Link>
+        <Link to="/" className="flex items-center">
+          <img src="/favicon.png" alt="Oakmonte" className="h-9 w-auto" />
+        </Link>
         <Link to="/" className="text-[11px] uppercase tracking-widest hover:text-brand-accent transition-colors">← Back</Link>
       </header>
 
@@ -101,7 +104,7 @@ function BecomeCuratorPage() {
                 disabled={loading}
                 className="w-full rounded-full bg-brand-accent text-brand-bg py-3.5 text-sm font-medium uppercase tracking-widest hover:bg-brand-accent/90 hover:scale-[1.01] transition-all duration-300 disabled:opacity-60"
               >
-                {loading ? "Sending…" : "Send"}
+                {loading ? <Spinner className="align-middle" /> : "Send"}
               </button>
             </form>
           ) : (

@@ -59,7 +59,9 @@ function TermsPage() {
     <div className="min-h-screen bg-brand-bg text-brand-text">
       {/* Header */}
       <header className="px-4 sm:px-6 lg:px-8 py-6 border-b border-brand-text/10 flex items-center justify-between">
-        <Link to="/" className="font-display text-2xl tracking-wide">OAKMONTE</Link>
+        <Link to="/" className="flex items-center">
+          <img src="/favicon.png" alt="Oakmonte" className="h-9 w-auto" />
+        </Link>
         <div className="flex gap-6 text-[11px] uppercase tracking-widest">
           <Link to="/" className="opacity-70 hover:opacity-100 transition-opacity">Home</Link>
           <button
