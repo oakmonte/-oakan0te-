@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { signInWithGoogle, sendMagicLink } from "@/lib/auth";
 import { AppleIcon, GoogleIcon } from "@/components/auth-icons";
+import { Spinner } from "@/components/spinner";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 
 export const Route = createFileRoute("/become-a-creator")({
@@ -167,8 +168,7 @@ function BecomeCreatorPage() {
               disabled={loading === "google"}
               className="w-full flex items-center justify-center gap-3 bg-brand-text text-brand-bg rounded-full py-3.5 text-sm font-medium hover:bg-brand-text/85 hover:scale-[1.01] transition-all duration-300 disabled:opacity-60"
             >
-              <GoogleIcon />
-              {loading === "google" ? "Redirecting…" : "Continue with Google"}
+              {loading === "google" ? <Spinner /> : <><GoogleIcon />Continue with Google</>}
             </button>
             <button
               type="button"
@@ -202,7 +202,7 @@ function BecomeCreatorPage() {
                 disabled={loading === "email"}
                 className="w-full rounded-full bg-brand-accent text-brand-bg py-3.5 text-sm font-medium uppercase tracking-widest hover:bg-brand-accent/90 hover:scale-[1.01] transition-all duration-300 disabled:opacity-60"
               >
-                {loading === "email" ? "Sending…" : "Send"}
+                {loading === "email" ? <Spinner className="align-middle" /> : "Send"}
               </button>
               {error && <p className="text-xs text-red-600 text-center">{error}</p>}
             </form>
@@ -222,7 +222,7 @@ function BecomeCreatorPage() {
                   disabled={loading === "verify" || code.trim().length < 6}
                   className="w-full rounded-full bg-brand-accent text-brand-bg py-3.5 text-sm font-medium uppercase tracking-widest hover:bg-brand-accent/90 hover:scale-[1.01] transition-all duration-300 disabled:opacity-60"
                 >
-                  {loading === "verify" ? "Verifying…" : "Verify code"}
+                  {loading === "verify" ? <Spinner className="align-middle" /> : "Verify code"}
                 </button>
               </form>
 
