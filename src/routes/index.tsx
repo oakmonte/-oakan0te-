@@ -1,12 +1,13 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import logoO from "@/assets/logo-o.png";
 import oakmonteO from "@/assets/oakmonte-o-mark.png.asset.json";
 import contentToCartVideo from "@/assets/content-to-cart.mp4.asset.json";
 import { useSession } from "@/hooks/use-session";
-import { signOut } from "@/lib/auth";
+import { getProfileUsernameFromUser, signInWithGoogle, signOut } from "@/lib/auth";
 
 function HeaderAuth() {
+  const navigate = useNavigate();
   const { user, loading } = useSession();
   const [open, setOpen] = useState(false);
 
@@ -15,16 +16,36 @@ function HeaderAuth() {
   }
 
   if (!user) {
+    const handleSignIn = async () => {
+      const { error } = await signInWithGoogle();
+      if (error) {
+        console.error("Google sign-in failed", error);
+      }
+    };
+
     return (
       <>
-        <Link to="/set-up-store" className="hidden md:inline text-[11px] uppercase tracking-[0.2em] font-semibold hover:text-brand-accent transition-colors duration-500">Sign in</Link>
-        <Link to="/set-up-store" className="px-3 sm:px-5 md:px-6 py-2 border border-brand-accent text-brand-accent text-[9px] sm:text-[10px] uppercase tracking-widest whitespace-nowrap sm:border-brand-text sm:text-brand-text hover:border-brand-accent hover:text-brand-accent transition-colors duration-300">{"SIGN UP\n"}</Link>
+        <button
+          type="button"
+          onClick={() => void handleSignIn()}
+          className="hidden md:inline text-[11px] uppercase tracking-[0.2em] font-semibold hover:text-brand-accent transition-colors duration-500"
+        >
+          Sign in
+        </button>
+        <button
+          type="button"
+          onClick={() => void handleSignIn()}
+          className="px-3 sm:px-5 md:px-6 py-2 border border-brand-accent text-brand-accent text-[9px] sm:text-[10px] uppercase tracking-widest whitespace-nowrap sm:border-brand-text sm:text-brand-text hover:border-brand-accent hover:text-brand-accent transition-colors duration-300"
+        >
+          {"SIGN UP\n"}
+        </button>
       </>
     );
   }
 
   const email = user.email ?? "Account";
   const short = email.length > 22 ? email.slice(0, 20) + "…" : email;
+  const profileUsername = getProfileUsernameFromUser(user);
 
   return (
     <div className="relative">
@@ -36,6 +57,16 @@ function HeaderAuth() {
       </button>
       {open && (
         <div className="absolute right-0 mt-2 w-48 bg-brand-bg border border-brand-text/15 shadow-lg z-50">
+          {profileUsername && (
+            <Link
+              to="/profile/$username"
+              params={{ username: profileUsername }}
+              onClick={() => setOpen(false)}
+              className="block w-full text-left px-4 py-3 text-[11px] uppercase tracking-widest hover:text-brand-accent transition-colors"
+            >
+              View profile
+            </Link>
+          )}
           <button
             onClick={async () => { setOpen(false); await signOut(); }}
             className="w-full text-left px-4 py-3 text-[11px] uppercase tracking-widest hover:text-brand-accent transition-colors"
