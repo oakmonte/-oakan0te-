@@ -20,6 +20,10 @@ function ChooseUsernamePage() {
     setError(null);
     setLoading(true);
 
+    const intent = typeof window !== "undefined"
+      ? sessionStorage.getItem("oakmonte_intent") ?? "seller"
+      : "seller";
+
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       setError("You're no longer signed in. Please sign in again.");
@@ -32,6 +36,7 @@ function ChooseUsernamePage() {
       personal_username: username,
       personal_email: user.email,
       gender: gender || null,
+      account_type: intent,
     });
 
     setLoading(false);
@@ -46,11 +51,12 @@ function ChooseUsernamePage() {
       return;
     }
 
-    const intent = typeof window !== "undefined"
-      ? sessionStorage.getItem("oakmonte_intent") ?? "seller"
-      : "seller";
+    const nextRoute =
+      intent === "creator" ? "/where-did-you-hear-about-us"
+      : intent === "curator" ? "/where-did-you-hear-about-us"
+      : "/seller-type";
 
-    navigate({ to: intent === "creator" ? "/where-did-you-hear-about-us" : "/seller-type", replace: true });
+    navigate({ to: nextRoute, replace: true });
   };
 
   return (

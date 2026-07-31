@@ -9,6 +9,12 @@ export const Route = createFileRoute("/phone-number")({
   component: PhoneNumberPage,
 });
 
+function getIntent() {
+  return typeof window !== "undefined"
+    ? sessionStorage.getItem("oakmonte_intent") ?? "seller"
+    : "seller";
+}
+
 function PhoneNumberPage() {
   const navigate = useNavigate();
   const [personalPhone, setPersonalPhone] = useState<string | undefined>();
@@ -16,6 +22,9 @@ function PhoneNumberPage() {
   const [sameAsPersonal, setSameAsPersonal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const intent = getIntent();
+  const isSeller = intent === "seller";
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -28,7 +37,7 @@ function PhoneNumberPage() {
 
     const finalBusinessPhone = sameAsPersonal ? personalPhone : businessPhone;
 
-    if (finalBusinessPhone && !isValidPhoneNumber(finalBusinessPhone)) {
+    if (isSeller && finalBusinessPhone && !isValidPhoneNumber(finalBusinessPhone)) {
       setError("That business phone number doesn't look valid.");
       return;
     }
@@ -56,20 +65,30 @@ function PhoneNumberPage() {
       }
     }
 
-    const { error: storeError } = await supabase
-      .from("stores")
-      .update({ business_phone: finalBusinessPhone || null })
-      .eq("owner_id", user.id);
+    // Only sellers have a stores row at this point in the flow —
+    // curators and creators don't, so skip this update for them.
+    if (isSeller) {
+      const { error: storeError } = await supabase
+        .from("stores")
+        .update({ business_phone: finalBusinessPhone || null })
+        .eq("owner_id", user.id);
+
+      if (storeError) {
+        setLoading(false);
+        setError("Something went wrong saving your business phone.");
+        console.error(storeError);
+        return;
+      }
+    }
 
     setLoading(false);
 
-    if (storeError) {
-      setError("Something went wrong saving your business phone.");
-      console.error(storeError);
-      return;
-    }
+    const nextRoute =
+      intent === "curator" ? "/find-your-fit"
+      : intent === "creator" ? "/" // TODO: point this at wherever you slot phone-number into the creator flow
+      : "/product-category";
 
-    navigate({ to: "/product-category", replace: true });
+    navigate({ to: nextRoute, replace: true });
   };
 
   return (
@@ -91,32 +110,36 @@ function PhoneNumberPage() {
             />
           </div>
 
-          <label className="flex items-center gap-2 text-xs text-brand-text/70 px-2 py-1 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={sameAsPersonal}
-              onChange={(e) => setSameAsPersonal(e.target.checked)}
-              className="accent-brand-accent"
-            />
-            Use this as my business contact number too
-          </label>
+          {isSeller && (
+            <>
+              <label className="flex items-center gap-2 text-xs text-brand-text/70 px-2 py-1 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={sameAsPersonal}
+                  onChange={(e) => setSameAsPersonal(e.target.checked)}
+                  className="accent-brand-accent"
+                />
+                Use this as my business contact number too
+              </label>
 
-          {!sameAsPersonal && (
-            <div className="oakmonte-phone-input">
-              <PhoneInput
-                international
-                defaultCountry="NG"
-                value={businessPhone}
-                onChange={setBusinessPhone}
-                placeholder="Business phone number (optional for now)"
-              />
-            </div>
+              {!sameAsPersonal && (
+                <div className="oakmonte-phone-input">
+                  <PhoneInput
+                    international
+                    defaultCountry="NG"
+                    value={businessPhone}
+                    onChange={setBusinessPhone}
+                    placeholder="Business phone number (optional for now)"
+                  />
+                </div>
+              )}
+
+              <p className="text-xs text-brand-text/50 px-2">
+                Don't have a separate business line yet? No problem — you can add a
+                dedicated one later from your store settings.
+              </p>
+            </>
           )}
-
-          <p className="text-xs text-brand-text/50 px-2">
-            Don't have a separate business line yet? No problem — you can add a
-            dedicated one later from your store settings.
-          </p>
 
           <button
             type="submit"

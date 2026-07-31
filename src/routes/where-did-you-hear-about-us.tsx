@@ -7,13 +7,27 @@ export const Route = createFileRoute("/where-did-you-hear-about-us")({
   component: WhereDidYouHearPage,
 });
 
-const OPTIONS = ["Instagram", "TikTok", "Youtube", "Online Articles", "A friend", "Google search", "Twitter", "Claude", "ChatGPT", "Perplexity", "Other"];
+const SELLER_OPTIONS = ["Instagram", "TikTok", "Youtube", "Online Articles", "A friend", "Google search", "Twitter", "Other"];
+const CREATOR_OPTIONS = ["Instagram", "TikTok", "Youtube", "A friend", "Another creator", "Twitter", "Other"];
+const CURATOR_OPTIONS = ["Instagram", "TikTok", "A friend", "Google search", "Online Articles", "Twitter", "Other"];
+
+function getIntent() {
+  return typeof window !== "undefined"
+    ? sessionStorage.getItem("oakmonte_intent") ?? "seller"
+    : "seller";
+}
 
 function WhereDidYouHearPage() {
   const navigate = useNavigate();
   const [other, setOther] = useState("");
   const [showOther, setShowOther] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const intent = getIntent();
+  const options =
+    intent === "creator" ? CREATOR_OPTIONS
+    : intent === "curator" ? CURATOR_OPTIONS
+    : SELLER_OPTIONS;
 
   const choose = async (option: string) => {
     if (option === "Other") {
@@ -31,11 +45,12 @@ function WhereDidYouHearPage() {
     }
     setLoading(false);
 
-    const intent = typeof window !== "undefined"
-      ? sessionStorage.getItem("oakmonte_intent") ?? "seller"
-      : "seller";
+    const nextRoute =
+      intent === "creator" ? "/creator-niche"
+      : intent === "curator" ? "/phone-number"
+      : "/name-your-store";
 
-    navigate({ to: intent === "creator" ? "/creator-niche" : "/name-your-store" });
+    navigate({ to: nextRoute });
   };
 
   return (
@@ -48,7 +63,7 @@ function WhereDidYouHearPage() {
 
         {!showOther ? (
           <div className="space-y-3">
-            {OPTIONS.map((option) => (
+            {options.map((option) => (
               <button
                 key={option}
                 type="button"

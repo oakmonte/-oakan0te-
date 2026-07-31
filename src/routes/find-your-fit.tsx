@@ -737,31 +737,31 @@ function FindYourFitPage() {
   };
 
   const handleSubmit = (e: FormEvent) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    const height = heightUnit === "cm"
-      ? { unit: "cm", value: heightCm }
-      : { unit: "ftin", feet: heightFt, inches: heightIn };
+  const height = heightUnit === "cm"
+    ? { unit: "cm", value: heightCm }
+    : { unit: "ftin", feet: heightFt, inches: heightIn };
 
-    sessionStorage.setItem(
-      "oakmonte_creator_fit",
-      JSON.stringify({
-        height,
-        weight: { unit: weightUnit, value: weight },
-        gender: gender || null,
-        bodyType,
-        measurements: measurementsOpen
-          ? { bust, waist: waistMeasurement, hips, shoulderWidth }
-          : null,
-      })
-    );
+  sessionStorage.setItem(
+    "oakmonte_creator_fit",
+    JSON.stringify({
+      height,
+      weight: { unit: weightUnit, value: weight },
+      gender: gender || null,
+      bodyType,
+      measurements: measurementsOpen
+        ? { bust, waist: waistMeasurement, hips, shoulderWidth }
+        : null,
+    })
+  );
 
-    navigate({ to: "/" });
-  };
+  navigate({ to: "/phone-number" });
+};
 
-  const handleSkip = () => {
-    navigate({ to: "/" });
-  };
+const handleSkip = () => {
+  navigate({ to: "/phone-number" });
+};
 
   return (
     <div className="min-h-screen bg-brand-bg text-brand-text flex flex-col">

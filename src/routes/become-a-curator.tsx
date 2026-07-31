@@ -1,7 +1,9 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useRef, useState } from "react";
+import { signInWithGoogle, sendMagicLink } from "@/lib/auth";
 import { AppleIcon, GoogleIcon } from "@/components/auth-icons";
 import { Spinner } from "@/components/spinner";
+import { supabase } from "@/lib/integrations/my-supabase/client";
 
 export const Route = createFileRoute("/become-a-curator")({
   head: () => ({
@@ -17,12 +19,64 @@ export const Route = createFileRoute("/become-a-curator")({
   component: BecomeCuratorPage,
 });
 
+function CodeInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
+  const digits = value.padEnd(6, " ").split("").slice(0, 6);
+
+  const setDigit = (index: number, char: string) => {
+    const clean = char.replace(/\D/g, "");
+    const next = value.split("");
+    next[index] = clean;
+    const joined = next.join("").slice(0, 6);
+    onChange(joined);
+    if (clean && index < 5) inputsRef.current[index + 1]?.focus();
+  };
+
+  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Backspace" && !digits[index].trim() && index > 0) {
+      inputsRef.current[index - 1]?.focus();
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    if (!pasted) return;
+    onChange(pasted);
+    const lastIndex = Math.min(pasted.length, 6) - 1;
+    inputsRef.current[lastIndex]?.focus();
+  };
+
+  return (
+    <div className="flex justify-center gap-2">
+      {digits.map((digit, i) => (
+        <input
+          key={i}
+          ref={(el) => {
+            inputsRef.current[i] = el;
+          }}
+          type="text"
+          inputMode="numeric"
+          maxLength={1}
+          value={digit.trim()}
+          onChange={(e) => setDigit(i, e.target.value)}
+          onKeyDown={(e) => handleKeyDown(i, e)}
+          onPaste={handlePaste}
+          className="w-11 h-13 rounded-xl border border-brand-text/25 bg-transparent text-center text-lg font-medium focus:outline-none focus:border-brand-accent transition-colors"
+        />
+      ))}
+    </div>
+  );
+}
 
 function BecomeCuratorPage() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [countdown, setCountdown] = useState(30);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<"google" | "email" | "verify" | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [code, setCode] = useState("");
 
   useEffect(() => {
     if (!sent) return;
@@ -31,20 +85,62 @@ function BecomeCuratorPage() {
     return () => clearInterval(t);
   }, [sent, countdown]);
 
-  const handleSend = (e: React.FormEvent) => {
+  const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
-    setLoading(true);
-    // Simulate a brief sending state, then show the mock "Check your email" UI.
-    setTimeout(() => {
-      setLoading(false);
-      setSent(true);
-      setCountdown(30);
-    }, 600);
+    sessionStorage.setItem("oakmonte_intent", "curator");
+    setError(null);
+    setLoading("email");
+    const { error } = await sendMagicLink(email);
+    setLoading(null);
+    if (error) { setError(error.message); return; }
+    setSent(true);
+    setCountdown(30);
   };
 
-  const handleResend = () => {
+  const handleResend = async () => {
+    setError(null);
+    setCode("");
+    sessionStorage.setItem("oakmonte_intent", "curator");
+    const { error } = await sendMagicLink(email);
+    if (error) { setError(error.message); return; }
     setCountdown(30);
+  };
+
+  const handleGoogle = async () => {
+    sessionStorage.setItem("oakmonte_intent", "curator");
+    setError(null);
+    setLoading("google");
+    const { error } = await signInWithGoogle();
+    if (error) { setError(error.message); setLoading(null); }
+  };
+
+  const handleVerifyCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (code.trim().length < 6) return;
+
+    setError(null);
+    setLoading("verify");
+
+    const { data, error } = await supabase.auth.verifyOtp({
+      email,
+      token: code.trim(),
+      type: "email",
+    });
+
+    setLoading(null);
+
+    if (error) {
+      setError("That code didn't work — check it and try again.");
+      return;
+    }
+
+    if (!data.session?.user.id) {
+      setError("Something went wrong. Please try again.");
+      return;
+    }
+
+    navigate({ to: "/choose-username", replace: true });
   };
 
   const mm = String(Math.floor(countdown / 60)).padStart(2, "0");
@@ -69,14 +165,17 @@ function BecomeCuratorPage() {
           <div className="space-y-3">
             <button
               type="button"
-              className="w-full flex items-center justify-center gap-3 bg-brand-text text-brand-bg rounded-full py-3.5 text-sm font-medium hover:bg-brand-text/85 hover:scale-[1.01] transition-all duration-300"
+              onClick={handleGoogle}
+              disabled={loading === "google"}
+              className="w-full flex items-center justify-center gap-3 bg-brand-text text-brand-bg rounded-full py-3.5 text-sm font-medium hover:bg-brand-text/85 hover:scale-[1.01] transition-all duration-300 disabled:opacity-60"
             >
-              <GoogleIcon />
-              Continue with Google
+              {loading === "google" ? <Spinner /> : <><GoogleIcon />Continue with Google</>}
             </button>
             <button
               type="button"
-              className="w-full flex items-center justify-center gap-3 bg-brand-text text-brand-bg rounded-full py-3.5 text-sm font-medium hover:bg-brand-text/85 hover:scale-[1.01] transition-all duration-300"
+              disabled
+              title="Apple sign-in coming soon"
+              className="w-full flex items-center justify-center gap-3 bg-brand-text text-brand-bg rounded-full py-3.5 text-sm font-medium opacity-60 cursor-not-allowed transition-all duration-300"
             >
               <AppleIcon />
               Continue with Apple
@@ -101,20 +200,35 @@ function BecomeCuratorPage() {
               />
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading === "email"}
                 className="w-full rounded-full bg-brand-accent text-brand-bg py-3.5 text-sm font-medium uppercase tracking-widest hover:bg-brand-accent/90 hover:scale-[1.01] transition-all duration-300 disabled:opacity-60"
               >
-                {loading ? <Spinner className="align-middle" /> : "Send"}
+                {loading === "email" ? <Spinner className="align-middle" /> : "Send"}
               </button>
+              {error && <p className="text-xs text-red-600 text-center">{error}</p>}
             </form>
           ) : (
             <div className="text-center space-y-4">
               <div className="rounded-2xl border border-brand-text/15 px-6 py-8">
                 <p className="font-serif text-2xl">Check your email</p>
                 <p className="mt-2 text-sm text-brand-text/70">
-                  We sent a sign-in link to <span className="text-brand-text">{email}</span>.
+                  We sent a code to <span className="text-brand-text">{email}</span>.
                 </p>
               </div>
+
+              <form onSubmit={handleVerifyCode} className="space-y-3">
+                <CodeInput value={code} onChange={setCode} />
+                <button
+                  type="submit"
+                  disabled={loading === "verify" || code.trim().length < 6}
+                  className="w-full rounded-full bg-brand-accent text-brand-bg py-3.5 text-sm font-medium uppercase tracking-widest hover:bg-brand-accent/90 hover:scale-[1.01] transition-all duration-300 disabled:opacity-60"
+                >
+                  {loading === "verify" ? <Spinner className="align-middle" /> : "Verify code"}
+                </button>
+              </form>
+
+              {error && <p className="text-xs text-red-600">{error}</p>}
+
               <div className="text-sm text-brand-text/70">
                 {countdown > 0 ? (
                   <span>Resend code in <span className="text-brand-text tabular-nums">{mm}:{ss}</span></span>
@@ -130,7 +244,7 @@ function BecomeCuratorPage() {
               </div>
               <button
                 type="button"
-                onClick={() => { setSent(false); setEmail(""); }}
+                onClick={() => { setSent(false); setEmail(""); setCode(""); }}
                 className="text-[11px] uppercase tracking-widest text-brand-text/60 hover:text-brand-text transition-colors"
               >
                 Use a different email
