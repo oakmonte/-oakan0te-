@@ -101,6 +101,8 @@ function ProfilePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const tabScrollRef = useRef<HTMLDivElement>(null);
+  const tabButtonRefs = useRef<Record<TabKey, HTMLButtonElement | null>>({} as Record<TabKey, HTMLButtonElement | null>);
 
   const isOwnProfile = true; // TODO: wire up real check
 
@@ -118,6 +120,17 @@ function ProfilePage() {
       return () => clearTimeout(t);
     }
   }, [searchOpen]);
+
+  useEffect(() => {
+    const btn = tabButtonRefs.current[activeTab];
+    if (btn) {
+      btn.scrollIntoView({
+        behavior: "smooth",
+        inline: "center",
+        block: "nearest",
+      });
+    }
+  }, [activeTab]);
 
   return (
     <div className="min-h-screen bg-black text-white" style={{ fontFamily: "'SF Pro', system-ui, sans-serif" }}>
@@ -180,12 +193,16 @@ function ProfilePage() {
 
       {/* Tab row - icon illuminates (dim -> bright white) + underline indicator + scale down on press */}
       <div className="mt-6 border-b border-[#474747]">
-        <div className="grid grid-flow-col auto-cols-[20%] gap-x-2 px-6 overflow-x-auto snap-x snap-mandatory no-scrollbar">
+        <div
+          ref={tabScrollRef}
+          className="grid grid-flow-col auto-cols-[20%] gap-x-2 px-6 overflow-x-auto snap-x snap-mandatory no-scrollbar scroll-smooth"
+        >
           {TABS.map(({ key, label, Icon }) => {
             const isActive = activeTab === key;
             return (
               <button
                 key={key}
+                ref={(el) => { tabButtonRefs.current[key] = el; }}
                 onClick={() => setActiveTab(key)}
                 aria-label={label}
                 className="flex flex-col items-center gap-2 snap-start pt-3 pb-2 transition-transform duration-150 active:scale-90"
