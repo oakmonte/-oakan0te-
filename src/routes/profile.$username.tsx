@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
 import { useState, useRef, useEffect } from "react";
+import type { ReactElement } from "react";
 import { ArrowLeft, Share2, Search, Menu, Star, X, ChevronRight } from "lucide-react";
 
 export const Route = createFileRoute("/profile/$username")({
@@ -69,7 +70,7 @@ function DraftsIcon(props: { className?: string }) {
 
 type TabKey = "posts" | "store" | "wardrobe" | "reposts" | "wishlist" | "likedVideos" | "drafts";
 
-const TABS: { key: TabKey; label: string; Icon: (p: { className?: string }) => JSX.Element }[] = [
+const TABS: { key: TabKey; label: string; Icon: (p: { className?: string }) => ReactElement }[] = [
   { key: "posts", label: "Posts", Icon: PostsIcon },
   { key: "store", label: "Store", Icon: StoreIcon },
   { key: "wardrobe", label: "Wardrobe", Icon: WardrobeIcon },
@@ -165,22 +166,34 @@ function ProfilePage() {
         <p className="text-[14px] font-bold text-center">The love of God is free, drip isn't</p>
       </div>
 
-      {/* Tab row — 5 visible, horizontal scroll reveals the remaining 2 */}
+      {/* Tab row - icon illuminates (dim -> bright white) + underline indicator (width 0 -> 24px) + scale down on press */}
       <div className="mt-6 border-b border-[#474747]">
-        <div className="grid grid-flow-col auto-cols-[20%] gap-x-2 px-6 py-3 overflow-x-auto snap-x snap-mandatory no-scrollbar">
-          {TABS.map(({ key, label, Icon }) => (
-            <button
-              key={key}
-              onClick={() => setActiveTab(key)}
-              aria-label={label}
-              className="flex justify-center snap-start transition-transform duration-150 active:scale-90"
-            >
-              <Icon className={`w-[21px] h-[21px] transition-colors duration-200 ${activeTab === key ? "text-[#FF7300]" : "text-white/60"}`} />
-            </button>
-          ))}
+        <div className="grid grid-flow-col auto-cols-[20%] gap-x-2 px-6 overflow-x-auto snap-x snap-mandatory no-scrollbar">
+          {TABS.map(({ key, label, Icon }) => {
+            const isActive = activeTab === key;
+            return (
+              <button
+                key={key}
+                onClick={() => setActiveTab(key)}
+                aria-label={label}
+                className="flex flex-col items-center gap-2 snap-start pt-3 pb-2 transition-transform duration-150 active:scale-90"
+              >
+                <Icon
+                  className={`w-[21px] h-[21px] transition-all duration-200 ${
+                    isActive ? "text-white opacity-100" : "text-white/40 opacity-100"
+                  }`}
+                />
+                {/* underline indicator */}
+                <span
+                  className={`block h-[2px] rounded-full bg-white transition-all duration-300 ease-out ${
+                    isActive ? "w-6 opacity-100" : "w-0 opacity-0"
+                  }`}
+                />
+              </button>
+            );
+          })}
         </div>
       </div>
-
       {/* Inline search — animated height/opacity reveal, always mounted */}
       <div
         className={`grid transition-[grid-template-rows] duration-300 ease-out ${
