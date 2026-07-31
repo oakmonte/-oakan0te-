@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
 import { useState, useRef, useEffect } from "react";
 import type { ReactElement } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Share2, Search, Menu, Star, X, ChevronRight } from "lucide-react";
 
 export const Route = createFileRoute("/profile/$username")({
@@ -81,12 +82,15 @@ const TABS: { key: TabKey; label: string; Icon: (p: { className?: string }) => R
 ];
 
 const MOCK_ITEMS = [
-  { id: "1", src: "https://placehold.co/400x520", h: 260 },
-  { id: "2", src: "https://placehold.co/400x480", h: 240 },
-  { id: "3", src: "https://placehold.co/400x360", h: 180 },
-  { id: "4", src: "https://placehold.co/400x340", h: 170 },
-  { id: "5", src: "https://placehold.co/400x420", h: 210 },
-  { id: "6", src: "https://placehold.co/400x500", h: 250 },
+  { id: "1", src: "https://placehold.co/400x400" },
+  { id: "2", src: "https://placehold.co/400x400" },
+  { id: "3", src: "https://placehold.co/400x400" },
+  { id: "4", src: "https://placehold.co/400x400" },
+  { id: "5", src: "https://placehold.co/400x400" },
+  { id: "6", src: "https://placehold.co/400x400" },
+  { id: "7", src: "https://placehold.co/400x400" },
+  { id: "8", src: "https://placehold.co/400x400" },
+  { id: "9", src: "https://placehold.co/400x400" },
 ];
 
 function ProfilePage() {
@@ -99,6 +103,14 @@ function ProfilePage() {
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const isOwnProfile = true; // TODO: wire up real check
+
+  const tabIndex = TABS.findIndex((t) => t.key === activeTab);
+
+  const goToTab = (nextIndex: number) => {
+    if (nextIndex >= 0 && nextIndex < TABS.length) {
+      setActiveTab(TABS[nextIndex].key);
+    }
+  };
 
   useEffect(() => {
     if (searchOpen) {
@@ -166,7 +178,7 @@ function ProfilePage() {
         <p className="text-[14px] font-bold text-center">The love of God is free, drip isn't</p>
       </div>
 
-      {/* Tab row - icon illuminates (dim -> bright white) + underline indicator (width 0 -> 24px) + scale down on press */}
+      {/* Tab row - icon illuminates (dim -> bright white) + underline indicator + scale down on press */}
       <div className="mt-6 border-b border-[#474747]">
         <div className="grid grid-flow-col auto-cols-[20%] gap-x-2 px-6 overflow-x-auto snap-x snap-mandatory no-scrollbar">
           {TABS.map(({ key, label, Icon }) => {
@@ -183,7 +195,6 @@ function ProfilePage() {
                     isActive ? "text-white opacity-100" : "text-white/40 opacity-100"
                   }`}
                 />
-                {/* underline indicator */}
                 <span
                   className={`block h-[2px] rounded-full bg-white transition-all duration-300 ease-out ${
                     isActive ? "w-6 opacity-100" : "w-0 opacity-0"
@@ -194,6 +205,7 @@ function ProfilePage() {
           })}
         </div>
       </div>
+
       {/* Inline search — animated height/opacity reveal, always mounted */}
       <div
         className={`grid transition-[grid-template-rows] duration-300 ease-out ${
@@ -225,17 +237,32 @@ function ProfilePage() {
         </div>
       </div>
 
-      {/* Content grid */}
-      <div className="px-4 pt-4 pb-24 columns-2 gap-2 [column-fill:_balance]">
-        {MOCK_ITEMS.map((item) => (
-          <img
-            key={item.id}
-            src={item.src}
-            alt=""
-            style={{ height: item.h }}
-            className="w-full mb-2 rounded-[13px] object-cover break-inside-avoid"
-          />
-        ))}
+      {/* Content grid — swipeable between tabs, uniform 3-col squares */}
+      <div className="overflow-hidden pb-24">
+        <AnimatePresence mode="wait" custom={tabIndex}>
+          <motion.div
+            key={activeTab}
+            custom={tabIndex}
+            initial={{ opacity: 0, x: 40 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -40 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            drag="x"
+            dragConstraints={{ left: 0, right: 0 }}
+            dragElastic={0.15}
+            onDragEnd={(_, info) => {
+              if (info.offset.x < -60) goToTab(tabIndex + 1);
+              else if (info.offset.x > 60) goToTab(tabIndex - 1);
+            }}
+            className="px-1 pt-4 grid grid-cols-3 gap-[2px]"
+          >
+            {MOCK_ITEMS.map((item) => (
+              <div key={item.id} className="aspect-square w-full overflow-hidden">
+                <img src={item.src} alt="" className="w-full h-full object-cover" />
+              </div>
+            ))}
+          </motion.div>
+        </AnimatePresence>
       </div>
 
       {/* Hamburger side panel — slide-in with backdrop fade */}
