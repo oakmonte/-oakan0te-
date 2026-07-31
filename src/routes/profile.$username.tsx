@@ -6,7 +6,7 @@ import {
   X, ChevronRight,
 } from "lucide-react";
 
-export const Route = createFileRoute("/profile-page")({
+export const Route = createFileRoute("/profile/$username")({
   head: () => ({ meta: [{ title: "Profile — Oakmonte" }] }),
   component: ProfilePage,
 });

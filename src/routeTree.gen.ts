@@ -21,7 +21,6 @@ import { Route as OfflineVideosRouteImport } from './routes/offline-videos'
 import { Route as PhoneNumberRouteImport } from './routes/phone-number'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ProductCategoryRouteImport } from './routes/product-category'
-import { Route as ProfilePageRouteImport } from './routes/profile-page'
 import { Route as SellerTypeRouteImport } from './routes/seller-type'
 import { Route as SetUpStoreRouteImport } from './routes/set-up-store'
 import { Route as SettingsRouteImport } from './routes/settings'
@@ -30,6 +29,7 @@ import { Route as StudioRouteImport } from './routes/studio'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as WhereDidYouHearAboutUsRouteImport } from './routes/where-did-you-hear-about-us'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
+import { Route as ProfileUsernameRouteImport } from './routes/profile.$username'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -91,11 +91,6 @@ const ProductCategoryRoute = ProductCategoryRouteImport.update({
   path: '/product-category',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ProfilePageRoute = ProfilePageRouteImport.update({
-  id: '/profile-page',
-  path: '/profile-page',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const SellerTypeRoute = SellerTypeRouteImport.update({
   id: '/seller-type',
   path: '/seller-type',
@@ -136,6 +131,11 @@ const AuthCallbackRoute = AuthCallbackRouteImport.update({
   path: '/auth/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProfileUsernameRoute = ProfileUsernameRouteImport.update({
+  id: '/profile/$username',
+  path: '/profile/$username',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -150,7 +150,6 @@ export interface FileRoutesByFullPath {
   '/phone-number': typeof PhoneNumberRoute
   '/privacy': typeof PrivacyRoute
   '/product-category': typeof ProductCategoryRoute
-  '/profile-page': typeof ProfilePageRoute
   '/seller-type': typeof SellerTypeRoute
   '/set-up-store': typeof SetUpStoreRoute
   '/settings': typeof SettingsRoute
@@ -159,6 +158,7 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/where-did-you-hear-about-us': typeof WhereDidYouHearAboutUsRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/profile/$username': typeof ProfileUsernameRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -173,7 +173,6 @@ export interface FileRoutesByTo {
   '/phone-number': typeof PhoneNumberRoute
   '/privacy': typeof PrivacyRoute
   '/product-category': typeof ProductCategoryRoute
-  '/profile-page': typeof ProfilePageRoute
   '/seller-type': typeof SellerTypeRoute
   '/set-up-store': typeof SetUpStoreRoute
   '/settings': typeof SettingsRoute
@@ -182,6 +181,7 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/where-did-you-hear-about-us': typeof WhereDidYouHearAboutUsRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/profile/$username': typeof ProfileUsernameRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -197,7 +197,6 @@ export interface FileRoutesById {
   '/phone-number': typeof PhoneNumberRoute
   '/privacy': typeof PrivacyRoute
   '/product-category': typeof ProductCategoryRoute
-  '/profile-page': typeof ProfilePageRoute
   '/seller-type': typeof SellerTypeRoute
   '/set-up-store': typeof SetUpStoreRoute
   '/settings': typeof SettingsRoute
@@ -206,6 +205,7 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/where-did-you-hear-about-us': typeof WhereDidYouHearAboutUsRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/profile/$username': typeof ProfileUsernameRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -222,7 +222,6 @@ export interface FileRouteTypes {
     | '/phone-number'
     | '/privacy'
     | '/product-category'
-    | '/profile-page'
     | '/seller-type'
     | '/set-up-store'
     | '/settings'
@@ -231,6 +230,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/where-did-you-hear-about-us'
     | '/auth/callback'
+    | '/profile/$username'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -245,7 +245,6 @@ export interface FileRouteTypes {
     | '/phone-number'
     | '/privacy'
     | '/product-category'
-    | '/profile-page'
     | '/seller-type'
     | '/set-up-store'
     | '/settings'
@@ -254,6 +253,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/where-did-you-hear-about-us'
     | '/auth/callback'
+    | '/profile/$username'
   id:
     | '__root__'
     | '/'
@@ -268,7 +268,6 @@ export interface FileRouteTypes {
     | '/phone-number'
     | '/privacy'
     | '/product-category'
-    | '/profile-page'
     | '/seller-type'
     | '/set-up-store'
     | '/settings'
@@ -277,6 +276,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/where-did-you-hear-about-us'
     | '/auth/callback'
+    | '/profile/$username'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -292,7 +292,6 @@ export interface RootRouteChildren {
   PhoneNumberRoute: typeof PhoneNumberRoute
   PrivacyRoute: typeof PrivacyRoute
   ProductCategoryRoute: typeof ProductCategoryRoute
-  ProfilePageRoute: typeof ProfilePageRoute
   SellerTypeRoute: typeof SellerTypeRoute
   SetUpStoreRoute: typeof SetUpStoreRoute
   SettingsRoute: typeof SettingsRoute
@@ -301,6 +300,7 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   WhereDidYouHearAboutUsRoute: typeof WhereDidYouHearAboutUsRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
+  ProfileUsernameRoute: typeof ProfileUsernameRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -389,13 +389,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProductCategoryRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/profile-page': {
-      id: '/profile-page'
-      path: '/profile-page'
-      fullPath: '/profile-page'
-      preLoaderRoute: typeof ProfilePageRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/seller-type': {
       id: '/seller-type'
       path: '/seller-type'
@@ -452,6 +445,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/profile/$username': {
+      id: '/profile/$username'
+      path: '/profile/$username'
+      fullPath: '/profile/$username'
+      preLoaderRoute: typeof ProfileUsernameRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -468,7 +468,6 @@ const rootRouteChildren: RootRouteChildren = {
   PhoneNumberRoute: PhoneNumberRoute,
   PrivacyRoute: PrivacyRoute,
   ProductCategoryRoute: ProductCategoryRoute,
-  ProfilePageRoute: ProfilePageRoute,
   SellerTypeRoute: SellerTypeRoute,
   SetUpStoreRoute: SetUpStoreRoute,
   SettingsRoute: SettingsRoute,
@@ -477,6 +476,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   WhereDidYouHearAboutUsRoute: WhereDidYouHearAboutUsRoute,
   AuthCallbackRoute: AuthCallbackRoute,
+  ProfileUsernameRoute: ProfileUsernameRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
