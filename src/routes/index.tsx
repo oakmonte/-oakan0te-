@@ -24,22 +24,13 @@ function HeaderAuth() {
     };
 
     return (
-      <>
-        <button
-          type="button"
-          onClick={() => void handleSignIn()}
-          className="hidden md:inline text-[11px] uppercase tracking-[0.2em] font-semibold hover:text-brand-accent transition-colors duration-500"
-        >
-          Sign in
-        </button>
-        <button
-          type="button"
-          onClick={() => void handleSignIn()}
-          className="px-3 sm:px-5 md:px-6 py-2 border border-brand-accent text-brand-accent text-[9px] sm:text-[10px] uppercase tracking-widest whitespace-nowrap sm:border-brand-text sm:text-brand-text hover:border-brand-accent hover:text-brand-accent transition-colors duration-300"
-        >
-          {"SIGN UP\n"}
-        </button>
-      </>
+      <button
+        type="button"
+        onClick={() => void handleSignIn()}
+        className="px-3 sm:px-5 md:px-6 py-2 border border-brand-accent text-brand-accent text-[9px] sm:text-[10px] uppercase tracking-widest whitespace-nowrap sm:border-brand-text sm:text-brand-text hover:border-brand-accent hover:text-brand-accent transition-colors duration-300"
+      >
+        {"SIGN UP\n"}
+      </button>
     );
   }
 
