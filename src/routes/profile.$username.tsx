@@ -3,13 +3,14 @@ import { useState, useRef, useEffect } from "react";
 import type { ReactElement } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Share2, Search, Menu, Star, X, ChevronRight } from "lucide-react";
+import { supabase } from "@/lib/integrations/my-supabase/client";
 
 export const Route = createFileRoute("/profile/$username")({
   head: () => ({ meta: [{ title: "Profile — Oakmonte" }] }),
   component: ProfilePage,
 });
 
-// --- Icons (from src/assets, inlined as components so color is controllable via currentColor) ---
+// --- Icons (unchanged) ---
 
 function PostsIcon(props: { className?: string }) {
   return (
@@ -93,9 +94,24 @@ const MOCK_ITEMS = [
   { id: "9", src: "https://placehold.co/400x400" },
 ];
 
+type ProfileRow = {
+  id: string;
+  personal_username: string;
+  display_name: string | null;
+  avatar_url: string | null;
+  bio: string | null;
+  following_count: number;
+  followers_count: number;
+  sold_items_count: number;
+  rating: number;
+  rating_count: number;
+};
+
 function ProfilePage() {
   const navigate = useNavigate();
   const { username } = useParams({ from: "/profile/$username" });
+  const [profile, setProfile] = useState<ProfileRow | null>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabKey>("posts");
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -113,6 +129,26 @@ function ProfilePage() {
       setActiveTab(TABS[nextIndex].key);
     }
   };
+
+  useEffect(() => {
+    let cancelled = false;
+    setProfileLoading(true);
+    supabase
+      .from("profiles")
+      .select(
+        "id, personal_username, display_name, avatar_url, bio, following_count, followers_count, sold_items_count, rating, rating_count"
+      )
+      .eq("personal_username", username)
+      .single()
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (!error && data) setProfile(data as ProfileRow);
+        setProfileLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [username]);
 
   useEffect(() => {
     if (searchOpen) {
@@ -165,30 +201,34 @@ function ProfilePage() {
       {/* Profile info */}
       <div className="flex flex-col items-center gap-4 px-6 mt-2">
         <img
-          src="https://placehold.co/135x139"
+          src={profile?.avatar_url || "https://placehold.co/135x139"}
           alt={username}
           className="w-[110px] h-[110px] rounded-full border-[3px] border-white object-cover"
         />
         <div className="text-center">
-          <div className="text-[15px] font-bold">Ejiro's Balls</div>
-          <div className="text-[11px] font-bold text-[#B0ADAD] mt-0.5">@{username}</div>
+          <div className="text-[15px] font-bold">
+            {profileLoading ? "…" : profile?.display_name || profile?.personal_username || username}
+          </div>
+          <div className="text-[11px] font-bold text-[#B0ADAD] mt-0.5">
+            @{profile?.personal_username || username}
+          </div>
           <div className="flex items-center justify-center gap-1.5 mt-1.5">
             <div className="flex items-center gap-[2px]">
               {Array.from({ length: 5 }).map((_, i) => (
                 <Star key={i} size={13} className="fill-[#FF7300] text-[#FF7300]" />
               ))}
             </div>
-            <span className="text-[11px] font-medium">(190)</span>
+            <span className="text-[11px] font-medium">({profile?.rating_count ?? 0})</span>
           </div>
         </div>
 
         <div className="flex items-center gap-8">
-          <Stat value="54" label="Following" />
-          <Stat value="1,002" label="Followers" />
-          <Stat value="10,300" label="Sold Items" />
+          <Stat value={String(profile?.following_count ?? 0)} label="Following" />
+          <Stat value={String(profile?.followers_count ?? 0)} label="Followers" />
+          <Stat value={String(profile?.sold_items_count ?? 0)} label="Sold Items" />
         </div>
 
-        <p className="text-[14px] font-bold text-center">The love of God is free, drip isn't</p>
+        {profile?.bio && <p className="text-[14px] font-bold text-center">{profile.bio}</p>}
       </div>
 
       {/* Tab row - icon illuminates (dim -> bright white) + underline indicator + scale down on press */}

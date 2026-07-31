@@ -15,13 +15,13 @@ import { Route as BecomeACreatorRouteImport } from './routes/become-a-creator'
 import { Route as BecomeACuratorRouteImport } from './routes/become-a-curator'
 import { Route as ChooseUsernameRouteImport } from './routes/choose-username'
 import { Route as CreatorNicheRouteImport } from './routes/creator-niche'
+import { Route as EditProfileRouteImport } from './routes/edit-profile'
 import { Route as FindYourFitRouteImport } from './routes/find-your-fit'
 import { Route as NameYourStoreRouteImport } from './routes/name-your-store'
 import { Route as OfflineVideosRouteImport } from './routes/offline-videos'
 import { Route as PhoneNumberRouteImport } from './routes/phone-number'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ProductCategoryRouteImport } from './routes/product-category'
-import { Route as ProfilePageRouteImport } from './routes/profile.$username.tsx'
 import { Route as SellerTypeRouteImport } from './routes/seller-type'
 import { Route as SetUpStoreRouteImport } from './routes/set-up-store'
 import { Route as SettingsRouteImport } from './routes/settings'
@@ -30,6 +30,7 @@ import { Route as StudioRouteImport } from './routes/studio'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as WhereDidYouHearAboutUsRouteImport } from './routes/where-did-you-hear-about-us'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
+import { Route as ProfileUsernameRouteImport } from './routes/profile.$username'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -61,6 +62,11 @@ const CreatorNicheRoute = CreatorNicheRouteImport.update({
   path: '/creator-niche',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EditProfileRoute = EditProfileRouteImport.update({
+  id: '/edit-profile',
+  path: '/edit-profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const FindYourFitRoute = FindYourFitRouteImport.update({
   id: '/find-your-fit',
   path: '/find-your-fit',
@@ -89,11 +95,6 @@ const PrivacyRoute = PrivacyRouteImport.update({
 const ProductCategoryRoute = ProductCategoryRouteImport.update({
   id: '/product-category',
   path: '/product-category',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProfilePageRoute = ProfilePageRouteImport.update({
-  id: '/profile/$username',
-  path: '/profile/$username',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SellerTypeRoute = SellerTypeRouteImport.update({
@@ -136,6 +137,11 @@ const AuthCallbackRoute = AuthCallbackRouteImport.update({
   path: '/auth/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProfileUsernameRoute = ProfileUsernameRouteImport.update({
+  id: '/profile/$username',
+  path: '/profile/$username',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -144,13 +150,13 @@ export interface FileRoutesByFullPath {
   '/become-a-curator': typeof BecomeACuratorRoute
   '/choose-username': typeof ChooseUsernameRoute
   '/creator-niche': typeof CreatorNicheRoute
+  '/edit-profile': typeof EditProfileRoute
   '/find-your-fit': typeof FindYourFitRoute
   '/name-your-store': typeof NameYourStoreRoute
   '/offline-videos': typeof OfflineVideosRoute
   '/phone-number': typeof PhoneNumberRoute
   '/privacy': typeof PrivacyRoute
   '/product-category': typeof ProductCategoryRoute
-  '/profile/$username': typeof ProfilePageRoute
   '/seller-type': typeof SellerTypeRoute
   '/set-up-store': typeof SetUpStoreRoute
   '/settings': typeof SettingsRoute
@@ -159,6 +165,7 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/where-did-you-hear-about-us': typeof WhereDidYouHearAboutUsRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/profile/$username': typeof ProfileUsernameRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -167,13 +174,13 @@ export interface FileRoutesByTo {
   '/become-a-curator': typeof BecomeACuratorRoute
   '/choose-username': typeof ChooseUsernameRoute
   '/creator-niche': typeof CreatorNicheRoute
+  '/edit-profile': typeof EditProfileRoute
   '/find-your-fit': typeof FindYourFitRoute
   '/name-your-store': typeof NameYourStoreRoute
   '/offline-videos': typeof OfflineVideosRoute
   '/phone-number': typeof PhoneNumberRoute
   '/privacy': typeof PrivacyRoute
   '/product-category': typeof ProductCategoryRoute
-  '/profile/$username': typeof ProfilePageRoute
   '/seller-type': typeof SellerTypeRoute
   '/set-up-store': typeof SetUpStoreRoute
   '/settings': typeof SettingsRoute
@@ -182,6 +189,7 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/where-did-you-hear-about-us': typeof WhereDidYouHearAboutUsRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/profile/$username': typeof ProfileUsernameRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -191,13 +199,13 @@ export interface FileRoutesById {
   '/become-a-curator': typeof BecomeACuratorRoute
   '/choose-username': typeof ChooseUsernameRoute
   '/creator-niche': typeof CreatorNicheRoute
+  '/edit-profile': typeof EditProfileRoute
   '/find-your-fit': typeof FindYourFitRoute
   '/name-your-store': typeof NameYourStoreRoute
   '/offline-videos': typeof OfflineVideosRoute
   '/phone-number': typeof PhoneNumberRoute
   '/privacy': typeof PrivacyRoute
   '/product-category': typeof ProductCategoryRoute
-  '/profile/$username': typeof ProfilePageRoute
   '/seller-type': typeof SellerTypeRoute
   '/set-up-store': typeof SetUpStoreRoute
   '/settings': typeof SettingsRoute
@@ -206,6 +214,7 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/where-did-you-hear-about-us': typeof WhereDidYouHearAboutUsRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/profile/$username': typeof ProfileUsernameRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -216,13 +225,13 @@ export interface FileRouteTypes {
     | '/become-a-curator'
     | '/choose-username'
     | '/creator-niche'
+    | '/edit-profile'
     | '/find-your-fit'
     | '/name-your-store'
     | '/offline-videos'
     | '/phone-number'
     | '/privacy'
     | '/product-category'
-    | '/profile/$username'
     | '/seller-type'
     | '/set-up-store'
     | '/settings'
@@ -231,6 +240,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/where-did-you-hear-about-us'
     | '/auth/callback'
+    | '/profile/$username'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -239,13 +249,13 @@ export interface FileRouteTypes {
     | '/become-a-curator'
     | '/choose-username'
     | '/creator-niche'
+    | '/edit-profile'
     | '/find-your-fit'
     | '/name-your-store'
     | '/offline-videos'
     | '/phone-number'
     | '/privacy'
     | '/product-category'
-    | '/profile/$username'
     | '/seller-type'
     | '/set-up-store'
     | '/settings'
@@ -254,6 +264,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/where-did-you-hear-about-us'
     | '/auth/callback'
+    | '/profile/$username'
   id:
     | '__root__'
     | '/'
@@ -262,13 +273,13 @@ export interface FileRouteTypes {
     | '/become-a-curator'
     | '/choose-username'
     | '/creator-niche'
+    | '/edit-profile'
     | '/find-your-fit'
     | '/name-your-store'
     | '/offline-videos'
     | '/phone-number'
     | '/privacy'
     | '/product-category'
-    | '/profile/$username'
     | '/seller-type'
     | '/set-up-store'
     | '/settings'
@@ -277,6 +288,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/where-did-you-hear-about-us'
     | '/auth/callback'
+    | '/profile/$username'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -286,13 +298,13 @@ export interface RootRouteChildren {
   BecomeACuratorRoute: typeof BecomeACuratorRoute
   ChooseUsernameRoute: typeof ChooseUsernameRoute
   CreatorNicheRoute: typeof CreatorNicheRoute
+  EditProfileRoute: typeof EditProfileRoute
   FindYourFitRoute: typeof FindYourFitRoute
   NameYourStoreRoute: typeof NameYourStoreRoute
   OfflineVideosRoute: typeof OfflineVideosRoute
   PhoneNumberRoute: typeof PhoneNumberRoute
   PrivacyRoute: typeof PrivacyRoute
   ProductCategoryRoute: typeof ProductCategoryRoute
-  ProfilePageRoute: typeof ProfilePageRoute
   SellerTypeRoute: typeof SellerTypeRoute
   SetUpStoreRoute: typeof SetUpStoreRoute
   SettingsRoute: typeof SettingsRoute
@@ -301,6 +313,7 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   WhereDidYouHearAboutUsRoute: typeof WhereDidYouHearAboutUsRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
+  ProfileUsernameRoute: typeof ProfileUsernameRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -347,6 +360,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CreatorNicheRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/edit-profile': {
+      id: '/edit-profile'
+      path: '/edit-profile'
+      fullPath: '/edit-profile'
+      preLoaderRoute: typeof EditProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/find-your-fit': {
       id: '/find-your-fit'
       path: '/find-your-fit'
@@ -387,13 +407,6 @@ declare module '@tanstack/react-router' {
       path: '/product-category'
       fullPath: '/product-category'
       preLoaderRoute: typeof ProductCategoryRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/profile/$username': {
-      id: '/profile/$username'
-      path: '/profile/$username'
-      fullPath: '/profile/$username'
-      preLoaderRoute: typeof ProfilePageRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/seller-type': {
@@ -452,6 +465,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/profile/$username': {
+      id: '/profile/$username'
+      path: '/profile/$username'
+      fullPath: '/profile/$username'
+      preLoaderRoute: typeof ProfileUsernameRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -462,13 +482,13 @@ const rootRouteChildren: RootRouteChildren = {
   BecomeACuratorRoute: BecomeACuratorRoute,
   ChooseUsernameRoute: ChooseUsernameRoute,
   CreatorNicheRoute: CreatorNicheRoute,
+  EditProfileRoute: EditProfileRoute,
   FindYourFitRoute: FindYourFitRoute,
   NameYourStoreRoute: NameYourStoreRoute,
   OfflineVideosRoute: OfflineVideosRoute,
   PhoneNumberRoute: PhoneNumberRoute,
   PrivacyRoute: PrivacyRoute,
   ProductCategoryRoute: ProductCategoryRoute,
-  ProfilePageRoute: ProfilePageRoute,
   SellerTypeRoute: SellerTypeRoute,
   SetUpStoreRoute: SetUpStoreRoute,
   SettingsRoute: SettingsRoute,
@@ -477,6 +497,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   WhereDidYouHearAboutUsRoute: WhereDidYouHearAboutUsRoute,
   AuthCallbackRoute: AuthCallbackRoute,
+  ProfileUsernameRoute: ProfileUsernameRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
