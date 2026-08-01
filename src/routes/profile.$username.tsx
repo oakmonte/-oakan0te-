@@ -205,22 +205,7 @@ function ProfilePage() {
           alt={username}
           className="w-[110px] h-[110px] rounded-full border-[3px] border-white object-cover"
         />
-        <div className="text-center">
-          <div className="text-[15px] font-bold">
-            {profileLoading ? "…" : profile?.display_name || profile?.personal_username || username}
-          </div>
-          <div className="text-[11px] font-bold text-[#B0ADAD] mt-0.5">
-            @{profile?.personal_username || username}
-          </div>
-          <div className="flex items-center justify-center gap-1.5 mt-1.5">
-            <div className="flex items-center gap-[2px]">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Star key={i} size={13} className="fill-[#FF7300] text-[#FF7300]" />
-              ))}
-            </div>
-            <span className="text-[11px] font-medium">({profile?.rating_count ?? 0})</span>
-          </div>
-        </div>
+        
 
         <div className="text-center">
           <div className="flex items-center justify-center gap-1.5">

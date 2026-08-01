@@ -135,8 +135,7 @@ function EditProfilePage() {
       return;
     }
 
-    // Navigate to the (possibly new) username so the profile page re-fetches fresh data
-    navigate({ to: `/profile/${username}` });
+    navigate({ to: "/profile/$username", params: { username } });
   };
 
   if (loading) {
@@ -150,7 +149,11 @@ function EditProfilePage() {
   return (
     <div className="min-h-screen bg-black text-white" style={{ fontFamily: "'SF Pro', system-ui, sans-serif" }}>
       <div className="flex items-center justify-center relative px-6 pt-4 pb-4">
-        <button onClick={() => navigate({ to: `/profile/${originalUsername}` })} aria-label="Back" className="absolute left-6">
+        <button
+          onClick={() => navigate({ to: "/profile/$username", params: { username: originalUsername } })}
+          aria-label="Back"
+          className="absolute left-6"
+        >
           <ArrowLeft size={22} />
         </button>
         <h1 className="text-[16px] font-bold">Edit profile</h1>
