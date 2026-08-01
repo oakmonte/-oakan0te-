@@ -10,8 +10,6 @@ export const Route = createFileRoute("/profile/$username")({
   component: ProfilePage,
 });
 
-// --- Icons (unchanged) ---
-
 function PostsIcon(props: { className?: string }) {
   return (
     <svg width="15" height="23" viewBox="0 0 15 23" fill="none" xmlns="http://www.w3.org/2000/svg" className={props.className}>
@@ -205,8 +203,6 @@ function ProfilePage() {
           alt={username}
           className="w-[110px] h-[110px] rounded-full border-[3px] border-white object-cover"
         />
-        
-
         <div className="text-center">
           <div className="flex items-center justify-center gap-1.5">
             <div className="text-[15px] font-bold">
@@ -225,6 +221,14 @@ function ProfilePage() {
           <div className="text-[11px] font-bold text-[#B0ADAD] mt-0.5">
             @{profile?.personal_username || username}
           </div>
+          <div className="flex items-center justify-center gap-1.5 mt-1.5">
+            <div className="flex items-center gap-[2px]">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Star key={i} size={13} className="fill-[#FF7300] text-[#FF7300]" />
+              ))}
+            </div>
+            <span className="text-[11px] font-medium">({profile?.rating_count ?? 0})</span>
+          </div>
         </div>
 
         <div className="flex items-center gap-8">
@@ -236,39 +240,39 @@ function ProfilePage() {
         {profile?.bio && <p className="text-[14px] font-bold text-center">{profile.bio}</p>}
       </div>
 
-      {/* Tab row - icon illuminates (dim -> bright white) + underline indicator + scale down on press */}
+      {/* Tab row */}
       <div className="mt-6 border-b border-[#474747]">
         <div
           ref={tabScrollRef}
           className="grid grid-flow-col auto-cols-[20%] gap-x-2 px-6 overflow-x-auto snap-x snap-mandatory no-scrollbar scroll-smooth"
         >
           {TABS.map(({ key, label, Icon, size }) => {
-  const isActive = activeTab === key;
-  return (
-    <button
-      key={key}
-      ref={(el) => { tabButtonRefs.current[key] = el; }}
-      onClick={() => setActiveTab(key)}
-      aria-label={label}
-      className="flex flex-col items-center gap-2 snap-start pt-3 pb-2 transition-transform duration-150 active:scale-90"
-    >
-      <Icon
-        className={`${size ?? "w-[21px] h-[21px]"} transition-all duration-200 ${
-          isActive ? "text-white opacity-100" : "text-white/40 opacity-100"
-        }`}
-      />
-      <span
-        className={`block h-[2px] rounded-full bg-white transition-all duration-300 ease-out ${
-          isActive ? "w-6 opacity-100" : "w-0 opacity-0"
-        }`}
-      />
-    </button>
-  );
-})}
+            const isActive = activeTab === key;
+            return (
+              <button
+                key={key}
+                ref={(el) => { tabButtonRefs.current[key] = el; }}
+                onClick={() => setActiveTab(key)}
+                aria-label={label}
+                className="flex flex-col items-center gap-2 snap-start pt-3 pb-2 transition-transform duration-150 active:scale-90"
+              >
+                <Icon
+                  className={`${size ?? "w-[21px] h-[21px]"} transition-all duration-200 ${
+                    isActive ? "text-white opacity-100" : "text-white/40 opacity-100"
+                  }`}
+                />
+                <span
+                  className={`block h-[2px] rounded-full bg-white transition-all duration-300 ease-out ${
+                    isActive ? "w-6 opacity-100" : "w-0 opacity-0"
+                  }`}
+                />
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* Inline search — animated height/opacity reveal, always mounted */}
+      {/* Inline search */}
       <div
         className={`grid transition-[grid-template-rows] duration-300 ease-out ${
           searchOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
@@ -299,7 +303,7 @@ function ProfilePage() {
         </div>
       </div>
 
-      {/* Content grid — swipeable between tabs, uniform 3-col squares */}
+      {/* Content grid */}
       <div className="overflow-hidden pb-24">
         <AnimatePresence mode="wait" custom={tabIndex}>
           <motion.div
@@ -327,7 +331,7 @@ function ProfilePage() {
         </AnimatePresence>
       </div>
 
-      {/* Hamburger side panel — slide-in with backdrop fade */}
+      {/* Hamburger side panel */}
       <div
         className={`fixed inset-0 z-50 transition-opacity duration-300 ${
           menuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
