@@ -9,7 +9,6 @@ type NavKey = "home" | "messages" | "create" | "cart" | "profile";
 
 type BottomNavProps = {
   active: NavKey;
-  /** logged-in user's own username, needed so the profile tab links somewhere real */
   ownUsername?: string;
 };
 
@@ -29,10 +28,7 @@ export function BottomNav({ active, ownUsername }: BottomNavProps) {
   ];
 
   return (
-    <nav
-      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50"
-      style={{ width: 283, height: 49 }}
-    >
+    <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50" style={{ width: 283, height: 49 }}>
       <div
         className="w-full h-full flex items-center justify-between"
         style={{
@@ -54,18 +50,22 @@ export function BottomNav({ active, ownUsername }: BottomNavProps) {
               to={to}
               params={params}
               aria-label={label}
-              className="flex items-center justify-center transition-transform duration-150 active:scale-90"
+              className="relative flex items-center justify-center transition-transform duration-150 active:scale-90"
+              style={{ width: 32, height: 32 }}
             >
+              {/* soft background capsule behind the active icon, not a glow on the icon itself */}
+              <span
+                className="absolute inset-0 rounded-full transition-all duration-200"
+                style={{
+                  background: isActive ? "rgba(255,255,255,0.16)" : "rgba(255,255,255,0)",
+                  transform: isActive ? "scale(1)" : "scale(0.6)",
+                }}
+              />
               <img
                 src={icon}
                 alt=""
-                className="transition-all duration-200"
-                style={{
-                  width: 21,
-                  height: 20,
-                  opacity: isActive ? 1 : 0.55,
-                  filter: isActive ? "drop-shadow(0 0 6px rgba(255,255,255,0.85))" : "none",
-                }}
+                className="relative transition-opacity duration-200"
+                style={{ width: 21, height: 20, opacity: isActive ? 1 : 0.55 }}
               />
             </Link>
           );
