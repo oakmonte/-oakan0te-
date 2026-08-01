@@ -4,6 +4,7 @@ import type { ReactElement } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Share2, Search, Menu, Star, X, ChevronRight, Pencil } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
+import { BottomNav } from "@/components/BottomNav";
 
 export const Route = createFileRoute("/profile/$username")({
   head: () => ({ meta: [{ title: "Profile — Oakmonte" }] }),
@@ -360,6 +361,11 @@ function ProfilePage() {
           </div>
         </div>
       </div>
+
+      {/* Bottom nav — shown only when viewing your own profile */}
+      {isOwnProfile && (
+        <BottomNav active="profile" ownUsername={profile?.personal_username || username} />
+      )}
     </div>
   );
 }
