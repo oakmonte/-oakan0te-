@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Share2, Search, Menu, Star, X, ChevronRight, Pencil } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { BottomNav } from "@/components/BottomNav";
+import { ProfileTabEmptyState } from "@/components/ProfileTabEmptyState";
 
 export const Route = createFileRoute("/profile/$username")({
   head: () => ({ meta: [{ title: "Profile — Oakmonte" }] }),
@@ -69,7 +70,7 @@ function DraftsIcon(props: { className?: string }) {
   );
 }
 
-type TabKey = "posts" | "store" | "wardrobe" | "reposts" | "wishlist" | "likedVideos" | "drafts";
+export type TabKey = "posts" | "store" | "wardrobe" | "reposts" | "wishlist" | "likedVideos" | "drafts";
 
 const TABS: { key: TabKey; label: string; Icon: (p: { className?: string }) => ReactElement; size?: string }[] = [
   { key: "posts", label: "Posts", Icon: PostsIcon },
@@ -305,32 +306,28 @@ function ProfilePage() {
       </div>
 
       {/* Content grid */}
-      <div className="overflow-hidden pb-24">
-        <AnimatePresence mode="wait" custom={tabIndex}>
-          <motion.div
-            key={activeTab}
-            custom={tabIndex}
-            initial={{ opacity: 0, x: 40 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -40 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-            drag="x"
-            dragConstraints={{ left: 0, right: 0 }}
-            dragElastic={0.15}
-            onDragEnd={(_, info) => {
-              if (info.offset.x < -60) goToTab(tabIndex + 1);
-              else if (info.offset.x > 60) goToTab(tabIndex - 1);
-            }}
-            className="px-1 pt-4 grid grid-cols-3 gap-[2px]"
-          >
-            {MOCK_ITEMS.map((item) => (
-              <div key={item.id} className="aspect-square w-full overflow-hidden">
-                <img src={item.src} alt="" className="w-full h-full object-cover" />
-              </div>
-            ))}
-          </motion.div>
-        </AnimatePresence>
-      </div>
+<div className="overflow-hidden pb-24">
+  <AnimatePresence mode="wait" custom={tabIndex}>
+    <motion.div
+      key={activeTab}
+      custom={tabIndex}
+      initial={{ opacity: 0, x: 40 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -40 }}
+      transition={{ duration: 0.2, ease: "easeOut" }}
+      drag="x"
+      dragConstraints={{ left: 0, right: 0 }}
+      dragElastic={0.15}
+      onDragEnd={(_, info) => {
+        if (info.offset.x < -60) goToTab(tabIndex + 1);
+        else if (info.offset.x > 60) goToTab(tabIndex - 1);
+      }}
+      className="px-1 pt-4"
+    >
+      <ProfileTabEmptyState tab={activeTab} />
+    </motion.div>
+  </AnimatePresence>
+</div>
 
       {/* Hamburger side panel */}
       <div
