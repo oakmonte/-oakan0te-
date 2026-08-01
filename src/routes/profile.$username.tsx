@@ -72,11 +72,11 @@ function DraftsIcon(props: { className?: string }) {
 
 type TabKey = "posts" | "store" | "wardrobe" | "reposts" | "wishlist" | "likedVideos" | "drafts";
 
-const TABS: { key: TabKey; label: string; Icon: (p: { className?: string }) => ReactElement }[] = [
+const TABS: { key: TabKey; label: string; Icon: (p: { className?: string }) => ReactElement; size?: string }[] = [
   { key: "posts", label: "Posts", Icon: PostsIcon },
   { key: "store", label: "Store", Icon: StoreIcon },
   { key: "wardrobe", label: "Wardrobe", Icon: WardrobeIcon },
-  { key: "reposts", label: "Reposts", Icon: RepostIcon },
+  { key: "reposts", label: "Reposts", Icon: RepostIcon, size: "w-[26px] h-[26px]" },
   { key: "wishlist", label: "Wishlist", Icon: WishlistIcon },
   { key: "likedVideos", label: "Liked videos", Icon: LikedVideosIcon },
   { key: "drafts", label: "Drafts", Icon: DraftsIcon },
@@ -257,29 +257,29 @@ function ProfilePage() {
           ref={tabScrollRef}
           className="grid grid-flow-col auto-cols-[20%] gap-x-2 px-6 overflow-x-auto snap-x snap-mandatory no-scrollbar scroll-smooth"
         >
-          {TABS.map(({ key, label, Icon }) => {
-            const isActive = activeTab === key;
-            return (
-              <button
-                key={key}
-                ref={(el) => { tabButtonRefs.current[key] = el; }}
-                onClick={() => setActiveTab(key)}
-                aria-label={label}
-                className="flex flex-col items-center gap-2 snap-start pt-3 pb-2 transition-transform duration-150 active:scale-90"
-              >
-                <Icon
-                  className={`w-[21px] h-[21px] transition-all duration-200 ${
-                    isActive ? "text-white opacity-100" : "text-white/40 opacity-100"
-                  }`}
-                />
-                <span
-                  className={`block h-[2px] rounded-full bg-white transition-all duration-300 ease-out ${
-                    isActive ? "w-6 opacity-100" : "w-0 opacity-0"
-                  }`}
-                />
-              </button>
-            );
-          })}
+          {TABS.map(({ key, label, Icon, size }) => {
+  const isActive = activeTab === key;
+  return (
+    <button
+      key={key}
+      ref={(el) => { tabButtonRefs.current[key] = el; }}
+      onClick={() => setActiveTab(key)}
+      aria-label={label}
+      className="flex flex-col items-center gap-2 snap-start pt-3 pb-2 transition-transform duration-150 active:scale-90"
+    >
+      <Icon
+        className={`${size ?? "w-[21px] h-[21px]"} transition-all duration-200 ${
+          isActive ? "text-white opacity-100" : "text-white/40 opacity-100"
+        }`}
+      />
+      <span
+        className={`block h-[2px] rounded-full bg-white transition-all duration-300 ease-out ${
+          isActive ? "w-6 opacity-100" : "w-0 opacity-0"
+        }`}
+      />
+    </button>
+  );
+})}
         </div>
       </div>
 
