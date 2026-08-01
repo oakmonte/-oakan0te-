@@ -3,7 +3,7 @@ import { useState } from "react";
 import { BottomNav } from "@/components/BottomNav";
 import { TopToggleNav } from "@/components/TopToggleNav";
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/home")({
   head: () => ({ meta: [{ title: "Oakmonte" }] }),
   component: HomePage,
 });

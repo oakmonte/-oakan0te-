@@ -17,6 +17,7 @@ import { Route as ChooseUsernameRouteImport } from './routes/choose-username'
 import { Route as CreatorNicheRouteImport } from './routes/creator-niche'
 import { Route as EditProfileRouteImport } from './routes/edit-profile'
 import { Route as FindYourFitRouteImport } from './routes/find-your-fit'
+import { Route as HomeRouteImport } from './routes/home'
 import { Route as NameYourStoreRouteImport } from './routes/name-your-store'
 import { Route as OfflineVideosRouteImport } from './routes/offline-videos'
 import { Route as PhoneNumberRouteImport } from './routes/phone-number'
@@ -70,6 +71,11 @@ const EditProfileRoute = EditProfileRouteImport.update({
 const FindYourFitRoute = FindYourFitRouteImport.update({
   id: '/find-your-fit',
   path: '/find-your-fit',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HomeRoute = HomeRouteImport.update({
+  id: '/home',
+  path: '/home',
   getParentRoute: () => rootRouteImport,
 } as any)
 const NameYourStoreRoute = NameYourStoreRouteImport.update({
@@ -152,6 +158,7 @@ export interface FileRoutesByFullPath {
   '/creator-niche': typeof CreatorNicheRoute
   '/edit-profile': typeof EditProfileRoute
   '/find-your-fit': typeof FindYourFitRoute
+  '/home': typeof HomeRoute
   '/name-your-store': typeof NameYourStoreRoute
   '/offline-videos': typeof OfflineVideosRoute
   '/phone-number': typeof PhoneNumberRoute
@@ -176,6 +183,7 @@ export interface FileRoutesByTo {
   '/creator-niche': typeof CreatorNicheRoute
   '/edit-profile': typeof EditProfileRoute
   '/find-your-fit': typeof FindYourFitRoute
+  '/home': typeof HomeRoute
   '/name-your-store': typeof NameYourStoreRoute
   '/offline-videos': typeof OfflineVideosRoute
   '/phone-number': typeof PhoneNumberRoute
@@ -201,6 +209,7 @@ export interface FileRoutesById {
   '/creator-niche': typeof CreatorNicheRoute
   '/edit-profile': typeof EditProfileRoute
   '/find-your-fit': typeof FindYourFitRoute
+  '/home': typeof HomeRoute
   '/name-your-store': typeof NameYourStoreRoute
   '/offline-videos': typeof OfflineVideosRoute
   '/phone-number': typeof PhoneNumberRoute
@@ -227,6 +236,7 @@ export interface FileRouteTypes {
     | '/creator-niche'
     | '/edit-profile'
     | '/find-your-fit'
+    | '/home'
     | '/name-your-store'
     | '/offline-videos'
     | '/phone-number'
@@ -251,6 +261,7 @@ export interface FileRouteTypes {
     | '/creator-niche'
     | '/edit-profile'
     | '/find-your-fit'
+    | '/home'
     | '/name-your-store'
     | '/offline-videos'
     | '/phone-number'
@@ -275,6 +286,7 @@ export interface FileRouteTypes {
     | '/creator-niche'
     | '/edit-profile'
     | '/find-your-fit'
+    | '/home'
     | '/name-your-store'
     | '/offline-videos'
     | '/phone-number'
@@ -300,6 +312,7 @@ export interface RootRouteChildren {
   CreatorNicheRoute: typeof CreatorNicheRoute
   EditProfileRoute: typeof EditProfileRoute
   FindYourFitRoute: typeof FindYourFitRoute
+  HomeRoute: typeof HomeRoute
   NameYourStoreRoute: typeof NameYourStoreRoute
   OfflineVideosRoute: typeof OfflineVideosRoute
   PhoneNumberRoute: typeof PhoneNumberRoute
@@ -372,6 +385,13 @@ declare module '@tanstack/react-router' {
       path: '/find-your-fit'
       fullPath: '/find-your-fit'
       preLoaderRoute: typeof FindYourFitRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/home': {
+      id: '/home'
+      path: '/home'
+      fullPath: '/home'
+      preLoaderRoute: typeof HomeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/name-your-store': {
@@ -484,6 +504,7 @@ const rootRouteChildren: RootRouteChildren = {
   CreatorNicheRoute: CreatorNicheRoute,
   EditProfileRoute: EditProfileRoute,
   FindYourFitRoute: FindYourFitRoute,
+  HomeRoute: HomeRoute,
   NameYourStoreRoute: NameYourStoreRoute,
   OfflineVideosRoute: OfflineVideosRoute,
   PhoneNumberRoute: PhoneNumberRoute,
