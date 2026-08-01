@@ -14,7 +14,7 @@ type BottomNavProps = {
 
 export function BottomNav({ active, ownUsername }: BottomNavProps) {
   const items: { key: NavKey; label: string; icon: string; to: string; params?: Record<string, string> }[] = [
-    { key: "home", label: "Home", icon: homeIcon, to: "/routes/home.tsx" },
+    { key: "home", label: "Home", icon: homeIcon, to: "/routes/home" },
     { key: "messages", label: "Messages", icon: messagesIcon, to: "/messages" },
     { key: "create", label: "Create", icon: createIcon, to: "/create" },
     { key: "cart", label: "Cart", icon: cartIcon, to: "/cart" },
