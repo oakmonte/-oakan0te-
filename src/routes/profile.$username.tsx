@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router"
 import { useState, useRef, useEffect } from "react";
 import type { ReactElement } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Share2, Search, Menu, Star, X, ChevronRight } from "lucide-react";
+import { ArrowLeft, Share2, Search, Menu, Star, X, ChevronRight, Pencil } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 
 export const Route = createFileRoute("/profile/$username")({
@@ -219,6 +219,26 @@ function ProfilePage() {
               ))}
             </div>
             <span className="text-[11px] font-medium">({profile?.rating_count ?? 0})</span>
+          </div>
+        </div>
+
+        <div className="text-center">
+          <div className="flex items-center justify-center gap-1.5">
+            <div className="text-[15px] font-bold">
+              {profileLoading ? "…" : profile?.display_name || profile?.personal_username || username}
+            </div>
+            {isOwnProfile && (
+              <button
+                onClick={() => navigate({ to: "/edit-profile" })}
+                aria-label="Edit profile"
+                className="text-white/50 hover:text-white transition-colors"
+              >
+                <Pencil size={13} />
+              </button>
+            )}
+          </div>
+          <div className="text-[11px] font-bold text-[#B0ADAD] mt-0.5">
+            @{profile?.personal_username || username}
           </div>
         </div>
 
