@@ -53,7 +53,10 @@ function EditProfilePage() {
         .eq("id", user.id)
         .single();
 
-      if (!fetchError && data) {
+      if (fetchError) {
+        console.error("edit-profile: failed to fetch profile", fetchError);
+        setError("Couldn't load your profile. Please try again.");
+      } else if (data) {
         const profile = data as ProfileRow;
         setAvatarUrl(profile.avatar_url);
         setDisplayName(profile.display_name || profile.personal_username);
@@ -102,6 +105,15 @@ function EditProfilePage() {
     setAvatarUrl(data.publicUrl);
   };
 
+  // Safe navigation back to a profile — never routes to an empty username
+  const goToProfile = (targetUsername: string) => {
+    if (!targetUsername) {
+      navigate({ to: "/" });
+      return;
+    }
+    navigate({ to: "/profile/$username", params: { username: targetUsername } });
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!userId) return;
@@ -130,12 +142,12 @@ function EditProfilePage() {
         setError("That username is taken. Try another.");
       } else {
         setError("Something went wrong. Please try again.");
-        console.error(updateError);
+        console.error("edit-profile: failed to save", updateError);
       }
       return;
     }
 
-    navigate({ to: "/profile/$username", params: { username } });
+    goToProfile(username);
   };
 
   if (loading) {
@@ -150,7 +162,7 @@ function EditProfilePage() {
     <div className="min-h-screen bg-black text-white" style={{ fontFamily: "'SF Pro', system-ui, sans-serif" }}>
       <div className="flex items-center justify-center relative px-6 pt-4 pb-4">
         <button
-          onClick={() => navigate({ to: "/profile/$username", params: { username: originalUsername } })}
+          onClick={() => goToProfile(originalUsername)}
           aria-label="Back"
           className="absolute left-6"
         >
