@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { signInWithGoogle, sendMagicLink } from "@/lib/auth";
+import { signInWithGoogle, sendMagicLink, resolvePostAuthRedirect } from "@/lib/auth";
 import { AppleIcon, GoogleIcon } from "@/components/auth-icons";
 import { Spinner } from "@/components/spinner";
 import { supabase } from "@/lib/integrations/my-supabase/client";
@@ -135,12 +135,14 @@ function BecomeCuratorPage() {
       return;
     }
 
-    if (!data.session?.user.id) {
+    const userId = data.session?.user.id;
+    if (!userId) {
       setError("Something went wrong. Please try again.");
       return;
     }
 
-    navigate({ to: "/choose-username", replace: true });
+    const redirect = await resolvePostAuthRedirect(userId);
+    navigate({ ...redirect, replace: true });
   };
 
   const mm = String(Math.floor(countdown / 60)).padStart(2, "0");

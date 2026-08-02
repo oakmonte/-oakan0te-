@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
-import { getProfileUsernameFromUser } from "@/lib/auth";
+import { resolvePostAuthRedirect } from "@/lib/auth";
 
 export const Route = createFileRoute("/auth/callback")({
   head: () => ({ meta: [{ title: "Signing you in — Oakmonte" }] }),
@@ -22,11 +22,8 @@ function AuthCallback() {
     }
 
     const finishSignIn = async (userId: string) => {
-      const { data } = await supabase.auth.getUser();
-      const username = getProfileUsernameFromUser(data.user);
-      const nextUsername = username ?? userId.slice(0, 8);
-
-      navigate({ to: "/profile/$username", params: { username: nextUsername }, replace: true });
+      const redirect = await resolvePostAuthRedirect(userId);
+      navigate({ ...redirect, replace: true });
     };
 
     (async () => {
