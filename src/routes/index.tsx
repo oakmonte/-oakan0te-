@@ -4,12 +4,32 @@ import logoO from "@/assets/logo-o.png";
 import oakmonteO from "@/assets/oakmonte-o-mark.png.asset.json";
 import contentToCartVideo from "@/assets/content-to-cart.mp4.asset.json";
 import { useSession } from "@/hooks/use-session";
-import { getProfileUsernameFromUser, signInWithGoogle, signOut } from "@/lib/auth";
+import { signInWithGoogle, signOut } from "@/lib/auth";
+import { supabase } from "@/lib/integrations/my-supabase/client";
 
 function HeaderAuth() {
-  const navigate = useNavigate();
   const { user, loading } = useSession();
   const [open, setOpen] = useState(false);
+  const [profileUsername, setProfileUsername] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user) {
+      setProfileUsername(null);
+      return;
+    }
+    let cancelled = false;
+    supabase
+      .from("profiles")
+      .select("personal_username")
+      .eq("id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!cancelled) setProfileUsername(data?.personal_username ?? null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   if (loading) {
     return <div className="w-24 h-8" aria-hidden="true" />;
@@ -36,7 +56,6 @@ function HeaderAuth() {
 
   const email = user.email ?? "Account";
   const short = email.length > 22 ? email.slice(0, 20) + "…" : email;
-  const profileUsername = getProfileUsernameFromUser(user);
 
   return (
     <div className="relative">
@@ -126,7 +145,6 @@ function Index() {
   const [mobileGroup, setMobileGroup] = useState<MenuKey | null>(null);
   const [scrolled, setScrolled] = useState(false);
   const [activeSection, setActiveSection] = useState<string>("");
-  // register section removed
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const typeText = "Oakmonte is an ecosystem designed for those who expect more. We connect vetted sellers, honest creators and style curators through a content driven marketplace.";
@@ -146,7 +164,7 @@ function Index() {
       let started = false;
       const run = () => {
         const startTime = performance.now();
-        const perChar = 25; // ms
+        const perChar = 25;
         const pauseMs = 700;
         const tick = (now: number) => {
           const elapsed = now - startTime;
@@ -224,9 +242,6 @@ function Index() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Re-evaluate :hover during scroll (Chrome/Safari don't update hover state
-  // on scroll until the mouse moves). Track last pointer position and
-  // dispatch a synthetic mousemove after each scroll tick.
   useEffect(() => {
     let lastX = -1, lastY = -1, raf = 0;
     const onMove = (e: MouseEvent) => { lastX = e.clientX; lastY = e.clientY; };
@@ -271,7 +286,6 @@ function Index() {
 
   return (
     <div className="min-h-screen bg-brand-bg text-brand-text font-sans">
-      {/* NAV */}
       <nav className={`fixed top-0 left-0 right-0 w-full z-50 px-4 sm:px-6 lg:px-8 flex justify-between items-center gap-3 border-b border-brand-text/5 bg-brand-bg/80 backdrop-blur-md transition-[padding] duration-300 ${scrolled ? "py-3 md:py-4" : "py-4 md:py-6"}`}>
         {mobileOpen && mobileGroup ? (
           <button
@@ -369,7 +383,6 @@ function Index() {
 
       </nav>
 
-      {/* Mobile side drawer */}
       <div
         className={`lg:hidden fixed inset-0 z-40 transition-opacity duration-500 ${mobileOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
         aria-hidden={!mobileOpen}
@@ -381,11 +394,9 @@ function Index() {
         <aside
           className={`absolute top-0 right-0 h-full w-full bg-brand-bg shadow-2xl flex flex-col transition-transform duration-500 ease-out ${mobileOpen ? "translate-x-0" : "translate-x-full"}`}
         >
-          {/* Drawer header spacer — top nav owns logo/back/close */}
           <div className="h-[64px] border-b border-brand-text/10" aria-hidden="true" />
 
           <div className="relative flex-1 overflow-hidden">
-            {/* Top-level list */}
             <div
               className={`absolute inset-0 overflow-y-auto transition-transform duration-500 ease-out ${mobileGroup ? "-translate-x-full" : "translate-x-0"}`}
             >
@@ -413,7 +424,6 @@ function Index() {
               </a>
             </div>
 
-            {/* Subgroup panel */}
             <div
               className={`absolute inset-0 overflow-y-auto transition-transform duration-500 ease-out ${mobileGroup ? "translate-x-0" : "translate-x-full"}`}
             >
@@ -444,7 +454,6 @@ function Index() {
         <a href="mailto:hello@oakmonte.com" className="text-[11px] uppercase tracking-[0.2em] font-semibold hover:text-brand-accent transition-colors duration-500">Contact us</a>
       </div>
 
-      {/* HERO */}
       <section id="top" className="pt-4 md:pt-6 pb-16 md:pb-20 px-4 sm:px-6 lg:px-8">
         <div className="w-full max-w-7xl mx-auto grid grid-cols-12 gap-4 sm:gap-8 items-end">
           <div className="col-span-12 lg:col-span-7">
@@ -470,7 +479,6 @@ function Index() {
         </div>
       </section>
 
-      {/* TRUST TRIANGLE */}
       <section id="ecosystem" className="py-16 sm:py-24 md:py-32 px-4 sm:px-6 lg:px-8 border-y border-brand-text/5">
         <div className="w-full max-w-7xl mx-auto">
           <div className="flex flex-col mb-10 sm:mb-16 md:mb-20">
@@ -517,7 +525,6 @@ function Index() {
         </div>
       </section>
 
-      {/* FEATURES */}
       <section id="product" className="py-16 sm:py-24 md:py-32 px-4 sm:px-6 lg:px-8">
         <div className="w-full max-w-7xl mx-auto">
           <h2 className="leading-[0.85] tracking-tight mb-10 md:mb-16 text-[3.25rem] sm:text-6xl md:text-8xl lg:text-[150px] uppercase break-words" style={{ fontFamily: "Anton, Impact, sans-serif", fontWeight: 400 }}>
@@ -525,7 +532,6 @@ function Index() {
             <span className="text-brand-accent">To Shop.</span>
           </h2>
 
-          {/* Hero feature card */}
           <FeatureBox className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-8 md:gap-12 items-center p-6 sm:p-10 md:p-14 mb-6 md:mb-8">
             <div className="order-1">
               <h3 className="text-3xl sm:text-4xl md:text-5xl font-serif tracking-tight leading-[0.95] mb-4 font-bold">
@@ -543,7 +549,6 @@ function Index() {
             </div>
           </FeatureBox>
 
-          {/* 2-column bento grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
             <FeatureBox className="p-6 sm:p-8 md:p-10">
               <h3 className="text-3xl sm:text-4xl md:text-5xl font-serif mb-6 font-bold">Stay Scam Proof</h3>
@@ -592,7 +597,6 @@ function Index() {
             </FeatureBox>
           </div>
 
-          {/* Full width closing feature */}
           <FeatureBox className="mt-6 md:mt-8 p-6 sm:p-10 md:p-14">
             <h3 className="text-3xl sm:text-4xl md:text-5xl font-serif mb-6 font-bold">
               Oakmonte Studio
@@ -602,7 +606,6 @@ function Index() {
             </p>
           </FeatureBox>
 
-          {/* Duplicated CTAs */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 w-full max-w-2xl mx-auto mt-10 md:mt-16">
             <Link to="/set-up-store" className="text-center px-4 sm:px-6 py-4 md:py-5 bg-brand-text text-brand-bg text-[11px] uppercase tracking-widest font-bold hover:bg-brand-accent transition-colors duration-300">Set up a Store</Link>
             <Link to="/become-a-creator" className="text-center px-4 sm:px-6 py-4 md:py-5 bg-brand-text text-brand-bg text-[11px] uppercase tracking-widest font-bold hover:bg-brand-accent transition-colors duration-300">Become a Creator</Link>

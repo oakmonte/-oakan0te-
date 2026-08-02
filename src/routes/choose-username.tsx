@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
+import { getDisplayNameFromUser } from "@/lib/auth";
 
 export const Route = createFileRoute("/choose-username")({
   head: () => ({ meta: [{ title: "Choose a username — Oakmonte" }] }),
@@ -32,12 +33,13 @@ function ChooseUsernamePage() {
     }
 
     const { error: insertError } = await supabase.from("profiles").insert({
-      id: user.id,
-      personal_username: username,
-      personal_email: user.email,
-      gender: gender || null,
-      account_type: intent,
-    });
+    id: user.id,
+    personal_username: username,
+    display_name: getDisplayNameFromUser(user) ?? username,
+    personal_email: user.email,
+    gender: gender || null,
+    account_type: intent,
+  });
 
     setLoading(false);
 
@@ -64,7 +66,7 @@ function ChooseUsernamePage() {
       <div className="w-full max-w-sm text-center">
         <h1 className="font-serif text-4xl sm:text-5xl leading-tight mb-3">Choose a username</h1>
         <p className="text-sm text-brand-text/70 mb-8">
-          This is how you'll appear on Oakmonte.
+          Your unique handle on Oakmonte — you can set a separate display name later.
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-3">

@@ -14,11 +14,13 @@ import { Route as ActivityRouteImport } from './routes/activity'
 import { Route as BecomeACreatorRouteImport } from './routes/become-a-creator'
 import { Route as BecomeACuratorRouteImport } from './routes/become-a-curator'
 import { Route as ChooseUsernameRouteImport } from './routes/choose-username'
+import { Route as CreateRouteImport } from './routes/create'
 import { Route as CreatorNicheRouteImport } from './routes/creator-niche'
 import { Route as EditProfileRouteImport } from './routes/edit-profile'
 import { Route as FindYourFitRouteImport } from './routes/find-your-fit'
 import { Route as HomeRouteImport } from './routes/home'
 import { Route as NameYourStoreRouteImport } from './routes/name-your-store'
+import { Route as NoAccountRouteImport } from './routes/no-account'
 import { Route as OfflineVideosRouteImport } from './routes/offline-videos'
 import { Route as PhoneNumberRouteImport } from './routes/phone-number'
 import { Route as PrivacyRouteImport } from './routes/privacy'
@@ -58,6 +60,11 @@ const ChooseUsernameRoute = ChooseUsernameRouteImport.update({
   path: '/choose-username',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CreateRoute = CreateRouteImport.update({
+  id: '/create',
+  path: '/create',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CreatorNicheRoute = CreatorNicheRouteImport.update({
   id: '/creator-niche',
   path: '/creator-niche',
@@ -81,6 +88,11 @@ const HomeRoute = HomeRouteImport.update({
 const NameYourStoreRoute = NameYourStoreRouteImport.update({
   id: '/name-your-store',
   path: '/name-your-store',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NoAccountRoute = NoAccountRouteImport.update({
+  id: '/no-account',
+  path: '/no-account',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OfflineVideosRoute = OfflineVideosRouteImport.update({
@@ -155,11 +167,13 @@ export interface FileRoutesByFullPath {
   '/become-a-creator': typeof BecomeACreatorRoute
   '/become-a-curator': typeof BecomeACuratorRoute
   '/choose-username': typeof ChooseUsernameRoute
+  '/create': typeof CreateRoute
   '/creator-niche': typeof CreatorNicheRoute
   '/edit-profile': typeof EditProfileRoute
   '/find-your-fit': typeof FindYourFitRoute
   '/home': typeof HomeRoute
   '/name-your-store': typeof NameYourStoreRoute
+  '/no-account': typeof NoAccountRoute
   '/offline-videos': typeof OfflineVideosRoute
   '/phone-number': typeof PhoneNumberRoute
   '/privacy': typeof PrivacyRoute
@@ -180,11 +194,13 @@ export interface FileRoutesByTo {
   '/become-a-creator': typeof BecomeACreatorRoute
   '/become-a-curator': typeof BecomeACuratorRoute
   '/choose-username': typeof ChooseUsernameRoute
+  '/create': typeof CreateRoute
   '/creator-niche': typeof CreatorNicheRoute
   '/edit-profile': typeof EditProfileRoute
   '/find-your-fit': typeof FindYourFitRoute
   '/home': typeof HomeRoute
   '/name-your-store': typeof NameYourStoreRoute
+  '/no-account': typeof NoAccountRoute
   '/offline-videos': typeof OfflineVideosRoute
   '/phone-number': typeof PhoneNumberRoute
   '/privacy': typeof PrivacyRoute
@@ -206,11 +222,13 @@ export interface FileRoutesById {
   '/become-a-creator': typeof BecomeACreatorRoute
   '/become-a-curator': typeof BecomeACuratorRoute
   '/choose-username': typeof ChooseUsernameRoute
+  '/create': typeof CreateRoute
   '/creator-niche': typeof CreatorNicheRoute
   '/edit-profile': typeof EditProfileRoute
   '/find-your-fit': typeof FindYourFitRoute
   '/home': typeof HomeRoute
   '/name-your-store': typeof NameYourStoreRoute
+  '/no-account': typeof NoAccountRoute
   '/offline-videos': typeof OfflineVideosRoute
   '/phone-number': typeof PhoneNumberRoute
   '/privacy': typeof PrivacyRoute
@@ -233,11 +251,13 @@ export interface FileRouteTypes {
     | '/become-a-creator'
     | '/become-a-curator'
     | '/choose-username'
+    | '/create'
     | '/creator-niche'
     | '/edit-profile'
     | '/find-your-fit'
     | '/home'
     | '/name-your-store'
+    | '/no-account'
     | '/offline-videos'
     | '/phone-number'
     | '/privacy'
@@ -258,11 +278,13 @@ export interface FileRouteTypes {
     | '/become-a-creator'
     | '/become-a-curator'
     | '/choose-username'
+    | '/create'
     | '/creator-niche'
     | '/edit-profile'
     | '/find-your-fit'
     | '/home'
     | '/name-your-store'
+    | '/no-account'
     | '/offline-videos'
     | '/phone-number'
     | '/privacy'
@@ -283,11 +305,13 @@ export interface FileRouteTypes {
     | '/become-a-creator'
     | '/become-a-curator'
     | '/choose-username'
+    | '/create'
     | '/creator-niche'
     | '/edit-profile'
     | '/find-your-fit'
     | '/home'
     | '/name-your-store'
+    | '/no-account'
     | '/offline-videos'
     | '/phone-number'
     | '/privacy'
@@ -309,11 +333,13 @@ export interface RootRouteChildren {
   BecomeACreatorRoute: typeof BecomeACreatorRoute
   BecomeACuratorRoute: typeof BecomeACuratorRoute
   ChooseUsernameRoute: typeof ChooseUsernameRoute
+  CreateRoute: typeof CreateRoute
   CreatorNicheRoute: typeof CreatorNicheRoute
   EditProfileRoute: typeof EditProfileRoute
   FindYourFitRoute: typeof FindYourFitRoute
   HomeRoute: typeof HomeRoute
   NameYourStoreRoute: typeof NameYourStoreRoute
+  NoAccountRoute: typeof NoAccountRoute
   OfflineVideosRoute: typeof OfflineVideosRoute
   PhoneNumberRoute: typeof PhoneNumberRoute
   PrivacyRoute: typeof PrivacyRoute
@@ -366,6 +392,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChooseUsernameRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/create': {
+      id: '/create'
+      path: '/create'
+      fullPath: '/create'
+      preLoaderRoute: typeof CreateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/creator-niche': {
       id: '/creator-niche'
       path: '/creator-niche'
@@ -399,6 +432,13 @@ declare module '@tanstack/react-router' {
       path: '/name-your-store'
       fullPath: '/name-your-store'
       preLoaderRoute: typeof NameYourStoreRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/no-account': {
+      id: '/no-account'
+      path: '/no-account'
+      fullPath: '/no-account'
+      preLoaderRoute: typeof NoAccountRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/offline-videos': {
@@ -501,11 +541,13 @@ const rootRouteChildren: RootRouteChildren = {
   BecomeACreatorRoute: BecomeACreatorRoute,
   BecomeACuratorRoute: BecomeACuratorRoute,
   ChooseUsernameRoute: ChooseUsernameRoute,
+  CreateRoute: CreateRoute,
   CreatorNicheRoute: CreatorNicheRoute,
   EditProfileRoute: EditProfileRoute,
   FindYourFitRoute: FindYourFitRoute,
   HomeRoute: HomeRoute,
   NameYourStoreRoute: NameYourStoreRoute,
+  NoAccountRoute: NoAccountRoute,
   OfflineVideosRoute: OfflineVideosRoute,
   PhoneNumberRoute: PhoneNumberRoute,
   PrivacyRoute: PrivacyRoute,
