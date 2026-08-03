@@ -38,12 +38,10 @@ const ROW_EDGE = 20;
 const CAPTURE_ROW_BOTTOM = ROW_EDGE + 56;
 const CAPTURE_ROW_TOP = CAPTURE_ROW_BOTTOM + CAPTURE_SIZE;
 
-// Barrier geometry — where the filmstrip dissolves before reaching the rotate button.
 const SWATCH_DIAMETER = CAPTURE_SIZE - 16;
-const BARRIER_BUFFER = 24; // "reasonable distance" before the rotate button's edge
-const BARRIER_RIGHT_EDGE = ROW_EDGE + ROTATE_SIZE + BARRIER_BUFFER; // where full dissolve completes
-const BARRIER_FADE_WIDTH = 32; // width of the sharp→blurred transition
-const BARRIER_HEIGHT = SWATCH_DIAMETER + 12; // "slightly longer than the diameter"
+// Narrower + hard-edged this time: filters just stop existing at this x, no fade, no blur.
+const BARRIER_EDGE = ROW_EDGE + ROTATE_SIZE + 10;
+const BARRIER_HEIGHT = SWATCH_DIAMETER + 12;
 
 const TOOLS = [
   { id: "ratio", label: "Ratio", icon: Ratio },
@@ -296,7 +294,7 @@ function CreatePage() {
         ))}
       </div>
 
-      {/* Filter filmstrip — dissolves into the frosted barrier before reaching the rotate button */}
+      {/* Filter filmstrip — layer 1 (bottom) */}
       <div
         ref={filterStripRef}
         onScroll={handleFilterScroll}
@@ -310,10 +308,6 @@ function CreatePage() {
           msOverflowStyle: "none",
           paddingLeft: `calc(50% - ${CAPTURE_SIZE / 2}px)`,
           paddingRight: `calc(50% - ${CAPTURE_SIZE / 2}px)`,
-          // Fully hidden from 0 to BARRIER_RIGHT_EDGE, dissolving in over BARRIER_FADE_WIDTH beyond that —
-          // by the time a swatch would visually reach the rotate button, it's already gone.
-          WebkitMaskImage: `linear-gradient(to right, transparent 0px, transparent ${BARRIER_RIGHT_EDGE}px, black ${BARRIER_RIGHT_EDGE + BARRIER_FADE_WIDTH}px, black 100%)`,
-          maskImage: `linear-gradient(to right, transparent 0px, transparent ${BARRIER_RIGHT_EDGE}px, black ${BARRIER_RIGHT_EDGE + BARRIER_FADE_WIDTH}px, black 100%)`,
         }}
       >
         {FILTERS.map((f, i) => (
@@ -333,26 +327,32 @@ function CreatePage() {
         ))}
       </div>
 
-      {/* Frosted-glass barrier — the "refracting rectangle": a blurred panel sitting where the filmstrip dissolves */}
+      {/* Invisible occluder — layer 2, sits between the filmstrip and the rotate button.
+          No color, no blur, no fade — just hard-clips anything under it via mask on the strip below,
+          this div's only job is to occupy the z-order gap so nothing from the strip renders "through" it. */}
       <div
         className="absolute pointer-events-none"
         style={{
-          zIndex: 1,
+          zIndex: 2,
           left: 0,
-          width: BARRIER_RIGHT_EDGE + BARRIER_FADE_WIDTH,
+          width: BARRIER_EDGE,
           top: "50%",
           transform: "translateY(-50%)",
           height: BARRIER_HEIGHT,
           bottom: `calc(env(safe-area-inset-bottom) + ${CAPTURE_ROW_BOTTOM}px)`,
-          backdropFilter: "blur(14px)",
-          WebkitBackdropFilter: "blur(14px)",
-          background: "rgba(255,255,255,0.06)",
-          WebkitMaskImage: `linear-gradient(to right, black 0px, black ${BARRIER_RIGHT_EDGE}px, transparent ${BARRIER_RIGHT_EDGE + BARRIER_FADE_WIDTH}px)`,
-          maskImage: `linear-gradient(to right, black 0px, black ${BARRIER_RIGHT_EDGE}px, transparent ${BARRIER_RIGHT_EDGE + BARRIER_FADE_WIDTH}px)`,
+          background: "transparent",
         }}
       />
 
-      {/* Rotate button */}
+      {/* Hard mask on the filmstrip itself does the actual clipping — instant cutoff, no gradient */}
+      <style>{`
+        .oak-filter-strip {
+          -webkit-mask-image: linear-gradient(to right, transparent ${BARRIER_EDGE}px, black ${BARRIER_EDGE}px);
+          mask-image: linear-gradient(to right, transparent ${BARRIER_EDGE}px, black ${BARRIER_EDGE}px);
+        }
+      `}</style>
+
+      {/* Rotate button — layer 3, above the occluder */}
       <button
         onClick={() => setFacing((f) => (f === "user" ? "environment" : "user"))}
         aria-label="Flip camera"
