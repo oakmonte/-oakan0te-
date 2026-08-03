@@ -12,6 +12,7 @@ import {
   LayoutGrid,
   Ratio,
   Blend,
+  Heart,
 } from "lucide-react";
 
 export const Route = createFileRoute("/create")({
@@ -37,21 +38,37 @@ const ROW_EDGE = 20;
 const CAPTURE_ROW_BOTTOM = ROW_EDGE + 56;
 const CAPTURE_ROW_TOP = CAPTURE_ROW_BOTTOM + CAPTURE_SIZE;
 
-// Scattered order, deliberately not the order these were specified in.
+// Timer and Filters swapped from the previous order — Filters is now last (bottom-most),
+// which is deliberate: it's the one that grows a favorite-toggle sibling beneath it.
 const TOOLS = [
   { id: "ratio", label: "Ratio", icon: Ratio },
-  { id: "filters", label: "Filters", icon: Blend },
-  { id: "flash", label: "Flash", icon: null }, // rendered specially below (needs active state)
-  { id: "layout", label: "Layout", icon: LayoutGrid },
   { id: "timer", label: "Timer", icon: Timer },
+  { id: "flash", label: "Flash", icon: null },
+  { id: "layout", label: "Layout", icon: LayoutGrid },
+  { id: "filters", label: "Filters", icon: Blend },
 ];
+
+function AnimatedLabel({ visible, children }: { visible: boolean; children: React.ReactNode }) {
+  return (
+    <span
+      className="overflow-hidden whitespace-nowrap text-sm font-medium transition-all duration-300 ease-out"
+      style={{
+        maxWidth: visible ? 160 : 0,
+        opacity: visible ? 1 : 0,
+        marginRight: visible ? 2 : 0,
+      }}
+    >
+      {children}
+    </span>
+  );
+}
 
 function CreatePage() {
   const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const filterStripRef = useRef<HTMLDivElement>(null);
-  const galleryInputRef = useRef<HTMLInputElement>(null); // add this line
+  const galleryInputRef = useRef<HTMLInputElement>(null);
 
   const [facing, setFacing] = useState<"user" | "environment">("user");
   const [flashOn, setFlashOn] = useState(false);
@@ -59,6 +76,7 @@ function CreatePage() {
   const [section, setSection] = useState<Section>("shoot");
   const [activeFilterIndex, setActiveFilterIndex] = useState(0);
   const [labelsVisible, setLabelsVisible] = useState(false);
+  const [favoritedFilterIds, setFavoritedFilterIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     let cancelled = false;
@@ -109,7 +127,6 @@ function CreatePage() {
     setActiveFilterIndex((prev) => (prev === clamped ? prev : clamped));
   }, []);
 
-  // Tapping any filter (not just swiping) smooth-scrolls it into the ring.
   const scrollFilterIntoRing = useCallback((index: number) => {
     const el = filterStripRef.current;
     if (!el) return;
@@ -118,6 +135,18 @@ function CreatePage() {
   }, []);
 
   const activeFilter = FILTERS[activeFilterIndex];
+  const isNonDefaultFilterActive = activeFilterIndex !== 0;
+  const isCurrentFilterFavorited = favoritedFilterIds.has(activeFilter.id);
+
+  const toggleFavoriteCurrentFilter = useCallback(() => {
+    setFavoritedFilterIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(activeFilter.id)) next.delete(activeFilter.id);
+      else next.add(activeFilter.id);
+      return next;
+    });
+  }, [activeFilter]);
+
   const currentFilterCss =
     facing === "user" && flashOn ? `${activeFilter.css} brightness(1.25)` : activeFilter.css;
 
@@ -130,9 +159,12 @@ function CreatePage() {
       className="fixed inset-0 bg-black text-white overflow-hidden"
       style={{ fontFamily: "'SF Pro', system-ui, sans-serif" }}
     >
-      {/* Scoped scrollbar-hide rule — doesn't rely on a Tailwind utility that may not exist in this project */}
       <style>{`
         .oak-filter-strip::-webkit-scrollbar { display: none; }
+        @keyframes oak-fade-in {
+          from { opacity: 0; transform: translateY(-4px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
       `}</style>
 
       <video
@@ -158,7 +190,7 @@ function CreatePage() {
         />
       )}
 
-      {/* Top bar — just Back now. Tool icons live in their own always-visible stack below. */}
+      {/* Top bar */}
       <div className="absolute top-0 left-0 right-0 flex items-center px-4 pt-[calc(env(safe-area-inset-top)+12px)]">
         <button
           onClick={handleBack}
@@ -170,7 +202,7 @@ function CreatePage() {
         </button>
       </div>
 
-      {/* Vertical tool stack — icons visible by default, bigger, labels toggle via the chevron at the BOTTOM of the stack */}
+      {/* Vertical tool stack */}
       <div
         className="absolute right-4 flex flex-col items-end gap-5"
         style={{ top: "calc(env(safe-area-inset-top) + 76px)", zIndex: 6 }}
@@ -184,25 +216,56 @@ function CreatePage() {
                 aria-label="Flash"
                 className="flex items-center gap-2"
               >
-                {labelsVisible && (
-                  <span className="text-sm font-medium" style={{ opacity: flashOn ? 1 : 0.85 }}>
-                    Flash
-                  </span>
-                )}
+                <AnimatedLabel visible={labelsVisible}>Flash</AnimatedLabel>
                 {flashOn ? <Zap size={26} /> : <ZapOff size={26} />}
               </button>
             );
           }
+
+          if (tool.id === "filters") {
+            return (
+              <button
+                key="filters"
+                aria-label={isNonDefaultFilterActive ? "More filters" : "Filters"}
+                className="flex items-center gap-2 opacity-90"
+              >
+                <AnimatedLabel visible={labelsVisible}>
+                  {isNonDefaultFilterActive ? "More Filters" : "Filters"}
+                </AnimatedLabel>
+                <span
+                  className="flex items-center justify-center transition-transform duration-200 ease-out"
+                  style={{ transform: isNonDefaultFilterActive ? "scale(1.3)" : "scale(1)" }}
+                >
+                  <Blend size={26} />
+                </span>
+              </button>
+            );
+          }
+
           const Icon = tool.icon!;
           return (
             <button key={tool.id} aria-label={tool.label} className="flex items-center gap-2 opacity-90">
-              {labelsVisible && <span className="text-sm font-medium">{tool.label}</span>}
+              <AnimatedLabel visible={labelsVisible}>{tool.label}</AnimatedLabel>
               <Icon size={26} />
             </button>
           );
         })}
 
-        {/* Toggle lives at the bottom of the stack, not a separate easy-to-miss button up top */}
+        {/* Favorite toggle — only appears once a non-default filter is active, sits right under Filters */}
+        {isNonDefaultFilterActive && (
+          <button
+            onClick={toggleFavoriteCurrentFilter}
+            aria-label={isCurrentFilterFavorited ? "Remove from favorites" : "Favorite this filter"}
+            className="flex items-center gap-2"
+            style={{ animation: "oak-fade-in 220ms ease-out" }}
+          >
+            <AnimatedLabel visible={labelsVisible}>
+              {isCurrentFilterFavorited ? "Favorited" : "Favorite"}
+            </AnimatedLabel>
+            <Heart size={22} fill={isCurrentFilterFavorited ? "currentColor" : "none"} />
+          </button>
+        )}
+
         <button
           onClick={() => setLabelsVisible((v) => !v)}
           aria-label={labelsVisible ? "Hide labels" : "Show labels"}
@@ -229,7 +292,7 @@ function CreatePage() {
         ))}
       </div>
 
-      {/* Rotate button — unchanged position */}
+      {/* Rotate button */}
       <button
         onClick={() => setFacing((f) => (f === "user" ? "environment" : "user"))}
         aria-label="Flip camera"
@@ -247,7 +310,7 @@ function CreatePage() {
         <RefreshCw size={18} />
       </button>
 
-      {/* Filter filmstrip — tap any swatch to smooth-scroll it into the ring, not just swipe */}
+      {/* Filter filmstrip */}
       <div
         ref={filterStripRef}
         onScroll={handleFilterScroll}
@@ -310,7 +373,7 @@ function CreatePage() {
         }}
       />
 
-      {/* Bottom-most row — unchanged */}
+      {/* Bottom-most row */}
       <div
         className="absolute left-0 right-0 flex items-center justify-center gap-8"
         style={{ bottom: "calc(env(safe-area-inset-bottom) + 16px)" }}
@@ -332,7 +395,7 @@ function CreatePage() {
           onChange={(e) => {
             const file = e.target.files?.[0];
             if (file) console.log("Selected from gallery:", file.name, file.type);
-            e.target.value = ""; // reset so picking the same file twice still fires onChange
+            e.target.value = "";
           }}
         />
 
