@@ -11,6 +11,7 @@ import {
   ChevronDown,
   LayoutGrid,
   Ratio,
+  Blend,
 } from "lucide-react";
 
 export const Route = createFileRoute("/create")({
@@ -31,47 +32,33 @@ type Mode = "photo" | "video";
 type Section = "shoot" | "compose";
 
 const ROTATE_SIZE = 48;
-const CAPTURE_SIZE = 84; // ring diameter — filter swatches share this exact size
+const CAPTURE_SIZE = 84;
 const ROW_EDGE = 20;
-const CAPTURE_ROW_BOTTOM = ROW_EDGE + 56; // distance from screen bottom to the capture row
-const CAPTURE_ROW_TOP = CAPTURE_ROW_BOTTOM + CAPTURE_SIZE; // top edge of the capture row, from bottom
+const CAPTURE_ROW_BOTTOM = ROW_EDGE + 56;
+const CAPTURE_ROW_TOP = CAPTURE_ROW_BOTTOM + CAPTURE_SIZE;
 
-function ToolRow({
-  label,
-  icon,
-  active,
-  onClick,
-}: {
-  label: string;
-  icon: React.ReactNode;
-  active?: boolean;
-  onClick?: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      aria-label={label}
-      className="flex items-center gap-2 transition-opacity duration-150"
-      style={{ opacity: active ? 1 : 0.85 }}
-    >
-      <span className="text-xs font-medium whitespace-nowrap">{label}</span>
-      {icon}
-    </button>
-  );
-}
+// Scattered order, deliberately not the order these were specified in.
+const TOOLS = [
+  { id: "ratio", label: "Ratio", icon: Ratio },
+  { id: "filters", label: "Filters", icon: Blend },
+  { id: "flash", label: "Flash", icon: null }, // rendered specially below (needs active state)
+  { id: "layout", label: "Layout", icon: LayoutGrid },
+  { id: "timer", label: "Timer", icon: Timer },
+];
 
 function CreatePage() {
   const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const filterStripRef = useRef<HTMLDivElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null); // add this line
 
   const [facing, setFacing] = useState<"user" | "environment">("user");
   const [flashOn, setFlashOn] = useState(false);
   const [mode, setMode] = useState<Mode>("photo");
   const [section, setSection] = useState<Section>("shoot");
   const [activeFilterIndex, setActiveFilterIndex] = useState(0);
-  const [toolsExpanded, setToolsExpanded] = useState(false);
+  const [labelsVisible, setLabelsVisible] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -114,8 +101,6 @@ function CreatePage() {
     else navigate({ to: "/home" });
   }, [navigate]);
 
-  // Whichever filter is scroll-snapped to center becomes the live preview —
-  // no tap required, matches the reference's "slides into the ring" behavior.
   const handleFilterScroll = useCallback(() => {
     const el = filterStripRef.current;
     if (!el) return;
@@ -124,13 +109,19 @@ function CreatePage() {
     setActiveFilterIndex((prev) => (prev === clamped ? prev : clamped));
   }, []);
 
+  // Tapping any filter (not just swiping) smooth-scrolls it into the ring.
+  const scrollFilterIntoRing = useCallback((index: number) => {
+    const el = filterStripRef.current;
+    if (!el) return;
+    el.scrollTo({ left: index * CAPTURE_SIZE, behavior: "smooth" });
+    setActiveFilterIndex(index);
+  }, []);
+
   const activeFilter = FILTERS[activeFilterIndex];
   const currentFilterCss =
     facing === "user" && flashOn ? `${activeFilter.css} brightness(1.25)` : activeFilter.css;
 
   const handleCapture = useCallback(() => {
-    // Tapping the ring captures using whichever filter is currently centered —
-    // this tap layer is separate from the scroll strip beneath it.
     console.log(`${mode === "photo" ? "Capture photo" : "Start/stop recording"} with filter: ${activeFilter.id}`);
   }, [mode, activeFilter]);
 
@@ -139,6 +130,11 @@ function CreatePage() {
       className="fixed inset-0 bg-black text-white overflow-hidden"
       style={{ fontFamily: "'SF Pro', system-ui, sans-serif" }}
     >
+      {/* Scoped scrollbar-hide rule — doesn't rely on a Tailwind utility that may not exist in this project */}
+      <style>{`
+        .oak-filter-strip::-webkit-scrollbar { display: none; }
+      `}</style>
+
       <video
         ref={videoRef}
         autoPlay
@@ -162,8 +158,8 @@ function CreatePage() {
         />
       )}
 
-      {/* Top bar */}
-      <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-[calc(env(safe-area-inset-top)+12px)]">
+      {/* Top bar — just Back now. Tool icons live in their own always-visible stack below. */}
+      <div className="absolute top-0 left-0 right-0 flex items-center px-4 pt-[calc(env(safe-area-inset-top)+12px)]">
         <button
           onClick={handleBack}
           aria-label="Back"
@@ -172,39 +168,51 @@ function CreatePage() {
         >
           <X size={20} />
         </button>
+      </div>
 
+      {/* Vertical tool stack — icons visible by default, bigger, labels toggle via the chevron at the BOTTOM of the stack */}
+      <div
+        className="absolute right-4 flex flex-col items-end gap-5"
+        style={{ top: "calc(env(safe-area-inset-top) + 76px)", zIndex: 6 }}
+      >
+        {TOOLS.map((tool) => {
+          if (tool.id === "flash") {
+            return (
+              <button
+                key="flash"
+                onClick={() => setFlashOn((f) => !f)}
+                aria-label="Flash"
+                className="flex items-center gap-2"
+              >
+                {labelsVisible && (
+                  <span className="text-sm font-medium" style={{ opacity: flashOn ? 1 : 0.85 }}>
+                    Flash
+                  </span>
+                )}
+                {flashOn ? <Zap size={26} /> : <ZapOff size={26} />}
+              </button>
+            );
+          }
+          const Icon = tool.icon!;
+          return (
+            <button key={tool.id} aria-label={tool.label} className="flex items-center gap-2 opacity-90">
+              {labelsVisible && <span className="text-sm font-medium">{tool.label}</span>}
+              <Icon size={26} />
+            </button>
+          );
+        })}
+
+        {/* Toggle lives at the bottom of the stack, not a separate easy-to-miss button up top */}
         <button
-          onClick={() => setToolsExpanded((e) => !e)}
-          aria-label="More tools"
-          className="flex items-center justify-center w-10 h-10 rounded-full transition-transform duration-150 active:scale-90"
-          style={{ background: "rgba(255,255,255,0.10)", backdropFilter: "blur(12px)" }}
+          onClick={() => setLabelsVisible((v) => !v)}
+          aria-label={labelsVisible ? "Hide labels" : "Show labels"}
+          className="flex items-center justify-center w-8 h-8 mt-1"
         >
-          {toolsExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+          {labelsVisible ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
         </button>
       </div>
 
-      {toolsExpanded && (
-        <div
-          className="absolute top-16 right-4 flex flex-col items-end gap-4 px-4 py-3 rounded-2xl"
-          style={{
-            background: "rgba(255,255,255,0.07)",
-            backdropFilter: "blur(20px) saturate(180%)",
-            border: "1px solid rgba(255,255,255,0.12)",
-          }}
-        >
-          <ToolRow label="Layout" icon={<LayoutGrid size={18} />} onClick={() => {}} />
-          <ToolRow
-            label="Flash"
-            icon={flashOn ? <Zap size={18} /> : <ZapOff size={18} />}
-            active={flashOn}
-            onClick={() => setFlashOn((f) => !f)}
-          />
-          <ToolRow label="Ratio" icon={<Ratio size={18} />} onClick={() => {}} />
-          <ToolRow label="Timer" icon={<Timer size={18} />} onClick={() => {}} />
-        </div>
-      )}
-
-      {/* Photo / Video mode toggle — raised clear above the capture row's top edge */}
+      {/* Photo / Video mode toggle */}
       <div
         className="absolute left-1/2 -translate-x-1/2 flex items-center gap-6"
         style={{ bottom: CAPTURE_ROW_TOP + 24, zIndex: 5 }}
@@ -221,7 +229,7 @@ function CreatePage() {
         ))}
       </div>
 
-      {/* Rotate button — unchanged position, fixed left */}
+      {/* Rotate button — unchanged position */}
       <button
         onClick={() => setFacing((f) => (f === "user" ? "environment" : "user"))}
         aria-label="Flip camera"
@@ -239,37 +247,40 @@ function CreatePage() {
         <RefreshCw size={18} />
       </button>
 
-      {/* Filter filmstrip: scroll-snaps each swatch through the shutter ring, centered on screen */}
+      {/* Filter filmstrip — tap any swatch to smooth-scroll it into the ring, not just swipe */}
       <div
         ref={filterStripRef}
         onScroll={handleFilterScroll}
-        className="absolute left-0 right-0 flex items-center overflow-x-auto no-scrollbar"
+        className="oak-filter-strip absolute left-0 right-0 flex items-center overflow-x-auto"
         style={{
           zIndex: 1,
           bottom: `calc(env(safe-area-inset-bottom) + ${CAPTURE_ROW_BOTTOM}px)`,
           height: CAPTURE_SIZE,
           scrollSnapType: "x mandatory",
+          scrollbarWidth: "none",
+          msOverflowStyle: "none",
           paddingLeft: `calc(50% - ${CAPTURE_SIZE / 2}px)`,
           paddingRight: `calc(50% - ${CAPTURE_SIZE / 2}px)`,
         }}
       >
-        {FILTERS.map((f) => (
-          <div
+        {FILTERS.map((f, i) => (
+          <button
             key={f.id}
-            className="shrink-0 flex flex-col items-center justify-center gap-1"
+            onClick={() => scrollFilterIntoRing(i)}
+            className="shrink-0 flex items-center justify-center"
             style={{ width: CAPTURE_SIZE, scrollSnapAlign: "center" }}
           >
             <span
-              className="rounded-full overflow-hidden"
+              className="rounded-full overflow-hidden block"
               style={{ width: CAPTURE_SIZE - 16, height: CAPTURE_SIZE - 16 }}
             >
               <span className="w-full h-full block bg-neutral-500" style={{ filter: f.css }} />
             </span>
-          </div>
+          </button>
         ))}
       </div>
 
-      {/* Shutter ring — hollow outline, dead-center, drawn on top of the filmstrip */}
+      {/* Shutter ring */}
       <div
         className="absolute pointer-events-none rounded-full"
         style={{
@@ -283,7 +294,7 @@ function CreatePage() {
         }}
       />
 
-      {/* Invisible tap layer over the ring — capturing, independent of the scroll strip beneath it */}
+      {/* Tap layer for capture */}
       <button
         onClick={handleCapture}
         aria-label={mode === "photo" ? "Take photo" : "Record video"}
@@ -299,18 +310,31 @@ function CreatePage() {
         }}
       />
 
-      {/* Bottom-most row: gallery import + Shoot / Compose — unchanged */}
+      {/* Bottom-most row — unchanged */}
       <div
         className="absolute left-0 right-0 flex items-center justify-center gap-8"
         style={{ bottom: "calc(env(safe-area-inset-bottom) + 16px)" }}
       >
         <button
           aria-label="Import from gallery"
+          onClick={() => galleryInputRef.current?.click()}
           className="absolute w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center"
           style={{ left: ROW_EDGE, background: "rgba(255,255,255,0.10)", border: "1px solid rgba(255,255,255,0.15)" }}
         >
           <ImageIcon size={16} className="opacity-80" />
         </button>
+
+        <input
+          ref={galleryInputRef}
+          type="file"
+          accept="image/*,video/*"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) console.log("Selected from gallery:", file.name, file.type);
+            e.target.value = ""; // reset so picking the same file twice still fires onChange
+          }}
+        />
 
         <button
           onClick={() => setSection("shoot")}
