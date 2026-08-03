@@ -38,8 +38,13 @@ const ROW_EDGE = 20;
 const CAPTURE_ROW_BOTTOM = ROW_EDGE + 56;
 const CAPTURE_ROW_TOP = CAPTURE_ROW_BOTTOM + CAPTURE_SIZE;
 
-// Timer and Filters swapped from the previous order — Filters is now last (bottom-most),
-// which is deliberate: it's the one that grows a favorite-toggle sibling beneath it.
+// Barrier geometry — where the filmstrip dissolves before reaching the rotate button.
+const SWATCH_DIAMETER = CAPTURE_SIZE - 16;
+const BARRIER_BUFFER = 24; // "reasonable distance" before the rotate button's edge
+const BARRIER_RIGHT_EDGE = ROW_EDGE + ROTATE_SIZE + BARRIER_BUFFER; // where full dissolve completes
+const BARRIER_FADE_WIDTH = 32; // width of the sharp→blurred transition
+const BARRIER_HEIGHT = SWATCH_DIAMETER + 12; // "slightly longer than the diameter"
+
 const TOOLS = [
   { id: "ratio", label: "Ratio", icon: Ratio },
   { id: "timer", label: "Timer", icon: Timer },
@@ -251,7 +256,6 @@ function CreatePage() {
           );
         })}
 
-        {/* Favorite toggle — only appears once a non-default filter is active, sits right under Filters */}
         {isNonDefaultFilterActive && (
           <button
             onClick={toggleFavoriteCurrentFilter}
@@ -292,6 +296,62 @@ function CreatePage() {
         ))}
       </div>
 
+      {/* Filter filmstrip — dissolves into the frosted barrier before reaching the rotate button */}
+      <div
+        ref={filterStripRef}
+        onScroll={handleFilterScroll}
+        className="oak-filter-strip absolute left-0 right-0 flex items-center overflow-x-auto"
+        style={{
+          zIndex: 1,
+          bottom: `calc(env(safe-area-inset-bottom) + ${CAPTURE_ROW_BOTTOM}px)`,
+          height: CAPTURE_SIZE,
+          scrollSnapType: "x mandatory",
+          scrollbarWidth: "none",
+          msOverflowStyle: "none",
+          paddingLeft: `calc(50% - ${CAPTURE_SIZE / 2}px)`,
+          paddingRight: `calc(50% - ${CAPTURE_SIZE / 2}px)`,
+          // Fully hidden from 0 to BARRIER_RIGHT_EDGE, dissolving in over BARRIER_FADE_WIDTH beyond that —
+          // by the time a swatch would visually reach the rotate button, it's already gone.
+          WebkitMaskImage: `linear-gradient(to right, transparent 0px, transparent ${BARRIER_RIGHT_EDGE}px, black ${BARRIER_RIGHT_EDGE + BARRIER_FADE_WIDTH}px, black 100%)`,
+          maskImage: `linear-gradient(to right, transparent 0px, transparent ${BARRIER_RIGHT_EDGE}px, black ${BARRIER_RIGHT_EDGE + BARRIER_FADE_WIDTH}px, black 100%)`,
+        }}
+      >
+        {FILTERS.map((f, i) => (
+          <button
+            key={f.id}
+            onClick={() => scrollFilterIntoRing(i)}
+            className="shrink-0 flex items-center justify-center"
+            style={{ width: CAPTURE_SIZE, scrollSnapAlign: "center" }}
+          >
+            <span
+              className="rounded-full overflow-hidden block"
+              style={{ width: SWATCH_DIAMETER, height: SWATCH_DIAMETER }}
+            >
+              <span className="w-full h-full block bg-neutral-500" style={{ filter: f.css }} />
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {/* Frosted-glass barrier — the "refracting rectangle": a blurred panel sitting where the filmstrip dissolves */}
+      <div
+        className="absolute pointer-events-none"
+        style={{
+          zIndex: 1,
+          left: 0,
+          width: BARRIER_RIGHT_EDGE + BARRIER_FADE_WIDTH,
+          top: "50%",
+          transform: "translateY(-50%)",
+          height: BARRIER_HEIGHT,
+          bottom: `calc(env(safe-area-inset-bottom) + ${CAPTURE_ROW_BOTTOM}px)`,
+          backdropFilter: "blur(14px)",
+          WebkitBackdropFilter: "blur(14px)",
+          background: "rgba(255,255,255,0.06)",
+          WebkitMaskImage: `linear-gradient(to right, black 0px, black ${BARRIER_RIGHT_EDGE}px, transparent ${BARRIER_RIGHT_EDGE + BARRIER_FADE_WIDTH}px)`,
+          maskImage: `linear-gradient(to right, black 0px, black ${BARRIER_RIGHT_EDGE}px, transparent ${BARRIER_RIGHT_EDGE + BARRIER_FADE_WIDTH}px)`,
+        }}
+      />
+
       {/* Rotate button */}
       <button
         onClick={() => setFacing((f) => (f === "user" ? "environment" : "user"))}
@@ -309,39 +369,6 @@ function CreatePage() {
       >
         <RefreshCw size={18} />
       </button>
-
-      {/* Filter filmstrip */}
-      <div
-        ref={filterStripRef}
-        onScroll={handleFilterScroll}
-        className="oak-filter-strip absolute left-0 right-0 flex items-center overflow-x-auto"
-        style={{
-          zIndex: 1,
-          bottom: `calc(env(safe-area-inset-bottom) + ${CAPTURE_ROW_BOTTOM}px)`,
-          height: CAPTURE_SIZE,
-          scrollSnapType: "x mandatory",
-          scrollbarWidth: "none",
-          msOverflowStyle: "none",
-          paddingLeft: `calc(50% - ${CAPTURE_SIZE / 2}px)`,
-          paddingRight: `calc(50% - ${CAPTURE_SIZE / 2}px)`,
-        }}
-      >
-        {FILTERS.map((f, i) => (
-          <button
-            key={f.id}
-            onClick={() => scrollFilterIntoRing(i)}
-            className="shrink-0 flex items-center justify-center"
-            style={{ width: CAPTURE_SIZE, scrollSnapAlign: "center" }}
-          >
-            <span
-              className="rounded-full overflow-hidden block"
-              style={{ width: CAPTURE_SIZE - 16, height: CAPTURE_SIZE - 16 }}
-            >
-              <span className="w-full h-full block bg-neutral-500" style={{ filter: f.css }} />
-            </span>
-          </button>
-        ))}
-      </div>
 
       {/* Shutter ring */}
       <div
