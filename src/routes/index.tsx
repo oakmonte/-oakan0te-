@@ -147,7 +147,7 @@ function Index() {
   const [activeSection, setActiveSection] = useState<string>("");
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const typeText = "Oakmonte is an ecosystem designed for those who expect more. We connect vetted sellers, honest creators and style curators through a content driven marketplace.";
+  const typeText = "Oakmonte is an ecosystem designed for those who expect more. We connect vetted sellers, honest creators and style curators through a content optimized marketplace.";
   const typeRef = useRef<HTMLParagraphElement>(null);
   const [typedLength, setTypedLength] = useState(0);
 
