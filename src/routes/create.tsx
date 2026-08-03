@@ -30,11 +30,11 @@ const FILTERS = [
 type Mode = "photo" | "video";
 type Section = "shoot" | "compose";
 
-// Layout constants for the overlapping capture row (rotate | capture | filters-behind)
 const ROTATE_SIZE = 48;
-const CAPTURE_SIZE = 84; // bigger, per spec
-const ROW_GAP = 16;
+const CAPTURE_SIZE = 84; // ring diameter — filter swatches share this exact size
 const ROW_EDGE = 20;
+const CAPTURE_ROW_BOTTOM = ROW_EDGE + 56; // distance from screen bottom to the capture row
+const CAPTURE_ROW_TOP = CAPTURE_ROW_BOTTOM + CAPTURE_SIZE; // top edge of the capture row, from bottom
 
 function ToolRow({
   label,
@@ -64,12 +64,13 @@ function CreatePage() {
   const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const filterStripRef = useRef<HTMLDivElement>(null);
 
   const [facing, setFacing] = useState<"user" | "environment">("user");
   const [flashOn, setFlashOn] = useState(false);
   const [mode, setMode] = useState<Mode>("photo");
   const [section, setSection] = useState<Section>("shoot");
-  const [activeFilter, setActiveFilter] = useState("none");
+  const [activeFilterIndex, setActiveFilterIndex] = useState(0);
   const [toolsExpanded, setToolsExpanded] = useState(false);
 
   useEffect(() => {
@@ -98,7 +99,6 @@ function CreatePage() {
     };
   }, [facing, mode]);
 
-  // Back camera: try a real hardware torch. Silently no-ops where unsupported (most mobile Safari).
   useEffect(() => {
     if (facing !== "environment") return;
     const track = streamRef.current?.getVideoTracks()[0];
@@ -114,10 +114,25 @@ function CreatePage() {
     else navigate({ to: "/home" });
   }, [navigate]);
 
-  const baseFilterCss = FILTERS.find((f) => f.id === activeFilter)?.css ?? "none";
-  // Front camera + flash on: brighten the feed to simulate a screen ring light.
+  // Whichever filter is scroll-snapped to center becomes the live preview —
+  // no tap required, matches the reference's "slides into the ring" behavior.
+  const handleFilterScroll = useCallback(() => {
+    const el = filterStripRef.current;
+    if (!el) return;
+    const index = Math.round(el.scrollLeft / CAPTURE_SIZE);
+    const clamped = Math.max(0, Math.min(FILTERS.length - 1, index));
+    setActiveFilterIndex((prev) => (prev === clamped ? prev : clamped));
+  }, []);
+
+  const activeFilter = FILTERS[activeFilterIndex];
   const currentFilterCss =
-    facing === "user" && flashOn ? `${baseFilterCss} brightness(1.25)` : baseFilterCss;
+    facing === "user" && flashOn ? `${activeFilter.css} brightness(1.25)` : activeFilter.css;
+
+  const handleCapture = useCallback(() => {
+    // Tapping the ring captures using whichever filter is currently centered —
+    // this tap layer is separate from the scroll strip beneath it.
+    console.log(`${mode === "photo" ? "Capture photo" : "Start/stop recording"} with filter: ${activeFilter.id}`);
+  }, [mode, activeFilter]);
 
   return (
     <div
@@ -136,7 +151,6 @@ function CreatePage() {
         }}
       />
 
-      {/* Front-camera screen flash: ambient glow, no hardware LED available on selfie cams */}
       {facing === "user" && flashOn && (
         <div
           className="absolute inset-0 pointer-events-none"
@@ -148,7 +162,7 @@ function CreatePage() {
         />
       )}
 
-      {/* Top bar: back button + single chevron toggling the tools list */}
+      {/* Top bar */}
       <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-[calc(env(safe-area-inset-top)+12px)]">
         <button
           onClick={handleBack}
@@ -169,7 +183,6 @@ function CreatePage() {
         </button>
       </div>
 
-      {/* Vertical tools list — scattered order, not the order they were specified in */}
       {toolsExpanded && (
         <div
           className="absolute top-16 right-4 flex flex-col items-end gap-4 px-4 py-3 rounded-2xl"
@@ -191,10 +204,10 @@ function CreatePage() {
         </div>
       )}
 
-      {/* Photo / Video mode toggle — top of the bottom cluster, above everything else there */}
+      {/* Photo / Video mode toggle — raised clear above the capture row's top edge */}
       <div
         className="absolute left-1/2 -translate-x-1/2 flex items-center gap-6"
-        style={{ bottom: ROW_EDGE + CAPTURE_SIZE + 40, zIndex: 5 }}
+        style={{ bottom: CAPTURE_ROW_TOP + 24, zIndex: 5 }}
       >
         {(["photo", "video"] as Mode[]).map((m) => (
           <button
@@ -208,79 +221,85 @@ function CreatePage() {
         ))}
       </div>
 
-      {/* Capture row: rotate (left) — capture (center-left) — filters scrolling behind both */}
-      <div
-        className="absolute left-0 right-0"
+      {/* Rotate button — unchanged position, fixed left */}
+      <button
+        onClick={() => setFacing((f) => (f === "user" ? "environment" : "user"))}
+        aria-label="Flip camera"
+        className="absolute flex items-center justify-center rounded-full transition-transform duration-150 active:scale-90"
         style={{
-          bottom: `calc(env(safe-area-inset-bottom) + ${ROW_EDGE + 56}px)`,
-          height: CAPTURE_SIZE,
+          zIndex: 3,
+          left: ROW_EDGE,
+          bottom: `calc(env(safe-area-inset-bottom) + ${CAPTURE_ROW_BOTTOM + (CAPTURE_SIZE - ROTATE_SIZE) / 2}px)`,
+          width: ROTATE_SIZE,
+          height: ROTATE_SIZE,
+          background: "rgba(255,255,255,0.10)",
+          backdropFilter: "blur(12px)",
         }}
       >
-        {/* Filter strip: full-width scroll layer, sits BEHIND rotate/capture (lower z-index) */}
-        <div
-          className="absolute inset-0 flex items-center gap-3 overflow-x-auto no-scrollbar"
-          style={{
-            zIndex: 1,
-            paddingLeft: ROW_EDGE + ROTATE_SIZE + ROW_GAP + CAPTURE_SIZE + ROW_GAP,
-            paddingRight: ROW_EDGE,
-          }}
-        >
-          {FILTERS.map((f) => (
-            <button
-              key={f.id}
-              onClick={() => setActiveFilter(f.id)}
-              className="flex flex-col items-center gap-1 shrink-0"
+        <RefreshCw size={18} />
+      </button>
+
+      {/* Filter filmstrip: scroll-snaps each swatch through the shutter ring, centered on screen */}
+      <div
+        ref={filterStripRef}
+        onScroll={handleFilterScroll}
+        className="absolute left-0 right-0 flex items-center overflow-x-auto no-scrollbar"
+        style={{
+          zIndex: 1,
+          bottom: `calc(env(safe-area-inset-bottom) + ${CAPTURE_ROW_BOTTOM}px)`,
+          height: CAPTURE_SIZE,
+          scrollSnapType: "x mandatory",
+          paddingLeft: `calc(50% - ${CAPTURE_SIZE / 2}px)`,
+          paddingRight: `calc(50% - ${CAPTURE_SIZE / 2}px)`,
+        }}
+      >
+        {FILTERS.map((f) => (
+          <div
+            key={f.id}
+            className="shrink-0 flex flex-col items-center justify-center gap-1"
+            style={{ width: CAPTURE_SIZE, scrollSnapAlign: "center" }}
+          >
+            <span
+              className="rounded-full overflow-hidden"
+              style={{ width: CAPTURE_SIZE - 16, height: CAPTURE_SIZE - 16 }}
             >
-              <span
-                className="w-11 h-11 rounded-full border-2 flex items-center justify-center overflow-hidden"
-                style={{ borderColor: activeFilter === f.id ? "#fff" : "rgba(255,255,255,0.25)" }}
-              >
-                <span className="w-full h-full bg-neutral-500" style={{ filter: f.css }} />
-              </span>
-              <span className="text-[11px]" style={{ opacity: activeFilter === f.id ? 1 : 0.6 }}>
-                {f.label}
-              </span>
-            </button>
-          ))}
-        </div>
-
-        {/* Rotate button — opaque, above the filter strip */}
-        <button
-          onClick={() => setFacing((f) => (f === "user" ? "environment" : "user"))}
-          aria-label="Flip camera"
-          className="absolute flex items-center justify-center rounded-full transition-transform duration-150 active:scale-90"
-          style={{
-            zIndex: 2,
-            left: ROW_EDGE,
-            top: "50%",
-            transform: "translateY(-50%)",
-            width: ROTATE_SIZE,
-            height: ROTATE_SIZE,
-            background: "rgba(255,255,255,0.10)",
-            backdropFilter: "blur(12px)",
-          }}
-        >
-          <RefreshCw size={18} />
-        </button>
-
-        {/* Capture button — opaque, above the filter strip, bigger */}
-        <button
-          aria-label={mode === "photo" ? "Take photo" : "Record video"}
-          className="absolute rounded-full"
-          style={{
-            zIndex: 2,
-            left: ROW_EDGE + ROTATE_SIZE + ROW_GAP,
-            top: "50%",
-            transform: "translateY(-50%)",
-            width: CAPTURE_SIZE,
-            height: CAPTURE_SIZE,
-            background: "#fff",
-            border: "4px solid rgba(255,255,255,0.35)",
-          }}
-        />
+              <span className="w-full h-full block bg-neutral-500" style={{ filter: f.css }} />
+            </span>
+          </div>
+        ))}
       </div>
 
-      {/* Bottom-most row: gallery import + Shoot / Compose */}
+      {/* Shutter ring — hollow outline, dead-center, drawn on top of the filmstrip */}
+      <div
+        className="absolute pointer-events-none rounded-full"
+        style={{
+          zIndex: 2,
+          left: "50%",
+          transform: "translateX(-50%)",
+          bottom: `calc(env(safe-area-inset-bottom) + ${CAPTURE_ROW_BOTTOM}px)`,
+          width: CAPTURE_SIZE,
+          height: CAPTURE_SIZE,
+          border: "4px solid rgba(255,255,255,0.9)",
+        }}
+      />
+
+      {/* Invisible tap layer over the ring — capturing, independent of the scroll strip beneath it */}
+      <button
+        onClick={handleCapture}
+        aria-label={mode === "photo" ? "Take photo" : "Record video"}
+        className="absolute rounded-full"
+        style={{
+          zIndex: 4,
+          left: "50%",
+          transform: "translateX(-50%)",
+          bottom: `calc(env(safe-area-inset-bottom) + ${CAPTURE_ROW_BOTTOM}px)`,
+          width: CAPTURE_SIZE,
+          height: CAPTURE_SIZE,
+          background: "transparent",
+        }}
+      />
+
+      {/* Bottom-most row: gallery import + Shoot / Compose — unchanged */}
       <div
         className="absolute left-0 right-0 flex items-center justify-center gap-8"
         style={{ bottom: "calc(env(safe-area-inset-bottom) + 16px)" }}
@@ -290,7 +309,6 @@ function CreatePage() {
           className="absolute w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center"
           style={{ left: ROW_EDGE, background: "rgba(255,255,255,0.10)", border: "1px solid rgba(255,255,255,0.15)" }}
         >
-          {/* Live latest-photo thumbnail deferred until the PWA install step exists */}
           <ImageIcon size={16} className="opacity-80" />
         </button>
 
