@@ -1,19 +1,11 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useRef, useEffect, useCallback } from "react";
 import {
-  X,
-  RefreshCw,
-  Zap,
-  ZapOff,
-  Timer,
-  Image as ImageIcon,
-  ChevronUp,
-  ChevronDown,
-  LayoutGrid,
-  Ratio,
-  Blend,
-  Heart,
+  X, RefreshCw, Zap, ZapOff, Timer, Image as ImageIcon,
+  ChevronUp, ChevronDown, LayoutGrid, Ratio, Blend, Heart,
+  Pause, Play, Square,
 } from "lucide-react";
+
 import { setPendingCapture } from "@/lib/capture-handoff";
 
 export const Route = createFileRoute("/create")({
@@ -91,6 +83,7 @@ function CreatePage() {
   const [capturePhase, setCapturePhase] = useState<CapturePhase>("live");
   const [countdownRemaining, setCountdownRemaining] = useState<number | null>(null);
   const [isRecording, setIsRecording] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -176,6 +169,10 @@ function CreatePage() {
     const video = videoRef.current;
     const canvas = canvasRef.current;
     if (!video || !canvas) return;
+    if (video.readyState < 2 || video.videoWidth === 0) {
+      console.warn("Camera not ready yet — check permissions/HTTPS.");
+      return;
+    }
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     const ctx = canvas.getContext("2d");
@@ -227,12 +224,14 @@ function CreatePage() {
     recorder.start();
     mediaRecorderRef.current = recorder;
     setIsRecording(true);
+    setIsPaused(false);
 
     // Hard stop at 60s regardless of anything else, per the flat cap decision.
     window.setTimeout(() => {
-      if (mediaRecorderRef.current === recorder && recorder.state === "recording") {
+      if (mediaRecorderRef.current === recorder && recorder.state !== "inactive") {
         recorder.stop();
         setIsRecording(false);
+        setIsPaused(false);
       }
     }, 60_000);
   }, [navigate]);
@@ -240,6 +239,19 @@ function CreatePage() {
   const stopRecording = useCallback(() => {
     mediaRecorderRef.current?.stop();
     setIsRecording(false);
+    setIsPaused(false);
+  }, []);
+
+  const togglePause = useCallback(() => {
+    const recorder = mediaRecorderRef.current;
+    if (!recorder) return;
+    if (recorder.state === "recording") {
+      recorder.pause();
+      setIsPaused(true);
+    } else if (recorder.state === "paused") {
+      recorder.resume();
+      setIsPaused(false);
+    }
   }, []);
 
   const performCapture = useCallback(() => {
@@ -454,6 +466,9 @@ function CreatePage() {
           zIndex: 1,
           bottom: `calc(env(safe-area-inset-bottom) + ${CAPTURE_ROW_BOTTOM}px)`,
           height: CAPTURE_SIZE,
+          opacity: mode === "video" && isRecording ? 0 : 1,
+          pointerEvents: mode === "video" && isRecording ? "none" : "auto",
+          transition: "opacity 200ms ease-out",
           scrollSnapType: "x mandatory",
           scrollbarWidth: "none",
           msOverflowStyle: "none",
@@ -496,35 +511,70 @@ function CreatePage() {
         <RefreshCw size={18} />
       </button>
 
-      <div
-        className="absolute pointer-events-none rounded-full transition-colors duration-200"
-        style={{
-          zIndex: 2,
-          left: "50%",
-          transform: "translateX(-50%)",
-          bottom: `calc(env(safe-area-inset-bottom) + ${CAPTURE_ROW_BOTTOM}px)`,
-          width: CAPTURE_SIZE,
-          height: CAPTURE_SIZE,
-          border: `4px solid ${isRecording ? "#ef4444" : "rgba(255,255,255,0.9)"}`,
-        }}
-      />
-
-      <button
-        onClick={handleCaptureTap}
-        aria-label={
-          mode === "photo" ? "Take photo" : isRecording ? "Stop recording" : "Start recording"
-        }
-        className="absolute rounded-full"
-        style={{
-          zIndex: 4,
-          left: "50%",
-          transform: "translateX(-50%)",
-          bottom: `calc(env(safe-area-inset-bottom) + ${CAPTURE_ROW_BOTTOM}px)`,
-          width: CAPTURE_SIZE,
-          height: CAPTURE_SIZE,
-          background: "transparent",
-        }}
-      />
+      {mode === "video" && isRecording ? (
+        <div
+          className="absolute left-1/2 -translate-x-1/2 flex items-center gap-6"
+          style={{ zIndex: 4, bottom: `calc(env(safe-area-inset-bottom) + ${CAPTURE_ROW_BOTTOM}px)` }}
+        >
+          <button
+            onClick={togglePause}
+            aria-label={isPaused ? "Resume recording" : "Pause recording"}
+            className="flex items-center justify-center rounded-full transition-transform duration-150 active:scale-90"
+            style={{
+              width: CAPTURE_SIZE,
+              height: CAPTURE_SIZE,
+              border: "4px solid rgba(255,255,255,0.9)",
+              background: "rgba(255,255,255,0.10)",
+              backdropFilter: "blur(12px)",
+            }}
+          >
+            {isPaused ? <Play size={28} /> : <Pause size={28} />}
+          </button>
+          <button
+            onClick={stopRecording}
+            aria-label="Stop recording"
+            className="flex items-center justify-center rounded-full transition-transform duration-150 active:scale-90"
+            style={{
+              width: CAPTURE_SIZE,
+              height: CAPTURE_SIZE,
+              border: "4px solid #ef4444",
+              background: "rgba(255,255,255,0.10)",
+              backdropFilter: "blur(12px)",
+            }}
+          >
+            <Square size={24} fill="#ef4444" color="#ef4444" />
+          </button>
+        </div>
+      ) : (
+        <>
+          <div
+            className="absolute pointer-events-none rounded-full transition-colors duration-200"
+            style={{
+              zIndex: 2,
+              left: "50%",
+              transform: "translateX(-50%)",
+              bottom: `calc(env(safe-area-inset-bottom) + ${CAPTURE_ROW_BOTTOM}px)`,
+              width: CAPTURE_SIZE,
+              height: CAPTURE_SIZE,
+              border: "4px solid rgba(255,255,255,0.9)",
+            }}
+          />
+          <button
+            onClick={handleCaptureTap}
+            aria-label={mode === "photo" ? "Take photo" : "Start recording"}
+            className="absolute rounded-full"
+            style={{
+              zIndex: 4,
+              left: "50%",
+              transform: "translateX(-50%)",
+              bottom: `calc(env(safe-area-inset-bottom) + ${CAPTURE_ROW_BOTTOM}px)`,
+              width: CAPTURE_SIZE,
+              height: CAPTURE_SIZE,
+              background: "transparent",
+            }}
+          />
+        </>
+      )}
 
       <div
         className="absolute left-0 right-0 flex items-center justify-center gap-8"
