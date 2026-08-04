@@ -615,7 +615,9 @@ function CreatePage() {
                 blob: file,
                 url,
               });
-              navigate({ to: "/create/after-shot" });
+              navigate({ to: "/create/after-shot" }).catch((err) => {
+                console.error("navigate() rejected:", err);
+              });
             }
             e.target.value = "";
           }}
