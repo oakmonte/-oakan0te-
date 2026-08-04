@@ -33,7 +33,7 @@ function CreatorNichePage() {
 
   const toggle = (niche: string) => {
     setSelected((prev) =>
-      prev.includes(niche) ? prev.filter((n) => n !== niche) : [...prev, niche]
+      prev.includes(niche) ? prev.filter((n) => n !== niche) : [...prev, niche],
     );
   };
 
@@ -57,9 +57,7 @@ function CreatorNichePage() {
   return (
     <div className="min-h-screen bg-brand-bg text-brand-text flex items-center justify-center px-6 py-10">
       <div className="w-full max-w-sm text-center">
-        <h1 className="font-serif text-4xl sm:text-5xl leading-tight mb-3">
-          What's your niche?
-        </h1>
+        <h1 className="font-serif text-4xl sm:text-5xl leading-tight mb-3">What's your niche?</h1>
         <p className="text-sm text-brand-text/70 mb-8">
           Pick as many as fit — you can update this anytime.
         </p>

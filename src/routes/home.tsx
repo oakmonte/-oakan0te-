@@ -31,9 +31,16 @@ function HomePage() {
   const ownUsername = "diadem-ebenezer";
 
   return (
-    <div className="min-h-screen bg-black text-white pb-28" style={{ fontFamily: "'SF Pro', system-ui, sans-serif" }}>
+    <div
+      className="min-h-screen bg-black text-white pb-28"
+      style={{ fontFamily: "'SF Pro', system-ui, sans-serif" }}
+    >
       <div className="pt-4 px-4 flex justify-center">
-        <TopToggleNav active={tab} onChange={setTab} searchIcon={<Search size={17} color="#1A1A1A" />} />
+        <TopToggleNav
+          active={tab}
+          onChange={setTab}
+          searchIcon={<Search size={17} color="#1A1A1A" />}
+        />
       </div>
 
       {tab === "shop" ? (
@@ -42,7 +49,12 @@ function HomePage() {
           <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
             {SHOP_ITEMS.map((item) => (
               <div key={item.id} className="shrink-0" style={{ width: 160 }}>
-                <img src={item.src} alt="" className="w-full rounded-[14px] object-cover" style={{ height: 220 }} />
+                <img
+                  src={item.src}
+                  alt=""
+                  className="w-full rounded-[14px] object-cover"
+                  style={{ height: 220 }}
+                />
                 <p className="text-[14px] font-bold mt-2">{item.title}</p>
                 <p className="text-[13px] font-semibold text-white/80">₦{item.price}</p>
               </div>

@@ -6,11 +6,20 @@ import type { TabKey } from "@/routes/profile.$username";
 
 const EMPTY_COPY: Record<Exclude<TabKey, "posts">, { title: string; subtitle: string }> = {
   store: { title: "Nothing listed yet", subtitle: "Products you list for sale will show up here." },
-  wardrobe: { title: "Build your wardrobe", subtitle: "Pieces you own or want to show off live here." },
-  reposts: { title: "No reposts yet", subtitle: "Content you repost from others will appear here." },
+  wardrobe: {
+    title: "Build your wardrobe",
+    subtitle: "Pieces you own or want to show off live here.",
+  },
+  reposts: {
+    title: "No reposts yet",
+    subtitle: "Content you repost from others will appear here.",
+  },
   wishlist: { title: "Nothing saved yet", subtitle: "Pieces you're eyeing go here for later." },
   likedVideos: { title: "No liked videos yet", subtitle: "Videos you like will collect here." },
-  drafts: { title: "No drafts yet", subtitle: "Unfinished content and unpublished listings live here." },
+  drafts: {
+    title: "No drafts yet",
+    subtitle: "Unfinished content and unpublished listings live here.",
+  },
 };
 
 export function ProfileTabEmptyState({ tab }: { tab: TabKey }) {

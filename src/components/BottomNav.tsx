@@ -13,7 +13,13 @@ type BottomNavProps = {
 };
 
 export function BottomNav({ active, ownUsername }: BottomNavProps) {
-  const items: { key: NavKey; label: string; icon: string; to: string; params?: Record<string, string> }[] = [
+  const items: {
+    key: NavKey;
+    label: string;
+    icon: string;
+    to: string;
+    params?: Record<string, string>;
+  }[] = [
     { key: "home", label: "Home", icon: homeIcon, to: "/home" },
     { key: "messages", label: "Messages", icon: messagesIcon, to: "/messages" },
     { key: "create", label: "Create", icon: createIcon, to: "/create" },
@@ -28,7 +34,10 @@ export function BottomNav({ active, ownUsername }: BottomNavProps) {
   ];
 
   return (
-    <nav className="fixed left-1/2 -translate-x-1/2 z-50" style={{ width: 283, height: 49, bottom: 8 }}>
+    <nav
+      className="fixed left-1/2 -translate-x-1/2 z-50"
+      style={{ width: 283, height: 49, bottom: 8 }}
+    >
       <div
         className="w-full h-full flex items-center justify-between"
         style={{

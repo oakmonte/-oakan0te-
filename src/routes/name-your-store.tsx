@@ -29,12 +29,18 @@ function NameYourStorePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const storeType = typeof window !== "undefined" ? sessionStorage.getItem("oakmonte_store_type") : null;
-  const customOrders = typeof window !== "undefined" ? sessionStorage.getItem("oakmonte_custom_orders") === "true" : false;
+  const storeType =
+    typeof window !== "undefined" ? sessionStorage.getItem("oakmonte_store_type") : null;
+  const customOrders =
+    typeof window !== "undefined"
+      ? sessionStorage.getItem("oakmonte_custom_orders") === "true"
+      : false;
   const isBrand = storeType === "Brand";
   const heading = isBrand ? "Name your brand" : "Name your store";
   const placeholder = isBrand ? "My Brand" : "My Store";
-  const emailPlaceholder = isBrand ? "Brand email (optional for now)" : "Store email (optional for now)";
+  const emailPlaceholder = isBrand
+    ? "Brand email (optional for now)"
+    : "Store email (optional for now)";
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -43,7 +49,9 @@ function NameYourStorePage() {
     setLoading(true);
     setError(null);
 
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
       setError("You're no longer signed in. Please sign in again.");
       setLoading(false);

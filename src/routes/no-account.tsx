@@ -40,7 +40,12 @@ function NoAccountPage() {
         <Link to="/" className="flex items-center">
           <img src="/favicon.png" alt="Oakmonte" className="h-9 w-auto" />
         </Link>
-        <Link to="/" className="text-[11px] uppercase tracking-widest hover:text-brand-accent transition-colors">← Back</Link>
+        <Link
+          to="/"
+          className="text-[11px] uppercase tracking-widest hover:text-brand-accent transition-colors"
+        >
+          ← Back
+        </Link>
       </header>
 
       <main className="flex-1 flex items-center justify-center px-6 py-10">

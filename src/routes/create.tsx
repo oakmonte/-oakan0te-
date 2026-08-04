@@ -58,7 +58,11 @@ function AnimatedLabel({ visible, children }: { visible: boolean; children: Reac
   return (
     <span
       className="overflow-hidden whitespace-nowrap text-sm font-medium transition-all duration-300 ease-out"
-      style={{ maxWidth: visible ? 160 : 0, opacity: visible ? 1 : 0, marginRight: visible ? 2 : 0 }}
+      style={{
+        maxWidth: visible ? 160 : 0,
+        opacity: visible ? 1 : 0,
+        marginRight: visible ? 2 : 0,
+      }}
     >
       {children}
     </span>
@@ -120,7 +124,10 @@ function CreatePage() {
     if (!track) return;
     const capabilities = track.getCapabilities?.() as MediaTrackCapabilities & { torch?: boolean };
     if (capabilities && "torch" in capabilities) {
-      track.applyConstraints({ advanced: [{ torch: flashOn } as any] }).catch(() => {});
+      const constraints = {
+        advanced: [{ torch: flashOn }],
+      } as unknown as MediaTrackConstraints;
+      track.applyConstraints(constraints).catch(() => {});
     }
   }, [flashOn, facing]);
 
@@ -178,8 +185,7 @@ function CreatePage() {
       ctx.translate(canvas.width, 0);
       ctx.scale(-1, 1);
     }
-    
-  
+
     ctx.filter = currentFilterCss;
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
@@ -191,7 +197,7 @@ function CreatePage() {
         navigate({ to: "/create/after-shot" });
       },
       "image/jpeg",
-      0.92
+      0.92,
     );
   }, [facing, currentFilterCss, navigate]);
 
@@ -199,7 +205,12 @@ function CreatePage() {
     const stream = streamRef.current;
     if (!stream) return;
     recordedChunksRef.current = [];
-    const candidates = ["video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm", "video/mp4"];
+    const candidates = [
+      "video/webm;codecs=vp9",
+      "video/webm;codecs=vp8",
+      "video/webm",
+      "video/mp4",
+    ];
     const mimeType = candidates.find((t) => MediaRecorder.isTypeSupported(t)) ?? "";
     const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
 
@@ -267,7 +278,10 @@ function CreatePage() {
   }, [capturePhase, mode, isRecording, timerSeconds, performCapture, stopRecording]);
 
   return (
-    <div className="fixed inset-0 bg-black text-white overflow-hidden" style={{ fontFamily: "'SF Pro', system-ui, sans-serif" }}>
+    <div
+      className="fixed inset-0 bg-black text-white overflow-hidden"
+      style={{ fontFamily: "'SF Pro', system-ui, sans-serif" }}
+    >
       <style>{`
         .oak-filter-strip::-webkit-scrollbar { display: none; }
         @keyframes oak-fade-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
@@ -291,7 +305,11 @@ function CreatePage() {
       {facing === "user" && flashOn && (
         <div
           className="absolute inset-0 pointer-events-none"
-          style={{ background: "radial-gradient(circle at 50% 30%, rgba(255,255,255,0.35), rgba(255,255,255,0.05) 70%)", mixBlendMode: "screen" }}
+          style={{
+            background:
+              "radial-gradient(circle at 50% 30%, rgba(255,255,255,0.35), rgba(255,255,255,0.05) 70%)",
+            mixBlendMode: "screen",
+          }}
         />
       )}
 
@@ -314,11 +332,19 @@ function CreatePage() {
         </button>
       </div>
 
-      <div className="absolute right-4 flex flex-col items-end gap-5" style={{ top: "calc(env(safe-area-inset-top) + 76px)", zIndex: 6 }}>
+      <div
+        className="absolute right-4 flex flex-col items-end gap-5"
+        style={{ top: "calc(env(safe-area-inset-top) + 76px)", zIndex: 6 }}
+      >
         {TOOLS.map((tool) => {
           if (tool.id === "flash") {
             return (
-              <button key="flash" onClick={() => setFlashOn((f) => !f)} aria-label="Flash" className="flex items-center gap-2">
+              <button
+                key="flash"
+                onClick={() => setFlashOn((f) => !f)}
+                aria-label="Flash"
+                className="flex items-center gap-2"
+              >
                 <AnimatedLabel visible={labelsVisible}>Flash</AnimatedLabel>
                 {flashOn ? <Zap size={26} /> : <ZapOff size={26} />}
               </button>
@@ -326,8 +352,15 @@ function CreatePage() {
           }
           if (tool.id === "timer") {
             return (
-              <button key="timer" onClick={cycleTimer} aria-label="Timer" className="flex items-center gap-2 relative">
-                <AnimatedLabel visible={labelsVisible}>{timerSeconds === 0 ? "Timer" : `Timer: ${timerSeconds}s`}</AnimatedLabel>
+              <button
+                key="timer"
+                onClick={cycleTimer}
+                aria-label="Timer"
+                className="flex items-center gap-2 relative"
+              >
+                <AnimatedLabel visible={labelsVisible}>
+                  {timerSeconds === 0 ? "Timer" : `Timer: ${timerSeconds}s`}
+                </AnimatedLabel>
                 <span className="relative flex items-center justify-center">
                   <Timer size={26} />
                   {timerSeconds > 0 && (
@@ -344,8 +377,14 @@ function CreatePage() {
           }
           if (tool.id === "filters") {
             return (
-              <button key="filters" aria-label={isNonDefaultFilterActive ? "More filters" : "Filters"} className="flex items-center gap-2 opacity-90">
-                <AnimatedLabel visible={labelsVisible}>{isNonDefaultFilterActive ? "More Filters" : "Filters"}</AnimatedLabel>
+              <button
+                key="filters"
+                aria-label={isNonDefaultFilterActive ? "More filters" : "Filters"}
+                className="flex items-center gap-2 opacity-90"
+              >
+                <AnimatedLabel visible={labelsVisible}>
+                  {isNonDefaultFilterActive ? "More Filters" : "Filters"}
+                </AnimatedLabel>
                 <span
                   className="flex items-center justify-center transition-transform duration-200 ease-out"
                   style={{ transform: isNonDefaultFilterActive ? "scale(1.3)" : "scale(1)" }}
@@ -357,7 +396,11 @@ function CreatePage() {
           }
           const Icon = tool.icon!;
           return (
-            <button key={tool.id} aria-label={tool.label} className="flex items-center gap-2 opacity-90">
+            <button
+              key={tool.id}
+              aria-label={tool.label}
+              className="flex items-center gap-2 opacity-90"
+            >
               <AnimatedLabel visible={labelsVisible}>{tool.label}</AnimatedLabel>
               <Icon size={26} />
             </button>
@@ -371,17 +414,26 @@ function CreatePage() {
             className="flex items-center gap-2"
             style={{ animation: "oak-fade-in 220ms ease-out" }}
           >
-            <AnimatedLabel visible={labelsVisible}>{isCurrentFilterFavorited ? "Favorited" : "Favorite"}</AnimatedLabel>
+            <AnimatedLabel visible={labelsVisible}>
+              {isCurrentFilterFavorited ? "Favorited" : "Favorite"}
+            </AnimatedLabel>
             <Heart size={22} fill={isCurrentFilterFavorited ? "currentColor" : "none"} />
           </button>
         )}
 
-        <button onClick={() => setLabelsVisible((v) => !v)} aria-label={labelsVisible ? "Hide labels" : "Show labels"} className="flex items-center justify-center w-8 h-8 mt-1">
+        <button
+          onClick={() => setLabelsVisible((v) => !v)}
+          aria-label={labelsVisible ? "Hide labels" : "Show labels"}
+          className="flex items-center justify-center w-8 h-8 mt-1"
+        >
           {labelsVisible ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
         </button>
       </div>
 
-      <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-6" style={{ bottom: CAPTURE_ROW_TOP + 24, zIndex: 5 }}>
+      <div
+        className="absolute left-1/2 -translate-x-1/2 flex items-center gap-6"
+        style={{ bottom: CAPTURE_ROW_TOP + 24, zIndex: 5 }}
+      >
         {(["photo", "video"] as Mode[]).map((m) => (
           <button
             key={m}
@@ -410,8 +462,16 @@ function CreatePage() {
         }}
       >
         {FILTERS.map((f, i) => (
-          <button key={f.id} onClick={() => scrollFilterIntoRing(i)} className="shrink-0 flex items-center justify-center" style={{ width: CAPTURE_SIZE, scrollSnapAlign: "center" }}>
-            <span className="rounded-full overflow-hidden block" style={{ width: SWATCH_DIAMETER, height: SWATCH_DIAMETER }}>
+          <button
+            key={f.id}
+            onClick={() => scrollFilterIntoRing(i)}
+            className="shrink-0 flex items-center justify-center"
+            style={{ width: CAPTURE_SIZE, scrollSnapAlign: "center" }}
+          >
+            <span
+              className="rounded-full overflow-hidden block"
+              style={{ width: SWATCH_DIAMETER, height: SWATCH_DIAMETER }}
+            >
               <span className="w-full h-full block bg-neutral-500" style={{ filter: f.css }} />
             </span>
           </button>
@@ -451,7 +511,9 @@ function CreatePage() {
 
       <button
         onClick={handleCaptureTap}
-        aria-label={mode === "photo" ? "Take photo" : isRecording ? "Stop recording" : "Start recording"}
+        aria-label={
+          mode === "photo" ? "Take photo" : isRecording ? "Stop recording" : "Start recording"
+        }
         className="absolute rounded-full"
         style={{
           zIndex: 4,
@@ -464,12 +526,19 @@ function CreatePage() {
         }}
       />
 
-      <div className="absolute left-0 right-0 flex items-center justify-center gap-8" style={{ bottom: "calc(env(safe-area-inset-bottom) + 16px)" }}>
+      <div
+        className="absolute left-0 right-0 flex items-center justify-center gap-8"
+        style={{ bottom: "calc(env(safe-area-inset-bottom) + 16px)" }}
+      >
         <button
           aria-label="Import from gallery"
           onClick={() => galleryInputRef.current?.click()}
           className="absolute w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center"
-          style={{ left: ROW_EDGE, background: "rgba(255,255,255,0.10)", border: "1px solid rgba(255,255,255,0.15)" }}
+          style={{
+            left: ROW_EDGE,
+            background: "rgba(255,255,255,0.10)",
+            border: "1px solid rgba(255,255,255,0.15)",
+          }}
         >
           <ImageIcon size={16} className="opacity-80" />
         </button>
@@ -483,17 +552,29 @@ function CreatePage() {
             const file = e.target.files?.[0];
             if (file) {
               const url = URL.createObjectURL(file);
-              setPendingCapture({ type: file.type.startsWith("video") ? "video" : "photo", blob: file, url });
+              setPendingCapture({
+                type: file.type.startsWith("video") ? "video" : "photo",
+                blob: file,
+                url,
+              });
               navigate({ to: "/create/after-shot" });
             }
             e.target.value = "";
           }}
         />
 
-        <button onClick={() => setSection("shoot")} className="uppercase text-sm font-bold tracking-wide" style={{ opacity: section === "shoot" ? 1 : 0.5 }}>
+        <button
+          onClick={() => setSection("shoot")}
+          className="uppercase text-sm font-bold tracking-wide"
+          style={{ opacity: section === "shoot" ? 1 : 0.5 }}
+        >
           Shoot
         </button>
-        <button onClick={() => setSection("compose")} className="uppercase text-sm font-bold tracking-wide" style={{ opacity: section === "compose" ? 1 : 0.5 }}>
+        <button
+          onClick={() => setSection("compose")}
+          className="uppercase text-sm font-bold tracking-wide"
+          style={{ opacity: section === "compose" ? 1 : 0.5 }}
+        >
           Compose
         </button>
       </div>

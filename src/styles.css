@@ -15,15 +15,57 @@
 }
 
 @layer base {
-  html { scroll-behavior: smooth; }
-  html, body { overflow-x: hidden; overscroll-behavior-x: none; }
-  body { font-family: var(--font-sans); font-weight: 300; -webkit-font-smoothing: antialiased; background: var(--color-brand-bg); color: var(--color-brand-text); }
-  :focus-visible { outline: 2px solid var(--color-brand-accent); outline-offset: 3px; border-radius: 2px; }
+  html {
+    scroll-behavior: smooth;
+  }
+  html,
+  body {
+    overflow-x: hidden;
+    overscroll-behavior-x: none;
+  }
+  body {
+    font-family: var(--font-sans);
+    font-weight: 300;
+    -webkit-font-smoothing: antialiased;
+    background: var(--color-brand-bg);
+    color: var(--color-brand-text);
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-brand-accent);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
 }
 
-@keyframes ddFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes ddItemIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes cursor-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+@keyframes ddFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes ddItemIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes cursor-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
 
 /*
  * Design system definition.

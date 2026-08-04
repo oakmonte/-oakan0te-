@@ -16,7 +16,9 @@ function slugify(value: string) {
 // but nothing in the app should call this anymore. Navigation always goes
 // through resolvePostAuthRedirect, and display purposes should use
 // getDisplayNameFromUser instead.
-export function getProfileUsernameFromUser(user: { email?: string | null; user_metadata?: Record<string, unknown> } | null) {
+export function getProfileUsernameFromUser(
+  user: { email?: string | null; user_metadata?: Record<string, unknown> } | null,
+) {
   if (!user) return null;
   const candidates = [user.user_metadata?.full_name, user.user_metadata?.name, user.email];
   for (const candidate of candidates) {
@@ -34,7 +36,7 @@ export function getProfileUsernameFromUser(user: { email?: string | null; user_m
 // didn't give us a real name — caller decides the fallback (should be the
 // chosen username, not an email-derived string).
 export function getDisplayNameFromUser(
-  user: { user_metadata?: Record<string, unknown> } | null
+  user: { user_metadata?: Record<string, unknown> } | null,
 ): string | null {
   if (!user) return null;
   const candidates = [user.user_metadata?.full_name, user.user_metadata?.name];
@@ -51,7 +53,7 @@ export function getDisplayNameFromUser(
 // - No profile AND no intent (came from the generic header Sign In button,
 //   so we don't know what they want yet) -> the "no account" chooser page.
 export async function resolvePostAuthRedirect(
-  userId: string
+  userId: string,
 ): Promise<
   | { to: "/profile/$username"; params: { username: string } }
   | { to: "/choose-username" }

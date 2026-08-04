@@ -14,7 +14,9 @@ function AuthCallback() {
 
   useEffect(() => {
     let cancelled = false;
-    const hashError = new URLSearchParams(window.location.hash.replace(/^#/, "")).get("error_description");
+    const hashError = new URLSearchParams(window.location.hash.replace(/^#/, "")).get(
+      "error_description",
+    );
     const qsError = new URLSearchParams(window.location.search).get("error_description");
     if (hashError || qsError) {
       setError(hashError || qsError);
@@ -40,7 +42,9 @@ function AuthCallback() {
       if (!cancelled) setError("Could not complete sign-in. Please try again.");
     })();
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [navigate]);
 
   return (
@@ -50,7 +54,12 @@ function AuthCallback() {
           <>
             <h1 className="font-serif text-3xl mb-3">Sign-in failed</h1>
             <p className="text-sm text-brand-text/70 mb-6">{error}</p>
-            <a href="/set-up-store" className="text-[11px] uppercase tracking-widest text-brand-accent hover:underline">Try again</a>
+            <a
+              href="/set-up-store"
+              className="text-[11px] uppercase tracking-widest text-brand-accent hover:underline"
+            >
+              Try again
+            </a>
           </>
         ) : (
           <>

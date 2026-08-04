@@ -36,11 +36,15 @@ function EditProfilePage() {
   const [originalUsername, setOriginalUsername] = useState("");
   const [bio, setBio] = useState("");
 
-  const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
+  const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken">(
+    "idle",
+  );
 
   useEffect(() => {
     (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) {
         navigate({ to: "/" });
         return;
@@ -159,7 +163,10 @@ function EditProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white" style={{ fontFamily: "'SF Pro', system-ui, sans-serif" }}>
+    <div
+      className="min-h-screen bg-black text-white"
+      style={{ fontFamily: "'SF Pro', system-ui, sans-serif" }}
+    >
       <div className="flex items-center justify-center relative px-6 pt-4 pb-4">
         <button
           onClick={() => goToProfile(originalUsername)}
@@ -207,9 +214,15 @@ function EditProfilePage() {
           </FieldRow>
           {username !== originalUsername && username.length > 0 && (
             <div className="px-4 py-2 text-[11px]">
-              {usernameStatus === "checking" && <span className="text-white/40">Checking availability…</span>}
-              {usernameStatus === "available" && <span className="text-green-400">@{username} is available</span>}
-              {usernameStatus === "taken" && <span className="text-red-400">That username is taken</span>}
+              {usernameStatus === "checking" && (
+                <span className="text-white/40">Checking availability…</span>
+              )}
+              {usernameStatus === "available" && (
+                <span className="text-green-400">@{username} is available</span>
+              )}
+              {usernameStatus === "taken" && (
+                <span className="text-red-400">That username is taken</span>
+              )}
             </div>
           )}
         </div>

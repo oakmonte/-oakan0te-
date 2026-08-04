@@ -1,6 +1,18 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { X, Type, Pencil, Sticker, Volume2, Blend, Link2, Crop, Scissors, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  X,
+  Type,
+  Pencil,
+  Sticker,
+  Volume2,
+  Blend,
+  Link2,
+  Crop,
+  Scissors,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
 import { useAfterShotContext } from "./create.after-shot";
 
 export const Route = createFileRoute("/create/after-shot/")({
@@ -25,11 +37,24 @@ function AfterShotIndexPage() {
   const [toolsExpanded, setToolsExpanded] = useState(false);
 
   return (
-    <div className="fixed inset-0 bg-black text-white overflow-hidden" style={{ fontFamily: "'SF Pro', system-ui, sans-serif" }}>
+    <div
+      className="fixed inset-0 bg-black text-white overflow-hidden"
+      style={{ fontFamily: "'SF Pro', system-ui, sans-serif" }}
+    >
       {media.type === "photo" ? (
-        <img src={media.url} alt="Captured" className="absolute inset-0 w-full h-full object-cover" />
+        <img
+          src={media.url}
+          alt="Captured"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
       ) : (
-        <video src={media.url} autoPlay loop playsInline className="absolute inset-0 w-full h-full object-cover" />
+        <video
+          src={media.url}
+          autoPlay
+          loop
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover"
+        />
       )}
 
       <div className="absolute top-0 left-0 right-0 flex items-center px-4 pt-[calc(env(safe-area-inset-top)+12px)] z-20">
@@ -43,9 +68,16 @@ function AfterShotIndexPage() {
         </button>
       </div>
 
-      <div className="absolute right-4 flex flex-col items-end gap-5 z-20" style={{ top: "calc(env(safe-area-inset-top) + 76px)" }}>
+      <div
+        className="absolute right-4 flex flex-col items-end gap-5 z-20"
+        style={{ top: "calc(env(safe-area-inset-top) + 76px)" }}
+      >
         {media.type === "video" && (
-          <button onClick={() => navigate({ to: "/create/after-shot/edit" })} aria-label="Trim video" className="flex items-center gap-2 opacity-90">
+          <button
+            onClick={() => navigate({ to: "/create/after-shot/edit" })}
+            aria-label="Trim video"
+            className="flex items-center gap-2 opacity-90"
+          >
             <Scissors size={24} />
           </button>
         )}
@@ -53,7 +85,11 @@ function AfterShotIndexPage() {
         {EDIT_TOOLS.map((tool) => {
           const Icon = tool.icon;
           return (
-            <button key={tool.id} aria-label={tool.label} className="flex items-center gap-2 opacity-90">
+            <button
+              key={tool.id}
+              aria-label={tool.label}
+              className="flex items-center gap-2 opacity-90"
+            >
               <Icon size={24} />
             </button>
           );
@@ -63,20 +99,34 @@ function AfterShotIndexPage() {
           COLLAPSED_TOOLS.map((tool) => {
             const Icon = tool.icon;
             return (
-              <button key={tool.id} aria-label={tool.label} className="flex items-center gap-2 opacity-90">
+              <button
+                key={tool.id}
+                aria-label={tool.label}
+                className="flex items-center gap-2 opacity-90"
+              >
                 <Icon size={24} />
               </button>
             );
           })}
 
-        <button onClick={() => setToolsExpanded((v) => !v)} aria-label={toolsExpanded ? "Hide more tools" : "More tools"} className="flex items-center justify-center w-8 h-8 mt-1">
+        <button
+          onClick={() => setToolsExpanded((v) => !v)}
+          aria-label={toolsExpanded ? "Hide more tools" : "More tools"}
+          className="flex items-center justify-center w-8 h-8 mt-1"
+        >
           {toolsExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
         </button>
       </div>
 
       {/* Next leads to the Content/Listing toggle screen — not built yet */}
-      <div className="absolute left-0 right-0 flex items-center justify-end px-5 z-20" style={{ bottom: "calc(env(safe-area-inset-bottom) + 20px)" }}>
-        <button className="px-6 py-2.5 rounded-full font-bold text-sm uppercase tracking-wide" style={{ background: "#fff", color: "#000" }}>
+      <div
+        className="absolute left-0 right-0 flex items-center justify-end px-5 z-20"
+        style={{ bottom: "calc(env(safe-area-inset-bottom) + 20px)" }}
+      >
+        <button
+          className="px-6 py-2.5 rounded-full font-bold text-sm uppercase tracking-wide"
+          style={{ background: "#fff", color: "#000" }}
+        >
           Next
         </button>
       </div>

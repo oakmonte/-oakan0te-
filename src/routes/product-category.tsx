@@ -29,9 +29,7 @@ function ProductCategoryPage() {
 
   const toggle = (category: string) => {
     setSelected((prev) =>
-      prev.includes(category)
-        ? prev.filter((c) => c !== category)
-        : [...prev, category]
+      prev.includes(category) ? prev.filter((c) => c !== category) : [...prev, category],
     );
   };
 
@@ -51,7 +49,9 @@ function ProductCategoryPage() {
     setLoading(true);
     setError(null);
 
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
       setError("You're no longer signed in. Please sign in again.");
       setLoading(false);
@@ -77,9 +77,7 @@ function ProductCategoryPage() {
   return (
     <div className="min-h-screen bg-brand-bg text-brand-text flex items-center justify-center px-6 py-10">
       <div className="w-full max-w-sm text-center">
-        <h1 className="font-serif text-4xl sm:text-5xl leading-tight mb-3">
-          What will you sell?
-        </h1>
+        <h1 className="font-serif text-4xl sm:text-5xl leading-tight mb-3">What will you sell?</h1>
         <p className="text-sm text-brand-text/70 mb-8">
           Pick as many that fit — you can update this anytime.
         </p>

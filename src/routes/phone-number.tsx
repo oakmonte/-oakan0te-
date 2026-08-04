@@ -11,7 +11,7 @@ export const Route = createFileRoute("/phone-number")({
 
 function getIntent() {
   return typeof window !== "undefined"
-    ? sessionStorage.getItem("oakmonte_intent") ?? "seller"
+    ? (sessionStorage.getItem("oakmonte_intent") ?? "seller")
     : "seller";
 }
 
@@ -44,7 +44,9 @@ function PhoneNumberPage() {
 
     setLoading(true);
 
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
       setError("You're no longer signed in. Please sign in again.");
       setLoading(false);
@@ -84,9 +86,11 @@ function PhoneNumberPage() {
     setLoading(false);
 
     const nextRoute =
-      intent === "curator" ? "/find-your-fit"
-      : intent === "creator" ? "/" // TODO: point this at wherever you slot phone-number into the creator flow
-      : "/product-category";
+      intent === "curator"
+        ? "/find-your-fit"
+        : intent === "creator"
+          ? "/" // TODO: point this at wherever you slot phone-number into the creator flow
+          : "/product-category";
 
     navigate({ to: nextRoute, replace: true });
   };
@@ -135,8 +139,8 @@ function PhoneNumberPage() {
               )}
 
               <p className="text-xs text-brand-text/50 px-2">
-                Don't have a separate business line yet? No problem — you can add a
-                dedicated one later from your store settings.
+                Don't have a separate business line yet? No problem — you can add a dedicated one
+                later from your store settings.
               </p>
             </>
           )}

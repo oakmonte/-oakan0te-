@@ -11,7 +11,10 @@ export const Route = createFileRoute("/become-a-curator")({
       { title: "Become a Curator — Oakmonte" },
       { name: "description", content: "Join Oakmonte as a curator and define your wardrobe." },
       { property: "og:title", content: "Become a Curator — Oakmonte" },
-      { property: "og:description", content: "Join Oakmonte as a curator and define your wardrobe." },
+      {
+        property: "og:description",
+        content: "Join Oakmonte as a curator and define your wardrobe.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -93,7 +96,10 @@ function BecomeCuratorPage() {
     setLoading("email");
     const { error } = await sendMagicLink(email);
     setLoading(null);
-    if (error) { setError(error.message); return; }
+    if (error) {
+      setError(error.message);
+      return;
+    }
     setSent(true);
     setCountdown(30);
   };
@@ -103,7 +109,10 @@ function BecomeCuratorPage() {
     setCode("");
     sessionStorage.setItem("oakmonte_intent", "curator");
     const { error } = await sendMagicLink(email);
-    if (error) { setError(error.message); return; }
+    if (error) {
+      setError(error.message);
+      return;
+    }
     setCountdown(30);
   };
 
@@ -112,7 +121,10 @@ function BecomeCuratorPage() {
     setError(null);
     setLoading("google");
     const { error } = await signInWithGoogle();
-    if (error) { setError(error.message); setLoading(null); }
+    if (error) {
+      setError(error.message);
+      setLoading(null);
+    }
   };
 
   const handleVerifyCode = async (e: React.FormEvent) => {
@@ -154,14 +166,21 @@ function BecomeCuratorPage() {
         <Link to="/" className="flex items-center">
           <img src="/favicon.png" alt="Oakmonte" className="h-9 w-auto" />
         </Link>
-        <Link to="/" className="text-[11px] uppercase tracking-widest hover:text-brand-accent transition-colors">← Back</Link>
+        <Link
+          to="/"
+          className="text-[11px] uppercase tracking-widest hover:text-brand-accent transition-colors"
+        >
+          ← Back
+        </Link>
       </header>
 
       <main className="flex-1 flex items-center justify-center px-6 py-10">
         <div className="w-full max-w-sm">
           <div className="text-center mb-10">
             <h1 className="font-serif text-4xl sm:text-5xl leading-tight">Become a Curator</h1>
-            <p className="mt-3 text-sm text-brand-text/70">Define your wardrobe and discover pieces that fit you.</p>
+            <p className="mt-3 text-sm text-brand-text/70">
+              Define your wardrobe and discover pieces that fit you.
+            </p>
           </div>
 
           <div className="space-y-3">
@@ -171,7 +190,14 @@ function BecomeCuratorPage() {
               disabled={loading === "google"}
               className="w-full flex items-center justify-center gap-3 bg-brand-text text-brand-bg rounded-full py-3.5 text-sm font-medium hover:bg-brand-text/85 hover:scale-[1.01] transition-all duration-300 disabled:opacity-60"
             >
-              {loading === "google" ? <Spinner /> : <><GoogleIcon />Continue with Google</>}
+              {loading === "google" ? (
+                <Spinner />
+              ) : (
+                <>
+                  <GoogleIcon />
+                  Continue with Google
+                </>
+              )}
             </button>
             <button
               type="button"
@@ -186,7 +212,9 @@ function BecomeCuratorPage() {
 
           <div className="flex items-center gap-4 my-8">
             <div className="flex-1 h-px bg-brand-text/15" />
-            <span className="text-[11px] uppercase tracking-widest text-brand-text/50">or continue with email</span>
+            <span className="text-[11px] uppercase tracking-widest text-brand-text/50">
+              or continue with email
+            </span>
             <div className="flex-1 h-px bg-brand-text/15" />
           </div>
 
@@ -233,7 +261,12 @@ function BecomeCuratorPage() {
 
               <div className="text-sm text-brand-text/70">
                 {countdown > 0 ? (
-                  <span>Resend code in <span className="text-brand-text tabular-nums">{mm}:{ss}</span></span>
+                  <span>
+                    Resend code in{" "}
+                    <span className="text-brand-text tabular-nums">
+                      {mm}:{ss}
+                    </span>
+                  </span>
                 ) : (
                   <button
                     type="button"
@@ -246,7 +279,11 @@ function BecomeCuratorPage() {
               </div>
               <button
                 type="button"
-                onClick={() => { setSent(false); setEmail(""); setCode(""); }}
+                onClick={() => {
+                  setSent(false);
+                  setEmail("");
+                  setCode("");
+                }}
                 className="text-[11px] uppercase tracking-widest text-brand-text/60 hover:text-brand-text transition-colors"
               >
                 Use a different email
@@ -256,9 +293,14 @@ function BecomeCuratorPage() {
 
           <p className="mt-10 text-center text-[11px] text-brand-text/50 leading-relaxed">
             By continuing, you agree to our{" "}
-            <Link to="/terms" className="underline hover:text-brand-accent">Terms</Link>{" "}
+            <Link to="/terms" className="underline hover:text-brand-accent">
+              Terms
+            </Link>{" "}
             and{" "}
-            <Link to="/privacy" className="underline hover:text-brand-accent">Privacy Policy</Link>.
+            <Link to="/privacy" className="underline hover:text-brand-accent">
+              Privacy Policy
+            </Link>
+            .
           </p>
         </div>
       </main>

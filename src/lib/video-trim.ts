@@ -14,7 +14,7 @@ import {
 } from "mediabunny";
 
 export async function getVideoKeyframes(
-  blob: Blob
+  blob: Blob,
 ): Promise<{ duration: number; keyframes: number[] }> {
   const input = new Input({ source: new BlobSource(blob), formats: ALL_FORMATS });
   const duration = await input.computeDuration();
@@ -53,7 +53,7 @@ export async function trimVideo(
   blob: Blob,
   startTime: number,
   endTime: number,
-  onProgress?: (ratio: number) => void
+  onProgress?: (ratio: number) => void,
 ): Promise<Blob> {
   const input = new Input({ source: new BlobSource(blob), formats: ALL_FORMATS });
   const target = new BufferTarget();

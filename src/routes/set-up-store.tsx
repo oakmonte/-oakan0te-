@@ -9,16 +9,21 @@ export const Route = createFileRoute("/set-up-store")({
   head: () => ({
     meta: [
       { title: "Set up a Store — Oakmonte" },
-      { name: "description", content: "Create your Oakmonte seller account to launch a content-driven storefront." },
+      {
+        name: "description",
+        content: "Create your Oakmonte seller account to launch a content-driven storefront.",
+      },
       { property: "og:title", content: "Set up a Store — Oakmonte" },
-      { property: "og:description", content: "Create your Oakmonte seller account to launch a content-driven storefront." },
+      {
+        property: "og:description",
+        content: "Create your Oakmonte seller account to launch a content-driven storefront.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
   }),
   component: SetUpStorePage,
 });
-
 
 function CodeInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
@@ -54,8 +59,8 @@ function CodeInput({ value, onChange }: { value: string; onChange: (v: string) =
         <input
           key={i}
           ref={(el) => {
-  inputsRef.current[i] = el;
-}}
+            inputsRef.current[i] = el;
+          }}
           type="text"
           inputMode="numeric"
           maxLength={1}
@@ -94,7 +99,10 @@ function SetUpStorePage() {
     setLoading("email");
     const { error } = await sendMagicLink(email);
     setLoading(null);
-    if (error) { setError(error.message); return; }
+    if (error) {
+      setError(error.message);
+      return;
+    }
     setSent(true);
     setCountdown(30);
   };
@@ -104,7 +112,10 @@ function SetUpStorePage() {
     setCode("");
     sessionStorage.setItem("oakmonte_intent", "seller");
     const { error } = await sendMagicLink(email);
-    if (error) { setError(error.message); return; }
+    if (error) {
+      setError(error.message);
+      return;
+    }
     setCountdown(30);
   };
 
@@ -113,7 +124,10 @@ function SetUpStorePage() {
     setError(null);
     setLoading("google");
     const { error } = await signInWithGoogle();
-    if (error) { setError(error.message); setLoading(null); }
+    if (error) {
+      setError(error.message);
+      setLoading(null);
+    }
   };
 
   const handleVerifyCode = async (e: React.FormEvent) => {
@@ -160,7 +174,12 @@ function SetUpStorePage() {
         <Link to="/" className="flex items-center">
           <img src="/favicon.png" alt="Oakmonte" className="h-9 w-auto" />
         </Link>
-        <Link to="/" className="text-[11px] uppercase tracking-widest hover:text-brand-accent transition-colors">← Back</Link>
+        <Link
+          to="/"
+          className="text-[11px] uppercase tracking-widest hover:text-brand-accent transition-colors"
+        >
+          ← Back
+        </Link>
       </header>
 
       <main className="flex-1 flex items-center justify-center px-6 py-10">
@@ -177,7 +196,14 @@ function SetUpStorePage() {
               disabled={loading === "google"}
               className="w-full flex items-center justify-center gap-3 bg-brand-text text-brand-bg rounded-full py-3.5 text-sm font-medium hover:bg-brand-text/85 hover:scale-[1.01] transition-all duration-300 disabled:opacity-60"
             >
-              {loading === "google" ? <Spinner /> : <><GoogleIcon />Continue with Google</>}
+              {loading === "google" ? (
+                <Spinner />
+              ) : (
+                <>
+                  <GoogleIcon />
+                  Continue with Google
+                </>
+              )}
             </button>
             <button
               type="button"
@@ -192,7 +218,9 @@ function SetUpStorePage() {
 
           <div className="flex items-center gap-4 my-8">
             <div className="flex-1 h-px bg-brand-text/15" />
-            <span className="text-[11px] uppercase tracking-widest text-brand-text/50">or continue with email</span>
+            <span className="text-[11px] uppercase tracking-widest text-brand-text/50">
+              or continue with email
+            </span>
             <div className="flex-1 h-px bg-brand-text/15" />
           </div>
 
@@ -239,7 +267,12 @@ function SetUpStorePage() {
 
               <div className="text-sm text-brand-text/70">
                 {countdown > 0 ? (
-                  <span>Resend code in <span className="text-brand-text tabular-nums">{mm}:{ss}</span></span>
+                  <span>
+                    Resend code in{" "}
+                    <span className="text-brand-text tabular-nums">
+                      {mm}:{ss}
+                    </span>
+                  </span>
                 ) : (
                   <button
                     type="button"
@@ -252,7 +285,11 @@ function SetUpStorePage() {
               </div>
               <button
                 type="button"
-                onClick={() => { setSent(false); setEmail(""); setCode(""); }}
+                onClick={() => {
+                  setSent(false);
+                  setEmail("");
+                  setCode("");
+                }}
                 className="text-[11px] uppercase tracking-widest text-brand-text/60 hover:text-brand-text transition-colors"
               >
                 Use a different email
@@ -262,9 +299,14 @@ function SetUpStorePage() {
 
           <p className="mt-10 text-center text-[11px] text-brand-text/50 leading-relaxed">
             By continuing, you agree to our{" "}
-            <Link to="/terms" className="underline hover:text-brand-accent">Terms</Link>{" "}
+            <Link to="/terms" className="underline hover:text-brand-accent">
+              Terms
+            </Link>{" "}
             and{" "}
-            <Link to="/privacy" className="underline hover:text-brand-accent">Privacy Policy</Link>.
+            <Link to="/privacy" className="underline hover:text-brand-accent">
+              Privacy Policy
+            </Link>
+            .
           </p>
         </div>
       </main>

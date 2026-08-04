@@ -7,13 +7,38 @@ export const Route = createFileRoute("/where-did-you-hear-about-us")({
   component: WhereDidYouHearPage,
 });
 
-const SELLER_OPTIONS = ["Instagram", "TikTok", "Youtube", "Online Articles", "A friend", "Google search", "Twitter", "Other"];
-const CREATOR_OPTIONS = ["Instagram", "TikTok", "Youtube", "A friend", "Another creator", "Twitter", "Other"];
-const CURATOR_OPTIONS = ["Instagram", "TikTok", "A friend", "Google search", "Online Articles", "Twitter", "Other"];
+const SELLER_OPTIONS = [
+  "Instagram",
+  "TikTok",
+  "Youtube",
+  "Online Articles",
+  "A friend",
+  "Google search",
+  "Twitter",
+  "Other",
+];
+const CREATOR_OPTIONS = [
+  "Instagram",
+  "TikTok",
+  "Youtube",
+  "A friend",
+  "Another creator",
+  "Twitter",
+  "Other",
+];
+const CURATOR_OPTIONS = [
+  "Instagram",
+  "TikTok",
+  "A friend",
+  "Google search",
+  "Online Articles",
+  "Twitter",
+  "Other",
+];
 
 function getIntent() {
   return typeof window !== "undefined"
-    ? sessionStorage.getItem("oakmonte_intent") ?? "seller"
+    ? (sessionStorage.getItem("oakmonte_intent") ?? "seller")
     : "seller";
 }
 
@@ -25,9 +50,11 @@ function WhereDidYouHearPage() {
 
   const intent = getIntent();
   const options =
-    intent === "creator" ? CREATOR_OPTIONS
-    : intent === "curator" ? CURATOR_OPTIONS
-    : SELLER_OPTIONS;
+    intent === "creator"
+      ? CREATOR_OPTIONS
+      : intent === "curator"
+        ? CURATOR_OPTIONS
+        : SELLER_OPTIONS;
 
   const choose = async (option: string) => {
     if (option === "Other") {
@@ -39,16 +66,20 @@ function WhereDidYouHearPage() {
 
   const save = async (value: string) => {
     setLoading(true);
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (user) {
       await supabase.from("profiles").update({ referral_source: value }).eq("id", user.id);
     }
     setLoading(false);
 
     const nextRoute =
-      intent === "creator" ? "/creator-niche"
-      : intent === "curator" ? "/phone-number"
-      : "/name-your-store";
+      intent === "creator"
+        ? "/creator-niche"
+        : intent === "curator"
+          ? "/phone-number"
+          : "/name-your-store";
 
     navigate({ to: nextRoute });
   };

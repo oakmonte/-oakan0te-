@@ -8,7 +8,9 @@ function OfflineVideosPlaceholder() {
   return (
     <div className="min-h-screen bg-black p-8 text-white">
       <h1 className="text-2xl font-semibold">Offline Videos</h1>
-      <p className="mt-3 text-white/70">This route is still being built. It will hold saved or downloadable video content.</p>
+      <p className="mt-3 text-white/70">
+        This route is still being built. It will hold saved or downloadable video content.
+      </p>
     </div>
   );
 }
