@@ -14,6 +14,7 @@ import {
   Blend,
   Heart,
 } from "lucide-react";
+import { setPendingCapture } from "@/lib/capture-handoff";
 
 export const Route = createFileRoute("/create")({
   head: () => ({ meta: [{ title: "Create — Oakmonte" }] }),
@@ -29,8 +30,11 @@ const FILTERS = [
   { id: "fade", label: "Fade", css: "brightness(1.08) contrast(0.9) saturate(0.85)" },
 ];
 
+const TIMER_OPTIONS = [0, 3, 10] as const;
+
 type Mode = "photo" | "video";
 type Section = "shoot" | "compose";
+type CapturePhase = "live" | "counting";
 
 const ROTATE_SIZE = 48;
 const CAPTURE_SIZE = 84;
@@ -39,7 +43,6 @@ const CAPTURE_ROW_BOTTOM = ROW_EDGE + 56;
 const CAPTURE_ROW_TOP = CAPTURE_ROW_BOTTOM + CAPTURE_SIZE;
 
 const SWATCH_DIAMETER = CAPTURE_SIZE - 16;
-// Narrower + hard-edged this time: filters just stop existing at this x, no fade, no blur.
 const BARRIER_EDGE = ROW_EDGE + ROTATE_SIZE + 10;
 const BARRIER_HEIGHT = SWATCH_DIAMETER + 12;
 
@@ -55,11 +58,7 @@ function AnimatedLabel({ visible, children }: { visible: boolean; children: Reac
   return (
     <span
       className="overflow-hidden whitespace-nowrap text-sm font-medium transition-all duration-300 ease-out"
-      style={{
-        maxWidth: visible ? 160 : 0,
-        opacity: visible ? 1 : 0,
-        marginRight: visible ? 2 : 0,
-      }}
+      style={{ maxWidth: visible ? 160 : 0, opacity: visible ? 1 : 0, marginRight: visible ? 2 : 0 }}
     >
       {children}
     </span>
@@ -69,9 +68,12 @@ function AnimatedLabel({ visible, children }: { visible: boolean; children: Reac
 function CreatePage() {
   const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const filterStripRef = useRef<HTMLDivElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
 
   const [facing, setFacing] = useState<"user" | "environment">("user");
   const [flashOn, setFlashOn] = useState(false);
@@ -80,6 +82,11 @@ function CreatePage() {
   const [activeFilterIndex, setActiveFilterIndex] = useState(0);
   const [labelsVisible, setLabelsVisible] = useState(false);
   const [favoritedFilterIds, setFavoritedFilterIds] = useState<Set<string>>(new Set());
+
+  const [timerSeconds, setTimerSeconds] = useState<(typeof TIMER_OPTIONS)[number]>(0);
+  const [capturePhase, setCapturePhase] = useState<CapturePhase>("live");
+  const [countdownRemaining, setCountdownRemaining] = useState<number | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -131,9 +138,7 @@ function CreatePage() {
   }, []);
 
   const scrollFilterIntoRing = useCallback((index: number) => {
-    const el = filterStripRef.current;
-    if (!el) return;
-    el.scrollTo({ left: index * CAPTURE_SIZE, behavior: "smooth" });
+    filterStripRef.current?.scrollTo({ left: index * CAPTURE_SIZE, behavior: "smooth" });
     setActiveFilterIndex(index);
   }, []);
 
@@ -153,22 +158,126 @@ function CreatePage() {
   const currentFilterCss =
     facing === "user" && flashOn ? `${activeFilter.css} brightness(1.25)` : activeFilter.css;
 
-  const handleCapture = useCallback(() => {
-    console.log(`${mode === "photo" ? "Capture photo" : "Start/stop recording"} with filter: ${activeFilter.id}`);
-  }, [mode, activeFilter]);
+  const cycleTimer = useCallback(() => {
+    setTimerSeconds((prev) => {
+      const idx = TIMER_OPTIONS.indexOf(prev);
+      return TIMER_OPTIONS[(idx + 1) % TIMER_OPTIONS.length];
+    });
+  }, []);
+
+  const capturePhoto = useCallback(() => {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!video || !canvas) return;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    if (facing === "user") {
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+    }
+    
+  
+    ctx.filter = currentFilterCss;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) return;
+        const url = URL.createObjectURL(blob);
+        setPendingCapture({ type: "photo", blob, url });
+        navigate({ to: "/create/after-shot" });
+      },
+      "image/jpeg",
+      0.92
+    );
+  }, [facing, currentFilterCss, navigate]);
+
+  const startRecording = useCallback(() => {
+    const stream = streamRef.current;
+    if (!stream) return;
+    recordedChunksRef.current = [];
+    const candidates = ["video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm", "video/mp4"];
+    const mimeType = candidates.find((t) => MediaRecorder.isTypeSupported(t)) ?? "";
+    const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+
+    recorder.ondataavailable = (e) => {
+      if (e.data.size > 0) recordedChunksRef.current.push(e.data);
+    };
+    recorder.onstop = () => {
+      const blob = new Blob(recordedChunksRef.current, { type: mimeType || "video/webm" });
+      const url = URL.createObjectURL(blob);
+      setPendingCapture({ type: "video", blob, url });
+      navigate({ to: "/create/after-shot" });
+    };
+
+    recorder.start();
+    mediaRecorderRef.current = recorder;
+    setIsRecording(true);
+
+    // Hard stop at 60s regardless of anything else, per the flat cap decision.
+    window.setTimeout(() => {
+      if (mediaRecorderRef.current === recorder && recorder.state === "recording") {
+        recorder.stop();
+        setIsRecording(false);
+      }
+    }, 60_000);
+  }, [navigate]);
+
+  const stopRecording = useCallback(() => {
+    mediaRecorderRef.current?.stop();
+    setIsRecording(false);
+  }, []);
+
+  const performCapture = useCallback(() => {
+    setCapturePhase("live");
+    setCountdownRemaining(null);
+    if (mode === "photo") capturePhoto();
+    else startRecording();
+  }, [mode, capturePhoto, startRecording]);
+
+  useEffect(() => {
+    if (capturePhase !== "counting" || countdownRemaining === null) return;
+    if (countdownRemaining <= 0) {
+      performCapture();
+      return;
+    }
+    const t = setTimeout(() => setCountdownRemaining((c) => (c ?? 1) - 1), 1000);
+    return () => clearTimeout(t);
+  }, [capturePhase, countdownRemaining, performCapture]);
+
+  const handleCaptureTap = useCallback(() => {
+    if (capturePhase === "counting") {
+      setCapturePhase("live");
+      setCountdownRemaining(null);
+      return;
+    }
+    if (mode === "video" && isRecording) {
+      stopRecording();
+      return;
+    }
+    if (timerSeconds > 0) {
+      setCapturePhase("counting");
+      setCountdownRemaining(timerSeconds);
+    } else {
+      performCapture();
+    }
+  }, [capturePhase, mode, isRecording, timerSeconds, performCapture, stopRecording]);
 
   return (
-    <div
-      className="fixed inset-0 bg-black text-white overflow-hidden"
-      style={{ fontFamily: "'SF Pro', system-ui, sans-serif" }}
-    >
+    <div className="fixed inset-0 bg-black text-white overflow-hidden" style={{ fontFamily: "'SF Pro', system-ui, sans-serif" }}>
       <style>{`
         .oak-filter-strip::-webkit-scrollbar { display: none; }
-        @keyframes oak-fade-in {
-          from { opacity: 0; transform: translateY(-4px); }
-          to { opacity: 1; transform: translateY(0); }
+        @keyframes oak-fade-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+        .oak-filter-strip {
+          -webkit-mask-image: linear-gradient(to right, transparent ${BARRIER_EDGE}px, black ${BARRIER_EDGE}px);
+          mask-image: linear-gradient(to right, transparent ${BARRIER_EDGE}px, black ${BARRIER_EDGE}px);
         }
       `}</style>
+
+      <canvas ref={canvasRef} className="hidden" />
 
       <video
         ref={videoRef}
@@ -176,24 +285,24 @@ function CreatePage() {
         playsInline
         muted
         className="absolute inset-0 w-full h-full object-cover"
-        style={{
-          filter: currentFilterCss,
-          transform: facing === "user" ? "scaleX(-1)" : "none",
-        }}
+        style={{ filter: currentFilterCss, transform: facing === "user" ? "scaleX(-1)" : "none" }}
       />
 
       {facing === "user" && flashOn && (
         <div
           className="absolute inset-0 pointer-events-none"
-          style={{
-            background:
-              "radial-gradient(circle at 50% 30%, rgba(255,255,255,0.35), rgba(255,255,255,0.05) 70%)",
-            mixBlendMode: "screen",
-          }}
+          style={{ background: "radial-gradient(circle at 50% 30%, rgba(255,255,255,0.35), rgba(255,255,255,0.05) 70%)", mixBlendMode: "screen" }}
         />
       )}
 
-      {/* Top bar */}
+      {capturePhase === "counting" && countdownRemaining !== null && countdownRemaining > 0 && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+          <span className="text-8xl font-bold" style={{ textShadow: "0 2px 12px rgba(0,0,0,0.5)" }}>
+            {countdownRemaining}
+          </span>
+        </div>
+      )}
+
       <div className="absolute top-0 left-0 right-0 flex items-center px-4 pt-[calc(env(safe-area-inset-top)+12px)]">
         <button
           onClick={handleBack}
@@ -205,36 +314,38 @@ function CreatePage() {
         </button>
       </div>
 
-      {/* Vertical tool stack */}
-      <div
-        className="absolute right-4 flex flex-col items-end gap-5"
-        style={{ top: "calc(env(safe-area-inset-top) + 76px)", zIndex: 6 }}
-      >
+      <div className="absolute right-4 flex flex-col items-end gap-5" style={{ top: "calc(env(safe-area-inset-top) + 76px)", zIndex: 6 }}>
         {TOOLS.map((tool) => {
           if (tool.id === "flash") {
             return (
-              <button
-                key="flash"
-                onClick={() => setFlashOn((f) => !f)}
-                aria-label="Flash"
-                className="flex items-center gap-2"
-              >
+              <button key="flash" onClick={() => setFlashOn((f) => !f)} aria-label="Flash" className="flex items-center gap-2">
                 <AnimatedLabel visible={labelsVisible}>Flash</AnimatedLabel>
                 {flashOn ? <Zap size={26} /> : <ZapOff size={26} />}
               </button>
             );
           }
-
+          if (tool.id === "timer") {
+            return (
+              <button key="timer" onClick={cycleTimer} aria-label="Timer" className="flex items-center gap-2 relative">
+                <AnimatedLabel visible={labelsVisible}>{timerSeconds === 0 ? "Timer" : `Timer: ${timerSeconds}s`}</AnimatedLabel>
+                <span className="relative flex items-center justify-center">
+                  <Timer size={26} />
+                  {timerSeconds > 0 && (
+                    <span
+                      className="absolute -top-1.5 -right-1.5 text-[10px] font-bold rounded-full flex items-center justify-center"
+                      style={{ width: 16, height: 16, background: "#fff", color: "#000" }}
+                    >
+                      {timerSeconds}
+                    </span>
+                  )}
+                </span>
+              </button>
+            );
+          }
           if (tool.id === "filters") {
             return (
-              <button
-                key="filters"
-                aria-label={isNonDefaultFilterActive ? "More filters" : "Filters"}
-                className="flex items-center gap-2 opacity-90"
-              >
-                <AnimatedLabel visible={labelsVisible}>
-                  {isNonDefaultFilterActive ? "More Filters" : "Filters"}
-                </AnimatedLabel>
+              <button key="filters" aria-label={isNonDefaultFilterActive ? "More filters" : "Filters"} className="flex items-center gap-2 opacity-90">
+                <AnimatedLabel visible={labelsVisible}>{isNonDefaultFilterActive ? "More Filters" : "Filters"}</AnimatedLabel>
                 <span
                   className="flex items-center justify-center transition-transform duration-200 ease-out"
                   style={{ transform: isNonDefaultFilterActive ? "scale(1.3)" : "scale(1)" }}
@@ -244,7 +355,6 @@ function CreatePage() {
               </button>
             );
           }
-
           const Icon = tool.icon!;
           return (
             <button key={tool.id} aria-label={tool.label} className="flex items-center gap-2 opacity-90">
@@ -261,31 +371,21 @@ function CreatePage() {
             className="flex items-center gap-2"
             style={{ animation: "oak-fade-in 220ms ease-out" }}
           >
-            <AnimatedLabel visible={labelsVisible}>
-              {isCurrentFilterFavorited ? "Favorited" : "Favorite"}
-            </AnimatedLabel>
+            <AnimatedLabel visible={labelsVisible}>{isCurrentFilterFavorited ? "Favorited" : "Favorite"}</AnimatedLabel>
             <Heart size={22} fill={isCurrentFilterFavorited ? "currentColor" : "none"} />
           </button>
         )}
 
-        <button
-          onClick={() => setLabelsVisible((v) => !v)}
-          aria-label={labelsVisible ? "Hide labels" : "Show labels"}
-          className="flex items-center justify-center w-8 h-8 mt-1"
-        >
+        <button onClick={() => setLabelsVisible((v) => !v)} aria-label={labelsVisible ? "Hide labels" : "Show labels"} className="flex items-center justify-center w-8 h-8 mt-1">
           {labelsVisible ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
         </button>
       </div>
 
-      {/* Photo / Video mode toggle */}
-      <div
-        className="absolute left-1/2 -translate-x-1/2 flex items-center gap-6"
-        style={{ bottom: CAPTURE_ROW_TOP + 24, zIndex: 5 }}
-      >
+      <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-6" style={{ bottom: CAPTURE_ROW_TOP + 24, zIndex: 5 }}>
         {(["photo", "video"] as Mode[]).map((m) => (
           <button
             key={m}
-            onClick={() => setMode(m)}
+            onClick={() => !isRecording && setMode(m)}
             className="uppercase text-xs font-semibold tracking-wide"
             style={{ opacity: mode === m ? 1 : 0.5 }}
           >
@@ -294,7 +394,6 @@ function CreatePage() {
         ))}
       </div>
 
-      {/* Filter filmstrip — layer 1 (bottom) */}
       <div
         ref={filterStripRef}
         onScroll={handleFilterScroll}
@@ -311,50 +410,16 @@ function CreatePage() {
         }}
       >
         {FILTERS.map((f, i) => (
-          <button
-            key={f.id}
-            onClick={() => scrollFilterIntoRing(i)}
-            className="shrink-0 flex items-center justify-center"
-            style={{ width: CAPTURE_SIZE, scrollSnapAlign: "center" }}
-          >
-            <span
-              className="rounded-full overflow-hidden block"
-              style={{ width: SWATCH_DIAMETER, height: SWATCH_DIAMETER }}
-            >
+          <button key={f.id} onClick={() => scrollFilterIntoRing(i)} className="shrink-0 flex items-center justify-center" style={{ width: CAPTURE_SIZE, scrollSnapAlign: "center" }}>
+            <span className="rounded-full overflow-hidden block" style={{ width: SWATCH_DIAMETER, height: SWATCH_DIAMETER }}>
               <span className="w-full h-full block bg-neutral-500" style={{ filter: f.css }} />
             </span>
           </button>
         ))}
       </div>
 
-      {/* Invisible occluder — layer 2, sits between the filmstrip and the rotate button.
-          No color, no blur, no fade — just hard-clips anything under it via mask on the strip below,
-          this div's only job is to occupy the z-order gap so nothing from the strip renders "through" it. */}
-      <div
-        className="absolute pointer-events-none"
-        style={{
-          zIndex: 2,
-          left: 0,
-          width: BARRIER_EDGE,
-          top: "50%",
-          transform: "translateY(-50%)",
-          height: BARRIER_HEIGHT,
-          bottom: `calc(env(safe-area-inset-bottom) + ${CAPTURE_ROW_BOTTOM}px)`,
-          background: "transparent",
-        }}
-      />
-
-      {/* Hard mask on the filmstrip itself does the actual clipping — instant cutoff, no gradient */}
-      <style>{`
-        .oak-filter-strip {
-          -webkit-mask-image: linear-gradient(to right, transparent ${BARRIER_EDGE}px, black ${BARRIER_EDGE}px);
-          mask-image: linear-gradient(to right, transparent ${BARRIER_EDGE}px, black ${BARRIER_EDGE}px);
-        }
-      `}</style>
-
-      {/* Rotate button — layer 3, above the occluder */}
       <button
-        onClick={() => setFacing((f) => (f === "user" ? "environment" : "user"))}
+        onClick={() => !isRecording && setFacing((f) => (f === "user" ? "environment" : "user"))}
         aria-label="Flip camera"
         className="absolute flex items-center justify-center rounded-full transition-transform duration-150 active:scale-90"
         style={{
@@ -365,14 +430,14 @@ function CreatePage() {
           height: ROTATE_SIZE,
           background: "rgba(255,255,255,0.10)",
           backdropFilter: "blur(12px)",
+          opacity: isRecording ? 0.4 : 1,
         }}
       >
         <RefreshCw size={18} />
       </button>
 
-      {/* Shutter ring */}
       <div
-        className="absolute pointer-events-none rounded-full"
+        className="absolute pointer-events-none rounded-full transition-colors duration-200"
         style={{
           zIndex: 2,
           left: "50%",
@@ -380,14 +445,13 @@ function CreatePage() {
           bottom: `calc(env(safe-area-inset-bottom) + ${CAPTURE_ROW_BOTTOM}px)`,
           width: CAPTURE_SIZE,
           height: CAPTURE_SIZE,
-          border: "4px solid rgba(255,255,255,0.9)",
+          border: `4px solid ${isRecording ? "#ef4444" : "rgba(255,255,255,0.9)"}`,
         }}
       />
 
-      {/* Tap layer for capture */}
       <button
-        onClick={handleCapture}
-        aria-label={mode === "photo" ? "Take photo" : "Record video"}
+        onClick={handleCaptureTap}
+        aria-label={mode === "photo" ? "Take photo" : isRecording ? "Stop recording" : "Start recording"}
         className="absolute rounded-full"
         style={{
           zIndex: 4,
@@ -400,11 +464,7 @@ function CreatePage() {
         }}
       />
 
-      {/* Bottom-most row */}
-      <div
-        className="absolute left-0 right-0 flex items-center justify-center gap-8"
-        style={{ bottom: "calc(env(safe-area-inset-bottom) + 16px)" }}
-      >
+      <div className="absolute left-0 right-0 flex items-center justify-center gap-8" style={{ bottom: "calc(env(safe-area-inset-bottom) + 16px)" }}>
         <button
           aria-label="Import from gallery"
           onClick={() => galleryInputRef.current?.click()}
@@ -421,23 +481,19 @@ function CreatePage() {
           className="hidden"
           onChange={(e) => {
             const file = e.target.files?.[0];
-            if (file) console.log("Selected from gallery:", file.name, file.type);
+            if (file) {
+              const url = URL.createObjectURL(file);
+              setPendingCapture({ type: file.type.startsWith("video") ? "video" : "photo", blob: file, url });
+              navigate({ to: "/create/after-shot" });
+            }
             e.target.value = "";
           }}
         />
 
-        <button
-          onClick={() => setSection("shoot")}
-          className="uppercase text-sm font-bold tracking-wide"
-          style={{ opacity: section === "shoot" ? 1 : 0.5 }}
-        >
+        <button onClick={() => setSection("shoot")} className="uppercase text-sm font-bold tracking-wide" style={{ opacity: section === "shoot" ? 1 : 0.5 }}>
           Shoot
         </button>
-        <button
-          onClick={() => setSection("compose")}
-          className="uppercase text-sm font-bold tracking-wide"
-          style={{ opacity: section === "compose" ? 1 : 0.5 }}
-        >
+        <button onClick={() => setSection("compose")} className="uppercase text-sm font-bold tracking-wide" style={{ opacity: section === "compose" ? 1 : 0.5 }}>
           Compose
         </button>
       </div>

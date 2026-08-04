@@ -9,135 +9,38 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as WhereDidYouHearAboutUsRouteImport } from './routes/where-did-you-hear-about-us'
-import { Route as TermsRouteImport } from './routes/terms'
-import { Route as StudioRouteImport } from './routes/studio'
-import { Route as StoreRouteImport } from './routes/store'
-import { Route as SettingsRouteImport } from './routes/settings'
-import { Route as SetUpStoreRouteImport } from './routes/set-up-store'
-import { Route as SellerTypeRouteImport } from './routes/seller-type'
-import { Route as ProductCategoryRouteImport } from './routes/product-category'
-import { Route as PrivacyRouteImport } from './routes/privacy'
-import { Route as PhoneNumberRouteImport } from './routes/phone-number'
-import { Route as OfflineVideosRouteImport } from './routes/offline-videos'
-import { Route as NoAccountRouteImport } from './routes/no-account'
-import { Route as NameYourStoreRouteImport } from './routes/name-your-store'
-import { Route as HomeRouteImport } from './routes/home'
-import { Route as FindYourFitRouteImport } from './routes/find-your-fit'
-import { Route as EditProfileRouteImport } from './routes/edit-profile'
-import { Route as CreatorNicheRouteImport } from './routes/creator-niche'
-import { Route as CreateRouteImport } from './routes/create'
-import { Route as ChooseUsernameRouteImport } from './routes/choose-username'
-import { Route as BecomeACuratorRouteImport } from './routes/become-a-curator'
-import { Route as BecomeACreatorRouteImport } from './routes/become-a-creator'
-import { Route as ActivityRouteImport } from './routes/activity'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ProfileUsernameRouteImport } from './routes/profile.$username'
+import { Route as ActivityRouteImport } from './routes/activity'
+import { Route as BecomeACreatorRouteImport } from './routes/become-a-creator'
+import { Route as BecomeACuratorRouteImport } from './routes/become-a-curator'
+import { Route as ChooseUsernameRouteImport } from './routes/choose-username'
+import { Route as CreateRouteImport } from './routes/create'
+import { Route as CreatorNicheRouteImport } from './routes/creator-niche'
+import { Route as EditProfileRouteImport } from './routes/edit-profile'
+import { Route as FindYourFitRouteImport } from './routes/find-your-fit'
+import { Route as HomeRouteImport } from './routes/home'
+import { Route as NameYourStoreRouteImport } from './routes/name-your-store'
+import { Route as NoAccountRouteImport } from './routes/no-account'
+import { Route as OfflineVideosRouteImport } from './routes/offline-videos'
+import { Route as PhoneNumberRouteImport } from './routes/phone-number'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as ProductCategoryRouteImport } from './routes/product-category'
+import { Route as SellerTypeRouteImport } from './routes/seller-type'
+import { Route as SetUpStoreRouteImport } from './routes/set-up-store'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as StoreRouteImport } from './routes/store'
+import { Route as StudioRouteImport } from './routes/studio'
+import { Route as TermsRouteImport } from './routes/terms'
+import { Route as WhereDidYouHearAboutUsRouteImport } from './routes/where-did-you-hear-about-us'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
+import { Route as CreateAfterShotRouteImport } from './routes/create.after-shot'
+import { Route as ProfileUsernameRouteImport } from './routes/profile.$username'
+import { Route as CreateAfterShotIndexRouteImport } from './routes/create.after-shot.index'
+import { Route as CreateAfterShotEditRouteImport } from './routes/create.after-shot.edit'
 
-const WhereDidYouHearAboutUsRoute = WhereDidYouHearAboutUsRouteImport.update({
-  id: '/where-did-you-hear-about-us',
-  path: '/where-did-you-hear-about-us',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TermsRoute = TermsRouteImport.update({
-  id: '/terms',
-  path: '/terms',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const StudioRoute = StudioRouteImport.update({
-  id: '/studio',
-  path: '/studio',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const StoreRoute = StoreRouteImport.update({
-  id: '/store',
-  path: '/store',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SettingsRoute = SettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SetUpStoreRoute = SetUpStoreRouteImport.update({
-  id: '/set-up-store',
-  path: '/set-up-store',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SellerTypeRoute = SellerTypeRouteImport.update({
-  id: '/seller-type',
-  path: '/seller-type',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProductCategoryRoute = ProductCategoryRouteImport.update({
-  id: '/product-category',
-  path: '/product-category',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PrivacyRoute = PrivacyRouteImport.update({
-  id: '/privacy',
-  path: '/privacy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PhoneNumberRoute = PhoneNumberRouteImport.update({
-  id: '/phone-number',
-  path: '/phone-number',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OfflineVideosRoute = OfflineVideosRouteImport.update({
-  id: '/offline-videos',
-  path: '/offline-videos',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const NoAccountRoute = NoAccountRouteImport.update({
-  id: '/no-account',
-  path: '/no-account',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const NameYourStoreRoute = NameYourStoreRouteImport.update({
-  id: '/name-your-store',
-  path: '/name-your-store',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const HomeRoute = HomeRouteImport.update({
-  id: '/home',
-  path: '/home',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FindYourFitRoute = FindYourFitRouteImport.update({
-  id: '/find-your-fit',
-  path: '/find-your-fit',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const EditProfileRoute = EditProfileRouteImport.update({
-  id: '/edit-profile',
-  path: '/edit-profile',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CreatorNicheRoute = CreatorNicheRouteImport.update({
-  id: '/creator-niche',
-  path: '/creator-niche',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CreateRoute = CreateRouteImport.update({
-  id: '/create',
-  path: '/create',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ChooseUsernameRoute = ChooseUsernameRouteImport.update({
-  id: '/choose-username',
-  path: '/choose-username',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BecomeACuratorRoute = BecomeACuratorRouteImport.update({
-  id: '/become-a-curator',
-  path: '/become-a-curator',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BecomeACreatorRoute = BecomeACreatorRouteImport.update({
-  id: '/become-a-creator',
-  path: '/become-a-creator',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ActivityRoute = ActivityRouteImport.update({
@@ -145,20 +48,135 @@ const ActivityRoute = ActivityRouteImport.update({
   path: '/activity',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const BecomeACreatorRoute = BecomeACreatorRouteImport.update({
+  id: '/become-a-creator',
+  path: '/become-a-creator',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ProfileUsernameRoute = ProfileUsernameRouteImport.update({
-  id: '/profile/$username',
-  path: '/profile/$username',
+const BecomeACuratorRoute = BecomeACuratorRouteImport.update({
+  id: '/become-a-curator',
+  path: '/become-a-curator',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChooseUsernameRoute = ChooseUsernameRouteImport.update({
+  id: '/choose-username',
+  path: '/choose-username',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CreateRoute = CreateRouteImport.update({
+  id: '/create',
+  path: '/create',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CreatorNicheRoute = CreatorNicheRouteImport.update({
+  id: '/creator-niche',
+  path: '/creator-niche',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EditProfileRoute = EditProfileRouteImport.update({
+  id: '/edit-profile',
+  path: '/edit-profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FindYourFitRoute = FindYourFitRouteImport.update({
+  id: '/find-your-fit',
+  path: '/find-your-fit',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HomeRoute = HomeRouteImport.update({
+  id: '/home',
+  path: '/home',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NameYourStoreRoute = NameYourStoreRouteImport.update({
+  id: '/name-your-store',
+  path: '/name-your-store',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NoAccountRoute = NoAccountRouteImport.update({
+  id: '/no-account',
+  path: '/no-account',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OfflineVideosRoute = OfflineVideosRouteImport.update({
+  id: '/offline-videos',
+  path: '/offline-videos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PhoneNumberRoute = PhoneNumberRouteImport.update({
+  id: '/phone-number',
+  path: '/phone-number',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProductCategoryRoute = ProductCategoryRouteImport.update({
+  id: '/product-category',
+  path: '/product-category',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SellerTypeRoute = SellerTypeRouteImport.update({
+  id: '/seller-type',
+  path: '/seller-type',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SetUpStoreRoute = SetUpStoreRouteImport.update({
+  id: '/set-up-store',
+  path: '/set-up-store',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StoreRoute = StoreRouteImport.update({
+  id: '/store',
+  path: '/store',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StudioRoute = StudioRouteImport.update({
+  id: '/studio',
+  path: '/studio',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WhereDidYouHearAboutUsRoute = WhereDidYouHearAboutUsRouteImport.update({
+  id: '/where-did-you-hear-about-us',
+  path: '/where-did-you-hear-about-us',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthCallbackRoute = AuthCallbackRouteImport.update({
   id: '/auth/callback',
   path: '/auth/callback',
   getParentRoute: () => rootRouteImport,
+} as any)
+const CreateAfterShotRoute = CreateAfterShotRouteImport.update({
+  id: '/after-shot',
+  path: '/after-shot',
+  getParentRoute: () => CreateRoute,
+} as any)
+const ProfileUsernameRoute = ProfileUsernameRouteImport.update({
+  id: '/profile/$username',
+  path: '/profile/$username',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CreateAfterShotIndexRoute = CreateAfterShotIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => CreateAfterShotRoute,
+} as any)
+const CreateAfterShotEditRoute = CreateAfterShotEditRouteImport.update({
+  id: '/edit',
+  path: '/edit',
+  getParentRoute: () => CreateAfterShotRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -167,7 +185,7 @@ export interface FileRoutesByFullPath {
   '/become-a-creator': typeof BecomeACreatorRoute
   '/become-a-curator': typeof BecomeACuratorRoute
   '/choose-username': typeof ChooseUsernameRoute
-  '/create': typeof CreateRoute
+  '/create': typeof CreateRouteWithChildren
   '/creator-niche': typeof CreatorNicheRoute
   '/edit-profile': typeof EditProfileRoute
   '/find-your-fit': typeof FindYourFitRoute
@@ -186,7 +204,10 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/where-did-you-hear-about-us': typeof WhereDidYouHearAboutUsRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/create/after-shot': typeof CreateAfterShotRouteWithChildren
   '/profile/$username': typeof ProfileUsernameRoute
+  '/create/after-shot/edit': typeof CreateAfterShotEditRoute
+  '/create/after-shot/': typeof CreateAfterShotIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -194,7 +215,7 @@ export interface FileRoutesByTo {
   '/become-a-creator': typeof BecomeACreatorRoute
   '/become-a-curator': typeof BecomeACuratorRoute
   '/choose-username': typeof ChooseUsernameRoute
-  '/create': typeof CreateRoute
+  '/create': typeof CreateRouteWithChildren
   '/creator-niche': typeof CreatorNicheRoute
   '/edit-profile': typeof EditProfileRoute
   '/find-your-fit': typeof FindYourFitRoute
@@ -214,6 +235,8 @@ export interface FileRoutesByTo {
   '/where-did-you-hear-about-us': typeof WhereDidYouHearAboutUsRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/profile/$username': typeof ProfileUsernameRoute
+  '/create/after-shot/edit': typeof CreateAfterShotEditRoute
+  '/create/after-shot': typeof CreateAfterShotIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -222,7 +245,7 @@ export interface FileRoutesById {
   '/become-a-creator': typeof BecomeACreatorRoute
   '/become-a-curator': typeof BecomeACuratorRoute
   '/choose-username': typeof ChooseUsernameRoute
-  '/create': typeof CreateRoute
+  '/create': typeof CreateRouteWithChildren
   '/creator-niche': typeof CreatorNicheRoute
   '/edit-profile': typeof EditProfileRoute
   '/find-your-fit': typeof FindYourFitRoute
@@ -241,7 +264,10 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/where-did-you-hear-about-us': typeof WhereDidYouHearAboutUsRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/create/after-shot': typeof CreateAfterShotRouteWithChildren
   '/profile/$username': typeof ProfileUsernameRoute
+  '/create/after-shot/edit': typeof CreateAfterShotEditRoute
+  '/create/after-shot/': typeof CreateAfterShotIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -270,7 +296,10 @@ export interface FileRouteTypes {
     | '/terms'
     | '/where-did-you-hear-about-us'
     | '/auth/callback'
+    | '/create/after-shot'
     | '/profile/$username'
+    | '/create/after-shot/edit'
+    | '/create/after-shot/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -298,6 +327,8 @@ export interface FileRouteTypes {
     | '/where-did-you-hear-about-us'
     | '/auth/callback'
     | '/profile/$username'
+    | '/create/after-shot/edit'
+    | '/create/after-shot'
   id:
     | '__root__'
     | '/'
@@ -324,7 +355,10 @@ export interface FileRouteTypes {
     | '/terms'
     | '/where-did-you-hear-about-us'
     | '/auth/callback'
+    | '/create/after-shot'
     | '/profile/$username'
+    | '/create/after-shot/edit'
+    | '/create/after-shot/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -333,7 +367,7 @@ export interface RootRouteChildren {
   BecomeACreatorRoute: typeof BecomeACreatorRoute
   BecomeACuratorRoute: typeof BecomeACuratorRoute
   ChooseUsernameRoute: typeof ChooseUsernameRoute
-  CreateRoute: typeof CreateRoute
+  CreateRoute: typeof CreateRouteWithChildren
   CreatorNicheRoute: typeof CreatorNicheRoute
   EditProfileRoute: typeof EditProfileRoute
   FindYourFitRoute: typeof FindYourFitRoute
@@ -357,151 +391,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/where-did-you-hear-about-us': {
-      id: '/where-did-you-hear-about-us'
-      path: '/where-did-you-hear-about-us'
-      fullPath: '/where-did-you-hear-about-us'
-      preLoaderRoute: typeof WhereDidYouHearAboutUsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/terms': {
-      id: '/terms'
-      path: '/terms'
-      fullPath: '/terms'
-      preLoaderRoute: typeof TermsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/studio': {
-      id: '/studio'
-      path: '/studio'
-      fullPath: '/studio'
-      preLoaderRoute: typeof StudioRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/store': {
-      id: '/store'
-      path: '/store'
-      fullPath: '/store'
-      preLoaderRoute: typeof StoreRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/settings': {
-      id: '/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof SettingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/set-up-store': {
-      id: '/set-up-store'
-      path: '/set-up-store'
-      fullPath: '/set-up-store'
-      preLoaderRoute: typeof SetUpStoreRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/seller-type': {
-      id: '/seller-type'
-      path: '/seller-type'
-      fullPath: '/seller-type'
-      preLoaderRoute: typeof SellerTypeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/product-category': {
-      id: '/product-category'
-      path: '/product-category'
-      fullPath: '/product-category'
-      preLoaderRoute: typeof ProductCategoryRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/privacy': {
-      id: '/privacy'
-      path: '/privacy'
-      fullPath: '/privacy'
-      preLoaderRoute: typeof PrivacyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/phone-number': {
-      id: '/phone-number'
-      path: '/phone-number'
-      fullPath: '/phone-number'
-      preLoaderRoute: typeof PhoneNumberRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/offline-videos': {
-      id: '/offline-videos'
-      path: '/offline-videos'
-      fullPath: '/offline-videos'
-      preLoaderRoute: typeof OfflineVideosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/no-account': {
-      id: '/no-account'
-      path: '/no-account'
-      fullPath: '/no-account'
-      preLoaderRoute: typeof NoAccountRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/name-your-store': {
-      id: '/name-your-store'
-      path: '/name-your-store'
-      fullPath: '/name-your-store'
-      preLoaderRoute: typeof NameYourStoreRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/home': {
-      id: '/home'
-      path: '/home'
-      fullPath: '/home'
-      preLoaderRoute: typeof HomeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/find-your-fit': {
-      id: '/find-your-fit'
-      path: '/find-your-fit'
-      fullPath: '/find-your-fit'
-      preLoaderRoute: typeof FindYourFitRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/edit-profile': {
-      id: '/edit-profile'
-      path: '/edit-profile'
-      fullPath: '/edit-profile'
-      preLoaderRoute: typeof EditProfileRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/creator-niche': {
-      id: '/creator-niche'
-      path: '/creator-niche'
-      fullPath: '/creator-niche'
-      preLoaderRoute: typeof CreatorNicheRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/create': {
-      id: '/create'
-      path: '/create'
-      fullPath: '/create'
-      preLoaderRoute: typeof CreateRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/choose-username': {
-      id: '/choose-username'
-      path: '/choose-username'
-      fullPath: '/choose-username'
-      preLoaderRoute: typeof ChooseUsernameRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/become-a-curator': {
-      id: '/become-a-curator'
-      path: '/become-a-curator'
-      fullPath: '/become-a-curator'
-      preLoaderRoute: typeof BecomeACuratorRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/become-a-creator': {
-      id: '/become-a-creator'
-      path: '/become-a-creator'
-      fullPath: '/become-a-creator'
-      preLoaderRoute: typeof BecomeACreatorRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/activity': {
@@ -511,18 +405,151 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ActivityRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/become-a-creator': {
+      id: '/become-a-creator'
+      path: '/become-a-creator'
+      fullPath: '/become-a-creator'
+      preLoaderRoute: typeof BecomeACreatorRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/profile/$username': {
-      id: '/profile/$username'
-      path: '/profile/$username'
-      fullPath: '/profile/$username'
-      preLoaderRoute: typeof ProfileUsernameRouteImport
+    '/become-a-curator': {
+      id: '/become-a-curator'
+      path: '/become-a-curator'
+      fullPath: '/become-a-curator'
+      preLoaderRoute: typeof BecomeACuratorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/choose-username': {
+      id: '/choose-username'
+      path: '/choose-username'
+      fullPath: '/choose-username'
+      preLoaderRoute: typeof ChooseUsernameRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/create': {
+      id: '/create'
+      path: '/create'
+      fullPath: '/create'
+      preLoaderRoute: typeof CreateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/creator-niche': {
+      id: '/creator-niche'
+      path: '/creator-niche'
+      fullPath: '/creator-niche'
+      preLoaderRoute: typeof CreatorNicheRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/edit-profile': {
+      id: '/edit-profile'
+      path: '/edit-profile'
+      fullPath: '/edit-profile'
+      preLoaderRoute: typeof EditProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/find-your-fit': {
+      id: '/find-your-fit'
+      path: '/find-your-fit'
+      fullPath: '/find-your-fit'
+      preLoaderRoute: typeof FindYourFitRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/home': {
+      id: '/home'
+      path: '/home'
+      fullPath: '/home'
+      preLoaderRoute: typeof HomeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/name-your-store': {
+      id: '/name-your-store'
+      path: '/name-your-store'
+      fullPath: '/name-your-store'
+      preLoaderRoute: typeof NameYourStoreRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/no-account': {
+      id: '/no-account'
+      path: '/no-account'
+      fullPath: '/no-account'
+      preLoaderRoute: typeof NoAccountRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/offline-videos': {
+      id: '/offline-videos'
+      path: '/offline-videos'
+      fullPath: '/offline-videos'
+      preLoaderRoute: typeof OfflineVideosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/phone-number': {
+      id: '/phone-number'
+      path: '/phone-number'
+      fullPath: '/phone-number'
+      preLoaderRoute: typeof PhoneNumberRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/product-category': {
+      id: '/product-category'
+      path: '/product-category'
+      fullPath: '/product-category'
+      preLoaderRoute: typeof ProductCategoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/seller-type': {
+      id: '/seller-type'
+      path: '/seller-type'
+      fullPath: '/seller-type'
+      preLoaderRoute: typeof SellerTypeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/set-up-store': {
+      id: '/set-up-store'
+      path: '/set-up-store'
+      fullPath: '/set-up-store'
+      preLoaderRoute: typeof SetUpStoreRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/store': {
+      id: '/store'
+      path: '/store'
+      fullPath: '/store'
+      preLoaderRoute: typeof StoreRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/studio': {
+      id: '/studio'
+      path: '/studio'
+      fullPath: '/studio'
+      preLoaderRoute: typeof StudioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/where-did-you-hear-about-us': {
+      id: '/where-did-you-hear-about-us'
+      path: '/where-did-you-hear-about-us'
+      fullPath: '/where-did-you-hear-about-us'
+      preLoaderRoute: typeof WhereDidYouHearAboutUsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/callback': {
@@ -532,8 +559,61 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/create/after-shot': {
+      id: '/create/after-shot'
+      path: '/after-shot'
+      fullPath: '/create/after-shot'
+      preLoaderRoute: typeof CreateAfterShotRouteImport
+      parentRoute: typeof CreateRoute
+    }
+    '/profile/$username': {
+      id: '/profile/$username'
+      path: '/profile/$username'
+      fullPath: '/profile/$username'
+      preLoaderRoute: typeof ProfileUsernameRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/create/after-shot/': {
+      id: '/create/after-shot/'
+      path: '/'
+      fullPath: '/create/after-shot/'
+      preLoaderRoute: typeof CreateAfterShotIndexRouteImport
+      parentRoute: typeof CreateAfterShotRoute
+    }
+    '/create/after-shot/edit': {
+      id: '/create/after-shot/edit'
+      path: '/edit'
+      fullPath: '/create/after-shot/edit'
+      preLoaderRoute: typeof CreateAfterShotEditRouteImport
+      parentRoute: typeof CreateAfterShotRoute
+    }
   }
 }
+
+interface CreateAfterShotRouteChildren {
+  CreateAfterShotEditRoute: typeof CreateAfterShotEditRoute
+  CreateAfterShotIndexRoute: typeof CreateAfterShotIndexRoute
+}
+
+const CreateAfterShotRouteChildren: CreateAfterShotRouteChildren = {
+  CreateAfterShotEditRoute: CreateAfterShotEditRoute,
+  CreateAfterShotIndexRoute: CreateAfterShotIndexRoute,
+}
+
+const CreateAfterShotRouteWithChildren = CreateAfterShotRoute._addFileChildren(
+  CreateAfterShotRouteChildren,
+)
+
+interface CreateRouteChildren {
+  CreateAfterShotRoute: typeof CreateAfterShotRouteWithChildren
+}
+
+const CreateRouteChildren: CreateRouteChildren = {
+  CreateAfterShotRoute: CreateAfterShotRouteWithChildren,
+}
+
+const CreateRouteWithChildren =
+  CreateRoute._addFileChildren(CreateRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -541,7 +621,7 @@ const rootRouteChildren: RootRouteChildren = {
   BecomeACreatorRoute: BecomeACreatorRoute,
   BecomeACuratorRoute: BecomeACuratorRoute,
   ChooseUsernameRoute: ChooseUsernameRoute,
-  CreateRoute: CreateRoute,
+  CreateRoute: CreateRouteWithChildren,
   CreatorNicheRoute: CreatorNicheRoute,
   EditProfileRoute: EditProfileRoute,
   FindYourFitRoute: FindYourFitRoute,
@@ -565,3 +645,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
