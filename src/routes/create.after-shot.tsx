@@ -26,7 +26,9 @@ function AfterShotLayout() {
 
   useEffect(() => {
     const pending = takePendingCapture();
+    console.log("AfterShotLayout mounted, got pending:", pending);
     if (!pending) {
+      console.log("No pending capture — redirecting to /create");
       navigate({ to: "/create", replace: true });
       return;
     }

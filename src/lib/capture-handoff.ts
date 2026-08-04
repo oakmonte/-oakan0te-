@@ -8,11 +8,13 @@ export type CapturedMedia = { type: "photo" | "video"; blob: Blob; url: string }
 let pending: CapturedMedia | null = null;
 
 export function setPendingCapture(media: CapturedMedia) {
+  console.log("setPendingCapture called:", media.type, media.blob.size);
   if (pending) URL.revokeObjectURL(pending.url);
   pending = media;
 }
 
 export function takePendingCapture(): CapturedMedia | null {
+  console.log("takePendingCapture called, pending was:", pending ? pending.type : null);
   const media = pending;
   pending = null;
   return media;

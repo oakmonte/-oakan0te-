@@ -166,38 +166,43 @@ function CreatePage() {
   }, []);
 
   const capturePhoto = useCallback(() => {
-    console.log("capturePhoto called");
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    if (!video || !canvas) { console.log("missing video/canvas ref"); return; }
-    if (video.readyState < 2 || video.videoWidth === 0) {
-      console.warn("Camera not ready yet", video.readyState, video.videoWidth);
-      return;
-    }
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+  console.log("capturePhoto called");
+  const video = videoRef.current;
+  const canvas = canvasRef.current;
+  if (!video || !canvas) {
+    console.log("missing video/canvas ref");
+    return;
+  }
+  if (video.readyState < 2 || video.videoWidth === 0) {
+    console.warn("Camera not ready yet", video.readyState, video.videoWidth);
+    return;
+  }
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
 
-    if (facing === "user") {
-      ctx.translate(canvas.width, 0);
-      ctx.scale(-1, 1);
-    }
+  if (facing === "user") {
+    ctx.translate(canvas.width, 0);
+    ctx.scale(-1, 1);
+  }
 
-    ctx.filter = currentFilterCss;
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  ctx.filter = currentFilterCss;
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    canvas.toBlob(
-      (blob) => {
-        if (!blob) return;
-        const url = URL.createObjectURL(blob);
-        setPendingCapture({ type: "photo", blob, url });
-        navigate({ to: "/create/after-shot" });
-      },
-      "image/jpeg",
-      0.92,
-    );
-  }, [facing, currentFilterCss, navigate]);
+  canvas.toBlob(
+    (blob) => {
+      console.log("toBlob result:", blob);
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
+      setPendingCapture({ type: "photo", blob, url });
+      console.log("about to navigate to after-shot");
+      navigate({ to: "/create/after-shot" });
+    },
+    "image/jpeg",
+    0.92,
+  );
+}, [facing, currentFilterCss, navigate]);
 
   const startRecording = useCallback(() => {
     const stream = streamRef.current;
