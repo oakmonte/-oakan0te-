@@ -166,11 +166,12 @@ function CreatePage() {
   }, []);
 
   const capturePhoto = useCallback(() => {
+    console.log("capturePhoto called");
     const video = videoRef.current;
     const canvas = canvasRef.current;
-    if (!video || !canvas) return;
+    if (!video || !canvas) { console.log("missing video/canvas ref"); return; }
     if (video.readyState < 2 || video.videoWidth === 0) {
-      console.warn("Camera not ready yet — check permissions/HTTPS.");
+      console.warn("Camera not ready yet", video.readyState, video.videoWidth);
       return;
     }
     canvas.width = video.videoWidth;
@@ -215,7 +216,9 @@ function CreatePage() {
       if (e.data.size > 0) recordedChunksRef.current.push(e.data);
     };
     recorder.onstop = () => {
+      console.log("onstop fired, chunks:", recordedChunksRef.current.length);
       const blob = new Blob(recordedChunksRef.current, { type: mimeType || "video/webm" });
+      console.log("blob size:", blob.size);
       const url = URL.createObjectURL(blob);
       setPendingCapture({ type: "video", blob, url });
       navigate({ to: "/create/after-shot" });
