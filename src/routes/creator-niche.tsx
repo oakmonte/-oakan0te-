@@ -103,7 +103,7 @@ function CreatorNichePage() {
       <div className="w-full max-w-sm text-center">
         <h1 className="font-serif text-4xl sm:text-5xl leading-tight mb-3">What's your niche?</h1>
         <p className="text-sm text-brand-text/70 mb-8">
-          Pick as many as fit — you can update this anytime.
+          Pick that many as fit — you can update this anytime.
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
