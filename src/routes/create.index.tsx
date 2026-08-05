@@ -70,6 +70,8 @@ function CreatePage() {
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
+  const mirrorDrawLoopRef = useRef<number | null>(null);
+  const mirrorCanvasStreamRef = useRef<MediaStream | null>(null);
 
   const [facing, setFacing] = useState<"user" | "environment">("user");
   const [flashOn, setFlashOn] = useState(false);
@@ -166,48 +168,102 @@ function CreatePage() {
   }, []);
 
   const capturePhoto = useCallback(() => {
-  console.log("capturePhoto called");
-  const video = videoRef.current;
-  const canvas = canvasRef.current;
-  if (!video || !canvas) {
-    console.log("missing video/canvas ref");
-    return;
-  }
-  if (video.readyState < 2 || video.videoWidth === 0) {
-    console.warn("Camera not ready yet", video.readyState, video.videoWidth);
-    return;
-  }
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return;
+    console.log("capturePhoto called");
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!video || !canvas) {
+      console.log("missing video/canvas ref");
+      return;
+    }
+    if (video.readyState < 2 || video.videoWidth === 0) {
+      console.warn("Camera not ready yet", video.readyState, video.videoWidth);
+      return;
+    }
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
 
-  if (facing === "user") {
-    ctx.translate(canvas.width, 0);
-    ctx.scale(-1, 1);
-  }
+    if (facing === "user") {
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+    }
 
-  ctx.filter = currentFilterCss;
-  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    ctx.filter = currentFilterCss;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-  canvas.toBlob(
-    (blob) => {
-      console.log("toBlob result:", blob);
-      if (!blob) return;
-      const url = URL.createObjectURL(blob);
-      setPendingCapture({ type: "photo", blob, url });
-      console.log("about to navigate to after-shot");
-      navigate({ to: "/create/after-shot" });
-    },
-    "image/jpeg",
-    0.92,
-  );
-}, [facing, currentFilterCss, navigate]);
+    canvas.toBlob(
+      (blob) => {
+        console.log("toBlob result:", blob);
+        if (!blob) return;
+        const url = URL.createObjectURL(blob);
+        setPendingCapture({ type: "photo", blob, url });
+        console.log("about to navigate to after-shot");
+        navigate({ to: "/create/after-shot" });
+      },
+      "image/jpeg",
+      0.92,
+    );
+  }, [facing, currentFilterCss, navigate]);
+
+  const stopMirrorDrawLoop = useCallback(() => {
+    if (mirrorDrawLoopRef.current !== null) {
+      cancelAnimationFrame(mirrorDrawLoopRef.current);
+      mirrorDrawLoopRef.current = null;
+    }
+    mirrorCanvasStreamRef.current?.getTracks().forEach((t) => t.stop());
+    mirrorCanvasStreamRef.current = null;
+  }, []);
 
   const startRecording = useCallback(() => {
     const stream = streamRef.current;
-    if (!stream) return;
+    const video = videoRef.current;
+    if (!stream || !video) return;
     recordedChunksRef.current = [];
+
+    // Always route recording through a canvas now, for two reasons:
+    // 1. Front camera preview is mirrored via CSS for a natural selfie feel,
+    //    but the raw stream underneath isn't — MediaRecorder can't apply a
+    //    CSS transform, so we redraw mirrored frames ourselves.
+    // 2. Filters are CSS-only on the live preview and never touch the actual
+    //    stream — baking them into the canvas draw is the only way they end
+    //    up in the saved file, for either camera.
+    // The filter is locked in at the moment recording starts (matches the
+    // filter strip becoming non-interactive during isRecording) rather than
+    // updating live mid-recording.
+    let recordingStream: MediaStream = stream;
+
+    if (video.videoWidth > 0) {
+      const recordCanvas = document.createElement("canvas");
+      recordCanvas.width = video.videoWidth;
+      recordCanvas.height = video.videoHeight;
+      const rctx = recordCanvas.getContext("2d");
+
+      if (rctx) {
+        const filterAtStart = currentFilterCss;
+        const shouldMirror = facing === "user";
+
+        const drawFrame = () => {
+          rctx.save();
+          if (shouldMirror) {
+            rctx.translate(recordCanvas.width, 0);
+            rctx.scale(-1, 1);
+          }
+          rctx.filter = filterAtStart;
+          rctx.drawImage(video, 0, 0, recordCanvas.width, recordCanvas.height);
+          rctx.restore();
+          mirrorDrawLoopRef.current = requestAnimationFrame(drawFrame);
+        };
+        drawFrame();
+
+        const canvasStream = recordCanvas.captureStream(30);
+        stream.getAudioTracks().forEach((track) => canvasStream.addTrack(track));
+
+        mirrorCanvasStreamRef.current = canvasStream;
+        recordingStream = canvasStream;
+      }
+    }
+
     const candidates = [
       "video/webm;codecs=vp9",
       "video/webm;codecs=vp8",
@@ -215,13 +271,14 @@ function CreatePage() {
       "video/mp4",
     ];
     const mimeType = candidates.find((t) => MediaRecorder.isTypeSupported(t)) ?? "";
-    const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+    const recorder = new MediaRecorder(recordingStream, mimeType ? { mimeType } : undefined);
 
     recorder.ondataavailable = (e) => {
       if (e.data.size > 0) recordedChunksRef.current.push(e.data);
     };
     recorder.onstop = () => {
       console.log("onstop fired, chunks:", recordedChunksRef.current.length);
+      stopMirrorDrawLoop();
       const blob = new Blob(recordedChunksRef.current, { type: mimeType || "video/webm" });
       console.log("blob size:", blob.size);
       const url = URL.createObjectURL(blob);
@@ -242,8 +299,7 @@ function CreatePage() {
         setIsPaused(false);
       }
     }, 60_000);
-  }, [navigate]);
-
+  }, [navigate, facing, currentFilterCss, stopMirrorDrawLoop]);
   const stopRecording = useCallback(() => {
     mediaRecorderRef.current?.stop();
     setIsRecording(false);
