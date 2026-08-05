@@ -6,6 +6,7 @@ import {
   Pause, Play, Square,
 } from "lucide-react";
 
+import { compileFilter, applyCompiledFilter } from "@/lib/canvas-filter";
 import { setPendingCapture } from "@/lib/capture-handoff";
 
 export const Route = createFileRoute("/create/")({
@@ -183,14 +184,22 @@ function CreatePage() {
     canvas.height = video.videoHeight;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
+    const compiledFilter = compileFilter(currentFilterCss);
 
-    if (facing === "user") {
-      ctx.translate(canvas.width, 0);
-      ctx.scale(-1, 1);
-    }
+  if (facing === "user") {
+    ctx.translate(canvas.width, 0);
+    ctx.scale(-1, 1);
+  }
 
-    ctx.filter = currentFilterCss;
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  // was: ctx.filter = currentFilterCss;
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+  const compiled = compileFilter(currentFilterCss);
+  if (compiled !== IDENTITY_FILTER as any) {
+    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    applyCompiledFilter(imgData, compiled);
+    ctx.putImageData(imgData, 0, 0);
+  }
 
     canvas.toBlob(
       (blob) => {
@@ -202,7 +211,7 @@ function CreatePage() {
         navigate({ to: "/create/after-shot" });
       },
       "image/jpeg",
-      0.92,
+      0.3,
     );
   }, [facing, currentFilterCss, navigate]);
 
@@ -240,7 +249,7 @@ function CreatePage() {
       const rctx = recordCanvas.getContext("2d");
 
       if (rctx) {
-        const filterAtStart = currentFilterCss;
+        const compiledFilterAtStart = compileFilter(currentFilterCss);
         const shouldMirror = facing === "user";
 
         const drawFrame = () => {
@@ -249,8 +258,10 @@ function CreatePage() {
             rctx.translate(recordCanvas.width, 0);
             rctx.scale(-1, 1);
           }
-          rctx.filter = filterAtStart;
           rctx.drawImage(video, 0, 0, recordCanvas.width, recordCanvas.height);
+          const frame = rctx.getImageData(0, 0, recordCanvas.width, recordCanvas.height);
+          applyCompiledFilter(frame, compiledFilterAtStart);
+          rctx.putImageData(frame, 0, 0);
           rctx.restore();
           mirrorDrawLoopRef.current = requestAnimationFrame(drawFrame);
         };
