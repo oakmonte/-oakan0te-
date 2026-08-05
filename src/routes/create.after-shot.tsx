@@ -7,7 +7,7 @@ export const Route = createFileRoute("/create/after-shot")({
 });
 
 type AfterShotContextValue = {
-  media: CapturedMedia;
+  media: CapturedMedia | null;
   setMedia: (media: CapturedMedia) => void;
   discard: () => void;
 };
@@ -23,16 +23,17 @@ export function useAfterShotContext() {
 function AfterShotLayout() {
   const navigate = useNavigate();
   const [media, setMediaState] = useState<CapturedMedia | null>(null);
+  const [checked, setChecked] = useState(false);
 
   useEffect(() => {
     const pending = takePendingCapture();
-    console.log("AfterShotLayout mounted, got pending:", pending);
     if (!pending) {
-      console.log("No pending capture — redirecting to /create");
+      setChecked(true);
       navigate({ to: "/create", replace: true });
       return;
     }
     setMediaState(pending);
+    setChecked(true);
     return () => URL.revokeObjectURL(pending.url);
   }, [navigate]);
 
@@ -48,11 +49,10 @@ function AfterShotLayout() {
     navigate({ to: "/create", replace: true });
   }, [media, navigate]);
 
-  if (!media) return <div className="fixed inset-0 bg-black" />;
-
+  // Context is always provided now — no more gating the Outlet on `media`.
   return (
     <AfterShotContext.Provider value={{ media, setMedia, discard }}>
-      <Outlet />
+      {checked && media ? <Outlet /> : <div className="fixed inset-0 bg-black" />}
     </AfterShotContext.Provider>
   );
 }
