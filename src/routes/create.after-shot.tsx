@@ -1,24 +1,11 @@
 import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
-import { createContext, useContext, useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { takePendingCapture, type CapturedMedia } from "@/lib/capture-handoff";
+import { AfterShotContext } from "@/lib/after-shot-context";
 
 export const Route = createFileRoute("/create/after-shot")({
   component: AfterShotLayout,
 });
-
-type AfterShotContextValue = {
-  media: CapturedMedia | null;
-  setMedia: (media: CapturedMedia) => void;
-  discard: () => void;
-};
-
-const AfterShotContext = createContext<AfterShotContextValue | null>(null);
-
-export function useAfterShotContext() {
-  const ctx = useContext(AfterShotContext);
-  if (!ctx) throw new Error("useAfterShotContext must be used within /create/after-shot");
-  return ctx;
-}
 
 function AfterShotLayout() {
   const navigate = useNavigate();
@@ -49,10 +36,11 @@ function AfterShotLayout() {
     navigate({ to: "/create", replace: true });
   }, [media, navigate]);
 
-  // Context is always provided now — no more gating the Outlet on `media`.
+  if (!checked || !media) return <div className="fixed inset-0 bg-black" />;
+
   return (
     <AfterShotContext.Provider value={{ media, setMedia, discard }}>
-      {checked && media ? <Outlet /> : <div className="fixed inset-0 bg-black" />}
+      <Outlet />
     </AfterShotContext.Provider>
   );
 }

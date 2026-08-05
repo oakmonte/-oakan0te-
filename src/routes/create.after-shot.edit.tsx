@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { X, Check } from "lucide-react";
-import { useAfterShotContext } from "./create.after-shot";
+import { useAfterShotContext } from "@/lib/after-shot-context";
 import { getVideoKeyframes, snapToNearestKeyframe, trimVideo } from "@/lib/video-trim";
 
 export const Route = createFileRoute("/create/after-shot/edit")({
