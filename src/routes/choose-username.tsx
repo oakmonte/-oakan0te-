@@ -71,7 +71,7 @@ function ChooseUsernamePage() {
       <div className="w-full max-w-sm text-center">
         <h1 className="font-serif text-4xl sm:text-5xl leading-tight mb-3">Choose a username</h1>
         <p className="text-sm text-brand-text/70 mb-8">
-          Your unique handle on Oakmonte — you can set a separate display name later.
+          Your personal unique handle on Oakmonte — you can set a separate display name later.
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-3">
