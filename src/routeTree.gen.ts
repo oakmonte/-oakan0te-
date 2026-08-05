@@ -33,6 +33,7 @@ import { Route as StudioRouteImport } from './routes/studio'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as WhereDidYouHearAboutUsRouteImport } from './routes/where-did-you-hear-about-us'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
+import { Route as CreateIndexRouteImport } from './routes/create.index'
 import { Route as CreateAfterShotRouteImport } from './routes/create.after-shot'
 import { Route as ProfileUsernameRouteImport } from './routes/profile.$username'
 import { Route as CreateAfterShotIndexRouteImport } from './routes/create.after-shot.index'
@@ -158,6 +159,11 @@ const AuthCallbackRoute = AuthCallbackRouteImport.update({
   path: '/auth/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CreateIndexRoute = CreateIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => CreateRoute,
+} as any)
 const CreateAfterShotRoute = CreateAfterShotRouteImport.update({
   id: '/after-shot',
   path: '/after-shot',
@@ -206,6 +212,7 @@ export interface FileRoutesByFullPath {
   '/auth/callback': typeof AuthCallbackRoute
   '/create/after-shot': typeof CreateAfterShotRouteWithChildren
   '/profile/$username': typeof ProfileUsernameRoute
+  '/create/': typeof CreateIndexRoute
   '/create/after-shot/edit': typeof CreateAfterShotEditRoute
   '/create/after-shot/': typeof CreateAfterShotIndexRoute
 }
@@ -215,7 +222,6 @@ export interface FileRoutesByTo {
   '/become-a-creator': typeof BecomeACreatorRoute
   '/become-a-curator': typeof BecomeACuratorRoute
   '/choose-username': typeof ChooseUsernameRoute
-  '/create': typeof CreateRouteWithChildren
   '/creator-niche': typeof CreatorNicheRoute
   '/edit-profile': typeof EditProfileRoute
   '/find-your-fit': typeof FindYourFitRoute
@@ -235,6 +241,7 @@ export interface FileRoutesByTo {
   '/where-did-you-hear-about-us': typeof WhereDidYouHearAboutUsRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/profile/$username': typeof ProfileUsernameRoute
+  '/create': typeof CreateIndexRoute
   '/create/after-shot/edit': typeof CreateAfterShotEditRoute
   '/create/after-shot': typeof CreateAfterShotIndexRoute
 }
@@ -266,6 +273,7 @@ export interface FileRoutesById {
   '/auth/callback': typeof AuthCallbackRoute
   '/create/after-shot': typeof CreateAfterShotRouteWithChildren
   '/profile/$username': typeof ProfileUsernameRoute
+  '/create/': typeof CreateIndexRoute
   '/create/after-shot/edit': typeof CreateAfterShotEditRoute
   '/create/after-shot/': typeof CreateAfterShotIndexRoute
 }
@@ -298,6 +306,7 @@ export interface FileRouteTypes {
     | '/auth/callback'
     | '/create/after-shot'
     | '/profile/$username'
+    | '/create/'
     | '/create/after-shot/edit'
     | '/create/after-shot/'
   fileRoutesByTo: FileRoutesByTo
@@ -307,7 +316,6 @@ export interface FileRouteTypes {
     | '/become-a-creator'
     | '/become-a-curator'
     | '/choose-username'
-    | '/create'
     | '/creator-niche'
     | '/edit-profile'
     | '/find-your-fit'
@@ -327,6 +335,7 @@ export interface FileRouteTypes {
     | '/where-did-you-hear-about-us'
     | '/auth/callback'
     | '/profile/$username'
+    | '/create'
     | '/create/after-shot/edit'
     | '/create/after-shot'
   id:
@@ -357,6 +366,7 @@ export interface FileRouteTypes {
     | '/auth/callback'
     | '/create/after-shot'
     | '/profile/$username'
+    | '/create/'
     | '/create/after-shot/edit'
     | '/create/after-shot/'
   fileRoutesById: FileRoutesById
@@ -559,6 +569,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/create/': {
+      id: '/create/'
+      path: '/'
+      fullPath: '/create/'
+      preLoaderRoute: typeof CreateIndexRouteImport
+      parentRoute: typeof CreateRoute
+    }
     '/create/after-shot': {
       id: '/create/after-shot'
       path: '/after-shot'
@@ -606,10 +623,12 @@ const CreateAfterShotRouteWithChildren = CreateAfterShotRoute._addFileChildren(
 
 interface CreateRouteChildren {
   CreateAfterShotRoute: typeof CreateAfterShotRouteWithChildren
+  CreateIndexRoute: typeof CreateIndexRoute
 }
 
 const CreateRouteChildren: CreateRouteChildren = {
   CreateAfterShotRoute: CreateAfterShotRouteWithChildren,
+  CreateIndexRoute: CreateIndexRoute,
 }
 
 const CreateRouteWithChildren =
