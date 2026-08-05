@@ -6,7 +6,11 @@ import {
   Pause, Play, Square,
 } from "lucide-react";
 
-import { compileFilter, applyCompiledFilter } from "@/lib/canvas-filter";
+import {
+  compileFilter,
+  applyCompiledFilter,
+  IDENTITY_FILTER,
+} from "@/lib/canvas-filter";
 import { setPendingCapture } from "@/lib/capture-handoff";
 
 export const Route = createFileRoute("/create/")({
