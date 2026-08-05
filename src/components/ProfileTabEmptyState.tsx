@@ -8,7 +8,7 @@ const EMPTY_COPY: Record<Exclude<TabKey, "posts">, { title: string; subtitle: st
   store: { title: "Nothing listed yet", subtitle: "Products you list for sale will show up here." },
   wardrobe: {
     title: "Build your wardrobe",
-    subtitle: "Pieces you own or want to show off live here.",
+    subtitle: "Pieces you own or want to show off and get recommendations for live here.",
   },
   reposts: {
     title: "No reposts yet",
