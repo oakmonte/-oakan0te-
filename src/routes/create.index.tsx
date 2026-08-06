@@ -98,7 +98,12 @@ function CreatePage() {
       streamRef.current?.getTracks().forEach((t) => t.stop());
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: facing },
+          video: {
+            facingMode: facing,
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+            frameRate: { ideal: 60 },
+          },
           audio: mode === "video",
         });
         if (cancelled) {
@@ -215,7 +220,7 @@ function CreatePage() {
         navigate({ to: "/create/after-shot" });
       },
       "image/jpeg",
-      0.3,
+      0.96,
     );
   }, [facing, currentFilterCss, navigate]);
 
