@@ -276,7 +276,7 @@ function CreatePage() {
         };
         drawFrame();
 
-        const canvasStream = recordCanvas.captureStream(30);
+        const canvasStream = recordCanvas.captureStream(60);
         stream.getAudioTracks().forEach((track) => canvasStream.addTrack(track));
 
         mirrorCanvasStreamRef.current = canvasStream;
@@ -715,6 +715,6 @@ function CreatePage() {
         </button>
       </div>
     </div>
-    
+
   );
 }
