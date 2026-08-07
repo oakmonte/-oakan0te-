@@ -178,7 +178,7 @@ function ProductCategoryPage() {
                         key={category}
                         type="button"
                         onClick={() => toggle(category)}
-                      className={`rounded-full px-5 py-1 text-sm border transition-all duration-200 ${
+                      className={`rounded-full px-3 py-1 text-sm border whitespace-nowrap transition-all duration-200 ${
                         isSelected
                           ? "bg-brand-text text-brand-bg border-brand-text"
                           : "bg-transparent text-brand-text border-brand-text/25 hover:border-brand-text/50"
