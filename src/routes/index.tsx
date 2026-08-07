@@ -209,6 +209,7 @@ function Index() {
     "Oakmonte is an ecosystem designed for those who expect more. We connect vetted sellers, honest creators and style curators through a content optimized marketplace.";
   const typeRef = useRef<HTMLParagraphElement>(null);
   const [typedLength, setTypedLength] = useState(0);
+  const [cursorVisible, setCursorVisible] = useState(true);
 
   useEffect(() => {
     const el = typeRef.current;
