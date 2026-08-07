@@ -404,7 +404,7 @@ function Index() {
                   akmonte
                 </span>
                 <span className="inline ml-2 sm:ml-3 text-[8px] sm:text-[9px] uppercase tracking-[0.25em] text-brand-accent font-sans font-normal leading-none pb-1">
-                  Style First
+                  CREATED TO CREATE.
                 </span>
               </>
             )}
