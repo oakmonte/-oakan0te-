@@ -32,6 +32,31 @@ type PanelType = "ratio" | "timer" | "layout" | "filters";
 
 const DEFAULT_FILTER_ID = "natural";
 const DEFAULT_LAYOUT_ID = "fit-check";
+// Numeric width/height for each ratio, used to size the preview box and to
+// crop captured frames so what's shot matches what was framed.
+const RATIO_ASPECT: Record<CameraRatio, number> = {
+  "9:16": 9 / 16,
+  "3:4": 3 / 4,
+  "1:1": 1,
+  "4:3": 4 / 3,
+  "16:9": 16 / 9,
+};
+
+// Centered crop rect (in source pixel coords) that matches what object-cover
+// would render inside a box of targetAspect — used identically for the live
+// preview box and for both capture paths, so they stay in sync.
+function getCropRect(sourceWidth: number, sourceHeight: number, targetAspect: number) {
+  const sourceAspect = sourceWidth / sourceHeight;
+  let sx = 0, sy = 0, sw = sourceWidth, sh = sourceHeight;
+  if (sourceAspect > targetAspect) {
+    sw = sourceHeight * targetAspect;
+    sx = (sourceWidth - sw) / 2;
+  } else if (sourceAspect < targetAspect) {
+    sh = sourceWidth / targetAspect;
+    sy = (sourceHeight - sh) / 2;
+  }
+  return { sx, sy, sw, sh };
+}
 
 // Quick filter strip: Natural is pinned, favorites fill in, and up to this
 // many random non-favorite filters backfill the rest so new users aren't
@@ -93,7 +118,7 @@ function CreatePage() {
   // CreatePage owns state; each panel owns its own UI/interaction.
   const [openPanel, setOpenPanel] = useState<PanelType | null>(null);
   const [flashOn, setFlashOn] = useState(false);
-  const [ratio, setRatio] = useState<CameraRatio>("9:16"); // tracked only — not yet applied to preview/capture
+  const [ratio, setRatio] = useState<CameraRatio>("9:16");
   const [timer, setTimer] = useState<CameraTimer>(0);
   const [selectedFilterId, setSelectedFilterId] = useState(DEFAULT_FILTER_ID);
   const [favoritedFilterIds, setFavoritedFilterIds] = useState<Set<string>>(new Set());
@@ -225,6 +250,27 @@ function CreatePage() {
     });
   }, []);
 
+  const [viewportSize, setViewportSize] = useState(() => ({
+    w: typeof window !== "undefined" ? window.innerWidth : 390,
+    h: typeof window !== "undefined" ? window.innerHeight : 844,
+  }));
+
+  useEffect(() => {
+    const onResize = () => setViewportSize({ w: window.innerWidth, h: window.innerHeight });
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  // Largest box matching the selected ratio that fits the viewport. Root is
+  // already bg-black, so whatever doesn't fill this box just shows as bars.
+  const targetAspect = RATIO_ASPECT[ratio];
+  let previewWidth = viewportSize.w;
+  let previewHeight = viewportSize.w / targetAspect;
+  if (previewHeight > viewportSize.h) {
+    previewHeight = viewportSize.h;
+    previewWidth = viewportSize.h * targetAspect;
+  }
+
   const activeLayout =
     CAMERA_LAYOUTS.find((l) => l.id === selectedLayoutId) ?? CAMERA_LAYOUTS[0];
 
@@ -242,8 +288,9 @@ function CreatePage() {
       console.warn("Camera not ready yet", video.readyState, video.videoWidth);
       return;
     }
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    const { sx, sy, sw, sh } = getCropRect(video.videoWidth, video.videoHeight, RATIO_ASPECT[ratio]);
+    canvas.width = sw;
+    canvas.height = sh;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
@@ -252,7 +299,7 @@ function CreatePage() {
       ctx.scale(-1, 1);
     }
 
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
 
     const compiled = compileFilter(currentFilterCss);
     if (compiled !== (IDENTITY_FILTER as any)) {
@@ -291,9 +338,10 @@ function CreatePage() {
     let recordingStream: MediaStream = stream;
 
     if (video.videoWidth > 0) {
+      const { sx, sy, sw, sh } = getCropRect(video.videoWidth, video.videoHeight, RATIO_ASPECT[ratio]);
       const recordCanvas = document.createElement("canvas");
-      recordCanvas.width = video.videoWidth;
-      recordCanvas.height = video.videoHeight;
+      recordCanvas.width = sw;
+      recordCanvas.height = sh;
       const rctx = recordCanvas.getContext("2d");
 
       if (rctx) {
@@ -306,7 +354,7 @@ function CreatePage() {
             rctx.translate(recordCanvas.width, 0);
             rctx.scale(-1, 1);
           }
-          rctx.drawImage(video, 0, 0, recordCanvas.width, recordCanvas.height);
+          rctx.drawImage(video, sx, sy, sw, sh, 0, 0, recordCanvas.width, recordCanvas.height);
           const frame = rctx.getImageData(0, 0, recordCanvas.width, recordCanvas.height);
           applyCompiledFilter(frame, compiledFilterAtStart);
           rctx.putImageData(frame, 0, 0);
@@ -426,14 +474,25 @@ function CreatePage() {
 
       <canvas ref={canvasRef} className="hidden" />
 
-      <video
-        ref={videoRef}
-        autoPlay
-        playsInline
-        muted
-        className="absolute inset-0 w-full h-full object-cover"
-        style={{ filter: currentFilterCss, transform: facing === "user" ? "scaleX(-1)" : "none" }}
-      />
+      <div
+        className="absolute overflow-hidden"
+        style={{
+          left: "50%",
+          top: "50%",
+          width: previewWidth,
+          height: previewHeight,
+          transform: "translate(-50%, -50%)",
+        }}
+      >
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{ filter: currentFilterCss, transform: facing === "user" ? "scaleX(-1)" : "none" }}
+        />
+      </div>
 
       {screenFlashActive && (
         <div
