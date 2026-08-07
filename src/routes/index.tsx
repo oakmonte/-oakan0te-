@@ -795,15 +795,6 @@ function Index() {
               </p>
             </FeatureBox>
 
-            <FeatureBox className="p-6 sm:p-8 md:p-10">
-              <h3 className="text-3xl sm:text-4xl md:text-5xl font-serif mb-6 font-bold">
-                Improved Marketing
-              </h3>
-              <p className="text-sm text-brand-text/70 leading-relaxed">
-                Get help from us to tell stories behind your brand that raises it's products beyond
-                their functional value.
-              </p>
-            </FeatureBox>
           </div>
 
           <FeatureBox className="mt-6 md:mt-8 p-6 sm:p-10 md:p-14">
