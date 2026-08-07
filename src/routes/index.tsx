@@ -612,7 +612,7 @@ function Index() {
               aria-label={typeText}
             >
               {typeText.slice(0, typedLength)}
-              {typedLength < typeText.length && (
+              {cursorVisible && (
                 <span
                   className="inline-block w-px h-[1em] bg-brand-text/70 align-middle ml-0.5"
                   style={{ animation: "cursor-blink 0.7s steps(1) infinite" }}
