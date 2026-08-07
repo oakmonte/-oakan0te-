@@ -291,6 +291,16 @@ function Index() {
   }, []);
 
   useEffect(() => {
+    const total = typeText.length;
+    if (typedLength < total) {
+      setCursorVisible(true);
+      return;
+    }
+    const timer = setTimeout(() => setCursorVisible(false), 700);
+    return () => clearTimeout(timer);
+  }, [typedLength]);
+
+  useEffect(() => {
     const onScroll = () => {
       setScrolled(window.scrollY > 24);
       let current = "";
