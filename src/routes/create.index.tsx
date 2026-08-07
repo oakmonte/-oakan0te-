@@ -136,19 +136,18 @@ function CreatePage() {
     async function start() {
       streamRef.current?.getTracks().forEach((t) => t.stop());
       try {
-        const videoConstraints: MediaTrackConstraints = {
-          facingMode: facing,
-          width: { ideal: 1920 },
-          frameRate: { ideal: 60 },
-        };
-        // 9:16 already matches the sensor's natural portrait output closely —
-        // hinting it explicitly forces an extra hardware-level zoom we don't want.
-        // Only push the hint for ratios that genuinely need it.
-        if (ratio !== "9:16") {
-          videoConstraints.aspectRatio = { ideal: RATIO_ASPECT[ratio] };
-        }
+        // No aspectRatio hint here on purpose — hinting the hardware to any
+        // target shape makes it pick a pre-cropped, zoomed-in capture mode
+        // instead of giving us the sensor's full native view. We always
+        // request the widest natural capture and crop to the selected ratio
+        // ourselves in getCropRect, which keeps the framing wide and lets
+        // us control the crop precisely instead of trusting the hardware to.
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: videoConstraints,
+          video: {
+            facingMode: facing,
+            width: { ideal: 1920 },
+            frameRate: { ideal: 60 },
+          },
           audio: mode === "video",
         });
         if (cancelled) {
