@@ -136,13 +136,19 @@ function CreatePage() {
     async function start() {
       streamRef.current?.getTracks().forEach((t) => t.stop());
       try {
+        const videoConstraints: MediaTrackConstraints = {
+          facingMode: facing,
+          width: { ideal: 1920 },
+          frameRate: { ideal: 60 },
+        };
+        // 9:16 already matches the sensor's natural portrait output closely —
+        // hinting it explicitly forces an extra hardware-level zoom we don't want.
+        // Only push the hint for ratios that genuinely need it.
+        if (ratio !== "9:16") {
+          videoConstraints.aspectRatio = { ideal: RATIO_ASPECT[ratio] };
+        }
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: facing,
-            aspectRatio: { ideal: RATIO_ASPECT[ratio] },
-            width: { ideal: 1920 },
-            frameRate: { ideal: 60 },
-          },
+          video: videoConstraints,
           audio: mode === "video",
         });
         if (cancelled) {
