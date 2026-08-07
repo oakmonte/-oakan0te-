@@ -120,4 +120,4 @@ export default function RatioPanel({
       </div>
     </CameraPanel>
   );
-}
+} 
