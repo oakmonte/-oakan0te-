@@ -1,9 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, type ReactNode, type TouchEvent } from "react";
 import {
   X, RefreshCw, Timer as TimerIcon, Image as ImageIcon,
   ChevronUp, ChevronDown, LayoutGrid, Ratio as RatioIcon, Blend, Heart,
-  Pause, Play, Square, Zap, ZapOff,
+  Pause, Play, Square, Zap, ZapOff, Grid3x3,
 } from "lucide-react";
 
 import {
@@ -82,7 +82,7 @@ const TOOLS: { id: PanelType; label: string }[] = [
   { id: "filters", label: "Filters" },
 ];
 
-function AnimatedLabel({ visible, children }: { visible: boolean; children: React.ReactNode }) {
+function AnimatedLabel({ visible, children }: { visible: boolean; children: ReactNode }) {
   return (
     <span
       className="overflow-hidden whitespace-nowrap text-sm font-medium transition-all duration-300 ease-out"
@@ -118,6 +118,7 @@ function CreatePage() {
   // CreatePage owns state; each panel owns its own UI/interaction.
   const [openPanel, setOpenPanel] = useState<PanelType | null>(null);
   const [flashOn, setFlashOn] = useState(false);
+  const [gridVisible, setGridVisible] = useState(false);
   const [ratio, setRatio] = useState<CameraRatio>("9:16");
   const [timer, setTimer] = useState<CameraTimer>(0);
   const [selectedFilterId, setSelectedFilterId] = useState(DEFAULT_FILTER_ID);
@@ -125,6 +126,9 @@ function CreatePage() {
   const [randomFillerIds, setRandomFillerIds] = useState<string[]>([]);
   const [selectedLayoutId, setSelectedLayoutId] = useState(DEFAULT_LAYOUT_ID); // state only — no capture-flow consumer yet
   const [savedLayoutIds, setSavedLayoutIds] = useState<Set<string>>(new Set());
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const zoomCapabilitiesRef = useRef<{ min: number; max: number; step: number } | null>(null);
+  const pinchStateRef = useRef<{ startDistance: number; startZoom: number } | null>(null);
 
   const [capturePhase, setCapturePhase] = useState<CapturePhase>("live");
   const [countdownRemaining, setCountdownRemaining] = useState<number | null>(null);
@@ -156,6 +160,13 @@ function CreatePage() {
         }
         streamRef.current = stream;
         if (videoRef.current) videoRef.current.srcObject = stream;
+
+        const track = stream.getVideoTracks()[0];
+        const caps = track?.getCapabilities?.() as (MediaTrackCapabilities & {
+          zoom?: { min: number; max: number; step: number };
+        }) | undefined;
+        zoomCapabilitiesRef.current = caps?.zoom ?? null;
+        setZoomLevel(1);
       } catch (err) {
         console.error("Camera access failed:", err);
       }
@@ -165,7 +176,7 @@ function CreatePage() {
       cancelled = true;
       streamRef.current?.getTracks().forEach((t) => t.stop());
     };
-  }, [facing, mode, ratio]);
+  }, [facing, mode]);
 
   // Rear-camera torch, driven by the simple flashOn toggle.
   useEffect(() => {
@@ -276,6 +287,8 @@ function CreatePage() {
     previewWidth = viewportSize.h * targetAspect;
   }
 
+  const isFullBleedRatio = ratio === "9:16"; // your default/story ratio already fills the screen edge-to-edge
+
   const activeLayout =
     CAMERA_LAYOUTS.find((l) => l.id === selectedLayoutId) ?? CAMERA_LAYOUTS[0];
 
@@ -284,6 +297,41 @@ function CreatePage() {
   const currentFilterCss = screenFlashActive
     ? `${activeFilter.css} brightness(1.25)`
     : activeFilter.css;
+
+  const applyZoom = useCallback((level: number) => {
+    const caps = zoomCapabilitiesRef.current;
+    const track = streamRef.current?.getVideoTracks()[0];
+    if (caps && track) {
+      // Hardware zoom (mostly rear cameras) — actual optical/sensor-level zoom.
+      const clamped = Math.min(caps.max, Math.max(caps.min, level));
+      (track.applyConstraints as any)({ advanced: [{ zoom: clamped }] }).catch(() => {});
+      setZoomLevel(clamped);
+    } else {
+      // Digital fallback (front camera, most phones) — CSS-scale crop-zoom.
+      setZoomLevel(Math.min(3, Math.max(1, level)));
+    }
+  }, []);
+
+  const handlePinchStart = useCallback((e: TouchEvent) => {
+    if (e.touches.length !== 2) return;
+    const [a, b] = [e.touches[0], e.touches[1]];
+    const distance = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+    pinchStateRef.current = { startDistance: distance, startZoom: zoomLevel };
+  }, [zoomLevel]);
+
+  const handlePinchMove = useCallback((e: TouchEvent) => {
+    if (e.touches.length !== 2 || !pinchStateRef.current) return;
+    e.preventDefault(); // stop the page/browser from also interpreting this as a page-zoom gesture
+    const [a, b] = [e.touches[0], e.touches[1]];
+    const distance = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+    const { startDistance, startZoom } = pinchStateRef.current;
+    const nextZoom = startZoom * (distance / startDistance);
+    applyZoom(nextZoom);
+  }, [applyZoom]);
+
+  const handlePinchEnd = useCallback(() => {
+    pinchStateRef.current = null;
+  }, []);
 
   const capturePhoto = useCallback(() => {
     const video = videoRef.current;
@@ -480,6 +528,9 @@ function CreatePage() {
       <canvas ref={canvasRef} className="hidden" />
 
       <div
+        onTouchStart={handlePinchStart}
+        onTouchMove={handlePinchMove}
+        onTouchEnd={handlePinchEnd}
         className="absolute overflow-hidden"
         style={{
           left: "50%",
@@ -487,6 +538,11 @@ function CreatePage() {
           width: previewWidth,
           height: previewHeight,
           transform: "translate(-50%, -50%)",
+          borderRadius: isFullBleedRatio ? 0 : 20,
+          boxShadow: isFullBleedRatio ? "none" : "0 12px 40px rgba(0,0,0,0.55)",
+          border: isFullBleedRatio ? "none" : "1px solid rgba(255,255,255,0.08)",
+          transition: "border-radius 250ms ease-out, box-shadow 250ms ease-out",
+          touchAction: "none", // prevents the browser's own pinch-to-zoom/pan from firing here
         }}
       >
         <video
@@ -495,8 +551,22 @@ function CreatePage() {
           playsInline
           muted
           className="absolute inset-0 w-full h-full object-cover"
-          style={{ filter: currentFilterCss, transform: facing === "user" ? "scaleX(-1)" : "none" }}
+          style={{
+              filter: currentFilterCss,
+              transform: facing === "user"
+                ? `scaleX(-1) scale(${zoomLevel})`
+                : `scale(${zoomLevel})`,
+              transition: pinchStateRef.current ? "none" : "transform 100ms ease-out",
+            }}
         />
+        {gridVisible && (
+          <div className="absolute inset-0 pointer-events-none" style={{ opacity: 0.35 }}>
+            <div className="absolute left-1/3 top-0 bottom-0 w-px bg-white" />
+            <div className="absolute left-2/3 top-0 bottom-0 w-px bg-white" />
+            <div className="absolute top-1/3 left-0 right-0 h-px bg-white" />
+            <div className="absolute top-2/3 left-0 right-0 h-px bg-white" />
+          </div>
+        )}
       </div>
 
       {screenFlashActive && (
@@ -607,6 +677,18 @@ function CreatePage() {
             </button>
           );
         })}
+
+        <button
+          onClick={() => setGridVisible((v) => !v)}
+          aria-label={gridVisible ? "Hide grid" : "Show grid"}
+          aria-pressed={gridVisible}
+          className="flex items-center gap-2"
+        >
+          <AnimatedLabel visible={labelsVisible}>
+            {gridVisible ? "Grid: On" : "Grid"}
+          </AnimatedLabel>
+          <Grid3x3 size={26} style={{ opacity: gridVisible ? 1 : 0.7 }} />
+        </button>
 
         {isNonDefaultFilterActive && (
           <button
