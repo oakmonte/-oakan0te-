@@ -139,8 +139,8 @@ function CreatePage() {
         const stream = await navigator.mediaDevices.getUserMedia({
           video: {
             facingMode: facing,
+            aspectRatio: { ideal: RATIO_ASPECT[ratio] },
             width: { ideal: 1920 },
-            height: { ideal: 1080 },
             frameRate: { ideal: 60 },
           },
           audio: mode === "video",
@@ -160,7 +160,7 @@ function CreatePage() {
       cancelled = true;
       streamRef.current?.getTracks().forEach((t) => t.stop());
     };
-  }, [facing, mode]);
+  }, [facing, mode, ratio]);
 
   // Rear-camera torch, driven by the simple flashOn toggle.
   useEffect(() => {
