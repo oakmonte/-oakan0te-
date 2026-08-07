@@ -439,8 +439,10 @@ function CreatePage() {
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
+            // was: "radial-gradient(circle at 50% 30%, rgba(255,255,255,0.35), rgba(255,255,255,0.05) 70%)"
+            // now: transparent center (keeps framing visible) fading into a fat, near-opaque white ring at the edges
             background:
-              "radial-gradient(circle at 50% 30%, rgba(255,255,255,0.35), rgba(255,255,255,0.05) 70%)",
+              "radial-gradient(ellipse at 50% 40%, transparent 0%, transparent 38%, rgba(255,255,255,0.55) 70%, rgba(255,255,255,0.95) 100%)",
             mixBlendMode: "screen",
           }}
         />
