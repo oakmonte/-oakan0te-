@@ -13,7 +13,6 @@ import {
 } from "@/lib/canvas-filter";
 import { setPendingCapture } from "@/lib/capture-handoff";
 
-import FlashPanel, { type FlashMode } from "@/components/camera/FlashPanel";
 import RatioPanel, { type CameraRatio } from "@/components/camera/RatioPanel";
 import TimerPanel, { type CameraTimer } from "@/components/camera/TimerPanel";
 import FilterPanel from "@/components/camera/FilterPanel";
@@ -29,12 +28,19 @@ export const Route = createFileRoute("/create/")({
 type Mode = "photo" | "video";
 type Section = "shoot" | "compose";
 type CapturePhase = "live" | "counting";
-type PanelType = "ratio" | "timer" | "flash" | "layout" | "filters";
+type PanelType = "ratio" | "timer" | "layout" | "filters";
 
 const DEFAULT_FILTER_ID = "natural";
 const DEFAULT_LAYOUT_ID = "fit-check";
 
+// Quick filter strip: Natural is pinned, favorites fill in, and up to this
+// many random non-favorite filters backfill the rest so new users aren't
+// staring at just one swatch. Strip never exceeds STRIP_SIZE total.
+const STRIP_SIZE = 10;
+const RANDOM_FILLER_COUNT = 6;
+
 const ROTATE_SIZE = 48;
+const FLASH_TOGGLE_SIZE = 40;
 const CAPTURE_SIZE = 84;
 const ROW_EDGE = 20;
 const CAPTURE_ROW_BOTTOM = ROW_EDGE + 56;
@@ -47,7 +53,6 @@ const BARRIER_HEIGHT = SWATCH_DIAMETER + 12;
 const TOOLS: { id: PanelType; label: string }[] = [
   { id: "ratio", label: "Ratio" },
   { id: "timer", label: "Timer" },
-  { id: "flash", label: "Flash" },
   { id: "layout", label: "Layout" },
   { id: "filters", label: "Filters" },
 ];
@@ -87,11 +92,12 @@ function CreatePage() {
   // --- Camera panel architecture ---
   // CreatePage owns state; each panel owns its own UI/interaction.
   const [openPanel, setOpenPanel] = useState<PanelType | null>(null);
-  const [flashMode, setFlashMode] = useState<FlashMode>("off");
+  const [flashOn, setFlashOn] = useState(false);
   const [ratio, setRatio] = useState<CameraRatio>("9:16"); // tracked only — not yet applied to preview/capture
   const [timer, setTimer] = useState<CameraTimer>(0);
   const [selectedFilterId, setSelectedFilterId] = useState(DEFAULT_FILTER_ID);
   const [favoritedFilterIds, setFavoritedFilterIds] = useState<Set<string>>(new Set());
+  const [randomFillerIds, setRandomFillerIds] = useState<string[]>([]);
   const [selectedLayoutId, setSelectedLayoutId] = useState(DEFAULT_LAYOUT_ID); // state only — no capture-flow consumer yet
   const [savedLayoutIds, setSavedLayoutIds] = useState<Set<string>>(new Set());
 
@@ -131,8 +137,7 @@ function CreatePage() {
     };
   }, [facing, mode]);
 
-  // Rear-camera torch. "auto" has no real light-level detection yet, so it
-  // currently behaves like "off" — TODO once auto-exposure signal exists.
+  // Rear-camera torch, driven by the simple flashOn toggle.
   useEffect(() => {
     if (facing !== "environment") return;
     const track = streamRef.current?.getVideoTracks()[0];
@@ -140,21 +145,45 @@ function CreatePage() {
     const capabilities = track.getCapabilities?.() as MediaTrackCapabilities & { torch?: boolean };
     if (capabilities && "torch" in capabilities) {
       const constraints = {
-        advanced: [{ torch: flashMode === "on" }],
+        advanced: [{ torch: flashOn }],
       } as unknown as MediaTrackConstraints;
       track.applyConstraints(constraints).catch(() => {});
     }
-  }, [flashMode, facing]);
+  }, [flashOn, facing]);
 
   const handleBack = useCallback(() => {
     if (window.history.length > 1) window.history.back();
     else navigate({ to: "/home" });
   }, [navigate]);
 
-  // Quick strip = Natural + favorites only. Full library lives in FilterPanel.
-  const quickStripFilters = CAMERA_FILTERS.filter(
-    (f) => f.id === DEFAULT_FILTER_ID || favoritedFilterIds.has(f.id),
-  );
+  // Quick strip: Natural pinned + favorites + random fillers, capped at
+  // STRIP_SIZE. Fillers are seeded once and only reshuffled/evicted when
+  // favorites change, so the strip doesn't jitter on unrelated re-renders.
+  useEffect(() => {
+    setRandomFillerIds((prev) => {
+      let next = prev.filter((id) => !favoritedFilterIds.has(id) && id !== DEFAULT_FILTER_ID);
+      const allowedFillers = Math.max(
+        0,
+        Math.min(RANDOM_FILLER_COUNT, STRIP_SIZE - 1 - favoritedFilterIds.size),
+      );
+      if (next.length > allowedFillers) {
+        // evict oldest fillers first (front of array = oldest)
+        next = next.slice(next.length - allowedFillers);
+      } else if (next.length < allowedFillers) {
+        const used = new Set([DEFAULT_FILTER_ID, ...favoritedFilterIds, ...next]);
+        const pool = CAMERA_FILTERS.filter((f) => !used.has(f.id));
+        const shuffled = [...pool].sort(() => Math.random() - 0.5);
+        const needed = allowedFillers - next.length;
+        next = [...next, ...shuffled.slice(0, needed).map((f) => f.id)];
+      }
+      return next;
+    });
+  }, [favoritedFilterIds]);
+
+  const quickStripFilters = [DEFAULT_FILTER_ID, ...favoritedFilterIds, ...randomFillerIds]
+    .map((id) => CAMERA_FILTERS.find((f) => f.id === id))
+    .filter((f): f is (typeof CAMERA_FILTERS)[number] => Boolean(f))
+    .slice(0, STRIP_SIZE);
 
   const handleFilterScroll = useCallback(() => {
     const el = filterStripRef.current;
@@ -199,8 +228,8 @@ function CreatePage() {
   const activeLayout =
     CAMERA_LAYOUTS.find((l) => l.id === selectedLayoutId) ?? CAMERA_LAYOUTS[0];
 
-  // Front-camera screen flash — "auto" aliases to off, same reasoning as torch above.
-  const screenFlashActive = facing === "user" && flashMode === "on";
+  // Front-camera screen flash, driven by the same flashOn toggle.
+  const screenFlashActive = facing === "user" && flashOn;
   const currentFilterCss = screenFlashActive
     ? `${activeFilter.css} brightness(1.25)`
     : activeFilter.css;
@@ -441,31 +470,6 @@ function CreatePage() {
         style={{ top: "calc(env(safe-area-inset-top) + 76px)", zIndex: 6 }}
       >
         {TOOLS.map((tool) => {
-          if (tool.id === "flash") {
-            return (
-              <button
-                key="flash"
-                onClick={() => setOpenPanel("flash")}
-                aria-label="Flash"
-                className="flex items-center gap-2 relative"
-              >
-                <AnimatedLabel visible={labelsVisible}>
-                  {flashMode === "off" ? "Flash" : flashMode === "auto" ? "Flash: Auto" : "Flash: On"}
-                </AnimatedLabel>
-                <span className="relative flex items-center justify-center">
-                  {flashMode === "off" ? <ZapOff size={26} /> : <Zap size={26} />}
-                  {flashMode === "auto" && (
-                    <span
-                      className="absolute -top-1.5 -right-1.5 text-[10px] font-bold rounded-full flex items-center justify-center"
-                      style={{ width: 16, height: 16, background: "#fff", color: "#000" }}
-                    >
-                      A
-                    </span>
-                  )}
-                </span>
-              </button>
-            );
-          }
           if (tool.id === "timer") {
             return (
               <button
@@ -628,6 +632,25 @@ function CreatePage() {
         <RefreshCw size={18} />
       </button>
 
+      <button
+        onClick={() => setFlashOn((v) => !v)}
+        aria-label={flashOn ? "Turn flash off" : "Turn flash on"}
+        aria-pressed={flashOn}
+        className="absolute flex items-center justify-center rounded-full transition-transform duration-150 active:scale-90"
+        style={{
+          zIndex: 3,
+          left: ROW_EDGE,
+          bottom: `calc(env(safe-area-inset-bottom) + ${CAPTURE_ROW_BOTTOM + (CAPTURE_SIZE - ROTATE_SIZE) / 2 + ROTATE_SIZE + 12}px)`,
+          width: FLASH_TOGGLE_SIZE,
+          height: FLASH_TOGGLE_SIZE,
+          background: flashOn ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.10)",
+          color: flashOn ? "#000" : "#fff",
+          backdropFilter: "blur(12px)",
+        }}
+      >
+        {flashOn ? <Zap size={16} /> : <ZapOff size={16} />}
+      </button>
+
       {mode === "video" && isRecording ? (
         <div
           className="absolute left-1/2 -translate-x-1/2 flex items-center gap-6"
@@ -748,13 +771,6 @@ function CreatePage() {
         </button>
       </div>
 
-      <FlashPanel
-        open={openPanel === "flash"}
-        value={flashMode}
-        facing={facing}
-        onChange={setFlashMode}
-        onClose={() => setOpenPanel(null)}
-      />
       <RatioPanel
         open={openPanel === "ratio"}
         value={ratio}
