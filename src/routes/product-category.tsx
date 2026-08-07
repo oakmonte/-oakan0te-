@@ -166,7 +166,7 @@ function ProductCategoryPage() {
             </div>
 
             <div className="px-4 py-4 max-h-[52vh] overflow-y-auto">
-              <div className="flex flex-wrap gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 {[...new Set([...SUGGESTED_CATEGORIES, ...selected])]
                   .filter((category) =>
                     category.toLowerCase().includes(search.trim().toLowerCase()),
