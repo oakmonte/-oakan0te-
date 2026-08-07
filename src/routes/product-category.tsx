@@ -16,8 +16,63 @@ const SUGGESTED_CATEGORIES = [
   "Old money",
   "Jewelry",
   "Perfume",
-  "shoes",
-  "sport shoes",
+  "Shoes",
+  "Sport shoes",
+  "Sneakers",
+  "Boots",
+  "Sandals",
+  "Loafers",
+  "High heels",
+  "Flats",
+  "Slippers",
+  "Watches",
+  "Sunglasses",
+  "Bags",
+  "Handbags",
+  "Backpacks",
+  "Belts",
+  "Hats",
+  "Caps",
+  "Scarves",
+  "Gloves",
+  "Ties",
+  "Wallets",
+  "Phone cases",
+  "Lingerie",
+  "Swimwear",
+  "Activewear",
+  "Loungewear",
+  "Denim",
+  "Leather goods",
+  "Vintage",
+  "Workwear",
+  "Outerwear",
+  "Tailoring",
+  "Costume",
+  "Menswear",
+  "Womenswear",
+  "Kidswear",
+  "Bridal",
+  "Plus size",
+  "Unisex",
+  "Accessories",
+  "Eyewear",
+  "Fragrance",
+  "Skincare",
+  "Makeup",
+  "Haircare",
+  "Nail art",
+  "Home décor",
+  "Furniture",
+  "Lighting",
+  "Textiles",
+  "Prints",
+  "Art",
+  "Stationery",
+  "Toys",
+  "Pet wear",
+  "Custom pieces",
+  "Made-to-order",
 ];
 
 function ProductCategoryPage() {
@@ -83,48 +138,58 @@ function ProductCategoryPage() {
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  handleAddSearch();
-                }
-              }}
-              placeholder="Search or add your own"
-              className="flex-1 rounded-full border border-brand-text/25 bg-transparent px-5 py-3 text-sm placeholder:text-brand-text/40 focus:outline-none focus:border-brand-accent transition-colors"
-            />
-            <button
-              type="button"
-              onClick={handleAddSearch}
-              className="shrink-0 rounded-full border border-brand-text/25 px-4 py-3 text-sm hover:bg-brand-text/5 transition-colors"
-              aria-label="Add category"
-            >
-              +
-            </button>
-          </div>
-
-          <div className="flex flex-wrap gap-2 justify-center">
-            {[...new Set([...SUGGESTED_CATEGORIES, ...selected])].map((category) => {
-              const isSelected = selected.includes(category);
-              return (
+          <div className="rounded-3xl border border-brand-text/10 bg-brand-bg/50 overflow-hidden">
+            <div className="sticky top-0 z-10 bg-brand-bg/95 backdrop-blur-sm border-b border-brand-text/10 px-4 pt-4 pb-3">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleAddSearch();
+                    }
+                  }}
+                  placeholder="Search or add your own"
+                  className="flex-1 rounded-full border border-brand-text/25 bg-transparent px-5 py-3 text-sm placeholder:text-brand-text/40 focus:outline-none focus:border-brand-accent transition-colors"
+                />
                 <button
-                  key={category}
                   type="button"
-                  onClick={() => toggle(category)}
-                  className={`rounded-full px-5 py-2.5 text-sm border transition-all duration-200 ${
-                    isSelected
-                      ? "bg-brand-text text-brand-bg border-brand-text"
-                      : "bg-transparent text-brand-text border-brand-text/25 hover:border-brand-text/50"
-                  }`}
+                  onClick={handleAddSearch}
+                  className="shrink-0 rounded-full border border-brand-text/25 px-4 py-3 text-sm hover:bg-brand-text/5 transition-colors"
+                  aria-label="Add category"
                 >
-                  {category}
+                  +
                 </button>
-              );
-            })}
+              </div>
+            </div>
+
+            <div className="px-4 py-4 max-h-[52vh] overflow-y-auto">
+              <div className="flex flex-wrap gap-2">
+                {[...new Set([...SUGGESTED_CATEGORIES, ...selected])]
+                  .filter((category) =>
+                    category.toLowerCase().includes(search.trim().toLowerCase()),
+                  )
+                  .map((category) => {
+                    const isSelected = selected.includes(category);
+                    return (
+                      <button
+                        key={category}
+                        type="button"
+                        onClick={() => toggle(category)}
+                        className={`rounded-full px-5 py-2.5 text-sm border transition-all duration-200 ${
+                          isSelected
+                            ? "bg-brand-text text-brand-bg border-brand-text"
+                            : "bg-transparent text-brand-text border-brand-text/25 hover:border-brand-text/50"
+                        }`}
+                      >
+                        {category}
+                      </button>
+                    );
+                  })}
+              </div>
+            </div>
           </div>
 
           <button
