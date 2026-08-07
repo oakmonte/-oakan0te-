@@ -1,9 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useRef, useEffect, useCallback } from "react";
 import {
-  X, RefreshCw, Zap, ZapOff, Timer, Image as ImageIcon,
-  ChevronUp, ChevronDown, LayoutGrid, Ratio, Blend, Heart,
-  Pause, Play, Square,
+  X, RefreshCw, Timer as TimerIcon, Image as ImageIcon,
+  ChevronUp, ChevronDown, LayoutGrid, Ratio as RatioIcon, Blend, Heart,
+  Pause, Play, Square, Zap, ZapOff,
 } from "lucide-react";
 
 import {
@@ -13,25 +13,26 @@ import {
 } from "@/lib/canvas-filter";
 import { setPendingCapture } from "@/lib/capture-handoff";
 
+import FlashPanel, { type FlashMode } from "@/components/camera/FlashPanel";
+import RatioPanel, { type CameraRatio } from "@/components/camera/RatioPanel";
+import TimerPanel, { type CameraTimer } from "@/components/camera/TimerPanel";
+import FilterPanel from "@/components/camera/FilterPanel";
+import LayoutPanel from "@/components/camera/LayoutPanel";
+import { CAMERA_FILTERS } from "@/components/camera/filter-data";
+import { CAMERA_LAYOUTS } from "@/components/camera/layout-data";
+
 export const Route = createFileRoute("/create/")({
   head: () => ({ meta: [{ title: "Create — Oakmonte" }] }),
   component: CreatePage,
 });
 
-const FILTERS = [
-  { id: "none", label: "Original", css: "none" },
-  { id: "warm", label: "Warm", css: "brightness(1.05) saturate(1.2) sepia(0.15)" },
-  { id: "cool", label: "Cool", css: "brightness(1.02) saturate(1.1) hue-rotate(-8deg)" },
-  { id: "mono", label: "Mono", css: "grayscale(1) contrast(1.1)" },
-  { id: "vivid", label: "Vivid", css: "saturate(1.6) contrast(1.08)" },
-  { id: "fade", label: "Fade", css: "brightness(1.08) contrast(0.9) saturate(0.85)" },
-];
-
-const TIMER_OPTIONS = [0, 3, 10] as const;
-
 type Mode = "photo" | "video";
 type Section = "shoot" | "compose";
 type CapturePhase = "live" | "counting";
+type PanelType = "ratio" | "timer" | "flash" | "layout" | "filters";
+
+const DEFAULT_FILTER_ID = "natural";
+const DEFAULT_LAYOUT_ID = "fit-check";
 
 const ROTATE_SIZE = 48;
 const CAPTURE_SIZE = 84;
@@ -43,12 +44,12 @@ const SWATCH_DIAMETER = CAPTURE_SIZE - 16;
 const BARRIER_EDGE = ROW_EDGE + ROTATE_SIZE + 10;
 const BARRIER_HEIGHT = SWATCH_DIAMETER + 12;
 
-const TOOLS = [
-  { id: "ratio", label: "Ratio", icon: Ratio },
-  { id: "timer", label: "Timer", icon: Timer },
-  { id: "flash", label: "Flash", icon: null },
-  { id: "layout", label: "Layout", icon: LayoutGrid },
-  { id: "filters", label: "Filters", icon: Blend },
+const TOOLS: { id: PanelType; label: string }[] = [
+  { id: "ratio", label: "Ratio" },
+  { id: "timer", label: "Timer" },
+  { id: "flash", label: "Flash" },
+  { id: "layout", label: "Layout" },
+  { id: "filters", label: "Filters" },
 ];
 
 function AnimatedLabel({ visible, children }: { visible: boolean; children: React.ReactNode }) {
@@ -79,14 +80,21 @@ function CreatePage() {
   const mirrorCanvasStreamRef = useRef<MediaStream | null>(null);
 
   const [facing, setFacing] = useState<"user" | "environment">("user");
-  const [flashOn, setFlashOn] = useState(false);
   const [mode, setMode] = useState<Mode>("photo");
   const [section, setSection] = useState<Section>("shoot");
-  const [activeFilterIndex, setActiveFilterIndex] = useState(0);
   const [labelsVisible, setLabelsVisible] = useState(false);
-  const [favoritedFilterIds, setFavoritedFilterIds] = useState<Set<string>>(new Set());
 
-  const [timerSeconds, setTimerSeconds] = useState<(typeof TIMER_OPTIONS)[number]>(0);
+  // --- Camera panel architecture ---
+  // CreatePage owns state; each panel owns its own UI/interaction.
+  const [openPanel, setOpenPanel] = useState<PanelType | null>(null);
+  const [flashMode, setFlashMode] = useState<FlashMode>("off");
+  const [ratio, setRatio] = useState<CameraRatio>("9:16"); // tracked only — not yet applied to preview/capture
+  const [timer, setTimer] = useState<CameraTimer>(0);
+  const [selectedFilterId, setSelectedFilterId] = useState(DEFAULT_FILTER_ID);
+  const [favoritedFilterIds, setFavoritedFilterIds] = useState<Set<string>>(new Set());
+  const [selectedLayoutId, setSelectedLayoutId] = useState(DEFAULT_LAYOUT_ID); // state only — no capture-flow consumer yet
+  const [savedLayoutIds, setSavedLayoutIds] = useState<Set<string>>(new Set());
+
   const [capturePhase, setCapturePhase] = useState<CapturePhase>("live");
   const [countdownRemaining, setCountdownRemaining] = useState<number | null>(null);
   const [isRecording, setIsRecording] = useState(false);
@@ -123,6 +131,8 @@ function CreatePage() {
     };
   }, [facing, mode]);
 
+  // Rear-camera torch. "auto" has no real light-level detection yet, so it
+  // currently behaves like "off" — TODO once auto-exposure signal exists.
   useEffect(() => {
     if (facing !== "environment") return;
     const track = streamRef.current?.getVideoTracks()[0];
@@ -130,61 +140,75 @@ function CreatePage() {
     const capabilities = track.getCapabilities?.() as MediaTrackCapabilities & { torch?: boolean };
     if (capabilities && "torch" in capabilities) {
       const constraints = {
-        advanced: [{ torch: flashOn }],
+        advanced: [{ torch: flashMode === "on" }],
       } as unknown as MediaTrackConstraints;
       track.applyConstraints(constraints).catch(() => {});
     }
-  }, [flashOn, facing]);
+  }, [flashMode, facing]);
 
   const handleBack = useCallback(() => {
     if (window.history.length > 1) window.history.back();
     else navigate({ to: "/home" });
   }, [navigate]);
 
+  // Quick strip = Natural + favorites only. Full library lives in FilterPanel.
+  const quickStripFilters = CAMERA_FILTERS.filter(
+    (f) => f.id === DEFAULT_FILTER_ID || favoritedFilterIds.has(f.id),
+  );
+
   const handleFilterScroll = useCallback(() => {
     const el = filterStripRef.current;
     if (!el) return;
     const index = Math.round(el.scrollLeft / CAPTURE_SIZE);
-    const clamped = Math.max(0, Math.min(FILTERS.length - 1, index));
-    setActiveFilterIndex((prev) => (prev === clamped ? prev : clamped));
-  }, []);
+    const clamped = Math.max(0, Math.min(quickStripFilters.length - 1, index));
+    const next = quickStripFilters[clamped];
+    if (next && next.id !== selectedFilterId) setSelectedFilterId(next.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quickStripFilters, selectedFilterId]);
 
   const scrollFilterIntoRing = useCallback((index: number) => {
     filterStripRef.current?.scrollTo({ left: index * CAPTURE_SIZE, behavior: "smooth" });
-    setActiveFilterIndex(index);
-  }, []);
+    const next = quickStripFilters[index];
+    if (next) setSelectedFilterId(next.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quickStripFilters]);
 
-  const activeFilter = FILTERS[activeFilterIndex];
-  const isNonDefaultFilterActive = activeFilterIndex !== 0;
-  const isCurrentFilterFavorited = favoritedFilterIds.has(activeFilter.id);
+  const activeFilter =
+    CAMERA_FILTERS.find((f) => f.id === selectedFilterId) ?? CAMERA_FILTERS[0];
+  const isNonDefaultFilterActive = selectedFilterId !== DEFAULT_FILTER_ID;
+  const isCurrentFilterFavorited = favoritedFilterIds.has(selectedFilterId);
 
-  const toggleFavoriteCurrentFilter = useCallback(() => {
+  const toggleFilterFavorite = useCallback((id: string) => {
     setFavoritedFilterIds((prev) => {
       const next = new Set(prev);
-      if (next.has(activeFilter.id)) next.delete(activeFilter.id);
-      else next.add(activeFilter.id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
-    });
-  }, [activeFilter]);
-
-  const currentFilterCss =
-    facing === "user" && flashOn ? `${activeFilter.css} brightness(1.25)` : activeFilter.css;
-
-  const cycleTimer = useCallback(() => {
-    setTimerSeconds((prev) => {
-      const idx = TIMER_OPTIONS.indexOf(prev);
-      return TIMER_OPTIONS[(idx + 1) % TIMER_OPTIONS.length];
     });
   }, []);
 
+  const toggleLayoutSaved = useCallback((id: string) => {
+    setSavedLayoutIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const activeLayout =
+    CAMERA_LAYOUTS.find((l) => l.id === selectedLayoutId) ?? CAMERA_LAYOUTS[0];
+
+  // Front-camera screen flash — "auto" aliases to off, same reasoning as torch above.
+  const screenFlashActive = facing === "user" && flashMode === "on";
+  const currentFilterCss = screenFlashActive
+    ? `${activeFilter.css} brightness(1.25)`
+    : activeFilter.css;
+
   const capturePhoto = useCallback(() => {
-    console.log("capturePhoto called");
     const video = videoRef.current;
     const canvas = canvasRef.current;
-    if (!video || !canvas) {
-      console.log("missing video/canvas ref");
-      return;
-    }
+    if (!video || !canvas) return;
     if (video.readyState < 2 || video.videoWidth === 0) {
       console.warn("Camera not ready yet", video.readyState, video.videoWidth);
       return;
@@ -193,30 +217,26 @@ function CreatePage() {
     canvas.height = video.videoHeight;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    const compiledFilter = compileFilter(currentFilterCss);
 
-  if (facing === "user") {
-    ctx.translate(canvas.width, 0);
-    ctx.scale(-1, 1);
-  }
+    if (facing === "user") {
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+    }
 
-  // was: ctx.filter = currentFilterCss;
-  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-  const compiled = compileFilter(currentFilterCss);
-  if (compiled !== IDENTITY_FILTER as any) {
-    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    applyCompiledFilter(imgData, compiled);
-    ctx.putImageData(imgData, 0, 0);
-  }
+    const compiled = compileFilter(currentFilterCss);
+    if (compiled !== (IDENTITY_FILTER as any)) {
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      applyCompiledFilter(imgData, compiled);
+      ctx.putImageData(imgData, 0, 0);
+    }
 
     canvas.toBlob(
       (blob) => {
-        console.log("toBlob result:", blob);
         if (!blob) return;
         const url = URL.createObjectURL(blob);
         setPendingCapture({ type: "photo", blob, url });
-        console.log("about to navigate to after-shot");
         navigate({ to: "/create/after-shot" });
       },
       "image/jpeg",
@@ -239,16 +259,6 @@ function CreatePage() {
     if (!stream || !video) return;
     recordedChunksRef.current = [];
 
-    // Always route recording through a canvas now, for two reasons:
-    // 1. Front camera preview is mirrored via CSS for a natural selfie feel,
-    //    but the raw stream underneath isn't — MediaRecorder can't apply a
-    //    CSS transform, so we redraw mirrored frames ourselves.
-    // 2. Filters are CSS-only on the live preview and never touch the actual
-    //    stream — baking them into the canvas draw is the only way they end
-    //    up in the saved file, for either camera.
-    // The filter is locked in at the moment recording starts (matches the
-    // filter strip becoming non-interactive during isRecording) rather than
-    // updating live mid-recording.
     let recordingStream: MediaStream = stream;
 
     if (video.videoWidth > 0) {
@@ -297,10 +307,8 @@ function CreatePage() {
       if (e.data.size > 0) recordedChunksRef.current.push(e.data);
     };
     recorder.onstop = () => {
-      console.log("onstop fired, chunks:", recordedChunksRef.current.length);
       stopMirrorDrawLoop();
       const blob = new Blob(recordedChunksRef.current, { type: mimeType || "video/webm" });
-      console.log("blob size:", blob.size);
       const url = URL.createObjectURL(blob);
       setPendingCapture({ type: "video", blob, url });
       navigate({ to: "/create/after-shot" });
@@ -311,7 +319,6 @@ function CreatePage() {
     setIsRecording(true);
     setIsPaused(false);
 
-    // Hard stop at 60s regardless of anything else, per the flat cap decision.
     window.setTimeout(() => {
       if (mediaRecorderRef.current === recorder && recorder.state !== "inactive") {
         recorder.stop();
@@ -320,6 +327,7 @@ function CreatePage() {
       }
     }, 60_000);
   }, [navigate, facing, currentFilterCss, stopMirrorDrawLoop]);
+
   const stopRecording = useCallback(() => {
     mediaRecorderRef.current?.stop();
     setIsRecording(false);
@@ -365,13 +373,13 @@ function CreatePage() {
       stopRecording();
       return;
     }
-    if (timerSeconds > 0) {
+    if (timer > 0) {
       setCapturePhase("counting");
-      setCountdownRemaining(timerSeconds);
+      setCountdownRemaining(timer);
     } else {
       performCapture();
     }
-  }, [capturePhase, mode, isRecording, timerSeconds, performCapture, stopRecording]);
+  }, [capturePhase, mode, isRecording, timer, performCapture, stopRecording]);
 
   return (
     <div
@@ -398,7 +406,7 @@ function CreatePage() {
         style={{ filter: currentFilterCss, transform: facing === "user" ? "scaleX(-1)" : "none" }}
       />
 
-      {facing === "user" && flashOn && (
+      {screenFlashActive && (
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
@@ -437,12 +445,24 @@ function CreatePage() {
             return (
               <button
                 key="flash"
-                onClick={() => setFlashOn((f) => !f)}
+                onClick={() => setOpenPanel("flash")}
                 aria-label="Flash"
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 relative"
               >
-                <AnimatedLabel visible={labelsVisible}>Flash</AnimatedLabel>
-                {flashOn ? <Zap size={26} /> : <ZapOff size={26} />}
+                <AnimatedLabel visible={labelsVisible}>
+                  {flashMode === "off" ? "Flash" : flashMode === "auto" ? "Flash: Auto" : "Flash: On"}
+                </AnimatedLabel>
+                <span className="relative flex items-center justify-center">
+                  {flashMode === "off" ? <ZapOff size={26} /> : <Zap size={26} />}
+                  {flashMode === "auto" && (
+                    <span
+                      className="absolute -top-1.5 -right-1.5 text-[10px] font-bold rounded-full flex items-center justify-center"
+                      style={{ width: 16, height: 16, background: "#fff", color: "#000" }}
+                    >
+                      A
+                    </span>
+                  )}
+                </span>
               </button>
             );
           }
@@ -450,62 +470,77 @@ function CreatePage() {
             return (
               <button
                 key="timer"
-                onClick={cycleTimer}
+                onClick={() => setOpenPanel("timer")}
                 aria-label="Timer"
                 className="flex items-center gap-2 relative"
               >
                 <AnimatedLabel visible={labelsVisible}>
-                  {timerSeconds === 0 ? "Timer" : `Timer: ${timerSeconds}s`}
+                  {timer === 0 ? "Timer" : `Timer: ${timer}s`}
                 </AnimatedLabel>
                 <span className="relative flex items-center justify-center">
-                  <Timer size={26} />
-                  {timerSeconds > 0 && (
+                  <TimerIcon size={26} />
+                  {timer > 0 && (
                     <span
                       className="absolute -top-1.5 -right-1.5 text-[10px] font-bold rounded-full flex items-center justify-center"
                       style={{ width: 16, height: 16, background: "#fff", color: "#000" }}
                     >
-                      {timerSeconds}
+                      {timer}
                     </span>
                   )}
                 </span>
               </button>
             );
           }
-          if (tool.id === "filters") {
+          if (tool.id === "ratio") {
             return (
               <button
-                key="filters"
-                aria-label={isNonDefaultFilterActive ? "More filters" : "Filters"}
-                className="flex items-center gap-2 opacity-90"
+                key="ratio"
+                onClick={() => setOpenPanel("ratio")}
+                aria-label="Ratio"
+                className="flex items-center gap-2"
               >
-                <AnimatedLabel visible={labelsVisible}>
-                  {isNonDefaultFilterActive ? "More Filters" : "Filters"}
-                </AnimatedLabel>
-                <span
-                  className="flex items-center justify-center transition-transform duration-200 ease-out"
-                  style={{ transform: isNonDefaultFilterActive ? "scale(1.3)" : "scale(1)" }}
-                >
-                  <Blend size={26} />
-                </span>
+                <AnimatedLabel visible={labelsVisible}>{`Ratio: ${ratio}`}</AnimatedLabel>
+                <RatioIcon size={26} />
               </button>
             );
           }
-          const Icon = tool.icon!;
+          if (tool.id === "layout") {
+            return (
+              <button
+                key="layout"
+                onClick={() => setOpenPanel("layout")}
+                aria-label="Layout"
+                className="flex items-center gap-2"
+              >
+                <AnimatedLabel visible={labelsVisible}>{`Layout: ${activeLayout.name}`}</AnimatedLabel>
+                <LayoutGrid size={26} />
+              </button>
+            );
+          }
+          // filters
           return (
             <button
-              key={tool.id}
-              aria-label={tool.label}
+              key="filters"
+              onClick={() => setOpenPanel("filters")}
+              aria-label={isNonDefaultFilterActive ? "More filters" : "Filters"}
               className="flex items-center gap-2 opacity-90"
             >
-              <AnimatedLabel visible={labelsVisible}>{tool.label}</AnimatedLabel>
-              <Icon size={26} />
+              <AnimatedLabel visible={labelsVisible}>
+                {isNonDefaultFilterActive ? activeFilter.name : "Filters"}
+              </AnimatedLabel>
+              <span
+                className="flex items-center justify-center transition-transform duration-200 ease-out"
+                style={{ transform: isNonDefaultFilterActive ? "scale(1.3)" : "scale(1)" }}
+              >
+                <Blend size={26} />
+              </span>
             </button>
           );
         })}
 
         {isNonDefaultFilterActive && (
           <button
-            onClick={toggleFavoriteCurrentFilter}
+            onClick={() => toggleFilterFavorite(selectedFilterId)}
             aria-label={isCurrentFilterFavorited ? "Remove from favorites" : "Favorite this filter"}
             className="flex items-center gap-2"
             style={{ animation: "oak-fade-in 220ms ease-out" }}
@@ -560,7 +595,7 @@ function CreatePage() {
           paddingRight: `calc(50% - ${CAPTURE_SIZE / 2}px)`,
         }}
       >
-        {FILTERS.map((f, i) => (
+        {quickStripFilters.map((f, i) => (
           <button
             key={f.id}
             onClick={() => scrollFilterIntoRing(i)}
@@ -569,10 +604,8 @@ function CreatePage() {
           >
             <span
               className="rounded-full overflow-hidden block"
-              style={{ width: SWATCH_DIAMETER, height: SWATCH_DIAMETER }}
-            >
-              <span className="w-full h-full block bg-neutral-500" style={{ filter: f.css }} />
-            </span>
+              style={{ width: SWATCH_DIAMETER, height: SWATCH_DIAMETER, background: f.thumbnailColor }}
+            />
           </button>
         ))}
       </div>
@@ -714,7 +747,44 @@ function CreatePage() {
           Compose
         </button>
       </div>
-    </div>
 
+      <FlashPanel
+        open={openPanel === "flash"}
+        value={flashMode}
+        facing={facing}
+        onChange={setFlashMode}
+        onClose={() => setOpenPanel(null)}
+      />
+      <RatioPanel
+        open={openPanel === "ratio"}
+        value={ratio}
+        onChange={setRatio}
+        onClose={() => setOpenPanel(null)}
+      />
+      <TimerPanel
+        open={openPanel === "timer"}
+        value={timer}
+        onChange={setTimer}
+        onClose={() => setOpenPanel(null)}
+      />
+      <FilterPanel
+        open={openPanel === "filters"}
+        selectedId={selectedFilterId}
+        favoriteIds={favoritedFilterIds}
+        onClose={() => setOpenPanel(null)}
+        onPreview={setSelectedFilterId}
+        onApply={setSelectedFilterId}
+        onToggleFavorite={toggleFilterFavorite}
+      />
+      <LayoutPanel
+        open={openPanel === "layout"}
+        value={selectedLayoutId}
+        savedIds={savedLayoutIds}
+        onClose={() => setOpenPanel(null)}
+        onChange={setSelectedLayoutId}
+        onToggleSave={toggleLayoutSaved}
+      />
+    </div>
   );
+  
 }
