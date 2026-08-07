@@ -209,6 +209,7 @@ function Index() {
     "Oakmonte is an ecosystem designed for those who expect more. We connect vetted sellers, honest creators and style curators through a content optimized marketplace.";
   const typeRef = useRef<HTMLParagraphElement>(null);
   const [typedLength, setTypedLength] = useState(0);
+  const [cursorVisible, setCursorVisible] = useState(true);
 
   useEffect(() => {
     const el = typeRef.current;
@@ -288,6 +289,16 @@ function Index() {
     window.addEventListener("scroll", update, { passive: true });
     return () => window.removeEventListener("scroll", update);
   }, []);
+
+  useEffect(() => {
+    const total = typeText.length;
+    if (typedLength < total) {
+      setCursorVisible(true);
+      return;
+    }
+    const timer = setTimeout(() => setCursorVisible(false), 700);
+    return () => clearTimeout(timer);
+  }, [typedLength]);
 
   useEffect(() => {
     const onScroll = () => {
@@ -601,7 +612,7 @@ function Index() {
               aria-label={typeText}
             >
               {typeText.slice(0, typedLength)}
-              {typedLength < typeText.length && (
+              {cursorVisible && (
                 <span
                   className="inline-block w-px h-[1em] bg-brand-text/70 align-middle ml-0.5"
                   style={{ animation: "cursor-blink 0.7s steps(1) infinite" }}
