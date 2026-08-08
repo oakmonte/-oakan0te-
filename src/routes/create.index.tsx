@@ -26,7 +26,7 @@ export const Route = createFileRoute("/create/")({
 });
 
 type Mode = "photo" | "video";
-type Section = "shoot" | "compose";
+type Section = "shoot" | "create";
 type CapturePhase = "live" | "counting";
 type PanelType = "ratio" | "timer" | "layout" | "filters";
 
@@ -277,15 +277,15 @@ function CreatePage() {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  // Largest box matching the selected ratio that fits the viewport. Root is
-  // already bg-black, so whatever doesn't fill this box just shows as bars.
+  // Always fill the full device width — matches native camera apps and
+  // TikTok/Snap: width is locked to the screen, height follows the selected
+  // ratio and is free to run past the viewport for taller ratios. The root
+  // wrapper below is already overflow-hidden, so anything that spills past
+  // the top/bottom just gets cropped off-screen instead of shrinking the
+  // whole box down and leaving visible bars on the sides.
   const targetAspect = RATIO_ASPECT[ratio];
-  let previewWidth = viewportSize.w;
-  let previewHeight = viewportSize.w / targetAspect;
-  if (previewHeight > viewportSize.h) {
-    previewHeight = viewportSize.h;
-    previewWidth = viewportSize.h * targetAspect;
-  }
+  const previewWidth = viewportSize.w;
+  const previewHeight = viewportSize.w / targetAspect;
 
   const isFullBleedRatio = ratio === "9:16"; // your default/story ratio already fills the screen edge-to-edge
 
@@ -714,15 +714,30 @@ function CreatePage() {
       </div>
 
       <div
-        className="absolute left-1/2 -translate-x-1/2 flex items-center gap-6"
-        style={{ bottom: CAPTURE_ROW_TOP + 24, zIndex: 5 }}
+        className="absolute left-1/2 -translate-x-1/2 flex items-center"
+        style={{
+          bottom: CAPTURE_ROW_TOP + 24,
+          zIndex: 5,
+          padding: 4,
+          borderRadius: 999,
+          background: "rgba(255,255,255,0.12)",
+          backdropFilter: "blur(16px)",
+          WebkitBackdropFilter: "blur(16px)",
+          border: "1px solid rgba(255,255,255,0.18)",
+        }}
       >
         {(["photo", "video"] as Mode[]).map((m) => (
           <button
             key={m}
             onClick={() => !isRecording && setMode(m)}
-            className="uppercase text-xs font-semibold tracking-wide"
-            style={{ opacity: mode === m ? 1 : 0.5 }}
+            className="uppercase text-xs font-bold tracking-wide"
+            style={{
+              padding: "8px 18px",
+              borderRadius: 999,
+              background: mode === m ? "rgba(255,255,255,0.92)" : "transparent",
+              color: mode === m ? "#000" : "rgba(255,255,255,0.75)",
+              transition: "background 200ms ease-out, color 200ms ease-out",
+            }}
           >
             {m}
           </button>
@@ -908,14 +923,14 @@ function CreatePage() {
           className="uppercase text-sm font-bold tracking-wide"
           style={{ opacity: section === "shoot" ? 1 : 0.5 }}
         >
-          Shoot
+          SHOOT
         </button>
         <button
-          onClick={() => setSection("compose")}
+          onClick={() => setSection("create")}
           className="uppercase text-sm font-bold tracking-wide"
-          style={{ opacity: section === "compose" ? 1 : 0.5 }}
+          style={{ opacity: section === "create" ? 1 : 0.5 }}
         >
-          Compose
+          CREATE
         </button>
       </div>
 
