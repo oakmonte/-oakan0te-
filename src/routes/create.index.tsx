@@ -17,9 +17,11 @@ import RatioPanel, { type CameraRatio } from "@/components/camera/RatioPanel";
 import TimerPanel, { type CameraTimer } from "@/components/camera/TimerPanel";
 import FilterPanel from "@/components/camera/FilterPanel";
 import LayoutPanel from "@/components/camera/LayoutPanel";
+import LayoutPreview from "@/components/camera/LayoutPreview";
 import LiquidGlassSegmented from "@/components/camera/LiquidGlassSegmented";
 import { CAMERA_FILTERS } from "@/components/camera/filter-data";
 import { CAMERA_LAYOUTS } from "@/components/camera/layout-data";
+import type { CameraLayout, LayoutCell } from "@/components/camera/layout-data";
 
 export const Route = createFileRoute("/create/")({
   head: () => ({ meta: [{ title: "Create — Oakmonte" }] }),
@@ -30,6 +32,11 @@ type Mode = "photo" | "video";
 type Section = "shoot" | "create";
 type CapturePhase = "live" | "counting";
 type PanelType = "ratio" | "timer" | "layout" | "filters";
+
+// A single captured, already-cropped/filtered/mirrored frame for one layout
+// cell. Kept as a canvas (not a blob) since it still needs to be drawn onto
+// the final composite canvas — converting to a blob is the very last step.
+type CellCapture = { canvas: HTMLCanvasElement };
 
 const DEFAULT_FILTER_ID = "natural";
 const DEFAULT_LAYOUT_ID = "fit-check";
@@ -77,10 +84,11 @@ const CAPTURE_ROW_BOTTOM = ROW_EDGE + 25;
 const CAPTURE_ROW_TOP = CAPTURE_ROW_BOTTOM + CAPTURE_SIZE;
 
 // Bottom-most of the three left-column icons (flash top, rotate middle,
-// gallery bottom). Raise this value to nudge the gallery icon up; it just
-// needs to stay below ROTATE_SIZE's own bottom offset to keep the stacking
-// order intact.
-const GALLERY_ICON_BOTTOM = ROW_EDGE + 14;
+// gallery bottom). Nudged up from ROW_EDGE + 14 — it was already close to
+// the rotate icon's bottom edge, so this tightens that gap further. Eyeball
+// it on-device; it just needs to stay clearly below rotate's own bottom
+// offset to keep the stacking order (and spacing) intact.
+const GALLERY_ICON_BOTTOM = ROW_EDGE + 22;
 
 // Gap between the mode toggle's bottom edge and the filter strip's top edge.
 const MODE_PILL_GAP = 8;
@@ -140,7 +148,7 @@ function CreatePage() {
   const [selectedFilterId, setSelectedFilterId] = useState(DEFAULT_FILTER_ID);
   const [favoritedFilterIds, setFavoritedFilterIds] = useState<Set<string>>(new Set());
   const [randomFillerIds, setRandomFillerIds] = useState<string[]>([]);
-  const [selectedLayoutId, setSelectedLayoutId] = useState(DEFAULT_LAYOUT_ID); // state only — no capture-flow consumer yet
+  const [selectedLayoutId, setSelectedLayoutId] = useState(DEFAULT_LAYOUT_ID);
   const [savedLayoutIds, setSavedLayoutIds] = useState<Set<string>>(new Set());
   const [zoomLevel, setZoomLevel] = useState(1);
   const zoomCapabilitiesRef = useRef<{ min: number; max: number; step: number } | null>(null);
@@ -150,6 +158,12 @@ function CreatePage() {
   const [countdownRemaining, setCountdownRemaining] = useState<number | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+
+  // --- Multi-cell layout capture ---
+  // Keyed by layout id so progress isn't lost if the user switches to a
+  // different layout mid-sequence and comes back — see notes above.
+  const [cellCapturesByLayout, setCellCapturesByLayout] = useState<Record<string, (CellCapture | null)[]>>({});
+  const [activeCellIndex, setActiveCellIndex] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -293,6 +307,34 @@ function CreatePage() {
   const activeLayout =
     CAMERA_LAYOUTS.find((l) => l.id === selectedLayoutId) ?? CAMERA_LAYOUTS[0];
 
+  // Multi-cell mode only ever applies to photo capture — video-cell
+  // compositing is real scope (audio, mismatched durations, actual editing)
+  // and deliberately not attempted here. Selecting a multi-cell layout while
+  // in Video mode just has no effect: no overlay, capture behaves like a
+  // normal single video.
+  const isMultiCellActive = mode === "photo" && activeLayout.cells.length > 1;
+  const cellCaptures = cellCapturesByLayout[activeLayout.id] ?? [];
+
+  // Lazily initialize this layout's cell slots the first time it's used.
+  useEffect(() => {
+    if (activeLayout.cells.length <= 1) return;
+    setCellCapturesByLayout((prev) => {
+      if (prev[activeLayout.id]) return prev;
+      return { ...prev, [activeLayout.id]: new Array(activeLayout.cells.length).fill(null) };
+    });
+  }, [activeLayout.id, activeLayout.cells.length]);
+
+  // Keep activeCellIndex pointed at the first empty cell for whichever
+  // layout is currently selected — this is what makes switching layouts and
+  // switching back "resume where you left off" instead of losing progress.
+  useEffect(() => {
+    if (activeLayout.cells.length <= 1) return;
+    const captures = cellCapturesByLayout[activeLayout.id];
+    if (!captures) return;
+    const firstEmpty = captures.findIndex((c) => c === null);
+    setActiveCellIndex(firstEmpty === -1 ? 0 : firstEmpty);
+  }, [activeLayout.id, activeLayout.cells.length, cellCapturesByLayout]);
+
   // Front-camera screen flash, driven by the same flashOn toggle.
   const screenFlashActive = facing === "user" && flashOn;
   const currentFilterCss = screenFlashActive
@@ -372,7 +414,120 @@ function CreatePage() {
       "image/jpeg",
       0.96,
     );
-  }, [facing, currentFilterCss, navigate]);
+  }, [facing, currentFilterCss, navigate, ratio]);
+
+  // Captures just one layout cell's worth of the current frame into an
+  // off-DOM canvas, cropped/mirrored/filtered exactly like capturePhoto —
+  // just scoped to the cell's rect instead of the full frame.
+  const captureCellFrame = useCallback((cell: LayoutCell) => {
+    const video = videoRef.current;
+    if (!video || video.readyState < 2 || video.videoWidth === 0) {
+      console.warn("Camera not ready yet", video?.readyState, video?.videoWidth);
+      return null;
+    }
+
+    const { sx, sy, sw, sh } = getCropRect(video.videoWidth, video.videoHeight, targetAspect);
+
+    // cell.x/y are fractions of the on-screen frame — which, for the front
+    // camera, is CSS-mirrored. Flip the x-axis back to raw sensor coords
+    // before reading pixels, or we'd grab the mirror-image region instead
+    // of the one actually showing under the on-screen cell.
+    const rawCellX = facing === "user" ? 1 - cell.x - cell.w : cell.x;
+    const cellSx = sx + rawCellX * sw;
+    const cellSy = sy + cell.y * sh;
+    const cellSw = cell.w * sw;
+    const cellSh = cell.h * sh;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(cellSw));
+    canvas.height = Math.max(1, Math.round(cellSh));
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+
+    if (facing === "user") {
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+    }
+    ctx.drawImage(video, cellSx, cellSy, cellSw, cellSh, 0, 0, canvas.width, canvas.height);
+
+    const compiled = compileFilter(currentFilterCss);
+    if (compiled !== (IDENTITY_FILTER as any)) {
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      applyCompiledFilter(imgData, compiled);
+      ctx.putImageData(imgData, 0, 0);
+    }
+    return canvas;
+  }, [facing, currentFilterCss, targetAspect]);
+
+  // Flattens every filled cell onto one output canvas at the layout's
+  // fractional rects, then hands off exactly like a normal single photo —
+  // AfterShotContext never has to know a layout was involved.
+  const compositeAndHandoff = useCallback((layout: CameraLayout, captures: (CellCapture | null)[]) => {
+    const W = 1080;
+    const H = Math.round(W / targetAspect);
+    const output = document.createElement("canvas");
+    output.width = W;
+    output.height = H;
+    const ctx = output.getContext("2d");
+    if (!ctx) return;
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, W, H);
+
+    const gap = 4; // thin seam between cells, matching LayoutPreview's spirit
+    layout.cells.forEach((cell, i) => {
+      const capture = captures[i];
+      if (!capture) return;
+      const dx = cell.x * W + gap / 2;
+      const dy = cell.y * H + gap / 2;
+      const dw = cell.w * W - gap;
+      const dh = cell.h * H - gap;
+      ctx.drawImage(capture.canvas, dx, dy, dw, dh);
+    });
+
+    output.toBlob(
+      (blob) => {
+        if (!blob) return;
+        const url = URL.createObjectURL(blob);
+        setPendingCapture({ type: "photo", blob, url });
+        navigate({ to: "/create/after-shot" });
+      },
+      "image/jpeg",
+      0.96,
+    );
+  }, [targetAspect, navigate]);
+
+  const captureIntoActiveCell = useCallback(() => {
+    const cell = activeLayout.cells[activeCellIndex];
+    if (!cell) return;
+    const canvas = captureCellFrame(cell);
+    if (!canvas) return;
+
+    setCellCapturesByLayout((prev) => {
+      const existing = prev[activeLayout.id] ?? new Array(activeLayout.cells.length).fill(null);
+      const next = [...existing];
+      next[activeCellIndex] = { canvas };
+      if (next.every((c) => c !== null)) {
+        compositeAndHandoff(activeLayout, next);
+      }
+      return { ...prev, [activeLayout.id]: next };
+    });
+  }, [activeLayout, activeCellIndex, captureCellFrame, compositeAndHandoff]);
+
+  // Tapping an empty cell jumps the active slot to it; tapping a filled
+  // cell clears it and makes it active again — a retake, nothing more.
+  const handleCellTap = useCallback((index: number) => {
+    setCellCapturesByLayout((prev) => {
+      const existing = prev[activeLayout.id];
+      if (!existing) return prev;
+      if (existing[index] === null) {
+        setActiveCellIndex(index);
+        return prev;
+      }
+      const next = [...existing];
+      next[index] = null;
+      return { ...prev, [activeLayout.id]: next };
+    });
+  }, [activeLayout.id]);
 
   const stopMirrorDrawLoop = useCallback(() => {
     if (mirrorDrawLoopRef.current !== null) {
@@ -457,7 +612,7 @@ function CreatePage() {
         setIsPaused(false);
       }
     }, 60_000);
-  }, [navigate, facing, currentFilterCss, stopMirrorDrawLoop]);
+  }, [navigate, facing, currentFilterCss, stopMirrorDrawLoop, ratio]);
 
   const stopRecording = useCallback(() => {
     mediaRecorderRef.current?.stop();
@@ -480,9 +635,13 @@ function CreatePage() {
   const performCapture = useCallback(() => {
     setCapturePhase("live");
     setCountdownRemaining(null);
-    if (mode === "photo") capturePhoto();
-    else startRecording();
-  }, [mode, capturePhoto, startRecording]);
+    if (mode === "photo") {
+      if (isMultiCellActive) captureIntoActiveCell();
+      else capturePhoto();
+    } else {
+      startRecording();
+    }
+  }, [mode, isMultiCellActive, captureIntoActiveCell, capturePhoto, startRecording]);
 
   useEffect(() => {
     if (capturePhase !== "counting" || countdownRemaining === null) return;
@@ -569,6 +728,42 @@ function CreatePage() {
             <div className="absolute top-2/3 left-0 right-0 h-px bg-white" />
           </div>
         )}
+
+        {isMultiCellActive && (
+          <LayoutPreview
+            layout={activeLayout}
+            gap={2}
+            activeCellIndex={activeCellIndex}
+            className="absolute inset-0"
+            renderCell={(_cell, i) => {
+              const capture = cellCaptures[i];
+              return (
+                <button
+                  type="button"
+                  onClick={() => handleCellTap(i)}
+                  aria-label={capture ? `Retake shot ${i + 1}` : `Cell ${i + 1}`}
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    width: "100%",
+                    height: "100%",
+                    padding: 0,
+                    border: "none",
+                    background: "transparent",
+                  }}
+                >
+                  {capture && (
+                    <img
+                      src={capture.canvas.toDataURL()}
+                      alt=""
+                      style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                    />
+                  )}
+                </button>
+              );
+            }}
+          />
+        )}
       </div>
 
       {screenFlashActive && (
@@ -652,7 +847,11 @@ function CreatePage() {
                 aria-label="Layout"
                 className="flex items-center gap-2"
               >
-                <AnimatedLabel visible={labelsVisible}>{`Layout: ${activeLayout.name}`}</AnimatedLabel>
+                <AnimatedLabel visible={labelsVisible}>
+                  {isMultiCellActive
+                    ? `${activeCellIndex + 1} of ${activeLayout.cells.length}`
+                    : `Layout: ${activeLayout.name}`}
+                </AnimatedLabel>
                 <LayoutGrid size={26} />
               </button>
             );
@@ -957,5 +1156,5 @@ function CreatePage() {
       />
     </div>
   );
-  
+
 }
