@@ -51,6 +51,12 @@ const RATIO_ASPECT: Record<CameraRatio, number> = {
   "16:9": 16 / 9,
 };
 
+// Output pixel width used for the final composite canvas AND, proportionally,
+// for each individual cell capture's own canvas — shared so a cell's stored
+// resolution lines up with how large it'll actually be drawn in the final
+// composite instead of guessing at a size.
+const COMPOSITE_WIDTH = 1080;
+
 // Centered crop rect (in source pixel coords) that matches what object-cover
 // would render inside a box of targetAspect — used identically for the live
 // preview box and for both capture paths, so they stay in sync.
@@ -84,10 +90,7 @@ const CAPTURE_ROW_BOTTOM = ROW_EDGE + 25;
 const CAPTURE_ROW_TOP = CAPTURE_ROW_BOTTOM + CAPTURE_SIZE;
 
 // Bottom-most of the three left-column icons (flash top, rotate middle,
-// gallery bottom). Nudged up from ROW_EDGE + 14 — it was already close to
-// the rotate icon's bottom edge, so this tightens that gap further. Eyeball
-// it on-device; it just needs to stay clearly below rotate's own bottom
-// offset to keep the stacking order (and spacing) intact.
+// gallery bottom).
 const GALLERY_ICON_BOTTOM = ROW_EDGE + 22;
 
 // Gap between the mode toggle's bottom edge and the filter strip's top edge.
@@ -132,6 +135,10 @@ function CreatePage() {
   const recordedChunksRef = useRef<Blob[]>([]);
   const mirrorDrawLoopRef = useRef<number | null>(null);
   const mirrorCanvasStreamRef = useRef<MediaStream | null>(null);
+  // One live-preview <video> per empty layout cell during multi-cell
+  // capture, all bound to the same MediaStream — see the streamVersion
+  // effect below for why they need explicit rebinding on camera switch.
+  const cellVideoRefsRef = useRef<(HTMLVideoElement | null)[]>([]);
 
   const [facing, setFacing] = useState<"user" | "environment">("user");
   const [mode, setMode] = useState<Mode>("photo");
@@ -161,9 +168,13 @@ function CreatePage() {
 
   // --- Multi-cell layout capture ---
   // Keyed by layout id so progress isn't lost if the user switches to a
-  // different layout mid-sequence and comes back — see notes above.
+  // different layout mid-sequence and comes back.
   const [cellCapturesByLayout, setCellCapturesByLayout] = useState<Record<string, (CellCapture | null)[]>>({});
   const [activeCellIndex, setActiveCellIndex] = useState(0);
+  // Bumped whenever a new camera stream is acquired (e.g. facing flip) so
+  // the per-cell preview <video> elements — which hold their own srcObject
+  // outside the effect that owns streamRef — know to rebind to it.
+  const [streamVersion, setStreamVersion] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -190,6 +201,7 @@ function CreatePage() {
         }
         streamRef.current = stream;
         if (videoRef.current) videoRef.current.srcObject = stream;
+        setStreamVersion((v) => v + 1);
 
         const track = stream.getVideoTracks()[0];
         const caps = track?.getCapabilities?.() as (MediaTrackCapabilities & {
@@ -207,6 +219,16 @@ function CreatePage() {
       streamRef.current?.getTracks().forEach((t) => t.stop());
     };
   }, [facing, mode]);
+
+  // Rebind every per-cell live-preview video to the current stream whenever
+  // it changes — these elements set srcObject imperatively via ref callback
+  // on mount, but a facing-flip swaps streamRef.current out from under them
+  // without remounting them, so they'd otherwise keep showing a dead stream.
+  useEffect(() => {
+    cellVideoRefsRef.current.forEach((el) => {
+      if (el && streamRef.current) el.srcObject = streamRef.current;
+    });
+  }, [streamVersion]);
 
   // Rear-camera torch, driven by the simple flashOn toggle.
   useEffect(() => {
@@ -309,9 +331,7 @@ function CreatePage() {
 
   // Multi-cell mode only ever applies to photo capture — video-cell
   // compositing is real scope (audio, mismatched durations, actual editing)
-  // and deliberately not attempted here. Selecting a multi-cell layout while
-  // in Video mode just has no effect: no overlay, capture behaves like a
-  // normal single video.
+  // and deliberately not attempted here.
   const isMultiCellActive = mode === "photo" && activeLayout.cells.length > 1;
   const cellCaptures = cellCapturesByLayout[activeLayout.id] ?? [];
 
@@ -416,9 +436,13 @@ function CreatePage() {
     );
   }, [facing, currentFilterCss, navigate, ratio]);
 
-  // Captures just one layout cell's worth of the current frame into an
-  // off-DOM canvas, cropped/mirrored/filtered exactly like capturePhoto —
-  // just scoped to the cell's rect instead of the full frame.
+  // Captures one layout cell exactly the way capturePhoto captures a full
+  // single shot: center-crop the WHOLE raw camera frame to a target aspect
+  // ratio, mirror if needed, apply the filter. The only difference is the
+  // target aspect is this cell's own shape (cell.w/h scaled by the overall
+  // ratio), not the full composite's shape — so each cell gets a properly
+  // framed, full-FOV subject instead of a positional fragment of one shared
+  // frame. This is what makes it match the reference multi-cam apps.
   const captureCellFrame = useCallback((cell: LayoutCell) => {
     const video = videoRef.current;
     if (!video || video.readyState < 2 || video.videoWidth === 0) {
@@ -426,21 +450,14 @@ function CreatePage() {
       return null;
     }
 
-    const { sx, sy, sw, sh } = getCropRect(video.videoWidth, video.videoHeight, targetAspect);
+    const cellAspect = (cell.w / cell.h) * targetAspect;
+    const { sx, sy, sw, sh } = getCropRect(video.videoWidth, video.videoHeight, cellAspect);
 
-    // cell.x/y are fractions of the on-screen frame — which, for the front
-    // camera, is CSS-mirrored. Flip the x-axis back to raw sensor coords
-    // before reading pixels, or we'd grab the mirror-image region instead
-    // of the one actually showing under the on-screen cell.
-    const rawCellX = facing === "user" ? 1 - cell.x - cell.w : cell.x;
-    const cellSx = sx + rawCellX * sw;
-    const cellSy = sy + cell.y * sh;
-    const cellSw = cell.w * sw;
-    const cellSh = cell.h * sh;
-
+    const outputW = Math.max(1, Math.round(cell.w * COMPOSITE_WIDTH));
+    const outputH = Math.max(1, Math.round(outputW / cellAspect));
     const canvas = document.createElement("canvas");
-    canvas.width = Math.max(1, Math.round(cellSw));
-    canvas.height = Math.max(1, Math.round(cellSh));
+    canvas.width = outputW;
+    canvas.height = outputH;
     const ctx = canvas.getContext("2d");
     if (!ctx) return null;
 
@@ -448,7 +465,7 @@ function CreatePage() {
       ctx.translate(canvas.width, 0);
       ctx.scale(-1, 1);
     }
-    ctx.drawImage(video, cellSx, cellSy, cellSw, cellSh, 0, 0, canvas.width, canvas.height);
+    ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
 
     const compiled = compileFilter(currentFilterCss);
     if (compiled !== (IDENTITY_FILTER as any)) {
@@ -463,7 +480,7 @@ function CreatePage() {
   // fractional rects, then hands off exactly like a normal single photo —
   // AfterShotContext never has to know a layout was involved.
   const compositeAndHandoff = useCallback((layout: CameraLayout, captures: (CellCapture | null)[]) => {
-    const W = 1080;
+    const W = COMPOSITE_WIDTH;
     const H = Math.round(W / targetAspect);
     const output = document.createElement("canvas");
     output.width = W;
@@ -749,14 +766,38 @@ function CreatePage() {
                     height: "100%",
                     padding: 0,
                     border: "none",
-                    background: "transparent",
+                    background: "#000",
+                    overflow: "hidden",
                   }}
                 >
-                  {capture && (
+                  {capture ? (
                     <img
                       src={capture.canvas.toDataURL()}
                       alt=""
                       style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                    />
+                  ) : (
+                    // Independent live pane for this cell — same MediaStream
+                    // as the main preview, but the browser's object-fit:cover
+                    // crops it to THIS box's own aspect ratio automatically.
+                    // That's the whole fix: no manual positional math needed
+                    // here, CSS does exactly what captureCellFrame does in
+                    // canvas at capture time.
+                    <video
+                      ref={(el) => {
+                        cellVideoRefsRef.current[i] = el;
+                        if (el && streamRef.current) el.srcObject = streamRef.current;
+                      }}
+                      autoPlay
+                      muted
+                      playsInline
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                        display: "block",
+                        transform: facing === "user" ? "scaleX(-1)" : undefined,
+                      }}
                     />
                   )}
                 </button>
