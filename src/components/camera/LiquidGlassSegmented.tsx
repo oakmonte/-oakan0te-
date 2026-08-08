@@ -14,7 +14,13 @@ type LiquidGlassSegmentedProps<T extends string> = {
   style?: CSSProperties;
 };
 
-const PILL_PADDING = 5;
+// ── Tweak these while eyeballing on-device — every visual dimension routes
+// through these five values, nothing else in the file needs to change. ──
+const PILL_PADDING = 5;        // outer padding between track edge and tabs
+const TAB_VERTICAL_PADDING = 12; // ↑ raise this to make the whole pill taller
+const TRACK_OPACITY = 0.28;    // track background darkness (was ~0.45)
+const TRACK_BORDER_OPACITY = 0.06; // track outline strength (was 0.08)
+const INDICATOR_BORDER_OPACITY = 0.22; // indicator ring strength (was 0.35 — was reading as too thick/defined)
 
 export default function LiquidGlassSegmented<T extends string>({
   options,
@@ -33,19 +39,18 @@ export default function LiquidGlassSegmented<T extends string>({
         display: "flex",
         padding: PILL_PADDING,
         borderRadius: 999,
-        // Track: dim, low-saturation glass — deliberately duller than the
-        // indicator so it reads as recessed, with the indicator as the "real"
-        // lit glass surface riding above it.
-        background: "rgba(20,20,22,0.45)",
+        // Track: lighter, warmer transparent gray — closer to the reference's
+        // soft recessed look than a near-opaque dark base.
+        background: `rgba(60,58,54,${TRACK_OPACITY})`,
         backdropFilter: "blur(20px)",
         WebkitBackdropFilter: "blur(20px)",
-        border: "1px solid rgba(255,255,255,0.08)",
+        border: `1px solid rgba(255,255,255,${TRACK_BORDER_OPACITY})`,
         ...style,
       }}
     >
       {/* Sliding glass indicator — its own stronger blur + saturation/brightness
-          boost, plus inset specular highlights, so it reads as a curved lit
-          surface rather than a flat color swap. */}
+          boost, plus a soft (not heavy) specular ring, so it reads as a subtle
+          lit surface rather than a hard-edged pill. */}
       <div
         style={{
           position: "absolute",
@@ -54,12 +59,12 @@ export default function LiquidGlassSegmented<T extends string>({
           width: tabWidth,
           height: `calc(100% - ${PILL_PADDING * 2}px)`,
           borderRadius: 999,
-          background: "rgba(255,255,255,0.14)",
-          backdropFilter: "blur(20px) saturate(180%) brightness(1.15)",
-          WebkitBackdropFilter: "blur(20px) saturate(180%) brightness(1.15)",
-          border: "1px solid rgba(255,255,255,0.35)",
+          background: "rgba(255,255,255,0.10)",
+          backdropFilter: "blur(20px) saturate(160%) brightness(1.1)",
+          WebkitBackdropFilter: "blur(20px) saturate(160%) brightness(1.1)",
+          border: `1px solid rgba(255,255,255,${INDICATOR_BORDER_OPACITY})`,
           boxShadow:
-            "inset 0 1px 1px rgba(255,255,255,0.35), inset 0 -1px 2px rgba(0,0,0,0.25), 0 4px 14px rgba(0,0,0,0.35)",
+            "inset 0 1px 1px rgba(255,255,255,0.25), inset 0 -1px 2px rgba(0,0,0,0.18), 0 3px 10px rgba(0,0,0,0.28)",
           transform: `translateX(${activeIndex * tabWidth}px)`,
           transition: "transform 320ms cubic-bezier(0.25, 1, 0.5, 1)",
         }}
@@ -73,9 +78,9 @@ export default function LiquidGlassSegmented<T extends string>({
           className="relative uppercase text-xs font-bold tracking-wide"
           style={{
             width: tabWidth,
-            padding: "9px 0",
+            padding: `${TAB_VERTICAL_PADDING}px 0`,
             textAlign: "center",
-            color: opt.value === value ? "#000" : "rgba(255,255,255,0.7)",
+            color: opt.value === value ? "#fff" : "rgba(255,255,255,0.6)",
             transition: "color 200ms ease-out",
           }}
         >
