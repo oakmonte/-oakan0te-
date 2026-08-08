@@ -72,11 +72,11 @@ const CAPTURE_SIZE = 84;
 const ROW_EDGE = 20;
 // Pushed closer to the screen edge (was ROW_EDGE + 56) to free up clear space
 // above the filter strip for the mode toggle to sit in.
-const CAPTURE_ROW_BOTTOM = ROW_EDGE + 40;
+const CAPTURE_ROW_BOTTOM = ROW_EDGE + 20;
 const CAPTURE_ROW_TOP = CAPTURE_ROW_BOTTOM + CAPTURE_SIZE;
 
 // Gap between the mode toggle's bottom edge and the filter strip's top edge.
-const MODE_PILL_GAP = 26;
+const MODE_PILL_GAP =10;
 const MODE_PILL_BOTTOM = CAPTURE_ROW_TOP + MODE_PILL_GAP;
 const MODE_PILL_TAB_WIDTH = 92; // fatter than the previous 74px
 
