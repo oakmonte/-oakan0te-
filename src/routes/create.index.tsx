@@ -273,6 +273,7 @@ function CreatePage() {
 
   useEffect(() => {
     const onResize = () => setViewportSize({ w: window.innerWidth, h: window.innerHeight });
+    onResize(); // correct the SSR-fallback size (390x844) to the real device size immediately on mount
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
@@ -716,7 +717,7 @@ function CreatePage() {
       <div
         className="absolute left-1/2 -translate-x-1/2 flex items-center"
         style={{
-          bottom: CAPTURE_ROW_TOP + 24,
+          bottom: CAPTURE_ROW_TOP - 16,
           zIndex: 5,
           padding: 4,
           borderRadius: 999,
