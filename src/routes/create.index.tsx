@@ -68,6 +68,7 @@ const RANDOM_FILLER_COUNT = 6;
 
 const ROTATE_SIZE = 48;
 const FLASH_TOGGLE_SIZE = 47;
+const GALLERY_ICON_SIZE = 40;
 const CAPTURE_SIZE = 84;
 const ROW_EDGE = 20;
 // Pushed closer to the screen edge (was ROW_EDGE + 56) to free up clear space
@@ -75,8 +76,14 @@ const ROW_EDGE = 20;
 const CAPTURE_ROW_BOTTOM = ROW_EDGE + 25;
 const CAPTURE_ROW_TOP = CAPTURE_ROW_BOTTOM + CAPTURE_SIZE;
 
+// Bottom-most of the three left-column icons (flash top, rotate middle,
+// gallery bottom). Raise this value to nudge the gallery icon up; it just
+// needs to stay below ROTATE_SIZE's own bottom offset to keep the stacking
+// order intact.
+const GALLERY_ICON_BOTTOM = ROW_EDGE + 14;
+
 // Gap between the mode toggle's bottom edge and the filter strip's top edge.
-const MODE_PILL_GAP =8;
+const MODE_PILL_GAP = 8;
 const MODE_PILL_BOTTOM = CAPTURE_ROW_TOP + MODE_PILL_GAP;
 const MODE_PILL_TAB_WIDTH = 92; // fatter than the previous 74px
 
@@ -795,6 +802,45 @@ function CreatePage() {
         {flashOn ? <Zap size={16} /> : <ZapOff size={16} />}
       </button>
 
+      <button
+        aria-label="Import from gallery"
+        onClick={() => galleryInputRef.current?.click()}
+        className="absolute rounded-xl overflow-hidden flex items-center justify-center"
+        style={{
+          zIndex: 3,
+          left: ROW_EDGE,
+          bottom: `calc(env(safe-area-inset-bottom) + ${GALLERY_ICON_BOTTOM}px)`,
+          width: GALLERY_ICON_SIZE,
+          height: GALLERY_ICON_SIZE,
+          background: "rgba(255,255,255,0.10)",
+          border: "1px solid rgba(255,255,255,0.15)",
+        }}
+      >
+        <ImageIcon size={16} className="opacity-80" />
+      </button>
+
+      <input
+        ref={galleryInputRef}
+        type="file"
+        accept="image/*,video/*"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) {
+            const url = URL.createObjectURL(file);
+            setPendingCapture({
+              type: file.type.startsWith("video") ? "video" : "photo",
+              blob: file,
+              url,
+            });
+            navigate({ to: "/create/after-shot" }).catch((err) => {
+              console.error("navigate() rejected:", err);
+            });
+          }
+          e.target.value = "";
+        }}
+      />
+
       {mode === "video" && isRecording ? (
         <div
           className="absolute left-1/2 -translate-x-1/2 flex items-center gap-6"
@@ -864,41 +910,6 @@ function CreatePage() {
         className="absolute left-0 right-0 flex items-center justify-center gap-8"
         style={{ bottom: "calc(env(safe-area-inset-bottom) + 16px)" }}
       >
-        <button
-          aria-label="Import from gallery"
-          onClick={() => galleryInputRef.current?.click()}
-          className="absolute w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center"
-          style={{
-            left: ROW_EDGE,
-            background: "rgba(255,255,255,0.10)",
-            border: "1px solid rgba(255,255,255,0.15)",
-          }}
-        >
-          <ImageIcon size={16} className="opacity-80" />
-        </button>
-
-        <input
-          ref={galleryInputRef}
-          type="file"
-          accept="image/*,video/*"
-          className="hidden"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) {
-              const url = URL.createObjectURL(file);
-              setPendingCapture({
-                type: file.type.startsWith("video") ? "video" : "photo",
-                blob: file,
-                url,
-              });
-              navigate({ to: "/create/after-shot" }).catch((err) => {
-                console.error("navigate() rejected:", err);
-              });
-            }
-            e.target.value = "";
-          }}
-        />
-
         <button
           onClick={() => setSection("shoot")}
           className="uppercase text-sm font-bold tracking-wide"
