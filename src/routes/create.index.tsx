@@ -67,7 +67,7 @@ const STRIP_SIZE = 10;
 const RANDOM_FILLER_COUNT = 6;
 
 const ROTATE_SIZE = 48;
-const FLASH_TOGGLE_SIZE = 48;
+const FLASH_TOGGLE_SIZE = 47;
 const CAPTURE_SIZE = 84;
 const ROW_EDGE = 20;
 // Pushed closer to the screen edge (was ROW_EDGE + 56) to free up clear space
