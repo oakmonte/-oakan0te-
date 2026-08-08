@@ -17,6 +17,7 @@ import RatioPanel, { type CameraRatio } from "@/components/camera/RatioPanel";
 import TimerPanel, { type CameraTimer } from "@/components/camera/TimerPanel";
 import FilterPanel from "@/components/camera/FilterPanel";
 import LayoutPanel from "@/components/camera/LayoutPanel";
+import LiquidGlassSegmented from "@/components/camera/LiquidGlassSegmented";
 import { CAMERA_FILTERS } from "@/components/camera/filter-data";
 import { CAMERA_LAYOUTS } from "@/components/camera/layout-data";
 
@@ -32,8 +33,9 @@ type PanelType = "ratio" | "timer" | "layout" | "filters";
 
 const DEFAULT_FILTER_ID = "natural";
 const DEFAULT_LAYOUT_ID = "fit-check";
-// Numeric width/height for each ratio, used to size the preview box and to
-// crop captured frames so what's shot matches what was framed.
+// Numeric width/height for each ratio — used both for the CSS aspect-ratio
+// on the preview box and for cropping captured frames, so what's shot always
+// matches what was framed.
 const RATIO_ASPECT: Record<CameraRatio, number> = {
   "9:16": 9 / 16,
   "3:4": 3 / 4,
@@ -68,8 +70,15 @@ const ROTATE_SIZE = 48;
 const FLASH_TOGGLE_SIZE = 40;
 const CAPTURE_SIZE = 84;
 const ROW_EDGE = 20;
-const CAPTURE_ROW_BOTTOM = ROW_EDGE + 56;
+// Pushed closer to the screen edge (was ROW_EDGE + 56) to free up clear space
+// above the filter strip for the mode toggle to sit in.
+const CAPTURE_ROW_BOTTOM = ROW_EDGE + 40;
 const CAPTURE_ROW_TOP = CAPTURE_ROW_BOTTOM + CAPTURE_SIZE;
+
+// Gap between the mode toggle's bottom edge and the filter strip's top edge.
+const MODE_PILL_GAP = 26;
+const MODE_PILL_BOTTOM = CAPTURE_ROW_TOP + MODE_PILL_GAP;
+const MODE_PILL_TAB_WIDTH = 92; // fatter than the previous 74px
 
 const SWATCH_DIAMETER = CAPTURE_SIZE - 16;
 const BARRIER_EDGE = ROW_EDGE + ROTATE_SIZE + 10;
@@ -266,28 +275,12 @@ function CreatePage() {
     });
   }, []);
 
-  const [viewportSize, setViewportSize] = useState(() => ({
-    w: typeof window !== "undefined" ? window.innerWidth : 390,
-    h: typeof window !== "undefined" ? window.innerHeight : 844,
-  }));
-
-  useEffect(() => {
-    const onResize = () => setViewportSize({ w: window.innerWidth, h: window.innerHeight });
-    onResize(); // correct the SSR-fallback size (390x844) to the real device size immediately on mount
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
-
-  // Always fill the full device width — matches native camera apps and
-  // TikTok/Snap: width is locked to the screen, height follows the selected
-  // ratio and is free to run past the viewport for taller ratios. The root
-  // wrapper below is already overflow-hidden, so anything that spills past
-  // the top/bottom just gets cropped off-screen instead of shrinking the
-  // whole box down and leaving visible bars on the sides.
+  // Preview box aspect ratio — width/height, matching CSS aspect-ratio syntax.
+  // No JS viewport measurement anymore: the box is width:100% with this
+  // aspect-ratio applied, so the browser derives height natively on every
+  // paint. This is what actually fixes the width bug — there's no longer a
+  // JS measurement step that can race against hydration/load timing.
   const targetAspect = RATIO_ASPECT[ratio];
-  const previewWidth = viewportSize.w;
-  const previewHeight = viewportSize.w / targetAspect;
-
   const isFullBleedRatio = ratio === "9:16"; // your default/story ratio already fills the screen edge-to-edge
 
   const activeLayout =
@@ -534,11 +527,12 @@ function CreatePage() {
         onTouchEnd={handlePinchEnd}
         className="absolute overflow-hidden"
         style={{
-          left: "50%",
+          left: 0,
+          right: 0,
           top: "50%",
-          width: previewWidth,
-          height: previewHeight,
-          transform: "translate(-50%, -50%)",
+          transform: "translateY(-50%)",
+          width: "100%",
+          aspectRatio: String(targetAspect),
           borderRadius: isFullBleedRatio ? 0 : 20,
           boxShadow: isFullBleedRatio ? "none" : "0 12px 40px rgba(0,0,0,0.55)",
           border: isFullBleedRatio ? "none" : "1px solid rgba(255,255,255,0.08)",
@@ -574,8 +568,6 @@ function CreatePage() {
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
-            // was: "radial-gradient(circle at 50% 30%, rgba(255,255,255,0.35), rgba(255,255,255,0.05) 70%)"
-            // now: transparent center (keeps framing visible) fading into a fat, near-opaque white ring at the edges
             background:
               "radial-gradient(ellipse at 50% 40%, transparent 0%, transparent 38%, rgba(255,255,255,0.55) 70%, rgba(255,255,255,0.95) 100%)",
             mixBlendMode: "screen",
@@ -715,34 +707,22 @@ function CreatePage() {
       </div>
 
       <div
-        className="absolute left-1/2 -translate-x-1/2 flex items-center"
+        className="absolute left-1/2 -translate-x-1/2"
         style={{
-          bottom: CAPTURE_ROW_TOP - 16,
+          bottom: `calc(env(safe-area-inset-bottom) + ${MODE_PILL_BOTTOM}px)`,
           zIndex: 5,
-          padding: 4,
-          borderRadius: 999,
-          background: "rgba(255,255,255,0.12)",
-          backdropFilter: "blur(16px)",
-          WebkitBackdropFilter: "blur(16px)",
-          border: "1px solid rgba(255,255,255,0.18)",
         }}
       >
-        {(["photo", "video"] as Mode[]).map((m) => (
-          <button
-            key={m}
-            onClick={() => !isRecording && setMode(m)}
-            className="uppercase text-xs font-bold tracking-wide"
-            style={{
-              padding: "8px 18px",
-              borderRadius: 999,
-              background: mode === m ? "rgba(255,255,255,0.92)" : "transparent",
-              color: mode === m ? "#000" : "rgba(255,255,255,0.75)",
-              transition: "background 200ms ease-out, color 200ms ease-out",
-            }}
-          >
-            {m}
-          </button>
-        ))}
+        <LiquidGlassSegmented
+          options={[
+            { value: "photo", label: "Photo" },
+            { value: "video", label: "Video" },
+          ]}
+          value={mode}
+          onChange={setMode}
+          disabled={isRecording}
+          tabWidth={MODE_PILL_TAB_WIDTH}
+        />
       </div>
 
       <div
