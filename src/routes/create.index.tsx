@@ -91,7 +91,7 @@ const CAPTURE_ROW_TOP = CAPTURE_ROW_BOTTOM + CAPTURE_SIZE;
 
 // Bottom-most of the three left-column icons (flash top, rotate middle,
 // gallery bottom).
-const GALLERY_ICON_BOTTOM = ROW_EDGE + 3;
+const GALLERY_ICON_BOTTOM = ROW_EDGE + 0;
 
 // Gap between the mode toggle's bottom edge and the filter strip's top edge.
 const MODE_PILL_GAP = 8;
