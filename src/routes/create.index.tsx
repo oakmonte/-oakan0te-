@@ -91,7 +91,7 @@ const CAPTURE_ROW_TOP = CAPTURE_ROW_BOTTOM + CAPTURE_SIZE;
 
 // Bottom-most of the three left-column icons (flash top, rotate middle,
 // gallery bottom).
-const GALLERY_ICON_BOTTOM = ROW_EDGE + 17;
+const GALLERY_ICON_BOTTOM = ROW_EDGE + 10;
 
 // Gap between the mode toggle's bottom edge and the filter strip's top edge.
 const MODE_PILL_GAP = 8;
@@ -158,6 +158,12 @@ function CreatePage() {
   const [selectedLayoutId, setSelectedLayoutId] = useState(DEFAULT_LAYOUT_ID);
   const [savedLayoutIds, setSavedLayoutIds] = useState<Set<string>>(new Set());
   const [zoomLevel, setZoomLevel] = useState(1);
+  // What's actually applied to the video's CSS transform. Kept separate from
+  // zoomLevel: zoomLevel tracks *effective* zoom so a pinch can resume from
+  // the right place, but only the digital-fallback path should ever move
+  // this above 1 — CSS-scaling a video the hardware already zoomed optically
+  // double-applies it, which is what was dragging the back camera's frame.
+  const [cssZoomScale, setCssZoomScale] = useState(1);
   const zoomCapabilitiesRef = useRef<{ min: number; max: number; step: number } | null>(null);
   const pinchStateRef = useRef<{ startDistance: number; startZoom: number } | null>(null);
 
@@ -209,6 +215,7 @@ function CreatePage() {
         }) | undefined;
         zoomCapabilitiesRef.current = caps?.zoom ?? null;
         setZoomLevel(1);
+        setCssZoomScale(1);
       } catch (err) {
         console.error("Camera access failed:", err);
       }
@@ -364,16 +371,29 @@ function CreatePage() {
   const applyZoom = useCallback((level: number) => {
     const caps = zoomCapabilitiesRef.current;
     const track = streamRef.current?.getVideoTracks()[0];
-    if (caps && track) {
-      // Hardware zoom (mostly rear cameras) — actual optical/sensor-level zoom.
+    // Real optical/hybrid zoom hardware only exists on the back camera.
+    // Front cameras frequently report a zoom capability object anyway —
+    // trusting that blindly was the actual bug: it silently sent
+    // front-camera zoom through a no-op applyConstraints call, then clamped
+    // it to whatever narrow range was reported (often exactly 1..1), which
+    // is why zoom-out never worked there no matter what.
+    if (facing === "environment" && caps && track) {
+      // Hardware zoom — the camera itself changes what it captures. No CSS
+      // scale on top of it, or it gets applied twice (this was the back-
+      // camera "whole frame drags with it" bug).
       const clamped = Math.min(caps.max, Math.max(caps.min, level));
       (track.applyConstraints as any)({ advanced: [{ zoom: clamped }] }).catch(() => {});
       setZoomLevel(clamped);
+      setCssZoomScale(1);
     } else {
-      // Digital fallback (front camera, most phones) — CSS-scale crop-zoom.
-      setZoomLevel(Math.min(3, Math.max(1, level)));
+      // Digital fallback — always used for the front camera, and for any
+      // back camera without real zoom hardware. CSS-scale is the only zoom
+      // that exists here, since nothing else is doing it for us.
+      const clamped = Math.min(3, Math.max(1, level));
+      setZoomLevel(clamped);
+      setCssZoomScale(clamped);
     }
-  }, []);
+  }, [facing]);
 
   const handlePinchStart = useCallback((e: TouchEvent) => {
     if (e.touches.length !== 2) return;
@@ -732,8 +752,8 @@ function CreatePage() {
           style={{
               filter: currentFilterCss,
               transform: facing === "user"
-                ? `scaleX(-1) scale(${zoomLevel})`
-                : `scale(${zoomLevel})`,
+                ? `scaleX(-1) scale(${cssZoomScale})`
+                : `scale(${cssZoomScale})`,
               transition: pinchStateRef.current ? "none" : "transform 100ms ease-out",
             }}
         />
