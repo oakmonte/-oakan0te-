@@ -35,27 +35,43 @@ function AfterShotIndexPage() {
   const navigate = useNavigate();
   const { media, discard } = useAfterShotContext();
   const [toolsExpanded, setToolsExpanded] = useState(false);
+  const [mediaAspect, setMediaAspect] = useState(9 / 16);
 
   return (
     <div
       className="fixed inset-0 bg-black text-white overflow-hidden"
       style={{ fontFamily: "'SF Pro', system-ui, sans-serif" }}
     >
-      {media.type === "photo" ? (
-        <img
-          src={media.url}
-          alt="Captured"
-          className="absolute inset-0 w-full h-full object-cover"
-        />
-      ) : (
-        <video
-          src={media.url}
-          autoPlay
-          loop
-          playsInline
-          className="absolute inset-0 w-full h-full object-cover"
-        />
-      )}
+      <div
+        className="absolute overflow-hidden"
+        style={{
+          left: 0,
+          right: 0,
+          top: "50%",
+          transform: "translateY(-50%)",
+          width: "100%",
+          aspectRatio: String(mediaAspect),
+          background: "#000",
+        }}
+      >
+        {media.type === "photo" ? (
+          <img
+            src={media.url}
+            alt="Captured"
+            onLoad={(e) => setMediaAspect(e.currentTarget.naturalWidth / e.currentTarget.naturalHeight)}
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        ) : (
+          <video
+            src={media.url}
+            autoPlay
+            loop
+            playsInline
+            onLoadedMetadata={(e) => setMediaAspect(e.currentTarget.videoWidth / e.currentTarget.videoHeight)}
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        )}
+      </div>
 
       <div className="absolute top-0 left-0 right-0 flex items-center px-4 pt-[calc(env(safe-area-inset-top)+12px)] z-20">
         <button

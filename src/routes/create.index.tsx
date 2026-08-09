@@ -73,6 +73,26 @@ function getCropRect(sourceWidth: number, sourceHeight: number, targetAspect: nu
   return { sx, sy, sw, sh };
 }
 
+// Narrows a centered crop rect by the current CSS-only zoom factor, keeping
+// it centered — this is what makes captured photos/videos/cells actually
+// reflect what was visually zoomed in on screen. Hardware zoom (back
+// camera, where supported) is already baked into the raw frame by the time
+// we get here, which is exactly why cssZoomScale sits at 1 in that case —
+// multiplying by 1 correctly does nothing.
+function applyZoomToCrop(
+  crop: { sx: number; sy: number; sw: number; sh: number },
+  zoom: number,
+) {
+  const zsw = crop.sw / zoom;
+  const zsh = crop.sh / zoom;
+  return {
+    sx: crop.sx + (crop.sw - zsw) / 2,
+    sy: crop.sy + (crop.sh - zsh) / 2,
+    sw: zsw,
+    sh: zsh,
+  };
+}
+
 // Quick filter strip: Natural is pinned, favorites fill in, and up to this
 // many random non-favorite filters backfill the rest so new users aren't
 // staring at just one swatch. Strip never exceeds STRIP_SIZE total.
@@ -424,7 +444,10 @@ function CreatePage() {
       console.warn("Camera not ready yet", video.readyState, video.videoWidth);
       return;
     }
-    const { sx, sy, sw, sh } = getCropRect(video.videoWidth, video.videoHeight, RATIO_ASPECT[ratio]);
+    const { sx, sy, sw, sh } = applyZoomToCrop(
+    getCropRect(video.videoWidth, video.videoHeight, RATIO_ASPECT[ratio]),
+    cssZoomScale,
+  );
     canvas.width = sw;
     canvas.height = sh;
     const ctx = canvas.getContext("2d");
@@ -454,7 +477,7 @@ function CreatePage() {
       "image/jpeg",
       0.96,
     );
-  }, [facing, currentFilterCss, navigate, ratio]);
+  }, [facing, currentFilterCss, navigate, ratio, cssZoomScale]);
 
   // Captures one layout cell exactly the way capturePhoto captures a full
   // single shot: center-crop the WHOLE raw camera frame to a target aspect
@@ -471,7 +494,10 @@ function CreatePage() {
     }
 
     const cellAspect = (cell.w / cell.h) * targetAspect;
-    const { sx, sy, sw, sh } = getCropRect(video.videoWidth, video.videoHeight, cellAspect);
+    const { sx, sy, sw, sh } = applyZoomToCrop(
+      getCropRect(video.videoWidth, video.videoHeight, cellAspect),
+      cssZoomScale,
+    );
 
     const outputW = Math.max(1, Math.round(cell.w * COMPOSITE_WIDTH));
     const outputH = Math.max(1, Math.round(outputW / cellAspect));
@@ -494,7 +520,7 @@ function CreatePage() {
       ctx.putImageData(imgData, 0, 0);
     }
     return canvas;
-  }, [facing, currentFilterCss, targetAspect]);
+  }, [facing, currentFilterCss, targetAspect, cssZoomScale]);
 
   // Flattens every filled cell onto one output canvas at the layout's
   // fractional rects, then hands off exactly like a normal single photo —
@@ -584,7 +610,10 @@ function CreatePage() {
     let recordingStream: MediaStream = stream;
 
     if (video.videoWidth > 0) {
-      const { sx, sy, sw, sh } = getCropRect(video.videoWidth, video.videoHeight, RATIO_ASPECT[ratio]);
+      const { sx, sy, sw, sh } = applyZoomToCrop(
+        getCropRect(video.videoWidth, video.videoHeight, RATIO_ASPECT[ratio]),
+        cssZoomScale
+      );
       const recordCanvas = document.createElement("canvas");
       recordCanvas.width = sw;
       recordCanvas.height = sh;
@@ -649,7 +678,7 @@ function CreatePage() {
         setIsPaused(false);
       }
     }, 60_000);
-  }, [navigate, facing, currentFilterCss, stopMirrorDrawLoop, ratio]);
+  }, [navigate, facing, currentFilterCss, stopMirrorDrawLoop, ratio, cssZoomScale]);
 
   const stopRecording = useCallback(() => {
     mediaRecorderRef.current?.stop();
