@@ -11,24 +11,21 @@ function HeaderAuth() {
   const { user, loading } = useSession();
   const [open, setOpen] = useState(false);
   const [profileUsername, setProfileUsername] = useState<string | null>(null);
-  const [profileDisplayName, setProfileDisplayName] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) {
       setProfileUsername(null);
-      setProfileDisplayName(null);
       return;
     }
     let cancelled = false;
     supabase
       .from("profiles")
-      .select("personal_username, display_name")
+      .select("personal_username")
       .eq("id", user.id)
       .maybeSingle()
       .then(({ data }) => {
         if (cancelled) return;
         setProfileUsername(data?.personal_username ?? null);
-        setProfileDisplayName(data?.display_name ?? null);
       });
     return () => {
       cancelled = true;
@@ -58,22 +55,18 @@ function HeaderAuth() {
     );
   }
 
-  // Label priority: username the user chose -> their saved display name ->
-  // the name the identity provider (Google / Apple) gave us -> email prefix.
+  // Label priority: the username the user chose -> the second (last) name the
+  // identity provider (Google / Apple) gave us -> email prefix.
   const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
   const str = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : null);
-  // Apple returns the name split across fields (and only on first consent).
-  const appleName =
-    [str(meta.given_name), str(meta.family_name)].filter(Boolean).join(" ") || null;
-  const providerName =
-    str(meta.full_name) ?? str(meta.name) ?? str(meta.preferred_username) ?? appleName;
+  // Apple/Google expose a surname field; otherwise take the 2nd word of the full name.
+  const fullName = str(meta.full_name) ?? str(meta.name);
+  const secondWord = fullName ? (fullName.split(/\s+/)[1] ?? null) : null;
+  const providerSecondName =
+    str(meta.family_name) ?? str(meta.last_name) ?? secondWord ?? fullName;
 
   const label =
-    profileUsername ??
-    profileDisplayName ??
-    providerName ??
-    user.email?.split("@")[0] ??
-    "Account";
+    profileUsername ?? providerSecondName ?? user.email?.split("@")[0] ?? "Account";
   const short = label.length > 22 ? label.slice(0, 20) + "…" : label;
 
   return (
