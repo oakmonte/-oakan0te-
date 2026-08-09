@@ -91,7 +91,7 @@ const CAPTURE_ROW_TOP = CAPTURE_ROW_BOTTOM + CAPTURE_SIZE;
 
 // Bottom-most of the three left-column icons (flash top, rotate middle,
 // gallery bottom).
-const GALLERY_ICON_BOTTOM = ROW_EDGE + 10;
+const GALLERY_ICON_BOTTOM = ROW_EDGE + 3;
 
 // Gap between the mode toggle's bottom edge and the filter strip's top edge.
 const MODE_PILL_GAP = 8;
@@ -773,56 +773,64 @@ function CreatePage() {
             activeCellIndex={activeCellIndex}
             className="absolute inset-0"
             renderCell={(_cell, i) => {
-              const capture = cellCaptures[i];
-              return (
-                <button
-                  type="button"
-                  onClick={() => handleCellTap(i)}
-                  aria-label={capture ? `Retake shot ${i + 1}` : `Cell ${i + 1}`}
-                  style={{
-                    position: "absolute",
-                    inset: 0,
-                    width: "100%",
-                    height: "100%",
-                    padding: 0,
-                    border: "none",
-                    background: "#000",
-                    overflow: "hidden",
-                  }}
-                >
-                  {capture ? (
-                    <img
-                      src={capture.canvas.toDataURL()}
-                      alt=""
-                      style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-                    />
-                  ) : (
-                    // Independent live pane for this cell — same MediaStream
-                    // as the main preview, but the browser's object-fit:cover
-                    // crops it to THIS box's own aspect ratio automatically.
-                    // That's the whole fix: no manual positional math needed
-                    // here, CSS does exactly what captureCellFrame does in
-                    // canvas at capture time.
-                    <video
-                      ref={(el) => {
-                        cellVideoRefsRef.current[i] = el;
-                        if (el && streamRef.current) el.srcObject = streamRef.current;
-                      }}
-                      autoPlay
-                      muted
-                      playsInline
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        objectFit: "cover",
-                        display: "block",
-                        transform: facing === "user" ? "scaleX(-1)" : undefined,
-                      }}
-                    />
-                  )}
-                </button>
-              );
-            }}
+  const capture = cellCaptures[i];
+  const isActive = i === activeCellIndex;
+  return (
+    <button
+      type="button"
+      onClick={() => handleCellTap(i)}
+      aria-label={capture ? `Retake shot ${i + 1}` : `Cell ${i + 1}`}
+      style={{
+        position: "absolute",
+        inset: 0,
+        width: "100%",
+        height: "100%",
+        padding: 0,
+        border: "none",
+        background: "#000",
+        overflow: "hidden",
+      }}
+    >
+      {capture ? (
+        <img
+          src={capture.canvas.toDataURL()}
+          alt=""
+          style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+        />
+      ) : isActive ? (
+        // Only the cell currently being shot gets a live pane — every
+        // other empty cell falls through to the button's own black
+        // background instead. Previously every empty cell showed a live
+        // feed at once, which made it unclear which one you were about
+        // to capture into.
+        <video
+          ref={(el) => {
+            cellVideoRefsRef.current[i] = el;
+            if (el && streamRef.current) el.srcObject = streamRef.current;
+          }}
+          autoPlay
+          muted
+          playsInline
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            display: "block",
+            // cssZoomScale added here too — this was the actual bug.
+            // The main preview video applies zoom via this same
+            // transform, but this per-cell video sits on top of it once
+            // a layout is active, so it needed the same scale applied
+            // directly or front-camera (CSS-only) zoom silently did
+            // nothing while a layout was selected.
+            transform: facing === "user"
+              ? `scaleX(-1) scale(${cssZoomScale})`
+              : `scale(${cssZoomScale})`,
+          }}
+        />
+      ) : null}
+    </button>
+  );
+}}
           />
         )}
       </div>
