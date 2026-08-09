@@ -62,15 +62,11 @@ function HeaderAuth() {
   // the name the identity provider (Google / Apple) gave us -> email prefix.
   const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
   const str = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : null);
+  // Apple returns the name split across fields (and only on first consent).
+  const appleName =
+    [str(meta.given_name), str(meta.family_name)].filter(Boolean).join(" ") || null;
   const providerName =
-    str(meta.full_name) ??
-    str(meta.name) ??
-    str(meta.preferred_username) ??
-    // Apple returns the name split across fields (and only on first consent).
-    [str(meta.given_name) ?? str((meta.name as never)?.["firstName"]), str(meta.family_name)]
-      .filter(Boolean)
-      .join(" ") ||
-    null;
+    str(meta.full_name) ?? str(meta.name) ?? str(meta.preferred_username) ?? appleName;
 
   const label =
     profileUsername ??
