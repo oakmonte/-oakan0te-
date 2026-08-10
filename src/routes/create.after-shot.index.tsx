@@ -9,11 +9,12 @@ import {
   Blend,
   Link2,
   Crop,
-  Scissors,
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
 import { useAfterShotContext } from "@/lib/after-shot-context";
+// remove the inline `function TrimIcon(...)` block entirely, and add:
+import { TrimIcon } from "@/components/camera/aftershot-icons";
 
 export const Route = createFileRoute("/create/after-shot/")({
   head: () => ({ meta: [{ title: "Edit — Oakmonte" }] }),
@@ -30,6 +31,8 @@ const EDIT_TOOLS = [
 ] as const;
 
 const COLLAPSED_TOOLS = [{ id: "crop", label: "Crop", icon: Crop }] as const;
+
+
 
 function AfterShotIndexPage() {
   const navigate = useNavigate();
@@ -94,7 +97,7 @@ function AfterShotIndexPage() {
             aria-label="Trim video"
             className="flex items-center gap-2 opacity-90"
           >
-            <Scissors size={24} />
+            <TrimIcon size={24} />
           </button>
         )}
 

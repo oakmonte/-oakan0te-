@@ -856,7 +856,23 @@ function CreatePage() {
               : `scale(${cssZoomScale})`,
           }}
         />
-      ) : null}
+      ) : (
+        // Cells not yet reached: frosted glass instead of flat black, so
+        // the live scene still shows through, just softened — matches the
+        // liquid-glass language LiquidGlassSegmented already uses. No live
+        // video here on purpose; a sharp feed would bring back the
+        // "which cell is active" confusion this was meant to fix.
+        <div
+          style={{
+            width: "100%",
+            height: "100%",
+            background: "rgba(255,255,255,0.08)",
+            backdropFilter: "blur(20px) saturate(160%)",
+            WebkitBackdropFilter: "blur(20px) saturate(160%)",
+            border: "1px solid rgba(255,255,255,0.10)",
+          }}
+        />
+      )}
     </button>
   );
 }}
