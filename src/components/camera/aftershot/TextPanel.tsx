@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Canvas, IText } from "fabric";
-import { X, Check, Type, Palette, RectangleHorizontal, AlignLeft, AlignCenter, AlignRight } from "lucide-react";
+import { X, Palette, RectangleHorizontal, AlignLeft, AlignCenter, AlignRight } from "lucide-react";
 import { useAfterShotLayers, type TextLayer } from "@/lib/after-shot-layers";
 
 const FONTS = [
@@ -16,32 +15,25 @@ const BOX_COLOR = "rgba(0,0,0,0.55)";
 const MIN_FONT_SIZE = 16;
 const MAX_FONT_SIZE = 72;
 const DEFAULT_FONT_SIZE = 32;
-// Cycles on tap: 400 (off/normal) -> 600 -> 700 -> 800 -> 900 -> back to 400
 const WEIGHT_LEVELS = [400, 600, 700, 800, 900];
+const FALLBACK_BOX_WIDTH = 375; // used only if containerRef isn't measurable yet — shouldn't normally hit
 
 type TextPanelProps = {
   open: boolean;
   containerRef: React.RefObject<HTMLDivElement | null>;
+  editingLayerId: string | null; // null = creating a new layer; a real id = editing that existing layer
   onClose: () => void;
 };
 
 const ALIGN_CYCLE: TextLayer["align"][] = ["left", "center", "right"];
 const ALIGN_ICON = { left: AlignLeft, center: AlignCenter, right: AlignRight };
 
-// Tracks how much the on-screen soft keyboard is covering the viewport, via
-// the visualViewport API — the layout viewport does NOT shrink with the
-// keyboard on iOS Safari, so anything meant to sit "above the keyboard"
-// has to be repositioned manually using this, not just placed at the
-// bottom of normal document flow.
 function useKeyboardInset() {
   const [inset, setInset] = useState(0);
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
-    const update = () => {
-      const covered = window.innerHeight - vv.height - vv.offsetTop;
-      setInset(Math.max(0, Math.round(covered)));
-    };
+    const update = () => setInset(Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop)));
     update();
     vv.addEventListener("resize", update);
     vv.addEventListener("scroll", update);
@@ -53,24 +45,67 @@ function useKeyboardInset() {
   return inset;
 }
 
-export default function TextPanel({ open, containerRef, onClose }: TextPanelProps) {
-  const { addLayer } = useAfterShotLayers();
+export default function TextPanel({ open, containerRef, editingLayerId, onClose }: TextPanelProps) {
+  const { layers, addLayer, updateLayer, removeLayer } = useAfterShotLayers();
   const keyboardInset = useKeyboardInset();
-
-  const [phase, setPhase] = useState<"compose" | "place">("compose");
 
   const [content, setContent] = useState("");
   const [selectedFontId, setSelectedFontId] = useState(FONTS[0].id);
   const [selectedColor, setSelectedColor] = useState(COLORS[0]);
-  const [fontSize, setFontSize] = useState(DEFAULT_FONT_SIZE); // raw px while composing, converted to a fraction at confirm
+  const [fontSize, setFontSize] = useState(DEFAULT_FONT_SIZE); // raw px while composing
   const [align, setAlign] = useState<TextLayer["align"]>("center");
   const [boxOn, setBoxOn] = useState(false);
-  const [weightLevel, setWeightLevel] = useState(0); // index into WEIGHT_LEVELS
+  const [weightLevel, setWeightLevel] = useState(0);
   const [showColorRow, setShowColorRow] = useState(false);
+  const [boxWidth, setBoxWidth] = useState(FALLBACK_BOX_WIDTH);
 
   const activeFont = FONTS.find((f) => f.id === selectedFontId) ?? FONTS[0];
   const AlignIcon = ALIGN_ICON[align];
   const fontWeight = WEIGHT_LEVELS[weightLevel];
+  const committedRef = useRef(false); // guards against double-commit (blur + Enter firing together)
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Track the media box's width — needed to convert TextLayer.fontSize
+  // (stored as a fraction of box width, resolution-independent) into real
+  // px for editing, and back again on commit.
+  useEffect(() => {
+    if (!open) return;
+    const el = containerRef.current;
+    if (!el) return;
+    const update = () => setBoxWidth(el.clientWidth || FALLBACK_BOX_WIDTH);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [open, containerRef]);
+
+  // Reset to blank, or pre-fill from the layer being edited, every time
+  // the panel opens or which layer it's editing changes.
+  useEffect(() => {
+    if (!open) return;
+    committedRef.current = false;
+    const editing = editingLayerId ? layers.find((l) => l.id === editingLayerId && l.kind === "text") : null;
+    if (editing && editing.kind === "text") {
+      setContent(editing.content);
+      setSelectedFontId(FONTS.find((f) => f.css === editing.font)?.id ?? FONTS[0].id);
+      setSelectedColor(editing.color);
+      setFontSize(Math.round(editing.fontSize * boxWidth) || DEFAULT_FONT_SIZE);
+      setAlign(editing.align);
+      setBoxOn(editing.boxColor !== null);
+      const wIdx = WEIGHT_LEVELS.indexOf(editing.fontWeight);
+      setWeightLevel(wIdx === -1 ? 0 : wIdx);
+    } else {
+      setContent("");
+      setSelectedFontId(FONTS[0].id);
+      setSelectedColor(COLORS[0]);
+      setFontSize(DEFAULT_FONT_SIZE);
+      setAlign("center");
+      setBoxOn(false);
+      setWeightLevel(0);
+    }
+    setShowColorRow(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, editingLayerId]);
 
   // ---- vertical size slider ----
   const trackRef = useRef<HTMLDivElement>(null);
@@ -81,15 +116,13 @@ export default function TextPanel({ open, containerRef, onClose }: TextPanelProp
     if (!track) return;
     const rect = track.getBoundingClientRect();
     const fraction = Math.min(1, Math.max(0, (clientY - rect.top) / rect.height));
-    const size = MAX_FONT_SIZE - fraction * (MAX_FONT_SIZE - MIN_FONT_SIZE);
-    setFontSize(Math.round(size));
+    setFontSize(Math.round(MAX_FONT_SIZE - fraction * (MAX_FONT_SIZE - MIN_FONT_SIZE)));
   }, []);
 
   useEffect(() => {
-    if (phase !== "compose") return;
+    if (!open) return;
     const onMove = (e: PointerEvent) => {
-      if (!draggingSlider.current) return;
-      setFontSizeFromClientY(e.clientY);
+      if (draggingSlider.current) setFontSizeFromClientY(e.clientY);
     };
     const onUp = () => {
       draggingSlider.current = false;
@@ -100,107 +133,9 @@ export default function TextPanel({ open, containerRef, onClose }: TextPanelProp
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
     };
-  }, [phase, setFontSizeFromClientY]);
+  }, [open, setFontSizeFromClientY]);
 
   const sliderFraction = 1 - (fontSize - MIN_FONT_SIZE) / (MAX_FONT_SIZE - MIN_FONT_SIZE);
-
-  // ---- placement phase (Fabric) ----
-  const canvasElRef = useRef<HTMLCanvasElement>(null);
-  const fabricCanvasRef = useRef<Canvas | null>(null);
-  const textObjRef = useRef<IText | null>(null);
-  const [canvasSize, setCanvasSize] = useState<{ w: number; h: number } | null>(null);
-
-  useEffect(() => {
-    if (phase !== "place") return;
-    const el = containerRef.current;
-    if (!el) return;
-    const update = () => setCanvasSize({ w: el.clientWidth, h: el.clientHeight });
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [phase, containerRef]);
-
-  useEffect(() => {
-    if (phase !== "place" || !canvasSize || !canvasElRef.current) return;
-
-    const canvas = new Canvas(canvasElRef.current, {
-      width: canvasSize.w,
-      height: canvasSize.h,
-      backgroundColor: "transparent",
-      selection: false,
-    });
-    fabricCanvasRef.current = canvas;
-
-    const text = new IText(content, {
-      left: canvasSize.w / 2,
-      top: canvasSize.h / 2,
-      originX: "center",
-      originY: "center",
-      fontFamily: activeFont.css,
-      fill: selectedColor,
-      fontSize, // still raw px here — placement box is the same width as the compose screen, so no conversion needed yet
-      fontWeight,
-      textAlign: align,
-      backgroundColor: boxOn ? BOX_COLOR : undefined,
-      editable: false,
-    });
-    text.setControlsVisibility({ mt: false, mb: false, ml: false, mr: false });
-    canvas.add(text);
-    canvas.setActiveObject(text);
-    textObjRef.current = text;
-    canvas.requestRenderAll();
-
-    return () => {
-      canvas.dispose();
-      fabricCanvasRef.current = null;
-      textObjRef.current = null;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, canvasSize]);
-
-  const reset = useCallback(() => {
-    setPhase("compose");
-    setContent("");
-    setSelectedFontId(FONTS[0].id);
-    setSelectedColor(COLORS[0]);
-    setFontSize(DEFAULT_FONT_SIZE);
-    setAlign("center");
-    setBoxOn(false);
-    setWeightLevel(0);
-    setShowColorRow(false);
-  }, []);
-
-  const handleCancel = useCallback(() => {
-    reset();
-    onClose();
-  }, [reset, onClose]);
-
-  const handleConfirmPlacement = useCallback(() => {
-    const text = textObjRef.current;
-    const size = canvasSize;
-    if (text && size) {
-      const layer: TextLayer = {
-        id: `text-${Date.now()}`,
-        kind: "text",
-        x: text.left / size.w,
-        y: text.top / size.h,
-        scale: text.scaleX,
-        rotation: text.angle,
-        zIndex: 0,
-        content,
-        font: activeFont.css,
-        color: selectedColor,
-        fontSize: fontSize / size.w, // px -> fraction of box width, resolution-independent for bake/render
-        align,
-        boxColor: boxOn ? BOX_COLOR : null,
-        fontWeight,
-      };
-      addLayer(layer);
-    }
-    reset();
-    onClose();
-  }, [content, activeFont.css, selectedColor, fontSize, align, boxOn, fontWeight, canvasSize, addLayer, reset, onClose]);
 
   const cycleAlign = useCallback(() => {
     setAlign((prev) => ALIGN_CYCLE[(ALIGN_CYCLE.indexOf(prev) + 1) % ALIGN_CYCLE.length]);
@@ -210,81 +145,130 @@ export default function TextPanel({ open, containerRef, onClose }: TextPanelProp
     setWeightLevel((prev) => (prev + 1) % WEIGHT_LEVELS.length);
   }, []);
 
+  // Single commit path for every trigger (keyboard Enter, blur from
+  // tapping outside the input, tapping the background directly). Guarded
+  // so it only actually runs once even if two triggers fire back to back.
+  const commit = useCallback(() => {
+    if (committedRef.current) return;
+    committedRef.current = true;
+
+    const trimmed = content.trim();
+    const width = containerRef.current?.clientWidth || boxWidth;
+
+    if (editingLayerId) {
+      if (trimmed.length === 0) {
+        removeLayer(editingLayerId);
+      } else {
+        updateLayer(editingLayerId, {
+          content: trimmed,
+          font: activeFont.css,
+          color: selectedColor,
+          fontSize: fontSize / width,
+          align,
+          boxColor: boxOn ? BOX_COLOR : null,
+          fontWeight,
+        } as Partial<TextLayer>);
+      }
+    } else if (trimmed.length > 0) {
+      const layer: TextLayer = {
+        id: `text-${Date.now()}`,
+        kind: "text",
+        x: 0.5,
+        y: 0.5,
+        scale: 1,
+        rotation: 0,
+        zIndex: 0,
+        content: trimmed,
+        font: activeFont.css,
+        color: selectedColor,
+        fontSize: fontSize / width,
+        align,
+        boxColor: boxOn ? BOX_COLOR : null,
+        fontWeight,
+      };
+      addLayer(layer);
+    }
+    // trimmed === "" and !editingLayerId: nothing typed, nothing to do — just closes.
+
+    onClose();
+  }, [content, editingLayerId, containerRef, boxWidth, activeFont.css, selectedColor, fontSize, align, boxOn, fontWeight, addLayer, updateLayer, removeLayer, onClose]);
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        commit();
+      }
+    },
+    [commit],
+  );
+
   if (!open) return null;
 
-  if (phase === "place") {
-    return (
-      <div className="absolute inset-0 z-40 flex flex-col" style={{ fontFamily: "'SF Pro', system-ui, sans-serif" }}>
-        <canvas ref={canvasElRef} className="absolute inset-0" style={{ touchAction: "none" }} />
-        <div className="flex items-center justify-between px-4 pt-[calc(env(safe-area-inset-top)+12px)] z-10">
-          <button
-            onClick={handleCancel}
-            aria-label="Cancel text"
-            className="flex items-center justify-center w-10 h-10 rounded-full"
-            style={{ background: "rgba(255,255,255,0.10)", backdropFilter: "blur(12px)" }}
-          >
-            <X size={20} color="#fff" />
-          </button>
-          <button
-            onClick={handleConfirmPlacement}
-            aria-label="Confirm text"
-            className="flex items-center justify-center w-10 h-10 rounded-full transition-transform duration-150 active:scale-90"
-            style={{ background: "#fff", color: "#000" }}
-          >
-            <Check size={20} />
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const otherTextLayers = layers.filter(
+    (l): l is TextLayer => l.kind === "text" && l.id !== editingLayerId,
+  );
 
-  // ---- COMPOSE PHASE ----
-  // No bg-black here — TextPanel is mounted inside the SAME mediaBoxRef
-  // div as the page's real <img>/<video>, sitting on top of it in the DOM.
-  // The media is already visible underneath; painting black over it was
-  // the only thing hiding it.
   return (
     <div className="absolute inset-0 z-40 flex flex-col" style={{ fontFamily: "'SF Pro', system-ui, sans-serif" }}>
-      <div className="flex items-center justify-between px-4 pt-[calc(env(safe-area-inset-top)+12px)]">
+      {/* Toolbar — onMouseDown preventDefault keeps the text input focused
+          when tapping these buttons, so toggling an option never triggers
+          the input's blur (and therefore never triggers commit). */}
+      <div
+        onMouseDown={(e) => e.preventDefault()}
+        className="flex items-center justify-between px-4 pt-[calc(env(safe-area-inset-top)+12px)]"
+      >
         <div className="flex items-center gap-3">
           <button
-            onClick={() => setShowColorRow(false)}
+            onClick={() => {
+              setShowColorRow(false);
+              inputRef.current?.focus();
+            }}
             aria-label="Show font options"
-            className="flex items-center justify-center w-9 h-9 rounded-full"
+            className="flex items-center justify-center w-11 h-11 rounded-full"
             style={{ background: !showColorRow ? "rgba(255,255,255,0.15)" : "transparent" }}
           >
-            <Type size={20} color="#fff" />
+            <span className="text-white text-lg font-semibold">A</span>
           </button>
           <button
-            onClick={() => setShowColorRow((v) => !v)}
+            onClick={() => {
+              setShowColorRow((v) => !v);
+              inputRef.current?.focus();
+            }}
             aria-label="Toggle color picker"
-            className="flex items-center justify-center w-9 h-9 rounded-full"
+            className="flex items-center justify-center w-11 h-11 rounded-full"
             style={{ background: showColorRow ? "rgba(255,255,255,0.15)" : "transparent" }}
           >
-            <Palette size={20} color="#fff" />
+            <Palette size={26} color="#fff" />
           </button>
           <button
-            onClick={() => setBoxOn((v) => !v)}
+            onClick={() => {
+              setBoxOn((v) => !v);
+              inputRef.current?.focus();
+            }}
             aria-label="Toggle text box"
-            className="flex items-center justify-center w-9 h-9 rounded-full"
+            className="flex items-center justify-center w-11 h-11 rounded-full"
             style={{ background: boxOn ? "#fff" : "transparent", color: boxOn ? "#000" : "#fff" }}
           >
-            <RectangleHorizontal size={20} />
+            <RectangleHorizontal size={26} />
           </button>
           <button
-            onClick={cycleAlign}
+            onClick={() => {
+              cycleAlign();
+              inputRef.current?.focus();
+            }}
             aria-label={`Alignment: ${align}`}
-            className="flex items-center justify-center w-9 h-9 rounded-full"
+            className="flex items-center justify-center w-11 h-11 rounded-full"
           >
-            <AlignIcon size={20} color="#fff" />
+            <AlignIcon size={26} color="#fff" />
           </button>
-          {/* Bold-strength cycle: tap steps through WEIGHT_LEVELS, wrapping
-              back to normal. The "B" itself renders at the current weight
-              so the button visually shows the effect, not just a fixed icon. */}
           <button
-            onClick={cycleWeight}
+            onClick={() => {
+              cycleWeight();
+              inputRef.current?.focus();
+            }}
             aria-label={`Bold strength: ${fontWeight}`}
-            className="flex items-center justify-center w-9 h-9 rounded-full text-base"
+            className="flex items-center justify-center w-11 h-11 rounded-full text-lg"
             style={{
               background: weightLevel > 0 ? "#fff" : "transparent",
               color: weightLevel > 0 ? "#000" : "#fff",
@@ -294,14 +278,47 @@ export default function TextPanel({ open, containerRef, onClose }: TextPanelProp
             B
           </button>
         </div>
-
-        <button onClick={() => setPhase("place")} disabled={content.trim().length === 0} className="text-white font-semibold disabled:opacity-40">
-          Done
+        <button onClick={commit} aria-label="Close and place text" className="flex items-center justify-center w-11 h-11 rounded-full">
+          <X size={22} color="#fff" />
         </button>
       </div>
 
-      <div className="relative flex-1 flex items-center justify-center px-8">
-        <div
+      {/* Tapping this background area (anywhere that isn't the input or
+          the toolbar) commits and returns to the after-shot page. */}
+      <div className="relative flex-1 flex items-center justify-center px-8" onClick={commit}>
+        {otherTextLayers.map((layer) => (
+          <span
+            key={layer.id}
+            style={{
+              position: "absolute",
+              left: `${layer.x * 100}%`,
+              top: `${layer.y * 100}%`,
+              transform: `translate(-50%, -50%) rotate(${layer.rotation}deg) scale(${layer.scale})`,
+              fontFamily: layer.font,
+              color: layer.color,
+              fontSize: layer.fontSize * boxWidth,
+              fontWeight: layer.fontWeight,
+              textAlign: layer.align,
+              background: layer.boxColor ?? "transparent",
+              padding: layer.boxColor ? "4px 10px" : 0,
+              borderRadius: layer.boxColor ? 4 : 0,
+              whiteSpace: "pre-wrap",
+              pointerEvents: "none",
+            }}
+          >
+            {layer.content}
+          </span>
+        ))}
+
+        <input
+          ref={inputRef}
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          onKeyDown={handleKeyDown}
+          onBlur={commit}
+          onClick={(e) => e.stopPropagation()}
+          placeholder="Type something…"
+          autoFocus
           style={{
             fontFamily: activeFont.css,
             color: selectedColor,
@@ -311,26 +328,19 @@ export default function TextPanel({ open, containerRef, onClose }: TextPanelProp
             background: boxOn ? BOX_COLOR : "transparent",
             padding: boxOn ? "4px 10px" : 0,
             borderRadius: boxOn ? 4 : 0,
-            whiteSpace: "pre-wrap",
-            wordBreak: "break-word",
-            maxWidth: "100%",
+            border: "none",
+            outline: "none",
+            width: "100%",
+            maxWidth: 320,
             textShadow: boxOn ? "none" : "0 1px 4px rgba(0,0,0,0.4)",
           }}
-        >
-          {content || <span style={{ opacity: 0.5 }}>Type something…</span>}
-        </div>
-
-        <input
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          autoFocus
-          className="absolute inset-0 opacity-0"
-          style={{ caretColor: "transparent" }}
         />
 
         <div ref={trackRef} className="absolute right-3 top-1/4 bottom-1/4 w-1 rounded-full" style={{ background: "rgba(255,255,255,0.25)" }}>
           <div
+            onMouseDown={(e) => e.preventDefault()}
             onPointerDown={(e) => {
+              e.stopPropagation();
               draggingSlider.current = true;
               setFontSizeFromClientY(e.clientY);
             }}
@@ -349,11 +359,8 @@ export default function TextPanel({ open, containerRef, onClose }: TextPanelProp
         </div>
       </div>
 
-      {/* Pinned above the keyboard when it's open, otherwise resting at
-          the safe-area bottom — position:absolute + keyboardInset instead
-          of normal flex flow, since the layout viewport doesn't shrink
-          with the keyboard on iOS. */}
       <div
+        onMouseDown={(e) => e.preventDefault()}
         className="absolute left-0 right-0 px-5 z-30"
         style={{
           bottom: keyboardInset > 0 ? keyboardInset : "calc(env(safe-area-inset-bottom) + 20px)",
@@ -365,7 +372,10 @@ export default function TextPanel({ open, containerRef, onClose }: TextPanelProp
             {COLORS.map((color) => (
               <button
                 key={color}
-                onClick={() => setSelectedColor(color)}
+                onClick={() => {
+                  setSelectedColor(color);
+                  inputRef.current?.focus();
+                }}
                 aria-label={`Color ${color}`}
                 className="shrink-0 rounded-full"
                 style={{
@@ -384,12 +394,16 @@ export default function TextPanel({ open, containerRef, onClose }: TextPanelProp
             {FONTS.map((font) => (
               <button
                 key={font.id}
-                onClick={() => setSelectedFontId(font.id)}
+                onClick={() => {
+                  setSelectedFontId(font.id);
+                  inputRef.current?.focus();
+                }}
                 className="shrink-0 px-4 py-2 rounded-full text-xs font-medium"
                 style={{
                   fontFamily: font.css,
                   background: selectedFontId === font.id ? "#fff" : "rgba(255,255,255,0.10)",
                   color: selectedFontId === font.id ? "#000" : "#fff",
+                  border: selectedFontId === font.id ? "1px solid #fff" : "1px solid rgba(255,255,255,0.35)",
                 }}
               >
                 {font.label}

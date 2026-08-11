@@ -83,6 +83,7 @@ function AfterShotIndexPage() {
   const [favoritedFilterIds, setFavoritedFilterIds] = useState<Set<string>>(new Set());
   const [filterBusy, setFilterBusy] = useState(false);
   const [filterProgress, setFilterProgress] = useState(0);
+  const [editingLayerId, setEditingLayerId] = useState<string | null>(null);
 
   const handlePhotoLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
     const w = e.currentTarget.naturalWidth;
@@ -197,14 +198,17 @@ function AfterShotIndexPage() {
             selectedLayerId={null}
             setSelectedLayerId={() => {}}
             renderLayerContent={renderLayerContent}
+            onLayerTap={(layer) => {
+              setEditingLayerId(layer.id);
+              setActiveTool("text");
+            }}
           />
         )}
 
-        <TextPanel open={activeTool === "text"} containerRef={mediaBoxRef} onClose={closeTool} />
-        <CropPanel
-          open={activeTool === "crop"}
+        <TextPanel
+          open={activeTool === "text"}
           containerRef={mediaBoxRef}
-          naturalSize={naturalSize}
+          editingLayerId={editingLayerId}
           onClose={closeTool}
         />
         <DrawPanel open={activeTool === "draw"} containerRef={mediaBoxRef} onClose={closeTool} />
@@ -243,9 +247,11 @@ function AfterShotIndexPage() {
                 <button
                   key={tool.id}
                   onClick={() => {
-                    if (tool.id === "text" || tool.id === "draw") setActiveTool(tool.id);
+                    if (tool.id === "text") {
+                      setEditingLayerId(null);
+                      setActiveTool("text");
+                    } else if (tool.id === "draw") setActiveTool(tool.id);
                     else if (tool.id === "filter") setActiveTool("filter");
-                    // sticker/sound/link intentionally not wired — deferred
                   }}
                   aria-label={tool.label}
                   className="flex items-center gap-2 opacity-90"

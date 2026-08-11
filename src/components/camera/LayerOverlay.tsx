@@ -23,9 +23,11 @@ type LayerOverlayProps = {
   selectedLayerId: string | null;
   setSelectedLayerId: (id: string | null) => void;
   renderLayerContent: (layer: Layer) => React.ReactNode;
+  onLayerTap?: (layer: Layer) => void; // fires only for text layers — tap-to-edit
 };
 
 const HANDLE_SIZE = 22;
+const TAP_MOVE_THRESHOLD = 6; // px — below this, a pointer down+up counts as a tap, not a drag
 
 type DragState =
   | {
@@ -54,28 +56,33 @@ export default function LayerOverlay({
   selectedLayerId,
   setSelectedLayerId,
   renderLayerContent,
+  onLayerTap,
 }: LayerOverlayProps) {
   const dragRef = useRef<DragState | null>(null);
+  const hasMovedRef = useRef(false);
+  const tapLayerRef = useRef<Layer | null>(null);
 
   const getContainerRect = useCallback(() => {
     return containerRef.current?.getBoundingClientRect() ?? null;
   }, [containerRef]);
 
   const startMove = useCallback(
-    (layer: Layer) => (e: ReactPointerEvent) => {
-      e.stopPropagation();
-      setSelectedLayerId(layer.id);
-      dragRef.current = {
-        mode: "move",
-        id: layer.id,
-        startClientX: e.clientX,
-        startClientY: e.clientY,
-        startX: layer.x,
-        startY: layer.y,
-      };
-    },
-    [setSelectedLayerId],
-  );
+  (layer: Layer) => (e: ReactPointerEvent) => {
+    e.stopPropagation();
+    setSelectedLayerId(layer.id);
+    hasMovedRef.current = false;
+    tapLayerRef.current = layer;
+    dragRef.current = {
+      mode: "move",
+      id: layer.id,
+      startClientX: e.clientX,
+      startClientY: e.clientY,
+      startX: layer.x,
+      startY: layer.y,
+    };
+  },
+  [setSelectedLayerId],
+);
 
   const startTransform = useCallback(
     (layer: Layer) => (e: ReactPointerEvent) => {
@@ -108,6 +115,9 @@ export default function LayerOverlay({
       if (!rect) return;
 
       if (drag.mode === "move") {
+        const pixelDist = Math.hypot(clientX - drag.startClientX, clientY - drag.startClientY);
+        if (pixelDist > TAP_MOVE_THRESHOLD) hasMovedRef.current = true;
+
         const dxFrac = (clientX - drag.startClientX) / rect.width;
         const dyFrac = (clientY - drag.startClientY) / rect.height;
         updateLayer(drag.id, {
@@ -130,8 +140,14 @@ export default function LayerOverlay({
   );
 
   const handlePointerUp = useCallback(() => {
+    if (dragRef.current?.mode === "move" && !hasMovedRef.current && tapLayerRef.current) {
+      const layer = tapLayerRef.current;
+      if (layer.kind === "text" && onLayerTap) onLayerTap(layer);
+    }
     dragRef.current = null;
-  }, []);
+    hasMovedRef.current = false;
+    tapLayerRef.current = null;
+  }, [onLayerTap]);
 
   return (
     <div
