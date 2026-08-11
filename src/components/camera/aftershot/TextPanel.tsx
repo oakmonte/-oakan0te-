@@ -107,6 +107,21 @@ export default function TextPanel({ open, containerRef, editingLayerId, onClose 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, editingLayerId]);
 
+  // Suppresses iOS Safari's auto-zoom-on-input-focus for this screen only —
+  // restores the original viewport meta on close/unmount so the rest of the
+  // app keeps normal pinch-zoom behavior. Scoped to this component instead
+  // of a global viewport change.
+  useEffect(() => {
+    if (!open) return;
+    const meta = document.querySelector('meta[name="viewport"]');
+    if (!meta) return;
+    const original = meta.getAttribute("content");
+    meta.setAttribute("content", "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no");
+    return () => {
+      if (original !== null) meta.setAttribute("content", original);
+    };
+  }, [open]);
+
   // ---- vertical size slider ----
   const trackRef = useRef<HTMLDivElement>(null);
   const draggingSlider = useRef(false);
