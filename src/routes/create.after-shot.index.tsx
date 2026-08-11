@@ -21,7 +21,6 @@ import FilterPanel from "@/components/camera/FilterPanel";
 import { CAMERA_FILTERS } from "@/components/camera/filter-data";
 import { applyFilterToPhotoBlob, applyFilterToVideoBlob } from "@/lib/filter-media";
 import LayerOverlay from "@/components/camera/LayerOverlay";
-// top-of-file imports — add this line alongside the other @/lib imports
 import { useAfterShotLayers, AfterShotLayersContext, useAfterShotLayersState, type Layer } from "@/lib/after-shot-layers";
 
 export const Route = createFileRoute("/create/after-shot/")({
@@ -63,7 +62,9 @@ function AfterShotIndexWrapper() {
 function AfterShotIndexPage() {
   const navigate = useNavigate();
   const { media, setMedia, discard } = useAfterShotContext();
-  const { layers, renderLayerContent } = useLayerRenderer();
+
+  const mediaBoxRef = useRef<HTMLDivElement>(null);
+  const { layers, renderLayerContent } = useLayerRenderer(mediaBoxRef);
 
   const [toolsExpanded, setToolsExpanded] = useState(false);
   const [mediaAspect, setMediaAspect] = useState(9 / 16);
@@ -73,8 +74,6 @@ function AfterShotIndexPage() {
   // this is what CropPanel now receives as a prop instead of loading its
   // own invisible probe element to re-derive the same numbers.
   const [naturalSize, setNaturalSize] = useState<{ w: number; h: number } | null>(null);
-
-  const mediaBoxRef = useRef<HTMLDivElement>(null);
 
   // Filters stay a quick pick-one-and-apply interaction (matching
   // FilterPanel's existing bottom-sheet shape from create.tsx) rather than
@@ -312,20 +311,24 @@ function AfterShotIndexPage() {
 
 // Small local hook, not exported — keeps the confirmed-layers render switch
 // (text/sticker/draw -> actual visual) out of the main component body.
-// replace useLayerRenderer + delete useAfterShotLayersRef entirely
-function useLayerRenderer() {
+function useLayerRenderer(mediaBoxRef: React.RefObject<HTMLDivElement | null>) {
   const { layers } = useAfterShotLayers();
   const renderLayerContent = useCallback((layer: Layer) => {
     if (layer.kind === "text") {
+      const boxWidth = mediaBoxRef.current?.clientWidth ?? 0;
       return (
         <span
           style={{
             fontFamily: layer.font,
             color: layer.color,
-            fontSize: 28,
-            fontWeight: 700,
+            fontSize: layer.fontSize * boxWidth,
+            fontWeight: layer.fontWeight,
+            textAlign: layer.align,
             whiteSpace: "pre-wrap",
-            textShadow: "0 1px 4px rgba(0,0,0,0.4)",
+            textShadow: layer.boxColor ? "none" : "0 1px 4px rgba(0,0,0,0.4)",
+            background: layer.boxColor ?? "transparent",
+            padding: layer.boxColor ? "4px 10px" : 0,
+            borderRadius: layer.boxColor ? 4 : 0,
             pointerEvents: "none",
           }}
         >
@@ -353,7 +356,7 @@ function useLayerRenderer() {
       );
     }
     return null;
-  }, []);
+  }, [mediaBoxRef]);
   return { layers, renderLayerContent };
 }
 

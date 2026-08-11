@@ -14,10 +14,10 @@ export type TextLayer = BaseLayer & {
   content: string;
   font: string;
   color: string;
-  fontSize: number;
+  fontSize: number; // fraction of container width — multiply by box width for px, same convention as x/y
   align: "left" | "center" | "right";
-  boxColor: string | null; // null = no background box
-  bold: boolean; // currently always false — no UI control for it yet
+  boxColor: string | null;
+  fontWeight: number; // 400–900, cycles via the bold-strength control
 };
 
 export type StickerLayer = BaseLayer & {

@@ -24,14 +24,23 @@ function withLayerTransform(
 }
 
 function drawTextLayer(ctx: CanvasRenderingContext2D, layer: TextLayer, canvasW: number) {
-  // Font size is a fraction of canvas width so text scales correctly
-  // across different output resolutions (editing preview vs 1080px
-  // composite), same reasoning as the fractional x/y coords themselves.
-  const fontSize = Math.round(canvasW * 0.06);
-  ctx.font = `${fontSize}px ${layer.font}`;
-  ctx.fillStyle = layer.color;
-  ctx.textAlign = "center";
+  const fontSize = Math.round(layer.fontSize * canvasW);
+  ctx.font = `${layer.fontWeight} ${fontSize}px ${layer.font}`;
+  ctx.textAlign = layer.align;
   ctx.textBaseline = "middle";
+
+  if (layer.boxColor) {
+    const metrics = ctx.measureText(layer.content);
+    const padX = fontSize * 0.25;
+    const padY = fontSize * 0.15;
+    const boxW = metrics.width + padX * 2;
+    const boxH = fontSize + padY * 2;
+    const boxX = layer.align === "left" ? -padX : layer.align === "right" ? -boxW + padX : -boxW / 2;
+    ctx.fillStyle = layer.boxColor;
+    ctx.fillRect(boxX, -boxH / 2, boxW, boxH);
+  }
+
+  ctx.fillStyle = layer.color;
   ctx.fillText(layer.content, 0, 0);
 }
 
