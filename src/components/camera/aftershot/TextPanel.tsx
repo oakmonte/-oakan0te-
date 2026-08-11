@@ -1,8 +1,7 @@
-//currenttextpanel
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Canvas, IText } from "fabric";
 import { X, Check } from "lucide-react";
-import { useAfterShotLayers, type Layer, type TextLayer } from "@/lib/after-shot-layers";
-import LayerOverlay from "@/components/camera/LayerOverlay";
+import { useAfterShotLayers, type TextLayer } from "@/lib/after-shot-layers";
 
 const FONTS = [
   { id: "system", label: "Classic", css: "'SF Pro', system-ui, sans-serif" },
@@ -12,7 +11,7 @@ const FONTS = [
 ];
 
 const COLORS = ["#ffffff", "#000000", "#ff3b30", "#ffcc00", "#34c759", "#0a84ff", "#af52de"];
-const DRAFT_ID = "draft-text-layer";
+const BASE_FONT_SIZE = 28; // matches the old renderLayerContent's fixed fontSize
 
 type TextPanelProps = {
   open: boolean;
@@ -20,75 +19,109 @@ type TextPanelProps = {
   onClose: () => void;
 };
 
-// Renders on top of the media that's ALREADY mounted by the parent
-// (/create/after-shot's own <img>/<video>) instead of re-rendering its own
-// copy — this is the actual point of converting from a route to a panel:
-// after-shot's media element, crop state, filter state, and layer stack
-// all stay mounted underneath this the whole time it's open.
+// Same public contract as the old DOM/pointer-math version: mounts on top
+// of the parent's already-rendered media via containerRef, and on confirm
+// produces a plain TextLayer (x/y fractional, single uniform scale,
+// rotation in degrees) — same shape layer-bake.ts and the base page's
+// renderLayerContent already know how to draw. Only the EDITING interaction
+// (drag/scale/rotate while this panel is open) is now handled by Fabric
+// instead of hand-rolled pointer math.
 export default function TextPanel({ open, containerRef, onClose }: TextPanelProps) {
   const { addLayer } = useAfterShotLayers();
+
+  const canvasElRef = useRef<HTMLCanvasElement>(null);
+  const fabricCanvasRef = useRef<Canvas | null>(null);
+  const textObjRef = useRef<IText | null>(null);
 
   const [content, setContent] = useState("");
   const [selectedFontId, setSelectedFontId] = useState(FONTS[0].id);
   const [selectedColor, setSelectedColor] = useState(COLORS[0]);
-  const [draftLayer, setDraftLayer] = useState<TextLayer | null>(null);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [canvasSize, setCanvasSize] = useState<{ w: number; h: number } | null>(null);
 
   const activeFont = FONTS.find((f) => f.id === selectedFontId) ?? FONTS[0];
 
-  const syncDraft = useCallback((nextContent: string, nextFontCss: string, nextColor: string) => {
-    setDraftLayer((prev) =>
-      prev
-        ? { ...prev, content: nextContent, font: nextFontCss, color: nextColor }
-        : {
-            id: DRAFT_ID,
-            kind: "text",
-            x: 0.5,
-            y: 0.5,
-            scale: 1,
-            rotation: 0,
-            zIndex: 0,
-            content: nextContent,
-            font: nextFontCss,
-            color: nextColor,
-          },
-    );
+  // Size the Fabric canvas to match the parent's real media box, same
+  // ResizeObserver pattern CropPanel already uses off containerRef.
+  useEffect(() => {
+    if (!open) return;
+    const el = containerRef.current;
+    if (!el) return;
+    const update = () => setCanvasSize({ w: el.clientWidth, h: el.clientHeight });
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [open, containerRef]);
+
+  // Mount/teardown the Fabric canvas + the single IText object it edits.
+  // Transparent background so the media underneath (rendered by the parent)
+  // shows through — this canvas only owns the text object and its handles.
+  useEffect(() => {
+    if (!open || !canvasSize || !canvasElRef.current) return;
+
+    const canvas = new Canvas(canvasElRef.current, {
+      width: canvasSize.w,
+      height: canvasSize.h,
+      backgroundColor: "transparent",
+      selection: false,
+    });
+    fabricCanvasRef.current = canvas;
+
+    const text = new IText("", {
+      left: canvasSize.w / 2,
+      top: canvasSize.h / 2,
+      originX: "center",
+      originY: "center",
+      fontFamily: activeFont.css,
+      fill: selectedColor,
+      fontSize: BASE_FONT_SIZE,
+      fontWeight: "700",
+      editable: false, // typing happens via the DOM input below, not in-canvas
+    });
+    // Only corner handles enabled (uniform scale + rotate) — side handles
+    // (mt/mb/ml/mr) that would let width/height scale independently are
+    // hidden on purpose. v1 layers use a single uniform `scale`, same
+    // simplification the old Draw/Sticker layer shapes already made.
+    text.setControlsVisibility({ mt: false, mb: false, ml: false, mr: false });
+    canvas.add(text);
+    canvas.setActiveObject(text);
+    textObjRef.current = text;
+    canvas.requestRenderAll();
+
+    return () => {
+      canvas.dispose();
+      fabricCanvasRef.current = null;
+      textObjRef.current = null;
+    };
+  }, [open, canvasSize]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleContentChange = useCallback((value: string) => {
+    setContent(value);
+    const text = textObjRef.current;
+    if (!text) return;
+    text.set({ text: value });
+    fabricCanvasRef.current?.requestRenderAll();
   }, []);
 
-  const handleContentChange = useCallback(
-    (value: string) => {
-      setContent(value);
-      syncDraft(value, activeFont.css, selectedColor);
-    },
-    [syncDraft, activeFont.css, selectedColor],
-  );
+  const handleFontChange = useCallback((fontId: string) => {
+    setSelectedFontId(fontId);
+    const font = FONTS.find((f) => f.id === fontId) ?? FONTS[0];
+    const text = textObjRef.current;
+    if (!text) return;
+    text.set({ fontFamily: font.css });
+    fabricCanvasRef.current?.requestRenderAll();
+  }, []);
 
-  const handleFontChange = useCallback(
-    (fontId: string) => {
-      setSelectedFontId(fontId);
-      const font = FONTS.find((f) => f.id === fontId) ?? FONTS[0];
-      syncDraft(content, font.css, selectedColor);
-    },
-    [syncDraft, content, selectedColor],
-  );
-
-  const handleColorChange = useCallback(
-    (color: string) => {
-      setSelectedColor(color);
-      syncDraft(content, activeFont.css, color);
-    },
-    [syncDraft, content, activeFont.css],
-  );
-
-  const updateDraftLayer = useCallback((id: string, patch: Partial<Layer>) => {
-    if (id !== DRAFT_ID) return;
-    setDraftLayer((prev) => (prev ? ({ ...prev, ...patch } as TextLayer) : prev));
+  const handleColorChange = useCallback((color: string) => {
+    setSelectedColor(color);
+    const text = textObjRef.current;
+    if (!text) return;
+    text.set({ fill: color });
+    fabricCanvasRef.current?.requestRenderAll();
   }, []);
 
   const reset = useCallback(() => {
     setContent("");
-    setDraftLayer(null);
-    setSelectedId(null);
     setSelectedFontId(FONTS[0].id);
     setSelectedColor(COLORS[0]);
   }, []);
@@ -99,48 +132,39 @@ export default function TextPanel({ open, containerRef, onClose }: TextPanelProp
   }, [reset, onClose]);
 
   const handleConfirm = useCallback(() => {
-    if (draftLayer && draftLayer.content.trim().length > 0) {
-      addLayer({ ...draftLayer, id: `text-${Date.now()}` });
+    const text = textObjRef.current;
+    const size = canvasSize;
+    if (text && size && content.trim().length > 0) {
+      // Convert Fabric's canvas-pixel state into the same fractional
+      // TextLayer shape every other layer/bake consumer expects.
+      const layer: TextLayer = {
+        id: `text-${Date.now()}`,
+        kind: "text",
+        x: text.left / size.w,
+        y: text.top / size.h,
+        scale: text.scaleX, // corner-only handles guarantee scaleX === scaleY
+        rotation: text.angle,
+        zIndex: 0,
+        content: content.trim(),
+        font: activeFont.css,
+        color: selectedColor,
+      };
+      addLayer(layer);
     }
     reset();
     onClose();
-  }, [draftLayer, addLayer, reset, onClose]);
-
-  const renderLayerContent = useCallback((layer: Layer) => {
-    if (layer.kind !== "text") return null;
-    return (
-      <span
-        style={{
-          fontFamily: layer.font,
-          color: layer.color,
-          fontSize: 28,
-          fontWeight: 700,
-          whiteSpace: "pre-wrap",
-          textShadow: "0 1px 4px rgba(0,0,0,0.4)",
-          pointerEvents: "none",
-        }}
-      >
-        {layer.content || " "}
-      </span>
-    );
-  }, []);
+  }, [content, activeFont.css, selectedColor, canvasSize, addLayer, reset, onClose]);
 
   if (!open) return null;
 
   return (
     <div className="absolute inset-0 z-40 flex flex-col" style={{ fontFamily: "'SF Pro', system-ui, sans-serif" }}>
-      {/* Draft layer renders directly onto the parent's already-mounted
-          media via the passed-in containerRef — no separate preview here. */}
-      <LayerOverlay
-        containerRef={containerRef}
-        layers={draftLayer ? [draftLayer] : []}
-        updateLayer={updateDraftLayer}
-        selectedLayerId={selectedId}
-        setSelectedLayerId={setSelectedId}
-        renderLayerContent={renderLayerContent}
-      />
+      {/* The Fabric canvas — same absolute-fill-over-containerRef position
+          the old LayerOverlay draft used, just backed by Fabric instead of
+          custom pointer handlers. */}
+      <canvas ref={canvasElRef} className="absolute inset-0" style={{ touchAction: "none" }} />
 
-      <div className="flex items-center justify-between px-4 pt-[calc(env(safe-area-inset-top)+12px)]">
+      <div className="flex items-center justify-between px-4 pt-[calc(env(safe-area-inset-top)+12px)] z-10">
         <button
           onClick={handleCancel}
           aria-label="Cancel text"
@@ -160,7 +184,7 @@ export default function TextPanel({ open, containerRef, onClose }: TextPanelProp
         </button>
       </div>
 
-      <div className="mt-auto px-5" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 20px)" }}>
+      <div className="mt-auto px-5 z-10" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 20px)" }}>
         <input
           value={content}
           onChange={(e) => handleContentChange(e.target.value)}
