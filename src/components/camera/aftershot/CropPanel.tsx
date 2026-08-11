@@ -1,14 +1,8 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { X, Check } from "lucide-react";
 import { useAfterShotContext } from "@/lib/after-shot-context";
 import { cropPhotoBlob, cropVideoBlob, type CropRect } from "@/lib/crop-media";
-
-export const Route = createFileRoute("/create/after-shot/crop")({
-  head: () => ({ meta: [{ title: "Crop — Oakmonte" }] }),
-  component: CropPage,
-});
 
 type Corner = "nw" | "ne" | "sw" | "se";
 
@@ -22,7 +16,7 @@ const ASPECT_PRESETS: { id: string; label: string; aspect: number | null }[] = [
 ];
 
 const HANDLE_SIZE = 22;
-const MIN_CROP = 48; // px, in displayed (not natural) coordinates
+const MIN_CROP = 48;
 
 function centeredRect(boxW: number, boxH: number, aspect: number | null) {
   if (boxW <= 0 || boxH <= 0) return { x: 0, y: 0, w: boxW, h: boxH };
@@ -39,10 +33,6 @@ function centeredRect(boxW: number, boxH: number, aspect: number | null) {
   return { x: (boxW - w) / 2, y: (boxH - h) / 2, w, h };
 }
 
-// Resizes from one corner while the opposite corner stays fixed as the
-// anchor. When `aspect` is set, width leads and height follows, then both
-// get clamped back down if there isn't enough room between the anchor and
-// the image edge.
 function resizeFromCorner(
   rect: { x: number; y: number; w: number; h: number },
   corner: Corner,
@@ -83,12 +73,21 @@ function resizeFromCorner(
   return { x, y, w, h };
 }
 
-function CropPage() {
-  const navigate = useNavigate();
-  const { media, setMedia } = useAfterShotContext();
-  const boxRef = useRef<HTMLDivElement>(null);
+type CropPanelProps = {
+  open: boolean;
+  // The after-shot page's own mounted media box — same element Crop draws
+  // its overlay on top of, same pattern TextPanel takes a containerRef for.
+  containerRef: React.RefObject<HTMLDivElement | null>;
+  // Owned by the after-shot page (from its own real <img onLoad>/<video
+  // onLoadedMetadata>) and passed down — CropPanel no longer probes for
+  // this itself.
+  naturalSize: { w: number; h: number } | null;
+  onClose: () => void;
+};
 
-  const [naturalSize, setNaturalSize] = useState<{ w: number; h: number } | null>(null);
+export default function CropPanel({ open, containerRef, naturalSize, onClose }: CropPanelProps) {
+  const { media, setMedia } = useAfterShotContext();
+
   const [boxSize, setBoxSize] = useState<{ w: number; h: number } | null>(null);
   const [aspectId, setAspectId] = useState("free");
   const [rect, setRect] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
@@ -102,22 +101,24 @@ function CropPage() {
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState(0);
 
-  // Seeds the crop rect at "Free" (the full frame) as soon as the box has a
-  // real size — nothing is cropped until the user actually adjusts something.
+  // Reads size off containerRef (the PARENT's media box) instead of a
+  // box this component owns — same media element the whole after-shot
+  // page shares, not a second copy rendered just for cropping.
   useEffect(() => {
-    if (!boxSize || rect) return;
-    setRect(centeredRect(boxSize.w, boxSize.h, null));
-  }, [boxSize, rect]);
-
-  useEffect(() => {
-    const el = boxRef.current;
+    if (!open) return;
+    const el = containerRef.current;
     if (!el) return;
     const update = () => setBoxSize({ w: el.clientWidth, h: el.clientHeight });
     update();
     const ro = new ResizeObserver(update);
     ro.observe(el);
     return () => ro.disconnect();
-  }, []);
+  }, [open, containerRef]);
+
+  useEffect(() => {
+    if (!boxSize || rect) return;
+    setRect(centeredRect(boxSize.w, boxSize.h, null));
+  }, [boxSize, rect]);
 
   const applyAspect = useCallback(
     (id: string) => {
@@ -132,7 +133,7 @@ function CropPage() {
   const handlePointerMove = useCallback(
     (clientX: number, clientY: number) => {
       const drag = dragRef.current;
-      const el = boxRef.current;
+      const el = containerRef.current;
       if (!drag || !el || !rect || !boxSize) return;
       const b = el.getBoundingClientRect();
       const px = clientX - b.left;
@@ -150,10 +151,11 @@ function CropPage() {
         setRect({ ...drag.startRect, x, y });
       }
     },
-    [rect, boxSize, aspectId],
+    [containerRef, rect, boxSize, aspectId],
   );
 
   useEffect(() => {
+    if (!open) return;
     const onMove = (e: PointerEvent) => handlePointerMove(e.clientX, e.clientY);
     const onUp = () => {
       dragRef.current = null;
@@ -164,7 +166,7 @@ function CropPage() {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
     };
-  }, [handlePointerMove]);
+  }, [open, handlePointerMove]);
 
   const startMove = useCallback(
     (e: ReactPointerEvent) => {
@@ -181,6 +183,18 @@ function CropPage() {
     },
     [],
   );
+
+  const reset = useCallback(() => {
+    setRect(null);
+    setAspectId("free");
+    setBusy(false);
+    setProgress(0);
+  }, []);
+
+  const handleCancel = useCallback(() => {
+    reset();
+    onClose();
+  }, [reset, onClose]);
 
   const handleConfirm = useCallback(async () => {
     if (!rect || !boxSize || !naturalSize) return;
@@ -204,29 +218,29 @@ function CropPage() {
           ? { type: "photo", blob: croppedBlob, url }
           : { type: "video", blob: croppedBlob, url },
       );
-      navigate({ to: "/create/after-shot" });
+      reset();
+      onClose();
     } catch (err) {
       console.error("Crop failed:", err);
       setBusy(false);
     }
-  }, [rect, boxSize, naturalSize, media, setMedia, navigate]);
+  }, [rect, boxSize, naturalSize, media, setMedia, reset, onClose]);
 
   const corners: Corner[] = ["nw", "ne", "sw", "se"];
 
+  if (!open) return null;
+
   return (
-    <div
-      className="fixed inset-0 bg-black text-white overflow-hidden flex flex-col"
-      style={{ fontFamily: "'SF Pro', system-ui, sans-serif" }}
-    >
-      <div className="flex items-center justify-between px-4 pt-[calc(env(safe-area-inset-top)+12px)] z-20">
+    <div className="absolute inset-0 z-40 flex flex-col" style={{ fontFamily: "'SF Pro', system-ui, sans-serif" }}>
+      <div className="flex items-center justify-between px-4 pt-[calc(env(safe-area-inset-top)+12px)]">
         <button
-          onClick={() => navigate({ to: "/create/after-shot" })}
+          onClick={handleCancel}
           aria-label="Cancel crop"
           disabled={busy}
           className="flex items-center justify-center w-10 h-10 rounded-full"
           style={{ background: "rgba(255,255,255,0.10)", backdropFilter: "blur(12px)" }}
         >
-          <X size={20} />
+          <X size={20} color="#fff" />
         </button>
         <button
           onClick={handleConfirm}
@@ -239,92 +253,58 @@ function CropPage() {
         </button>
       </div>
 
-      <div className="relative flex-1 min-h-0 flex items-center justify-center px-5">
-        <div
-          ref={boxRef}
-          className="relative overflow-hidden"
-          style={{
-            width: "100%",
-            maxHeight: "100%",
-            aspectRatio: naturalSize ? String(naturalSize.w / naturalSize.h) : "9/16",
-          }}
-        >
-          {media.type === "photo" ? (
-            <img
-              src={media.url}
-              alt="Captured"
-              onLoad={(e) => setNaturalSize({ w: e.currentTarget.naturalWidth, h: e.currentTarget.naturalHeight })}
-              className="absolute inset-0 w-full h-full object-cover"
-              draggable={false}
-            />
-          ) : (
-            <video
-              src={media.url}
-              autoPlay
-              loop
-              muted
-              playsInline
-              onLoadedMetadata={(e) =>
-                setNaturalSize({ w: e.currentTarget.videoWidth, h: e.currentTarget.videoHeight })
-              }
-              className="absolute inset-0 w-full h-full object-cover"
-            />
-          )}
+      <div className="relative flex-1 min-h-0">
+        {rect && boxSize && (
+          <div
+            onPointerDown={startMove}
+            className="absolute"
+            style={{
+              left: rect.x,
+              top: rect.y,
+              width: rect.w,
+              height: rect.h,
+              outline: "2px solid #fff",
+              boxShadow: "0 0 0 9999px rgba(0,0,0,0.55)",
+              cursor: "move",
+              touchAction: "none",
+            }}
+          >
+            <div className="absolute inset-0 pointer-events-none" style={{ opacity: 0.5 }}>
+              <div className="absolute left-1/3 top-0 bottom-0 w-px bg-white" />
+              <div className="absolute left-2/3 top-0 bottom-0 w-px bg-white" />
+              <div className="absolute top-1/3 left-0 right-0 h-px bg-white" />
+              <div className="absolute top-2/3 left-0 right-0 h-px bg-white" />
+            </div>
 
-          {rect && (
-            <div
-              onPointerDown={startMove}
-              className="absolute"
-              style={{
-                left: rect.x,
-                top: rect.y,
-                width: rect.w,
-                height: rect.h,
-                outline: "2px solid #fff",
-                // The huge spread is what dims everything OUTSIDE the crop
-                // box — no second media element needed, just one shadow.
-                boxShadow: "0 0 0 9999px rgba(0,0,0,0.55)",
-                cursor: "move",
-                touchAction: "none",
-              }}
-            >
-              <div className="absolute inset-0 pointer-events-none" style={{ opacity: 0.5 }}>
-                <div className="absolute left-1/3 top-0 bottom-0 w-px bg-white" />
-                <div className="absolute left-2/3 top-0 bottom-0 w-px bg-white" />
-                <div className="absolute top-1/3 left-0 right-0 h-px bg-white" />
-                <div className="absolute top-2/3 left-0 right-0 h-px bg-white" />
+            {corners.map((corner) => (
+              <div
+                key={corner}
+                onPointerDown={startResize(corner)}
+                className="absolute"
+                style={{
+                  width: HANDLE_SIZE,
+                  height: HANDLE_SIZE,
+                  top: corner[0] === "n" ? -HANDLE_SIZE / 2 : "auto",
+                  bottom: corner[0] === "s" ? -HANDLE_SIZE / 2 : "auto",
+                  left: corner[1] === "w" ? -HANDLE_SIZE / 2 : "auto",
+                  right: corner[1] === "e" ? -HANDLE_SIZE / 2 : "auto",
+                  cursor: corner === "nw" || corner === "se" ? "nwse-resize" : "nesw-resize",
+                  touchAction: "none",
+                }}
+              >
+                <div style={{ width: "100%", height: "100%", borderRadius: "50%", background: "#fff", border: "2px solid #000" }} />
               </div>
+            ))}
+          </div>
+        )}
 
-              {corners.map((corner) => (
-                <div
-                  key={corner}
-                  onPointerDown={startResize(corner)}
-                  className="absolute"
-                  style={{
-                    width: HANDLE_SIZE,
-                    height: HANDLE_SIZE,
-                    top: corner[0] === "n" ? -HANDLE_SIZE / 2 : "auto",
-                    bottom: corner[0] === "s" ? -HANDLE_SIZE / 2 : "auto",
-                    left: corner[1] === "w" ? -HANDLE_SIZE / 2 : "auto",
-                    right: corner[1] === "e" ? -HANDLE_SIZE / 2 : "auto",
-                    cursor: corner === "nw" || corner === "se" ? "nwse-resize" : "nesw-resize",
-                    touchAction: "none",
-                  }}
-                >
-                  <div style={{ width: "100%", height: "100%", borderRadius: "50%", background: "#fff", border: "2px solid #000" }} />
-                </div>
-              ))}
-            </div>
-          )}
-
-          {busy && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/70 z-30">
-              <span className="text-sm uppercase tracking-widest">
-                {media.type === "video" ? `Cropping… ${Math.round(progress * 100)}%` : "Cropping…"}
-              </span>
-            </div>
-          )}
-        </div>
+        {busy && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/70 z-30">
+            <span className="text-sm uppercase tracking-widest text-white">
+              {media.type === "video" ? `Cropping… ${Math.round(progress * 100)}%` : "Cropping…"}
+            </span>
+          </div>
+        )}
       </div>
 
       <div
