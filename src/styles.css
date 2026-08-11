@@ -37,6 +37,19 @@
   }
 }
 
+/* Applied only to routes that own their own fixed, full-screen layout
+   (camera capture, after-shot editor) — stops iOS Safari from scrolling
+   the document to keep a focused input visible, which is what drags
+   position:fixed elements along with it. Toggled on <body> by the route
+   itself on mount/unmount, not global — every other route keeps normal
+   page scroll. */
+.oak-locked-viewport {
+  position: fixed;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+}
+
 @keyframes ddFadeIn {
   from {
     opacity: 0;

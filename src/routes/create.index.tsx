@@ -22,6 +22,7 @@ import LiquidGlassSegmented from "@/components/camera/LiquidGlassSegmented";
 import { CAMERA_FILTERS } from "@/components/camera/filter-data";
 import { CAMERA_LAYOUTS } from "@/components/camera/layout-data";
 import type { CameraLayout, LayoutCell } from "@/components/camera/layout-data";
+import { useLockedViewport } from "@/hooks/use-locked-viewport";
 
 export const Route = createFileRoute("/create/")({
   head: () => ({ meta: [{ title: "Create — Oakmonte" }] }),
@@ -145,6 +146,7 @@ function AnimatedLabel({ visible, children }: { visible: boolean; children: Reac
 }
 
 function CreatePage() {
+  useLockedViewport();
   const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);

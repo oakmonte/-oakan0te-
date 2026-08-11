@@ -22,6 +22,7 @@ import { CAMERA_FILTERS } from "@/components/camera/filter-data";
 import { applyFilterToPhotoBlob, applyFilterToVideoBlob } from "@/lib/filter-media";
 import LayerOverlay from "@/components/camera/LayerOverlay";
 import { useAfterShotLayers, AfterShotLayersContext, useAfterShotLayersState, type Layer } from "@/lib/after-shot-layers";
+import { useLockedViewport } from "@/hooks/use-locked-viewport";
 
 export const Route = createFileRoute("/create/after-shot/")({
   head: () => ({ meta: [{ title: "Edit — Oakmonte" }] }),
@@ -60,6 +61,7 @@ function AfterShotIndexWrapper() {
 }
 
 function AfterShotIndexPage() {
+  useLockedViewport();
   const navigate = useNavigate();
   const { media, setMedia, discard } = useAfterShotContext();
 
