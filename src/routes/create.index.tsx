@@ -58,6 +58,7 @@ const RATIO_ASPECT: Record<CameraRatio, number> = {
 // composite instead of guessing at a size.
 const COMPOSITE_WIDTH = 1080;
 
+
 // Centered crop rect (in source pixel coords) that matches what object-cover
 // would render inside a box of targetAspect — used identically for the live
 // preview box and for both capture paths, so they stay in sync.
@@ -146,7 +147,8 @@ function AnimatedLabel({ visible, children }: { visible: boolean; children: Reac
 }
 
 function CreatePage() {
-  useLockedViewport();
+  const rootRef = useRef<HTMLDivElement>(null);
+  useLockedViewport(rootRef);
   const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -741,6 +743,7 @@ function CreatePage() {
 
   return (
     <div
+      ref={rootRef}
       className="fixed inset-0 bg-black text-white overflow-hidden"
       style={{ fontFamily: "'SF Pro', system-ui, sans-serif" }}
     >
