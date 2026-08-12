@@ -61,8 +61,7 @@ function AfterShotIndexWrapper() {
 }
 
 function AfterShotIndexPage() {
-  const rootRef = useRef<HTMLDivElement>(null);
-  useLockedViewport(rootRef);
+  useLockedViewport();
   const navigate = useNavigate();
   const { media, setMedia, discard } = useAfterShotContext();
 
@@ -145,7 +144,6 @@ function AfterShotIndexPage() {
 
   return (
     <div
-      ref={rootRef}
       className="fixed inset-0 bg-black text-white overflow-hidden"
       style={{ fontFamily: "'SF Pro', system-ui, sans-serif" }}
     >
