@@ -1,10 +1,59 @@
 //currentdrawpanel
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { X, Check, Undo2 } from "lucide-react";
 import { useAfterShotLayers, type DrawStroke, type DrawLayer } from "@/lib/after-shot-layers";
 
-const COLORS = ["#ffffff", "#000000", "#ff3b30", "#ffcc00", "#34c759", "#0a84ff", "#af52de"];
+// Stops for the vertical color slider — white at top through the hue
+// spectrum down to black at bottom, matching the Snapchat-style reference.
+// Kept as a JS array (not just a CSS gradient string) because the same
+// stops are used twice: once to paint the track's linear-gradient, and
+// once to interpolate an actual hex value at the thumb's fractional
+// position — a CSS gradient alone can't be sampled back into a color.
+const GRADIENT_STOPS = [
+  "#ffffff", // white
+  "#ff3b30", // red
+  "#ff9500", // orange
+  "#ffcc00", // yellow
+  "#34c759", // green
+  "#0a9396", // teal
+  "#0a84ff", // blue
+  "#5e5ce6", // indigo
+  "#af52de", // purple
+  "#ff2d78", // magenta
+  "#000000", // black
+];
+const GRADIENT_CSS = `linear-gradient(to bottom, ${GRADIENT_STOPS.join(", ")})`;
+
+function hexToRgb(hex: string) {
+  const v = parseInt(hex.slice(1), 16);
+  return { r: (v >> 16) & 255, g: (v >> 8) & 255, b: v & 255 };
+}
+function rgbToHex(r: number, g: number, b: number) {
+  return (
+    "#" +
+    [r, g, b]
+      .map((x) => Math.round(Math.min(255, Math.max(0, x))).toString(16).padStart(2, "0"))
+      .join("")
+  );
+}
+// Linearly interpolates between the two GRADIENT_STOPS the fraction falls
+// between, so dragging the slider yields a continuous color, not just a
+// jump between the 11 named stops.
+function colorAtFraction(fraction: number): string {
+  const clamped = Math.min(1, Math.max(0, fraction));
+  const scaled = clamped * (GRADIENT_STOPS.length - 1);
+  const idx = Math.floor(scaled);
+  const t = scaled - idx;
+  const c1 = hexToRgb(GRADIENT_STOPS[idx]);
+  const c2 = hexToRgb(GRADIENT_STOPS[Math.min(idx + 1, GRADIENT_STOPS.length - 1)]);
+  return rgbToHex(
+    c1.r + (c2.r - c1.r) * t,
+    c1.g + (c2.g - c1.g) * t,
+    c1.b + (c2.b - c1.b) * t,
+  );
+}
+
 const BRUSH_WIDTHS = [
   { id: "thin", label: "Thin", value: 0.006 },
   { id: "medium", label: "Medium", value: 0.014 },
@@ -20,13 +69,46 @@ type DrawPanelProps = {
 export default function DrawPanel({ open, containerRef, onClose }: DrawPanelProps) {
   const { addLayer } = useAfterShotLayers();
 
-  const [selectedColor, setSelectedColor] = useState(COLORS[0]);
+  // 0 = white (top of gradient), 1 = black (bottom) — matches the default
+  // white that COLORS[0] used to give before the swap to a continuous picker.
+  const [colorFraction, setColorFraction] = useState(0);
+  const selectedColor = useMemo(() => colorAtFraction(colorFraction), [colorFraction]);
+
   const [selectedWidthId, setSelectedWidthId] = useState(BRUSH_WIDTHS[1].id);
   const [strokes, setStrokes] = useState<DrawStroke[]>([]);
   const [activeStroke, setActiveStroke] = useState<DrawStroke | null>(null);
   const isDrawingRef = useRef(false);
 
   const activeWidth = BRUSH_WIDTHS.find((w) => w.id === selectedWidthId) ?? BRUSH_WIDTHS[1];
+
+  // ---- color slider drag (same trackRef/window-listener pattern as
+  // TextPanel's font-size slider, for consistency) ----
+  const sliderTrackRef = useRef<HTMLDivElement>(null);
+  const draggingSliderRef = useRef(false);
+
+  const setFractionFromClientY = useCallback((clientY: number) => {
+    const track = sliderTrackRef.current;
+    if (!track) return;
+    const rect = track.getBoundingClientRect();
+    const fraction = Math.min(1, Math.max(0, (clientY - rect.top) / rect.height));
+    setColorFraction(fraction);
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const onMove = (e: PointerEvent) => {
+      if (draggingSliderRef.current) setFractionFromClientY(e.clientY);
+    };
+    const onUp = () => {
+      draggingSliderRef.current = false;
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+  }, [open, setFractionFromClientY]);
 
   // Reads position off containerRef — the parent's own media box — same as
   // CropPanel does for its drag math, instead of measuring a box this
@@ -187,29 +269,42 @@ export default function DrawPanel({ open, containerRef, onClose }: DrawPanelProp
             />
           ))}
         </svg>
+
+        {/* Vertical color gradient slider — replaces the discrete swatch
+            row. Track paints GRADIENT_CSS directly; the draggable thumb's
+            own background is set to the live interpolated color, so the
+            thumb itself previews the current pick, same as the reference. */}
+        <div
+          ref={sliderTrackRef}
+          className="absolute right-3 top-1/4 bottom-1/4 rounded-full"
+          style={{ width: 6, background: GRADIENT_CSS, boxShadow: "0 0 0 1px rgba(255,255,255,0.25)" }}
+        >
+          <div
+            onMouseDown={(e) => e.preventDefault()}
+            onPointerDown={(e) => {
+              e.stopPropagation(); // don't let this also register as a draw stroke
+              draggingSliderRef.current = true;
+              setFractionFromClientY(e.clientY);
+            }}
+            className="absolute rounded-full"
+            style={{
+              width: 26,
+              height: 26,
+              left: "50%",
+              top: `${colorFraction * 100}%`,
+              transform: "translate(-50%, -50%)",
+              background: selectedColor,
+              border: "3px solid #fff",
+              boxShadow: "0 1px 6px rgba(0,0,0,0.4)",
+              touchAction: "none",
+              cursor: "grab",
+            }}
+          />
+        </div>
       </div>
 
       <div className="px-5 z-30" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 20px)" }}>
-        <div className="flex items-center gap-3 overflow-x-auto">
-          {COLORS.map((color) => (
-            <button
-              key={color}
-              onClick={() => setSelectedColor(color)}
-              aria-label={`Color ${color}`}
-              className="shrink-0 rounded-full"
-              style={{
-                width: 28,
-                height: 28,
-                background: color,
-                border: selectedColor === color ? "2px solid #fff" : "1px solid rgba(255,255,255,0.3)",
-                outline: selectedColor === color ? "2px solid rgba(255,255,255,0.4)" : "none",
-                outlineOffset: 2,
-              }}
-            />
-          ))}
-        </div>
-
-        <div className="flex items-center gap-2 mt-4">
+        <div className="flex items-center gap-2">
           {BRUSH_WIDTHS.map((w) => (
             <button
               key={w.id}

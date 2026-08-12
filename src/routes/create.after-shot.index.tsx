@@ -214,6 +214,12 @@ function AfterShotIndexPage() {
           onClose={closeTool}
         />
         <DrawPanel open={activeTool === "draw"} containerRef={mediaBoxRef} onClose={closeTool} />
+        <CropPanel
+          open={activeTool === "crop"}
+          containerRef={mediaBoxRef}
+          naturalSize={naturalSize}
+          onClose={closeTool}
+/>
       </div>
 
       {activeTool === null && (
