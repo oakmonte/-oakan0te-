@@ -116,7 +116,10 @@ export default function TextPanel({ open, containerRef, editingLayerId, onClose 
     const meta = document.querySelector('meta[name="viewport"]');
     if (!meta) return;
     const original = meta.getAttribute("content");
-    meta.setAttribute("content", "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no");
+    meta.setAttribute(
+      "content",
+      "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, interactive-widget=overlays-content",
+    );
     return () => {
       if (original !== null) meta.setAttribute("content", original);
     };
