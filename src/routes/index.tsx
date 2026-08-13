@@ -1,8 +1,6 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import logoO from "@/assets/logo-o.png";
-import oakmonteO from "@/assets/oakmonte-o-mark.png.asset.json";
-import contentToCartVideo from "@/assets/content-to-cart.mp4.asset.json";
 import { useSession } from "@/hooks/use-session";
 import { signInWithGoogle, signOut } from "@/lib/auth";
 import { supabase } from "@/lib/integrations/my-supabase/client";
@@ -48,18 +46,15 @@ function HeaderAuth() {
       <button
         type="button"
         onClick={() => void handleSignIn()}
-        className="px-3 sm:px-5 md:px-6 py-2 border border-brand-accent text-brand-accent text-[9px] sm:text-[10px] uppercase tracking-widest whitespace-nowrap sm:border-brand-text sm:text-brand-text hover:border-brand-accent hover:text-brand-accent transition-colors duration-300"
+        className="px-5 py-2 border border-brand-accent text-brand-accent text-[10px] uppercase tracking-widest whitespace-nowrap hover:bg-brand-accent hover:text-brand-bg transition-all duration-300"
       >
         SIGN IN
       </button>
     );
   }
 
-  // Label priority: the username the user chose -> the second (last) name the
-  // identity provider (Google / Apple) gave us -> email prefix.
   const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
   const str = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : null);
-  // Apple/Google expose a surname field; otherwise take the 2nd word of the full name.
   const fullName = str(meta.full_name) ?? str(meta.name);
   const secondWord = fullName ? (fullName.split(/\s+/)[1] ?? null) : null;
   const providerSecondName =
@@ -73,7 +68,7 @@ function HeaderAuth() {
     <div className="relative">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="px-3 sm:px-5 md:px-6 py-2 border border-brand-accent text-brand-accent text-[9px] sm:text-[10px] uppercase tracking-widest whitespace-nowrap sm:border-brand-text sm:text-brand-text hover:border-brand-accent hover:text-brand-accent transition-colors duration-300"
+        className="px-5 py-2 border border-brand-accent text-brand-accent text-[10px] uppercase tracking-widest whitespace-nowrap hover:bg-brand-accent hover:text-brand-bg transition-all duration-300"
       >
         {short}
       </button>
@@ -108,960 +103,329 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-type MenuKey = "product" | "solutions" | "resources" | "blog";
+const NAV_ITEMS = [
+  { label: "PRODUCT", href: "#product" },
+  { label: "SOLUTIONS", href: "#solutions" },
+  { label: "RESOURCES", href: "#resources" },
+  { label: "BLOG", href: "#blog" },
+];
 
-const MENUS: Record<
-  MenuKey,
-  { label: string; items: { title: string; desc: string; href: string }[] }
-> = {
-  product: {
-    label: "Product",
-    items: [
-      {
-        title: "Content to Sale",
-        desc: "Buy directly from creative content — no third-party links, higher conversion rate.",
-        href: "#product",
-      },
-      {
-        title: "Scam Proof",
-        desc: "No payment reaches a seller without customer satisfaction.",
-        href: "#product",
-      },
-      {
-        title: "Seller Accountability",
-        desc: "Every product is easily traced back to the creator or brand who promoted it.",
-        href: "#product",
-      },
-      {
-        title: "Handled Logistics",
-        desc: "A dedicated delivery service for every seller.",
-        href: "#product",
-      },
-      {
-        title: "Sellers Dashboard",
-        desc: "Performance analysis, order handling, Recommendation systems, content marketing\u00a0and\u00a0much more all in one place.",
-        href: "#product",
-      },
-      {
-        title: "Find Your Fit",
-        desc: "A recommendation system built to improve product-customer fit and\u00a0over-all customer satisfaction",
-        href: "#product",
-      },
-      {
-        title: "Oakmonte Studio",
-        desc: "Dedicated tools for creators and brands to express creativity through content.",
-        href: "#product",
-      },
-      {
-        title: "Customizable Storefronts",
-        desc: "Communicate your identity to customers at a glance.",
-        href: "#product",
-      },
-      {
-        title: "Improved Marketing",
-        desc: "Human help and intuitive tools for\u00a0effective story-telling and brand positioning.",
-        href: "#product",
-      },
-      {
-        title: "Collaboration Tools",
-        desc: "Sellers and creators collaborate for income streams and a better customer experience.",
-        href: "#product",
-      },
-    ],
+const CARDS = [
+  {
+    label: "SELLER",
+    className: "card-seller",
+    color: "#FF6B5B",
+    image:
+      "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Screenshot%202026-08-13%20194546-SOAayuyLAV2kRngcGwL94Z3tO6XNrc.png",
+    alt: "Fashion seller editorial image",
   },
-  solutions: {
-    label: "Solutions",
-    items: [
-      {
-        title: "For Sellers",
-        desc: "Customizable storefronts for vetted brands and boutiques.",
-        href: "#sellers",
-      },
-      { title: "For Creators", desc: "Monetize your style through content.", href: "#creators" },
-      { title: "For Buyers", desc: "Protected access to the trust triangle.", href: "#buyers" },
-    ],
+  {
+    label: "CREATOR",
+    className: "card-creator",
+    color: "#3B5A85",
+    image:
+      "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Screenshot%202026-08-13%20194535-9nz3exqW7gMCZFiVqzFpF78iodX7P6.png",
+    alt: "Creator fashion shopping interface",
   },
-  resources: {
-    label: "Resources",
-    items: [
-      { title: "Docs", desc: "Integration guides for sellers and creators.", href: "#" },
-      {
-        title: "About / Manifesto",
-        desc: "Our vetting standards and why we built Oakmonte.",
-        href: "#",
-      },
-      { title: "Support", desc: "Help with verification, escrow, and payouts.", href: "#" },
-    ],
+  {
+    label: "MODEL",
+    className: "card-model",
+    color: "#C4A882",
+    image:
+      "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Screenshot%202026-08-13%20194535-9nz3exqW7gMCZFiVqzFpF78iodX7P6.png",
+    alt: "Oakmonte model fashion image",
   },
-  blog: {
-    label: "Blog",
-    items: [
-      { title: "Journal", desc: "Editorial fashion features and style curation.", href: "#" },
-      {
-        title: "Creator Spotlights",
-        desc: "Stories from creators building on Oakmonte.",
-        href: "#",
-      },
-      { title: "Style Guides", desc: "Curated collections from our style curators.", href: "#" },
-    ],
+  {
+    label: "WARDROBE",
+    className: "card-wardrobe",
+    color: "#1A1A1A",
+    image:
+      "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Screenshot%202026-08-13%20194535-9nz3exqW7gMCZFiVqzFpF78iodX7P6.png",
+    alt: "Curated wardrobe fashion image",
   },
-};
+];
 
-const SECTION_IDS = ["ecosystem", "product", "sellers", "creators", "buyers", "register"];
+const FEATURES = [
+  {
+    title: "Sellers",
+    points: ["Logistics handled", "Wider customer base", "Custom stores"],
+  },
+  {
+    title: "Creators",
+    points: [
+      "Make money from your content",
+      "Intuitive creator and collaboration tools",
+      "Greater visibility",
+    ],
+  },
+  {
+    title: "Curators",
+    points: [
+      "Get pieces that actually fit",
+      "Track your deliveries",
+      "Find and share inspirations and recommendations",
+    ],
+  },
+];
+
+function Marquee() {
+  return (
+    <div className="w-full overflow-hidden bg-brand-text text-brand-bg py-4">
+      <div className="marquee-track flex whitespace-nowrap">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <span
+            key={i}
+            className="mx-6 text-sm uppercase tracking-widest font-medium"
+          >
+            CONTENT · COMMUNITY · COMMERCE · CONTENT · COMMUNITY · COMMERCE ·
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function Index() {
-  const [openMenu, setOpenMenu] = useState<MenuKey | null>(null);
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [mobileGroup, setMobileGroup] = useState<MenuKey | null>(null);
-  const [scrolled, setScrolled] = useState(false);
-  const [activeSection, setActiveSection] = useState<string>("");
-  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const typeText =
-    "Oakmonte is an ecosystem designed for those who expect more. We connect vetted sellers, honest creators and style curators through a content optimized marketplace.";
-  const typeRef = useRef<HTMLParagraphElement>(null);
-  const [typedLength, setTypedLength] = useState(0);
-  const [cursorVisible, setCursorVisible] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [active, setActive] = useState("PRODUCT");
 
   useEffect(() => {
-    const el = typeRef.current;
-    if (!el) return;
-    const total = typeText.length;
-    const periodIndex = typeText.indexOf(".") + 1;
-    const isMobile = window.matchMedia("(max-width: 767px)").matches;
-
-    if (isMobile) {
-      let raf = 0;
-      let timer: ReturnType<typeof setTimeout> | null = null;
-      let started = false;
-      const run = () => {
-        const startTime = performance.now();
-        const perChar = 25;
-        const pauseMs = 700;
-        const tick = (now: number) => {
-          const elapsed = now - startTime;
-          let count: number;
-          const preDuration = periodIndex * perChar;
-          if (elapsed < preDuration) {
-            count = Math.floor(elapsed / perChar);
-          } else if (elapsed < preDuration + pauseMs) {
-            count = periodIndex;
-          } else {
-            const after = elapsed - preDuration - pauseMs;
-            count = Math.min(total, periodIndex + Math.floor(after / perChar));
-          }
-          setTypedLength(count);
-          if (count < total) raf = requestAnimationFrame(tick);
-        };
-        raf = requestAnimationFrame(tick);
-      };
-      const io = new IntersectionObserver(
-        (entries) => {
-          for (const e of entries) {
-            if (e.isIntersecting && !started) {
-              started = true;
-              timer = setTimeout(run, 150);
-              io.disconnect();
-            }
-          }
-        },
-        { threshold: 0.4 },
-      );
-      io.observe(el);
-      return () => {
-        io.disconnect();
-        if (timer) clearTimeout(timer);
-        cancelAnimationFrame(raf);
-      };
-    }
-
-    const pauseStart = periodIndex / total;
-    const pauseHold = 0.2;
-    const pauseEnd = pauseStart + pauseHold;
-    const update = () => {
-      const rect = el.getBoundingClientRect();
-      const windowHeight = window.innerHeight;
-      const start = windowHeight * 0.85;
-      const end = windowHeight * 0.45;
-      let progress = 0;
-      if (rect.top < start) {
-        progress = (start - rect.top) / (start - end);
-      }
-      progress = Math.max(0, Math.min(1, progress));
-      let effective = progress;
-      if (progress > pauseStart && progress < pauseEnd) {
-        effective = pauseStart;
-      } else if (progress >= pauseEnd) {
-        effective = pauseStart + ((progress - pauseEnd) / (1 - pauseEnd)) * (1 - pauseStart);
-      }
-      effective = Math.max(0, Math.min(1, effective));
-      setTypedLength(Math.round(effective * total));
-    };
-    update();
-    window.addEventListener("scroll", update, { passive: true });
-    return () => window.removeEventListener("scroll", update);
-  }, []);
-
-  useEffect(() => {
-    const total = typeText.length;
-    if (typedLength < total) {
-      setCursorVisible(true);
-      return;
-    }
-    const timer = setTimeout(() => setCursorVisible(false), 700);
-    return () => clearTimeout(timer);
-  }, [typedLength]);
-
-  useEffect(() => {
-    const onScroll = () => {
-      setScrolled(window.scrollY > 24);
-      let current = "";
-      for (const id of SECTION_IDS) {
-        const el = document.getElementById(id);
-        if (el && el.getBoundingClientRect().top <= 120) current = id;
-      }
-      setActiveSection(current);
-    };
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
+    const onScroll = () =>
+      setActive(window.scrollY > window.innerHeight * 0.6 ? "SOLUTIONS" : "PRODUCT");
+    window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  useEffect(() => {
-    let lastX = -1,
-      lastY = -1,
-      raf = 0;
-    const onMove = (e: MouseEvent) => {
-      lastX = e.clientX;
-      lastY = e.clientY;
-    };
-    const onScroll = () => {
-      if (raf || lastX < 0) return;
-      raf = requestAnimationFrame(() => {
-        raf = 0;
-        const el = document.elementFromPoint(lastX, lastY);
-        if (el)
-          el.dispatchEvent(
-            new MouseEvent("mousemove", {
-              bubbles: true,
-              cancelable: true,
-              clientX: lastX,
-              clientY: lastY,
-            }),
-          );
-      });
-    };
-    window.addEventListener("mousemove", onMove, { passive: true });
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => {
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("scroll", onScroll);
-      if (raf) cancelAnimationFrame(raf);
-    };
-  }, []);
-
-  const openWithKey = (key: MenuKey) => {
-    if (closeTimer.current) {
-      clearTimeout(closeTimer.current);
-      closeTimer.current = null;
-    }
-    setOpenMenu(key);
-  };
-  const scheduleClose = () => {
-    if (closeTimer.current) clearTimeout(closeTimer.current);
-    closeTimer.current = setTimeout(() => setOpenMenu(null), 150);
-  };
-
-  const navLinkClass =
-    "relative inline-flex items-center gap-1 py-1 text-[11px] uppercase tracking-[0.2em] font-semibold transition-colors duration-500 hover:text-brand-accent";
-
-  const underline = (active: boolean) =>
-    `pointer-events-none absolute left-0 -bottom-0.5 h-px w-full origin-left bg-brand-accent transition-transform duration-200 ease-out ${active ? "scale-x-100" : "scale-x-0"} group-hover:scale-x-100`;
-
-  const isSectionActive = (key: MenuKey) => {
-    if (key === "solutions") return ["sellers", "creators", "buyers"].includes(activeSection);
-    if (key === "product") return activeSection === "product" || activeSection === "ecosystem";
-    return false;
-  };
-
   return (
-    <div className="min-h-screen bg-brand-bg text-brand-text font-sans overflow-x-clip">
-      <style>{`
-        @keyframes oak-marquee {
-          from { transform: translateX(0); }
-          to { transform: translateX(-50%); }
-        }
-        .animate-oak-marquee { animation: oak-marquee 34s linear infinite; }
-        .animate-oak-marquee:hover { animation-play-state: paused; }
-        @keyframes oak-float {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-10px); }
-        }
-        .animate-oak-float { animation: oak-float 6s ease-in-out infinite; }
-        @media (prefers-reduced-motion: reduce) {
-          .animate-oak-marquee, .animate-oak-float { animation: none !important; }
-        }
-      `}</style>
-      <nav
-        className={`fixed top-0 left-0 right-0 w-full z-50 px-4 sm:px-6 lg:px-8 flex justify-between items-center gap-3 border-b border-brand-text/5 bg-brand-bg/80 backdrop-blur-md transition-[padding] duration-300 ${scrolled ? "py-3 md:py-4" : "py-4 md:py-6"}`}
-      >
-        {mobileOpen && mobileGroup ? (
-          <button
-            type="button"
-            onClick={() => setMobileGroup(null)}
-            aria-label="Back"
-            className="flex items-center gap-2 shrink-0 min-w-0 text-[12px] uppercase tracking-[0.2em] font-semibold hover:text-brand-accent transition-colors duration-300 animate-fade-in"
-          >
-            <svg width="18" height="18" viewBox="0 0 14 14" aria-hidden="true">
-              <path
-                d="M9 2L4 7l5 5"
-                stroke="currentColor"
-                strokeWidth="1.4"
-                fill="none"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            Back
-          </button>
-        ) : (
-          <a href="#top" className="flex items-baseline gap-0 shrink-0 min-w-0">
-            {mobileOpen ? (
-              <img
-                src={oakmonteO.url}
-                alt="Oakmonte"
-                className="h-14 sm:h-16 w-auto -my-2 inline-block align-middle transition-all duration-300 animate-fade-in"
-              />
-            ) : (
-              <>
-                <img
-                  src={logoO}
-                  alt="Oakmonte"
-                  className="h-8 sm:h-10 md:h-11 w-auto inline-block align-baseline mt-1 transition-all duration-300"
-                />
-                <span className="font-sans font-normal text-2xl sm:text-3xl tracking-tight leading-none">
-                  akmonte
-                </span>
-                <span className="inline ml-2 sm:ml-3 text-[8px] sm:text-[9px] uppercase tracking-[0.25em] text-brand-accent font-sans font-normal leading-none pb-1">
-                  CREATED TO CREATE.
-                </span>
-              </>
-            )}
-          </a>
-        )}
+    <div className="min-h-screen bg-brand-bg text-brand-text">
+      {/* Header */}
+      <header className="fixed top-0 left-0 right-0 z-50 bg-brand-bg/90 backdrop-blur-md border-b border-brand-text/10">
+        <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 items-center justify-between">
+            <Link to="/" className="flex items-center gap-2">
+              <img src={logoO} alt="Oakmonte" className="h-8 w-auto" />
+              <span className="text-[10px] uppercase tracking-widest text-brand-accent hidden sm:inline-block">
+                CREATED TO CREATE.
+              </span>
+            </Link>
 
-        <div className="hidden lg:flex gap-10" onMouseLeave={scheduleClose}>
-          {(Object.keys(MENUS) as MenuKey[]).map((key) => {
-            const m = MENUS[key];
-            const isOpen = openMenu === key;
-            const active = isSectionActive(key);
-            return (
-              <div key={key} className="group relative" onMouseEnter={() => openWithKey(key)}>
-                <button
-                  className={navLinkClass}
-                  onFocus={() => openWithKey(key)}
-                  aria-expanded={isOpen}
+            <nav className="hidden md:flex items-center gap-8">
+              {NAV_ITEMS.map((item) => (
+                <a
+                  key={item.label}
+                  href={item.href}
+                  className={`text-[11px] uppercase tracking-widest transition-colors duration-300 hover:text-brand-accent ${
+                    active === item.label ? "text-brand-accent" : "text-brand-text"
+                  }`}
                 >
-                  {m.label}
-                  <svg
-                    width="8"
-                    height="8"
-                    viewBox="0 0 8 8"
-                    className={`opacity-60 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
-                  >
-                    <path d="M1 2l3 3 3-3" stroke="currentColor" strokeWidth="1.2" fill="none" />
-                  </svg>
-                  <span className={underline(active)} />
-                </button>
-                {isOpen && (
-                  <div
-                    className="absolute top-full left-1/2 -translate-x-1/2 pt-4"
-                    style={{ animation: "ddFadeIn 180ms ease-out both" }}
-                  >
-                    <div
-                      className={`bg-brand-bg border border-brand-text/10 shadow-xl normal-case tracking-normal py-3 ${key === "product" ? "w-[560px] grid grid-cols-2" : "w-80"}`}
-                    >
-                      {m.items.map((it, i) => (
-                        <a
-                          key={it.title}
-                          href={it.href}
-                          className="block px-5 py-3 hover:bg-brand-muted/40 transition-colors"
-                          style={{ animation: `ddItemIn 220ms ease-out ${i * 30}ms both` }}
-                        >
-                          <div className="text-sm font-semibold">{it.title}</div>
-                          <div className="text-xs text-brand-text/60 font-light mt-0.5 leading-snug">
-                            {it.desc}
-                          </div>
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+                  {item.label}
+                </a>
+              ))}
+            </nav>
 
-        <div className="flex items-center gap-2 sm:gap-4 shrink-0">
-          <HeaderAuth />
-          <button
-            className="lg:hidden p-2 -mr-2"
-            aria-label={mobileOpen ? "Close menu" : "Open menu"}
-            onClick={() => {
-              setMobileOpen((v) => !v);
-              setMobileGroup(null);
-            }}
-          >
-            {mobileOpen ? (
-              <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true">
-                <path
-                  d="M4 4l14 14M18 4L4 18"
-                  stroke="currentColor"
-                  strokeWidth="1.4"
-                  fill="none"
-                  strokeLinecap="round"
-                />
-              </svg>
-            ) : (
-              <>
-                <span className="block w-5 h-px bg-brand-text mb-1.5" />
-                <span className="block w-5 h-px bg-brand-text mb-1.5" />
-                <span className="block w-5 h-px bg-brand-text" />
-              </>
-            )}
-          </button>
-        </div>
-      </nav>
+            <div className="hidden md:flex items-center gap-6">
+              <HeaderAuth />
+            </div>
 
-      <div
-        className={`lg:hidden fixed inset-0 z-40 transition-opacity duration-500 ${mobileOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
-        aria-hidden={!mobileOpen}
-      >
-        <div
-          className="absolute inset-0 bg-brand-text/30"
-          onClick={() => {
-            setMobileOpen(false);
-            setMobileGroup(null);
-          }}
-        />
-        <aside
-          className={`absolute top-0 right-0 h-full w-full bg-brand-bg shadow-2xl flex flex-col transition-transform duration-500 ease-out ${mobileOpen ? "translate-x-0" : "translate-x-full"}`}
-        >
-          <div className="h-[64px] border-b border-brand-text/10" aria-hidden="true" />
-
-          <div className="relative flex-1 overflow-hidden">
-            <div
-              className={`absolute inset-0 overflow-y-auto transition-transform duration-500 ease-out ${mobileGroup ? "-translate-x-full" : "translate-x-0"}`}
+            <button
+              className="md:hidden p-2"
+              onClick={() => setMenuOpen(!menuOpen)}
+              aria-label="Toggle navigation"
+              aria-expanded={menuOpen}
             >
-              {(Object.keys(MENUS) as MenuKey[]).map((key) => {
-                const m = MENUS[key];
-                return (
-                  <button
-                    key={key}
-                    onClick={() => setMobileGroup(key)}
-                    className="w-full flex justify-between items-center px-6 py-5 text-[13px] uppercase tracking-[0.2em] font-semibold border-b border-brand-text/10 hover:bg-brand-muted/40 transition-colors"
-                  >
-                    {m.label}
-                    <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
-                      <path
-                        d="M3 1l4 4-4 4"
-                        stroke="currentColor"
-                        strokeWidth="1.4"
-                        fill="none"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </button>
-                );
-              })}
+              <div className="w-5 h-0.5 bg-brand-text mb-1.5 transition-transform duration-300" />
+              <div className="w-5 h-0.5 bg-brand-text mb-1.5 transition-opacity duration-300" />
+              <div className="w-5 h-0.5 bg-brand-text transition-transform duration-300" />
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile menu */}
+        {menuOpen && (
+          <div className="md:hidden bg-brand-bg border-t border-brand-text/10">
+            <div className="px-4 py-6 flex flex-col gap-4">
+              {NAV_ITEMS.map((item) => (
+                <a
+                  key={item.label}
+                  href={item.href}
+                  onClick={() => setMenuOpen(false)}
+                  className="text-[12px] uppercase tracking-widest hover:text-brand-accent transition-colors"
+                >
+                  {item.label}
+                </a>
+              ))}
+              <div className="pt-4 border-t border-brand-text/10">
+                <HeaderAuth />
+              </div>
+            </div>
+          </div>
+        )}
+      </header>
+
+      <main className="pt-16">
+        {/* Contact + Hero */}
+        <section className="relative px-4 sm:px-6 lg:px-8 pt-8 pb-16">
+          <div className="mx-auto max-w-[1400px]">
+            <div className="flex justify-end mb-12">
               <a
-                href="mailto:hello@oakmonte.com"
-                onClick={() => setMobileOpen(false)}
-                className="w-full flex justify-between items-center px-6 py-5 text-[13px] uppercase tracking-[0.2em] font-semibold border-b border-brand-text/10 hover:bg-brand-muted/40 transition-colors"
+                href="mailto:contact@oakmonte.com"
+                className="text-[10px] uppercase tracking-widest text-brand-accent hover:text-brand-text transition-colors duration-300"
               >
-                Contact us
+                CONTACT US
               </a>
             </div>
 
-            <div
-              className={`absolute inset-0 overflow-y-auto transition-transform duration-500 ease-out ${mobileGroup ? "translate-x-0" : "translate-x-full"}`}
-            >
-              {mobileGroup && (
-                <div>
-                  <div className="px-6 pt-6 pb-3 text-[11px] uppercase tracking-[0.25em] text-brand-text/50">
-                    {MENUS[mobileGroup].label}
+            <div className="max-w-4xl mb-16">
+              <p className="text-[10px] uppercase tracking-[0.25em] text-brand-accent mb-4">
+                WE ARE A
+              </p>
+              <h1 className="font-display text-[clamp(48px,10vw,120px)] leading-[0.9] tracking-tight text-brand-text uppercase mb-6">
+                FASHION
+                <br />
+                COMMERCE
+                <br />
+                PLATFORM
+              </h1>
+              <p className="text-base sm:text-lg text-brand-text/70 max-w-md font-light">
+                A better way to shop, share and sell your style.
+              </p>
+            </div>
+
+            {/* Cards grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {CARDS.map((card, index) => (
+                <div
+                  key={card.label}
+                  className={`group relative aspect-[3/4] overflow-hidden rounded-2xl cursor-pointer ${card.className}`}
+                  style={{
+                    animationDelay: `${index * 100}ms`,
+                  }}
+                >
+                  <div
+                    className="absolute inset-0 transition-transform duration-700 group-hover:scale-105"
+                    style={{ backgroundColor: card.color }}
+                  >
+                    <img
+                      src={card.image}
+                      alt={card.alt}
+                      className="absolute inset-0 h-full w-full object-cover opacity-80 mix-blend-multiply"
+                    />
                   </div>
-                  {MENUS[mobileGroup].items.map((it) => (
-                    <a
-                      key={it.title}
-                      href={it.href}
-                      onClick={() => {
-                        setMobileOpen(false);
-                        setMobileGroup(null);
-                      }}
-                      className="block px-6 py-4 border-b border-brand-text/10 hover:bg-brand-muted/40 transition-colors"
-                    >
-                      <div className="text-sm font-semibold">{it.title}</div>
-                      <div className="text-xs text-brand-text/60 font-light mt-1 leading-snug">
-                        {it.desc}
-                      </div>
-                    </a>
-                  ))}
+                  <div className="absolute inset-0 flex flex-col justify-between p-5">
+                    <span className="text-[11px] uppercase tracking-widest text-white/90 font-medium">
+                      {card.label}
+                    </span>
+                    <div className="flex items-center justify-between text-white">
+                      <span className="text-[10px] uppercase tracking-widest">OAKMONTE</span>
+                      <span className="text-[10px] uppercase tracking-widest">↗</span>
+                    </div>
+                  </div>
                 </div>
-              )}
+              ))}
             </div>
           </div>
-        </aside>
-      </div>
+        </section>
 
-      <div className="w-full flex justify-end px-4 sm:px-6 lg:px-8 pt-24 sm:pt-28 md:pt-36 pb-2">
-        <a
-          href="mailto:hello@oakmonte.com"
-          className="text-[11px] uppercase tracking-[0.2em] font-semibold hover:text-brand-accent transition-colors duration-500"
-        >
-          Contact us
-        </a>
-      </div>
-
-      <section id="top" className="relative pt-4 md:pt-6 pb-16 md:pb-20 px-4 sm:px-6 lg:px-8">
-        <div className="w-full max-w-7xl mx-auto grid grid-cols-12 gap-4 sm:gap-8 items-end">
-          <div className="relative col-span-12 lg:col-span-7">
-            <span className="block text-[10px] sm:text-xs uppercase tracking-[0.35em] text-brand-accent font-bold mb-3 sm:mb-4">
-              We are the
-            </span>
-            <h1
-              className="leading-[0.85] tracking-tight mb-6 md:mb-8 text-[3.25rem] sm:text-6xl md:text-8xl lg:text-[150px] uppercase break-words"
-              style={{ fontFamily: "Anton, Impact, sans-serif", fontWeight: 400 }}
-            >
-              SHARE <br />
-              <span className="text-brand-accent">YOUR</span> STYLE.
-            </h1>
-
-            {/* Overlapping accent cards — visible from lg up, tucked around the headline */}
-            <AccentCard
-              bg="#1c1c1a"
-              label="Sellers"
-              sub="Vetted boutiques"
-              rotate={-7}
-              className="hidden lg:block absolute top-[2%] -right-6 xl:right-2 animate-oak-float"
-            />
-            <AccentCard
-              bg="#5a4632"
-              label="Creators"
-              sub="Style is currency"
-              rotate={6}
-              className="hidden lg:block absolute top-[46%] right-[10%] xl:right-[16%] animate-oak-float"
-              style={{ animationDelay: "1.2s" }}
-            />
-            <AccentCard
-              bg="#7a6a54"
-              label="Curators"
-              sub="Find your fit"
-              rotate={-4}
-              className="hidden xl:block absolute -bottom-4 -right-10 animate-oak-float"
-              style={{ animationDelay: "2.4s" }}
-            />
-
-            <p
-              ref={typeRef}
-              className="max-w-full sm:max-w-md text-base sm:text-lg text-brand-text/70 font-light leading-relaxed mb-6 min-h-[6rem] sm:min-h-[5rem]"
-              aria-label={typeText}
-            >
-              {typeText.slice(0, typedLength)}
-              {cursorVisible && (
-                <span
-                  className="inline-block w-px h-[1em] bg-brand-text/70 align-middle ml-0.5"
-                  style={{ animation: "cursor-blink 0.7s steps(1) infinite" }}
-                  aria-hidden="true"
-                />
-              )}
-            </p>
-            <p
-              className={`max-w-full sm:max-w-md text-sm sm:text-base italic text-brand-text/50 leading-relaxed mb-10 md:mb-12 transition-all duration-300 ${typedLength === typeText.length ? "opacity-100 translate-y-0 delay-500" : "opacity-0 translate-y-3"}`}
-            >
-              style is proof that you{" "}
-              <span
-                className="font-bold not-italic"
-                style={{
-                  fontFamily:
-                    '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, sans-serif',
-                }}
-              >
-                think different.
-              </span>
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 w-full max-w-2xl">
-              <Link
-                to="/set-up-store"
-                className="text-center px-4 sm:px-6 py-4 md:py-5 bg-brand-text text-brand-bg text-[11px] uppercase tracking-widest font-bold hover:bg-brand-accent transition-colors duration-300"
-              >
-                Set up a Store
-              </Link>
-              <Link
-                to="/become-a-creator"
-                className="text-center px-4 sm:px-6 py-4 md:py-5 bg-brand-text text-brand-bg text-[11px] uppercase tracking-widest font-bold hover:bg-brand-accent transition-colors duration-300"
-              >
-                Become a Creator
-              </Link>
-              <Link
-                to="/become-a-curator"
-                className="text-center px-4 sm:px-6 py-4 md:py-5 bg-brand-bg border text-[11px] uppercase tracking-widest font-bold border-brand-accent text-brand-accent sm:border-brand-text sm:text-brand-text hover:border-brand-accent hover:text-brand-accent transition-colors duration-300"
-              >
-                DEFINE YOUR WARDROBE
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section
-        id="ecosystem"
-        className="py-16 sm:py-24 md:py-32 px-4 sm:px-6 lg:px-8 border-y border-brand-text/5"
-      >
-        <div className="w-full max-w-7xl mx-auto">
-          <div className="flex flex-col mb-10 sm:mb-16 md:mb-20">
-            <span className="text-[10px] uppercase tracking-[0.3em] text-brand-accent font-bold mb-4">
-              We are an
-            </span>
-            <h2
-              className="leading-[0.88] tracking-tight uppercase text-4xl sm:text-6xl md:text-7xl lg:text-8xl"
-              style={{ fontFamily: "Anton, Impact, sans-serif", fontWeight: 400 }}
-            >
-              Ecosystem
-            </h2>
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-px bg-brand-text/10">
-            <div id="buyers" className="bg-brand-bg lg:pr-12 py-8">
-              <span className="text-sm font-serif italic mb-6 block">&nbsp;Sellers</span>
-              <h3 className="text-xl font-semibold mb-4">Open a store, not a hustle.</h3>
-              <ul className="text-sm text-brand-text/60 leading-relaxed list-disc list-inside space-y-1">
-                <li>Logistics Handled</li>
-                <li>Wider Customer Base</li>
-                <li>Custom Stores</li>
-              </ul>
-            </div>
-            <div id="sellers" className="bg-brand-bg lg:px-12 py-8">
-              <span className="text-sm font-serif italic mb-6 block">Creators</span>
-              <h3 className="text-xl font-semibold mb-4">Turn your feed into income.</h3>
-              <ul className="text-sm text-brand-text/60 leading-relaxed list-disc list-inside space-y-1">
-                <li>Make money from your content</li>
-                <li>Intuitive creator and collaboration tools</li>
-                <li>Greater visibility</li>
-              </ul>
-            </div>
-            <div id="creators" className="bg-brand-bg lg:pl-12 py-8">
-              <span className="text-sm font-serif italic mb-6 block">Curators</span>
-              <h3 className="text-xl font-semibold mb-4">Shop the trust triangle.</h3>
-              <ul className="text-sm text-brand-text/60 leading-relaxed list-disc list-inside space-y-1">
-                <li>Get pieces that actually fit</li>
-                <li>Track your deliveries</li>
-                <li>Find and share inspirations and recommendations</li>
-              </ul>
-            </div>
-          </div>
-          <div className="mt-12 md:mt-16 pt-10 border-t border-brand-text/10">
-            <p className="text-[10px] uppercase tracking-[0.25em] text-brand-accent font-bold mb-5 text-center">
-              No matter which side you're on
-            </p>
-            <ul className="flex flex-col sm:flex-row justify-center items-start sm:items-center gap-4 sm:gap-12 text-sm text-brand-text/60 leading-relaxed list-disc list-inside sm:list-outside">
-              <li>Easy transfer of content from other platforms</li>
-              <li>Absolutely 0 Upfront Cost</li>
-              <li>Stay scam proof</li>
-            </ul>
-          </div>
-        </div>
-      </section>
-
-      <section className="py-14 sm:py-20 md:py-24 border-y border-brand-text/5 overflow-hidden">
-        <div className="px-4 sm:px-6 lg:px-8 w-full max-w-7xl mx-auto mb-8 md:mb-10">
-          <h2
-            className="leading-[0.85] tracking-tight uppercase text-4xl sm:text-6xl md:text-7xl"
-            style={{ fontFamily: "Anton, Impact, sans-serif", fontWeight: 400 }}
-          >
-            The Studio
-          </h2>
-        </div>
-        <Marquee>
-          <StripCard bg="#1c1c1a" title="Escrow Checkout" desc="Payment holds until you're satisfied." />
-          <StripCard bg="#7a6a54" title="Vetted Sellers" desc="Every boutique verified before going live." />
-          <StripCard bg="#3f4b3b" title="Creator Payouts" desc="Get paid for every sale your content drives." />
-          <StripCard bg="#5a4632" title="Style Matching" desc="Recommendations tuned to your fit." />
-          <StripCard bg="#2b3a4a" title="Oakmonte Studio" desc="Content tools built for creators." />
-          <StripCard bg="#1c1c1a" title="Zero Setup Cost" desc="Open a store with nothing upfront." />
-        </Marquee>
-      </section>
-
-      <section id="product" className="py-16 sm:py-24 md:py-32 px-4 sm:px-6 lg:px-8">
-        <div className="w-full max-w-7xl mx-auto">
-          <h2
-            className="leading-[0.85] tracking-tight mb-10 md:mb-16 text-[3.25rem] sm:text-6xl md:text-8xl lg:text-[150px] uppercase break-words"
-            style={{ fontFamily: "Anton, Impact, sans-serif", fontWeight: 400 }}
-          >
-            A Better Way
-            <br />
-            <span className="text-brand-accent">To Shop.</span>
-          </h2>
-
-          <FeatureBox className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-8 md:gap-12 items-center p-6 sm:p-10 md:p-14 mb-6 md:mb-8">
-            <div className="order-1">
-              <h3 className="text-3xl sm:text-4xl md:text-5xl font-serif tracking-tight leading-[0.95] mb-4 font-bold">
-                Content to Cart
-              </h3>
-              <p className="text-xs sm:text-sm font-bold uppercase tracking-[0.15em] mb-5 text-brand-text/80">
-                CONTENT IS COMMERCE!
-              </p>
-              <p className="text-sm sm:text-base text-brand-text/70 leading-relaxed max-w-[46ch]">
-                Buy directly from creative content — not third party links, all within the native
-                oakmonte interface meaning Higher sale conversion rate for sellers and Easier
-                collaboration with creators.
-              </p>
-            </div>
-            <div className="order-2 justify-self-center md:justify-self-end">
-              <PhoneMockup src={contentToCartVideo.url} />
-            </div>
-          </FeatureBox>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
-            <FeatureBox className="p-6 sm:p-8 md:p-10">
-              <h3 className="text-3xl sm:text-4xl md:text-5xl font-serif mb-6 font-bold">
-                Stay Scam Proof
-              </h3>
-              <p className="text-xs sm:text-sm font-bold uppercase tracking-[0.15em] mb-5 text-brand-text/80">
-                STOP GETTING SCAMMED !
-              </p>
-              <div className="space-y-3 text-sm text-brand-text/70 leading-relaxed">
-                <p>
-                  No payment reaches any seller without customer satisfaction, no fast-fashion
-                  noise, just curated luxury and authentic pieces.
+        {/* 02 / ONE PLATFORM */}
+        <section id="product" className="px-4 sm:px-6 lg:px-8 py-20 bg-white">
+          <div className="mx-auto max-w-[1400px]">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.25em] text-brand-accent mb-4">
+                  02 / ONE PLATFORM
                 </p>
-                <p>Creators won't make numbers and not get paid.</p>
-                <p>
-                  Sellers won't get one-upped by crafty curators — every complaint goes through a
-                  thorough dispute pipeline.
+                <h2 className="font-display text-[clamp(40px,7vw,90px)] leading-[0.95] tracking-tight text-brand-text uppercase">
+                  BETTER WAY
+                  <br />
+                  TO SHOP.
+                </h2>
+                <p className="mt-6 text-base text-brand-text/70 font-light max-w-md">
+                  Oakmonte connects sellers, creators and curators in one native
+                  fashion commerce platform.
                 </p>
               </div>
-            </FeatureBox>
 
-            <FeatureBox className="p-6 sm:p-8 md:p-10">
-              <h3 className="text-3xl sm:text-4xl md:text-5xl font-serif mb-6 font-bold">
-                Find Your Fit
-              </h3>
-              <p className="text-sm text-brand-text/70 leading-relaxed">
-                A dedicated recommendation system tailored to improve curator-piece fit, and reduce
-                returns as all pieces go through our personal size chart.
-              </p>
-            </FeatureBox>
-
-            <FeatureBox className="p-6 sm:p-8 md:p-10">
-              <h3 className="text-3xl sm:text-4xl md:text-5xl font-serif mb-6 font-bold">
-                Customizable Storefronts
-              </h3>
-              <p className="text-xs sm:text-sm font-bold uppercase tracking-[0.15em] mb-5 text-brand-text/80">
-                Who Needs A Website?
-              </p>
-              <p className="text-sm text-brand-text/70 leading-relaxed">
-                Oakmonte offers a fully customizable storefront in-app so your customers can feel
-                your aesthetic at a glance. This means improved customer retention, visibility, and
-                wider profit margins.
-              </p>
-            </FeatureBox>
-
-            <FeatureBox className="p-6 sm:p-8 md:p-10">
-              <h3 className="text-3xl sm:text-4xl md:text-5xl font-serif mb-6 font-bold">
-                Handled Logistics
-              </h3>
-              <p className="text-sm text-brand-text/70 leading-relaxed">
-                Get a dedicated delivery service for your brand and a purposefully designed seller
-                dashboard to handle sales and marketing, on and off Oakmonte.
-              </p>
-            </FeatureBox>
-
-            <FeatureBox className="p-6 sm:p-8 md:p-10">
-              <h3 className="text-3xl sm:text-4xl md:text-5xl font-serif mb-6 font-bold">
-                Seller &amp; Creator Accountability
-              </h3>
-              <p className="text-sm text-brand-text/70 leading-relaxed">
-                Unlike other marketplaces, every product is easily traced back to the creator or
-                seller who promoted it. Fair credit, transparent payout.
-              </p>
-            </FeatureBox>
-
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
+                {FEATURES.map((feature) => (
+                  <div key={feature.title}>
+                    <h3 className="text-[12px] uppercase tracking-widest font-medium mb-4 pb-2 border-b border-brand-text/10">
+                      {feature.title}
+                    </h3>
+                    <ul className="space-y-3">
+                      {feature.points.map((point) => (
+                        <li
+                          key={point}
+                          className="text-[13px] text-brand-text/70 font-light leading-relaxed"
+                        >
+                          {point}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
+        </section>
 
-          <FeatureBox className="mt-6 md:mt-8 p-6 sm:p-10 md:p-14">
-            <h3 className="text-3xl sm:text-4xl md:text-5xl font-serif mb-6 font-bold">
-              Oakmonte Studio
-            </h3>
-            <p className="text-sm sm:text-base text-brand-text/70 leading-relaxed max-w-[70ch]">
-              A dedicated dashboard for creators to produce and upload premium content, manage and
-              flex collaborations, maintain customer relationships, and earn money.
-            </p>
-          </FeatureBox>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 w-full max-w-2xl mx-auto mt-10 md:mt-16">
-            <Link
-              to="/set-up-store"
-              className="text-center px-4 sm:px-6 py-4 md:py-5 bg-brand-text text-brand-bg text-[11px] uppercase tracking-widest font-bold hover:bg-brand-accent transition-colors duration-300"
-            >
-              Set up a Store
-            </Link>
-            <Link
-              to="/become-a-creator"
-              className="text-center px-4 sm:px-6 py-4 md:py-5 bg-brand-text text-brand-bg text-[11px] uppercase tracking-widest font-bold hover:bg-brand-accent transition-colors duration-300"
-            >
-              Become a Creator
-            </Link>
-            <Link
-              to="/become-a-curator"
-              className="text-center px-4 sm:px-6 py-4 md:py-5 bg-brand-bg border text-[11px] uppercase tracking-widest font-bold border-brand-accent text-brand-accent sm:border-brand-text sm:text-brand-text hover:border-brand-accent hover:text-brand-accent transition-colors duration-300"
-            >
-              DEFINE YOUR WARDROBE
-            </Link>
+        {/* Stay Scam Proof */}
+        <section id="solutions" className="px-4 sm:px-6 lg:px-8 py-20">
+          <div className="mx-auto max-w-[1400px]">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.25em] text-brand-accent mb-4">
+                  Stay Scam Proof
+                </p>
+                <h2 className="font-display text-[clamp(36px,6vw,72px)] leading-[0.95] tracking-tight text-brand-text uppercase mb-6">
+                  STOP GETTING SCAMMED!
+                </h2>
+                <div className="space-y-4 text-[14px] text-brand-text/70 font-light leading-relaxed max-w-lg">
+                  <p>
+                    No payment reaches any seller without customer satisfaction. No
+                    fast-fashion noise, just curated luxury and authentic pieces.
+                  </p>
+                  <p>
+                    Creators won't make numbers and not get paid. Sellers won't get
+                    one-upped by craft curators — every complaint goes through a
+                    thorough dispute pipeline.
+                  </p>
+                </div>
+              </div>
+              <div className="bg-brand-muted/50 rounded-2xl p-8 lg:p-12">
+                <p className="text-[10px] uppercase tracking-[0.25em] text-brand-accent mb-4">
+                  Find Your Fit
+                </p>
+                <p className="text-[15px] text-brand-text/80 font-light leading-relaxed">
+                  A dedicated recommendation system tailored to improve
+                  curator-piece fit, and reduce returns as all pieces go through our
+                  personal size chart.
+                </p>
+              </div>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <footer className="w-full py-10 md:py-12 px-4 sm:px-6 lg:px-8 border-t border-brand-text/5 flex flex-col md:flex-row gap-6 justify-between items-start md:items-center text-[10px] uppercase tracking-widest opacity-50">
-        <div>© 2026 Oakmonte Collective</div>
-        <div className="flex flex-wrap gap-4 sm:gap-8">
-          <a href="/terms">TERMS&nbsp;OF SERVICE&nbsp;</a>
-          <a href="/privacy">PRIVACY POLICY</a>
-          <a href="#">Manifesto</a>
-        </div>
-      </footer>
-    </div>
-  );
-}
+        {/* Marquee */}
+        <Marquee />
 
-function FeatureBox({
-  className = "",
-  children,
-}: {
-  className?: string;
-  children: React.ReactNode;
-}) {
-  const ref = useRef<HTMLDivElement | null>(null);
-  const [visible, setVisible] = useState(false);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const io = new IntersectionObserver(
-      (entries) => {
-        for (const e of entries)
-          if (e.isIntersecting) {
-            setVisible(true);
-            io.disconnect();
-            break;
-          }
-      },
-      { threshold: 0.15 },
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
-  return (
-    <div
-      ref={ref}
-      className={`border border-brand-text/15 bg-brand-bg transition-all duration-500 ease-out hover:border-brand-text hover:-translate-y-[2px] ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"} ${className}`}
-    >
-      {children}
-    </div>
-  );
-}
-
-function AccentCard({
-  bg,
-  label,
-  sub,
-  rotate = 0,
-  className = "",
-  style = {},
-}: {
-  bg: string;
-  label: string;
-  sub?: string;
-  rotate?: number;
-  className?: string;
-  style?: React.CSSProperties;
-}) {
-  return (
-    <div
-      className={`select-none w-36 xl:w-44 aspect-[4/5] p-4 xl:p-5 shadow-[0_20px_45px_-15px_rgba(0,0,0,0.5)] transition-transform duration-500 ease-out hover:!rotate-0 hover:scale-105 ${className}`}
-      style={{ backgroundColor: bg, transform: `rotate(${rotate}deg)`, ...style }}
-    >
-      <div className="flex items-center justify-between mb-3">
-        <img src={logoO} alt="" className="h-4 w-auto opacity-90" />
-        <span className="text-[7px] uppercase tracking-[0.2em] text-white/60 font-semibold">
-          Oakmonte
-        </span>
-      </div>
-      <div className="h-full flex flex-col justify-end pb-1">
-        <p
-          className="text-white text-lg xl:text-xl uppercase leading-[1.05] tracking-tight"
-          style={{ fontFamily: "Anton, Impact, sans-serif", fontWeight: 400 }}
-        >
-          {label}
-        </p>
-        {sub && <p className="text-white/60 text-[10px] mt-1 leading-snug">{sub}</p>}
-      </div>
-    </div>
-  );
-}
-
-function StripCard({ bg, title, desc }: { bg: string; title: string; desc: string }) {
-  return (
-    <div
-      className="shrink-0 w-64 sm:w-72 aspect-[4/5] p-6 sm:p-7 flex flex-col justify-between shadow-[0_16px_36px_-18px_rgba(0,0,0,0.4)] transition-transform duration-300 ease-out hover:-translate-y-1"
-      style={{ backgroundColor: bg }}
-    >
-      <div className="flex items-center justify-between">
-        <img src={logoO} alt="" className="h-5 w-auto opacity-90" />
-        <span className="text-[8px] uppercase tracking-[0.25em] text-white/60 font-semibold">
-          Oakmonte
-        </span>
-      </div>
-      <div>
-        <p
-          className="text-white text-2xl sm:text-3xl uppercase leading-[0.95] tracking-tight mb-3"
-          style={{ fontFamily: "Anton, Impact, sans-serif", fontWeight: 400 }}
-        >
-          {title}
-        </p>
-        <p className="text-white/70 text-sm leading-relaxed">{desc}</p>
-      </div>
-    </div>
-  );
-}
-
-function Marquee({ children }: { children: React.ReactNode }) {
-  return (
-    <div
-      className="relative w-full overflow-hidden"
-      style={{
-        maskImage: "linear-gradient(90deg, transparent, black 6%, black 94%, transparent)",
-        WebkitMaskImage:
-          "linear-gradient(90deg, transparent, black 6%, black 94%, transparent)",
-      }}
-    >
-      <div className="flex gap-4 sm:gap-6 w-max px-4 sm:px-6 lg:px-8 animate-oak-marquee">
-        {children}
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function PhoneMockup({ src }: { src: string }) {
-  return (
-    <div className="relative w-[160px] sm:w-[180px] md:w-[200px] aspect-[9/19.5] rounded-[2rem] border border-brand-text/80 bg-brand-text p-[5px] shadow-[0_16px_40px_-16px_rgba(0,0,0,0.35)]">
-      <div className="relative w-full h-full rounded-[1.65rem] overflow-hidden bg-brand-muted">
-        <div
-          className="absolute top-2 left-1/2 -translate-x-1/2 z-10 h-[18px] w-[72px] rounded-full bg-brand-text"
-          aria-hidden="true"
-        />
-        <video src={src} autoPlay muted loop playsInline className="w-full h-full object-cover" />
-      </div>
+        {/* Footer */}
+        <footer className="px-4 sm:px-6 lg:px-8 py-16 bg-brand-bg border-t border-brand-text/10">
+          <div className="mx-auto max-w-[1400px] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+            <div className="flex items-center gap-3">
+              <img src={logoO} alt="Oakmonte" className="h-7 w-auto" />
+              <span className="text-[10px] uppercase tracking-widest text-brand-text/60">
+                CREATED TO CREATE.
+              </span>
+            </div>
+            <a
+              href="mailto:contact@oakmonte.com"
+              className="text-[11px] uppercase tracking-widest text-brand-accent hover:text-brand-text transition-colors duration-300"
+            >
+              CONTACT US ↗
+            </a>
+          </div>
+        </footer>
+      </main>
     </div>
   );
 }
