@@ -148,7 +148,7 @@ function AnimatedLabel({ visible, children }: { visible: boolean; children: Reac
 
 function CreatePage() {
   const rootRef = useRef<HTMLDivElement>(null);
-  useLockedViewport(rootRef);
+  useLockedViewport();
   const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
