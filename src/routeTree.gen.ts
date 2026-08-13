@@ -36,8 +36,8 @@ import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as CreateIndexRouteImport } from './routes/create.index'
 import { Route as CreateAfterShotRouteImport } from './routes/create.after-shot'
 import { Route as ProfileUsernameRouteImport } from './routes/profile.$username'
+import { Route as ApiBumpaConnectRouteImport } from './routes/api.bumpa.connect'
 import { Route as CreateAfterShotIndexRouteImport } from './routes/create.after-shot.index'
-import { Route as CreateAfterShotCropRouteImport } from './routes/create.after-shot.crop'
 import { Route as CreateAfterShotEditRouteImport } from './routes/create.after-shot.edit'
 import { Route as CreateAfterShotFiltersRouteImport } from './routes/create.after-shot.filters'
 
@@ -176,14 +176,14 @@ const ProfileUsernameRoute = ProfileUsernameRouteImport.update({
   path: '/profile/$username',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiBumpaConnectRoute = ApiBumpaConnectRouteImport.update({
+  id: '/api/bumpa/connect',
+  path: '/api/bumpa/connect',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CreateAfterShotIndexRoute = CreateAfterShotIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => CreateAfterShotRoute,
-} as any)
-const CreateAfterShotCropRoute = CreateAfterShotCropRouteImport.update({
-  id: '/crop',
-  path: '/crop',
   getParentRoute: () => CreateAfterShotRoute,
 } as any)
 const CreateAfterShotEditRoute = CreateAfterShotEditRouteImport.update({
@@ -225,7 +225,7 @@ export interface FileRoutesByFullPath {
   '/create/after-shot': typeof CreateAfterShotRouteWithChildren
   '/profile/$username': typeof ProfileUsernameRoute
   '/create/': typeof CreateIndexRoute
-  '/create/after-shot/crop': typeof CreateAfterShotCropRoute
+  '/api/bumpa/connect': typeof ApiBumpaConnectRoute
   '/create/after-shot/edit': typeof CreateAfterShotEditRoute
   '/create/after-shot/filters': typeof CreateAfterShotFiltersRoute
   '/create/after-shot/': typeof CreateAfterShotIndexRoute
@@ -256,7 +256,7 @@ export interface FileRoutesByTo {
   '/auth/callback': typeof AuthCallbackRoute
   '/profile/$username': typeof ProfileUsernameRoute
   '/create': typeof CreateIndexRoute
-  '/create/after-shot/crop': typeof CreateAfterShotCropRoute
+  '/api/bumpa/connect': typeof ApiBumpaConnectRoute
   '/create/after-shot/edit': typeof CreateAfterShotEditRoute
   '/create/after-shot/filters': typeof CreateAfterShotFiltersRoute
   '/create/after-shot': typeof CreateAfterShotIndexRoute
@@ -290,7 +290,7 @@ export interface FileRoutesById {
   '/create/after-shot': typeof CreateAfterShotRouteWithChildren
   '/profile/$username': typeof ProfileUsernameRoute
   '/create/': typeof CreateIndexRoute
-  '/create/after-shot/crop': typeof CreateAfterShotCropRoute
+  '/api/bumpa/connect': typeof ApiBumpaConnectRoute
   '/create/after-shot/edit': typeof CreateAfterShotEditRoute
   '/create/after-shot/filters': typeof CreateAfterShotFiltersRoute
   '/create/after-shot/': typeof CreateAfterShotIndexRoute
@@ -325,7 +325,7 @@ export interface FileRouteTypes {
     | '/create/after-shot'
     | '/profile/$username'
     | '/create/'
-    | '/create/after-shot/crop'
+    | '/api/bumpa/connect'
     | '/create/after-shot/edit'
     | '/create/after-shot/filters'
     | '/create/after-shot/'
@@ -356,7 +356,7 @@ export interface FileRouteTypes {
     | '/auth/callback'
     | '/profile/$username'
     | '/create'
-    | '/create/after-shot/crop'
+    | '/api/bumpa/connect'
     | '/create/after-shot/edit'
     | '/create/after-shot/filters'
     | '/create/after-shot'
@@ -389,7 +389,7 @@ export interface FileRouteTypes {
     | '/create/after-shot'
     | '/profile/$username'
     | '/create/'
-    | '/create/after-shot/crop'
+    | '/api/bumpa/connect'
     | '/create/after-shot/edit'
     | '/create/after-shot/filters'
     | '/create/after-shot/'
@@ -421,6 +421,7 @@ export interface RootRouteChildren {
   WhereDidYouHearAboutUsRoute: typeof WhereDidYouHearAboutUsRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
   ProfileUsernameRoute: typeof ProfileUsernameRoute
+  ApiBumpaConnectRoute: typeof ApiBumpaConnectRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -614,18 +615,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProfileUsernameRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/bumpa/connect': {
+      id: '/api/bumpa/connect'
+      path: '/api/bumpa/connect'
+      fullPath: '/api/bumpa/connect'
+      preLoaderRoute: typeof ApiBumpaConnectRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/create/after-shot/': {
       id: '/create/after-shot/'
       path: '/'
       fullPath: '/create/after-shot/'
       preLoaderRoute: typeof CreateAfterShotIndexRouteImport
-      parentRoute: typeof CreateAfterShotRoute
-    }
-    '/create/after-shot/crop': {
-      id: '/create/after-shot/crop'
-      path: '/crop'
-      fullPath: '/create/after-shot/crop'
-      preLoaderRoute: typeof CreateAfterShotCropRouteImport
       parentRoute: typeof CreateAfterShotRoute
     }
     '/create/after-shot/edit': {
@@ -646,14 +647,12 @@ declare module '@tanstack/react-router' {
 }
 
 interface CreateAfterShotRouteChildren {
-  CreateAfterShotCropRoute: typeof CreateAfterShotCropRoute
   CreateAfterShotEditRoute: typeof CreateAfterShotEditRoute
   CreateAfterShotFiltersRoute: typeof CreateAfterShotFiltersRoute
   CreateAfterShotIndexRoute: typeof CreateAfterShotIndexRoute
 }
 
 const CreateAfterShotRouteChildren: CreateAfterShotRouteChildren = {
-  CreateAfterShotCropRoute: CreateAfterShotCropRoute,
   CreateAfterShotEditRoute: CreateAfterShotEditRoute,
   CreateAfterShotFiltersRoute: CreateAfterShotFiltersRoute,
   CreateAfterShotIndexRoute: CreateAfterShotIndexRoute,
@@ -702,6 +701,7 @@ const rootRouteChildren: RootRouteChildren = {
   WhereDidYouHearAboutUsRoute: WhereDidYouHearAboutUsRoute,
   AuthCallbackRoute: AuthCallbackRoute,
   ProfileUsernameRoute: ProfileUsernameRoute,
+  ApiBumpaConnectRoute: ApiBumpaConnectRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
