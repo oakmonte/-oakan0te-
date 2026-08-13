@@ -385,7 +385,23 @@ function Index() {
   };
 
   return (
-    <div className="min-h-screen bg-brand-bg text-brand-text font-sans">
+    <div className="min-h-screen bg-brand-bg text-brand-text font-sans overflow-x-clip">
+      <style>{`
+        @keyframes oak-marquee {
+          from { transform: translateX(0); }
+          to { transform: translateX(-50%); }
+        }
+        .animate-oak-marquee { animation: oak-marquee 34s linear infinite; }
+        .animate-oak-marquee:hover { animation-play-state: paused; }
+        @keyframes oak-float {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-10px); }
+        }
+        .animate-oak-float { animation: oak-float 6s ease-in-out infinite; }
+        @media (prefers-reduced-motion: reduce) {
+          .animate-oak-marquee, .animate-oak-float { animation: none !important; }
+        }
+      `}</style>
       <nav
         className={`fixed top-0 left-0 right-0 w-full z-50 px-4 sm:px-6 lg:px-8 flex justify-between items-center gap-3 border-b border-brand-text/5 bg-brand-bg/80 backdrop-blur-md transition-[padding] duration-300 ${scrolled ? "py-3 md:py-4" : "py-4 md:py-6"}`}
       >
@@ -608,9 +624,12 @@ function Index() {
         </a>
       </div>
 
-      <section id="top" className="pt-4 md:pt-6 pb-16 md:pb-20 px-4 sm:px-6 lg:px-8">
+      <section id="top" className="relative pt-4 md:pt-6 pb-16 md:pb-20 px-4 sm:px-6 lg:px-8">
         <div className="w-full max-w-7xl mx-auto grid grid-cols-12 gap-4 sm:gap-8 items-end">
-          <div className="col-span-12 lg:col-span-7">
+          <div className="relative col-span-12 lg:col-span-7">
+            <span className="block text-[10px] sm:text-xs uppercase tracking-[0.35em] text-brand-accent font-bold mb-3 sm:mb-4">
+              We are the
+            </span>
             <h1
               className="leading-[0.85] tracking-tight mb-6 md:mb-8 text-[3.25rem] sm:text-6xl md:text-8xl lg:text-[150px] uppercase break-words"
               style={{ fontFamily: "Anton, Impact, sans-serif", fontWeight: 400 }}
@@ -618,6 +637,32 @@ function Index() {
               SHARE <br />
               <span className="text-brand-accent">YOUR</span> STYLE.
             </h1>
+
+            {/* Overlapping accent cards — visible from lg up, tucked around the headline */}
+            <AccentCard
+              bg="#1c1c1a"
+              label="Sellers"
+              sub="Vetted boutiques"
+              rotate={-7}
+              className="hidden lg:block absolute top-[2%] -right-6 xl:right-2 animate-oak-float"
+            />
+            <AccentCard
+              bg="#5a4632"
+              label="Creators"
+              sub="Style is currency"
+              rotate={6}
+              className="hidden lg:block absolute top-[46%] right-[10%] xl:right-[16%] animate-oak-float"
+              style={{ animationDelay: "1.2s" }}
+            />
+            <AccentCard
+              bg="#7a6a54"
+              label="Curators"
+              sub="Find your fit"
+              rotate={-4}
+              className="hidden xl:block absolute -bottom-4 -right-10 animate-oak-float"
+              style={{ animationDelay: "2.4s" }}
+            />
+
             <p
               ref={typeRef}
               className="max-w-full sm:max-w-md text-base sm:text-lg text-brand-text/70 font-light leading-relaxed mb-6 min-h-[6rem] sm:min-h-[5rem]"
@@ -677,14 +722,19 @@ function Index() {
         <div className="w-full max-w-7xl mx-auto">
           <div className="flex flex-col mb-10 sm:mb-16 md:mb-20">
             <span className="text-[10px] uppercase tracking-[0.3em] text-brand-accent font-bold mb-4">
-              {"\n"}
+              We are an
             </span>
-            <h2 className="text-3xl sm:text-4xl font-serif">{"\n"}</h2>
+            <h2
+              className="leading-[0.88] tracking-tight uppercase text-4xl sm:text-6xl md:text-7xl lg:text-8xl"
+              style={{ fontFamily: "Anton, Impact, sans-serif", fontWeight: 400 }}
+            >
+              Ecosystem
+            </h2>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-px bg-brand-text/10">
             <div id="buyers" className="bg-brand-bg lg:pr-12 py-8">
               <span className="text-sm font-serif italic mb-6 block">&nbsp;Sellers</span>
-              <h3 className="text-xl font-semibold mb-4">{"\n"}</h3>
+              <h3 className="text-xl font-semibold mb-4">Open a store, not a hustle.</h3>
               <ul className="text-sm text-brand-text/60 leading-relaxed list-disc list-inside space-y-1">
                 <li>Logistics Handled</li>
                 <li>Wider Customer Base</li>
@@ -693,7 +743,7 @@ function Index() {
             </div>
             <div id="sellers" className="bg-brand-bg lg:px-12 py-8">
               <span className="text-sm font-serif italic mb-6 block">Creators</span>
-              <h3 className="text-xl font-semibold mb-4">{"\n"}</h3>
+              <h3 className="text-xl font-semibold mb-4">Turn your feed into income.</h3>
               <ul className="text-sm text-brand-text/60 leading-relaxed list-disc list-inside space-y-1">
                 <li>Make money from your content</li>
                 <li>Intuitive creator and collaboration tools</li>
@@ -702,7 +752,7 @@ function Index() {
             </div>
             <div id="creators" className="bg-brand-bg lg:pl-12 py-8">
               <span className="text-sm font-serif italic mb-6 block">Curators</span>
-              <h3 className="text-xl font-semibold mb-4">{"\n"}</h3>
+              <h3 className="text-xl font-semibold mb-4">Shop the trust triangle.</h3>
               <ul className="text-sm text-brand-text/60 leading-relaxed list-disc list-inside space-y-1">
                 <li>Get pieces that actually fit</li>
                 <li>Track your deliveries</li>
@@ -712,7 +762,7 @@ function Index() {
           </div>
           <div className="mt-12 md:mt-16 pt-10 border-t border-brand-text/10">
             <p className="text-[10px] uppercase tracking-[0.25em] text-brand-accent font-bold mb-5 text-center">
-              {"\n"}
+              No matter which side you're on
             </p>
             <ul className="flex flex-col sm:flex-row justify-center items-start sm:items-center gap-4 sm:gap-12 text-sm text-brand-text/60 leading-relaxed list-disc list-inside sm:list-outside">
               <li>Easy transfer of content from other platforms</li>
@@ -721,6 +771,25 @@ function Index() {
             </ul>
           </div>
         </div>
+      </section>
+
+      <section className="py-14 sm:py-20 md:py-24 border-y border-brand-text/5 overflow-hidden">
+        <div className="px-4 sm:px-6 lg:px-8 w-full max-w-7xl mx-auto mb-8 md:mb-10">
+          <h2
+            className="leading-[0.85] tracking-tight uppercase text-4xl sm:text-6xl md:text-7xl"
+            style={{ fontFamily: "Anton, Impact, sans-serif", fontWeight: 400 }}
+          >
+            The Studio
+          </h2>
+        </div>
+        <Marquee>
+          <StripCard bg="#1c1c1a" title="Escrow Checkout" desc="Payment holds until you're satisfied." />
+          <StripCard bg="#7a6a54" title="Vetted Sellers" desc="Every boutique verified before going live." />
+          <StripCard bg="#3f4b3b" title="Creator Payouts" desc="Get paid for every sale your content drives." />
+          <StripCard bg="#5a4632" title="Style Matching" desc="Recommendations tuned to your fit." />
+          <StripCard bg="#2b3a4a" title="Oakmonte Studio" desc="Content tools built for creators." />
+          <StripCard bg="#1c1c1a" title="Zero Setup Cost" desc="Open a store with nothing upfront." />
+        </Marquee>
       </section>
 
       <section id="product" className="py-16 sm:py-24 md:py-32 px-4 sm:px-6 lg:px-8">
@@ -897,6 +966,88 @@ function FeatureBox({
       className={`border border-brand-text/15 bg-brand-bg transition-all duration-500 ease-out hover:border-brand-text hover:-translate-y-[2px] ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"} ${className}`}
     >
       {children}
+    </div>
+  );
+}
+
+function AccentCard({
+  bg,
+  label,
+  sub,
+  rotate = 0,
+  className = "",
+  style = {},
+}: {
+  bg: string;
+  label: string;
+  sub?: string;
+  rotate?: number;
+  className?: string;
+  style?: React.CSSProperties;
+}) {
+  return (
+    <div
+      className={`select-none w-36 xl:w-44 aspect-[4/5] p-4 xl:p-5 shadow-[0_20px_45px_-15px_rgba(0,0,0,0.5)] transition-transform duration-500 ease-out hover:!rotate-0 hover:scale-105 ${className}`}
+      style={{ backgroundColor: bg, transform: `rotate(${rotate}deg)`, ...style }}
+    >
+      <div className="flex items-center justify-between mb-3">
+        <img src={logoO} alt="" className="h-4 w-auto opacity-90" />
+        <span className="text-[7px] uppercase tracking-[0.2em] text-white/60 font-semibold">
+          Oakmonte
+        </span>
+      </div>
+      <div className="h-full flex flex-col justify-end pb-1">
+        <p
+          className="text-white text-lg xl:text-xl uppercase leading-[1.05] tracking-tight"
+          style={{ fontFamily: "Anton, Impact, sans-serif", fontWeight: 400 }}
+        >
+          {label}
+        </p>
+        {sub && <p className="text-white/60 text-[10px] mt-1 leading-snug">{sub}</p>}
+      </div>
+    </div>
+  );
+}
+
+function StripCard({ bg, title, desc }: { bg: string; title: string; desc: string }) {
+  return (
+    <div
+      className="shrink-0 w-64 sm:w-72 aspect-[4/5] p-6 sm:p-7 flex flex-col justify-between shadow-[0_16px_36px_-18px_rgba(0,0,0,0.4)] transition-transform duration-300 ease-out hover:-translate-y-1"
+      style={{ backgroundColor: bg }}
+    >
+      <div className="flex items-center justify-between">
+        <img src={logoO} alt="" className="h-5 w-auto opacity-90" />
+        <span className="text-[8px] uppercase tracking-[0.25em] text-white/60 font-semibold">
+          Oakmonte
+        </span>
+      </div>
+      <div>
+        <p
+          className="text-white text-2xl sm:text-3xl uppercase leading-[0.95] tracking-tight mb-3"
+          style={{ fontFamily: "Anton, Impact, sans-serif", fontWeight: 400 }}
+        >
+          {title}
+        </p>
+        <p className="text-white/70 text-sm leading-relaxed">{desc}</p>
+      </div>
+    </div>
+  );
+}
+
+function Marquee({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      className="relative w-full overflow-hidden"
+      style={{
+        maskImage: "linear-gradient(90deg, transparent, black 6%, black 94%, transparent)",
+        WebkitMaskImage:
+          "linear-gradient(90deg, transparent, black 6%, black 94%, transparent)",
+      }}
+    >
+      <div className="flex gap-4 sm:gap-6 w-max px-4 sm:px-6 lg:px-8 animate-oak-marquee">
+        {children}
+        {children}
+      </div>
     </div>
   );
 }
