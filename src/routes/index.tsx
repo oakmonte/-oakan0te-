@@ -297,7 +297,7 @@ function Index() {
               <>
                 <img src={logoO} alt="Oakmonte" className="h-8 sm:h-10 md:h-11 w-auto inline-block align-baseline mt-1 transition-all duration-300" />
                 <span className="font-sans font-normal text-2xl sm:text-3xl tracking-tight leading-none">akmonte</span>
-                <span className="inline ml-2 sm:ml-3 text-[8px] sm:text-[9px] uppercase tracking-[0.25em] text-brand-accent font-sans font-normal leading-none pb-1">Style First</span>
+                <span className="inline ml-2 sm:ml-3 text-[8px] sm:text-[9px] uppercase tracking-[0.25em] text-brand-accent font-sans font-normal leading-none pb-1">Created to Create.</span>
               </>
             )}
           </a>
