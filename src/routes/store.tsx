@@ -1,132 +1,84 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
-import { Store, CheckCircle2, Loader2 } from "lucide-react";
-import { supabase } from "@/lib/integrations/my-supabase/client";
-import { useSession } from "@/hooks/use-session";
+import { createFileRoute, Outlet, useNavigate, useRouterState, Link } from "@tanstack/react-router";
+import { useState } from "react";
+import {
+  Menu,
+  ChevronLeft,
+  X,
+  Home,
+  ShoppingBag,
+  Package,
+  Users,
+  TrendingUp,
+  Tag,
+  Image as ImageIcon,
+  Wallet,
+} from "lucide-react";
 
 export const Route = createFileRoute("/store")({
-  component: OakmonteStore,
+  component: StoreLayout,
 });
 
-function OakmonteStore() {
-  const { user, loading: sessionLoading } = useSession();
-  const [storeId, setStoreId] = useState<string | null>(null);
-  const [storeLoading, setStoreLoading] = useState(true);
+const NAV_ITEMS = [
+  { label: "Home", to: "/store", icon: Home },
+  { label: "Orders", to: "/store/orders", icon: ShoppingBag },
+  { label: "Products", to: "/store/products", icon: Package },
+  { label: "Customers", to: "/store/customers", icon: Users },
+  { label: "Growth", to: "/store/growth", icon: TrendingUp },
+  { label: "Discounts", to: "/store/discounts", icon: Tag },
+  { label: "Content", to: "/store/content", icon: ImageIcon },
+  { label: "Finance", to: "/store/finance", icon: Wallet },
+];
 
-  const [apiKey, setApiKey] = useState("");
-  const [status, setStatus] = useState<"idle" | "loading" | "connected" | "error">("idle");
-  const [errorMsg, setErrorMsg] = useState("");
-
-  useEffect(() => {
-    if (!user) {
-      setStoreLoading(false);
-      return;
-    }
-    let cancelled = false;
-    supabase
-      .from("stores")
-      .select("id, bumpa_connected_at")
-      .eq("owner_id", user.id)
-      .single()
-      .then(({ data, error }) => {
-        if (cancelled) return;
-        if (!error && data) {
-          setStoreId(data.id);
-          if (data.bumpa_connected_at) setStatus("connected");
-        }
-        setStoreLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [user]);
-
-  async function handleConnect() {
-    if (!apiKey.trim() || !storeId) return;
-    setStatus("loading");
-    setErrorMsg("");
-
-    try {
-      const res = await fetch("/api/bumpa/connect", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ storeId, apiKey: apiKey.trim() }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setStatus("error");
-        setErrorMsg(data.error ?? "Something went wrong");
-        return;
-      }
-
-      setStatus("connected");
-    } catch {
-      setStatus("error");
-      setErrorMsg("Network error — try again");
-    }
-  }
-
-  if (sessionLoading || storeLoading) {
-    return <div className="min-h-screen bg-white px-4 py-8 text-sm text-gray-400">Loading…</div>;
-  }
-
-  if (!user) {
-    return <div className="min-h-screen bg-white px-4 py-8 text-sm text-gray-400">Sign in to manage your store.</div>;
-  }
-
-  if (!storeId) {
-    return <div className="min-h-screen bg-white px-4 py-8 text-sm text-gray-400">No store found for this account.</div>;
-  }
+function StoreLayout() {
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const navigate = useNavigate();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isHome = pathname === "/store";
 
   return (
-    <div className="min-h-screen bg-white px-4 py-8">
-      <h1 className="text-xl font-semibold mb-6">Oakmonte Store</h1>
+    <div className="min-h-screen bg-white">
+      <div className="sticky top-0 z-30 bg-white border-b border-gray-100 px-4 h-14 flex items-center justify-between">
+        <button
+          onClick={() => (isHome ? setDrawerOpen(true) : navigate({ to: "/store" }))}
+          className="p-1 -ml-1"
+          aria-label={isHome ? "Open menu" : "Back to store home"}
+        >
+          {isHome ? <Menu size={22} /> : <ChevronLeft size={24} />}
+        </button>
+        <span className="font-semibold text-sm">Oakmonte Store</span>
+        <div className="w-7" />
+      </div>
 
-      <div className="border border-gray-200 rounded-2xl p-5 max-w-md">
-        <div className="flex items-center gap-2 mb-3">
-          <Store size={18} />
-          <h2 className="font-medium">Connect your store</h2>
-        </div>
+      <Outlet />
 
-        {status === "connected" ? (
-          <div className="flex items-center gap-2 text-green-600 text-sm">
-            <CheckCircle2 size={16} />
-            Bumpa connected
+      {drawerOpen && (
+        <div className="fixed inset-0 z-40">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setDrawerOpen(false)} />
+          <div className="absolute left-0 top-0 bottom-0 w-72 bg-black text-white px-2 py-4 flex flex-col">
+            <div className="flex items-center justify-between px-3 mb-4">
+              <span className="text-sm text-gray-400">Menu</span>
+              <button onClick={() => setDrawerOpen(false)} className="p-1">
+                <X size={20} />
+              </button>
+            </div>
+            <nav className="flex flex-col gap-1">
+              {NAV_ITEMS.map(({ label, to, icon: Icon }) => (
+                <Link
+                  key={to}
+                  to={to}
+                  onClick={() => setDrawerOpen(false)}
+                  className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-white/10 text-sm"
+                  activeProps={{ className: "bg-white/10" }}
+                  activeOptions={{ exact: true }}
+                >
+                  <Icon size={18} />
+                  {label}
+                </Link>
+              ))}
+            </nav>
           </div>
-        ) : (
-          <>
-            <p className="text-sm text-gray-500 mb-3">
-              Paste your Bumpa API key to import your existing catalog.
-            </p>
-            <input
-              type="text"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder="Bumpa API key"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mb-2"
-            />
-            {status === "error" && (
-              <p className="text-sm text-red-500 mb-2">{errorMsg}</p>
-            )}
-            <button
-              onClick={handleConnect}
-              disabled={status === "loading" || !apiKey.trim()}
-              className="w-full bg-black text-white rounded-lg py-2 text-sm font-medium disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              {status === "loading" && <Loader2 size={14} className="animate-spin" />}
-              {status === "loading" ? "Connecting..." : "Connect Bumpa"}
-            </button>
-          </>
-        )}
-      </div>
-
-      <div className="mt-8 text-sm text-gray-400 space-y-1">
-        <p>Inventory — coming soon</p>
-        <p>Orders — coming soon</p>
-        <p>Analytics — coming soon</p>
-      </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -37,6 +37,14 @@ import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as CreateIndexRouteImport } from './routes/create.index'
 import { Route as CreateAfterShotRouteImport } from './routes/create.after-shot'
 import { Route as ProfileUsernameRouteImport } from './routes/profile.$username'
+import { Route as StoreIndexRouteImport } from './routes/store.index'
+import { Route as StoreContentRouteImport } from './routes/store.content'
+import { Route as StoreCustomersRouteImport } from './routes/store.customers'
+import { Route as StoreDiscountsRouteImport } from './routes/store.discounts'
+import { Route as StoreFinanceRouteImport } from './routes/store.finance'
+import { Route as StoreGrowthRouteImport } from './routes/store.growth'
+import { Route as StoreOrdersRouteImport } from './routes/store.orders'
+import { Route as StoreProductsRouteImport } from './routes/store.products'
 import { Route as ApiBumpaConnectRouteImport } from './routes/api.bumpa.connect'
 import { Route as ApiShipbubblePingRouteImport } from './routes/api.shipbubble.ping'
 import { Route as ApiShopifyCallbackRouteImport } from './routes/api.shopify.callback'
@@ -185,6 +193,46 @@ const ProfileUsernameRoute = ProfileUsernameRouteImport.update({
   path: '/profile/$username',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StoreIndexRoute = StoreIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => StoreRoute,
+} as any)
+const StoreContentRoute = StoreContentRouteImport.update({
+  id: '/content',
+  path: '/content',
+  getParentRoute: () => StoreRoute,
+} as any)
+const StoreCustomersRoute = StoreCustomersRouteImport.update({
+  id: '/customers',
+  path: '/customers',
+  getParentRoute: () => StoreRoute,
+} as any)
+const StoreDiscountsRoute = StoreDiscountsRouteImport.update({
+  id: '/discounts',
+  path: '/discounts',
+  getParentRoute: () => StoreRoute,
+} as any)
+const StoreFinanceRoute = StoreFinanceRouteImport.update({
+  id: '/finance',
+  path: '/finance',
+  getParentRoute: () => StoreRoute,
+} as any)
+const StoreGrowthRoute = StoreGrowthRouteImport.update({
+  id: '/growth',
+  path: '/growth',
+  getParentRoute: () => StoreRoute,
+} as any)
+const StoreOrdersRoute = StoreOrdersRouteImport.update({
+  id: '/orders',
+  path: '/orders',
+  getParentRoute: () => StoreRoute,
+} as any)
+const StoreProductsRoute = StoreProductsRouteImport.update({
+  id: '/products',
+  path: '/products',
+  getParentRoute: () => StoreRoute,
+} as any)
 const ApiBumpaConnectRoute = ApiBumpaConnectRouteImport.update({
   id: '/api/bumpa/connect',
   path: '/api/bumpa/connect',
@@ -242,14 +290,22 @@ export interface FileRoutesByFullPath {
   '/seller-type': typeof SellerTypeRoute
   '/set-up-store': typeof SetUpStoreRoute
   '/settings': typeof SettingsRoute
-  '/store': typeof StoreRoute
+  '/store': typeof StoreRouteWithChildren
   '/studio': typeof StudioRoute
   '/terms': typeof TermsRoute
   '/where-did-you-hear-about-us': typeof WhereDidYouHearAboutUsRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/create/after-shot': typeof CreateAfterShotRouteWithChildren
   '/profile/$username': typeof ProfileUsernameRoute
+  '/store/content': typeof StoreContentRoute
+  '/store/customers': typeof StoreCustomersRoute
+  '/store/discounts': typeof StoreDiscountsRoute
+  '/store/finance': typeof StoreFinanceRoute
+  '/store/growth': typeof StoreGrowthRoute
+  '/store/orders': typeof StoreOrdersRoute
+  '/store/products': typeof StoreProductsRoute
   '/create/': typeof CreateIndexRoute
+  '/store/': typeof StoreIndexRoute
   '/api/bumpa/connect': typeof ApiBumpaConnectRoute
   '/api/shipbubble/ping': typeof ApiShipbubblePingRoute
   '/api/shopify/callback': typeof ApiShopifyCallbackRoute
@@ -278,13 +334,20 @@ export interface FileRoutesByTo {
   '/seller-type': typeof SellerTypeRoute
   '/set-up-store': typeof SetUpStoreRoute
   '/settings': typeof SettingsRoute
-  '/store': typeof StoreRoute
   '/studio': typeof StudioRoute
   '/terms': typeof TermsRoute
   '/where-did-you-hear-about-us': typeof WhereDidYouHearAboutUsRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/profile/$username': typeof ProfileUsernameRoute
+  '/store/content': typeof StoreContentRoute
+  '/store/customers': typeof StoreCustomersRoute
+  '/store/discounts': typeof StoreDiscountsRoute
+  '/store/finance': typeof StoreFinanceRoute
+  '/store/growth': typeof StoreGrowthRoute
+  '/store/orders': typeof StoreOrdersRoute
+  '/store/products': typeof StoreProductsRoute
   '/create': typeof CreateIndexRoute
+  '/store': typeof StoreIndexRoute
   '/api/bumpa/connect': typeof ApiBumpaConnectRoute
   '/api/shipbubble/ping': typeof ApiShipbubblePingRoute
   '/api/shopify/callback': typeof ApiShopifyCallbackRoute
@@ -315,14 +378,22 @@ export interface FileRoutesById {
   '/seller-type': typeof SellerTypeRoute
   '/set-up-store': typeof SetUpStoreRoute
   '/settings': typeof SettingsRoute
-  '/store': typeof StoreRoute
+  '/store': typeof StoreRouteWithChildren
   '/studio': typeof StudioRoute
   '/terms': typeof TermsRoute
   '/where-did-you-hear-about-us': typeof WhereDidYouHearAboutUsRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/create/after-shot': typeof CreateAfterShotRouteWithChildren
   '/profile/$username': typeof ProfileUsernameRoute
+  '/store/content': typeof StoreContentRoute
+  '/store/customers': typeof StoreCustomersRoute
+  '/store/discounts': typeof StoreDiscountsRoute
+  '/store/finance': typeof StoreFinanceRoute
+  '/store/growth': typeof StoreGrowthRoute
+  '/store/orders': typeof StoreOrdersRoute
+  '/store/products': typeof StoreProductsRoute
   '/create/': typeof CreateIndexRoute
+  '/store/': typeof StoreIndexRoute
   '/api/bumpa/connect': typeof ApiBumpaConnectRoute
   '/api/shipbubble/ping': typeof ApiShipbubblePingRoute
   '/api/shopify/callback': typeof ApiShopifyCallbackRoute
@@ -361,7 +432,15 @@ export interface FileRouteTypes {
     | '/auth/callback'
     | '/create/after-shot'
     | '/profile/$username'
+    | '/store/content'
+    | '/store/customers'
+    | '/store/discounts'
+    | '/store/finance'
+    | '/store/growth'
+    | '/store/orders'
+    | '/store/products'
     | '/create/'
+    | '/store/'
     | '/api/bumpa/connect'
     | '/api/shipbubble/ping'
     | '/api/shopify/callback'
@@ -390,13 +469,20 @@ export interface FileRouteTypes {
     | '/seller-type'
     | '/set-up-store'
     | '/settings'
-    | '/store'
     | '/studio'
     | '/terms'
     | '/where-did-you-hear-about-us'
     | '/auth/callback'
     | '/profile/$username'
+    | '/store/content'
+    | '/store/customers'
+    | '/store/discounts'
+    | '/store/finance'
+    | '/store/growth'
+    | '/store/orders'
+    | '/store/products'
     | '/create'
+    | '/store'
     | '/api/bumpa/connect'
     | '/api/shipbubble/ping'
     | '/api/shopify/callback'
@@ -433,7 +519,15 @@ export interface FileRouteTypes {
     | '/auth/callback'
     | '/create/after-shot'
     | '/profile/$username'
+    | '/store/content'
+    | '/store/customers'
+    | '/store/discounts'
+    | '/store/finance'
+    | '/store/growth'
+    | '/store/orders'
+    | '/store/products'
     | '/create/'
+    | '/store/'
     | '/api/bumpa/connect'
     | '/api/shipbubble/ping'
     | '/api/shopify/callback'
@@ -464,7 +558,7 @@ export interface RootRouteChildren {
   SellerTypeRoute: typeof SellerTypeRoute
   SetUpStoreRoute: typeof SetUpStoreRoute
   SettingsRoute: typeof SettingsRoute
-  StoreRoute: typeof StoreRoute
+  StoreRoute: typeof StoreRouteWithChildren
   StudioRoute: typeof StudioRoute
   TermsRoute: typeof TermsRoute
   WhereDidYouHearAboutUsRoute: typeof WhereDidYouHearAboutUsRoute
@@ -674,6 +768,62 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProfileUsernameRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/store/': {
+      id: '/store/'
+      path: '/'
+      fullPath: '/store/'
+      preLoaderRoute: typeof StoreIndexRouteImport
+      parentRoute: typeof StoreRoute
+    }
+    '/store/content': {
+      id: '/store/content'
+      path: '/content'
+      fullPath: '/store/content'
+      preLoaderRoute: typeof StoreContentRouteImport
+      parentRoute: typeof StoreRoute
+    }
+    '/store/customers': {
+      id: '/store/customers'
+      path: '/customers'
+      fullPath: '/store/customers'
+      preLoaderRoute: typeof StoreCustomersRouteImport
+      parentRoute: typeof StoreRoute
+    }
+    '/store/discounts': {
+      id: '/store/discounts'
+      path: '/discounts'
+      fullPath: '/store/discounts'
+      preLoaderRoute: typeof StoreDiscountsRouteImport
+      parentRoute: typeof StoreRoute
+    }
+    '/store/finance': {
+      id: '/store/finance'
+      path: '/finance'
+      fullPath: '/store/finance'
+      preLoaderRoute: typeof StoreFinanceRouteImport
+      parentRoute: typeof StoreRoute
+    }
+    '/store/growth': {
+      id: '/store/growth'
+      path: '/growth'
+      fullPath: '/store/growth'
+      preLoaderRoute: typeof StoreGrowthRouteImport
+      parentRoute: typeof StoreRoute
+    }
+    '/store/orders': {
+      id: '/store/orders'
+      path: '/orders'
+      fullPath: '/store/orders'
+      preLoaderRoute: typeof StoreOrdersRouteImport
+      parentRoute: typeof StoreRoute
+    }
+    '/store/products': {
+      id: '/store/products'
+      path: '/products'
+      fullPath: '/store/products'
+      preLoaderRoute: typeof StoreProductsRouteImport
+      parentRoute: typeof StoreRoute
+    }
     '/api/bumpa/connect': {
       id: '/api/bumpa/connect'
       path: '/api/bumpa/connect'
@@ -755,6 +905,30 @@ const CreateRouteChildren: CreateRouteChildren = {
 const CreateRouteWithChildren =
   CreateRoute._addFileChildren(CreateRouteChildren)
 
+interface StoreRouteChildren {
+  StoreContentRoute: typeof StoreContentRoute
+  StoreCustomersRoute: typeof StoreCustomersRoute
+  StoreDiscountsRoute: typeof StoreDiscountsRoute
+  StoreFinanceRoute: typeof StoreFinanceRoute
+  StoreGrowthRoute: typeof StoreGrowthRoute
+  StoreOrdersRoute: typeof StoreOrdersRoute
+  StoreProductsRoute: typeof StoreProductsRoute
+  StoreIndexRoute: typeof StoreIndexRoute
+}
+
+const StoreRouteChildren: StoreRouteChildren = {
+  StoreContentRoute: StoreContentRoute,
+  StoreCustomersRoute: StoreCustomersRoute,
+  StoreDiscountsRoute: StoreDiscountsRoute,
+  StoreFinanceRoute: StoreFinanceRoute,
+  StoreGrowthRoute: StoreGrowthRoute,
+  StoreOrdersRoute: StoreOrdersRoute,
+  StoreProductsRoute: StoreProductsRoute,
+  StoreIndexRoute: StoreIndexRoute,
+}
+
+const StoreRouteWithChildren = StoreRoute._addFileChildren(StoreRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ActivityRoute: ActivityRoute,
@@ -776,7 +950,7 @@ const rootRouteChildren: RootRouteChildren = {
   SellerTypeRoute: SellerTypeRoute,
   SetUpStoreRoute: SetUpStoreRoute,
   SettingsRoute: SettingsRoute,
-  StoreRoute: StoreRoute,
+  StoreRoute: StoreRouteWithChildren,
   StudioRoute: StudioRoute,
   TermsRoute: TermsRoute,
   WhereDidYouHearAboutUsRoute: WhereDidYouHearAboutUsRoute,
