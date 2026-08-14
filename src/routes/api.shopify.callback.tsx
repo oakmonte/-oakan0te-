@@ -1,7 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+import { supabaseAdmin as supabase } from "@/lib/integrations/my-supabase/client.server";
 
 async function hmacHex(secret: string, message: string) {
   const key = await crypto.subtle.importKey(
