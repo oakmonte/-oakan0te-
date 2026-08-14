@@ -577,6 +577,12 @@ function Index() {
               </p>
             </FeatureBox>
 
+            <FeatureBox className="p-6 sm:p-8 md:p-10">
+              <h3 className="text-3xl sm:text-4xl md:text-5xl font-serif mb-6 font-bold">Seller &amp; Creator Accountability</h3>
+              <p className="text-sm text-brand-text/70 leading-relaxed">
+                Unlike other marketplaces, every product is easily traced back to the creator or seller who promoted it. Fair credit, transparent payout.
+              </p>
+            </FeatureBox>
           </div>
 
           {/* Full width closing feature */}
