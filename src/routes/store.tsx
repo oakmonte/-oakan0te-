@@ -1,8 +1,7 @@
-import { createFileRoute, Outlet, useNavigate, useRouterState, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, Outlet, Link } from "@tanstack/react-router";
+import { useState, useEffect } from "react";
 import {
   Menu,
-  ChevronLeft,
   X,
   Home,
   ShoppingBag,
@@ -12,7 +11,10 @@ import {
   Tag,
   Image as ImageIcon,
   Wallet,
+  ArrowLeftCircle,
 } from "lucide-react";
+import { supabase } from "@/lib/integrations/my-supabase/client";
+import { useSession } from "@/hooks/use-session";
 
 export const Route = createFileRoute("/store")({
   component: StoreLayout,
@@ -31,19 +33,30 @@ const NAV_ITEMS = [
 
 function StoreLayout() {
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const navigate = useNavigate();
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const isHome = pathname === "/store";
+  const { user } = useSession();
+  const [username, setUsername] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    supabase
+      .from("profiles")
+      .select("personal_username")
+      .eq("id", user.id)
+      .single()
+      .then(({ data }) => {
+        if (!cancelled && data) setUsername(data.personal_username);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   return (
     <div className="min-h-screen bg-white">
       <div className="sticky top-0 z-30 bg-white border-b border-gray-100 px-4 h-14 flex items-center justify-between">
-        <button
-          onClick={() => (isHome ? setDrawerOpen(true) : navigate({ to: "/store" }))}
-          className="p-1 -ml-1"
-          aria-label={isHome ? "Open menu" : "Back to store home"}
-        >
-          {isHome ? <Menu size={22} /> : <ChevronLeft size={24} />}
+        <button onClick={() => setDrawerOpen(true)} className="p-1 -ml-1" aria-label="Open menu">
+          <Menu size={22} />
         </button>
         <span className="font-semibold text-sm">Oakmonte Store</span>
         <div className="w-7" />
@@ -61,6 +74,7 @@ function StoreLayout() {
                 <X size={20} />
               </button>
             </div>
+
             <nav className="flex flex-col gap-1">
               {NAV_ITEMS.map(({ label, to, icon: Icon }) => (
                 <Link
@@ -76,6 +90,20 @@ function StoreLayout() {
                 </Link>
               ))}
             </nav>
+
+            <div className="mt-auto pt-3 border-t border-white/10">
+              {username && (
+                <Link
+                  to="/profile/$username"
+                  params={{ username }}
+                  onClick={() => setDrawerOpen(false)}
+                  className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-white/10 text-sm text-gray-300"
+                >
+                  <ArrowLeftCircle size={18} />
+                  Return to profile
+                </Link>
+              )}
+            </div>
           </div>
         </div>
       )}

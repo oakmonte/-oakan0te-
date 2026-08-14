@@ -45,6 +45,7 @@ import { Route as StoreFinanceRouteImport } from './routes/store.finance'
 import { Route as StoreGrowthRouteImport } from './routes/store.growth'
 import { Route as StoreOrdersRouteImport } from './routes/store.orders'
 import { Route as StoreProductsRouteImport } from './routes/store.products'
+import { Route as StoreThemeRouteImport } from './routes/store.theme'
 import { Route as ApiBumpaConnectRouteImport } from './routes/api.bumpa.connect'
 import { Route as ApiShipbubblePingRouteImport } from './routes/api.shipbubble.ping'
 import { Route as ApiShopifyCallbackRouteImport } from './routes/api.shopify.callback'
@@ -233,6 +234,11 @@ const StoreProductsRoute = StoreProductsRouteImport.update({
   path: '/products',
   getParentRoute: () => StoreRoute,
 } as any)
+const StoreThemeRoute = StoreThemeRouteImport.update({
+  id: '/theme',
+  path: '/theme',
+  getParentRoute: () => StoreRoute,
+} as any)
 const ApiBumpaConnectRoute = ApiBumpaConnectRouteImport.update({
   id: '/api/bumpa/connect',
   path: '/api/bumpa/connect',
@@ -304,6 +310,7 @@ export interface FileRoutesByFullPath {
   '/store/growth': typeof StoreGrowthRoute
   '/store/orders': typeof StoreOrdersRoute
   '/store/products': typeof StoreProductsRoute
+  '/store/theme': typeof StoreThemeRoute
   '/create/': typeof CreateIndexRoute
   '/store/': typeof StoreIndexRoute
   '/api/bumpa/connect': typeof ApiBumpaConnectRoute
@@ -346,6 +353,7 @@ export interface FileRoutesByTo {
   '/store/growth': typeof StoreGrowthRoute
   '/store/orders': typeof StoreOrdersRoute
   '/store/products': typeof StoreProductsRoute
+  '/store/theme': typeof StoreThemeRoute
   '/create': typeof CreateIndexRoute
   '/store': typeof StoreIndexRoute
   '/api/bumpa/connect': typeof ApiBumpaConnectRoute
@@ -392,6 +400,7 @@ export interface FileRoutesById {
   '/store/growth': typeof StoreGrowthRoute
   '/store/orders': typeof StoreOrdersRoute
   '/store/products': typeof StoreProductsRoute
+  '/store/theme': typeof StoreThemeRoute
   '/create/': typeof CreateIndexRoute
   '/store/': typeof StoreIndexRoute
   '/api/bumpa/connect': typeof ApiBumpaConnectRoute
@@ -439,6 +448,7 @@ export interface FileRouteTypes {
     | '/store/growth'
     | '/store/orders'
     | '/store/products'
+    | '/store/theme'
     | '/create/'
     | '/store/'
     | '/api/bumpa/connect'
@@ -481,6 +491,7 @@ export interface FileRouteTypes {
     | '/store/growth'
     | '/store/orders'
     | '/store/products'
+    | '/store/theme'
     | '/create'
     | '/store'
     | '/api/bumpa/connect'
@@ -526,6 +537,7 @@ export interface FileRouteTypes {
     | '/store/growth'
     | '/store/orders'
     | '/store/products'
+    | '/store/theme'
     | '/create/'
     | '/store/'
     | '/api/bumpa/connect'
@@ -824,6 +836,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StoreProductsRouteImport
       parentRoute: typeof StoreRoute
     }
+    '/store/theme': {
+      id: '/store/theme'
+      path: '/theme'
+      fullPath: '/store/theme'
+      preLoaderRoute: typeof StoreThemeRouteImport
+      parentRoute: typeof StoreRoute
+    }
     '/api/bumpa/connect': {
       id: '/api/bumpa/connect'
       path: '/api/bumpa/connect'
@@ -913,6 +932,7 @@ interface StoreRouteChildren {
   StoreGrowthRoute: typeof StoreGrowthRoute
   StoreOrdersRoute: typeof StoreOrdersRoute
   StoreProductsRoute: typeof StoreProductsRoute
+  StoreThemeRoute: typeof StoreThemeRoute
   StoreIndexRoute: typeof StoreIndexRoute
 }
 
@@ -924,6 +944,7 @@ const StoreRouteChildren: StoreRouteChildren = {
   StoreGrowthRoute: StoreGrowthRoute,
   StoreOrdersRoute: StoreOrdersRoute,
   StoreProductsRoute: StoreProductsRoute,
+  StoreThemeRoute: StoreThemeRoute,
   StoreIndexRoute: StoreIndexRoute,
 }
 
