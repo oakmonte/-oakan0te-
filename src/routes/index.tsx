@@ -577,13 +577,35 @@ function Index() {
               </p>
             </FeatureBox>
 
-            <FeatureBox className="p-6 sm:p-8 md:p-10">
-              <h3 className="text-3xl sm:text-4xl md:text-5xl font-serif mb-6 font-bold">Seller &amp; Creator Accountability</h3>
-              <p className="text-sm text-brand-text/70 leading-relaxed">
-                Unlike other marketplaces, every product is easily traced back to the creator or seller who promoted it. Fair credit, transparent payout.
-              </p>
-            </FeatureBox>
+          </div>
 
+          {/* Full width closing feature */}
+          <FeatureBox className="mt-6 md:mt-8 p-6 sm:p-10 md:p-14">
+            <h3 className="text-3xl sm:text-4xl md:text-5xl font-serif mb-6 font-bold">
+              Oakmonte Studio
+            </h3>
+            <p className="text-sm sm:text-base text-brand-text/70 leading-relaxed max-w-[70ch]">
+              A dedicated dashboard for creators to produce and upload premium content, manage and flex collaborations, maintain customer relationships, and earn money.
+            </p>
+          </FeatureBox>
+
+          {/* Duplicated CTAs */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 w-full max-w-2xl mx-auto mt-10 md:mt-16">
+            <Link to="/set-up-store" className="text-center px-4 sm:px-6 py-4 md:py-5 bg-brand-text text-brand-bg text-[11px] uppercase tracking-widest font-bold hover:bg-brand-accent transition-colors duration-300">Set up a Store</Link>
+            <Link to="/become-a-creator" className="text-center px-4 sm:px-6 py-4 md:py-5 bg-brand-text text-brand-bg text-[11px] uppercase tracking-widest font-bold hover:bg-brand-accent transition-colors duration-300">Become a Creator</Link>
+            <Link to="/become-a-curator" className="text-center px-4 sm:px-6 py-4 md:py-5 bg-brand-bg border text-[11px] uppercase tracking-widest font-bold border-brand-accent text-brand-accent sm:border-brand-text sm:text-brand-text hover:border-brand-accent hover:text-brand-accent transition-colors duration-300">DEFINE YOUR WARDROBE</Link>
+          </div>
+        </div>
+      </section>
+
+      <footer className="w-full py-10 md:py-12 px-4 sm:px-6 lg:px-8 border-t border-brand-text/5 flex flex-col md:flex-row gap-6 justify-between items-start md:items-center text-[10px] uppercase tracking-widest opacity-50">
+        <div>© 2026 Oakmonte Collective</div>
+        <div className="flex flex-wrap gap-4 sm:gap-8">
+          <a href="/terms">TERMS&nbsp;OF SERVICE&nbsp;</a>
+          <a href="/privacy">PRIVACY POLICY</a>
+          <a href="#">Manifesto</a>
+        </div>
+      </footer>
     </div>
   );
 }
