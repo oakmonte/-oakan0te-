@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Plus, ShoppingBag, Store, Upload, ChevronDown } from "lucide-react";
 
-export const Route = createFileRoute("/store/product/newcomer")({
+export const Route = createFileRoute("/store/products/newcomer")({
   component: ProductsNewcomer,
 });
 
@@ -12,7 +12,9 @@ function ProductsNewcomer() {
   return (
     <div className="px-4 py-6">
       <h1 className="text-lg font-semibold mb-1">Add your first product</h1>
-      <p className="text-sm text-gray-500 mb-6">Create one manually, or bring in what you already have.</p>
+      <p className="text-sm text-gray-500 mb-6">
+        Create one manually, or bring in what you already have.
+      </p>
 
       <div className="flex flex-col gap-3">
         <button className="flex items-center gap-3 border border-gray-200 rounded-2xl p-4 text-left">
@@ -44,7 +46,9 @@ function ProductsNewcomer() {
           </button>
           {openDropdown === "shopify" && (
             <div className="border-t border-gray-100 flex flex-col">
-              <button className="text-left px-4 py-3 text-sm hover:bg-gray-50">Connect Shopify directly</button>
+              <button className="text-left px-4 py-3 text-sm hover:bg-gray-50">
+                Connect Shopify directly
+              </button>
               <button className="text-left px-4 py-3 text-sm hover:bg-gray-50 border-t border-gray-100">
                 Upload Shopify CSV
               </button>
@@ -71,7 +75,9 @@ function ProductsNewcomer() {
           </button>
           {openDropdown === "bumpa" && (
             <div className="border-t border-gray-100 flex flex-col">
-              <button className="text-left px-4 py-3 text-sm hover:bg-gray-50">Connect Bumpa directly</button>
+              <button className="text-left px-4 py-3 text-sm hover:bg-gray-50">
+                Connect Bumpa directly
+              </button>
               <button className="text-left px-4 py-3 text-sm hover:bg-gray-50 border-t border-gray-100">
                 Upload Bumpa CSV
               </button>
