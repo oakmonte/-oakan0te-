@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useCallback } from "react";
-import { Search, Plus, X } from "lucide-react";
+import { Search, Plus, X, Link } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 
 export const Route = createFileRoute("/store/products")({
@@ -113,9 +113,9 @@ function StoreProducts() {
             className="bg-transparent text-sm flex-1 outline-none"
           />
         </div>
-        <button onClick={() => setSheetOpen(true)} className="p-2 rounded-lg bg-black text-white">
-          <Plus size={16} />
-        </button>
+        <Link to="/store/products/new" className="p-2 rounded-lg bg-black text-white">
+            <Plus size={16} />
+        </Link>
       </div>
 
       <div className="flex items-center gap-4 mb-6 border-b border-gray-100 text-sm">
