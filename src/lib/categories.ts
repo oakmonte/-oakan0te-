@@ -5,7 +5,7 @@ export type CategoryNode = {
   children?: CategoryNode[];
 };
 
-export const ROOT_CATEGORY: CategoryNode = {
+const APPAREL_ACCESSORIES: CategoryNode = {
   id: "apparel-accessories",
   name: "Apparel & Accessories",
   children: [
@@ -160,4 +160,23 @@ export const ROOT_CATEGORY: CategoryNode = {
       ],
     },
   ],
+};
+
+const BEAUTY_PERSONAL_CARE: CategoryNode = {
+  id: "beauty-personal-care",
+  name: "Beauty & Personal Care",
+  children: [
+    { id: "make-up", name: "Make Up" },
+    { id: "skincare", name: "Skincare" },
+    { id: "haircare", name: "Haircare" },
+    { id: "fragrance", name: "Fragrance" },
+    { id: "bath-and-body", name: "Bath and Body" },
+    { id: "essential-oils", name: "Essential Oils" },
+  ],
+};
+
+export const ROOT_CATEGORY: CategoryNode = {
+  id: "root",
+  name: "All categories",
+  children: [APPAREL_ACCESSORIES, BEAUTY_PERSONAL_CARE],
 };

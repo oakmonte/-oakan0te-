@@ -45,7 +45,7 @@ export function CategoryPicker({
           <ChevronLeft size={22} />
         </button>
         <span className="font-semibold text-[15px] flex-1 text-center -ml-6">
-          {current.name}
+          {stack.length === 1 ? "All categories" : current.name}
         </span>
       </div>
 
@@ -62,14 +62,16 @@ export function CategoryPicker({
       </div>
 
       <div className="flex-1 overflow-y-auto pb-8">
-        <button
-          onClick={() => onSelect([...stack.slice(1), current])}
-          className="w-full flex items-center gap-3 px-4 py-3 border-b border-gray-50"
-          type="button"
-        >
-          <span className="w-4 h-4 rounded-full border border-gray-300 shrink-0" />
-          <span className="text-[15px] font-semibold text-gray-900">{current.name}</span>
-        </button>
+        {stack.length > 1 && (
+          <button
+            onClick={() => onSelect([...stack.slice(1), current])}
+            className="w-full flex items-center gap-3 px-4 py-3 border-b border-gray-50"
+            type="button"
+          >
+            <span className="w-4 h-4 rounded-full border border-gray-300 shrink-0" />
+            <span className="text-[15px] font-semibold text-gray-900">{current.name}</span>
+          </button>
+        )}
 
         {visibleChildren.map((child) => {
           const hasChildren = !!child.children && child.children.length > 0;
