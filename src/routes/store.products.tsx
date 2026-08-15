@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useCallback } from "react";
 import { Search, Plus, X, Link } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
+import { useNavigate } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/store/products")({
   component: StoreProducts,
@@ -57,6 +58,7 @@ function slugify(title: string) {
 }
 
 function StoreProducts() {
+  const navigate = useNavigate();
   const [storeId, setStoreId] = useState<string | null>(null);
   const [storeLoading, setStoreLoading] = useState(true);
 
@@ -120,9 +122,12 @@ function StoreProducts() {
             className="bg-transparent text-sm flex-1 outline-none"
           />
         </div>
-        <Link to="/store/products/new" className="p-2 rounded-lg bg-black text-white">
+        <button
+          onClick={() => navigate("/store/products/new")}
+          className="p-2 rounded-lg bg-black text-white"
+        >
           <Plus size={16} />
-        </Link>
+        </button>
       </div>
 
       <div className="flex items-center gap-4 mb-6 border-b border-gray-100 text-sm">
