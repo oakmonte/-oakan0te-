@@ -110,7 +110,7 @@ function StoreProducts() {
     );
 
   return (
-    <div className="px-4 py-5">
+    <div className="px-4get it py-5">
       <div className="flex items-center gap-2 mb-4">
         <div className="flex-1 flex items-center gap-2 bg-gray-100 rounded-lg px-3 py-2">
           <Search size={16} className="text-gray-400" />
@@ -123,7 +123,7 @@ function StoreProducts() {
           />
         </div>
         <button
-          onClick={() => navigate("/store/products/new")}
+          onClick={() => navigate({ to: "/store/products/new" })}
           className="p-2 rounded-lg bg-black text-white"
         >
           <Plus size={16} />
