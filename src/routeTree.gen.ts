@@ -53,8 +53,8 @@ import { Route as ApiShopifyInstallRouteImport } from './routes/api.shopify.inst
 import { Route as CreateAfterShotIndexRouteImport } from './routes/create.after-shot.index'
 import { Route as CreateAfterShotEditRouteImport } from './routes/create.after-shot.edit'
 import { Route as CreateAfterShotFiltersRouteImport } from './routes/create.after-shot.filters'
-import { Route as StoreProductsNewRouteImport } from './routes/store.products.new'
-import { Route as StoreProductsNewcomerRouteImport } from './routes/store.products.newcomer'
+import { Route as StoreProductsNewRouteImport } from './routes/store.products_.new.tsx'
+import { Route as StoreProductsNewcomerRouteImport } from './routes/store.products_.newcomer.tsx'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
