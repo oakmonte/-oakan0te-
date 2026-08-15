@@ -15,7 +15,7 @@ function StoreTheme() {
 
   return (
     <div className="px-4 py-6">
-      <h1 className="text-lg font-semibold mb-1">Choose a store theme</h1>
+      <h1 className="text-lg font-semibold mb-1">Pick a store theme</h1>
       <p className="text-sm text-gray-500 mb-6">
         More themes are coming before launch — for now, pick this one.
       </p>

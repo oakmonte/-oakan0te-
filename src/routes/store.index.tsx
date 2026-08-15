@@ -7,8 +7,8 @@ export const Route = createFileRoute("/store/")({
 
 const CARDS = [
   {
-    label: "Choose a store theme",
-    description: "Pick the look your storefront shows to buyers.",
+    label: "Pick a store theme",
+    description: "Choose how your store should look like.",
     to: "/store/theme",
     icon: Palette,
   },
