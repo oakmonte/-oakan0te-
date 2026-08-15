@@ -9,10 +9,15 @@ export const Route = createFileRoute("/store/products")({
 
 const TABS = ["All", "Active", "Draft", "Archived"] as const;
 
-// TODO: this is a dev-only bypass so we can test without logging in every time.
-// Revert to session-scoped lookup (owner_id = user.id) before launch.
-async function getDevStoreId(): Promise<string | null> {
-  const { data } = await supabase.from("stores").select("id, bumpa_connected_at").limit(1).single();
+// TODO: dev-only. Revert to session-scoped lookup (owner_id = user.id) before launch.
+const DEV_STORE_ID = "4a492d4d-66bd-4d14-a5dc-e6d8d1723023";
+
+async function getDevStoreId(): Promise<{ id: string; bumpa_connected_at: string | null } | null> {
+  const { data } = await supabase
+    .from("stores")
+    .select("id, bumpa_connected_at")
+    .eq("id", DEV_STORE_ID)
+    .single();
   return data ?? null;
 }
 
