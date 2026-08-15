@@ -12,17 +12,24 @@ const TABS = ["All", "Active", "Draft", "Archived"] as const;
 // TODO: dev-only. Revert to session-scoped lookup (owner_id = user.id) before launch.
 const DEV_STORE_ID = "4a492d4d-66bd-4d14-a5dc-e6d8d1723023";
 
-async function getDevStoreId(): Promise<{ id: string } | null> {
-  const { data, error } = await supabase
+async function getDevStoreId(): Promise<{ id: string; bumpa_connected_at: string | null } | null> {
+  const { data: store, error: storeErr } = await supabase
     .from("stores")
     .select("id")
     .eq("id", DEV_STORE_ID)
     .single();
-  if (error) {
-    console.error("getDevStoreId failed:", error.message, error.code);
+  if (storeErr || !store) {
+    console.error("getDevStoreId failed:", storeErr?.message, storeErr?.code);
     return null;
   }
-  return data;
+
+  const { data: creds } = await supabase
+    .from("store_credentials")
+    .select("bumpa_connected_at")
+    .eq("store_id", store.id)
+    .maybeSingle();
+
+  return { id: store.id, bumpa_connected_at: creds?.bumpa_connected_at ?? null };
 }
 
 type ProductRow = {
@@ -114,7 +121,7 @@ function StoreProducts() {
           />
         </div>
         <Link to="/store/products/new" className="p-2 rounded-lg bg-black text-white">
-            <Plus size={16} />
+          <Plus size={16} />
         </Link>
       </div>
 

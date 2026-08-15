@@ -53,6 +53,7 @@ import { Route as ApiShopifyInstallRouteImport } from './routes/api.shopify.inst
 import { Route as CreateAfterShotIndexRouteImport } from './routes/create.after-shot.index'
 import { Route as CreateAfterShotEditRouteImport } from './routes/create.after-shot.edit'
 import { Route as CreateAfterShotFiltersRouteImport } from './routes/create.after-shot.filters'
+import { Route as StoreProductsNewRouteImport } from './routes/store.products.new'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -274,6 +275,11 @@ const CreateAfterShotFiltersRoute = CreateAfterShotFiltersRouteImport.update({
   path: '/filters',
   getParentRoute: () => CreateAfterShotRoute,
 } as any)
+const StoreProductsNewRoute = StoreProductsNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => StoreProductsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -309,7 +315,7 @@ export interface FileRoutesByFullPath {
   '/store/finance': typeof StoreFinanceRoute
   '/store/growth': typeof StoreGrowthRoute
   '/store/orders': typeof StoreOrdersRoute
-  '/store/products': typeof StoreProductsRoute
+  '/store/products': typeof StoreProductsRouteWithChildren
   '/store/theme': typeof StoreThemeRoute
   '/create/': typeof CreateIndexRoute
   '/store/': typeof StoreIndexRoute
@@ -319,6 +325,7 @@ export interface FileRoutesByFullPath {
   '/api/shopify/install': typeof ApiShopifyInstallRoute
   '/create/after-shot/edit': typeof CreateAfterShotEditRoute
   '/create/after-shot/filters': typeof CreateAfterShotFiltersRoute
+  '/store/products/new': typeof StoreProductsNewRoute
   '/create/after-shot/': typeof CreateAfterShotIndexRoute
 }
 export interface FileRoutesByTo {
@@ -352,7 +359,7 @@ export interface FileRoutesByTo {
   '/store/finance': typeof StoreFinanceRoute
   '/store/growth': typeof StoreGrowthRoute
   '/store/orders': typeof StoreOrdersRoute
-  '/store/products': typeof StoreProductsRoute
+  '/store/products': typeof StoreProductsRouteWithChildren
   '/store/theme': typeof StoreThemeRoute
   '/create': typeof CreateIndexRoute
   '/store': typeof StoreIndexRoute
@@ -362,6 +369,7 @@ export interface FileRoutesByTo {
   '/api/shopify/install': typeof ApiShopifyInstallRoute
   '/create/after-shot/edit': typeof CreateAfterShotEditRoute
   '/create/after-shot/filters': typeof CreateAfterShotFiltersRoute
+  '/store/products/new': typeof StoreProductsNewRoute
   '/create/after-shot': typeof CreateAfterShotIndexRoute
 }
 export interface FileRoutesById {
@@ -399,7 +407,7 @@ export interface FileRoutesById {
   '/store/finance': typeof StoreFinanceRoute
   '/store/growth': typeof StoreGrowthRoute
   '/store/orders': typeof StoreOrdersRoute
-  '/store/products': typeof StoreProductsRoute
+  '/store/products': typeof StoreProductsRouteWithChildren
   '/store/theme': typeof StoreThemeRoute
   '/create/': typeof CreateIndexRoute
   '/store/': typeof StoreIndexRoute
@@ -409,6 +417,7 @@ export interface FileRoutesById {
   '/api/shopify/install': typeof ApiShopifyInstallRoute
   '/create/after-shot/edit': typeof CreateAfterShotEditRoute
   '/create/after-shot/filters': typeof CreateAfterShotFiltersRoute
+  '/store/products/new': typeof StoreProductsNewRoute
   '/create/after-shot/': typeof CreateAfterShotIndexRoute
 }
 export interface FileRouteTypes {
@@ -457,6 +466,7 @@ export interface FileRouteTypes {
     | '/api/shopify/install'
     | '/create/after-shot/edit'
     | '/create/after-shot/filters'
+    | '/store/products/new'
     | '/create/after-shot/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -500,6 +510,7 @@ export interface FileRouteTypes {
     | '/api/shopify/install'
     | '/create/after-shot/edit'
     | '/create/after-shot/filters'
+    | '/store/products/new'
     | '/create/after-shot'
   id:
     | '__root__'
@@ -546,6 +557,7 @@ export interface FileRouteTypes {
     | '/api/shopify/install'
     | '/create/after-shot/edit'
     | '/create/after-shot/filters'
+    | '/store/products/new'
     | '/create/after-shot/'
   fileRoutesById: FileRoutesById
 }
@@ -892,6 +904,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CreateAfterShotFiltersRouteImport
       parentRoute: typeof CreateAfterShotRoute
     }
+    '/store/products/new': {
+      id: '/store/products/new'
+      path: '/new'
+      fullPath: '/store/products/new'
+      preLoaderRoute: typeof StoreProductsNewRouteImport
+      parentRoute: typeof StoreProductsRoute
+    }
   }
 }
 
@@ -924,6 +943,18 @@ const CreateRouteChildren: CreateRouteChildren = {
 const CreateRouteWithChildren =
   CreateRoute._addFileChildren(CreateRouteChildren)
 
+interface StoreProductsRouteChildren {
+  StoreProductsNewRoute: typeof StoreProductsNewRoute
+}
+
+const StoreProductsRouteChildren: StoreProductsRouteChildren = {
+  StoreProductsNewRoute: StoreProductsNewRoute,
+}
+
+const StoreProductsRouteWithChildren = StoreProductsRoute._addFileChildren(
+  StoreProductsRouteChildren,
+)
+
 interface StoreRouteChildren {
   StoreContentRoute: typeof StoreContentRoute
   StoreCustomersRoute: typeof StoreCustomersRoute
@@ -931,7 +962,7 @@ interface StoreRouteChildren {
   StoreFinanceRoute: typeof StoreFinanceRoute
   StoreGrowthRoute: typeof StoreGrowthRoute
   StoreOrdersRoute: typeof StoreOrdersRoute
-  StoreProductsRoute: typeof StoreProductsRoute
+  StoreProductsRoute: typeof StoreProductsRouteWithChildren
   StoreThemeRoute: typeof StoreThemeRoute
   StoreIndexRoute: typeof StoreIndexRoute
 }
@@ -943,7 +974,7 @@ const StoreRouteChildren: StoreRouteChildren = {
   StoreFinanceRoute: StoreFinanceRoute,
   StoreGrowthRoute: StoreGrowthRoute,
   StoreOrdersRoute: StoreOrdersRoute,
-  StoreProductsRoute: StoreProductsRoute,
+  StoreProductsRoute: StoreProductsRouteWithChildren,
   StoreThemeRoute: StoreThemeRoute,
   StoreIndexRoute: StoreIndexRoute,
 }
