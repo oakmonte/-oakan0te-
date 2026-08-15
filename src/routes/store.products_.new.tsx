@@ -1,22 +1,18 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import {
-  ChevronLeft,
-  ChevronRight,
-  ChevronDown,
-  Plus,
-  ImageIcon,
-  Truck,
-  Package,
-  Store as StoreIcon,
-  Tag,
-  Hash,
-  Search,
-  Minus,
-} from "lucide-react";
+import { ChevronLeft, Truck, Package, Store as StoreIcon, Tag, Hash, Search } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
+import { CategoryNode } from "@/lib/categories";
+import { StubRow, ExpandRow, TextField } from "@/components/product-form/ui";
+import { StatusSheet } from "@/components/product-form/StatusSheet";
+import { MediaSection } from "@/components/product-form/MediaSection";
+import { DetailsSection } from "@/components/product-form/DetailsSection";
+import { PublishingSection } from "@/components/product-form/PublishingSection";
+import { VariantsSection } from "@/components/product-form/VariantsSection";
+import { InventorySection } from "@/components/product-form/InventorySection";
+import { CategoryPicker } from "@/components/product-form/CategoryPicker";
 
-export const Route = createFileRoute("/store/products/new")({
+export const Route = createFileRoute("/store/products_/new")({
   component: NewProduct,
 });
 
@@ -35,38 +31,33 @@ function slugify(title: string) {
   );
 }
 
-type StatusSheet = "status" | null;
 type ExpandedSection = "description" | "price" | "options" | "type" | "vendor" | null;
 
 function NewProduct() {
   const navigate = useNavigate();
 
-  // Basic info
   const [status, setStatus] = useState<"draft" | "active">("active");
   const [mainImageUrl, setMainImageUrl] = useState("");
   const [title, setTitle] = useState("");
   const [descriptionShort, setDescriptionShort] = useState("");
+  const [categoryPath, setCategoryPath] = useState<CategoryNode[]>([]);
 
-  // Pricing
   const [price, setPrice] = useState("");
   const [compareAtPrice, setCompareAtPrice] = useState("");
   const [costPrice, setCostPrice] = useState("");
 
-  // Variants (single default variant for now — matches current DB shape)
   const [option1Name, setOption1Name] = useState("");
   const [option1Value, setOption1Value] = useState("");
   const [option2Name, setOption2Name] = useState("");
   const [option2Value, setOption2Value] = useState("");
-
-  // Inventory
-  const [stockQty, setStockQty] = useState(0);
-
-  // Org-ish fields
-  const [productType, setProductType] = useState("");
-  const [brand, setBrand] = useState("");
   const [material, setMaterial] = useState("");
 
-  const [statusSheet, setStatusSheet] = useState<StatusSheet>(null);
+  const [stockQty, setStockQty] = useState(0);
+  const [productType, setProductType] = useState("");
+  const [brand, setBrand] = useState("");
+
+  const [statusSheetOpen, setStatusSheetOpen] = useState(false);
+  const [categoryPickerOpen, setCategoryPickerOpen] = useState(false);
   const [expanded, setExpanded] = useState<ExpandedSection>(null);
 
   const [saving, setSaving] = useState(false);
@@ -97,7 +88,7 @@ function NewProduct() {
         handle: slugify(title),
         title: title.trim(),
         description_short: descriptionShort.trim() || null,
-        product_type: productType.trim() || null,
+        product_type: productType.trim() || categoryPath.at(-1)?.name || null,
         brand: brand.trim() || null,
         status,
         source_platform: "manual",
@@ -136,8 +127,7 @@ function NewProduct() {
   }
 
   return (
-    <div className="min-h-screen bg-white pb-10">
-      {/* Header */}
+    <div className="min-h-dvh bg-white pb-10">
       <div className="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
         <button
           onClick={() => navigate({ to: "/store/products" })}
@@ -157,9 +147,8 @@ function NewProduct() {
 
       {error && <p className="px-4 pt-3 text-sm text-red-500">{error}</p>}
 
-      {/* Product status */}
       <button
-        onClick={() => setStatusSheet("status")}
+        onClick={() => setStatusSheetOpen(true)}
         className="w-full flex items-center justify-between px-4 py-4 border-b-8 border-gray-50"
       >
         <span className="text-[15px] font-semibold text-gray-900">Product status</span>
@@ -171,185 +160,47 @@ function NewProduct() {
           >
             {status === "active" ? "Active" : "Draft"}
           </span>
-          <ChevronRight size={16} className="text-gray-300" />
         </span>
       </button>
 
-      {/* Media */}
-      <div className="px-4 py-5 border-b-8 border-gray-50">
-        <p className="text-[15px] font-semibold text-gray-900 mb-4">Media</p>
-        <button
-          onClick={() => toggle("price" === expanded ? null : "options")}
-          className="w-full flex flex-col items-center gap-2"
-          type="button"
-        >
-          <div
-            className="w-24 h-24 rounded-2xl bg-gray-100 flex items-center justify-center overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {mainImageUrl ? (
-              <img src={mainImageUrl} alt="" className="w-full h-full object-cover" />
-            ) : (
-              <ImageIcon size={28} className="text-gray-300" />
-            )}
-          </div>
-          <span className="text-sm font-medium text-gray-900">Add images</span>
-        </button>
-        <input
-          value={mainImageUrl}
-          onChange={(e) => setMainImageUrl(e.target.value)}
-          placeholder="Paste an image URL for now"
-          className="mt-3 w-full text-sm text-center text-gray-500 outline-none placeholder:text-gray-400"
-        />
-      </div>
+      <MediaSection mainImageUrl={mainImageUrl} onChange={setMainImageUrl} />
 
-      {/* Title + description + price */}
-      <div className="px-4 py-4 border-b-8 border-gray-50">
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Product title"
-          className="w-full text-2xl text-gray-900 placeholder:text-gray-300 outline-none pb-3 border-b border-gray-100"
-        />
+      <DetailsSection
+        title={title}
+        setTitle={setTitle}
+        descriptionShort={descriptionShort}
+        setDescriptionShort={setDescriptionShort}
+        categoryPath={categoryPath}
+        onOpenCategoryPicker={() => setCategoryPickerOpen(true)}
+        price={price}
+        setPrice={setPrice}
+        compareAtPrice={compareAtPrice}
+        setCompareAtPrice={setCompareAtPrice}
+        costPrice={costPrice}
+        setCostPrice={setCostPrice}
+        expanded={expanded === "description" || expanded === "price" ? expanded : null}
+        setExpanded={setExpanded}
+      />
 
-        <button
-          onClick={() => toggle("description")}
-          className="w-full flex items-center justify-between py-4 border-b border-gray-100"
-        >
-          <span className="flex items-center gap-3 text-[15px] text-gray-900">
-            <Plus size={18} className="text-gray-400" />
-            {descriptionShort ? "Description" : "Add description"}
-          </span>
-          <ChevronRight size={16} className="text-gray-300" />
-        </button>
-        {expanded === "description" && (
-          <textarea
-            value={descriptionShort}
-            onChange={(e) => setDescriptionShort(e.target.value)}
-            placeholder="Short description"
-            rows={3}
-            autoFocus
-            className="w-full text-sm outline-none py-3 text-gray-700 placeholder:text-gray-400"
-          />
-        )}
+      <PublishingSection />
 
-        <button
-          onClick={() => toggle("price")}
-          className="w-full flex items-center justify-between py-4"
-        >
-          <span className="text-[15px] text-gray-500">
-            {compareAtPrice && (
-              <span className="line-through mr-2 text-gray-300">
-                ₦{Number(compareAtPrice).toLocaleString()}
-              </span>
-            )}
-            <span className="text-2xl text-gray-900 font-medium">
-              ₦{price ? Number(price).toLocaleString() : "0.00"}
-            </span>
-          </span>
-          <ChevronRight size={16} className="text-gray-300" />
-        </button>
-        {expanded === "price" && (
-          <div className="grid grid-cols-3 gap-3 pb-3">
-            <PriceField label="Price *" value={price} onChange={setPrice} />
-            <PriceField label="Compare-at" value={compareAtPrice} onChange={setCompareAtPrice} />
-            <PriceField label="Cost" value={costPrice} onChange={setCostPrice} />
-          </div>
-        )}
-      </div>
+      <VariantsSection
+        expanded={expanded === "options"}
+        onToggle={() => toggle("options")}
+        option1Name={option1Name}
+        setOption1Name={setOption1Name}
+        option1Value={option1Value}
+        setOption1Value={setOption1Value}
+        option2Name={option2Name}
+        setOption2Name={setOption2Name}
+        option2Value={option2Value}
+        setOption2Value={setOption2Value}
+        material={material}
+        setMaterial={setMaterial}
+      />
 
-      {/* Publishing (static for now) */}
-      <div className="px-4 py-4 border-b-8 border-gray-50">
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-[15px] font-semibold text-gray-900">Publishing</span>
-          <span className="text-sm text-blue-600 font-medium">Edit</span>
-        </div>
-        <p className="text-xs text-gray-400 mb-3">2 channels</p>
-        <div className="flex items-center gap-2 text-sm text-gray-700 mb-2">
-          <StoreIcon size={16} className="text-gray-400" />
-          Online Store, Point of Sale
-        </div>
-        <div className="flex items-center gap-2 text-sm text-gray-400">
-          <Tag size={16} className="text-gray-400" />
-          No catalogs
-        </div>
-      </div>
+      <InventorySection stockQty={stockQty} setStockQty={setStockQty} />
 
-      {/* Variants */}
-      <div className="border-b-8 border-gray-50">
-        <p className="px-4 pt-4 text-[15px] font-semibold text-gray-900">Variants</p>
-        <button
-          onClick={() => toggle("options")}
-          className="w-full flex items-center justify-between px-4 py-4"
-        >
-          <span className="flex items-center gap-3 text-[15px] text-gray-500">
-            <Plus size={18} className="text-gray-400" />
-            Add options (color, size, etc.)
-          </span>
-          <ChevronRight size={16} className="text-gray-300" />
-        </button>
-        {expanded === "options" && (
-          <div className="px-4 pb-4 grid grid-cols-2 gap-3">
-            <TextField
-              label="Option 1 name"
-              value={option1Name}
-              onChange={setOption1Name}
-              placeholder="Size"
-            />
-            <TextField
-              label="Option 1 value"
-              value={option1Value}
-              onChange={setOption1Value}
-              placeholder="M"
-            />
-            <TextField
-              label="Option 2 name"
-              value={option2Name}
-              onChange={setOption2Name}
-              placeholder="Color"
-            />
-            <TextField
-              label="Option 2 value"
-              value={option2Value}
-              onChange={setOption2Value}
-              placeholder="Black"
-            />
-            <div className="col-span-2">
-              <TextField label="Material" value={material} onChange={setMaterial} />
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Inventory */}
-      <div className="px-4 py-4 border-b-8 border-gray-50">
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-[15px] font-semibold text-gray-900">Inventory</span>
-          <span className="text-sm text-blue-600 font-medium">Edit</span>
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="text-[15px] text-gray-900">Available</span>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setStockQty((q) => Math.max(0, q - 1))}
-              className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600"
-            >
-              <Minus size={14} />
-            </button>
-            <span className="w-10 text-center text-[15px] font-medium bg-gray-100 rounded-full py-1">
-              {stockQty}
-            </span>
-            <button
-              onClick={() => setStockQty((q) => q + 1)}
-              className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600"
-            >
-              <Plus size={14} />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Remaining rows */}
       <StubRow icon={<Truck size={18} />} label="Shipping" />
       <ExpandRow
         icon={<Package size={18} />}
@@ -378,138 +229,26 @@ function NewProduct() {
       <StubRow icon={<Hash size={18} />} label="Tags" />
       <StubRow icon={<Search size={18} />} label="SEO" isLast />
 
-      {/* Status bottom sheet */}
-      {statusSheet === "status" && (
-        <div className="fixed inset-0 z-50 flex items-end">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setStatusSheet(null)} />
-          <div className="relative w-full bg-white rounded-t-2xl p-4 pb-8">
-            <p className="text-sm font-medium text-gray-500 mb-3">Product status</p>
-            {(["active", "draft"] as const).map((s) => (
-              <button
-                key={s}
-                onClick={() => {
-                  setStatus(s);
-                  setStatusSheet(null);
-                }}
-                className="w-full flex items-center justify-between py-3 border-b border-gray-50 last:border-0"
-              >
-                <span className="text-[15px] capitalize text-gray-900">{s}</span>
-                {status === s && <span className="text-black">✓</span>}
-              </button>
-            ))}
-          </div>
-        </div>
+      {statusSheetOpen && (
+        <StatusSheet
+          status={status}
+          onSelect={(s) => {
+            setStatus(s);
+            setStatusSheetOpen(false);
+          }}
+          onClose={() => setStatusSheetOpen(false)}
+        />
+      )}
+
+      {categoryPickerOpen && (
+        <CategoryPicker
+          onSelect={(path) => {
+            setCategoryPath(path);
+            setCategoryPickerOpen(false);
+          }}
+          onClose={() => setCategoryPickerOpen(false)}
+        />
       )}
     </div>
-  );
-}
-
-function StubRow({
-  icon,
-  label,
-  isLast,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  isLast?: boolean;
-}) {
-  return (
-    <button
-      className={`w-full flex items-center justify-between px-4 py-4 ${
-        isLast ? "" : "border-b-8 border-gray-50"
-      }`}
-      type="button"
-    >
-      <span className="flex items-center gap-3 text-[15px] text-gray-900">
-        <span className="text-gray-400">{icon}</span>
-        {label}
-      </span>
-      <ChevronRight size={16} className="text-gray-300" />
-    </button>
-  );
-}
-
-function ExpandRow({
-  icon,
-  label,
-  value,
-  expanded,
-  onToggle,
-  children,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value?: string;
-  expanded: boolean;
-  onToggle: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="border-b-8 border-gray-50">
-      <button
-        onClick={onToggle}
-        className="w-full flex items-center justify-between px-4 py-4"
-        type="button"
-      >
-        <span className="flex flex-col items-start">
-          <span className="flex items-center gap-3 text-[15px] text-gray-900">
-            <span className="text-gray-400">{icon}</span>
-            {label}
-          </span>
-          {value && <span className="text-xs text-gray-400 ml-7">{value}</span>}
-        </span>
-        <ChevronDown
-          size={16}
-          className={`text-gray-300 transition-transform ${expanded ? "rotate-180" : ""}`}
-        />
-      </button>
-      {expanded && <div className="px-4 pb-4">{children}</div>}
-    </div>
-  );
-}
-
-function PriceField({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  return (
-    <label className="flex flex-col gap-1">
-      <span className="text-xs text-gray-400">{label}</span>
-      <input
-        type="number"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="text-sm border border-gray-200 rounded-lg px-2 py-2 outline-none"
-      />
-    </label>
-  );
-}
-
-function TextField({
-  label,
-  value,
-  onChange,
-  placeholder,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-}) {
-  return (
-    <label className="flex flex-col gap-1">
-      <span className="text-xs text-gray-400">{label}</span>
-      <input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="text-sm border border-gray-200 rounded-lg px-2 py-2 outline-none"
-      />
-    </label>
   );
 }

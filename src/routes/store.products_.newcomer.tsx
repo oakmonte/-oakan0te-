@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Plus, ShoppingBag, Store, Upload, ChevronDown } from "lucide-react";
 
-export const Route = createFileRoute("/store/products/newcomer")({
+export const Route = createFileRoute("/store/products_/newcomer")({
   component: ProductsNewcomer,
 });
 
