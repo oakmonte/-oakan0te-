@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useCallback } from "react";
-import { Store, CheckCircle2, Loader2, Search, Plus, X } from "lucide-react";
+import { Search, Plus, X } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 
 export const Route = createFileRoute("/store/products")({
@@ -12,10 +12,10 @@ const TABS = ["All", "Active", "Draft", "Archived"] as const;
 // TODO: dev-only. Revert to session-scoped lookup (owner_id = user.id) before launch.
 const DEV_STORE_ID = "4a492d4d-66bd-4d14-a5dc-e6d8d1723023";
 
-async function getDevStoreId(): Promise<{ id: string; bumpa_connected_at: string | null } | null> {
+async function getDevStoreId(): Promise<{ id: string } | null> {
   const { data, error } = await supabase
     .from("stores")
-    .select("id, bumpa_connected_at")
+    .select("id")
     .eq("id", DEV_STORE_ID)
     .single();
   if (error) {
@@ -51,14 +51,7 @@ function slugify(title: string) {
 
 function StoreProducts() {
   const [storeId, setStoreId] = useState<string | null>(null);
-  const [bumpaConnected, setBumpaConnected] = useState(false);
   const [storeLoading, setStoreLoading] = useState(true);
-
-  const [apiKey, setApiKey] = useState("");
-  const [connectStatus, setConnectStatus] = useState<"idle" | "loading" | "connected" | "error">(
-    "idle",
-  );
-  const [errorMsg, setErrorMsg] = useState("");
 
   const [activeTab, setActiveTab] = useState<(typeof TABS)[number]>("All");
   const [search, setSearch] = useState("");
@@ -70,13 +63,7 @@ function StoreProducts() {
     let cancelled = false;
     getDevStoreId().then((store) => {
       if (cancelled) return;
-      if (store) {
-        setStoreId(store.id);
-        if (store.bumpa_connected_at) {
-          setBumpaConnected(true);
-          setConnectStatus("connected");
-        }
-      }
+      if (store) setStoreId(store.id);
       setStoreLoading(false);
     });
     return () => {
@@ -105,30 +92,6 @@ function StoreProducts() {
     fetchProducts();
   }, [fetchProducts]);
 
-  async function handleConnect() {
-    if (!apiKey.trim() || !storeId) return;
-    setConnectStatus("loading");
-    setErrorMsg("");
-    try {
-      const res = await fetch("/api/bumpa/connect", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ storeId, apiKey: apiKey.trim() }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setConnectStatus("error");
-        setErrorMsg(data.error ?? "Something went wrong");
-        return;
-      }
-      setConnectStatus("connected");
-      setBumpaConnected(true);
-    } catch {
-      setConnectStatus("error");
-      setErrorMsg("Network error — try again");
-    }
-  }
-
   if (storeLoading) return <div className="px-4 py-8 text-sm text-gray-400">Loading…</div>;
   if (!storeId)
     return (
@@ -139,38 +102,6 @@ function StoreProducts() {
 
   return (
     <div className="px-4 py-5">
-      {!bumpaConnected ? (
-        <div className="border border-gray-200 rounded-2xl p-5 mb-6">
-          <div className="flex items-center gap-2 mb-3">
-            <Store size={18} />
-            <h2 className="font-medium">Import your catalog</h2>
-          </div>
-          <p className="text-sm text-gray-500 mb-3">
-            Paste your Bumpa API key to import your existing catalog.
-          </p>
-          <input
-            type="text"
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            placeholder="Bumpa API key"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mb-2"
-          />
-          {connectStatus === "error" && <p className="text-sm text-red-500 mb-2">{errorMsg}</p>}
-          <button
-            onClick={handleConnect}
-            disabled={connectStatus === "loading" || !apiKey.trim()}
-            className="w-full bg-black text-white rounded-lg py-2 text-sm font-medium disabled:opacity-50 flex items-center justify-center gap-2"
-          >
-            {connectStatus === "loading" && <Loader2 size={14} className="animate-spin" />}
-            {connectStatus === "loading" ? "Connecting..." : "Connect Bumpa"}
-          </button>
-        </div>
-      ) : (
-        <div className="flex items-center gap-2 text-green-600 text-sm mb-6">
-          <CheckCircle2 size={16} /> Bumpa connected
-        </div>
-      )}
-
       <div className="flex items-center gap-2 mb-4">
         <div className="flex-1 flex items-center gap-2 bg-gray-100 rounded-lg px-3 py-2">
           <Search size={16} className="text-gray-400" />
