@@ -13,12 +13,16 @@ const TABS = ["All", "Active", "Draft", "Archived"] as const;
 const DEV_STORE_ID = "4a492d4d-66bd-4d14-a5dc-e6d8d1723023";
 
 async function getDevStoreId(): Promise<{ id: string; bumpa_connected_at: string | null } | null> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("stores")
     .select("id, bumpa_connected_at")
     .eq("id", DEV_STORE_ID)
     .single();
-  return data ?? null;
+  if (error) {
+    console.error("getDevStoreId failed:", error.message, error.code);
+    return null;
+  }
+  return data;
 }
 
 type ProductRow = {
@@ -39,7 +43,9 @@ function slugify(title: string) {
       .toLowerCase()
       .trim()
       .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "") + "-" + Math.random().toString(36).slice(2, 7)
+      .replace(/(^-|-$)/g, "") +
+    "-" +
+    Math.random().toString(36).slice(2, 7)
   );
 }
 
@@ -49,7 +55,9 @@ function StoreProducts() {
   const [storeLoading, setStoreLoading] = useState(true);
 
   const [apiKey, setApiKey] = useState("");
-  const [connectStatus, setConnectStatus] = useState<"idle" | "loading" | "connected" | "error">("idle");
+  const [connectStatus, setConnectStatus] = useState<"idle" | "loading" | "connected" | "error">(
+    "idle",
+  );
   const [errorMsg, setErrorMsg] = useState("");
 
   const [activeTab, setActiveTab] = useState<(typeof TABS)[number]>("All");
@@ -122,7 +130,12 @@ function StoreProducts() {
   }
 
   if (storeLoading) return <div className="px-4 py-8 text-sm text-gray-400">Loading…</div>;
-  if (!storeId) return <div className="px-4 py-8 text-sm text-gray-400">No store found yet — create one in Supabase to test against.</div>;
+  if (!storeId)
+    return (
+      <div className="px-4 py-8 text-sm text-gray-400">
+        No store found yet — create one in Supabase to test against.
+      </div>
+    );
 
   return (
     <div className="px-4 py-5">
@@ -132,7 +145,9 @@ function StoreProducts() {
             <Store size={18} />
             <h2 className="font-medium">Import your catalog</h2>
           </div>
-          <p className="text-sm text-gray-500 mb-3">Paste your Bumpa API key to import your existing catalog.</p>
+          <p className="text-sm text-gray-500 mb-3">
+            Paste your Bumpa API key to import your existing catalog.
+          </p>
           <input
             type="text"
             value={apiKey}
@@ -193,7 +208,10 @@ function StoreProducts() {
           {products.map((p) => {
             const v = p.product_variants[0];
             return (
-              <div key={p.id} className="flex items-center gap-3 border border-gray-100 rounded-xl p-3">
+              <div
+                key={p.id}
+                className="flex items-center gap-3 border border-gray-100 rounded-xl p-3"
+              >
                 <img
                   src={v?.main_image_url ?? "https://placehold.co/64x64"}
                   className="w-14 h-14 rounded-lg object-cover bg-gray-100"
@@ -202,10 +220,13 @@ function StoreProducts() {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{p.title ?? "Untitled"}</p>
                   <p className="text-xs text-gray-500">
-                    {v?.price != null ? `₦${v.price.toLocaleString()}` : "No price"} · {v?.stock_qty ?? 0} in stock
+                    {v?.price != null ? `₦${v.price.toLocaleString()}` : "No price"} ·{" "}
+                    {v?.stock_qty ?? 0} in stock
                   </p>
                 </div>
-                <span className="text-[11px] px-2 py-1 rounded-full bg-gray-100 text-gray-500 capitalize">{p.status}</span>
+                <span className="text-[11px] px-2 py-1 rounded-full bg-gray-100 text-gray-500 capitalize">
+                  {p.status}
+                </span>
               </div>
             );
           })}
@@ -310,20 +331,79 @@ function CreateProductSheet({
         </div>
 
         <div className="flex flex-col gap-3">
-          <Field label="Title *"><input value={title} onChange={(e) => setTitle(e.target.value)} className="input" /></Field>
-          <Field label="Product type"><input value={productType} onChange={(e) => setProductType(e.target.value)} className="input" placeholder="e.g. Hoodie" /></Field>
-          <Field label="Brand"><input value={brand} onChange={(e) => setBrand(e.target.value)} className="input" /></Field>
-          <Field label="Short description"><textarea value={descriptionShort} onChange={(e) => setDescriptionShort(e.target.value)} className="input" rows={2} /></Field>
+          <Field label="Title *">
+            <input value={title} onChange={(e) => setTitle(e.target.value)} className="input" />
+          </Field>
+          <Field label="Product type">
+            <input
+              value={productType}
+              onChange={(e) => setProductType(e.target.value)}
+              className="input"
+              placeholder="e.g. Hoodie"
+            />
+          </Field>
+          <Field label="Brand">
+            <input value={brand} onChange={(e) => setBrand(e.target.value)} className="input" />
+          </Field>
+          <Field label="Short description">
+            <textarea
+              value={descriptionShort}
+              onChange={(e) => setDescriptionShort(e.target.value)}
+              className="input"
+              rows={2}
+            />
+          </Field>
 
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Price *"><input value={price} onChange={(e) => setPrice(e.target.value)} type="number" className="input" /></Field>
-            <Field label="Compare-at price"><input value={compareAtPrice} onChange={(e) => setCompareAtPrice(e.target.value)} type="number" className="input" /></Field>
-            <Field label="Cost price"><input value={costPrice} onChange={(e) => setCostPrice(e.target.value)} type="number" className="input" /></Field>
-            <Field label="Stock qty"><input value={stockQty} onChange={(e) => setStockQty(e.target.value)} type="number" className="input" /></Field>
+            <Field label="Price *">
+              <input
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                type="number"
+                className="input"
+              />
+            </Field>
+            <Field label="Compare-at price">
+              <input
+                value={compareAtPrice}
+                onChange={(e) => setCompareAtPrice(e.target.value)}
+                type="number"
+                className="input"
+              />
+            </Field>
+            <Field label="Cost price">
+              <input
+                value={costPrice}
+                onChange={(e) => setCostPrice(e.target.value)}
+                type="number"
+                className="input"
+              />
+            </Field>
+            <Field label="Stock qty">
+              <input
+                value={stockQty}
+                onChange={(e) => setStockQty(e.target.value)}
+                type="number"
+                className="input"
+              />
+            </Field>
           </div>
 
-          <Field label="Material"><input value={material} onChange={(e) => setMaterial(e.target.value)} className="input" /></Field>
-          <Field label="Image URL"><input value={mainImageUrl} onChange={(e) => setMainImageUrl(e.target.value)} className="input" placeholder="Paste an image URL for now" /></Field>
+          <Field label="Material">
+            <input
+              value={material}
+              onChange={(e) => setMaterial(e.target.value)}
+              className="input"
+            />
+          </Field>
+          <Field label="Image URL">
+            <input
+              value={mainImageUrl}
+              onChange={(e) => setMainImageUrl(e.target.value)}
+              className="input"
+              placeholder="Paste an image URL for now"
+            />
+          </Field>
 
           <div className="flex gap-2">
             {(["draft", "active"] as const).map((s) => (
