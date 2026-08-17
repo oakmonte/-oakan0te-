@@ -144,3 +144,46 @@ Google OAuth and magic-link sign-in both redirect through `src/routes/auth.callb
 - `vite.config.ts` is intentionally thin — `@lovable.dev/vite-tanstack-config` already wires TanStack
   devtools, `tanstackStart`, `viteReact`, `tailwindcss`, `tsConfigPaths`, Nitro (Cloudflare preset), env
   injection, and the `@` alias. Don't re-add any of those plugins manually.
+- Line endings are LF everywhere, pinned by `.gitattributes` (`* text=auto eol=lf`) and Prettier's
+  `endOfLine: "lf"`. On Windows, keep `core.autocrlf=false` for this repo — with it on, every file shows
+  as modified and lint output drowns in `Delete ␍` errors.
+
+## Product-form UI conventions
+
+The seller-facing product form (`store.products_.new.tsx` + `src/components/product-form/*`) follows a
+deliberate mobile pattern — match it rather than inventing per-screen styling:
+
+- **Rows, not chips, for anything selectable in a list.** Full-width rounded-`xl` rows with an optional
+  leading swatch/icon, the label, and a trailing check circle on the right. Chips are only for compact
+  secondary pickers (e.g. the option-name presets).
+- **Selected state is black**: `bg-black text-white border-black` for chips, `border-black bg-gray-50`
+  plus a filled black check for rows. There's no accent color in this form.
+- **Section headers** are `text-[15px] font-semibold text-gray-900`; hint/among-field text is
+  `text-xs text-gray-400`. Inputs are `rounded-xl` with `px-4 py-4` and `focus:border-gray-400`.
+- **Section breaks** are an 8px gray bar — `border-b-8 border-gray-50` between page sections, or
+  `-mx-4 h-2 bg-gray-50` to split segments inside a full-screen sheet.
+- **Always offer one-tap *and* typing.** Every picker exposes curated presets plus a free-text input in
+  the same view — no mode toggle between them. Typed values pin above the presets so they survive a
+  preset-list swap.
+- **Full-screen sheets** (`fixed inset-0 z-50 bg-white flex flex-col min-h-dvh`) with a sticky
+  Cancel / title / Save header, not bottom drawers.
+- **Any sheet with a text input must call `useLockedViewport()`** so the mobile keyboard overlays the
+  page instead of pushing it up. See the SSR/viewport note above — this is the same fix the camera routes
+  use, and it's easy to forget on new sheets.
+
+## Current state (as of Aug 2026)
+
+- **Variants are built and working.** `VariantMatrixBuilder` owns the options list + generated variant
+  matrix (with "Apply to all" bulk price/stock); `OptionEditorSheet` is the full-screen option editor
+  (preset names, per-name one-tap values, real color swatches, switchable Size systems
+  `XXL / US / UK / cm / in`, search-or-create value input, duplicate-name guard).
+- **The universal size chart is NOT built.** The `cm`/`in` size systems currently produce plain string
+  values like `"91 cm"` — they are not structured measurements. Turning this into the real cross-seller
+  size chart needs a schema decision first (where per-value cm/inch numbers live: on the option, on
+  `product_variants`, or a separate size-chart table keyed to user body measurements). Don't bolt on
+  local-only UI state for this; it needs to persist.
+- **`DEV_STORE_ID` in `store.products_.new.tsx` and `store.products.tsx` is a hardcoded pre-launch
+  hack.** Real store scoping from the session must replace it before launch.
+- **Seller dashboard is partially built.** `store.index/orders/products/customers/growth/discounts/
+  content/finance/theme` exist as routes; several are still thin. Products is the most developed.
+- No test runner is configured, so verify UI work by running the dev server and exercising the flow.
