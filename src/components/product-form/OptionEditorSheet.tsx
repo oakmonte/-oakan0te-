@@ -4,55 +4,67 @@ import { useLockedViewport } from "@/hooks/use-locked-viewport";
 
 const PRESETS = ["Size", "Color", "Material", "Weight/Volume"] as const;
 
-// Size is the one option where the *same* garment is described by different
-// scales depending on the seller/market — so it gets a switchable system
-// rather than one hardcoded list. cm/in are real body measurements, which is
-// what the universal size chart will eventually key off.
+// Size and Weight/Volume are the two options where the *same* thing is
+// described by different scales depending on the seller/market — so they get
+// a switchable system rather than one hardcoded list.
 export const SIZE_SYSTEMS = {
   XXL: ["XS", "S", "M", "L", "XL", "XXL", "3XL"],
   US: ["0", "2", "4", "6", "8", "10", "12", "14", "16"],
   UK: ["4", "6", "8", "10", "12", "14", "16", "18", "20"],
-  cm: ["81 cm", "86 cm", "91 cm", "97 cm", "102 cm", "107 cm", "112 cm"],
-  in: ['32"', '34"', '36"', '38"', '40"', '42"', '44"'],
 } as const;
 
-type SizeSystem = keyof typeof SIZE_SYSTEMS;
-const SIZE_SYSTEM_KEYS = Object.keys(SIZE_SYSTEMS) as SizeSystem[];
+export const WEIGHT_VOLUME_SYSTEMS = {
+  g: ["25 g", "50 g", "100 g", "250 g", "500 g", "750 g", "1000 g"],
+  kg: ["0.5 kg", "1 kg", "1.5 kg", "2 kg", "3 kg", "5 kg", "10 kg"],
+  lb: ["0.5 lb", "1 lb", "2 lb", "5 lb", "10 lb", "20 lb", "50 lb"],
+  mL: ["30 ml", "50 ml", "100 ml", "250 ml", "500 ml", "750 ml", "1000 ml"],
+  L: ["0.5 L", "1 L", "1.5 L", "2 L", "3 L", "5 L", "10 L"],
+} as const;
 
-// One-tap values for the non-Size presets — covers apparel/accessories/
+// Options whose values are picked via a switchable unit/system, and the
+// system each defaults to when the seller first picks that option name.
+const OPTION_SYSTEMS: Record<string, Record<string, readonly string[]>> = {
+  Size: SIZE_SYSTEMS,
+  "Weight/Volume": WEIGHT_VOLUME_SYSTEMS,
+};
+const DEFAULT_SYSTEM: Record<string, string> = { Size: "XXL", "Weight/Volume": "g" };
+
+// One-tap values for the non-systemed presets — covers apparel/accessories/
 // cosmetics/art without forcing typing. Free text still works for anything else.
 const VALUE_PRESETS: Record<string, string[]> = {
   Color: [
     "Black",
     "White",
     "Grey",
+    "Charcoal",
+    "Ivory",
+    "Cream",
     "Beige",
+    "Tan",
+    "Khaki",
     "Brown",
+    "Rust",
     "Red",
+    "Maroon",
+    "Burgundy",
     "Orange",
+    "Coral",
     "Yellow",
+    "Gold",
     "Green",
+    "Olive",
+    "Mint",
+    "Teal",
+    "Turquoise",
     "Blue",
     "Navy",
     "Purple",
+    "Lavender",
     "Pink",
+    "Silver",
     "Multicolor",
   ],
   Material: ["Cotton", "Polyester", "Leather", "Suede", "Silk", "Wool", "Linen", "Denim", "Canvas"],
-  "Weight/Volume": [
-    "25g",
-    "50g",
-    "100g",
-    "250g",
-    "500g",
-    "1kg",
-    "30ml",
-    "50ml",
-    "100ml",
-    "250ml",
-    "500ml",
-    "1L",
-  ],
 };
 
 // Real swatches for Color — a dot per name reads as "this app understands
@@ -61,16 +73,32 @@ const COLOR_SWATCHES: Record<string, string> = {
   Black: "#111111",
   White: "#FFFFFF",
   Grey: "#9CA3AF",
+  Charcoal: "#36454F",
+  Ivory: "#FFFFF0",
+  Cream: "#F5EEDC",
   Beige: "#D9C7AA",
+  Tan: "#D2B48C",
+  Khaki: "#BDB76B",
   Brown: "#7B4B2A",
+  Rust: "#B7410E",
   Red: "#DC2626",
+  Maroon: "#800000",
+  Burgundy: "#6D071A",
   Orange: "#F97316",
+  Coral: "#FF7F50",
   Yellow: "#FACC15",
+  Gold: "#D4AF37",
   Green: "#16A34A",
+  Olive: "#6B8E23",
+  Mint: "#6EE7B7",
+  Teal: "#14B8A6",
+  Turquoise: "#40E0D0",
   Blue: "#2563EB",
   Navy: "#1E3A8A",
   Purple: "#9333EA",
+  Lavender: "#C4B5FD",
   Pink: "#EC4899",
+  Silver: "#C0C0C0",
 };
 
 const MULTICOLOR_GRADIENT =
@@ -85,8 +113,9 @@ function ColorSwatch({ name }: { name: string }) {
   );
 }
 
-function valuesForName(name: string, sizeSystem: SizeSystem): string[] {
-  if (name === "Size") return [...SIZE_SYSTEMS[sizeSystem]];
+function valuesForName(name: string, systemKey: string): string[] {
+  const systems = OPTION_SYSTEMS[name];
+  if (systems) return [...(systems[systemKey] ?? Object.values(systems)[0])];
   return VALUE_PRESETS[name] ?? [];
 }
 
@@ -106,16 +135,18 @@ export function OptionEditorSheet({
   const [name, setName] = useState(initialName);
   const [values, setValues] = useState<string[]>(initialValues);
   const [valueDraft, setValueDraft] = useState("");
-  const [sizeSystem, setSizeSystem] = useState<SizeSystem>("XXL");
+  const [selectedSystems, setSelectedSystems] = useState<Record<string, string>>(DEFAULT_SYSTEM);
   const [systemMenuOpen, setSystemMenuOpen] = useState(false);
 
   // Keyboard should overlay this sheet, not resize/push it — same fix already
   // used on the camera/after-shot routes for the identical iOS Safari behavior.
   useLockedViewport();
 
-  const isSizeOption = name === "Size";
   const isColorOption = name === "Color";
-  const presetValues = valuesForName(name, sizeSystem);
+  const systems = OPTION_SYSTEMS[name];
+  const systemKeys = systems ? Object.keys(systems) : [];
+  const activeSystem = selectedSystems[name] ?? DEFAULT_SYSTEM[name] ?? systemKeys[0];
+  const presetValues = valuesForName(name, activeSystem);
 
   // Anything the seller typed (or picked under a different size system) stays
   // pinned above the presets so it never gets lost when the list swaps.
@@ -232,39 +263,39 @@ export function OptionEditorSheet({
               className="w-full text-base border border-gray-200 rounded-xl px-4 py-4 outline-none focus:border-gray-400"
             />
 
-            {isSizeOption && (
+            {systems && (
               <div className="relative flex justify-end mt-3">
                 <button
                   type="button"
                   onClick={() => setSystemMenuOpen((v) => !v)}
                   className="flex items-center gap-1 text-xs text-gray-500 border border-gray-200 rounded-full px-3 py-1.5"
                 >
-                  {sizeSystem}
+                  {activeSystem}
                   <ChevronDown size={13} className="text-gray-400" />
                 </button>
                 {systemMenuOpen && (
                   <>
                     <button
                       type="button"
-                      aria-label="Close size system menu"
+                      aria-label="Close unit menu"
                       onClick={() => setSystemMenuOpen(false)}
                       className="fixed inset-0 z-10 cursor-default"
                     />
                     <div className="absolute right-0 top-9 z-20 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden min-w-28">
-                      {SIZE_SYSTEM_KEYS.map((key) => (
+                      {systemKeys.map((key) => (
                         <button
                           key={key}
                           type="button"
                           onClick={() => {
-                            setSizeSystem(key);
+                            setSelectedSystems((prev) => ({ ...prev, [name]: key }));
                             setSystemMenuOpen(false);
                           }}
                           className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 text-sm text-left ${
-                            key === sizeSystem ? "text-gray-900 font-medium" : "text-gray-600"
+                            key === activeSystem ? "text-gray-900 font-medium" : "text-gray-600"
                           }`}
                         >
                           {key}
-                          {key === sizeSystem && <Check size={14} />}
+                          {key === activeSystem && <Check size={14} />}
                         </button>
                       ))}
                     </div>
@@ -273,7 +304,7 @@ export function OptionEditorSheet({
               </div>
             )}
 
-            <div className={`flex flex-col gap-2 ${isSizeOption ? "mt-3" : "mt-3"}`}>
+            <div className="flex flex-col gap-2 mt-3">
               {canCreate && (
                 <button
                   type="button"
