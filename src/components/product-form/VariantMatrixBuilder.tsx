@@ -173,6 +173,10 @@ export function VariantMatrixBuilder({
         <OptionEditorSheet
           initialName={options[editingIndex]?.name ?? ""}
           initialValues={options[editingIndex]?.values ?? []}
+          disabledNames={options
+            .filter((_, i) => i !== editingIndex)
+            .map((o) => o.name)
+            .filter(Boolean)}
           onSave={(name, values) => {
             setOptions((prev) => {
               const next = [...prev];
