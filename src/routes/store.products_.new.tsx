@@ -68,7 +68,7 @@ function NewProduct() {
   const [material, setMaterial] = useState("");
 
   // Variant-mode state
-  const [options, setOptions] = useState<VariantOption[]>([{ name: "", values: [] }]);
+  const [options, setOptions] = useState<VariantOption[]>([]);
   const [rows, setRows] = useState<VariantRow[]>([]);
 
   const [categoryPickerOpen, setCategoryPickerOpen] = useState(false);

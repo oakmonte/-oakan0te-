@@ -55,9 +55,6 @@ export function OptionEditorSheet({
   const [name, setName] = useState(initialName);
   const [values, setValues] = useState<string[]>(initialValues);
   const [valueDraft, setValueDraft] = useState("");
-  const [customMode, setCustomMode] = useState(
-    initialName !== "" && !PRESETS.includes(initialName as (typeof PRESETS)[number]),
-  );
 
   // Keyboard should overlay this sheet, not resize/push it — same fix already used
   // on the camera/after-shot routes for the identical iOS Safari behavior.
@@ -81,7 +78,7 @@ export function OptionEditorSheet({
     setValues((prev) => prev.filter((x) => x !== v));
   }
 
-  function handleDone() {
+  function handleSave() {
     if (!name.trim() || values.length === 0) return;
     onSave(name.trim(), values);
   }
@@ -89,69 +86,44 @@ export function OptionEditorSheet({
   return (
     <div className="fixed inset-0 z-50 bg-white flex flex-col min-h-dvh">
       <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
-        <button onClick={onClose} type="button" className="p-1 -ml-1">
-          <X size={20} className="text-gray-500" />
+        <button onClick={onClose} type="button" className="text-sm text-gray-500">
+          Cancel
         </button>
         <span className="font-semibold text-[15px] absolute left-1/2 -translate-x-1/2">Option</span>
         <button
-          onClick={handleDone}
+          onClick={handleSave}
           type="button"
           disabled={!name.trim() || values.length === 0}
           className="text-sm font-medium text-black disabled:text-gray-300"
         >
-          Done
+          Save
         </button>
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-5">
-        {!customMode ? (
-          <>
-            <p className="text-xs text-gray-400 mb-2">Option name</p>
-            <div className="flex flex-wrap gap-2 mb-3">
-              {PRESETS.map((p) => (
-                <button
-                  key={p}
-                  type="button"
-                  onClick={() => setName(p)}
-                  className={`px-3 py-1.5 rounded-full text-sm border ${
-                    name === p
-                      ? "bg-black text-white border-black"
-                      : "bg-white text-gray-700 border-gray-200"
-                  }`}
-                >
-                  {p}
-                </button>
-              ))}
-              <button
-                type="button"
-                onClick={() => {
-                  setCustomMode(true);
-                  setName("");
-                }}
-                className="px-3 py-1.5 rounded-full text-sm border border-dashed border-gray-300 text-gray-500"
-              >
-                Custom…
-              </button>
-            </div>
-          </>
-        ) : (
-          <>
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Name"
-              autoFocus
-              className="w-full text-base border border-gray-300 rounded-lg px-3 py-3 outline-none mb-1"
-            />
+        <p className="text-xs text-gray-400 mb-2">Option name</p>
+        <div className="flex flex-wrap gap-2 mb-3">
+          {PRESETS.map((p) => (
             <button
+              key={p}
               type="button"
-              onClick={() => setCustomMode(false)}
-              className="text-xs text-gray-400 mb-3"
+              onClick={() => setName(p)}
+              className={`px-3 py-1.5 rounded-full text-sm border ${
+                name === p
+                  ? "bg-black text-white border-black"
+                  : "bg-white text-gray-700 border-gray-200"
+              }`}
             >
-              Choose from presets instead
+              {p}
             </button>
-          </>
-        )}
+          ))}
+        </div>
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Or type your own, e.g. Fragrance"
+          className="w-full text-base border border-gray-200 rounded-lg px-3 py-3 outline-none mb-1"
+        />
 
         {name && (
           <>

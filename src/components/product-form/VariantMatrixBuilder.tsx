@@ -123,7 +123,7 @@ export function VariantMatrixBuilder({
           >
             <span className="flex items-center gap-3 text-[15px] text-gray-900">
               <Plus size={18} className="text-gray-400" />
-              Add options (color, size, etc.)
+              Add options (color, size, material, etc.)
             </span>
             <ChevronRight size={16} className="text-gray-300" />
           </button>
