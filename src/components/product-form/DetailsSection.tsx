@@ -1,7 +1,7 @@
 import { Plus, ChevronRight } from "lucide-react";
 import { CategoryNode } from "@/lib/categories";
 
-type ExpandedSection = "description" | "price" | null;
+type ExpandedSection = "description" | null;
 
 export function DetailsSection({
   title,
@@ -11,11 +11,8 @@ export function DetailsSection({
   categoryPath,
   onOpenCategoryPicker,
   price,
-  setPrice,
   compareAtPrice,
-  setCompareAtPrice,
-  costPrice,
-  setCostPrice,
+  onOpenPriceSheet,
   expanded,
   setExpanded,
 }: {
@@ -26,11 +23,8 @@ export function DetailsSection({
   categoryPath: CategoryNode[];
   onOpenCategoryPicker: () => void;
   price: string;
-  setPrice: (v: string) => void;
   compareAtPrice: string;
-  setCompareAtPrice: (v: string) => void;
-  costPrice: string;
-  setCostPrice: (v: string) => void;
+  onOpenPriceSheet: () => void;
   expanded: ExpandedSection;
   setExpanded: (s: ExpandedSection) => void;
 }) {
@@ -38,7 +32,9 @@ export function DetailsSection({
     setExpanded(expanded === section ? null : section);
   }
 
-  const categoryLabel = categoryPath.length ? categoryPath[categoryPath.length - 1].name : null;
+  const categoryLabel = categoryPath.length
+    ? categoryPath[categoryPath.length - 1].name
+    : null;
 
   return (
     <div className="px-4 py-4 border-b-8 border-gray-50">
@@ -85,7 +81,7 @@ export function DetailsSection({
 
       <button
         type="button"
-        onClick={() => toggle("price")}
+        onClick={onOpenPriceSheet}
         className="w-full flex items-center justify-between py-4"
       >
         <span className="text-[15px] text-gray-500">
@@ -100,35 +96,6 @@ export function DetailsSection({
         </span>
         <ChevronRight size={16} className="text-gray-300" />
       </button>
-      {expanded === "price" && (
-        <div className="grid grid-cols-3 gap-3 pb-3">
-          <PriceInput label="Price *" value={price} onChange={setPrice} />
-          <PriceInput label="Compare-at" value={compareAtPrice} onChange={setCompareAtPrice} />
-          <PriceInput label="Cost" value={costPrice} onChange={setCostPrice} />
-        </div>
-      )}
     </div>
-  );
-}
-
-function PriceInput({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  return (
-    <label className="flex flex-col gap-1">
-      <span className="text-xs text-gray-400">{label}</span>
-      <input
-        type="number"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="text-base border border-gray-200 rounded-lg px-2 py-2 outline-none"
-      />
-    </label>
   );
 }

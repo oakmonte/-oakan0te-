@@ -1,11 +1,22 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { ChevronLeft, ChevronDown, Truck, Package, Store as StoreIcon, Tag, Hash, Search, Layers } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronDown,
+  Truck,
+  Package,
+  Store as StoreIcon,
+  Tag,
+  Hash,
+  Search,
+  Layers,
+} from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { CategoryNode } from "@/lib/categories";
 import { StubRow, ExpandRow, TextField } from "@/components/product-form/ui";
 import { MediaSection } from "@/components/product-form/MediaSection";
 import { DetailsSection } from "@/components/product-form/DetailsSection";
+import { PricingSheet } from "@/components/product-form/PricingSheet";
 import { CategoryPicker } from "@/components/product-form/CategoryPicker";
 import { ProductTypeSwitchSheet } from "@/components/product-form/ProductTypeSwitchSheet";
 import {
@@ -14,7 +25,7 @@ import {
   VariantRow,
 } from "@/components/product-form/VariantMatrixBuilder";
 
-export const Route = createFileRoute("/store/products/new")({
+export const Route = createFileRoute("/store/products_/new")({
   component: NewProduct,
 });
 
@@ -34,7 +45,7 @@ function slugify(title: string) {
 }
 
 type ProductKind = "regular" | "variant";
-type ExpandedSection = "description" | "price" | "type" | "vendor" | "material" | null;
+type ExpandedSection = "description" | "type" | "vendor" | "material" | null;
 
 function NewProduct() {
   const navigate = useNavigate();
@@ -44,6 +55,7 @@ function NewProduct() {
   const [mainImageUrl, setMainImageUrl] = useState("");
   const [title, setTitle] = useState("");
   const [descriptionShort, setDescriptionShort] = useState("");
+  const [priceSheetOpen, setPriceSheetOpen] = useState(false);
   const [categoryPath, setCategoryPath] = useState<CategoryNode[]>([]);
   const [productType, setProductType] = useState("");
   const [brand, setBrand] = useState("");
@@ -196,12 +208,9 @@ function NewProduct() {
         categoryPath={categoryPath}
         onOpenCategoryPicker={() => setCategoryPickerOpen(true)}
         price={price}
-        setPrice={setPrice}
         compareAtPrice={compareAtPrice}
-        setCompareAtPrice={setCompareAtPrice}
-        costPrice={costPrice}
-        setCostPrice={setCostPrice}
-        expanded={expanded === "description" || expanded === "price" ? expanded : null}
+        onOpenPriceSheet={() => setPriceSheetOpen(true)}
+        expanded={expanded === "description" ? expanded : null}
         setExpanded={setExpanded}
       />
 
@@ -234,7 +243,12 @@ function NewProduct() {
           </div>
         </div>
       ) : (
-        <VariantMatrixBuilder options={options} setOptions={setOptions} rows={rows} setRows={setRows} />
+        <VariantMatrixBuilder
+          options={options}
+          setOptions={setOptions}
+          rows={rows}
+          setRows={setRows}
+        />
       )}
 
       <StubRow icon={<Truck size={18} />} label="Shipping" />
@@ -245,7 +259,12 @@ function NewProduct() {
         expanded={expanded === "type"}
         onToggle={() => toggle("type")}
       >
-        <TextField label="Product type" value={productType} onChange={setProductType} placeholder="e.g. Hoodie" />
+        <TextField
+          label="Product type"
+          value={productType}
+          onChange={setProductType}
+          placeholder="e.g. Hoodie"
+        />
       </ExpandRow>
       <ExpandRow
         icon={<StoreIcon size={18} />}
@@ -278,6 +297,18 @@ function NewProduct() {
             setCategoryPickerOpen(false);
           }}
           onClose={() => setCategoryPickerOpen(false)}
+        />
+      )}
+
+      {priceSheetOpen && (
+        <PricingSheet
+          price={price}
+          compareAtPrice={compareAtPrice}
+          costPrice={costPrice}
+          onChangePrice={setPrice}
+          onChangeCompareAtPrice={setCompareAtPrice}
+          onChangeCostPrice={setCostPrice}
+          onClose={() => setPriceSheetOpen(false)}
         />
       )}
 
