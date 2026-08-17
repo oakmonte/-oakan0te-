@@ -175,8 +175,27 @@ const BEAUTY_PERSONAL_CARE: CategoryNode = {
   ],
 };
 
+const ART_AND_CRAFTS: CategoryNode = {
+  id: "art-and-crafts",
+  name: "Art & Crafts",
+  children: [
+    { id: "paintings", name: "Paintings" },
+    { id: "drawings-illustrations", name: "Drawings & Illustrations" },
+    { id: "sculptures", name: "Sculptures" },
+    { id: "prints-printmaking", name: "Prints & Printmaking" },
+    { id: "photography", name: "Photography" },
+    { id: "ceramics-pottery", name: "Ceramics & Pottery" },
+    { id: "textile-fiber-art", name: "Textile & Fiber Art" },
+    { id: "mixed-media-assemblage", name: "Mixed Media & Assemblage" },
+    { id: "digital-art", name: "Digital Art" },
+    { id: "calligraphy-lettering", name: "Calligraphy & Lettering" },
+    { id: "woodwork-carving", name: "Woodwork & Carving" },
+    { id: "craft-supplies", name: "Craft Supplies" },
+  ],
+};
+
 export const ROOT_CATEGORY: CategoryNode = {
   id: "root",
   name: "All categories",
-  children: [APPAREL_ACCESSORIES, BEAUTY_PERSONAL_CARE],
+  children: [APPAREL_ACCESSORIES, BEAUTY_PERSONAL_CARE, ART_AND_CRAFTS],
 };

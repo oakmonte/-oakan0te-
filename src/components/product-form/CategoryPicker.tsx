@@ -2,6 +2,27 @@ import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { CategoryNode, ROOT_CATEGORY } from "@/lib/categories";
 
+type FlatEntry = {
+  node: CategoryNode;
+  pathNodes: CategoryNode[]; // path from root's children down to and including this node
+};
+
+function flattenTree(node: CategoryNode, pathNodes: CategoryNode[] = []): FlatEntry[] {
+  const children = node.children ?? [];
+  let results: FlatEntry[] = [];
+  for (const child of children) {
+    const entryPath = [...pathNodes, child];
+    results.push({ node: child, pathNodes: entryPath });
+    if (child.children && child.children.length > 0) {
+      results = results.concat(flattenTree(child, entryPath));
+    }
+  }
+  return results;
+}
+
+// Built once at module load — the tree is static.
+const ALL_ENTRIES = flattenTree(ROOT_CATEGORY);
+
 export function CategoryPicker({
   onSelect,
   onClose,
@@ -12,13 +33,13 @@ export function CategoryPicker({
   const [stack, setStack] = useState<CategoryNode[]>([ROOT_CATEGORY]);
   const [search, setSearch] = useState("");
   const current = stack[stack.length - 1];
+  const visibleChildren = current.children ?? [];
 
-  const visibleChildren = useMemo(() => {
-    const children = current.children ?? [];
-    if (!search.trim()) return children;
+  const searchResults = useMemo(() => {
+    if (!search.trim()) return null;
     const q = search.trim().toLowerCase();
-    return children.filter((c) => c.name.toLowerCase().includes(q));
-  }, [current, search]);
+    return ALL_ENTRIES.filter((e) => e.node.name.toLowerCase().includes(q));
+  }, [search]);
 
   function goBack() {
     if (stack.length === 1) {
@@ -38,15 +59,24 @@ export function CategoryPicker({
     }
   }
 
+  function handleSearchResultTap(entry: FlatEntry) {
+    const hasChildren = !!entry.node.children && entry.node.children.length > 0;
+    if (hasChildren) {
+      // Jump straight to that node's screen so its own children/self-select are usable.
+      setStack([ROOT_CATEGORY, ...entry.pathNodes]);
+      setSearch("");
+    } else {
+      onSelect(entry.pathNodes);
+    }
+  }
+
   return (
     <div className="fixed inset-0 z-50 bg-white flex flex-col min-h-dvh">
       <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center gap-3">
         <button onClick={goBack} className="p-1 -ml-1" type="button">
           <ChevronLeft size={22} />
         </button>
-        <span className="font-semibold text-[15px] flex-1 text-center -ml-6">
-          {stack.length === 1 ? "All categories" : current.name}
-        </span>
+        <span className="font-semibold text-[15px] flex-1 text-center -ml-6">{current.name}</span>
       </div>
 
       <div className="px-4 pt-3 pb-2">
@@ -62,36 +92,72 @@ export function CategoryPicker({
       </div>
 
       <div className="flex-1 overflow-y-auto pb-8">
-        {stack.length > 1 && (
-          <button
-            onClick={() => onSelect([...stack.slice(1), current])}
-            className="w-full flex items-center gap-3 px-4 py-3 border-b border-gray-50"
-            type="button"
-          >
-            <span className="w-4 h-4 rounded-full border border-gray-300 shrink-0" />
-            <span className="text-[15px] font-semibold text-gray-900">{current.name}</span>
-          </button>
-        )}
+        {searchResults ? (
+          searchResults.length === 0 ? (
+            <p className="px-4 py-6 text-sm text-gray-400 text-center">No categories found.</p>
+          ) : (
+            searchResults.map((entry) => {
+              const hasChildren = !!entry.node.children && entry.node.children.length > 0;
+              const breadcrumb = entry.pathNodes
+                .slice(0, -1)
+                .map((n) => n.name)
+                .join(" > ");
+              return (
+                <button
+                  key={entry.node.id}
+                  onClick={() => handleSearchResultTap(entry)}
+                  className="w-full flex items-center justify-between px-4 py-3 border-b border-gray-50 text-left"
+                  type="button"
+                >
+                  <span className="flex flex-col">
+                    <span className="text-[15px] text-gray-900">{entry.node.name}</span>
+                    {breadcrumb && (
+                      <span className="text-xs text-gray-400 mt-0.5">{breadcrumb}</span>
+                    )}
+                  </span>
+                  {hasChildren ? (
+                    <ChevronRight size={16} className="text-gray-300 shrink-0" />
+                  ) : (
+                    <span className="w-4 h-4 rounded-full border border-gray-300 shrink-0" />
+                  )}
+                </button>
+              );
+            })
+          )
+        ) : (
+          <>
+            {stack.length > 1 && (
+              <button
+                onClick={() => onSelect([...stack.slice(1), current])}
+                className="w-full flex items-center gap-3 px-4 py-3 border-b border-gray-50"
+                type="button"
+              >
+                <span className="w-4 h-4 rounded-full border border-gray-300 shrink-0" />
+                <span className="text-[15px] font-semibold text-gray-900">{current.name}</span>
+              </button>
+            )}
 
-        {visibleChildren.map((child) => {
-          const hasChildren = !!child.children && child.children.length > 0;
-          return (
-            <button
-              key={child.id}
-              onClick={() => handleRowTap(child)}
-              className="w-full flex items-center justify-between px-4 py-3 border-b border-gray-50"
-              type="button"
-            >
-              <span className="flex items-center gap-3 text-[15px] text-gray-900">
-                {!hasChildren && (
-                  <span className="w-4 h-4 rounded-full border border-gray-300 shrink-0" />
-                )}
-                {child.name}
-              </span>
-              {hasChildren && <ChevronRight size={16} className="text-gray-300" />}
-            </button>
-          );
-        })}
+            {visibleChildren.map((child) => {
+              const hasChildren = !!child.children && child.children.length > 0;
+              return (
+                <button
+                  key={child.id}
+                  onClick={() => handleRowTap(child)}
+                  className="w-full flex items-center justify-between px-4 py-3 border-b border-gray-50"
+                  type="button"
+                >
+                  <span className="flex items-center gap-3 text-[15px] text-gray-900">
+                    {!hasChildren && (
+                      <span className="w-4 h-4 rounded-full border border-gray-300 shrink-0" />
+                    )}
+                    {child.name}
+                  </span>
+                  {hasChildren && <ChevronRight size={16} className="text-gray-300" />}
+                </button>
+              );
+            })}
+          </>
+        )}
       </div>
     </div>
   );
