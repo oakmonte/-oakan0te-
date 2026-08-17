@@ -96,7 +96,7 @@ function NewProduct() {
     if (kind === "regular") {
       if (!price.trim()) {
         setError("Price is required");
-        setExpanded("price");
+        setPriceSheetOpen(true);
         return;
       }
     } else {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Plus, X } from "lucide-react";
+import { Plus, X, ChevronRight } from "lucide-react";
 import { OptionEditorSheet } from "./OptionEditorSheet";
 
 export type VariantOption = { name: string; values: string[] };
@@ -83,29 +83,31 @@ export function VariantMatrixBuilder({
 
   return (
     <div className="border-b-8 border-gray-50">
-      <p className="px-4 pt-4 text-[15px] font-semibold text-gray-900">Options</p>
+      <p className="px-4 pt-4 text-[15px] font-semibold text-gray-900">Variants</p>
 
-      <div className="px-4 py-4 flex flex-col gap-3">
+      <div className="px-4">
         {options.map((opt, i) => (
-          <div key={i} className="flex items-center gap-2">
+          <div key={i} className="flex items-center border-b border-gray-100">
             <button
               type="button"
               onClick={() => setEditingIndex(i)}
-              className="flex-1 flex items-center justify-between border border-gray-200 rounded-xl p-3 text-left"
+              className="flex-1 flex items-center justify-between py-4 text-left"
             >
-              <span>
-                <span className="block text-sm font-medium text-gray-900">
+              <span className="flex flex-col items-start">
+                <span className="flex items-center gap-3 text-[15px] text-gray-900">
+                  <Plus size={18} className="text-gray-400" />
                   {opt.name || "Untitled option"}
                 </span>
-                <span className="block text-xs text-gray-400 mt-0.5">
-                  {opt.values.length > 0 ? opt.values.join(", ") : "No values yet"}
-                </span>
+                {opt.values.length > 0 && (
+                  <span className="text-xs text-gray-400 mt-0.5 ml-7">{opt.values.join(", ")}</span>
+                )}
               </span>
+              <ChevronRight size={16} className="text-gray-300" />
             </button>
             <button
               type="button"
               onClick={() => removeOption(i)}
-              className="p-2 text-gray-400"
+              className="p-2 -ml-1 text-gray-300"
               aria-label="Remove option"
             >
               <X size={16} />
@@ -117,9 +119,13 @@ export function VariantMatrixBuilder({
           <button
             type="button"
             onClick={() => setEditingIndex(options.length)}
-            className="flex items-center justify-center gap-2 border border-dashed border-gray-300 rounded-xl py-3 text-sm text-gray-500"
+            className="w-full flex items-center justify-between py-4 border-b border-gray-100 text-left"
           >
-            <Plus size={16} /> Add option
+            <span className="flex items-center gap-3 text-[15px] text-gray-900">
+              <Plus size={18} className="text-gray-400" />
+              Add options (color, size, etc.)
+            </span>
+            <ChevronRight size={16} className="text-gray-300" />
           </button>
         )}
       </div>
