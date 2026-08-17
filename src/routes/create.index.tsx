@@ -67,6 +67,11 @@ const RATIO_ASPECT: Record<CameraRatio, number> = {
 // composite instead of guessing at a size.
 const COMPOSITE_WIDTH = 1080;
 
+// `zoom` is a real MediaTrack constraint on Android/Chrome but isn't in
+// TypeScript's DOM lib yet — extend the standard set rather than casting
+// applyConstraints itself to `any`, which would also drop its Promise type.
+type ZoomConstraintSet = MediaTrackConstraintSet & { zoom?: number };
+
 // Centered crop rect (in source pixel coords) that matches what object-cover
 // would render inside a box of targetAspect — used identically for the live
 // preview box and for both capture paths, so they stay in sync.
@@ -420,7 +425,9 @@ function CreatePage() {
         // scale on top of it, or it gets applied twice (this was the back-
         // camera "whole frame drags with it" bug).
         const clamped = Math.min(caps.max, Math.max(caps.min, level));
-        (track.applyConstraints as any)({ advanced: [{ zoom: clamped }] }).catch(() => {});
+        track
+          .applyConstraints({ advanced: [{ zoom: clamped }] as ZoomConstraintSet[] })
+          .catch(() => {});
         setZoomLevel(clamped);
         setCssZoomScale(1);
       } else {
@@ -487,7 +494,7 @@ function CreatePage() {
     ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
 
     const compiled = compileFilter(currentFilterCss);
-    if (compiled !== (IDENTITY_FILTER as any)) {
+    if (compiled !== IDENTITY_FILTER) {
       const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       applyCompiledFilter(imgData, compiled);
       ctx.putImageData(imgData, 0, 0);
@@ -541,7 +548,7 @@ function CreatePage() {
       ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
 
       const compiled = compileFilter(currentFilterCss);
-      if (compiled !== (IDENTITY_FILTER as any)) {
+      if (compiled !== IDENTITY_FILTER) {
         const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         applyCompiledFilter(imgData, compiled);
         ctx.putImageData(imgData, 0, 0);

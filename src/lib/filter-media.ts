@@ -17,7 +17,7 @@ export async function applyFilterToPhotoBlob(blob: Blob, filterCss: string): Pro
     ctx.drawImage(img, 0, 0);
 
     const compiled = compileFilter(filterCss);
-    if (compiled !== (IDENTITY_FILTER as any)) {
+    if (compiled !== IDENTITY_FILTER) {
       const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       applyCompiledFilter(imgData, compiled);
       ctx.putImageData(imgData, 0, 0);
@@ -88,7 +88,7 @@ export async function applyFilterToVideoBlob(
     let rafId: number | null = null;
     const drawFrame = () => {
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      if (compiled !== (IDENTITY_FILTER as any)) {
+      if (compiled !== IDENTITY_FILTER) {
         const frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
         applyCompiledFilter(frame, compiled);
         ctx.putImageData(frame, 0, 0);
