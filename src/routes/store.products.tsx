@@ -55,7 +55,7 @@ function StoreProducts() {
   const [search, setSearch] = useState("");
   const [products, setProducts] = useState<ProductRow[]>([]);
   const [listLoading, setListLoading] = useState(true);
-  const [createModalOpen, setCreateModalOpen] = useState(false);
+
 
   useEffect(() => {
     let cancelled = false;
@@ -90,12 +90,6 @@ function StoreProducts() {
     fetchProducts();
   }, [fetchProducts]);
 
-  function handleTypeSelect(type: "regular" | "variant") {
-    setCreateModalOpen(false);
-    navigate({
-      to: type === "regular" ? "/store/products/new-regular" : "/store/products/new-variant",
-    });
-  }
 
   if (storeLoading) return <div className="px-4 py-8 text-sm text-gray-400">Loading…</div>;
   if (!storeId)
@@ -119,7 +113,7 @@ function StoreProducts() {
           />
         </div>
         <button
-          onClick={() => setCreateModalOpen(true)}
+          onClick={() => navigate({ to: "/store/products/new" })}
           className="p-2 rounded-lg bg-black text-white"
         >
           <Plus size={16} />
@@ -173,13 +167,6 @@ function StoreProducts() {
             );
           })}
         </div>
-      )}
-
-      {createModalOpen && (
-        <CreateProductTypeModal
-          onClose={() => setCreateModalOpen(false)}
-          onSelect={handleTypeSelect}
-        />
       )}
     </div>
   );

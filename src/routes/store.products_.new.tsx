@@ -1,0 +1,317 @@
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
+import {
+  ChevronLeft,
+  ChevronDown,
+  Truck,
+  Package,
+  Store as StoreIcon,
+  Tag,
+  Hash,
+  Search,
+  Layers,
+} from "lucide-react";
+import { supabase } from "@/lib/integrations/my-supabase/client";
+import { CategoryNode } from "@/lib/categories";
+import { StubRow, ExpandRow, TextField } from "@/components/product-form/ui";
+import { MediaSection } from "@/components/product-form/MediaSection";
+import { DetailsSection } from "@/components/product-form/DetailsSection";
+import { CategoryPicker } from "@/components/product-form/CategoryPicker";
+import { ProductTypeSwitchSheet } from "@/components/product-form/ProductTypeSwitchSheet";
+import {
+  VariantMatrixBuilder,
+  VariantOption,
+  VariantRow,
+} from "@/components/product-form/VariantMatrixBuilder";
+
+export const Route = createFileRoute("/store/products/new")({
+  component: NewProduct,
+});
+
+// TODO: dev-only, matches store.products.tsx. Revert before launch.
+const DEV_STORE_ID = "4a492d4d-66bd-4d14-a5dc-e6d8d1723023";
+
+function slugify(title: string) {
+  return (
+    title
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "") +
+    "-" +
+    Math.random().toString(36).slice(2, 7)
+  );
+}
+
+type ProductKind = "regular" | "variant";
+type ExpandedSection = "description" | "price" | "type" | "vendor" | "material" | null;
+
+function NewProduct() {
+  const navigate = useNavigate();
+
+  const [kind, setKind] = useState<ProductKind>("regular");
+  const [status, setStatus] = useState<"draft" | "active">("draft");
+  const [mainImageUrl, setMainImageUrl] = useState("");
+  const [title, setTitle] = useState("");
+  const [descriptionShort, setDescriptionShort] = useState("");
+  const [categoryPath, setCategoryPath] = useState<CategoryNode[]>([]);
+  const [productType, setProductType] = useState("");
+  const [brand, setBrand] = useState("");
+
+  // Regular-mode state
+  const [price, setPrice] = useState("");
+  const [compareAtPrice, setCompareAtPrice] = useState("");
+  const [costPrice, setCostPrice] = useState("");
+  const [stockQty, setStockQty] = useState(0);
+  const [material, setMaterial] = useState("");
+
+  // Variant-mode state
+  const [options, setOptions] = useState<VariantOption[]>([{ name: "", values: [] }]);
+  const [rows, setRows] = useState<VariantRow[]>([]);
+
+  const [categoryPickerOpen, setCategoryPickerOpen] = useState(false);
+  const [typeSwitchOpen, setTypeSwitchOpen] = useState(false);
+  const [expanded, setExpanded] = useState<ExpandedSection>(null);
+
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  function toggle(section: ExpandedSection) {
+    setExpanded((prev) => (prev === section ? null : section));
+  }
+
+  function handleTypeSwitch(next: ProductKind) {
+    setTypeSwitchOpen(false);
+    setKind(next);
+    // Nothing is discarded — each side keeps its own state, so switching
+    // back and forth is always safe.
+  }
+
+  async function handleSave() {
+    if (!title.trim()) {
+      setError("Title is required");
+      return;
+    }
+
+    if (kind === "regular") {
+      if (!price.trim()) {
+        setError("Price is required");
+        setExpanded("price");
+        return;
+      }
+    } else {
+      if (rows.length === 0) {
+        setError("Add at least one option value to generate variants");
+        return;
+      }
+      const missingPrice = rows.find((r) => !r.price.trim());
+      if (missingPrice) {
+        setError("Every variant needs a price");
+        return;
+      }
+    }
+
+    setSaving(true);
+    setError("");
+
+    const { data: product, error: productErr } = await supabase
+      .from("products")
+      .insert({
+        store_id: DEV_STORE_ID,
+        handle: slugify(title),
+        title: title.trim(),
+        description_short: descriptionShort.trim() || null,
+        product_type: productType.trim() || categoryPath.at(-1)?.name || null,
+        brand: brand.trim() || null,
+        status,
+        source_platform: "manual",
+        is_complete: true,
+      })
+      .select("id")
+      .single();
+
+    if (productErr || !product) {
+      setError(productErr?.message ?? "Failed to create product");
+      setSaving(false);
+      return;
+    }
+
+    if (kind === "regular") {
+      const { error: variantErr } = await supabase.from("product_variants").insert({
+        product_id: product.id,
+        price: Number(price),
+        compare_at_price: compareAtPrice ? Number(compareAtPrice) : null,
+        cost_price: costPrice ? Number(costPrice) : null,
+        stock_qty: stockQty,
+        material: material.trim() || null,
+        main_image_url: mainImageUrl.trim() || null,
+      });
+      if (variantErr) {
+        setError(variantErr.message);
+        setSaving(false);
+        return;
+      }
+    } else {
+      const variantRows = rows.map((r) => ({
+        product_id: product.id,
+        option1_name: options[0]?.name.trim() || null,
+        option1_value: r.option1Value,
+        option2_name: options[1]?.name.trim() || null,
+        option2_value: r.option2Value,
+        price: Number(r.price),
+        compare_at_price: r.compareAtPrice ? Number(r.compareAtPrice) : null,
+        cost_price: r.costPrice ? Number(r.costPrice) : null,
+        stock_qty: r.stockQty ? Number(r.stockQty) : 0,
+        sku: r.sku.trim() || null,
+        main_image_url: r.mainImageUrl.trim() || mainImageUrl.trim() || null,
+      }));
+      const { error: variantErr } = await supabase.from("product_variants").insert(variantRows);
+      if (variantErr) {
+        setError(variantErr.message);
+        setSaving(false);
+        return;
+      }
+    }
+
+    navigate({ to: "/store/products" });
+  }
+
+  return (
+    <div className="min-h-dvh bg-white pb-10">
+      <div className="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
+        <button
+          onClick={() => navigate({ to: "/store/products" })}
+          className="text-sm text-gray-500 flex items-center gap-0.5 -ml-1"
+        >
+          <ChevronLeft size={18} />
+          Cancel
+        </button>
+        <button
+          onClick={() => setTypeSwitchOpen(true)}
+          type="button"
+          className="text-sm font-medium text-gray-900 flex items-center gap-1"
+        >
+          {kind === "regular" ? "Regular product" : "Product with variations"}
+          <ChevronDown size={14} className="text-gray-400" />
+        </button>
+      </div>
+
+      {error && <p className="px-4 pt-3 text-sm text-red-500">{error}</p>}
+
+      <MediaSection mainImageUrl={mainImageUrl} onChange={setMainImageUrl} />
+
+      <DetailsSection
+        title={title}
+        setTitle={setTitle}
+        descriptionShort={descriptionShort}
+        setDescriptionShort={setDescriptionShort}
+        categoryPath={categoryPath}
+        onOpenCategoryPicker={() => setCategoryPickerOpen(true)}
+        price={price}
+        setPrice={setPrice}
+        compareAtPrice={compareAtPrice}
+        setCompareAtPrice={setCompareAtPrice}
+        costPrice={costPrice}
+        setCostPrice={setCostPrice}
+        expanded={expanded === "description" || expanded === "price" ? expanded : null}
+        setExpanded={setExpanded}
+      />
+
+      {kind === "regular" ? (
+        <div className="px-4 py-4 border-b-8 border-gray-50">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[15px] font-semibold text-gray-900">Inventory</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-[15px] text-gray-900">Available</span>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setStockQty((q) => Math.max(0, q - 1))}
+                className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600"
+              >
+                −
+              </button>
+              <span className="w-10 text-center text-[15px] font-medium bg-gray-100 rounded-full py-1">
+                {stockQty}
+              </span>
+              <button
+                type="button"
+                onClick={() => setStockQty((q) => q + 1)}
+                className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600"
+              >
+                +
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <VariantMatrixBuilder
+          options={options}
+          setOptions={setOptions}
+          rows={rows}
+          setRows={setRows}
+        />
+      )}
+
+      <StubRow icon={<Truck size={18} />} label="Shipping" />
+      <ExpandRow
+        icon={<Package size={18} />}
+        label="Type"
+        value={productType}
+        expanded={expanded === "type"}
+        onToggle={() => toggle("type")}
+      >
+        <TextField
+          label="Product type"
+          value={productType}
+          onChange={setProductType}
+          placeholder="e.g. Hoodie"
+        />
+      </ExpandRow>
+      <ExpandRow
+        icon={<StoreIcon size={18} />}
+        label="Vendor"
+        value={brand || "My Store"}
+        expanded={expanded === "vendor"}
+        onToggle={() => toggle("vendor")}
+      >
+        <TextField label="Brand" value={brand} onChange={setBrand} />
+      </ExpandRow>
+      {kind === "regular" && (
+        <ExpandRow
+          icon={<Layers size={18} />}
+          label="Material"
+          value={material}
+          expanded={expanded === "material"}
+          onToggle={() => toggle("material")}
+        >
+          <TextField label="Material" value={material} onChange={setMaterial} />
+        </ExpandRow>
+      )}
+      <StubRow icon={<Tag size={18} />} label="Collections" />
+      <StubRow icon={<Hash size={18} />} label="Tags" />
+      <StubRow icon={<Search size={18} />} label="SEO" isLast />
+
+      {categoryPickerOpen && (
+        <CategoryPicker
+          onSelect={(path) => {
+            setCategoryPath(path);
+            setCategoryPickerOpen(false);
+          }}
+          onClose={() => setCategoryPickerOpen(false)}
+        />
+      )}
+
+      {typeSwitchOpen && (
+        <ProductTypeSwitchSheet
+          current={kind}
+          onSelect={handleTypeSwitch}
+          onClose={() => setTypeSwitchOpen(false)}
+        />
+      )}
+
+      {/* TODO: save area — waiting on spec */}
+    </div>
+  );
+}
