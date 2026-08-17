@@ -9,7 +9,6 @@ export function MediaSection({
 }) {
   return (
     <div className="px-4 py-5 border-b-8 border-gray-50">
-      <p className="text-[15px] font-semibold text-gray-900 mb-4">Media</p>
       <div className="w-full flex flex-col items-center gap-2">
         <div className="w-24 h-24 rounded-2xl bg-gray-100 flex items-center justify-center overflow-hidden">
           {mainImageUrl ? (

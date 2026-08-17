@@ -1,16 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import {
-  ChevronLeft,
-  ChevronDown,
-  Truck,
-  Package,
-  Store as StoreIcon,
-  Tag,
-  Hash,
-  Search,
-  Layers,
-} from "lucide-react";
+import { ChevronLeft, ChevronDown, Truck, Package, Store as StoreIcon, Tag, Hash, Search, Layers } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { CategoryNode } from "@/lib/categories";
 import { StubRow, ExpandRow, TextField } from "@/components/product-form/ui";
@@ -49,7 +39,7 @@ type ExpandedSection = "description" | "price" | "type" | "vendor" | "material" 
 function NewProduct() {
   const navigate = useNavigate();
 
-  const [kind, setKind] = useState<ProductKind>("regular");
+  const [kind, setKind] = useState<ProductKind>("variant");
   const [status, setStatus] = useState<"draft" | "active">("draft");
   const [mainImageUrl, setMainImageUrl] = useState("");
   const [title, setTitle] = useState("");
@@ -83,8 +73,6 @@ function NewProduct() {
   function handleTypeSwitch(next: ProductKind) {
     setTypeSwitchOpen(false);
     setKind(next);
-    // Nothing is discarded — each side keeps its own state, so switching
-    // back and forth is always safe.
   }
 
   async function handleSave() {
@@ -246,12 +234,7 @@ function NewProduct() {
           </div>
         </div>
       ) : (
-        <VariantMatrixBuilder
-          options={options}
-          setOptions={setOptions}
-          rows={rows}
-          setRows={setRows}
-        />
+        <VariantMatrixBuilder options={options} setOptions={setOptions} rows={rows} setRows={setRows} />
       )}
 
       <StubRow icon={<Truck size={18} />} label="Shipping" />
@@ -262,12 +245,7 @@ function NewProduct() {
         expanded={expanded === "type"}
         onToggle={() => toggle("type")}
       >
-        <TextField
-          label="Product type"
-          value={productType}
-          onChange={setProductType}
-          placeholder="e.g. Hoodie"
-        />
+        <TextField label="Product type" value={productType} onChange={setProductType} placeholder="e.g. Hoodie" />
       </ExpandRow>
       <ExpandRow
         icon={<StoreIcon size={18} />}

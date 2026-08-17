@@ -46,7 +46,7 @@ export function DetailsSection({
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         placeholder="Product title"
-        className="w-full text-2xl text-gray-900 placeholder:text-gray-300 outline-none pb-3 border-b border-gray-100"
+        className="w-full text-2xl font-semibold text-gray-900 placeholder:text-gray-600 outline-none pb-3 border-b border-gray-100"
       />
 
       <button
