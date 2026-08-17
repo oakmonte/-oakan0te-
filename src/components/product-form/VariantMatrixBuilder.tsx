@@ -46,6 +46,9 @@ export function VariantMatrixBuilder({
   setRows: (fn: (prev: VariantRow[]) => VariantRow[]) => void;
 }) {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkPrice, setBulkPrice] = useState("");
+  const [bulkStock, setBulkStock] = useState("");
 
   // Regenerate rows whenever options/values change, preserving existing row data by key.
   useEffect(() => {
@@ -79,6 +82,19 @@ export function VariantMatrixBuilder({
 
   function updateRow(key: string, patch: Partial<VariantRow>) {
     setRows((prev) => prev.map((r) => (r.key === key ? { ...r, ...patch } : r)));
+  }
+
+  // Only overwrite the fields the seller actually filled in, so applying a
+  // price doesn't silently wipe stock counts they already entered by hand.
+  function applyToAll() {
+    const patch: Partial<VariantRow> = {};
+    if (bulkPrice.trim()) patch.price = bulkPrice.trim();
+    if (bulkStock.trim()) patch.stockQty = bulkStock.trim();
+    if (Object.keys(patch).length === 0) return;
+    setRows((prev) => prev.map((r) => ({ ...r, ...patch })));
+    setBulkPrice("");
+    setBulkStock("");
+    setBulkOpen(false);
   }
 
   return (
@@ -132,7 +148,37 @@ export function VariantMatrixBuilder({
 
       {rows.length > 0 && (
         <div className="px-4 pb-4">
-          <p className="text-xs text-gray-400 mb-2">{rows.length} variants</p>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs text-gray-400">{rows.length} variants</p>
+            <button
+              type="button"
+              onClick={() => setBulkOpen((v) => !v)}
+              className="text-xs text-gray-500 border border-gray-200 rounded-full px-3 py-1.5"
+            >
+              Apply to all
+            </button>
+          </div>
+
+          {bulkOpen && (
+            <div className="border border-gray-200 rounded-xl p-3 mb-3 bg-gray-50">
+              <p className="text-xs text-gray-500 mb-2">
+                Fill every variant at once — you can still edit them individually after.
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <MiniField label="Price" value={bulkPrice} onChange={setBulkPrice} />
+                <MiniField label="Stock" value={bulkStock} onChange={setBulkStock} />
+              </div>
+              <button
+                type="button"
+                onClick={applyToAll}
+                disabled={!bulkPrice.trim() && !bulkStock.trim()}
+                className="mt-3 w-full bg-black text-white text-sm font-medium rounded-lg py-2.5 disabled:bg-gray-200 disabled:text-gray-400"
+              >
+                Apply
+              </button>
+            </div>
+          )}
+
           <div className="flex flex-col gap-3">
             {rows.map((row) => (
               <div key={row.key} className="border border-gray-200 rounded-xl p-3">
