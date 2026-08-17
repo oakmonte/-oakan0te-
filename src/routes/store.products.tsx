@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useCallback } from "react";
-import { Search, Plus, X, Link } from "lucide-react";
+import { Search, Plus } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useNavigate } from "@tanstack/react-router";
+import { CreateProductTypeModal } from "@/components/product-form/CreateProductTypeModal";
 
 export const Route = createFileRoute("/store/products")({
   component: StoreProducts,
@@ -45,18 +46,6 @@ type ProductRow = {
   }[];
 };
 
-function slugify(title: string) {
-  return (
-    title
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "") +
-    "-" +
-    Math.random().toString(36).slice(2, 7)
-  );
-}
-
 function StoreProducts() {
   const navigate = useNavigate();
   const [storeId, setStoreId] = useState<string | null>(null);
@@ -66,7 +55,7 @@ function StoreProducts() {
   const [search, setSearch] = useState("");
   const [products, setProducts] = useState<ProductRow[]>([]);
   const [listLoading, setListLoading] = useState(true);
-  const [sheetOpen, setSheetOpen] = useState(false);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -101,6 +90,13 @@ function StoreProducts() {
     fetchProducts();
   }, [fetchProducts]);
 
+  function handleTypeSelect(type: "regular" | "variant") {
+    setCreateModalOpen(false);
+    navigate({
+      to: type === "regular" ? "/store/products/new-regular" : "/store/products/new-variant",
+    });
+  }
+
   if (storeLoading) return <div className="px-4 py-8 text-sm text-gray-400">Loading…</div>;
   if (!storeId)
     return (
@@ -119,11 +115,11 @@ function StoreProducts() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search products"
-            className="bg-transparent text-sm flex-1 outline-none"
+            className="bg-transparent text-base flex-1 outline-none"
           />
         </div>
         <button
-          onClick={() => navigate({ to: "/store/products/new" })}
+          onClick={() => setCreateModalOpen(true)}
           className="p-2 rounded-lg bg-black text-white"
         >
           <Plus size={16} />
@@ -165,6 +161,9 @@ function StoreProducts() {
                   <p className="text-xs text-gray-500">
                     {v?.price != null ? `₦${v.price.toLocaleString()}` : "No price"} ·{" "}
                     {v?.stock_qty ?? 0} in stock
+                    {p.product_variants.length > 1
+                      ? ` · ${p.product_variants.length} variants`
+                      : ""}
                   </p>
                 </div>
                 <span className="text-[11px] px-2 py-1 rounded-full bg-gray-100 text-gray-500 capitalize">
@@ -176,210 +175,12 @@ function StoreProducts() {
         </div>
       )}
 
-      {sheetOpen && (
-        <CreateProductSheet
-          storeId={storeId}
-          onClose={() => setSheetOpen(false)}
-          onCreated={() => {
-            setSheetOpen(false);
-            fetchProducts();
-          }}
+      {createModalOpen && (
+        <CreateProductTypeModal
+          onClose={() => setCreateModalOpen(false)}
+          onSelect={handleTypeSelect}
         />
       )}
     </div>
-  );
-}
-
-function CreateProductSheet({
-  storeId,
-  onClose,
-  onCreated,
-}: {
-  storeId: string;
-  onClose: () => void;
-  onCreated: () => void;
-}) {
-  const [title, setTitle] = useState("");
-  const [productType, setProductType] = useState("");
-  const [brand, setBrand] = useState("");
-  const [descriptionShort, setDescriptionShort] = useState("");
-  const [price, setPrice] = useState("");
-  const [compareAtPrice, setCompareAtPrice] = useState("");
-  const [costPrice, setCostPrice] = useState("");
-  const [stockQty, setStockQty] = useState("");
-  const [material, setMaterial] = useState("");
-  const [mainImageUrl, setMainImageUrl] = useState("");
-  const [status, setStatus] = useState<"draft" | "active">("draft");
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-
-  async function handleSave() {
-    if (!title.trim() || !price.trim()) {
-      setError("Title and price are required");
-      return;
-    }
-    setSaving(true);
-    setError("");
-
-    const { data: product, error: productErr } = await supabase
-      .from("products")
-      .insert({
-        store_id: storeId,
-        handle: slugify(title),
-        title: title.trim(),
-        description_short: descriptionShort.trim() || null,
-        product_type: productType.trim() || null,
-        brand: brand.trim() || null,
-        status,
-        source_platform: "manual",
-        is_complete: true,
-      })
-      .select("id")
-      .single();
-
-    if (productErr || !product) {
-      setError(productErr?.message ?? "Failed to create product");
-      setSaving(false);
-      return;
-    }
-
-    const { error: variantErr } = await supabase.from("product_variants").insert({
-      product_id: product.id,
-      price: Number(price),
-      compare_at_price: compareAtPrice ? Number(compareAtPrice) : null,
-      cost_price: costPrice ? Number(costPrice) : null,
-      stock_qty: stockQty ? Number(stockQty) : 0,
-      material: material.trim() || null,
-      main_image_url: mainImageUrl.trim() || null,
-    });
-
-    if (variantErr) {
-      setError(variantErr.message);
-      setSaving(false);
-      return;
-    }
-
-    onCreated();
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-end">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative w-full max-h-[90vh] overflow-y-auto bg-white rounded-t-2xl p-5">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-semibold text-base">New product</h2>
-          <button onClick={onClose} className="p-1">
-            <X size={20} />
-          </button>
-        </div>
-
-        <div className="flex flex-col gap-3">
-          <Field label="Title *">
-            <input value={title} onChange={(e) => setTitle(e.target.value)} className="input" />
-          </Field>
-          <Field label="Product type">
-            <input
-              value={productType}
-              onChange={(e) => setProductType(e.target.value)}
-              className="input"
-              placeholder="e.g. Hoodie"
-            />
-          </Field>
-          <Field label="Brand">
-            <input value={brand} onChange={(e) => setBrand(e.target.value)} className="input" />
-          </Field>
-          <Field label="Short description">
-            <textarea
-              value={descriptionShort}
-              onChange={(e) => setDescriptionShort(e.target.value)}
-              className="input"
-              rows={2}
-            />
-          </Field>
-
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Price *">
-              <input
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                type="number"
-                className="input"
-              />
-            </Field>
-            <Field label="Compare-at price">
-              <input
-                value={compareAtPrice}
-                onChange={(e) => setCompareAtPrice(e.target.value)}
-                type="number"
-                className="input"
-              />
-            </Field>
-            <Field label="Cost price">
-              <input
-                value={costPrice}
-                onChange={(e) => setCostPrice(e.target.value)}
-                type="number"
-                className="input"
-              />
-            </Field>
-            <Field label="Stock qty">
-              <input
-                value={stockQty}
-                onChange={(e) => setStockQty(e.target.value)}
-                type="number"
-                className="input"
-              />
-            </Field>
-          </div>
-
-          <Field label="Material">
-            <input
-              value={material}
-              onChange={(e) => setMaterial(e.target.value)}
-              className="input"
-            />
-          </Field>
-          <Field label="Image URL">
-            <input
-              value={mainImageUrl}
-              onChange={(e) => setMainImageUrl(e.target.value)}
-              className="input"
-              placeholder="Paste an image URL for now"
-            />
-          </Field>
-
-          <div className="flex gap-2">
-            {(["draft", "active"] as const).map((s) => (
-              <button
-                key={s}
-                onClick={() => setStatus(s)}
-                className={`flex-1 py-2 rounded-lg text-sm capitalize ${status === s ? "bg-black text-white" : "bg-gray-100 text-gray-500"}`}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
-
-          {error && <p className="text-sm text-red-500">{error}</p>}
-
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="w-full bg-black text-white rounded-lg py-3 text-sm font-medium disabled:opacity-50 mt-2"
-          >
-            {saving ? "Saving..." : "Save product"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="flex flex-col gap-1">
-      <span className="text-xs text-gray-500">{label}</span>
-      {children}
-    </label>
   );
 }

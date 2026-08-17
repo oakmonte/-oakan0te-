@@ -8,12 +8,15 @@ import { StatusSheet } from "@/components/product-form/StatusSheet";
 import { MediaSection } from "@/components/product-form/MediaSection";
 import { DetailsSection } from "@/components/product-form/DetailsSection";
 import { PublishingSection } from "@/components/product-form/PublishingSection";
-import { VariantsSection } from "@/components/product-form/VariantsSection";
-import { InventorySection } from "@/components/product-form/InventorySection";
 import { CategoryPicker } from "@/components/product-form/CategoryPicker";
+import {
+  VariantMatrixBuilder,
+  VariantOption,
+  VariantRow,
+} from "@/components/product-form/VariantMatrixBuilder";
 
-export const Route = createFileRoute("/store/products_/new")({
-  component: NewProduct,
+export const Route = createFileRoute("/store/products/new-variant")({
+  component: NewVariantProduct,
 });
 
 // TODO: dev-only, matches store.products.tsx. Revert before launch.
@@ -31,9 +34,9 @@ function slugify(title: string) {
   );
 }
 
-type ExpandedSection = "description" | "price" | "options" | "type" | "vendor" | null;
+type ExpandedSection = "description" | "price" | "type" | "vendor" | null;
 
-function NewProduct() {
+function NewVariantProduct() {
   const navigate = useNavigate();
 
   const [status, setStatus] = useState<"draft" | "active">("active");
@@ -42,17 +45,15 @@ function NewProduct() {
   const [descriptionShort, setDescriptionShort] = useState("");
   const [categoryPath, setCategoryPath] = useState<CategoryNode[]>([]);
 
+  // Base price fields shown at the top — used as a default reference; real
+  // pricing lives per-row once options are defined.
   const [price, setPrice] = useState("");
   const [compareAtPrice, setCompareAtPrice] = useState("");
   const [costPrice, setCostPrice] = useState("");
 
-  const [option1Name, setOption1Name] = useState("");
-  const [option1Value, setOption1Value] = useState("");
-  const [option2Name, setOption2Name] = useState("");
-  const [option2Value, setOption2Value] = useState("");
-  const [material, setMaterial] = useState("");
+  const [options, setOptions] = useState<VariantOption[]>([{ name: "", values: [] }]);
+  const [rows, setRows] = useState<VariantRow[]>([]);
 
-  const [stockQty, setStockQty] = useState(0);
   const [productType, setProductType] = useState("");
   const [brand, setBrand] = useState("");
 
@@ -72,9 +73,13 @@ function NewProduct() {
       setError("Title is required");
       return;
     }
-    if (!price.trim()) {
-      setError("Price is required");
-      setExpanded("price");
+    if (rows.length === 0) {
+      setError("Add at least one option value to generate variants");
+      return;
+    }
+    const missingPrice = rows.find((r) => !r.price.trim());
+    if (missingPrice) {
+      setError("Every variant needs a price");
       return;
     }
 
@@ -103,19 +108,21 @@ function NewProduct() {
       return;
     }
 
-    const { error: variantErr } = await supabase.from("product_variants").insert({
+    const variantRows = rows.map((r) => ({
       product_id: product.id,
-      option1_name: option1Name.trim() || null,
-      option1_value: option1Value.trim() || null,
-      option2_name: option2Name.trim() || null,
-      option2_value: option2Value.trim() || null,
-      price: Number(price),
-      compare_at_price: compareAtPrice ? Number(compareAtPrice) : null,
-      cost_price: costPrice ? Number(costPrice) : null,
-      stock_qty: stockQty,
-      material: material.trim() || null,
-      main_image_url: mainImageUrl.trim() || null,
-    });
+      option1_name: options[0]?.name.trim() || null,
+      option1_value: r.option1Value,
+      option2_name: options[1]?.name.trim() || null,
+      option2_value: r.option2Value,
+      price: Number(r.price),
+      compare_at_price: r.compareAtPrice ? Number(r.compareAtPrice) : null,
+      cost_price: r.costPrice ? Number(r.costPrice) : null,
+      stock_qty: r.stockQty ? Number(r.stockQty) : 0,
+      sku: r.sku.trim() || null,
+      main_image_url: r.mainImageUrl.trim() || mainImageUrl.trim() || null,
+    }));
+
+    const { error: variantErr } = await supabase.from("product_variants").insert(variantRows);
 
     if (variantErr) {
       setError(variantErr.message);
@@ -152,14 +159,12 @@ function NewProduct() {
         className="w-full flex items-center justify-between px-4 py-4 border-b-8 border-gray-50"
       >
         <span className="text-[15px] font-semibold text-gray-900">Product status</span>
-        <span className="flex items-center gap-1">
-          <span
-            className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-              status === "active" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
-            }`}
-          >
-            {status === "active" ? "Active" : "Draft"}
-          </span>
+        <span
+          className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+            status === "active" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
+          }`}
+        >
+          {status === "active" ? "Active" : "Draft"}
         </span>
       </button>
 
@@ -184,22 +189,7 @@ function NewProduct() {
 
       <PublishingSection />
 
-      <VariantsSection
-        expanded={expanded === "options"}
-        onToggle={() => toggle("options")}
-        option1Name={option1Name}
-        setOption1Name={setOption1Name}
-        option1Value={option1Value}
-        setOption1Value={setOption1Value}
-        option2Name={option2Name}
-        setOption2Name={setOption2Name}
-        option2Value={option2Value}
-        setOption2Value={setOption2Value}
-        material={material}
-        setMaterial={setMaterial}
-      />
-
-      <InventorySection stockQty={stockQty} setStockQty={setStockQty} />
+      <VariantMatrixBuilder options={options} setOptions={setOptions} rows={rows} setRows={setRows} />
 
       <StubRow icon={<Truck size={18} />} label="Shipping" />
       <ExpandRow
@@ -209,12 +199,7 @@ function NewProduct() {
         expanded={expanded === "type"}
         onToggle={() => toggle("type")}
       >
-        <TextField
-          label="Product type"
-          value={productType}
-          onChange={setProductType}
-          placeholder="e.g. Hoodie"
-        />
+        <TextField label="Product type" value={productType} onChange={setProductType} placeholder="e.g. Hoodie" />
       </ExpandRow>
       <ExpandRow
         icon={<StoreIcon size={18} />}
