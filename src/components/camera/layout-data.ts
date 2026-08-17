@@ -1,9 +1,4 @@
-export type LayoutCategory =
-  | "featured"
-  | "fashion"
-  | "classic"
-  | "magazine"
-  | "saved";
+export type LayoutCategory = "featured" | "fashion" | "classic" | "magazine" | "saved";
 
 /**
  * The subset of LayoutCategory that a layout's own `category` field can

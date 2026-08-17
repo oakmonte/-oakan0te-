@@ -36,19 +36,9 @@ const OPTIONS: {
   },
 ];
 
-export default function TimerPanel({
-  open,
-  value,
-  onClose,
-  onChange,
-}: TimerPanelProps) {
+export default function TimerPanel({ open, value, onClose, onChange }: TimerPanelProps) {
   return (
-    <CameraPanel
-      open={open}
-      onClose={onClose}
-      title="Capture Timer"
-      height={390}
-    >
+    <CameraPanel open={open} onClose={onClose} title="Capture Timer" height={390}>
       <div className="flex flex-col gap-3 pb-4">
         {OPTIONS.map((option) => {
           const selected = option.value === value;
@@ -66,13 +56,9 @@ export default function TimerPanel({
                 textAlign: "left",
                 borderRadius: 18,
                 padding: "18px 20px",
-                background: selected
-                  ? "#ffffff"
-                  : "rgba(255,255,255,0.06)",
+                background: selected ? "#ffffff" : "rgba(255,255,255,0.06)",
                 color: selected ? "#000000" : "#ffffff",
-                border: selected
-                  ? "1px solid transparent"
-                  : "1px solid rgba(255,255,255,0.08)",
+                border: selected ? "1px solid transparent" : "1px solid rgba(255,255,255,0.08)",
               }}
             >
               <div className="flex items-center justify-between">
@@ -104,9 +90,7 @@ export default function TimerPanel({
                     width: 28,
                     height: 28,
                     borderRadius: "9999px",
-                    border: selected
-                      ? "8px solid #000"
-                      : "2px solid rgba(255,255,255,0.35)",
+                    border: selected ? "8px solid #000" : "2px solid rgba(255,255,255,0.35)",
                     background: selected ? "#fff" : "transparent",
                     flexShrink: 0,
                   }}

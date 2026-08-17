@@ -35,7 +35,8 @@ function drawTextLayer(ctx: CanvasRenderingContext2D, layer: TextLayer, canvasW:
     const padY = fontSize * 0.15;
     const boxW = metrics.width + padX * 2;
     const boxH = fontSize + padY * 2;
-    const boxX = layer.align === "left" ? -padX : layer.align === "right" ? -boxW + padX : -boxW / 2;
+    const boxX =
+      layer.align === "left" ? -padX : layer.align === "right" ? -boxW + padX : -boxW / 2;
     ctx.fillStyle = layer.boxColor;
     ctx.fillRect(boxX, -boxH / 2, boxW, boxH);
   }
@@ -44,7 +45,11 @@ function drawTextLayer(ctx: CanvasRenderingContext2D, layer: TextLayer, canvasW:
   ctx.fillText(layer.content, 0, 0);
 }
 
-async function drawStickerLayer(ctx: CanvasRenderingContext2D, layer: StickerLayer, canvasW: number) {
+async function drawStickerLayer(
+  ctx: CanvasRenderingContext2D,
+  layer: StickerLayer,
+  canvasW: number,
+) {
   const img = new Image();
   img.crossOrigin = "anonymous";
   await new Promise<void>((resolve, reject) => {
@@ -84,7 +89,12 @@ function drawDrawLayer(ctx: CanvasRenderingContext2D, layer: DrawLayer, canvasW:
 
 // Single entry point every layer kind funnels through — bake-time mirror of
 // what renderLayerContent does at edit-time in LayerOverlay.tsx.
-async function drawLayer(ctx: CanvasRenderingContext2D, layer: Layer, canvasW: number, canvasH: number) {
+async function drawLayer(
+  ctx: CanvasRenderingContext2D,
+  layer: Layer,
+  canvasW: number,
+  canvasH: number,
+) {
   await withLayerTransformAsync(ctx, layer, canvasW, canvasH, async () => {
     if (layer.kind === "text") drawTextLayer(ctx, layer, canvasW);
     else if (layer.kind === "sticker") await drawStickerLayer(ctx, layer, canvasW);
@@ -113,7 +123,12 @@ async function withLayerTransformAsync(
   ctx.restore();
 }
 
-async function drawAllLayers(ctx: CanvasRenderingContext2D, layers: Layer[], canvasW: number, canvasH: number) {
+async function drawAllLayers(
+  ctx: CanvasRenderingContext2D,
+  layers: Layer[],
+  canvasW: number,
+  canvasH: number,
+) {
   const sorted = [...layers].sort((a, b) => a.zIndex - b.zIndex);
   for (const layer of sorted) {
     await drawLayer(ctx, layer, canvasW, canvasH);
@@ -141,7 +156,11 @@ export async function bakeLayersOntoPhotoBlob(blob: Blob, layers: Layer[]): Prom
     await drawAllLayers(ctx, layers, canvas.width, canvas.height);
 
     return await new Promise<Blob>((resolve, reject) => {
-      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob failed"))), "image/jpeg", 0.96);
+      canvas.toBlob(
+        (b) => (b ? resolve(b) : reject(new Error("toBlob failed"))),
+        "image/jpeg",
+        0.96,
+      );
     });
   } finally {
     URL.revokeObjectURL(url);
@@ -182,7 +201,11 @@ export async function bakeLayersOntoVideoBlob(
       ),
   );
 
-  const drawStickerLayerCached = (ctx: CanvasRenderingContext2D, layer: StickerLayer, canvasW: number) => {
+  const drawStickerLayerCached = (
+    ctx: CanvasRenderingContext2D,
+    layer: StickerLayer,
+    canvasW: number,
+  ) => {
     const img = stickerCache.get(layer.id);
     if (!img) return;
     const baseW = canvasW * 0.25;
@@ -224,13 +247,20 @@ export async function bakeLayersOntoVideoBlob(
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("Canvas 2D context unavailable");
 
-    const sourceStream = (video as HTMLVideoElement & { captureStream: () => MediaStream }).captureStream();
+    const sourceStream = (
+      video as HTMLVideoElement & { captureStream: () => MediaStream }
+    ).captureStream();
     const audioTracks = sourceStream.getAudioTracks();
 
     const canvasStream = canvas.captureStream(30);
     audioTracks.forEach((t) => canvasStream.addTrack(t));
 
-    const candidates = ["video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm", "video/mp4"];
+    const candidates = [
+      "video/webm;codecs=vp9",
+      "video/webm;codecs=vp8",
+      "video/webm",
+      "video/mp4",
+    ];
     const mimeType = candidates.find((t) => MediaRecorder.isTypeSupported(t)) ?? "";
     const recorder = new MediaRecorder(canvasStream, mimeType ? { mimeType } : undefined);
     const chunks: Blob[] = [];
@@ -242,7 +272,8 @@ export async function bakeLayersOntoVideoBlob(
     const drawFrame = () => {
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       drawAllLayersSync(ctx, canvas.width, canvas.height);
-      if (onProgress && video.duration > 0) onProgress(Math.min(1, video.currentTime / video.duration));
+      if (onProgress && video.duration > 0)
+        onProgress(Math.min(1, video.currentTime / video.duration));
       rafId = requestAnimationFrame(drawFrame);
     };
 

@@ -93,7 +93,12 @@ export default function CropPanel({ open, containerRef, naturalSize, onClose }: 
   const [rect, setRect] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
 
   const dragRef = useRef<
-    | { mode: "move"; startX: number; startY: number; startRect: { x: number; y: number; w: number; h: number } }
+    | {
+        mode: "move";
+        startX: number;
+        startY: number;
+        startRect: { x: number; y: number; w: number; h: number };
+      }
     | { mode: "resize"; corner: Corner }
     | null
   >(null);
@@ -231,7 +236,10 @@ export default function CropPanel({ open, containerRef, naturalSize, onClose }: 
   if (!open) return null;
 
   return (
-    <div className="absolute inset-0 z-40 flex flex-col" style={{ fontFamily: "'SF Pro', system-ui, sans-serif" }}>
+    <div
+      className="absolute inset-0 z-40 flex flex-col"
+      style={{ fontFamily: "'SF Pro', system-ui, sans-serif" }}
+    >
       <div className="flex items-center justify-between px-4 pt-[calc(env(safe-area-inset-top)+12px)]">
         <button
           onClick={handleCancel}
@@ -292,7 +300,15 @@ export default function CropPanel({ open, containerRef, naturalSize, onClose }: 
                   touchAction: "none",
                 }}
               >
-                <div style={{ width: "100%", height: "100%", borderRadius: "50%", background: "#fff", border: "2px solid #000" }} />
+                <div
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    borderRadius: "50%",
+                    background: "#fff",
+                    border: "2px solid #000",
+                  }}
+                />
               </div>
             ))}
           </div>

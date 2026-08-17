@@ -69,9 +69,7 @@ export function useAfterShotLayersState(): AfterShotLayersContextValue {
   }, []);
 
   const updateLayer = useCallback((id: string, patch: Partial<Layer>) => {
-    setLayers((prev) =>
-      prev.map((l) => (l.id === id ? ({ ...l, ...patch } as Layer) : l)),
-    );
+    setLayers((prev) => prev.map((l) => (l.id === id ? ({ ...l, ...patch } as Layer) : l)));
   }, []);
 
   const removeLayer = useCallback((id: string) => {

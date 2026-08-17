@@ -56,7 +56,6 @@ function StoreProducts() {
   const [products, setProducts] = useState<ProductRow[]>([]);
   const [listLoading, setListLoading] = useState(true);
 
-
   useEffect(() => {
     let cancelled = false;
     getDevStoreId().then((store) => {
@@ -89,7 +88,6 @@ function StoreProducts() {
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
-
 
   if (storeLoading) return <div className="px-4 py-8 text-sm text-gray-400">Loading…</div>;
   if (!storeId)

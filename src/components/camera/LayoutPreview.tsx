@@ -40,9 +40,7 @@ export default function LayoutPreview({
               overflow: "hidden",
               borderRadius: 4,
               background: "rgba(255,255,255,0.12)",
-              border: isActive
-                ? "2px solid #fff"
-                : "1px solid rgba(255,255,255,0.18)",
+              border: isActive ? "2px solid #fff" : "1px solid rgba(255,255,255,0.18)",
               boxSizing: "border-box",
             }}
           >

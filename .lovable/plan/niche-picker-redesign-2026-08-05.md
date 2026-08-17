@@ -34,3 +34,4 @@ Also: typing in the search box filters the visible chips (currently it only adds
 ## Technical notes
 
 Single-file change to `src/routes/creator-niche.tsx`. No backend or data-model changes — selections still go to `sessionStorage` and navigate to `/find-your-fit`.
+```

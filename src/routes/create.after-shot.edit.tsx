@@ -1,8 +1,17 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState, useCallback } from "react";
 import {
-  X, Check, Play, Volume2, VolumeX,
-  Type, Pencil, Sticker, Blend, Link2, Crop,
+  X,
+  Check,
+  Play,
+  Volume2,
+  VolumeX,
+  Type,
+  Pencil,
+  Sticker,
+  Blend,
+  Link2,
+  Crop,
 } from "lucide-react";
 import { TrimIcon } from "@/components/camera/aftershot-icons";
 import { useAfterShotContext } from "@/lib/after-shot-context";
@@ -259,23 +268,38 @@ function TrimPage() {
         </button>
       </div>
 
-      <div className="flex items-center justify-between px-5 text-xs opacity-60 tabular-nums" style={{ marginBottom: 10 }}>
+      <div
+        className="flex items-center justify-between px-5 text-xs opacity-60 tabular-nums"
+        style={{ marginBottom: 10 }}
+      >
         <span>{playhead.toFixed(1)}s</span>
-        <button onClick={() => setMuted((m) => !m)} aria-label={muted ? "Unmute" : "Mute"} className="opacity-100">
+        <button
+          onClick={() => setMuted((m) => !m)}
+          aria-label={muted ? "Unmute" : "Mute"}
+          className="opacity-100"
+        >
           {muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
         </button>
         <span>{selectedDuration.toFixed(1)}s selected</span>
       </div>
 
       <div className="px-5 z-20">
-        <div ref={trackRef} className="relative rounded-xl overflow-hidden" style={{ height: 56, background: "#1a1a1a" }}>
+        <div
+          ref={trackRef}
+          className="relative rounded-xl overflow-hidden"
+          style={{ height: 56, background: "#1a1a1a" }}
+        >
           <div className="absolute inset-0 flex">
             {thumbnails.length > 0 ? (
               thumbnails.map((src, i) => (
                 <div
                   key={i}
                   className="h-full flex-1"
-                  style={{ backgroundImage: `url(${src})`, backgroundSize: "cover", backgroundPosition: "center" }}
+                  style={{
+                    backgroundImage: `url(${src})`,
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                  }}
                 />
               ))
             ) : (
@@ -294,11 +318,21 @@ function TrimPage() {
 
           <div
             className="absolute left-0 right-0 top-0 pointer-events-none"
-            style={{ height: 2, background: "#fff", marginLeft: `${timeToRatio(start) * 100}%`, marginRight: `${100 - timeToRatio(end) * 100}%` }}
+            style={{
+              height: 2,
+              background: "#fff",
+              marginLeft: `${timeToRatio(start) * 100}%`,
+              marginRight: `${100 - timeToRatio(end) * 100}%`,
+            }}
           />
           <div
             className="absolute left-0 right-0 bottom-0 pointer-events-none"
-            style={{ height: 2, background: "#fff", marginLeft: `${timeToRatio(start) * 100}%`, marginRight: `${100 - timeToRatio(end) * 100}%` }}
+            style={{
+              height: 2,
+              background: "#fff",
+              marginLeft: `${timeToRatio(start) * 100}%`,
+              marginRight: `${100 - timeToRatio(end) * 100}%`,
+            }}
           />
 
           {keyframes.map((k) => (

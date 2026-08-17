@@ -44,10 +44,30 @@ export function VariantsSection({
       </button>
       {expanded && (
         <div className="px-4 pb-4 grid grid-cols-2 gap-3">
-          <TextField label="Option 1 name" value={option1Name} onChange={setOption1Name} placeholder="Size" />
-          <TextField label="Option 1 value" value={option1Value} onChange={setOption1Value} placeholder="M" />
-          <TextField label="Option 2 name" value={option2Name} onChange={setOption2Name} placeholder="Color" />
-          <TextField label="Option 2 value" value={option2Value} onChange={setOption2Value} placeholder="Black" />
+          <TextField
+            label="Option 1 name"
+            value={option1Name}
+            onChange={setOption1Name}
+            placeholder="Size"
+          />
+          <TextField
+            label="Option 1 value"
+            value={option1Value}
+            onChange={setOption1Value}
+            placeholder="M"
+          />
+          <TextField
+            label="Option 2 name"
+            value={option2Name}
+            onChange={setOption2Name}
+            placeholder="Color"
+          />
+          <TextField
+            label="Option 2 value"
+            value={option2Value}
+            onChange={setOption2Value}
+            placeholder="Black"
+          />
           <div className="col-span-2">
             <TextField label="Material" value={material} onChange={setMaterial} />
           </div>

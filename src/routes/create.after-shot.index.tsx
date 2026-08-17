@@ -21,7 +21,12 @@ import FilterPanel from "@/components/camera/FilterPanel";
 import { CAMERA_FILTERS } from "@/components/camera/filter-data";
 import { applyFilterToPhotoBlob, applyFilterToVideoBlob } from "@/lib/filter-media";
 import LayerOverlay from "@/components/camera/LayerOverlay";
-import { useAfterShotLayers, AfterShotLayersContext, useAfterShotLayersState, type Layer } from "@/lib/after-shot-layers";
+import {
+  useAfterShotLayers,
+  AfterShotLayersContext,
+  useAfterShotLayersState,
+  type Layer,
+} from "@/lib/after-shot-layers";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
 
 export const Route = createFileRoute("/create/after-shot/")({
@@ -184,7 +189,9 @@ function AfterShotIndexPage() {
         {filterBusy && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/70 z-30">
             <span className="text-sm uppercase tracking-widest">
-              {media.type === "video" ? `Applying… ${Math.round(filterProgress * 100)}%` : "Applying…"}
+              {media.type === "video"
+                ? `Applying… ${Math.round(filterProgress * 100)}%`
+                : "Applying…"}
             </span>
           </div>
         )}
@@ -219,7 +226,7 @@ function AfterShotIndexPage() {
           containerRef={mediaBoxRef}
           naturalSize={naturalSize}
           onClose={closeTool}
-/>
+        />
       </div>
 
       {activeTool === null && (
@@ -327,50 +334,58 @@ function AfterShotIndexPage() {
 // (text/sticker/draw -> actual visual) out of the main component body.
 function useLayerRenderer(mediaBoxRef: React.RefObject<HTMLDivElement | null>) {
   const { layers } = useAfterShotLayers();
-  const renderLayerContent = useCallback((layer: Layer) => {
-    if (layer.kind === "text") {
-      const boxWidth = mediaBoxRef.current?.clientWidth ?? 0;
-      return (
-        <span
-          style={{
-            fontFamily: layer.font,
-            color: layer.color,
-            fontSize: layer.fontSize * boxWidth,
-            fontWeight: layer.fontWeight,
-            textAlign: layer.align,
-            whiteSpace: "pre-wrap",
-            textShadow: layer.boxColor ? "none" : "0 1px 4px rgba(0,0,0,0.4)",
-            background: layer.boxColor ?? "transparent",
-            padding: layer.boxColor ? "4px 10px" : 0,
-            borderRadius: layer.boxColor ? 4 : 0,
-            pointerEvents: "none",
-          }}
-        >
-          {layer.content}
-        </span>
-      );
-    }
-    if (layer.kind === "draw") {
-      const width = 200;
-      return (
-        <svg width={width} height={width} viewBox="-0.5 -0.5 1 1" style={{ overflow: "visible", pointerEvents: "none" }}>
-          {layer.strokes.map((stroke, i) => (
-            <polyline
-              key={i}
-              points={stroke.points.map(([x, y]) => `${x},${y}`).join(" ")}
-              fill="none"
-              stroke={stroke.color}
-              strokeWidth={stroke.width}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              vectorEffect="non-scaling-stroke"
-            />
-          ))}
-        </svg>
-      );
-    }
-    return null;
-  }, [mediaBoxRef]);
+  const renderLayerContent = useCallback(
+    (layer: Layer) => {
+      if (layer.kind === "text") {
+        const boxWidth = mediaBoxRef.current?.clientWidth ?? 0;
+        return (
+          <span
+            style={{
+              fontFamily: layer.font,
+              color: layer.color,
+              fontSize: layer.fontSize * boxWidth,
+              fontWeight: layer.fontWeight,
+              textAlign: layer.align,
+              whiteSpace: "pre-wrap",
+              textShadow: layer.boxColor ? "none" : "0 1px 4px rgba(0,0,0,0.4)",
+              background: layer.boxColor ?? "transparent",
+              padding: layer.boxColor ? "4px 10px" : 0,
+              borderRadius: layer.boxColor ? 4 : 0,
+              pointerEvents: "none",
+            }}
+          >
+            {layer.content}
+          </span>
+        );
+      }
+      if (layer.kind === "draw") {
+        const width = 200;
+        return (
+          <svg
+            width={width}
+            height={width}
+            viewBox="-0.5 -0.5 1 1"
+            style={{ overflow: "visible", pointerEvents: "none" }}
+          >
+            {layer.strokes.map((stroke, i) => (
+              <polyline
+                key={i}
+                points={stroke.points.map(([x, y]) => `${x},${y}`).join(" ")}
+                fill="none"
+                stroke={stroke.color}
+                strokeWidth={stroke.width}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                vectorEffect="non-scaling-stroke"
+              />
+            ))}
+          </svg>
+        );
+      }
+      return null;
+    },
+    [mediaBoxRef],
+  );
   return { layers, renderLayerContent };
 }
 

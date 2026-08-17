@@ -16,9 +16,9 @@ type LiquidGlassSegmentedProps<T extends string> = {
 
 // ── Tweak these while eyeballing on-device — every visual dimension routes
 // through these five values, nothing else in the file needs to change. ──
-const PILL_PADDING = 5;        // outer padding between track edge and tabs
+const PILL_PADDING = 5; // outer padding between track edge and tabs
 const TAB_VERTICAL_PADDING = 12; // ↑ raise this to make the whole pill taller
-const TRACK_OPACITY = 0.28;    // track background darkness (was ~0.45)
+const TRACK_OPACITY = 0.28; // track background darkness (was ~0.45)
 const TRACK_BORDER_OPACITY = 0.06; // track outline strength (was 0.08)
 const INDICATOR_BORDER_OPACITY = 0.22; // indicator ring strength (was 0.35 — was reading as too thick/defined)
 
@@ -30,7 +30,10 @@ export default function LiquidGlassSegmented<T extends string>({
   disabled = false,
   style,
 }: LiquidGlassSegmentedProps<T>) {
-  const activeIndex = Math.max(0, options.findIndex((o) => o.value === value));
+  const activeIndex = Math.max(
+    0,
+    options.findIndex((o) => o.value === value),
+  );
 
   return (
     <div

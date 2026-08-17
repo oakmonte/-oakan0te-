@@ -33,7 +33,11 @@ function rgbToHex(r: number, g: number, b: number) {
   return (
     "#" +
     [r, g, b]
-      .map((x) => Math.round(Math.min(255, Math.max(0, x))).toString(16).padStart(2, "0"))
+      .map((x) =>
+        Math.round(Math.min(255, Math.max(0, x)))
+          .toString(16)
+          .padStart(2, "0"),
+      )
       .join("")
   );
 }
@@ -47,11 +51,7 @@ function colorAtFraction(fraction: number): string {
   const t = scaled - idx;
   const c1 = hexToRgb(GRADIENT_STOPS[idx]);
   const c2 = hexToRgb(GRADIENT_STOPS[Math.min(idx + 1, GRADIENT_STOPS.length - 1)]);
-  return rgbToHex(
-    c1.r + (c2.r - c1.r) * t,
-    c1.g + (c2.g - c1.g) * t,
-    c1.b + (c2.b - c1.b) * t,
-  );
+  return rgbToHex(c1.r + (c2.r - c1.r) * t, c1.g + (c2.g - c1.g) * t, c1.b + (c2.b - c1.b) * t);
 }
 
 const BRUSH_WIDTHS = [
@@ -207,7 +207,10 @@ export default function DrawPanel({ open, containerRef, onClose }: DrawPanelProp
   if (!open) return null;
 
   return (
-    <div className="absolute inset-0 z-40 flex flex-col" style={{ fontFamily: "'SF Pro', system-ui, sans-serif" }}>
+    <div
+      className="absolute inset-0 z-40 flex flex-col"
+      style={{ fontFamily: "'SF Pro', system-ui, sans-serif" }}
+    >
       <div className="flex items-center justify-between px-4 pt-[calc(env(safe-area-inset-top)+12px)]">
         <button
           onClick={handleCancel}
@@ -277,7 +280,11 @@ export default function DrawPanel({ open, containerRef, onClose }: DrawPanelProp
         <div
           ref={sliderTrackRef}
           className="absolute right-3 top-1/4 bottom-1/4 rounded-full"
-          style={{ width: 6, background: GRADIENT_CSS, boxShadow: "0 0 0 1px rgba(255,255,255,0.25)" }}
+          style={{
+            width: 6,
+            background: GRADIENT_CSS,
+            boxShadow: "0 0 0 1px rgba(255,255,255,0.25)",
+          }}
         >
           <div
             onMouseDown={(e) => e.preventDefault()}
@@ -303,7 +310,10 @@ export default function DrawPanel({ open, containerRef, onClose }: DrawPanelProp
         </div>
       </div>
 
-      <div className="px-5 z-30" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 20px)" }}>
+      <div
+        className="px-5 z-30"
+        style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 20px)" }}
+      >
         <div className="flex items-center gap-2">
           {BRUSH_WIDTHS.map((w) => (
             <button

@@ -1,12 +1,5 @@
 export type FilterCategory =
-  | "favorites"
-  | "portrait"
-  | "fashion"
-  | "film"
-  | "vintage"
-  | "bw"
-  | "lifestyle"
-  | "creative";
+  "favorites" | "portrait" | "fashion" | "film" | "vintage" | "bw" | "lifestyle" | "creative";
 
 export interface CameraFilter {
   id: string;
@@ -56,8 +49,7 @@ export const CAMERA_FILTERS: CameraFilter[] = [
     id: "soft-glow",
     name: "Soft Glow",
     category: "portrait",
-    css:
-      "brightness(1.04) contrast(0.96) saturate(1.08)",
+    css: "brightness(1.04) contrast(0.96) saturate(1.08)",
     intensity: 100,
     thumbnailColor: "#E5CDBF",
     isBuiltIn: true,
@@ -68,8 +60,7 @@ export const CAMERA_FILTERS: CameraFilter[] = [
     id: "editorial",
     name: "Editorial",
     category: "portrait",
-    css:
-      "contrast(1.08) brightness(1.02) saturate(0.92)",
+    css: "contrast(1.08) brightness(1.02) saturate(0.92)",
     intensity: 100,
     thumbnailColor: "#DDD8D2",
     isBuiltIn: true,
@@ -80,8 +71,7 @@ export const CAMERA_FILTERS: CameraFilter[] = [
     id: "clean-skin",
     name: "Clean Skin",
     category: "portrait",
-    css:
-      "brightness(1.05) saturate(0.96) contrast(0.95)",
+    css: "brightness(1.05) saturate(0.96) contrast(0.95)",
     intensity: 100,
     thumbnailColor: "#F3D6C8",
     isBuiltIn: true,
@@ -92,8 +82,7 @@ export const CAMERA_FILTERS: CameraFilter[] = [
     id: "matte-portrait",
     name: "Matte Portrait",
     category: "portrait",
-    css:
-      "contrast(.88) brightness(1.05) saturate(.92)",
+    css: "contrast(.88) brightness(1.05) saturate(.92)",
     intensity: 100,
     thumbnailColor: "#B69F92",
     isBuiltIn: true,
@@ -108,8 +97,7 @@ export const CAMERA_FILTERS: CameraFilter[] = [
     id: "vogue",
     name: "Vogue",
     category: "fashion",
-    css:
-      "contrast(1.18) brightness(1.03) saturate(1.12)",
+    css: "contrast(1.18) brightness(1.03) saturate(1.12)",
     intensity: 100,
     thumbnailColor: "#FFFFFF",
     isBuiltIn: true,
@@ -120,8 +108,7 @@ export const CAMERA_FILTERS: CameraFilter[] = [
     id: "luxury",
     name: "Luxury",
     category: "fashion",
-    css:
-      "contrast(1.22) brightness(.98) saturate(1.18)",
+    css: "contrast(1.22) brightness(.98) saturate(1.18)",
     intensity: 100,
     thumbnailColor: "#D8B24B",
     isBuiltIn: true,
@@ -132,8 +119,7 @@ export const CAMERA_FILTERS: CameraFilter[] = [
     id: "runway",
     name: "Runway",
     category: "fashion",
-    css:
-      "contrast(1.15) saturate(1.3)",
+    css: "contrast(1.15) saturate(1.3)",
     intensity: 100,
     thumbnailColor: "#F0F0F0",
     isBuiltIn: true,
@@ -144,8 +130,7 @@ export const CAMERA_FILTERS: CameraFilter[] = [
     id: "studio",
     name: "Studio",
     category: "fashion",
-    css:
-      "contrast(1.12) brightness(1.04)",
+    css: "contrast(1.12) brightness(1.04)",
     intensity: 100,
     thumbnailColor: "#DADADA",
     isBuiltIn: true,
@@ -156,8 +141,7 @@ export const CAMERA_FILTERS: CameraFilter[] = [
     id: "high-contrast",
     name: "High Contrast",
     category: "fashion",
-    css:
-      "contrast(1.35) brightness(.98)",
+    css: "contrast(1.35) brightness(.98)",
     intensity: 100,
     thumbnailColor: "#B9B9B9",
     isBuiltIn: true,
@@ -172,8 +156,7 @@ export const CAMERA_FILTERS: CameraFilter[] = [
     id: "kodak-gold",
     name: "Kodak Gold",
     category: "film",
-    css:
-      "sepia(.18) saturate(1.25) brightness(1.05)",
+    css: "sepia(.18) saturate(1.25) brightness(1.05)",
     intensity: 100,
     thumbnailColor: "#D7A740",
     isBuiltIn: true,
@@ -184,8 +167,7 @@ export const CAMERA_FILTERS: CameraFilter[] = [
     id: "portra",
     name: "Portra",
     category: "film",
-    css:
-      "sepia(.08) brightness(1.03) contrast(.95)",
+    css: "sepia(.08) brightness(1.03) contrast(.95)",
     intensity: 100,
     thumbnailColor: "#F0C9A5",
     isBuiltIn: true,
@@ -196,8 +178,7 @@ export const CAMERA_FILTERS: CameraFilter[] = [
     id: "fuji",
     name: "Fuji",
     category: "film",
-    css:
-      "saturate(1.18) hue-rotate(-6deg)",
+    css: "saturate(1.18) hue-rotate(-6deg)",
     intensity: 100,
     thumbnailColor: "#6DAE7A",
     isBuiltIn: true,
@@ -208,8 +189,7 @@ export const CAMERA_FILTERS: CameraFilter[] = [
     id: "cinestill",
     name: "Cinestill",
     category: "film",
-    css:
-      "contrast(1.15) brightness(.98) saturate(1.08)",
+    css: "contrast(1.15) brightness(.98) saturate(1.08)",
     intensity: 100,
     thumbnailColor: "#336B8F",
     isBuiltIn: true,
@@ -220,8 +200,7 @@ export const CAMERA_FILTERS: CameraFilter[] = [
     id: "disposable",
     name: "Disposable",
     category: "film",
-    css:
-      "contrast(.92) saturate(1.18) brightness(1.08)",
+    css: "contrast(.92) saturate(1.18) brightness(1.08)",
     intensity: 100,
     thumbnailColor: "#D3B37C",
     isBuiltIn: true,
@@ -236,8 +215,7 @@ export const CAMERA_FILTERS: CameraFilter[] = [
     id: "retro",
     name: "Retro",
     category: "vintage",
-    css:
-      "sepia(.32) contrast(.94)",
+    css: "sepia(.32) contrast(.94)",
     intensity: 100,
     thumbnailColor: "#B88A5A",
     isBuiltIn: true,
@@ -248,8 +226,7 @@ export const CAMERA_FILTERS: CameraFilter[] = [
     id: "faded",
     name: "Faded",
     category: "vintage",
-    css:
-      "contrast(.82) brightness(1.1)",
+    css: "contrast(.82) brightness(1.1)",
     intensity: 100,
     thumbnailColor: "#C4B5A8",
     isBuiltIn: true,
@@ -260,8 +237,7 @@ export const CAMERA_FILTERS: CameraFilter[] = [
     id: "polaroid",
     name: "Polaroid",
     category: "vintage",
-    css:
-      "brightness(1.08) contrast(.9) sepia(.1)",
+    css: "brightness(1.08) contrast(.9) sepia(.1)",
     intensity: 100,
     thumbnailColor: "#E8DCC7",
     isBuiltIn: true,
@@ -272,8 +248,7 @@ export const CAMERA_FILTERS: CameraFilter[] = [
     id: "dust",
     name: "Dust",
     category: "vintage",
-    css:
-      "contrast(.92) sepia(.12)",
+    css: "contrast(.92) sepia(.12)",
     intensity: 100,
     thumbnailColor: "#A77F65",
     isBuiltIn: true,
@@ -284,8 +259,7 @@ export const CAMERA_FILTERS: CameraFilter[] = [
     id: "vhs",
     name: "VHS",
     category: "vintage",
-    css:
-      "contrast(1.08) saturate(.82)",
+    css: "contrast(1.08) saturate(.82)",
     intensity: 100,
     thumbnailColor: "#73585B",
     isBuiltIn: true,
@@ -300,8 +274,7 @@ export const CAMERA_FILTERS: CameraFilter[] = [
     id: "classic-bw",
     name: "Classic",
     category: "bw",
-    css:
-      "grayscale(1)",
+    css: "grayscale(1)",
     intensity: 100,
     thumbnailColor: "#DADADA",
     isBuiltIn: true,
@@ -312,8 +285,7 @@ export const CAMERA_FILTERS: CameraFilter[] = [
     id: "noir",
     name: "Noir",
     category: "bw",
-    css:
-      "grayscale(1) contrast(1.35)",
+    css: "grayscale(1) contrast(1.35)",
     intensity: 100,
     thumbnailColor: "#999999",
     isBuiltIn: true,
@@ -324,8 +296,7 @@ export const CAMERA_FILTERS: CameraFilter[] = [
     id: "documentary",
     name: "Documentary",
     category: "bw",
-    css:
-      "grayscale(1) contrast(1.15)",
+    css: "grayscale(1) contrast(1.15)",
     intensity: 100,
     thumbnailColor: "#7E7E7E",
     isBuiltIn: true,
@@ -336,8 +307,7 @@ export const CAMERA_FILTERS: CameraFilter[] = [
     id: "matte-bw",
     name: "Matte BW",
     category: "bw",
-    css:
-      "grayscale(1) contrast(.88)",
+    css: "grayscale(1) contrast(.88)",
     intensity: 100,
     thumbnailColor: "#BBBBBB",
     isBuiltIn: true,
@@ -352,8 +322,7 @@ export const CAMERA_FILTERS: CameraFilter[] = [
     id: "summer",
     name: "Summer",
     category: "lifestyle",
-    css:
-      "brightness(1.08) saturate(1.18)",
+    css: "brightness(1.08) saturate(1.18)",
     intensity: 100,
     thumbnailColor: "#F7C95C",
     isBuiltIn: true,
@@ -364,8 +333,7 @@ export const CAMERA_FILTERS: CameraFilter[] = [
     id: "sunset",
     name: "Sunset",
     category: "lifestyle",
-    css:
-      "sepia(.12) saturate(1.22)",
+    css: "sepia(.12) saturate(1.22)",
     intensity: 100,
     thumbnailColor: "#F58549",
     isBuiltIn: true,
@@ -376,8 +344,7 @@ export const CAMERA_FILTERS: CameraFilter[] = [
     id: "coffee",
     name: "Coffee",
     category: "lifestyle",
-    css:
-      "sepia(.22) brightness(.96)",
+    css: "sepia(.22) brightness(.96)",
     intensity: 100,
     thumbnailColor: "#8A5A3C",
     isBuiltIn: true,
@@ -388,8 +355,7 @@ export const CAMERA_FILTERS: CameraFilter[] = [
     id: "cozy",
     name: "Cozy",
     category: "lifestyle",
-    css:
-      "brightness(1.02) sepia(.08)",
+    css: "brightness(1.02) sepia(.08)",
     intensity: 100,
     thumbnailColor: "#C29E73",
     isBuiltIn: true,
@@ -400,8 +366,7 @@ export const CAMERA_FILTERS: CameraFilter[] = [
     id: "tropical",
     name: "Tropical",
     category: "lifestyle",
-    css:
-      "saturate(1.35) brightness(1.04)",
+    css: "saturate(1.35) brightness(1.04)",
     intensity: 100,
     thumbnailColor: "#2AAE9A",
     isBuiltIn: true,
@@ -416,8 +381,7 @@ export const CAMERA_FILTERS: CameraFilter[] = [
     id: "dream",
     name: "Dream",
     category: "creative",
-    css:
-      "brightness(1.08) contrast(.92) saturate(1.08)",
+    css: "brightness(1.08) contrast(.92) saturate(1.08)",
     intensity: 100,
     thumbnailColor: "#BFA3FF",
     isBuiltIn: true,
@@ -428,8 +392,7 @@ export const CAMERA_FILTERS: CameraFilter[] = [
     id: "neon",
     name: "Neon",
     category: "creative",
-    css:
-      "contrast(1.25) saturate(1.45)",
+    css: "contrast(1.25) saturate(1.45)",
     intensity: 100,
     thumbnailColor: "#00E5FF",
     isBuiltIn: true,
@@ -440,8 +403,7 @@ export const CAMERA_FILTERS: CameraFilter[] = [
     id: "cyber",
     name: "Cyber",
     category: "creative",
-    css:
-      "hue-rotate(25deg) contrast(1.18) saturate(1.28)",
+    css: "hue-rotate(25deg) contrast(1.18) saturate(1.28)",
     intensity: 100,
     thumbnailColor: "#00B8FF",
     isBuiltIn: true,
@@ -452,8 +414,7 @@ export const CAMERA_FILTERS: CameraFilter[] = [
     id: "aqua",
     name: "Aqua",
     category: "creative",
-    css:
-      "hue-rotate(-18deg) saturate(1.2)",
+    css: "hue-rotate(-18deg) saturate(1.2)",
     intensity: 100,
     thumbnailColor: "#00C8FF",
     isBuiltIn: true,
@@ -464,8 +425,7 @@ export const CAMERA_FILTERS: CameraFilter[] = [
     id: "ember",
     name: "Ember",
     category: "creative",
-    css:
-      "sepia(.25) saturate(1.35)",
+    css: "sepia(.25) saturate(1.35)",
     intensity: 100,
     thumbnailColor: "#D35A2A",
     isBuiltIn: true,

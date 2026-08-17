@@ -1,0 +1,4 @@
+# Normalize all text files to LF, regardless of platform/local git config
+# (core.autocrlf). Prevents Windows checkouts from reintroducing CRLF noise
+# into diffs/lint output. See .prettierrc's endOfLine for the app-level mirror.
+* text=auto eol=lf

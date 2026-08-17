@@ -1,8 +1,4 @@
-import {
-  ReactNode,
-  useEffect,
-  useRef,
-} from "react";
+import { ReactNode, useEffect, useRef } from "react";
 
 type CameraPanelProps = {
   open: boolean;
@@ -77,10 +73,8 @@ export default function CameraPanel({
           borderTopRightRadius: 28,
           background: "#111",
           borderTop: "1px solid rgba(255,255,255,.08)",
-          boxShadow:
-            "0 -12px 40px rgba(0,0,0,.45)",
-          paddingBottom:
-            "calc(env(safe-area-inset-bottom) + 16px)",
+          boxShadow: "0 -12px 40px rgba(0,0,0,.45)",
+          paddingBottom: "calc(env(safe-area-inset-bottom) + 16px)",
         }}
       >
         {/* Drag Handle */}

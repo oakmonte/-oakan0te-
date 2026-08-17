@@ -13,7 +13,8 @@ function formatNaira(n: number) {
 
 function computeFees(price: number) {
   const commission = price * COMMISSION_RATE;
-  let paystackFee = price * PAYSTACK_RATE + (price >= PAYSTACK_FLAT_FEE_THRESHOLD ? PAYSTACK_FLAT_FEE : 0);
+  let paystackFee =
+    price * PAYSTACK_RATE + (price >= PAYSTACK_FLAT_FEE_THRESHOLD ? PAYSTACK_FLAT_FEE : 0);
   paystackFee = Math.min(paystackFee, PAYSTACK_FEE_CAP);
   return { commission, paystackFee, total: commission + paystackFee };
 }
@@ -63,13 +64,20 @@ export function PricingSheet({
           That's all you need — everything below is optional.
         </p>
 
-        <PriceBox label="Compare-at price" value={compareAtPrice} onChange={onChangeCompareAtPrice} />
+        <PriceBox
+          label="Compare-at price"
+          value={compareAtPrice}
+          onChange={onChangeCompareAtPrice}
+        />
         <div className="h-3" />
         <PriceBox label="Cost per item" value={costPrice} onChange={onChangeCostPrice} />
         <p className="text-xs text-gray-400 mt-1.5 mb-5">Customers won't see this</p>
 
         <div className="grid grid-cols-2 gap-3 mb-1">
-          <MetricBox label="You'll receive" value={youReceive !== null ? formatNaira(youReceive) : "–"} />
+          <MetricBox
+            label="You'll receive"
+            value={youReceive !== null ? formatNaira(youReceive) : "–"}
+          />
           <MetricBox
             label="Profit"
             value={profit !== null ? formatNaira(profit) : "–"}
@@ -93,8 +101,14 @@ export function PricingSheet({
             {breakdownOpen && (
               <div className="mt-2 border border-gray-100 rounded-lg p-3 flex flex-col gap-2">
                 <FeeLine label="Price" value={formatNaira(numPrice)} />
-                <FeeLine label="Oakmonte commission (4.5%)" value={`– ${formatNaira(fees.commission)}`} />
-                <FeeLine label="Payment processing (Paystack)" value={`– ${formatNaira(fees.paystackFee)}`} />
+                <FeeLine
+                  label="Oakmonte commission (4.5%)"
+                  value={`– ${formatNaira(fees.commission)}`}
+                />
+                <FeeLine
+                  label="Payment processing (Paystack)"
+                  value={`– ${formatNaira(fees.paystackFee)}`}
+                />
                 <div className="border-t border-gray-100 pt-2">
                   <FeeLine label="You'll receive" value={formatNaira(youReceive ?? 0)} bold />
                 </div>

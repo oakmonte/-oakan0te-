@@ -16,7 +16,11 @@ export async function cropPhotoBlob(blob: Blob, rect: CropRect): Promise<Blob> {
     if (!ctx) throw new Error("Canvas 2D context unavailable");
     ctx.drawImage(img, rect.x, rect.y, rect.w, rect.h, 0, 0, canvas.width, canvas.height);
     return await new Promise<Blob>((resolve, reject) => {
-      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob failed"))), "image/jpeg", 0.96);
+      canvas.toBlob(
+        (b) => (b ? resolve(b) : reject(new Error("toBlob failed"))),
+        "image/jpeg",
+        0.96,
+      );
     });
   } finally {
     URL.revokeObjectURL(url);
@@ -52,13 +56,20 @@ export async function cropVideoBlob(
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("Canvas 2D context unavailable");
 
-    const sourceStream = (video as HTMLVideoElement & { captureStream: () => MediaStream }).captureStream();
+    const sourceStream = (
+      video as HTMLVideoElement & { captureStream: () => MediaStream }
+    ).captureStream();
     const audioTracks = sourceStream.getAudioTracks();
 
     const canvasStream = canvas.captureStream(30);
     audioTracks.forEach((t) => canvasStream.addTrack(t));
 
-    const candidates = ["video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm", "video/mp4"];
+    const candidates = [
+      "video/webm;codecs=vp9",
+      "video/webm;codecs=vp8",
+      "video/webm",
+      "video/mp4",
+    ];
     const mimeType = candidates.find((t) => MediaRecorder.isTypeSupported(t)) ?? "";
     const recorder = new MediaRecorder(canvasStream, mimeType ? { mimeType } : undefined);
     const chunks: Blob[] = [];
@@ -69,7 +80,8 @@ export async function cropVideoBlob(
     let rafId: number | null = null;
     const drawFrame = () => {
       ctx.drawImage(video, rect.x, rect.y, rect.w, rect.h, 0, 0, canvas.width, canvas.height);
-      if (onProgress && video.duration > 0) onProgress(Math.min(1, video.currentTime / video.duration));
+      if (onProgress && video.duration > 0)
+        onProgress(Math.min(1, video.currentTime / video.duration));
       rafId = requestAnimationFrame(drawFrame);
     };
 

@@ -44,7 +44,9 @@ export function CreateProductTypeModal({
             <Boxes size={20} />
           </span>
           <span>
-            <span className="block text-[15px] font-medium text-gray-900">Product with variations</span>
+            <span className="block text-[15px] font-medium text-gray-900">
+              Product with variations
+            </span>
             <span className="block text-xs text-gray-500 mt-0.5">
               This product has different colors, sizes, etc.
             </span>

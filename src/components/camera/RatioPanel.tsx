@@ -41,19 +41,9 @@ const RATIOS: {
   },
 ];
 
-export default function RatioPanel({
-  open,
-  value,
-  onClose,
-  onChange,
-}: RatioPanelProps) {
+export default function RatioPanel({ open, value, onClose, onChange }: RatioPanelProps) {
   return (
-    <CameraPanel
-      open={open}
-      onClose={onClose}
-      title="Aspect Ratio"
-      height={430}
-    >
+    <CameraPanel open={open} onClose={onClose} title="Aspect Ratio" height={430}>
       <div className="flex flex-col gap-3 pb-4">
         {RATIOS.map((ratio) => {
           const selected = ratio.value === value;
@@ -71,13 +61,9 @@ export default function RatioPanel({
                 textAlign: "left",
                 borderRadius: 18,
                 padding: "18px 20px",
-                background: selected
-                  ? "#ffffff"
-                  : "rgba(255,255,255,0.06)",
+                background: selected ? "#ffffff" : "rgba(255,255,255,0.06)",
                 color: selected ? "#000000" : "#ffffff",
-                border: selected
-                  ? "1px solid transparent"
-                  : "1px solid rgba(255,255,255,0.08)",
+                border: selected ? "1px solid transparent" : "1px solid rgba(255,255,255,0.08)",
               }}
             >
               <div className="flex items-center justify-between">

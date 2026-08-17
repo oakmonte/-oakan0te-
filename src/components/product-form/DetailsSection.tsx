@@ -32,9 +32,7 @@ export function DetailsSection({
     setExpanded(expanded === section ? null : section);
   }
 
-  const categoryLabel = categoryPath.length
-    ? categoryPath[categoryPath.length - 1].name
-    : null;
+  const categoryLabel = categoryPath.length ? categoryPath[categoryPath.length - 1].name : null;
 
   return (
     <div className="px-4 py-4 border-b-8 border-gray-50">

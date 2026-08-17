@@ -10,7 +10,18 @@ const FONTS = [
   { id: "comic", label: "Comic Sans", css: "'Comic Sans MS', cursive" },
 ];
 
-const COLORS = ["#ffffff", "#000000", "#ff3b30", "#ff9500", "#ffcc00", "#34c759", "#0a9396", "#0a84ff", "#3f51b5", "#af52de"];
+const COLORS = [
+  "#ffffff",
+  "#000000",
+  "#ff3b30",
+  "#ff9500",
+  "#ffcc00",
+  "#34c759",
+  "#0a9396",
+  "#0a84ff",
+  "#3f51b5",
+  "#af52de",
+];
 const BOX_COLOR = "rgba(0,0,0,0.55)";
 const MIN_FONT_SIZE = 16;
 const MAX_FONT_SIZE = 72;
@@ -33,7 +44,8 @@ function useKeyboardInset() {
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
-    const update = () => setInset(Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop)));
+    const update = () =>
+      setInset(Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop)));
     update();
     vv.addEventListener("resize", update);
     vv.addEventListener("scroll", update);
@@ -84,7 +96,9 @@ export default function TextPanel({ open, containerRef, editingLayerId, onClose 
   useEffect(() => {
     if (!open) return;
     committedRef.current = false;
-    const editing = editingLayerId ? layers.find((l) => l.id === editingLayerId && l.kind === "text") : null;
+    const editing = editingLayerId
+      ? layers.find((l) => l.id === editingLayerId && l.kind === "text")
+      : null;
     if (editing && editing.kind === "text") {
       setContent(editing.content);
       setSelectedFontId(FONTS.find((f) => f.css === editing.font)?.id ?? FONTS[0].id);
@@ -209,7 +223,22 @@ export default function TextPanel({ open, containerRef, editingLayerId, onClose 
     // trimmed === "" and !editingLayerId: nothing typed, nothing to do — just closes.
 
     onClose();
-  }, [content, editingLayerId, containerRef, boxWidth, activeFont.css, selectedColor, fontSize, align, boxOn, fontWeight, addLayer, updateLayer, removeLayer, onClose]);
+  }, [
+    content,
+    editingLayerId,
+    containerRef,
+    boxWidth,
+    activeFont.css,
+    selectedColor,
+    fontSize,
+    align,
+    boxOn,
+    fontWeight,
+    addLayer,
+    updateLayer,
+    removeLayer,
+    onClose,
+  ]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -228,7 +257,10 @@ export default function TextPanel({ open, containerRef, editingLayerId, onClose 
   );
 
   return (
-    <div className="absolute inset-0 z-40 flex flex-col" style={{ fontFamily: "'SF Pro', system-ui, sans-serif" }}>
+    <div
+      className="absolute inset-0 z-40 flex flex-col"
+      style={{ fontFamily: "'SF Pro', system-ui, sans-serif" }}
+    >
       {/* Toolbar — onMouseDown preventDefault keeps the text input focused
           when tapping these buttons, so toggling an option never triggers
           the input's blur (and therefore never triggers commit). */}
@@ -296,7 +328,11 @@ export default function TextPanel({ open, containerRef, editingLayerId, onClose 
             B
           </button>
         </div>
-        <button onClick={commit} aria-label="Close and place text" className="flex items-center justify-center w-11 h-11 rounded-full">
+        <button
+          onClick={commit}
+          aria-label="Close and place text"
+          className="flex items-center justify-center w-11 h-11 rounded-full"
+        >
           <X size={22} color="#fff" />
         </button>
       </div>
@@ -354,7 +390,11 @@ export default function TextPanel({ open, containerRef, editingLayerId, onClose 
           }}
         />
 
-        <div ref={trackRef} className="absolute right-3 top-1/4 bottom-1/4 w-1 rounded-full" style={{ background: "rgba(255,255,255,0.25)" }}>
+        <div
+          ref={trackRef}
+          className="absolute right-3 top-1/4 bottom-1/4 w-1 rounded-full"
+          style={{ background: "rgba(255,255,255,0.25)" }}
+        >
           <div
             onMouseDown={(e) => e.preventDefault()}
             onPointerDown={(e) => {
@@ -400,7 +440,8 @@ export default function TextPanel({ open, containerRef, editingLayerId, onClose 
                   width: 28,
                   height: 28,
                   background: color,
-                  border: selectedColor === color ? "2px solid #fff" : "1px solid rgba(255,255,255,0.3)",
+                  border:
+                    selectedColor === color ? "2px solid #fff" : "1px solid rgba(255,255,255,0.3)",
                   outline: selectedColor === color ? "2px solid rgba(255,255,255,0.4)" : "none",
                   outlineOffset: 2,
                 }}
@@ -421,7 +462,10 @@ export default function TextPanel({ open, containerRef, editingLayerId, onClose 
                   fontFamily: font.css,
                   background: selectedFontId === font.id ? "#fff" : "rgba(255,255,255,0.10)",
                   color: selectedFontId === font.id ? "#000" : "#fff",
-                  border: selectedFontId === font.id ? "1px solid #fff" : "1px solid rgba(255,255,255,0.35)",
+                  border:
+                    selectedFontId === font.id
+                      ? "1px solid #fff"
+                      : "1px solid rgba(255,255,255,0.35)",
                 }}
               >
                 {font.label}

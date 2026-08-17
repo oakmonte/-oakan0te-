@@ -1,16 +1,25 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useRef, useEffect, useCallback, type ReactNode, type TouchEvent } from "react";
 import {
-  X, RefreshCw, Timer as TimerIcon, Image as ImageIcon,
-  ChevronUp, ChevronDown, LayoutGrid, Ratio as RatioIcon, Blend, Heart,
-  Pause, Play, Square, Zap, ZapOff, Grid3x3,
+  X,
+  RefreshCw,
+  Timer as TimerIcon,
+  Image as ImageIcon,
+  ChevronUp,
+  ChevronDown,
+  LayoutGrid,
+  Ratio as RatioIcon,
+  Blend,
+  Heart,
+  Pause,
+  Play,
+  Square,
+  Zap,
+  ZapOff,
+  Grid3x3,
 } from "lucide-react";
 
-import {
-  compileFilter,
-  applyCompiledFilter,
-  IDENTITY_FILTER,
-} from "@/lib/canvas-filter";
+import { compileFilter, applyCompiledFilter, IDENTITY_FILTER } from "@/lib/canvas-filter";
 import { setPendingCapture } from "@/lib/capture-handoff";
 
 import RatioPanel, { type CameraRatio } from "@/components/camera/RatioPanel";
@@ -58,13 +67,15 @@ const RATIO_ASPECT: Record<CameraRatio, number> = {
 // composite instead of guessing at a size.
 const COMPOSITE_WIDTH = 1080;
 
-
 // Centered crop rect (in source pixel coords) that matches what object-cover
 // would render inside a box of targetAspect — used identically for the live
 // preview box and for both capture paths, so they stay in sync.
 function getCropRect(sourceWidth: number, sourceHeight: number, targetAspect: number) {
   const sourceAspect = sourceWidth / sourceHeight;
-  let sx = 0, sy = 0, sw = sourceWidth, sh = sourceHeight;
+  let sx = 0,
+    sy = 0,
+    sw = sourceWidth,
+    sh = sourceHeight;
   if (sourceAspect > targetAspect) {
     sw = sourceHeight * targetAspect;
     sx = (sourceWidth - sw) / 2;
@@ -81,10 +92,7 @@ function getCropRect(sourceWidth: number, sourceHeight: number, targetAspect: nu
 // camera, where supported) is already baked into the raw frame by the time
 // we get here, which is exactly why cssZoomScale sits at 1 in that case —
 // multiplying by 1 correctly does nothing.
-function applyZoomToCrop(
-  crop: { sx: number; sy: number; sw: number; sh: number },
-  zoom: number,
-) {
+function applyZoomToCrop(crop: { sx: number; sy: number; sw: number; sh: number }, zoom: number) {
   const zsw = crop.sw / zoom;
   const zsh = crop.sh / zoom;
   return {
@@ -199,7 +207,9 @@ function CreatePage() {
   // --- Multi-cell layout capture ---
   // Keyed by layout id so progress isn't lost if the user switches to a
   // different layout mid-sequence and comes back.
-  const [cellCapturesByLayout, setCellCapturesByLayout] = useState<Record<string, (CellCapture | null)[]>>({});
+  const [cellCapturesByLayout, setCellCapturesByLayout] = useState<
+    Record<string, (CellCapture | null)[]>
+  >({});
   const [activeCellIndex, setActiveCellIndex] = useState(0);
   // Bumped whenever a new camera stream is acquired (e.g. facing flip) so
   // the per-cell preview <video> elements — which hold their own srcObject
@@ -234,9 +244,11 @@ function CreatePage() {
         setStreamVersion((v) => v + 1);
 
         const track = stream.getVideoTracks()[0];
-        const caps = track?.getCapabilities?.() as (MediaTrackCapabilities & {
-          zoom?: { min: number; max: number; step: number };
-        }) | undefined;
+        const caps = track?.getCapabilities?.() as
+          | (MediaTrackCapabilities & {
+              zoom?: { min: number; max: number; step: number };
+            })
+          | undefined;
         zoomCapabilitiesRef.current = caps?.zoom ?? null;
         setZoomLevel(1);
         setCssZoomScale(1);
@@ -319,15 +331,17 @@ function CreatePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quickStripFilters, selectedFilterId]);
 
-  const scrollFilterIntoRing = useCallback((index: number) => {
-    filterStripRef.current?.scrollTo({ left: index * CAPTURE_SIZE, behavior: "smooth" });
-    const next = quickStripFilters[index];
-    if (next) setSelectedFilterId(next.id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [quickStripFilters]);
+  const scrollFilterIntoRing = useCallback(
+    (index: number) => {
+      filterStripRef.current?.scrollTo({ left: index * CAPTURE_SIZE, behavior: "smooth" });
+      const next = quickStripFilters[index];
+      if (next) setSelectedFilterId(next.id);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    },
+    [quickStripFilters],
+  );
 
-  const activeFilter =
-    CAMERA_FILTERS.find((f) => f.id === selectedFilterId) ?? CAMERA_FILTERS[0];
+  const activeFilter = CAMERA_FILTERS.find((f) => f.id === selectedFilterId) ?? CAMERA_FILTERS[0];
   const isNonDefaultFilterActive = selectedFilterId !== DEFAULT_FILTER_ID;
   const isCurrentFilterFavorited = favoritedFilterIds.has(selectedFilterId);
 
@@ -357,8 +371,7 @@ function CreatePage() {
   const targetAspect = RATIO_ASPECT[ratio];
   const isFullBleedRatio = ratio === "9:16"; // your default/story ratio already fills the screen edge-to-edge
 
-  const activeLayout =
-    CAMERA_LAYOUTS.find((l) => l.id === selectedLayoutId) ?? CAMERA_LAYOUTS[0];
+  const activeLayout = CAMERA_LAYOUTS.find((l) => l.id === selectedLayoutId) ?? CAMERA_LAYOUTS[0];
 
   // Multi-cell mode only ever applies to photo capture — video-cell
   // compositing is real scope (audio, mismatched durations, actual editing)
@@ -392,49 +405,58 @@ function CreatePage() {
     ? `${activeFilter.css} brightness(1.25)`
     : activeFilter.css;
 
-  const applyZoom = useCallback((level: number) => {
-    const caps = zoomCapabilitiesRef.current;
-    const track = streamRef.current?.getVideoTracks()[0];
-    // Real optical/hybrid zoom hardware only exists on the back camera.
-    // Front cameras frequently report a zoom capability object anyway —
-    // trusting that blindly was the actual bug: it silently sent
-    // front-camera zoom through a no-op applyConstraints call, then clamped
-    // it to whatever narrow range was reported (often exactly 1..1), which
-    // is why zoom-out never worked there no matter what.
-    if (facing === "environment" && caps && track) {
-      // Hardware zoom — the camera itself changes what it captures. No CSS
-      // scale on top of it, or it gets applied twice (this was the back-
-      // camera "whole frame drags with it" bug).
-      const clamped = Math.min(caps.max, Math.max(caps.min, level));
-      (track.applyConstraints as any)({ advanced: [{ zoom: clamped }] }).catch(() => {});
-      setZoomLevel(clamped);
-      setCssZoomScale(1);
-    } else {
-      // Digital fallback — always used for the front camera, and for any
-      // back camera without real zoom hardware. CSS-scale is the only zoom
-      // that exists here, since nothing else is doing it for us.
-      const clamped = Math.min(3, Math.max(1, level));
-      setZoomLevel(clamped);
-      setCssZoomScale(clamped);
-    }
-  }, [facing]);
+  const applyZoom = useCallback(
+    (level: number) => {
+      const caps = zoomCapabilitiesRef.current;
+      const track = streamRef.current?.getVideoTracks()[0];
+      // Real optical/hybrid zoom hardware only exists on the back camera.
+      // Front cameras frequently report a zoom capability object anyway —
+      // trusting that blindly was the actual bug: it silently sent
+      // front-camera zoom through a no-op applyConstraints call, then clamped
+      // it to whatever narrow range was reported (often exactly 1..1), which
+      // is why zoom-out never worked there no matter what.
+      if (facing === "environment" && caps && track) {
+        // Hardware zoom — the camera itself changes what it captures. No CSS
+        // scale on top of it, or it gets applied twice (this was the back-
+        // camera "whole frame drags with it" bug).
+        const clamped = Math.min(caps.max, Math.max(caps.min, level));
+        (track.applyConstraints as any)({ advanced: [{ zoom: clamped }] }).catch(() => {});
+        setZoomLevel(clamped);
+        setCssZoomScale(1);
+      } else {
+        // Digital fallback — always used for the front camera, and for any
+        // back camera without real zoom hardware. CSS-scale is the only zoom
+        // that exists here, since nothing else is doing it for us.
+        const clamped = Math.min(3, Math.max(1, level));
+        setZoomLevel(clamped);
+        setCssZoomScale(clamped);
+      }
+    },
+    [facing],
+  );
 
-  const handlePinchStart = useCallback((e: TouchEvent) => {
-    if (e.touches.length !== 2) return;
-    const [a, b] = [e.touches[0], e.touches[1]];
-    const distance = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
-    pinchStateRef.current = { startDistance: distance, startZoom: zoomLevel };
-  }, [zoomLevel]);
+  const handlePinchStart = useCallback(
+    (e: TouchEvent) => {
+      if (e.touches.length !== 2) return;
+      const [a, b] = [e.touches[0], e.touches[1]];
+      const distance = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+      pinchStateRef.current = { startDistance: distance, startZoom: zoomLevel };
+    },
+    [zoomLevel],
+  );
 
-  const handlePinchMove = useCallback((e: TouchEvent) => {
-    if (e.touches.length !== 2 || !pinchStateRef.current) return;
-    e.preventDefault(); // stop the page/browser from also interpreting this as a page-zoom gesture
-    const [a, b] = [e.touches[0], e.touches[1]];
-    const distance = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
-    const { startDistance, startZoom } = pinchStateRef.current;
-    const nextZoom = startZoom * (distance / startDistance);
-    applyZoom(nextZoom);
-  }, [applyZoom]);
+  const handlePinchMove = useCallback(
+    (e: TouchEvent) => {
+      if (e.touches.length !== 2 || !pinchStateRef.current) return;
+      e.preventDefault(); // stop the page/browser from also interpreting this as a page-zoom gesture
+      const [a, b] = [e.touches[0], e.touches[1]];
+      const distance = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+      const { startDistance, startZoom } = pinchStateRef.current;
+      const nextZoom = startZoom * (distance / startDistance);
+      applyZoom(nextZoom);
+    },
+    [applyZoom],
+  );
 
   const handlePinchEnd = useCallback(() => {
     pinchStateRef.current = null;
@@ -449,9 +471,9 @@ function CreatePage() {
       return;
     }
     const { sx, sy, sw, sh } = applyZoomToCrop(
-    getCropRect(video.videoWidth, video.videoHeight, RATIO_ASPECT[ratio]),
-    cssZoomScale,
-  );
+      getCropRect(video.videoWidth, video.videoHeight, RATIO_ASPECT[ratio]),
+      cssZoomScale,
+    );
     canvas.width = sw;
     canvas.height = sh;
     const ctx = canvas.getContext("2d");
@@ -490,78 +512,84 @@ function CreatePage() {
   // ratio), not the full composite's shape — so each cell gets a properly
   // framed, full-FOV subject instead of a positional fragment of one shared
   // frame. This is what makes it match the reference multi-cam apps.
-  const captureCellFrame = useCallback((cell: LayoutCell) => {
-    const video = videoRef.current;
-    if (!video || video.readyState < 2 || video.videoWidth === 0) {
-      console.warn("Camera not ready yet", video?.readyState, video?.videoWidth);
-      return null;
-    }
+  const captureCellFrame = useCallback(
+    (cell: LayoutCell) => {
+      const video = videoRef.current;
+      if (!video || video.readyState < 2 || video.videoWidth === 0) {
+        console.warn("Camera not ready yet", video?.readyState, video?.videoWidth);
+        return null;
+      }
 
-    const cellAspect = (cell.w / cell.h) * targetAspect;
-    const { sx, sy, sw, sh } = applyZoomToCrop(
-      getCropRect(video.videoWidth, video.videoHeight, cellAspect),
-      cssZoomScale,
-    );
+      const cellAspect = (cell.w / cell.h) * targetAspect;
+      const { sx, sy, sw, sh } = applyZoomToCrop(
+        getCropRect(video.videoWidth, video.videoHeight, cellAspect),
+        cssZoomScale,
+      );
 
-    const outputW = Math.max(1, Math.round(cell.w * COMPOSITE_WIDTH));
-    const outputH = Math.max(1, Math.round(outputW / cellAspect));
-    const canvas = document.createElement("canvas");
-    canvas.width = outputW;
-    canvas.height = outputH;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return null;
+      const outputW = Math.max(1, Math.round(cell.w * COMPOSITE_WIDTH));
+      const outputH = Math.max(1, Math.round(outputW / cellAspect));
+      const canvas = document.createElement("canvas");
+      canvas.width = outputW;
+      canvas.height = outputH;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return null;
 
-    if (facing === "user") {
-      ctx.translate(canvas.width, 0);
-      ctx.scale(-1, 1);
-    }
-    ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+      if (facing === "user") {
+        ctx.translate(canvas.width, 0);
+        ctx.scale(-1, 1);
+      }
+      ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
 
-    const compiled = compileFilter(currentFilterCss);
-    if (compiled !== (IDENTITY_FILTER as any)) {
-      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      applyCompiledFilter(imgData, compiled);
-      ctx.putImageData(imgData, 0, 0);
-    }
-    return canvas;
-  }, [facing, currentFilterCss, targetAspect, cssZoomScale]);
+      const compiled = compileFilter(currentFilterCss);
+      if (compiled !== (IDENTITY_FILTER as any)) {
+        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        applyCompiledFilter(imgData, compiled);
+        ctx.putImageData(imgData, 0, 0);
+      }
+      return canvas;
+    },
+    [facing, currentFilterCss, targetAspect, cssZoomScale],
+  );
 
   // Flattens every filled cell onto one output canvas at the layout's
   // fractional rects, then hands off exactly like a normal single photo —
   // AfterShotContext never has to know a layout was involved.
-  const compositeAndHandoff = useCallback((layout: CameraLayout, captures: (CellCapture | null)[]) => {
-    const W = COMPOSITE_WIDTH;
-    const H = Math.round(W / targetAspect);
-    const output = document.createElement("canvas");
-    output.width = W;
-    output.height = H;
-    const ctx = output.getContext("2d");
-    if (!ctx) return;
-    ctx.fillStyle = "#000";
-    ctx.fillRect(0, 0, W, H);
+  const compositeAndHandoff = useCallback(
+    (layout: CameraLayout, captures: (CellCapture | null)[]) => {
+      const W = COMPOSITE_WIDTH;
+      const H = Math.round(W / targetAspect);
+      const output = document.createElement("canvas");
+      output.width = W;
+      output.height = H;
+      const ctx = output.getContext("2d");
+      if (!ctx) return;
+      ctx.fillStyle = "#000";
+      ctx.fillRect(0, 0, W, H);
 
-    const gap = 4; // thin seam between cells, matching LayoutPreview's spirit
-    layout.cells.forEach((cell, i) => {
-      const capture = captures[i];
-      if (!capture) return;
-      const dx = cell.x * W + gap / 2;
-      const dy = cell.y * H + gap / 2;
-      const dw = cell.w * W - gap;
-      const dh = cell.h * H - gap;
-      ctx.drawImage(capture.canvas, dx, dy, dw, dh);
-    });
+      const gap = 4; // thin seam between cells, matching LayoutPreview's spirit
+      layout.cells.forEach((cell, i) => {
+        const capture = captures[i];
+        if (!capture) return;
+        const dx = cell.x * W + gap / 2;
+        const dy = cell.y * H + gap / 2;
+        const dw = cell.w * W - gap;
+        const dh = cell.h * H - gap;
+        ctx.drawImage(capture.canvas, dx, dy, dw, dh);
+      });
 
-    output.toBlob(
-      (blob) => {
-        if (!blob) return;
-        const url = URL.createObjectURL(blob);
-        setPendingCapture({ type: "photo", blob, url });
-        navigate({ to: "/create/after-shot" });
-      },
-      "image/jpeg",
-      0.96,
-    );
-  }, [targetAspect, navigate]);
+      output.toBlob(
+        (blob) => {
+          if (!blob) return;
+          const url = URL.createObjectURL(blob);
+          setPendingCapture({ type: "photo", blob, url });
+          navigate({ to: "/create/after-shot" });
+        },
+        "image/jpeg",
+        0.96,
+      );
+    },
+    [targetAspect, navigate],
+  );
 
   const captureIntoActiveCell = useCallback(() => {
     const cell = activeLayout.cells[activeCellIndex];
@@ -582,19 +610,22 @@ function CreatePage() {
 
   // Tapping an empty cell jumps the active slot to it; tapping a filled
   // cell clears it and makes it active again — a retake, nothing more.
-  const handleCellTap = useCallback((index: number) => {
-    setCellCapturesByLayout((prev) => {
-      const existing = prev[activeLayout.id];
-      if (!existing) return prev;
-      if (existing[index] === null) {
-        setActiveCellIndex(index);
-        return prev;
-      }
-      const next = [...existing];
-      next[index] = null;
-      return { ...prev, [activeLayout.id]: next };
-    });
-  }, [activeLayout.id]);
+  const handleCellTap = useCallback(
+    (index: number) => {
+      setCellCapturesByLayout((prev) => {
+        const existing = prev[activeLayout.id];
+        if (!existing) return prev;
+        if (existing[index] === null) {
+          setActiveCellIndex(index);
+          return prev;
+        }
+        const next = [...existing];
+        next[index] = null;
+        return { ...prev, [activeLayout.id]: next };
+      });
+    },
+    [activeLayout.id],
+  );
 
   const stopMirrorDrawLoop = useCallback(() => {
     if (mirrorDrawLoopRef.current !== null) {
@@ -616,7 +647,7 @@ function CreatePage() {
     if (video.videoWidth > 0) {
       const { sx, sy, sw, sh } = applyZoomToCrop(
         getCropRect(video.videoWidth, video.videoHeight, RATIO_ASPECT[ratio]),
-        cssZoomScale
+        cssZoomScale,
       );
       const recordCanvas = document.createElement("canvas");
       recordCanvas.width = sw;
@@ -784,12 +815,11 @@ function CreatePage() {
           muted
           className="absolute inset-0 w-full h-full object-cover"
           style={{
-              filter: currentFilterCss,
-              transform: facing === "user"
-                ? `scaleX(-1) scale(${cssZoomScale})`
-                : `scale(${cssZoomScale})`,
-              transition: pinchStateRef.current ? "none" : "transform 100ms ease-out",
-            }}
+            filter: currentFilterCss,
+            transform:
+              facing === "user" ? `scaleX(-1) scale(${cssZoomScale})` : `scale(${cssZoomScale})`,
+            transition: pinchStateRef.current ? "none" : "transform 100ms ease-out",
+          }}
         />
         {gridVisible && (
           <div className="absolute inset-0 pointer-events-none" style={{ opacity: 0.35 }}>
@@ -807,80 +837,86 @@ function CreatePage() {
             activeCellIndex={activeCellIndex}
             className="absolute inset-0"
             renderCell={(_cell, i) => {
-  const capture = cellCaptures[i];
-  const isActive = i === activeCellIndex;
-  return (
-    <button
-      type="button"
-      onClick={() => handleCellTap(i)}
-      aria-label={capture ? `Retake shot ${i + 1}` : `Cell ${i + 1}`}
-      style={{
-        position: "absolute",
-        inset: 0,
-        width: "100%",
-        height: "100%",
-        padding: 0,
-        border: "none",
-        background: "#000",
-        overflow: "hidden",
-      }}
-    >
-      {capture ? (
-        <img
-          src={capture.canvas.toDataURL()}
-          alt=""
-          style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-        />
-      ) : isActive ? (
-        // Only the cell currently being shot gets a live pane — every
-        // other empty cell falls through to the button's own black
-        // background instead. Previously every empty cell showed a live
-        // feed at once, which made it unclear which one you were about
-        // to capture into.
-        <video
-          ref={(el) => {
-            cellVideoRefsRef.current[i] = el;
-            if (el && streamRef.current) el.srcObject = streamRef.current;
-          }}
-          autoPlay
-          muted
-          playsInline
-          style={{
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            display: "block",
-            // cssZoomScale added here too — this was the actual bug.
-            // The main preview video applies zoom via this same
-            // transform, but this per-cell video sits on top of it once
-            // a layout is active, so it needed the same scale applied
-            // directly or front-camera (CSS-only) zoom silently did
-            // nothing while a layout was selected.
-            transform: facing === "user"
-              ? `scaleX(-1) scale(${cssZoomScale})`
-              : `scale(${cssZoomScale})`,
-          }}
-        />
-      ) : (
-        // Cells not yet reached: frosted glass instead of flat black, so
-        // the live scene still shows through, just softened — matches the
-        // liquid-glass language LiquidGlassSegmented already uses. No live
-        // video here on purpose; a sharp feed would bring back the
-        // "which cell is active" confusion this was meant to fix.
-        <div
-          style={{
-            width: "100%",
-            height: "100%",
-            background: "rgba(255,255,255,0.08)",
-            backdropFilter: "blur(20px) saturate(160%)",
-            WebkitBackdropFilter: "blur(20px) saturate(160%)",
-            border: "1px solid rgba(255,255,255,0.10)",
-          }}
-        />
-      )}
-    </button>
-  );
-}}
+              const capture = cellCaptures[i];
+              const isActive = i === activeCellIndex;
+              return (
+                <button
+                  type="button"
+                  onClick={() => handleCellTap(i)}
+                  aria-label={capture ? `Retake shot ${i + 1}` : `Cell ${i + 1}`}
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    width: "100%",
+                    height: "100%",
+                    padding: 0,
+                    border: "none",
+                    background: "#000",
+                    overflow: "hidden",
+                  }}
+                >
+                  {capture ? (
+                    <img
+                      src={capture.canvas.toDataURL()}
+                      alt=""
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                        display: "block",
+                      }}
+                    />
+                  ) : isActive ? (
+                    // Only the cell currently being shot gets a live pane — every
+                    // other empty cell falls through to the button's own black
+                    // background instead. Previously every empty cell showed a live
+                    // feed at once, which made it unclear which one you were about
+                    // to capture into.
+                    <video
+                      ref={(el) => {
+                        cellVideoRefsRef.current[i] = el;
+                        if (el && streamRef.current) el.srcObject = streamRef.current;
+                      }}
+                      autoPlay
+                      muted
+                      playsInline
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                        display: "block",
+                        // cssZoomScale added here too — this was the actual bug.
+                        // The main preview video applies zoom via this same
+                        // transform, but this per-cell video sits on top of it once
+                        // a layout is active, so it needed the same scale applied
+                        // directly or front-camera (CSS-only) zoom silently did
+                        // nothing while a layout was selected.
+                        transform:
+                          facing === "user"
+                            ? `scaleX(-1) scale(${cssZoomScale})`
+                            : `scale(${cssZoomScale})`,
+                      }}
+                    />
+                  ) : (
+                    // Cells not yet reached: frosted glass instead of flat black, so
+                    // the live scene still shows through, just softened — matches the
+                    // liquid-glass language LiquidGlassSegmented already uses. No live
+                    // video here on purpose; a sharp feed would bring back the
+                    // "which cell is active" confusion this was meant to fix.
+                    <div
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        background: "rgba(255,255,255,0.08)",
+                        backdropFilter: "blur(20px) saturate(160%)",
+                        WebkitBackdropFilter: "blur(20px) saturate(160%)",
+                        border: "1px solid rgba(255,255,255,0.10)",
+                      }}
+                    />
+                  )}
+                </button>
+              );
+            }}
           />
         )}
       </div>
@@ -1002,9 +1038,7 @@ function CreatePage() {
           aria-pressed={gridVisible}
           className="flex items-center gap-2"
         >
-          <AnimatedLabel visible={labelsVisible}>
-            {gridVisible ? "Grid: On" : "Grid"}
-          </AnimatedLabel>
+          <AnimatedLabel visible={labelsVisible}>{gridVisible ? "Grid: On" : "Grid"}</AnimatedLabel>
           <Grid3x3 size={26} style={{ opacity: gridVisible ? 1 : 0.7 }} />
         </button>
 
@@ -1077,7 +1111,11 @@ function CreatePage() {
           >
             <span
               className="rounded-full overflow-hidden block"
-              style={{ width: SWATCH_DIAMETER, height: SWATCH_DIAMETER, background: f.thumbnailColor }}
+              style={{
+                width: SWATCH_DIAMETER,
+                height: SWATCH_DIAMETER,
+                background: f.thumbnailColor,
+              }}
             />
           </button>
         ))}
@@ -1162,7 +1200,10 @@ function CreatePage() {
       {mode === "video" && isRecording ? (
         <div
           className="absolute left-1/2 -translate-x-1/2 flex items-center gap-6"
-          style={{ zIndex: 4, bottom: `calc(env(safe-area-inset-bottom) + ${CAPTURE_ROW_BOTTOM}px)` }}
+          style={{
+            zIndex: 4,
+            bottom: `calc(env(safe-area-inset-bottom) + ${CAPTURE_ROW_BOTTOM}px)`,
+          }}
         >
           <button
             onClick={togglePause}
@@ -1275,5 +1316,4 @@ function CreatePage() {
       />
     </div>
   );
-
 }

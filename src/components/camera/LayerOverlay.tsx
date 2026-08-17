@@ -67,22 +67,22 @@ export default function LayerOverlay({
   }, [containerRef]);
 
   const startMove = useCallback(
-  (layer: Layer) => (e: ReactPointerEvent) => {
-    e.stopPropagation();
-    setSelectedLayerId(layer.id);
-    hasMovedRef.current = false;
-    tapLayerRef.current = layer;
-    dragRef.current = {
-      mode: "move",
-      id: layer.id,
-      startClientX: e.clientX,
-      startClientY: e.clientY,
-      startX: layer.x,
-      startY: layer.y,
-    };
-  },
-  [setSelectedLayerId],
-);
+    (layer: Layer) => (e: ReactPointerEvent) => {
+      e.stopPropagation();
+      setSelectedLayerId(layer.id);
+      hasMovedRef.current = false;
+      tapLayerRef.current = layer;
+      dragRef.current = {
+        mode: "move",
+        id: layer.id,
+        startClientX: e.clientX,
+        startClientY: e.clientY,
+        startX: layer.x,
+        startY: layer.y,
+      };
+    },
+    [setSelectedLayerId],
+  );
 
   const startTransform = useCallback(
     (layer: Layer) => (e: ReactPointerEvent) => {
