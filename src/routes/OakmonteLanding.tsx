@@ -306,23 +306,14 @@ function OakmonteLanding() {
               <Link to="/set-up-store" className="hero-cta-card">
                 <span className="cta-label">Set Up A Store</span>
                 <span className="cta-hint">Open your storefront and start selling.</span>
-                <span className="cta-arrow" aria-hidden="true">
-                  →
-                </span>
               </Link>
               <Link to="/become-a-creator" className="hero-cta-card">
                 <span className="cta-label">Become A Creator</span>
                 <span className="cta-hint">Get paid for the content you create.</span>
-                <span className="cta-arrow" aria-hidden="true">
-                  →
-                </span>
               </Link>
               <Link to="/become-a-curator" className="hero-cta-card">
                 <span className="cta-label">Define Your Wardrobe</span>
                 <span className="cta-hint">Discover pieces matched to your size.</span>
-                <span className="cta-arrow" aria-hidden="true">
-                  →
-                </span>
               </Link>
             </div>
 
@@ -754,15 +745,13 @@ const CSS = `
 .oak .hero-sub b{color:var(--black);}
 @keyframes oakFadeUp{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
 
-.oak .hero-cta-stack{display:flex;flex-direction:column;gap:16px;margin:48px 0 24px;padding:36px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);opacity:0;animation:oakFadeUp .7s ease forwards;animation-delay:.68s;}
-.oak .hero-cta-card{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;padding:22px 26px;background:var(--white);border:2px solid var(--black);border-radius:18px;transition:transform .25s ease,background .25s ease,border-color .25s ease,color .25s ease;}
+.oak .hero-cta-stack{display:flex;flex-direction:column;gap:12px;margin:36px 0 20px;padding:24px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);opacity:0;animation:oakFadeUp .7s ease forwards;animation-delay:.68s;}
+.oak .hero-cta-card{display:flex;flex-direction:column;gap:2px;padding:14px 20px;background:var(--white);border:2px solid var(--black);border-radius:16px;transition:transform .25s ease,background .25s ease,border-color .25s ease,color .25s ease;}
 .oak .hero-cta-card:hover{background:var(--blue);border-color:var(--blue);color:#fff;transform:translateY(-2px);}
-.oak .hero-cta-card .cta-label{font-family:var(--display);font-size:clamp(18px,2.6vw,26px);text-transform:uppercase;letter-spacing:-.01em;font-weight:400;}
-.oak .hero-cta-card .cta-hint{width:100%;font-size:14px;color:var(--gray);line-height:1.4;}
+.oak .hero-cta-card .cta-label{font-family:var(--display);font-size:clamp(17px,2.2vw,22px);text-transform:uppercase;letter-spacing:-.01em;font-weight:400;line-height:1.2;}
+.oak .hero-cta-card .cta-hint{font-size:13px;color:var(--gray);line-height:1.35;}
 .oak .hero-cta-card:hover .cta-hint{color:rgba(255,255,255,.8);}
-.oak .hero-cta-card .cta-arrow{font-size:22px;font-weight:400;transition:transform .25s ease;}
-.oak .hero-cta-card:hover .cta-arrow{transform:translateX(4px);}
-@media (max-width:640px){.oak .hero-cta-card{padding:18px 20px;}}
+@media (max-width:640px){.oak .hero-cta-card{padding:12px 16px;border-radius:14px;}}
 
 .oak .trust-line{font-size:13px;color:var(--gray);font-weight:500;opacity:0;animation:oakFadeUp .7s ease forwards;animation-delay:.8s;}
 .oak .trust-line b{color:var(--black);}
