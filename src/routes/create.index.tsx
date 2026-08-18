@@ -333,7 +333,6 @@ function CreatePage() {
     const clamped = Math.max(0, Math.min(quickStripFilters.length - 1, index));
     const next = quickStripFilters[clamped];
     if (next && next.id !== selectedFilterId) setSelectedFilterId(next.id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quickStripFilters, selectedFilterId]);
 
   const scrollFilterIntoRing = useCallback(
@@ -341,7 +340,6 @@ function CreatePage() {
       filterStripRef.current?.scrollTo({ left: index * CAPTURE_SIZE, behavior: "smooth" });
       const next = quickStripFilters[index];
       if (next) setSelectedFilterId(next.id);
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     },
     [quickStripFilters],
   );

@@ -23,10 +23,20 @@ export async function getVideoKeyframes(
 
   const sink = new EncodedPacketSink(videoTrack);
   const keyframes: number[] = [];
-  let packet = await sink.getKeyPacket(0, { metadataOnly: true, verifyKeyPackets: true });
+  // verifyKeyPackets only, NOT metadataOnly — mediabunny rejects the pair
+  // ("cannot be enabled together") because verification has to read the packet
+  // body, and metadataOnly is precisely the request not to. Passing both threw
+  // on every call, which left duration at 0 and the trim screen permanently
+  // stuck on "0.0s selected" with Confirm disabled.
+  //
+  // Verification is the half worth keeping: some containers flag packets as
+  // keyframes when they aren't, and these timestamps are what the trim handles
+  // snap to. Snapping to a packet that isn't really a cut point is what turns a
+  // lossless remux into a broken clip.
+  let packet = await sink.getKeyPacket(0, { verifyKeyPackets: true });
   while (packet) {
     keyframes.push(packet.timestamp);
-    packet = await sink.getNextKeyPacket(packet, { metadataOnly: true, verifyKeyPackets: true });
+    packet = await sink.getNextKeyPacket(packet, { verifyKeyPackets: true });
   }
   if (keyframes.length === 0 || keyframes[0] > 0) keyframes.unshift(0);
   return { duration, keyframes };

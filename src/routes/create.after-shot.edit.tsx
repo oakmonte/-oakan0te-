@@ -15,6 +15,9 @@ import {
 } from "lucide-react";
 import { TrimIcon } from "@/components/camera/aftershot-icons";
 import { useAfterShotContext } from "@/lib/after-shot-context";
+import { useAfterShotLayers } from "@/lib/after-shot-layers";
+import LayerOverlay from "@/components/camera/LayerOverlay";
+import { useLayerRenderer } from "@/components/camera/aftershot/use-layer-renderer";
 import { getVideoKeyframes, snapToNearestKeyframe, trimVideo } from "@/lib/video-trim";
 
 export const Route = createFileRoute("/create/after-shot/edit")({
@@ -48,19 +51,28 @@ function TrimPage() {
   const trackRef = useRef<HTMLDivElement>(null);
   const previewVideoRef = useRef<HTMLVideoElement>(null);
   const thumbVideoRef = useRef<HTMLVideoElement>(null);
+  const previewBoxRef = useRef<HTMLDivElement>(null);
+
+  const { layers } = useAfterShotLayers();
+  const renderLayerContent = useLayerRenderer(previewBoxRef);
 
   const [duration, setDuration] = useState(0);
   const [keyframes, setKeyframes] = useState<number[]>([]);
   const [start, setStart] = useState(0);
   const [end, setEnd] = useState(0);
-  const [dragging, setDragging] = useState<"start" | "end" | null>(null);
+  const [dragging, setDragging] = useState<"start" | "end" | "scrub" | null>(null);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const [thumbnails, setThumbnails] = useState<string[]>([]);
   const [isPlaying, setIsPlaying] = useState(false);
   const [muted, setMuted] = useState(false);
   const [playhead, setPlayhead] = useState(0);
+  // Real aspect from the clip itself. This box used to be hardcoded to 9/16, so
+  // anything shot landscape or square got centre-cropped by object-cover and you
+  // trimmed while looking at the wrong framing.
+  const [aspect, setAspect] = useState(9 / 16);
 
   useEffect(() => {
     if (media.type !== "video") {
@@ -68,13 +80,22 @@ function TrimPage() {
       return;
     }
     let cancelled = false;
-    getVideoKeyframes(media.blob).then(({ duration: d, keyframes: k }) => {
-      if (cancelled) return;
-      setDuration(d);
-      setKeyframes(k);
-      setStart(0);
-      setEnd(d);
-    });
+    setLoadError(null);
+    getVideoKeyframes(media.blob)
+      .then(({ duration: d, keyframes: k }) => {
+        if (cancelled) return;
+        setDuration(d);
+        setKeyframes(k);
+        setStart(0);
+        setEnd(d);
+      })
+      .catch((err) => {
+        // Without this the failure was an unhandled rejection and the screen
+        // just sat there reading "0.0s selected" with no clue why.
+        if (cancelled) return;
+        console.error("Could not read video keyframes:", err);
+        setLoadError(err instanceof Error ? err.message : "Could not read this clip");
+      });
     return () => {
       cancelled = true;
     };
@@ -87,38 +108,56 @@ function TrimPage() {
     if (!videoElement) return;
     const video = videoElement as HTMLVideoElement;
 
+    // `duration` comes from mediabunny reading the blob, which resolves well
+    // before this hidden <video> element has its own metadata. Seeking an element
+    // that isn't ready never fires `seeked`, so the very first await here hung
+    // forever and the filmstrip stayed empty — invisible until now only because
+    // duration was permanently 0 and this effect never ran at all.
+    const waitForEvent = (target: HTMLVideoElement, event: string, timeoutMs: number) =>
+      new Promise<boolean>((resolve) => {
+        const done = (ok: boolean) => {
+          target.removeEventListener(event, onEvent);
+          clearTimeout(timer);
+          resolve(ok);
+        };
+        const onEvent = () => done(true);
+        const timer = setTimeout(() => done(false), timeoutMs);
+        target.addEventListener(event, onEvent);
+      });
+
     async function generate() {
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
+
+      if (video.readyState < HTMLMediaElement.HAVE_METADATA) {
+        const ready = await waitForEvent(video, "loadedmetadata", 5000);
+        if (!ready || cancelled) return;
+      }
+
+      const vw = video.videoWidth || 1;
+      const vh = video.videoHeight || 1;
+      canvas.width = THUMB_W;
+      canvas.height = Math.round(THUMB_W * (vh / vw));
+
       const frames: string[] = [];
       const step = duration / THUMBNAIL_COUNT;
       for (let i = 0; i < THUMBNAIL_COUNT; i++) {
         if (cancelled) return;
-        const t = Math.min(duration - 0.05, i * step);
-        await new Promise<void>((resolve) => {
-          const onSeeked = () => {
-            video.removeEventListener("seeked", onSeeked);
-            resolve();
-          };
-          video.addEventListener("seeked", onSeeked);
-          video.currentTime = t;
-        });
+        video.currentTime = Math.min(duration - 0.05, i * step);
+        // Bounded wait: one seek that never lands shouldn't cost the whole strip.
+        const ok = await waitForEvent(video, "seeked", 3000);
         if (cancelled) return;
-        const vw = video.videoWidth || 1;
-        const vh = video.videoHeight || 1;
-        canvas.width = THUMB_W;
-        canvas.height = Math.round(THUMB_W * (vh / vw));
+        if (!ok) break;
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         frames.push(canvas.toDataURL("image/jpeg", 0.6));
       }
-      if (!cancelled) setThumbnails(frames);
+      if (!cancelled && frames.length > 0) setThumbnails(frames);
     }
     generate();
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [duration, media]);
 
   const timeToRatio = useCallback((t: number) => (duration > 0 ? t / duration : 0), [duration]);
@@ -127,16 +166,36 @@ function TrimPage() {
     [duration],
   );
 
+  // Scrubbing deliberately doesn't snap: the trim handles snap to keyframes so
+  // the cut stays a lossless remux, but the playhead should land exactly where
+  // your finger is so you can find the frame you actually want.
+  const scrubTo = useCallback(
+    (clientX: number) => {
+      if (!trackRef.current) return;
+      const rect = trackRef.current.getBoundingClientRect();
+      const raw = ratioToTime((clientX - rect.left) / rect.width);
+      const time = Math.max(start, Math.min(end, raw));
+      const video = previewVideoRef.current;
+      if (video) video.currentTime = time;
+      setPlayhead(time);
+    },
+    [ratioToTime, start, end],
+  );
+
   const handlePointerMove = useCallback(
     (clientX: number) => {
       if (!dragging || !trackRef.current) return;
+      if (dragging === "scrub") {
+        scrubTo(clientX);
+        return;
+      }
       const rect = trackRef.current.getBoundingClientRect();
       const raw = ratioToTime((clientX - rect.left) / rect.width);
       const snapped = snapToNearestKeyframe(raw, keyframes);
       if (dragging === "start") setStart(Math.min(snapped, end - 0.2));
       else setEnd(Math.max(snapped, start + 0.2));
     },
-    [dragging, keyframes, ratioToTime, start, end],
+    [dragging, keyframes, ratioToTime, start, end, scrubTo],
   );
 
   useEffect(() => {
@@ -170,8 +229,13 @@ function TrimPage() {
       setIsPlaying(false);
     } else {
       if (video.currentTime < start || video.currentTime >= end) video.currentTime = start;
-      video.play();
-      setIsPlaying(true);
+      // play() rejects if the browser blocks playback or the element is torn
+      // down mid-call; unhandled it surfaces as an unhandledrejection and gets
+      // picked up by error-capture as a real app error.
+      video
+        .play()
+        .then(() => setIsPlaying(true))
+        .catch(() => setIsPlaying(false));
     }
   }, [isPlaying, start, end]);
 
@@ -181,7 +245,9 @@ function TrimPage() {
     if (!video) return;
     video.pause();
     setIsPlaying(false);
-    video.currentTime = dragging === "start" ? start : end;
+    // Scrubbing sets currentTime itself from the pointer; jumping to a handle
+    // here would fight it.
+    if (dragging !== "scrub") video.currentTime = dragging === "start" ? start : end;
   }, [dragging, start, end]);
 
   const handleConfirm = useCallback(async () => {
@@ -232,21 +298,53 @@ function TrimPage() {
 
       <div className="relative flex-1 min-h-0 flex items-center justify-center px-5">
         <div
+          ref={previewBoxRef}
           className="relative overflow-hidden rounded-2xl"
-          style={{ maxHeight: "100%", aspectRatio: "9/16", width: "auto", height: "100%" }}
+          style={{
+            maxHeight: "100%",
+            maxWidth: "100%",
+            aspectRatio: String(aspect),
+            width: "auto",
+            height: "100%",
+          }}
         >
           <video
             ref={previewVideoRef}
             src={media.url}
             muted={muted}
             playsInline
+            onLoadedMetadata={(e) => {
+              const v = e.currentTarget;
+              if (v.videoWidth && v.videoHeight) setAspect(v.videoWidth / v.videoHeight);
+            }}
             className="w-full h-full object-cover"
           />
+
+          {/* Captions and drawings show here too — trimming while blind to your
+              own overlays meant cutting to a frame that looked completely
+              different once you got back to the edit screen. Read-only: this
+              screen trims, it doesn't reposition layers. */}
+          <div className="absolute inset-0 pointer-events-none">
+            <LayerOverlay
+              containerRef={previewBoxRef}
+              layers={layers}
+              updateLayer={() => {}}
+              selectedLayerId={null}
+              setSelectedLayerId={() => {}}
+              renderLayerContent={renderLayerContent}
+            />
+          </div>
           {busy && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/60 z-30">
               <span className="text-sm uppercase tracking-widest">
                 Trimming… {Math.round(progress * 100)}%
               </span>
+            </div>
+          )}
+
+          {loadError && (
+            <div className="absolute inset-x-3 bottom-3 rounded-xl px-3 py-2 bg-black/80 z-30">
+              <p className="text-xs text-red-300">{loadError}</p>
             </div>
           )}
         </div>
@@ -286,8 +384,19 @@ function TrimPage() {
       <div className="px-5 z-20">
         <div
           ref={trackRef}
+          onPointerDown={(e) => {
+            // Anywhere on the track that isn't a handle scrubs. Previously the
+            // only way to see a frame was to drag a trim handle to it, which
+            // meant destroying your in/out points just to look around the clip.
+            if ((e.target as HTMLElement).closest("button")) return;
+            setDragging("scrub");
+            // scrubTo directly, not via handlePointerMove — `dragging` hasn't
+            // flushed yet on this tick, so the guarded path would no-op and a
+            // tap without a drag wouldn't move the playhead at all.
+            scrubTo(e.clientX);
+          }}
           className="relative rounded-xl overflow-hidden"
-          style={{ height: 56, background: "#1a1a1a" }}
+          style={{ height: 56, background: "#1a1a1a", touchAction: "none" }}
         >
           <div className="absolute inset-0 flex">
             {thumbnails.length > 0 ? (
@@ -343,12 +452,16 @@ function TrimPage() {
             />
           ))}
 
-          {isPlaying && (
-            <div
-              className="absolute top-0 bottom-0 w-0.5 pointer-events-none"
-              style={{ left: `${timeToRatio(playhead) * 100}%`, background: "#fff" }}
-            />
-          )}
+          {/* Always visible, not just while playing — it's the only indication
+              of which frame the preview above is currently showing. */}
+          <div
+            className="absolute top-0 bottom-0 w-0.5 pointer-events-none"
+            style={{
+              left: `${timeToRatio(playhead) * 100}%`,
+              background: "#fff",
+              boxShadow: "0 0 4px rgba(0,0,0,0.6)",
+            }}
+          />
 
           <button
             onPointerDown={() => setDragging("start")}

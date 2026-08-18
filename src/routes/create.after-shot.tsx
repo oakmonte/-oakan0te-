@@ -2,6 +2,7 @@ import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { takePendingCapture, type CapturedMedia } from "@/lib/capture-handoff";
 import { AfterShotContext } from "@/lib/after-shot-context";
+import { AfterShotLayersContext, useAfterShotLayersState } from "@/lib/after-shot-layers";
 
 export const Route = createFileRoute("/create/after-shot")({
   component: AfterShotLayout,
@@ -53,7 +54,23 @@ function AfterShotLayout() {
 
   return (
     <AfterShotContext.Provider value={{ media, setMedia, discard }}>
-      <Outlet />
+      <AfterShotLayersProvider>
+        <Outlet />
+      </AfterShotLayersProvider>
     </AfterShotContext.Provider>
+  );
+}
+
+// The layer stack lives on the LAYOUT, not on the index route. It used to be
+// provided inside the index page, which unmounts the moment you open the trim
+// screen — so nipping over to trim a clip silently threw away every caption and
+// drawing you'd added. Held here it survives navigation between the after-shot
+// children, and the trim screen can render the layers too.
+function AfterShotLayersProvider({ children }: { children: React.ReactNode }) {
+  const layersState = useAfterShotLayersState();
+  return (
+    <AfterShotLayersContext.Provider value={layersState}>
+      {children}
+    </AfterShotLayersContext.Provider>
   );
 }

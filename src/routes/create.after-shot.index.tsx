@@ -20,21 +20,15 @@ import CropPanel from "@/components/camera/aftershot/CropPanel";
 import DrawPanel from "@/components/camera/aftershot/DrawPanel";
 import FilterPanel from "@/components/camera/FilterPanel";
 import { CAMERA_FILTERS } from "@/components/camera/filter-data";
-import { applyFilterToPhotoBlob, applyFilterToVideoBlob } from "@/lib/filter-media";
+import { exportComposite } from "@/lib/after-shot-export";
 import LayerOverlay from "@/components/camera/LayerOverlay";
-import {
-  useAfterShotLayers,
-  AfterShotLayersContext,
-  useAfterShotLayersState,
-  TEXT_LAYER_WIDTH_FRACTION,
-  TEXT_LAYER_LINE_HEIGHT,
-  type Layer,
-} from "@/lib/after-shot-layers";
+import { useAfterShotLayers } from "@/lib/after-shot-layers";
+import { useLayerRenderer } from "@/components/camera/aftershot/use-layer-renderer";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
 
 export const Route = createFileRoute("/create/after-shot/")({
   head: () => ({ meta: [{ title: "Edit — Oakmonte" }] }),
-  component: AfterShotIndexWrapper,
+  component: AfterShotIndexPage,
 });
 
 type ToolId = "crop" | "text" | "draw" | "filter" | "sound" | "sticker" | "link";
@@ -53,20 +47,6 @@ const EDIT_TOOLS: { id: ToolId; label: string; icon: typeof Type }[] = [
 const COLLAPSED_TOOLS: { id: ToolId; label: string; icon: typeof Crop }[] = [
   { id: "crop", label: "Crop", icon: Crop },
 ];
-
-// The real, shared layer stack lives here, at the page's top level, so
-// every panel that adds/edits layers (Text, Draw, and later Stickers) is
-// reading and writing the same array — this is the piece the old
-// route-per-tool version never had, since each route unmounted before the
-// next one could see what it had added.
-function AfterShotIndexWrapper() {
-  const layersState = useAfterShotLayersState();
-  return (
-    <AfterShotLayersContext.Provider value={layersState}>
-      <AfterShotIndexPage />
-    </AfterShotLayersContext.Provider>
-  );
-}
 
 function AfterShotIndexPage() {
   useLockedViewport();
@@ -94,10 +74,16 @@ function AfterShotIndexPage() {
   // an overlay panel like Crop/Text/Draw, since there's nothing to place or
   // drag — just re-encoding the whole frame, same as the old filters route.
   const [selectedFilterId, setSelectedFilterId] = useState(DEFAULT_FILTER_ID);
+  // What the filter list is currently hovering on, before you commit to it.
+  // FilterPanel drives this through onPreview and resets it itself on discard.
+  const [previewFilterId, setPreviewFilterId] = useState<string | null>(null);
   const [favoritedFilterIds, setFavoritedFilterIds] = useState<Set<string>>(new Set());
-  const [filterBusy, setFilterBusy] = useState(false);
-  const [filterProgress, setFilterProgress] = useState(0);
   const [editingLayerId, setEditingLayerId] = useState<string | null>(null);
+
+  // Export state — the one place the whole edit stack turns into a file.
+  const [exporting, setExporting] = useState(false);
+  const [exportProgress, setExportProgress] = useState(0);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   const handlePhotoLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
     const w = e.currentTarget.naturalWidth;
@@ -115,35 +101,14 @@ function AfterShotIndexPage() {
 
   const closeTool = useCallback(() => setActiveTool(null), []);
 
-  const applyFilter = useCallback(
-    async (filterId: string) => {
-      const filter = CAMERA_FILTERS.find((f) => f.id === filterId);
-      if (!filter || filterId === DEFAULT_FILTER_ID) {
-        setSelectedFilterId(filterId);
-        return;
-      }
-      setFilterBusy(true);
-      setFilterProgress(0);
-      try {
-        const filteredBlob =
-          media.type === "photo"
-            ? await applyFilterToPhotoBlob(media.blob, filter.css)
-            : await applyFilterToVideoBlob(media.blob, filter.css, setFilterProgress);
-        const url = URL.createObjectURL(filteredBlob);
-        setMedia(
-          media.type === "photo"
-            ? { type: "photo", blob: filteredBlob, url }
-            : { type: "video", blob: filteredBlob, url },
-        );
-        setSelectedFilterId(filterId);
-      } catch (err) {
-        console.error("Filter apply failed:", err);
-      } finally {
-        setFilterBusy(false);
-      }
-    },
-    [media, setMedia],
-  );
+  // Filters are a CSS property on the preview element and a value handed to the
+  // exporter — never a re-encode of media.blob. Baking on every tap meant each
+  // pick re-filtered the ALREADY filtered pixels, so choosing Vivid then Noir
+  // gave you Noir stacked on Vivid, plus a fresh generation of compression loss
+  // for every filter you merely auditioned.
+  const previewFilterCss =
+    CAMERA_FILTERS.find((f) => f.id === (previewFilterId ?? selectedFilterId))?.css ?? "none";
+  const exportFilterCss = CAMERA_FILTERS.find((f) => f.id === selectedFilterId)?.css ?? "none";
 
   const toggleFilterFavorite = useCallback((id: string) => {
     setFavoritedFilterIds((prev) => {
@@ -153,6 +118,28 @@ function AfterShotIndexPage() {
       return next;
     });
   }, []);
+
+  const handleNext = useCallback(async () => {
+    setExporting(true);
+    setExportProgress(0);
+    setExportError(null);
+    try {
+      const blob = await exportComposite(media, exportFilterCss, layers, setExportProgress);
+      const url = URL.createObjectURL(blob);
+      setMedia(
+        media.type === "photo" ? { type: "photo", blob, url } : { type: "video", blob, url },
+      );
+      // Publishing/compose isn't built yet, so the flow stops here rather than
+      // pretending to post. The composite is real and now sits in context —
+      // whatever screen comes next reads it straight from useAfterShotContext.
+      console.info("Export complete:", blob.type, blob.size, "bytes");
+    } catch (err) {
+      console.error("Export failed:", err);
+      setExportError(err instanceof Error ? err.message : "Export failed");
+    } finally {
+      setExporting(false);
+    }
+  }, [media, exportFilterCss, layers, setMedia]);
 
   return (
     <div
@@ -175,12 +162,16 @@ function AfterShotIndexPage() {
           background: "#000",
         }}
       >
+        {/* The filter is CSS on the media element only. Layers sit in a sibling
+            overlay so a caption never gets tinted by the filter underneath it —
+            and the exporter composites in that same order. */}
         {media.type === "photo" ? (
           <img
             src={media.url}
             alt="Captured"
             onLoad={handlePhotoLoad}
             className="absolute inset-0 w-full h-full object-cover"
+            style={{ filter: previewFilterCss }}
           />
         ) : (
           <video
@@ -191,16 +182,31 @@ function AfterShotIndexPage() {
             playsInline
             onLoadedMetadata={handleVideoLoad}
             className="absolute inset-0 w-full h-full object-cover"
+            style={{ filter: previewFilterCss }}
           />
         )}
 
-        {filterBusy && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/70 z-30">
+        {exporting && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/70 z-30">
             <span className="text-sm uppercase tracking-widest">
               {media.type === "video"
-                ? `Applying… ${Math.round(filterProgress * 100)}%`
-                : "Applying…"}
+                ? `Exporting… ${Math.round(exportProgress * 100)}%`
+                : "Exporting…"}
             </span>
+            {media.type === "video" && (
+              <div className="w-40 h-1 rounded-full overflow-hidden bg-white/25">
+                <div
+                  className="h-full bg-white transition-[width] duration-150"
+                  style={{ width: `${Math.round(exportProgress * 100)}%` }}
+                />
+              </div>
+            )}
+          </div>
+        )}
+
+        {exportError && !exporting && (
+          <div className="absolute inset-x-4 bottom-4 rounded-xl px-4 py-3 bg-black/80 z-30">
+            <p className="text-xs text-red-300">{exportError}</p>
           </div>
         )}
 
@@ -343,10 +349,13 @@ function AfterShotIndexPage() {
             style={{ bottom: "calc(env(safe-area-inset-bottom) + 20px)" }}
           >
             <button
-              className="px-6 py-2.5 rounded-full font-bold text-sm uppercase tracking-wide"
+              onClick={handleNext}
+              disabled={exporting}
+              aria-label="Export edited media"
+              className="px-6 py-2.5 rounded-full font-bold text-sm uppercase tracking-wide disabled:opacity-50 transition-transform duration-150 active:scale-95"
               style={{ background: "#fff", color: "#000" }}
             >
-              Next
+              {exporting ? "Exporting…" : "Next"}
             </button>
           </div>
         </>
@@ -360,76 +369,13 @@ function AfterShotIndexPage() {
         selectedId={selectedFilterId}
         favoriteIds={favoritedFilterIds}
         onClose={closeTool}
-        onPreview={() => {}}
-        onApply={applyFilter}
+        onPreview={setPreviewFilterId}
+        onApply={(id) => {
+          setSelectedFilterId(id);
+          setPreviewFilterId(null);
+        }}
         onToggleFavorite={toggleFilterFavorite}
       />
     </div>
   );
 }
-
-// Small local hook, not exported — keeps the confirmed-layers render switch
-// (text/sticker/draw -> actual visual) out of the main component body.
-function useLayerRenderer(mediaBoxRef: React.RefObject<HTMLDivElement | null>) {
-  return useCallback(
-    (layer: Layer) => {
-      if (layer.kind === "text") {
-        const boxWidth = mediaBoxRef.current?.clientWidth ?? 0;
-        return (
-          <span
-            style={{
-              // display + maxWidth + the shared wrap fraction are what make this
-              // break at the same points the composing textarea did, so text
-              // doesn't reflow (or run off the photo) the instant it's placed.
-              display: "inline-block",
-              maxWidth: boxWidth * TEXT_LAYER_WIDTH_FRACTION,
-              fontFamily: layer.font,
-              color: layer.color,
-              fontSize: layer.fontSize * boxWidth,
-              fontWeight: layer.fontWeight,
-              textAlign: layer.align,
-              lineHeight: TEXT_LAYER_LINE_HEIGHT,
-              whiteSpace: "pre-wrap",
-              overflowWrap: "break-word",
-              textShadow: layer.boxColor ? "none" : "0 1px 4px rgba(0,0,0,0.4)",
-              background: layer.boxColor ?? "transparent",
-              padding: layer.boxColor ? "4px 10px" : 0,
-              borderRadius: layer.boxColor ? 4 : 0,
-              pointerEvents: "none",
-            }}
-          >
-            {layer.content}
-          </span>
-        );
-      }
-      if (layer.kind === "draw") {
-        const width = 200;
-        return (
-          <svg
-            width={width}
-            height={width}
-            viewBox="-0.5 -0.5 1 1"
-            style={{ overflow: "visible", pointerEvents: "none" }}
-          >
-            {layer.strokes.map((stroke, i) => (
-              <polyline
-                key={i}
-                points={stroke.points.map(([x, y]) => `${x},${y}`).join(" ")}
-                fill="none"
-                stroke={stroke.color}
-                strokeWidth={stroke.width}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                vectorEffect="non-scaling-stroke"
-              />
-            ))}
-          </svg>
-        );
-      }
-      return null;
-    },
-    [mediaBoxRef],
-  );
-}
-
-// useAfterShotLayersRef deleted entirely — no longer needed

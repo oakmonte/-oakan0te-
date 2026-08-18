@@ -29,6 +29,21 @@ export const TEXT_LAYER_WIDTH_FRACTION = 0.8;
 // default to the same one, and any mismatch shifts the wrap points.
 export const TEXT_LAYER_LINE_HEIGHT = 1.25;
 
+// The text box's padding and corner radius, as multiples of font size rather
+// than fixed px. Fixed px can't survive the bake: the editor lays text out at
+// ~375px wide and the export canvas is 1080+, so a literal 4px pad would come
+// out nearly three times too tight in the file you actually publish. Deriving
+// both from font size — which is already stored resolution-independently as a
+// fraction of width — makes the preview and the bake agree at any size.
+export const TEXT_LAYER_BOX_PAD_X = 0.3;
+export const TEXT_LAYER_BOX_PAD_Y = 0.15;
+export const TEXT_LAYER_BOX_RADIUS = 0.15;
+
+// Drop shadow behind unboxed text, same reasoning: multiples of font size.
+export const TEXT_LAYER_SHADOW_BLUR = 0.12;
+export const TEXT_LAYER_SHADOW_OFFSET_Y = 0.03;
+export const TEXT_LAYER_SHADOW_COLOR = "rgba(0,0,0,0.4)";
+
 export type StickerLayer = BaseLayer & {
   kind: "sticker";
   assetUrl: string;
@@ -38,6 +53,7 @@ export type DrawStroke = {
   points: [number, number][]; // 0-1 fractional coords, same convention as BaseLayer.x/y
   color: string;
   width: number; // 0-1 fraction of media width, scaled up at bake time
+  glow?: boolean; // neon brush — renders a coloured bloom around the stroke
 };
 
 export type DrawLayer = BaseLayer & {

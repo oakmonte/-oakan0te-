@@ -1,7 +1,6 @@
-//currentdrawpanel
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
-import { X, Check, Undo2 } from "lucide-react";
+import { X, Check, Undo2, Redo2 } from "lucide-react";
 import { useAfterShotLayers, type DrawStroke, type DrawLayer } from "@/lib/after-shot-layers";
 
 // Stops for the vertical color slider — white at top through the hue
@@ -60,6 +59,42 @@ const BRUSH_WIDTHS = [
   { id: "thick", label: "Thick", value: 0.028 },
 ];
 
+const BRUSH_STYLES = [
+  { id: "pen", label: "Pen" },
+  { id: "neon", label: "Neon" },
+  { id: "eraser", label: "Eraser" },
+] as const;
+type BrushStyleId = (typeof BRUSH_STYLES)[number]["id"];
+
+// How close a pointer has to get to a stroke before the eraser takes it, as a
+// multiple of the current brush width — so the thick eraser really does grab
+// more than the thin one.
+const ERASE_REACH = 1.2;
+
+function distanceToSegment(px: number, py: number, ax: number, ay: number, bx: number, by: number) {
+  const dx = bx - ax;
+  const dy = by - ay;
+  const lengthSq = dx * dx + dy * dy;
+  if (lengthSq === 0) return Math.hypot(px - ax, py - ay);
+  const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / lengthSq));
+  return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+}
+
+// Whole-stroke eraser (the Snapchat/Instagram behaviour) rather than a pixel
+// eraser: strokes are stored as vector polylines, so rubbing out the middle of
+// one would mean splitting it, and nothing downstream — including the bake — is
+// set up for partial strokes.
+function strokeIsHit(stroke: DrawStroke, x: number, y: number, reach: number) {
+  const pts = stroke.points;
+  if (pts.length === 1) return Math.hypot(pts[0][0] - x, pts[0][1] - y) <= reach;
+  for (let i = 1; i < pts.length; i++) {
+    const [ax, ay] = pts[i - 1];
+    const [bx, by] = pts[i];
+    if (distanceToSegment(x, y, ax, ay, bx, by) <= reach) return true;
+  }
+  return false;
+}
+
 type DrawPanelProps = {
   open: boolean;
   containerRef: React.RefObject<HTMLDivElement | null>;
@@ -75,11 +110,33 @@ export default function DrawPanel({ open, containerRef, onClose }: DrawPanelProp
   const selectedColor = useMemo(() => colorAtFraction(colorFraction), [colorFraction]);
 
   const [selectedWidthId, setSelectedWidthId] = useState(BRUSH_WIDTHS[1].id);
+  const [brushStyle, setBrushStyle] = useState<BrushStyleId>("pen");
   const [strokes, setStrokes] = useState<DrawStroke[]>([]);
   const [activeStroke, setActiveStroke] = useState<DrawStroke | null>(null);
   const isDrawingRef = useRef(false);
 
+  // Snapshot-based history. Strokes are cheap and few, and snapshots make undo
+  // and redo behave identically for drawing and for erasing — a per-action diff
+  // would need two separate cases and get erase-then-undo subtly wrong.
+  const [undoStack, setUndoStack] = useState<DrawStroke[][]>([]);
+  const [redoStack, setRedoStack] = useState<DrawStroke[][]>([]);
+
   const activeWidth = BRUSH_WIDTHS.find((w) => w.id === selectedWidthId) ?? BRUSH_WIDTHS[1];
+
+  // Live pixel size of the media box. The stroke overlay renders in raw px (no
+  // viewBox scaling), which is the only way the line under your finger is
+  // exactly the line that gets stored.
+  const [boxSize, setBoxSize] = useState({ w: 0, h: 0 });
+  useEffect(() => {
+    if (!open) return;
+    const el = containerRef.current;
+    if (!el) return;
+    const update = () => setBoxSize({ w: el.clientWidth, h: el.clientHeight });
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [open, containerRef]);
 
   // ---- color slider drag (same trackRef/window-listener pattern as
   // TextPanel's font-size slider, for consistency) ----
@@ -104,24 +161,42 @@ export default function DrawPanel({ open, containerRef, onClose }: DrawPanelProp
     };
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
     return () => {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
     };
   }, [open, setFractionFromClientY]);
 
-  // Reads position off containerRef — the parent's own media box — same as
-  // CropPanel does for its drag math, instead of measuring a box this
-  // component renders itself.
+  // Both axes are measured against the box WIDTH, not width-then-height. Storing
+  // y against height would make a circle come out an ellipse the moment the
+  // stroke is confirmed, because the placed renderer and the bake both scale x
+  // and y by canvas width — a square coordinate space is the one all three
+  // stages agree on.
   const pointFromEvent = useCallback(
     (e: ReactPointerEvent): [number, number] | null => {
       const rect = containerRef.current?.getBoundingClientRect();
-      if (!rect) return null;
-      const x = (e.clientX - rect.left) / rect.width;
-      const y = (e.clientY - rect.top) / rect.height;
-      return [Math.min(1, Math.max(0, x)), Math.min(1, Math.max(0, y))];
+      if (!rect || rect.width === 0) return null;
+      return [(e.clientX - rect.left) / rect.width, (e.clientY - rect.top) / rect.width];
     },
     [containerRef],
+  );
+
+  const pushHistory = useCallback(() => {
+    setUndoStack((prev) => [...prev, strokes]);
+    setRedoStack([]);
+  }, [strokes]);
+
+  const eraseAt = useCallback(
+    (point: [number, number]) => {
+      const reach = activeWidth.value * ERASE_REACH;
+      setStrokes((prev) => {
+        const kept = prev.filter((s) => !strokeIsHit(s, point[0], point[1], reach));
+        return kept.length === prev.length ? prev : kept;
+      });
+    },
+    [activeWidth.value],
   );
 
   const handlePointerDown = useCallback(
@@ -129,9 +204,19 @@ export default function DrawPanel({ open, containerRef, onClose }: DrawPanelProp
       const point = pointFromEvent(e);
       if (!point) return;
       isDrawingRef.current = true;
-      setActiveStroke({ points: [point], color: selectedColor, width: activeWidth.value });
+      pushHistory();
+      if (brushStyle === "eraser") {
+        eraseAt(point);
+        return;
+      }
+      setActiveStroke({
+        points: [point],
+        color: selectedColor,
+        width: activeWidth.value,
+        glow: brushStyle === "neon",
+      });
     },
-    [pointFromEvent, selectedColor, activeWidth.value],
+    [pointFromEvent, pushHistory, brushStyle, eraseAt, selectedColor, activeWidth.value],
   );
 
   const handlePointerMove = useCallback(
@@ -139,54 +224,79 @@ export default function DrawPanel({ open, containerRef, onClose }: DrawPanelProp
       if (!isDrawingRef.current) return;
       const point = pointFromEvent(e);
       if (!point) return;
+      if (brushStyle === "eraser") {
+        eraseAt(point);
+        return;
+      }
       setActiveStroke((prev) => (prev ? { ...prev, points: [...prev.points, point] } : prev));
     },
-    [pointFromEvent],
+    [pointFromEvent, brushStyle, eraseAt],
   );
 
   const commitActiveStroke = useCallback(() => {
     if (!isDrawingRef.current) return;
     isDrawingRef.current = false;
     setActiveStroke((prev) => {
-      if (prev && prev.points.length >= 2) {
-        setStrokes((s) => [...s, prev]);
-      }
+      if (prev && prev.points.length >= 2) setStrokes((s) => [...s, prev]);
       return null;
     });
   }, []);
 
   const handleUndo = useCallback(() => {
-    setStrokes((prev) => prev.slice(0, -1));
-  }, []);
+    setUndoStack((prev) => {
+      if (prev.length === 0) return prev;
+      const restored = prev[prev.length - 1];
+      setRedoStack((r) => [...r, strokes]);
+      setStrokes(restored);
+      return prev.slice(0, -1);
+    });
+  }, [strokes]);
 
-  const buildLayerFromStrokes = useCallback((allStrokes: DrawStroke[]): DrawLayer | null => {
-    if (allStrokes.length === 0) return null;
-    const allPoints = allStrokes.flatMap((s) => s.points);
-    const xs = allPoints.map((p) => p[0]);
-    const ys = allPoints.map((p) => p[1]);
-    const centerX = (Math.min(...xs) + Math.max(...xs)) / 2;
-    const centerY = (Math.min(...ys) + Math.max(...ys)) / 2;
+  const handleRedo = useCallback(() => {
+    setRedoStack((prev) => {
+      if (prev.length === 0) return prev;
+      const restored = prev[prev.length - 1];
+      setUndoStack((u) => [...u, strokes]);
+      setStrokes(restored);
+      return prev.slice(0, -1);
+    });
+  }, [strokes]);
 
-    const localStrokes: DrawStroke[] = allStrokes.map((s) => ({
-      ...s,
-      points: s.points.map(([x, y]) => [x - centerX, y - centerY] as [number, number]),
-    }));
+  const buildLayerFromStrokes = useCallback(
+    (allStrokes: DrawStroke[]): DrawLayer | null => {
+      if (allStrokes.length === 0 || boxSize.w === 0 || boxSize.h === 0) return null;
+      const allPoints = allStrokes.flatMap((s) => s.points);
+      const xs = allPoints.map((p) => p[0]);
+      const ys = allPoints.map((p) => p[1]);
+      const centerX = (Math.min(...xs) + Math.max(...xs)) / 2;
+      const centerY = (Math.min(...ys) + Math.max(...ys)) / 2;
 
-    return {
-      id: `draw-${Date.now()}`,
-      kind: "draw",
-      x: centerX,
-      y: centerY,
-      scale: 1,
-      rotation: 0,
-      zIndex: 0,
-      strokes: localStrokes,
-    };
-  }, []);
+      const localStrokes: DrawStroke[] = allStrokes.map((s) => ({
+        ...s,
+        points: s.points.map(([x, y]) => [x - centerX, y - centerY] as [number, number]),
+      }));
+
+      return {
+        id: `draw-${Date.now()}`,
+        kind: "draw",
+        x: centerX,
+        // Stroke coords are in width-units; BaseLayer.y is a fraction of HEIGHT
+        // (LayerOverlay positions with top: y%), so convert on the way out.
+        y: (centerY * boxSize.w) / boxSize.h,
+        scale: 1,
+        rotation: 0,
+        zIndex: 0,
+        strokes: localStrokes,
+      };
+    },
+    [boxSize],
+  );
 
   const reset = useCallback(() => {
     setStrokes([]);
     setActiveStroke(null);
+    setUndoStack([]);
+    setRedoStack([]);
     isDrawingRef.current = false;
   }, []);
 
@@ -206,6 +316,8 @@ export default function DrawPanel({ open, containerRef, onClose }: DrawPanelProp
 
   if (!open) return null;
 
+  const isEraser = brushStyle === "eraser";
+
   return (
     <div
       className="absolute inset-0 z-40 flex flex-col"
@@ -221,15 +333,26 @@ export default function DrawPanel({ open, containerRef, onClose }: DrawPanelProp
           <X size={20} color="#fff" />
         </button>
 
-        <button
-          onClick={handleUndo}
-          aria-label="Undo last stroke"
-          disabled={strokes.length === 0}
-          className="flex items-center justify-center w-10 h-10 rounded-full disabled:opacity-40"
-          style={{ background: "rgba(255,255,255,0.10)", backdropFilter: "blur(12px)" }}
-        >
-          <Undo2 size={18} color="#fff" />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleUndo}
+            aria-label="Undo"
+            disabled={undoStack.length === 0}
+            className="flex items-center justify-center w-10 h-10 rounded-full disabled:opacity-40"
+            style={{ background: "rgba(255,255,255,0.10)", backdropFilter: "blur(12px)" }}
+          >
+            <Undo2 size={18} color="#fff" />
+          </button>
+          <button
+            onClick={handleRedo}
+            aria-label="Redo"
+            disabled={redoStack.length === 0}
+            className="flex items-center justify-center w-10 h-10 rounded-full disabled:opacity-40"
+            style={{ background: "rgba(255,255,255,0.10)", backdropFilter: "blur(12px)" }}
+          >
+            <Redo2 size={18} color="#fff" />
+          </button>
+        </div>
 
         <button
           onClick={handleConfirm}
@@ -250,25 +373,32 @@ export default function DrawPanel({ open, containerRef, onClose }: DrawPanelProp
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={commitActiveStroke}
+        onPointerCancel={commitActiveStroke}
         onPointerLeave={commitActiveStroke}
         className="relative flex-1 min-h-0"
         style={{ touchAction: "none" }}
       >
-        <svg
-          viewBox="0 0 1 1"
-          preserveAspectRatio="none"
-          className="absolute inset-0 w-full h-full pointer-events-none"
-        >
+        {/* Raw px user units — no viewBox. The previous version scaled a 0-1
+            viewBox to the box AND set vector-effect="non-scaling-stroke", which
+            together meant stroke-width 0.014 was read as 0.014 SCREEN px: every
+            stroke painted zero visible pixels. */}
+        <svg className="absolute inset-0 w-full h-full pointer-events-none overflow-visible">
           {renderedStrokes.map((stroke, i) => (
             <polyline
               key={i}
-              points={stroke.points.map(([x, y]) => `${x},${y}`).join(" ")}
+              points={stroke.points.map(([x, y]) => `${x * boxSize.w},${y * boxSize.w}`).join(" ")}
               fill="none"
               stroke={stroke.color}
-              strokeWidth={stroke.width}
+              strokeWidth={stroke.width * boxSize.w}
               strokeLinecap="round"
               strokeLinejoin="round"
-              vectorEffect="non-scaling-stroke"
+              style={
+                stroke.glow
+                  ? {
+                      filter: `drop-shadow(0 0 ${stroke.width * boxSize.w * 0.9}px ${stroke.color})`,
+                    }
+                  : undefined
+              }
             />
           ))}
         </svg>
@@ -284,6 +414,7 @@ export default function DrawPanel({ open, containerRef, onClose }: DrawPanelProp
             width: 6,
             background: GRADIENT_CSS,
             boxShadow: "0 0 0 1px rgba(255,255,255,0.25)",
+            opacity: isEraser ? 0.35 : 1,
           }}
         >
           <div
@@ -314,20 +445,58 @@ export default function DrawPanel({ open, containerRef, onClose }: DrawPanelProp
         className="px-5 z-30"
         style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 20px)" }}
       >
-        <div className="flex items-center gap-2">
-          {BRUSH_WIDTHS.map((w) => (
-            <button
-              key={w.id}
-              onClick={() => setSelectedWidthId(w.id)}
-              className="shrink-0 px-4 py-2 rounded-full text-xs font-medium"
-              style={{
-                background: selectedWidthId === w.id ? "#fff" : "rgba(255,255,255,0.10)",
-                color: selectedWidthId === w.id ? "#000" : "#fff",
-              }}
-            >
-              {w.label}
-            </button>
-          ))}
+        <div className="flex items-center justify-between gap-3">
+          {/* Size pills render an actual dot at the real brush size instead of
+              the words Thin/Medium/Thick — you can see what you're about to
+              draw with before committing a stroke to find out. */}
+          <div className="flex items-center gap-2">
+            {BRUSH_WIDTHS.map((w) => {
+              const selected = selectedWidthId === w.id;
+              const dot = Math.max(4, Math.round(w.value * (boxSize.w || 375)));
+              return (
+                <button
+                  key={w.id}
+                  onClick={() => setSelectedWidthId(w.id)}
+                  aria-label={`${w.label} brush`}
+                  aria-pressed={selected}
+                  className="shrink-0 flex items-center justify-center rounded-full"
+                  style={{
+                    width: 38,
+                    height: 38,
+                    background: selected ? "rgba(255,255,255,0.22)" : "rgba(255,255,255,0.08)",
+                    border: selected ? "1.5px solid #fff" : "1.5px solid transparent",
+                  }}
+                >
+                  <span
+                    className="rounded-full"
+                    style={{
+                      width: Math.min(dot, 24),
+                      height: Math.min(dot, 24),
+                      background: isEraser ? "rgba(255,255,255,0.55)" : selectedColor,
+                      boxShadow: "0 0 0 1px rgba(0,0,0,0.25)",
+                    }}
+                  />
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex items-center gap-2">
+            {BRUSH_STYLES.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => setBrushStyle(s.id)}
+                aria-pressed={brushStyle === s.id}
+                className="shrink-0 px-4 py-2 rounded-full text-xs font-medium"
+                style={{
+                  background: brushStyle === s.id ? "#fff" : "rgba(255,255,255,0.10)",
+                  color: brushStyle === s.id ? "#000" : "#fff",
+                }}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </div>

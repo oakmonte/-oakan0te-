@@ -4,6 +4,12 @@ import {
   useAfterShotLayers,
   TEXT_LAYER_WIDTH_FRACTION,
   TEXT_LAYER_LINE_HEIGHT,
+  TEXT_LAYER_BOX_PAD_X,
+  TEXT_LAYER_BOX_PAD_Y,
+  TEXT_LAYER_BOX_RADIUS,
+  TEXT_LAYER_SHADOW_BLUR,
+  TEXT_LAYER_SHADOW_OFFSET_Y,
+  TEXT_LAYER_SHADOW_COLOR,
   type TextLayer,
 } from "@/lib/after-shot-layers";
 import { useVisibleViewport } from "@/hooks/use-visible-viewport";
@@ -414,8 +420,12 @@ export default function TextPanel({ open, containerRef, editingLayerId, onClose 
             textAlign: align,
             lineHeight: TEXT_LAYER_LINE_HEIGHT,
             background: boxOn ? BOX_COLOR : "transparent",
-            padding: boxOn ? "4px 10px" : 0,
-            borderRadius: boxOn ? 4 : 0,
+            // Same font-size multiples the placed layer and the bake use, so the
+            // box you compose in is the box that ends up in the file.
+            padding: boxOn
+              ? `${fontSize * TEXT_LAYER_BOX_PAD_Y}px ${fontSize * TEXT_LAYER_BOX_PAD_X}px`
+              : 0,
+            borderRadius: boxOn ? fontSize * TEXT_LAYER_BOX_RADIUS : 0,
             border: "none",
             outline: "none",
             width: composeWidth,
@@ -423,7 +433,9 @@ export default function TextPanel({ open, containerRef, editingLayerId, onClose 
             resize: "none",
             overflow: "hidden",
             overflowWrap: "break-word",
-            textShadow: boxOn ? "none" : "0 1px 4px rgba(0,0,0,0.4)",
+            textShadow: boxOn
+              ? "none"
+              : `0 ${fontSize * TEXT_LAYER_SHADOW_OFFSET_Y}px ${fontSize * TEXT_LAYER_SHADOW_BLUR}px ${TEXT_LAYER_SHADOW_COLOR}`,
           }}
         />
 
