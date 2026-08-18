@@ -72,7 +72,6 @@ function NewProduct() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-
   // Sellers can uncheck combinations they don't stock — only these get written.
   const selectedRows = rows.filter((r) => r.selected);
 
@@ -123,8 +122,7 @@ function NewProduct() {
         handle: slugify(title),
         title: title.trim(),
         description_short: descriptionShort.trim() || null,
-        product_type: productType.trim() || categoryPath.at(-1)?.name || null,
-        brand: brand.trim() || null,
+        product_type: categoryPath.at(-1)?.name || null,
         status,
         source_platform: "manual",
         is_complete: true,
@@ -298,30 +296,6 @@ function NewProduct() {
         />
       )}
 
-      <StubRow icon={<Truck size={18} />} label="Shipping" />
-      <ExpandRow
-        icon={<Package size={18} />}
-        label="Type"
-        value={productType}
-        expanded={expanded === "type"}
-        onToggle={() => toggle("type")}
-      >
-        <TextField
-          label="Product type"
-          value={productType}
-          onChange={setProductType}
-          placeholder="e.g. Hoodie"
-        />
-      </ExpandRow>
-      <ExpandRow
-        icon={<StoreIcon size={18} />}
-        label="Vendor"
-        value={brand || "My Store"}
-        expanded={expanded === "vendor"}
-        onToggle={() => toggle("vendor")}
-      >
-        <TextField label="Brand" value={brand} onChange={setBrand} />
-      </ExpandRow>
       {kind === "regular" && (
         <ExpandRow
           icon={<Layers size={18} />}
