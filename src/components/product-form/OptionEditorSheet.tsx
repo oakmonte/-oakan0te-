@@ -29,6 +29,11 @@ const OPTION_SYSTEMS: Record<string, Record<string, readonly string[]>> = {
 };
 const DEFAULT_SYSTEM: Record<string, string> = { Size: "XXL", "Weight/Volume": "g" };
 
+// Synthetic system a seller lands on the moment they type a free-text value —
+// shows just what they've picked, with none of the current unit's untouched
+// presets crowding underneath for no reason.
+const CUSTOM_SYSTEM = "Custom";
+
 // One-tap values for the non-systemed presets — covers apparel/accessories/
 // cosmetics/art without forcing typing. Free text still works for anything else.
 const VALUE_PRESETS: Record<string, string[]> = {
@@ -113,10 +118,23 @@ function ColorSwatch({ name }: { name: string }) {
   );
 }
 
-function valuesForName(name: string, systemKey: string): string[] {
+// The pool for one system/unit — used while browsing (not actively searching).
+function systemValues(name: string, systemKey: string): string[] {
+  if (systemKey === CUSTOM_SYSTEM) return [];
   const systems = OPTION_SYSTEMS[name];
   if (systems) return [...(systems[systemKey] ?? Object.values(systems)[0])];
   return VALUE_PRESETS[name] ?? [];
+}
+
+// Every value across every system for this option, deduped — used while
+// actively searching, so a query typed under one unit still finds matches
+// that live under another (e.g. searching while on "US" still finds "UK" sizes).
+function allValues(name: string): string[] {
+  const systems = OPTION_SYSTEMS[name];
+  if (!systems) return VALUE_PRESETS[name] ?? [];
+  const seen = new Set<string>();
+  for (const key of Object.keys(systems)) for (const v of systems[key]) seen.add(v);
+  return [...seen];
 }
 
 export function OptionEditorSheet({
@@ -137,6 +155,9 @@ export function OptionEditorSheet({
   const [valueDraft, setValueDraft] = useState("");
   const [selectedSystems, setSelectedSystems] = useState<Record<string, string>>(DEFAULT_SYSTEM);
   const [systemMenuOpen, setSystemMenuOpen] = useState(false);
+  // Starts locked whenever there's anything to lose — including pre-existing
+  // values on an option being edited — so a stray tap can't silently strand them.
+  const [confirmed, setConfirmed] = useState(false);
 
   // Keyboard should overlay this sheet, not resize/push it — same fix already
   // used on the camera/after-shot routes for the identical iOS Safari behavior.
@@ -144,43 +165,86 @@ export function OptionEditorSheet({
 
   const isColorOption = name === "Color";
   const systems = OPTION_SYSTEMS[name];
-  const systemKeys = systems ? Object.keys(systems) : [];
+  const hasChosen = values.length > 0;
+  const systemKeys = systems
+    ? [...Object.keys(systems), ...(hasChosen ? [CUSTOM_SYSTEM] : [])]
+    : [];
   const activeSystem = selectedSystems[name] ?? DEFAULT_SYSTEM[name] ?? systemKeys[0];
-  const presetValues = valuesForName(name, activeSystem);
-
-  // Anything the seller typed (or picked under a different size system) stays
-  // pinned above the presets so it never gets lost when the list swaps.
-  const customValues = values.filter((v) => !presetValues.includes(v));
 
   const query = valueDraft.trim();
   const q = query.toLowerCase();
   const matches = (v: string) => !q || v.toLowerCase().includes(q);
-  const visibleCustom = customValues.filter(matches);
-  const visiblePresets = presetValues.filter(matches);
-  const exactExists = [...customValues, ...presetValues].some((v) => v.toLowerCase() === q);
+
+  // Browsing stays scoped to the active unit; searching looks across every
+  // unit at once so e.g. a size doesn't hide just because you're on "US".
+  const pool = query ? allValues(name) : systemValues(name, activeSystem);
+
+  // Every chosen value pins to the top regardless of which system it came
+  // from; the pool below only lists what's left to pick.
+  const chosen = values.filter(matches);
+  const remaining = pool.filter((v) => !values.includes(v) && matches(v));
+
+  const exactExists = [...values, ...pool].some((v) => v.toLowerCase() === q);
   const canCreate = !!query && !exactExists;
 
   const trimmedName = name.trim();
   const nameTaken = disabledNames.some((n) => n.toLowerCase() === trimmedName.toLowerCase());
   const canSave = !!trimmedName && !nameTaken && values.length > 0;
+  // Any unconfirmed picks block switching to a different option name, so a
+  // seller can't silently strand Size values under Color.
+  const nameLocked = hasChosen && !confirmed;
+
+  function updateValues(updater: (prev: string[]) => string[]) {
+    setValues(updater);
+    setConfirmed(false);
+  }
 
   function toggleValue(v: string) {
-    setValues((prev) => (prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v]));
+    updateValues((prev) => (prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v]));
   }
 
   function createValue() {
     if (!canCreate) return;
-    setValues((prev) => [...prev, query]);
+    updateValues((prev) => [...prev, query]);
     setValueDraft("");
+    if (systems) setSelectedSystems((prev) => ({ ...prev, [name]: CUSTOM_SYSTEM }));
   }
 
   function removeValue(v: string) {
-    setValues((prev) => prev.filter((x) => x !== v));
+    updateValues((prev) => prev.filter((x) => x !== v));
   }
 
   function handleSave() {
     if (!canSave) return;
     onSave(trimmedName, values);
+  }
+
+  function confirmValues() {
+    setConfirmed(true);
+  }
+
+  function cancelValues() {
+    setValues([]);
+    setConfirmed(false);
+    setValueDraft("");
+    setSelectedSystems((prev) => {
+      if (!(name in prev)) return prev;
+      const next = { ...prev };
+      delete next[name];
+      return next;
+    });
+  }
+
+  function selectName(p: string) {
+    if (p === name) return;
+    if (nameLocked) return;
+    // A confirmed-but-not-yet-switched-away-from pick set still belongs to the
+    // old name — carrying it into the new name would pin nonsense values
+    // (e.g. "M"/"L") under Color. Switching always starts that name fresh.
+    setName(p);
+    setValues([]);
+    setConfirmed(false);
+    setValueDraft("");
   }
 
   return (
@@ -217,13 +281,14 @@ export function OptionEditorSheet({
         <div className="flex flex-wrap gap-2">
           {PRESETS.map((p) => {
             const disabled =
-              disabledNames.some((n) => n.toLowerCase() === p.toLowerCase()) && name !== p;
+              (disabledNames.some((n) => n.toLowerCase() === p.toLowerCase()) && name !== p) ||
+              (nameLocked && p !== name);
             return (
               <button
                 key={p}
                 type="button"
                 disabled={disabled}
-                onClick={() => setName(p)}
+                onClick={() => selectName(p)}
                 className={`px-3 py-1.5 rounded-full text-sm border ${
                   name === p
                     ? "bg-black text-white border-black"
@@ -318,30 +383,51 @@ export function OptionEditorSheet({
                 </button>
               )}
 
-              {visibleCustom.map((v) => (
+              {chosen.map((v) => (
                 <ValueRow
                   key={v}
                   label={v}
-                  selected={values.includes(v)}
+                  selected
                   swatch={isColorOption ? <ColorSwatch name={v} /> : null}
                   onToggle={() => toggleValue(v)}
                   onRemove={() => removeValue(v)}
                 />
               ))}
 
-              {visiblePresets.map((v) => (
+              {/* Demarcation between what's chosen and what's still pickable — also
+                  the checkpoint a seller must clear before switching option names. */}
+              {hasChosen && (
+                <div className="flex items-center gap-2 py-1">
+                  <button
+                    type="button"
+                    onClick={confirmValues}
+                    className="flex-1 bg-black text-white text-sm font-medium rounded-lg py-2.5"
+                  >
+                    Save
+                  </button>
+                  <button
+                    type="button"
+                    onClick={cancelValues}
+                    className="flex-1 border border-gray-200 text-sm font-medium text-gray-600 rounded-lg py-2.5"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+
+              {remaining.map((v) => (
                 <ValueRow
                   key={v}
                   label={v}
-                  selected={values.includes(v)}
+                  selected={false}
                   swatch={isColorOption ? <ColorSwatch name={v} /> : null}
                   onToggle={() => toggleValue(v)}
                 />
               ))}
 
-              {!canCreate && visibleCustom.length === 0 && visiblePresets.length === 0 && (
+              {!canCreate && chosen.length === 0 && remaining.length === 0 && (
                 <p className="text-sm text-gray-400 py-6 text-center">
-                  {presetValues.length === 0
+                  {pool.length === 0
                     ? "Type a value above to add your first one."
                     : "No values match your search."}
                 </p>
