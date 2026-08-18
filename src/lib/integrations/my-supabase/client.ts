@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { MY_SUPABASE_URL, MY_SUPABASE_PUBLISHABLE_KEY } from "./config";
+import type { Database } from "./types";
 
 function isNewKey(v: string) {
   return v.startsWith("sb_publishable_") || v.startsWith("sb_secret_");
@@ -22,7 +23,7 @@ function createSupabaseFetch(key: string): typeof fetch {
 }
 
 function createMySupabaseClient() {
-  return createClient(MY_SUPABASE_URL, MY_SUPABASE_PUBLISHABLE_KEY, {
+  return createClient<Database>(MY_SUPABASE_URL, MY_SUPABASE_PUBLISHABLE_KEY, {
     global: { fetch: createSupabaseFetch(MY_SUPABASE_PUBLISHABLE_KEY) },
     auth: {
       storage: typeof window !== "undefined" ? window.localStorage : undefined,

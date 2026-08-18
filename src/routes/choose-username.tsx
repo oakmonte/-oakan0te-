@@ -35,6 +35,14 @@ function ChooseUsernamePage() {
       return;
     }
 
+    // profiles.personal_email is NOT NULL, and Supabase users can reach this
+    // point without one (phone auth, or an OAuth provider that withheld it).
+    if (!user.email) {
+      setError("Your account has no email address. Please sign in with an email instead.");
+      setLoading(false);
+      return;
+    }
+
     const { error: insertError } = await supabase.from("profiles").insert({
       id: user.id,
       personal_username: username,

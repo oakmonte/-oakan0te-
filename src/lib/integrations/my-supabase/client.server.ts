@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { MY_SUPABASE_URL } from "./config";
+import type { Database } from "./types";
 
 function isNewKey(v: string) {
   return v.startsWith("sb_publishable_") || v.startsWith("sb_secret_");
@@ -28,7 +29,7 @@ function createAdmin() {
       "Missing MY_SUPABASE_SERVICE_ROLE_KEY. Add it in project secrets to use the admin client.",
     );
   }
-  return createClient(MY_SUPABASE_URL, key, {
+  return createClient<Database>(MY_SUPABASE_URL, key, {
     global: { fetch: createSupabaseFetch(key) },
     auth: { persistSession: false, autoRefreshToken: false },
   });

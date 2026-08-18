@@ -1,38 +1,38 @@
 import { Plus, ChevronRight } from "lucide-react";
 import { CategoryNode } from "@/lib/categories";
 
-type ExpandedSection = "description" | null;
+// Strips tags for the row preview — the sheet stores rich HTML, but the
+// collapsed row just needs a plain-text snippet.
+function stripHtml(html: string) {
+  return html
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
 export function DetailsSection({
   title,
   setTitle,
   descriptionShort,
-  setDescriptionShort,
+  onOpenDescription,
   categoryPath,
   onOpenCategoryPicker,
   price,
   compareAtPrice,
   onOpenPriceSheet,
-  expanded,
-  setExpanded,
 }: {
   title: string;
   setTitle: (v: string) => void;
   descriptionShort: string;
-  setDescriptionShort: (v: string) => void;
+  onOpenDescription: () => void;
   categoryPath: CategoryNode[];
   onOpenCategoryPicker: () => void;
   price: string;
   compareAtPrice: string;
   onOpenPriceSheet: () => void;
-  expanded: ExpandedSection;
-  setExpanded: (s: ExpandedSection) => void;
 }) {
-  function toggle(section: ExpandedSection) {
-    setExpanded(expanded === section ? null : section);
-  }
-
   const categoryLabel = categoryPath.length ? categoryPath[categoryPath.length - 1].name : null;
+  const descriptionPreview = stripHtml(descriptionShort);
 
   return (
     <div className="px-4 py-4 border-b-8 border-gray-50">
@@ -45,25 +45,22 @@ export function DetailsSection({
 
       <button
         type="button"
-        onClick={() => toggle("description")}
-        className="w-full flex items-center justify-between py-4 border-b border-gray-100"
+        onClick={onOpenDescription}
+        className="w-full flex items-center justify-between py-4 border-b border-gray-100 text-left"
       >
-        <span className="flex items-center gap-3 text-[15px] text-gray-900">
-          <Plus size={18} className="text-gray-400" />
-          {descriptionShort ? "Description" : "Add description"}
+        <span className="flex flex-col items-start gap-0.5 min-w-0">
+          <span className="flex items-center gap-3 text-[15px] text-gray-900">
+            <Plus size={18} className="text-gray-400" />
+            {descriptionPreview ? "Description" : "Add description"}
+          </span>
+          {descriptionPreview && (
+            <span className="text-xs text-gray-400 ml-7 truncate max-w-full">
+              {descriptionPreview}
+            </span>
+          )}
         </span>
-        <ChevronRight size={16} className="text-gray-300" />
+        <ChevronRight size={16} className="text-gray-300 shrink-0" />
       </button>
-      {expanded === "description" && (
-        <textarea
-          value={descriptionShort}
-          onChange={(e) => setDescriptionShort(e.target.value)}
-          placeholder="Short description"
-          rows={3}
-          autoFocus
-          className="w-full text-base outline-none py-3 text-gray-700 placeholder:text-gray-400"
-        />
-      )}
 
       <button
         type="button"

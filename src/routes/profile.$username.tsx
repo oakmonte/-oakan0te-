@@ -221,14 +221,33 @@ function ProfilePage() {
     setProfileLoading(true);
     supabase
       .from("profiles")
-      .select(
-        "id, personal_username, display_name, avatar_url, bio, following_count, followers_count, sold_items_count, rating, rating_count",
-      )
+      .select("id, personal_username, display_name, avatar_url, bio")
       .eq("personal_username", username)
       .single()
-      .then(({ data, error }) => {
+      .then(async ({ data, error }) => {
         if (cancelled) return;
-        if (!error && data) setProfile(data as ProfileRow);
+        if (error || !data) {
+          setProfileLoading(false);
+          return;
+        }
+
+        // The counts live on the profile_stats view, not on profiles — asking
+        // profiles for them makes PostgREST reject the whole select.
+        const { data: stats } = await supabase
+          .from("profile_stats")
+          .select("following_count, followers_count, sold_items_count, rating, rating_count")
+          .eq("id", data.id)
+          .maybeSingle();
+        if (cancelled) return;
+
+        setProfile({
+          ...data,
+          following_count: stats?.following_count ?? 0,
+          followers_count: stats?.followers_count ?? 0,
+          sold_items_count: stats?.sold_items_count ?? 0,
+          rating: stats?.rating ?? 0,
+          rating_count: stats?.rating_count ?? 0,
+        });
         setProfileLoading(false);
       });
     return () => {

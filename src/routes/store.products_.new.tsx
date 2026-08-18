@@ -6,6 +6,7 @@ import { CategoryNode } from "@/lib/categories";
 import { StubRow, ExpandRow, TextField } from "@/components/product-form/ui";
 import { MediaSection } from "@/components/product-form/MediaSection";
 import { DetailsSection } from "@/components/product-form/DetailsSection";
+import { DescriptionSheet } from "@/components/product-form/DescriptionSheet";
 import { PricingSheet } from "@/components/product-form/PricingSheet";
 import { CategoryPicker } from "@/components/product-form/CategoryPicker";
 import { ProductTypeSwitchSheet } from "@/components/product-form/ProductTypeSwitchSheet";
@@ -35,7 +36,7 @@ function slugify(title: string) {
 }
 
 type ProductKind = "regular" | "variant";
-type ExpandedSection = "description" | "material" | null;
+type ExpandedSection = "material" | null;
 
 function NewProduct() {
   const navigate = useNavigate();
@@ -61,6 +62,7 @@ function NewProduct() {
 
   const [categoryPickerOpen, setCategoryPickerOpen] = useState(false);
   const [typeSwitchOpen, setTypeSwitchOpen] = useState(false);
+  const [descriptionSheetOpen, setDescriptionSheetOpen] = useState(false);
   const [expanded, setExpanded] = useState<ExpandedSection>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -242,14 +244,12 @@ function NewProduct() {
         title={title}
         setTitle={setTitle}
         descriptionShort={descriptionShort}
-        setDescriptionShort={setDescriptionShort}
+        onOpenDescription={() => setDescriptionSheetOpen(true)}
         categoryPath={categoryPath}
         onOpenCategoryPicker={() => setCategoryPickerOpen(true)}
         price={price}
         compareAtPrice={compareAtPrice}
         onOpenPriceSheet={() => setPriceSheetOpen(true)}
-        expanded={expanded === "description" ? expanded : null}
-        setExpanded={setExpanded}
       />
 
       {kind === "regular" ? (
@@ -331,6 +331,17 @@ function NewProduct() {
           current={kind}
           onSelect={handleTypeSwitch}
           onClose={() => setTypeSwitchOpen(false)}
+        />
+      )}
+
+      {descriptionSheetOpen && (
+        <DescriptionSheet
+          value={descriptionShort}
+          onSave={(html) => {
+            setDescriptionShort(html);
+            setDescriptionSheetOpen(false);
+          }}
+          onClose={() => setDescriptionSheetOpen(false)}
         />
       )}
 
