@@ -137,6 +137,21 @@ function allValues(name: string): string[] {
   return [...seen];
 }
 
+function dropKey<T>(rec: Record<string, T>, key: string): Record<string, T> {
+  if (!(key in rec)) return rec;
+  const next = { ...rec };
+  delete next[key];
+  return next;
+}
+
+function moveKey<T>(rec: Record<string, T>, from: string, to: string): Record<string, T> {
+  if (from === to || !(from in rec)) return rec;
+  const next = { ...rec };
+  next[to] = next[from];
+  delete next[from];
+  return next;
+}
+
 export function OptionEditorSheet({
   initialName,
   initialValues,
@@ -151,17 +166,25 @@ export function OptionEditorSheet({
   onClose: () => void;
 }) {
   const [name, setName] = useState(initialName);
-  const [values, setValues] = useState<string[]>(initialValues);
+  // Values are bucketed *per option name*, not held in one shared list: tapping
+  // Color to peek and tapping Size again must bring Size's picks back, and
+  // Size's "M"/"L" must never leak into Color. One flat list can't do both.
+  const [valuesByName, setValuesByName] = useState<Record<string, string[]>>(() =>
+    initialName && initialValues.length > 0 ? { [initialName]: initialValues } : {},
+  );
+  const [confirmedByName, setConfirmedByName] = useState<Record<string, boolean>>({});
   const [valueDraft, setValueDraft] = useState("");
   const [selectedSystems, setSelectedSystems] = useState<Record<string, string>>(DEFAULT_SYSTEM);
   const [systemMenuOpen, setSystemMenuOpen] = useState(false);
-  // Starts locked whenever there's anything to lose — including pre-existing
-  // values on an option being edited — so a stray tap can't silently strand them.
-  const [confirmed, setConfirmed] = useState(false);
 
   // Keyboard should overlay this sheet, not resize/push it — same fix already
   // used on the camera/after-shot routes for the identical iOS Safari behavior.
   useLockedViewport();
+
+  const values = valuesByName[name] ?? [];
+  // Starts unconfirmed whenever there's anything to lose — including pre-existing
+  // values on an option being edited — so a stray tap can't silently strand them.
+  const confirmed = confirmedByName[name] ?? false;
 
   const isColorOption = name === "Color";
   const systems = OPTION_SYSTEMS[name];
@@ -190,13 +213,13 @@ export function OptionEditorSheet({
   const trimmedName = name.trim();
   const nameTaken = disabledNames.some((n) => n.toLowerCase() === trimmedName.toLowerCase());
   const canSave = !!trimmedName && !nameTaken && values.length > 0;
-  // Any unconfirmed picks block switching to a different option name, so a
-  // seller can't silently strand Size values under Color.
+  // Unconfirmed picks block switching to a different option name — the seller
+  // has to Save or Cancel them first, so moving on is always a deliberate act.
   const nameLocked = hasChosen && !confirmed;
 
   function updateValues(updater: (prev: string[]) => string[]) {
-    setValues(updater);
-    setConfirmed(false);
+    setValuesByName((prev) => ({ ...prev, [name]: updater(prev[name] ?? []) }));
+    setConfirmedByName((prev) => ({ ...prev, [name]: false }));
   }
 
   function toggleValue(v: string) {
@@ -220,31 +243,33 @@ export function OptionEditorSheet({
   }
 
   function confirmValues() {
-    setConfirmed(true);
+    setConfirmedByName((prev) => ({ ...prev, [name]: true }));
   }
 
+  // Clears only the current name's bucket — other names keep whatever they hold.
   function cancelValues() {
-    setValues([]);
-    setConfirmed(false);
+    setValuesByName((prev) => dropKey(prev, name));
+    setConfirmedByName((prev) => dropKey(prev, name));
+    setSelectedSystems((prev) => dropKey(prev, name));
     setValueDraft("");
-    setSelectedSystems((prev) => {
-      if (!(name in prev)) return prev;
-      const next = { ...prev };
-      delete next[name];
-      return next;
-    });
   }
 
+  // Tapping a different preset chip *switches* options — each name keeps its
+  // own values, so switching back restores exactly what was there.
   function selectName(p: string) {
     if (p === name) return;
     if (nameLocked) return;
-    // A confirmed-but-not-yet-switched-away-from pick set still belongs to the
-    // old name — carrying it into the new name would pin nonsense values
-    // (e.g. "M"/"L") under Color. Switching always starts that name fresh.
     setName(p);
-    setValues([]);
-    setConfirmed(false);
     setValueDraft("");
+  }
+
+  // Typing in the name field is a *rename*, not a switch, so the values the
+  // seller already picked follow the name they're still in the middle of typing.
+  function renameName(next: string) {
+    setValuesByName((prev) => moveKey(prev, name, next));
+    setConfirmedByName((prev) => moveKey(prev, name, next));
+    setSelectedSystems((prev) => moveKey(prev, name, next));
+    setName(next);
   }
 
   return (
@@ -267,7 +292,7 @@ export function OptionEditorSheet({
       <div className="flex-1 overflow-y-auto px-4 py-5">
         <input
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          onChange={(e) => renameName(e.target.value)}
           placeholder="Option name"
           autoFocus={!initialName}
           className="w-full text-lg font-medium text-gray-900 border border-gray-200 rounded-xl px-4 py-4 outline-none focus:border-gray-400 mb-3"
