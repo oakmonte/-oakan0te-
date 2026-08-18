@@ -1,5 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import logoAsset from "@/assets/oakmonte-o-mark.png.asset.json";
+import heroAsset from "@/assets/hero-editorial.jpg.asset.json";
+import fabricAsset from "@/assets/fabric-detail.jpg.asset.json";
 
 export const Route = createFileRoute("/OakmonteLanding")({
   head: () => ({
@@ -32,10 +35,10 @@ export const Route = createFileRoute("/OakmonteLanding")({
 });
 
 /* ---------------- Images ---------------- */
-const IMG_LOGO = "/__l5e/assets-v1/00b8ce64-4c53-41f0-80b3-c23277885e46/oakmonte-logo.png";
-const IMG_HERO = "/__l5e/assets-v1/56ceb439-cc86-49aa-8ea3-0af7124a989a/fashion-hero.jpg";
-const IMG_STORY = "/__l5e/assets-v1/e3dc0bb4-a7cd-4791-9111-9455171d3889/fashion-story.jpg";
-const IMG_SCALE = "/__l5e/assets-v1/5a430120-f946-4697-b953-fbe932aa3e16/fashion-scale.jpg";
+const IMG_LOGO = logoAsset.url;
+const IMG_HERO = heroAsset.url;
+const IMG_STORY = fabricAsset.url;
+const IMG_SCALE = heroAsset.url;
 
 /* ---------------- Data ---------------- */
 const FEATURES = [
