@@ -10,9 +10,9 @@ import {
   ListOrdered,
   Link2,
   ChevronDown,
-  Check,
 } from "lucide-react";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
+import { useVisibleViewport } from "@/hooks/use-visible-viewport";
 
 type FormatState = {
   bold: boolean;
@@ -35,6 +35,8 @@ const LIST_OPTIONS = [
   { command: "insertUnorderedList", label: "Bulleted list", Icon: List },
   { command: "insertOrderedList", label: "Numbered list", Icon: ListOrdered },
 ] as const;
+
+type ToolbarGroup = "align" | "list" | null;
 
 function readFormats(): FormatState {
   return {
@@ -72,10 +74,21 @@ export function DescriptionSheet({
     insertUnorderedList: false,
     insertOrderedList: false,
   });
-  const [alignMenuOpen, setAlignMenuOpen] = useState(false);
-  const [listMenuOpen, setListMenuOpen] = useState(false);
+  const [openGroup, setOpenGroup] = useState<ToolbarGroup>(null);
 
+  // Stops iOS from scrolling the document to reveal the focused field (which
+  // drags position:fixed elements with it) — necessary but not sufficient on
+  // its own; see useVisibleViewport below for what actually keeps the
+  // toolbar glued above the keyboard instead of sliding out of view under it.
   useLockedViewport();
+
+  // The toolbar used to be `sticky bottom-0`, which anchors to the LAYOUT
+  // viewport — full screen height, since interactive-widget=overlays-content
+  // means the keyboard covers content rather than resizing it. That put the
+  // toolbar behind the keyboard instead of above it. Sizing this sheet to the
+  // keyboard-free band (same fix as the camera's TextPanel) means the
+  // non-scrolling toolbar, as the last flex child, lands exactly at its edge.
+  const viewport = useVisibleViewport(true);
 
   useEffect(() => {
     const el = editorRef.current;
@@ -108,6 +121,11 @@ export function DescriptionSheet({
     setFormats(readFormats());
   }
 
+  function applyAndCollapse(command: string) {
+    exec(command);
+    setOpenGroup(null);
+  }
+
   function handleLink() {
     const url = window.prompt("Link URL");
     if (!url) return;
@@ -123,7 +141,10 @@ export function DescriptionSheet({
   const activeAlign = ALIGN_OPTIONS.find((o) => formats[o.command]) ?? ALIGN_OPTIONS[0];
 
   return (
-    <div className="fixed inset-0 z-50 bg-white flex flex-col min-h-dvh">
+    <div
+      className="fixed left-0 right-0 z-50 bg-white flex flex-col"
+      style={{ top: viewport.top, height: viewport.height || "100dvh" }}
+    >
       <style>{`
         .oak-description-editor:empty:before {
           content: attr(data-placeholder);
@@ -134,7 +155,7 @@ export function DescriptionSheet({
         .oak-description-editor a { color: #2563EB; text-decoration: underline; }
       `}</style>
 
-      <div className="sticky top-0 z-10 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
+      <div className="shrink-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
         <button onClick={onClose} type="button" className="text-sm text-gray-500">
           Cancel
         </button>
@@ -152,10 +173,10 @@ export function DescriptionSheet({
         suppressContentEditableWarning
         onInput={() => setFormats(readFormats())}
         data-placeholder="Describe your product…"
-        className="oak-description-editor flex-1 overflow-y-auto px-4 py-5 text-base text-gray-900 outline-none"
+        className="oak-description-editor flex-1 min-h-0 overflow-y-auto px-4 py-5 text-base text-gray-900 outline-none"
       />
 
-      <div className="sticky bottom-0 bg-white/95 backdrop-blur border-t border-gray-100 px-2 py-1.5 flex items-center gap-0.5 overflow-x-auto">
+      <div className="shrink-0 bg-white/95 backdrop-blur border-t border-gray-100 px-2 py-1.5 flex items-center gap-0.5 overflow-x-auto">
         <ToolbarButton label="Bold" active={formats.bold} onClick={() => exec("bold")}>
           <Bold size={18} />
         </ToolbarButton>
@@ -170,86 +191,48 @@ export function DescriptionSheet({
           <Underline size={18} />
         </ToolbarButton>
 
-        <div className="relative">
+        {openGroup === "align" ? (
+          ALIGN_OPTIONS.map(({ command, label, Icon }) => (
+            <ToolbarButton
+              key={command}
+              label={label}
+              active={formats[command]}
+              onClick={() => applyAndCollapse(command)}
+            >
+              <Icon size={18} />
+            </ToolbarButton>
+          ))
+        ) : (
           <ToolbarButton
             label="Alignment"
-            onClick={() => {
-              setListMenuOpen(false);
-              setAlignMenuOpen((v) => !v);
-            }}
+            onClick={() => setOpenGroup((g) => (g === "align" ? null : "align"))}
           >
             <activeAlign.Icon size={18} />
             <ChevronDown size={12} className="text-gray-400" />
           </ToolbarButton>
-          {alignMenuOpen && (
-            <>
-              <button
-                type="button"
-                aria-label="Close alignment menu"
-                onClick={() => setAlignMenuOpen(false)}
-                className="fixed inset-0 z-10 cursor-default"
-              />
-              <div className="absolute left-0 bottom-11 z-20 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden min-w-36">
-                {ALIGN_OPTIONS.map(({ command, label, Icon }) => (
-                  <button
-                    key={command}
-                    type="button"
-                    onClick={() => {
-                      exec(command);
-                      setAlignMenuOpen(false);
-                    }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-left text-gray-700"
-                  >
-                    <Icon size={16} className="text-gray-500" />
-                    <span className="flex-1">{label}</span>
-                    {formats[command] && <Check size={14} />}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
+        )}
 
-        <div className="relative">
+        {openGroup === "list" ? (
+          LIST_OPTIONS.map(({ command, label, Icon }) => (
+            <ToolbarButton
+              key={command}
+              label={label}
+              active={formats[command]}
+              onClick={() => applyAndCollapse(command)}
+            >
+              <Icon size={18} />
+            </ToolbarButton>
+          ))
+        ) : (
           <ToolbarButton
             label="List"
             active={formats.insertUnorderedList || formats.insertOrderedList}
-            onClick={() => {
-              setAlignMenuOpen(false);
-              setListMenuOpen((v) => !v);
-            }}
+            onClick={() => setOpenGroup((g) => (g === "list" ? null : "list"))}
           >
             <List size={18} />
             <ChevronDown size={12} className="text-gray-400" />
           </ToolbarButton>
-          {listMenuOpen && (
-            <>
-              <button
-                type="button"
-                aria-label="Close list menu"
-                onClick={() => setListMenuOpen(false)}
-                className="fixed inset-0 z-10 cursor-default"
-              />
-              <div className="absolute left-0 bottom-11 z-20 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden min-w-40">
-                {LIST_OPTIONS.map(({ command, label, Icon }) => (
-                  <button
-                    key={command}
-                    type="button"
-                    onClick={() => {
-                      exec(command);
-                      setListMenuOpen(false);
-                    }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-left text-gray-700"
-                  >
-                    <Icon size={16} className="text-gray-500" />
-                    <span className="flex-1">{label}</span>
-                    {formats[command] && <Check size={14} />}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
+        )}
 
         <ToolbarButton label="Link" onClick={handleLink}>
           <Link2 size={18} />

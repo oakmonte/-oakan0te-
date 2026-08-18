@@ -21,19 +21,25 @@ Package manager is **bun** — `package-lock.json` is stale, ignore it.
 ## Two Supabase clients — do not conflate
 
 1. `src/integrations/supabase/*` + its byte-identical duplicate `src/lib/integrations/supabase/*` —
-   Lovable Cloud's auto-managed integration. Generated, don't edit. Generated DB types live here.
+   Lovable Cloud's auto-managed integration. Generated, don't edit. Its `types.ts` describes that
+   project, not the one the app queries.
 2. `src/lib/integrations/my-supabase/*` — the app's own external project. **This is the one app code
    actually uses** (auth, sessions, every `store.*` route, all four `api.*` routes).
 
-New data/auth work imports from `@/lib/integrations/my-supabase/client` (browser, RLS-scoped) or
+New data/auth work imports from `@/lib/integrations/my-supabase/client` (browser, publishable key — but
+RLS is currently *off* on `stores`, `products`, `product_variants`, so it is not row-scoped there) or
 `.../client.server` (`supabaseAdmin`, service-role, bypasses RLS — trusted server code only).
+
+Both are typed with `Database` from `my-supabase/types.ts`, generated from the live schema. Regenerate
+it after any schema change (`mcp__supabase__generate_typescript_types`); all three generated `types.ts`
+files are eslint-ignored because they get replaced wholesale.
 
 `*.server.ts` is the TanStack Start server-only convention (the npm `server-only` package is
 ESLint-blocked). Route files and `*.functions.ts` ship to the client bundle, so pull `client.server.ts`
 in via dynamic `import()` inside the handler — not a top-level import — unless you're already inside
 another `.server.ts` module.
 
-Server-only env, `process.env` only: `SUPABASE_SERVICE_ROLE_KEY`, `SHOPIFY_API_KEY`,
+Server-only env, `process.env` only: `MY_SUPABASE_SERVICE_ROLE_KEY`, `SHOPIFY_API_KEY`,
 `SHOPIFY_API_SECRET`, `SHOPIFY_SCOPES`, `SHOPIFY_REDIRECT_URI`.
 
 ## Routing traps
@@ -80,5 +86,14 @@ means "has children, not filled in yet". Not interchangeable.
   like `"91 cm"`, not structured measurements. This needs a schema decision first (where per-value
   cm/inch numbers live: on the option, on `product_variants`, or a separate size-chart table keyed to
   user body measurements) — don't bolt on local-only UI state, it has to persist.
+- **RLS is off on `stores`, `products`, `product_variants`** — the browser client can read/write every
+  seller's rows. Coupled to `DEV_STORE_ID`: enabling RLS without policies breaks every dashboard write,
+  so real store scoping has to land first. See the `supabase-data-access` skill.
+- **Public profiles don't work.** The `profiles` SELECT policy is `auth.uid() = id`, so
+  `/profile/$username` can only ever load your own profile — anyone else's returns 0 rows (406) and the
+  page silently falls back to the URL username with zeroed counts. Opening it up needs a decision
+  first: `profiles` also holds `personal_email`, `personal_phone` and `gender`, and RLS is row-level,
+  so a public policy exposes those too. A public view over the safe columns (like `profile_stats`) is
+  the shape that fits.
 - Seller dashboard routes (`store.index/orders/products/customers/growth/discounts/content/finance/
   theme`) all exist; several are still thin. Products is the most developed.

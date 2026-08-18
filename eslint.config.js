@@ -6,7 +6,19 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist", ".output", ".vinxi"] },
+  {
+    ignores: [
+      "dist",
+      ".output",
+      ".vinxi",
+      // Generated Supabase types. These are replaced wholesale by the type
+      // generator (and, for the two integrations/supabase copies, by Lovable),
+      // so formatting them only survives until the next regeneration.
+      "src/integrations/supabase/types.ts",
+      "src/lib/integrations/supabase/types.ts",
+      "src/lib/integrations/my-supabase/types.ts",
+    ],
+  },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],

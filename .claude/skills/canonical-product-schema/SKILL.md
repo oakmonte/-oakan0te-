@@ -91,8 +91,24 @@ size chart is unbuilt and needs a schema decision first — where per-value cm/i
 option, on `product_variants`, or a separate size-chart table keyed to buyer body measurements). Don't
 add local-only UI state for this; it has to persist. Root `CLAUDE.md` tracks this as a pre-launch item.
 
+## Types
+
+The client is typed — `createClient<Database>` with `Database` from
+`@/lib/integrations/my-supabase/types`. Table and column names in this skill are compiler-checked, so
+prefer generated types over hand-written row shapes:
+
+```ts
+import type { Tables, TablesInsert } from "@/lib/integrations/my-supabase/types";
+type Variant = Tables<"product_variants">;
+type NewProduct = TablesInsert<"products">;
+```
+
+Regenerate them after any schema change (`mcp__supabase__generate_typescript_types`) — a stale snapshot
+type-checks against a schema that no longer exists.
+
 ## RLS status (as of 2026-08-18)
 
 `stores`, `products`, and `product_variants` have **RLS disabled**. The other tables here have it
 enabled. Don't assume the browser client is row-scoped on those three — it isn't. Confirm current
-state with `mcp__supabase__get_advisors` before relying on either assumption in new code.
+state with `mcp__supabase__get_advisors`, and see the `supabase-data-access` skill for why enabling it
+is coupled to replacing `DEV_STORE_ID`.
