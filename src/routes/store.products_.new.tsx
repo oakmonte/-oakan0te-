@@ -3,9 +3,6 @@ import { useState } from "react";
 import {
   ChevronLeft,
   ChevronDown,
-  Truck,
-  Package,
-  Store as StoreIcon,
   Tag,
   Hash,
   Search,
@@ -45,7 +42,7 @@ function slugify(title: string) {
 }
 
 type ProductKind = "regular" | "variant";
-type ExpandedSection = "description" | "type" | "vendor" | "material" | null;
+type ExpandedSection = "description" | "material" | null;
 
 function NewProduct() {
   const navigate = useNavigate();
@@ -57,8 +54,6 @@ function NewProduct() {
   const [descriptionShort, setDescriptionShort] = useState("");
   const [priceSheetOpen, setPriceSheetOpen] = useState(false);
   const [categoryPath, setCategoryPath] = useState<CategoryNode[]>([]);
-  const [productType, setProductType] = useState("");
-  const [brand, setBrand] = useState("");
 
   // Regular-mode state
   const [price, setPrice] = useState("");
@@ -74,9 +69,12 @@ function NewProduct() {
   const [categoryPickerOpen, setCategoryPickerOpen] = useState(false);
   const [typeSwitchOpen, setTypeSwitchOpen] = useState(false);
   const [expanded, setExpanded] = useState<ExpandedSection>(null);
-
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+
+
+  // Sellers can uncheck combinations they don't stock — only these get written.
+  const selectedRows = rows.filter((r) => r.selected);
 
   function toggle(section: ExpandedSection) {
     setExpanded((prev) => (prev === section ? null : section));
@@ -104,9 +102,13 @@ function NewProduct() {
         setError("Add at least one option value to generate variants");
         return;
       }
-      const missingPrice = rows.find((r) => !r.price.trim());
+      if (selectedRows.length === 0) {
+        setError("Select at least one variant combination");
+        return;
+      }
+      const missingPrice = selectedRows.find((r) => !r.price.trim());
       if (missingPrice) {
-        setError("Every variant needs a price");
+        setError("Every selected variant needs a price");
         return;
       }
     }
@@ -152,12 +154,39 @@ function NewProduct() {
         return;
       }
     } else {
-      const variantRows = rows.map((r) => ({
+      const usableOptions = options.filter((o) => o.name.trim() && o.values.length > 0);
+
+      // Ids are minted client-side so every row can be linked without a
+      // round-trip, and without relying on insert order coming back intact.
+      const optionIds = usableOptions.map(() => crypto.randomUUID());
+      const valueIds = new Map<string, string>(); // `${optionIndex}|${value}` -> uuid
+
+      const optionsPayload = usableOptions.map((o, i) => ({
+        id: optionIds[i],
         product_id: product.id,
-        option1_name: options[0]?.name.trim() || null,
-        option1_value: r.option1Value,
-        option2_name: options[1]?.name.trim() || null,
-        option2_value: r.option2Value,
+        name: o.name.trim(),
+        position: i,
+      }));
+
+      const valuesPayload = usableOptions.flatMap((o, oi) =>
+        o.values.map((v, vi) => {
+          const id = crypto.randomUUID();
+          valueIds.set(`${oi}|${v}`, id);
+          return { id, option_id: optionIds[oi], value: v, position: vi };
+        }),
+      );
+
+      const variantsPayload = selectedRows.map((r) => ({
+        id: crypto.randomUUID(),
+        product_id: product.id,
+        // The flat columns stay in sync until the contract migration drops
+        // them, so anything still reading option1_*/option2_* keeps working.
+        option1_name: r.options[0]?.name ?? null,
+        option1_value: r.options[0]?.value ?? null,
+        option2_name: r.options[1]?.name ?? null,
+        option2_value: r.options[1]?.value ?? null,
+        option3_name: r.options[2]?.name ?? null,
+        option3_value: r.options[2]?.value ?? null,
         price: Number(r.price),
         compare_at_price: r.compareAtPrice ? Number(r.compareAtPrice) : null,
         cost_price: r.costPrice ? Number(r.costPrice) : null,
@@ -165,11 +194,29 @@ function NewProduct() {
         sku: r.sku.trim() || null,
         main_image_url: r.mainImageUrl.trim() || mainImageUrl.trim() || null,
       }));
-      const { error: variantErr } = await supabase.from("product_variants").insert(variantRows);
-      if (variantErr) {
-        setError(variantErr.message);
-        setSaving(false);
-        return;
+
+      const linksPayload = selectedRows.flatMap((r, ri) =>
+        r.options.map((o, oi) => ({
+          variant_id: variantsPayload[ri].id,
+          option_id: optionIds[oi],
+          value_id: valueIds.get(`${oi}|${o.value}`)!,
+        })),
+      );
+
+      const steps: { table: string; payload: object[] }[] = [
+        { table: "product_options", payload: optionsPayload },
+        { table: "product_option_values", payload: valuesPayload },
+        { table: "product_variants", payload: variantsPayload },
+        { table: "product_variant_options", payload: linksPayload },
+      ];
+
+      for (const step of steps) {
+        const { error: stepErr } = await supabase.from(step.table).insert(step.payload);
+        if (stepErr) {
+          setError(`${step.table}: ${stepErr.message}`);
+          setSaving(false);
+          return;
+        }
       }
     }
 

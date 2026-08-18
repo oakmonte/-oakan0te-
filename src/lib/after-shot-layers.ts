@@ -49,6 +49,11 @@ export type StickerLayer = BaseLayer & {
   assetUrl: string;
 };
 
+// A sticker's unscaled width, as a fraction of the media width. layer.scale
+// multiplies on top of this. Shared so the on-screen <img> and the canvas bake
+// agree — the bake already assumed 0.25 while nothing rendered it on screen.
+export const STICKER_LAYER_WIDTH_FRACTION = 0.25;
+
 export type DrawStroke = {
   points: [number, number][]; // 0-1 fractional coords, same convention as BaseLayer.x/y
   color: string;

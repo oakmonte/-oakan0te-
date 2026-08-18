@@ -19,6 +19,7 @@ import { useAfterShotLayers } from "@/lib/after-shot-layers";
 import LayerOverlay from "@/components/camera/LayerOverlay";
 import { useLayerRenderer } from "@/components/camera/aftershot/use-layer-renderer";
 import { getVideoKeyframes, snapToNearestKeyframe, trimVideo } from "@/lib/video-trim";
+import { useFittedSize } from "@/hooks/use-fitted-size";
 
 export const Route = createFileRoute("/create/after-shot/edit")({
   head: () => ({ meta: [{ title: "Trim — Oakmonte" }] }),
@@ -52,6 +53,7 @@ function TrimPage() {
   const previewVideoRef = useRef<HTMLVideoElement>(null);
   const thumbVideoRef = useRef<HTMLVideoElement>(null);
   const previewBoxRef = useRef<HTMLDivElement>(null);
+  const previewAreaRef = useRef<HTMLDivElement>(null);
 
   const { layers } = useAfterShotLayers();
   const renderLayerContent = useLayerRenderer(previewBoxRef);
@@ -159,6 +161,11 @@ function TrimPage() {
       cancelled = true;
     };
   }, [duration, media]);
+
+  // Same contain-fit as the after-shot screen, so a clip is framed identically
+  // on both. height:100% + width:auto had the mirror bug: max-width clamped a
+  // wide clip's width without back-solving its height.
+  const fitted = useFittedSize(previewAreaRef, aspect);
 
   const timeToRatio = useCallback((t: number) => (duration > 0 ? t / duration : 0), [duration]);
   const ratioToTime = useCallback(
@@ -296,17 +303,14 @@ function TrimPage() {
         </button>
       </div>
 
-      <div className="relative flex-1 min-h-0 flex items-center justify-center px-5">
+      <div
+        ref={previewAreaRef}
+        className="relative flex-1 min-h-0 flex items-center justify-center px-5"
+      >
         <div
           ref={previewBoxRef}
           className="relative overflow-hidden rounded-2xl"
-          style={{
-            maxHeight: "100%",
-            maxWidth: "100%",
-            aspectRatio: String(aspect),
-            width: "auto",
-            height: "100%",
-          }}
+          style={{ width: fitted.width || undefined, height: fitted.height || undefined }}
         >
           <video
             ref={previewVideoRef}

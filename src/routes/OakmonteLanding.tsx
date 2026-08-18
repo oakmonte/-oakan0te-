@@ -66,7 +66,10 @@ const QUOTES = [
     text: "I share pieces I actually believe in — and I get credit for every sale it drives.",
     who: "Jamal — Creator (sample)",
   },
-  { text: "The size chart alone saved me two returns in my first week.", who: "Nathan — Curator (sample)" },
+  {
+    text: "The size chart alone saved me two returns in my first week.",
+    who: "Nathan — Curator (sample)",
+  },
 ];
 
 const FAQS = [
@@ -291,9 +294,12 @@ function OakmonteLanding() {
             </h1>
 
             <p className="hero-sub">
-              Fashion resale is broken. Sellers eat chargebacks. Creators do the promo work for free.
-              Shoppers hand strangers money and hope.{" "}
-              <b>Oakmonte fixes all three — one platform, one payment system, nobody left holding the bag.</b>
+              Fashion resale is broken. Sellers eat chargebacks. Creators do the promo work for
+              free. Shoppers hand strangers money and hope.{" "}
+              <b>
+                Oakmonte fixes all three — one platform, one payment system, nobody left holding the
+                bag.
+              </b>
             </p>
 
             <div className="hero-cta-row">
@@ -319,7 +325,12 @@ function OakmonteLanding() {
             </p>
 
             <div className="hero-media">
-              <img src={IMG_HERO} alt="Models wearing curated fashion pieces" width={1920} height={848} />
+              <img
+                src={IMG_HERO}
+                alt="Models wearing curated fashion pieces"
+                width={1920}
+                height={848}
+              />
               <span className="media-cap">Sell · Share · Shop — all in one place</span>
             </div>
           </div>
@@ -327,11 +338,13 @@ function OakmonteLanding() {
           <div className="trust-marquee">
             <div className="track">
               {Array.from({ length: 6 }).flatMap((_, i) =>
-                ["ESCROW PROTECTED", "CREATOR VERIFIED", "SIZE-MATCHED", "DISPUTE COVERED"].map((t) => (
-                  <span key={`${i}-${t}`}>
-                    <b>·</b> {t}
-                  </span>
-                )),
+                ["ESCROW PROTECTED", "CREATOR VERIFIED", "SIZE-MATCHED", "DISPUTE COVERED"].map(
+                  (t) => (
+                    <span key={`${i}-${t}`}>
+                      <b>·</b> {t}
+                    </span>
+                  ),
+                ),
               )}
             </div>
           </div>
@@ -354,27 +367,35 @@ function OakmonteLanding() {
                   Buying and selling fashion online is still built on trust you can't verify.
                 </Reveal>
                 <Reveal as="p" delay={1}>
-                  A seller lists a piece. A creator shares it with their audience. A shopper sends payment
-                  and waits. And somewhere in that chain, things go wrong — the item never ships, the size
-                  is wrong, or the "creator collab" was never really a partnership at all.
+                  A seller lists a piece. A creator shares it with their audience. A shopper sends
+                  payment and waits. And somewhere in that chain, things go wrong — the item never
+                  ships, the size is wrong, or the "creator collab" was never really a partnership
+                  at all.
                 </Reveal>
                 <Reveal as="p" delay={1} className="punch">
                   We didn't think that was good enough.
                 </Reveal>
                 <Reveal as="p" delay={2}>
                   So we built Oakmonte around one simple rule:{" "}
-                  <b>no payment reaches a seller until the customer is satisfied.</b> Every piece goes
-                  through a dispute pipeline before money moves. Every creator gets paid for the sales they
-                  actually drive. Every curator gets pieces that actually fit, because we built a real
-                  recommendation system instead of a guessing game.
+                  <b>no payment reaches a seller until the customer is satisfied.</b> Every piece
+                  goes through a dispute pipeline before money moves. Every creator gets paid for
+                  the sales they actually drive. Every curator gets pieces that actually fit,
+                  because we built a real recommendation system instead of a guessing game.
                 </Reveal>
                 <Reveal as="p" delay={3}>
-                  It's not flashy. It's just fair — and it's the platform we wished existed when we started.
+                  It's not flashy. It's just fair — and it's the platform we wished existed when we
+                  started.
                 </Reveal>
               </div>
 
               <Reveal delay={2} className="story-media">
-                <img src={IMG_STORY} alt="Editorial fashion portrait" loading="lazy" width={912} height={1200} />
+                <img
+                  src={IMG_STORY}
+                  alt="Editorial fashion portrait"
+                  loading="lazy"
+                  width={912}
+                  height={1200}
+                />
               </Reveal>
             </div>
           </div>
@@ -392,8 +413,8 @@ function OakmonteLanding() {
                 <span className="tag">For sellers &amp; creators</span>
                 <h3>Sell With Oakmonte</h3>
                 <p>
-                  Open a store, list your pieces, and let creators drive traffic — with payment that only
-                  releases once your customer's happy. No chargeback roulette.
+                  Open a store, list your pieces, and let creators drive traffic — with payment that
+                  only releases once your customer's happy. No chargeback roulette.
                 </p>
                 <button
                   type="button"
@@ -410,8 +431,8 @@ function OakmonteLanding() {
                 <span className="tag">For curators &amp; shoppers</span>
                 <h3>Shop &amp; Curate</h3>
                 <p>
-                  Find pieces matched to your actual size, track every delivery, and share the finds worth
-                  talking about — all backed by our dispute pipeline.
+                  Find pieces matched to your actual size, track every delivery, and share the finds
+                  worth talking about — all backed by our dispute pipeline.
                 </p>
                 <button
                   type="button"
@@ -439,7 +460,9 @@ function OakmonteLanding() {
                 </Reveal>
               ))}
             </div>
-            <p className="results-note">* Placeholder figures for preview — replace with your verified numbers.</p>
+            <p className="results-note">
+              * Placeholder figures for preview — replace with your verified numbers.
+            </p>
           </div>
         </section>
 
@@ -451,7 +474,13 @@ function OakmonteLanding() {
                 Built to be the <span>simplest way</span> to sell, share, and shop fashion online.
               </Reveal>
               <Reveal delay={1} className="scale-media">
-                <img src={IMG_SCALE} alt="Curated rack of fashion pieces" loading="lazy" width={1008} height={1264} />
+                <img
+                  src={IMG_SCALE}
+                  alt="Curated rack of fashion pieces"
+                  loading="lazy"
+                  width={1008}
+                  height={1264}
+                />
               </Reveal>
             </div>
           </div>
@@ -483,13 +512,13 @@ function OakmonteLanding() {
                   the chain.
                 </h2>
                 <p className="section-desc">
-                  Oakmonte connects sellers, creators and curators in one native fashion commerce platform —
-                  so nobody's doing the work alone.
+                  Oakmonte connects sellers, creators and curators in one native fashion commerce
+                  platform — so nobody's doing the work alone.
                 </p>
               </Reveal>
               <div className="features-grid">
                 {FEATURES.map((f, i) => (
-                  <Reveal key={f.title} delay={(i as 0 | 1 | 2)} className="feature">
+                  <Reveal key={f.title} delay={i as 0 | 1 | 2} className="feature">
                     <span className="num">0{i + 1}</span>
                     <h3>{f.title}</h3>
                     <ul>
@@ -515,7 +544,7 @@ function OakmonteLanding() {
             </Reveal>
             <div className="quotes-grid">
               {QUOTES.map((q, i) => (
-                <Reveal key={q.who} delay={(i as 0 | 1 | 2)} className="quote-card">
+                <Reveal key={q.who} delay={i as 0 | 1 | 2} className="quote-card">
                   <span className="mark">"</span>
                   <p>{q.text}</p>
                   <div className="who">{q.who}</div>
@@ -534,13 +563,13 @@ function OakmonteLanding() {
                 <h2 className="headline3">Nobody gets ghosted. Nobody gets burned.</h2>
                 <div className="solutions-copy">
                   <p>
-                    No payment reaches any seller without customer satisfaction. No fast-fashion noise —
-                    just curated, authentic pieces from people who stand behind them.
+                    No payment reaches any seller without customer satisfaction. No fast-fashion
+                    noise — just curated, authentic pieces from people who stand behind them.
                   </p>
                   <p>
-                    Creators won't drive sales and go unpaid. Sellers won't get undercut by unverified
-                    resellers. Every complaint runs through a real dispute pipeline before it becomes
-                    anyone's problem.
+                    Creators won't drive sales and go unpaid. Sellers won't get undercut by
+                    unverified resellers. Every complaint runs through a real dispute pipeline
+                    before it becomes anyone's problem.
                   </p>
                 </div>
               </Reveal>
@@ -548,8 +577,8 @@ function OakmonteLanding() {
                 <p className="eyebrow">Find your fit</p>
                 <p className="big">A recommendation system that actually knows your size.</p>
                 <p className="small">
-                  Every piece goes through our personal size chart before it reaches you — built to improve
-                  curator-piece fit and cut down on returns, not guess and hope.
+                  Every piece goes through our personal size chart before it reaches you — built to
+                  improve curator-piece fit and cut down on returns, not guess and hope.
                 </p>
               </Reveal>
             </div>
@@ -570,7 +599,11 @@ function OakmonteLanding() {
             <div className="faq-list">
               {FAQS.map((f, i) => (
                 <div key={f.q} className={`faq-item${openFaq === i ? " open" : ""}`}>
-                  <button className="faq-q" type="button" onClick={() => setOpenFaq(openFaq === i ? null : i)}>
+                  <button
+                    className="faq-q"
+                    type="button"
+                    onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                  >
                     <span>{f.q}</span>
                     <span className="plus">+</span>
                   </button>
@@ -600,8 +633,8 @@ function OakmonteLanding() {
               <span>create?</span>
             </Reveal>
             <Reveal as="p" delay={1}>
-              Join the platform built for sellers, creators and curators who want fashion commerce done
-              right — no gimmicks, no ghosting.
+              Join the platform built for sellers, creators and curators who want fashion commerce
+              done right — no gimmicks, no ghosting.
             </Reveal>
             <Reveal delay={2}>
               <button

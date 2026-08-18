@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
-import { X, Check } from "lucide-react";
+import { X, Check, RotateCcw } from "lucide-react";
 import { useAfterShotContext } from "@/lib/after-shot-context";
 import { cropPhotoBlob, cropVideoBlob, type CropRect } from "@/lib/crop-media";
 
-type Corner = "nw" | "ne" | "sw" | "se";
+type Handle = "nw" | "ne" | "sw" | "se" | "n" | "s" | "w" | "e";
 
 const ASPECT_PRESETS: { id: string; label: string; aspect: number | null }[] = [
   { id: "free", label: "Free", aspect: null },
@@ -15,14 +15,18 @@ const ASPECT_PRESETS: { id: string; label: string; aspect: number | null }[] = [
   { id: "16:9", label: "16:9", aspect: 16 / 9 },
 ];
 
-const HANDLE_SIZE = 22;
-const MIN_CROP = 48;
+const CORNER_SIZE = 26;
+const EDGE_THICKNESS = 24;
+const MIN_CROP = 44;
 
-function centeredRect(boxW: number, boxH: number, aspect: number | null) {
-  if (boxW <= 0 || boxH <= 0) return { x: 0, y: 0, w: boxW, h: boxH };
+type Rect = { x: number; y: number; w: number; h: number };
+
+function centeredRect(boxW: number, boxH: number, aspect: number | null): Rect {
+  if (boxW <= 0 || boxH <= 0) return { x: 0, y: 0, w: 0, h: 0 };
   if (aspect === null) return { x: 0, y: 0, w: boxW, h: boxH };
   const boxAspect = boxW / boxH;
-  let w: number, h: number;
+  let w: number;
+  let h: number;
   if (aspect > boxAspect) {
     w = boxW;
     h = w / aspect;
@@ -33,44 +37,82 @@ function centeredRect(boxW: number, boxH: number, aspect: number | null) {
   return { x: (boxW - w) / 2, y: (boxH - h) / 2, w, h };
 }
 
-function resizeFromCorner(
-  rect: { x: number; y: number; w: number; h: number },
-  corner: Corner,
+// Resize from an edge or a corner. The previous version only had corners, and it
+// derived height from width alone whenever an aspect was locked — so dragging a
+// corner vertically did nothing at all. Here the aspect is satisfied by taking
+// whichever axis the finger moved furthest on, then the result is clamped inside
+// the box without letting the clamp break the ratio.
+function resizeRect(
+  start: Rect,
+  handle: Handle,
   px: number,
   py: number,
   aspect: number | null,
   boxW: number,
   boxH: number,
-) {
-  const vertical = corner[0] as "n" | "s";
-  const horizontal = corner[1] as "w" | "e";
+): Rect {
+  const touchesN = handle.includes("n");
+  const touchesS = handle.includes("s");
+  const touchesW = handle.includes("w");
+  const touchesE = handle.includes("e");
 
-  const anchorX = horizontal === "w" ? rect.x + rect.w : rect.x;
-  const anchorY = vertical === "n" ? rect.y + rect.h : rect.y;
+  let left = start.x;
+  let top = start.y;
+  let right = start.x + start.w;
+  let bottom = start.y + start.h;
 
-  const clampedPx = Math.max(0, Math.min(boxW, px));
-  const clampedPy = Math.max(0, Math.min(boxH, py));
+  const cx = Math.max(0, Math.min(boxW, px));
+  const cy = Math.max(0, Math.min(boxH, py));
 
-  let w = Math.max(MIN_CROP, Math.abs(clampedPx - anchorX));
-  let h = Math.max(MIN_CROP, Math.abs(clampedPy - anchorY));
+  if (touchesW) left = Math.min(cx, right - MIN_CROP);
+  if (touchesE) right = Math.max(cx, left + MIN_CROP);
+  if (touchesN) top = Math.min(cy, bottom - MIN_CROP);
+  if (touchesS) bottom = Math.max(cy, top + MIN_CROP);
 
-  if (aspect !== null) h = w / aspect;
+  let w = right - left;
+  let h = bottom - top;
 
-  const maxW = horizontal === "w" ? anchorX : boxW - anchorX;
-  const maxH = vertical === "n" ? anchorY : boxH - anchorY;
-  if (w > maxW) {
-    w = maxW;
-    if (aspect !== null) h = w / aspect;
+  if (aspect !== null) {
+    // Anchor is the side (or corner) opposite the one being dragged.
+    const anchorX = touchesW ? right : left;
+    const anchorY = touchesN ? bottom : top;
+
+    // Drive from whichever axis this handle actually controls; corners use the
+    // larger implied size so the crop tracks the finger on both axes.
+    const fromW = w;
+    const fromH = h * aspect;
+    let targetW: number;
+    if (touchesW || touchesE) {
+      targetW = touchesN || touchesS ? Math.max(fromW, fromH) : fromW;
+    } else {
+      targetW = fromH;
+    }
+    let targetH = targetW / aspect;
+
+    // Clamp against the box, preserving the ratio.
+    const maxW = touchesW ? anchorX : boxW - anchorX;
+    const maxH = touchesN ? anchorY : boxH - anchorY;
+    if (targetW > maxW) {
+      targetW = maxW;
+      targetH = targetW / aspect;
+    }
+    if (targetH > maxH) {
+      targetH = maxH;
+      targetW = targetH * aspect;
+    }
+    targetW = Math.max(MIN_CROP, targetW);
+    targetH = Math.max(MIN_CROP / aspect, targetH);
+
+    left = touchesW ? anchorX - targetW : anchorX;
+    top = touchesN ? anchorY - targetH : anchorY;
+    w = targetW;
+    h = targetH;
   }
-  if (h > maxH) {
-    h = maxH;
-    if (aspect !== null) w = h * aspect;
-  }
 
-  const x = horizontal === "w" ? anchorX - w : anchorX;
-  const y = vertical === "n" ? anchorY - h : anchorY;
-
-  return { x, y, w, h };
+  // Final containment.
+  left = Math.max(0, Math.min(left, boxW - w));
+  top = Math.max(0, Math.min(top, boxH - h));
+  return { x: left, y: top, w, h };
 }
 
 type CropPanelProps = {
@@ -88,18 +130,25 @@ type CropPanelProps = {
 export default function CropPanel({ open, containerRef, naturalSize, onClose }: CropPanelProps) {
   const { media, setMedia } = useAfterShotContext();
 
-  const [boxSize, setBoxSize] = useState<{ w: number; h: number } | null>(null);
+  // Position AND size of the media box in viewport coordinates. CropPanel renders
+  // as a sibling of that box (not a child), so its controls can anchor to the
+  // screen while the crop surface still lines up exactly with the media.
+  const [boxRect, setBoxRect] = useState<{
+    left: number;
+    top: number;
+    w: number;
+    h: number;
+  } | null>(null);
+  // Deliberately read boxRect.w/.h at each use site rather than deriving a
+  // { w, h } object: a fresh object every render would give every callback that
+  // depends on it a new identity, re-subscribing the window pointer listeners on
+  // every single frame of a drag.
   const [aspectId, setAspectId] = useState("free");
-  const [rect, setRect] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+  const [rect, setRect] = useState<Rect | null>(null);
 
   const dragRef = useRef<
-    | {
-        mode: "move";
-        startX: number;
-        startY: number;
-        startRect: { x: number; y: number; w: number; h: number };
-      }
-    | { mode: "resize"; corner: Corner }
+    | { mode: "move"; startX: number; startY: number; startRect: Rect }
+    | { mode: "resize"; handle: Handle; startRect: Rect }
     | null
   >(null);
 
@@ -113,50 +162,67 @@ export default function CropPanel({ open, containerRef, naturalSize, onClose }: 
     if (!open) return;
     const el = containerRef.current;
     if (!el) return;
-    const update = () => setBoxSize({ w: el.clientWidth, h: el.clientHeight });
+    const update = () => {
+      const r = el.getBoundingClientRect();
+      setBoxRect({ left: r.left, top: r.top, w: r.width, h: r.height });
+    };
     update();
     const ro = new ResizeObserver(update);
     ro.observe(el);
-    return () => ro.disconnect();
+    window.addEventListener("resize", update);
+    window.addEventListener("orientationchange", update);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", update);
+      window.removeEventListener("orientationchange", update);
+    };
   }, [open, containerRef]);
 
   useEffect(() => {
-    if (!boxSize || rect) return;
-    setRect(centeredRect(boxSize.w, boxSize.h, null));
-  }, [boxSize, rect]);
+    if (!open) {
+      setRect(null);
+      return;
+    }
+    if (!boxRect || rect) return;
+    setRect(centeredRect(boxRect.w, boxRect.h, null));
+  }, [open, boxRect, rect]);
 
   const applyAspect = useCallback(
     (id: string) => {
       setAspectId(id);
-      if (!boxSize) return;
+      if (!boxRect) return;
       const preset = ASPECT_PRESETS.find((p) => p.id === id);
-      setRect(centeredRect(boxSize.w, boxSize.h, preset?.aspect ?? null));
+      setRect(centeredRect(boxRect.w, boxRect.h, preset?.aspect ?? null));
     },
-    [boxSize],
+    [boxRect],
   );
 
   const handlePointerMove = useCallback(
     (clientX: number, clientY: number) => {
       const drag = dragRef.current;
       const el = containerRef.current;
-      if (!drag || !el || !rect || !boxSize) return;
+      if (!drag || !el || !boxRect) return;
       const b = el.getBoundingClientRect();
       const px = clientX - b.left;
       const py = clientY - b.top;
-      const preset = ASPECT_PRESETS.find((p) => p.id === aspectId);
-      const aspect = preset?.aspect ?? null;
+      const aspect = ASPECT_PRESETS.find((p) => p.id === aspectId)?.aspect ?? null;
 
       if (drag.mode === "resize") {
-        setRect(resizeFromCorner(rect, drag.corner, px, py, aspect, boxSize.w, boxSize.h));
+        // Resize from the rect as it was when the gesture STARTED. Feeding the
+        // live rect back in made every move compound the last one, so the crop
+        // accelerated away from the finger.
+        setRect(resizeRect(drag.startRect, drag.handle, px, py, aspect, boxRect.w, boxRect.h));
       } else {
         const dx = clientX - drag.startX;
         const dy = clientY - drag.startY;
-        const x = Math.max(0, Math.min(boxSize.w - drag.startRect.w, drag.startRect.x + dx));
-        const y = Math.max(0, Math.min(boxSize.h - drag.startRect.h, drag.startRect.y + dy));
-        setRect({ ...drag.startRect, x, y });
+        setRect({
+          ...drag.startRect,
+          x: Math.max(0, Math.min(boxRect.w - drag.startRect.w, drag.startRect.x + dx)),
+          y: Math.max(0, Math.min(boxRect.h - drag.startRect.h, drag.startRect.y + dy)),
+        });
       }
     },
-    [containerRef, rect, boxSize, aspectId],
+    [containerRef, boxRect, aspectId],
   );
 
   useEffect(() => {
@@ -167,51 +233,61 @@ export default function CropPanel({ open, containerRef, naturalSize, onClose }: 
     };
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
     return () => {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
     };
   }, [open, handlePointerMove]);
 
   const startMove = useCallback(
     (e: ReactPointerEvent) => {
       if (!rect) return;
+      e.stopPropagation();
       dragRef.current = { mode: "move", startX: e.clientX, startY: e.clientY, startRect: rect };
     },
     [rect],
   );
 
   const startResize = useCallback(
-    (corner: Corner) => (e: ReactPointerEvent) => {
+    (handle: Handle) => (e: ReactPointerEvent) => {
+      if (!rect) return;
       e.stopPropagation();
-      dragRef.current = { mode: "resize", corner };
+      dragRef.current = { mode: "resize", handle, startRect: rect };
     },
-    [],
+    [rect],
   );
 
-  const reset = useCallback(() => {
+  const resetRect = useCallback(() => {
+    if (!boxRect) return;
+    const aspect = ASPECT_PRESETS.find((p) => p.id === aspectId)?.aspect ?? null;
+    setRect(centeredRect(boxRect.w, boxRect.h, aspect));
+  }, [boxRect, aspectId]);
+
+  const handleCancel = useCallback(() => {
     setRect(null);
     setAspectId("free");
     setBusy(false);
     setProgress(0);
-  }, []);
-
-  const handleCancel = useCallback(() => {
-    reset();
     onClose();
-  }, [reset, onClose]);
+  }, [onClose]);
 
   const handleConfirm = useCallback(async () => {
-    if (!rect || !boxSize || !naturalSize) return;
+    if (!rect || !boxRect || !naturalSize) return;
     setBusy(true);
     setProgress(0);
     try {
-      const scale = naturalSize.w / boxSize.w;
+      // Scale per axis. A single width-derived scale silently assumed the media
+      // box's aspect exactly equals the source's — true today, but it produced a
+      // wrong crop the moment they diverged by even a rounding pixel.
+      const scaleX = naturalSize.w / boxRect.w;
+      const scaleY = naturalSize.h / boxRect.h;
       const natural: CropRect = {
-        x: rect.x * scale,
-        y: rect.y * scale,
-        w: rect.w * scale,
-        h: rect.h * scale,
+        x: Math.round(rect.x * scaleX),
+        y: Math.round(rect.y * scaleY),
+        w: Math.round(rect.w * scaleX),
+        h: Math.round(rect.h * scaleY),
       };
       const croppedBlob =
         media.type === "photo"
@@ -223,46 +299,40 @@ export default function CropPanel({ open, containerRef, naturalSize, onClose }: 
           ? { type: "photo", blob: croppedBlob, url }
           : { type: "video", blob: croppedBlob, url },
       );
-      reset();
+      setRect(null);
+      setAspectId("free");
+      setBusy(false);
       onClose();
     } catch (err) {
       console.error("Crop failed:", err);
       setBusy(false);
     }
-  }, [rect, boxSize, naturalSize, media, setMedia, reset, onClose]);
-
-  const corners: Corner[] = ["nw", "ne", "sw", "se"];
+  }, [rect, boxRect, naturalSize, media, setMedia, onClose]);
 
   if (!open) return null;
 
-  return (
-    <div
-      className="absolute inset-0 z-40 flex flex-col"
-      style={{ fontFamily: "'SF Pro', system-ui, sans-serif" }}
-    >
-      <div className="flex items-center justify-between px-4 pt-[calc(env(safe-area-inset-top)+12px)]">
-        <button
-          onClick={handleCancel}
-          aria-label="Cancel crop"
-          disabled={busy}
-          className="flex items-center justify-center w-10 h-10 rounded-full"
-          style={{ background: "rgba(255,255,255,0.10)", backdropFilter: "blur(12px)" }}
-        >
-          <X size={20} color="#fff" />
-        </button>
-        <button
-          onClick={handleConfirm}
-          aria-label="Confirm crop"
-          disabled={busy || !rect}
-          className="flex items-center justify-center w-10 h-10 rounded-full disabled:opacity-40 transition-transform duration-150 active:scale-90"
-          style={{ background: "#fff", color: "#000" }}
-        >
-          <Check size={20} />
-        </button>
-      </div>
+  const corners: Handle[] = ["nw", "ne", "sw", "se"];
+  const edges: Handle[] = ["n", "s", "w", "e"];
 
-      <div className="relative flex-1 min-h-0">
-        {rect && boxSize && (
+  return (
+    <>
+      {/* The crop surface is its own absolutely-positioned layer covering the
+          media box exactly. It used to be a flex child BELOW the header, while
+          the rect's numbers were measured against the full box — so the frame
+          rendered offset downward and squashed, and its 9999px dimming shadow
+          painted straight over the header buttons. Controls are now overlays on
+          top of this surface rather than siblings that steal its height. */}
+      <div
+        className="absolute z-40"
+        style={{
+          left: boxRect?.left ?? 0,
+          top: boxRect?.top ?? 0,
+          width: boxRect?.w ?? 0,
+          height: boxRect?.h ?? 0,
+          touchAction: "none",
+        }}
+      >
+        {rect && boxRect && (
           <div
             onPointerDown={startMove}
             className="absolute"
@@ -271,42 +341,78 @@ export default function CropPanel({ open, containerRef, naturalSize, onClose }: 
               top: rect.y,
               width: rect.w,
               height: rect.h,
-              outline: "2px solid #fff",
+              outline: "1.5px solid #fff",
               boxShadow: "0 0 0 9999px rgba(0,0,0,0.55)",
               cursor: "move",
               touchAction: "none",
             }}
           >
-            <div className="absolute inset-0 pointer-events-none" style={{ opacity: 0.5 }}>
+            <div className="absolute inset-0 pointer-events-none" style={{ opacity: 0.45 }}>
               <div className="absolute left-1/3 top-0 bottom-0 w-px bg-white" />
               <div className="absolute left-2/3 top-0 bottom-0 w-px bg-white" />
               <div className="absolute top-1/3 left-0 right-0 h-px bg-white" />
               <div className="absolute top-2/3 left-0 right-0 h-px bg-white" />
             </div>
 
+            {/* Edge handles — dragging a side is the most common crop gesture and
+                there was no way to do it before. */}
+            {edges.map((edge) => {
+              const horizontal = edge === "n" || edge === "s";
+              return (
+                <div
+                  key={edge}
+                  onPointerDown={startResize(edge)}
+                  aria-label={`Crop ${edge} edge`}
+                  className="absolute"
+                  style={{
+                    left: horizontal ? EDGE_THICKNESS : edge === "w" ? -EDGE_THICKNESS / 2 : "auto",
+                    right: horizontal
+                      ? EDGE_THICKNESS
+                      : edge === "e"
+                        ? -EDGE_THICKNESS / 2
+                        : "auto",
+                    top: !horizontal ? EDGE_THICKNESS : edge === "n" ? -EDGE_THICKNESS / 2 : "auto",
+                    bottom: !horizontal
+                      ? EDGE_THICKNESS
+                      : edge === "s"
+                        ? -EDGE_THICKNESS / 2
+                        : "auto",
+                    height: horizontal ? EDGE_THICKNESS : "auto",
+                    width: horizontal ? "auto" : EDGE_THICKNESS,
+                    cursor: horizontal ? "ns-resize" : "ew-resize",
+                    touchAction: "none",
+                  }}
+                />
+              );
+            })}
+
             {corners.map((corner) => (
               <div
                 key={corner}
                 onPointerDown={startResize(corner)}
-                className="absolute"
+                aria-label={`Crop ${corner} corner`}
+                className="absolute flex items-center justify-center"
                 style={{
-                  width: HANDLE_SIZE,
-                  height: HANDLE_SIZE,
-                  top: corner[0] === "n" ? -HANDLE_SIZE / 2 : "auto",
-                  bottom: corner[0] === "s" ? -HANDLE_SIZE / 2 : "auto",
-                  left: corner[1] === "w" ? -HANDLE_SIZE / 2 : "auto",
-                  right: corner[1] === "e" ? -HANDLE_SIZE / 2 : "auto",
+                  width: CORNER_SIZE,
+                  height: CORNER_SIZE,
+                  top: corner[0] === "n" ? -CORNER_SIZE / 2 : "auto",
+                  bottom: corner[0] === "s" ? -CORNER_SIZE / 2 : "auto",
+                  left: corner[1] === "w" ? -CORNER_SIZE / 2 : "auto",
+                  right: corner[1] === "e" ? -CORNER_SIZE / 2 : "auto",
                   cursor: corner === "nw" || corner === "se" ? "nwse-resize" : "nesw-resize",
                   touchAction: "none",
                 }}
               >
-                <div
+                {/* An L-bracket rather than a dot — it reads as a corner and
+                    doesn't hide the pixels you're trying to frame. */}
+                <span
                   style={{
-                    width: "100%",
-                    height: "100%",
-                    borderRadius: "50%",
-                    background: "#fff",
-                    border: "2px solid #000",
+                    width: 18,
+                    height: 18,
+                    borderTop: corner[0] === "n" ? "3px solid #fff" : "none",
+                    borderBottom: corner[0] === "s" ? "3px solid #fff" : "none",
+                    borderLeft: corner[1] === "w" ? "3px solid #fff" : "none",
+                    borderRight: corner[1] === "e" ? "3px solid #fff" : "none",
                   }}
                 />
               </div>
@@ -323,24 +429,67 @@ export default function CropPanel({ open, containerRef, naturalSize, onClose }: 
         )}
       </div>
 
+      {/* Controls sit above the dimming, anchored to the SCREEN rather than to
+          the media box, so they stay reachable on media of any shape. */}
       <div
-        className="flex items-center justify-center gap-3 overflow-x-auto px-5"
-        style={{ paddingTop: 16, paddingBottom: "calc(env(safe-area-inset-bottom) + 24px)" }}
+        className="absolute left-0 right-0 top-0 flex items-center justify-between px-4 pt-[calc(env(safe-area-inset-top)+12px)] z-50"
+        style={{ fontFamily: "'SF Pro', system-ui, sans-serif" }}
       >
+        <button
+          onClick={handleCancel}
+          aria-label="Cancel crop"
+          disabled={busy}
+          className="flex items-center justify-center w-10 h-10 rounded-full"
+          style={{ background: "rgba(255,255,255,0.15)", backdropFilter: "blur(12px)" }}
+        >
+          <X size={20} color="#fff" />
+        </button>
+        <button
+          onClick={resetRect}
+          aria-label="Reset crop"
+          disabled={busy}
+          className="flex items-center justify-center w-10 h-10 rounded-full"
+          style={{ background: "rgba(255,255,255,0.15)", backdropFilter: "blur(12px)" }}
+        >
+          <RotateCcw size={18} color="#fff" />
+        </button>
+        <button
+          onClick={handleConfirm}
+          aria-label="Confirm crop"
+          disabled={busy || !rect}
+          className="flex items-center justify-center w-10 h-10 rounded-full disabled:opacity-40 transition-transform duration-150 active:scale-90"
+          style={{ background: "#fff", color: "#000" }}
+        >
+          <Check size={20} />
+        </button>
+      </div>
+
+      <div
+        className="oak-crop-presets absolute left-0 right-0 bottom-0 flex items-center gap-3 overflow-x-auto px-5 z-50"
+        style={{
+          paddingTop: 16,
+          paddingBottom: "calc(env(safe-area-inset-bottom) + 24px)",
+          scrollbarWidth: "none",
+          fontFamily: "'SF Pro', system-ui, sans-serif",
+        }}
+      >
+        <style>{`.oak-crop-presets::-webkit-scrollbar { display: none; }`}</style>
         {ASPECT_PRESETS.map((preset) => (
           <button
             key={preset.id}
             onClick={() => applyAspect(preset.id)}
+            aria-pressed={aspectId === preset.id}
             className="shrink-0 px-4 py-2 rounded-full text-xs font-medium"
             style={{
-              background: aspectId === preset.id ? "#fff" : "rgba(255,255,255,0.10)",
+              background: aspectId === preset.id ? "#fff" : "rgba(255,255,255,0.15)",
               color: aspectId === preset.id ? "#000" : "#fff",
+              backdropFilter: aspectId === preset.id ? undefined : "blur(12px)",
             }}
           >
             {preset.label}
           </button>
         ))}
       </div>
-    </div>
+    </>
   );
 }

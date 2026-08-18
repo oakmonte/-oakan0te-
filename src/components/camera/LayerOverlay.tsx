@@ -47,7 +47,36 @@ type DragState =
       startRotation: number;
       startDistance: number;
       startAngle: number;
+    }
+  | {
+      // Two fingers on the layer itself. Distinct from "transform" (the corner
+      // handle) because a pinch has no fixed anchor: the layer also follows the
+      // midpoint between the fingers, so you can move, scale and rotate in one
+      // gesture the way every other photo editor behaves.
+      mode: "pinch";
+      id: string;
+      startX: number;
+      startY: number;
+      startScale: number;
+      startRotation: number;
+      startDistance: number;
+      startAngle: number;
+      startCenterClientX: number;
+      startCenterClientY: number;
     };
+
+type PointerSample = { x: number; y: number };
+
+function pinchGeometry(a: PointerSample, b: PointerSample) {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  return {
+    distance: Math.hypot(dx, dy),
+    angle: (Math.atan2(dy, dx) * 180) / Math.PI,
+    centerX: (a.x + b.x) / 2,
+    centerY: (a.y + b.y) / 2,
+  };
+}
 
 export default function LayerOverlay({
   containerRef,
@@ -61,6 +90,9 @@ export default function LayerOverlay({
   const dragRef = useRef<DragState | null>(null);
   const hasMovedRef = useRef(false);
   const tapLayerRef = useRef<Layer | null>(null);
+  // Live pointers per layer, so a second finger landing on an already-dragging
+  // layer can upgrade the gesture into a pinch instead of fighting it.
+  const pointersRef = useRef<Map<number, PointerSample>>(new Map());
 
   const getContainerRect = useCallback(() => {
     return containerRef.current?.getBoundingClientRect() ?? null;
@@ -70,8 +102,31 @@ export default function LayerOverlay({
     (layer: Layer) => (e: ReactPointerEvent) => {
       e.stopPropagation();
       setSelectedLayerId(layer.id);
-      hasMovedRef.current = false;
       tapLayerRef.current = layer;
+      pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+      const pts = [...pointersRef.current.values()];
+      if (pts.length >= 2) {
+        // Second finger down — switch to pinch, anchored on the current state so
+        // the layer doesn't jump at the moment the gesture changes.
+        const g = pinchGeometry(pts[0], pts[1]);
+        hasMovedRef.current = true; // a pinch is never a tap
+        dragRef.current = {
+          mode: "pinch",
+          id: layer.id,
+          startX: layer.x,
+          startY: layer.y,
+          startScale: layer.scale,
+          startRotation: layer.rotation,
+          startDistance: g.distance,
+          startAngle: g.angle,
+          startCenterClientX: g.centerX,
+          startCenterClientY: g.centerY,
+        };
+        return;
+      }
+
+      hasMovedRef.current = false;
       dragRef.current = {
         mode: "move",
         id: layer.id,
@@ -108,11 +163,35 @@ export default function LayerOverlay({
   );
 
   const handlePointerMove = useCallback(
-    (clientX: number, clientY: number) => {
+    (clientX: number, clientY: number, pointerId?: number) => {
       const drag = dragRef.current;
       if (!drag) return;
       const rect = getContainerRect();
       if (!rect) return;
+
+      if (pointerId !== undefined && pointersRef.current.has(pointerId)) {
+        pointersRef.current.set(pointerId, { x: clientX, y: clientY });
+      }
+
+      if (drag.mode === "pinch") {
+        const pts = [...pointersRef.current.values()];
+        if (pts.length < 2) return;
+        const g = pinchGeometry(pts[0], pts[1]);
+        const scaleFactor = drag.startDistance > 0 ? g.distance / drag.startDistance : 1;
+        updateLayer(drag.id, {
+          x: Math.min(
+            1,
+            Math.max(0, drag.startX + (g.centerX - drag.startCenterClientX) / rect.width),
+          ),
+          y: Math.min(
+            1,
+            Math.max(0, drag.startY + (g.centerY - drag.startCenterClientY) / rect.height),
+          ),
+          scale: Math.max(0.15, Math.min(8, drag.startScale * scaleFactor)),
+          rotation: drag.startRotation + (g.angle - drag.startAngle),
+        });
+        return;
+      }
 
       if (drag.mode === "move") {
         const pixelDist = Math.hypot(clientX - drag.startClientX, clientY - drag.startClientY);
@@ -139,23 +218,39 @@ export default function LayerOverlay({
     [getContainerRect, updateLayer],
   );
 
-  const handlePointerUp = useCallback(() => {
-    if (dragRef.current?.mode === "move" && !hasMovedRef.current && tapLayerRef.current) {
-      const layer = tapLayerRef.current;
-      if (layer.kind === "text" && onLayerTap) onLayerTap(layer);
-    }
-    dragRef.current = null;
-    hasMovedRef.current = false;
-    tapLayerRef.current = null;
-  }, [onLayerTap]);
+  const handlePointerUp = useCallback(
+    (pointerId?: number) => {
+      if (pointerId !== undefined) pointersRef.current.delete(pointerId);
+      else pointersRef.current.clear();
+
+      // Lifting one finger out of a pinch shouldn't end the gesture outright —
+      // but the remaining finger's frame of reference is gone, so end it and let
+      // a fresh press start a clean drag.
+      if (dragRef.current?.mode === "pinch" && pointersRef.current.size > 0) {
+        dragRef.current = null;
+        tapLayerRef.current = null;
+        return;
+      }
+
+      if (dragRef.current?.mode === "move" && !hasMovedRef.current && tapLayerRef.current) {
+        const layer = tapLayerRef.current;
+        if (layer.kind === "text" && onLayerTap) onLayerTap(layer);
+      }
+      dragRef.current = null;
+      hasMovedRef.current = false;
+      tapLayerRef.current = null;
+    },
+    [onLayerTap],
+  );
 
   return (
     <div
       className="absolute inset-0"
       style={{ zIndex: 10 }}
-      onPointerMove={(e) => handlePointerMove(e.clientX, e.clientY)}
-      onPointerUp={handlePointerUp}
-      onPointerLeave={handlePointerUp}
+      onPointerMove={(e) => handlePointerMove(e.clientX, e.clientY, e.pointerId)}
+      onPointerUp={(e) => handlePointerUp(e.pointerId)}
+      onPointerCancel={(e) => handlePointerUp(e.pointerId)}
+      onPointerLeave={() => handlePointerUp()}
       onPointerDown={() => setSelectedLayerId(null)}
     >
       {layers

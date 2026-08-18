@@ -1,5 +1,6 @@
 import {
   TEXT_LAYER_WIDTH_FRACTION,
+  STICKER_LAYER_WIDTH_FRACTION,
   TEXT_LAYER_LINE_HEIGHT,
   TEXT_LAYER_BOX_PAD_X,
   TEXT_LAYER_BOX_PAD_Y,
@@ -175,7 +176,7 @@ function drawStickerLayer(
   // Stickers draw at a fixed fraction of canvas width, height derived from the
   // asset's own aspect ratio — pinch/drag scale multiplies on top via the
   // ctx.scale() the caller already applied.
-  const baseW = canvasW * 0.25;
+  const baseW = canvasW * STICKER_LAYER_WIDTH_FRACTION;
   const baseH = baseW * (img.naturalHeight / img.naturalWidth);
   ctx.drawImage(img, -baseW / 2, -baseH / 2, baseW, baseH);
 }

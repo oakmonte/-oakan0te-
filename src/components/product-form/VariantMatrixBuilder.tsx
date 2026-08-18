@@ -5,10 +5,13 @@ import { VariantListSheet } from "./VariantListSheet";
 import { VariantCombinationsSheet } from "./VariantCombinationsSheet";
 
 export type VariantOption = { name: string; values: string[] };
+export type VariantOptionValue = { name: string; value: string };
 export type VariantRow = {
-  key: string; // "value1|value2" — stable identity across regeneration
-  option1Value: string;
-  option2Value: string | null;
+  key: string; // values joined by "|" — stable identity across regeneration
+  options: VariantOptionValue[];
+  // Sellers rarely stock every combination, so each one is opt-out. Only
+  // selected rows are written as variants.
+  selected: boolean;
   price: string;
   compareAtPrice: string;
   costPrice: string;
@@ -17,21 +20,33 @@ export type VariantRow = {
   mainImageUrl: string;
 };
 
-function buildKey(v1: string, v2: string | null) {
-  return v2 ? `${v1}|${v2}` : v1;
+// Matches Shopify's ceiling. Without a cap, six modest options would try to
+// render tens of thousands of rows and lock up the page.
+export const MAX_COMBINATIONS = 2048;
+
+// Generous rather than unlimited — the combination cap above is the real
+// guard, this just keeps the option list itself sane.
+export const MAX_OPTIONS = 8;
+
+function buildKey(combo: VariantOptionValue[]) {
+  return combo.map((o) => o.value).join("|");
 }
 
-function cartesian(options: VariantOption[]): { v1: string; v2: string | null }[] {
-  const [opt1, opt2] = options;
-  if (!opt1 || opt1.values.length === 0) return [];
-  if (!opt2 || opt2.values.length === 0) {
-    return opt1.values.map((v1) => ({ v1, v2: null }));
-  }
-  const combos: { v1: string; v2: string | null }[] = [];
-  for (const v1 of opt1.values) {
-    for (const v2 of opt2.values) {
-      combos.push({ v1, v2 });
+// N-way cartesian product — any number of options, not just two.
+function cartesian(options: VariantOption[]): VariantOptionValue[][] {
+  const usable = options.filter((o) => o.name.trim() && o.values.length > 0);
+  if (usable.length === 0) return [];
+
+  let combos: VariantOptionValue[][] = [[]];
+  for (const opt of usable) {
+    const next: VariantOptionValue[][] = [];
+    for (const combo of combos) {
+      for (const value of opt.values) {
+        next.push([...combo, { name: opt.name, value }]);
+        if (next.length >= MAX_COMBINATIONS) return next;
+      }
     }
+    combos = next;
   }
   return combos;
 }
@@ -60,22 +75,24 @@ export function VariantMatrixBuilder({
     const combos = cartesian(options);
     setRows((prevRows) => {
       const prevByKey = new Map(prevRows.map((r) => [r.key, r]));
-      return combos.map(({ v1, v2 }) => {
-        const key = buildKey(v1, v2);
+      return combos.map((combo) => {
+        const key = buildKey(combo);
         const existing = prevByKey.get(key);
-        return (
-          existing ?? {
-            key,
-            option1Value: v1,
-            option2Value: v2,
-            price: "",
-            compareAtPrice: "",
-            costPrice: "",
-            stockQty: "",
-            sku: "",
-            mainImageUrl: "",
-          }
-        );
+        // Keep the seller's edits (and their checkbox) across regeneration,
+        // but always refresh the option labels in case a name was renamed.
+        return existing
+          ? { ...existing, options: combo }
+          : {
+              key,
+              options: combo,
+              selected: true,
+              price: "",
+              compareAtPrice: "",
+              costPrice: "",
+              stockQty: "",
+              sku: "",
+              mainImageUrl: "",
+            };
       });
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -84,6 +101,8 @@ export function VariantMatrixBuilder({
   function removeOption(index: number) {
     setOptions((prev) => prev.filter((_, i) => i !== index));
   }
+
+  const selectedCount = rows.filter((r) => r.selected).length;
 
   return (
     <div className="border-b-8 border-gray-50">
@@ -113,7 +132,7 @@ export function VariantMatrixBuilder({
                 {options.map((o) => o.name || "Untitled option").join(" / ")}
               </span>
               <span className="text-xs text-gray-400">
-                {rows.length} variant{rows.length === 1 ? "" : "s"}
+                {selectedCount} of {rows.length} variant{rows.length === 1 ? "" : "s"}
               </span>
             </span>
             <ChevronRight size={16} className="text-gray-300 shrink-0" />
@@ -124,6 +143,7 @@ export function VariantMatrixBuilder({
       {wizardStep === "list" && (
         <VariantListSheet
           options={options}
+          maxOptions={MAX_OPTIONS}
           onEdit={(i) => setEditingIndex(i)}
           onRemove={removeOption}
           onAddNew={() => setEditingIndex(options.length)}
@@ -134,6 +154,7 @@ export function VariantMatrixBuilder({
 
       {wizardStep === "combinations" && (
         <VariantCombinationsSheet
+          options={options}
           rows={rows}
           setRows={setRows}
           onBack={() => setWizardStep("list")}
@@ -147,6 +168,7 @@ export function VariantMatrixBuilder({
           // define Size *and* Color in one pass, and it returns all of them.
           initialOptions={options}
           initialName={options[editingIndex]?.name ?? ""}
+          maxOptions={MAX_OPTIONS}
           onSave={(nextOptions) => {
             setOptions(() => nextOptions);
             setEditingIndex(null);

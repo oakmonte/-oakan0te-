@@ -8,6 +8,7 @@ import {
   TEXT_LAYER_SHADOW_BLUR,
   TEXT_LAYER_SHADOW_OFFSET_Y,
   TEXT_LAYER_SHADOW_COLOR,
+  STICKER_LAYER_WIDTH_FRACTION,
   type Layer,
 } from "@/lib/after-shot-layers";
 
@@ -102,6 +103,26 @@ export function useLayerRenderer(mediaBoxRef: React.RefObject<HTMLDivElement | n
               />
             ))}
           </svg>
+        );
+      }
+      if (layer.kind === "sticker") {
+        // Width only — height follows the image's own aspect, which is exactly
+        // what drawStickerLayer does at bake time (baseW, then baseH derived
+        // from naturalHeight/naturalWidth).
+        const boxWidth = mediaBoxRef.current?.clientWidth ?? 0;
+        return (
+          <img
+            src={layer.assetUrl}
+            alt=""
+            draggable={false}
+            style={{
+              display: "block",
+              width: boxWidth * STICKER_LAYER_WIDTH_FRACTION,
+              height: "auto",
+              pointerEvents: "none",
+              userSelect: "none",
+            }}
+          />
         );
       }
       return null;

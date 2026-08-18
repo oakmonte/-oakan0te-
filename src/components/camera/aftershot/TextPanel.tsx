@@ -14,19 +14,49 @@ import {
 } from "@/lib/after-shot-layers";
 import { useVisibleViewport } from "@/hooks/use-visible-viewport";
 
+// Every entry has to look genuinely different from its neighbours, so each stack
+// leads with a face that actually ships on iOS/Android/Windows and falls back
+// through the same visual class rather than to a generic sans (which is how the
+// old list ended up with two presets rendering identically).
 const FONTS = [
-  { id: "system", label: "Classic", css: "'SF Pro', system-ui, sans-serif" },
-  { id: "serif", label: "Elegance", css: "Georgia, 'Times New Roman', serif" },
-  { id: "mono", label: "Neon", css: "'SF Mono', Menlo, monospace" },
-  // Impact, not Helvetica — the old entry here was Helvetica/Arial, which renders
-  // identically to "Classic" on every device, so two of the five presets were the
-  // same font under different names.
+  { id: "system", label: "Classic", css: "'SF Pro', system-ui, -apple-system, sans-serif" },
+  { id: "serif", label: "Elegance", css: "Georgia, 'Times New Roman', Times, serif" },
   {
     id: "display",
     label: "Retro",
     css: "Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif",
   },
-  { id: "comic", label: "Comic Sans", css: "'Comic Sans MS', cursive" },
+  { id: "mono", label: "Neon", css: "'SF Mono', Menlo, Consolas, 'Courier New', monospace" },
+  { id: "comic", label: "Comic", css: "'Comic Sans MS', 'Chalkboard SE', cursive" },
+  {
+    id: "script",
+    label: "Script",
+    css: "'Snell Roundhand', 'Brush Script MT', 'Segoe Script', cursive",
+  },
+  { id: "slab", label: "Slab", css: "Rockwell, 'Courier Bold', 'Roboto Slab', Georgia, serif" },
+  {
+    id: "condensed",
+    label: "Tall",
+    css: "'Arial Narrow', 'Helvetica Neue Condensed', 'Roboto Condensed', sans-serif",
+  },
+  { id: "rounded", label: "Round", css: "'SF Pro Rounded', 'Trebuchet MS', Verdana, sans-serif" },
+  {
+    id: "typewriter",
+    label: "Type",
+    css: "'American Typewriter', 'Courier New', Courier, monospace",
+  },
+  { id: "elegant", label: "Book", css: "Palatino, 'Palatino Linotype', 'Book Antiqua', serif" },
+  {
+    id: "marker",
+    label: "Marker",
+    css: "'Bradley Hand', 'Ink Free', 'Segoe Print', 'Comic Sans MS', cursive",
+  },
+  {
+    id: "wide",
+    label: "Wide",
+    css: "'Avenir Next', Futura, 'Century Gothic', 'Trebuchet MS', sans-serif",
+  },
+  { id: "grotesk", label: "Grotesk", css: "'Helvetica Neue', Helvetica, Arial, sans-serif" },
 ];
 
 const COLORS = [
@@ -81,6 +111,9 @@ export default function TextPanel({ open, containerRef, editingLayerId, onClose 
   const [weightLevel, setWeightLevel] = useState(0);
   const [showColorRow, setShowColorRow] = useState(false);
   const [boxWidth, setBoxWidth] = useState(FALLBACK_BOX_WIDTH);
+  // Rotation is composed here and carried onto the placed layer, so the angle you
+  // pinch to is the angle it lands at — it used to always commit rotation: 0.
+  const [rotation, setRotation] = useState(0);
 
   const activeFont = FONTS.find((f) => f.id === selectedFontId) ?? FONTS[0];
   const AlignIcon = ALIGN_ICON[align];
@@ -125,6 +158,7 @@ export default function TextPanel({ open, containerRef, editingLayerId, onClose 
       setFontSize(Math.round(editing.fontSize * width) || DEFAULT_FONT_SIZE);
       setAlign(editing.align);
       setBoxOn(editing.boxColor !== null);
+      setRotation(editing.rotation);
       const wIdx = WEIGHT_LEVELS.indexOf(editing.fontWeight);
       setWeightLevel(wIdx === -1 ? 0 : wIdx);
     } else {
@@ -135,6 +169,7 @@ export default function TextPanel({ open, containerRef, editingLayerId, onClose 
       setAlign("center");
       setBoxOn(false);
       setWeightLevel(0);
+      setRotation(0);
     }
     setShowColorRow(false);
 
@@ -180,6 +215,71 @@ export default function TextPanel({ open, containerRef, editingLayerId, onClose 
       if (original !== null) meta.setAttribute("content", original);
     };
   }, [open]);
+
+  // ---- two-finger pinch: size + rotation ----
+  // The slider is still there for one-handed use; pinch is the direct-manipulation
+  // path people reach for first, and it drives the same fontSize/rotation state.
+  const pinchPointers = useRef<Map<number, { x: number; y: number }>>(new Map());
+  const pinchStart = useRef<{
+    distance: number;
+    angle: number;
+    fontSize: number;
+    rotation: number;
+  } | null>(null);
+  // Set while a pinch is in flight so the compose background's tap-to-commit
+  // doesn't fire when the fingers lift.
+  const pinchedRef = useRef(false);
+
+  const pinchInfo = (pts: { x: number; y: number }[]) => {
+    const dx = pts[1].x - pts[0].x;
+    const dy = pts[1].y - pts[0].y;
+    return { distance: Math.hypot(dx, dy), angle: (Math.atan2(dy, dx) * 180) / Math.PI };
+  };
+
+  const onComposePointerDown = useCallback(
+    (e: React.PointerEvent) => {
+      pinchPointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      const pts = [...pinchPointers.current.values()];
+      if (pts.length === 2) {
+        const g = pinchInfo(pts);
+        pinchStart.current = {
+          distance: g.distance,
+          angle: g.angle,
+          fontSize,
+          rotation,
+        };
+        pinchedRef.current = true;
+      }
+    },
+    [fontSize, rotation],
+  );
+
+  const onComposePointerMove = useCallback((e: React.PointerEvent) => {
+    if (!pinchPointers.current.has(e.pointerId)) return;
+    pinchPointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const start = pinchStart.current;
+    if (!start) return;
+    const pts = [...pinchPointers.current.values()];
+    if (pts.length < 2) return;
+    const g = pinchInfo(pts);
+    const factor = start.distance > 0 ? g.distance / start.distance : 1;
+    setFontSize(
+      Math.round(Math.min(MAX_FONT_SIZE, Math.max(MIN_FONT_SIZE, start.fontSize * factor))),
+    );
+    setRotation(start.rotation + (g.angle - start.angle));
+  }, []);
+
+  const onComposePointerUp = useCallback((e: React.PointerEvent) => {
+    pinchPointers.current.delete(e.pointerId);
+    if (pinchPointers.current.size < 2) pinchStart.current = null;
+    if (pinchPointers.current.size === 0) {
+      // Clear on the next tick so the click that follows the final pointerup is
+      // still suppressed by the guard.
+      setTimeout(() => {
+        pinchedRef.current = false;
+      }, 0);
+    }
+  }, []);
 
   // ---- vertical size slider ----
   const trackRef = useRef<HTMLDivElement>(null);
@@ -245,6 +345,7 @@ export default function TextPanel({ open, containerRef, editingLayerId, onClose 
           align,
           boxColor: boxOn ? BOX_COLOR : null,
           fontWeight,
+          rotation,
         } as Partial<TextLayer>);
       }
     } else if (trimmed.length > 0) {
@@ -254,7 +355,7 @@ export default function TextPanel({ open, containerRef, editingLayerId, onClose 
         x: 0.5,
         y: 0.5,
         scale: 1,
-        rotation: 0,
+        rotation,
         zIndex: 0,
         content: trimmed,
         font: activeFont.css,
@@ -280,6 +381,7 @@ export default function TextPanel({ open, containerRef, editingLayerId, onClose 
     align,
     boxOn,
     fontWeight,
+    rotation,
     addLayer,
     updateLayer,
     removeLayer,
@@ -402,7 +504,21 @@ export default function TextPanel({ open, containerRef, editingLayerId, onClose 
           the photo stay visible behind it — the page keeps its own LayerOverlay
           mounted while this panel is open, so drawings and other captions no
           longer blink out while you type. */}
-      <div className="relative flex-1 min-h-0 flex items-center justify-center" onClick={commit}>
+      <div
+        className="relative flex-1 min-h-0 flex items-center justify-center"
+        style={{ touchAction: "none" }}
+        onPointerDown={onComposePointerDown}
+        onPointerMove={onComposePointerMove}
+        onPointerUp={onComposePointerUp}
+        onPointerCancel={onComposePointerUp}
+        onClick={() => {
+          // A pinch ends with a pointerup that the browser follows with a click;
+          // committing there would close the panel the instant you finish
+          // resizing.
+          if (pinchedRef.current) return;
+          commit();
+        }}
+      >
         <textarea
           ref={inputRef}
           rows={1}
@@ -433,6 +549,10 @@ export default function TextPanel({ open, containerRef, editingLayerId, onClose 
             resize: "none",
             overflow: "hidden",
             overflowWrap: "break-word",
+            // Live preview of the pinched angle. The textarea still edits
+            // normally while rotated — the caret and selection follow the
+            // transform.
+            transform: rotation ? `rotate(${rotation}deg)` : undefined,
             textShadow: boxOn
               ? "none"
               : `0 ${fontSize * TEXT_LAYER_SHADOW_OFFSET_Y}px ${fontSize * TEXT_LAYER_SHADOW_BLUR}px ${TEXT_LAYER_SHADOW_COLOR}`,

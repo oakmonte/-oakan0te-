@@ -3,6 +3,7 @@ import type { VariantOption } from "./VariantMatrixBuilder";
 
 export function VariantListSheet({
   options,
+  maxOptions = 8,
   onEdit,
   onRemove,
   onAddNew,
@@ -10,6 +11,7 @@ export function VariantListSheet({
   onBack,
 }: {
   options: VariantOption[];
+  maxOptions?: number;
   onEdit: (index: number) => void;
   onRemove: (index: number) => void;
   onAddNew: () => void;
@@ -68,7 +70,7 @@ export function VariantListSheet({
             </div>
           ))}
 
-          {options.length < 2 && (
+          {options.length < maxOptions && (
             <button
               type="button"
               onClick={onAddNew}

@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   X,
   Type,
@@ -25,6 +25,7 @@ import LayerOverlay from "@/components/camera/LayerOverlay";
 import { useAfterShotLayers } from "@/lib/after-shot-layers";
 import { useLayerRenderer } from "@/components/camera/aftershot/use-layer-renderer";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
+import { useFittedSize } from "@/hooks/use-fitted-size";
 
 export const Route = createFileRoute("/create/after-shot/")({
   head: () => ({ meta: [{ title: "Edit — Oakmonte" }] }),
@@ -54,7 +55,9 @@ function AfterShotIndexPage() {
   const { media, setMedia, discard } = useAfterShotContext();
 
   const mediaBoxRef = useRef<HTMLDivElement>(null);
-  const { layers, updateLayer, selectedLayerId, setSelectedLayerId } = useAfterShotLayers();
+  const mediaAreaRef = useRef<HTMLDivElement>(null);
+  const { layers, addLayer, updateLayer, selectedLayerId, setSelectedLayerId } =
+    useAfterShotLayers();
   const renderLayerContent = useLayerRenderer(mediaBoxRef);
 
   const [toolsExpanded, setToolsExpanded] = useState(false);
@@ -99,7 +102,50 @@ function AfterShotIndexPage() {
     setNaturalSize({ w, h });
   }, []);
 
+  // Explicit contain-fit. See use-fitted-size.ts for why CSS alone silently
+  // gave the box the SCREEN's aspect instead of the media's.
+  const fitted = useFittedSize(mediaAreaRef, mediaAspect);
+
   const closeTool = useCallback(() => setActiveTool(null), []);
+
+  // Stickers are gallery images. Object URLs are held here and revoked on
+  // unmount — the layer stack only stores the URL string, so nothing else owns
+  // them and they'd otherwise leak for the life of the tab.
+  const stickerInputRef = useRef<HTMLInputElement>(null);
+  const stickerUrlsRef = useRef<string[]>([]);
+  useEffect(
+    () => () => {
+      stickerUrlsRef.current.forEach((u) => URL.revokeObjectURL(u));
+      stickerUrlsRef.current = [];
+    },
+    [],
+  );
+
+  const handleStickerFiles = useCallback(
+    (files: FileList | null) => {
+      if (!files) return;
+      for (const file of Array.from(files)) {
+        if (!file.type.startsWith("image/")) continue;
+        const url = URL.createObjectURL(file);
+        stickerUrlsRef.current.push(url);
+        addLayer({
+          id: `sticker-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          kind: "sticker",
+          // Dropped slightly above centre so it doesn't land exactly on top of a
+          // caption you've already placed.
+          x: 0.5,
+          y: 0.42,
+          scale: 1,
+          rotation: 0,
+          zIndex: 0,
+          assetUrl: url,
+        });
+      }
+      // Reset so picking the same file twice still fires a change event.
+      if (stickerInputRef.current) stickerInputRef.current.value = "";
+    },
+    [addLayer],
+  );
 
   // Filters are a CSS property on the preview element and a value handed to the
   // exporter — never a re-encode of media.blob. Baking on every tap meant each
@@ -149,111 +195,127 @@ function AfterShotIndexPage() {
       {/* The ONE mounted media box for the whole after-shot page — every
           panel (Crop, Text, Draw) draws on top of this same element via
           mediaBoxRef, instead of each rendering its own copy. */}
-      <div
-        ref={mediaBoxRef}
-        className="absolute overflow-hidden"
-        style={{
-          left: 0,
-          right: 0,
-          top: "50%",
-          transform: "translateY(-50%)",
-          width: "100%",
-          aspectRatio: String(mediaAspect),
-          background: "#000",
-        }}
-      >
-        {/* The filter is CSS on the media element only. Layers sit in a sibling
+      {/* Flex-centred with maxHeight rather than top:50% + translateY(-50%).
+          Three reasons: a translated ancestor becomes the containing block for
+          fixed/absolute descendants (which is what stopped panels anchoring to
+          the screen); width:100% alone let tall media overflow the viewport and
+          get clipped, so the top and bottom of your own frame were unreachable;
+          and the trim screen already fits-to-view, so the same clip used to look
+          different on the two screens. This is now "contain" on both. */}
+      <div ref={mediaAreaRef} className="absolute inset-0 flex items-center justify-center">
+        <div
+          ref={mediaBoxRef}
+          className="relative overflow-hidden"
+          style={{
+            width: fitted.width || undefined,
+            height: fitted.height || undefined,
+            background: "#000",
+          }}
+        >
+          {/* The filter is CSS on the media element only. Layers sit in a sibling
             overlay so a caption never gets tinted by the filter underneath it —
             and the exporter composites in that same order. */}
-        {media.type === "photo" ? (
-          <img
-            src={media.url}
-            alt="Captured"
-            onLoad={handlePhotoLoad}
-            className="absolute inset-0 w-full h-full object-cover"
-            style={{ filter: previewFilterCss }}
-          />
-        ) : (
-          <video
-            src={media.url}
-            autoPlay
-            loop
-            muted={videoMuted}
-            playsInline
-            onLoadedMetadata={handleVideoLoad}
-            className="absolute inset-0 w-full h-full object-cover"
-            style={{ filter: previewFilterCss }}
-          />
-        )}
+          {media.type === "photo" ? (
+            <img
+              src={media.url}
+              alt="Captured"
+              onLoad={handlePhotoLoad}
+              className="absolute inset-0 w-full h-full object-cover"
+              style={{ filter: previewFilterCss }}
+            />
+          ) : (
+            <video
+              src={media.url}
+              autoPlay
+              loop
+              muted={videoMuted}
+              playsInline
+              onLoadedMetadata={handleVideoLoad}
+              className="absolute inset-0 w-full h-full object-cover"
+              style={{ filter: previewFilterCss }}
+            />
+          )}
 
-        {exporting && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/70 z-30">
-            <span className="text-sm uppercase tracking-widest">
-              {media.type === "video"
-                ? `Exporting… ${Math.round(exportProgress * 100)}%`
-                : "Exporting…"}
-            </span>
-            {media.type === "video" && (
-              <div className="w-40 h-1 rounded-full overflow-hidden bg-white/25">
-                <div
-                  className="h-full bg-white transition-[width] duration-150"
-                  style={{ width: `${Math.round(exportProgress * 100)}%` }}
-                />
-              </div>
-            )}
-          </div>
-        )}
+          {exporting && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/70 z-30">
+              <span className="text-sm uppercase tracking-widest">
+                {media.type === "video"
+                  ? `Exporting… ${Math.round(exportProgress * 100)}%`
+                  : "Exporting…"}
+              </span>
+              {media.type === "video" && (
+                <div className="w-40 h-1 rounded-full overflow-hidden bg-white/25">
+                  <div
+                    className="h-full bg-white transition-[width] duration-150"
+                    style={{ width: `${Math.round(exportProgress * 100)}%` }}
+                  />
+                </div>
+              )}
+            </div>
+          )}
 
-        {exportError && !exporting && (
-          <div className="absolute inset-x-4 bottom-4 rounded-xl px-4 py-3 bg-black/80 z-30">
-            <p className="text-xs text-red-300">{exportError}</p>
-          </div>
-        )}
+          {exportError && !exporting && (
+            <div className="absolute inset-x-4 bottom-4 rounded-xl px-4 py-3 bg-black/80 z-30">
+              <p className="text-xs text-red-300">{exportError}</p>
+            </div>
+          )}
 
-        {/* Confirmed layers (text/draw/sticker) always render here, on the
+          {/* Confirmed layers (text/draw/sticker) always render here, on the
             base page — not just while a panel is open — same as how a
             caption sits on a photo permanently once added.
             It stays mounted (inert) while the Text panel is open too, so your
             drawings and other captions don't vanish the moment you start
             typing; the one layer being edited is hidden because the textarea
             is standing in for it. */}
-        {(activeTool === null || activeTool === "text") && (
-          <div
-            className="absolute inset-0"
-            style={{ pointerEvents: activeTool === null ? undefined : "none" }}
-          >
-            <LayerOverlay
-              containerRef={mediaBoxRef}
-              layers={
-                activeTool === "text" ? layers.filter((l) => l.id !== editingLayerId) : layers
-              }
-              updateLayer={updateLayer}
-              selectedLayerId={activeTool === null ? selectedLayerId : null}
-              setSelectedLayerId={setSelectedLayerId}
-              renderLayerContent={renderLayerContent}
-              onLayerTap={(layer) => {
-                setEditingLayerId(layer.id);
-                setActiveTool("text");
-              }}
-            />
-          </div>
-        )}
+          {(activeTool === null || activeTool === "text") && (
+            <div
+              className="absolute inset-0"
+              style={{ pointerEvents: activeTool === null ? undefined : "none" }}
+            >
+              <LayerOverlay
+                containerRef={mediaBoxRef}
+                layers={
+                  activeTool === "text" ? layers.filter((l) => l.id !== editingLayerId) : layers
+                }
+                updateLayer={updateLayer}
+                selectedLayerId={activeTool === null ? selectedLayerId : null}
+                setSelectedLayerId={setSelectedLayerId}
+                renderLayerContent={renderLayerContent}
+                onLayerTap={(layer) => {
+                  setEditingLayerId(layer.id);
+                  setActiveTool("text");
+                }}
+              />
+            </div>
+          )}
 
-        <DrawPanel open={activeTool === "draw"} containerRef={mediaBoxRef} onClose={closeTool} />
-        <CropPanel
-          open={activeTool === "crop"}
-          containerRef={mediaBoxRef}
-          naturalSize={naturalSize}
-          onClose={closeTool}
-        />
+          <DrawPanel open={activeTool === "draw"} containerRef={mediaBoxRef} onClose={closeTool} />
+        </div>
       </div>
 
-      {/* Deliberately OUTSIDE the media box, unlike Crop and Draw. The media
-          box carries transform: translateY(-50%), which makes it the containing
-          block for anything positioned inside it — so a panel in there can't
-          anchor itself to the screen, and its bottom controls end up measured
-          against the letterboxed box edge instead of the real viewport. Text is
-          the one panel that has to track the keyboard, so it lives out here. */}
+      {/* Crop and Text both live OUTSIDE the media box so their controls anchor
+          to the screen rather than to a letterboxed media edge — Crop measures
+          the box and lays its frame over it, Text tracks the keyboard. Draw
+          stays inside because its whole surface IS the media box. */}
+      <CropPanel
+        open={activeTool === "crop"}
+        containerRef={mediaBoxRef}
+        naturalSize={naturalSize}
+        onClose={closeTool}
+      />
+
+      {/* Gallery picker behind the Stickers tool. Multiple selection is allowed
+          because adding three stickers shouldn't mean opening the picker three
+          times. */}
+      <input
+        ref={stickerInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={(e) => handleStickerFiles(e.target.files)}
+      />
+
       <TextPanel
         open={activeTool === "text"}
         containerRef={mediaBoxRef}
@@ -311,6 +373,7 @@ function AfterShotIndexPage() {
                       setActiveTool("text");
                     } else if (tool.id === "draw") setActiveTool(tool.id);
                     else if (tool.id === "filter") setActiveTool("filter");
+                    else if (tool.id === "sticker") stickerInputRef.current?.click();
                   }}
                   aria-label={tool.label}
                   className="flex items-center gap-2 opacity-90"
