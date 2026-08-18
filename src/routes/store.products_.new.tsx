@@ -196,21 +196,26 @@ function NewProduct() {
         })),
       );
 
-      const steps: { table: string; payload: object[] }[] = [
-        { table: "product_options", payload: optionsPayload },
-        { table: "product_option_values", payload: valuesPayload },
-        { table: "product_variants", payload: variantsPayload },
-        { table: "product_variant_options", payload: linksPayload },
-      ];
+      // Written out rather than looped so each payload is checked against its
+      // own table's Insert type — a loop over a {table, payload} union erases
+      // that. Order is forced by the foreign keys, and there's no transaction:
+      // a failure here leaves the earlier rows behind.
+      const fail = (table: string, message: string) => {
+        setError(`${table}: ${message}`);
+        setSaving(false);
+      };
 
-      for (const step of steps) {
-        const { error: stepErr } = await supabase.from(step.table).insert(step.payload);
-        if (stepErr) {
-          setError(`${step.table}: ${stepErr.message}`);
-          setSaving(false);
-          return;
-        }
-      }
+      const optionsRes = await supabase.from("product_options").insert(optionsPayload);
+      if (optionsRes.error) return fail("product_options", optionsRes.error.message);
+
+      const valuesRes = await supabase.from("product_option_values").insert(valuesPayload);
+      if (valuesRes.error) return fail("product_option_values", valuesRes.error.message);
+
+      const variantsRes = await supabase.from("product_variants").insert(variantsPayload);
+      if (variantsRes.error) return fail("product_variants", variantsRes.error.message);
+
+      const linksRes = await supabase.from("product_variant_options").insert(linksPayload);
+      if (linksRes.error) return fail("product_variant_options", linksRes.error.message);
     }
 
     navigate({ to: "/store/products" });
