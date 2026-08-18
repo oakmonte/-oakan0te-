@@ -754,11 +754,15 @@ const CSS = `
 .oak .hero-sub b{color:var(--black);}
 @keyframes oakFadeUp{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
 
-.oak .hero-cta-row{display:flex;flex-wrap:wrap;align-items:center;gap:20px;margin-bottom:18px;opacity:0;animation:oakFadeUp .7s ease forwards;animation-delay:.68s;}
-.oak .email-capture{display:flex;align-items:center;background:var(--white);border:2px solid var(--black);border-radius:999px;overflow:hidden;}
-.oak .email-capture input{border:none;outline:none;padding:15px 20px;font-size:15px;width:240px;font-family:var(--body);background:transparent;}
-.oak .email-capture button{background:var(--black);color:var(--white);padding:15px 28px;font-size:14px;font-weight:800;white-space:nowrap;transition:background .25s ease;}
-.oak .email-capture button:hover{background:var(--blue);}
+.oak .hero-cta-stack{display:flex;flex-direction:column;gap:16px;margin:48px 0 24px;padding:36px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);opacity:0;animation:oakFadeUp .7s ease forwards;animation-delay:.68s;}
+.oak .hero-cta-card{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;padding:22px 26px;background:var(--white);border:2px solid var(--black);border-radius:18px;transition:transform .25s ease,background .25s ease,border-color .25s ease,color .25s ease;}
+.oak .hero-cta-card:hover{background:var(--blue);border-color:var(--blue);color:#fff;transform:translateY(-2px);}
+.oak .hero-cta-card .cta-label{font-family:var(--display);font-size:clamp(18px,2.6vw,26px);text-transform:uppercase;letter-spacing:-.01em;font-weight:400;}
+.oak .hero-cta-card .cta-hint{width:100%;font-size:14px;color:var(--gray);line-height:1.4;}
+.oak .hero-cta-card:hover .cta-hint{color:rgba(255,255,255,.8);}
+.oak .hero-cta-card .cta-arrow{font-size:22px;font-weight:400;transition:transform .25s ease;}
+.oak .hero-cta-card:hover .cta-arrow{transform:translateX(4px);}
+@media (max-width:640px){.oak .hero-cta-card{padding:18px 20px;}}
 
 .oak .trust-line{font-size:13px;color:var(--gray);font-weight:500;opacity:0;animation:oakFadeUp .7s ease forwards;animation-delay:.8s;}
 .oak .trust-line b{color:var(--black);}
