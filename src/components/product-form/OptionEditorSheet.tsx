@@ -260,7 +260,7 @@ export function OptionEditorSheet({
           disabled={!canSave}
           className="text-sm font-medium text-black disabled:text-gray-300"
         >
-          Save
+          Next
         </button>
       </div>
 
@@ -397,13 +397,13 @@ export function OptionEditorSheet({
               {/* Demarcation between what's chosen and what's still pickable — also
                   the checkpoint a seller must clear before switching option names. */}
               {hasChosen && (
-                <div className="flex items-center gap-2 py-1">
+                <div className="flex items-center gap-2 pt-1 pb-4">
                   <button
                     type="button"
                     onClick={confirmValues}
                     className="flex-1 bg-black text-white text-sm font-medium rounded-lg py-2.5"
                   >
-                    Save
+                    {confirmed ? <Check size={16} className="mx-auto" /> : "Save"}
                   </button>
                   <button
                     type="button"

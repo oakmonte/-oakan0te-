@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
-import { Plus, X, ChevronRight } from "lucide-react";
+import { Plus, ChevronRight } from "lucide-react";
 import { OptionEditorSheet } from "./OptionEditorSheet";
+import { VariantListSheet } from "./VariantListSheet";
+import { VariantCombinationsSheet } from "./VariantCombinationsSheet";
 
 export type VariantOption = { name: string; values: string[] };
 export type VariantRow = {
@@ -34,6 +36,11 @@ function cartesian(options: VariantOption[]): { v1: string; v2: string | null }[
   return combos;
 }
 
+// The variant-building flow is a small wizard once at least one option
+// exists: the inline row just opens it back up rather than rendering the
+// full option list + combination grid inline in the scrolling product form.
+type WizardStep = "list" | "combinations" | null;
+
 export function VariantMatrixBuilder({
   options,
   setOptions,
@@ -46,9 +53,7 @@ export function VariantMatrixBuilder({
   setRows: (fn: (prev: VariantRow[]) => VariantRow[]) => void;
 }) {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const [bulkOpen, setBulkOpen] = useState(false);
-  const [bulkPrice, setBulkPrice] = useState("");
-  const [bulkStock, setBulkStock] = useState("");
+  const [wizardStep, setWizardStep] = useState<WizardStep>(null);
 
   // Regenerate rows whenever options/values change, preserving existing row data by key.
   useEffect(() => {
@@ -80,61 +85,15 @@ export function VariantMatrixBuilder({
     setOptions((prev) => prev.filter((_, i) => i !== index));
   }
 
-  function updateRow(key: string, patch: Partial<VariantRow>) {
-    setRows((prev) => prev.map((r) => (r.key === key ? { ...r, ...patch } : r)));
-  }
-
-  // Only overwrite the fields the seller actually filled in, so applying a
-  // price doesn't silently wipe stock counts they already entered by hand.
-  function applyToAll() {
-    const patch: Partial<VariantRow> = {};
-    if (bulkPrice.trim()) patch.price = bulkPrice.trim();
-    if (bulkStock.trim()) patch.stockQty = bulkStock.trim();
-    if (Object.keys(patch).length === 0) return;
-    setRows((prev) => prev.map((r) => ({ ...r, ...patch })));
-    setBulkPrice("");
-    setBulkStock("");
-    setBulkOpen(false);
-  }
-
   return (
     <div className="border-b-8 border-gray-50">
       <p className="px-4 pt-4 text-[15px] font-semibold text-gray-900">Variants</p>
 
       <div className="px-4">
-        {options.map((opt, i) => (
-          <div key={i} className="flex items-center border-b border-gray-100">
-            <button
-              type="button"
-              onClick={() => setEditingIndex(i)}
-              className="flex-1 flex items-center justify-between py-4 text-left"
-            >
-              <span className="flex flex-col items-start">
-                <span className="flex items-center gap-3 text-[15px] text-gray-900">
-                  <Plus size={18} className="text-gray-400" />
-                  {opt.name || "Untitled option"}
-                </span>
-                {opt.values.length > 0 && (
-                  <span className="text-xs text-gray-400 mt-0.5 ml-7">{opt.values.join(", ")}</span>
-                )}
-              </span>
-              <ChevronRight size={16} className="text-gray-300" />
-            </button>
-            <button
-              type="button"
-              onClick={() => removeOption(i)}
-              className="p-2 -ml-1 text-gray-300"
-              aria-label="Remove option"
-            >
-              <X size={16} />
-            </button>
-          </div>
-        ))}
-
-        {options.length < 2 && (
+        {options.length === 0 ? (
           <button
             type="button"
-            onClick={() => setEditingIndex(options.length)}
+            onClick={() => setEditingIndex(0)}
             className="w-full flex items-center justify-between py-4 border-b border-gray-100 text-left"
           >
             <span className="flex items-center gap-3 text-[15px] text-gray-900">
@@ -143,76 +102,43 @@ export function VariantMatrixBuilder({
             </span>
             <ChevronRight size={16} className="text-gray-300" />
           </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setWizardStep("list")}
+            className="w-full flex items-center justify-between py-4 border-b border-gray-100 text-left"
+          >
+            <span className="flex flex-col items-start gap-0.5 min-w-0">
+              <span className="text-[15px] text-gray-900 truncate">
+                {options.map((o) => o.name || "Untitled option").join(" / ")}
+              </span>
+              <span className="text-xs text-gray-400">
+                {rows.length} variant{rows.length === 1 ? "" : "s"}
+              </span>
+            </span>
+            <ChevronRight size={16} className="text-gray-300 shrink-0" />
+          </button>
         )}
       </div>
 
-      {rows.length > 0 && (
-        <div className="px-4 pb-4">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-xs text-gray-400">{rows.length} variants</p>
-            <button
-              type="button"
-              onClick={() => setBulkOpen((v) => !v)}
-              className="text-xs text-gray-500 border border-gray-200 rounded-full px-3 py-1.5"
-            >
-              Apply to all
-            </button>
-          </div>
+      {wizardStep === "list" && (
+        <VariantListSheet
+          options={options}
+          onEdit={(i) => setEditingIndex(i)}
+          onRemove={removeOption}
+          onAddNew={() => setEditingIndex(options.length)}
+          onContinue={() => setWizardStep("combinations")}
+          onBack={() => setWizardStep(null)}
+        />
+      )}
 
-          {bulkOpen && (
-            <div className="border border-gray-200 rounded-xl p-3 mb-3 bg-gray-50">
-              <p className="text-xs text-gray-500 mb-2">
-                Fill every variant at once — you can still edit them individually after.
-              </p>
-              <div className="grid grid-cols-2 gap-2">
-                <MiniField label="Price" value={bulkPrice} onChange={setBulkPrice} />
-                <MiniField label="Stock" value={bulkStock} onChange={setBulkStock} />
-              </div>
-              <button
-                type="button"
-                onClick={applyToAll}
-                disabled={!bulkPrice.trim() && !bulkStock.trim()}
-                className="mt-3 w-full bg-black text-white text-sm font-medium rounded-lg py-2.5 disabled:bg-gray-200 disabled:text-gray-400"
-              >
-                Apply
-              </button>
-            </div>
-          )}
-
-          <div className="flex flex-col gap-3">
-            {rows.map((row) => (
-              <div key={row.key} className="border border-gray-200 rounded-xl p-3">
-                <p className="text-sm font-medium text-gray-900 mb-2">
-                  {row.option1Value}
-                  {row.option2Value ? ` / ${row.option2Value}` : ""}
-                </p>
-                <div className="grid grid-cols-2 gap-2">
-                  <MiniField
-                    label="Price *"
-                    value={row.price}
-                    onChange={(v) => updateRow(row.key, { price: v })}
-                  />
-                  <MiniField
-                    label="Stock"
-                    value={row.stockQty}
-                    onChange={(v) => updateRow(row.key, { stockQty: v })}
-                  />
-                  <MiniField
-                    label="Compare-at"
-                    value={row.compareAtPrice}
-                    onChange={(v) => updateRow(row.key, { compareAtPrice: v })}
-                  />
-                  <MiniField
-                    label="SKU"
-                    value={row.sku}
-                    onChange={(v) => updateRow(row.key, { sku: v })}
-                    type="text"
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+      {wizardStep === "combinations" && (
+        <VariantCombinationsSheet
+          rows={rows}
+          setRows={setRows}
+          onBack={() => setWizardStep("list")}
+          onDone={() => setWizardStep(null)}
+        />
       )}
 
       {editingIndex !== null && (
@@ -230,34 +156,13 @@ export function VariantMatrixBuilder({
               return next;
             });
             setEditingIndex(null);
+            // "Next" always lands you on the variation list, whether this
+            // was the very first option or an edit made from inside it.
+            setWizardStep("list");
           }}
           onClose={() => setEditingIndex(null)}
         />
       )}
     </div>
-  );
-}
-
-function MiniField({
-  label,
-  value,
-  onChange,
-  type = "number",
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  type?: string;
-}) {
-  return (
-    <label className="flex flex-col gap-1">
-      <span className="text-xs text-gray-400">{label}</span>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="text-base border border-gray-200 rounded-lg px-2 py-2 outline-none"
-      />
-    </label>
   );
 }
