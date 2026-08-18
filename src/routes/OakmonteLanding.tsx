@@ -750,8 +750,8 @@ const CSS = `
 .oak .hero-cta-card:hover{background:var(--blue);border-color:var(--blue);color:#fff;transform:translateY(-2px);}
 .oak .hero-cta-card.card-blue{background:var(--blue);border-color:var(--blue);color:#fff;}
 .oak .hero-cta-card.card-blue .cta-hint{color:rgba(255,255,255,.8);}
-.oak .hero-cta-card.card-outline{background:var(--white);border-color:var(--blue);color:var(--black);}
-.oak .hero-cta-card.card-outline .cta-label{color:var(--blue);}
+.oak .hero-cta-card.card-outline{background:var(--white);border-color:#0a2463;color:var(--black);}
+.oak .hero-cta-card.card-outline .cta-label{color:var(--black);}
 .oak .hero-cta-card.card-outline:hover .cta-label{color:#fff;}
 .oak .hero-cta-card.card-tint{background:rgba(33,81,245,.08);border-color:var(--black);color:var(--black);}
 .oak .hero-cta-card .cta-label{font-family:var(--body);font-size:clamp(16px,2vw,20px);text-transform:uppercase;letter-spacing:.01em;font-weight:700;line-height:1.2;}
