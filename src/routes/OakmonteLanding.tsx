@@ -303,15 +303,15 @@ function OakmonteLanding() {
             </p>
 
             <div className="hero-cta-stack">
-              <Link to="/set-up-store" className="hero-cta-card">
+              <Link to="/set-up-store" className="hero-cta-card card-blue">
                 <span className="cta-label">Set Up A Store</span>
                 <span className="cta-hint">Open your storefront and start selling.</span>
               </Link>
-              <Link to="/become-a-creator" className="hero-cta-card">
+              <Link to="/become-a-creator" className="hero-cta-card card-outline">
                 <span className="cta-label">Become A Creator</span>
                 <span className="cta-hint">Get paid for the content you create.</span>
               </Link>
-              <Link to="/become-a-curator" className="hero-cta-card">
+              <Link to="/become-a-curator" className="hero-cta-card card-tint">
                 <span className="cta-label">Define Your Wardrobe</span>
                 <span className="cta-hint">Discover pieces matched to your size.</span>
               </Link>
