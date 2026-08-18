@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 
 export const Route = createFileRoute("/OakmonteLanding")({
@@ -302,20 +302,28 @@ function OakmonteLanding() {
               </b>
             </p>
 
-            <div className="hero-cta-row">
-              <form
-                className="email-capture"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  alert("Preview only — wire this up to your real signup flow.");
-                }}
-              >
-                <input type="email" placeholder="you@email.com" aria-label="Email address" />
-                <button type="submit">Let's go!</button>
-              </form>
-              <a href="#story" className="cta-btn ghost">
-                Show me how!
-              </a>
+            <div className="hero-cta-stack">
+              <Link to="/set-up-store" className="hero-cta-card">
+                <span className="cta-label">Set Up A Store</span>
+                <span className="cta-hint">Open your storefront and start selling.</span>
+                <span className="cta-arrow" aria-hidden="true">
+                  →
+                </span>
+              </Link>
+              <Link to="/become-a-creator" className="hero-cta-card">
+                <span className="cta-label">Become A Creator</span>
+                <span className="cta-hint">Get paid for the content you create.</span>
+                <span className="cta-arrow" aria-hidden="true">
+                  →
+                </span>
+              </Link>
+              <Link to="/become-a-curator" className="hero-cta-card">
+                <span className="cta-label">Define Your Wardrobe</span>
+                <span className="cta-hint">Discover pieces matched to your size.</span>
+                <span className="cta-arrow" aria-hidden="true">
+                  →
+                </span>
+              </Link>
             </div>
 
             <p className="trust-line">
