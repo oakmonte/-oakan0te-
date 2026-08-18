@@ -119,6 +119,14 @@ const FLASH_TOGGLE_SIZE = 47;
 const GALLERY_ICON_SIZE = 40;
 const CAPTURE_SIZE = 84;
 const ROW_EDGE = 20;
+
+// All three left-column icons (flip, flash, gallery) share this CENTER x —
+// not ROW_EDGE as a shared left edge, which is what they used to share. Their
+// widths differ (48/47/40), so a shared left edge put their visual centers up
+// to 13px apart: to a designer's eye they visibly didn't line up in a column.
+// Anchored on the widest icon (flip camera) so its position is unchanged.
+const ICON_COLUMN_CENTER_X = ROW_EDGE + ROTATE_SIZE / 2;
+const iconColumnLeft = (size: number) => ICON_COLUMN_CENTER_X - size / 2;
 // Pushed closer to the screen edge (was ROW_EDGE + 56) to free up clear space
 // above the filter strip for the mode toggle to sit in.
 const CAPTURE_ROW_BOTTOM = ROW_EDGE + 25;
@@ -1132,7 +1140,7 @@ function CreatePage() {
         className="absolute flex items-center justify-center rounded-full transition-transform duration-150 active:scale-90"
         style={{
           zIndex: 3,
-          left: ROW_EDGE,
+          left: iconColumnLeft(ROTATE_SIZE),
           bottom: `calc(env(safe-area-inset-bottom) + ${CAPTURE_ROW_BOTTOM + (CAPTURE_SIZE - ROTATE_SIZE) / 2}px)`,
           width: ROTATE_SIZE,
           height: ROTATE_SIZE,
@@ -1151,7 +1159,7 @@ function CreatePage() {
         className="absolute flex items-center justify-center rounded-full transition-transform duration-150 active:scale-90"
         style={{
           zIndex: 3,
-          left: ROW_EDGE,
+          left: iconColumnLeft(FLASH_TOGGLE_SIZE),
           bottom: `calc(env(safe-area-inset-bottom) + ${CAPTURE_ROW_BOTTOM + (CAPTURE_SIZE - ROTATE_SIZE) / 2 + ROTATE_SIZE + 12}px)`,
           width: FLASH_TOGGLE_SIZE,
           height: FLASH_TOGGLE_SIZE,
@@ -1169,7 +1177,7 @@ function CreatePage() {
         className="absolute rounded-xl overflow-hidden flex items-center justify-center"
         style={{
           zIndex: 3,
-          left: ROW_EDGE,
+          left: iconColumnLeft(GALLERY_ICON_SIZE),
           bottom: `calc(env(safe-area-inset-bottom) + ${GALLERY_ICON_BOTTOM}px)`,
           width: GALLERY_ICON_SIZE,
           height: GALLERY_ICON_SIZE,

@@ -19,7 +19,9 @@ export function VariantCombinationsSheet({
   const [bulkPrice, setBulkPrice] = useState("");
   const [bulkStock, setBulkStock] = useState("");
 
-  const optionNames = options.filter((o) => o.name.trim() && o.values.length > 0).map((o) => o.name);
+  const optionNames = options
+    .filter((o) => o.name.trim() && o.values.length > 0)
+    .map((o) => o.name);
   const selected = rows.filter((r) => r.selected);
   const allSelected = rows.length > 0 && selected.length === rows.length;
 
@@ -61,7 +63,9 @@ export function VariantCombinationsSheet({
           <ChevronLeft size={18} />
           Back
         </button>
-        <span className="font-semibold text-[15px] absolute left-1/2 -translate-x-1/2">Variants</span>
+        <span className="font-semibold text-[15px] absolute left-1/2 -translate-x-1/2">
+          Variants
+        </span>
         <button
           onClick={onDone}
           type="button"

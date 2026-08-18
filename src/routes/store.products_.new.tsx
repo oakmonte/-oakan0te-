@@ -1,13 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import {
-  ChevronLeft,
-  ChevronDown,
-  Tag,
-  Hash,
-  Search,
-  Layers,
-} from "lucide-react";
+import { ChevronLeft, ChevronDown, Tag, Hash, Search, Layers } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { CategoryNode } from "@/lib/categories";
 import { StubRow, ExpandRow, TextField } from "@/components/product-form/ui";

@@ -320,62 +320,24 @@ export default function DrawPanel({ open, containerRef, onClose }: DrawPanelProp
 
   return (
     <div
-      className="absolute inset-0 z-40 flex flex-col"
+      className="absolute inset-0 z-40"
       style={{ fontFamily: "'SF Pro', system-ui, sans-serif" }}
     >
-      <div className="flex items-center justify-between px-4 pt-[calc(env(safe-area-inset-top)+12px)]">
-        <button
-          onClick={handleCancel}
-          aria-label="Cancel draw"
-          className="flex items-center justify-center w-10 h-10 rounded-full"
-          style={{ background: "rgba(255,255,255,0.10)", backdropFilter: "blur(12px)" }}
-        >
-          <X size={20} color="#fff" />
-        </button>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleUndo}
-            aria-label="Undo"
-            disabled={undoStack.length === 0}
-            className="flex items-center justify-center w-10 h-10 rounded-full disabled:opacity-40"
-            style={{ background: "rgba(255,255,255,0.10)", backdropFilter: "blur(12px)" }}
-          >
-            <Undo2 size={18} color="#fff" />
-          </button>
-          <button
-            onClick={handleRedo}
-            aria-label="Redo"
-            disabled={redoStack.length === 0}
-            className="flex items-center justify-center w-10 h-10 rounded-full disabled:opacity-40"
-            style={{ background: "rgba(255,255,255,0.10)", backdropFilter: "blur(12px)" }}
-          >
-            <Redo2 size={18} color="#fff" />
-          </button>
-        </div>
-
-        <button
-          onClick={handleConfirm}
-          aria-label="Confirm drawing"
-          disabled={strokes.length === 0}
-          className="flex items-center justify-center w-10 h-10 rounded-full disabled:opacity-40 transition-transform duration-150 active:scale-90"
-          style={{ background: "#fff", color: "#000" }}
-        >
-          <Check size={20} />
-        </button>
-      </div>
-
-      {/* Pointer capture surface sits directly over the parent's mounted
-          media (via containerRef's box) — this div is transparent, not a
-          second rendered photo/video. The SVG strokes overlay draws on top
-          of whatever's already visually there underneath. */}
+      {/* Pointer capture surface is absolute inset-0 — pixel-for-pixel the SAME
+          box pointFromEvent measures against (containerRef). It used to be a
+          flex-1 child sitting BELOW a document-flow header row, so its own
+          coordinate origin was the header's height lower than where
+          pointFromEvent's fractions were computed from. Every stroke rendered
+          exactly that many pixels below the finger that drew it — this is why
+          strokes formed below the actual touch point. Header and toolbar now
+          float on top of this full-bleed surface instead of pushing it down. */}
       <div
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={commitActiveStroke}
         onPointerCancel={commitActiveStroke}
         onPointerLeave={commitActiveStroke}
-        className="relative flex-1 min-h-0"
+        className="absolute inset-0"
         style={{ touchAction: "none" }}
       >
         {/* Raw px user units — no viewBox. The previous version scaled a 0-1
@@ -441,15 +403,73 @@ export default function DrawPanel({ open, containerRef, onClose }: DrawPanelProp
         </div>
       </div>
 
+      {/* Header floats ON TOP of the full-bleed touch surface instead of
+          pushing it down. pointerEvents:none on the row and :auto on just the
+          three button groups means the empty space between them still lets
+          you draw right up to the top edge — nothing about the header steals
+          touches from the canvas underneath. */}
       <div
-        className="px-5 z-30"
-        style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 20px)" }}
+        className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-[calc(env(safe-area-inset-top)+12px)]"
+        style={{ pointerEvents: "none" }}
+      >
+        <button
+          onClick={handleCancel}
+          aria-label="Cancel draw"
+          className="flex items-center justify-center w-10 h-10 rounded-full"
+          style={{
+            background: "rgba(255,255,255,0.10)",
+            backdropFilter: "blur(12px)",
+            pointerEvents: "auto",
+          }}
+        >
+          <X size={20} color="#fff" />
+        </button>
+
+        <div className="flex items-center gap-2" style={{ pointerEvents: "auto" }}>
+          <button
+            onClick={handleUndo}
+            aria-label="Undo"
+            disabled={undoStack.length === 0}
+            className="flex items-center justify-center w-10 h-10 rounded-full disabled:opacity-40"
+            style={{ background: "rgba(255,255,255,0.10)", backdropFilter: "blur(12px)" }}
+          >
+            <Undo2 size={18} color="#fff" />
+          </button>
+          <button
+            onClick={handleRedo}
+            aria-label="Redo"
+            disabled={redoStack.length === 0}
+            className="flex items-center justify-center w-10 h-10 rounded-full disabled:opacity-40"
+            style={{ background: "rgba(255,255,255,0.10)", backdropFilter: "blur(12px)" }}
+          >
+            <Redo2 size={18} color="#fff" />
+          </button>
+        </div>
+
+        <button
+          onClick={handleConfirm}
+          aria-label="Confirm drawing"
+          disabled={strokes.length === 0}
+          className="flex items-center justify-center w-10 h-10 rounded-full disabled:opacity-40 transition-transform duration-150 active:scale-90"
+          style={{ background: "#fff", color: "#000", pointerEvents: "auto" }}
+        >
+          <Check size={20} />
+        </button>
+      </div>
+
+      {/* Same floating treatment for the bottom toolbar. */}
+      <div
+        className="absolute left-0 right-0 bottom-0 px-5 z-30"
+        style={{
+          paddingBottom: "calc(env(safe-area-inset-bottom) + 20px)",
+          pointerEvents: "none",
+        }}
       >
         <div className="flex items-center justify-between gap-3">
           {/* Size pills render an actual dot at the real brush size instead of
               the words Thin/Medium/Thick — you can see what you're about to
               draw with before committing a stroke to find out. */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2" style={{ pointerEvents: "auto" }}>
             {BRUSH_WIDTHS.map((w) => {
               const selected = selectedWidthId === w.id;
               const dot = Math.max(4, Math.round(w.value * (boxSize.w || 375)));
@@ -481,7 +501,7 @@ export default function DrawPanel({ open, containerRef, onClose }: DrawPanelProp
             })}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2" style={{ pointerEvents: "auto" }}>
             {BRUSH_STYLES.map((s) => (
               <button
                 key={s.id}
