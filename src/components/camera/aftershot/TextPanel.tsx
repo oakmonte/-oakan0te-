@@ -1,12 +1,25 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { X, Palette, RectangleHorizontal, AlignLeft, AlignCenter, AlignRight } from "lucide-react";
-import { useAfterShotLayers, type TextLayer } from "@/lib/after-shot-layers";
+import {
+  useAfterShotLayers,
+  TEXT_LAYER_WIDTH_FRACTION,
+  TEXT_LAYER_LINE_HEIGHT,
+  type TextLayer,
+} from "@/lib/after-shot-layers";
+import { useVisibleViewport } from "@/hooks/use-visible-viewport";
 
 const FONTS = [
   { id: "system", label: "Classic", css: "'SF Pro', system-ui, sans-serif" },
   { id: "serif", label: "Elegance", css: "Georgia, 'Times New Roman', serif" },
   { id: "mono", label: "Neon", css: "'SF Mono', Menlo, monospace" },
-  { id: "bold-display", label: "Retro", css: "'Helvetica Neue', Arial, sans-serif" },
+  // Impact, not Helvetica — the old entry here was Helvetica/Arial, which renders
+  // identically to "Classic" on every device, so two of the five presets were the
+  // same font under different names.
+  {
+    id: "display",
+    label: "Retro",
+    css: "Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif",
+  },
   { id: "comic", label: "Comic Sans", css: "'Comic Sans MS', cursive" },
 ];
 
@@ -28,6 +41,7 @@ const MAX_FONT_SIZE = 72;
 const DEFAULT_FONT_SIZE = 32;
 const WEIGHT_LEVELS = [400, 600, 700, 800, 900];
 const FALLBACK_BOX_WIDTH = 375; // used only if containerRef isn't measurable yet — shouldn't normally hit
+const SLIDER_HIT_WIDTH = 44; // visible track stays 4px; this is the touch target around it
 
 type TextPanelProps = {
   open: boolean;
@@ -39,27 +53,18 @@ type TextPanelProps = {
 const ALIGN_CYCLE: TextLayer["align"][] = ["left", "center", "right"];
 const ALIGN_ICON = { left: AlignLeft, center: AlignCenter, right: AlignRight };
 
-function useKeyboardInset() {
-  const [inset, setInset] = useState(0);
-  useEffect(() => {
-    const vv = window.visualViewport;
-    if (!vv) return;
-    const update = () =>
-      setInset(Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop)));
-    update();
-    vv.addEventListener("resize", update);
-    vv.addEventListener("scroll", update);
-    return () => {
-      vv.removeEventListener("resize", update);
-      vv.removeEventListener("scroll", update);
-    };
-  }, []);
-  return inset;
-}
-
 export default function TextPanel({ open, containerRef, editingLayerId, onClose }: TextPanelProps) {
   const { layers, addLayer, updateLayer, removeLayer } = useAfterShotLayers();
-  const keyboardInset = useKeyboardInset();
+
+  // The panel sizes itself to the slice of screen the keyboard leaves free, which
+  // is what stops the browser from pushing the page up to make room for it. See
+  // use-visible-viewport.ts for why one signal isn't enough across browsers.
+  //
+  // This panel is deliberately a sibling of the media box, not a child of it:
+  // the media box carries transform: translateY(-50%), and a transformed ancestor
+  // becomes the containing block for fixed/absolute descendants, so nothing
+  // rendered inside it can ever anchor itself to the screen.
+  const viewport = useVisibleViewport(open);
 
   const [content, setContent] = useState("");
   const [selectedFontId, setSelectedFontId] = useState(FONTS[0].id);
@@ -74,8 +79,12 @@ export default function TextPanel({ open, containerRef, editingLayerId, onClose 
   const activeFont = FONTS.find((f) => f.id === selectedFontId) ?? FONTS[0];
   const AlignIcon = ALIGN_ICON[align];
   const fontWeight = WEIGHT_LEVELS[weightLevel];
-  const committedRef = useRef(false); // guards against double-commit (blur + Enter firing together)
-  const inputRef = useRef<HTMLInputElement>(null);
+  const committedRef = useRef(false); // guards against double-commit (blur + X firing together)
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Compose at the exact width the placed layer will wrap at, so the text
+  // doesn't reflow the moment you tap away.
+  const composeWidth = Math.round(boxWidth * TEXT_LAYER_WIDTH_FRACTION);
 
   // Track the media box's width — needed to convert TextLayer.fontSize
   // (stored as a fraction of box width, resolution-independent) into real
@@ -100,10 +109,14 @@ export default function TextPanel({ open, containerRef, editingLayerId, onClose 
       ? layers.find((l) => l.id === editingLayerId && l.kind === "text")
       : null;
     if (editing && editing.kind === "text") {
+      // Measured off the live element rather than the boxWidth state — on the
+      // first open that state is still the fallback, which restored the font
+      // size several percent off.
+      const width = containerRef.current?.clientWidth || boxWidth;
       setContent(editing.content);
       setSelectedFontId(FONTS.find((f) => f.css === editing.font)?.id ?? FONTS[0].id);
       setSelectedColor(editing.color);
-      setFontSize(Math.round(editing.fontSize * boxWidth) || DEFAULT_FONT_SIZE);
+      setFontSize(Math.round(editing.fontSize * width) || DEFAULT_FONT_SIZE);
       setAlign(editing.align);
       setBoxOn(editing.boxColor !== null);
       const wIdx = WEIGHT_LEVELS.indexOf(editing.fontWeight);
@@ -118,8 +131,31 @@ export default function TextPanel({ open, containerRef, editingLayerId, onClose 
       setWeightLevel(0);
     }
     setShowColorRow(false);
+
+    // preventScroll is the other half of the keyboard fix: a plain focus() (and
+    // autoFocus, which is what this replaces) asks the browser to scroll the
+    // field into view, and that scroll is what drags the page up when the
+    // keyboard slides in.
+    const el = inputRef.current;
+    if (el) {
+      el.focus({ preventScroll: true });
+      requestAnimationFrame(() => {
+        if (!el.isConnected) return;
+        const end = el.value.length;
+        el.setSelectionRange(end, end);
+      });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, editingLayerId]);
+
+  // Auto-grow: the textarea is always exactly as tall as its content, so it
+  // reads as free-floating text on the photo instead of a scrolling field.
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [content, fontSize, activeFont.css, fontWeight, boxOn, composeWidth, open]);
 
   // Suppresses iOS Safari's auto-zoom-on-input-focus for this screen only —
   // restores the original viewport meta on close/unmount so the rest of the
@@ -161,13 +197,17 @@ export default function TextPanel({ open, containerRef, editingLayerId, onClose 
     };
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
     return () => {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
     };
   }, [open, setFontSizeFromClientY]);
 
   const sliderFraction = 1 - (fontSize - MIN_FONT_SIZE) / (MAX_FONT_SIZE - MIN_FONT_SIZE);
+
+  const refocus = useCallback(() => inputRef.current?.focus({ preventScroll: true }), []);
 
   const cycleAlign = useCallback(() => {
     setAlign((prev) => ALIGN_CYCLE[(ALIGN_CYCLE.indexOf(prev) + 1) % ALIGN_CYCLE.length]);
@@ -177,9 +217,9 @@ export default function TextPanel({ open, containerRef, editingLayerId, onClose 
     setWeightLevel((prev) => (prev + 1) % WEIGHT_LEVELS.length);
   }, []);
 
-  // Single commit path for every trigger (keyboard Enter, blur from
-  // tapping outside the input, tapping the background directly). Guarded
-  // so it only actually runs once even if two triggers fire back to back.
+  // Single commit path for every trigger (the X, blur from tapping outside the
+  // input, tapping the background directly). Guarded so it only actually runs
+  // once even if two triggers fire back to back.
   const commit = useCallback(() => {
     if (committedRef.current) return;
     committedRef.current = true;
@@ -240,39 +280,53 @@ export default function TextPanel({ open, containerRef, editingLayerId, onClose 
     onClose,
   ]);
 
+  // Escape backs out leaving the layer exactly as it was — flipping the guard
+  // first is what keeps the unmount blur from committing on the way out.
+  const cancel = useCallback(() => {
+    committedRef.current = true;
+    onClose();
+  }, [onClose]);
+
   const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === "Enter") {
+    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        cancel();
+      } else if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+        // Plain Enter is a newline now that this is a textarea; Cmd/Ctrl+Enter
+        // keeps a commit shortcut for anyone editing on a desktop.
         e.preventDefault();
         commit();
       }
     },
-    [commit],
+    [cancel, commit],
   );
 
   if (!open) return null;
 
-  const otherTextLayers = layers.filter(
-    (l): l is TextLayer => l.kind === "text" && l.id !== editingLayerId,
-  );
-
   return (
     <div
-      className="absolute inset-0 z-40 flex flex-col"
-      style={{ fontFamily: "'SF Pro', system-ui, sans-serif" }}
+      className="absolute left-0 right-0 z-40 flex flex-col"
+      style={{
+        top: viewport.top,
+        height: viewport.height || "100%",
+        fontFamily: "'SF Pro', system-ui, sans-serif",
+      }}
     >
+      <style>{`.oak-text-row::-webkit-scrollbar { display: none; }`}</style>
+
       {/* Toolbar — onMouseDown preventDefault keeps the text input focused
           when tapping these buttons, so toggling an option never triggers
           the input's blur (and therefore never triggers commit). */}
       <div
         onMouseDown={(e) => e.preventDefault()}
-        className="flex items-center justify-between px-4 pt-[calc(env(safe-area-inset-top)+12px)]"
+        className="shrink-0 flex items-center justify-between px-4 pt-[calc(env(safe-area-inset-top)+12px)]"
       >
         <div className="flex items-center gap-3">
           <button
             onClick={() => {
               setShowColorRow(false);
-              inputRef.current?.focus();
+              refocus();
             }}
             aria-label="Show font options"
             className="flex items-center justify-center w-11 h-11 rounded-full"
@@ -283,7 +337,7 @@ export default function TextPanel({ open, containerRef, editingLayerId, onClose 
           <button
             onClick={() => {
               setShowColorRow((v) => !v);
-              inputRef.current?.focus();
+              refocus();
             }}
             aria-label="Toggle color picker"
             className="flex items-center justify-center w-11 h-11 rounded-full"
@@ -294,7 +348,7 @@ export default function TextPanel({ open, containerRef, editingLayerId, onClose 
           <button
             onClick={() => {
               setBoxOn((v) => !v);
-              inputRef.current?.focus();
+              refocus();
             }}
             aria-label="Toggle text box"
             className="flex items-center justify-center w-11 h-11 rounded-full"
@@ -305,7 +359,7 @@ export default function TextPanel({ open, containerRef, editingLayerId, onClose 
           <button
             onClick={() => {
               cycleAlign();
-              inputRef.current?.focus();
+              refocus();
             }}
             aria-label={`Alignment: ${align}`}
             className="flex items-center justify-center w-11 h-11 rounded-full"
@@ -315,7 +369,7 @@ export default function TextPanel({ open, containerRef, editingLayerId, onClose 
           <button
             onClick={() => {
               cycleWeight();
-              inputRef.current?.focus();
+              refocus();
             }}
             aria-label={`Bold strength: ${fontWeight}`}
             className="flex items-center justify-center w-11 h-11 rounded-full text-lg"
@@ -330,79 +384,70 @@ export default function TextPanel({ open, containerRef, editingLayerId, onClose 
         </div>
         <button
           onClick={commit}
-          aria-label="Close and place text"
+          aria-label="Done, place text"
           className="flex items-center justify-center w-11 h-11 rounded-full"
         >
           <X size={22} color="#fff" />
         </button>
       </div>
 
-      {/* Tapping this background area (anywhere that isn't the input or
-          the toolbar) commits and returns to the after-shot page. */}
-      <div className="relative flex-1 flex items-center justify-center px-8" onClick={commit}>
-        {otherTextLayers.map((layer) => (
-          <span
-            key={layer.id}
-            style={{
-              position: "absolute",
-              left: `${layer.x * 100}%`,
-              top: `${layer.y * 100}%`,
-              transform: `translate(-50%, -50%) rotate(${layer.rotation}deg) scale(${layer.scale})`,
-              fontFamily: layer.font,
-              color: layer.color,
-              fontSize: layer.fontSize * boxWidth,
-              fontWeight: layer.fontWeight,
-              textAlign: layer.align,
-              background: layer.boxColor ?? "transparent",
-              padding: layer.boxColor ? "4px 10px" : 0,
-              borderRadius: layer.boxColor ? 4 : 0,
-              whiteSpace: "pre-wrap",
-              pointerEvents: "none",
-            }}
-          >
-            {layer.content}
-          </span>
-        ))}
-
-        <input
+      {/* Tapping this background area (anywhere that isn't the input or the
+          toolbar) commits and returns to the after-shot page. Layers already on
+          the photo stay visible behind it — the page keeps its own LayerOverlay
+          mounted while this panel is open, so drawings and other captions no
+          longer blink out while you type. */}
+      <div className="relative flex-1 min-h-0 flex items-center justify-center" onClick={commit}>
+        <textarea
           ref={inputRef}
+          rows={1}
           value={content}
           onChange={(e) => setContent(e.target.value)}
           onKeyDown={handleKeyDown}
           onBlur={commit}
           onClick={(e) => e.stopPropagation()}
           placeholder="Type something…"
-          autoFocus
           style={{
             fontFamily: activeFont.css,
             color: selectedColor,
             fontSize,
             fontWeight,
             textAlign: align,
+            lineHeight: TEXT_LAYER_LINE_HEIGHT,
             background: boxOn ? BOX_COLOR : "transparent",
             padding: boxOn ? "4px 10px" : 0,
             borderRadius: boxOn ? 4 : 0,
             border: "none",
             outline: "none",
-            width: "100%",
-            maxWidth: 320,
+            width: composeWidth,
+            maxHeight: "100%",
+            resize: "none",
+            overflow: "hidden",
+            overflowWrap: "break-word",
             textShadow: boxOn ? "none" : "0 1px 4px rgba(0,0,0,0.4)",
           }}
         />
 
+        {/* 4px track, 44px touch target. stopPropagation on click is what keeps a
+            tap on the slider from bubbling to the background's commit and
+            closing the panel mid-adjustment. */}
         <div
-          ref={trackRef}
-          className="absolute right-3 top-1/4 bottom-1/4 w-1 rounded-full"
-          style={{ background: "rgba(255,255,255,0.25)" }}
+          className="absolute right-1 top-1/4 bottom-1/4 flex justify-center"
+          style={{ width: SLIDER_HIT_WIDTH, touchAction: "none" }}
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.preventDefault()}
+          onPointerDown={(e) => {
+            e.stopPropagation();
+            draggingSlider.current = true;
+            setFontSizeFromClientY(e.clientY);
+          }}
         >
           <div
-            onMouseDown={(e) => e.preventDefault()}
-            onPointerDown={(e) => {
-              e.stopPropagation();
-              draggingSlider.current = true;
-              setFontSizeFromClientY(e.clientY);
-            }}
-            className="absolute rounded-full"
+            ref={trackRef}
+            className="w-1 h-full rounded-full"
+            style={{ background: "rgba(255,255,255,0.25)" }}
+          />
+          <div
+            className="absolute rounded-full pointer-events-none"
             style={{
               width: 20,
               height: 20,
@@ -410,8 +455,6 @@ export default function TextPanel({ open, containerRef, editingLayerId, onClose 
               top: `${sliderFraction * 100}%`,
               transform: "translate(-50%, -50%)",
               background: "#fff",
-              touchAction: "none",
-              cursor: "grab",
             }}
           />
         </div>
@@ -419,22 +462,24 @@ export default function TextPanel({ open, containerRef, editingLayerId, onClose 
 
       <div
         onMouseDown={(e) => e.preventDefault()}
-        className="absolute left-0 right-0 px-5 z-30"
+        className="shrink-0 px-5"
         style={{
-          bottom: keyboardInset > 0 ? keyboardInset : "calc(env(safe-area-inset-bottom) + 20px)",
-          paddingBottom: keyboardInset > 0 ? 12 : 0,
+          paddingTop: 12,
+          paddingBottom:
+            viewport.keyboardHeight > 0 ? 12 : "calc(env(safe-area-inset-bottom) + 20px)",
         }}
       >
         {showColorRow ? (
-          <div className="flex items-center gap-3 overflow-x-auto">
+          <div className="oak-text-row flex items-center gap-3 overflow-x-auto py-1">
             {COLORS.map((color) => (
               <button
                 key={color}
                 onClick={() => {
                   setSelectedColor(color);
-                  inputRef.current?.focus();
+                  refocus();
                 }}
                 aria-label={`Color ${color}`}
+                aria-pressed={selectedColor === color}
                 className="shrink-0 rounded-full"
                 style={{
                   width: 28,
@@ -449,14 +494,15 @@ export default function TextPanel({ open, containerRef, editingLayerId, onClose 
             ))}
           </div>
         ) : (
-          <div className="flex items-center gap-2 overflow-x-auto">
+          <div className="oak-text-row flex items-center gap-2 overflow-x-auto py-1">
             {FONTS.map((font) => (
               <button
                 key={font.id}
                 onClick={() => {
                   setSelectedFontId(font.id);
-                  inputRef.current?.focus();
+                  refocus();
                 }}
+                aria-pressed={selectedFontId === font.id}
                 className="shrink-0 px-4 py-2 rounded-full text-xs font-medium"
                 style={{
                   fontFamily: font.css,

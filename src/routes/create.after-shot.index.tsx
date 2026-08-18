@@ -6,6 +6,7 @@ import {
   Pencil,
   Sticker,
   Volume2,
+  VolumeX,
   Blend,
   Link2,
   Crop,
@@ -25,6 +26,8 @@ import {
   useAfterShotLayers,
   AfterShotLayersContext,
   useAfterShotLayersState,
+  TEXT_LAYER_WIDTH_FRACTION,
+  TEXT_LAYER_LINE_HEIGHT,
   type Layer,
 } from "@/lib/after-shot-layers";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
@@ -71,11 +74,15 @@ function AfterShotIndexPage() {
   const { media, setMedia, discard } = useAfterShotContext();
 
   const mediaBoxRef = useRef<HTMLDivElement>(null);
-  const { layers, renderLayerContent } = useLayerRenderer(mediaBoxRef);
+  const { layers, updateLayer, selectedLayerId, setSelectedLayerId } = useAfterShotLayers();
+  const renderLayerContent = useLayerRenderer(mediaBoxRef);
 
   const [toolsExpanded, setToolsExpanded] = useState(false);
   const [mediaAspect, setMediaAspect] = useState(9 / 16);
   const [activeTool, setActiveTool] = useState<ToolId | null>(null);
+  // Captured video autoplays muted because that's the only way a browser will
+  // autoplay it at all — the toggle is what gets the sound back.
+  const [videoMuted, setVideoMuted] = useState(true);
 
   // Owned once, here, from the page's own real <img>/<video> load event —
   // this is what CropPanel now receives as a prop instead of loading its
@@ -180,6 +187,7 @@ function AfterShotIndexPage() {
             src={media.url}
             autoPlay
             loop
+            muted={videoMuted}
             playsInline
             onLoadedMetadata={handleVideoLoad}
             className="absolute inset-0 w-full h-full object-cover"
@@ -198,28 +206,33 @@ function AfterShotIndexPage() {
 
         {/* Confirmed layers (text/draw/sticker) always render here, on the
             base page — not just while a panel is open — same as how a
-            caption sits on a photo permanently once added. */}
-        {activeTool === null && (
-          <LayerOverlay
-            containerRef={mediaBoxRef}
-            layers={layers}
-            updateLayer={() => {}}
-            selectedLayerId={null}
-            setSelectedLayerId={() => {}}
-            renderLayerContent={renderLayerContent}
-            onLayerTap={(layer) => {
-              setEditingLayerId(layer.id);
-              setActiveTool("text");
-            }}
-          />
+            caption sits on a photo permanently once added.
+            It stays mounted (inert) while the Text panel is open too, so your
+            drawings and other captions don't vanish the moment you start
+            typing; the one layer being edited is hidden because the textarea
+            is standing in for it. */}
+        {(activeTool === null || activeTool === "text") && (
+          <div
+            className="absolute inset-0"
+            style={{ pointerEvents: activeTool === null ? undefined : "none" }}
+          >
+            <LayerOverlay
+              containerRef={mediaBoxRef}
+              layers={
+                activeTool === "text" ? layers.filter((l) => l.id !== editingLayerId) : layers
+              }
+              updateLayer={updateLayer}
+              selectedLayerId={activeTool === null ? selectedLayerId : null}
+              setSelectedLayerId={setSelectedLayerId}
+              renderLayerContent={renderLayerContent}
+              onLayerTap={(layer) => {
+                setEditingLayerId(layer.id);
+                setActiveTool("text");
+              }}
+            />
+          </div>
         )}
 
-        <TextPanel
-          open={activeTool === "text"}
-          containerRef={mediaBoxRef}
-          editingLayerId={editingLayerId}
-          onClose={closeTool}
-        />
         <DrawPanel open={activeTool === "draw"} containerRef={mediaBoxRef} onClose={closeTool} />
         <CropPanel
           open={activeTool === "crop"}
@@ -229,9 +242,22 @@ function AfterShotIndexPage() {
         />
       </div>
 
+      {/* Deliberately OUTSIDE the media box, unlike Crop and Draw. The media
+          box carries transform: translateY(-50%), which makes it the containing
+          block for anything positioned inside it — so a panel in there can't
+          anchor itself to the screen, and its bottom controls end up measured
+          against the letterboxed box edge instead of the real viewport. Text is
+          the one panel that has to track the keyboard, so it lives out here. */}
+      <TextPanel
+        open={activeTool === "text"}
+        containerRef={mediaBoxRef}
+        editingLayerId={editingLayerId}
+        onClose={closeTool}
+      />
+
       {activeTool === null && (
         <>
-          <div className="absolute top-0 left-0 right-0 flex items-center px-4 pt-[calc(env(safe-area-inset-top)+12px)] z-20">
+          <div className="absolute top-0 left-0 right-0 flex items-center gap-3 px-4 pt-[calc(env(safe-area-inset-top)+12px)] z-20">
             <button
               onClick={discard}
               aria-label="Discard and retake"
@@ -240,6 +266,18 @@ function AfterShotIndexPage() {
             >
               <X size={20} />
             </button>
+
+            {media.type === "video" && (
+              <button
+                onClick={() => setVideoMuted((m) => !m)}
+                aria-label={videoMuted ? "Unmute preview" : "Mute preview"}
+                aria-pressed={!videoMuted}
+                className="flex items-center justify-center w-10 h-10 rounded-full transition-transform duration-150 active:scale-90"
+                style={{ background: "rgba(255,255,255,0.10)", backdropFilter: "blur(12px)" }}
+              >
+                {videoMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+              </button>
+            )}
           </div>
 
           <div
@@ -333,20 +371,26 @@ function AfterShotIndexPage() {
 // Small local hook, not exported — keeps the confirmed-layers render switch
 // (text/sticker/draw -> actual visual) out of the main component body.
 function useLayerRenderer(mediaBoxRef: React.RefObject<HTMLDivElement | null>) {
-  const { layers } = useAfterShotLayers();
-  const renderLayerContent = useCallback(
+  return useCallback(
     (layer: Layer) => {
       if (layer.kind === "text") {
         const boxWidth = mediaBoxRef.current?.clientWidth ?? 0;
         return (
           <span
             style={{
+              // display + maxWidth + the shared wrap fraction are what make this
+              // break at the same points the composing textarea did, so text
+              // doesn't reflow (or run off the photo) the instant it's placed.
+              display: "inline-block",
+              maxWidth: boxWidth * TEXT_LAYER_WIDTH_FRACTION,
               fontFamily: layer.font,
               color: layer.color,
               fontSize: layer.fontSize * boxWidth,
               fontWeight: layer.fontWeight,
               textAlign: layer.align,
+              lineHeight: TEXT_LAYER_LINE_HEIGHT,
               whiteSpace: "pre-wrap",
+              overflowWrap: "break-word",
               textShadow: layer.boxColor ? "none" : "0 1px 4px rgba(0,0,0,0.4)",
               background: layer.boxColor ?? "transparent",
               padding: layer.boxColor ? "4px 10px" : 0,
@@ -386,7 +430,6 @@ function useLayerRenderer(mediaBoxRef: React.RefObject<HTMLDivElement | null>) {
     },
     [mediaBoxRef],
   );
-  return { layers, renderLayerContent };
 }
 
 // useAfterShotLayersRef deleted entirely — no longer needed

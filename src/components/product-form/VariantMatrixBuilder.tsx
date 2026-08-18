@@ -143,18 +143,12 @@ export function VariantMatrixBuilder({
 
       {editingIndex !== null && (
         <OptionEditorSheet
+          // The sheet owns the whole option set, not one slot: a seller can
+          // define Size *and* Color in one pass, and it returns all of them.
+          initialOptions={options}
           initialName={options[editingIndex]?.name ?? ""}
-          initialValues={options[editingIndex]?.values ?? []}
-          disabledNames={options
-            .filter((_, i) => i !== editingIndex)
-            .map((o) => o.name)
-            .filter(Boolean)}
-          onSave={(name, values) => {
-            setOptions((prev) => {
-              const next = [...prev];
-              next[editingIndex] = { name, values };
-              return next;
-            });
+          onSave={(nextOptions) => {
+            setOptions(() => nextOptions);
             setEditingIndex(null);
             // "Next" always lands you on the variation list, whether this
             // was the very first option or an edit made from inside it.

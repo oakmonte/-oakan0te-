@@ -20,6 +20,15 @@ export type TextLayer = BaseLayer & {
   fontWeight: number; // 400–900, cycles via the bold-strength control
 };
 
+// Text wraps at this fraction of the media box width. Shared by the composing
+// textarea in TextPanel and the committed-layer render on the after-shot page,
+// so what you type wraps exactly where it will wrap once it's placed.
+export const TEXT_LAYER_WIDTH_FRACTION = 0.8;
+
+// Line height is part of that same contract — a textarea and a span do not
+// default to the same one, and any mismatch shifts the wrap points.
+export const TEXT_LAYER_LINE_HEIGHT = 1.25;
+
 export type StickerLayer = BaseLayer & {
   kind: "sticker";
   assetUrl: string;

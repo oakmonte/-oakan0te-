@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Check, ChevronDown, Plus, X } from "lucide-react";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
+import type { VariantOption } from "./VariantMatrixBuilder";
 
 const PRESETS = ["Size", "Color", "Material", "Weight/Volume"] as const;
 
@@ -153,16 +154,16 @@ function moveKey<T>(rec: Record<string, T>, from: string, to: string): Record<st
 }
 
 export function OptionEditorSheet({
+  initialOptions,
   initialName,
-  initialValues,
-  disabledNames = [],
+  maxOptions = 2,
   onSave,
   onClose,
 }: {
+  initialOptions: VariantOption[];
   initialName: string;
-  initialValues: string[];
-  disabledNames?: string[];
-  onSave: (name: string, values: string[]) => void;
+  maxOptions?: number;
+  onSave: (options: VariantOption[]) => void;
   onClose: () => void;
 }) {
   const [name, setName] = useState(initialName);
@@ -170,8 +171,11 @@ export function OptionEditorSheet({
   // Color to peek and tapping Size again must bring Size's picks back, and
   // Size's "M"/"L" must never leak into Color. One flat list can't do both.
   const [valuesByName, setValuesByName] = useState<Record<string, string[]>>(() =>
-    initialName && initialValues.length > 0 ? { [initialName]: initialValues } : {},
+    Object.fromEntries(initialOptions.map((o) => [o.name, o.values])),
   );
+  // Which option is option1 vs option2 is positional in the DB, so the order
+  // names were first given values has to survive edits and renames.
+  const [nameOrder, setNameOrder] = useState<string[]>(() => initialOptions.map((o) => o.name));
   const [confirmedByName, setConfirmedByName] = useState<Record<string, boolean>>({});
   const [valueDraft, setValueDraft] = useState("");
   const [selectedSystems, setSelectedSystems] = useState<Record<string, string>>(DEFAULT_SYSTEM);
@@ -210,9 +214,11 @@ export function OptionEditorSheet({
   const exactExists = [...values, ...pool].some((v) => v.toLowerCase() === q);
   const canCreate = !!query && !exactExists;
 
-  const trimmedName = name.trim();
-  const nameTaken = disabledNames.some((n) => n.toLowerCase() === trimmedName.toLowerCase());
-  const canSave = !!trimmedName && !nameTaken && values.length > 0;
+  // Every name that actually holds values — these are the options that will be
+  // emitted, not just whichever one happens to be on screen when "Next" is hit.
+  const definedNames = nameOrder.filter((n) => n.trim() && (valuesByName[n]?.length ?? 0) > 0);
+  const atCap = definedNames.length >= maxOptions;
+  const canSave = definedNames.length > 0;
   // Unconfirmed picks block switching to a different option name — the seller
   // has to Save or Cancel them first, so moving on is always a deliberate act.
   const nameLocked = hasChosen && !confirmed;
@@ -220,6 +226,7 @@ export function OptionEditorSheet({
   function updateValues(updater: (prev: string[]) => string[]) {
     setValuesByName((prev) => ({ ...prev, [name]: updater(prev[name] ?? []) }));
     setConfirmedByName((prev) => ({ ...prev, [name]: false }));
+    setNameOrder((prev) => (prev.includes(name) ? prev : [...prev, name]));
   }
 
   function toggleValue(v: string) {
@@ -237,9 +244,20 @@ export function OptionEditorSheet({
     updateValues((prev) => prev.filter((x) => x !== v));
   }
 
+  // Emits *every* option defined in this sheet, not just the visible one — a
+  // seller who fills in Size, then Color, then taps Next expects both to land.
   function handleSave() {
     if (!canSave) return;
-    onSave(trimmedName, values);
+    const seen = new Set<string>();
+    const out: VariantOption[] = [];
+    for (const n of definedNames) {
+      const trimmed = n.trim();
+      if (seen.has(trimmed.toLowerCase())) continue;
+      seen.add(trimmed.toLowerCase());
+      out.push({ name: trimmed, values: valuesByName[n] });
+      if (out.length >= maxOptions) break;
+    }
+    onSave(out);
   }
 
   function confirmValues() {
@@ -251,6 +269,7 @@ export function OptionEditorSheet({
     setValuesByName((prev) => dropKey(prev, name));
     setConfirmedByName((prev) => dropKey(prev, name));
     setSelectedSystems((prev) => dropKey(prev, name));
+    setNameOrder((prev) => prev.filter((n) => n !== name));
     setValueDraft("");
   }
 
@@ -269,6 +288,7 @@ export function OptionEditorSheet({
     setValuesByName((prev) => moveKey(prev, name, next));
     setConfirmedByName((prev) => moveKey(prev, name, next));
     setSelectedSystems((prev) => moveKey(prev, name, next));
+    setNameOrder((prev) => prev.map((n) => (n === name ? next : n)));
     setName(next);
   }
 
@@ -297,17 +317,12 @@ export function OptionEditorSheet({
           autoFocus={!initialName}
           className="w-full text-lg font-medium text-gray-900 border border-gray-200 rounded-xl px-4 py-4 outline-none focus:border-gray-400 mb-3"
         />
-        {nameTaken && (
-          <p className="text-xs text-red-500 -mt-2 mb-3">
-            “{trimmedName}” is already used by your other option.
-          </p>
-        )}
-
         <div className="flex flex-wrap gap-2">
           {PRESETS.map((p) => {
+            // Tapping an already-defined name now *edits* it rather than being
+            // blocked, so the only hard stop is the option cap itself.
             const disabled =
-              (disabledNames.some((n) => n.toLowerCase() === p.toLowerCase()) && name !== p) ||
-              (nameLocked && p !== name);
+              (nameLocked && p !== name) || (atCap && !definedNames.includes(p) && p !== name);
             return (
               <button
                 key={p}

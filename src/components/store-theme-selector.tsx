@@ -1,42 +1,26 @@
-import { Check, ChevronRight, CirclePlay, Grid2X2, Heart, ShoppingBag, Sparkles, Stars } from "lucide-react";
+import {
+  Check,
+  ChevronRight,
+  CirclePlay,
+  Cpu,
+  Crown,
+  Eye,
+  Gem,
+  Grid2X2,
+  Heart,
+  ShoppingBag,
+  Sparkles,
+  Stars,
+} from "lucide-react";
 import { useState, type ReactNode } from "react";
-
-type ThemeId = "motion" | "banner" | "story";
-
-type Theme = {
-  id: ThemeId;
-  name: string;
-  eyebrow: string;
-  description: string;
-  accent: string;
-};
-
-const THEMES: Theme[] = [
-  {
-    id: "motion",
-    name: "Motion Grid",
-    eyebrow: "Dynamic · bold · streetwear",
-    description: "Built for drops, statements, and products that need to move fast.",
-    accent: "#9c4dff",
-  },
-  {
-    id: "banner",
-    name: "Immersive Banner",
-    eyebrow: "Premium · cinematic · refined",
-    description: "A spacious editorial storefront that puts your world front and centre.",
-    accent: "#a67c52",
-  },
-  {
-    id: "story",
-    name: "Interactive Story",
-    eyebrow: "Social · expressive · engaging",
-    description: "Turn products, campaigns, and creator moments into a living feed.",
-    accent: "#ec4b9a",
-  },
-];
+import { THEMES, type ThemeId } from "./store-themes/types";
+import { ThemePreviewSheet } from "./store-themes/full-previews";
 
 export function StoreThemeSelector() {
   const [selected, setSelected] = useState<ThemeId>("motion");
+  const [previewing, setPreviewing] = useState<ThemeId | null>(null);
+
+  const previewTheme = THEMES.find((t) => t.id === previewing) ?? null;
 
   return (
     <main className="min-h-[calc(100vh-3.5rem)] bg-[#f6f5f2] px-4 py-7 sm:px-6 lg:px-8">
@@ -50,11 +34,12 @@ export function StoreThemeSelector() {
               Pick a store theme
             </h1>
             <p className="mt-2 max-w-xl text-sm leading-6 text-[#6b6862]">
-              Give your store a point of view. Every template is made for products first, and you can switch at any time.
+              Give your store a point of view. Every template is made for products first, and you
+              can switch at any time.
             </p>
           </div>
           <div className="rounded-full border border-[#dfdcd5] bg-white px-3.5 py-2 text-xs text-[#6b6862] shadow-sm">
-            3 original storefronts
+            {THEMES.length} original storefronts
           </div>
         </div>
 
@@ -65,28 +50,46 @@ export function StoreThemeSelector() {
               <article
                 key={theme.id}
                 className={`overflow-hidden rounded-[1.6rem] border bg-white p-3 shadow-[0_12px_35px_rgba(36,31,24,0.07)] transition-all duration-300 ${
-                  isSelected ? "border-[#1d1c1a] ring-1 ring-[#1d1c1a]" : "border-[#e4e0d9] hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(36,31,24,0.13)]"
+                  isSelected
+                    ? "border-[#1d1c1a] ring-1 ring-[#1d1c1a]"
+                    : "border-[#e4e0d9] hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(36,31,24,0.13)]"
                 }`}
               >
-                <button
-                  type="button"
-                  onClick={() => setSelected(theme.id)}
-                  className="block w-full rounded-[1.1rem] text-left focus:outline-none"
-                  aria-pressed={isSelected}
-                  aria-label={`Select ${theme.name}`}
-                >
-                  <StorefrontPreview theme={theme.id} />
-                </button>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setSelected(theme.id)}
+                    className="block w-full rounded-[1.1rem] text-left focus:outline-none"
+                    aria-pressed={isSelected}
+                    aria-label={`Select ${theme.name}`}
+                  >
+                    <StorefrontPreview theme={theme.id} demoBrand={theme.demoBrand} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewing(theme.id)}
+                    className="absolute right-2.5 top-2.5 flex items-center gap-1 rounded-full bg-black/55 px-2.5 py-1.5 text-[10px] font-semibold text-white backdrop-blur transition-colors hover:bg-black/70"
+                  >
+                    <Eye size={12} />
+                    Preview
+                  </button>
+                </div>
 
                 <div className="px-2 pb-2 pt-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-base font-semibold tracking-[-0.025em] text-[#1c1b19]">{theme.name}</p>
-                      <p className="mt-1 text-[11px] font-medium uppercase tracking-[0.11em] text-[#8d8981]">{theme.eyebrow}</p>
+                      <p className="text-base font-semibold tracking-[-0.025em] text-[#1c1b19]">
+                        {theme.name}
+                      </p>
+                      <p className="mt-1 text-[11px] font-medium uppercase tracking-[0.11em] text-[#8d8981]">
+                        {theme.eyebrow}
+                      </p>
                     </div>
                     <span
                       className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border transition-colors ${
-                        isSelected ? "border-transparent text-white" : "border-[#dbd7d0] text-transparent"
+                        isSelected
+                          ? "border-transparent text-white"
+                          : "border-[#dbd7d0] text-transparent"
                       }`}
                       style={{ backgroundColor: isSelected ? theme.accent : "transparent" }}
                       aria-hidden="true"
@@ -94,7 +97,9 @@ export function StoreThemeSelector() {
                       <Check size={14} strokeWidth={3} />
                     </span>
                   </div>
-                  <p className="mt-3 min-h-10 text-sm leading-5 text-[#706c65]">{theme.description}</p>
+                  <p className="mt-3 min-h-10 text-sm leading-5 text-[#706c65]">
+                    {theme.description}
+                  </p>
                   <button
                     type="button"
                     onClick={() => setSelected(theme.id)}
@@ -113,20 +118,36 @@ export function StoreThemeSelector() {
           Your storefront content stays yours — a theme only changes how it is presented.
         </p>
       </div>
+
+      {previewTheme && (
+        <ThemePreviewSheet
+          theme={previewTheme}
+          isSelected={selected === previewTheme.id}
+          onClose={() => setPreviewing(null)}
+          onSelect={() => {
+            setSelected(previewTheme.id);
+            setPreviewing(null);
+          }}
+        />
+      )}
     </main>
   );
 }
 
-function StorefrontPreview({ theme }: { theme: ThemeId }) {
-  if (theme === "motion") return <MotionGridPreview />;
-  if (theme === "banner") return <ImmersiveBannerPreview />;
-  return <InteractiveStoryPreview />;
+function StorefrontPreview({ theme, demoBrand }: { theme: ThemeId; demoBrand: string }) {
+  if (theme === "motion") return <MotionGridPreview brand={demoBrand} />;
+  if (theme === "banner") return <ImmersiveBannerPreview brand={demoBrand} />;
+  if (theme === "story") return <InteractiveStoryPreview />;
+  if (theme === "atelier") return <GalleryEditPreview brand={demoBrand} />;
+  return <NeonTerminalPreview brand={demoBrand} />;
 }
 
-function PreviewHeader({ dark = false }: { dark?: boolean }) {
+function PreviewHeader({ dark = false, brand }: { dark?: boolean; brand: string }) {
   return (
-    <div className={`flex items-center justify-between px-4 py-3 text-[9px] font-semibold uppercase tracking-[0.16em] ${dark ? "text-white/75" : "text-[#24201b]/70"}`}>
-      <span>Offgrid</span>
+    <div
+      className={`flex items-center justify-between px-4 py-3 text-[9px] font-semibold uppercase tracking-[0.16em] ${dark ? "text-white/75" : "text-[#24201b]/70"}`}
+    >
+      <span>{brand}</span>
       <div className="flex items-center gap-3">
         <span>Shop</span>
         <ShoppingBag size={12} strokeWidth={1.8} />
@@ -135,16 +156,18 @@ function PreviewHeader({ dark = false }: { dark?: boolean }) {
   );
 }
 
-function MotionGridPreview() {
+function MotionGridPreview({ brand }: { brand: string }) {
   return (
     <div className="relative min-h-[390px] overflow-hidden rounded-[1.1rem] bg-[#09070d] text-white">
       <div className="absolute inset-0 opacity-45 [background-image:linear-gradient(rgba(157,77,255,0.2)_1px,transparent_1px),linear-gradient(90deg,rgba(157,77,255,0.2)_1px,transparent_1px)] [background-size:24px_24px]" />
       <div className="absolute -left-14 top-12 h-40 w-40 rounded-full bg-[#722ee8]/30 blur-3xl" />
       <div className="absolute right-0 top-28 h-32 w-32 rounded-full bg-[#b673ff]/20 blur-3xl" />
       <div className="relative">
-        <PreviewHeader dark />
+        <PreviewHeader dark brand={brand} />
         <div className="px-4 pt-7">
-          <p className="text-[9px] font-semibold uppercase tracking-[0.25em] text-[#c9a3ff]">The next drop is live</p>
+          <p className="text-[9px] font-semibold uppercase tracking-[0.25em] text-[#c9a3ff]">
+            The next drop is live
+          </p>
           <h2 className="mt-2 max-w-[210px] font-display text-[39px] leading-[0.83] uppercase tracking-[-0.05em]">
             Made to be seen.
           </h2>
@@ -154,7 +177,7 @@ function MotionGridPreview() {
         </div>
         <div className="mx-4 mt-8 flex items-center justify-between border-y border-white/10 py-3 text-[9px] font-medium uppercase tracking-[0.09em] text-white/70">
           <span>New arrivals</span>
-          <span>24 pieces</span>
+          <span>12 pieces</span>
           <span className="text-[#bd91ff]">View all</span>
         </div>
         <div className="grid grid-cols-3 gap-2 px-4 pt-3">
@@ -164,7 +187,7 @@ function MotionGridPreview() {
         </div>
         <div className="mx-4 mt-4 flex items-center justify-between rounded-xl border border-[#9c4dff]/40 bg-[#25113c]/70 px-3 py-2.5 text-[10px]">
           <span className="font-semibold">Limited drop</span>
-          <span className="text-[#d6bdff]">04 : 22 : 16</span>
+          <span className="text-[#d6bdff]">02 : 18 : 47</span>
         </div>
       </div>
     </div>
@@ -180,7 +203,7 @@ function MotionProduct({ label, tint }: { label: string; tint: string }) {
   );
 }
 
-function ImmersiveBannerPreview() {
+function ImmersiveBannerPreview({ brand }: { brand: string }) {
   return (
     <div className="relative min-h-[390px] overflow-hidden rounded-[1.1rem] bg-[#e9e0d1] text-[#292219]">
       <div className="absolute inset-x-0 top-0 h-64 bg-[radial-gradient(circle_at_80%_10%,rgba(255,255,255,0.8),transparent_25%),linear-gradient(125deg,#c2aa8c_0%,#f1e8dc_48%,#b3a284_100%)]" />
@@ -188,12 +211,16 @@ function ImmersiveBannerPreview() {
       <div className="absolute right-[3.1rem] top-[3.9rem] h-20 w-[2px] rotate-[-12deg] bg-[#6e604d]" />
       <div className="absolute right-[1.6rem] top-[4.5rem] h-16 w-[2px] rotate-[18deg] bg-[#6e604d]" />
       <div className="relative">
-        <PreviewHeader />
+        <PreviewHeader brand={brand} />
         <div className="px-4 pt-9 text-center">
-          <p className="text-[9px] font-semibold uppercase tracking-[0.25em] text-[#695947]">Objects for living</p>
-          <h2 className="mt-2 font-serif text-[48px] leading-none tracking-[-0.055em]">Terra</h2>
+          <p className="text-[9px] font-semibold uppercase tracking-[0.25em] text-[#695947]">
+            Objects for living
+          </p>
+          <h2 className="mt-2 font-serif text-[48px] leading-none tracking-[-0.055em]">terra</h2>
           <div className="mx-auto mt-3 h-px w-16 bg-[#a48a68]" />
-          <p className="mx-auto mt-3 max-w-36 text-[10px] leading-4 text-[#655747]">Quiet pieces for every corner of your day.</p>
+          <p className="mx-auto mt-3 max-w-36 text-[10px] leading-4 text-[#655747]">
+            Quiet pieces for every corner of your day.
+          </p>
         </div>
         <div className="relative mt-12 bg-[#f7f2e9] px-4 pb-4 pt-4">
           <div className="grid grid-cols-4 gap-1.5 rounded-xl bg-[#ded2c1]/70 p-2 text-center text-[8px] leading-3 text-[#524638]">
@@ -240,17 +267,21 @@ function InteractiveStoryPreview() {
     <div className="relative min-h-[390px] overflow-hidden rounded-[1.1rem] bg-[#171018] text-white">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_85%_12%,rgba(255,105,180,0.2),transparent_28%),radial-gradient(circle_at_8%_43%,rgba(136,88,255,0.26),transparent_34%)]" />
       <div className="relative">
-        <PreviewHeader dark />
+        <PreviewHeader dark brand="Sunday Social" />
         <div className="px-4 pt-4">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-[#ff9bc8] via-[#ec4b9a] to-[#7144e8] p-[2px]">
-              <div className="flex h-full w-full items-center justify-center rounded-full bg-[#241520] text-[13px] font-bold">S</div>
+              <div className="flex h-full w-full items-center justify-center rounded-full bg-[#241520] text-[13px] font-bold">
+                S
+              </div>
             </div>
             <div>
               <p className="text-sm font-semibold tracking-[-0.03em]">Sunday Social</p>
               <p className="text-[9px] text-white/55">Your everyday moodboard</p>
             </div>
-            <span className="ml-auto rounded-full bg-white/10 px-2.5 py-1 text-[8px] font-semibold">Follow</span>
+            <span className="ml-auto rounded-full bg-white/10 px-2.5 py-1 text-[8px] font-semibold">
+              Follow
+            </span>
           </div>
 
           <div className="mt-5 flex gap-2 overflow-hidden">
@@ -267,8 +298,12 @@ function InteractiveStoryPreview() {
           </div>
           <div className="mt-3 grid grid-cols-[1.08fr_.92fr] gap-2">
             <div className="relative h-32 overflow-hidden rounded-xl bg-gradient-to-br from-[#f281b8] via-[#6f3fd2] to-[#22142d] p-3">
-              <span className="rounded-full bg-white/20 px-2 py-1 text-[8px] font-semibold uppercase tracking-[0.1em]">New drop</span>
-              <p className="absolute bottom-3 text-xl font-semibold leading-none tracking-[-0.06em]">Colour after dark.</p>
+              <span className="rounded-full bg-white/20 px-2 py-1 text-[8px] font-semibold uppercase tracking-[0.1em]">
+                New drop
+              </span>
+              <p className="absolute bottom-3 text-xl font-semibold leading-none tracking-[-0.06em]">
+                Colour after dark.
+              </p>
             </div>
             <div className="grid gap-2">
               <StoryTile label="Layered" tint="from-[#f8a7ca] to-[#6a3bbd]" />
@@ -302,6 +337,100 @@ function StoryTile({ label, tint }: { label: string; tint: string }) {
   return (
     <div className={`relative h-[60px] overflow-hidden rounded-lg bg-gradient-to-br ${tint}`}>
       <span className="absolute bottom-1.5 left-2 text-[8px] font-semibold">{label}</span>
+    </div>
+  );
+}
+
+function GalleryEditPreview({ brand }: { brand: string }) {
+  return (
+    <div className="relative min-h-[390px] overflow-hidden rounded-[1.1rem] bg-[#0c0b0a] text-[#f3ede2]">
+      <div className="absolute inset-x-0 top-0 h-72 bg-[radial-gradient(circle_at_78%_0%,rgba(201,162,39,0.18),transparent_45%)]" />
+      <div className="absolute inset-0 [background-image:linear-gradient(115deg,transparent_35%,rgba(201,162,39,0.06)_50%,transparent_65%)]" />
+      <div className="relative">
+        <PreviewHeader dark brand={brand} />
+        <div className="px-4 pt-9 text-center">
+          <p className="text-[9px] font-semibold uppercase tracking-[0.3em] text-[#c9a227]">
+            Autumn selects, in full
+          </p>
+          <h2 className="mt-2.5 font-serif text-[34px] italic leading-none tracking-[-0.02em]">
+            Atelier Noir
+          </h2>
+          <div className="mx-auto mt-3 h-px w-12 bg-[#c9a227]/60" />
+          <p className="mx-auto mt-3 max-w-40 text-[10px] leading-4 text-[#c9bea6]">
+            Fewer pieces. Finer edit.
+          </p>
+        </div>
+        <div className="mt-9 px-4">
+          <div className="grid grid-cols-3 gap-2">
+            <GalleryProduct label="Coat" />
+            <GalleryProduct label="Tailored" />
+            <GalleryProduct label="Object" />
+          </div>
+          <div className="mt-4 flex items-center justify-between border-t border-[#c9a227]/20 pt-3 text-[9px] font-medium uppercase tracking-[0.08em]">
+            <span>This week's edit</span>
+            <span className="text-[#c9a227]">View</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function GalleryProduct({ label }: { label: string }) {
+  return (
+    <div className="h-24 rounded-lg border border-[#c9a227]/25 bg-[#c9a227]/[0.04] p-2">
+      <div className="h-12 rounded-md bg-[#c9a227]/10" />
+      <p className="mt-2 text-[8px] font-medium uppercase tracking-[0.06em] text-[#c9bea6]">
+        {label}
+      </p>
+    </div>
+  );
+}
+
+function NeonTerminalPreview({ brand }: { brand: string }) {
+  return (
+    <div className="relative min-h-[390px] overflow-hidden rounded-[1.1rem] bg-[#05070a] text-[#eafcff]">
+      <div className="absolute inset-0 opacity-30 [background-image:linear-gradient(rgba(45,212,255,0.3)_1px,transparent_1px),linear-gradient(90deg,rgba(45,212,255,0.3)_1px,transparent_1px)] [background-size:18px_18px]" />
+      <div className="absolute right-3 top-3 h-6 w-6 border-r-2 border-t-2 border-[#2dd4ff]/50" />
+      <div className="absolute left-3 top-3 h-6 w-6 border-l-2 border-t-2 border-[#2dd4ff]/50" />
+      <div className="relative">
+        <PreviewHeader dark brand={brand} />
+        <div className="px-4 pt-7 text-center">
+          <p className="flex items-center justify-center gap-1.5 text-[9px] font-semibold uppercase tracking-[0.22em] text-[#2dd4ff]">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#2dd4ff]" />
+            System online
+          </p>
+          <h2
+            className="mt-2 font-display text-[36px] uppercase leading-[0.85] tracking-[-0.02em]"
+            style={{ textShadow: "0 0 16px rgba(45,212,255,0.5)" }}
+          >
+            Circuit
+          </h2>
+          <p className="mx-auto mt-2.5 max-w-40 text-[10px] leading-4 text-[#8fd9e8]">
+            Style, compiled.
+          </p>
+        </div>
+        <div className="mt-8 grid grid-cols-3 gap-2 px-4">
+          <CircuitProduct icon={<Cpu size={16} />} />
+          <CircuitProduct icon={<Gem size={16} />} />
+          <CircuitProduct icon={<Crown size={16} />} />
+        </div>
+        <div className="mx-4 mt-4 flex items-center justify-between rounded-xl border border-[#2dd4ff]/35 bg-[#2dd4ff]/[0.06] px-3 py-2.5 text-[10px]">
+          <span className="font-semibold">System update</span>
+          <span className="flex items-center gap-1 text-[#2dd4ff]">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#2dd4ff]" />
+            Live
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CircuitProduct({ icon }: { icon: ReactNode }) {
+  return (
+    <div className="flex h-24 items-center justify-center rounded-lg border border-[#2dd4ff]/25 bg-[#2dd4ff]/[0.04] shadow-[0_0_18px_rgba(45,212,255,0.08)]">
+      <span className="text-[#2dd4ff]">{icon}</span>
     </div>
   );
 }
