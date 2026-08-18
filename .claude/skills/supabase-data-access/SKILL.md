@@ -37,9 +37,15 @@ missing; it throws when you actually touch it.
 
 ### The import rule that actually bites
 
-Route files (`src/routes/*.tsx`) and `*.functions.ts` **ship to the client bundle**. A top-level
-`import { supabaseAdmin } from ".../client.server"` in one of those puts the service-role key in
-JavaScript the browser downloads.
+Route files (`src/routes/*.tsx`) and `*.functions.ts` can ship to the client bundle. Measured on the
+current build (2026-08-19): Nitro does strip `server.handlers` out, and neither `supabaseAdmin` nor
+`MY_SUPABASE_SERVICE_ROLE_KEY` appears anywhere in `.output/public` — including from
+`api.shopify.callback.tsx`, which imports the admin client at the top level.
+
+So this is defense in depth, not a live leak. It still matters, because the stripping depends on the
+bundler proving the module is unreachable from a client entry point — and that proof breaks the moment
+a route file grows a component alongside its handler, or a shared module starts re-exporting it. The
+failure is silent when it happens.
 
 So: pull it in with a dynamic `import()` *inside* the handler.
 

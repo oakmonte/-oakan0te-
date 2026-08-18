@@ -141,10 +141,7 @@ export function DescriptionSheet({
   const activeAlign = ALIGN_OPTIONS.find((o) => formats[o.command]) ?? ALIGN_OPTIONS[0];
 
   return (
-    <div
-      className="fixed left-0 right-0 z-50 bg-white flex flex-col"
-      style={{ top: viewport.top, height: viewport.height || "100dvh" }}
-    >
+    <div className="fixed inset-0 z-50 bg-white flex flex-col">
       <style>{`
         .oak-description-editor:empty:before {
           content: attr(data-placeholder);
@@ -155,88 +152,95 @@ export function DescriptionSheet({
         .oak-description-editor a { color: #2563EB; text-decoration: underline; }
       `}</style>
 
-      <div className="shrink-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
-        <button onClick={onClose} type="button" className="text-sm text-gray-500">
-          Cancel
-        </button>
-        <span className="font-semibold text-[15px] absolute left-1/2 -translate-x-1/2">
-          Description
-        </span>
-        <button onClick={handleSave} type="button" className="text-sm font-medium text-black">
-          Save
-        </button>
-      </div>
+      {/* Sized to the keyboard-free band, not the full sheet — the outer div
+          above is always full-screen white, so if this estimate undershoots
+          (Safari's visualViewport doesn't reliably account for its own
+          "Prev/Next/Done" accessory bar), what shows below is blank white
+          from the outer div, never the form page underneath. */}
+      <div className="flex flex-col min-h-0" style={{ height: viewport.height || "100%" }}>
+        <div className="shrink-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
+          <button onClick={onClose} type="button" className="text-sm text-gray-500">
+            Cancel
+          </button>
+          <span className="font-semibold text-[15px] absolute left-1/2 -translate-x-1/2">
+            Description
+          </span>
+          <button onClick={handleSave} type="button" className="text-sm font-medium text-black">
+            Save
+          </button>
+        </div>
 
-      <div
-        ref={editorRef}
-        contentEditable
-        suppressContentEditableWarning
-        onInput={() => setFormats(readFormats())}
-        data-placeholder="Describe your product…"
-        className="oak-description-editor flex-1 min-h-0 overflow-y-auto px-4 py-5 text-base text-gray-900 outline-none"
-      />
+        <div
+          ref={editorRef}
+          contentEditable
+          suppressContentEditableWarning
+          onInput={() => setFormats(readFormats())}
+          data-placeholder="Describe your product…"
+          className="oak-description-editor flex-1 min-h-0 overflow-y-auto px-4 py-5 text-base text-gray-900 outline-none"
+        />
 
-      <div className="shrink-0 bg-white/95 backdrop-blur border-t border-gray-100 px-2 py-1.5 flex items-center gap-0.5 overflow-x-auto">
-        <ToolbarButton label="Bold" active={formats.bold} onClick={() => exec("bold")}>
-          <Bold size={18} />
-        </ToolbarButton>
-        <ToolbarButton label="Italic" active={formats.italic} onClick={() => exec("italic")}>
-          <Italic size={18} />
-        </ToolbarButton>
-        <ToolbarButton
-          label="Underline"
-          active={formats.underline}
-          onClick={() => exec("underline")}
-        >
-          <Underline size={18} />
-        </ToolbarButton>
-
-        {openGroup === "align" ? (
-          ALIGN_OPTIONS.map(({ command, label, Icon }) => (
-            <ToolbarButton
-              key={command}
-              label={label}
-              active={formats[command]}
-              onClick={() => applyAndCollapse(command)}
-            >
-              <Icon size={18} />
-            </ToolbarButton>
-          ))
-        ) : (
-          <ToolbarButton
-            label="Alignment"
-            onClick={() => setOpenGroup((g) => (g === "align" ? null : "align"))}
-          >
-            <activeAlign.Icon size={18} />
-            <ChevronDown size={12} className="text-gray-400" />
+        <div className="shrink-0 bg-white/95 backdrop-blur border-t border-gray-100 px-2 py-1.5 flex items-center gap-0.5 overflow-x-auto">
+          <ToolbarButton label="Bold" active={formats.bold} onClick={() => exec("bold")}>
+            <Bold size={18} />
           </ToolbarButton>
-        )}
-
-        {openGroup === "list" ? (
-          LIST_OPTIONS.map(({ command, label, Icon }) => (
-            <ToolbarButton
-              key={command}
-              label={label}
-              active={formats[command]}
-              onClick={() => applyAndCollapse(command)}
-            >
-              <Icon size={18} />
-            </ToolbarButton>
-          ))
-        ) : (
-          <ToolbarButton
-            label="List"
-            active={formats.insertUnorderedList || formats.insertOrderedList}
-            onClick={() => setOpenGroup((g) => (g === "list" ? null : "list"))}
-          >
-            <List size={18} />
-            <ChevronDown size={12} className="text-gray-400" />
+          <ToolbarButton label="Italic" active={formats.italic} onClick={() => exec("italic")}>
+            <Italic size={18} />
           </ToolbarButton>
-        )}
+          <ToolbarButton
+            label="Underline"
+            active={formats.underline}
+            onClick={() => exec("underline")}
+          >
+            <Underline size={18} />
+          </ToolbarButton>
 
-        <ToolbarButton label="Link" onClick={handleLink}>
-          <Link2 size={18} />
-        </ToolbarButton>
+          {openGroup === "align" ? (
+            ALIGN_OPTIONS.map(({ command, label, Icon }) => (
+              <ToolbarButton
+                key={command}
+                label={label}
+                active={formats[command]}
+                onClick={() => applyAndCollapse(command)}
+              >
+                <Icon size={18} />
+              </ToolbarButton>
+            ))
+          ) : (
+            <ToolbarButton
+              label="Alignment"
+              onClick={() => setOpenGroup((g) => (g === "align" ? null : "align"))}
+            >
+              <activeAlign.Icon size={18} />
+              <ChevronDown size={12} className="text-gray-400" />
+            </ToolbarButton>
+          )}
+
+          {openGroup === "list" ? (
+            LIST_OPTIONS.map(({ command, label, Icon }) => (
+              <ToolbarButton
+                key={command}
+                label={label}
+                active={formats[command]}
+                onClick={() => applyAndCollapse(command)}
+              >
+                <Icon size={18} />
+              </ToolbarButton>
+            ))
+          ) : (
+            <ToolbarButton
+              label="List"
+              active={formats.insertUnorderedList || formats.insertOrderedList}
+              onClick={() => setOpenGroup((g) => (g === "list" ? null : "list"))}
+            >
+              <List size={18} />
+              <ChevronDown size={12} className="text-gray-400" />
+            </ToolbarButton>
+          )}
+
+          <ToolbarButton label="Link" onClick={handleLink}>
+            <Link2 size={18} />
+          </ToolbarButton>
+        </div>
       </div>
     </div>
   );
