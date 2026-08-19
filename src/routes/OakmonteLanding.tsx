@@ -689,12 +689,12 @@ const CSS = `
 .oak .reveal-delay-3.in-view{transition-delay:.3s;}
 
 .oak header{position:fixed;top:0;left:0;right:0;width:100%;height:88px;z-index:100;background:rgba(255,255,255,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);transition:box-shadow .3s ease;}
-.oak .header-row{display:flex;align-items:center;justify-content:space-between;height:88px;}
+.oak .header-row{display:flex;align-items:flex-end;justify-content:space-between;height:88px;padding-bottom:12px;}
 .oak .brand{display:flex;align-items:baseline;gap:0;}
-.oak .brand-o{height:38px;width:auto;flex:none;display:inline-block;transform:translateY(3px);}
+.oak .brand-o{height:48px;width:auto;flex:none;display:inline-block;transform:translateY(5px);}
 .oak .footer-mark{width:34px;height:34px;border-radius:9px;background:var(--blue);object-fit:contain;padding:5px;flex:none;}
-.oak .brand .word{font-family:Inter,ui-sans-serif,system-ui,sans-serif;font-weight:400;font-size:22px;letter-spacing:-.01em;line-height:1;color:var(--black);}
-.oak .brand .tagline{margin-left:10px;font-size:11px;font-weight:500;letter-spacing:.18em;text-transform:uppercase;color:#2151F5;transform:translateY(-1px);white-space:nowrap;}
+.oak .brand .word{font-family:Inter,ui-sans-serif,system-ui,sans-serif;font-weight:400;font-size:28px;letter-spacing:-.01em;line-height:1;color:var(--black);}
+.oak .brand .tagline{margin-left:10px;font-size:10px;font-weight:500;letter-spacing:.18em;text-transform:uppercase;color:#2151F5;transform:translateY(-2px);white-space:nowrap;}
 @media (max-width:640px){.oak .brand .tagline{margin-left:6px;font-size:9px;letter-spacing:.14em;}}
 
 .oak nav.desktop-nav{display:flex;align-items:center;gap:36px;}
