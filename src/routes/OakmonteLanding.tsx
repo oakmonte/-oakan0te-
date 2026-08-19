@@ -286,7 +286,7 @@ function OakmonteLanding() {
 
             <h1 className="headline">
               <span className="line">
-                <span>Sell your style.</span>
+                <span>{"\n"}</span>
               </span>
               <span className="line">
                 <span>Share your style.</span>
