@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, ChevronLeft } from "lucide-react";
+import { Check, ChevronLeft, ImageIcon, X } from "lucide-react";
 import type { VariantOption, VariantRow } from "./VariantMatrixBuilder";
 
 export function VariantCombinationsSheet({
@@ -18,6 +18,8 @@ export function VariantCombinationsSheet({
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkPrice, setBulkPrice] = useState("");
   const [bulkStock, setBulkStock] = useState("");
+  const [bulkImageUrl, setBulkImageUrl] = useState("");
+  const [imagePickerKey, setImagePickerKey] = useState<string | null>(null);
 
   const optionNames = options
     .filter((o) => o.name.trim() && o.values.length > 0)
@@ -45,10 +47,12 @@ export function VariantCombinationsSheet({
     const patch: Partial<VariantRow> = {};
     if (bulkPrice.trim()) patch.price = bulkPrice.trim();
     if (bulkStock.trim()) patch.stockQty = bulkStock.trim();
+    if (bulkImageUrl.trim()) patch.mainImageUrl = bulkImageUrl.trim();
     if (Object.keys(patch).length === 0) return;
     setRows((prev) => prev.map((r) => (r.selected ? { ...r, ...patch } : r)));
     setBulkPrice("");
     setBulkStock("");
+    setBulkImageUrl("");
     setBulkOpen(false);
   }
 
@@ -165,11 +169,17 @@ export function VariantCombinationsSheet({
               <div className="grid grid-cols-2 gap-2">
                 <MiniField label="Price" value={bulkPrice} onChange={setBulkPrice} />
                 <MiniField label="Stock" value={bulkStock} onChange={setBulkStock} />
+                <MiniField
+                  label="Image URL"
+                  value={bulkImageUrl}
+                  onChange={setBulkImageUrl}
+                  type="text"
+                />
               </div>
               <button
                 type="button"
                 onClick={applyToAll}
-                disabled={!bulkPrice.trim() && !bulkStock.trim()}
+                disabled={!bulkPrice.trim() && !bulkStock.trim() && !bulkImageUrl.trim()}
                 className="mt-3 w-full bg-black text-white text-sm font-medium rounded-lg py-2.5 disabled:bg-gray-200 disabled:text-gray-400"
               >
                 Apply
@@ -180,9 +190,23 @@ export function VariantCombinationsSheet({
           <div className="flex flex-col gap-3">
             {selected.map((row) => (
               <div key={row.key} className="border border-gray-200 rounded-xl p-3">
-                <p className="text-sm font-medium text-gray-900 mb-2">
-                  {row.options.map((o) => o.value).join(" / ")}
-                </p>
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <p className="text-sm font-medium text-gray-900">
+                    {row.options.map((o) => o.value).join(" / ")}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setImagePickerKey(row.key)}
+                    aria-label="Set variant image"
+                    className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden shrink-0"
+                  >
+                    {row.mainImageUrl ? (
+                      <img src={row.mainImageUrl} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <ImageIcon size={16} className="text-gray-300" />
+                    )}
+                  </button>
+                </div>
                 <div className="grid grid-cols-2 gap-2">
                   <MiniField
                     label="Price *"
@@ -215,6 +239,82 @@ export function VariantCombinationsSheet({
               </p>
             )}
           </div>
+        </div>
+      </div>
+
+      {imagePickerKey && (
+        <VariantImagePopover
+          initialValue={rows.find((r) => r.key === imagePickerKey)?.mainImageUrl ?? ""}
+          onDone={(url) => {
+            updateRow(imagePickerKey, { mainImageUrl: url });
+            setImagePickerKey(null);
+          }}
+          onClose={() => setImagePickerKey(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function VariantImagePopover({
+  initialValue,
+  onDone,
+  onClose,
+}: {
+  initialValue: string;
+  onDone: (url: string) => void;
+  onClose: () => void;
+}) {
+  const [value, setValue] = useState(initialValue);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center px-6"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-2xl p-4 w-full max-w-xs"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-sm font-semibold text-gray-900">Variant image</p>
+          <button type="button" onClick={onClose} className="p-1 -mr-1">
+            <X size={18} className="text-gray-400" />
+          </button>
+        </div>
+
+        <div className="w-full aspect-square rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden mb-3">
+          {value ? (
+            <img src={value} alt="" className="w-full h-full object-cover" />
+          ) : (
+            <ImageIcon size={28} className="text-gray-300" />
+          )}
+        </div>
+
+        <input
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          placeholder="Paste an image URL for now"
+          className="w-full text-sm text-center text-gray-500 outline-none placeholder:text-gray-400 border border-gray-200 rounded-lg px-3 py-2.5"
+        />
+
+        <div className="flex gap-2 mt-3">
+          {value && (
+            <button
+              type="button"
+              onClick={() => setValue("")}
+              className="flex-1 text-sm font-medium text-gray-500 border border-gray-200 rounded-lg py-2.5"
+            >
+              Remove
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => onDone(value.trim())}
+            className="flex-1 bg-black text-white text-sm font-medium rounded-lg py-2.5"
+          >
+            Done
+          </button>
         </div>
       </div>
     </div>
