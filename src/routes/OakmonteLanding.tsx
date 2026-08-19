@@ -672,7 +672,7 @@ const CSS = `
   --display:"Archivo Black","Helvetica Neue",Arial,sans-serif;
   --body:"Inter","Helvetica Neue",Arial,sans-serif;
   background:var(--white);color:var(--black);font-family:var(--body);font-weight:400;
-  -webkit-font-smoothing:antialiased;overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;overflow-x:hidden;padding-top:88px;
 }
 .oak *{box-sizing:border-box;}
 .oak a{color:inherit;text-decoration:none;}
@@ -688,8 +688,8 @@ const CSS = `
 .oak .reveal-delay-2.in-view{transition-delay:.2s;}
 .oak .reveal-delay-3.in-view{transition-delay:.3s;}
 
-.oak header{position:sticky;top:0;z-index:100;background:rgba(255,255,255,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);transition:box-shadow .3s ease;}
-.oak .header-row{display:flex;align-items:center;justify-content:space-between;height:72px;}
+.oak header{position:fixed;top:0;left:0;right:0;width:100%;height:88px;z-index:100;background:rgba(255,255,255,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);transition:box-shadow .3s ease;}
+.oak .header-row{display:flex;align-items:center;justify-content:space-between;height:88px;}
 .oak .brand{display:flex;align-items:baseline;gap:0;}
 .oak .brand-o{height:38px;width:auto;flex:none;display:inline-block;transform:translateY(3px);}
 .oak .footer-mark{width:34px;height:34px;border-radius:9px;background:var(--blue);object-fit:contain;padding:5px;flex:none;}
@@ -722,7 +722,7 @@ const CSS = `
 .oak .mobile-toggle{display:none;padding:8px;}
 .oak .mobile-toggle span{display:block;width:22px;height:2px;background:var(--black);margin-bottom:6px;}
 .oak .mobile-toggle span:last-child{margin-bottom:0;}
-.oak .mobile-menu{display:none;border-top:1px solid var(--line);}
+.oak .mobile-menu{display:none;position:fixed;top:88px;left:0;right:0;background:rgba(255,255,255,.96);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);z-index:99;}
 .oak .mobile-menu.open{display:block;}
 .oak .mobile-menu-inner{padding:24px;display:flex;flex-direction:column;gap:18px;}
 .oak .mobile-menu-inner a{font-size:14px;font-weight:700;}
