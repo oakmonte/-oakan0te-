@@ -694,8 +694,8 @@ const CSS = `
 .oak .brand-o{height:44px;width:auto;flex:none;display:inline-block;transform:translateY(4px);}
 .oak .footer-mark{width:34px;height:34px;border-radius:9px;background:var(--blue);object-fit:contain;padding:5px;flex:none;}
 .oak .brand .word{font-family:Inter,ui-sans-serif,system-ui,sans-serif;font-weight:400;font-size:26px;letter-spacing:-.01em;line-height:1;color:var(--black);}
-.oak .brand .tagline{margin-left:8px;font-size:8px;font-weight:500;letter-spacing:.16em;text-transform:uppercase;color:#2151F5;transform:translateY(-2px);white-space:nowrap;}
-@media (max-width:640px){.oak .brand .tagline{margin-left:6px;font-size:7px;letter-spacing:.12em;}}
+.oak .brand .tagline{margin-left:16px;font-size:8px;font-weight:500;letter-spacing:.16em;text-transform:uppercase;color:#2151F5;transform:translateY(-2px);white-space:nowrap;}
+@media (max-width:640px){.oak .brand .tagline{margin-left:12px;font-size:7px;letter-spacing:.12em;}}
 
 .oak nav.desktop-nav{display:flex;align-items:center;gap:36px;}
 .oak nav.desktop-nav a{font-size:13px;font-weight:600;position:relative;padding:4px 0;}
