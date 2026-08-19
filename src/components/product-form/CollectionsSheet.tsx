@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { X, Search, ImageIcon, Check } from "lucide-react";
-import { useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 
 // TODO: dev-only, matches store.products_.new.tsx / store.products.tsx.
@@ -20,12 +19,13 @@ export function CollectionsSheet({
   selectedIds,
   onDone,
   onClose,
+  onCreateNew,
 }: {
   selectedIds: string[];
   onDone: (ids: string[]) => void;
   onClose: () => void;
+  onCreateNew: () => void;
 }) {
-  const navigate = useNavigate();
   const [collections, setCollections] = useState<CollectionRow[] | null>(null); // null = loading
   const [selected, setSelected] = useState<Set<string>>(new Set(selectedIds));
   const [query, setQuery] = useState("");
@@ -90,7 +90,7 @@ export function CollectionsSheet({
           <p className="text-[15px] text-gray-400">No collections yet</p>
           <button
             type="button"
-            onClick={() => navigate({ to: "/store/collections/new" })}
+            onClick={onCreateNew}
             className="bg-black text-white text-sm font-medium rounded-full px-5 py-2.5"
           >
             Create collection

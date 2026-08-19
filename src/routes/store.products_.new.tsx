@@ -1,6 +1,14 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { ChevronLeft, ChevronDown, ChevronRight, Tag, Hash, Search, Layers } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronDown,
+  ChevronRight,
+  Tag,
+  Hash,
+  ListChecks,
+  Layers,
+} from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { CategoryNode } from "@/lib/categories";
 import { StubRow, ExpandRow, TextField } from "@/components/product-form/ui";
@@ -16,6 +24,11 @@ import {
   VariantOption,
   VariantRow,
 } from "@/components/product-form/VariantMatrixBuilder";
+import {
+  stashProductDraft,
+  takeProductDraft,
+  takePendingNewCollectionId,
+} from "@/lib/product-draft-handoff";
 
 export const Route = createFileRoute("/store/products_/new")({
   component: NewProduct,
@@ -42,33 +55,67 @@ type ExpandedSection = "material" | null;
 function NewProduct() {
   const navigate = useNavigate();
 
-  const [kind, setKind] = useState<ProductKind>("variant");
-  const [status, setStatus] = useState<"draft" | "active">("draft");
-  const [mainImageUrl, setMainImageUrl] = useState("");
-  const [title, setTitle] = useState("");
-  const [descriptionShort, setDescriptionShort] = useState("");
+  // Restoring a draft stashed before a side-trip to create a collection — see
+  // handleCreateCollection below. Read once via lazy initializers so every
+  // field seeds correctly on the very first render (no restore flash).
+  const [initialDraft] = useState(() => takeProductDraft());
+  const [initialNewCollectionId] = useState(() => takePendingNewCollectionId());
+
+  const [kind, setKind] = useState<ProductKind>(initialDraft?.kind ?? "variant");
+  const [status, setStatus] = useState<"draft" | "active">(initialDraft?.status ?? "draft");
+  const [mainImageUrl, setMainImageUrl] = useState(initialDraft?.mainImageUrl ?? "");
+  const [title, setTitle] = useState(initialDraft?.title ?? "");
+  const [descriptionShort, setDescriptionShort] = useState(initialDraft?.descriptionShort ?? "");
   const [priceSheetOpen, setPriceSheetOpen] = useState(false);
-  const [categoryPath, setCategoryPath] = useState<CategoryNode[]>([]);
+  const [categoryPath, setCategoryPath] = useState<CategoryNode[]>(
+    initialDraft?.categoryPath ?? [],
+  );
 
   // Regular-mode state
-  const [price, setPrice] = useState("");
-  const [compareAtPrice, setCompareAtPrice] = useState("");
-  const [costPrice, setCostPrice] = useState("");
-  const [stockQty, setStockQty] = useState(0);
-  const [material, setMaterial] = useState("");
+  const [price, setPrice] = useState(initialDraft?.price ?? "");
+  const [compareAtPrice, setCompareAtPrice] = useState(initialDraft?.compareAtPrice ?? "");
+  const [costPrice, setCostPrice] = useState(initialDraft?.costPrice ?? "");
+  const [stockQty, setStockQty] = useState(initialDraft?.stockQty ?? 0);
+  const [material, setMaterial] = useState(initialDraft?.material ?? "");
 
   // Variant-mode state
-  const [options, setOptions] = useState<VariantOption[]>([]);
-  const [rows, setRows] = useState<VariantRow[]>([]);
+  const [options, setOptions] = useState<VariantOption[]>(initialDraft?.options ?? []);
+  const [rows, setRows] = useState<VariantRow[]>(initialDraft?.rows ?? []);
 
   const [categoryPickerOpen, setCategoryPickerOpen] = useState(false);
   const [typeSwitchOpen, setTypeSwitchOpen] = useState(false);
   const [descriptionSheetOpen, setDescriptionSheetOpen] = useState(false);
   const [collectionsSheetOpen, setCollectionsSheetOpen] = useState(false);
-  const [collectionIds, setCollectionIds] = useState<string[]>([]);
+  const [collectionIds, setCollectionIds] = useState<string[]>(() => {
+    const base = initialDraft?.collectionIds ?? [];
+    if (initialNewCollectionId && !base.includes(initialNewCollectionId)) {
+      return [...base, initialNewCollectionId];
+    }
+    return base;
+  });
   const [expanded, setExpanded] = useState<ExpandedSection>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+
+  function handleCreateCollection() {
+    stashProductDraft({
+      kind,
+      status,
+      mainImageUrl,
+      title,
+      descriptionShort,
+      categoryPath,
+      price,
+      compareAtPrice,
+      costPrice,
+      stockQty,
+      material,
+      options,
+      rows,
+      collectionIds,
+    });
+    navigate({ to: "/store/collections/new" });
+  }
 
   // Sellers can uncheck combinations they don't stock — only these get written.
   const selectedRows = rows.filter((r) => r.selected);
@@ -339,7 +386,7 @@ function NewProduct() {
         </span>
       </button>
       <StubRow icon={<Hash size={18} />} label="Tags" />
-      <StubRow icon={<Search size={18} />} label="SEO" isLast />
+      <StubRow icon={<ListChecks size={18} />} label="Necessities" isLast />
 
       {categoryPickerOpen && (
         <CategoryPicker
@@ -390,6 +437,7 @@ function NewProduct() {
             setCollectionsSheetOpen(false);
           }}
           onClose={() => setCollectionsSheetOpen(false)}
+          onCreateNew={handleCreateCollection}
         />
       )}
 

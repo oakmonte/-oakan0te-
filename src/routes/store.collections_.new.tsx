@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { MediaSection } from "@/components/product-form/MediaSection";
 import { DescriptionSheet } from "@/components/product-form/DescriptionSheet";
+import { hasPendingProductDraft, setPendingNewCollectionId } from "@/lib/product-draft-handoff";
 
 export const Route = createFileRoute("/store/collections_/new")({
   component: NewCollection,
@@ -30,7 +31,11 @@ function NewCollection() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  const descriptionPreview = stripHtml(description);
+  const hasDescription = stripHtml(description).length > 0;
+  // Reached from the new-product form's Collections picker — return there
+  // (with the draft it stashed) instead of the products list, both on save
+  // and on cancel, so the in-progress listing isn't lost.
+  const returnTo = hasPendingProductDraft() ? "/store/products/new" : "/store/products";
 
   async function handleSave() {
     if (!title.trim()) {
@@ -41,27 +46,35 @@ function NewCollection() {
     setSaving(true);
     setError("");
 
-    const { error: insertErr } = await supabase.from("collections").insert({
-      store_id: DEV_STORE_ID,
-      title: title.trim(),
-      description: description.trim() || null,
-      image_url: imageUrl.trim() || null,
-    });
+    const { data: created, error: insertErr } = await supabase
+      .from("collections")
+      .insert({
+        store_id: DEV_STORE_ID,
+        title: title.trim(),
+        description: description.trim() || null,
+        image_url: imageUrl.trim() || null,
+      })
+      .select("id")
+      .single();
 
-    if (insertErr) {
-      setError(insertErr.message);
+    if (insertErr || !created) {
+      setError(insertErr?.message ?? "Failed to create collection");
       setSaving(false);
       return;
     }
 
-    navigate({ to: "/store/products" });
+    if (returnTo === "/store/products/new") {
+      setPendingNewCollectionId(created.id);
+    }
+
+    navigate({ to: returnTo });
   }
 
   return (
     <div className="min-h-dvh bg-white pb-10">
       <div className="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
         <button
-          onClick={() => navigate({ to: "/store/products" })}
+          onClick={() => navigate({ to: returnTo })}
           className="text-sm text-gray-500 flex items-center gap-0.5 -ml-1"
           type="button"
         >
@@ -96,15 +109,8 @@ function NewCollection() {
           onClick={() => setDescriptionSheetOpen(true)}
           className="w-full flex items-center justify-between py-4 text-left"
         >
-          <span className="flex flex-col items-start gap-0.5 min-w-0">
-            <span className="text-[15px] text-gray-900">
-              {descriptionPreview ? "Description" : "Add description"}
-            </span>
-            {descriptionPreview && (
-              <span className="text-xs text-gray-400 truncate max-w-full">
-                {descriptionPreview}
-              </span>
-            )}
+          <span className="text-[15px] text-gray-900">
+            {hasDescription ? "Description" : "Add description"}
           </span>
           <ChevronRight size={16} className="text-gray-300 shrink-0" />
         </button>
