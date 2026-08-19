@@ -237,6 +237,7 @@ function OakmonteLanding() {
             <a href="#product" className="brand">
               <img src={logoO} alt="Oakmonte" className="brand-o" />
               <span className="word">akmonte</span>
+              <span className="tagline">CREATED TO CREATE.</span>
             </a>
             <nav className="desktop-nav">
               <a href="#product" className={activeNav === "PRODUCT" ? "active" : ""}>
