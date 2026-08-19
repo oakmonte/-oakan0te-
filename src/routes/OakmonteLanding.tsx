@@ -285,10 +285,7 @@ function OakmonteLanding() {
             <p className="eyebrow">Fashion commerce, rebuilt</p>
 
             <h1 className="headline">
-              <span className="line">
-                <span>{"\n"}</span>
-              </span>
-              <span className="line">
+              <span className="line line-main">
                 <span>Share your style.</span>
               </span>
               <span className="line line-safely">
