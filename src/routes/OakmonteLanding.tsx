@@ -734,15 +734,14 @@ const CSS = `
 .oak .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--blue);margin:0 0 24px;}
 .oak .eyebrow::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--blue);}
 
-.oak h1.headline{font-family:var(--display);font-size:clamp(48px,12.5vw,168px);line-height:.86;letter-spacing:-.02em;text-transform:uppercase;margin:0 0 32px;}
+.oak h1.headline{font-family:var(--display);font-size:clamp(48px,12.5vw,168px);line-height:.86;letter-spacing:-.02em;text-transform:uppercase;margin:0 0 32px;display:flex;justify-content:space-between;align-items:flex-start;gap:24px;}
 .oak h1.headline .line{display:block;overflow:hidden;}
 .oak h1.headline .line span{display:block;transform:translateY(115%);opacity:0;animation:oakReveal .9s cubic-bezier(.16,1,.3,1) forwards;}
-.oak h1.headline .line:nth-child(1) span{animation-delay:.05s;}
-.oak h1.headline .line:nth-child(2) span{animation-delay:.2s;}
-.oak h1.headline .line:nth-child(3) span{animation-delay:.35s;color:var(--blue);}
-.oak h1.headline .line.line-safely span{display:inline-block;font-size:clamp(32px,8vw,100px);color:var(--blue);animation-delay:.55s;}
-.oak h1.headline .line.line-safely{margin-top:8px;}
+.oak h1.headline .line-main span{animation-delay:.2s;}
+.oak h1.headline .line-safely{flex:none;align-self:flex-start;}
+.oak h1.headline .line-safely span{font-size:clamp(30px,7vw,92px);color:var(--blue);animation-delay:.55s;}
 @keyframes oakReveal{to{transform:translateY(0);opacity:1;}}
+@media (max-width:900px){.oak h1.headline{flex-direction:column;gap:8px;}.oak h1.headline .line-safely span{font-size:clamp(28px,9vw,64px);}}
 
 .oak .hero-sub{font-size:20px;line-height:1.55;color:var(--gray);max-width:36rem;margin:0 0 40px;font-weight:500;opacity:0;animation:oakFadeUp .7s ease forwards;animation-delay:.55s;}
 .oak .hero-sub b{color:var(--black);}
