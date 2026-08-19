@@ -672,7 +672,7 @@ const CSS = `
   --display:"Archivo Black","Helvetica Neue",Arial,sans-serif;
   --body:"Inter","Helvetica Neue",Arial,sans-serif;
   background:var(--white);color:var(--black);font-family:var(--body);font-weight:400;
-  -webkit-font-smoothing:antialiased;overflow-x:hidden;padding-top:88px;
+  -webkit-font-smoothing:antialiased;overflow-x:hidden;padding-top:76px;
 }
 .oak *{box-sizing:border-box;}
 .oak a{color:inherit;text-decoration:none;}
