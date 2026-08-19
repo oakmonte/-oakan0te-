@@ -292,7 +292,7 @@ function OakmonteLanding() {
                 <span>Share your style.</span>
               </span>
               <span className="line">
-                <span>Never get burned.</span>
+                <span>{"\n"}</span>
               </span>
             </h1>
 
