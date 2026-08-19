@@ -41,12 +41,18 @@ function AfterShotLayout() {
     mediaRef.current = next;
     setMediaState((prev) => {
       if (prev && prev.url !== next.url) URL.revokeObjectURL(prev.url);
+      // The poster is a second object URL living on the same value; replacing the
+      // media without it leaks one blob per re-export.
+      if (prev?.poster && prev.poster.url !== next.poster?.url) {
+        URL.revokeObjectURL(prev.poster.url);
+      }
       return next;
     });
   }, []);
 
   const discard = useCallback(() => {
     if (media) URL.revokeObjectURL(media.url);
+    if (media?.poster) URL.revokeObjectURL(media.poster.url);
     navigate({ to: "/create", replace: true });
   }, [media, navigate]);
 

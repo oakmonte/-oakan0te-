@@ -52,8 +52,8 @@ import { Route as ApiShipbubblePingRouteImport } from './routes/api.shipbubble.p
 import { Route as ApiShopifyCallbackRouteImport } from './routes/api.shopify.callback'
 import { Route as ApiShopifyInstallRouteImport } from './routes/api.shopify.install'
 import { Route as CreateAfterShotIndexRouteImport } from './routes/create.after-shot.index'
-import { Route as CreateAfterShotEditRouteImport } from './routes/create.after-shot.edit'
 import { Route as CreateAfterShotFiltersRouteImport } from './routes/create.after-shot.filters'
+import { Route as CreateAfterShotStudioRouteImport } from './routes/create.after-shot.studio'
 import { Route as StoreCollectionsNewRouteImport } from './routes/store.collections_.new'
 import { Route as StoreProductsNewRouteImport } from './routes/store.products_.new'
 import { Route as StoreProductsNewcomerRouteImport } from './routes/store.products_.newcomer'
@@ -273,14 +273,14 @@ const CreateAfterShotIndexRoute = CreateAfterShotIndexRouteImport.update({
   path: '/',
   getParentRoute: () => CreateAfterShotRoute,
 } as any)
-const CreateAfterShotEditRoute = CreateAfterShotEditRouteImport.update({
-  id: '/edit',
-  path: '/edit',
-  getParentRoute: () => CreateAfterShotRoute,
-} as any)
 const CreateAfterShotFiltersRoute = CreateAfterShotFiltersRouteImport.update({
   id: '/filters',
   path: '/filters',
+  getParentRoute: () => CreateAfterShotRoute,
+} as any)
+const CreateAfterShotStudioRoute = CreateAfterShotStudioRouteImport.update({
+  id: '/studio',
+  path: '/studio',
   getParentRoute: () => CreateAfterShotRoute,
 } as any)
 const StoreCollectionsNewRoute = StoreCollectionsNewRouteImport.update({
@@ -342,8 +342,8 @@ export interface FileRoutesByFullPath {
   '/api/shipbubble/ping': typeof ApiShipbubblePingRoute
   '/api/shopify/callback': typeof ApiShopifyCallbackRoute
   '/api/shopify/install': typeof ApiShopifyInstallRoute
-  '/create/after-shot/edit': typeof CreateAfterShotEditRoute
   '/create/after-shot/filters': typeof CreateAfterShotFiltersRoute
+  '/create/after-shot/studio': typeof CreateAfterShotStudioRoute
   '/store/collections/new': typeof StoreCollectionsNewRoute
   '/store/products/new': typeof StoreProductsNewRoute
   '/store/products/newcomer': typeof StoreProductsNewcomerRoute
@@ -389,8 +389,8 @@ export interface FileRoutesByTo {
   '/api/shipbubble/ping': typeof ApiShipbubblePingRoute
   '/api/shopify/callback': typeof ApiShopifyCallbackRoute
   '/api/shopify/install': typeof ApiShopifyInstallRoute
-  '/create/after-shot/edit': typeof CreateAfterShotEditRoute
   '/create/after-shot/filters': typeof CreateAfterShotFiltersRoute
+  '/create/after-shot/studio': typeof CreateAfterShotStudioRoute
   '/store/collections/new': typeof StoreCollectionsNewRoute
   '/store/products/new': typeof StoreProductsNewRoute
   '/store/products/newcomer': typeof StoreProductsNewcomerRoute
@@ -440,8 +440,8 @@ export interface FileRoutesById {
   '/api/shipbubble/ping': typeof ApiShipbubblePingRoute
   '/api/shopify/callback': typeof ApiShopifyCallbackRoute
   '/api/shopify/install': typeof ApiShopifyInstallRoute
-  '/create/after-shot/edit': typeof CreateAfterShotEditRoute
   '/create/after-shot/filters': typeof CreateAfterShotFiltersRoute
+  '/create/after-shot/studio': typeof CreateAfterShotStudioRoute
   '/store/collections_/new': typeof StoreCollectionsNewRoute
   '/store/products_/new': typeof StoreProductsNewRoute
   '/store/products_/newcomer': typeof StoreProductsNewcomerRoute
@@ -492,8 +492,8 @@ export interface FileRouteTypes {
     | '/api/shipbubble/ping'
     | '/api/shopify/callback'
     | '/api/shopify/install'
-    | '/create/after-shot/edit'
     | '/create/after-shot/filters'
+    | '/create/after-shot/studio'
     | '/store/collections/new'
     | '/store/products/new'
     | '/store/products/newcomer'
@@ -539,8 +539,8 @@ export interface FileRouteTypes {
     | '/api/shipbubble/ping'
     | '/api/shopify/callback'
     | '/api/shopify/install'
-    | '/create/after-shot/edit'
     | '/create/after-shot/filters'
+    | '/create/after-shot/studio'
     | '/store/collections/new'
     | '/store/products/new'
     | '/store/products/newcomer'
@@ -589,8 +589,8 @@ export interface FileRouteTypes {
     | '/api/shipbubble/ping'
     | '/api/shopify/callback'
     | '/api/shopify/install'
-    | '/create/after-shot/edit'
     | '/create/after-shot/filters'
+    | '/create/after-shot/studio'
     | '/store/collections_/new'
     | '/store/products_/new'
     | '/store/products_/newcomer'
@@ -934,18 +934,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CreateAfterShotIndexRouteImport
       parentRoute: typeof CreateAfterShotRoute
     }
-    '/create/after-shot/edit': {
-      id: '/create/after-shot/edit'
-      path: '/edit'
-      fullPath: '/create/after-shot/edit'
-      preLoaderRoute: typeof CreateAfterShotEditRouteImport
-      parentRoute: typeof CreateAfterShotRoute
-    }
     '/create/after-shot/filters': {
       id: '/create/after-shot/filters'
       path: '/filters'
       fullPath: '/create/after-shot/filters'
       preLoaderRoute: typeof CreateAfterShotFiltersRouteImport
+      parentRoute: typeof CreateAfterShotRoute
+    }
+    '/create/after-shot/studio': {
+      id: '/create/after-shot/studio'
+      path: '/studio'
+      fullPath: '/create/after-shot/studio'
+      preLoaderRoute: typeof CreateAfterShotStudioRouteImport
       parentRoute: typeof CreateAfterShotRoute
     }
     '/store/collections_/new': {
@@ -973,14 +973,14 @@ declare module '@tanstack/react-router' {
 }
 
 interface CreateAfterShotRouteChildren {
-  CreateAfterShotEditRoute: typeof CreateAfterShotEditRoute
   CreateAfterShotFiltersRoute: typeof CreateAfterShotFiltersRoute
+  CreateAfterShotStudioRoute: typeof CreateAfterShotStudioRoute
   CreateAfterShotIndexRoute: typeof CreateAfterShotIndexRoute
 }
 
 const CreateAfterShotRouteChildren: CreateAfterShotRouteChildren = {
-  CreateAfterShotEditRoute: CreateAfterShotEditRoute,
   CreateAfterShotFiltersRoute: CreateAfterShotFiltersRoute,
+  CreateAfterShotStudioRoute: CreateAfterShotStudioRoute,
   CreateAfterShotIndexRoute: CreateAfterShotIndexRoute,
 }
 

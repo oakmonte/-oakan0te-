@@ -3,7 +3,15 @@
 // client-side route navigation never reloads the page, a plain module variable
 // survives the trip fine. Known limitation: a hard refresh on /create/edit loses
 // this — that route falls back to /create if nothing's pending.
-export type CapturedMedia = { type: "photo" | "video"; blob: Blob; url: string };
+export type CapturedMedia = {
+  type: "photo" | "video";
+  blob: Blob;
+  url: string;
+  /** Chosen listing thumbnail, set by the studio's Cover tool. A video has no
+   *  single obvious still, and the marketplace needs one — so whoever composes
+   *  the post reads this instead of grabbing frame zero. */
+  poster?: { blob: Blob; url: string };
+};
 
 let pending: CapturedMedia | null = null;
 

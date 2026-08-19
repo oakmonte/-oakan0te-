@@ -36,6 +36,13 @@ async function probeVideo(blob: Blob): Promise<{
   };
 }
 
+async function probeAudio(blob: Blob): Promise<{ duration: number }> {
+  const input = new Input({ source: new BlobSource(blob), formats: ALL_FORMATS });
+  const track = await input.getPrimaryAudioTrack();
+  if (!track) throw new Error("That file has no audio track");
+  return { duration: await input.computeDuration() };
+}
+
 async function probeImage(url: string): Promise<{ width: number; height: number }> {
   const img = new Image();
   await new Promise<void>((resolve, reject) => {
@@ -63,6 +70,20 @@ export async function loadSource(blob: Blob, name: string): Promise<StudioSource
         name,
       };
     }
+    if (blob.type.startsWith("audio/")) {
+      const probe = await probeAudio(blob);
+      return {
+        id: uid("src"),
+        kind: "audio",
+        blob,
+        url,
+        width: 0,
+        height: 0,
+        hasAudio: true,
+        name,
+        ...probe,
+      };
+    }
     const probe = await probeVideo(blob);
     return { id: uid("src"), kind: "video", blob, url, name, ...probe };
   } catch (err) {
@@ -75,6 +96,8 @@ export async function loadSource(blob: Blob, name: string): Promise<StudioSource
 
 /** Files the gallery picker is allowed to hand back. */
 export const STUDIO_ACCEPT = "video/*,image/*";
+/** Files the Sound tool accepts. */
+export const STUDIO_AUDIO_ACCEPT = "audio/*";
 
 export function fileLabel(file: File): string {
   const base = file.name.replace(/\.[^.]+$/, "");

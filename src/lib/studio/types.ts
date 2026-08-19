@@ -18,7 +18,7 @@ export type StudioSourceId = string;
  *  many clips reference it. */
 export type StudioSource = {
   id: StudioSourceId;
-  kind: "video" | "image";
+  kind: "video" | "image" | "audio";
   blob: Blob;
   /** Object URL. Owned by the source registry, revoked when the studio unmounts. */
   url: string;
@@ -156,6 +156,23 @@ export function audioDuration(a: AudioClip): number {
  *  Layer union is untouched — a TimedLayer[] is assignable to Layer[], so
  *  LayerOverlay and layer-bake.ts both take these unchanged. */
 export type TimedLayer = Layer & { startTime: number; endTime: number };
+
+/** Everything a studio caption needs except its id, text and timing. Centred and
+ *  sized in the same fractional units the after-shot layer system uses, so a
+ *  caption placed here bakes identically through layer-bake.ts. */
+export const TEXT_DEFAULTS = {
+  x: 0.5,
+  y: 0.72,
+  scale: 1,
+  rotation: 0,
+  zIndex: 0,
+  font: "'SF Pro', system-ui, sans-serif",
+  color: "#FFFFFF",
+  fontSize: 0.062,
+  align: "center" as const,
+  boxColor: null as string | null,
+  fontWeight: 700,
+};
 
 /** Oakmonte's own overlay: a shoppable tag pinned to the frame for a stretch of
  *  the video. Deliberately NOT a Layer subtype — it is baked by the studio's own

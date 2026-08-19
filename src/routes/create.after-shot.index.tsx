@@ -354,8 +354,8 @@ function AfterShotIndexPage() {
           >
             {media.type === "video" && (
               <button
-                onClick={() => navigate({ to: "/create/after-shot/edit" })}
-                aria-label="Trim video"
+                onClick={() => navigate({ to: "/create/after-shot/studio" })}
+                aria-label="Open video studio"
                 className="flex items-center gap-2 opacity-90"
               >
                 <TrimIcon size={24} />

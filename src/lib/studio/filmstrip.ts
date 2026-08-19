@@ -33,6 +33,7 @@ function canvasToDataUrl(canvas: HTMLCanvasElement | OffscreenCanvas): string | 
 
 async function extract(source: StudioSource): Promise<FilmstripFrame[]> {
   if (source.kind === "image") return [{ time: 0, url: source.url }];
+  if (source.kind === "audio") return [];
 
   const input = new Input({ source: new BlobSource(source.blob), formats: ALL_FORMATS });
   const track = await input.getPrimaryVideoTrack();
