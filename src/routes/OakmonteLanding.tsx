@@ -743,6 +743,8 @@ const CSS = `
 .oak h1.headline .line:nth-child(1) span{animation-delay:.05s;}
 .oak h1.headline .line:nth-child(2) span{animation-delay:.2s;}
 .oak h1.headline .line:nth-child(3) span{animation-delay:.35s;color:var(--blue);}
+.oak h1.headline .line.line-safely span{display:inline-block;font-size:clamp(32px,8vw,100px);color:var(--blue);animation-delay:.55s;}
+.oak h1.headline .line.line-safely{margin-top:8px;}
 @keyframes oakReveal{to{transform:translateY(0);opacity:1;}}
 
 .oak .hero-sub{font-size:20px;line-height:1.55;color:var(--gray);max-width:36rem;margin:0 0 40px;font-weight:500;opacity:0;animation:oakFadeUp .7s ease forwards;animation-delay:.55s;}
