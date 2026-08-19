@@ -291,8 +291,8 @@ function OakmonteLanding() {
               <span className="line">
                 <span>Share your style.</span>
               </span>
-              <span className="line">
-                <span>{"\n"}</span>
+              <span className="line line-safely">
+                <span className="safely">SAFELY</span>
               </span>
             </h1>
 
