@@ -256,9 +256,20 @@ export function videoDuration(clips: VideoClip[]): number {
   return clips.reduce((sum, c) => sum + clipDuration(c), 0);
 }
 
-/** The full timeline length: the video track, or a trailing music clip if it
- *  runs past the last frame. */
+/** How long the finished video is: the PICTURE track, full stop.
+ *
+ *  Audio is deliberately not allowed to extend it. Dropping a three-minute song
+ *  onto a fifteen-second try-on used to produce a three-minute export - fifteen
+ *  seconds of video followed by two and a half minutes of a frozen last frame.
+ *  Music running past the last frame is simply cut off, which is what every
+ *  editor does and what everyone expects. The timeline still DRAWS the overhang
+ *  (see timelineExtent) so you can see it and drag it back. */
 export function projectDuration(project: StudioProject): number {
+  return videoDuration(project.clips);
+}
+
+/** How far the timeline scrolls - picture plus any audio hanging off the end. */
+export function timelineExtent(project: StudioProject): number {
   let end = videoDuration(project.clips);
   for (const a of project.audio) {
     const stop = a.timelineStart + audioDuration(a);
@@ -308,10 +319,16 @@ export function uid(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}-${idCounter.toString(36)}`;
 }
 
-/** mm:ss for the readout under the preview, matching the reference's 00:00/00:01. */
-export function formatTimecode(seconds: number): string {
-  const total = Math.max(0, Math.floor(seconds));
-  const m = Math.floor(total / 60);
-  const s = total % 60;
-  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+/** mm:ss.t for the readout under the preview.
+ *
+ *  The tenth is not decoration: this editor asks you to cut on a beat and to
+ *  place a 0.7s ramp, and a readout that floors to whole seconds cannot resolve
+ *  either - you would be aiming at a number that does not move for 30 frames. */
+export function formatTimecode(seconds: number, tenths = true): string {
+  const clamped = Math.max(0, seconds);
+  const m = Math.floor(clamped / 60);
+  const s = Math.floor(clamped % 60);
+  const base = `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  if (!tenths) return base;
+  return `${base}.${Math.floor((clamped % 1) * 10)}`;
 }

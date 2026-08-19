@@ -5,6 +5,7 @@ import {
   PIN_DOT_RADIUS,
   PIN_FONT_STACK,
   PIN_GAP,
+  PIN_LINE_HEIGHT,
   PIN_PILL_HEIGHT,
   PIN_PILL_PAD_X,
   PIN_PILL_RADIUS,
@@ -18,6 +19,16 @@ import type { ProductPin } from "@/lib/studio/types";
 // of frame width that drawPins() bakes with, so what you drag into place is
 // what ends up in the file — the after-shot layer system's convention, applied
 // to a marketplace object.
+//
+// Two things this layer must NOT do:
+//
+// 1. Cover the frame. It sits above LayerOverlay, so an `absolute inset-0` that
+//    accepts pointers made captions unselectable and killed tap-to-deselect the
+//    moment a single tag was on screen — two features silently cancelling each
+//    other out. The container is inert; only the pins themselves take input.
+// 2. Rely on the container to follow the drag. Pointer capture goes on the pin,
+//    so sliding a tag off the edge of the preview (or off the screen) still
+//    delivers move and up events instead of stranding the gesture mid-drag.
 
 type Props = {
   pins: ProductPin[];
@@ -28,6 +39,8 @@ type Props = {
   onUpdate: (id: string, patch: Partial<ProductPin>) => void;
 };
 
+type Drag = { id: string; startX: number; startY: number; pinX: number; pinY: number };
+
 export default function ProductPinOverlay({
   pins,
   time,
@@ -36,17 +49,12 @@ export default function ProductPinOverlay({
   onSelect,
   onUpdate,
 }: Props) {
-  const dragRef = useRef<{
-    id: string;
-    startX: number;
-    startY: number;
-    pinX: number;
-    pinY: number;
-  } | null>(null);
+  const dragRef = useRef<Drag | null>(null);
 
   const startDrag = useCallback(
     (pin: ProductPin) => (e: ReactPointerEvent) => {
       e.stopPropagation();
+      (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
       onSelect(pin.id);
       dragRef.current = {
         id: pin.id,
@@ -67,13 +75,14 @@ export default function ProductPinOverlay({
       const x = Math.min(0.94, Math.max(0.06, drag.pinX + (e.clientX - drag.startX) / rect.width));
       const y = Math.min(0.94, Math.max(0.06, drag.pinY + (e.clientY - drag.startY) / rect.height));
       // Flip the pill to whichever side has room, so dragging a tag to the right
-      // edge doesn't push it off frame.
+      // edge doesn't push its label off frame.
       onUpdate(drag.id, { x, y, side: x > 0.55 ? "left" : "right" });
     },
     [containerRef, onUpdate],
   );
 
-  const endDrag = useCallback(() => {
+  const endDrag = useCallback((e: ReactPointerEvent) => {
+    (e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId);
     dragRef.current = null;
   }, []);
 
@@ -89,14 +98,7 @@ export default function ProductPinOverlay({
   const gap = PIN_GAP * boxWidth;
 
   return (
-    <div
-      className="absolute inset-0"
-      style={{ zIndex: 12 }}
-      onPointerMove={handleMove}
-      onPointerUp={endDrag}
-      onPointerCancel={endDrag}
-      onPointerLeave={endDrag}
-    >
+    <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 12 }}>
       {visible.map((pin) => {
         const appear = pinAppearance(pin, time);
         const isSelected = pin.id === selectedId;
@@ -104,7 +106,10 @@ export default function ProductPinOverlay({
           <div
             key={pin.id}
             onPointerDown={startDrag(pin)}
-            className="absolute"
+            onPointerMove={handleMove}
+            onPointerUp={endDrag}
+            onPointerCancel={endDrag}
+            className="absolute pointer-events-auto"
             style={{
               left: `${pin.x * 100}%`,
               top: `${pin.y * 100}%`,
@@ -142,7 +147,7 @@ export default function ProductPinOverlay({
                   fontSize: PIN_TITLE_SIZE * boxWidth,
                   fontWeight: 600,
                   color: "#fff",
-                  lineHeight: 1.15,
+                  lineHeight: PIN_LINE_HEIGHT,
                 }}
               >
                 {pin.title}
@@ -153,7 +158,7 @@ export default function ProductPinOverlay({
                     fontSize: PIN_PRICE_SIZE * boxWidth,
                     fontWeight: 500,
                     color: "rgba(255,255,255,0.72)",
-                    lineHeight: 1.15,
+                    lineHeight: PIN_LINE_HEIGHT,
                   }}
                 >
                   {pin.price}

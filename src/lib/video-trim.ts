@@ -1,4 +1,6 @@
-// Trim logic for the after-shot edit screen. Wraps mediabunny's Conversion
+// Lossless trim. The studio's exporter falls back to this whenever the only edit
+// on the timeline is a trim, because a remux beats anything a re-encode can do.
+// Wraps mediabunny's Conversion
 // API (lossless remux by default — only transcodes if the container/codec
 // combo forces it) and exposes the track's actual keyframe positions so the
 // UI can snap trim handles to cuts that don't force a re-encode.

@@ -33,7 +33,8 @@ import { PinPanel } from "@/components/studio/panels/PinPanel";
 import { useStudioProject } from "@/lib/studio/project";
 import { usePlayback } from "@/lib/studio/use-playback";
 import { exportCover, exportTimeline } from "@/lib/studio/export";
-import { cachedBeats, decodeSourceAudio, estimateBpm } from "@/lib/studio/audio";
+import { cachedBeats, clearAudioCache, decodeSourceAudio, estimateBpm } from "@/lib/studio/audio";
+import { clearFilmstripCache } from "@/lib/studio/filmstrip";
 import {
   DEFAULT_IMAGE_DURATION,
   STUDIO_ACCEPT,
@@ -47,6 +48,7 @@ import {
   NEUTRAL_ADJUSTMENTS,
   NO_TRANSITION,
   TEXT_DEFAULTS,
+  clipDuration,
   clipStarts,
   formatTimecode,
   projectDuration,
@@ -221,6 +223,14 @@ function StudioEditor({
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
+  // "No beats inside this clip" is worth saying once, not worth parking over the
+  // toolbar until something unrelated happens to clear it.
+  useEffect(() => {
+    if (!error) return;
+    const timer = window.setTimeout(() => setError(null), 4000);
+    return () => window.clearTimeout(timer);
+  }, [error]);
+
   const clipInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
 
@@ -230,20 +240,39 @@ function StudioEditor({
   const duration = projectDuration(project);
   const starts = useMemo(() => clipStarts(project.clips), [project.clips]);
 
-  // Every object URL the studio minted is revoked on the way out. The blob
-  // handed back to the after-shot screen gets its own fresh URL, so this can't
-  // pull the rug from under it.
+  // Every object URL the studio minted is revoked on the way out. The blob handed
+  // back to the after-shot screen gets its own fresh URL, so this can't pull the
+  // rug from under it.
+  //
+  // Deferred by a tick on purpose. StrictMode simulates a mount → unmount →
+  // mount in dev, so a plain cleanup revokes these BETWEEN the two mounts and the
+  // remounted editor is left pointing at dead blob URLs — every <video> stuck at
+  // readyState 0 and the filmstrip empty. The remount re-runs this effect and
+  // flips mounted back to true before the timeout fires; a real unmount doesn't.
   const sourcesRef = useRef(sources);
   sourcesRef.current = sources;
   const coverUrlRef = useRef<string | null>(null);
   coverUrlRef.current = coverUrl;
-  useEffect(
-    () => () => {
-      for (const source of Object.values(sourcesRef.current)) URL.revokeObjectURL(source.url);
-      if (coverUrlRef.current) URL.revokeObjectURL(coverUrlRef.current);
-    },
-    [],
-  );
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      const urls = Object.values(sourcesRef.current).map((s) => s.url);
+      if (coverUrlRef.current) urls.push(coverUrlRef.current);
+      setTimeout(() => {
+        if (mountedRef.current) return;
+        for (const url of urls) URL.revokeObjectURL(url);
+        // These are module-level Maps, so they outlive the route unless someone
+        // empties them. A decoded 60s stereo AudioBuffer is ~23MB and the
+        // filmstrip holds dozens of base64 frames per source — enough, across a
+        // few visits to the studio, to get the tab killed on a phone rather
+        // than merely slowed down.
+        clearAudioCache();
+        clearFilmstripCache();
+      }, 0);
+    };
+  }, []);
 
   // ---- selection helpers ---------------------------------------------------
 
@@ -302,9 +331,9 @@ function StudioEditor({
       const source = sources[clip.sourceId];
       const limit = source ? source.duration : Infinity;
       if (edge === "in") {
-        dispatch({ type: "trimClip", id: clipId, inPoint: Math.max(0, sourceTime) });
+        dispatch({ type: "trimClip", id: clipId, inPoint: Math.max(0, sourceTime), limit });
       } else {
-        dispatch({ type: "trimClip", id: clipId, outPoint: Math.min(limit, sourceTime) });
+        dispatch({ type: "trimClip", id: clipId, outPoint: sourceTime, limit });
       }
     },
     [dispatch, project.clips, sources],
@@ -313,6 +342,41 @@ function StudioEditor({
   const handleReorder = useCallback(
     (clipId: string, toIndex: number) => dispatch({ type: "reorderClip", id: clipId, toIndex }),
     [dispatch],
+  );
+
+  const handleMoveAudio = useCallback(
+    (audioId: string, timelineStart: number) =>
+      dispatch({ type: "updateAudio", id: audioId, patch: { timelineStart } }),
+    [dispatch],
+  );
+
+  const handleTrimAudio = useCallback(
+    (audioId: string, edge: "in" | "out", sourceTime: number) => {
+      const audio = project.audio.find((a) => a.id === audioId);
+      if (!audio) return;
+      const source = sources[audio.sourceId];
+      const limit = source ? source.duration : Infinity;
+      if (edge === "in") {
+        const inPoint = Math.min(Math.max(0, sourceTime), audio.outPoint - 0.1);
+        // Trimming the head of a floating clip must not slide the rest of it:
+        // the sound that was under the playhead has to stay under the playhead.
+        dispatch({
+          type: "updateAudio",
+          id: audioId,
+          patch: {
+            inPoint,
+            timelineStart: audio.timelineStart + (inPoint - audio.inPoint) / audio.speed,
+          },
+        });
+      } else {
+        dispatch({
+          type: "updateAudio",
+          id: audioId,
+          patch: { outPoint: Math.max(audio.inPoint + 0.1, Math.min(limit, sourceTime)) },
+        });
+      }
+    },
+    [dispatch, project.audio, sources],
   );
 
   const handleAddClips = useCallback(() => clipInputRef.current?.click(), []);
@@ -508,6 +572,23 @@ function StudioEditor({
     }
   }, [coverBlob, navigate, playback, project, setMedia, sources]);
 
+  // Leaving throws the whole edit away: the project is in memory only, so a
+  // mis-tapped chevron on a six-clip cut is unrecoverable. Anything more than
+  // the clip you walked in with earns a confirmation.
+  const [confirmBack, setConfirmBack] = useState(false);
+  const hasWork =
+    project.clips.length > 1 ||
+    project.audio.length > 0 ||
+    project.layers.length > 0 ||
+    project.pins.length > 0 ||
+    canUndo;
+
+  const handleBack = useCallback(() => {
+    playback.pause();
+    if (hasWork) setConfirmBack(true);
+    else navigate({ to: "/create/after-shot" });
+  }, [hasWork, navigate, playback]);
+
   // ---- toolbar routing ----------------------------------------------------
 
   const handlePrimary = useCallback(
@@ -536,6 +617,12 @@ function StudioEditor({
         case "separate":
           dispatch({ type: "detachAudio", id: clip.id });
           break;
+        case "moveLeft":
+          dispatch({ type: "moveClip", id: clip.id, delta: -1 });
+          break;
+        case "moveRight":
+          dispatch({ type: "moveClip", id: clip.id, delta: 1 });
+          break;
         case "duplicate":
           dispatch({ type: "duplicateClip", id: clip.id });
           break;
@@ -543,11 +630,22 @@ function StudioEditor({
           dispatch({ type: "deleteClip", id: clip.id });
           setSelection(null);
           break;
-        default:
+        default: {
+          // Grading a clip you cannot see is guesswork, so step into it first.
+          // Selecting doesn't move the playhead (that would fight scrubbing),
+          // but opening a panel scoped to one clip has to put it on screen.
+          const index = project.clips.findIndex((c) => c.id === clip.id);
+          if (index >= 0) {
+            const start = starts[index];
+            const end = start + clipDuration(clip);
+            const now = playback.timeRef.current;
+            if (now < start || now >= end) playback.seek(start + Math.min(0.05, (end - start) / 2));
+          }
           setPanel(tool);
+        }
       }
     },
-    [dispatch, playback.timeRef, selectedClip],
+    [dispatch, playback, project.clips, selectedClip, starts],
   );
 
   // ---- render -------------------------------------------------------------
@@ -755,6 +853,10 @@ function StudioEditor({
           canDetach={canDetach}
           canDelete={project.clips.length > 1}
           isFirstClip={project.clips[0]?.id === selection.id}
+          canMoveLeft={project.clips.findIndex((c) => c.id === selection.id) > 0}
+          canMoveRight={
+            project.clips.findIndex((c) => c.id === selection.id) < project.clips.length - 1
+          }
         />
       );
     }
@@ -771,7 +873,7 @@ function StudioEditor({
         style={{ paddingTop: "calc(env(safe-area-inset-top) + 10px)", paddingBottom: 8 }}
       >
         <button
-          onClick={() => navigate({ to: "/create/after-shot" })}
+          onClick={handleBack}
           aria-label="Back"
           className="flex h-9 w-9 items-center justify-center rounded-full transition-transform active:scale-90"
           style={{ background: "rgba(255,255,255,0.10)" }}
@@ -801,6 +903,7 @@ function StudioEditor({
         inheritedLayers={inheritedLayers}
         showGuides={showGuides}
         filterPreviewId={filterPreviewId}
+        gradeClipId={targetClip?.id ?? null}
       />
 
       {/* Transport row — timecode, play, history, fullscreen. */}
@@ -860,6 +963,8 @@ function StudioEditor({
             beats={beatsOnTimeline}
             onTrim={handleTrim}
             onReorder={handleReorder}
+            onMoveAudio={handleMoveAudio}
+            onTrimAudio={handleTrimAudio}
             onAddClips={handleAddClips}
             onToggleMasterMute={handleToggleMasterMute}
             onOpenTransition={handleOpenTransition}
@@ -881,6 +986,30 @@ function StudioEditor({
       {error && (
         <div className="pointer-events-none absolute inset-x-6 bottom-28 rounded-xl bg-black/85 px-4 py-3">
           <p className="text-center text-[12px] text-red-300">{error}</p>
+        </div>
+      )}
+
+      {confirmBack && (
+        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-black/85 px-8">
+          <p className="text-center text-[13px] text-white/80">
+            Leave the studio? This edit isn&rsquo;t saved anywhere.
+          </p>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setConfirmBack(false)}
+              className="rounded-full px-5 py-2 text-[13px] font-semibold"
+              style={{ background: "rgba(255,255,255,0.12)" }}
+            >
+              Keep editing
+            </button>
+            <button
+              onClick={() => navigate({ to: "/create/after-shot" })}
+              className="rounded-full px-5 py-2 text-[13px] font-semibold"
+              style={{ background: "#fff", color: "#000" }}
+            >
+              Discard
+            </button>
+          </div>
         </div>
       )}
 

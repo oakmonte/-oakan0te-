@@ -1,4 +1,6 @@
 import {
+  ChevronLeft,
+  ChevronRight,
   Copy,
   Crop,
   Gauge,
@@ -7,6 +9,7 @@ import {
   Scissors,
   SlidersHorizontal,
   Sparkles,
+  SquarePen,
   Tag,
   Trash2,
   Type,
@@ -30,6 +33,8 @@ export type ClipTool =
   | "filters"
   | "adjust"
   | "transition"
+  | "moveLeft"
+  | "moveRight"
   | "duplicate"
   | "delete";
 
@@ -38,7 +43,10 @@ const ROW = "flex items-center gap-2 overflow-x-auto px-3 py-2 [&::-webkit-scrol
 export function PrimaryToolbar({ onPick }: { onPick: (tool: PrimaryTool) => void }) {
   return (
     <div className={ROW}>
-      <ToolButton label="Edit" icon={<Scissors size={18} />} onClick={() => onPick("edit")} />
+      {/* Not scissors: Split further down the clip toolbar is the scissors, and
+          two different actions sharing one glyph is how people learn to distrust
+          a toolbar. */}
+      <ToolButton label="Edit" icon={<SquarePen size={18} />} onClick={() => onPick("edit")} />
       <ToolButton label="Sound" icon={<Music2 size={18} />} onClick={() => onPick("sound")} />
       <ToolButton label="Text" icon={<Type size={18} />} onClick={() => onPick("text")} />
       <ToolButton label="Tags" icon={<Tag size={18} />} onClick={() => onPick("tags")} />
@@ -53,11 +61,15 @@ export function ClipToolbar({
   canDetach,
   canDelete,
   isFirstClip,
+  canMoveLeft,
+  canMoveRight,
 }: {
   onPick: (tool: ClipTool) => void;
   canDetach: boolean;
   canDelete: boolean;
   isFirstClip: boolean;
+  canMoveLeft: boolean;
+  canMoveRight: boolean;
 }) {
   return (
     <div className={ROW}>
@@ -81,6 +93,21 @@ export function ClipToolbar({
         icon={<Sparkles size={18} />}
         onClick={() => onPick("transition")}
         disabled={isFirstClip}
+      />
+      {/* Reorder also exists as a long-press drag on the chip, but a gesture
+          with no affordance is a gesture nobody finds — and on touch it has to
+          compete with the scroller it lives inside. These always work. */}
+      <ToolButton
+        label="Move"
+        icon={<ChevronLeft size={18} />}
+        onClick={() => onPick("moveLeft")}
+        disabled={!canMoveLeft}
+      />
+      <ToolButton
+        label="Move"
+        icon={<ChevronRight size={18} />}
+        onClick={() => onPick("moveRight")}
+        disabled={!canMoveRight}
       />
       <ToolButton label="Copy" icon={<Copy size={18} />} onClick={() => onPick("duplicate")} />
       <ToolButton

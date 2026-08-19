@@ -25,7 +25,12 @@ import {
   getFirstEncodableVideoCodec,
   getFirstEncodableAudioCodec,
 } from "mediabunny";
-import { compileFilter, applyCompiledFilter, IDENTITY_FILTER } from "@/lib/canvas-filter";
+import {
+  compileFilter,
+  applyCompiledFilter,
+  IDENTITY_FILTER,
+  type CompiledFilter,
+} from "@/lib/canvas-filter";
 import { drawLayers, preloadStickers } from "@/lib/layer-bake";
 import { trimVideo } from "@/lib/video-trim";
 import { combinedFilterCss } from "./adjustments";
@@ -55,9 +60,12 @@ import {
 export type ExportProgress = (ratio: number) => void;
 
 const OUTPUT_FPS = 30;
-// 720x1280 for a 9:16 edit. High enough for a feed, low enough that a phone
-// hardware encoder keeps up with a multi-clip timeline.
-const TARGET_LONG_EDGE = 1280;
+// 1080x1920 for a 9:16 edit — the standard for a social master, and what a phone
+// capture already is. outputSize() never upscales past the footage, so a smaller
+// source still exports at its own size; this is only a ceiling. It was 1280,
+// which quietly downscaled every 1080p capture: the seller's hero asset is the
+// last place to be saving encode time.
+const TARGET_LONG_EDGE = 1920;
 const MIN_LONG_EDGE = 480;
 
 const NEUTRAL_TRANSFORM: LayerTransform = { opacity: 1, scale: 1, offsetX: 0 };
@@ -188,42 +196,70 @@ function planFrames(project: StudioProject, duration: number) {
 
 type Ctx2D = CanvasRenderingContext2D;
 
-function makeCanvas(width: number, height: number): { canvas: HTMLCanvasElement; ctx: Ctx2D } {
+function makeCanvas(
+  width: number,
+  height: number,
+  readFrequently: boolean,
+): { canvas: HTMLCanvasElement; ctx: Ctx2D } {
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
-  // willReadFrequently because every graded frame goes through getImageData —
-  // without it the browser keeps the surface on the GPU and each read stalls.
-  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  // willReadFrequently only where a getImageData actually happens. Setting it on
+  // the canvas the encoder reads from is counterproductive: it pins the surface
+  // to the CPU, and every frame then has to be uploaded again for the encode.
+  const ctx = canvas.getContext("2d", readFrequently ? { willReadFrequently: true } : undefined);
   if (!ctx) throw new Error("Canvas 2D context unavailable");
   return { canvas, ctx };
 }
 
 /** Grades one clip's frame into a full-size canvas: black ground, the frame
  *  fitted, the colour matrix, then the vignette. The result is what both the
- *  simple path and the transition compositor draw from. */
+ *  simple path and the transition compositor draw from.
+ *
+ *  The compiled filter is passed in rather than derived here — it is constant
+ *  for the whole clip, and re-parsing the CSS string on every one of a thousand
+ *  frames is work for nothing. */
 function gradeInto(
   ctx: Ctx2D,
   width: number,
   height: number,
   clip: VideoClip,
+  compiled: CompiledFilter,
   image: CanvasImageSource | null,
   sourceW: number,
   sourceH: number,
   fitMode: StudioProject["fitMode"],
 ): void {
+  // Start transparent, not black. In "fit" mode the letterbox bars would
+  // otherwise be real black PIXELS by the time the colour matrix runs, and any
+  // filter with an offset (contrast, fade) lifts them to grey — while the
+  // preview's bars are the un-filtered background of the media box and stay
+  // black. The picture is composited over black AFTER grading instead, so both
+  // sides letterbox with the same untouched black.
   ctx.clearRect(0, 0, width, height);
-  ctx.fillStyle = "#000";
-  ctx.fillRect(0, 0, width, height);
   if (image) drawFitted(ctx, image, sourceW, sourceH, width, height, fitMode, NEUTRAL_TRANSFORM);
 
-  const compiled = compileFilter(combinedFilterCss(clip.filterId, clip.adjustments));
   if (compiled !== IDENTITY_FILTER) {
+    // applyCompiledFilter leaves alpha alone, so transparent bars stay
+    // transparent however far the matrix pushes their RGB.
     const frame = ctx.getImageData(0, 0, width, height);
     applyCompiledFilter(frame, compiled);
     ctx.putImageData(frame, 0, 0);
   }
+
+  ctx.save();
+  ctx.globalCompositeOperation = "destination-over";
+  ctx.fillStyle = "#000";
+  ctx.fillRect(0, 0, width, height);
+  ctx.restore();
+
+  // Vignette last, on top of the grade — matching the preview, where it is a
+  // sibling of the filtered media element rather than a child of it.
   drawVignette(ctx, width, height, clip.adjustments.vignette);
+}
+
+function compiledFor(clip: VideoClip): CompiledFilter {
+  return compileFilter(combinedFilterCss(clip.filterId, clip.adjustments));
 }
 
 async function loadImageElement(source: StudioSource): Promise<HTMLImageElement> {
@@ -313,6 +349,19 @@ async function mixAudio(
   if (scheduled.length === 0) return null;
 
   const offline = createOfflineContext(duration);
+
+  // A brickwall limiter on the master bus. Per-source volume goes to 200%, so a
+  // clip at full plus a music bed at full plus a voiceover sums well past 0dBFS
+  // and hard-clips into buzz. Threshold -1dB with a 20:1 ratio and no knee does
+  // nothing at all to a normal mix and simply refuses to let a loud one clip.
+  const limiter = offline.createDynamicsCompressor();
+  limiter.threshold.value = -1;
+  limiter.knee.value = 0;
+  limiter.ratio.value = 20;
+  limiter.attack.value = 0.003;
+  limiter.release.value = 0.25;
+  limiter.connect(offline.destination);
+
   for (const item of scheduled) {
     const node = offline.createBufferSource();
     node.buffer = item.buffer;
@@ -339,7 +388,7 @@ async function mixAudio(
     }
 
     node.connect(gain);
-    gain.connect(offline.destination);
+    gain.connect(limiter);
     node.start(start, item.offset);
     node.stop(end);
   }
@@ -382,8 +431,14 @@ export async function exportTimeline(
   });
   if (!videoCodec) throw new Error("No encodable video codec available on this device");
 
-  const { canvas: outCanvas, ctx: outCtx } = makeCanvas(width, height);
-  const { canvas: liveCanvas, ctx: liveCtx } = makeCanvas(width, height);
+  // Only pin the grading canvas to the CPU when something is actually graded.
+  // The pixel pass costs about 20ms a frame at 540x960, but the readback it
+  // forces on every drawImage from the decoder's GPU-backed canvas costs more
+  // than that again — so a timeline that is purely cuts, with no filter on any
+  // clip, must not pay for a pass it never runs.
+  const anyGraded = project.clips.some((c) => compiledFor(c) !== IDENTITY_FILTER);
+  const { canvas: outCanvas, ctx: outCtx } = makeCanvas(width, height, false);
+  const { canvas: liveCanvas, ctx: liveCtx } = makeCanvas(width, height, anyGraded);
 
   const canvasSource = new CanvasSource(outCanvas, { codec: videoCodec, quality: QUALITY_HIGH });
   muxer.addVideoTrack(canvasSource);
@@ -438,6 +493,8 @@ export async function exportTimeline(
   }
 
   const fitOption = project.fitMode === "fill" ? ("cover" as const) : ("contain" as const);
+  // Transparent letterboxing, so gradeInto can composite over black afterwards.
+  const sinkAlpha = project.fitMode === "fit";
 
   for (const key of needsFreeze) {
     const [indexText, at] = key.split(":");
@@ -447,14 +504,30 @@ export async function exportTimeline(
     const source = sources[clip.sourceId];
     if (!source) continue;
 
-    const { canvas, ctx } = makeCanvas(width, height);
+    const { canvas, ctx } = makeCanvas(width, height, true);
     if (source.kind === "image") {
       const img = images.get(source.id) ?? null;
-      gradeInto(ctx, width, height, clip, img, source.width, source.height, project.fitMode);
+      gradeInto(
+        ctx,
+        width,
+        height,
+        clip,
+        compiledFor(clip),
+        img,
+        source.width,
+        source.height,
+        project.fitMode,
+      );
     } else {
       const track = await getInput(source).getPrimaryVideoTrack();
       if (track) {
-        const sink = new CanvasSink(track, { width, height, fit: fitOption, poolSize: 1 });
+        const sink = new CanvasSink(track, {
+          width,
+          height,
+          fit: fitOption,
+          alpha: sinkAlpha,
+          poolSize: 1,
+        });
         // A hair inside the out point — asking for the exact boundary lands past
         // the last frame on most files and returns null.
         const at2 = at === "in" ? clip.inPoint : Math.max(clip.inPoint, clip.outPoint - 0.001);
@@ -464,6 +537,7 @@ export async function exportTimeline(
           width,
           height,
           clip,
+          compiledFor(clip),
           wrapped ? (wrapped.canvas as CanvasImageSource) : null,
           width,
           height,
@@ -548,16 +622,34 @@ export async function exportTimeline(
       const source = clip ? sources[clip.sourceId] : undefined;
       if (!clip || !source) continue;
 
+      const compiled = compiledFor(clip);
+
       if (source.kind === "image") {
         const img = images.get(source.id) ?? null;
-        gradeInto(liveCtx, width, height, clip, img, source.width, source.height, project.fitMode);
+        gradeInto(
+          liveCtx,
+          width,
+          height,
+          clip,
+          compiled,
+          img,
+          source.width,
+          source.height,
+          project.fitMode,
+        );
         for (let i = run.from; i <= run.to; i++) await composeAndEncode(frames[i]);
         continue;
       }
 
       const track = await getInput(source).getPrimaryVideoTrack();
       if (!track) continue;
-      const sink = new CanvasSink(track, { width, height, fit: fitOption, poolSize: 2 });
+      const sink = new CanvasSink(track, {
+        width,
+        height,
+        fit: fitOption,
+        alpha: sinkAlpha,
+        poolSize: 2,
+      });
       const times = frames.slice(run.from, run.to + 1).map((f) => f.liveSourceTime);
 
       let offset = 0;
@@ -574,6 +666,7 @@ export async function exportTimeline(
             width,
             height,
             clip,
+            compiled,
             wrapped.canvas as CanvasImageSource,
             width,
             height,
@@ -616,11 +709,21 @@ export async function exportCover(
   const source = sources[clip.sourceId];
   if (!source) throw new Error("Missing source for cover frame");
 
-  const { canvas, ctx } = makeCanvas(width, height);
+  const { canvas, ctx } = makeCanvas(width, height, true);
 
   if (source.kind === "image") {
     const img = await loadImageElement(source);
-    gradeInto(ctx, width, height, clip, img, source.width, source.height, project.fitMode);
+    gradeInto(
+      ctx,
+      width,
+      height,
+      clip,
+      compiledFor(clip),
+      img,
+      source.width,
+      source.height,
+      project.fitMode,
+    );
   } else {
     const input = new Input({ source: new BlobSource(source.blob), formats: ALL_FORMATS });
     const track = await input.getPrimaryVideoTrack();
@@ -629,6 +732,7 @@ export async function exportCover(
       width,
       height,
       fit: project.fitMode === "fill" ? "cover" : "contain",
+      alpha: project.fitMode === "fit",
       poolSize: 1,
     });
     const wrapped = await sink.getCanvas(resolved.sourceTime);
@@ -637,6 +741,7 @@ export async function exportCover(
       width,
       height,
       clip,
+      compiledFor(clip),
       wrapped ? (wrapped.canvas as CanvasImageSource) : null,
       width,
       height,

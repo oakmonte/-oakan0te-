@@ -13,7 +13,7 @@ import {
 } from "@/lib/after-shot-layers";
 
 // How a confirmed layer looks on screen. Shared by the after-shot edit screen
-// and the trim screen so a caption can't render one way on one and another way
+// and the studio so a caption can't render one way on one and another way
 // on the other — and every number it uses is the same constant layer-bake.ts
 // draws with, so the preview and the exported file agree too.
 export function useLayerRenderer(mediaBoxRef: React.RefObject<HTMLDivElement | null>) {

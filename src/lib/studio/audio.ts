@@ -16,6 +16,12 @@ function audioContext(): AudioContext {
   return sharedContext;
 }
 
+/** The same context, for preview gain routing (media-gain.ts). Sharing it is the
+ *  point — decoding and playback must not each hold one. */
+export function getAudioContext(): AudioContext {
+  return audioContext();
+}
+
 /** decodeAudioData is the fast path but only understands containers the browser
  *  itself can demux. Anything it refuses gets rebuilt from mediabunny's decoder,
  *  which is the same one the rest of the pipeline already relies on. */

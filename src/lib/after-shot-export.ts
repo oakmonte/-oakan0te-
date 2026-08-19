@@ -182,14 +182,30 @@ export async function exportVideo(
   }
 }
 
+/** Nothing to composite: no filter, no captions, no drawings, no stickers. */
+function isUnedited(filterCss: string, layers: Layer[]): boolean {
+  return (!filterCss || filterCss === "none") && layers.length === 0;
+}
+
 // What the Next button calls. Keeps the photo/video branch in one place so the
 // route doesn't have to know which encoder path applies.
+//
+// The early return matters more than it looks. Since the studio landed, a video
+// arriving here has usually ALREADY been encoded once by studio/export.ts, and
+// re-encoding it to apply nothing would cost the seller a second full
+// generation of compression on the one asset the listing is judged by. The
+// pipeline's rule is one pass from the untouched capture; when this screen adds
+// nothing, the honest number of passes is zero.
 export async function exportComposite(
   media: CapturedMedia,
   filterCss: string,
   layers: Layer[],
   onProgress?: ExportProgress,
 ): Promise<Blob> {
+  if (isUnedited(filterCss, layers)) {
+    onProgress?.(1);
+    return media.blob;
+  }
   return media.type === "photo"
     ? await exportPhoto(media.blob, filterCss, layers)
     : await exportVideo(media.blob, filterCss, layers, onProgress);

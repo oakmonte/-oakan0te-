@@ -232,6 +232,9 @@ export const PIN_PILL_PAD_X = 0.032;
 export const PIN_PILL_RADIUS = 0.0425;
 export const PIN_TITLE_SIZE = 0.036;
 export const PIN_PRICE_SIZE = 0.032;
+/** Shared with ProductPinOverlay's flex column so the baked text stack sits at
+ *  exactly the height the preview drew it. */
+export const PIN_LINE_HEIGHT = 1.15;
 export const PIN_BG = "rgba(0,0,0,0.72)";
 export const PIN_APPEAR_SECONDS = 0.28;
 export const PIN_FONT_STACK = "'SF Pro', system-ui, -apple-system, sans-serif";
@@ -313,17 +316,22 @@ export function drawPins(
     roundedRect(ctx, pillX, pillY, pillW, pillH, PIN_PILL_RADIUS * width * appear.scale);
     ctx.fill();
 
+    // Centre the stack the way the preview's flex column does, rather than at
+    // hand-tuned fractions of the pill — those put the baked title about 8% of
+    // the pill lower than it previewed.
     ctx.textBaseline = "middle";
     ctx.fillStyle = "#fff";
+    const titleLine = titleSize * PIN_LINE_HEIGHT;
+    const priceLine = priceSize * PIN_LINE_HEIGHT;
+    const stackH = pin.price ? titleLine + priceLine : titleLine;
+    const stackTop = pillY + (pillH - stackH) / 2;
+
+    ctx.font = `600 ${titleSize}px ${PIN_FONT_STACK}`;
+    ctx.fillText(pin.title, pillX + padX, stackTop + titleLine / 2);
     if (pin.price) {
-      ctx.font = `600 ${titleSize}px ${PIN_FONT_STACK}`;
-      ctx.fillText(pin.title, pillX + padX, pillY + pillH * 0.34);
       ctx.font = `500 ${priceSize}px ${PIN_FONT_STACK}`;
       ctx.fillStyle = "rgba(255,255,255,0.72)";
-      ctx.fillText(pin.price, pillX + padX, pillY + pillH * 0.7);
-    } else {
-      ctx.font = `600 ${titleSize}px ${PIN_FONT_STACK}`;
-      ctx.fillText(pin.title, pillX + padX, pillY + pillH / 2);
+      ctx.fillText(pin.price, pillX + padX, stackTop + titleLine + priceLine / 2);
     }
 
     ctx.restore();

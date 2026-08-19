@@ -36,7 +36,7 @@ export type StudioAction =
   | { type: "moveClip"; id: string; delta: number }
   | { type: "reorderClip"; id: string; toIndex: number }
   | { type: "splitAt"; time: number }
-  | { type: "trimClip"; id: string; inPoint?: number; outPoint?: number }
+  | { type: "trimClip"; id: string; inPoint?: number; outPoint?: number; limit?: number }
   | { type: "setSpeed"; id: string; speed: number }
   | { type: "setVolume"; id: string; volume: number }
   | { type: "toggleClipMute"; id: string }
@@ -60,12 +60,36 @@ export type StudioAction =
   | { type: "setCoverTime"; time: number }
   | { type: "toggleMasterMute" };
 
-// The first clip can never have an incoming transition — there is nothing to
-// transition FROM. Reorder and delete both have to re-establish that.
+/** A transition borrows half its window from each neighbour, so it can never be
+ *  longer than 90% of the shorter of the two clips it sits between. */
+function transitionBudget(clips: VideoClip[], index: number): number {
+  if (index <= 0) return 0;
+  return Math.min(clipDuration(clips[index - 1]), clipDuration(clips[index])) * 0.9;
+}
+
+// Runs after every structural edit. Two invariants:
+//
+// 1. The first clip can never have an incoming transition — there is nothing to
+//    transition FROM.
+// 2. Every transition window still fits between its neighbours. setTransition
+//    clamps at the moment you set it, but trim, speed, split, delete, reorder
+//    and revealRamp all change clip durations afterwards. Left unclamped, a
+//    window grows until it swallows the NEXT cut — and transitionStateAt returns
+//    the first window containing the playhead, so the neighbouring transition
+//    silently stops rendering in both the preview and the bake. Re-clamping here
+//    means no edit can leave the project in that state.
 function normalise(project: StudioProject): StudioProject {
-  const clips = project.clips.map((c, i) =>
-    i === 0 && c.transitionIn.kind !== "none" ? { ...c, transitionIn: NO_TRANSITION } : c,
-  );
+  const clips = project.clips.map((clip, i) => {
+    if (i === 0) {
+      return clip.transitionIn.kind === "none" ? clip : { ...clip, transitionIn: NO_TRANSITION };
+    }
+    if (clip.transitionIn.kind === "none") return clip;
+    const budget = transitionBudget(project.clips, i);
+    if (clip.transitionIn.duration <= budget) return clip;
+    return budget <= 0.05
+      ? { ...clip, transitionIn: NO_TRANSITION }
+      : { ...clip, transitionIn: { ...clip.transitionIn, duration: budget } };
+  });
   const changed = clips.some((c, i) => c !== project.clips[i]);
   return changed ? { ...project, clips } : project;
 }
@@ -157,6 +181,10 @@ export function studioReducer(project: StudioProject, action: StudioAction): Stu
     }
 
     case "trimClip": {
+      // `limit` is the source's own duration. The clamp belongs here rather than
+      // only in the caller: this is the invariant, and a second caller that
+      // forgot it could otherwise trim a clip past the end of its own file.
+      const limit = action.limit ?? Infinity;
       return normalise(
         mapClip(project, action.id, (clip) => {
           let inPoint = action.inPoint ?? clip.inPoint;
@@ -165,7 +193,7 @@ export function studioReducer(project: StudioProject, action: StudioAction): Stu
             inPoint = Math.min(Math.max(0, inPoint), outPoint - MIN_CLIP_DURATION);
           }
           if (action.outPoint !== undefined) {
-            outPoint = Math.max(outPoint, inPoint + MIN_CLIP_DURATION);
+            outPoint = Math.max(inPoint + MIN_CLIP_DURATION, Math.min(outPoint, limit));
           }
           return { ...clip, inPoint, outPoint };
         }),
@@ -250,10 +278,7 @@ export function studioReducer(project: StudioProject, action: StudioAction): Stu
     case "setTransition": {
       const index = project.clips.findIndex((c) => c.id === action.id);
       if (index <= 0) return project; // nothing to transition from
-      // A transition borrows half its window from each neighbour, so it can
-      // never be longer than the shorter of the two clips it sits between.
-      const budget =
-        Math.min(clipDuration(project.clips[index - 1]), clipDuration(project.clips[index])) * 0.9;
+      const budget = transitionBudget(project.clips, index);
       const duration = Math.min(action.transition.duration, Math.max(0, budget));
       return mapClip(project, action.id, (c) => ({
         ...c,

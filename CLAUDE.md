@@ -65,8 +65,8 @@ exists for a distinct failure mode — collapsing them loses coverage.
 
 **Camera-to-edit handoff is an in-memory module variable** (`src/lib/capture-handoff.ts`), not
 session/localStorage — captured media is a `Blob`, and client-side navigation never reloads the page.
-Known, accepted consequence: hard-refreshing `/create/after-shot/edit` drops the pending capture and
-falls back to `/create`.
+Known, accepted consequence: hard-refreshing `/create/after-shot/studio` drops the pending capture
+and falls back to `/create`.
 
 **`src/lib/categories.ts`**: on a `CategoryNode`, omitting `children` means true leaf; `children: []`
 means "has children, not filled in yet". Not interchangeable.

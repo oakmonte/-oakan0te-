@@ -12,9 +12,9 @@ import {
   Crop,
   ChevronDown,
   ChevronUp,
+  Clapperboard,
 } from "lucide-react";
 import { useAfterShotContext } from "@/lib/after-shot-context";
-import { TrimIcon } from "@/components/camera/aftershot-icons";
 import TextPanel from "@/components/camera/aftershot/TextPanel";
 import CropPanel from "@/components/camera/aftershot/CropPanel";
 import DrawPanel from "@/components/camera/aftershot/DrawPanel";
@@ -171,10 +171,18 @@ function AfterShotIndexPage() {
     setExportError(null);
     try {
       const blob = await exportComposite(media, exportFilterCss, layers, setExportProgress);
-      const url = URL.createObjectURL(blob);
-      setMedia(
-        media.type === "photo" ? { type: "photo", blob, url } : { type: "video", blob, url },
-      );
+      // Same blob back means exportComposite took its no-op fast path; replacing
+      // the media (and revoking the old URL) would only churn for nothing.
+      if (blob !== media.blob) {
+        const url = URL.createObjectURL(blob);
+        setMedia(
+          media.type === "photo"
+            ? { type: "photo", blob, url, poster: media.poster }
+            : // The cover frame the studio picked has to survive this hop, or the
+              // Cover tool is write-only and the listing falls back to frame zero.
+              { type: "video", blob, url, poster: media.poster },
+        );
+      }
       // Publishing/compose isn't built yet, so the flow stops here rather than
       // pretending to post. The composite is real and now sits in context —
       // whatever screen comes next reads it straight from useAfterShotContext.
@@ -353,12 +361,15 @@ function AfterShotIndexPage() {
             style={{ top: "calc(env(safe-area-inset-top) + 76px)" }}
           >
             {media.type === "video" && (
+              // A clapperboard, not the old scissors: what sits behind this is a
+              // multi-clip editor, and an icon that still says "trim" undersells
+              // it to the point that people won't open it.
               <button
                 onClick={() => navigate({ to: "/create/after-shot/studio" })}
                 aria-label="Open video studio"
                 className="flex items-center gap-2 opacity-90"
               >
-                <TrimIcon size={24} />
+                <Clapperboard size={24} />
               </button>
             )}
 

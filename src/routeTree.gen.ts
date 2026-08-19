@@ -48,6 +48,10 @@ import { Route as StoreOrdersRouteImport } from './routes/store.orders'
 import { Route as StoreProductsRouteImport } from './routes/store.products'
 import { Route as StoreThemeRouteImport } from './routes/store.theme'
 import { Route as ApiBumpaConnectRouteImport } from './routes/api.bumpa.connect'
+import { Route as ApiImportCsvRouteImport } from './routes/api.import.csv'
+import { Route as ApiImportStatusRouteImport } from './routes/api.import.status'
+import { Route as ApiInstagramCallbackRouteImport } from './routes/api.instagram.callback'
+import { Route as ApiInstagramConnectRouteImport } from './routes/api.instagram.connect'
 import { Route as ApiShipbubblePingRouteImport } from './routes/api.shipbubble.ping'
 import { Route as ApiShopifyCallbackRouteImport } from './routes/api.shopify.callback'
 import { Route as ApiShopifyInstallRouteImport } from './routes/api.shopify.install'
@@ -253,6 +257,26 @@ const ApiBumpaConnectRoute = ApiBumpaConnectRouteImport.update({
   path: '/api/bumpa/connect',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiImportCsvRoute = ApiImportCsvRouteImport.update({
+  id: '/api/import/csv',
+  path: '/api/import/csv',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiImportStatusRoute = ApiImportStatusRouteImport.update({
+  id: '/api/import/status',
+  path: '/api/import/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiInstagramCallbackRoute = ApiInstagramCallbackRouteImport.update({
+  id: '/api/instagram/callback',
+  path: '/api/instagram/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiInstagramConnectRoute = ApiInstagramConnectRouteImport.update({
+  id: '/api/instagram/connect',
+  path: '/api/instagram/connect',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiShipbubblePingRoute = ApiShipbubblePingRouteImport.update({
   id: '/api/shipbubble/ping',
   path: '/api/shipbubble/ping',
@@ -339,6 +363,10 @@ export interface FileRoutesByFullPath {
   '/create/': typeof CreateIndexRoute
   '/store/': typeof StoreIndexRoute
   '/api/bumpa/connect': typeof ApiBumpaConnectRoute
+  '/api/import/csv': typeof ApiImportCsvRoute
+  '/api/import/status': typeof ApiImportStatusRoute
+  '/api/instagram/callback': typeof ApiInstagramCallbackRoute
+  '/api/instagram/connect': typeof ApiInstagramConnectRoute
   '/api/shipbubble/ping': typeof ApiShipbubblePingRoute
   '/api/shopify/callback': typeof ApiShopifyCallbackRoute
   '/api/shopify/install': typeof ApiShopifyInstallRoute
@@ -386,6 +414,10 @@ export interface FileRoutesByTo {
   '/create': typeof CreateIndexRoute
   '/store': typeof StoreIndexRoute
   '/api/bumpa/connect': typeof ApiBumpaConnectRoute
+  '/api/import/csv': typeof ApiImportCsvRoute
+  '/api/import/status': typeof ApiImportStatusRoute
+  '/api/instagram/callback': typeof ApiInstagramCallbackRoute
+  '/api/instagram/connect': typeof ApiInstagramConnectRoute
   '/api/shipbubble/ping': typeof ApiShipbubblePingRoute
   '/api/shopify/callback': typeof ApiShopifyCallbackRoute
   '/api/shopify/install': typeof ApiShopifyInstallRoute
@@ -437,6 +469,10 @@ export interface FileRoutesById {
   '/create/': typeof CreateIndexRoute
   '/store/': typeof StoreIndexRoute
   '/api/bumpa/connect': typeof ApiBumpaConnectRoute
+  '/api/import/csv': typeof ApiImportCsvRoute
+  '/api/import/status': typeof ApiImportStatusRoute
+  '/api/instagram/callback': typeof ApiInstagramCallbackRoute
+  '/api/instagram/connect': typeof ApiInstagramConnectRoute
   '/api/shipbubble/ping': typeof ApiShipbubblePingRoute
   '/api/shopify/callback': typeof ApiShopifyCallbackRoute
   '/api/shopify/install': typeof ApiShopifyInstallRoute
@@ -489,6 +525,10 @@ export interface FileRouteTypes {
     | '/create/'
     | '/store/'
     | '/api/bumpa/connect'
+    | '/api/import/csv'
+    | '/api/import/status'
+    | '/api/instagram/callback'
+    | '/api/instagram/connect'
     | '/api/shipbubble/ping'
     | '/api/shopify/callback'
     | '/api/shopify/install'
@@ -536,6 +576,10 @@ export interface FileRouteTypes {
     | '/create'
     | '/store'
     | '/api/bumpa/connect'
+    | '/api/import/csv'
+    | '/api/import/status'
+    | '/api/instagram/callback'
+    | '/api/instagram/connect'
     | '/api/shipbubble/ping'
     | '/api/shopify/callback'
     | '/api/shopify/install'
@@ -586,6 +630,10 @@ export interface FileRouteTypes {
     | '/create/'
     | '/store/'
     | '/api/bumpa/connect'
+    | '/api/import/csv'
+    | '/api/import/status'
+    | '/api/instagram/callback'
+    | '/api/instagram/connect'
     | '/api/shipbubble/ping'
     | '/api/shopify/callback'
     | '/api/shopify/install'
@@ -626,6 +674,10 @@ export interface RootRouteChildren {
   AuthCallbackRoute: typeof AuthCallbackRoute
   ProfileUsernameRoute: typeof ProfileUsernameRoute
   ApiBumpaConnectRoute: typeof ApiBumpaConnectRoute
+  ApiImportCsvRoute: typeof ApiImportCsvRoute
+  ApiImportStatusRoute: typeof ApiImportStatusRoute
+  ApiInstagramCallbackRoute: typeof ApiInstagramCallbackRoute
+  ApiInstagramConnectRoute: typeof ApiInstagramConnectRoute
   ApiShipbubblePingRoute: typeof ApiShipbubblePingRoute
   ApiShopifyCallbackRoute: typeof ApiShopifyCallbackRoute
   ApiShopifyInstallRoute: typeof ApiShopifyInstallRoute
@@ -906,6 +958,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiBumpaConnectRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/import/csv': {
+      id: '/api/import/csv'
+      path: '/api/import/csv'
+      fullPath: '/api/import/csv'
+      preLoaderRoute: typeof ApiImportCsvRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/import/status': {
+      id: '/api/import/status'
+      path: '/api/import/status'
+      fullPath: '/api/import/status'
+      preLoaderRoute: typeof ApiImportStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/instagram/callback': {
+      id: '/api/instagram/callback'
+      path: '/api/instagram/callback'
+      fullPath: '/api/instagram/callback'
+      preLoaderRoute: typeof ApiInstagramCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/instagram/connect': {
+      id: '/api/instagram/connect'
+      path: '/api/instagram/connect'
+      fullPath: '/api/instagram/connect'
+      preLoaderRoute: typeof ApiInstagramConnectRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/shipbubble/ping': {
       id: '/api/shipbubble/ping'
       path: '/api/shipbubble/ping'
@@ -1062,6 +1142,10 @@ const rootRouteChildren: RootRouteChildren = {
   AuthCallbackRoute: AuthCallbackRoute,
   ProfileUsernameRoute: ProfileUsernameRoute,
   ApiBumpaConnectRoute: ApiBumpaConnectRoute,
+  ApiImportCsvRoute: ApiImportCsvRoute,
+  ApiImportStatusRoute: ApiImportStatusRoute,
+  ApiInstagramCallbackRoute: ApiInstagramCallbackRoute,
+  ApiInstagramConnectRoute: ApiInstagramConnectRoute,
   ApiShipbubblePingRoute: ApiShipbubblePingRoute,
   ApiShopifyCallbackRoute: ApiShopifyCallbackRoute,
   ApiShopifyInstallRoute: ApiShopifyInstallRoute,

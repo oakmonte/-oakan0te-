@@ -21,7 +21,7 @@ import {
 } from "@/lib/studio/types";
 import type { Layer } from "@/lib/after-shot-layers";
 import ProductPinOverlay from "./ProductPinOverlay";
-import type { PlaybackApi } from "@/lib/studio/use-playback";
+import { useTimelineTime, type PlaybackApi } from "@/lib/studio/use-playback";
 
 const NEUTRAL: LayerTransform = { opacity: 1, scale: 1, offsetX: 0 };
 
@@ -38,9 +38,14 @@ type Props = {
    *  still owns them. */
   inheritedLayers: Layer[];
   showGuides: boolean;
-  /** Hovering a filter in the Filters panel grades the preview without
-   *  committing, exactly like the after-shot screen's filter list. */
+  /** Auditioning a filter grades the preview without committing, exactly like
+   *  the after-shot screen's filter list. */
   filterPreviewId: string | null;
+  /** WHICH clip the audition applies to. It used to be whatever was under the
+   *  playhead, while the panel committed to the SELECTED clip \u2014 so with the
+   *  playhead over clip 1 and clip 3 selected you graded clip 1 by eye and the
+   *  filter landed on clip 3. */
+  gradeClipId: string | null;
 };
 
 export default function StudioPreview({
@@ -54,6 +59,7 @@ export default function StudioPreview({
   inheritedLayers,
   showGuides,
   filterPreviewId,
+  gradeClipId,
 }: Props) {
   const areaRef = useRef<HTMLDivElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
@@ -61,7 +67,9 @@ export default function StudioPreview({
   const fitted = useFittedSize(areaRef, aspect);
   const renderLayerContent = useLayerRenderer(boxRef);
 
-  const time = playback.time;
+  // Full rate, not the route's ten-per-second state: transition opacity and the
+  // pop-in on a product tag both animate against this.
+  const time = useTimelineTime(playback);
   const starts = useMemo(() => clipStarts(project.clips), [project.clips]);
   const transition = transitionStateAt(project.clips, time);
 
@@ -121,7 +129,8 @@ export default function StudioPreview({
           // Outside a transition exactly one clip is on screen; inside one, both
           // participants are, at whatever opacity the transition calls for.
           const opacity = transition ? t.opacity : index === liveIndex ? 1 : 0;
-          const filterId = filterPreviewId && index === liveIndex ? filterPreviewId : clip.filterId;
+          const filterId =
+            filterPreviewId && clip.id === gradeClipId ? filterPreviewId : clip.filterId;
 
           return (
             <div
@@ -130,19 +139,23 @@ export default function StudioPreview({
               style={{
                 opacity,
                 transform: transformCss(t),
-                // Same order as the bake: grade the picture, then darken the
-                // edges, then let the transition move the whole graded layer.
-                filter: combinedFilterCss(filterId, clip.adjustments),
                 willChange: "opacity, transform",
               }}
             >
+              {/* The grade goes on the MEDIA element, never on this wrapper. A
+                  CSS filter applies to the whole flattened subtree, so with it
+                  up here the vignette below became part of what got graded \u2014
+                  while gradeInto() in the exporter draws the vignette AFTER the
+                  colour matrix. Same numbers, opposite compositing order, and a
+                  Fade + Vignette combination came out visibly different in the
+                  file than on screen. */}
               {source.kind === "image" ? (
                 <img
                   src={source.url}
                   alt=""
                   draggable={false}
                   className="absolute inset-0 w-full h-full"
-                  style={{ objectFit }}
+                  style={{ objectFit, filter: combinedFilterCss(filterId, clip.adjustments) }}
                 />
               ) : (
                 <video
@@ -151,7 +164,7 @@ export default function StudioPreview({
                   playsInline
                   preload="auto"
                   className="absolute inset-0 w-full h-full"
-                  style={{ objectFit }}
+                  style={{ objectFit, filter: combinedFilterCss(filterId, clip.adjustments) }}
                 />
               )}
               {clip.adjustments.vignette > 0 && (

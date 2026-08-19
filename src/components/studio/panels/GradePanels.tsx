@@ -52,10 +52,15 @@ export function FilterPanel({
         {filters.map((f) => (
           <button
             key={f.id}
-            // Hovering grades the preview without committing — the same
-            // audition-before-you-pick behaviour the after-shot filter list has,
-            // and the reason filters are never baked into the blob on tap.
-            onPointerEnter={() => onPreview(f.id)}
+            // Press-and-hold to audition, release to commit. It used to be
+            // pointerenter/leave, which is a hover contract: on a touchscreen
+            // enter fires on tap-down and leave on lift, so the audition the
+            // comment promised lasted exactly as long as the tap and nobody on
+            // a phone ever saw it. Down/up says the same thing in a language
+            // touch actually speaks.
+            onPointerDown={() => onPreview(f.id)}
+            onPointerUp={() => onPreview(null)}
+            onPointerCancel={() => onPreview(null)}
             onPointerLeave={() => onPreview(null)}
             onClick={() => {
               onPick(f.id);

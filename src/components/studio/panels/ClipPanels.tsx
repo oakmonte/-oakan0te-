@@ -8,7 +8,6 @@ import {
   type AudioClip,
   type VideoClip,
 } from "@/lib/studio/types";
-import { RAMP_SPEED, RAMP_WINDOW } from "@/lib/studio/project";
 
 type Group = { begin: () => void; end: () => void };
 
@@ -61,7 +60,7 @@ export function SpeedPanel({
         style={{ background: "rgba(255,255,255,0.10)" }}
       >
         <Gauge size={15} />
-        Reveal ramp — {RAMP_WINDOW}s at {RAMP_SPEED}x around the playhead
+        Slow the reveal
       </button>
     </StudioSheet>
   );
@@ -257,8 +256,7 @@ export function TransitionPanel({
         />
       )}
       <p className="pb-2 text-[11px] leading-snug text-white/40">
-        Transitions sit across the cut and keep the timeline the same length — the outgoing clip
-        holds its last frame while the incoming one arrives.
+        Sits across the cut without changing how long your video is.
       </p>
     </StudioSheet>
   );

@@ -18,6 +18,7 @@ import {
   type VideoClip,
 } from "./types";
 import { transitionStateAt } from "./render";
+import { applyGain, resumeAudioRouting } from "./media-gain";
 
 /** How far an element may wander before we correct it, in seconds. */
 const DRIFT_TOLERANCE = 0.32;
@@ -139,12 +140,20 @@ export function usePlayback(project: StudioProject): PlaybackApi {
 
       const muted = current.masterMuted || clip.muted || clip.audioDetached;
       if (el.muted !== muted) el.muted = muted;
-      const volume = Math.min(1, Math.max(0, clip.volume));
-      if (Math.abs(el.volume - volume) > 0.01) el.volume = volume;
+      applyGain(el, clip.volume);
 
       if (isLive && isPlaying) {
         if (el.playbackRate !== clip.speed) el.playbackRate = clip.speed;
-        if (Math.abs(el.currentTime - target) > DRIFT_TOLERANCE) el.currentTime = target;
+        // Read the rate BACK. iOS Safari clamps playbackRate to 2, so at 3x or
+        // 4x the element runs slower than the timeline clock and drifts by a
+        // second every second \u2014 which, uncorrected, would fire a hard seek
+        // several times a second, forever. When the browser has refused the
+        // rate, let the picture run slow instead of stuttering; the export is
+        // unaffected because it never touches an element.
+        const rateHonoured = Math.abs(el.playbackRate - clip.speed) < 0.01;
+        if (rateHonoured && Math.abs(el.currentTime - target) > DRIFT_TOLERANCE) {
+          el.currentTime = target;
+        }
         if (el.paused) void el.play().catch(() => {});
       } else {
         if (!el.paused) el.pause();
@@ -162,12 +171,14 @@ export function usePlayback(project: StudioProject): PlaybackApi {
 
       const muted = current.masterMuted || audio.muted;
       if (el.muted !== muted) el.muted = muted;
-      const volume = Math.min(1, Math.max(0, audio.volume * fadeGain(audio, t)));
-      if (Math.abs(el.volume - volume) > 0.01) el.volume = volume;
+      applyGain(el, audio.volume * fadeGain(audio, t));
 
       if (inRange && isPlaying) {
         if (el.playbackRate !== audio.speed) el.playbackRate = audio.speed;
-        if (Math.abs(el.currentTime - target) > DRIFT_TOLERANCE) el.currentTime = target;
+        const rateHonoured = Math.abs(el.playbackRate - audio.speed) < 0.01;
+        if (rateHonoured && Math.abs(el.currentTime - target) > DRIFT_TOLERANCE) {
+          el.currentTime = target;
+        }
         if (el.paused) void el.play().catch(() => {});
       } else {
         if (!el.paused) el.pause();
@@ -176,10 +187,18 @@ export function usePlayback(project: StudioProject): PlaybackApi {
     }
   }, []);
 
+  // Subscribers get every frame; React state gets ten a second.
+  //
+  // Anything that must animate smoothly (the preview's transition opacity, the
+  // timeline's scroll position) subscribes. React state exists only for text
+  // that a human reads, and the readout resolves tenths \u2014 so re-rendering the
+  // route, its panels and its toolbar sixty times a second was five wasted
+  // renders out of every six, on the exact frames where the encoder and the
+  // decoders want the main thread.
   const publish = useCallback((t: number) => {
     timeRef.current = t;
-    setTime(t);
     for (const fn of listeners.current) fn(t);
+    setTime((prev) => (Math.floor(prev * 10) === Math.floor(t * 10) ? prev : t));
   }, []);
 
   const pause = useCallback(() => {
@@ -198,8 +217,42 @@ export function usePlayback(project: StudioProject): PlaybackApi {
     [publish, syncElements],
   );
 
+  // WebKit lifts its gesture requirement PER ELEMENT, and only after that
+  // element has played once inside a real user gesture. Every clip owns its own
+  // <video>, so clip 1 is unlocked by the Play tap and clip 2 is first played
+  // from the rAF loop \u2014 no gesture, NotAllowedError, and the preview freezes on
+  // clip 1's last frame while the playhead keeps sliding.
+  //
+  // So the Play tap unlocks all of them: play muted, immediately pause, restore.
+  // A silent sub-frame blip is invisible; a preview that stops at the first cut
+  // is the whole feature broken.
+  const primedRef = useRef(false);
+  const primeElements = useCallback(() => {
+    if (primedRef.current) return;
+    primedRef.current = true;
+    resumeAudioRouting();
+    const prime = (el: HTMLMediaElement) => {
+      const wasMuted = el.muted;
+      el.muted = true;
+      const started = el.play();
+      if (started && typeof started.then === "function") {
+        void started
+          .then(() => {
+            el.pause();
+            el.muted = wasMuted;
+          })
+          .catch(() => {
+            el.muted = wasMuted;
+          });
+      }
+    };
+    for (const el of clipEls.current.values()) prime(el);
+    for (const el of audioEls.current.values()) prime(el);
+  }, []);
+
   const play = useCallback(() => {
     if (durationRef.current <= 0) return;
+    primeElements();
     // Pressing play at the very end restarts, which is what every player does
     // and what "watch it back" means after an edit.
     if (timeRef.current >= durationRef.current - 0.02) publish(0);
@@ -207,7 +260,7 @@ export function usePlayback(project: StudioProject): PlaybackApi {
     setPlaying(true);
     lastTickRef.current = performance.now();
     syncElements(timeRef.current, true);
-  }, [publish, syncElements]);
+  }, [primeElements, publish, syncElements]);
 
   const toggle = useCallback(() => {
     if (playingRef.current) pause();
@@ -273,6 +326,16 @@ export function usePlayback(project: StudioProject): PlaybackApi {
     audioRef,
     subscribe,
   };
+}
+
+/** Full-rate timeline position, for the one or two components that genuinely
+ *  have to animate against it. Everything else should read `playback.time`,
+ *  which updates ten times a second. */
+export function useTimelineTime(playback: PlaybackApi): number {
+  const { subscribe, timeRef } = playback;
+  const [time, setTime] = useState(timeRef.current);
+  useEffect(() => subscribe(setTime), [subscribe]);
+  return time;
 }
 
 function clipDurationOf(clip: VideoClip): number {

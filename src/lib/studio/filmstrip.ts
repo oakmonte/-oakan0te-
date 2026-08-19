@@ -99,16 +99,23 @@ export function tilesForRange(
   const out: string[] = [];
   for (let i = 0; i < tileCount; i++) {
     const t = inPoint + ((i + 0.5) / tileCount) * span;
-    let best = frames[0];
-    let bestDist = Math.abs(best.time - t);
-    for (const f of frames) {
-      const d = Math.abs(f.time - t);
-      if (d < bestDist) {
-        best = f;
-        bestDist = d;
-      }
-    }
-    out.push(best.url);
+    out.push(frames[nearestFrameIndex(frames, t)].url);
   }
   return out;
+}
+
+/** Binary search rather than a scan. This runs per tile, per clip, on every
+ *  frame of a pinch-zoom gesture — linear made it tiles x frames, which on a
+ *  long clip at full zoom was tens of thousands of comparisons mid-gesture. */
+function nearestFrameIndex(frames: FilmstripFrame[], t: number): number {
+  let lo = 0;
+  let hi = frames.length - 1;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (frames[mid].time < t) lo = mid + 1;
+    else hi = mid;
+  }
+  // `lo` is the first frame at or after t; the one before it may be closer.
+  if (lo > 0 && Math.abs(frames[lo - 1].time - t) <= Math.abs(frames[lo].time - t)) return lo - 1;
+  return lo;
 }

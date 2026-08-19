@@ -137,6 +137,11 @@ export function PinPanel({
               >
                 Start here
               </Pill>
+              <Pill
+                onClick={() => onPatch({ endTime: Math.max(currentTime, pin.startTime + 0.1) })}
+              >
+                End here
+              </Pill>
               <Pill tone="danger" onClick={onDelete}>
                 <span className="flex items-center gap-1">
                   <Trash2 size={13} /> Remove
