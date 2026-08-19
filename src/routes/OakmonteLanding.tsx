@@ -690,9 +690,9 @@ const CSS = `
 .oak header{position:sticky;top:0;z-index:100;background:rgba(255,255,255,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);transition:box-shadow .3s ease;}
 .oak .header-row{display:flex;align-items:center;justify-content:space-between;height:72px;}
 .oak .brand{display:flex;align-items:baseline;gap:0;}
-.oak .brand-o{height:27px;width:auto;flex:none;display:inline-block;transform:translateY(3px);}
+.oak .brand-o{height:38px;width:auto;flex:none;display:inline-block;transform:translateY(3px);}
 .oak .footer-mark{width:34px;height:34px;border-radius:9px;background:var(--blue);object-fit:contain;padding:5px;flex:none;}
-.oak .brand .word{font-family:Inter,ui-sans-serif,system-ui,sans-serif;font-weight:400;font-size:22px;letter-spacing:-.01em;line-height:1;}
+.oak .brand .word{font-family:Inter,ui-sans-serif,system-ui,sans-serif;font-weight:400;font-size:22px;letter-spacing:-.01em;line-height:1;color:#2151F5;}
 
 .oak nav.desktop-nav{display:flex;align-items:center;gap:36px;}
 .oak nav.desktop-nav a{font-size:13px;font-weight:600;position:relative;padding:4px 0;}
