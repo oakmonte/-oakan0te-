@@ -722,7 +722,7 @@ const CSS = `
 .oak .mobile-toggle{display:none;padding:8px;}
 .oak .mobile-toggle span{display:block;width:22px;height:2px;background:var(--black);margin-bottom:6px;}
 .oak .mobile-toggle span:last-child{margin-bottom:0;}
-.oak .mobile-menu{display:none;position:fixed;top:88px;left:0;right:0;background:rgba(255,255,255,.96);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);z-index:99;}
+.oak .mobile-menu{display:none;position:fixed;top:76px;left:0;right:0;background:rgba(255,255,255,.96);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);z-index:99;}
 .oak .mobile-menu.open{display:block;}
 .oak .mobile-menu-inner{padding:24px;display:flex;flex-direction:column;gap:18px;}
 .oak .mobile-menu-inner a{font-size:14px;font-weight:700;}
