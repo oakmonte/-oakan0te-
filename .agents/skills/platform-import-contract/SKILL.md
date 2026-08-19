@@ -24,7 +24,7 @@ skill states a rule that no code enforces yet, it's a decision to honour, and if
 contradict one, that's worth raising rather than quietly diverging.
 
 The import worker lives in a **separate repo** (`oakmonte-import-worker`), as does the backend
-(`oakmonte-backend`). Neither sees this repo's `CLAUDE.md`. Keep a copy of this skill and
+(`oakmonte-backend`). Neither sees this repo's `AGENTS.md`. Keep a copy of this skill and
 `canonical-product-schema` in those repos — that's the only mechanism carrying the contract across the
 boundary.
 
@@ -118,45 +118,6 @@ variants second is faster and much worse: one failure strands every product in t
 
 If per-product volume makes that too slow, the answer is an RPC that wraps the sequence server-side,
 not a bigger batch.
-
-## External ids are strings. Always.
-
-Instagram media ids, Shopify product/variant ids and Bumpa ids exceed `Number.MAX_SAFE_INTEGER`
-(2^53 − 1). `JSON.parse` on a 17–19 digit id silently rounds it: `17912345678901234` becomes
-`17912345678901232`, and nothing throws. The row imports, the id looks right at a glance, and
-reconciliation on the next sync fails to match — producing duplicates rather than updates.
-
-`ig_posts.id` and `products.external_handle` are both `text` for this reason. So:
-
-- Never `parseInt`/`Number()` an external id, and never let one reach a numeric column.
-- When a source API returns JSON with bare numeric ids, the damage happens at parse time, before your
-  code sees it. Request string ids where the API supports it; otherwise extract them from the raw body
-  before parsing, or use a JSON parser configured for BigInt.
-- Round-trip assert it: `String(parsed.id) === originalIdFromPayload`. This is exactly the class of bug
-  a two-line check catches mechanically and a live test account catches only by luck.
-
-## Plan → validate → execute
-
-Don't let an importer write to Supabase as it discovers rows. Produce a complete mapping first, check
-it, and only then write:
-
-1. **Plan** — fetch the source catalogue and build an intermediate artifact (a `changes.json`): for
-   each source product, the resolved Oakmonte shape, the matched existing `product_id` if any, and the
-   action (`create` | `update` | `skip`).
-2. **Validate** — check the plan against this contract before touching the database: every option axis
-   present in both representations, no more than three options where the flat columns are still in
-   play, `is_complete` computed rather than guessed, external ids still strings, no two entries
-   claiming the same `(store_id, source_platform, external_handle)`.
-3. **Execute** — walk the validated plan, committing one product at a time per the partial-failure
-   rule above.
-
-The intermediate file is the point. It makes a bad import inspectable *before* it becomes bad rows, it
-survives the process dying, and it turns "why did this product import wrong?" into a diff instead of an
-archaeology session. Given there is no test runner in this repo, a validated artifact is the closest
-thing to a test the import path can have.
-
-Keep the plan out of the repo — write it under the job's `import_jobs.file_path` or a scratch
-directory, not into version control.
 
 ## Credentials
 

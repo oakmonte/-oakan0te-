@@ -1,12 +1,13 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { ChevronLeft, ChevronDown, Tag, Hash, Search, Layers } from "lucide-react";
+import { ChevronLeft, ChevronDown, ChevronRight, Tag, Hash, Search, Layers } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { CategoryNode } from "@/lib/categories";
 import { StubRow, ExpandRow, TextField } from "@/components/product-form/ui";
 import { MediaSection } from "@/components/product-form/MediaSection";
 import { DetailsSection } from "@/components/product-form/DetailsSection";
 import { DescriptionSheet } from "@/components/product-form/DescriptionSheet";
+import { CollectionsSheet } from "@/components/product-form/CollectionsSheet";
 import { PricingSheet } from "@/components/product-form/PricingSheet";
 import { CategoryPicker } from "@/components/product-form/CategoryPicker";
 import { ProductTypeSwitchSheet } from "@/components/product-form/ProductTypeSwitchSheet";
@@ -63,6 +64,8 @@ function NewProduct() {
   const [categoryPickerOpen, setCategoryPickerOpen] = useState(false);
   const [typeSwitchOpen, setTypeSwitchOpen] = useState(false);
   const [descriptionSheetOpen, setDescriptionSheetOpen] = useState(false);
+  const [collectionsSheetOpen, setCollectionsSheetOpen] = useState(false);
+  const [collectionIds, setCollectionIds] = useState<string[]>([]);
   const [expanded, setExpanded] = useState<ExpandedSection>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -218,6 +221,20 @@ function NewProduct() {
       if (linksRes.error) return fail("product_variant_options", linksRes.error.message);
     }
 
+    if (collectionIds.length > 0) {
+      const { error: collectionsErr } = await supabase.from("product_collections").insert(
+        collectionIds.map((collectionId) => ({
+          product_id: product.id,
+          collection_id: collectionId,
+        })),
+      );
+      if (collectionsErr) {
+        setError(`product_collections: ${collectionsErr.message}`);
+        setSaving(false);
+        return;
+      }
+    }
+
     navigate({ to: "/store/products" });
   }
 
@@ -305,7 +322,22 @@ function NewProduct() {
           <TextField label="Material" value={material} onChange={setMaterial} />
         </ExpandRow>
       )}
-      <StubRow icon={<Tag size={18} />} label="Collections" />
+      <button
+        type="button"
+        onClick={() => setCollectionsSheetOpen(true)}
+        className="w-full flex items-center justify-between px-4 py-4 border-b-8 border-gray-50 text-left"
+      >
+        <span className="flex items-center gap-3 text-[15px] text-gray-900">
+          <Tag size={18} className="text-gray-400" />
+          Collections
+        </span>
+        <span className="flex items-center gap-2">
+          {collectionIds.length > 0 && (
+            <span className="text-xs text-gray-400">{collectionIds.length} selected</span>
+          )}
+          <ChevronRight size={16} className="text-gray-300" />
+        </span>
+      </button>
       <StubRow icon={<Hash size={18} />} label="Tags" />
       <StubRow icon={<Search size={18} />} label="SEO" isLast />
 
@@ -347,6 +379,17 @@ function NewProduct() {
             setDescriptionSheetOpen(false);
           }}
           onClose={() => setDescriptionSheetOpen(false)}
+        />
+      )}
+
+      {collectionsSheetOpen && (
+        <CollectionsSheet
+          selectedIds={collectionIds}
+          onDone={(ids) => {
+            setCollectionIds(ids);
+            setCollectionsSheetOpen(false);
+          }}
+          onClose={() => setCollectionsSheetOpen(false)}
         />
       )}
 

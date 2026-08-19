@@ -54,6 +54,7 @@ import { Route as ApiShopifyInstallRouteImport } from './routes/api.shopify.inst
 import { Route as CreateAfterShotIndexRouteImport } from './routes/create.after-shot.index'
 import { Route as CreateAfterShotEditRouteImport } from './routes/create.after-shot.edit'
 import { Route as CreateAfterShotFiltersRouteImport } from './routes/create.after-shot.filters'
+import { Route as StoreCollectionsNewRouteImport } from './routes/store.collections_.new'
 import { Route as StoreProductsNewRouteImport } from './routes/store.products_.new'
 import { Route as StoreProductsNewcomerRouteImport } from './routes/store.products_.newcomer'
 
@@ -282,6 +283,11 @@ const CreateAfterShotFiltersRoute = CreateAfterShotFiltersRouteImport.update({
   path: '/filters',
   getParentRoute: () => CreateAfterShotRoute,
 } as any)
+const StoreCollectionsNewRoute = StoreCollectionsNewRouteImport.update({
+  id: '/collections_/new',
+  path: '/collections/new',
+  getParentRoute: () => StoreRoute,
+} as any)
 const StoreProductsNewRoute = StoreProductsNewRouteImport.update({
   id: '/products_/new',
   path: '/products/new',
@@ -338,6 +344,7 @@ export interface FileRoutesByFullPath {
   '/api/shopify/install': typeof ApiShopifyInstallRoute
   '/create/after-shot/edit': typeof CreateAfterShotEditRoute
   '/create/after-shot/filters': typeof CreateAfterShotFiltersRoute
+  '/store/collections/new': typeof StoreCollectionsNewRoute
   '/store/products/new': typeof StoreProductsNewRoute
   '/store/products/newcomer': typeof StoreProductsNewcomerRoute
   '/create/after-shot/': typeof CreateAfterShotIndexRoute
@@ -384,6 +391,7 @@ export interface FileRoutesByTo {
   '/api/shopify/install': typeof ApiShopifyInstallRoute
   '/create/after-shot/edit': typeof CreateAfterShotEditRoute
   '/create/after-shot/filters': typeof CreateAfterShotFiltersRoute
+  '/store/collections/new': typeof StoreCollectionsNewRoute
   '/store/products/new': typeof StoreProductsNewRoute
   '/store/products/newcomer': typeof StoreProductsNewcomerRoute
   '/create/after-shot': typeof CreateAfterShotIndexRoute
@@ -434,6 +442,7 @@ export interface FileRoutesById {
   '/api/shopify/install': typeof ApiShopifyInstallRoute
   '/create/after-shot/edit': typeof CreateAfterShotEditRoute
   '/create/after-shot/filters': typeof CreateAfterShotFiltersRoute
+  '/store/collections_/new': typeof StoreCollectionsNewRoute
   '/store/products_/new': typeof StoreProductsNewRoute
   '/store/products_/newcomer': typeof StoreProductsNewcomerRoute
   '/create/after-shot/': typeof CreateAfterShotIndexRoute
@@ -485,6 +494,7 @@ export interface FileRouteTypes {
     | '/api/shopify/install'
     | '/create/after-shot/edit'
     | '/create/after-shot/filters'
+    | '/store/collections/new'
     | '/store/products/new'
     | '/store/products/newcomer'
     | '/create/after-shot/'
@@ -531,6 +541,7 @@ export interface FileRouteTypes {
     | '/api/shopify/install'
     | '/create/after-shot/edit'
     | '/create/after-shot/filters'
+    | '/store/collections/new'
     | '/store/products/new'
     | '/store/products/newcomer'
     | '/create/after-shot'
@@ -580,6 +591,7 @@ export interface FileRouteTypes {
     | '/api/shopify/install'
     | '/create/after-shot/edit'
     | '/create/after-shot/filters'
+    | '/store/collections_/new'
     | '/store/products_/new'
     | '/store/products_/newcomer'
     | '/create/after-shot/'
@@ -936,6 +948,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CreateAfterShotFiltersRouteImport
       parentRoute: typeof CreateAfterShotRoute
     }
+    '/store/collections_/new': {
+      id: '/store/collections_/new'
+      path: '/collections/new'
+      fullPath: '/store/collections/new'
+      preLoaderRoute: typeof StoreCollectionsNewRouteImport
+      parentRoute: typeof StoreRoute
+    }
     '/store/products_/new': {
       id: '/store/products_/new'
       path: '/products/new'
@@ -992,6 +1011,7 @@ interface StoreRouteChildren {
   StoreProductsRoute: typeof StoreProductsRoute
   StoreThemeRoute: typeof StoreThemeRoute
   StoreIndexRoute: typeof StoreIndexRoute
+  StoreCollectionsNewRoute: typeof StoreCollectionsNewRoute
   StoreProductsNewRoute: typeof StoreProductsNewRoute
   StoreProductsNewcomerRoute: typeof StoreProductsNewcomerRoute
 }
@@ -1006,6 +1026,7 @@ const StoreRouteChildren: StoreRouteChildren = {
   StoreProductsRoute: StoreProductsRoute,
   StoreThemeRoute: StoreThemeRoute,
   StoreIndexRoute: StoreIndexRoute,
+  StoreCollectionsNewRoute: StoreCollectionsNewRoute,
   StoreProductsNewRoute: StoreProductsNewRoute,
   StoreProductsNewcomerRoute: StoreProductsNewcomerRoute,
 }

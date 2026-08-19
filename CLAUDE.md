@@ -17,6 +17,9 @@ Package manager is **bun** — `package-lock.json` is stale, ignore it.
   `src/components/ui/*` (shadcn output); don't chase those.
 - **No test runner.** Anything behavioural is verified by running the dev server and exercising the
   flow, not by tests.
+- A `Stop` hook re-runs typecheck in the background whenever `.ts`/`.tsx` changed, so a failure will
+  surface even if you skip the manual run. Hooks in `.claude/hooks/` also hard-block `.env` reads and
+  hand-edits to the generated `types.ts` files.
 
 ## Two Supabase clients — do not conflate
 
@@ -40,7 +43,7 @@ in via dynamic `import()` inside the handler — not a top-level import — unle
 another `.server.ts` module.
 
 Server-only env, `process.env` only: `MY_SUPABASE_SERVICE_ROLE_KEY`, `SHOPIFY_API_KEY`,
-`SHOPIFY_API_SECRET`, `SHOPIFY_SCOPES`, `SHOPIFY_REDIRECT_URI`.
+`SHOPIFY_API_SECRET`, `SHOPIFY_SCOPES`, `SHOPIFY_REDIRECT_URI`, `SHIPBUBBLE_API_KEY`.
 
 ## Routing traps
 
