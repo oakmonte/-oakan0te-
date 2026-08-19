@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import logoAsset from "@/assets/oakmonte-o-mark.png.asset.json";
+import logoO from "@/assets/logo-o.png";
 import heroAsset from "@/assets/hero-editorial.jpg.asset.json";
 import fabricAsset from "@/assets/fabric-detail.jpg.asset.json";
 
@@ -234,10 +235,8 @@ function OakmonteLanding() {
         <div className="wrap">
           <div className="header-row">
             <a href="#product" className="brand">
-              <img src={IMG_LOGO} alt="Oakmonte" className="brand-mark" />
-              <span className="word">
-                Oak<span>monte</span>
-              </span>
+              <img src={logoO} alt="Oakmonte" className="brand-o" />
+              <span className="word">akmonte</span>
             </a>
             <nav className="desktop-nav">
               <a href="#product" className={activeNav === "PRODUCT" ? "active" : ""}>
@@ -690,11 +689,10 @@ const CSS = `
 
 .oak header{position:sticky;top:0;z-index:100;background:rgba(255,255,255,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);transition:box-shadow .3s ease;}
 .oak .header-row{display:flex;align-items:center;justify-content:space-between;height:72px;}
-.oak .brand{display:flex;align-items:center;gap:10px;}
-.oak .brand-mark{width:34px;height:34px;border-radius:9px;background:var(--black);object-fit:contain;padding:5px;flex:none;}
+.oak .brand{display:flex;align-items:baseline;gap:0;}
+.oak .brand-o{height:27px;width:auto;flex:none;display:inline-block;transform:translateY(3px);}
 .oak .footer-mark{width:34px;height:34px;border-radius:9px;background:var(--blue);object-fit:contain;padding:5px;flex:none;}
-.oak .brand .word{font-weight:800;font-size:15px;letter-spacing:-.01em;}
-.oak .brand .word span{color:var(--blue);}
+.oak .brand .word{font-family:Inter,ui-sans-serif,system-ui,sans-serif;font-weight:400;font-size:22px;letter-spacing:-.01em;line-height:1;}
 
 .oak nav.desktop-nav{display:flex;align-items:center;gap:36px;}
 .oak nav.desktop-nav a{font-size:13px;font-weight:600;position:relative;padding:4px 0;}
