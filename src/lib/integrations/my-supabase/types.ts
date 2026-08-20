@@ -379,6 +379,44 @@ export type Database = {
           },
         ]
       }
+      product_size_measurements: {
+        Row: {
+          created_at: string
+          id: string
+          measurement_key: string
+          product_id: string
+          size_value: string
+          updated_at: string
+          value_cm: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          measurement_key: string
+          product_id: string
+          size_value: string
+          updated_at?: string
+          value_cm: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          measurement_key?: string
+          product_id?: string
+          size_value?: string
+          updated_at?: string
+          value_cm?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_size_measurements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_tags: {
         Row: {
           created_at: string
