@@ -20,12 +20,14 @@ export function VariantCombinationsSheet({
   const [bulkStock, setBulkStock] = useState("");
   const [bulkImageUrl, setBulkImageUrl] = useState("");
   const [imagePickerKey, setImagePickerKey] = useState<string | null>(null);
+  const [showPriceErrors, setShowPriceErrors] = useState(false);
 
   const optionNames = options
     .filter((o) => o.name.trim() && o.values.length > 0)
     .map((o) => o.name);
   const selected = rows.filter((r) => r.selected);
   const allSelected = rows.length > 0 && selected.length === rows.length;
+  const missingPrice = selected.some((r) => !r.price.trim());
 
   function updateRow(key: string, patch: Partial<VariantRow>) {
     setRows((prev) => prev.map((r) => (r.key === key ? { ...r, ...patch } : r)));
@@ -71,7 +73,13 @@ export function VariantCombinationsSheet({
           Variants
         </span>
         <button
-          onClick={onDone}
+          onClick={() => {
+            if (missingPrice) {
+              setShowPriceErrors(true);
+              return;
+            }
+            onDone();
+          }}
           type="button"
           disabled={selected.length === 0}
           className="text-sm font-medium text-black disabled:text-gray-300"
@@ -161,6 +169,12 @@ export function VariantCombinationsSheet({
             </button>
           </div>
 
+          {showPriceErrors && missingPrice && (
+            <p className="text-xs text-red-500 mb-2">
+              Add a price to every variant before continuing.
+            </p>
+          )}
+
           {bulkOpen && (
             <div className="border border-gray-200 rounded-xl p-3 mb-3 bg-gray-50">
               <p className="text-xs text-gray-500 mb-2">
@@ -212,6 +226,7 @@ export function VariantCombinationsSheet({
                     label="Price *"
                     value={row.price}
                     onChange={(v) => updateRow(row.key, { price: v })}
+                    error={showPriceErrors && !row.price.trim()}
                   />
                   <MiniField
                     label="Stock"
@@ -326,20 +341,24 @@ function MiniField({
   value,
   onChange,
   type = "number",
+  error = false,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   type?: string;
+  error?: boolean;
 }) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="text-xs text-gray-400">{label}</span>
+      <span className={`text-xs ${error ? "text-red-500" : "text-gray-400"}`}>{label}</span>
       <input
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="text-base border border-gray-200 rounded-lg px-2 py-2 outline-none"
+        className={`text-base border rounded-lg px-2 py-2 outline-none ${
+          error ? "border-red-300" : "border-gray-200"
+        }`}
       />
     </label>
   );

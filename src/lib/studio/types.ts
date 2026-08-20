@@ -27,6 +27,10 @@ export type StudioSource = {
   width: number;
   height: number;
   hasAudio: boolean;
+  /** Frames per second, measured from the file. 0 for stills, audio, and any
+   *  video whose rate could not be read. The export derives its own frame rate
+   *  from this rather than assuming 30 — see timelineFps() in export.ts. */
+  fps: number;
   /** Human label for the audio chip — "original", a filename. */
   name: string;
 };

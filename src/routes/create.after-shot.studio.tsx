@@ -32,7 +32,7 @@ import { TextPanel } from "@/components/studio/panels/TextPanel";
 import { PinPanel } from "@/components/studio/panels/PinPanel";
 import { useStudioProject } from "@/lib/studio/project";
 import { usePlayback } from "@/lib/studio/use-playback";
-import { exportCover, exportTimeline } from "@/lib/studio/export";
+import { exportCover, exportTimeline, outputSize, timelineFps } from "@/lib/studio/export";
 import { cachedBeats, clearAudioCache, decodeSourceAudio, estimateBpm } from "@/lib/studio/audio";
 import { clearFilmstripCache } from "@/lib/studio/filmstrip";
 import {
@@ -377,6 +377,13 @@ function StudioEditor({
       }
     },
     [dispatch, project.audio, sources],
+  );
+
+  // What the bake will actually produce. Cheap enough to derive on render, and
+  // only read while the export overlay is up.
+  const outputSpec = useMemo(
+    () => ({ ...outputSize(project, sources), fps: timelineFps(project, sources) }),
+    [project, sources],
   );
 
   const handleAddClips = useCallback(() => clipInputRef.current?.click(), []);
@@ -1024,6 +1031,11 @@ function StudioEditor({
               style={{ width: `${Math.round(progress * 100)}%` }}
             />
           </div>
+          {/* Both numbers are measured from the footage rather than fixed, and a
+              seller who shot at 60 has no other way to know they kept it. */}
+          <span className="text-[11px] tabular-nums text-white/45">
+            {outputSpec.width}×{outputSpec.height} · {outputSpec.fps}fps
+          </span>
         </div>
       )}
 

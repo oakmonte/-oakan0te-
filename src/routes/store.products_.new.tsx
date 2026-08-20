@@ -342,6 +342,7 @@ function NewProduct() {
         price={price}
         compareAtPrice={compareAtPrice}
         onOpenPriceSheet={() => setPriceSheetOpen(true)}
+        showPrice={kind === "regular"}
       />
 
       {kind === "regular" ? (

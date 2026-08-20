@@ -59,7 +59,17 @@ import {
 
 export type ExportProgress = (ratio: number) => void;
 
-const OUTPUT_FPS = 30;
+// Frame rate is measured, not assumed — see timelineFps(). These are the rates
+// it is allowed to land on: every one of them is a rate a phone actually shoots
+// or a clean multiple of one, which is the whole point of snapping.
+const FPS_LADDER = [24, 25, 30, 48, 50, 60];
+const MIN_FPS = 24;
+const MAX_FPS = 60;
+// 29.97 and 59.94 are the same rates as 30 and 60 wearing NTSC hats, and a
+// measured average is never exact anyway. Without this a 30.1 reading would step
+// all the way up to 48 and double the encode for nothing.
+const FPS_TOLERANCE = 1.02;
+const FALLBACK_FPS = 30;
 // 1080x1920 for a 9:16 edit — the standard for a social master, and what a phone
 // capture already is. outputSize() never upscales past the footage, so a smaller
 // source still exports at its own size; this is only a ceiling. It was 1280,
@@ -98,6 +108,44 @@ export function outputSize(
   }
   // H.264 wants even dimensions; an odd one is rejected outright on some encoders.
   return { width: width - (width % 2), height: height - (height % 2) };
+}
+
+/** Snaps a measured demand onto the ladder. */
+function snapFps(needed: number): number {
+  if (needed >= MIN_FPS) {
+    return FPS_LADDER.find((step) => step >= needed / FPS_TOLERANCE) ?? MAX_FPS;
+  }
+  // Below the floor every real frame is held for several output frames, so what
+  // matters is that the hold is EVEN. 12 real fps into 30 is 2.5 output frames
+  // per source frame, which alternates 2,3,2,3 and reads as judder on a pan;
+  // 12 into 24 is a clean 2. Prefer a floor rate the demand divides into.
+  const even = FPS_LADDER.find(
+    (step) => step >= MIN_FPS && Math.abs(step / needed - Math.round(step / needed)) < 0.02,
+  );
+  return even ?? MIN_FPS;
+}
+
+/** The frame rate this timeline actually needs.
+ *
+ *  It used to be a flat 30, which threw away half of every 60fps capture and
+ *  half of every clip sped past 1x — the two cases where motion is precisely
+ *  what the seller is showing off. A clip playing at speed s walks s seconds of
+ *  source per second of output, so it has sourceFps * s distinct frames a second
+ *  in it; the timeline needs the largest such demand across its clips.
+ *
+ *  Deliberately measured rather than pinned high: asking for 60 from footage
+ *  that only holds 30 buys nothing but duplicate frames the encoder still has to
+ *  be paid for, and export already costs a full pixel pass per frame. */
+export function timelineFps(project: StudioProject, sources: SourceMap): number {
+  let needed = 0;
+  for (const clip of project.clips) {
+    const source = sources[clip.sourceId];
+    if (!source || source.kind !== "video" || !source.fps) continue;
+    needed = Math.max(needed, source.fps * clip.speed);
+  }
+  // Stills only, or a file whose rate we could not read.
+  if (needed <= 0) return FALLBACK_FPS;
+  return snapFps(Math.min(MAX_FPS, needed));
 }
 
 // ---------------------------------------------------------------------------
@@ -158,13 +206,13 @@ type FramePlan = {
 
 type PlannedTransition = ReturnType<typeof transitionStateAt>;
 
-function planFrames(project: StudioProject, duration: number) {
+function planFrames(project: StudioProject, duration: number, fps: number) {
   const frames: FramePlan[] = [];
   const transitions: NonNullable<PlannedTransition>[] = [];
-  const total = Math.max(1, Math.ceil(duration * OUTPUT_FPS));
+  const total = Math.max(1, Math.ceil(duration * fps));
 
   for (let i = 0; i < total; i++) {
-    const time = i / OUTPUT_FPS;
+    const time = i / fps;
     const state = transitionStateAt(project.clips, time);
     if (state) {
       transitions.push(state);
@@ -418,7 +466,8 @@ export async function exportTimeline(
 
   const duration = projectDuration(project);
   const { width, height } = outputSize(project, sources);
-  const { frames, transitions } = planFrames(project, duration);
+  const fps = timelineFps(project, sources);
+  const { frames, transitions } = planFrames(project, duration, fps);
 
   const target = new BufferTarget();
   const format = new Mp4OutputFormat();
@@ -566,8 +615,19 @@ export async function exportTimeline(
       else runs.push({ clipIndex: frames[i].liveIndex, from: i, to: i });
     }
 
-    const frameDuration = 1 / OUTPUT_FPS;
+    const frameDuration = 1 / fps;
     let encoded = 0;
+
+    // Progress drives a React render of the whole editor, and at 60fps a
+    // thirty-second edit would fire it eighteen hundred times to move a number
+    // that only has a hundred values. Report on whole percent changes only.
+    let reportedPercent = -1;
+    const report = (ratio: number) => {
+      const percent = Math.round(ratio * 100);
+      if (percent === reportedPercent) return;
+      reportedPercent = percent;
+      onProgress?.(ratio);
+    };
 
     const composeAndEncode = async (plan: FramePlan) => {
       outCtx.clearRect(0, 0, width, height);
@@ -614,7 +674,7 @@ export async function exportTimeline(
 
       await canvasSource.add(plan.time, frameDuration);
       encoded += 1;
-      onProgress?.(0.15 + (encoded / frames.length) * 0.82);
+      report(0.15 + (encoded / frames.length) * 0.82);
     };
 
     for (const run of runs) {

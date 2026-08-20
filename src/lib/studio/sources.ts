@@ -12,11 +12,20 @@ import { uid, type StudioSource } from "./types";
 /** How long a still photo occupies the timeline when you drop one in. */
 export const DEFAULT_IMAGE_DURATION = 3;
 
+/** How many packets to look at when measuring a file's frame rate. Phone
+ *  captures are variable-frame-rate, so a single interval is meaningless and the
+ *  average over a few seconds is not; 120 packets is four seconds of 30fps
+ *  footage. Reading the whole file would be exact and pointless — it is a
+ *  metadata-only scan either way, but on a three-minute clip that is thousands
+ *  of packets to refine a number we then snap to a standard rate. */
+const FPS_SAMPLE_PACKETS = 120;
+
 async function probeVideo(blob: Blob): Promise<{
   duration: number;
   width: number;
   height: number;
   hasAudio: boolean;
+  fps: number;
 }> {
   const input = new Input({ source: new BlobSource(blob), formats: ALL_FORMATS });
   const [videoTrack, audioTrack, duration] = await Promise.all([
@@ -25,6 +34,14 @@ async function probeVideo(blob: Blob): Promise<{
     input.computeDuration(),
   ]);
   if (!videoTrack) throw new Error("That file has no video track");
+  // metadataOnly keeps this to a header walk — packet timestamps are all the
+  // average needs, and loading the frames themselves to count them would make
+  // picking a clip visibly slower. A failure here is not fatal: fps 0 means
+  // "unknown" and the export falls back to its default rate.
+  const stats = await videoTrack
+    .computePacketStats(FPS_SAMPLE_PACKETS, { metadataOnly: true })
+    .catch(() => null);
+  const fps = stats?.averagePacketRate ?? 0;
   return {
     duration,
     // displayWidth/Height rather than codedWidth — a portrait phone capture is
@@ -33,6 +50,7 @@ async function probeVideo(blob: Blob): Promise<{
     width: videoTrack.displayWidth,
     height: videoTrack.displayHeight,
     hasAudio: audioTrack !== null,
+    fps: Number.isFinite(fps) && fps > 0 ? fps : 0,
   };
 }
 
@@ -67,6 +85,7 @@ export async function loadSource(blob: Blob, name: string): Promise<StudioSource
         width,
         height,
         hasAudio: false,
+        fps: 0,
         name,
       };
     }
@@ -80,6 +99,7 @@ export async function loadSource(blob: Blob, name: string): Promise<StudioSource
         width: 0,
         height: 0,
         hasAudio: true,
+        fps: 0,
         name,
         ...probe,
       };

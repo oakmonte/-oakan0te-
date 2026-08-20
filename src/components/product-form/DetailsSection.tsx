@@ -11,6 +11,7 @@ export function DetailsSection({
   price,
   compareAtPrice,
   onOpenPriceSheet,
+  showPrice = true,
 }: {
   title: string;
   setTitle: (v: string) => void;
@@ -21,6 +22,7 @@ export function DetailsSection({
   price: string;
   compareAtPrice: string;
   onOpenPriceSheet: () => void;
+  showPrice?: boolean;
 }) {
   const categoryLabel = categoryPath.length ? categoryPath[categoryPath.length - 1].name : null;
   const hasDescription = descriptionShort.trim().length > 0;
@@ -50,7 +52,7 @@ export function DetailsSection({
       <button
         type="button"
         onClick={onOpenCategoryPicker}
-        className="w-full flex items-center justify-between py-4 border-b border-gray-100"
+        className={`w-full flex items-center justify-between py-4 ${showPrice ? "border-b border-gray-100" : ""}`}
       >
         <span className="flex items-center gap-3 text-[15px] text-gray-900">
           <Plus size={18} className="text-gray-400" />
@@ -59,23 +61,25 @@ export function DetailsSection({
         <ChevronRight size={16} className="text-gray-300" />
       </button>
 
-      <button
-        type="button"
-        onClick={onOpenPriceSheet}
-        className="w-full flex items-center justify-between py-4"
-      >
-        <span className="text-[15px] text-gray-500">
-          {compareAtPrice && (
-            <span className="line-through mr-2 text-gray-300">
-              ₦{Number(compareAtPrice).toLocaleString()}
+      {showPrice && (
+        <button
+          type="button"
+          onClick={onOpenPriceSheet}
+          className="w-full flex items-center justify-between py-4"
+        >
+          <span className="text-[15px] text-gray-500">
+            {compareAtPrice && (
+              <span className="line-through mr-2 text-gray-300">
+                ₦{Number(compareAtPrice).toLocaleString()}
+              </span>
+            )}
+            <span className="text-2xl text-gray-900 font-medium">
+              ₦{price ? Number(price).toLocaleString() : "0.00"}
             </span>
-          )}
-          <span className="text-2xl text-gray-900 font-medium">
-            ₦{price ? Number(price).toLocaleString() : "0.00"}
           </span>
-        </span>
-        <ChevronRight size={16} className="text-gray-300" />
-      </button>
+          <ChevronRight size={16} className="text-gray-300" />
+        </button>
+      )}
     </div>
   );
 }
