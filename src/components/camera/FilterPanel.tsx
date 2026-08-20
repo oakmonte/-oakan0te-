@@ -120,7 +120,7 @@ export default function FilterPanel({
                 key={f.id}
                 type="button"
                 onClick={() => handlePick(f.id)}
-                className="relative rounded-2xl overflow-hidden text-left"
+                className="oak-motion-control relative rounded-2xl overflow-hidden text-left"
                 style={{
                   border: selected ? "2px solid #fff" : "1px solid rgba(255,255,255,0.08)",
                 }}
@@ -136,7 +136,7 @@ export default function FilterPanel({
 
                 {selected && (
                   <span
-                    className="absolute top-2 right-2 flex items-center justify-center rounded-full"
+                    className="oak-motion-pop absolute top-2 right-2 flex items-center justify-center rounded-full"
                     style={{ width: 22, height: 22, background: "#fff", color: "#000" }}
                   >
                     <Check size={14} strokeWidth={3} />
@@ -172,7 +172,7 @@ export default function FilterPanel({
         <button
           type="button"
           onClick={handleApply}
-          className="w-full rounded-full font-bold text-sm uppercase tracking-wide py-3.5"
+          className="oak-motion-control w-full rounded-full font-bold text-sm uppercase tracking-wide py-3.5 active:scale-[0.98]"
           style={{ background: "#fff", color: "#000" }}
         >
           Apply Filter

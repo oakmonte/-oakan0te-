@@ -213,7 +213,7 @@ function AfterShotIndexPage() {
       <div ref={mediaAreaRef} className="absolute inset-0 flex items-center justify-center">
         <div
           ref={mediaBoxRef}
-          className="relative overflow-hidden"
+          className="oak-motion-fade relative overflow-hidden"
           style={{
             width: fitted.width || undefined,
             height: fitted.height || undefined,
@@ -245,7 +245,7 @@ function AfterShotIndexPage() {
           )}
 
           {exporting && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/70 z-30">
+            <div className="oak-motion-fade absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/70 z-30">
               <span className="text-sm uppercase tracking-widest">
                 {media.type === "video"
                   ? `Exporting… ${Math.round(exportProgress * 100)}%`
@@ -263,7 +263,7 @@ function AfterShotIndexPage() {
           )}
 
           {exportError && !exporting && (
-            <div className="absolute inset-x-4 bottom-4 rounded-xl px-4 py-3 bg-black/80 z-30">
+            <div className="oak-motion-enter absolute inset-x-4 bottom-4 rounded-xl px-4 py-3 bg-black/80 z-30">
               <p className="text-xs text-red-300">{exportError}</p>
             </div>
           )}
@@ -333,11 +333,11 @@ function AfterShotIndexPage() {
 
       {activeTool === null && (
         <>
-          <div className="absolute top-0 left-0 right-0 flex items-center gap-3 px-4 pt-[calc(env(safe-area-inset-top)+12px)] z-20">
+          <div className="oak-motion-enter absolute top-0 left-0 right-0 flex items-center gap-3 px-4 pt-[calc(env(safe-area-inset-top)+12px)] z-20">
             <button
               onClick={discard}
               aria-label="Discard and retake"
-              className="flex items-center justify-center w-10 h-10 rounded-full transition-transform duration-150 active:scale-90"
+              className="oak-motion-control flex items-center justify-center w-10 h-10 rounded-full active:scale-90"
               style={{ background: "rgba(255,255,255,0.10)", backdropFilter: "blur(12px)" }}
             >
               <X size={20} />
@@ -348,7 +348,7 @@ function AfterShotIndexPage() {
                 onClick={() => setVideoMuted((m) => !m)}
                 aria-label={videoMuted ? "Unmute preview" : "Mute preview"}
                 aria-pressed={!videoMuted}
-                className="flex items-center justify-center w-10 h-10 rounded-full transition-transform duration-150 active:scale-90"
+                className="oak-motion-control flex items-center justify-center w-10 h-10 rounded-full active:scale-90"
                 style={{ background: "rgba(255,255,255,0.10)", backdropFilter: "blur(12px)" }}
               >
                 {videoMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
@@ -357,7 +357,7 @@ function AfterShotIndexPage() {
           </div>
 
           <div
-            className="absolute right-4 flex flex-col items-end gap-5 z-20"
+            className="oak-motion-enter absolute right-4 flex flex-col items-end gap-5 z-20"
             style={{ top: "calc(env(safe-area-inset-top) + 76px)" }}
           >
             {media.type === "video" && (
@@ -367,7 +367,7 @@ function AfterShotIndexPage() {
               <button
                 onClick={() => navigate({ to: "/create/after-shot/studio" })}
                 aria-label="Open video studio"
-                className="flex items-center gap-2 opacity-90"
+                className="oak-motion-control flex items-center gap-2 opacity-90 active:scale-95"
               >
                 <Clapperboard size={24} />
               </button>
@@ -387,7 +387,7 @@ function AfterShotIndexPage() {
                     else if (tool.id === "sticker") stickerInputRef.current?.click();
                   }}
                   aria-label={tool.label}
-                  className="flex items-center gap-2 opacity-90"
+                  className="oak-motion-control flex items-center gap-2 opacity-90 active:scale-95"
                 >
                   <Icon size={24} />
                 </button>
@@ -398,35 +398,43 @@ function AfterShotIndexPage() {
               COLLAPSED_TOOLS.map((tool) => {
                 const Icon = tool.icon;
                 return (
-                  <button
-                    key={tool.id}
-                    onClick={() => setActiveTool(tool.id)}
-                    aria-label={tool.label}
-                    className="flex items-center gap-2 opacity-90"
-                  >
-                    <Icon size={24} />
-                  </button>
+                  // The enter animation lives on the wrapper, not the button.
+                  // oak-motion-enter animates transform with fill-mode both, so
+                  // it keeps applying translateY(0) after it ends and beats any
+                  // transform the button sets — active:scale-95 on the same
+                  // element never fires at all.
+                  <span key={tool.id} className="oak-motion-enter flex">
+                    <button
+                      onClick={() => setActiveTool(tool.id)}
+                      aria-label={tool.label}
+                      className="oak-motion-control flex items-center gap-2 opacity-90 active:scale-95"
+                    >
+                      <Icon size={24} />
+                    </button>
+                  </span>
                 );
               })}
 
             <button
               onClick={() => setToolsExpanded((v) => !v)}
               aria-label={toolsExpanded ? "Hide more tools" : "More tools"}
-              className="flex items-center justify-center w-8 h-8 mt-1"
+              className="oak-motion-control flex items-center justify-center w-8 h-8 mt-1 active:scale-90"
             >
-              {toolsExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+              <span key={toolsExpanded ? "up" : "down"} className="oak-motion-pop flex">
+                {toolsExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+              </span>
             </button>
           </div>
 
           <div
-            className="absolute left-0 right-0 flex items-center justify-end px-5 z-20"
+            className="oak-motion-enter absolute left-0 right-0 flex items-center justify-end px-5 z-20"
             style={{ bottom: "calc(env(safe-area-inset-bottom) + 20px)" }}
           >
             <button
               onClick={handleNext}
               disabled={exporting}
               aria-label="Export edited media"
-              className="px-6 py-2.5 rounded-full font-bold text-sm uppercase tracking-wide disabled:opacity-50 transition-transform duration-150 active:scale-95"
+              className="oak-motion-control px-6 py-2.5 rounded-full font-bold text-sm uppercase tracking-wide disabled:opacity-50 active:scale-95"
               style={{ background: "#fff", color: "#000" }}
             >
               {exporting ? "Exporting…" : "Next"}

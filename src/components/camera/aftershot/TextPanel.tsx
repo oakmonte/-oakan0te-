@@ -414,7 +414,7 @@ export default function TextPanel({ open, containerRef, editingLayerId, onClose 
 
   return (
     <div
-      className="absolute left-0 right-0 z-40 flex flex-col"
+      className="oak-motion-fade absolute left-0 right-0 z-40 flex flex-col"
       style={{
         top: viewport.top,
         height: viewport.height || "100%",
@@ -437,7 +437,7 @@ export default function TextPanel({ open, containerRef, editingLayerId, onClose 
               refocus();
             }}
             aria-label="Show font options"
-            className="flex items-center justify-center w-11 h-11 rounded-full"
+            className="oak-motion-control flex items-center justify-center w-11 h-11 rounded-full active:scale-90"
             style={{ background: !showColorRow ? "rgba(255,255,255,0.15)" : "transparent" }}
           >
             <span className="text-white text-lg font-semibold">A</span>
@@ -448,7 +448,7 @@ export default function TextPanel({ open, containerRef, editingLayerId, onClose 
               refocus();
             }}
             aria-label="Toggle color picker"
-            className="flex items-center justify-center w-11 h-11 rounded-full"
+            className="oak-motion-control flex items-center justify-center w-11 h-11 rounded-full active:scale-90"
             style={{ background: showColorRow ? "rgba(255,255,255,0.15)" : "transparent" }}
           >
             <Palette size={26} color="#fff" />
@@ -459,7 +459,7 @@ export default function TextPanel({ open, containerRef, editingLayerId, onClose 
               refocus();
             }}
             aria-label="Toggle text box"
-            className="flex items-center justify-center w-11 h-11 rounded-full"
+            className="oak-motion-control flex items-center justify-center w-11 h-11 rounded-full active:scale-90"
             style={{ background: boxOn ? "#fff" : "transparent", color: boxOn ? "#000" : "#fff" }}
           >
             <RectangleHorizontal size={26} />
@@ -470,7 +470,7 @@ export default function TextPanel({ open, containerRef, editingLayerId, onClose 
               refocus();
             }}
             aria-label={`Alignment: ${align}`}
-            className="flex items-center justify-center w-11 h-11 rounded-full"
+            className="oak-motion-control flex items-center justify-center w-11 h-11 rounded-full active:scale-90"
           >
             <AlignIcon size={26} color="#fff" />
           </button>
@@ -480,7 +480,7 @@ export default function TextPanel({ open, containerRef, editingLayerId, onClose 
               refocus();
             }}
             aria-label={`Bold strength: ${fontWeight}`}
-            className="flex items-center justify-center w-11 h-11 rounded-full text-lg"
+            className="oak-motion-control flex items-center justify-center w-11 h-11 rounded-full text-lg active:scale-90"
             style={{
               background: weightLevel > 0 ? "#fff" : "transparent",
               color: weightLevel > 0 ? "#000" : "#fff",
@@ -493,7 +493,7 @@ export default function TextPanel({ open, containerRef, editingLayerId, onClose 
         <button
           onClick={commit}
           aria-label="Done, place text"
-          className="flex items-center justify-center w-11 h-11 rounded-full"
+          className="oak-motion-control flex items-center justify-center w-11 h-11 rounded-full active:scale-90"
         >
           <X size={22} color="#fff" />
         </button>
@@ -602,7 +602,10 @@ export default function TextPanel({ open, containerRef, editingLayerId, onClose 
         }}
       >
         {showColorRow ? (
-          <div className="oak-text-row flex items-center gap-3 overflow-x-auto py-1">
+          <div
+            key="colors"
+            className="oak-motion-enter oak-text-row flex items-center gap-3 overflow-x-auto py-1"
+          >
             {COLORS.map((color) => (
               <button
                 key={color}
@@ -612,7 +615,7 @@ export default function TextPanel({ open, containerRef, editingLayerId, onClose 
                 }}
                 aria-label={`Color ${color}`}
                 aria-pressed={selectedColor === color}
-                className="shrink-0 rounded-full"
+                className="oak-motion-control shrink-0 rounded-full active:scale-90"
                 style={{
                   width: 28,
                   height: 28,
@@ -626,7 +629,10 @@ export default function TextPanel({ open, containerRef, editingLayerId, onClose 
             ))}
           </div>
         ) : (
-          <div className="oak-text-row flex items-center gap-2 overflow-x-auto py-1">
+          <div
+            key="fonts"
+            className="oak-motion-enter oak-text-row flex items-center gap-2 overflow-x-auto py-1"
+          >
             {FONTS.map((font) => (
               <button
                 key={font.id}
@@ -635,7 +641,7 @@ export default function TextPanel({ open, containerRef, editingLayerId, onClose 
                   refocus();
                 }}
                 aria-pressed={selectedFontId === font.id}
-                className="shrink-0 px-4 py-2 rounded-full text-xs font-medium"
+                className="oak-motion-control shrink-0 px-4 py-2 rounded-full text-xs font-medium active:scale-95"
                 style={{
                   fontFamily: font.css,
                   background: selectedFontId === font.id ? "#fff" : "rgba(255,255,255,0.10)",

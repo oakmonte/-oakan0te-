@@ -50,7 +50,7 @@ export default function FlashPanel({ open, value, facing, onClose, onChange }: F
                 onChange(option.value);
                 onClose();
               }}
-              className="w-full transition-all duration-200"
+              className="oak-motion-surface w-full transition-all duration-200"
               style={{
                 textAlign: "left",
                 borderRadius: 18,
@@ -85,6 +85,7 @@ export default function FlashPanel({ open, value, facing, onClose, onChange }: F
                 </div>
 
                 <div
+                  className="oak-motion-control"
                   style={{
                     width: 28,
                     height: 28,

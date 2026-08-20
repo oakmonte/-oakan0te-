@@ -21,7 +21,7 @@ export default function LayoutCard({
     <button
       type="button"
       onClick={() => onSelect(layout.id)}
-      className="relative rounded-2xl overflow-hidden text-left"
+      className="oak-motion-control relative rounded-2xl overflow-hidden text-left"
       style={{
         border: selected ? "2px solid #fff" : "1px solid rgba(255,255,255,0.08)",
       }}
@@ -32,7 +32,7 @@ export default function LayoutCard({
 
       {selected && (
         <span
-          className="absolute top-2 right-2 flex items-center justify-center rounded-full"
+          className="oak-motion-pop absolute top-2 right-2 flex items-center justify-center rounded-full"
           style={{ width: 22, height: 22, background: "#fff", color: "#000" }}
         >
           <Check size={14} strokeWidth={3} />

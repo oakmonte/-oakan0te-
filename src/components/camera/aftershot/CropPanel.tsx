@@ -323,7 +323,7 @@ export default function CropPanel({ open, containerRef, naturalSize, onClose }: 
           painted straight over the header buttons. Controls are now overlays on
           top of this surface rather than siblings that steal its height. */}
       <div
-        className="absolute z-40"
+        className="oak-motion-fade absolute z-40"
         style={{
           left: boxRect?.left ?? 0,
           top: boxRect?.top ?? 0,
@@ -421,7 +421,7 @@ export default function CropPanel({ open, containerRef, naturalSize, onClose }: 
         )}
 
         {busy && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/70 z-30">
+          <div className="oak-motion-fade absolute inset-0 flex items-center justify-center bg-black/70 z-30">
             <span className="text-sm uppercase tracking-widest text-white">
               {media.type === "video" ? `Cropping… ${Math.round(progress * 100)}%` : "Cropping…"}
             </span>
@@ -432,14 +432,14 @@ export default function CropPanel({ open, containerRef, naturalSize, onClose }: 
       {/* Controls sit above the dimming, anchored to the SCREEN rather than to
           the media box, so they stay reachable on media of any shape. */}
       <div
-        className="absolute left-0 right-0 top-0 flex items-center justify-between px-4 pt-[calc(env(safe-area-inset-top)+12px)] z-50"
+        className="oak-motion-enter absolute left-0 right-0 top-0 flex items-center justify-between px-4 pt-[calc(env(safe-area-inset-top)+12px)] z-50"
         style={{ fontFamily: "'SF Pro', system-ui, sans-serif" }}
       >
         <button
           onClick={handleCancel}
           aria-label="Cancel crop"
           disabled={busy}
-          className="flex items-center justify-center w-10 h-10 rounded-full"
+          className="oak-motion-control flex items-center justify-center w-10 h-10 rounded-full active:scale-90"
           style={{ background: "rgba(255,255,255,0.15)", backdropFilter: "blur(12px)" }}
         >
           <X size={20} color="#fff" />
@@ -448,7 +448,7 @@ export default function CropPanel({ open, containerRef, naturalSize, onClose }: 
           onClick={resetRect}
           aria-label="Reset crop"
           disabled={busy}
-          className="flex items-center justify-center w-10 h-10 rounded-full"
+          className="oak-motion-control flex items-center justify-center w-10 h-10 rounded-full active:scale-90"
           style={{ background: "rgba(255,255,255,0.15)", backdropFilter: "blur(12px)" }}
         >
           <RotateCcw size={18} color="#fff" />
@@ -457,7 +457,7 @@ export default function CropPanel({ open, containerRef, naturalSize, onClose }: 
           onClick={handleConfirm}
           aria-label="Confirm crop"
           disabled={busy || !rect}
-          className="flex items-center justify-center w-10 h-10 rounded-full disabled:opacity-40 transition-transform duration-150 active:scale-90"
+          className="oak-motion-control flex items-center justify-center w-10 h-10 rounded-full disabled:opacity-40 active:scale-90"
           style={{ background: "#fff", color: "#000" }}
         >
           <Check size={20} />
@@ -465,7 +465,7 @@ export default function CropPanel({ open, containerRef, naturalSize, onClose }: 
       </div>
 
       <div
-        className="oak-crop-presets absolute left-0 right-0 bottom-0 flex items-center gap-3 overflow-x-auto px-5 z-50"
+        className="oak-motion-enter oak-crop-presets absolute left-0 right-0 bottom-0 flex items-center gap-3 overflow-x-auto px-5 z-50"
         style={{
           paddingTop: 16,
           paddingBottom: "calc(env(safe-area-inset-bottom) + 24px)",
@@ -479,7 +479,7 @@ export default function CropPanel({ open, containerRef, naturalSize, onClose }: 
             key={preset.id}
             onClick={() => applyAspect(preset.id)}
             aria-pressed={aspectId === preset.id}
-            className="shrink-0 px-4 py-2 rounded-full text-xs font-medium"
+            className="oak-motion-control shrink-0 px-4 py-2 rounded-full text-xs font-medium active:scale-95"
             style={{
               background: aspectId === preset.id ? "#fff" : "rgba(255,255,255,0.15)",
               color: aspectId === preset.id ? "#000" : "#fff",

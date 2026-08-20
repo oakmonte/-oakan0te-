@@ -80,6 +80,90 @@
   }
 }
 
+/* Shared motion primitives for the camera and post-capture surfaces. These only
+   animate compositor-friendly properties, so they stay responsive while a live
+   camera, timeline, or media preview is running. */
+@keyframes oak-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes oak-pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes oak-motion-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.oak-motion-enter {
+  animation: oak-fade-up 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.oak-motion-pop {
+  animation: oak-pop-in 180ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.oak-motion-fade {
+  animation: oak-motion-fade-in 180ms ease-out both;
+}
+
+.oak-motion-control {
+  transition:
+    transform 160ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 160ms ease-out,
+    background-color 180ms ease-out,
+    border-color 180ms ease-out,
+    color 180ms ease-out,
+    box-shadow 180ms ease-out,
+    outline-color 180ms ease-out;
+}
+
+.oak-motion-surface {
+  transition:
+    opacity 220ms ease-out,
+    transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 180ms ease-out,
+    border-color 180ms ease-out,
+    /* color belongs here: the panel rows this class landed on flip their text
+       between black and white as the background does, and it is unlayered so it
+       replaces the transition-all it sits next to. Leaving color out snapped it
+       instantly, putting black text on a still-dark row for 180ms. */
+      color 180ms ease-out,
+    box-shadow 180ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .oak-motion-enter,
+  .oak-motion-pop,
+  .oak-motion-fade {
+    animation: none;
+  }
+
+  .oak-motion-control,
+  .oak-motion-surface {
+    transition-duration: 1ms;
+  }
+}
+
 /*
  * Design system definition.
  *

@@ -320,7 +320,7 @@ export default function DrawPanel({ open, containerRef, onClose }: DrawPanelProp
 
   return (
     <div
-      className="absolute inset-0 z-40"
+      className="oak-motion-fade absolute inset-0 z-40"
       style={{ fontFamily: "'SF Pro', system-ui, sans-serif" }}
     >
       {/* Pointer capture surface is absolute inset-0 — pixel-for-pixel the SAME
@@ -409,13 +409,13 @@ export default function DrawPanel({ open, containerRef, onClose }: DrawPanelProp
           you draw right up to the top edge — nothing about the header steals
           touches from the canvas underneath. */}
       <div
-        className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-[calc(env(safe-area-inset-top)+12px)]"
+        className="oak-motion-enter absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-[calc(env(safe-area-inset-top)+12px)]"
         style={{ pointerEvents: "none" }}
       >
         <button
           onClick={handleCancel}
           aria-label="Cancel draw"
-          className="flex items-center justify-center w-10 h-10 rounded-full"
+          className="oak-motion-control flex items-center justify-center w-10 h-10 rounded-full active:scale-90"
           style={{
             background: "rgba(255,255,255,0.10)",
             backdropFilter: "blur(12px)",
@@ -430,7 +430,7 @@ export default function DrawPanel({ open, containerRef, onClose }: DrawPanelProp
             onClick={handleUndo}
             aria-label="Undo"
             disabled={undoStack.length === 0}
-            className="flex items-center justify-center w-10 h-10 rounded-full disabled:opacity-40"
+            className="oak-motion-control flex items-center justify-center w-10 h-10 rounded-full disabled:opacity-40 active:scale-90"
             style={{ background: "rgba(255,255,255,0.10)", backdropFilter: "blur(12px)" }}
           >
             <Undo2 size={18} color="#fff" />
@@ -439,7 +439,7 @@ export default function DrawPanel({ open, containerRef, onClose }: DrawPanelProp
             onClick={handleRedo}
             aria-label="Redo"
             disabled={redoStack.length === 0}
-            className="flex items-center justify-center w-10 h-10 rounded-full disabled:opacity-40"
+            className="oak-motion-control flex items-center justify-center w-10 h-10 rounded-full disabled:opacity-40 active:scale-90"
             style={{ background: "rgba(255,255,255,0.10)", backdropFilter: "blur(12px)" }}
           >
             <Redo2 size={18} color="#fff" />
@@ -450,7 +450,7 @@ export default function DrawPanel({ open, containerRef, onClose }: DrawPanelProp
           onClick={handleConfirm}
           aria-label="Confirm drawing"
           disabled={strokes.length === 0}
-          className="flex items-center justify-center w-10 h-10 rounded-full disabled:opacity-40 transition-transform duration-150 active:scale-90"
+          className="oak-motion-control flex items-center justify-center w-10 h-10 rounded-full disabled:opacity-40 active:scale-90"
           style={{ background: "#fff", color: "#000", pointerEvents: "auto" }}
         >
           <Check size={20} />
@@ -459,7 +459,7 @@ export default function DrawPanel({ open, containerRef, onClose }: DrawPanelProp
 
       {/* Same floating treatment for the bottom toolbar. */}
       <div
-        className="absolute left-0 right-0 bottom-0 px-5 z-30"
+        className="oak-motion-enter absolute left-0 right-0 bottom-0 px-5 z-30"
         style={{
           paddingBottom: "calc(env(safe-area-inset-bottom) + 20px)",
           pointerEvents: "none",
@@ -479,7 +479,7 @@ export default function DrawPanel({ open, containerRef, onClose }: DrawPanelProp
                   onClick={() => setSelectedWidthId(w.id)}
                   aria-label={`${w.label} brush`}
                   aria-pressed={selected}
-                  className="shrink-0 flex items-center justify-center rounded-full"
+                  className="oak-motion-control shrink-0 flex items-center justify-center rounded-full active:scale-90"
                   style={{
                     width: 38,
                     height: 38,
@@ -507,7 +507,7 @@ export default function DrawPanel({ open, containerRef, onClose }: DrawPanelProp
                 key={s.id}
                 onClick={() => setBrushStyle(s.id)}
                 aria-pressed={brushStyle === s.id}
-                className="shrink-0 px-4 py-2 rounded-full text-xs font-medium"
+                className="oak-motion-control shrink-0 px-4 py-2 rounded-full text-xs font-medium active:scale-95"
                 style={{
                   background: brushStyle === s.id ? "#fff" : "rgba(255,255,255,0.10)",
                   color: brushStyle === s.id ? "#000" : "#fff",

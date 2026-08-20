@@ -51,7 +51,7 @@ export default function TimerPanel({ open, value, onClose, onChange }: TimerPane
                 onChange(option.value);
                 onClose();
               }}
-              className="w-full transition-all duration-200"
+              className="oak-motion-surface w-full transition-all duration-200"
               style={{
                 textAlign: "left",
                 borderRadius: 18,

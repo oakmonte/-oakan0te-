@@ -126,13 +126,8 @@ means there.
 When a migration touches a table whose RLS state differs from its neighbours, say so in a comment in
 the migration itself. The next person to read it needs to know whether the omission was deliberate.
 
-## SSR error handling — don't collapse it
-
-h3 can swallow an in-handler `throw` into a generic `{"unhandled":true,...}` 500 that a plain
-`try/catch` never sees. Three layers exist for three distinct failure modes: `src/lib/error-capture.ts`
-stashes the real error out-of-band (5s TTL), `src/server.ts` detects the swallowed-500 shape and
-re-renders it, and `src/start.ts` + `__root.tsx` cover request-level and client-side cases. If a data
-error is vanishing into a blank 500, that's the machinery to look at — not something to simplify.
+If a data error vanishes into a blank 500 instead of the message you threw, that's SSR error handling
+swallowing it — see the three-layer explanation in root `CLAUDE.md`, not a bug in the query itself.
 
 ## Secrets
 

@@ -55,6 +55,8 @@ export default function CameraPanel({
           pointerEvents: open ? "auto" : "none",
           background: "rgba(0,0,0,.45)",
           backdropFilter: open ? "blur(10px)" : "blur(0px)",
+          transition: "opacity 280ms ease-out, backdrop-filter 280ms ease-out",
+          willChange: "opacity, backdrop-filter",
         }}
       />
 
@@ -75,6 +77,7 @@ export default function CameraPanel({
           borderTop: "1px solid rgba(255,255,255,.08)",
           boxShadow: "0 -12px 40px rgba(0,0,0,.45)",
           paddingBottom: "calc(env(safe-area-inset-bottom) + 16px)",
+          willChange: "transform",
         }}
       >
         {/* Drag Handle */}

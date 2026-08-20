@@ -835,7 +835,10 @@ function CreatePage() {
           }}
         />
         {gridVisible && (
-          <div className="absolute inset-0 pointer-events-none" style={{ opacity: 0.35 }}>
+          <div
+            className="oak-motion-fade absolute inset-0 pointer-events-none"
+            style={{ opacity: 0.35 }}
+          >
             <div className="absolute left-1/3 top-0 bottom-0 w-px bg-white" />
             <div className="absolute left-2/3 top-0 bottom-0 w-px bg-white" />
             <div className="absolute top-1/3 left-0 right-0 h-px bg-white" />
@@ -848,7 +851,7 @@ function CreatePage() {
             layout={activeLayout}
             gap={2}
             activeCellIndex={activeCellIndex}
-            className="absolute inset-0"
+            className="oak-motion-fade absolute inset-0"
             renderCell={(_cell, i) => {
               const capture = cellCaptures[i];
               const isActive = i === activeCellIndex;
@@ -934,9 +937,14 @@ function CreatePage() {
         )}
       </div>
 
+      {/* Fade the light UP and leave it up. screenFlashActive is a sustained
+          state — front camera plus flash on means the screen IS the light source
+          for as long as it is set, which is why currentFilterCss carries a
+          matching brightness(1.25) the whole time. A blink-and-decay animation
+          here leaves the preview brightened with nothing lighting the subject. */}
       {screenFlashActive && (
         <div
-          className="absolute inset-0 pointer-events-none"
+          className="oak-motion-fade absolute inset-0 pointer-events-none"
           style={{
             background:
               "radial-gradient(ellipse at 50% 40%, transparent 0%, transparent 38%, rgba(255,255,255,0.55) 70%, rgba(255,255,255,0.95) 100%)",
@@ -947,7 +955,11 @@ function CreatePage() {
 
       {capturePhase === "counting" && countdownRemaining !== null && countdownRemaining > 0 && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
-          <span className="text-8xl font-bold" style={{ textShadow: "0 2px 12px rgba(0,0,0,0.5)" }}>
+          <span
+            key={countdownRemaining}
+            className="oak-motion-pop text-8xl font-bold"
+            style={{ textShadow: "0 2px 12px rgba(0,0,0,0.5)" }}
+          >
             {countdownRemaining}
           </span>
         </div>
@@ -975,7 +987,7 @@ function CreatePage() {
                 key="timer"
                 onClick={() => setOpenPanel("timer")}
                 aria-label="Timer"
-                className="flex items-center gap-2 relative"
+                className="oak-motion-control flex items-center gap-2 relative active:scale-95"
               >
                 <AnimatedLabel visible={labelsVisible}>
                   {timer === 0 ? "Timer" : `Timer: ${timer}s`}
@@ -1000,7 +1012,7 @@ function CreatePage() {
                 key="ratio"
                 onClick={() => setOpenPanel("ratio")}
                 aria-label="Ratio"
-                className="flex items-center gap-2"
+                className="oak-motion-control flex items-center gap-2 active:scale-95"
               >
                 <AnimatedLabel visible={labelsVisible}>{`Ratio: ${ratio}`}</AnimatedLabel>
                 <RatioIcon size={26} />
@@ -1013,7 +1025,7 @@ function CreatePage() {
                 key="layout"
                 onClick={() => setOpenPanel("layout")}
                 aria-label="Layout"
-                className="flex items-center gap-2"
+                className="oak-motion-control flex items-center gap-2 active:scale-95"
               >
                 <AnimatedLabel visible={labelsVisible}>
                   {isMultiCellActive
@@ -1030,7 +1042,7 @@ function CreatePage() {
               key="filters"
               onClick={() => setOpenPanel("filters")}
               aria-label={isNonDefaultFilterActive ? "More filters" : "Filters"}
-              className="flex items-center gap-2 opacity-90"
+              className="oak-motion-control flex items-center gap-2 opacity-90 active:scale-95"
             >
               <AnimatedLabel visible={labelsVisible}>
                 {isNonDefaultFilterActive ? activeFilter.name : "Filters"}
@@ -1049,7 +1061,7 @@ function CreatePage() {
           onClick={() => setGridVisible((v) => !v)}
           aria-label={gridVisible ? "Hide grid" : "Show grid"}
           aria-pressed={gridVisible}
-          className="flex items-center gap-2"
+          className="oak-motion-control flex items-center gap-2 active:scale-95"
         >
           <AnimatedLabel visible={labelsVisible}>{gridVisible ? "Grid: On" : "Grid"}</AnimatedLabel>
           <Grid3x3 size={26} style={{ opacity: gridVisible ? 1 : 0.7 }} />
@@ -1059,7 +1071,7 @@ function CreatePage() {
           <button
             onClick={() => toggleFilterFavorite(selectedFilterId)}
             aria-label={isCurrentFilterFavorited ? "Remove from favorites" : "Favorite this filter"}
-            className="flex items-center gap-2"
+            className="oak-motion-control flex items-center gap-2 active:scale-95"
             style={{ animation: "oak-fade-in 220ms ease-out" }}
           >
             <AnimatedLabel visible={labelsVisible}>
@@ -1072,7 +1084,7 @@ function CreatePage() {
         <button
           onClick={() => setLabelsVisible((v) => !v)}
           aria-label={labelsVisible ? "Hide labels" : "Show labels"}
-          className="flex items-center justify-center w-8 h-8 mt-1"
+          className="oak-motion-control flex items-center justify-center w-8 h-8 mt-1 active:scale-90"
         >
           {labelsVisible ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
         </button>
@@ -1174,7 +1186,7 @@ function CreatePage() {
       <button
         aria-label="Import from gallery"
         onClick={() => galleryInputRef.current?.click()}
-        className="absolute rounded-xl overflow-hidden flex items-center justify-center"
+        className="oak-motion-control absolute rounded-xl overflow-hidden flex items-center justify-center active:scale-95"
         style={{
           zIndex: 3,
           left: iconColumnLeft(GALLERY_ICON_SIZE),

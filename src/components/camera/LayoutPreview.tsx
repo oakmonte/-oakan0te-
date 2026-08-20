@@ -31,6 +31,7 @@ export default function LayoutPreview({
         return (
           <div
             key={i}
+            className="oak-motion-surface"
             style={{
               position: "absolute",
               left: `calc(${cell.x * 100}% + ${gap / 2}px)`,

@@ -18,8 +18,8 @@ Package manager is **bun** — `package-lock.json` is stale, ignore it.
 - **No test runner.** Anything behavioural is verified by running the dev server and exercising the
   flow, not by tests.
 - A `Stop` hook re-runs typecheck in the background whenever `.ts`/`.tsx` changed, so a failure will
-  surface even if you skip the manual run. Hooks in `.claude/hooks/` also hard-block `.env` reads and
-  hand-edits to the generated `types.ts` files.
+  surface even if you skip the manual run. Hooks in `.claude/hooks/` also hard-block reads of secret
+  files (`.env*`, keys, credential stores) and hand-edits to the generated `types.ts` files.
 
 ## Two Supabase clients — do not conflate
 
@@ -31,16 +31,9 @@ Package manager is **bun** — `package-lock.json` is stale, ignore it.
 
 New data/auth work imports from `@/lib/integrations/my-supabase/client` (browser, publishable key — but
 RLS is currently *off* on `stores`, `products`, `product_variants`, so it is not row-scoped there) or
-`.../client.server` (`supabaseAdmin`, service-role, bypasses RLS — trusted server code only).
-
-Both are typed with `Database` from `my-supabase/types.ts`, generated from the live schema. Regenerate
-it after any schema change (`mcp__supabase__generate_typescript_types`); all three generated `types.ts`
-files are eslint-ignored because they get replaced wholesale.
-
-`*.server.ts` is the TanStack Start server-only convention (the npm `server-only` package is
-ESLint-blocked). Route files and `*.functions.ts` ship to the client bundle, so pull `client.server.ts`
-in via dynamic `import()` inside the handler — not a top-level import — unless you're already inside
-another `.server.ts` module.
+`.../client.server` (`supabaseAdmin`, service-role, bypasses RLS — trusted server code only). Full
+detail on the client boundary, dynamic-import rule, and type regeneration is in the
+`supabase-data-access` skill — it loads on any query/auth/route work, so it isn't repeated here.
 
 Server-only env, `process.env` only: `MY_SUPABASE_SERVICE_ROLE_KEY`, `SHOPIFY_API_KEY`,
 `SHOPIFY_API_SECRET`, `SHOPIFY_SCOPES`, `SHOPIFY_REDIRECT_URI`, `SHIPBUBBLE_API_KEY`.
@@ -98,5 +91,3 @@ means "has children, not filled in yet". Not interchangeable.
   first: `profiles` also holds `personal_email`, `personal_phone` and `gender`, and RLS is row-level,
   so a public policy exposes those too. A public view over the safe columns (like `profile_stats`) is
   the shape that fits.
-- Seller dashboard routes (`store.index/orders/products/customers/growth/discounts/content/finance/
-  theme`) all exist; several are still thin. Products is the most developed.
