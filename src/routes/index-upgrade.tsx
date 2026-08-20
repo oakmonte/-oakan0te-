@@ -406,6 +406,21 @@ function HeaderAuth() {
 }
 
 /* ---------------- Shared bits ---------------- */
+const EDITORIAL: Record<string, { src: string; alt: string }[]> = {
+  "on-black": [
+    { src: editorial1, alt: "Model in an oversized tailored coat" },
+    { src: editorial3, alt: "Creator photographing an outfit" },
+  ],
+  "on-blue": [
+    { src: editorial2, alt: "Close-up of layered garment fabric" },
+    { src: editorial1, alt: "Model in an oversized tailored coat" },
+  ],
+  "on-light": [
+    { src: editorial3, alt: "Creator photographing an outfit" },
+    { src: editorial2, alt: "Close-up of layered garment fabric" },
+  ],
+};
+
 function BrandArt({
   variant,
   caption,
@@ -413,17 +428,23 @@ function BrandArt({
   variant: "on-black" | "on-blue" | "on-light";
   caption?: string;
 }) {
+  const shots = EDITORIAL[variant]!;
   return (
     <div className={`brand-art ${variant}`}>
-      <span className="ring ring2" />
-      <span className="ring" />
-      <div className="logo-wrap">
-        <img src={logoO} alt="Oakmonte" />
+      <div className="ed-stack">
+        {shots.map((s, i) => (
+          <figure key={s.src} className={`ed-frame ed-frame-${i + 1}`}>
+            <img src={s.src} alt={s.alt} loading="lazy" width={1024} height={1280} />
+            <span className="ed-sheen" />
+          </figure>
+        ))}
       </div>
+      <span className="ed-tint" />
       {caption && <span className="cap">{caption}</span>}
     </div>
   );
 }
+
 
 // The three real onboarding paths — reused in the hero and the closing CTA so
 // visitors are never more than one section away from a working next step.
