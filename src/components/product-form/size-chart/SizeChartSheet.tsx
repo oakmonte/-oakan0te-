@@ -1,53 +1,79 @@
-import { Fragment, useState } from "react";
-import { X } from "lucide-react";
+import { useState } from "react";
+import { ChevronLeft, X } from "lucide-react";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
 import {
   cmToDisplay,
   displayToCm,
+  type ManualSize,
   type SizeChartDefinition,
   type SizeMeasurements,
 } from "@/lib/size-chart-config";
+import { SIZE_SYSTEMS } from "@/components/product-form/OptionEditorSheet";
 import { TshirtShortSleeveDiagram } from "@/components/product-form/size-chart/TshirtOutline";
 
 type Unit = "cm" | "in";
 // sizeValue -> measurementKey -> raw typed string, in whatever `unit` currently is
 type Draft = Record<string, Record<string, string>>;
+const SYSTEM_KEYS = Object.keys(SIZE_SYSTEMS) as (keyof typeof SIZE_SYSTEMS)[];
 
 function formatNum(n: number): string {
   return (Math.round(n * 100) / 100).toString();
 }
 
+function seedDraft(sizeValues: string[], lines: { key: string }[], init: SizeMeasurements): Draft {
+  const draft: Draft = {};
+  for (const sv of sizeValues) {
+    draft[sv] = {};
+    for (const line of lines) {
+      const cm = init[sv]?.[line.key];
+      draft[sv][line.key] = cm != null ? formatNum(cm) : "";
+    }
+  }
+  return draft;
+}
+
 export function SizeChartSheet({
-  sizeValues,
+  variantSizeValues,
+  manualSize,
   chart,
   initialMeasurements,
   onSave,
   onClose,
 }: {
-  sizeValues: string[];
+  variantSizeValues: string[];
+  manualSize: ManualSize | null;
   chart: SizeChartDefinition;
   initialMeasurements: SizeMeasurements;
-  onSave: (measurements: SizeMeasurements) => void;
+  onSave: (measurements: SizeMeasurements, manualSize: ManualSize | null) => void;
   onClose: () => void;
 }) {
   useLockedViewport();
 
+  // Variant Size axis wins when it exists — a seller who already set up Size
+  // as a variant option doesn't also get a manual picker for the same thing.
+  const isVariantMode = variantSizeValues.length > 0;
+
   const [unit, setUnit] = useState<Unit>("cm");
   const [focusedKey, setFocusedKey] = useState<string | null>(null);
-  const [values, setValues] = useState<Draft>(() => {
-    const init: Draft = {};
-    for (const sv of sizeValues) {
-      init[sv] = {};
-      for (const line of chart.lines) {
-        const cm = initialMeasurements[sv]?.[line.key];
-        init[sv][line.key] = cm != null ? formatNum(cm) : "";
-      }
-    }
-    return init;
-  });
+  const [index, setIndex] = useState(0);
+  const [draft, setDraft] = useState<Draft>(() =>
+    isVariantMode
+      ? seedDraft(variantSizeValues, chart.lines, initialMeasurements)
+      : seedDraft(manualSize ? [manualSize.value] : [], chart.lines, initialMeasurements),
+  );
+
+  const [pickedSize, setPickedSize] = useState<ManualSize | null>(manualSize);
+  const [pickerSystem, setPickerSystem] = useState<keyof typeof SIZE_SYSTEMS>(
+    (manualSize?.system as keyof typeof SIZE_SYSTEMS) ?? "XXL",
+  );
+  const [confirmEmptySave, setConfirmEmptySave] = useState(false);
+
+  const activeSizes = isVariantMode ? variantSizeValues : pickedSize ? [pickedSize.value] : [];
+  const currentSize = activeSizes[index];
 
   function setCell(sizeValue: string, key: string, raw: string) {
-    setValues((prev) => ({
+    setConfirmEmptySave(false);
+    setDraft((prev) => ({
       ...prev,
       [sizeValue]: { ...prev[sizeValue], [key]: raw },
     }));
@@ -55,7 +81,7 @@ export function SizeChartSheet({
 
   function switchUnit(next: Unit) {
     if (next === unit) return;
-    setValues((prev) => {
+    setDraft((prev) => {
       const out: Draft = {};
       for (const sv of Object.keys(prev)) {
         out[sv] = {};
@@ -75,19 +101,51 @@ export function SizeChartSheet({
     setUnit(next);
   }
 
-  function handleSave() {
-    const measurements: SizeMeasurements = {};
+  function pickSize(value: string) {
+    setPickedSize({ value, system: pickerSystem });
+    setDraft(() => seedDraft([value], chart.lines, initialMeasurements));
+    setConfirmEmptySave(false);
+  }
+
+  function measurementsFor(sizeValues: string[]): SizeMeasurements {
+    const out: SizeMeasurements = {};
     for (const sv of sizeValues) {
       for (const line of chart.lines) {
-        const raw = values[sv]?.[line.key];
+        const raw = draft[sv]?.[line.key];
         const num = raw ? parseFloat(raw) : NaN;
         if (isNaN(num)) continue;
-        measurements[sv] ??= {};
-        measurements[sv][line.key] = displayToCm(num, unit);
+        out[sv] ??= {};
+        out[sv][line.key] = displayToCm(num, unit);
       }
     }
-    onSave(measurements);
+    return out;
   }
+
+  function handleNext() {
+    setIndex((i) => Math.min(i + 1, activeSizes.length - 1));
+    setConfirmEmptySave(false);
+  }
+
+  function handleBack() {
+    setIndex((i) => Math.max(i - 1, 0));
+    setConfirmEmptySave(false);
+  }
+
+  function handleVariantSave() {
+    onSave(measurementsFor(variantSizeValues), null);
+  }
+
+  function handleManualSave() {
+    if (!pickedSize) return;
+    const hasAnyValue = chart.lines.some((l) => draft[pickedSize.value]?.[l.key]?.trim());
+    if (!hasAnyValue && !confirmEmptySave) {
+      setConfirmEmptySave(true);
+      return;
+    }
+    onSave(measurementsFor([pickedSize.value]), pickedSize);
+  }
+
+  const isLastStep = index === activeSizes.length - 1;
 
   return (
     <div className="fixed inset-0 z-50 bg-white flex flex-col min-h-dvh animate-in fade-in slide-in-from-bottom-6 duration-300 ease-out">
@@ -98,104 +156,171 @@ export function SizeChartSheet({
         <span className="font-semibold text-[15px] absolute left-1/2 -translate-x-1/2">
           Size chart
         </span>
-        <span className="w-5" />
+        {isVariantMode ? (
+          <span className="text-xs text-gray-400 w-12 text-right">
+            {index + 1}/{activeSizes.length}
+          </span>
+        ) : (
+          <span className="w-5" />
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-5 flex flex-col gap-6">
-        {sizeValues.length === 0 ? (
-          <div className="flex-1 flex flex-col items-center justify-center gap-2 px-8 text-center py-16">
-            <p className="text-[15px] text-gray-900 font-medium">Add Size values first</p>
-            <p className="text-xs text-gray-500">
-              Go to Variants and add a Size option with at least one value, then come back here to
-              fill in measurements.
-            </p>
-          </div>
+        {!isVariantMode && !pickedSize ? (
+          <SizePicker system={pickerSystem} onChangeSystem={setPickerSystem} onPick={pickSize} />
         ) : (
           <>
             <div className="aspect-square w-full bg-gray-50 rounded-2xl p-4">
               <TshirtShortSleeveDiagram activeKey={focusedKey} onSelectLine={setFocusedKey} />
             </div>
 
-            <div className="flex items-center justify-center gap-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <span className="text-[15px] font-semibold text-gray-900">{currentSize}</span>
+                {!isVariantMode && (
+                  <button
+                    type="button"
+                    onClick={() => setPickedSize(null)}
+                    className="text-xs text-gray-400 underline"
+                  >
+                    Change
+                  </button>
+                )}
+              </div>
               <div className="flex bg-gray-100 rounded-full p-1">
                 {(["cm", "in"] as const).map((u) => (
                   <button
                     key={u}
                     type="button"
                     onClick={() => switchUnit(u)}
-                    className={`px-4 py-1.5 rounded-full text-sm font-medium oak-motion-surface ${
+                    className={`px-3 py-1 rounded-full text-xs font-medium oak-motion-surface ${
                       unit === u ? "bg-black text-white" : "text-gray-500"
                     }`}
                   >
-                    {u === "cm" ? "cm" : "in"}
+                    {u}
                   </button>
                 ))}
               </div>
             </div>
 
-            <div className="border border-gray-100 rounded-xl overflow-hidden">
-              <div
-                className="grid"
-                style={{ gridTemplateColumns: `72px repeat(${chart.lines.length}, 1fr)` }}
-              >
-                <div className="bg-gray-50 px-2 py-2.5" />
-                {chart.lines.map((line) => (
+            <div className="flex flex-col gap-3">
+              {chart.lines.map((line) => (
+                <div
+                  key={line.key}
+                  className={`flex items-center justify-between gap-3 border rounded-xl px-4 py-3 transition-colors duration-150 ${
+                    focusedKey === line.key ? "border-gray-900" : "border-gray-100"
+                  }`}
+                >
                   <button
-                    key={line.key}
                     type="button"
                     onClick={() => setFocusedKey(line.key)}
-                    className={`px-2 py-2.5 text-center text-xs font-medium transition-colors duration-150 ${
-                      focusedKey === line.key
-                        ? "bg-gray-900 text-white"
-                        : "bg-gray-50 text-gray-600"
-                    }`}
+                    className="text-[15px] text-gray-900 text-left"
                   >
                     {line.label}
-                    <span className="block text-[10px] opacity-70">({unit})</span>
                   </button>
-                ))}
-
-                {sizeValues.map((sv) => (
-                  <Fragment key={sv}>
-                    <div className="px-2 py-2.5 flex items-center justify-center text-sm font-medium text-gray-900 border-t border-gray-100">
-                      {sv}
-                    </div>
-                    {chart.lines.map((line) => (
-                      <div
-                        key={line.key}
-                        className={`border-t border-l border-gray-100 transition-colors duration-150 ${
-                          focusedKey === line.key ? "bg-gray-50" : ""
-                        }`}
-                      >
-                        <input
-                          value={values[sv]?.[line.key] ?? ""}
-                          onChange={(e) =>
-                            setCell(sv, line.key, e.target.value.replace(/[^0-9.]/g, ""))
-                          }
-                          onFocus={() => setFocusedKey(line.key)}
-                          inputMode="decimal"
-                          placeholder="0"
-                          className="w-full text-center text-[15px] py-2.5 outline-none bg-transparent"
-                        />
-                      </div>
-                    ))}
-                  </Fragment>
-                ))}
-              </div>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      value={draft[currentSize]?.[line.key] ?? ""}
+                      onChange={(e) =>
+                        setCell(currentSize, line.key, e.target.value.replace(/[^0-9.]/g, ""))
+                      }
+                      onFocus={() => setFocusedKey(line.key)}
+                      inputMode="decimal"
+                      placeholder="0"
+                      className="w-16 text-right text-[15px] outline-none bg-transparent"
+                    />
+                    <span className="text-xs text-gray-400">{unit}</span>
+                  </div>
+                </div>
+              ))}
             </div>
+
+            {!isVariantMode && confirmEmptySave && (
+              <p className="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2.5 animate-in fade-in duration-200">
+                No measurements added yet — you can still save just the size, and fill these in
+                later.
+              </p>
+            )}
           </>
         )}
       </div>
 
-      <div className="sticky bottom-0 px-4 py-3 border-t border-gray-100 bg-white shrink-0">
-        <button
-          type="button"
-          onClick={handleSave}
-          disabled={sizeValues.length === 0}
-          className="w-full bg-black text-white text-sm font-medium rounded-full py-3.5 disabled:opacity-50 oak-motion-control active:scale-[0.98]"
-        >
-          Save size chart
-        </button>
+      {(isVariantMode || pickedSize) && (
+        <div className="sticky bottom-0 px-4 py-3 border-t border-gray-100 bg-white shrink-0 flex gap-3">
+          {isVariantMode && index > 0 && (
+            <button
+              type="button"
+              onClick={handleBack}
+              className="px-5 rounded-full border border-gray-200 text-sm font-medium text-gray-700 oak-motion-control"
+            >
+              <ChevronLeft size={18} />
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={
+              isVariantMode ? (isLastStep ? handleVariantSave : handleNext) : handleManualSave
+            }
+            className="flex-1 bg-black text-white text-sm font-medium rounded-full py-3.5 oak-motion-control active:scale-[0.98]"
+          >
+            {isVariantMode
+              ? isLastStep
+                ? "Save size chart"
+                : "Next size"
+              : confirmEmptySave
+                ? "Save without measurements"
+                : "Save size"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SizePicker({
+  system,
+  onChangeSystem,
+  onPick,
+}: {
+  system: keyof typeof SIZE_SYSTEMS;
+  onChangeSystem: (s: keyof typeof SIZE_SYSTEMS) => void;
+  onPick: (value: string) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-4">
+      <div>
+        <p className="text-[15px] font-semibold text-gray-900 mb-1">Pick a size</p>
+        <p className="text-xs text-gray-500">
+          Optional — only needed if this product isn't already split into Size variants.
+        </p>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {SYSTEM_KEYS.map((key) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => onChangeSystem(key)}
+            className={`text-sm rounded-full px-3 py-1.5 border transition-colors duration-150 ${
+              system === key ? "bg-black text-white border-black" : "border-gray-200 text-gray-700"
+            }`}
+          >
+            {key}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {SIZE_SYSTEMS[system].map((v) => (
+          <button
+            key={v}
+            type="button"
+            onClick={() => onPick(v)}
+            className="text-sm rounded-full px-3.5 py-2 border border-gray-200 text-gray-900 oak-motion-control"
+          >
+            {v}
+          </button>
+        ))}
       </div>
     </div>
   );

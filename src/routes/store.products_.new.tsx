@@ -18,7 +18,7 @@ import {
   VariantOption,
   VariantRow,
 } from "@/components/product-form/VariantMatrixBuilder";
-import { SizeMeasurements } from "@/lib/size-chart-config";
+import { ManualSize, SizeMeasurements } from "@/lib/size-chart-config";
 import {
   stashProductDraft,
   takeProductDraft,
@@ -80,6 +80,9 @@ function NewProduct() {
   const [sizeMeasurements, setSizeMeasurements] = useState<SizeMeasurements>(
     initialDraft?.sizeMeasurements ?? {},
   );
+  // Manual size pick — only meaningful when there's no Variant Size axis
+  // (regular products, or variant products that only vary by e.g. Color).
+  const [manualSize, setManualSize] = useState<ManualSize | null>(initialDraft?.manualSize ?? null);
 
   const [categoryPickerOpen, setCategoryPickerOpen] = useState(false);
   const [typeSwitchOpen, setTypeSwitchOpen] = useState(false);
@@ -119,6 +122,7 @@ function NewProduct() {
       rows,
       collectionIds,
       sizeMeasurements,
+      manualSize,
     });
     navigate({ to: "/store/collections/new" });
   }
@@ -173,6 +177,8 @@ function NewProduct() {
         status,
         source_platform: "manual",
         is_complete: true,
+        manual_size_value: manualSize?.value ?? null,
+        manual_size_system: manualSize?.system ?? null,
       })
       .select("id")
       .single();
@@ -182,6 +188,15 @@ function NewProduct() {
       setSaving(false);
       return;
     }
+
+    // Written out rather than looped so each payload is checked against its
+    // own table's Insert type — a loop over a {table, payload} union erases
+    // that. Order is forced by the foreign keys, and there's no transaction:
+    // a failure here leaves the earlier rows behind.
+    const fail = (table: string, message: string) => {
+      setError(`${table}: ${message}`);
+      setSaving(false);
+    };
 
     if (kind === "regular") {
       const { error: variantErr } = await supabase.from("product_variants").insert({
@@ -248,15 +263,6 @@ function NewProduct() {
         })),
       );
 
-      // Written out rather than looped so each payload is checked against its
-      // own table's Insert type — a loop over a {table, payload} union erases
-      // that. Order is forced by the foreign keys, and there's no transaction:
-      // a failure here leaves the earlier rows behind.
-      const fail = (table: string, message: string) => {
-        setError(`${table}: ${message}`);
-        setSaving(false);
-      };
-
       const optionsRes = await supabase.from("product_options").insert(optionsPayload);
       if (optionsRes.error) return fail("product_options", optionsRes.error.message);
 
@@ -268,22 +274,24 @@ function NewProduct() {
 
       const linksRes = await supabase.from("product_variant_options").insert(linksPayload);
       if (linksRes.error) return fail("product_variant_options", linksRes.error.message);
+    }
 
-      const measurementsPayload = Object.entries(sizeMeasurements).flatMap(([sizeValue, byKey]) =>
-        Object.entries(byKey).map(([measurementKey, valueCm]) => ({
-          product_id: product.id,
-          size_value: sizeValue,
-          measurement_key: measurementKey,
-          value_cm: valueCm,
-        })),
-      );
-      if (measurementsPayload.length > 0) {
-        const measurementsRes = await supabase
-          .from("product_size_measurements")
-          .insert(measurementsPayload);
-        if (measurementsRes.error)
-          return fail("product_size_measurements", measurementsRes.error.message);
-      }
+    // Not kind-gated: a regular product (or a variant product with no Size
+    // axis) can still have measurements against its manually-picked size.
+    const measurementsPayload = Object.entries(sizeMeasurements).flatMap(([sizeValue, byKey]) =>
+      Object.entries(byKey).map(([measurementKey, valueCm]) => ({
+        product_id: product.id,
+        size_value: sizeValue,
+        measurement_key: measurementKey,
+        value_cm: valueCm,
+      })),
+    );
+    if (measurementsPayload.length > 0) {
+      const measurementsRes = await supabase
+        .from("product_size_measurements")
+        .insert(measurementsPayload);
+      if (measurementsRes.error)
+        return fail("product_size_measurements", measurementsRes.error.message);
     }
 
     if (collectionIds.length > 0) {
@@ -484,6 +492,8 @@ function NewProduct() {
           material={material}
           sizeMeasurements={sizeMeasurements}
           onChangeSizeMeasurements={setSizeMeasurements}
+          manualSize={manualSize}
+          onChangeManualSize={setManualSize}
           onClose={() => setNecessitiesSheetOpen(false)}
         />
       )}

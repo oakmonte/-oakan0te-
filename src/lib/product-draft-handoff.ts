@@ -4,7 +4,7 @@
 // capture-handoff.ts. Known limitation: a hard refresh on either leg loses this.
 import { CategoryNode } from "@/lib/categories";
 import { VariantOption, VariantRow } from "@/components/product-form/VariantMatrixBuilder";
-import { SizeMeasurements } from "@/lib/size-chart-config";
+import { ManualSize, SizeMeasurements } from "@/lib/size-chart-config";
 
 export type ProductDraft = {
   kind: "regular" | "variant";
@@ -22,6 +22,7 @@ export type ProductDraft = {
   rows: VariantRow[];
   collectionIds: string[];
   sizeMeasurements: SizeMeasurements;
+  manualSize: ManualSize | null;
 };
 
 let pendingDraft: ProductDraft | null = null;

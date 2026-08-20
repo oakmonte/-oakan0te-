@@ -5,6 +5,10 @@ export type SizeChartLine = { key: string; label: string };
 // sizeValue (e.g. "M") -> measurementKey (e.g. "sleeve_length") -> cm
 export type SizeMeasurements = Record<string, Record<string, number>>;
 
+// A seller's single size pick for products with no Variant Size option —
+// system is one of OptionEditorSheet's SIZE_SYSTEMS keys (XXL/US/UK/Words).
+export type ManualSize = { value: string; system: string };
+
 export type SizeChartDefinition = {
   id: string;
   outline: "tshirt-short-sleeve";

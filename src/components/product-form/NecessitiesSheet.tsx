@@ -2,7 +2,11 @@ import { useState } from "react";
 import { Check, ChevronRight, X } from "lucide-react";
 import { CategoryNode } from "@/lib/categories";
 import { VariantOption } from "@/components/product-form/VariantMatrixBuilder";
-import { getSizeChartForCategory, type SizeMeasurements } from "@/lib/size-chart-config";
+import {
+  getSizeChartForCategory,
+  type ManualSize,
+  type SizeMeasurements,
+} from "@/lib/size-chart-config";
 import { SizeChartSheet } from "@/components/product-form/size-chart/SizeChartSheet";
 
 // Which category-specific parameters a category requires before a product in
@@ -52,20 +56,33 @@ function paramsForCategory(categoryPath: CategoryNode[]): string[] {
 // field anywhere yet, so it always reads unfilled until that feature exists.
 //
 // "Size" is special-cased further: for categories with a size chart defined
-// (see size-chart-config.ts), having the option isn't enough — at least one
-// measurement has to actually be filled in. Everywhere a chart isn't defined
-// yet, Size keeps the plain option-existence check, unchanged.
+// (see size-chart-config.ts), Size is driven by the chart instead of the
+// plain option-existence check, for BOTH product kinds — a regular product
+// has no options at all, so without this it could never satisfy Size.
+//   - Variant Size axis exists (options has a "Size" entry): filled once
+//     every one of those values has at least one measurement recorded —
+//     matches the swipe-through-every-size flow in SizeChartSheet.
+//   - No Variant Size axis (regular product, or variant product that only
+//     varies by e.g. Color/Material): filled once a manual size has been
+//     picked, regardless of whether any measurement was added — the pick
+//     itself is the useful bit for a seller who doesn't need a size chart.
+// Everywhere a chart isn't defined yet, Size keeps the old check, unchanged.
 function isFilled(
   param: string,
   kind: "regular" | "variant",
   options: VariantOption[],
   material: string,
   hasChart: boolean,
+  variantSizeValues: string[],
   sizeMeasurements: SizeMeasurements,
+  manualSize: ManualSize | null,
 ): boolean {
   if (param === "Link content") return false;
-  if (param === "Size" && kind === "variant" && hasChart) {
-    return Object.values(sizeMeasurements).some((m) => Object.keys(m).length > 0);
+  if (param === "Size" && hasChart) {
+    if (variantSizeValues.length > 0) {
+      return variantSizeValues.every((sv) => Object.keys(sizeMeasurements[sv] ?? {}).length > 0);
+    }
+    return manualSize !== null;
   }
   if (kind === "variant") {
     return options.some(
@@ -82,6 +99,8 @@ export function NecessitiesSheet({
   material,
   sizeMeasurements,
   onChangeSizeMeasurements,
+  manualSize,
+  onChangeManualSize,
   onClose,
 }: {
   categoryPath: CategoryNode[];
@@ -90,12 +109,18 @@ export function NecessitiesSheet({
   material: string;
   sizeMeasurements: SizeMeasurements;
   onChangeSizeMeasurements: (m: SizeMeasurements) => void;
+  manualSize: ManualSize | null;
+  onChangeManualSize: (m: ManualSize | null) => void;
   onClose: () => void;
 }) {
   const params = paramsForCategory(categoryPath);
   const [sizeChartOpen, setSizeChartOpen] = useState(false);
-  const sizeChart = kind === "variant" ? getSizeChartForCategory(categoryPath) : null;
-  const sizeValues = options.find((o) => o.name.trim().toLowerCase() === "size")?.values ?? [];
+  // Chart applies regardless of kind now — a regular product is exactly the
+  // case that has no Variant Size axis to fall back on, so it needs this
+  // just as much as a variant product with only Color/Material options.
+  const sizeChart = getSizeChartForCategory(categoryPath);
+  const variantSizeValues =
+    options.find((o) => o.name.trim().toLowerCase() === "size")?.values ?? [];
 
   return (
     <div className="fixed inset-0 z-50 bg-white flex flex-col min-h-dvh animate-in fade-in slide-in-from-bottom-6 duration-300 ease-out">
@@ -118,7 +143,16 @@ export function NecessitiesSheet({
           </p>
         ) : (
           params.map((p) => {
-            const filled = isFilled(p, kind, options, material, !!sizeChart, sizeMeasurements);
+            const filled = isFilled(
+              p,
+              kind,
+              options,
+              material,
+              !!sizeChart,
+              variantSizeValues,
+              sizeMeasurements,
+              manualSize,
+            );
             const opensSizeChart = p === "Size" && !!sizeChart;
             return (
               <button
@@ -147,11 +181,13 @@ export function NecessitiesSheet({
 
       {sizeChartOpen && sizeChart && (
         <SizeChartSheet
-          sizeValues={sizeValues}
+          variantSizeValues={variantSizeValues}
+          manualSize={manualSize}
           chart={sizeChart}
           initialMeasurements={sizeMeasurements}
-          onSave={(m) => {
+          onSave={(m, picked) => {
             onChangeSizeMeasurements(m);
+            onChangeManualSize(picked);
             setSizeChartOpen(false);
           }}
           onClose={() => setSizeChartOpen(false)}

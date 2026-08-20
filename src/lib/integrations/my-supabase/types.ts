@@ -578,6 +578,8 @@ export type Database = {
           handle: string
           id: string
           is_complete: boolean
+          manual_size_system: string | null
+          manual_size_value: string | null
           product_type: string | null
           source_platform: string | null
           status: string
@@ -594,6 +596,8 @@ export type Database = {
           handle: string
           id?: string
           is_complete?: boolean
+          manual_size_system?: string | null
+          manual_size_value?: string | null
           product_type?: string | null
           source_platform?: string | null
           status?: string
@@ -610,6 +614,8 @@ export type Database = {
           handle?: string
           id?: string
           is_complete?: boolean
+          manual_size_system?: string | null
+          manual_size_value?: string | null
           product_type?: string | null
           source_platform?: string | null
           status?: string
