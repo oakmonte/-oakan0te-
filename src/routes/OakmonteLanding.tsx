@@ -299,8 +299,10 @@ function OakmonteLanding() {
             </h1>
 
             <p className="hero-sub">
-              Fashion resale is broken. Sellers eat chargebacks. Creators do the promo work for
-              free. Shoppers hand strangers money and hope.{" "}
+              Fashion resale is broken.<br />
+              Sellers suffer chargebacks.<br />
+              Creators advertise for free.<br />
+              Shoppers hand strangers money and hope.{" "}
               <b>
                 Oakmonte fixes all three — one platform, one payment system, nobody left holding the
                 bag.
