@@ -2,6 +2,9 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode, ElementType } from "react";
 import logoO from "@/assets/logo-o.png";
+import editorial1 from "@/assets/editorial-1.jpg";
+import editorial2 from "@/assets/editorial-2.jpg";
+import editorial3 from "@/assets/editorial-3.jpg";
 import { useSession } from "@/hooks/use-session";
 import { signInWithGoogle, signOut } from "@/lib/auth";
 import { supabase } from "@/lib/integrations/my-supabase/client";
@@ -406,6 +409,21 @@ function HeaderAuth() {
 }
 
 /* ---------------- Shared bits ---------------- */
+const EDITORIAL: Record<string, { src: string; alt: string }[]> = {
+  "on-black": [
+    { src: editorial1, alt: "Model in an oversized tailored coat" },
+    { src: editorial3, alt: "Creator photographing an outfit" },
+  ],
+  "on-blue": [
+    { src: editorial2, alt: "Close-up of layered garment fabric" },
+    { src: editorial1, alt: "Model in an oversized tailored coat" },
+  ],
+  "on-light": [
+    { src: editorial3, alt: "Creator photographing an outfit" },
+    { src: editorial2, alt: "Close-up of layered garment fabric" },
+  ],
+};
+
 function BrandArt({
   variant,
   caption,
@@ -413,17 +431,23 @@ function BrandArt({
   variant: "on-black" | "on-blue" | "on-light";
   caption?: string;
 }) {
+  const shots = EDITORIAL[variant]!;
   return (
     <div className={`brand-art ${variant}`}>
-      <span className="ring ring2" />
-      <span className="ring" />
-      <div className="logo-wrap">
-        <img src={logoO} alt="Oakmonte" />
+      <div className="ed-stack">
+        {shots.map((s, i) => (
+          <figure key={s.src} className={`ed-frame ed-frame-${i + 1}`}>
+            <img src={s.src} alt={s.alt} loading="lazy" width={1024} height={1280} />
+            <span className="ed-sheen" />
+          </figure>
+        ))}
       </div>
+      <span className="ed-tint" />
       {caption && <span className="cap">{caption}</span>}
     </div>
   );
 }
+
 
 // The three real onboarding paths — reused in the hero and the closing CTA so
 // visitors are never more than one section away from a working next step.
@@ -983,23 +1007,37 @@ const CSS = `
 .oak .hero-media{position:relative;margin-top:56px;border-radius:24px;overflow:hidden;aspect-ratio:16/7;opacity:0;animation:oakFadeUp .9s ease forwards;animation-delay:.9s;background:#111;}
 .oak .media-cap{position:absolute;left:24px;bottom:20px;z-index:3;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.6);}
 
-/* Self-contained brand-art panels — logo-centered, no external image fetch required */
+/* Editorial fashion panels — layered photo frames with slow motion */
 .oak .brand-art{position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden;}
 .oak .brand-art.on-black{background:radial-gradient(circle at 30% 30%,#132057 0%,var(--black) 65%);}
 .oak .brand-art.on-blue{background:linear-gradient(135deg,var(--blue) 0%,#0d2c9e 100%);}
 .oak .brand-art.on-light{background:#EFF2FA;}
-.oak .brand-art .ring{position:absolute;width:62%;aspect-ratio:1/1;border-radius:50%;border:2px dashed rgba(255,255,255,.35);animation:oakSpin 40s linear infinite;}
-.oak .brand-art.on-light .ring{border-color:rgba(10,10,10,.2);}
-.oak .brand-art .ring.ring2{width:82%;border-style:solid;border-width:1px;border-color:rgba(255,255,255,.15);animation-duration:60s;animation-direction:reverse;}
-.oak .brand-art.on-light .ring.ring2{border-color:rgba(10,10,10,.1);}
-@keyframes oakSpin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
-.oak .brand-art .logo-wrap{position:relative;z-index:2;width:30%;max-width:150px;aspect-ratio:604/748;filter:drop-shadow(0 18px 34px rgba(0,0,0,.35));animation:oakFloat 5s ease-in-out infinite;}
-.oak .brand-art .logo-wrap img{width:100%;height:100%;object-fit:contain;}
-.oak .brand-art.on-black .logo-wrap img,.oak .brand-art.on-blue .logo-wrap img{filter:brightness(0) invert(1);}
-@keyframes oakFloat{0%,100%{transform:translateY(0);}50%{transform:translateY(-10px);}}
+.oak .brand-art .ed-stack{position:absolute;inset:0;z-index:1;}
+.oak .brand-art .ed-frame{position:absolute;margin:0;overflow:hidden;border-radius:14px;box-shadow:0 30px 70px rgba(0,0,0,.38);will-change:transform;}
+.oak .brand-art .ed-frame img{width:100%;height:100%;object-fit:cover;object-position:50% 22%;transform-origin:center;animation:oakKen 18s ease-in-out infinite alternate;}
+.oak .brand-art .ed-frame-1{top:8%;bottom:8%;left:6%;width:52%;animation:oakDrift 9s ease-in-out infinite;}
+.oak .brand-art .ed-frame-2{top:14%;bottom:14%;right:6%;width:34%;animation:oakDrift 11s ease-in-out infinite reverse;}
+.oak .brand-art .ed-frame-2 img{animation-duration:22s;animation-direction:alternate-reverse;}
+.oak .brand-art .ed-sheen{position:absolute;inset:0;pointer-events:none;background:linear-gradient(115deg,transparent 35%,rgba(255,255,255,.28) 50%,transparent 65%);transform:translateX(-120%);animation:oakSheen 7s ease-in-out infinite;}
+.oak .brand-art .ed-frame-2 .ed-sheen{animation-delay:1.6s;}
+.oak .brand-art .ed-tint{position:absolute;inset:0;z-index:2;pointer-events:none;}
+.oak .brand-art.on-blue .ed-tint{background:linear-gradient(135deg,rgba(33,81,245,.42),rgba(13,44,158,.25));mix-blend-mode:multiply;}
+.oak .brand-art.on-black .ed-tint{background:linear-gradient(180deg,rgba(10,10,10,.1),rgba(10,10,10,.55));}
+.oak .brand-art.on-light .ed-tint{background:linear-gradient(180deg,transparent 55%,rgba(10,10,10,.18));}
+@keyframes oakKen{from{transform:scale(1.02);}to{transform:scale(1.14) translate3d(-1.5%,-1.5%,0);}}
+@keyframes oakDrift{0%,100%{transform:translate3d(0,0,0) rotate(0deg);}50%{transform:translate3d(0,-14px,0) rotate(-.6deg);}}
+@keyframes oakSheen{0%,62%{transform:translateX(-120%);}88%,100%{transform:translateX(120%);}}
+.oak .brand-art:hover .ed-frame-1{transform:translate3d(-6px,-8px,0) scale(1.01);}
+.oak .brand-art:hover .ed-frame-2{transform:translate3d(8px,6px,0) scale(1.03);}
+.oak .brand-art .ed-frame{transition:transform .6s cubic-bezier(.22,1,.36,1);}
 .oak .brand-art .cap{position:absolute;left:24px;bottom:20px;z-index:3;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;}
 .oak .brand-art.on-black .cap,.oak .brand-art.on-blue .cap{color:#fff;}
 .oak .brand-art.on-light .cap{color:var(--black);}
+@media (max-width:640px){
+  .oak .brand-art .ed-frame-1{inset:6% 26% 6% 6%;}
+  .oak .brand-art .ed-frame-2{width:38%;right:5%;}
+}
+
 
 .oak .trust-marquee{width:100%;overflow:hidden;background:var(--black);padding:16px 0;margin-top:64px;}
 .oak .trust-marquee .track{display:flex;white-space:nowrap;width:max-content;animation:oakScroll 22s linear infinite;}
