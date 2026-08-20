@@ -763,7 +763,7 @@ const CSS = `
 .oak .hero-cta-card.card-blue{background:var(--blue);border-color:var(--blue);color:#fff;}
 .oak .hero-cta-card.card-blue .cta-hint{color:rgba(255,255,255,.8);}
 .oak .hero-cta-card.card-outline{background:var(--white);border-color:#2151F5;color:var(--black);}
-.oak .hero-cta-card.card-outline .cta-label{color:var(--black);}
+.oak .hero-cta-card.card-outline .cta-label{color:#2151F5;}
 .oak .hero-cta-card.card-outline:hover .cta-label{color:#fff;}
 .oak .hero-cta-card.card-tint{background:rgba(33,81,245,.08);border-color:var(--black);color:var(--black);}
 .oak .hero-cta-card.card-tint .cta-label{color:var(--black);}
