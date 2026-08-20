@@ -29,6 +29,12 @@ function createMySupabaseClient() {
       storage: typeof window !== "undefined" ? window.localStorage : undefined,
       persistSession: true,
       autoRefreshToken: true,
+      // auth-js still defaults to the implicit grant, which returns the access
+      // AND refresh token in the URL fragment of /auth/callback — so they land
+      // in browser history, and any script or extension on the page can read
+      // them off the URL. PKCE returns a single-use code in the query string
+      // instead and exchanges it with a verifier this client never exposes.
+      flowType: "pkce",
     },
   });
 }

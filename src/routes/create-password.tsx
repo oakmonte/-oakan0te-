@@ -2,14 +2,13 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
 import { needsPassword, resolvePostAuthRedirect, setAccountPassword, signOut } from "@/lib/auth";
 import { supabase } from "@/lib/integrations/my-supabase/client";
+import { checkPassword, MIN_PASSWORD_LENGTH } from "@/lib/password-policy";
 import { FormError, OnboardingChecking } from "@/components/onboarding/OnboardingShell";
 
 export const Route = createFileRoute("/create-password")({
   head: () => ({ meta: [{ title: "Create a password — Oakmonte" }] }),
   component: CreatePasswordPage,
 });
-
-const MIN_LENGTH = 8;
 
 // Sits between code verification and onboarding proper, so it is deliberately
 // not numbered as an onboarding step — it is an auth step, and Google users
@@ -22,6 +21,10 @@ function CreatePasswordPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [checking, setChecking] = useState(true);
+  // Fed to the policy so the password can't just be the user's own email.
+  const [identifiers, setIdentifiers] = useState<string[]>([]);
+
+  const verdict = checkPassword(password, identifiers);
 
   useEffect(() => {
     let cancelled = false;
@@ -37,6 +40,7 @@ function CreatePasswordPage() {
         if (!cancelled) navigate({ ...redirect, replace: true });
         return;
       }
+      setIdentifiers([data.user.email ?? ""]);
       setChecking(false);
     });
     return () => {
@@ -48,8 +52,8 @@ function CreatePasswordPage() {
     e.preventDefault();
     setError(null);
 
-    if (password.length < MIN_LENGTH) {
-      setError(`Use at least ${MIN_LENGTH} characters.`);
+    if (!verdict.ok) {
+      setError(`Your password needs ${verdict.problems.join(", ")}.`);
       return;
     }
     if (password !== confirm) {
@@ -97,12 +101,39 @@ function CreatePasswordPage() {
             required
             autoFocus
             autoComplete="new-password"
-            minLength={MIN_LENGTH}
+            minLength={MIN_PASSWORD_LENGTH}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder={`Password (${MIN_LENGTH}+ characters)`}
+            placeholder={`Password (${MIN_PASSWORD_LENGTH}+ characters)`}
             className="w-full rounded-full border border-brand-text/25 bg-transparent px-5 py-3.5 text-sm placeholder:text-brand-text/40 focus:outline-none focus:border-brand-accent transition-colors"
           />
+          {password && (
+            <div className="px-2 pt-1 text-left" aria-live="polite">
+              <div className="flex items-center gap-1.5">
+                {[0, 1, 2, 3].map((i) => (
+                  <span
+                    key={i}
+                    className={`h-1 flex-1 rounded-full transition-colors duration-300 ${
+                      i < verdict.score
+                        ? verdict.score >= 3
+                          ? "bg-emerald-500"
+                          : "bg-amber-500"
+                        : "bg-brand-text/15"
+                    }`}
+                  />
+                ))}
+                <span className="ml-2 text-[10px] uppercase tracking-widest text-brand-text/50">
+                  {verdict.label}
+                </span>
+              </div>
+              {verdict.problems.length > 0 && (
+                <p className="mt-1.5 text-[11px] text-brand-text/60">
+                  Needs {verdict.problems.join(", ")}.
+                </p>
+              )}
+            </div>
+          )}
+
           <label htmlFor="confirm-password" className="sr-only">
             Confirm password
           </label>
@@ -117,6 +148,12 @@ function CreatePasswordPage() {
             className="w-full rounded-full border border-brand-text/25 bg-transparent px-5 py-3.5 text-sm placeholder:text-brand-text/40 focus:outline-none focus:border-brand-accent transition-colors"
           />
 
+          {confirm && password !== confirm && (
+            <p className="px-2 text-[11px] text-brand-text/60 text-left">
+              Those two passwords don't match yet.
+            </p>
+          )}
+
           <label className="flex items-center gap-2 text-xs text-brand-text/60 px-2 py-1 cursor-pointer">
             <input
               type="checkbox"
@@ -129,7 +166,7 @@ function CreatePasswordPage() {
 
           <button
             type="submit"
-            disabled={saving}
+            disabled={saving || !verdict.ok || password !== confirm}
             className="w-full rounded-full bg-brand-accent text-brand-bg py-3.5 text-sm font-medium uppercase tracking-widest hover:bg-brand-accent/90 hover:scale-[1.01] transition-all duration-300 disabled:opacity-60"
           >
             {saving ? "Saving…" : "Continue"}

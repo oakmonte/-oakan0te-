@@ -92,7 +92,15 @@ export function AuthPanel({ intent, title, subtitle, defaultMode = "code" }: Pro
     const { error: sendError } = await sendEmailCode(email.trim(), { createUser: intent !== null });
     setBusy(null);
     if (sendError) {
-      setError(intent === null ? "We couldn't find an account for that email." : sendError.message);
+      // Deliberately vague on /sign-in: naming the reason would confirm whether
+      // an address is registered. The code screen is shown either way, so a
+      // guesser learns nothing from the response.
+      if (intent === null) {
+        setSent(true);
+        setCountdown(RESEND_SECONDS);
+        return;
+      }
+      setError(sendError.message);
       return;
     }
     setSent(true);
@@ -106,7 +114,11 @@ export function AuthPanel({ intent, title, subtitle, defaultMode = "code" }: Pro
     const { error: sendError } = await sendEmailCode(email.trim(), { createUser: intent !== null });
     setBusy(null);
     if (sendError) {
-      setError(sendError.message);
+      // Same suppression as handleSend: on /sign-in, "Signups not allowed for
+      // otp" would confirm the address is unregistered, which is exactly the
+      // enumeration oracle the send path is careful to avoid.
+      if (intent !== null) setError(sendError.message);
+      setCountdown(RESEND_SECONDS);
       return;
     }
     setCountdown(RESEND_SECONDS);
@@ -139,7 +151,7 @@ export function AuthPanel({ intent, title, subtitle, defaultMode = "code" }: Pro
     const { data, error: signInError } = await signInWithPassword(email.trim(), password);
     setBusy(null);
     if (signInError || !data.session) {
-      setError("That email and password don't match an account. Try a code instead.");
+      setError("That email and password don't match. Try again, or use a code instead.");
       return;
     }
     await finish(data.session.user.id);

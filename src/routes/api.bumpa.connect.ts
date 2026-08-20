@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin as supabase } from "@/lib/integrations/my-supabase/client.server";
+import { requireStoreOwner } from "@/lib/server-auth";
 
 export const Route = createFileRoute("/api/bumpa/connect")({
   server: {
@@ -10,6 +11,13 @@ export const Route = createFileRoute("/api/bumpa/connect")({
         if (!storeId || !apiKey) {
           return Response.json({ error: "storeId and apiKey required" }, { status: 400 });
         }
+
+        // Writes a third-party API key into store_credentials on the
+        // service-role key. Unauthenticated, this let anyone attach their own
+        // Bumpa account to someone else's store — and doubled as an oracle for
+        // testing whether a stolen Bumpa key is still live.
+        const owns = await requireStoreOwner(request, storeId);
+        if (!owns.ok) return owns.response;
 
         const verifyRes = await fetch("https://api.getbumpa.com/api/commerce/v1/products?limit=1", {
           headers: {
@@ -34,7 +42,10 @@ export const Route = createFileRoute("/api/bumpa/connect")({
         );
 
         if (error) {
-          return Response.json({ error: error.message }, { status: 500 });
+          return (
+            console.error("bumpa connect failed", error),
+            Response.json({ error: "Something went wrong" }, { status: 500 })
+          );
         }
 
         return Response.json({ success: true });

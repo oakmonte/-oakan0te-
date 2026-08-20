@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { getRequestUser, requireStoreOwner } from "@/lib/server-auth";
 
 /**
  * Job status for the import UI to poll.
@@ -21,11 +22,20 @@ export const Route = createFileRoute("/api/import/status")({
         const url = new URL(request.url);
         const jobId = url.searchParams.get("jobId");
         const storeId = url.searchParams.get("storeId");
-        const limit = Math.min(Number(url.searchParams.get("limit") ?? 10), 50);
+        // Number("abc") is NaN, which PostgREST rejected with a parse error that
+        // was then echoed straight back to the caller.
+        const requested = Number(url.searchParams.get("limit") ?? 10);
+        const limit = Number.isFinite(requested) ? Math.min(Math.max(requested, 1), 50) : 10;
 
         if (!jobId && !storeId) {
           return Response.json({ error: "jobId or storeId required" }, { status: 400 });
         }
+
+        // Runs on the service-role key, so RLS is bypassed and this check is
+        // the only thing standing between a guessed id and another seller's
+        // import history (which includes free-text error summaries).
+        const user = await getRequestUser(request);
+        if (!user) return Response.json({ error: "Not signed in" }, { status: 401 });
 
         const { supabaseAdmin: supabase } =
           await import("@/lib/integrations/my-supabase/client.server");
@@ -50,11 +60,22 @@ export const Route = createFileRoute("/api/import/status")({
             .eq("id", jobId)
             .maybeSingle();
 
-          if (error) return Response.json({ error: error.message }, { status: 500 });
+          if (error) {
+            console.error("import status lookup failed", error);
+            return Response.json({ error: "Could not load job" }, { status: 500 });
+          }
           if (!data) return Response.json({ error: "job not found" }, { status: 404 });
+
+          // Same 404 for "not yours" as for "doesn't exist", so job ids can't
+          // be enumerated by comparing responses.
+          const owns = await requireStoreOwner(request, data.store_id);
+          if (!owns.ok) return Response.json({ error: "job not found" }, { status: 404 });
 
           return Response.json({ ...data, done: TERMINAL.has(data.status) });
         }
+
+        const owns = await requireStoreOwner(request, storeId);
+        if (!owns.ok) return owns.response;
 
         const { data, error } = await supabase
           .from("import_jobs")
@@ -63,7 +84,11 @@ export const Route = createFileRoute("/api/import/status")({
           .order("created_at", { ascending: false })
           .limit(limit);
 
-        if (error) return Response.json({ error: error.message }, { status: 500 });
+        if (error)
+          return (
+            console.error("import status failed", error),
+            Response.json({ error: "Something went wrong" }, { status: 500 })
+          );
 
         return Response.json({
           jobs: (data ?? []).map((job) => ({ ...job, done: TERMINAL.has(job.status) })),

@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Landmark, Clock } from "lucide-react";
 import { PayoutAccountSheet } from "@/components/store/PayoutAccountSheet";
+import { authedFetch } from "@/lib/authed-fetch";
 
 // TODO: dev-only, matches store.products_.new.tsx / store.products.tsx.
 // Revert before launch.
@@ -30,7 +31,7 @@ function FinancePage() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch(`/api/store/payout?storeId=${DEV_STORE_ID}`)
+    authedFetch("/api/store/payout")
       .then((res) => res.json())
       .then((body) => {
         if (!cancelled) setAccount(body.account ?? null);
@@ -45,10 +46,10 @@ function FinancePage() {
     accountNumber: string;
     accountName: string;
   }) {
-    const res = await fetch("/api/store/payout", {
+    const res = await authedFetch("/api/store/payout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ storeId: DEV_STORE_ID, ...values }),
+      body: JSON.stringify(values),
     });
     const body = await res.json();
     if (res.ok) {

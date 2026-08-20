@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { requireStoreOwner } from "@/lib/server-auth";
 
 /**
  * Accepts a CSV upload, parks it on Bunny Storage, and enqueues an import job
@@ -54,6 +55,12 @@ export const Route = createFileRoute("/api/import/csv")({
         if (typeof storeId !== "string" || !storeId) {
           return Response.json({ error: "storeId is required" }, { status: 400 });
         }
+
+        // Uploads a file to Bunny and enqueues a service-role import against
+        // this store. Unauthenticated, anyone could push products into any
+        // seller's catalogue and burn their storage quota.
+        const owns = await requireStoreOwner(request, storeId);
+        if (!owns.ok) return owns.response;
         if (!ALLOWED_PLATFORMS.has(platform)) {
           return Response.json(
             { error: `platform must be one of: ${[...ALLOWED_PLATFORMS].join(", ")}` },
@@ -137,7 +144,10 @@ export const Route = createFileRoute("/api/import/csv")({
 
         if (error) {
           console.error("Failed to create import job:", error.message);
-          return Response.json({ error: error.message }, { status: 500 });
+          return (
+            console.error("csv import failed", error),
+            Response.json({ error: "Something went wrong" }, { status: 500 })
+          );
         }
 
         return Response.json({ jobId: job.id, status: job.status, fileUrl }, { status: 202 });

@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { requireStoreOwner } from "@/lib/server-auth";
 
 /**
  * Step 1 of the Instagram connect flow: redirect the seller to Instagram.
@@ -30,13 +31,28 @@ async function hmacHex(secret: string, message: string) {
 export const Route = createFileRoute("/api/instagram/connect")({
   server: {
     handlers: {
-      GET: async ({ request }: { request: Request }) => {
-        const url = new URL(request.url);
-        const storeId = url.searchParams.get("storeId");
-
-        if (!storeId) {
-          return Response.json({ error: "storeId required" }, { status: 400 });
+      // POST, not a redirecting GET: this used to be unauthenticated, taking
+      // `storeId` off the query string and signing it into `state`. The
+      // callback treated that signature as proof of ownership, but it only
+      // proves the server signed it, never who asked — so anyone could mint a
+      // valid state for any store id. A browser cannot attach an Authorization
+      // header to a top-level navigation, so the client posts here and then
+      // navigates to the returned `url`.
+      //
+      // STILL OPEN: `state` has no per-session nonce, so it cannot prove the
+      // browser completing the callback is the one that started it. See the
+      // matching note in api.shopify.install.tsx.
+      POST: async ({ request }: { request: Request }) => {
+        let body: { storeId?: string };
+        try {
+          body = await request.json();
+        } catch {
+          return Response.json({ error: "Invalid request body" }, { status: 400 });
         }
+
+        const owns = await requireStoreOwner(request, body.storeId ?? null);
+        if (!owns.ok) return owns.response;
+        const storeId = owns.value.storeId;
 
         const appId = process.env.IG_APP_ID;
         const redirectUri = process.env.IG_REDIRECT_URI;
@@ -59,10 +75,9 @@ export const Route = createFileRoute("/api/instagram/connect")({
           state,
         });
 
-        return Response.redirect(
-          `https://www.instagram.com/oauth/authorize?${params.toString()}`,
-          302,
-        );
+        return Response.json({
+          url: `https://www.instagram.com/oauth/authorize?${params.toString()}`,
+        });
       },
     },
   },

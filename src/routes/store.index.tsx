@@ -1,3 +1,4 @@
+import { authedFetch } from "@/lib/authed-fetch";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Palette, Wallet, Package } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -15,7 +16,7 @@ function StoreHome() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch(`/api/store/payout?storeId=${DEV_STORE_ID}`)
+    authedFetch("/api/store/payout")
       .then((res) => res.json())
       .then((body) => {
         if (!cancelled) setPayoutSet(!!body.account);

@@ -299,19 +299,22 @@ function OakmonteLanding() {
             </h1>
 
             <p className="hero-sub">
-              Fashion e-commerce is broken.<br />
-              Sellers suffer chargebacks and returns.<br />
-              Creators advertise for free.<br />
-              Shoppers hand strangers money and hope.<br />
+              Fashion e-commerce is broken.
+              <br />
+              Sellers suffer chargebacks and returns.
+              <br />
+              Creators advertise for free.
+              <br />
+              Shoppers hand strangers money and hope.
+              <br />
               <b>
-                Oakmonte fixes all three — one unified platform,<br />
+                Oakmonte fixes all three — one unified platform,
+                <br />
                 one trusted payment system, nobody left holding the bag.
               </b>
             </p>
 
-            <p className="hero-tagline">
-              The world's first content optimised marketplace.
-            </p>
+            <p className="hero-tagline">The world's first content optimised marketplace.</p>
 
             <div className="hero-cta-stack">
               <Link to="/set-up-store" className="hero-cta-card card-blue">
