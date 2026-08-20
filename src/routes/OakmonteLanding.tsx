@@ -304,6 +304,7 @@ function OakmonteLanding() {
               Creators advertise for free.<br />
               Shoppers hand strangers money and hope.{" "}
               <b>
+                <br />
                 Oakmonte fixes all three — one platform, one payment system, nobody left holding the
                 bag.
               </b>
