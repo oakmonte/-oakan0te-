@@ -161,9 +161,9 @@ function SplitText({
   return (
     <Tag ref={ref} className={`split-text ${rc} ${className}`.trim()}>
       {words.map((w, i) => (
-        <span className="sw" key={`${w}-${i}`}>
-          <span style={{ transitionDelay: `${i * 55}ms`, animationDelay: `${i * 55}ms` }}>
-            {w}
+        <span key={`${w}-${i}`}>
+          <span className="sw">
+            <span style={{ transitionDelay: `${i * 55}ms` }}>{w}</span>
           </span>
           {i < words.length - 1 ? " " : ""}
         </span>
@@ -1134,7 +1134,7 @@ const CSS = `
 @media (hover:none),(max-width:900px){.oak .cursor-dot,.oak .cursor-halo,.oak .scroll-progress{display:none;}}
 
 .oak .split-text{overflow:hidden;}
-.oak .split-text .sw{display:inline-block;overflow:hidden;vertical-align:bottom;}
+.oak .split-text .sw{display:inline-block;overflow:hidden;vertical-align:bottom;padding-bottom:.1em;margin-bottom:-.1em;}
 .oak .split-text .sw > span{display:inline-block;transform:translateY(110%) rotate(4deg);opacity:0;transition:transform .85s cubic-bezier(.16,1,.3,1),opacity .6s ease;}
 .oak .split-text.in-view .sw > span{transform:translateY(0) rotate(0);opacity:1;}
 
