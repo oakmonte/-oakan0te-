@@ -145,6 +145,148 @@ function Reveal({
   );
 }
 
+/* Word-by-word masked reveal — the big editorial headline move. */
+function SplitText({
+  text,
+  className = "",
+  as: Tag = "h2",
+}: {
+  text: string;
+  className?: string;
+  as?: ElementType;
+}) {
+  const { ref, className: rc } = useReveal<HTMLHeadingElement>();
+  const words = text.split(" ");
+  return (
+    <Tag ref={ref} className={`split-text ${rc} ${className}`.trim()}>
+      {words.map((w, i) => (
+        <span className="sw" key={`${w}-${i}`}>
+          <span style={{ transitionDelay: `${i * 55}ms`, animationDelay: `${i * 55}ms` }}>
+            {w}
+          </span>
+          {i < words.length - 1 ? " " : ""}
+        </span>
+      ))}
+    </Tag>
+  );
+}
+
+/* Scroll progress + cursor + magnetic buttons + card tilt.
+   All DOM-level so the markup stays readable. */
+function useKineticLayer() {
+  useEffect(() => {
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduce) return;
+
+    const bar = document.querySelector<HTMLElement>(".oak .scroll-progress i");
+    const dot = document.querySelector<HTMLElement>(".oak .cursor-dot");
+    const halo = document.querySelector<HTMLElement>(".oak .cursor-halo");
+
+    let mx = window.innerWidth / 2;
+    let my = window.innerHeight / 2;
+    let hx = mx;
+    let hy = my;
+    let raf = 0;
+
+    const onScroll = () => {
+      const h = document.documentElement.scrollHeight - window.innerHeight;
+      const p = h > 0 ? window.scrollY / h : 0;
+      if (bar) bar.style.transform = `scaleX(${p})`;
+      document.querySelectorAll<HTMLElement>(".oak [data-parallax]").forEach((el) => {
+        const speed = Number(el.dataset.parallax || 0);
+        const r = el.getBoundingClientRect();
+        const off = (r.top + r.height / 2 - window.innerHeight / 2) * speed;
+        el.style.setProperty("--py", `${off.toFixed(2)}px`);
+      });
+    };
+
+    const onMove = (e: MouseEvent) => {
+      mx = e.clientX;
+      my = e.clientY;
+      if (dot) dot.style.transform = `translate3d(${mx}px, ${my}px, 0) translate(-50%,-50%)`;
+    };
+
+    const tick = () => {
+      hx += (mx - hx) * 0.13;
+      hy += (my - hy) * 0.13;
+      if (halo) halo.style.transform = `translate3d(${hx}px, ${hy}px, 0) translate(-50%,-50%)`;
+      raf = requestAnimationFrame(tick);
+    };
+
+    // Magnetic buttons
+    const magnets = Array.from(document.querySelectorAll<HTMLElement>(".oak .cta-btn"));
+    const magnetMove = (e: MouseEvent) => {
+      const el = e.currentTarget as HTMLElement;
+      const r = el.getBoundingClientRect();
+      const dx = (e.clientX - (r.left + r.width / 2)) * 0.25;
+      const dy = (e.clientY - (r.top + r.height / 2)) * 0.35;
+      el.style.transform = `translate(${dx}px, ${dy}px)`;
+    };
+    const magnetLeave = (e: MouseEvent) => {
+      (e.currentTarget as HTMLElement).style.transform = "";
+    };
+    magnets.forEach((m) => {
+      m.addEventListener("mousemove", magnetMove);
+      m.addEventListener("mouseleave", magnetLeave);
+    });
+
+    // 3D tilt on cards
+    const tilts = Array.from(document.querySelectorAll<HTMLElement>(".oak [data-tilt]"));
+    const tiltMove = (e: MouseEvent) => {
+      const el = e.currentTarget as HTMLElement;
+      const r = el.getBoundingClientRect();
+      const px = (e.clientX - r.left) / r.width - 0.5;
+      const py = (e.clientY - r.top) / r.height - 0.5;
+      el.style.transform = `perspective(900px) rotateX(${(-py * 7).toFixed(2)}deg) rotateY(${(px * 9).toFixed(2)}deg) translateY(-6px)`;
+      el.style.setProperty("--gx", `${((e.clientX - r.left) / r.width) * 100}%`);
+      el.style.setProperty("--gy", `${((e.clientY - r.top) / r.height) * 100}%`);
+    };
+    const tiltLeave = (e: MouseEvent) => {
+      (e.currentTarget as HTMLElement).style.transform = "";
+    };
+    tilts.forEach((t) => {
+      t.addEventListener("mousemove", tiltMove);
+      t.addEventListener("mouseleave", tiltLeave);
+    });
+
+    // Cursor grows over interactive things
+    const hoverables = Array.from(
+      document.querySelectorAll<HTMLElement>(".oak a, .oak button, .oak [data-tilt]"),
+    );
+    const grow = () => halo?.classList.add("grow");
+    const shrink = () => halo?.classList.remove("grow");
+    hoverables.forEach((h) => {
+      h.addEventListener("mouseenter", grow);
+      h.addEventListener("mouseleave", shrink);
+    });
+
+    onScroll();
+    raf = requestAnimationFrame(tick);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    window.addEventListener("mousemove", onMove);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      window.removeEventListener("mousemove", onMove);
+      magnets.forEach((m) => {
+        m.removeEventListener("mousemove", magnetMove);
+        m.removeEventListener("mouseleave", magnetLeave);
+      });
+      tilts.forEach((t) => {
+        t.removeEventListener("mousemove", tiltMove);
+        t.removeEventListener("mouseleave", tiltLeave);
+      });
+      hoverables.forEach((h) => {
+        h.removeEventListener("mouseenter", grow);
+        h.removeEventListener("mouseleave", shrink);
+      });
+    };
+  }, []);
+}
+
 function CountUp({ value, suffix }: { value: number; suffix: string }) {
   const ref = useRef<HTMLElement | null>(null);
   const [display, setDisplay] = useState(0);
