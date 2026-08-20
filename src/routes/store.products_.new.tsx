@@ -1,17 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import {
-  ChevronLeft,
-  ChevronDown,
-  ChevronRight,
-  Tag,
-  Hash,
-  ListChecks,
-  Layers,
-} from "lucide-react";
+import { ChevronLeft, ChevronDown, ChevronRight, Tag, Hash, ListChecks } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { CategoryNode } from "@/lib/categories";
-import { StubRow, ExpandRow, TextField } from "@/components/product-form/ui";
+import { StubRow } from "@/components/product-form/ui";
 import { MediaSection } from "@/components/product-form/MediaSection";
 import { DetailsSection } from "@/components/product-form/DetailsSection";
 import { DescriptionSheet } from "@/components/product-form/DescriptionSheet";
@@ -52,7 +44,6 @@ function slugify(title: string) {
 }
 
 type ProductKind = "regular" | "variant";
-type ExpandedSection = "material" | null;
 
 function NewProduct() {
   const navigate = useNavigate();
@@ -78,7 +69,9 @@ function NewProduct() {
   const [compareAtPrice, setCompareAtPrice] = useState(initialDraft?.compareAtPrice ?? "");
   const [costPrice, setCostPrice] = useState(initialDraft?.costPrice ?? "");
   const [stockQty, setStockQty] = useState(initialDraft?.stockQty ?? 0);
-  const [material, setMaterial] = useState(initialDraft?.material ?? "");
+  // No UI sets this on this page anymore — material is filled in via
+  // Necessities now. Still round-tripped through drafts/save.
+  const material = initialDraft?.material ?? "";
 
   // Variant-mode state
   const [options, setOptions] = useState<VariantOption[]>(initialDraft?.options ?? []);
@@ -98,7 +91,6 @@ function NewProduct() {
   const [tagsSheetOpen, setTagsSheetOpen] = useState(false);
   const [tagIds, setTagIds] = useState<string[]>([]);
   const [necessitiesSheetOpen, setNecessitiesSheetOpen] = useState(false);
-  const [expanded, setExpanded] = useState<ExpandedSection>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -128,10 +120,6 @@ function NewProduct() {
 
   // Sellers can uncheck combinations they don't stock — only these get written.
   const selectedRows = rows.filter((r) => r.selected);
-
-  function toggle(section: ExpandedSection) {
-    setExpanded((prev) => (prev === section ? null : section));
-  }
 
   function handleTypeSwitch(next: ProductKind) {
     setTypeSwitchOpen(false);
@@ -382,17 +370,6 @@ function NewProduct() {
         />
       )}
 
-      {kind === "regular" && (
-        <ExpandRow
-          icon={<Layers size={18} />}
-          label="Material"
-          value={material}
-          expanded={expanded === "material"}
-          onToggle={() => toggle("material")}
-        >
-          <TextField label="Material" value={material} onChange={setMaterial} />
-        </ExpandRow>
-      )}
       <button
         type="button"
         onClick={() => setCollectionsSheetOpen(true)}
