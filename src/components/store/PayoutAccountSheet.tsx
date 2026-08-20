@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Check, Search, X } from "lucide-react";
+import { Check, Plus, Search, X } from "lucide-react";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
 
 // Every Nigeria bank/fintech Paystack supports transfers to — pulled from
@@ -326,7 +326,7 @@ export function PayoutAccountSheet({
       <div className="flex-1 overflow-y-auto px-4 py-5 flex flex-col gap-6">
         <div>
           <p className="text-[15px] font-semibold text-gray-900 mb-1">Bank name</p>
-          <p className="text-xs text-gray-400 mb-3">Pick one or type your own.</p>
+          <p className="text-xs text-gray-500 mb-3">Pick one or type your own.</p>
           <div
             className={`flex items-center gap-2 bg-gray-100 rounded-lg px-3 py-2 border transition-colors duration-150 ${
               showErrors && !bankName.trim() ? "border-red-300" : "border-transparent"
@@ -341,7 +341,7 @@ export function PayoutAccountSheet({
             />
           </div>
 
-          <div className="mt-2 h-56 overflow-y-auto border border-gray-100 rounded-xl">
+          <div className="mt-2 max-h-56 overflow-y-auto border border-gray-100 rounded-xl">
             {filteredBanks.length === 0 ? (
               <p className="px-4 py-6 text-sm text-gray-400 text-center">
                 No matches — you can still use what you typed.
@@ -358,12 +358,14 @@ export function PayoutAccountSheet({
                     className="w-full flex items-center justify-between gap-3 px-4 py-3 border-b border-gray-50 last:border-0 text-left oak-motion-control"
                   >
                     <span
-                      className={`text-[15px] ${isSelected ? "text-gray-900 font-medium" : "text-gray-700"}`}
+                      className={`text-[15px] text-gray-900 ${isSelected ? "font-medium" : ""}`}
                     >
                       {b}
                     </span>
-                    {isSelected && (
+                    {isSelected ? (
                       <Check size={16} className="text-black shrink-0 oak-motion-pop" />
+                    ) : (
+                      <Plus size={16} className="text-gray-400 shrink-0" />
                     )}
                   </button>
                 );
@@ -400,9 +402,9 @@ export function PayoutAccountSheet({
           />
         </div>
 
-        <p className="text-xs text-gray-400">
-          We can&apos;t verify account details yet — that&apos;s coming once Paystack is connected.
-          Your info is safely stored and only used to set up payouts.
+        <p className="text-xs text-gray-500">
+          Kept private and encrypted — used only to send your payouts, never shared or shown to
+          buyers.
         </p>
       </div>
 
