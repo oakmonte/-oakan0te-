@@ -465,7 +465,44 @@ function NewProduct() {
         />
       )}
 
-      {/* TODO: save area — waiting on spec */}
+      <div className="px-4 py-5 border-b-8 border-gray-50">
+        <p className="text-[15px] font-semibold text-gray-900 mb-3">Product Status</p>
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={() => setStatus("active")}
+            className={`flex-1 text-center rounded-xl py-3.5 text-sm font-medium border ${
+              status === "active"
+                ? "border-black bg-gray-50 text-gray-900"
+                : "border-gray-200 text-gray-500"
+            }`}
+          >
+            Published
+          </button>
+          <button
+            type="button"
+            onClick={() => setStatus("draft")}
+            className={`flex-1 text-center rounded-xl py-3.5 text-sm font-medium border ${
+              status === "draft"
+                ? "border-black bg-gray-50 text-gray-900"
+                : "border-gray-200 text-gray-500"
+            }`}
+          >
+            Unpublished
+          </button>
+        </div>
+      </div>
+
+      <div className="px-4 pt-4">
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={saving}
+          className="w-full bg-black text-white text-sm font-semibold rounded-full py-4 disabled:opacity-50"
+        >
+          {saving ? "Saving…" : "Save Product"}
+        </button>
+      </div>
     </div>
   );
 }
