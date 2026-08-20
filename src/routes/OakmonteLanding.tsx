@@ -299,7 +299,7 @@ function OakmonteLanding() {
             </h1>
 
             <p className="hero-sub">
-              Fashion resale is broken.<br />
+              Fashion e-commerce is broken.<br />
               Sellers suffer chargebacks and returns.<br />
               Creators advertise for free.<br />
               Shoppers hand strangers money and hope.<br />
