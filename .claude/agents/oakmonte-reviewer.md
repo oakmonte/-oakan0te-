@@ -19,7 +19,8 @@ cheaper and more current than inferring the same rules from source:
 
 | Reviewing | Read first |
 |---|---|
-| queries, inserts, `api.*` routes, auth, migrations, RLS | `.claude/skills/supabase-data-access/SKILL.md` |
+| `api.*` routes, store ownership, OAuth handlers | `.claude/skills/server-auth/SKILL.md` |
+| queries, inserts, auth, migrations, RLS | `.claude/skills/supabase-data-access/SKILL.md` |
 | anything writing products, variants, or options | `.claude/skills/canonical-product-schema/SKILL.md` |
 | importers, connect/callback routes, CSV, re-sync | `.claude/skills/platform-import-contract/SKILL.md` |
 | export, filters, crop, trim, layers, camera | `.claude/skills/media-export-pipeline/SKILL.md` |

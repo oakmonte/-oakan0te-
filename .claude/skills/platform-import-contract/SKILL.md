@@ -89,7 +89,7 @@ fields at all. Treat an IG import as seeding a draft the seller finishes, not as
 ## The import_jobs lifecycle
 
 One row per import run. Columns: `store_id`, `platform`, `status` (default `'pending'`), `file_path`
-(for CSV uploads), `error`, `created_at`, `updated_at`.
+(for CSV uploads), `error`, `metadata`, `result`, `heartbeat_at`, `created_at`, `updated_at`.
 
 `status` is free text with no check constraint, so the vocabulary is a convention the writers have to
 agree on. Use: `pending` → `running` → `succeeded` | `failed` | `partial`.
@@ -97,10 +97,15 @@ agree on. Use: `pending` → `running` → `succeeded` | `failed` | `partial`.
 `partial` matters because of the no-transaction problem below — a run that imported 480 of 500 products
 is neither a success nor a failure, and flattening it to one of those loses the information a seller
 needs. Put a human-readable summary in `error` for `failed` and `partial` alike; the column name says
-error but it's the only free-text field on the row.
+error but it's the only free-text field on the row. Put structured outcome data in `result` (jsonb).
 
-Always write a terminal status. A job stuck in `running` because the worker died is indistinguishable
-from one still in progress, and there's no heartbeat column to tell them apart.
+**`heartbeat_at`** — write it on every batch so a crashed worker is distinguishable from one still in
+progress. A supervisor that kills jobs silent for more than N minutes can key on this column.
+
+**`metadata`** (jsonb, not null, default `{}`) — input for the run: CSV column maps, a forced override
+profile, any other config the worker needs that isn't derivable from the job row alone.
+
+Always write a terminal status before the worker exits.
 
 ## Partial failure
 

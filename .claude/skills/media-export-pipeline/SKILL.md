@@ -105,7 +105,7 @@ Captured media reaches the edit screen through an in-memory module variable
 (`src/lib/capture-handoff.ts`), not session or local storage — the payload is a `Blob`, and client-side
 navigation never reloads the page so a module variable survives the trip.
 
-Accepted consequence: hard-refreshing `/create/after-shot/edit` drops the pending capture and falls
+Accepted consequence: hard-refreshing `/create/after-shot/studio` drops the pending capture and falls
 back to `/create`. That's known, not a bug to fix by moving to storage.
 
 `src/lib/after-shot-context.ts` is the React context the edit sub-routes consume once the handoff has
