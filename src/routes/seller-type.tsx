@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { readStoreDraft, setStoreDraft } from "@/lib/onboarding-state";
-import { nextStep, previousStep, stepPosition } from "@/lib/onboarding-flow";
+import { nextRoute, previousStep, stepPosition } from "@/lib/onboarding-flow";
 import { OnboardingChecking, OnboardingShell } from "@/components/onboarding/OnboardingShell";
 import { useRequireSession } from "@/components/onboarding/use-require-session";
 
@@ -28,8 +28,7 @@ function SellerTypePage() {
   const handleContinue = () => {
     if (!sellerType) return;
     setStoreDraft({ storeType: sellerType, customOrders });
-    const next = nextStep("seller", "/seller-type");
-    navigate(next ? { to: next } : { to: "/" });
+    navigate({ to: nextRoute("seller", "/seller-type") });
   };
 
   if (checking) return <OnboardingChecking />;

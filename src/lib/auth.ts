@@ -1,6 +1,6 @@
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/integrations/my-supabase/client";
-import { readIntent, type Intent } from "@/lib/onboarding-state";
+import { isPasswordResetPending, readIntent, type Intent } from "@/lib/onboarding-state";
 
 function callbackUrl() {
   return `${window.location.origin}/auth/callback`;
@@ -91,8 +91,13 @@ export async function resolvePostAuthRedirect(
 ): Promise<PostAuthRedirect> {
   // Central password gate: checking it only inside AuthPanel.finish meant one
   // browser Back press skipped it and left the account without a password.
+  // Central password gate. isPasswordResetPending covers the forgot-password
+  // route, where the account already has a password so needsPassword is false
+  // but the user has just been promised the chance to set a new one.
   const { data: userData } = await supabase.auth.getUser();
-  if (needsPassword(userData.user)) return { to: "/create-password" } as const;
+  if (needsPassword(userData.user) || isPasswordResetPending()) {
+    return { to: "/create-password" } as const;
+  }
 
   const { data: profile, error } = await supabase
     .from("profiles")

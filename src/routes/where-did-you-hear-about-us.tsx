@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { readIntent, type Intent } from "@/lib/onboarding-state";
-import { nextStep, previousStep, stepPosition } from "@/lib/onboarding-flow";
+import { nextRoute, previousStep, stepPosition } from "@/lib/onboarding-flow";
 import {
   FormError,
   OnboardingChecking,
@@ -112,8 +112,7 @@ function WhereDidYouHearPage() {
     }
 
     const resolved = intent ?? readIntent() ?? "seller";
-    const next = nextStep(resolved, "/where-did-you-hear-about-us");
-    navigate(next ? { to: next } : { to: "/" });
+    navigate({ to: nextRoute(resolved, "/where-did-you-hear-about-us") });
   };
 
   if (checking || !intent) return <OnboardingChecking />;

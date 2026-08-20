@@ -30,7 +30,7 @@ Package manager is **bun** — `package-lock.json` is stale, ignore it.
    actually uses** (auth, sessions, every `store.*` route, all four `api.*` routes).
 
 New data/auth work imports from `@/lib/integrations/my-supabase/client` (browser, publishable key — but
-RLS is currently *off* on `stores`, `products`, `product_variants`, so it is not row-scoped there) or
+RLS is currently _off_ on `stores`, `products`, `product_variants`, so it is not row-scoped there) or
 `.../client.server` (`supabaseAdmin`, service-role, bypasses RLS — trusted server code only). Full
 detail on the client boundary, dynamic-import rule, and type regeneration is in the
 `supabase-data-access` skill — it loads on any query/auth/route work, so it isn't repeated here.
@@ -75,6 +75,9 @@ means "has children, not filled in yet". Not interchangeable.
   and lint output drowns in carriage-return errors.
 
 ## Pre-launch state
+
+Full list, including everything postponed on purpose, in `POSTPONED.md` at the repo root.
+Keep the two in step — this section is the short form.
 
 - **`DEV_STORE_ID` in `store.products_.new.tsx` and `store.products.tsx` is a hardcoded hack.** Real
   store scoping from the session must replace it before launch.

@@ -45,3 +45,21 @@ export function previousStep(intent: Intent | null, step: OnboardingStep): Onboa
   if (index <= 0) return null;
   return flow[index - 1] ?? null;
 }
+
+/** Where all three flows end, before the profile.
+ *
+ *  Deliberately NOT a member of FLOWS: it asks the user for nothing, so
+ *  counting it would inflate every "step N of M" by one and make the last form
+ *  read 4/5 when it is the final thing to fill in. */
+export const COMPLETION_STEP = "/welcome" as const;
+
+export type OnboardingRoute = OnboardingStep | typeof COMPLETION_STEP;
+
+/** The route to send the user to after `step` — the next form while there is
+ *  one, then the completion screen.
+ *
+ *  Every caller used to fall back to `{ to: "/" }` when nextStep ran out, which
+ *  dropped a user who had just finished onboarding onto the marketing page. */
+export function nextRoute(intent: Intent | null, step: OnboardingStep): OnboardingRoute {
+  return nextStep(intent, step) ?? COMPLETION_STEP;
+}

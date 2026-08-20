@@ -1,9 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
-import { ownProfileRedirect } from "@/lib/auth";
-import { clearOnboardingState, readStoreDraft, type StoreDraft } from "@/lib/onboarding-state";
-import { previousStep, stepPosition } from "@/lib/onboarding-flow";
+import { readStoreDraft, type StoreDraft } from "@/lib/onboarding-state";
+import { nextRoute, previousStep, stepPosition } from "@/lib/onboarding-flow";
 import {
   FormError,
   OnboardingChecking,
@@ -54,10 +53,12 @@ function NameYourStorePage() {
   const noun = isBrand ? "brand" : "store";
   const handle = slugify(brandName);
 
-  const finish = async (id: string) => {
-    clearOnboardingState();
-    const redirect = await ownProfileRedirect(id);
-    navigate({ ...redirect, replace: true });
+  // replace, not push: Back into this form and re-submitting is how a seller
+  // ends up with two stores, which has already happened to a live account.
+  // The welcome screen clears the onboarding scratch state, not this step —
+  // it still needs the local intent as a fallback if the profile read fails.
+  const finish = () => {
+    navigate({ to: nextRoute("seller", "/name-your-store"), replace: true });
   };
 
   const handleSubmit = async (e: FormEvent) => {
@@ -120,7 +121,7 @@ function NameYourStorePage() {
         if (updateError.code !== "23505") console.error(updateError);
         return;
       }
-      await finish(user.id);
+      finish();
       return;
     }
 
@@ -144,7 +145,7 @@ function NameYourStorePage() {
       return;
     }
 
-    await finish(user.id);
+    finish();
   };
 
   if (checking || !draft) return <OnboardingChecking />;

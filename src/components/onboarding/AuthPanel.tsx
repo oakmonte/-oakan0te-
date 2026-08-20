@@ -7,7 +7,7 @@ import {
   signInWithPassword,
   verifyEmailCode,
 } from "@/lib/auth";
-import { setIntent, type Intent } from "@/lib/onboarding-state";
+import { setIntent, setPasswordResetPending, type Intent } from "@/lib/onboarding-state";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { GoogleIcon } from "@/components/auth-icons";
 import { Spinner } from "@/components/spinner";
@@ -161,6 +161,9 @@ export function AuthPanel({ intent, title, subtitle, defaultMode = "code" }: Pro
     setMode("code");
     setError(null);
     setPassword("");
+    // resolvePostAuthRedirect reads this after the code is verified and routes
+    // to /create-password, so the notice below is actually kept.
+    setPasswordResetPending();
     setNotice("No problem — we'll email you a 6-digit code, and you can set a new password after.");
   };
 

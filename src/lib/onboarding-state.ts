@@ -11,6 +11,7 @@ export type Intent = "seller" | "creator" | "curator";
 const INTENT_KEY = "oakmonte_intent";
 const STORE_TYPE_KEY = "oakmonte_store_type";
 const CUSTOM_ORDERS_KEY = "oakmonte_custom_orders";
+const PASSWORD_RESET_KEY = "oakmonte_password_reset";
 
 const INTENTS: readonly string[] = ["seller", "creator", "curator"];
 
@@ -56,6 +57,27 @@ export function readIntent(): Intent | null {
   return isIntent(stored) ? stored : null;
 }
 
+/** Set when someone takes the "Forgot password? Email me a code" route out of
+ *  the sign-in form.
+ *
+ *  Without it that path dead-ends: `needsPassword` is false for an account that
+ *  already has a password, so the code sign-in succeeds and drops the user on
+ *  their profile with the forgotten password still in place — and the notice
+ *  they were shown ("you can set a new password after") never comes true. They
+ *  would be back on emailed codes forever, which is the cost this whole
+ *  password step exists to avoid. */
+export function setPasswordResetPending() {
+  write(PASSWORD_RESET_KEY, "1");
+}
+
+export function isPasswordResetPending(): boolean {
+  return read(PASSWORD_RESET_KEY) === "1";
+}
+
+export function clearPasswordResetPending() {
+  remove(PASSWORD_RESET_KEY);
+}
+
 export type StoreDraft = { storeType: string | null; customOrders: boolean };
 
 export function setStoreDraft(draft: StoreDraft) {
@@ -76,4 +98,5 @@ export function clearOnboardingState() {
   remove(INTENT_KEY);
   remove(STORE_TYPE_KEY);
   remove(CUSTOM_ORDERS_KEY);
+  remove(PASSWORD_RESET_KEY);
 }

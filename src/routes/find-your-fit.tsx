@@ -1,8 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { ownProfileRedirect } from "@/lib/auth";
-import { clearOnboardingState, readIntent, type Intent } from "@/lib/onboarding-state";
-import { previousStep, stepPosition } from "@/lib/onboarding-flow";
+import { readIntent, type Intent } from "@/lib/onboarding-state";
+import { nextRoute, previousStep, stepPosition } from "@/lib/onboarding-flow";
 import { OnboardingChecking, OnboardingShell } from "@/components/onboarding/OnboardingShell";
 import { useRequireSession } from "@/components/onboarding/use-require-session";
 
@@ -713,7 +712,7 @@ function TracedBodySilhouette({ id, viewBox, paths }: TracedBodyShape) {
 
 function FindYourFitPage() {
   const navigate = useNavigate();
-  const { userId, checking } = useRequireSession();
+  const { checking } = useRequireSession();
   // Read after mount, so the server render and hydration agree.
   const [intent, setIntentState] = useState<Intent | null>(null);
 
@@ -750,15 +749,12 @@ function FindYourFitPage() {
     setBodyType(null);
   };
 
-  // This is the last step of the creator and curator flows, so both paths end
-  // on the user's own profile. It used to navigate to /phone-number, which for
-  // curators sent them straight back to the step they had just come from —
-  // an onboarding loop with no exit, Skip included.
-  const finish = async () => {
-    if (!userId) return;
-    clearOnboardingState();
-    const redirect = await ownProfileRedirect(userId);
-    navigate({ ...redirect, replace: true });
+  // Last form step of the creator and curator flows — both hand off to the
+  // welcome screen, which is what ends onboarding. It used to navigate to
+  // /phone-number, which for curators sent them straight back to the step they
+  // had just come from: an onboarding loop with no exit, Skip included.
+  const finish = () => {
+    navigate({ to: nextRoute(intent, "/find-your-fit"), replace: true });
   };
 
   const handleSubmit = (e: FormEvent) => {
@@ -786,11 +782,11 @@ function FindYourFitPage() {
       }),
     );
 
-    void finish();
+    finish();
   };
 
   const handleSkip = () => {
-    void finish();
+    finish();
   };
 
   if (checking) return <OnboardingChecking />;

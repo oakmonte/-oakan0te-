@@ -32,6 +32,7 @@ import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as StoreRouteImport } from './routes/store'
 import { Route as StudioRouteImport } from './routes/studio'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as WelcomeRouteImport } from './routes/welcome'
 import { Route as WhereDidYouHearAboutUsRouteImport } from './routes/where-did-you-hear-about-us'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as CreateIndexRouteImport } from './routes/create.index'
@@ -175,6 +176,11 @@ const StudioRoute = StudioRouteImport.update({
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WelcomeRoute = WelcomeRouteImport.update({
+  id: '/welcome',
+  path: '/welcome',
   getParentRoute: () => rootRouteImport,
 } as any)
 const WhereDidYouHearAboutUsRoute = WhereDidYouHearAboutUsRouteImport.update({
@@ -347,6 +353,7 @@ export interface FileRoutesByFullPath {
   '/store': typeof StoreRouteWithChildren
   '/studio': typeof StudioRoute
   '/terms': typeof TermsRoute
+  '/welcome': typeof WelcomeRoute
   '/where-did-you-hear-about-us': typeof WhereDidYouHearAboutUsRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/create/after-shot': typeof CreateAfterShotRouteWithChildren
@@ -399,6 +406,7 @@ export interface FileRoutesByTo {
   '/sign-in': typeof SignInRoute
   '/studio': typeof StudioRoute
   '/terms': typeof TermsRoute
+  '/welcome': typeof WelcomeRoute
   '/where-did-you-hear-about-us': typeof WhereDidYouHearAboutUsRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/profile/$username': typeof ProfileUsernameRoute
@@ -453,6 +461,7 @@ export interface FileRoutesById {
   '/store': typeof StoreRouteWithChildren
   '/studio': typeof StudioRoute
   '/terms': typeof TermsRoute
+  '/welcome': typeof WelcomeRoute
   '/where-did-you-hear-about-us': typeof WhereDidYouHearAboutUsRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/create/after-shot': typeof CreateAfterShotRouteWithChildren
@@ -509,6 +518,7 @@ export interface FileRouteTypes {
     | '/store'
     | '/studio'
     | '/terms'
+    | '/welcome'
     | '/where-did-you-hear-about-us'
     | '/auth/callback'
     | '/create/after-shot'
@@ -561,6 +571,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/studio'
     | '/terms'
+    | '/welcome'
     | '/where-did-you-hear-about-us'
     | '/auth/callback'
     | '/profile/$username'
@@ -614,6 +625,7 @@ export interface FileRouteTypes {
     | '/store'
     | '/studio'
     | '/terms'
+    | '/welcome'
     | '/where-did-you-hear-about-us'
     | '/auth/callback'
     | '/create/after-shot'
@@ -669,6 +681,7 @@ export interface RootRouteChildren {
   StoreRoute: typeof StoreRouteWithChildren
   StudioRoute: typeof StudioRoute
   TermsRoute: typeof TermsRoute
+  WelcomeRoute: typeof WelcomeRoute
   WhereDidYouHearAboutUsRoute: typeof WhereDidYouHearAboutUsRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
   ProfileUsernameRoute: typeof ProfileUsernameRoute
@@ -844,6 +857,13 @@ declare module '@tanstack/react-router' {
       path: '/terms'
       fullPath: '/terms'
       preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/welcome': {
+      id: '/welcome'
+      path: '/welcome'
+      fullPath: '/welcome'
+      preLoaderRoute: typeof WelcomeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/where-did-you-hear-about-us': {
@@ -1137,6 +1157,7 @@ const rootRouteChildren: RootRouteChildren = {
   StoreRoute: StoreRouteWithChildren,
   StudioRoute: StudioRoute,
   TermsRoute: TermsRoute,
+  WelcomeRoute: WelcomeRoute,
   WhereDidYouHearAboutUsRoute: WhereDidYouHearAboutUsRoute,
   AuthCallbackRoute: AuthCallbackRoute,
   ProfileUsernameRoute: ProfileUsernameRoute,

@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
 import { needsPassword, resolvePostAuthRedirect, setAccountPassword, signOut } from "@/lib/auth";
 import { supabase } from "@/lib/integrations/my-supabase/client";
+import { clearPasswordResetPending, isPasswordResetPending } from "@/lib/onboarding-state";
 import { checkPassword, MIN_PASSWORD_LENGTH } from "@/lib/password-policy";
 import { FormError, OnboardingChecking } from "@/components/onboarding/OnboardingShell";
 
@@ -21,6 +22,8 @@ function CreatePasswordPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [checking, setChecking] = useState(true);
+  /** True when this is a password RESET rather than a first-time set. */
+  const [resetting, setResetting] = useState(false);
   // Fed to the policy so the password can't just be the user's own email.
   const [identifiers, setIdentifiers] = useState<string[]>([]);
 
@@ -34,8 +37,16 @@ function CreatePasswordPage() {
         navigate({ to: "/sign-in", replace: true });
         return;
       }
-      // Google-only accounts, and anyone who already set one, skip straight on.
-      if (!needsPassword(data.user)) {
+      // Read and clear in one go: a reset is a one-shot handoff from the
+      // sign-in form, so a later reload lands on the profile instead of
+      // parking the user here forever.
+      const resetting = isPasswordResetPending();
+      clearPasswordResetPending();
+      setResetting(resetting);
+
+      // Google-only accounts, and anyone who already set one, skip straight on
+      // — unless they got here from "Forgot password? Email me a code".
+      if (!resetting && !needsPassword(data.user)) {
         const redirect = await resolvePostAuthRedirect(data.user.id);
         if (!cancelled) navigate({ ...redirect, replace: true });
         return;
@@ -86,9 +97,13 @@ function CreatePasswordPage() {
   return (
     <div className="min-h-dvh bg-brand-bg text-brand-text flex items-center justify-center px-6 py-10">
       <div className="w-full max-w-sm text-center">
-        <h1 className="font-serif text-4xl sm:text-5xl leading-tight mb-3">Create a password</h1>
+        <h1 className="font-serif text-4xl sm:text-5xl leading-tight mb-3">
+          {resetting ? "Set a new password" : "Create a password"}
+        </h1>
         <p className="text-sm text-brand-text/70 mb-8">
-          So you can sign back in instantly, without waiting on a code every time.
+          {resetting
+            ? "This replaces the one you forgot. You'll be signed in on this device either way."
+            : "So you can sign back in instantly, without waiting on a code every time."}
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-3">
@@ -177,6 +192,7 @@ function CreatePasswordPage() {
         <button
           type="button"
           onClick={async () => {
+            clearPasswordResetPending();
             await signOut();
             navigate({ to: "/sign-in", replace: true });
           }}

@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { getDisplayNameFromUser } from "@/lib/auth";
 import { readIntent, type Intent } from "@/lib/onboarding-state";
-import { nextStep, stepPosition } from "@/lib/onboarding-flow";
+import { nextRoute, stepPosition } from "@/lib/onboarding-flow";
 import {
   FormError,
   OnboardingChecking,
@@ -165,8 +165,7 @@ function ChooseUsernamePage() {
       return;
     }
 
-    const next = nextStep(resolvedIntent, "/choose-username");
-    navigate(next ? { to: next, replace: true } : { to: "/", replace: true });
+    navigate({ to: nextRoute(resolvedIntent, "/choose-username"), replace: true });
   };
 
   if (checking) return <OnboardingChecking />;
