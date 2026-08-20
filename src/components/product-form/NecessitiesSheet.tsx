@@ -1,9 +1,6 @@
-import { useState } from "react";
 import { Check, ChevronRight, X } from "lucide-react";
 import { CategoryNode } from "@/lib/categories";
 import { VariantOption } from "@/components/product-form/VariantMatrixBuilder";
-import { getSizeChartForCategory, type SizeMeasurements } from "@/lib/size-chart-config";
-import { SizeChartSheet } from "@/components/product-form/size-chart/SizeChartSheet";
 
 // Which category-specific parameters a category requires before a product in
 // it can be published, keyed by category id anywhere in the chosen path —
@@ -50,23 +47,13 @@ function paramsForCategory(categoryPath: CategoryNode[]): string[] {
 // field for Material today, so Size/Color always read unfilled there until
 // this product type grows fields for them. "Link content" has no tracked
 // field anywhere yet, so it always reads unfilled until that feature exists.
-//
-// "Size" is special-cased further: for categories with a size chart defined
-// (see size-chart-config.ts), having the option isn't enough — at least one
-// measurement has to actually be filled in. Everywhere a chart isn't defined
-// yet, Size keeps the plain option-existence check, unchanged.
 function isFilled(
   param: string,
   kind: "regular" | "variant",
   options: VariantOption[],
   material: string,
-  hasChart: boolean,
-  sizeMeasurements: SizeMeasurements,
 ): boolean {
   if (param === "Link content") return false;
-  if (param === "Size" && kind === "variant" && hasChart) {
-    return Object.values(sizeMeasurements).some((m) => Object.keys(m).length > 0);
-  }
   if (kind === "variant") {
     return options.some(
       (o) => o.name.trim().toLowerCase() === param.toLowerCase() && o.values.length > 0,
@@ -80,22 +67,15 @@ export function NecessitiesSheet({
   kind,
   options,
   material,
-  sizeMeasurements,
-  onChangeSizeMeasurements,
   onClose,
 }: {
   categoryPath: CategoryNode[];
   kind: "regular" | "variant";
   options: VariantOption[];
   material: string;
-  sizeMeasurements: SizeMeasurements;
-  onChangeSizeMeasurements: (m: SizeMeasurements) => void;
   onClose: () => void;
 }) {
   const params = paramsForCategory(categoryPath);
-  const [sizeChartOpen, setSizeChartOpen] = useState(false);
-  const sizeChart = kind === "variant" ? getSizeChartForCategory(categoryPath) : null;
-  const sizeValues = options.find((o) => o.name.trim().toLowerCase() === "size")?.values ?? [];
 
   return (
     <div className="fixed inset-0 z-50 bg-white flex flex-col min-h-dvh animate-in fade-in slide-in-from-bottom-6 duration-300 ease-out">
@@ -118,14 +98,13 @@ export function NecessitiesSheet({
           </p>
         ) : (
           params.map((p) => {
-            const filled = isFilled(p, kind, options, material, !!sizeChart, sizeMeasurements);
-            const opensSizeChart = p === "Size" && !!sizeChart;
+            const filled = isFilled(p, kind, options, material);
             return (
               <button
                 key={p}
                 type="button"
                 aria-label={p}
-                onClick={opensSizeChart ? () => setSizeChartOpen(true) : () => {}} // TODO: open the per-parameter fill-in sheet once its design is specced, for everything but Size
+                onClick={() => {}} // TODO: open the per-parameter fill-in sheet once its design is specced
                 className="w-full flex items-center justify-between px-4 py-4 border-b border-gray-50 text-left oak-motion-control"
               >
                 <span className="flex items-center gap-3">
@@ -144,19 +123,6 @@ export function NecessitiesSheet({
           })
         )}
       </div>
-
-      {sizeChartOpen && sizeChart && (
-        <SizeChartSheet
-          sizeValues={sizeValues}
-          chart={sizeChart}
-          initialMeasurements={sizeMeasurements}
-          onSave={(m) => {
-            onChangeSizeMeasurements(m);
-            setSizeChartOpen(false);
-          }}
-          onClose={() => setSizeChartOpen(false)}
-        />
-      )}
     </div>
   );
 }

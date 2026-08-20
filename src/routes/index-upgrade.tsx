@@ -66,15 +66,15 @@ const RESULTS = [
 const QUOTES = [
   {
     text: "Finally get paid without chasing invoices or hoping the buyer follows through.",
-    who: "David — Seller",
+    who: "David — Seller (sample)",
   },
   {
     text: "I share pieces I actually believe in — and I get credit for every sale it drives.",
-    who: "Jamal — Creator",
+    who: "Jamal — Creator (sample)",
   },
   {
     text: "The size chart alone saved me two returns in my first week.",
-    who: "Nathan — Curator",
+    who: "Nathan — Curator (sample)",
   },
 ];
 
@@ -264,48 +264,6 @@ function HeaderAuth() {
 }
 
 /* ---------------- Shared bits ---------------- */
-
-// Two phone mockups facing 180 degrees from each other, showing the mobile
-// look of the platform. Pure CSS/JSX — no image assets needed.
-function PhoneScreen({ flipped }: { flipped?: boolean }) {
-  return (
-    <div className={`phone-frame${flipped ? " flipped" : ""}`}>
-      <div className="phone-notch" />
-      <div className="phone-screen">
-        <div className="ps-top">
-          <img src={logoO} alt="" />
-          <span>akmonte</span>
-        </div>
-        <div className="ps-hero">
-          <span className="ps-tag">New drop</span>
-        </div>
-        <div className="ps-row">
-          <div className="ps-line long" />
-          <div className="ps-price">$120</div>
-        </div>
-        <div className="ps-line short" />
-        <div className="ps-grid">
-          <div /> <div /> <div />
-        </div>
-        <div className="ps-cta">Buy protected</div>
-        <div className="ps-nav">
-          <span /> <span /> <span /> <span />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function PhoneDuo() {
-  return (
-    <div className="phone-duo">
-      <PhoneScreen />
-      <PhoneScreen flipped />
-    </div>
-  );
-}
-
-
 function BrandArt({
   variant,
   caption,
@@ -600,7 +558,7 @@ function IndexUpgrade() {
                 Built to be the <span>simplest way</span> to sell, share, and shop fashion online.
               </Reveal>
               <Reveal delay={1} className="scale-media">
-                <PhoneDuo />
+                <BrandArt variant="on-light" />
               </Reveal>
             </div>
           </div>
@@ -660,7 +618,7 @@ function IndexUpgrade() {
               <h2>Why people choose Oakmonte.</h2>
             </Reveal>
             <Reveal as="p" className="value-note">
-              Real people, real outcomes — across every role on the platform.
+              Sample layout — swap in real customer quotes once you have them.
             </Reveal>
             <div className="quotes-grid">
               {QUOTES.map((q, i) => (
@@ -1010,27 +968,4 @@ const CSS = `
 .oak .footer-brand .tag{font-size:12px;color:rgba(255,255,255,.55);}
 .oak .footer-row > a{font-size:13px;font-weight:700;color:#6E8CFF;}
 .oak .footer-row > a:hover{color:#fff;}
-/* Dual phone mockup — the mobile look of the platform, second unit rotated 180deg */
-.oak .phone-duo{position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center;gap:18px;padding:28px 12px;background:#EFF2FA;overflow:hidden;flex-wrap:wrap;}
-.oak .phone-frame{position:relative;width:150px;aspect-ratio:9/19;border-radius:26px;background:var(--black);padding:7px;box-shadow:0 24px 50px rgba(10,10,10,.28);flex:0 0 auto;animation:oakFloat 6s ease-in-out infinite;}
-.oak .phone-frame.flipped{transform:rotate(180deg);animation-delay:.8s;}
-.oak .phone-notch{position:absolute;top:9px;left:50%;transform:translateX(-50%);width:44px;height:6px;border-radius:99px;background:#2a2a2a;z-index:2;}
-.oak .phone-screen{width:100%;height:100%;border-radius:20px;background:#fff;overflow:hidden;display:flex;flex-direction:column;gap:6px;padding:14px 9px 8px;}
-.oak .ps-top{display:flex;align-items:center;gap:2px;}
-.oak .ps-top img{width:11px;height:14px;object-fit:contain;}
-.oak .ps-top span{font-size:9px;font-weight:700;letter-spacing:-.02em;color:var(--black);}
-.oak .ps-hero{position:relative;height:64px;border-radius:9px;background:linear-gradient(135deg,var(--blue) 0%,#0d2c9e 100%);}
-.oak .ps-tag{position:absolute;left:6px;bottom:6px;font-size:6px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#fff;}
-.oak .ps-row{display:flex;align-items:center;justify-content:space-between;gap:6px;}
-.oak .ps-price{font-size:8px;font-weight:800;color:var(--blue);}
-.oak .ps-line{height:5px;border-radius:99px;background:rgba(10,10,10,.12);}
-.oak .ps-line.long{flex:1;}
-.oak .ps-line.short{width:52%;}
-.oak .ps-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;}
-.oak .ps-grid div{aspect-ratio:1/1;border-radius:6px;background:rgba(33,81,245,.12);}
-.oak .ps-cta{margin-top:auto;text-align:center;font-size:7px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:var(--blue);border-radius:99px;padding:6px 0;}
-.oak .ps-nav{display:flex;justify-content:space-around;padding-top:6px;}
-.oak .ps-nav span{width:5px;height:5px;border-radius:50%;background:rgba(10,10,10,.18);}
-.oak .ps-nav span:first-child{background:var(--blue);}
-@media (min-width:768px){.oak .phone-frame{width:172px;}.oak .phone-duo{gap:26px;}}
 `;

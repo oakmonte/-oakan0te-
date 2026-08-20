@@ -18,7 +18,6 @@ import {
   VariantOption,
   VariantRow,
 } from "@/components/product-form/VariantMatrixBuilder";
-import { SizeMeasurements } from "@/lib/size-chart-config";
 import {
   stashProductDraft,
   takeProductDraft,
@@ -77,9 +76,6 @@ function NewProduct() {
   // Variant-mode state
   const [options, setOptions] = useState<VariantOption[]>(initialDraft?.options ?? []);
   const [rows, setRows] = useState<VariantRow[]>(initialDraft?.rows ?? []);
-  const [sizeMeasurements, setSizeMeasurements] = useState<SizeMeasurements>(
-    initialDraft?.sizeMeasurements ?? {},
-  );
 
   const [categoryPickerOpen, setCategoryPickerOpen] = useState(false);
   const [typeSwitchOpen, setTypeSwitchOpen] = useState(false);
@@ -118,7 +114,6 @@ function NewProduct() {
       options,
       rows,
       collectionIds,
-      sizeMeasurements,
     });
     navigate({ to: "/store/collections/new" });
   }
@@ -268,22 +263,6 @@ function NewProduct() {
 
       const linksRes = await supabase.from("product_variant_options").insert(linksPayload);
       if (linksRes.error) return fail("product_variant_options", linksRes.error.message);
-
-      const measurementsPayload = Object.entries(sizeMeasurements).flatMap(([sizeValue, byKey]) =>
-        Object.entries(byKey).map(([measurementKey, valueCm]) => ({
-          product_id: product.id,
-          size_value: sizeValue,
-          measurement_key: measurementKey,
-          value_cm: valueCm,
-        })),
-      );
-      if (measurementsPayload.length > 0) {
-        const measurementsRes = await supabase
-          .from("product_size_measurements")
-          .insert(measurementsPayload);
-        if (measurementsRes.error)
-          return fail("product_size_measurements", measurementsRes.error.message);
-      }
     }
 
     if (collectionIds.length > 0) {
@@ -482,8 +461,6 @@ function NewProduct() {
           kind={kind}
           options={options}
           material={material}
-          sizeMeasurements={sizeMeasurements}
-          onChangeSizeMeasurements={setSizeMeasurements}
           onClose={() => setNecessitiesSheetOpen(false)}
         />
       )}
