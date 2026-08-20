@@ -54,6 +54,7 @@ import { Route as ApiInstagramConnectRouteImport } from './routes/api.instagram.
 import { Route as ApiShipbubblePingRouteImport } from './routes/api.shipbubble.ping'
 import { Route as ApiShopifyCallbackRouteImport } from './routes/api.shopify.callback'
 import { Route as ApiShopifyInstallRouteImport } from './routes/api.shopify.install'
+import { Route as ApiStorePayoutRouteImport } from './routes/api.store.payout'
 import { Route as CreateAfterShotIndexRouteImport } from './routes/create.after-shot.index'
 import { Route as CreateAfterShotFiltersRouteImport } from './routes/create.after-shot.filters'
 import { Route as CreateAfterShotStudioRouteImport } from './routes/create.after-shot.studio'
@@ -286,6 +287,11 @@ const ApiShopifyInstallRoute = ApiShopifyInstallRouteImport.update({
   path: '/api/shopify/install',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiStorePayoutRoute = ApiStorePayoutRouteImport.update({
+  id: '/api/store/payout',
+  path: '/api/store/payout',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CreateAfterShotIndexRoute = CreateAfterShotIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -363,6 +369,7 @@ export interface FileRoutesByFullPath {
   '/api/shipbubble/ping': typeof ApiShipbubblePingRoute
   '/api/shopify/callback': typeof ApiShopifyCallbackRoute
   '/api/shopify/install': typeof ApiShopifyInstallRoute
+  '/api/store/payout': typeof ApiStorePayoutRoute
   '/create/after-shot/filters': typeof CreateAfterShotFiltersRoute
   '/create/after-shot/studio': typeof CreateAfterShotStudioRoute
   '/store/collections/new': typeof StoreCollectionsNewRoute
@@ -413,6 +420,7 @@ export interface FileRoutesByTo {
   '/api/shipbubble/ping': typeof ApiShipbubblePingRoute
   '/api/shopify/callback': typeof ApiShopifyCallbackRoute
   '/api/shopify/install': typeof ApiShopifyInstallRoute
+  '/api/store/payout': typeof ApiStorePayoutRoute
   '/create/after-shot/filters': typeof CreateAfterShotFiltersRoute
   '/create/after-shot/studio': typeof CreateAfterShotStudioRoute
   '/store/collections/new': typeof StoreCollectionsNewRoute
@@ -467,6 +475,7 @@ export interface FileRoutesById {
   '/api/shipbubble/ping': typeof ApiShipbubblePingRoute
   '/api/shopify/callback': typeof ApiShopifyCallbackRoute
   '/api/shopify/install': typeof ApiShopifyInstallRoute
+  '/api/store/payout': typeof ApiStorePayoutRoute
   '/create/after-shot/filters': typeof CreateAfterShotFiltersRoute
   '/create/after-shot/studio': typeof CreateAfterShotStudioRoute
   '/store/collections_/new': typeof StoreCollectionsNewRoute
@@ -522,6 +531,7 @@ export interface FileRouteTypes {
     | '/api/shipbubble/ping'
     | '/api/shopify/callback'
     | '/api/shopify/install'
+    | '/api/store/payout'
     | '/create/after-shot/filters'
     | '/create/after-shot/studio'
     | '/store/collections/new'
@@ -572,6 +582,7 @@ export interface FileRouteTypes {
     | '/api/shipbubble/ping'
     | '/api/shopify/callback'
     | '/api/shopify/install'
+    | '/api/store/payout'
     | '/create/after-shot/filters'
     | '/create/after-shot/studio'
     | '/store/collections/new'
@@ -625,6 +636,7 @@ export interface FileRouteTypes {
     | '/api/shipbubble/ping'
     | '/api/shopify/callback'
     | '/api/shopify/install'
+    | '/api/store/payout'
     | '/create/after-shot/filters'
     | '/create/after-shot/studio'
     | '/store/collections_/new'
@@ -668,6 +680,7 @@ export interface RootRouteChildren {
   ApiShipbubblePingRoute: typeof ApiShipbubblePingRoute
   ApiShopifyCallbackRoute: typeof ApiShopifyCallbackRoute
   ApiShopifyInstallRoute: typeof ApiShopifyInstallRoute
+  ApiStorePayoutRoute: typeof ApiStorePayoutRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -987,6 +1000,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiShopifyInstallRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/store/payout': {
+      id: '/api/store/payout'
+      path: '/api/store/payout'
+      fullPath: '/api/store/payout'
+      preLoaderRoute: typeof ApiStorePayoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/create/after-shot/': {
       id: '/create/after-shot/'
       path: '/'
@@ -1128,6 +1148,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiShipbubblePingRoute: ApiShipbubblePingRoute,
   ApiShopifyCallbackRoute: ApiShopifyCallbackRoute,
   ApiShopifyInstallRoute: ApiShopifyInstallRoute,
+  ApiStorePayoutRoute: ApiStorePayoutRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
