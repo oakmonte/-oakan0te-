@@ -1,14 +1,24 @@
-import { Check, X } from "lucide-react";
+import { Check, ChevronRight, X } from "lucide-react";
 import { CategoryNode } from "@/lib/categories";
 import { VariantOption } from "@/components/product-form/VariantMatrixBuilder";
 
 // Which parameters a category requires before a product in it can be
 // published, keyed by category id anywhere in the chosen path — not just the
 // leaf, since e.g. "Dresses" and "Shorts" both fall under "Clothing" and
-// share the same requirements. Only Clothing is mapped so far; every other
-// category shows an empty checklist until its own requirements are defined.
+// share the same requirements. Covers every top-level Apparel & Accessories
+// branch; Size is only included where it's actually standardized (clothing,
+// costumes, shoes) — small-accessory branches don't share a size axis.
+// Beauty & Personal Care / Art & Crafts have no tracked fields yet, so they
+// intentionally show an empty checklist.
 const NECESSITY_PARAMS: Record<string, string[]> = {
   clothing: ["Size", "Color", "Material"],
+  "costumes-accessories": ["Size", "Color", "Material"],
+  shoes: ["Size", "Color", "Material"],
+  "clothing-accessories": ["Color", "Material"],
+  "shoe-accessories": ["Color", "Material"],
+  "handbags-wallets-cases": ["Color", "Material"],
+  "handbag-wallet-accessories": ["Material", "Color"],
+  jewelry: ["Material", "Color"],
 };
 
 function paramsForCategory(categoryPath: CategoryNode[]): string[] {
@@ -76,19 +86,25 @@ export function NecessitiesSheet({
           params.map((p) => {
             const filled = isFilled(p, kind, options, material);
             return (
-              <div
+              <button
                 key={p}
-                className="flex items-center justify-between px-4 py-4 border-b border-gray-50"
+                type="button"
+                aria-label={p}
+                onClick={() => {}} // TODO: open the per-parameter fill-in sheet once its design is specced
+                className="w-full flex items-center justify-between px-4 py-4 border-b border-gray-50 text-left"
               >
-                <span className="text-[15px] text-gray-900">{p}</span>
-                <span
-                  className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 ${
-                    filled ? "bg-black border-black" : "border-gray-300"
-                  }`}
-                >
-                  {filled && <Check size={13} className="text-white" />}
+                <span className="flex items-center gap-3">
+                  <span
+                    className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 ${
+                      filled ? "bg-black border-black" : "border-gray-300"
+                    }`}
+                  >
+                    {filled && <Check size={13} className="text-white" />}
+                  </span>
+                  <span className="text-[15px] text-gray-900">{p}</span>
                 </span>
-              </div>
+                <ChevronRight size={16} className="text-gray-300 shrink-0" />
+              </button>
             );
           })
         )}
