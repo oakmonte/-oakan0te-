@@ -650,7 +650,7 @@ function IndexUpgrade() {
               </div>
 
               <Reveal delay={2} className="story-media" data-parallax="0.08">
-                <BrandArt variant="on-blue" />
+                <BrandArt variant="on-blue" caption="Escrow-protected, creator-paid, size-matched" />
               </Reveal>
             </div>
           </div>
@@ -735,7 +735,7 @@ function IndexUpgrade() {
                 Built to be the <span>simplest way</span> to sell, share, and shop fashion online.
               </Reveal>
               <Reveal delay={1} className="scale-media" data-parallax="0.08">
-                <BrandArt variant="on-light" />
+                <BrandArt variant="on-light" caption="One platform. One payment system. Zero ghosting." />
               </Reveal>
             </div>
           </div>
@@ -1030,9 +1030,10 @@ const CSS = `
 .oak .brand-art:hover .ed-frame-1{transform:translate3d(-6px,-8px,0) scale(1.01);}
 .oak .brand-art:hover .ed-frame-2{transform:translate3d(8px,6px,0) scale(1.03);}
 .oak .brand-art .ed-frame{transition:transform .6s cubic-bezier(.22,1,.36,1);}
-.oak .brand-art .cap{position:absolute;left:24px;bottom:20px;z-index:3;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;}
+.oak .brand-art .cap{position:absolute;left:24px;bottom:20px;z-index:3;font-family:var(--body);font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;opacity:0;transform:translateY(8px);transition:opacity .35s ease,transform .35s cubic-bezier(.22,1,.36,1);text-shadow:0 2px 14px rgba(0,0,0,.45);max-width:90%;}
+.oak .brand-art:hover .cap{opacity:1;transform:translateY(0);}
 .oak .brand-art.on-black .cap,.oak .brand-art.on-blue .cap{color:#fff;}
-.oak .brand-art.on-light .cap{color:var(--black);}
+.oak .brand-art.on-light .cap{color:var(--black);text-shadow:none;}
 @media (max-width:640px){
   .oak .brand-art .ed-frame-1{inset:6% 26% 6% 6%;}
   .oak .brand-art .ed-frame-2{width:38%;right:5%;}
