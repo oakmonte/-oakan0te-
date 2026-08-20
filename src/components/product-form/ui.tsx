@@ -35,14 +35,17 @@ export function StubRow({
   icon,
   label,
   isLast,
+  onClick,
 }: {
   icon: React.ReactNode;
   label: string;
   isLast?: boolean;
+  onClick?: () => void;
 }) {
   return (
     <button
       type="button"
+      onClick={onClick}
       className={`w-full flex items-center justify-between px-4 py-4 ${
         isLast ? "" : "border-b-8 border-gray-50"
       }`}

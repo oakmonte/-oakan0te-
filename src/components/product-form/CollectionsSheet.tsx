@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { X, Search, ImageIcon, Check } from "lucide-react";
+import { X, Search, ImageIcon, Check, Plus } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 
 // TODO: dev-only, matches store.products_.new.tsx / store.products.tsx.
@@ -82,7 +82,14 @@ export function CollectionsSheet({
         <span className="font-semibold text-[15px] absolute left-1/2 -translate-x-1/2">
           Collections
         </span>
-        <span className="w-5" />
+        <button
+          onClick={onCreateNew}
+          type="button"
+          aria-label="Create collection"
+          className="p-1 -mr-1"
+        >
+          <Plus size={20} className="text-gray-900" />
+        </button>
       </div>
 
       {collections !== null && collections.length === 0 && (

@@ -16,6 +16,8 @@ import { MediaSection } from "@/components/product-form/MediaSection";
 import { DetailsSection } from "@/components/product-form/DetailsSection";
 import { DescriptionSheet } from "@/components/product-form/DescriptionSheet";
 import { CollectionsSheet } from "@/components/product-form/CollectionsSheet";
+import { TagsSheet } from "@/components/product-form/TagsSheet";
+import { NecessitiesSheet } from "@/components/product-form/NecessitiesSheet";
 import { PricingSheet } from "@/components/product-form/PricingSheet";
 import { CategoryPicker } from "@/components/product-form/CategoryPicker";
 import { ProductTypeSwitchSheet } from "@/components/product-form/ProductTypeSwitchSheet";
@@ -93,9 +95,16 @@ function NewProduct() {
     }
     return base;
   });
+  const [tagsSheetOpen, setTagsSheetOpen] = useState(false);
+  const [tagIds, setTagIds] = useState<string[]>([]);
+  const [necessitiesSheetOpen, setNecessitiesSheetOpen] = useState(false);
   const [expanded, setExpanded] = useState<ExpandedSection>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+
+  function toggleTag(id: string) {
+    setTagIds((prev) => (prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]));
+  }
 
   function handleCreateCollection() {
     stashProductDraft({
@@ -282,6 +291,20 @@ function NewProduct() {
       }
     }
 
+    if (tagIds.length > 0) {
+      const { error: tagsErr } = await supabase.from("product_tags").insert(
+        tagIds.map((tagId) => ({
+          product_id: product.id,
+          tag_id: tagId,
+        })),
+      );
+      if (tagsErr) {
+        setError(`product_tags: ${tagsErr.message}`);
+        setSaving(false);
+        return;
+      }
+    }
+
     navigate({ to: "/store/products" });
   }
 
@@ -385,8 +408,13 @@ function NewProduct() {
           <ChevronRight size={16} className="text-gray-300" />
         </span>
       </button>
-      <StubRow icon={<Hash size={18} />} label="Tags" />
-      <StubRow icon={<ListChecks size={18} />} label="Necessities" isLast />
+      <StubRow icon={<Hash size={18} />} label="Tags" onClick={() => setTagsSheetOpen(true)} />
+      <StubRow
+        icon={<ListChecks size={18} />}
+        label="Necessities"
+        isLast
+        onClick={() => setNecessitiesSheetOpen(true)}
+      />
 
       {categoryPickerOpen && (
         <CategoryPicker
@@ -438,6 +466,24 @@ function NewProduct() {
           }}
           onClose={() => setCollectionsSheetOpen(false)}
           onCreateNew={handleCreateCollection}
+        />
+      )}
+
+      {tagsSheetOpen && (
+        <TagsSheet
+          selectedIds={tagIds}
+          onToggle={toggleTag}
+          onClose={() => setTagsSheetOpen(false)}
+        />
+      )}
+
+      {necessitiesSheetOpen && (
+        <NecessitiesSheet
+          categoryPath={categoryPath}
+          kind={kind}
+          options={options}
+          material={material}
+          onClose={() => setNecessitiesSheetOpen(false)}
         />
       )}
 

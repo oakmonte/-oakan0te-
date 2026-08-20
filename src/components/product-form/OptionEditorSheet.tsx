@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Check, ChevronDown, Plus, X } from "lucide-react";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
 import type { VariantOption } from "./VariantMatrixBuilder";
@@ -180,6 +180,7 @@ export function OptionEditorSheet({
   const [valueDraft, setValueDraft] = useState("");
   const [selectedSystems, setSelectedSystems] = useState<Record<string, string>>(DEFAULT_SYSTEM);
   const [systemMenuOpen, setSystemMenuOpen] = useState(false);
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
   // Keyboard should overlay this sheet, not resize/push it — same fix already
   // used on the camera/after-shot routes for the identical iOS Safari behavior.
@@ -223,6 +224,14 @@ export function OptionEditorSheet({
   // has to Save or Cancel them first, so moving on is always a deliberate act.
   const nameLocked = hasChosen && !confirmed;
 
+  // Confirmed custom names ride alongside the presets in the same pill row —
+  // once saved they're just another option you can tap back into, same as
+  // Size or Color. Unconfirmed ones don't show yet; the pill is the "saved" cue.
+  const customPills = nameOrder.filter(
+    (n) => n.trim() && !(PRESETS as readonly string[]).includes(n) && confirmedByName[n],
+  );
+  const allPills: string[] = [...PRESETS, ...customPills];
+
   function updateValues(updater: (prev: string[]) => string[]) {
     setValuesByName((prev) => ({ ...prev, [name]: updater(prev[name] ?? []) }));
     setConfirmedByName((prev) => ({ ...prev, [name]: false }));
@@ -262,6 +271,11 @@ export function OptionEditorSheet({
 
   function confirmValues() {
     setConfirmedByName((prev) => ({ ...prev, [name]: true }));
+    // Clear the slate so the seller can start the next option right away —
+    // its pill now lives in the row above, already marked done.
+    setName("");
+    setValueDraft("");
+    nameInputRef.current?.focus();
   }
 
   // Clears only the current name's bucket — other names keep whatever they hold.
@@ -311,6 +325,7 @@ export function OptionEditorSheet({
 
       <div className="flex-1 overflow-y-auto px-4 py-5">
         <input
+          ref={nameInputRef}
           value={name}
           onChange={(e) => renameName(e.target.value)}
           placeholder="Option name"
@@ -318,11 +333,14 @@ export function OptionEditorSheet({
           className="w-full text-lg font-medium text-gray-900 border border-gray-200 rounded-xl px-4 py-4 outline-none focus:border-gray-400 mb-3"
         />
         <div className="flex flex-wrap gap-2">
-          {PRESETS.map((p) => {
+          {allPills.map((p) => {
             // Tapping an already-defined name now *edits* it rather than being
             // blocked, so the only hard stop is the option cap itself.
             const disabled =
               (nameLocked && p !== name) || (atCap && !definedNames.includes(p) && p !== name);
+            // Black persists once an option's values are saved, not just while
+            // it's the one currently open — that's the whole point of the cue.
+            const isDone = name === p || (confirmedByName[p] ?? false);
             return (
               <button
                 key={p}
@@ -330,7 +348,7 @@ export function OptionEditorSheet({
                 disabled={disabled}
                 onClick={() => selectName(p)}
                 className={`px-3 py-1.5 rounded-full text-sm border ${
-                  name === p
+                  isDone
                     ? "bg-black text-white border-black"
                     : disabled
                       ? "bg-white text-gray-300 border-gray-100"

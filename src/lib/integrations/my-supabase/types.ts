@@ -237,8 +237,11 @@ export type Database = {
           created_at: string
           error: string | null
           file_path: string | null
+          heartbeat_at: string | null
           id: string
+          metadata: Json
           platform: string
+          result: Json | null
           status: string
           store_id: string | null
           updated_at: string
@@ -247,8 +250,11 @@ export type Database = {
           created_at?: string
           error?: string | null
           file_path?: string | null
+          heartbeat_at?: string | null
           id?: string
+          metadata?: Json
           platform: string
+          result?: Json | null
           status?: string
           store_id?: string | null
           updated_at?: string
@@ -257,8 +263,11 @@ export type Database = {
           created_at?: string
           error?: string | null
           file_path?: string | null
+          heartbeat_at?: string | null
           id?: string
+          metadata?: Json
           platform?: string
+          result?: Json | null
           status?: string
           store_id?: string | null
           updated_at?: string
@@ -366,6 +375,39 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_tags: {
+        Row: {
+          created_at: string
+          product_id: string
+          tag_id: string
+        }
+        Insert: {
+          created_at?: string
+          product_id: string
+          tag_id: string
+        }
+        Update: {
+          created_at?: string
+          product_id?: string
+          tag_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_tags_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_tags_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "tags"
             referencedColumns: ["id"]
           },
         ]
@@ -595,6 +637,10 @@ export type Database = {
         Row: {
           bumpa_api_key: string | null
           bumpa_connected_at: string | null
+          instagram_access_token: string | null
+          instagram_connected_at: string | null
+          instagram_token_expires_at: string | null
+          instagram_user_id: string | null
           shopify_access_token: string | null
           shopify_connected_at: string | null
           shopify_scopes: string | null
@@ -604,6 +650,10 @@ export type Database = {
         Insert: {
           bumpa_api_key?: string | null
           bumpa_connected_at?: string | null
+          instagram_access_token?: string | null
+          instagram_connected_at?: string | null
+          instagram_token_expires_at?: string | null
+          instagram_user_id?: string | null
           shopify_access_token?: string | null
           shopify_connected_at?: string | null
           shopify_scopes?: string | null
@@ -613,6 +663,10 @@ export type Database = {
         Update: {
           bumpa_api_key?: string | null
           bumpa_connected_at?: string | null
+          instagram_access_token?: string | null
+          instagram_connected_at?: string | null
+          instagram_token_expires_at?: string | null
+          instagram_user_id?: string | null
           shopify_access_token?: string | null
           shopify_connected_at?: string | null
           shopify_scopes?: string | null
@@ -737,6 +791,35 @@ export type Database = {
             columns: ["theme_id"]
             isOneToOne: false
             referencedRelation: "store_themes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tags: {
+        Row: {
+          created_at: string
+          id: string
+          store_id: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          store_id: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          store_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tags_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
             referencedColumns: ["id"]
           },
         ]
