@@ -746,10 +746,10 @@ const CSS = `
 .oak h1.headline .line-bottom{display:flex;align-items:baseline;flex-wrap:wrap;column-gap:28px;row-gap:4px;}
 .oak h1.headline .word-mask{overflow:hidden;display:block;}
 .oak h1.headline .style-word{display:block;transform:translateY(115%);opacity:0;animation:oakReveal .9s cubic-bezier(.16,1,.3,1) forwards;animation-delay:.35s;}
-.oak h1.headline .safely{display:block;font-size:clamp(26px,5.8vw,68px);color:var(--blue);transform:translateX(115%) scale(.9);opacity:0;animation:oakSafelyReveal 1.1s cubic-bezier(.16,1,.3,1) forwards;animation-delay:1.3s;}
+.oak h1.headline .safely{display:block;font-size:clamp(34px,7.5vw,96px);color:var(--blue);transform:translateX(115%) scale(.9);opacity:0;animation:oakSafelyReveal 1.1s cubic-bezier(.16,1,.3,1) forwards;animation-delay:1.3s;}
 @keyframes oakReveal{to{transform:translateY(0);opacity:1;}}
 @keyframes oakSafelyReveal{0%{transform:translateX(115%) scale(.9);opacity:0;}55%{opacity:1;}100%{transform:translateX(0) scale(1);opacity:1;}}
-@media (max-width:900px){.oak h1.headline .line-bottom{column-gap:16px;}.oak h1.headline .safely{font-size:clamp(23px,7.6vw,50px);}}
+@media (max-width:900px){.oak h1.headline .line-bottom{column-gap:16px;}.oak h1.headline .safely{font-size:clamp(26px,9vw,64px);}}
 
 .oak .hero-sub{font-size:20px;line-height:1.55;color:var(--gray);max-width:36rem;margin:0 0 40px;font-weight:500;opacity:0;animation:oakFadeUp .7s ease forwards;animation-delay:.55s;}
 .oak .hero-sub b{color:var(--black);}
