@@ -1133,7 +1133,7 @@ const CSS = `
 @media (hover:none),(max-width:900px){.oak .cursor-dot,.oak .cursor-halo,.oak .scroll-progress{display:none;}}
 
 .oak .split-text{overflow:hidden;}
-.oak .split-text .sw{display:inline-block;overflow:hidden;vertical-align:bottom;padding-bottom:.1em;margin-bottom:-.1em;margin-right:.22em;}
+.oak .split-text .sw{display:inline-block;overflow:hidden;vertical-align:bottom;padding-bottom:.1em;margin-bottom:-.1em;margin-right:.16em;}
 .oak .split-text .sw > span{display:inline-block;transform:translateY(110%) rotate(4deg);opacity:0;transition:transform .85s cubic-bezier(.16,1,.3,1),opacity .6s ease;}
 .oak .split-text.in-view .sw > span{transform:translateY(0) rotate(0);opacity:1;}
 
