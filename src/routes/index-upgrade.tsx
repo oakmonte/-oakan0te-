@@ -165,7 +165,6 @@ function SplitText({
           <span className="sw">
             <span style={{ transitionDelay: `${i * 55}ms` }}>{w}</span>
           </span>
-          {i < words.length - 1 ? "\u00a0" : ""}
         </span>
       ))}
     </Tag>
