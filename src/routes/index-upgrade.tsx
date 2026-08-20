@@ -1122,4 +1122,57 @@ const CSS = `
 .oak .footer-brand .tag{font-size:12px;color:rgba(255,255,255,.55);}
 .oak .footer-row > a{font-size:13px;font-weight:700;color:#6E8CFF;}
 .oak .footer-row > a:hover{color:#fff;}
+
+/* ---------- Kinetic layer ---------- */
+.oak .scroll-progress{position:fixed;top:0;left:0;right:0;height:3px;z-index:300;pointer-events:none;background:transparent;}
+.oak .scroll-progress i{display:block;height:100%;width:100%;transform:scaleX(0);transform-origin:0 50%;background:linear-gradient(90deg,var(--blue),#6E8CFF,var(--black));}
+
+.oak .cursor-dot,.oak .cursor-halo{position:fixed;top:0;left:0;z-index:400;pointer-events:none;border-radius:50%;mix-blend-mode:difference;}
+.oak .cursor-dot{width:7px;height:7px;background:#fff;}
+.oak .cursor-halo{width:38px;height:38px;border:1.5px solid rgba(255,255,255,.85);transition:width .3s cubic-bezier(.16,1,.3,1),height .3s cubic-bezier(.16,1,.3,1),background .3s ease;}
+.oak .cursor-halo.grow{width:76px;height:76px;background:rgba(255,255,255,.16);}
+@media (hover:none),(max-width:900px){.oak .cursor-dot,.oak .cursor-halo,.oak .scroll-progress{display:none;}}
+
+.oak .split-text{overflow:hidden;}
+.oak .split-text .sw{display:inline-block;overflow:hidden;vertical-align:bottom;}
+.oak .split-text .sw > span{display:inline-block;transform:translateY(110%) rotate(4deg);opacity:0;transition:transform .85s cubic-bezier(.16,1,.3,1),opacity .6s ease;}
+.oak .split-text.in-view .sw > span{transform:translateY(0) rotate(0);opacity:1;}
+
+.oak nav.desktop-nav a.roll{overflow:hidden;display:inline-block;height:1.25em;line-height:1.25em;}
+.oak nav.desktop-nav a.roll .roll-inner{display:flex;flex-direction:column;transition:transform .45s cubic-bezier(.16,1,.3,1);}
+.oak nav.desktop-nav a.roll:hover .roll-inner{transform:translateY(-1.25em);}
+.oak nav.desktop-nav a.roll .roll-inner span:last-child{color:var(--blue);}
+
+.oak [data-parallax]{will-change:transform;}
+.oak [data-parallax] > *{transform:translate3d(0,calc(var(--py,0px) * -1),0);transition:transform .1s linear;}
+
+.oak [data-tilt]{transform-style:preserve-3d;transition:transform .5s cubic-bezier(.16,1,.3,1),box-shadow .4s ease;position:relative;}
+.oak [data-tilt]::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:0;transition:opacity .35s ease;background:radial-gradient(320px circle at var(--gx,50%) var(--gy,50%),rgba(33,81,245,.18),transparent 65%);}
+.oak [data-tilt]:hover::after{opacity:1;}
+.oak .offer-card:hover{transform:none;}
+
+.oak .cta-btn{position:relative;overflow:hidden;transition:transform .35s cubic-bezier(.16,1,.3,1),background .35s ease,color .35s ease;isolation:isolate;}
+.oak .cta-btn::before{content:"";position:absolute;inset:0;z-index:-1;background:var(--blue);transform:translateY(101%);border-radius:inherit;transition:transform .45s cubic-bezier(.16,1,.3,1);}
+.oak .cta-btn:hover::before{transform:translateY(0);}
+.oak .cta-btn:hover{background:var(--black);}
+.oak .cta-btn.ghost:hover{color:var(--white);background:transparent;}
+
+.oak .reveal{transform:translateY(34px) scale(.985);}
+.oak .reveal.in-view{transform:translateY(0) scale(1);}
+
+.oak .marquee:hover .marquee-track,.oak .trust-marquee:hover .track{animation-play-state:paused;}
+
+.oak .faq-item{transition:background .3s ease,padding-left .3s ease;}
+.oak .faq-item:hover{background:rgba(33,81,245,.04);padding-left:10px;}
+
+.oak .stat b{transition:transform .4s cubic-bezier(.16,1,.3,1),color .3s ease;display:inline-block;}
+.oak .stat:hover b{transform:translateY(-6px) scale(1.06);color:var(--blue);}
+
+.oak .hero::before{content:"";position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(rgba(10,10,10,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(10,10,10,.045) 1px,transparent 1px);background-size:64px 64px;-webkit-mask-image:radial-gradient(circle at 60% 20%,#000,transparent 72%);mask-image:radial-gradient(circle at 60% 20%,#000,transparent 72%);animation:oakGrid 24s linear infinite;}
+@keyframes oakGrid{to{background-position:64px 64px,64px 64px;}}
+
+@media (prefers-reduced-motion:reduce){
+  .oak .cursor-dot,.oak .cursor-halo{display:none;}
+  .oak .split-text .sw > span{transform:none;opacity:1;}
+}
 `;
