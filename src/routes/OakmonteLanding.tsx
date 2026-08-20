@@ -760,6 +760,7 @@ const CSS = `
 
 .oak .hero-sub{font-size:20px;line-height:1.55;color:var(--gray);max-width:36rem;margin:0 0 40px;font-weight:500;opacity:0;animation:oakFadeUp .7s ease forwards;animation-delay:.55s;}
 .oak .hero-sub b{color:var(--black);}
+.oak .hero-tagline{font-size:28px;line-height:1.4;color:var(--black);max-width:36rem;margin:-24px 0 40px;font-weight:600;opacity:0;animation:oakFadeUp .7s ease forwards;animation-delay:.65s;}
 @keyframes oakFadeUp{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
 
 .oak .hero-cta-stack{display:flex;flex-direction:column;gap:12px;margin:36px 0 20px;padding:24px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);opacity:0;animation:oakFadeUp .7s ease forwards;animation-delay:.68s;}
