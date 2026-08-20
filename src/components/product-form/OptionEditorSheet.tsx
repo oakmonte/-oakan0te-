@@ -12,6 +12,7 @@ export const SIZE_SYSTEMS = {
   XXL: ["XS", "S", "M", "L", "XL", "XXL", "3XL"],
   US: ["0", "2", "4", "6", "8", "10", "12", "14", "16"],
   UK: ["4", "6", "8", "10", "12", "14", "16", "18", "20"],
+  Words: ["Small", "Medium", "Large", "Extra Large"],
 } as const;
 
 export const WEIGHT_VOLUME_SYSTEMS = {
