@@ -96,7 +96,7 @@ export function CodeInput({
           onKeyDown={(e) => handleKeyDown(i, e)}
           onPaste={handlePaste}
           onFocus={(e) => e.currentTarget.select()}
-          className="w-11 h-13 rounded-xl border border-brand-text/25 bg-transparent text-center text-lg font-medium focus:outline-none focus:border-brand-accent transition-colors disabled:opacity-50"
+          className="w-11 h-13 rounded-xl border border-[#0A0A0A]/25 bg-transparent text-center text-lg font-medium focus:outline-none focus:border-[#2151F5] transition-colors disabled:opacity-50"
         />
       ))}
     </div>
