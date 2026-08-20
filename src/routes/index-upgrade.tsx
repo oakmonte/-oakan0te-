@@ -429,7 +429,7 @@ function BrandArt({
   caption,
 }: {
   variant: "on-black" | "on-blue" | "on-light";
-  caption?: string;
+  caption: string;
 }) {
   const shots = EDITORIAL[variant]!;
   return (
@@ -443,7 +443,7 @@ function BrandArt({
         ))}
       </div>
       <span className="ed-tint" />
-      {caption && <span className="cap">{caption}</span>}
+      <span className="cap">{caption}</span>
     </div>
   );
 }
