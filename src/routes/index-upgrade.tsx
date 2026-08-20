@@ -130,16 +130,17 @@ function Reveal({
   delay = 0,
   className = "",
   as: Tag = "div",
+  ...rest
 }: {
   children: ReactNode;
   delay?: 0 | 1 | 2 | 3;
   className?: string;
   as?: ElementType;
-}) {
+} & Record<string, unknown>) {
   const { ref, className: rc } = useReveal<HTMLDivElement>();
   const delayClass = delay ? ` reveal-delay-${delay}` : "";
   return (
-    <Tag ref={ref} className={`${rc}${delayClass} ${className}`.trim()}>
+    <Tag ref={ref} className={`${rc}${delayClass} ${className}`.trim()} {...rest}>
       {children}
     </Tag>
   );
