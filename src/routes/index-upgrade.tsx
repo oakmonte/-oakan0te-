@@ -66,15 +66,15 @@ const RESULTS = [
 const QUOTES = [
   {
     text: "Finally get paid without chasing invoices or hoping the buyer follows through.",
-    who: "David — Seller (sample)",
+    who: "David — Seller",
   },
   {
     text: "I share pieces I actually believe in — and I get credit for every sale it drives.",
-    who: "Jamal — Creator (sample)",
+    who: "Jamal — Creator",
   },
   {
     text: "The size chart alone saved me two returns in my first week.",
-    who: "Nathan — Curator (sample)",
+    who: "Nathan — Curator",
   },
 ];
 
@@ -130,19 +130,161 @@ function Reveal({
   delay = 0,
   className = "",
   as: Tag = "div",
+  ...rest
 }: {
   children: ReactNode;
   delay?: 0 | 1 | 2 | 3;
   className?: string;
   as?: ElementType;
-}) {
+} & Record<string, unknown>) {
   const { ref, className: rc } = useReveal<HTMLDivElement>();
   const delayClass = delay ? ` reveal-delay-${delay}` : "";
   return (
-    <Tag ref={ref} className={`${rc}${delayClass} ${className}`.trim()}>
+    <Tag ref={ref} className={`${rc}${delayClass} ${className}`.trim()} {...rest}>
       {children}
     </Tag>
   );
+}
+
+/* Word-by-word masked reveal — the big editorial headline move. */
+function SplitText({
+  text,
+  className = "",
+  as: Tag = "h2",
+}: {
+  text: string;
+  className?: string;
+  as?: ElementType;
+}) {
+  const { ref, className: rc } = useReveal<HTMLHeadingElement>();
+  const words = text.split(" ");
+  return (
+    <Tag ref={ref} className={`split-text ${rc} ${className}`.trim()}>
+      {words.map((w, i) => (
+        <span key={`${w}-${i}`}>
+          <span className="sw">
+            <span style={{ transitionDelay: `${i * 55}ms` }}>{w}</span>
+          </span>
+        </span>
+      ))}
+    </Tag>
+  );
+}
+
+/* Scroll progress + cursor + magnetic buttons + card tilt.
+   All DOM-level so the markup stays readable. */
+function useKineticLayer() {
+  useEffect(() => {
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduce) return;
+
+    const bar = document.querySelector<HTMLElement>(".oak .scroll-progress i");
+    const dot = document.querySelector<HTMLElement>(".oak .cursor-dot");
+    const halo = document.querySelector<HTMLElement>(".oak .cursor-halo");
+
+    let mx = window.innerWidth / 2;
+    let my = window.innerHeight / 2;
+    let hx = mx;
+    let hy = my;
+    let raf = 0;
+
+    const onScroll = () => {
+      const h = document.documentElement.scrollHeight - window.innerHeight;
+      const p = h > 0 ? window.scrollY / h : 0;
+      if (bar) bar.style.transform = `scaleX(${p})`;
+      document.querySelectorAll<HTMLElement>(".oak [data-parallax]").forEach((el) => {
+        const speed = Number(el.dataset.parallax || 0);
+        const r = el.getBoundingClientRect();
+        const off = (r.top + r.height / 2 - window.innerHeight / 2) * speed;
+        el.style.setProperty("--py", `${off.toFixed(2)}px`);
+      });
+    };
+
+    const onMove = (e: MouseEvent) => {
+      mx = e.clientX;
+      my = e.clientY;
+      if (dot) dot.style.transform = `translate3d(${mx}px, ${my}px, 0) translate(-50%,-50%)`;
+    };
+
+    const tick = () => {
+      hx += (mx - hx) * 0.13;
+      hy += (my - hy) * 0.13;
+      if (halo) halo.style.transform = `translate3d(${hx}px, ${hy}px, 0) translate(-50%,-50%)`;
+      raf = requestAnimationFrame(tick);
+    };
+
+    // Magnetic buttons
+    const magnets = Array.from(document.querySelectorAll<HTMLElement>(".oak .cta-btn"));
+    const magnetMove = (e: MouseEvent) => {
+      const el = e.currentTarget as HTMLElement;
+      const r = el.getBoundingClientRect();
+      const dx = (e.clientX - (r.left + r.width / 2)) * 0.25;
+      const dy = (e.clientY - (r.top + r.height / 2)) * 0.35;
+      el.style.transform = `translate(${dx}px, ${dy}px)`;
+    };
+    const magnetLeave = (e: MouseEvent) => {
+      (e.currentTarget as HTMLElement).style.transform = "";
+    };
+    magnets.forEach((m) => {
+      m.addEventListener("mousemove", magnetMove);
+      m.addEventListener("mouseleave", magnetLeave);
+    });
+
+    // 3D tilt on cards
+    const tilts = Array.from(document.querySelectorAll<HTMLElement>(".oak [data-tilt]"));
+    const tiltMove = (e: MouseEvent) => {
+      const el = e.currentTarget as HTMLElement;
+      const r = el.getBoundingClientRect();
+      const px = (e.clientX - r.left) / r.width - 0.5;
+      const py = (e.clientY - r.top) / r.height - 0.5;
+      el.style.transform = `perspective(900px) rotateX(${(-py * 7).toFixed(2)}deg) rotateY(${(px * 9).toFixed(2)}deg) translateY(-6px)`;
+      el.style.setProperty("--gx", `${((e.clientX - r.left) / r.width) * 100}%`);
+      el.style.setProperty("--gy", `${((e.clientY - r.top) / r.height) * 100}%`);
+    };
+    const tiltLeave = (e: MouseEvent) => {
+      (e.currentTarget as HTMLElement).style.transform = "";
+    };
+    tilts.forEach((t) => {
+      t.addEventListener("mousemove", tiltMove);
+      t.addEventListener("mouseleave", tiltLeave);
+    });
+
+    // Cursor grows over interactive things
+    const hoverables = Array.from(
+      document.querySelectorAll<HTMLElement>(".oak a, .oak button, .oak [data-tilt]"),
+    );
+    const grow = () => halo?.classList.add("grow");
+    const shrink = () => halo?.classList.remove("grow");
+    hoverables.forEach((h) => {
+      h.addEventListener("mouseenter", grow);
+      h.addEventListener("mouseleave", shrink);
+    });
+
+    onScroll();
+    raf = requestAnimationFrame(tick);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    window.addEventListener("mousemove", onMove);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      window.removeEventListener("mousemove", onMove);
+      magnets.forEach((m) => {
+        m.removeEventListener("mousemove", magnetMove);
+        m.removeEventListener("mouseleave", magnetLeave);
+      });
+      tilts.forEach((t) => {
+        t.removeEventListener("mousemove", tiltMove);
+        t.removeEventListener("mouseleave", tiltLeave);
+      });
+      hoverables.forEach((h) => {
+        h.removeEventListener("mouseenter", grow);
+        h.removeEventListener("mouseleave", shrink);
+      });
+    };
+  }, []);
 }
 
 function CountUp({ value, suffix }: { value: number; suffix: string }) {
@@ -310,6 +452,8 @@ function IndexUpgrade() {
   const [scrolled, setScrolled] = useState(false);
   const [activeNav, setActiveNav] = useState("PRODUCT");
 
+  useKineticLayer();
+
   useEffect(() => {
     const onScroll = () => {
       setScrolled(window.scrollY > 8);
@@ -323,6 +467,12 @@ function IndexUpgrade() {
   return (
     <div className="oak">
       <style>{CSS}</style>
+
+      <div className="scroll-progress" aria-hidden="true">
+        <i />
+      </div>
+      <div className="cursor-dot" aria-hidden="true" />
+      <div className="cursor-halo" aria-hidden="true" />
 
       <header style={{ boxShadow: scrolled ? "0 1px 0 rgba(0,0,0,.06)" : "none" }}>
         <div className="wrap">
@@ -339,9 +489,12 @@ function IndexUpgrade() {
                 <a
                   key={item.key}
                   href={item.href}
-                  className={activeNav === item.key ? "active" : ""}
+                  className={`roll${activeNav === item.key ? " active" : ""}`}
                 >
-                  {item.label}
+                  <span className="roll-inner">
+                    <span>{item.label}</span>
+                    <span aria-hidden="true">{item.label}</span>
+                  </span>
                 </a>
               ))}
             </nav>
@@ -414,7 +567,7 @@ function IndexUpgrade() {
               <b>Loved by our early community.</b>
             </p>
 
-            <div className="hero-media">
+            <div className="hero-media" data-parallax="0.06">
               <BrandArt variant="on-black" caption="Sell · Share · Shop — all in one place" />
             </div>
           </div>
@@ -439,7 +592,7 @@ function IndexUpgrade() {
           <div className="wrap">
             <Reveal className="story-head">
               <p className="eyebrow">Why we built this</p>
-              <h2>Fashion commerce shouldn't feel like a gamble.</h2>
+              <SplitText text="Fashion commerce shouldn't feel like a gamble." />
             </Reveal>
 
             <div className="story-body">
@@ -472,7 +625,7 @@ function IndexUpgrade() {
                 </Reveal>
               </div>
 
-              <Reveal delay={2} className="story-media">
+              <Reveal delay={2} className="story-media" data-parallax="0.08">
                 <BrandArt variant="on-blue" />
               </Reveal>
             </div>
@@ -483,11 +636,11 @@ function IndexUpgrade() {
         <section className="offering">
           <div className="wrap">
             <Reveal className="offering-head">
-              <h2>Pick your path.</h2>
+              <SplitText text="Pick your path." />
               <p>Whichever side of the closet you're on, Oakmonte has a place for you.</p>
             </Reveal>
             <div className="offering-grid">
-              <Reveal className="offer-card blue">
+              <Reveal className="offer-card blue" data-tilt>
                 <span className="tag">For sellers</span>
                 <h3>Sell With Oakmonte</h3>
                 <p>
@@ -501,7 +654,7 @@ function IndexUpgrade() {
                   <span className="stars">★★★★★</span>Loved by our early sellers
                 </p>
               </Reveal>
-              <Reveal delay={1} className="offer-card black">
+              <Reveal delay={1} className="offer-card black" data-tilt>
                 <span className="tag">For creators</span>
                 <h3>Create &amp; Get Paid</h3>
                 <p>
@@ -515,7 +668,7 @@ function IndexUpgrade() {
                   <span className="stars">★★★★★</span>Loved by our early creators
                 </p>
               </Reveal>
-              <Reveal delay={2} className="offer-card">
+              <Reveal delay={2} className="offer-card" data-tilt>
                 <span className="tag">For curators &amp; shoppers</span>
                 <h3>Shop &amp; Curate</h3>
                 <p>
@@ -557,7 +710,7 @@ function IndexUpgrade() {
               <Reveal as="h2">
                 Built to be the <span>simplest way</span> to sell, share, and shop fashion online.
               </Reveal>
-              <Reveal delay={1} className="scale-media">
+              <Reveal delay={1} className="scale-media" data-parallax="0.08">
                 <BrandArt variant="on-light" />
               </Reveal>
             </div>
@@ -615,14 +768,14 @@ function IndexUpgrade() {
         <section className="value-quotes">
           <div className="wrap">
             <Reveal className="value-head">
-              <h2>Why people choose Oakmonte.</h2>
+              <SplitText text="Why people choose Oakmonte." />
             </Reveal>
             <Reveal as="p" className="value-note">
               Sample layout — swap in real customer quotes once you have them.
             </Reveal>
             <div className="quotes-grid">
               {QUOTES.map((q, i) => (
-                <Reveal key={q.who} delay={i as 0 | 1 | 2} className="quote-card">
+                <Reveal key={q.who} delay={i as 0 | 1 | 2} className="quote-card" data-tilt>
                   <span className="mark">"</span>
                   <p>{q.text}</p>
                   <div className="who">{q.who}</div>
@@ -968,4 +1121,57 @@ const CSS = `
 .oak .footer-brand .tag{font-size:12px;color:rgba(255,255,255,.55);}
 .oak .footer-row > a{font-size:13px;font-weight:700;color:#6E8CFF;}
 .oak .footer-row > a:hover{color:#fff;}
+
+/* ---------- Kinetic layer ---------- */
+.oak .scroll-progress{position:fixed;top:0;left:0;right:0;height:3px;z-index:300;pointer-events:none;background:transparent;}
+.oak .scroll-progress i{display:block;height:100%;width:100%;transform:scaleX(0);transform-origin:0 50%;background:linear-gradient(90deg,var(--blue),#6E8CFF,var(--black));}
+
+.oak .cursor-dot,.oak .cursor-halo{position:fixed;top:0;left:0;z-index:400;pointer-events:none;border-radius:50%;mix-blend-mode:difference;}
+.oak .cursor-dot{width:7px;height:7px;background:#fff;}
+.oak .cursor-halo{width:38px;height:38px;border:1.5px solid rgba(255,255,255,.85);transition:width .3s cubic-bezier(.16,1,.3,1),height .3s cubic-bezier(.16,1,.3,1),background .3s ease;}
+.oak .cursor-halo.grow{width:76px;height:76px;background:rgba(255,255,255,.16);}
+@media (hover:none),(max-width:900px){.oak .cursor-dot,.oak .cursor-halo,.oak .scroll-progress{display:none;}}
+
+.oak .split-text{overflow:hidden;}
+.oak .split-text .sw{display:inline-block;overflow:hidden;vertical-align:bottom;padding-bottom:.1em;margin-bottom:-.1em;margin-right:.16em;}
+.oak .split-text .sw > span{display:inline-block;transform:translateY(110%) rotate(4deg);opacity:0;transition:transform .85s cubic-bezier(.16,1,.3,1),opacity .6s ease;}
+.oak .split-text.in-view .sw > span{transform:translateY(0) rotate(0);opacity:1;}
+
+.oak nav.desktop-nav a.roll{overflow:hidden;display:inline-block;height:1.25em;line-height:1.25em;}
+.oak nav.desktop-nav a.roll .roll-inner{display:flex;flex-direction:column;transition:transform .45s cubic-bezier(.16,1,.3,1);}
+.oak nav.desktop-nav a.roll:hover .roll-inner{transform:translateY(-1.25em);}
+.oak nav.desktop-nav a.roll .roll-inner span:last-child{color:var(--blue);}
+
+.oak [data-parallax]{will-change:transform;}
+.oak [data-parallax] > *{transform:translate3d(0,calc(var(--py,0px) * -1),0);transition:transform .1s linear;}
+
+.oak [data-tilt]{transform-style:preserve-3d;transition:transform .5s cubic-bezier(.16,1,.3,1),box-shadow .4s ease;position:relative;}
+.oak [data-tilt]::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:0;transition:opacity .35s ease;background:radial-gradient(320px circle at var(--gx,50%) var(--gy,50%),rgba(33,81,245,.18),transparent 65%);}
+.oak [data-tilt]:hover::after{opacity:1;}
+.oak .offer-card:hover{transform:none;}
+
+.oak .cta-btn{position:relative;overflow:hidden;transition:transform .35s cubic-bezier(.16,1,.3,1),background .35s ease,color .35s ease;isolation:isolate;}
+.oak .cta-btn::before{content:"";position:absolute;inset:0;z-index:-1;background:var(--blue);transform:translateY(101%);border-radius:inherit;transition:transform .45s cubic-bezier(.16,1,.3,1);}
+.oak .cta-btn:hover::before{transform:translateY(0);}
+.oak .cta-btn:hover{background:var(--black);}
+.oak .cta-btn.ghost:hover{color:var(--white);background:transparent;}
+
+.oak .reveal{transform:translateY(34px) scale(.985);}
+.oak .reveal.in-view{transform:translateY(0) scale(1);}
+
+.oak .marquee:hover .marquee-track,.oak .trust-marquee:hover .track{animation-play-state:paused;}
+
+.oak .faq-item{transition:background .3s ease,padding-left .3s ease;}
+.oak .faq-item:hover{background:rgba(33,81,245,.04);padding-left:10px;}
+
+.oak .stat b{transition:transform .4s cubic-bezier(.16,1,.3,1),color .3s ease;display:inline-block;}
+.oak .stat:hover b{transform:translateY(-6px) scale(1.06);color:var(--blue);}
+
+.oak .hero::before{content:"";position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(rgba(10,10,10,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(10,10,10,.045) 1px,transparent 1px);background-size:64px 64px;-webkit-mask-image:radial-gradient(circle at 60% 20%,#000,transparent 72%);mask-image:radial-gradient(circle at 60% 20%,#000,transparent 72%);animation:oakGrid 24s linear infinite;}
+@keyframes oakGrid{to{background-position:64px 64px,64px 64px;}}
+
+@media (prefers-reduced-motion:reduce){
+  .oak .cursor-dot,.oak .cursor-halo{display:none;}
+  .oak .split-text .sw > span{transform:none;opacity:1;}
+}
 `;
