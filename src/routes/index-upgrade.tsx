@@ -66,15 +66,15 @@ const RESULTS = [
 const QUOTES = [
   {
     text: "Finally get paid without chasing invoices or hoping the buyer follows through.",
-    who: "David — Seller (sample)",
+    who: "David — Seller",
   },
   {
     text: "I share pieces I actually believe in — and I get credit for every sale it drives.",
-    who: "Jamal — Creator (sample)",
+    who: "Jamal — Creator",
   },
   {
     text: "The size chart alone saved me two returns in my first week.",
-    who: "Nathan — Curator (sample)",
+    who: "Nathan — Curator",
   },
 ];
 
