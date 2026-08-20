@@ -452,6 +452,8 @@ function IndexUpgrade() {
   const [scrolled, setScrolled] = useState(false);
   const [activeNav, setActiveNav] = useState("PRODUCT");
 
+  useKineticLayer();
+
   useEffect(() => {
     const onScroll = () => {
       setScrolled(window.scrollY > 8);
@@ -465,6 +467,12 @@ function IndexUpgrade() {
   return (
     <div className="oak">
       <style>{CSS}</style>
+
+      <div className="scroll-progress" aria-hidden="true">
+        <i />
+      </div>
+      <div className="cursor-dot" aria-hidden="true" />
+      <div className="cursor-halo" aria-hidden="true" />
 
       <header style={{ boxShadow: scrolled ? "0 1px 0 rgba(0,0,0,.06)" : "none" }}>
         <div className="wrap">
@@ -481,9 +489,12 @@ function IndexUpgrade() {
                 <a
                   key={item.key}
                   href={item.href}
-                  className={activeNav === item.key ? "active" : ""}
+                  className={`roll${activeNav === item.key ? " active" : ""}`}
                 >
-                  {item.label}
+                  <span className="roll-inner">
+                    <span>{item.label}</span>
+                    <span aria-hidden="true">{item.label}</span>
+                  </span>
                 </a>
               ))}
             </nav>
@@ -556,7 +567,7 @@ function IndexUpgrade() {
               <b>Loved by our early community.</b>
             </p>
 
-            <div className="hero-media">
+            <div className="hero-media" data-parallax="0.06">
               <BrandArt variant="on-black" caption="Sell · Share · Shop — all in one place" />
             </div>
           </div>
@@ -581,7 +592,7 @@ function IndexUpgrade() {
           <div className="wrap">
             <Reveal className="story-head">
               <p className="eyebrow">Why we built this</p>
-              <h2>Fashion commerce shouldn't feel like a gamble.</h2>
+              <SplitText text="Fashion commerce shouldn't feel like a gamble." />
             </Reveal>
 
             <div className="story-body">
@@ -614,7 +625,7 @@ function IndexUpgrade() {
                 </Reveal>
               </div>
 
-              <Reveal delay={2} className="story-media">
+              <Reveal delay={2} className="story-media" data-parallax="0.08">
                 <BrandArt variant="on-blue" />
               </Reveal>
             </div>
@@ -625,11 +636,11 @@ function IndexUpgrade() {
         <section className="offering">
           <div className="wrap">
             <Reveal className="offering-head">
-              <h2>Pick your path.</h2>
+              <SplitText text="Pick your path." />
               <p>Whichever side of the closet you're on, Oakmonte has a place for you.</p>
             </Reveal>
             <div className="offering-grid">
-              <Reveal className="offer-card blue">
+              <Reveal className="offer-card blue" data-tilt>
                 <span className="tag">For sellers</span>
                 <h3>Sell With Oakmonte</h3>
                 <p>
@@ -643,7 +654,7 @@ function IndexUpgrade() {
                   <span className="stars">★★★★★</span>Loved by our early sellers
                 </p>
               </Reveal>
-              <Reveal delay={1} className="offer-card black">
+              <Reveal delay={1} className="offer-card black" data-tilt>
                 <span className="tag">For creators</span>
                 <h3>Create &amp; Get Paid</h3>
                 <p>
@@ -657,7 +668,7 @@ function IndexUpgrade() {
                   <span className="stars">★★★★★</span>Loved by our early creators
                 </p>
               </Reveal>
-              <Reveal delay={2} className="offer-card">
+              <Reveal delay={2} className="offer-card" data-tilt>
                 <span className="tag">For curators &amp; shoppers</span>
                 <h3>Shop &amp; Curate</h3>
                 <p>
@@ -699,7 +710,7 @@ function IndexUpgrade() {
               <Reveal as="h2">
                 Built to be the <span>simplest way</span> to sell, share, and shop fashion online.
               </Reveal>
-              <Reveal delay={1} className="scale-media">
+              <Reveal delay={1} className="scale-media" data-parallax="0.08">
                 <BrandArt variant="on-light" />
               </Reveal>
             </div>
@@ -757,14 +768,14 @@ function IndexUpgrade() {
         <section className="value-quotes">
           <div className="wrap">
             <Reveal className="value-head">
-              <h2>Why people choose Oakmonte.</h2>
+              <SplitText text="Why people choose Oakmonte." />
             </Reveal>
             <Reveal as="p" className="value-note">
               Sample layout — swap in real customer quotes once you have them.
             </Reveal>
             <div className="quotes-grid">
               {QUOTES.map((q, i) => (
-                <Reveal key={q.who} delay={i as 0 | 1 | 2} className="quote-card">
+                <Reveal key={q.who} delay={i as 0 | 1 | 2} className="quote-card" data-tilt>
                   <span className="mark">"</span>
                   <p>{q.text}</p>
                   <div className="who">{q.who}</div>
