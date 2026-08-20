@@ -1014,9 +1014,9 @@ const CSS = `
 .oak .brand-art.on-light{background:#EFF2FA;}
 .oak .brand-art .ed-stack{position:absolute;inset:0;z-index:1;}
 .oak .brand-art .ed-frame{position:absolute;margin:0;overflow:hidden;border-radius:14px;box-shadow:0 30px 70px rgba(0,0,0,.38);will-change:transform;}
-.oak .brand-art .ed-frame img{width:100%;height:100%;object-fit:cover;transform-origin:center;animation:oakKen 18s ease-in-out infinite alternate;}
-.oak .brand-art .ed-frame-1{inset:8% 30% 8% 8%;animation:oakDrift 9s ease-in-out infinite;}
-.oak .brand-art .ed-frame-2{width:42%;aspect-ratio:3/4;right:7%;bottom:9%;animation:oakDrift 11s ease-in-out infinite reverse;}
+.oak .brand-art .ed-frame img{width:100%;height:100%;object-fit:cover;object-position:50% 22%;transform-origin:center;animation:oakKen 18s ease-in-out infinite alternate;}
+.oak .brand-art .ed-frame-1{top:8%;bottom:8%;left:6%;width:52%;animation:oakDrift 9s ease-in-out infinite;}
+.oak .brand-art .ed-frame-2{top:14%;bottom:14%;right:6%;width:34%;animation:oakDrift 11s ease-in-out infinite reverse;}
 .oak .brand-art .ed-frame-2 img{animation-duration:22s;animation-direction:alternate-reverse;}
 .oak .brand-art .ed-sheen{position:absolute;inset:0;pointer-events:none;background:linear-gradient(115deg,transparent 35%,rgba(255,255,255,.28) 50%,transparent 65%);transform:translateX(-120%);animation:oakSheen 7s ease-in-out infinite;}
 .oak .brand-art .ed-frame-2 .ed-sheen{animation-delay:1.6s;}
@@ -1035,7 +1035,7 @@ const CSS = `
 .oak .brand-art.on-light .cap{color:var(--black);}
 @media (max-width:640px){
   .oak .brand-art .ed-frame-1{inset:6% 26% 6% 6%;}
-  .oak .brand-art .ed-frame-2{width:46%;right:5%;bottom:7%;}
+  .oak .brand-art .ed-frame-2{width:38%;right:5%;}
 }
 
 
