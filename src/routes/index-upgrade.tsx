@@ -1010,7 +1010,6 @@ const CSS = `
 .oak .footer-brand .tag{font-size:12px;color:rgba(255,255,255,.55);}
 .oak .footer-row > a{font-size:13px;font-weight:700;color:#6E8CFF;}
 .oak .footer-row > a:hover{color:#fff;}
-`
 /* Dual phone mockup — the mobile look of the platform, second unit rotated 180deg */
 .oak .phone-duo{position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center;gap:18px;padding:28px 12px;background:#EFF2FA;overflow:hidden;flex-wrap:wrap;}
 .oak .phone-frame{position:relative;width:150px;aspect-ratio:9/19;border-radius:26px;background:var(--black);padding:7px;box-shadow:0 24px 50px rgba(10,10,10,.28);flex:0 0 auto;animation:oakFloat 6s ease-in-out infinite;}
