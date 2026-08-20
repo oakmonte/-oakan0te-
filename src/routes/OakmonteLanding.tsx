@@ -307,10 +307,11 @@ function OakmonteLanding() {
                 <br />
                 Oakmonte fixes all three — one unified platform,<br />
                 one trusted payment system, nobody left holding the bag.
-                <br />
-                <br />
-                The world's first content optimised marketplace.
               </b>
+            </p>
+
+            <p className="hero-tagline">
+              The world's first content optimised marketplace.
             </p>
 
             <div className="hero-cta-stack">
