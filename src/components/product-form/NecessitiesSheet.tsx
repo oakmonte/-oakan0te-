@@ -2,14 +2,15 @@ import { Check, ChevronRight, X } from "lucide-react";
 import { CategoryNode } from "@/lib/categories";
 import { VariantOption } from "@/components/product-form/VariantMatrixBuilder";
 
-// Which parameters a category requires before a product in it can be
-// published, keyed by category id anywhere in the chosen path — not just the
-// leaf, since e.g. "Dresses" and "Shorts" both fall under "Clothing" and
-// share the same requirements. Covers every top-level Apparel & Accessories
-// branch; Size is only included where it's actually standardized (clothing,
-// costumes, shoes) — small-accessory branches don't share a size axis.
-// Beauty & Personal Care / Art & Crafts have no tracked fields yet, so they
-// intentionally show an empty checklist.
+// Which category-specific parameters a category requires before a product in
+// it can be published, keyed by category id anywhere in the chosen path —
+// not just the leaf, since e.g. "Dresses" and "Shorts" both fall under
+// "Clothing" and share the same requirements. Covers every top-level Apparel
+// & Accessories branch; Size is only included where it's actually
+// standardized (clothing, costumes, shoes) — small-accessory branches don't
+// share a size axis. Beauty & Personal Care / Art & Crafts have no
+// category-specific tracked fields yet — they still get the universal
+// params below (Link content).
 const NECESSITY_PARAMS: Record<string, string[]> = {
   clothing: ["Size", "Color", "Material"],
   "costumes-accessories": ["Size", "Color", "Material"],
@@ -21,25 +22,33 @@ const NECESSITY_PARAMS: Record<string, string[]> = {
   jewelry: ["Material", "Color"],
 };
 
+// "Link content" applies to every category — a product isn't ready to
+// publish until it has a piece of content (video/post) linked to it,
+// regardless of what other attributes that category tracks.
+const UNIVERSAL_PARAMS = ["Link content"];
+
 function paramsForCategory(categoryPath: CategoryNode[]): string[] {
+  if (categoryPath.length === 0) return [];
   for (const node of categoryPath) {
     const params = NECESSITY_PARAMS[node.id];
-    if (params) return params;
+    if (params) return [...params, ...UNIVERSAL_PARAMS];
   }
-  return [];
+  return UNIVERSAL_PARAMS;
 }
 
 // Read-only by design — a seller can't check these off by hand, only by
 // actually filling in the underlying field. Variant products carry Size/
 // Color/Material as option names; regular products only have a dedicated
 // field for Material today, so Size/Color always read unfilled there until
-// this product type grows fields for them.
+// this product type grows fields for them. "Link content" has no tracked
+// field anywhere yet, so it always reads unfilled until that feature exists.
 function isFilled(
   param: string,
   kind: "regular" | "variant",
   options: VariantOption[],
   material: string,
 ): boolean {
+  if (param === "Link content") return false;
   if (kind === "variant") {
     return options.some(
       (o) => o.name.trim().toLowerCase() === param.toLowerCase() && o.values.length > 0,
