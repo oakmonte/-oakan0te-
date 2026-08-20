@@ -8,7 +8,6 @@ import fabricAsset from "@/assets/fabric-detail.jpg.asset.json";
 export const Route = createFileRoute("/OakmonteLanding")({
   head: () => ({
     meta: [
-      
       { title: "Oakmonte — Sell, Share & Shop Fashion Safely" },
       {
         name: "description",
