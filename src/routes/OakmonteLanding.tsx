@@ -332,7 +332,6 @@ function OakmonteLanding() {
             </div>
 
             <p className="trust-line">
-              <span className="stars">★★★★★</span>
               *No catches, no fine print — just fashion commerce done right.{" "}
               <b>Loved by our early community.</b>
             </p>
