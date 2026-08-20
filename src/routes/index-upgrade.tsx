@@ -2,9 +2,6 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode, ElementType } from "react";
 import logoO from "@/assets/logo-o.png";
-import editorial1 from "@/assets/editorial-1.jpg";
-import editorial2 from "@/assets/editorial-2.jpg";
-import editorial3 from "@/assets/editorial-3.jpg";
 import { useSession } from "@/hooks/use-session";
 import { signInWithGoogle, signOut } from "@/lib/auth";
 import { supabase } from "@/lib/integrations/my-supabase/client";
@@ -69,15 +66,15 @@ const RESULTS = [
 const QUOTES = [
   {
     text: "Finally get paid without chasing invoices or hoping the buyer follows through.",
-    who: "David — Seller",
+    who: "David — Seller (sample)",
   },
   {
     text: "I share pieces I actually believe in — and I get credit for every sale it drives.",
-    who: "Jamal — Creator",
+    who: "Jamal — Creator (sample)",
   },
   {
     text: "The size chart alone saved me two returns in my first week.",
-    who: "Nathan — Curator",
+    who: "Nathan — Curator (sample)",
   },
 ];
 
@@ -133,161 +130,19 @@ function Reveal({
   delay = 0,
   className = "",
   as: Tag = "div",
-  ...rest
 }: {
   children: ReactNode;
   delay?: 0 | 1 | 2 | 3;
   className?: string;
   as?: ElementType;
-} & Record<string, unknown>) {
+}) {
   const { ref, className: rc } = useReveal<HTMLDivElement>();
   const delayClass = delay ? ` reveal-delay-${delay}` : "";
   return (
-    <Tag ref={ref} className={`${rc}${delayClass} ${className}`.trim()} {...rest}>
+    <Tag ref={ref} className={`${rc}${delayClass} ${className}`.trim()}>
       {children}
     </Tag>
   );
-}
-
-/* Word-by-word masked reveal — the big editorial headline move. */
-function SplitText({
-  text,
-  className = "",
-  as: Tag = "h2",
-}: {
-  text: string;
-  className?: string;
-  as?: ElementType;
-}) {
-  const { ref, className: rc } = useReveal<HTMLHeadingElement>();
-  const words = text.split(" ");
-  return (
-    <Tag ref={ref} className={`split-text ${rc} ${className}`.trim()}>
-      {words.map((w, i) => (
-        <span key={`${w}-${i}`}>
-          <span className="sw">
-            <span style={{ transitionDelay: `${i * 55}ms` }}>{w}</span>
-          </span>
-        </span>
-      ))}
-    </Tag>
-  );
-}
-
-/* Scroll progress + cursor + magnetic buttons + card tilt.
-   All DOM-level so the markup stays readable. */
-function useKineticLayer() {
-  useEffect(() => {
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduce) return;
-
-    const bar = document.querySelector<HTMLElement>(".oak .scroll-progress i");
-    const dot = document.querySelector<HTMLElement>(".oak .cursor-dot");
-    const halo = document.querySelector<HTMLElement>(".oak .cursor-halo");
-
-    let mx = window.innerWidth / 2;
-    let my = window.innerHeight / 2;
-    let hx = mx;
-    let hy = my;
-    let raf = 0;
-
-    const onScroll = () => {
-      const h = document.documentElement.scrollHeight - window.innerHeight;
-      const p = h > 0 ? window.scrollY / h : 0;
-      if (bar) bar.style.transform = `scaleX(${p})`;
-      document.querySelectorAll<HTMLElement>(".oak [data-parallax]").forEach((el) => {
-        const speed = Number(el.dataset.parallax || 0);
-        const r = el.getBoundingClientRect();
-        const off = (r.top + r.height / 2 - window.innerHeight / 2) * speed;
-        el.style.setProperty("--py", `${off.toFixed(2)}px`);
-      });
-    };
-
-    const onMove = (e: MouseEvent) => {
-      mx = e.clientX;
-      my = e.clientY;
-      if (dot) dot.style.transform = `translate3d(${mx}px, ${my}px, 0) translate(-50%,-50%)`;
-    };
-
-    const tick = () => {
-      hx += (mx - hx) * 0.13;
-      hy += (my - hy) * 0.13;
-      if (halo) halo.style.transform = `translate3d(${hx}px, ${hy}px, 0) translate(-50%,-50%)`;
-      raf = requestAnimationFrame(tick);
-    };
-
-    // Magnetic buttons
-    const magnets = Array.from(document.querySelectorAll<HTMLElement>(".oak .cta-btn"));
-    const magnetMove = (e: MouseEvent) => {
-      const el = e.currentTarget as HTMLElement;
-      const r = el.getBoundingClientRect();
-      const dx = (e.clientX - (r.left + r.width / 2)) * 0.25;
-      const dy = (e.clientY - (r.top + r.height / 2)) * 0.35;
-      el.style.transform = `translate(${dx}px, ${dy}px)`;
-    };
-    const magnetLeave = (e: MouseEvent) => {
-      (e.currentTarget as HTMLElement).style.transform = "";
-    };
-    magnets.forEach((m) => {
-      m.addEventListener("mousemove", magnetMove);
-      m.addEventListener("mouseleave", magnetLeave);
-    });
-
-    // 3D tilt on cards
-    const tilts = Array.from(document.querySelectorAll<HTMLElement>(".oak [data-tilt]"));
-    const tiltMove = (e: MouseEvent) => {
-      const el = e.currentTarget as HTMLElement;
-      const r = el.getBoundingClientRect();
-      const px = (e.clientX - r.left) / r.width - 0.5;
-      const py = (e.clientY - r.top) / r.height - 0.5;
-      el.style.transform = `perspective(900px) rotateX(${(-py * 7).toFixed(2)}deg) rotateY(${(px * 9).toFixed(2)}deg) translateY(-6px)`;
-      el.style.setProperty("--gx", `${((e.clientX - r.left) / r.width) * 100}%`);
-      el.style.setProperty("--gy", `${((e.clientY - r.top) / r.height) * 100}%`);
-    };
-    const tiltLeave = (e: MouseEvent) => {
-      (e.currentTarget as HTMLElement).style.transform = "";
-    };
-    tilts.forEach((t) => {
-      t.addEventListener("mousemove", tiltMove);
-      t.addEventListener("mouseleave", tiltLeave);
-    });
-
-    // Cursor grows over interactive things
-    const hoverables = Array.from(
-      document.querySelectorAll<HTMLElement>(".oak a, .oak button, .oak [data-tilt]"),
-    );
-    const grow = () => halo?.classList.add("grow");
-    const shrink = () => halo?.classList.remove("grow");
-    hoverables.forEach((h) => {
-      h.addEventListener("mouseenter", grow);
-      h.addEventListener("mouseleave", shrink);
-    });
-
-    onScroll();
-    raf = requestAnimationFrame(tick);
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll);
-    window.addEventListener("mousemove", onMove);
-
-    return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
-      window.removeEventListener("mousemove", onMove);
-      magnets.forEach((m) => {
-        m.removeEventListener("mousemove", magnetMove);
-        m.removeEventListener("mouseleave", magnetLeave);
-      });
-      tilts.forEach((t) => {
-        t.removeEventListener("mousemove", tiltMove);
-        t.removeEventListener("mouseleave", tiltLeave);
-      });
-      hoverables.forEach((h) => {
-        h.removeEventListener("mouseenter", grow);
-        h.removeEventListener("mouseleave", shrink);
-      });
-    };
-  }, []);
 }
 
 function CountUp({ value, suffix }: { value: number; suffix: string }) {
@@ -409,45 +264,24 @@ function HeaderAuth() {
 }
 
 /* ---------------- Shared bits ---------------- */
-const EDITORIAL: Record<string, { src: string; alt: string }[]> = {
-  "on-black": [
-    { src: editorial1, alt: "Model in an oversized tailored coat" },
-    { src: editorial3, alt: "Creator photographing an outfit" },
-  ],
-  "on-blue": [
-    { src: editorial2, alt: "Close-up of layered garment fabric" },
-    { src: editorial1, alt: "Model in an oversized tailored coat" },
-  ],
-  "on-light": [
-    { src: editorial3, alt: "Creator photographing an outfit" },
-    { src: editorial2, alt: "Close-up of layered garment fabric" },
-  ],
-};
-
 function BrandArt({
   variant,
   caption,
 }: {
   variant: "on-black" | "on-blue" | "on-light";
-  caption: string;
+  caption?: string;
 }) {
-  const shots = EDITORIAL[variant]!;
   return (
     <div className={`brand-art ${variant}`}>
-      <div className="ed-stack">
-        {shots.map((s, i) => (
-          <figure key={s.src} className={`ed-frame ed-frame-${i + 1}`}>
-            <img src={s.src} alt={s.alt} loading="lazy" width={1024} height={1280} />
-            <span className="ed-sheen" />
-          </figure>
-        ))}
+      <span className="ring ring2" />
+      <span className="ring" />
+      <div className="logo-wrap">
+        <img src={logoO} alt="Oakmonte" />
       </div>
-      <span className="ed-tint" />
-      <span className="cap">{caption}</span>
+      {caption && <span className="cap">{caption}</span>}
     </div>
   );
 }
-
 
 // The three real onboarding paths — reused in the hero and the closing CTA so
 // visitors are never more than one section away from a working next step.
@@ -476,8 +310,6 @@ function IndexUpgrade() {
   const [scrolled, setScrolled] = useState(false);
   const [activeNav, setActiveNav] = useState("PRODUCT");
 
-  useKineticLayer();
-
   useEffect(() => {
     const onScroll = () => {
       setScrolled(window.scrollY > 8);
@@ -491,12 +323,6 @@ function IndexUpgrade() {
   return (
     <div className="oak">
       <style>{CSS}</style>
-
-      <div className="scroll-progress" aria-hidden="true">
-        <i />
-      </div>
-      <div className="cursor-dot" aria-hidden="true" />
-      <div className="cursor-halo" aria-hidden="true" />
 
       <header style={{ boxShadow: scrolled ? "0 1px 0 rgba(0,0,0,.06)" : "none" }}>
         <div className="wrap">
@@ -513,12 +339,9 @@ function IndexUpgrade() {
                 <a
                   key={item.key}
                   href={item.href}
-                  className={`roll${activeNav === item.key ? " active" : ""}`}
+                  className={activeNav === item.key ? "active" : ""}
                 >
-                  <span className="roll-inner">
-                    <span>{item.label}</span>
-                    <span aria-hidden="true">{item.label}</span>
-                  </span>
+                  {item.label}
                 </a>
               ))}
             </nav>
@@ -591,7 +414,7 @@ function IndexUpgrade() {
               <b>Loved by our early community.</b>
             </p>
 
-            <div className="hero-media" data-parallax="0.06">
+            <div className="hero-media">
               <BrandArt variant="on-black" caption="Sell · Share · Shop — all in one place" />
             </div>
           </div>
@@ -616,7 +439,7 @@ function IndexUpgrade() {
           <div className="wrap">
             <Reveal className="story-head">
               <p className="eyebrow">Why we built this</p>
-              <SplitText text="Fashion commerce shouldn't feel like a gamble." />
+              <h2>Fashion commerce shouldn't feel like a gamble.</h2>
             </Reveal>
 
             <div className="story-body">
@@ -649,8 +472,8 @@ function IndexUpgrade() {
                 </Reveal>
               </div>
 
-              <Reveal delay={2} className="story-media" data-parallax="0.08">
-                <BrandArt variant="on-blue" caption="Escrow-protected, creator-paid, size-matched" />
+              <Reveal delay={2} className="story-media">
+                <BrandArt variant="on-blue" />
               </Reveal>
             </div>
           </div>
@@ -660,11 +483,11 @@ function IndexUpgrade() {
         <section className="offering">
           <div className="wrap">
             <Reveal className="offering-head">
-              <SplitText text="Pick your path." />
+              <h2>Pick your path.</h2>
               <p>Whichever side of the closet you're on, Oakmonte has a place for you.</p>
             </Reveal>
             <div className="offering-grid">
-              <Reveal className="offer-card blue" data-tilt>
+              <Reveal className="offer-card blue">
                 <span className="tag">For sellers</span>
                 <h3>Sell With Oakmonte</h3>
                 <p>
@@ -678,7 +501,7 @@ function IndexUpgrade() {
                   <span className="stars">★★★★★</span>Loved by our early sellers
                 </p>
               </Reveal>
-              <Reveal delay={1} className="offer-card black" data-tilt>
+              <Reveal delay={1} className="offer-card black">
                 <span className="tag">For creators</span>
                 <h3>Create &amp; Get Paid</h3>
                 <p>
@@ -692,7 +515,7 @@ function IndexUpgrade() {
                   <span className="stars">★★★★★</span>Loved by our early creators
                 </p>
               </Reveal>
-              <Reveal delay={2} className="offer-card" data-tilt>
+              <Reveal delay={2} className="offer-card">
                 <span className="tag">For curators &amp; shoppers</span>
                 <h3>Shop &amp; Curate</h3>
                 <p>
@@ -734,8 +557,8 @@ function IndexUpgrade() {
               <Reveal as="h2">
                 Built to be the <span>simplest way</span> to sell, share, and shop fashion online.
               </Reveal>
-              <Reveal delay={1} className="scale-media" data-parallax="0.08">
-                <BrandArt variant="on-light" caption="One platform. One payment system. Zero ghosting." />
+              <Reveal delay={1} className="scale-media">
+                <BrandArt variant="on-light" />
               </Reveal>
             </div>
           </div>
@@ -792,14 +615,14 @@ function IndexUpgrade() {
         <section className="value-quotes">
           <div className="wrap">
             <Reveal className="value-head">
-              <SplitText text="Why people choose Oakmonte." />
+              <h2>Why people choose Oakmonte.</h2>
             </Reveal>
             <Reveal as="p" className="value-note">
               Sample layout — swap in real customer quotes once you have them.
             </Reveal>
             <div className="quotes-grid">
               {QUOTES.map((q, i) => (
-                <Reveal key={q.who} delay={i as 0 | 1 | 2} className="quote-card" data-tilt>
+                <Reveal key={q.who} delay={i as 0 | 1 | 2} className="quote-card">
                   <span className="mark">"</span>
                   <p>{q.text}</p>
                   <div className="who">{q.who}</div>
@@ -1007,38 +830,23 @@ const CSS = `
 .oak .hero-media{position:relative;margin-top:56px;border-radius:24px;overflow:hidden;aspect-ratio:16/7;opacity:0;animation:oakFadeUp .9s ease forwards;animation-delay:.9s;background:#111;}
 .oak .media-cap{position:absolute;left:24px;bottom:20px;z-index:3;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.6);}
 
-/* Editorial fashion panels — layered photo frames with slow motion */
+/* Self-contained brand-art panels — logo-centered, no external image fetch required */
 .oak .brand-art{position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden;}
 .oak .brand-art.on-black{background:radial-gradient(circle at 30% 30%,#132057 0%,var(--black) 65%);}
 .oak .brand-art.on-blue{background:linear-gradient(135deg,var(--blue) 0%,#0d2c9e 100%);}
 .oak .brand-art.on-light{background:#EFF2FA;}
-.oak .brand-art .ed-stack{position:absolute;inset:0;z-index:1;}
-.oak .brand-art .ed-frame{position:absolute;margin:0;overflow:hidden;border-radius:14px;box-shadow:0 30px 70px rgba(0,0,0,.38);will-change:transform;}
-.oak .brand-art .ed-frame img{width:100%;height:100%;object-fit:cover;object-position:50% 22%;transform-origin:center;animation:oakKen 18s ease-in-out infinite alternate;}
-.oak .brand-art .ed-frame-1{top:8%;bottom:8%;left:6%;width:52%;animation:oakDrift 9s ease-in-out infinite;}
-.oak .brand-art .ed-frame-2{top:14%;bottom:14%;right:6%;width:34%;animation:oakDrift 11s ease-in-out infinite reverse;}
-.oak .brand-art .ed-frame-2 img{animation-duration:22s;animation-direction:alternate-reverse;}
-.oak .brand-art .ed-sheen{position:absolute;inset:0;pointer-events:none;background:linear-gradient(115deg,transparent 35%,rgba(255,255,255,.28) 50%,transparent 65%);transform:translateX(-120%);animation:oakSheen 7s ease-in-out infinite;}
-.oak .brand-art .ed-frame-2 .ed-sheen{animation-delay:1.6s;}
-.oak .brand-art .ed-tint{position:absolute;inset:0;z-index:2;pointer-events:none;}
-.oak .brand-art.on-blue .ed-tint{background:linear-gradient(135deg,rgba(33,81,245,.42),rgba(13,44,158,.25));mix-blend-mode:multiply;}
-.oak .brand-art.on-black .ed-tint{background:linear-gradient(180deg,rgba(10,10,10,.1),rgba(10,10,10,.55));}
-.oak .brand-art.on-light .ed-tint{background:linear-gradient(180deg,transparent 55%,rgba(10,10,10,.18));}
-@keyframes oakKen{from{transform:scale(1.02);}to{transform:scale(1.14) translate3d(-1.5%,-1.5%,0);}}
-@keyframes oakDrift{0%,100%{transform:translate3d(0,0,0) rotate(0deg);}50%{transform:translate3d(0,-14px,0) rotate(-.6deg);}}
-@keyframes oakSheen{0%,62%{transform:translateX(-120%);}88%,100%{transform:translateX(120%);}}
-.oak .brand-art:hover .ed-frame-1{transform:translate3d(-6px,-8px,0) scale(1.01);}
-.oak .brand-art:hover .ed-frame-2{transform:translate3d(8px,6px,0) scale(1.03);}
-.oak .brand-art .ed-frame{transition:transform .6s cubic-bezier(.22,1,.36,1);}
-.oak .brand-art .cap{position:absolute;left:24px;bottom:20px;z-index:3;font-family:var(--body);font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;opacity:0;transform:translateY(8px);transition:opacity .35s ease,transform .35s cubic-bezier(.22,1,.36,1);text-shadow:0 2px 14px rgba(0,0,0,.45);max-width:90%;}
-.oak .brand-art:hover .cap{opacity:1;transform:translateY(0);}
+.oak .brand-art .ring{position:absolute;width:62%;aspect-ratio:1/1;border-radius:50%;border:2px dashed rgba(255,255,255,.35);animation:oakSpin 40s linear infinite;}
+.oak .brand-art.on-light .ring{border-color:rgba(10,10,10,.2);}
+.oak .brand-art .ring.ring2{width:82%;border-style:solid;border-width:1px;border-color:rgba(255,255,255,.15);animation-duration:60s;animation-direction:reverse;}
+.oak .brand-art.on-light .ring.ring2{border-color:rgba(10,10,10,.1);}
+@keyframes oakSpin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+.oak .brand-art .logo-wrap{position:relative;z-index:2;width:30%;max-width:150px;aspect-ratio:604/748;filter:drop-shadow(0 18px 34px rgba(0,0,0,.35));animation:oakFloat 5s ease-in-out infinite;}
+.oak .brand-art .logo-wrap img{width:100%;height:100%;object-fit:contain;}
+.oak .brand-art.on-black .logo-wrap img,.oak .brand-art.on-blue .logo-wrap img{filter:brightness(0) invert(1);}
+@keyframes oakFloat{0%,100%{transform:translateY(0);}50%{transform:translateY(-10px);}}
+.oak .brand-art .cap{position:absolute;left:24px;bottom:20px;z-index:3;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;}
 .oak .brand-art.on-black .cap,.oak .brand-art.on-blue .cap{color:#fff;}
-.oak .brand-art.on-light .cap{color:var(--black);text-shadow:none;}
-@media (max-width:640px){
-  .oak .brand-art .ed-frame-1{inset:6% 26% 6% 6%;}
-  .oak .brand-art .ed-frame-2{width:38%;right:5%;}
-}
-
+.oak .brand-art.on-light .cap{color:var(--black);}
 
 .oak .trust-marquee{width:100%;overflow:hidden;background:var(--black);padding:16px 0;margin-top:64px;}
 .oak .trust-marquee .track{display:flex;white-space:nowrap;width:max-content;animation:oakScroll 22s linear infinite;}
@@ -1160,57 +968,4 @@ const CSS = `
 .oak .footer-brand .tag{font-size:12px;color:rgba(255,255,255,.55);}
 .oak .footer-row > a{font-size:13px;font-weight:700;color:#6E8CFF;}
 .oak .footer-row > a:hover{color:#fff;}
-
-/* ---------- Kinetic layer ---------- */
-.oak .scroll-progress{position:fixed;top:0;left:0;right:0;height:3px;z-index:300;pointer-events:none;background:transparent;}
-.oak .scroll-progress i{display:block;height:100%;width:100%;transform:scaleX(0);transform-origin:0 50%;background:linear-gradient(90deg,var(--blue),#6E8CFF,var(--black));}
-
-.oak .cursor-dot,.oak .cursor-halo{position:fixed;top:0;left:0;z-index:400;pointer-events:none;border-radius:50%;mix-blend-mode:difference;}
-.oak .cursor-dot{width:7px;height:7px;background:#fff;}
-.oak .cursor-halo{width:38px;height:38px;border:1.5px solid rgba(255,255,255,.85);transition:width .3s cubic-bezier(.16,1,.3,1),height .3s cubic-bezier(.16,1,.3,1),background .3s ease;}
-.oak .cursor-halo.grow{width:76px;height:76px;background:rgba(255,255,255,.16);}
-@media (hover:none),(max-width:900px){.oak .cursor-dot,.oak .cursor-halo,.oak .scroll-progress{display:none;}}
-
-.oak .split-text{overflow:hidden;}
-.oak .split-text .sw{display:inline-block;overflow:hidden;vertical-align:bottom;padding-bottom:.1em;margin-bottom:-.1em;margin-right:.16em;}
-.oak .split-text .sw > span{display:inline-block;transform:translateY(110%) rotate(4deg);opacity:0;transition:transform .85s cubic-bezier(.16,1,.3,1),opacity .6s ease;}
-.oak .split-text.in-view .sw > span{transform:translateY(0) rotate(0);opacity:1;}
-
-.oak nav.desktop-nav a.roll{overflow:hidden;display:inline-block;height:1.25em;line-height:1.25em;}
-.oak nav.desktop-nav a.roll .roll-inner{display:flex;flex-direction:column;transition:transform .45s cubic-bezier(.16,1,.3,1);}
-.oak nav.desktop-nav a.roll:hover .roll-inner{transform:translateY(-1.25em);}
-.oak nav.desktop-nav a.roll .roll-inner span:last-child{color:var(--blue);}
-
-.oak [data-parallax]{will-change:transform;}
-.oak [data-parallax] > *{transform:translate3d(0,calc(var(--py,0px) * -1),0);transition:transform .1s linear;}
-
-.oak [data-tilt]{transform-style:preserve-3d;transition:transform .5s cubic-bezier(.16,1,.3,1),box-shadow .4s ease;position:relative;}
-.oak [data-tilt]::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:0;transition:opacity .35s ease;background:radial-gradient(320px circle at var(--gx,50%) var(--gy,50%),rgba(33,81,245,.18),transparent 65%);}
-.oak [data-tilt]:hover::after{opacity:1;}
-.oak .offer-card:hover{transform:none;}
-
-.oak .cta-btn{position:relative;overflow:hidden;transition:transform .35s cubic-bezier(.16,1,.3,1),background .35s ease,color .35s ease;isolation:isolate;}
-.oak .cta-btn::before{content:"";position:absolute;inset:0;z-index:-1;background:var(--blue);transform:translateY(101%);border-radius:inherit;transition:transform .45s cubic-bezier(.16,1,.3,1);}
-.oak .cta-btn:hover::before{transform:translateY(0);}
-.oak .cta-btn:hover{background:var(--black);}
-.oak .cta-btn.ghost:hover{color:var(--white);background:transparent;}
-
-.oak .reveal{transform:translateY(34px) scale(.985);}
-.oak .reveal.in-view{transform:translateY(0) scale(1);}
-
-.oak .marquee:hover .marquee-track,.oak .trust-marquee:hover .track{animation-play-state:paused;}
-
-.oak .faq-item{transition:background .3s ease,padding-left .3s ease;}
-.oak .faq-item:hover{background:rgba(33,81,245,.04);padding-left:10px;}
-
-.oak .stat b{transition:transform .4s cubic-bezier(.16,1,.3,1),color .3s ease;display:inline-block;}
-.oak .stat:hover b{transform:translateY(-6px) scale(1.06);color:var(--blue);}
-
-.oak .hero::before{content:"";position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(rgba(10,10,10,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(10,10,10,.045) 1px,transparent 1px);background-size:64px 64px;-webkit-mask-image:radial-gradient(circle at 60% 20%,#000,transparent 72%);mask-image:radial-gradient(circle at 60% 20%,#000,transparent 72%);animation:oakGrid 24s linear infinite;}
-@keyframes oakGrid{to{background-position:64px 64px,64px 64px;}}
-
-@media (prefers-reduced-motion:reduce){
-  .oak .cursor-dot,.oak .cursor-halo{display:none;}
-  .oak .split-text .sw > span{transform:none;opacity:1;}
-}
 `;
