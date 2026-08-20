@@ -6,12 +6,15 @@ import { VariantOption } from "@/components/product-form/VariantMatrixBuilder";
 // it can be published, keyed by category id anywhere in the chosen path —
 // not just the leaf, since e.g. "Dresses" and "Shorts" both fall under
 // "Clothing" and share the same requirements. Covers every top-level Apparel
-// & Accessories branch; Size is only included where it's actually
-// standardized (clothing, costumes, shoes) — small-accessory branches don't
-// share a size axis. Beauty & Personal Care / Art & Crafts have no
-// category-specific tracked fields yet — they still get the universal
-// params below (Link content).
+// & Accessories branch, plus the Apparel & Accessories root itself as a
+// fallback for sellers who stop there without drilling into a branch; Size
+// is only included where it's actually standardized (clothing, costumes,
+// shoes) — small-accessory branches don't share a size axis. Beauty &
+// Personal Care / Art & Crafts have no category-specific tracked fields
+// yet — selecting either of those (at any depth) falls through to just the
+// universal params below (Link content).
 const NECESSITY_PARAMS: Record<string, string[]> = {
+  "apparel-accessories": ["Size", "Color", "Material"],
   clothing: ["Size", "Color", "Material"],
   "costumes-accessories": ["Size", "Color", "Material"],
   shoes: ["Size", "Color", "Material"],
@@ -29,8 +32,10 @@ const UNIVERSAL_PARAMS = ["Link content"];
 
 function paramsForCategory(categoryPath: CategoryNode[]): string[] {
   if (categoryPath.length === 0) return [];
-  for (const node of categoryPath) {
-    const params = NECESSITY_PARAMS[node.id];
+  // Walk leaf-to-root so a specific branch (e.g. Jewelry) wins over the
+  // broader Apparel & Accessories root fallback further up the same path.
+  for (let i = categoryPath.length - 1; i >= 0; i--) {
+    const params = NECESSITY_PARAMS[categoryPath[i].id];
     if (params) return [...params, ...UNIVERSAL_PARAMS];
   }
   return UNIVERSAL_PARAMS;
