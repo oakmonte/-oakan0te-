@@ -1,5 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { Image as ImageIcon } from "lucide-react";
+import { ComingSoonState } from "@/components/store/ComingSoonState";
 
 export const Route = createFileRoute("/store/content")({
-  component: () => <div className="px-4 py-8 text-sm text-gray-400">Content — coming soon.</div>,
+  component: () => (
+    <ComingSoonState
+      icon={ImageIcon}
+      title="No content yet"
+      description="This'll fill up once you start posting."
+    />
+  ),
 });

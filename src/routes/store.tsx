@@ -55,7 +55,11 @@ function StoreLayout() {
   return (
     <div className="min-h-screen bg-white">
       <div className="sticky top-0 z-30 bg-white border-b border-gray-100 px-4 h-14 flex items-center justify-between">
-        <button onClick={() => setDrawerOpen(true)} className="p-1 -ml-1" aria-label="Open menu">
+        <button
+          onClick={() => setDrawerOpen(true)}
+          className="p-1 -ml-1 oak-motion-control active:scale-90"
+          aria-label="Open menu"
+        >
           <Menu size={22} />
         </button>
         <span className="font-semibold text-sm">Oakmonte Store</span>
@@ -66,11 +70,17 @@ function StoreLayout() {
 
       {drawerOpen && (
         <div className="fixed inset-0 z-40">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setDrawerOpen(false)} />
-          <div className="absolute left-0 top-0 bottom-0 w-72 bg-black text-white px-2 py-4 flex flex-col">
+          <div
+            className="absolute inset-0 bg-black/50 animate-in fade-in duration-200"
+            onClick={() => setDrawerOpen(false)}
+          />
+          <div className="absolute left-0 top-0 bottom-0 w-72 bg-black text-white px-2 py-4 flex flex-col animate-in slide-in-from-left duration-300 ease-out">
             <div className="flex items-center justify-between px-3 mb-4">
               <span className="text-sm text-gray-400">Menu</span>
-              <button onClick={() => setDrawerOpen(false)} className="p-1">
+              <button
+                onClick={() => setDrawerOpen(false)}
+                className="p-1 oak-motion-control active:scale-90"
+              >
                 <X size={20} />
               </button>
             </div>
@@ -81,7 +91,7 @@ function StoreLayout() {
                   key={to}
                   to={to}
                   onClick={() => setDrawerOpen(false)}
-                  className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-white/10 text-sm"
+                  className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-white/10 text-sm transition-colors duration-150"
                   activeProps={{ className: "bg-white/10" }}
                   activeOptions={{ exact: true }}
                 >
@@ -97,7 +107,7 @@ function StoreLayout() {
                   to="/profile/$username"
                   params={{ username }}
                   onClick={() => setDrawerOpen(false)}
-                  className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-white/10 text-sm text-gray-300"
+                  className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-white/10 text-sm text-gray-300 transition-colors duration-150"
                 >
                   <ArrowLeftCircle size={18} />
                   Return to profile

@@ -141,7 +141,7 @@ export function DescriptionSheet({
   const activeAlign = ALIGN_OPTIONS.find((o) => formats[o.command]) ?? ALIGN_OPTIONS[0];
 
   return (
-    <div className="fixed inset-0 z-50 bg-white flex flex-col">
+    <div className="fixed inset-0 z-50 bg-white flex flex-col animate-in fade-in slide-in-from-bottom-6 duration-300 ease-out">
       <style>{`
         .oak-description-editor:empty:before {
           content: attr(data-placeholder);
@@ -267,7 +267,7 @@ function ToolbarButton({
       onClick={onClick}
       aria-label={label}
       aria-pressed={active}
-      className={`shrink-0 h-9 px-2.5 rounded-lg flex items-center gap-0.5 ${
+      className={`shrink-0 h-9 px-2.5 rounded-lg flex items-center gap-0.5 transition-colors duration-150 ${
         active ? "bg-gray-900 text-white" : "text-gray-700"
       }`}
     >

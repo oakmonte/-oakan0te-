@@ -471,7 +471,7 @@ function NewProduct() {
           <button
             type="button"
             onClick={() => setStatus("active")}
-            className={`flex-1 text-center rounded-xl py-3.5 text-sm font-medium border ${
+            className={`flex-1 text-center rounded-xl py-3.5 text-sm font-medium border oak-motion-surface ${
               status === "active"
                 ? "border-black bg-gray-50 text-gray-900"
                 : "border-gray-200 text-gray-500"
@@ -482,7 +482,7 @@ function NewProduct() {
           <button
             type="button"
             onClick={() => setStatus("draft")}
-            className={`flex-1 text-center rounded-xl py-3.5 text-sm font-medium border ${
+            className={`flex-1 text-center rounded-xl py-3.5 text-sm font-medium border oak-motion-surface ${
               status === "draft"
                 ? "border-black bg-gray-50 text-gray-900"
                 : "border-gray-200 text-gray-500"
@@ -498,7 +498,7 @@ function NewProduct() {
           type="button"
           onClick={handleSave}
           disabled={saving}
-          className="w-full bg-black text-white text-sm font-semibold rounded-full py-4 disabled:opacity-50"
+          className="w-full bg-black text-white text-sm font-semibold rounded-full py-4 disabled:opacity-50 oak-motion-control active:scale-[0.98]"
         >
           {saving ? "Saving…" : "Save Product"}
         </button>

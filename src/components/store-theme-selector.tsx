@@ -68,7 +68,7 @@ export function StoreThemeSelector() {
                   <button
                     type="button"
                     onClick={() => setPreviewing(theme.id)}
-                    className="absolute right-2.5 top-2.5 flex items-center gap-1 rounded-full bg-black/55 px-2.5 py-1.5 text-[10px] font-semibold text-white backdrop-blur transition-colors hover:bg-black/70"
+                    className="absolute right-2.5 top-2.5 flex items-center gap-1 rounded-full bg-black/55 px-2.5 py-1.5 text-[10px] font-semibold text-white backdrop-blur transition-colors duration-200 hover:bg-black/70"
                   >
                     <Eye size={12} />
                     Preview
@@ -86,7 +86,7 @@ export function StoreThemeSelector() {
                       </p>
                     </div>
                     <span
-                      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border transition-colors ${
+                      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border transition-colors duration-200 ${
                         isSelected
                           ? "border-transparent text-white"
                           : "border-[#dbd7d0] text-transparent"
@@ -94,7 +94,11 @@ export function StoreThemeSelector() {
                       style={{ backgroundColor: isSelected ? theme.accent : "transparent" }}
                       aria-hidden="true"
                     >
-                      <Check size={14} strokeWidth={3} />
+                      <Check
+                        size={14}
+                        strokeWidth={3}
+                        className={isSelected ? "oak-motion-pop" : ""}
+                      />
                     </span>
                   </div>
                   <p className="mt-3 min-h-10 text-sm leading-5 text-[#706c65]">
@@ -103,7 +107,7 @@ export function StoreThemeSelector() {
                   <button
                     type="button"
                     onClick={() => setSelected(theme.id)}
-                    className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-xl border border-[#e1ddd6] py-2.5 text-sm font-medium text-[#262421] transition-colors hover:bg-[#f5f3ef]"
+                    className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-xl border border-[#e1ddd6] py-2.5 text-sm font-medium text-[#262421] transition-colors duration-200 hover:bg-[#f5f3ef]"
                   >
                     {isSelected ? "Selected" : "Use this theme"}
                     {!isSelected && <ChevronRight size={16} />}

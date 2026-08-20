@@ -81,7 +81,7 @@ export function TagsSheet({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-white flex flex-col min-h-dvh">
+    <div className="fixed inset-0 z-50 bg-white flex flex-col min-h-dvh animate-in fade-in slide-in-from-bottom-6 duration-300 ease-out">
       <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
         <button onClick={onClose} type="button" className="p-1 -ml-1">
           <X size={20} className="text-gray-500" />
@@ -143,11 +143,11 @@ export function TagsSheet({
                 className="w-full flex items-center gap-3 px-4 py-3 border-b border-gray-50 text-left"
               >
                 <span
-                  className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 ${
+                  className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition-colors duration-200 ${
                     isSelected ? "bg-black border-black" : "border-gray-300"
                   }`}
                 >
-                  {isSelected && <Check size={13} className="text-white" />}
+                  {isSelected && <Check size={13} className="text-white oak-motion-pop" />}
                 </span>
                 <span className="text-[15px] text-gray-900 font-medium">{t.title}</span>
               </button>
@@ -184,11 +184,11 @@ export function TagsSheet({
 
       {menuOpen && (
         <div
-          className="fixed inset-0 z-50 bg-black/40 flex items-end justify-center px-3 pb-24"
+          className="fixed inset-0 z-50 bg-black/40 flex items-end justify-center px-3 pb-24 animate-in fade-in duration-200"
           onClick={() => setMenuOpen(false)}
         >
           <div
-            className="bg-white rounded-2xl w-full max-w-xs overflow-hidden"
+            className="bg-white rounded-2xl w-full max-w-xs overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-250 ease-out"
             onClick={(e) => e.stopPropagation()}
           >
             <p className="text-center text-sm font-semibold text-gray-900 py-3 border-b border-gray-100">
@@ -222,11 +222,11 @@ export function TagsSheet({
 
       {selectedPanelOpen && (
         <div
-          className="fixed inset-0 z-50 bg-black/40 flex items-end justify-center px-3 pb-24"
+          className="fixed inset-0 z-50 bg-black/40 flex items-end justify-center px-3 pb-24 animate-in fade-in duration-200"
           onClick={() => setSelectedPanelOpen(false)}
         >
           <div
-            className="bg-white rounded-2xl w-full max-w-xs p-4"
+            className="bg-white rounded-2xl w-full max-w-xs p-4 animate-in fade-in slide-in-from-bottom-4 duration-250 ease-out"
             onClick={(e) => e.stopPropagation()}
           >
             <p className="text-sm font-semibold text-gray-900 mb-2">Selected tags</p>

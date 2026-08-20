@@ -112,7 +112,7 @@ function StoreProducts() {
         </div>
         <button
           onClick={() => navigate({ to: "/store/products/new" })}
-          className="p-2 rounded-lg bg-black text-white"
+          className="p-2 rounded-lg bg-black text-white oak-motion-control active:scale-90"
         >
           <Plus size={16} />
         </button>
@@ -123,7 +123,7 @@ function StoreProducts() {
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`pb-2 -mb-px border-b-2 ${activeTab === tab ? "border-black font-medium text-black" : "border-transparent text-gray-400"}`}
+            className={`pb-2 -mb-px border-b-2 transition-colors duration-200 ${activeTab === tab ? "border-black font-medium text-black" : "border-transparent text-gray-400"}`}
           >
             {tab}
           </button>
@@ -133,9 +133,11 @@ function StoreProducts() {
       {listLoading ? (
         <div className="text-sm text-gray-400 text-center py-12">Loading…</div>
       ) : products.length === 0 ? (
-        <div className="text-sm text-gray-400 text-center py-12">No products yet.</div>
+        <div className="text-sm text-gray-400 text-center py-12 animate-in fade-in duration-300">
+          No products yet.
+        </div>
       ) : (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3 animate-in fade-in duration-300">
           {products.map((p) => {
             const v = p.product_variants[0];
             return (

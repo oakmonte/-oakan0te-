@@ -92,7 +92,11 @@ function NewCollection() {
         </button>
       </div>
 
-      {error && <p className="px-4 pt-3 text-sm text-red-500">{error}</p>}
+      {error && (
+        <p className="px-4 pt-3 text-sm text-red-500 animate-in fade-in slide-in-from-top-1 duration-200">
+          {error}
+        </p>
+      )}
 
       <MediaSection mainImageUrl={imageUrl} onChange={setImageUrl} />
 

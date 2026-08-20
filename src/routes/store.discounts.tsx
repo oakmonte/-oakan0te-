@@ -1,5 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { Tag } from "lucide-react";
+import { ComingSoonState } from "@/components/store/ComingSoonState";
 
 export const Route = createFileRoute("/store/discounts")({
-  component: () => <div className="px-4 py-8 text-sm text-gray-400">Discounts — coming soon.</div>,
+  component: () => (
+    <ComingSoonState
+      icon={Tag}
+      title="Discounts aren't live yet"
+      description="You'll be able to create these once your store starts selling."
+    />
+  ),
 });

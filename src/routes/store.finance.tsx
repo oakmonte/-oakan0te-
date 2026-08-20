@@ -72,7 +72,7 @@ function FinancePage() {
         <button
           type="button"
           onClick={() => setSheetOpen(true)}
-          className="w-full flex flex-col items-center gap-3 border border-dashed border-gray-200 rounded-2xl p-8 text-center"
+          className="w-full flex flex-col items-center gap-3 border border-dashed border-gray-200 rounded-2xl p-8 text-center oak-motion-control animate-in fade-in duration-300"
         >
           <div className="p-3 rounded-full bg-gray-100">
             <Landmark size={20} className="text-gray-500" />
@@ -88,7 +88,7 @@ function FinancePage() {
         <button
           type="button"
           onClick={() => setSheetOpen(true)}
-          className="w-full text-left bg-black text-white rounded-2xl p-5 flex flex-col gap-5"
+          className="w-full text-left bg-black text-white rounded-2xl p-5 flex flex-col gap-5 oak-motion-control animate-in fade-in duration-300"
         >
           <div className="flex items-center justify-between">
             <div className="p-2 rounded-full bg-white/10">
@@ -110,7 +110,7 @@ function FinancePage() {
       )}
 
       {account !== undefined && (
-        <p className="text-xs text-gray-400 mt-4">
+        <p className="text-xs text-gray-400 mt-4 animate-in fade-in duration-300">
           We can&apos;t verify account details yet — Paystack isn&apos;t connected. Once it is, this
           card flips to &quot;Verified&quot; automatically, no re-entry needed.
         </p>

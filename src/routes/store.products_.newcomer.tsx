@@ -17,7 +17,7 @@ function ProductsNewcomer() {
       </p>
 
       <div className="flex flex-col gap-3">
-        <button className="flex items-center gap-3 border border-gray-200 rounded-2xl p-4 text-left">
+        <button className="flex items-center gap-3 border border-gray-200 rounded-2xl p-4 text-left oak-motion-control">
           <div className="p-2 rounded-full bg-gray-100">
             <Plus size={18} />
           </div>
@@ -30,7 +30,7 @@ function ProductsNewcomer() {
         <div className="border border-gray-200 rounded-2xl overflow-hidden">
           <button
             onClick={() => setOpenDropdown((v) => (v === "shopify" ? null : "shopify"))}
-            className="w-full flex items-center gap-3 p-4 text-left"
+            className="w-full flex items-center gap-3 p-4 text-left oak-motion-control"
           >
             <div className="p-2 rounded-full bg-gray-100">
               <ShoppingBag size={18} />
@@ -41,15 +41,15 @@ function ProductsNewcomer() {
             </div>
             <ChevronDown
               size={16}
-              className={`text-gray-400 transition-transform ${openDropdown === "shopify" ? "rotate-180" : ""}`}
+              className={`text-gray-400 transition-transform duration-200 ${openDropdown === "shopify" ? "rotate-180" : ""}`}
             />
           </button>
           {openDropdown === "shopify" && (
-            <div className="border-t border-gray-100 flex flex-col">
-              <button className="text-left px-4 py-3 text-sm hover:bg-gray-50">
+            <div className="border-t border-gray-100 flex flex-col animate-in fade-in slide-in-from-top-2 duration-200 ease-out">
+              <button className="text-left px-4 py-3 text-sm hover:bg-gray-50 transition-colors duration-150">
                 Connect Shopify directly
               </button>
-              <button className="text-left px-4 py-3 text-sm hover:bg-gray-50 border-t border-gray-100">
+              <button className="text-left px-4 py-3 text-sm hover:bg-gray-50 border-t border-gray-100 transition-colors duration-150">
                 Upload Shopify CSV
               </button>
             </div>
@@ -59,7 +59,7 @@ function ProductsNewcomer() {
         <div className="border border-gray-200 rounded-2xl overflow-hidden">
           <button
             onClick={() => setOpenDropdown((v) => (v === "bumpa" ? null : "bumpa"))}
-            className="w-full flex items-center gap-3 p-4 text-left"
+            className="w-full flex items-center gap-3 p-4 text-left oak-motion-control"
           >
             <div className="p-2 rounded-full bg-gray-100">
               <Store size={18} />
@@ -70,22 +70,22 @@ function ProductsNewcomer() {
             </div>
             <ChevronDown
               size={16}
-              className={`text-gray-400 transition-transform ${openDropdown === "bumpa" ? "rotate-180" : ""}`}
+              className={`text-gray-400 transition-transform duration-200 ${openDropdown === "bumpa" ? "rotate-180" : ""}`}
             />
           </button>
           {openDropdown === "bumpa" && (
-            <div className="border-t border-gray-100 flex flex-col">
-              <button className="text-left px-4 py-3 text-sm hover:bg-gray-50">
+            <div className="border-t border-gray-100 flex flex-col animate-in fade-in slide-in-from-top-2 duration-200 ease-out">
+              <button className="text-left px-4 py-3 text-sm hover:bg-gray-50 transition-colors duration-150">
                 Connect Bumpa directly
               </button>
-              <button className="text-left px-4 py-3 text-sm hover:bg-gray-50 border-t border-gray-100">
+              <button className="text-left px-4 py-3 text-sm hover:bg-gray-50 border-t border-gray-100 transition-colors duration-150">
                 Upload Bumpa CSV
               </button>
             </div>
           )}
         </div>
 
-        <button className="flex items-center gap-3 border border-gray-200 rounded-2xl p-4 text-left">
+        <button className="flex items-center gap-3 border border-gray-200 rounded-2xl p-4 text-left oak-motion-control">
           <div className="p-2 rounded-full bg-gray-100">
             <Upload size={18} />
           </div>

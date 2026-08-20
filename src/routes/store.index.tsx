@@ -61,12 +61,12 @@ function StoreHome() {
           <Link
             key={to}
             to={to}
-            className="flex items-start gap-3 border border-gray-200 rounded-2xl p-4 hover:bg-gray-50"
+            className="flex items-start gap-3 border border-gray-200 rounded-2xl p-4 hover:bg-gray-50 oak-motion-control"
           >
             <div className="p-2 rounded-full bg-gray-100 relative">
               <Icon size={18} />
               {badge && (
-                <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-amber-400 border-2 border-white" />
+                <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-amber-400 border-2 border-white oak-motion-pop" />
               )}
             </div>
             <div>

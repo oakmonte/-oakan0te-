@@ -1,5 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { Users } from "lucide-react";
+import { ComingSoonState } from "@/components/store/ComingSoonState";
 
 export const Route = createFileRoute("/store/customers")({
-  component: () => <div className="px-4 py-8 text-sm text-gray-400">growth — coming soon.</div>,
+  component: () => (
+    <ComingSoonState
+      icon={Users}
+      title="No customers yet"
+      description="This'll be available once shoppers start following your store."
+    />
+  ),
 });

@@ -74,7 +74,7 @@ export function CollectionsSheet({
   );
 
   return (
-    <div className="fixed inset-0 z-50 bg-white flex flex-col min-h-dvh">
+    <div className="fixed inset-0 z-50 bg-white flex flex-col min-h-dvh animate-in fade-in slide-in-from-bottom-6 duration-300 ease-out">
       <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
         <button onClick={onClose} type="button" className="p-1 -ml-1">
           <X size={20} className="text-gray-500" />
@@ -131,11 +131,11 @@ export function CollectionsSheet({
                   className="w-full flex items-center gap-3 px-4 py-3 border-b border-gray-50 text-left"
                 >
                   <span
-                    className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 ${
+                    className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition-colors duration-200 ${
                       isSelected ? "bg-black border-black" : "border-gray-300"
                     }`}
                   >
-                    {isSelected && <Check size={13} className="text-white" />}
+                    {isSelected && <Check size={13} className="text-white oak-motion-pop" />}
                   </span>
                   <span className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
                     {c.image_url ? (

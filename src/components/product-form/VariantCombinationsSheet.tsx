@@ -284,11 +284,11 @@ function VariantImagePopover({
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center px-6"
+      className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center px-6 animate-in fade-in duration-200"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl p-4 w-full max-w-xs"
+        className="bg-white rounded-2xl p-4 w-full max-w-xs animate-in fade-in zoom-in-95 duration-200 ease-out"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-3">

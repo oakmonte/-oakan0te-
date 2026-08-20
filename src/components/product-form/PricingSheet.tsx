@@ -49,7 +49,7 @@ export function PricingSheet({
   const margin = profit !== null && hasPrice ? (profit / numPrice) * 100 : null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-white flex flex-col min-h-dvh">
+    <div className="fixed inset-0 z-50 bg-white flex flex-col min-h-dvh animate-in fade-in slide-in-from-bottom-6 duration-300 ease-out">
       <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
         <button onClick={onClose} type="button" className="p-1 -ml-1">
           <X size={20} className="text-gray-500" />
@@ -95,11 +95,11 @@ export function PricingSheet({
               See where your money goes
               <ChevronDown
                 size={13}
-                className={`transition-transform ${breakdownOpen ? "rotate-180" : ""}`}
+                className={`transition-transform duration-200 ${breakdownOpen ? "rotate-180" : ""}`}
               />
             </button>
             {breakdownOpen && (
-              <div className="mt-2 border border-gray-100 rounded-lg p-3 flex flex-col gap-2">
+              <div className="mt-2 border border-gray-100 rounded-lg p-3 flex flex-col gap-2 animate-in fade-in slide-in-from-top-2 duration-200 ease-out">
                 <FeeLine label="Price" value={formatNaira(numPrice)} />
                 <FeeLine
                   label="Oakmonte commission (4.5%)"

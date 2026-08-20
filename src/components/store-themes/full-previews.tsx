@@ -527,7 +527,7 @@ export function ThemePreviewSheet({
   onSelect: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-neutral-950">
+    <div className="fixed inset-0 z-50 flex flex-col bg-neutral-950 animate-in fade-in duration-250 ease-out">
       <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/10 bg-neutral-950/95 px-4 py-3.5 backdrop-blur">
         <button
           type="button"

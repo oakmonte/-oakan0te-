@@ -55,7 +55,7 @@ export function PayoutAccountSheet({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-white flex flex-col min-h-dvh">
+    <div className="fixed inset-0 z-50 bg-white flex flex-col min-h-dvh animate-in fade-in slide-in-from-bottom-6 duration-300 ease-out">
       <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between shrink-0">
         <button onClick={onClose} type="button" className="p-1 -ml-1">
           <X size={20} className="text-gray-500" />
@@ -76,7 +76,7 @@ export function PayoutAccountSheet({
                 key={b}
                 type="button"
                 onClick={() => setBankName(b)}
-                className={`text-sm rounded-full px-3 py-1.5 border ${
+                className={`text-sm rounded-full px-3 py-1.5 border transition-colors duration-150 ${
                   bankName === b
                     ? "bg-black text-white border-black"
                     : "border-gray-200 text-gray-700"
@@ -90,7 +90,7 @@ export function PayoutAccountSheet({
             value={bankName}
             onChange={(e) => setBankName(e.target.value)}
             placeholder="Bank name"
-            className={`w-full text-base border rounded-xl px-4 py-3 outline-none focus:border-gray-400 ${
+            className={`w-full text-base border rounded-xl px-4 py-3 outline-none focus:border-gray-400 transition-colors duration-150 ${
               showErrors && !bankName.trim() ? "border-red-300" : "border-gray-200"
             }`}
           />
@@ -103,7 +103,7 @@ export function PayoutAccountSheet({
             onChange={(e) => setAccountNumber(e.target.value.replace(/\D/g, "").slice(0, 10))}
             placeholder="0123456789"
             inputMode="numeric"
-            className={`w-full text-base border rounded-xl px-4 py-3 outline-none focus:border-gray-400 ${
+            className={`w-full text-base border rounded-xl px-4 py-3 outline-none focus:border-gray-400 transition-colors duration-150 ${
               showErrors && !validAccountNumber ? "border-red-300" : "border-gray-200"
             }`}
           />
@@ -118,7 +118,7 @@ export function PayoutAccountSheet({
             value={accountName}
             onChange={(e) => setAccountName(e.target.value)}
             placeholder="Name on the account"
-            className={`w-full text-base border rounded-xl px-4 py-3 outline-none focus:border-gray-400 ${
+            className={`w-full text-base border rounded-xl px-4 py-3 outline-none focus:border-gray-400 transition-colors duration-150 ${
               showErrors && !accountName.trim() ? "border-red-300" : "border-gray-200"
             }`}
           />

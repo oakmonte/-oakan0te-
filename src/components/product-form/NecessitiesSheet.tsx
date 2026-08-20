@@ -78,7 +78,7 @@ export function NecessitiesSheet({
   const params = paramsForCategory(categoryPath);
 
   return (
-    <div className="fixed inset-0 z-50 bg-white flex flex-col min-h-dvh">
+    <div className="fixed inset-0 z-50 bg-white flex flex-col min-h-dvh animate-in fade-in slide-in-from-bottom-6 duration-300 ease-out">
       <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
         <button onClick={onClose} type="button" className="p-1 -ml-1">
           <X size={20} className="text-gray-500" />
@@ -105,15 +105,15 @@ export function NecessitiesSheet({
                 type="button"
                 aria-label={p}
                 onClick={() => {}} // TODO: open the per-parameter fill-in sheet once its design is specced
-                className="w-full flex items-center justify-between px-4 py-4 border-b border-gray-50 text-left"
+                className="w-full flex items-center justify-between px-4 py-4 border-b border-gray-50 text-left oak-motion-control"
               >
                 <span className="flex items-center gap-3">
                   <span
-                    className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 ${
+                    className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition-colors duration-200 ${
                       filled ? "bg-black border-black" : "border-gray-300"
                     }`}
                   >
-                    {filled && <Check size={13} className="text-white" />}
+                    {filled && <Check size={13} className="text-white oak-motion-pop" />}
                   </span>
                   <span className="text-[15px] text-gray-900">{p}</span>
                 </span>
