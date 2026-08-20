@@ -16,7 +16,7 @@ import { Route as BecomeACreatorRouteImport } from './routes/become-a-creator'
 import { Route as BecomeACuratorRouteImport } from './routes/become-a-curator'
 import { Route as ChooseUsernameRouteImport } from './routes/choose-username'
 import { Route as CreateRouteImport } from './routes/create'
-import { Route as CreatorNicheRouteImport } from './routes/creator-niche'
+import { Route as CreatePasswordRouteImport } from './routes/create-password'
 import { Route as EditProfileRouteImport } from './routes/edit-profile'
 import { Route as FindYourFitRouteImport } from './routes/find-your-fit'
 import { Route as HomeRouteImport } from './routes/home'
@@ -24,12 +24,11 @@ import { Route as IndexUpgradeRouteImport } from './routes/index-upgrade'
 import { Route as NameYourStoreRouteImport } from './routes/name-your-store'
 import { Route as NoAccountRouteImport } from './routes/no-account'
 import { Route as OfflineVideosRouteImport } from './routes/offline-videos'
-import { Route as PhoneNumberRouteImport } from './routes/phone-number'
 import { Route as PrivacyRouteImport } from './routes/privacy'
-import { Route as ProductCategoryRouteImport } from './routes/product-category'
 import { Route as SellerTypeRouteImport } from './routes/seller-type'
 import { Route as SetUpStoreRouteImport } from './routes/set-up-store'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as StoreRouteImport } from './routes/store'
 import { Route as StudioRouteImport } from './routes/studio'
 import { Route as TermsRouteImport } from './routes/terms'
@@ -97,9 +96,9 @@ const CreateRoute = CreateRouteImport.update({
   path: '/create',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CreatorNicheRoute = CreatorNicheRouteImport.update({
-  id: '/creator-niche',
-  path: '/creator-niche',
+const CreatePasswordRoute = CreatePasswordRouteImport.update({
+  id: '/create-password',
+  path: '/create-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EditProfileRoute = EditProfileRouteImport.update({
@@ -137,19 +136,9 @@ const OfflineVideosRoute = OfflineVideosRouteImport.update({
   path: '/offline-videos',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PhoneNumberRoute = PhoneNumberRouteImport.update({
-  id: '/phone-number',
-  path: '/phone-number',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const PrivacyRoute = PrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProductCategoryRoute = ProductCategoryRouteImport.update({
-  id: '/product-category',
-  path: '/product-category',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SellerTypeRoute = SellerTypeRouteImport.update({
@@ -165,6 +154,11 @@ const SetUpStoreRoute = SetUpStoreRouteImport.update({
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignInRoute = SignInRouteImport.update({
+  id: '/sign-in',
+  path: '/sign-in',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StoreRoute = StoreRouteImport.update({
@@ -331,7 +325,7 @@ export interface FileRoutesByFullPath {
   '/become-a-curator': typeof BecomeACuratorRoute
   '/choose-username': typeof ChooseUsernameRoute
   '/create': typeof CreateRouteWithChildren
-  '/creator-niche': typeof CreatorNicheRoute
+  '/create-password': typeof CreatePasswordRoute
   '/edit-profile': typeof EditProfileRoute
   '/find-your-fit': typeof FindYourFitRoute
   '/home': typeof HomeRoute
@@ -339,12 +333,11 @@ export interface FileRoutesByFullPath {
   '/name-your-store': typeof NameYourStoreRoute
   '/no-account': typeof NoAccountRoute
   '/offline-videos': typeof OfflineVideosRoute
-  '/phone-number': typeof PhoneNumberRoute
   '/privacy': typeof PrivacyRoute
-  '/product-category': typeof ProductCategoryRoute
   '/seller-type': typeof SellerTypeRoute
   '/set-up-store': typeof SetUpStoreRoute
   '/settings': typeof SettingsRoute
+  '/sign-in': typeof SignInRoute
   '/store': typeof StoreRouteWithChildren
   '/studio': typeof StudioRoute
   '/terms': typeof TermsRoute
@@ -384,7 +377,7 @@ export interface FileRoutesByTo {
   '/become-a-creator': typeof BecomeACreatorRoute
   '/become-a-curator': typeof BecomeACuratorRoute
   '/choose-username': typeof ChooseUsernameRoute
-  '/creator-niche': typeof CreatorNicheRoute
+  '/create-password': typeof CreatePasswordRoute
   '/edit-profile': typeof EditProfileRoute
   '/find-your-fit': typeof FindYourFitRoute
   '/home': typeof HomeRoute
@@ -392,12 +385,11 @@ export interface FileRoutesByTo {
   '/name-your-store': typeof NameYourStoreRoute
   '/no-account': typeof NoAccountRoute
   '/offline-videos': typeof OfflineVideosRoute
-  '/phone-number': typeof PhoneNumberRoute
   '/privacy': typeof PrivacyRoute
-  '/product-category': typeof ProductCategoryRoute
   '/seller-type': typeof SellerTypeRoute
   '/set-up-store': typeof SetUpStoreRoute
   '/settings': typeof SettingsRoute
+  '/sign-in': typeof SignInRoute
   '/studio': typeof StudioRoute
   '/terms': typeof TermsRoute
   '/where-did-you-hear-about-us': typeof WhereDidYouHearAboutUsRoute
@@ -437,7 +429,7 @@ export interface FileRoutesById {
   '/become-a-curator': typeof BecomeACuratorRoute
   '/choose-username': typeof ChooseUsernameRoute
   '/create': typeof CreateRouteWithChildren
-  '/creator-niche': typeof CreatorNicheRoute
+  '/create-password': typeof CreatePasswordRoute
   '/edit-profile': typeof EditProfileRoute
   '/find-your-fit': typeof FindYourFitRoute
   '/home': typeof HomeRoute
@@ -445,12 +437,11 @@ export interface FileRoutesById {
   '/name-your-store': typeof NameYourStoreRoute
   '/no-account': typeof NoAccountRoute
   '/offline-videos': typeof OfflineVideosRoute
-  '/phone-number': typeof PhoneNumberRoute
   '/privacy': typeof PrivacyRoute
-  '/product-category': typeof ProductCategoryRoute
   '/seller-type': typeof SellerTypeRoute
   '/set-up-store': typeof SetUpStoreRoute
   '/settings': typeof SettingsRoute
+  '/sign-in': typeof SignInRoute
   '/store': typeof StoreRouteWithChildren
   '/studio': typeof StudioRoute
   '/terms': typeof TermsRoute
@@ -493,7 +484,7 @@ export interface FileRouteTypes {
     | '/become-a-curator'
     | '/choose-username'
     | '/create'
-    | '/creator-niche'
+    | '/create-password'
     | '/edit-profile'
     | '/find-your-fit'
     | '/home'
@@ -501,12 +492,11 @@ export interface FileRouteTypes {
     | '/name-your-store'
     | '/no-account'
     | '/offline-videos'
-    | '/phone-number'
     | '/privacy'
-    | '/product-category'
     | '/seller-type'
     | '/set-up-store'
     | '/settings'
+    | '/sign-in'
     | '/store'
     | '/studio'
     | '/terms'
@@ -546,7 +536,7 @@ export interface FileRouteTypes {
     | '/become-a-creator'
     | '/become-a-curator'
     | '/choose-username'
-    | '/creator-niche'
+    | '/create-password'
     | '/edit-profile'
     | '/find-your-fit'
     | '/home'
@@ -554,12 +544,11 @@ export interface FileRouteTypes {
     | '/name-your-store'
     | '/no-account'
     | '/offline-videos'
-    | '/phone-number'
     | '/privacy'
-    | '/product-category'
     | '/seller-type'
     | '/set-up-store'
     | '/settings'
+    | '/sign-in'
     | '/studio'
     | '/terms'
     | '/where-did-you-hear-about-us'
@@ -598,7 +587,7 @@ export interface FileRouteTypes {
     | '/become-a-curator'
     | '/choose-username'
     | '/create'
-    | '/creator-niche'
+    | '/create-password'
     | '/edit-profile'
     | '/find-your-fit'
     | '/home'
@@ -606,12 +595,11 @@ export interface FileRouteTypes {
     | '/name-your-store'
     | '/no-account'
     | '/offline-videos'
-    | '/phone-number'
     | '/privacy'
-    | '/product-category'
     | '/seller-type'
     | '/set-up-store'
     | '/settings'
+    | '/sign-in'
     | '/store'
     | '/studio'
     | '/terms'
@@ -653,7 +641,7 @@ export interface RootRouteChildren {
   BecomeACuratorRoute: typeof BecomeACuratorRoute
   ChooseUsernameRoute: typeof ChooseUsernameRoute
   CreateRoute: typeof CreateRouteWithChildren
-  CreatorNicheRoute: typeof CreatorNicheRoute
+  CreatePasswordRoute: typeof CreatePasswordRoute
   EditProfileRoute: typeof EditProfileRoute
   FindYourFitRoute: typeof FindYourFitRoute
   HomeRoute: typeof HomeRoute
@@ -661,12 +649,11 @@ export interface RootRouteChildren {
   NameYourStoreRoute: typeof NameYourStoreRoute
   NoAccountRoute: typeof NoAccountRoute
   OfflineVideosRoute: typeof OfflineVideosRoute
-  PhoneNumberRoute: typeof PhoneNumberRoute
   PrivacyRoute: typeof PrivacyRoute
-  ProductCategoryRoute: typeof ProductCategoryRoute
   SellerTypeRoute: typeof SellerTypeRoute
   SetUpStoreRoute: typeof SetUpStoreRoute
   SettingsRoute: typeof SettingsRoute
+  SignInRoute: typeof SignInRoute
   StoreRoute: typeof StoreRouteWithChildren
   StudioRoute: typeof StudioRoute
   TermsRoute: typeof TermsRoute
@@ -734,11 +721,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CreateRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/creator-niche': {
-      id: '/creator-niche'
-      path: '/creator-niche'
-      fullPath: '/creator-niche'
-      preLoaderRoute: typeof CreatorNicheRouteImport
+    '/create-password': {
+      id: '/create-password'
+      path: '/create-password'
+      fullPath: '/create-password'
+      preLoaderRoute: typeof CreatePasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/edit-profile': {
@@ -790,25 +777,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OfflineVideosRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/phone-number': {
-      id: '/phone-number'
-      path: '/phone-number'
-      fullPath: '/phone-number'
-      preLoaderRoute: typeof PhoneNumberRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/privacy': {
       id: '/privacy'
       path: '/privacy'
       fullPath: '/privacy'
       preLoaderRoute: typeof PrivacyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/product-category': {
-      id: '/product-category'
-      path: '/product-category'
-      fullPath: '/product-category'
-      preLoaderRoute: typeof ProductCategoryRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/seller-type': {
@@ -830,6 +803,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sign-in': {
+      id: '/sign-in'
+      path: '/sign-in'
+      fullPath: '/sign-in'
+      preLoaderRoute: typeof SignInRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/store': {
@@ -1121,7 +1101,7 @@ const rootRouteChildren: RootRouteChildren = {
   BecomeACuratorRoute: BecomeACuratorRoute,
   ChooseUsernameRoute: ChooseUsernameRoute,
   CreateRoute: CreateRouteWithChildren,
-  CreatorNicheRoute: CreatorNicheRoute,
+  CreatePasswordRoute: CreatePasswordRoute,
   EditProfileRoute: EditProfileRoute,
   FindYourFitRoute: FindYourFitRoute,
   HomeRoute: HomeRoute,
@@ -1129,12 +1109,11 @@ const rootRouteChildren: RootRouteChildren = {
   NameYourStoreRoute: NameYourStoreRoute,
   NoAccountRoute: NoAccountRoute,
   OfflineVideosRoute: OfflineVideosRoute,
-  PhoneNumberRoute: PhoneNumberRoute,
   PrivacyRoute: PrivacyRoute,
-  ProductCategoryRoute: ProductCategoryRoute,
   SellerTypeRoute: SellerTypeRoute,
   SetUpStoreRoute: SetUpStoreRoute,
   SettingsRoute: SettingsRoute,
+  SignInRoute: SignInRoute,
   StoreRoute: StoreRouteWithChildren,
   StudioRoute: StudioRoute,
   TermsRoute: TermsRoute,

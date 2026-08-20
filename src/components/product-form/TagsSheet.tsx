@@ -23,7 +23,7 @@ export function TagsSheet({
   const [tags, setTags] = useState<TagRow[] | null>(null); // null = loading
   const [query, setQuery] = useState("");
   const [sortDesc, setSortDesc] = useState(false);
-  const [viewSelectedOnly, setViewSelectedOnly] = useState(false);
+  const [selectedPanelOpen, setSelectedPanelOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [creating, setCreating] = useState(false);
 
@@ -47,8 +47,9 @@ export function TagsSheet({
 
   const visible = (tags ?? [])
     .filter((t) => !q || t.title.toLowerCase().includes(q))
-    .filter((t) => !viewSelectedOnly || selected.has(t.id))
     .sort((a, b) => (sortDesc ? b.title.localeCompare(a.title) : a.title.localeCompare(b.title)));
+
+  const selectedTitles = (tags ?? []).filter((t) => selected.has(t.id)).map((t) => t.title);
 
   const exactExists = (tags ?? []).some((t) => t.title.toLowerCase() === q);
   const canCreate = !!q && !exactExists;
@@ -154,61 +155,94 @@ export function TagsSheet({
           })}
 
         {tags !== null && !canCreate && visible.length === 0 && (
-          <p className="px-4 py-6 text-sm text-gray-400 text-center">
-            {viewSelectedOnly ? "No tags selected yet." : "No tags yet."}
-          </p>
+          <p className="px-4 py-6 text-sm text-gray-400 text-center">No tags yet.</p>
         )}
       </div>
 
-      <div className="sticky bottom-0 bg-black text-white px-4 h-14 flex items-center justify-between shrink-0">
-        <span className="text-sm text-gray-300">{selectedIds.length} selected</span>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setViewSelectedOnly((v) => !v)}
-            className="text-sm font-medium bg-white/15 rounded-full px-4 py-2"
-          >
-            {viewSelectedOnly ? "View all" : "View selected"}
-          </button>
-          <div className="relative">
+      <div className="sticky bottom-0 px-3 pb-3 pt-2 shrink-0">
+        <div className="bg-black text-white rounded-full px-4 h-12 flex items-center justify-between shadow-lg">
+          <span className="text-sm text-gray-300">{selectedIds.length} selected</span>
+          <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => setMenuOpen((v) => !v)}
+              onClick={() => setSelectedPanelOpen(true)}
+              className="text-sm font-medium bg-white/15 rounded-full px-4 py-2"
+            >
+              View selected
+            </button>
+            <button
+              type="button"
+              onClick={() => setMenuOpen(true)}
               aria-label="More actions"
               className="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center"
             >
               <MoreHorizontal size={16} />
             </button>
-            {menuOpen && (
-              <>
-                <button
-                  type="button"
-                  aria-label="Close menu"
-                  onClick={() => setMenuOpen(false)}
-                  className="fixed inset-0 z-10 cursor-default"
-                />
-                <div className="absolute right-0 bottom-11 z-20 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden min-w-36">
-                  <button
-                    type="button"
-                    onClick={selectAll}
-                    className="w-full px-4 py-2.5 text-sm text-left text-gray-900"
-                  >
-                    Select all
-                  </button>
-                  <button
-                    type="button"
-                    onClick={clearAll}
-                    disabled={selectedIds.length === 0}
-                    className="w-full px-4 py-2.5 text-sm text-left text-gray-900 disabled:text-gray-300"
-                  >
-                    Clear all
-                  </button>
-                </div>
-              </>
-            )}
           </div>
         </div>
       </div>
+
+      {menuOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/40 flex items-end justify-center px-3 pb-24"
+          onClick={() => setMenuOpen(false)}
+        >
+          <div
+            className="bg-white rounded-2xl w-full max-w-xs overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-center text-sm font-semibold text-gray-900 py-3 border-b border-gray-100">
+              Actions
+            </p>
+            <button
+              type="button"
+              onClick={selectAll}
+              className="w-full px-4 py-3.5 text-[15px] text-gray-900 text-center border-b border-gray-100"
+            >
+              Select all
+            </button>
+            <button
+              type="button"
+              onClick={clearAll}
+              disabled={selectedIds.length === 0}
+              className="w-full px-4 py-3.5 text-[15px] text-gray-900 text-center border-b border-gray-100 disabled:text-gray-300"
+            >
+              Deselect all
+            </button>
+            <button
+              type="button"
+              onClick={() => setMenuOpen(false)}
+              className="w-full px-4 py-3.5 text-[15px] text-gray-500 text-center"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {selectedPanelOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/40 flex items-end justify-center px-3 pb-24"
+          onClick={() => setSelectedPanelOpen(false)}
+        >
+          <div
+            className="bg-white rounded-2xl w-full max-w-xs p-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-sm font-semibold text-gray-900 mb-2">Selected tags</p>
+            <p className="text-[15px] text-gray-600">
+              {selectedTitles.length > 0 ? selectedTitles.join(", ") : "No tags selected yet."}
+            </p>
+            <button
+              type="button"
+              onClick={() => setSelectedPanelOpen(false)}
+              className="mt-4 w-full bg-black text-white text-sm font-medium rounded-lg py-2.5"
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -285,11 +285,16 @@ function OakmonteLanding() {
             <p className="eyebrow">Fashion commerce, rebuilt</p>
 
             <h1 className="headline">
-              <span className="line line-main">
-                <span>Share your style.</span>
+              <span className="line line-top">
+                <span>Share your</span>
               </span>
-              <span className="line line-safely">
-                <span className="safely">SAFELY</span>
+              <span className="line-bottom">
+                <span className="word-mask">
+                  <span className="style-word">Style.</span>
+                </span>
+                <span className="word-mask">
+                  <span className="safely">SAFELY.</span>
+                </span>
               </span>
             </h1>
 
@@ -727,21 +732,24 @@ const CSS = `
 @media (max-width:900px){.oak nav.desktop-nav,.oak .desktop-auth{display:none;}.oak .mobile-toggle{display:block;}}
 @media (min-width:901px){.oak .mobile-toggle,.oak .mobile-menu{display:none !important;}}
 
-.oak .hero{padding:64px 0 0;position:relative;overflow:hidden;}
+.oak .hero{padding:36px 0 0;position:relative;overflow:hidden;}
 .oak .hero-glow{position:absolute;top:-260px;right:-260px;width:640px;height:640px;background:radial-gradient(circle,var(--blue-dim) 0%,transparent 70%);pointer-events:none;animation:oakPulse 6s ease-in-out infinite;}
 @keyframes oakPulse{0%,100%{transform:scale(1);opacity:1;}50%{transform:scale(1.15);opacity:.7;}}
 
 .oak .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--blue);margin:0 0 24px;}
 .oak .eyebrow::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--blue);}
 
-.oak h1.headline{font-family:var(--display);font-size:clamp(48px,12.5vw,168px);line-height:.86;letter-spacing:-.02em;text-transform:uppercase;margin:0 0 32px;display:flex;justify-content:space-between;align-items:flex-start;gap:24px;}
+.oak h1.headline{font-family:var(--display);font-size:clamp(32px,11vw,168px);line-height:.86;letter-spacing:-.02em;text-transform:uppercase;margin:0 0 32px;}
+@media (min-width:641px){.oak h1.headline{font-size:clamp(48px,12.5vw,168px);}}
 .oak h1.headline .line{display:block;overflow:hidden;}
-.oak h1.headline .line span{display:block;transform:translateY(115%);opacity:0;animation:oakReveal .9s cubic-bezier(.16,1,.3,1) forwards;}
-.oak h1.headline .line-main span{animation-delay:.2s;}
-.oak h1.headline .line-safely{flex:none;align-self:flex-start;}
-.oak h1.headline .line-safely span{font-size:clamp(30px,7vw,92px);color:var(--blue);animation-delay:.55s;}
+.oak h1.headline .line-top span{display:block;white-space:nowrap;transform:translateY(115%);opacity:0;animation:oakReveal .9s cubic-bezier(.16,1,.3,1) forwards;animation-delay:.2s;}
+.oak h1.headline .line-bottom{display:flex;align-items:baseline;flex-wrap:wrap;column-gap:28px;row-gap:4px;}
+.oak h1.headline .word-mask{overflow:hidden;display:block;}
+.oak h1.headline .style-word{display:block;transform:translateY(115%);opacity:0;animation:oakReveal .9s cubic-bezier(.16,1,.3,1) forwards;animation-delay:.35s;}
+.oak h1.headline .safely{display:block;font-size:clamp(26px,5.8vw,68px);color:var(--blue);transform:translateX(115%) scale(.9);opacity:0;animation:oakSafelyReveal 1.1s cubic-bezier(.16,1,.3,1) forwards;animation-delay:1.3s;}
 @keyframes oakReveal{to{transform:translateY(0);opacity:1;}}
-@media (max-width:900px){.oak h1.headline{flex-direction:column;gap:8px;}.oak h1.headline .line-safely span{font-size:clamp(28px,9vw,64px);}}
+@keyframes oakSafelyReveal{0%{transform:translateX(115%) scale(.9);opacity:0;}55%{opacity:1;}100%{transform:translateX(0) scale(1);opacity:1;}}
+@media (max-width:900px){.oak h1.headline .line-bottom{column-gap:16px;}.oak h1.headline .safely{font-size:clamp(23px,7.6vw,50px);}}
 
 .oak .hero-sub{font-size:20px;line-height:1.55;color:var(--gray);max-width:36rem;margin:0 0 40px;font-weight:500;opacity:0;animation:oakFadeUp .7s ease forwards;animation-delay:.55s;}
 .oak .hero-sub b{color:var(--black);}
