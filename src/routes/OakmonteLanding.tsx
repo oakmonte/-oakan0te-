@@ -304,8 +304,12 @@ function OakmonteLanding() {
               Creators advertise for free.<br />
               Shoppers hand strangers money and hope.<br />
               <b>
-                Oakmonte fixes all three — one platform, one payment system, nobody left holding the
-                bag.
+                <br />
+                Oakmonte fixes all three — one unified platform, one trusted payment system, nobody
+                left holding the bag.
+                <br />
+                <br />
+                The world's first content optimised marketplace.
               </b>
             </p>
 
