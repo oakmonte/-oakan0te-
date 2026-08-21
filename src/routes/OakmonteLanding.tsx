@@ -180,14 +180,142 @@ function CountUp({ value, suffix }: { value: number; suffix: string }) {
   );
 }
 
+/* ---------------- Header menus ---------------- */
+type MenuKey = "product" | "solutions" | "resources" | "blog";
+
+const MENUS: Record<
+  MenuKey,
+  { label: string; items: { title: string; desc: string; href: string }[] }
+> = {
+  product: {
+    label: "Product",
+    items: [
+      {
+        title: "Content to Sale",
+        desc: "Buy directly from creative content — no third-party links, higher conversion rate.",
+        href: "#product",
+      },
+      {
+        title: "Scam Proof",
+        desc: "No payment reaches a seller without customer satisfaction.",
+        href: "#product",
+      },
+      {
+        title: "Seller Accountability",
+        desc: "Every product is easily traced back to the creator or brand who promoted it.",
+        href: "#product",
+      },
+      {
+        title: "Handled Logistics",
+        desc: "A dedicated delivery service for every seller.",
+        href: "#product",
+      },
+      {
+        title: "Sellers Dashboard",
+        desc: "Performance analysis, order handling, recommendation systems and much more all in one place.",
+        href: "#product",
+      },
+      {
+        title: "Find Your Fit",
+        desc: "A recommendation system built to improve product-customer fit.",
+        href: "#product",
+      },
+      {
+        title: "Oakmonte Studio",
+        desc: "Dedicated tools for creators and brands to express creativity through content.",
+        href: "#product",
+      },
+      {
+        title: "Customizable Storefronts",
+        desc: "Communicate your identity to customers at a glance.",
+        href: "#product",
+      },
+    ],
+  },
+  solutions: {
+    label: "Solutions",
+    items: [
+      {
+        title: "For Sellers",
+        desc: "Customizable storefronts for vetted brands and boutiques.",
+        href: "#solutions",
+      },
+      {
+        title: "For Creators",
+        desc: "Monetize your style through content.",
+        href: "#solutions",
+      },
+      { title: "For Buyers", desc: "Protected access to every purchase.", href: "#solutions" },
+    ],
+  },
+  resources: {
+    label: "Rescources",
+    items: [
+      { title: "Docs", desc: "Integration guides for sellers and creators.", href: "#resources" },
+      {
+        title: "About / Manifesto",
+        desc: "Our vetting standards and why we built Oakmonte.",
+        href: "#resources",
+      },
+      {
+        title: "Support",
+        desc: "Help with verification, escrow, and payouts.",
+        href: "#resources",
+      },
+    ],
+  },
+  blog: {
+    label: "Blog",
+    items: [
+      { title: "Journal", desc: "Editorial fashion features and style curation.", href: "/blog" },
+      {
+        title: "Creator Spotlights",
+        desc: "Stories from creators building on Oakmonte.",
+        href: "/blog",
+      },
+      {
+        title: "Style Guides",
+        desc: "Curated collections from our style curators.",
+        href: "/blog",
+      },
+    ],
+  },
+};
+
+const NAV: { label: string; href: string; key?: MenuKey }[] = [
+  { label: "Product", href: "#product", key: "product" },
+  { label: "Story", href: "#story" },
+  { label: "Solutions", href: "#solutions", key: "solutions" },
+  { label: "FAQ", href: "#faq" },
+  { label: "Blog", href: "/blog", key: "blog" },
+  { label: "Rescources", href: "#resources", key: "resources" },
+];
+
 /* ---------------- Page ---------------- */
 function OakmonteLanding() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileGroup, setMobileGroup] = useState<MenuKey | null>(null);
+  const [openMenu, setOpenMenu] = useState<MenuKey | null>(null);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [signedIn, setSignedIn] = useState(false);
   const [authMenu, setAuthMenu] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [activeNav, setActiveNav] = useState("PRODUCT");
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const openWithKey = (key: MenuKey) => {
+    if (closeTimer.current) {
+      clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+    setOpenMenu(key);
+  };
+  const scheduleClose = () => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    closeTimer.current = setTimeout(() => setOpenMenu(null), 150);
+  };
+
+
 
   useEffect(() => {
     const onScroll = () => {
