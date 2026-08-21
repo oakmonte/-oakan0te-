@@ -937,7 +937,16 @@ function OakmonteLanding() {
             </div>
             <a href="mailto:contact@oakmonte.com">CONTACT US →</a>
           </div>
+          <div className="wrap footer-legal">
+            <div>© 2026 Oakmonte Collective</div>
+            <div className="footer-legal-links">
+              <a href="/terms">TERMS OF SERVICE</a>
+              <a href="/privacy">PRIVACY POLICY</a>
+              <a href="#">MANIFESTO</a>
+            </div>
+          </div>
         </footer>
+
       </main>
     </div>
   );
@@ -1209,4 +1218,11 @@ const CSS = `
 .oak .footer-brand .tag{font-size:12px;color:rgba(255,255,255,.55);}
 .oak .footer-row > a{font-size:13px;font-weight:700;color:#6E8CFF;}
 .oak .footer-row > a:hover{color:#fff;}
+.oak .footer-legal{margin-top:32px;padding-top:24px;border-top:1px solid rgba(255,255,255,.12);display:flex;flex-direction:column;gap:14px;justify-content:space-between;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.5);}
+@media (min-width:640px){.oak .footer-legal{flex-direction:row;align-items:center;}}
+.oak .footer-legal-links{display:flex;flex-wrap:wrap;gap:16px;}
+@media (min-width:640px){.oak .footer-legal-links{gap:32px;}}
+.oak .footer-legal-links a{color:inherit;transition:color .3s ease;}
+.oak .footer-legal-links a:hover{color:#fff;}
+
 `;
