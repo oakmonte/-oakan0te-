@@ -314,7 +314,7 @@ function OakmonteLanding() {
               </b>
             </p>
 
-            <p className="hero-tagline">The world's first content optimised marketplace.</p>
+            <p className="hero-tagline">THE WORLD'S FIRST CONTENT OPTIMISED MARKETPLACE.</p>
 
             <div className="hero-cta-stack">
               <Link to="/set-up-store" className="hero-cta-card card-blue">
