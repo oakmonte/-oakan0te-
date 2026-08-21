@@ -1,5 +1,13 @@
 import type { ReactNode } from "react";
-import { ArrowLeft, ChevronRight, Search, Share2, ShoppingBag, Star } from "lucide-react";
+import {
+  ArrowLeft,
+  ChevronRight,
+  LayoutGrid,
+  Search,
+  Share2,
+  ShoppingBag,
+  Star,
+} from "lucide-react";
 
 // Shared, theme-agnostic building blocks for the full (phone-frame) storefront
 // preview. Every theme's colors/copy/icons are passed in as props — this is
@@ -24,6 +32,19 @@ export function PhoneHeader({
         <Search size={15} strokeWidth={1.8} />
       </div>
     </div>
+  );
+}
+
+export function LayoutPickerButton({ accent, chipBg }: { accent: string; chipBg: string }) {
+  return (
+    <button
+      type="button"
+      className="absolute right-4 top-14 flex items-center gap-1 rounded-full px-2.5 py-1.5 text-[9px] font-semibold"
+      style={{ background: chipBg, color: accent }}
+    >
+      <LayoutGrid size={11} />
+      Layout
+    </button>
   );
 }
 
