@@ -977,10 +977,26 @@ const CSS = `
 @media (max-width:640px){.oak .brand .tagline{margin-left:12px;font-size:8px;letter-spacing:.12em;}}
 
 .oak nav.desktop-nav{display:flex;align-items:center;gap:36px;}
-.oak nav.desktop-nav a{font-size:13px;font-weight:600;position:relative;padding:4px 0;}
-.oak nav.desktop-nav a::after{content:"";position:absolute;left:0;bottom:-2px;width:0;height:2px;background:var(--blue);transition:width .25s ease;}
-.oak nav.desktop-nav a:hover::after,.oak nav.desktop-nav a.active::after{width:100%;}
-.oak nav.desktop-nav a.active{color:var(--blue);}
+.oak nav.desktop-nav a,.oak nav.desktop-nav > .nav-item > button{font-size:13px;font-weight:600;position:relative;padding:4px 0;display:inline-flex;align-items:center;gap:6px;color:var(--black);transition:color .3s ease;background:none;}
+.oak nav.desktop-nav a::after,.oak nav.desktop-nav > .nav-item > button::after{content:"";position:absolute;left:0;bottom:-2px;width:0;height:2px;background:var(--blue);transition:width .25s ease;}
+.oak nav.desktop-nav a:hover::after,.oak nav.desktop-nav a.active::after,.oak nav.desktop-nav > .nav-item > button:hover::after,.oak nav.desktop-nav > .nav-item > button.active::after{width:100%;}
+.oak nav.desktop-nav a.active,.oak nav.desktop-nav > .nav-item > button.active{color:var(--blue);}
+.oak nav.desktop-nav a:hover,.oak nav.desktop-nav > .nav-item > button:hover{color:var(--blue);}
+.oak .nav-item{position:relative;}
+.oak .nav-item .chev{opacity:.6;transition:transform .2s ease;}
+.oak .nav-item .chev.up{transform:rotate(180deg);}
+.oak .dd-wrap{position:absolute;top:100%;left:50%;transform:translateX(-50%);padding-top:16px;z-index:60;}
+.oak .dd-panel{background:var(--white);border:1px solid var(--line);border-radius:14px;box-shadow:0 24px 48px rgba(0,0,0,.12);padding:10px 0;width:320px;}
+.oak .dd-panel.wide{width:560px;display:grid;grid-template-columns:1fr 1fr;}
+.oak .dd-panel a{display:block;padding:12px 20px;transition:background .2s ease;}
+.oak .dd-panel a::after{display:none;}
+.oak .dd-panel a:hover{background:#F4F5F7;}
+.oak .dd-title{display:block;font-size:14px;font-weight:700;color:var(--black);}
+.oak .dd-desc{display:block;font-size:12px;font-weight:400;line-height:1.4;color:rgba(0,0,0,.55);margin-top:2px;}
+.oak .nav-back{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--black);transition:color .3s ease;animation:ddFadeIn 220ms ease-out both;}
+.oak .nav-back:hover{color:var(--blue);}
+.oak .brand-o.only-o{height:56px;transform:translateY(2px);animation:ddFadeIn 220ms ease-out both;}
+
 
 .oak .cta-btn{display:inline-flex;align-items:center;gap:8px;padding:12px 22px;background:var(--black);color:var(--white);font-size:13px;font-weight:700;border-radius:999px;transition:transform .25s ease,background .25s ease;white-space:nowrap;}
 .oak .cta-btn:hover{background:var(--blue);transform:translateY(-2px);}
