@@ -249,6 +249,7 @@ function OakmonteLanding() {
               <a href="#solutions">Solutions</a>
               <a href="#faq">FAQ</a>
               <a href="/blog">Blog</a>
+              <a href="#resources">Rescources</a>
             </nav>
             <div className="desktop-auth">
               <Auth />
@@ -272,6 +273,7 @@ function OakmonteLanding() {
             <a href="#solutions">Solutions</a>
             <a href="#faq">FAQ</a>
             <a href="/blog">Blog</a>
+            <a href="#resources">Rescources</a>
             <div className="mobile-auth">
               <Auth />
             </div>
