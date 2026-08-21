@@ -968,7 +968,7 @@ const CSS = `
 .oak .reveal-delay-3.in-view{transition-delay:.3s;}
 
 .oak header{position:fixed;top:0;left:0;right:0;width:100%;height:76px;z-index:100;background:rgba(255,255,255,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);transition:box-shadow .3s ease;}
-.oak .header-row{display:flex;align-items:flex-end;justify-content:space-between;height:76px;padding-bottom:10px;}
+.oak .header-row{position:relative;z-index:101;display:flex;align-items:flex-end;justify-content:space-between;height:76px;padding-bottom:10px;}
 .oak .brand{display:flex;align-items:baseline;gap:0;}
 .oak .brand-o{height:44px;width:auto;flex:none;display:inline-block;transform:translateY(4px);}
 .oak .footer-mark{width:34px;height:34px;border-radius:9px;background:var(--blue);object-fit:contain;padding:5px;flex:none;}
