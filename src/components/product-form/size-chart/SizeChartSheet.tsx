@@ -4,12 +4,12 @@ import { useLockedViewport } from "@/hooks/use-locked-viewport";
 import {
   cmToDisplay,
   displayToCm,
+  isMeasurementSetPlausible,
   type ManualSize,
   type SizeChartDefinition,
   type SizeMeasurements,
 } from "@/lib/size-chart-config";
 import { SIZE_SYSTEMS } from "@/components/product-form/OptionEditorSheet";
-import { TshirtShortSleeveDiagram } from "@/components/product-form/size-chart/TshirtOutline";
 
 type Unit = "cm" | "in";
 // sizeValue -> measurementKey -> raw typed string, in whatever `unit` currently is
@@ -67,16 +67,31 @@ export function SizeChartSheet({
     (manualSize?.system as keyof typeof SIZE_SYSTEMS) ?? "XXL",
   );
   const [confirmEmptySave, setConfirmEmptySave] = useState(false);
+  const [confirmImplausible, setConfirmImplausible] = useState(false);
 
   const activeSizes = isVariantMode ? variantSizeValues : pickedSize ? [pickedSize.value] : [];
   const currentSize = activeSizes[index];
 
   function setCell(sizeValue: string, key: string, raw: string) {
     setConfirmEmptySave(false);
+    setConfirmImplausible(false);
     setDraft((prev) => ({
       ...prev,
       [sizeValue]: { ...prev[sizeValue], [key]: raw },
     }));
+  }
+
+  // Converts the currently-shown size's draft cells to cm and runs the
+  // silent cross-measurement sanity check — no ratio/rule detail surfaces
+  // to the seller, only a generic "looks off" nudge (see confirmImplausible).
+  function currentDraftPlausible(): boolean {
+    const cmValues: Record<string, number> = {};
+    for (const line of chart.lines) {
+      const raw = draft[currentSize]?.[line.key];
+      const num = raw ? parseFloat(raw) : NaN;
+      if (!isNaN(num)) cmValues[line.key] = displayToCm(num, unit);
+    }
+    return isMeasurementSetPlausible(cmValues);
   }
 
   function switchUnit(next: Unit) {
@@ -105,6 +120,7 @@ export function SizeChartSheet({
     setPickedSize({ value, system: pickerSystem });
     setDraft(() => seedDraft([value], chart.lines, initialMeasurements));
     setConfirmEmptySave(false);
+    setConfirmImplausible(false);
   }
 
   function measurementsFor(sizeValues: string[]): SizeMeasurements {
@@ -122,16 +138,26 @@ export function SizeChartSheet({
   }
 
   function handleNext() {
+    if (!currentDraftPlausible() && !confirmImplausible) {
+      setConfirmImplausible(true);
+      return;
+    }
     setIndex((i) => Math.min(i + 1, activeSizes.length - 1));
     setConfirmEmptySave(false);
+    setConfirmImplausible(false);
   }
 
   function handleBack() {
     setIndex((i) => Math.max(i - 1, 0));
     setConfirmEmptySave(false);
+    setConfirmImplausible(false);
   }
 
   function handleVariantSave() {
+    if (!currentDraftPlausible() && !confirmImplausible) {
+      setConfirmImplausible(true);
+      return;
+    }
     onSave(measurementsFor(variantSizeValues), null);
   }
 
@@ -142,10 +168,27 @@ export function SizeChartSheet({
       setConfirmEmptySave(true);
       return;
     }
+    if (hasAnyValue && !currentDraftPlausible() && !confirmImplausible) {
+      setConfirmImplausible(true);
+      return;
+    }
     onSave(measurementsFor([pickedSize.value]), pickedSize);
   }
 
   const isLastStep = index === activeSizes.length - 1;
+  const saveLabel = isVariantMode
+    ? confirmImplausible
+      ? isLastStep
+        ? "Save anyway"
+        : "Continue anyway"
+      : isLastStep
+        ? "Save size chart"
+        : "Next size"
+    : confirmImplausible
+      ? "Save anyway"
+      : confirmEmptySave
+        ? "Save without measurements"
+        : "Save size";
 
   return (
     <div className="fixed inset-0 z-50 bg-white flex flex-col min-h-dvh animate-in fade-in slide-in-from-bottom-6 duration-300 ease-out">
@@ -171,7 +214,11 @@ export function SizeChartSheet({
         ) : (
           <>
             <div className="aspect-square w-full bg-gray-50 rounded-2xl p-4">
-              <TshirtShortSleeveDiagram activeKey={focusedKey} onSelectLine={setFocusedKey} />
+              <img
+                src="/size-chart/tshirt-guide.png"
+                alt="T-shirt measurement guide: a shoulder width, b chest width, c body length, d sleeve length, e neck width"
+                className="w-full h-full object-contain"
+              />
             </div>
 
             <div className="flex items-center justify-between gap-3">
@@ -241,6 +288,13 @@ export function SizeChartSheet({
                 later.
               </p>
             )}
+
+            {confirmImplausible && (
+              <p className="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2.5 animate-in fade-in duration-200">
+                Double check these numbers — this combination looks unusual for one size. You can
+                still save if you're sure.
+              </p>
+            )}
           </>
         )}
       </div>
@@ -263,13 +317,7 @@ export function SizeChartSheet({
             }
             className="flex-1 bg-black text-white text-sm font-medium rounded-full py-3.5 oak-motion-control active:scale-[0.98]"
           >
-            {isVariantMode
-              ? isLastStep
-                ? "Save size chart"
-                : "Next size"
-              : confirmEmptySave
-                ? "Save without measurements"
-                : "Save size"}
+            {saveLabel}
           </button>
         </div>
       )}

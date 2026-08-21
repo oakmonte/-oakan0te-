@@ -1,15 +1,5 @@
 import type { ReactNode } from "react";
-import {
-  ArrowLeft,
-  Bookmark,
-  ChevronRight,
-  RefreshCw,
-  Search,
-  Share2,
-  ShoppingBag,
-  Star,
-  User,
-} from "lucide-react";
+import { ArrowLeft, ChevronRight, Search, Share2, ShoppingBag, Star } from "lucide-react";
 
 // Shared, theme-agnostic building blocks for the full (phone-frame) storefront
 // preview. Every theme's colors/copy/icons are passed in as props — this is
@@ -19,8 +9,6 @@ import {
 export function PhoneHeader({
   textColor,
   mutedColor,
-  ringGradient,
-  avatarBg,
 }: {
   textColor: string;
   mutedColor: string;
@@ -30,54 +18,11 @@ export function PhoneHeader({
   return (
     <div className="flex items-center justify-between px-4 py-3">
       <ArrowLeft size={16} strokeWidth={1.8} style={{ color: textColor }} />
-      <div className="h-10 w-10 rounded-full p-[2px]" style={{ background: ringGradient }}>
-        <div
-          className="flex h-full w-full items-center justify-center rounded-full"
-          style={{ background: avatarBg }}
-        >
-          <User size={15} style={{ color: textColor }} />
-        </div>
-      </div>
       <div className="flex items-center gap-3" style={{ color: mutedColor }}>
         <ShoppingBag size={15} strokeWidth={1.8} />
         <Share2 size={15} strokeWidth={1.8} />
         <Search size={15} strokeWidth={1.8} />
       </div>
-    </div>
-  );
-}
-
-export function PhoneTabBar({
-  accent,
-  accentTextColor = "#ffffff",
-  mutedColor,
-}: {
-  accent: string;
-  accentTextColor?: string;
-  mutedColor: string;
-}) {
-  return (
-    <div className="flex items-center justify-around px-6 py-2.5" style={{ color: mutedColor }}>
-      <div className="grid grid-cols-2 gap-[3px]">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <span
-            key={i}
-            className="h-[3px] w-[3px] rounded-full"
-            style={{ background: mutedColor }}
-          />
-        ))}
-      </div>
-      <div className="flex flex-col items-center gap-1">
-        <div
-          className="flex h-8 w-8 items-center justify-center rounded-full"
-          style={{ background: accent }}
-        >
-          <ShoppingBag size={14} style={{ color: accentTextColor }} />
-        </div>
-        <span className="h-1 w-1 rounded-full" style={{ background: accent }} />
-      </div>
-      <RefreshCw size={15} strokeWidth={1.8} />
-      <Bookmark size={15} strokeWidth={1.8} />
     </div>
   );
 }

@@ -22,7 +22,6 @@ import {
   FeatureStrip,
   FooterTeaser,
   PhoneHeader,
-  PhoneTabBar,
   PromoBanner,
   StatsRow,
 } from "./full-preview-blocks";
@@ -45,7 +44,6 @@ function MotionGridFull() {
           ringGradient="linear-gradient(135deg,#9c4dff,#3a1a63)"
           avatarBg="#1c1428"
         />
-        <PhoneTabBar accent="#9c4dff" mutedColor="rgba(255,255,255,0.45)" />
 
         <div className="px-4 pt-6">
           <p className="text-[9px] font-semibold uppercase tracking-[0.25em] text-[#c9a3ff]">
@@ -131,7 +129,6 @@ function ImmersiveBannerFull() {
           ringGradient="linear-gradient(135deg,#a67c52,#d8c8b4)"
           avatarBg="#f7f2e9"
         />
-        <PhoneTabBar accent="#a67c52" mutedColor="rgba(41,34,25,0.4)" accentTextColor="#fff" />
 
         <div className="px-4 pt-4 text-center">
           <p className="text-[9px] font-semibold uppercase tracking-[0.25em] text-[#695947]">
@@ -216,7 +213,6 @@ function InteractiveStoryFull() {
           ringGradient="linear-gradient(135deg,#ff9bc8,#ec4b9a,#7144e8)"
           avatarBg="#241520"
         />
-        <PhoneTabBar accent="#ec4b9a" mutedColor="rgba(255,255,255,0.45)" />
 
         <div className="px-4 pt-4">
           <div className="flex items-center gap-3">
@@ -322,11 +318,6 @@ function GalleryEditFull() {
           ringGradient="linear-gradient(135deg,#c9a227,#6b5a1f)"
           avatarBg="#151310"
         />
-        <PhoneTabBar
-          accent="#c9a227"
-          mutedColor="rgba(243,237,226,0.4)"
-          accentTextColor="#0c0b0a"
-        />
 
         <div className="px-4 pt-6 text-center">
           <p className="text-[9px] font-semibold uppercase tracking-[0.3em] text-[#c9a227]">
@@ -415,11 +406,6 @@ function NeonTerminalFull() {
           mutedColor="rgba(234,252,255,0.6)"
           ringGradient="linear-gradient(135deg,#2dd4ff,#0a5a6e)"
           avatarBg="#081014"
-        />
-        <PhoneTabBar
-          accent="#2dd4ff"
-          mutedColor="rgba(234,252,255,0.4)"
-          accentTextColor="#05070a"
         />
 
         <div className="px-4 pt-6 text-center">

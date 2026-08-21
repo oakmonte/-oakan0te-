@@ -23,6 +23,21 @@ function flattenTree(node: CategoryNode, pathNodes: CategoryNode[] = []): FlatEn
 // Built once at module load — the tree is static.
 const ALL_ENTRIES = flattenTree(ROOT_CATEGORY);
 
+// Strips spaces/punctuation and lowercases, so "T-Shirts", "t shirt" and
+// "tshirt" all collapse to the same "tshirts"/"tshirt" comparison — sellers
+// shouldn't be punished for skipping a hyphen or space.
+function normalize(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9]+/g, "");
+}
+
+// Precomputed once per entry: normalized leaf name, and normalized full
+// breadcrumb (ancestors + self) for multi-word queries like "activewear tee".
+const SEARCH_INDEX = ALL_ENTRIES.map((entry) => ({
+  entry,
+  nameNorm: normalize(entry.node.name),
+  pathNorm: normalize(entry.pathNodes.map((n) => n.name).join(" ")),
+}));
+
 export function CategoryPicker({
   onSelect,
   onClose,
@@ -36,9 +51,29 @@ export function CategoryPicker({
   const visibleChildren = current.children ?? [];
 
   const searchResults = useMemo(() => {
-    if (!search.trim()) return null;
-    const q = search.trim().toLowerCase();
-    return ALL_ENTRIES.filter((e) => e.node.name.toLowerCase().includes(q));
+    // Tokenized so multi-word queries (e.g. "activewear tee") require every
+    // word to appear somewhere in the entry's breadcrumb, in any order —
+    // not just one contiguous substring.
+    const tokens = search.trim().toLowerCase().split(/\s+/).map(normalize).filter(Boolean);
+    if (tokens.length === 0) return null;
+
+    const scored: { entry: FlatEntry; score: number }[] = [];
+    for (const { entry, nameNorm, pathNorm } of SEARCH_INDEX) {
+      if (!tokens.every((t) => pathNorm.includes(t))) continue;
+      const joined = tokens.join("");
+      // Lower score = more relevant: exact leaf name, then leaf name starts
+      // with the query, then substring-in-leaf-name, then breadcrumb-only.
+      const score = nameNorm === joined
+        ? 0
+        : nameNorm.startsWith(tokens[0])
+          ? 1
+          : nameNorm.includes(joined)
+            ? 2
+            : 3;
+      scored.push({ entry, score });
+    }
+    scored.sort((a, b) => a.score - b.score);
+    return scored.map((s) => s.entry);
   }, [search]);
 
   function goBack() {
