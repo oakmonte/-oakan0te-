@@ -988,7 +988,7 @@ const CSS = `
 .oak .dd-wrap{position:absolute;top:100%;left:50%;transform:translateX(-50%);padding-top:16px;z-index:60;}
 .oak .dd-panel{background:var(--white);border:1px solid var(--line);border-radius:14px;box-shadow:0 24px 48px rgba(0,0,0,.12);padding:10px 0;width:320px;}
 .oak .dd-panel.wide{width:560px;display:grid;grid-template-columns:1fr 1fr;}
-.oak .dd-panel a{display:block!important;padding:12px 20px;transition:background .2s ease;}
+.oak nav.desktop-nav .dd-panel a,.oak .dd-panel a{display:block!important;padding:12px 20px;transition:background .2s ease;}
 .oak .dd-panel a::after{display:none;}
 .oak .dd-panel a:hover{background:#F4F5F7;}
 .oak .dd-title{display:block;font-size:14px;font-weight:700;color:var(--black);}
