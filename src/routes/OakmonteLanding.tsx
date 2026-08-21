@@ -937,7 +937,16 @@ function OakmonteLanding() {
             </div>
             <a href="mailto:contact@oakmonte.com">CONTACT US →</a>
           </div>
+          <div className="wrap footer-legal">
+            <div>© 2026 Oakmonte Collective</div>
+            <div className="footer-legal-links">
+              <a href="/terms">TERMS OF SERVICE</a>
+              <a href="/privacy">PRIVACY POLICY</a>
+              <a href="#">MANIFESTO</a>
+            </div>
+          </div>
         </footer>
+
       </main>
     </div>
   );
