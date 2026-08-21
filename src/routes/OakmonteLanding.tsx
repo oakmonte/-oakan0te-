@@ -234,31 +234,104 @@ function OakmonteLanding() {
       <header id="site-header" style={{ boxShadow: scrolled ? "0 1px 0 rgba(0,0,0,.06)" : "none" }}>
         <div className="wrap">
           <div className="header-row">
-            <a href="#product" className="brand">
-              <img src={logoO} alt="Oakmonte" className="brand-o" />
-              <span className="word">akmonte</span>
-              <span className="tagline">CREATED TO CREATE.</span>
-            </a>
-            <nav className="desktop-nav">
-              <a href="#product" className={activeNav === "PRODUCT" ? "active" : ""}>
-                Product
+            {mobileOpen && mobileGroup ? (
+              <button type="button" className="nav-back" onClick={() => setMobileGroup(null)}>
+                <svg width="18" height="18" viewBox="0 0 14 14" aria-hidden="true">
+                  <path
+                    d="M9 2L4 7l5 5"
+                    stroke="currentColor"
+                    strokeWidth="1.4"
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                Back
+              </button>
+            ) : (
+              <a href="#product" className="brand">
+                {mobileOpen ? (
+                  <img src={IMG_LOGO} alt="Oakmonte" className="brand-o only-o" />
+                ) : (
+                  <>
+                    <img src={logoO} alt="Oakmonte" className="brand-o" />
+                    <span className="word">akmonte</span>
+                    <span className="tagline">CREATED TO CREATE.</span>
+                  </>
+                )}
               </a>
-              <a href="#story" className={activeNav === "STORY" ? "active" : ""}>
-                Story
-              </a>
-              <a href="#solutions">Solutions</a>
-              <a href="#faq">FAQ</a>
-              <a href="/blog">Blog</a>
-              <a href="#resources">Rescources</a>
+            )}
+            <nav className="desktop-nav" onMouseLeave={scheduleClose}>
+              {NAV.map((item) =>
+                item.key ? (
+                  <div
+                    key={item.label}
+                    className="nav-item"
+                    onMouseEnter={() => openWithKey(item.key as MenuKey)}
+                  >
+                    <button
+                      type="button"
+                      className={activeNav === item.label.toUpperCase() ? "active" : ""}
+                      onFocus={() => openWithKey(item.key as MenuKey)}
+                      aria-expanded={openMenu === item.key}
+                    >
+                      {item.label}
+                      <svg
+                        width="8"
+                        height="8"
+                        viewBox="0 0 8 8"
+                        className={`chev${openMenu === item.key ? " up" : ""}`}
+                        aria-hidden="true"
+                      >
+                        <path
+                          d="M1 2l3 3 3-3"
+                          stroke="currentColor"
+                          strokeWidth="1.2"
+                          fill="none"
+                        />
+                      </svg>
+                    </button>
+                    {openMenu === item.key && (
+                      <div className="dd-wrap" style={{ animation: "ddFadeIn 180ms ease-out both" }}>
+                        <div
+                          className={`dd-panel${item.key === "product" ? " wide" : ""}`}
+                        >
+                          {MENUS[item.key as MenuKey].items.map((it, i) => (
+                            <a
+                              key={it.title}
+                              href={it.href}
+                              style={{ animation: `ddItemIn 220ms ease-out ${i * 30}ms both` }}
+                            >
+                              <span className="dd-title">{it.title}</span>
+                              <span className="dd-desc">{it.desc}</span>
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <a
+                    key={item.label}
+                    href={item.href}
+                    className={activeNav === item.label.toUpperCase() ? "active" : ""}
+                  >
+                    {item.label}
+                  </a>
+                ),
+              )}
             </nav>
             <div className="desktop-auth">
               <Auth />
             </div>
             <button
-              className="mobile-toggle"
-              aria-label="Toggle navigation"
+              className={`mobile-toggle${mobileOpen ? " is-open" : ""}`}
+              aria-label={mobileOpen ? "Close menu" : "Open menu"}
               type="button"
-              onClick={() => setMobileOpen((v) => !v)}
+              onClick={() => {
+                setMobileOpen((v) => !v);
+                setMobileGroup(null);
+              }}
             >
               <span />
               <span />
@@ -266,20 +339,84 @@ function OakmonteLanding() {
             </button>
           </div>
         </div>
-        <div className={`mobile-menu${mobileOpen ? " open" : ""}`}>
-          <div className="mobile-menu-inner">
-            <a href="#product">Product</a>
-            <a href="#story">Story</a>
-            <a href="#solutions">Solutions</a>
-            <a href="#faq">FAQ</a>
-            <a href="/blog">Blog</a>
-            <a href="#resources">Rescources</a>
-            <div className="mobile-auth">
-              <Auth />
+
+        {/* Mobile side drawer */}
+        <div
+          className={`mobile-drawer${mobileOpen ? " open" : ""}`}
+          aria-hidden={!mobileOpen}
+        >
+          <div
+            className="drawer-scrim"
+            onClick={() => {
+              setMobileOpen(false);
+              setMobileGroup(null);
+            }}
+          />
+          <aside className="drawer-panel">
+            <div className="drawer-stage">
+              <div className={`drawer-list${mobileGroup ? " shifted" : ""}`}>
+                {NAV.map((item) =>
+                  item.key ? (
+                    <button
+                      key={item.label}
+                      type="button"
+                      className="drawer-row"
+                      onClick={() => setMobileGroup(item.key as MenuKey)}
+                    >
+                      {item.label}
+                      <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
+                        <path
+                          d="M3 1l4 4-4 4"
+                          stroke="currentColor"
+                          strokeWidth="1.4"
+                          fill="none"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </button>
+                  ) : (
+                    <a
+                      key={item.label}
+                      href={item.href}
+                      className="drawer-row"
+                      onClick={() => setMobileOpen(false)}
+                    >
+                      {item.label}
+                    </a>
+                  ),
+                )}
+                <div className="mobile-auth">
+                  <Auth />
+                </div>
+              </div>
+
+              <div className={`drawer-sub${mobileGroup ? " shown" : ""}`}>
+                {mobileGroup && (
+                  <div>
+                    <div className="drawer-sub-title">{MENUS[mobileGroup].label}</div>
+                    {MENUS[mobileGroup].items.map((it) => (
+                      <a
+                        key={it.title}
+                        href={it.href}
+                        className="drawer-sub-row"
+                        onClick={() => {
+                          setMobileOpen(false);
+                          setMobileGroup(null);
+                        }}
+                      >
+                        <span className="dd-title">{it.title}</span>
+                        <span className="dd-desc">{it.desc}</span>
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          </aside>
         </div>
       </header>
+
 
       <main>
         {/* HERO */}
