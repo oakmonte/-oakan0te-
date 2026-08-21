@@ -297,8 +297,6 @@ function OakmonteLanding() {
   const [mobileGroup, setMobileGroup] = useState<MenuKey | null>(null);
   const [openMenu, setOpenMenu] = useState<MenuKey | null>(null);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
-  const [signedIn, setSignedIn] = useState(false);
-  const [authMenu, setAuthMenu] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [activeNav, setActiveNav] = useState("PRODUCT");
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -326,34 +324,11 @@ function OakmonteLanding() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const Auth = () =>
-    signedIn ? (
-      <div className="auth-wrap">
-        <button
-          className="cta-btn ghost small"
-          onClick={() => setAuthMenu((v) => !v)}
-          type="button"
-        >
-          MOCKUSER
-        </button>
-        <div className={`auth-menu${authMenu ? " open" : ""}`}>
-          <a href="#product">View profile</a>
-          <button
-            type="button"
-            onClick={() => {
-              setSignedIn(false);
-              setAuthMenu(false);
-            }}
-          >
-            Sign out
-          </button>
-        </div>
-      </div>
-    ) : (
-      <button className="cta-btn ghost small" type="button" onClick={() => setSignedIn(true)}>
-        Sign in
-      </button>
-    );
+  const Auth = () => (
+    <Link to="/sign-in" className="cta-btn ghost small">
+      Sign in
+    </Link>
+  );
 
   return (
     <div className="oak">
@@ -515,9 +490,6 @@ function OakmonteLanding() {
                     </a>
                   ),
                 )}
-                <div className="mobile-auth">
-                  <Auth />
-                </div>
               </div>
 
               <div className={`drawer-sub${mobileGroup ? " shown" : ""}`}>
@@ -1017,11 +989,6 @@ const CSS = `
 .oak .cta-btn.on-black:hover{background:var(--white);color:var(--black);}
 
 .oak .desktop-auth{display:flex;align-items:center;gap:14px;}
-.oak .auth-wrap{position:relative;}
-.oak .auth-menu{position:absolute;right:0;margin-top:10px;width:200px;background:var(--white);border:1px solid var(--line);border-radius:12px;box-shadow:0 20px 40px rgba(0,0,0,.12);z-index:50;display:none;overflow:hidden;}
-.oak .auth-menu.open{display:block;}
-.oak .auth-menu a,.oak .auth-menu button{display:block;width:100%;text-align:left;padding:13px 16px;font-size:13px;font-weight:600;}
-.oak .auth-menu a:hover,.oak .auth-menu button:hover{background:#F4F5F7;color:var(--blue);}
 
 .oak .mobile-toggle{display:none;padding:8px;}
 .oak .mobile-toggle span{display:block;width:22px;height:2px;background:var(--black);margin-bottom:6px;transition:transform .3s ease,opacity .2s ease;}
@@ -1029,7 +996,6 @@ const CSS = `
 .oak .mobile-toggle.is-open span:nth-child(1){transform:translateY(8px) rotate(45deg);}
 .oak .mobile-toggle.is-open span:nth-child(2){opacity:0;}
 .oak .mobile-toggle.is-open span:nth-child(3){transform:translateY(-8px) rotate(-45deg);}
-.oak .mobile-auth{padding:20px 24px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:10px;}
 .oak .mobile-drawer{position:fixed;inset:0;z-index:99;opacity:0;pointer-events:none;transition:opacity .5s ease;}
 .oak .mobile-drawer.open{opacity:1;pointer-events:auto;}
 .oak .drawer-scrim{position:absolute;inset:0;background:rgba(0,0,0,.3);}
@@ -1047,7 +1013,7 @@ const CSS = `
 .oak .drawer-sub-title{padding:24px 24px 12px;font-size:11px;letter-spacing:.25em;text-transform:uppercase;color:rgba(0,0,0,.5);}
 .oak .drawer-sub-row{display:block;padding:16px 24px;border-bottom:1px solid var(--line);transition:background .2s ease;}
 .oak .drawer-sub-row:hover{background:#F4F5F7;}
-@media (max-width:900px){.oak nav.desktop-nav,.oak .desktop-auth{display:none;}.oak .mobile-toggle{display:block;position:relative;z-index:101;}}
+@media (max-width:900px){.oak nav.desktop-nav{display:none;}.oak .mobile-toggle{display:block;position:relative;z-index:101;}}
 @media (min-width:901px){.oak .mobile-toggle,.oak .mobile-drawer{display:none !important;}}
 
 

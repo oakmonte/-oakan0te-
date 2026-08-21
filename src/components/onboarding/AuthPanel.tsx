@@ -361,7 +361,16 @@ export function AuthPanel({ intent, title, subtitle, defaultMode = "code" }: Pro
             </div>
           )}
 
-          <p className="mt-10 text-center text-[11px] text-[#0A0A0A]/50 leading-relaxed">
+          {intent === null && (
+            <Link
+              to="/no-account"
+              className="mt-8 block text-center text-[11px] uppercase tracking-widest text-[#0A0A0A]/60 hover:text-[#0A0A0A] transition-colors"
+            >
+              Create a new account
+            </Link>
+          )}
+
+          <p className="mt-6 text-center text-[11px] text-[#0A0A0A]/50 leading-relaxed">
             By continuing, you agree to our{" "}
             <Link to="/terms" className="underline hover:text-[#2151F5]">
               Terms

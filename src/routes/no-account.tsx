@@ -1,38 +1,16 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { supabase } from "@/lib/integrations/my-supabase/client";
 
 export const Route = createFileRoute("/no-account")({
   head: () => ({ meta: [{ title: "Welcome to Oakmonte" }] }),
   component: NoAccountPage,
 });
 
+// Reached two ways: post-auth, when resolvePostAuthRedirect finds a signed-in
+// user with no profile yet; and pre-auth, as the "create a new account" exit
+// from /sign-in. Either way the three buttons below just carry the visitor
+// into an AuthPanel flow with intent set — no session is required to see them.
 function NoAccountPage() {
   const navigate = useNavigate();
-  const [checking, setChecking] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-    supabase.auth.getSession().then(({ data }) => {
-      if (cancelled) return;
-      if (!data.session) {
-        navigate({ to: "/", replace: true });
-        return;
-      }
-      setChecking(false);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [navigate]);
-
-  if (checking) {
-    return (
-      <div className="min-h-screen bg-brand-bg text-brand-text flex items-center justify-center">
-        <span className="text-sm text-brand-text/50">One moment…</span>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-brand-bg text-brand-text flex flex-col">
