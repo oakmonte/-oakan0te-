@@ -10,10 +10,44 @@ art yet — see Known gaps.
 
 ## How a crop becomes an option
 
-Each figure was located by scanning its source image for ink (non-white pixels) to find a
-tight bounding box — for the multi-figure sheets, column then row extent, separating the
-drawing from the caption text below it — then re-exported at ~300px wide with a small margin.
-See the git history for the exact script if you need to add another crop.
+Each figure was located by scanning its source image for ink (non-white pixels, threshold
+`r<240||g<240||b<240` with `alpha>10`) to find a tight bounding box — for the multi-figure
+sheets, column then row extent, separating the drawing from the caption text below it — then
+cropped via canvas with 5%/3% padding and re-exported at ~300px wide as WebP, quality 0.92.
+There's no saved script for this — it was written ad hoc per crop and never committed;
+reproduce the approach above rather than looking for a script in git history.
+
+Source images have inconsistent raw dimensions and aspect ratios (the sheets are landscape
+multi-figure scans; the two standalone plus-size pastes were portrait, and not the same
+portrait ratio as each other). This doesn't matter: `ImageBodyOption` in `find-your-fit.tsx`
+renders every crop with `object-contain` inside a fixed `w-32 h-56` box, so mismatched source
+aspect ratios never distort or crop the figure. Don't try to normalize source dimensions before
+cropping — just find the ink and crop tight.
+
+## Code-side ids and labels
+
+Filenames don't appear in `find-your-fit.tsx` — each is imported and wired into
+`FEMALE_BODY_TYPES` with its own `id` (used for the `bodyType` state value) and display
+`label`. Mapping, in the array's actual render order:
+
+| File | `id` | `label` |
+| --- | --- | --- |
+| `plus-moderate.webp` | `f-plus-moderate` | Plus Size, Moderate |
+| `skinny.webp` | `f-skinny` | Skinny |
+| `slim.webp` | `f-slim` | Slim |
+| `medium.webp` | `f-medium` | Medium |
+| `pear-small-thighs.webp` | `f-pear-small-thighs` | Pear Bust, Small Thighs |
+| `pear-bigger-thighs.webp` | `f-pear-bigger-thighs` | Pear Bust, Bigger Thighs |
+| `smallbust-bigger-thighs.webp` | `f-smallbust-bigger-thighs` | Small Bust, Bigger Thighs |
+| `extra-large-bust.webp` | `f-extra-large-bust` | Extra Large Bust |
+| `curvy.webp` | `f-curvy` | Curvy |
+| `athletic.webp` | `f-athletic` | Athletic |
+| `plus-fuller.webp` | `f-plus-fuller` | Plus Size, Fuller |
+
+`MALE_BODY_TYPES` ids (`m-skinny`, `m-regular`, `m-athletic`, `m-muscular`, `m-solid`,
+`m-chubby`, `m-fat`, `m-fattest`) are unchanged from before this migration — listed here only
+so a future contributor adding `male/` crops knows what ids to match up with which traced
+shape, without having to read the full route file.
 
 ## Sheet contents
 
@@ -49,8 +83,12 @@ diverge — sheet 2 has Skinny at 7, sheet 3 has Curvy. Match figures by label, 
 Sheet 3 is the longer and later of the two, and its version of figure 5 was used over sheet 2's.
 
 `plus-moderate.webp` and `plus-fuller.webp` did not come from any of the three sheets above —
-they're standalone single-figure images, cropped the same way. No sheet file is kept for
-either; the raw pastes weren't saved anywhere retrievable, only the finished crops.
+they're standalone single-figure images the user pasted directly into chat (no accessible file
+path for a pasted-in-chat image; recovered via the OS clipboard immediately after each paste),
+cropped the same way. No sheet file is kept for either; the raw pastes weren't saved anywhere
+retrievable, only the finished crops. `plus-fuller` is the figure with more belly fat;
+`plus-moderate` has a straight torso leading to bigger hips — that's the distinction the user
+gave, not something visible from the filenames alone.
 
 ## Known gaps
 

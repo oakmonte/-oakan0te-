@@ -1,0 +1,12 @@
+-- This project auto-enables RLS on every new public table (see
+-- rls_auto_enable(), added deliberately in harden_rls_auto_enable.sql to
+-- make "forgot to add RLS" impossible). store_theme_customizations came up
+-- RLS-on with zero policies (deny-all) as a result.
+--
+-- Turning it back off here is a deliberate choice, not an oversight: this
+-- table is gated by the same DEV_STORE_ID hack as products/stores/
+-- collections/product_variants (see store.products.tsx), so RLS policies
+-- referencing auth.uid() would be meaningless until real session-derived
+-- store scoping lands for all of them together. Revisit in that same pass,
+-- not in isolation.
+alter table public.store_theme_customizations disable row level security;

@@ -32,7 +32,7 @@ import {
   PromoBanner,
   StatsRow,
 } from "./full-preview-blocks";
-import { EditableText } from "./EditableText";
+import { ThemeText } from "./EditableText";
 import {
   createInitialEditState,
   MAX_SLIDESHOW_IMAGES,
@@ -68,7 +68,6 @@ function orderedBlocks(
 function MotionGridFull({ editing }: { editing?: ThemeEditingProps }) {
   const hidden = editing?.hiddenBlocks ?? [];
   const text = editing?.text ?? {};
-  const isEditing = editing?.isEditing ?? false;
 
   const blocks: Partial<Record<ArrangeableBlockId, ReactNode>> = {
     stats: !hidden.includes("stats") && (
@@ -98,6 +97,12 @@ function MotionGridFull({ editing }: { editing?: ThemeEditingProps }) {
           { icon: <ShieldCheck size={18} />, label: "Graphic Tees", count: 32 },
           { icon: <Sparkles size={18} />, label: "Accessories", count: 18 },
           { icon: <Flame size={18} />, label: "Outerwear", count: 22 },
+        ]}
+        fallbackProducts={[
+          { icon: <Zap size={18} />, name: "Oxy Tee", price: 18000 },
+          { icon: <ShieldCheck size={18} />, name: "Run It Cap", price: 9500 },
+          { icon: <Sparkles size={18} />, name: "State Bag", price: 32000 },
+          { icon: <Flame size={18} />, name: "Blackout Hoodie", price: 45000 },
         ]}
       />
     ),
@@ -132,32 +137,37 @@ function MotionGridFull({ editing }: { editing?: ThemeEditingProps }) {
       <div className="absolute -left-16 top-10 h-44 w-44 rounded-full bg-[#722ee8]/35 blur-3xl" />
       <div className="absolute right-0 top-40 h-36 w-36 rounded-full bg-[#b673ff]/20 blur-3xl" />
       <div className="relative">
-        <PhoneHeader mutedColor="rgba(255,255,255,0.7)" brandInitial="D" editing={editing} />
+        <PhoneHeader
+          mutedColor="rgba(255,255,255,0.7)"
+          brandInitial="D"
+          defaultLogoText="District 17"
+          editing={editing}
+        />
         <HeroSlideshow
           images={editing?.slideshowImages ?? HERO_SLIDESHOW_IMAGES}
           editing={editing}
         />
 
         <div className="px-4 pt-6">
-          <EditableText
+          <ThemeText
+            editing={editing}
+            field="hero1"
+            defaultValue="Welcome to"
             as="p"
-            isEditing={isEditing}
-            value={text.hero1 ?? "Welcome to"}
-            onChange={(v) => editing?.onTextChange("hero1", v)}
             className="text-[9px] font-semibold uppercase tracking-[0.25em] text-[#c9a3ff]"
           />
-          <EditableText
+          <ThemeText
+            editing={editing}
+            field="hero2"
+            defaultValue="District 17"
             as="h2"
-            isEditing={isEditing}
-            value={text.hero2 ?? "District 17"}
-            onChange={(v) => editing?.onTextChange("hero2", v)}
             className="mt-1 font-display text-[38px] uppercase leading-[0.85] tracking-[-0.03em]"
           />
-          <EditableText
+          <ThemeText
+            editing={editing}
+            field="hero3"
+            defaultValue="Street culture. No filter."
             as="p"
-            isEditing={isEditing}
-            value={text.hero3 ?? "Street culture. No filter."}
-            onChange={(v) => editing?.onTextChange("hero3", v)}
             className="mt-2 text-[11px] font-medium uppercase tracking-[0.08em] text-white/60"
           />
         </div>
@@ -171,7 +181,6 @@ function MotionGridFull({ editing }: { editing?: ThemeEditingProps }) {
 function ImmersiveBannerFull({ editing }: { editing?: ThemeEditingProps }) {
   const hidden = editing?.hiddenBlocks ?? [];
   const text = editing?.text ?? {};
-  const isEditing = editing?.isEditing ?? false;
 
   const blocks: Partial<Record<ArrangeableBlockId, ReactNode>> = {
     stats: !hidden.includes("stats") && (
@@ -201,6 +210,12 @@ function ImmersiveBannerFull({ editing }: { editing?: ThemeEditingProps }) {
           { icon: <Heart size={18} />, label: "Clothing", count: 24 },
           { icon: <Stars size={18} />, label: "Bags", count: 12 },
           { icon: <Check size={18} />, label: "Lifestyle", count: 20 },
+        ]}
+        fallbackProducts={[
+          { icon: <Sparkles size={18} />, name: "Linen Throw", price: 22000 },
+          { icon: <Heart size={18} />, name: "Clay Vase", price: 15500 },
+          { icon: <Stars size={18} />, name: "Wool Slippers", price: 12000 },
+          { icon: <Check size={18} />, name: "Oat Candle", price: 8500 },
         ]}
       />
     ),
@@ -233,33 +248,38 @@ function ImmersiveBannerFull({ editing }: { editing?: ThemeEditingProps }) {
     <div className="relative bg-[#f6f2e9] pb-2 text-[#292219]">
       <div className="absolute inset-x-0 top-0 h-52 bg-[radial-gradient(circle_at_80%_10%,rgba(255,255,255,0.9),transparent_28%),linear-gradient(125deg,#c2aa8c_0%,#f1e8dc_48%,#b3a284_100%)]" />
       <div className="relative">
-        <PhoneHeader mutedColor="rgba(41,34,25,0.6)" brandInitial="t" editing={editing} />
+        <PhoneHeader
+          mutedColor="rgba(41,34,25,0.6)"
+          brandInitial="t"
+          defaultLogoText="terra"
+          editing={editing}
+        />
         <HeroSlideshow
           images={editing?.slideshowImages ?? HERO_SLIDESHOW_IMAGES}
           editing={editing}
         />
 
         <div className="px-4 pt-4 text-center">
-          <EditableText
+          <ThemeText
+            editing={editing}
+            field="hero1"
+            defaultValue="Essentials for a calm life"
             as="p"
-            isEditing={isEditing}
-            value={text.hero1 ?? "Essentials for a calm life"}
-            onChange={(v) => editing?.onTextChange("hero1", v)}
             className="text-[9px] font-semibold uppercase tracking-[0.25em] text-[#695947]"
           />
-          <EditableText
+          <ThemeText
+            editing={editing}
+            field="hero2"
+            defaultValue="terra"
             as="h2"
-            isEditing={isEditing}
-            value={text.hero2 ?? "terra"}
-            onChange={(v) => editing?.onTextChange("hero2", v)}
             className="mt-1 font-serif text-[46px] leading-none tracking-[-0.04em]"
           />
           <div className="mx-auto mt-2.5 h-px w-16 bg-[#a48a68]" />
-          <EditableText
+          <ThemeText
+            editing={editing}
+            field="hero3"
+            defaultValue="Made to last, made for every day."
             as="p"
-            isEditing={isEditing}
-            value={text.hero3 ?? "Made to last, made for every day."}
-            onChange={(v) => editing?.onTextChange("hero3", v)}
             className="mx-auto mt-2.5 max-w-[200px] text-[11px] leading-4 text-[#655747]"
           />
         </div>
@@ -273,7 +293,6 @@ function ImmersiveBannerFull({ editing }: { editing?: ThemeEditingProps }) {
 function InteractiveStoryFull({ editing }: { editing?: ThemeEditingProps }) {
   const hidden = editing?.hiddenBlocks ?? [];
   const text = editing?.text ?? {};
-  const isEditing = editing?.isEditing ?? false;
 
   const blocks: Partial<Record<ArrangeableBlockId, ReactNode>> = {
     stats: !hidden.includes("stats") && (
@@ -303,6 +322,12 @@ function InteractiveStoryFull({ editing }: { editing?: ThemeEditingProps }) {
           { icon: <Camera size={18} />, label: "Studio", count: 14 },
           { icon: <Heart size={18} />, label: "Fits", count: 18 },
           { icon: <CirclePlay size={18} />, label: "Archive", count: 10 },
+        ]}
+        fallbackProducts={[
+          { icon: <Sparkles size={18} />, name: "Layered Set", price: 27000 },
+          { icon: <Camera size={18} />, name: "Sunday Bag", price: 19500 },
+          { icon: <Heart size={18} />, name: "Film Tee", price: 14000 },
+          { icon: <CirclePlay size={18} />, name: "Archive Cap", price: 9000 },
         ]}
       />
     ),
@@ -335,7 +360,12 @@ function InteractiveStoryFull({ editing }: { editing?: ThemeEditingProps }) {
     <div className="relative bg-[#171018] pb-2 text-white">
       <div className="absolute inset-0 h-[340px] bg-[radial-gradient(circle_at_85%_12%,rgba(255,105,180,0.22),transparent_30%),radial-gradient(circle_at_8%_43%,rgba(136,88,255,0.28),transparent_36%)]" />
       <div className="relative">
-        <PhoneHeader mutedColor="rgba(255,255,255,0.65)" brandInitial="S" editing={editing} />
+        <PhoneHeader
+          mutedColor="rgba(255,255,255,0.65)"
+          brandInitial="S"
+          defaultLogoText="Sunday Social"
+          editing={editing}
+        />
         <HeroSlideshow
           images={editing?.slideshowImages ?? HERO_SLIDESHOW_IMAGES}
           editing={editing}
@@ -349,18 +379,18 @@ function InteractiveStoryFull({ editing }: { editing?: ThemeEditingProps }) {
               </div>
             </div>
             <div>
-              <EditableText
+              <ThemeText
+                editing={editing}
+                field="hero1"
+                defaultValue="Sunday Social"
                 as="p"
-                isEditing={isEditing}
-                value={text.hero1 ?? "Sunday Social"}
-                onChange={(v) => editing?.onTextChange("hero1", v)}
                 className="text-sm font-semibold tracking-[-0.03em]"
               />
-              <EditableText
+              <ThemeText
+                editing={editing}
+                field="hero2"
+                defaultValue="Your everyday moodboard"
                 as="p"
-                isEditing={isEditing}
-                value={text.hero2 ?? "Your everyday moodboard"}
-                onChange={(v) => editing?.onTextChange("hero2", v)}
                 className="text-[9px] text-white/55"
               />
             </div>
@@ -394,7 +424,6 @@ function InteractiveStoryFull({ editing }: { editing?: ThemeEditingProps }) {
 function GalleryEditFull({ editing }: { editing?: ThemeEditingProps }) {
   const hidden = editing?.hiddenBlocks ?? [];
   const text = editing?.text ?? {};
-  const isEditing = editing?.isEditing ?? false;
 
   const blocks: Partial<Record<ArrangeableBlockId, ReactNode>> = {
     stats: !hidden.includes("stats") && (
@@ -424,6 +453,12 @@ function GalleryEditFull({ editing }: { editing?: ThemeEditingProps }) {
           { icon: <Gem size={18} />, label: "Tailoring", count: 14 },
           { icon: <BadgeCheck size={18} />, label: "Accessories", count: 11 },
           { icon: <Sparkles size={18} />, label: "Objects", count: 7 },
+        ]}
+        fallbackProducts={[
+          { icon: <Crown size={18} />, name: "Tailored Coat", price: 185000 },
+          { icon: <Gem size={18} />, name: "Silk Scarf", price: 42000 },
+          { icon: <BadgeCheck size={18} />, name: "Leather Belt", price: 38000 },
+          { icon: <Sparkles size={18} />, name: "Wool Trousers", price: 96000 },
         ]}
       />
     ),
@@ -457,33 +492,38 @@ function GalleryEditFull({ editing }: { editing?: ThemeEditingProps }) {
     <div className="relative bg-[#0c0b0a] pb-2 text-[#f3ede2]">
       <div className="absolute inset-x-0 top-0 h-64 bg-[radial-gradient(circle_at_75%_0%,rgba(201,162,39,0.16),transparent_45%)]" />
       <div className="relative">
-        <PhoneHeader mutedColor="rgba(243,237,226,0.55)" brandInitial="A" editing={editing} />
+        <PhoneHeader
+          mutedColor="rgba(243,237,226,0.55)"
+          brandInitial="A"
+          defaultLogoText="Atelier Noir"
+          editing={editing}
+        />
         <HeroSlideshow
           images={editing?.slideshowImages ?? HERO_SLIDESHOW_IMAGES}
           editing={editing}
         />
 
         <div className="px-4 pt-6 text-center">
-          <EditableText
+          <ThemeText
+            editing={editing}
+            field="hero1"
+            defaultValue="Autumn selects, in full"
             as="p"
-            isEditing={isEditing}
-            value={text.hero1 ?? "Autumn selects, in full"}
-            onChange={(v) => editing?.onTextChange("hero1", v)}
             className="text-[9px] font-semibold uppercase tracking-[0.3em] text-[#c9a227]"
           />
-          <EditableText
+          <ThemeText
+            editing={editing}
+            field="hero2"
+            defaultValue="Atelier Noir"
             as="h2"
-            isEditing={isEditing}
-            value={text.hero2 ?? "Atelier Noir"}
-            onChange={(v) => editing?.onTextChange("hero2", v)}
             className="mt-2 font-serif text-[36px] italic leading-none tracking-[-0.02em]"
           />
           <div className="mx-auto mt-3 h-px w-12 bg-[#c9a227]/60" />
-          <EditableText
+          <ThemeText
+            editing={editing}
+            field="hero3"
+            defaultValue="Fewer pieces. Finer edit."
             as="p"
-            isEditing={isEditing}
-            value={text.hero3 ?? "Fewer pieces. Finer edit."}
-            onChange={(v) => editing?.onTextChange("hero3", v)}
             className="mx-auto mt-3 max-w-[190px] text-[10.5px] leading-4 text-[#c9bea6]"
           />
         </div>
@@ -497,7 +537,6 @@ function GalleryEditFull({ editing }: { editing?: ThemeEditingProps }) {
 function NeonTerminalFull({ editing }: { editing?: ThemeEditingProps }) {
   const hidden = editing?.hiddenBlocks ?? [];
   const text = editing?.text ?? {};
-  const isEditing = editing?.isEditing ?? false;
 
   const blocks: Partial<Record<ArrangeableBlockId, ReactNode>> = {
     stats: !hidden.includes("stats") && (
@@ -527,6 +566,12 @@ function NeonTerminalFull({ editing }: { editing?: ThemeEditingProps }) {
           { icon: <Zap size={18} />, label: "Utility", count: 18 },
           { icon: <Hexagon size={18} />, label: "Accessories", count: 22 },
           { icon: <ShieldCheck size={18} />, label: "Gadgets", count: 14 },
+        ]}
+        fallbackProducts={[
+          { icon: <Cpu size={18} />, name: "Utility Vest", price: 54000 },
+          { icon: <Zap size={18} />, name: "Circuit Cap", price: 16000 },
+          { icon: <Hexagon size={18} />, name: "Node Backpack", price: 68000 },
+          { icon: <ShieldCheck size={18} />, name: "HUD Glasses", price: 24500 },
         ]}
       />
     ),
@@ -562,7 +607,12 @@ function NeonTerminalFull({ editing }: { editing?: ThemeEditingProps }) {
       <div className="absolute right-6 top-6 h-8 w-8 border-r-2 border-t-2 border-[#2dd4ff]/50" />
       <div className="absolute left-6 top-6 h-8 w-8 border-l-2 border-t-2 border-[#2dd4ff]/50" />
       <div className="relative">
-        <PhoneHeader mutedColor="rgba(234,252,255,0.6)" brandInitial="C" editing={editing} />
+        <PhoneHeader
+          mutedColor="rgba(234,252,255,0.6)"
+          brandInitial="C"
+          defaultLogoText="Circuit"
+          editing={editing}
+        />
         <HeroSlideshow
           images={editing?.slideshowImages ?? HERO_SLIDESHOW_IMAGES}
           editing={editing}
@@ -570,27 +620,22 @@ function NeonTerminalFull({ editing }: { editing?: ThemeEditingProps }) {
 
         <div className="px-4 pt-6 text-center">
           <p className="flex items-center justify-center gap-1.5 text-[9px] font-semibold uppercase tracking-[0.25em] text-[#2dd4ff]">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#2dd4ff]" />
-            <EditableText
-              as="span"
-              isEditing={isEditing}
-              value={text.hero1 ?? "System online"}
-              onChange={(v) => editing?.onTextChange("hero1", v)}
-            />
+            <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-[#2dd4ff]" />
+            <ThemeText editing={editing} field="hero1" defaultValue="System online" as="span" />
           </p>
-          <EditableText
+          <ThemeText
+            editing={editing}
+            field="hero2"
+            defaultValue="Circuit"
             as="h2"
-            isEditing={isEditing}
-            value={text.hero2 ?? "Circuit"}
-            onChange={(v) => editing?.onTextChange("hero2", v)}
             className="mt-2 font-display text-[40px] uppercase leading-[0.85] tracking-[-0.02em]"
             style={{ textShadow: "0 0 18px rgba(45,212,255,0.5)" }}
           />
-          <EditableText
+          <ThemeText
+            editing={editing}
+            field="hero3"
+            defaultValue="Style, compiled."
             as="p"
-            isEditing={isEditing}
-            value={text.hero3 ?? "Style, compiled."}
-            onChange={(v) => editing?.onTextChange("hero3", v)}
             className="mx-auto mt-2.5 max-w-[190px] text-[10.5px] leading-4 text-[#8fd9e8]"
           />
         </div>
@@ -634,7 +679,13 @@ export function ThemePreviewSheet({
   onSelect: () => void;
 }) {
   const [mode, setMode] = useState<"view" | "edit">("view");
-  const [state, setState] = useState<ThemeEditState>(createInitialEditState);
+  const [state, setState] = useState<ThemeEditState>(() => ({
+    ...createInitialEditState(),
+    // Seeded with the real default photos (not left as a "use defaults"
+    // sentinel) so an explicit remove-down-to-zero is unambiguous — an empty
+    // array always means "the seller removed every photo," never "untouched."
+    slideshowImages: HERO_SLIDESHOW_IMAGES,
+  }));
   const [hint, setHint] = useState<string | null>(null);
   const preEditSnapshot = useRef<ThemeEditState | null>(null);
 
@@ -655,32 +706,42 @@ export function ThemePreviewSheet({
   const editingProps: ThemeEditingProps = useMemo(
     () => ({
       isEditing: mode === "edit",
+      logoMode: state.logoMode,
+      onLogoModeChange: (logoMode) => {
+        setState((s) => ({ ...s, logoMode }));
+      },
       logoImage: state.logoImage,
       onLogoChange: (file) => {
         const url = URL.createObjectURL(file);
         setState((s) => ({ ...s, logoImage: url }));
       },
-      slideshowImages: state.slideshowImages.length ? state.slideshowImages : HERO_SLIDESHOW_IMAGES,
+      slideshowImages: state.slideshowImages,
       onAddSlideshowImages: (files) => {
         setState((s) => {
-          const base = s.slideshowImages.length ? s.slideshowImages : HERO_SLIDESHOW_IMAGES;
-          const room = MAX_SLIDESHOW_IMAGES - base.length;
+          const room = MAX_SLIDESHOW_IMAGES - s.slideshowImages.length;
           if (room <= 0) return s;
           const added = Array.from(files)
             .slice(0, room)
             .map((f) => URL.createObjectURL(f));
-          return { ...s, slideshowImages: [...base, ...added] };
+          return { ...s, slideshowImages: [...s.slideshowImages, ...added] };
         });
       },
       onRemoveSlideshowImage: (index) => {
-        setState((s) => {
-          const base = s.slideshowImages.length ? s.slideshowImages : HERO_SLIDESHOW_IMAGES;
-          return { ...s, slideshowImages: base.filter((_, i) => i !== index) };
-        });
+        setState((s) => ({
+          ...s,
+          slideshowImages: s.slideshowImages.filter((_, i) => i !== index),
+        }));
+      },
+      onClearSlideshow: () => {
+        setState((s) => ({ ...s, slideshowImages: [] }));
       },
       text: state.text,
       onTextChange: (field, value) => {
         setState((s) => ({ ...s, text: { ...s.text, [field]: value } }));
+      },
+      textFonts: state.textFonts,
+      onTextFontChange: (field, font) => {
+        setState((s) => ({ ...s, textFonts: { ...s.textFonts, [field]: font } }));
       },
       hiddenBlocks: state.hiddenBlocks,
       onRemoveBlock: (block: RemovableBlockId) => {
@@ -735,7 +796,7 @@ export function ThemePreviewSheet({
       </div>
 
       <div className="flex flex-1 flex-col items-center overflow-y-auto px-4 py-8 sm:py-12">
-        <div className="flex w-full max-w-[380px] shrink-0 items-center justify-between pb-3">
+        <div className="flex w-full max-w-[430px] shrink-0 items-center justify-between pb-3">
           {mode === "view" ? (
             <>
               <button
@@ -810,8 +871,8 @@ export function ThemePreviewSheet({
             </>
           )}
         </div>
-        <div className="relative w-full max-w-[380px] shrink-0 overflow-hidden rounded-[2.5rem] border-[6px] border-neutral-900 bg-neutral-900 shadow-[0_30px_80px_rgba(0,0,0,0.55)]">
-          <div className="max-h-[78vh] overflow-y-auto">
+        <div className="relative w-full max-w-[430px] shrink-0 overflow-hidden rounded-[2.5rem] border-[6px] border-neutral-900 bg-neutral-900 shadow-[0_30px_80px_rgba(0,0,0,0.55)]">
+          <div className="max-h-[82vh] overflow-y-auto">
             <FullPreview themeId={theme.id} editing={editingProps} />
           </div>
           {hint && (
