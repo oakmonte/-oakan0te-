@@ -79,34 +79,6 @@ export function StatsRow({
   );
 }
 
-export function FeatureStrip({
-  features,
-  cardBg,
-  textColor,
-  accent,
-}: {
-  features: { icon: ReactNode; label: string }[];
-  cardBg: string;
-  textColor: string;
-  accent: string;
-}) {
-  return (
-    <div
-      className="mx-4 mt-4 grid grid-cols-4 gap-1.5 rounded-xl p-2.5 text-center"
-      style={{ background: cardBg }}
-    >
-      {features.map((f, i) => (
-        <div key={i} className="flex flex-col items-center gap-1.5 py-0.5">
-          <span style={{ color: accent }}>{f.icon}</span>
-          <span className="text-[7.5px] leading-[9px] font-medium" style={{ color: textColor }}>
-            {f.label}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 export function CollectionsGrid({
   items,
   textColor,

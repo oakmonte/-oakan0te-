@@ -11,7 +11,6 @@ import {
   ShieldCheck,
   Sparkles,
   Stars,
-  Users,
   X,
   Zap,
   Cpu,
@@ -19,7 +18,6 @@ import {
 import type { Theme, ThemeId } from "./types";
 import {
   CollectionsGrid,
-  FeatureStrip,
   FooterTeaser,
   PhoneHeader,
   PromoBanner,
@@ -68,18 +66,6 @@ function MotionGridFull() {
           cardBg="#09070d"
           textColor="#fff"
           mutedColor="rgba(255,255,255,0.55)"
-        />
-
-        <FeatureStrip
-          cardBg="rgba(156,77,255,0.1)"
-          textColor="#fff"
-          accent="#c9a3ff"
-          features={[
-            { icon: <Zap size={14} />, label: "New drops weekly" },
-            { icon: <Flame size={14} />, label: "Limited runs" },
-            { icon: <ShieldCheck size={14} />, label: "Verified authentic" },
-            { icon: <Users size={14} />, label: "Community fits" },
-          ]}
         />
 
         <CollectionsGrid
@@ -152,18 +138,6 @@ function ImmersiveBannerFull() {
           cardBg="#f6f2e9"
           textColor="#292219"
           mutedColor="rgba(41,34,25,0.55)"
-        />
-
-        <FeatureStrip
-          cardBg="rgba(166,124,82,0.1)"
-          textColor="#292219"
-          accent="#8b735b"
-          features={[
-            { icon: <Sparkles size={14} />, label: "Thoughtful" },
-            { icon: <Stars size={14} />, label: "Considered" },
-            { icon: <Heart size={14} />, label: "Made well" },
-            { icon: <Check size={14} />, label: "Lasting" },
-          ]}
         />
 
         <CollectionsGrid
@@ -259,18 +233,6 @@ function InteractiveStoryFull() {
           mutedColor="rgba(255,255,255,0.55)"
         />
 
-        <FeatureStrip
-          cardBg="rgba(236,75,154,0.1)"
-          textColor="#fff"
-          accent="#ff9bc8"
-          features={[
-            { icon: <CirclePlay size={14} />, label: "Daily drops" },
-            { icon: <Camera size={14} />, label: "Behind the scenes" },
-            { icon: <Heart size={14} />, label: "Fan favorites" },
-            { icon: <Sparkles size={14} />, label: "Mood updates" },
-          ]}
-        />
-
         <CollectionsGrid
           textColor="#fff"
           mutedColor="rgba(255,255,255,0.5)"
@@ -343,18 +305,6 @@ function GalleryEditFull() {
           cardBg="#0c0b0a"
           textColor="#f3ede2"
           mutedColor="rgba(243,237,226,0.55)"
-        />
-
-        <FeatureStrip
-          cardBg="rgba(201,162,39,0.08)"
-          textColor="#f3ede2"
-          accent="#c9a227"
-          features={[
-            { icon: <Gem size={14} />, label: "Hand selected" },
-            { icon: <Crown size={14} />, label: "Small batch" },
-            { icon: <BadgeCheck size={14} />, label: "Provenance verified" },
-            { icon: <Sparkles size={14} />, label: "Considered finish" },
-          ]}
         />
 
         <CollectionsGrid
@@ -435,18 +385,6 @@ function NeonTerminalFull() {
           cardBg="#05070a"
           textColor="#eafcff"
           mutedColor="rgba(234,252,255,0.55)"
-        />
-
-        <FeatureStrip
-          cardBg="rgba(45,212,255,0.08)"
-          textColor="#eafcff"
-          accent="#2dd4ff"
-          features={[
-            { icon: <Cpu size={14} />, label: "Innovation first" },
-            { icon: <Hexagon size={14} />, label: "Premium materials" },
-            { icon: <ShieldCheck size={14} />, label: "Secure checkout" },
-            { icon: <Zap size={14} />, label: "Exclusive drops" },
-          ]}
         />
 
         <CollectionsGrid
