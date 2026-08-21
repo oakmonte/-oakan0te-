@@ -468,6 +468,7 @@ function OakmonteLanding() {
           </div>
         </div>
 
+      </header>
         {/* Mobile side drawer */}
         <div
           className={`mobile-drawer${mobileOpen ? " open" : ""}`}
@@ -543,7 +544,6 @@ function OakmonteLanding() {
             </div>
           </aside>
         </div>
-      </header>
 
 
       <main>
