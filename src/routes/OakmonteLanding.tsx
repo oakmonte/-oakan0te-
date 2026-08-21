@@ -1015,15 +1015,32 @@ const CSS = `
 .oak .auth-menu a:hover,.oak .auth-menu button:hover{background:#F4F5F7;color:var(--blue);}
 
 .oak .mobile-toggle{display:none;padding:8px;}
-.oak .mobile-toggle span{display:block;width:22px;height:2px;background:var(--black);margin-bottom:6px;}
+.oak .mobile-toggle span{display:block;width:22px;height:2px;background:var(--black);margin-bottom:6px;transition:transform .3s ease,opacity .2s ease;}
 .oak .mobile-toggle span:last-child{margin-bottom:0;}
-.oak .mobile-menu{display:none;position:fixed;top:76px;left:0;right:0;background:rgba(255,255,255,.96);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);z-index:99;}
-.oak .mobile-menu.open{display:block;}
-.oak .mobile-menu-inner{padding:24px;display:flex;flex-direction:column;gap:18px;}
-.oak .mobile-menu-inner a{font-size:14px;font-weight:700;}
-.oak .mobile-auth{padding-top:16px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:10px;}
-@media (max-width:900px){.oak nav.desktop-nav,.oak .desktop-auth{display:none;}.oak .mobile-toggle{display:block;}}
-@media (min-width:901px){.oak .mobile-toggle,.oak .mobile-menu{display:none !important;}}
+.oak .mobile-toggle.is-open span:nth-child(1){transform:translateY(8px) rotate(45deg);}
+.oak .mobile-toggle.is-open span:nth-child(2){opacity:0;}
+.oak .mobile-toggle.is-open span:nth-child(3){transform:translateY(-8px) rotate(-45deg);}
+.oak .mobile-auth{padding:20px 24px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:10px;}
+.oak .mobile-drawer{position:fixed;inset:0;z-index:99;opacity:0;pointer-events:none;transition:opacity .5s ease;}
+.oak .mobile-drawer.open{opacity:1;pointer-events:auto;}
+.oak .drawer-scrim{position:absolute;inset:0;background:rgba(0,0,0,.3);}
+.oak .drawer-panel{position:absolute;top:0;right:0;height:100%;width:100%;background:var(--white);box-shadow:0 24px 60px rgba(0,0,0,.18);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .5s ease;}
+.oak .mobile-drawer.open .drawer-panel{transform:translateX(0);}
+.oak .drawer-panel::before{content:"";display:block;height:76px;border-bottom:1px solid var(--line);flex:none;}
+.oak .drawer-stage{position:relative;flex:1;overflow:hidden;}
+.oak .drawer-list,.oak .drawer-sub{position:absolute;inset:0;overflow-y:auto;transition:transform .5s ease;}
+.oak .drawer-list{transform:translateX(0);}
+.oak .drawer-list.shifted{transform:translateX(-100%);}
+.oak .drawer-sub{transform:translateX(100%);}
+.oak .drawer-sub.shown{transform:translateX(0);}
+.oak .drawer-row{width:100%;display:flex;align-items:center;justify-content:space-between;padding:20px 24px;font-size:13px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;border-bottom:1px solid var(--line);transition:background .2s ease,color .2s ease;text-align:left;}
+.oak .drawer-row:hover{background:#F4F5F7;color:var(--blue);}
+.oak .drawer-sub-title{padding:24px 24px 12px;font-size:11px;letter-spacing:.25em;text-transform:uppercase;color:rgba(0,0,0,.5);}
+.oak .drawer-sub-row{display:block;padding:16px 24px;border-bottom:1px solid var(--line);transition:background .2s ease;}
+.oak .drawer-sub-row:hover{background:#F4F5F7;}
+@media (max-width:900px){.oak nav.desktop-nav,.oak .desktop-auth{display:none;}.oak .mobile-toggle{display:block;position:relative;z-index:101;}}
+@media (min-width:901px){.oak .mobile-toggle,.oak .mobile-drawer{display:none !important;}}
+
 
 .oak .hero{padding:36px 0 0;position:relative;overflow:hidden;}
 .oak .hero-glow{position:absolute;top:-260px;right:-260px;width:640px;height:640px;background:radial-gradient(circle,var(--blue-dim) 0%,transparent 70%);pointer-events:none;animation:oakPulse 6s ease-in-out infinite;}
