@@ -982,7 +982,7 @@ const CSS = `
 .oak .cta-btn.ghost{background:transparent;color:var(--black);border:1.5px solid var(--black);}
 .oak .cta-btn.ghost:hover{background:var(--black);color:var(--white);}
 .oak .cta-btn.small{padding:10px 20px;font-size:12px;}
-.oak .cta-btn.ghost.small{padding:6px 16px;border-radius:10px;}
+.oak .cta-btn.ghost.small{padding:4px 16px;border-radius:10px;}
 .oak .cta-btn.big{padding:18px 38px;font-size:15px;}
 .oak .cta-btn.on-black{background:var(--blue);}
 .oak .cta-btn.on-black:hover{background:var(--white);color:var(--black);}
