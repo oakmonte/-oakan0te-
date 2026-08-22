@@ -74,7 +74,7 @@ function HeaderAuth() {
 }
 
 export const Route = createFileRoute("/previous-index")({
-  component: previous-index,
+  component: Index,
 });
 
 type MenuKey = "product" | "solutions" | "resources" | "blog";
