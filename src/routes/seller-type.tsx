@@ -10,7 +10,7 @@ export const Route = createFileRoute("/seller-type")({
   component: SellerTypePage,
 });
 
-const OPTIONS = ["Brand", "Boutique", "Independent seller"];
+const OPTIONS = ["Brand", "Vendor", "Tailor"];
 
 function SellerTypePage() {
   const navigate = useNavigate();

@@ -172,8 +172,8 @@ function ChooseUsernamePage() {
 
   return (
     <OnboardingShell
-      title="Choose a username"
-      subtitle="Your personal unique handle on Oakmonte — you can set a separate display name later."
+      title="Choose a personal username"
+      subtitle="You can set a separate display and store/brand name later."
       step={step}
     >
       <form onSubmit={handleSubmit} className="space-y-3" noValidate>
@@ -211,7 +211,6 @@ function ChooseUsernamePage() {
           onChange={(e) => setGender(e.target.value)}
           className="w-full rounded-full border border-brand-text/25 bg-transparent px-5 py-3.5 text-sm text-brand-text/80 focus:outline-none focus:border-brand-accent transition-colors"
         >
-          <option value="">Gender (optional)</option>
           <option value="Female">Female</option>
           <option value="Male">Male</option>
           <option value="prefer not to say">Prefer not to say</option>
