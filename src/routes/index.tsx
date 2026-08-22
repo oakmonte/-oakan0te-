@@ -584,7 +584,7 @@ function OakmonteLanding() {
                 width={1450}
                 height={1085}
               />
-              <span className="media-cap">Sell · Share · Shop — all in one place</span>
+              <span className="media-cap">SELL · POST · SHOP — ALL IN ONE PLACE</span>
             </div>
           </div>
 
