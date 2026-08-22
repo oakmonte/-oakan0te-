@@ -702,8 +702,8 @@ function OakmonteLanding() {
                 <span className="tag">For Creators and Creatives</span>
                 <h3>Make money from your content</h3>
                 <p>
-                  Tag products in your fits, reviews, and hauls. When your audience buys through your
-                  content, you earn — no invoices, no chasing brands, no middlemen.
+                  Tag products in your fits, reviews, and hauls. When your audience buys through
+                  your content, you earn — no invoices, no chasing brands, no middlemen.
                 </p>
                 <button
                   type="button"
