@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import logoAsset from "@/assets/oakmonte-o-mark.png.asset.json";
 import logoO from "@/assets/logo-o.png";
 import heroAsset from "@/assets/hero-editorial.jpg.asset.json";
-import fabricAsset from "@/assets/fabric-detail.jpg.asset.json";
+import streetwearAsset from "@/assets/streetwear-summerstyle.jpeg.asset.json";
 import phoneMockupAsset from "@/assets/oakmonte-phone-mockup.png.asset.json";
 
 export const Route = createFileRoute("/")({
