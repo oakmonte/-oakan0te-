@@ -698,6 +698,24 @@ function OakmonteLanding() {
                   <span className="stars">★★★★★</span>Loved by our early shoppers
                 </p>
               </Reveal>
+              <Reveal delay={2} className="offer-card">
+                <span className="tag">For Creators and Creatives</span>
+                <h3>Make money from your content</h3>
+                <p>
+                  Tag products in your fits, reviews, and hauls. When your audience buys through
+                  your content, you earn — no invoices, no chasing brands, no middlemen.
+                </p>
+                <button
+                  type="button"
+                  className="cta-btn"
+                  onClick={() => alert("Preview only — link to your creator onboarding.")}
+                >
+                  Start creating!
+                </button>
+                <p className="stars-line">
+                  <span className="stars">★★★★★</span>Loved by our early creators
+                </p>
+              </Reveal>
             </div>
           </div>
         </section>
@@ -1087,7 +1105,7 @@ const CSS = `
 .oak .offering-head h2{font-family:var(--display);font-size:clamp(30px,4.5vw,56px);line-height:1;text-transform:uppercase;margin:0 0 16px;}
 .oak .offering-head p{font-size:16px;color:var(--gray);line-height:1.6;}
 .oak .offering-grid{display:grid;grid-template-columns:1fr;gap:24px;}
-@media (min-width:800px){.oak .offering-grid{grid-template-columns:1fr 1fr;}}
+@media (min-width:800px){.oak .offering-grid{grid-template-columns:repeat(3, 1fr);}}
 .oak .offer-card{border:2px solid var(--black);border-radius:22px;padding:44px;position:relative;overflow:hidden;transition:transform .3s ease,box-shadow .3s ease;background:var(--white);}
 .oak .offer-card:hover{box-shadow:0 24px 48px rgba(10,10,10,.12);}
 .oak .offer-card.blue{background:var(--blue);color:#fff;border-color:var(--blue);}
