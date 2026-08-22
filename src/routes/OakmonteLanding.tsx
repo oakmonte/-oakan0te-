@@ -424,18 +424,19 @@ function OakmonteLanding() {
                 ),
               )}
             </nav>
-            <div className="desktop-auth">
-              <Auth />
-            </div>
-            <button
-              className={`mobile-toggle${mobileOpen ? " is-open" : ""}`}
-              aria-label={mobileOpen ? "Close menu" : "Open menu"}
-              type="button"
-              onClick={() => {
-                setMobileOpen((v) => !v);
-                setMobileGroup(null);
-              }}
-            >
+            <div className="header-actions">
+              <div className="desktop-auth">
+                <Auth />
+              </div>
+              <button
+                className={`mobile-toggle${mobileOpen ? " is-open" : ""}`}
+                aria-label={mobileOpen ? "Close menu" : "Open menu"}
+                type="button"
+                onClick={() => {
+                  setMobileOpen((v) => !v);
+                  setMobileGroup(null);
+                }}
+              >
               <span />
               <span />
               <span />
