@@ -7,7 +7,7 @@ description: How Oakmonte turns a camera capture plus filters, text, drawings an
 
 The rules here are cross-file invariants. Each file explains itself well locally, but the ways this
 pipeline breaks all come from editing one file in isolation — so this is the set of things that are
-true *between* files.
+true _between_ files.
 
 ## One pass, from the untouched capture
 

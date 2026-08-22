@@ -1,5 +1,12 @@
 export type FilterCategory =
-  "favorites" | "portrait" | "fashion" | "film" | "vintage" | "bw" | "lifestyle" | "creative";
+  | "favorites"
+  | "portrait"
+  | "fashion"
+  | "film"
+  | "vintage"
+  | "bw"
+  | "lifestyle"
+  | "creative";
 
 export interface CameraFilter {
   id: string;

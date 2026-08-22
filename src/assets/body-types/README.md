@@ -30,31 +30,31 @@ Filenames don't appear in `find-your-fit.tsx` — each is imported and wired int
 `FEMALE_BODY_TYPES` with its own `id` (used for the `bodyType` state value) and display
 `label`. Mapping, in the array's actual render order:
 
-| File | `id` | `label` |
-| --- | --- | --- |
-| `plus-moderate.webp` | `f-plus-moderate` | Plus Size, Moderate |
-| `skinny.webp` | `f-skinny` | Skinny |
-| `slim.webp` | `f-slim` | Slim |
-| `medium.webp` | `f-medium` | Medium |
-| `pear-small-thighs.webp` | `f-pear-small-thighs` | Pear Bust, Small Thighs |
-| `pear-bigger-thighs.webp` | `f-pear-bigger-thighs` | Pear Bust, Bigger Thighs |
+| File                           | `id`                        | `label`                   |
+| ------------------------------ | --------------------------- | ------------------------- |
+| `plus-moderate.webp`           | `f-plus-moderate`           | Plus Size, Moderate       |
+| `skinny.webp`                  | `f-skinny`                  | Skinny                    |
+| `slim.webp`                    | `f-slim`                    | Slim                      |
+| `medium.webp`                  | `f-medium`                  | Medium                    |
+| `pear-small-thighs.webp`       | `f-pear-small-thighs`       | Pear Bust, Small Thighs   |
+| `pear-bigger-thighs.webp`      | `f-pear-bigger-thighs`      | Pear Bust, Bigger Thighs  |
 | `smallbust-bigger-thighs.webp` | `f-smallbust-bigger-thighs` | Small Bust, Bigger Thighs |
-| `extra-large-bust.webp` | `f-extra-large-bust` | Extra Large Bust |
-| `curvy.webp` | `f-curvy` | Curvy |
-| `athletic.webp` | `f-athletic` | Athletic |
-| `plus-fuller.webp` | `f-plus-fuller` | Plus Size, Fuller |
+| `extra-large-bust.webp`        | `f-extra-large-bust`        | Extra Large Bust          |
+| `curvy.webp`                   | `f-curvy`                   | Curvy                     |
+| `athletic.webp`                | `f-athletic`                | Athletic                  |
+| `plus-fuller.webp`             | `f-plus-fuller`             | Plus Size, Fuller         |
 
 Male crops map to the following code-side ids and labels:
 
-| File | `id` | `label` |
-| --- | --- | --- |
-| `skinny.webp` | `m-skinny` | Skinny |
-| `slim.webp` | `m-regular` | Slim |
-| `athletic.webp` | `m-athletic` | Athletic |
-| `muscular.webp` | `m-muscular` | Muscular |
-| `chubby.webp` | `m-chubby` | Chubby |
-| `plus-moderate.webp` | `m-fat` | Plus Size, Moderate |
-| `plus-fuller.webp` | `m-fattest` | Plus Size, Fuller |
+| File                 | `id`         | `label`             |
+| -------------------- | ------------ | ------------------- |
+| `skinny.webp`        | `m-skinny`   | Skinny              |
+| `slim.webp`          | `m-regular`  | Slim                |
+| `athletic.webp`      | `m-athletic` | Athletic            |
+| `muscular.webp`      | `m-muscular` | Muscular            |
+| `chubby.webp`        | `m-chubby`   | Chubby              |
+| `plus-moderate.webp` | `m-fat`      | Plus Size, Moderate |
+| `plus-fuller.webp`   | `m-fattest`  | Plus Size, Fuller   |
 
 The former `m-solid` SVG-only option has no matching supplied reference artwork and is not
 rendered.
@@ -63,30 +63,30 @@ rendered.
 
 `female-chart-1-slim-medium-pear.webp` — figures 1-4
 
-| # | Sheet label | Cropped as |
-| --- | --- | --- |
-| 1 | Slim | `slim.webp` |
-| 2 | Medium | `medium.webp` |
-| 3 | Pear bust, small thighs | `pear-small-thighs.webp` |
-| 4 | Pear bust, bigger thighs | `pear-bigger-thighs.webp` |
+| #   | Sheet label              | Cropped as                |
+| --- | ------------------------ | ------------------------- |
+| 1   | Slim                     | `slim.webp`               |
+| 2   | Medium                   | `medium.webp`             |
+| 3   | Pear bust, small thighs  | `pear-small-thighs.webp`  |
+| 4   | Pear bust, bigger thighs | `pear-bigger-thighs.webp` |
 
 `female-chart-2-smallbust-muscular-skinny.webp` — figures 5-7
 
-| # | Sheet label | Cropped as |
-| --- | --- | --- |
-| 5 | Small bust, very bigger thighs | not used — sheet 3's version is cleaner, see below |
-| 6 | Muscular | **not used, see Known gaps** |
-| 7 | Skinny | `skinny.webp` |
+| #   | Sheet label                    | Cropped as                                         |
+| --- | ------------------------------ | -------------------------------------------------- |
+| 5   | Small bust, very bigger thighs | not used — sheet 3's version is cleaner, see below |
+| 6   | Muscular                       | **not used, see Known gaps**                       |
+| 7   | Skinny                         | `skinny.webp`                                      |
 
 `female-chart-3-curvy-athletic-muscular.webp` — figures 5-9
 
-| # | Sheet label | Cropped as |
-| --- | --- | --- |
-| 5 | Small bust, very bigger thighs | `smallbust-bigger-thighs.webp` |
-| 6 | Extra large bust | `extra-large-bust.webp` |
-| 7 | Curvy | `curvy.webp` |
-| 8 | Athletic | `athletic.webp` |
-| 9 | Muscular | **not used, see Known gaps** |
+| #   | Sheet label                    | Cropped as                     |
+| --- | ------------------------------ | ------------------------------ |
+| 5   | Small bust, very bigger thighs | `smallbust-bigger-thighs.webp` |
+| 6   | Extra large bust               | `extra-large-bust.webp`        |
+| 7   | Curvy                          | `curvy.webp`                   |
+| 8   | Athletic                       | `athletic.webp`                |
+| 9   | Muscular                       | **not used, see Known gaps**   |
 
 **The numbering across sheets does not agree.** Sheets 2 and 3 both start at 5 and then
 diverge — sheet 2 has Skinny at 7, sheet 3 has Curvy. Match figures by label, never by number.

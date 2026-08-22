@@ -32,7 +32,7 @@ This is a transitional contract, not redundancy someone forgot to clean up: the 
 existing readers working until the contract migration drops them (see the comment at the
 `variantsPayload` construction in `src/routes/store.products_.new.tsx`). Consequences:
 
-- **Writing variants means writing both.** Populate the flat columns *and* insert the
+- **Writing variants means writing both.** Populate the flat columns _and_ insert the
   `product_variant_options` links. An importer that only fills `option1_*` creates variants invisible
   to anything querying through the join table, and vice versa.
 - The flat columns cap out at **3 options**. The normalized side has no such limit. If a source

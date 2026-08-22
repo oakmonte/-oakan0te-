@@ -21,18 +21,18 @@ That is what makes three otherwise-hard things easy:
 There are two renderers — DOM/CSS on screen, canvas 2D in `export.ts` — and the only thing keeping
 them honest is that **neither owns any numbers**:
 
-| Concern             | Single source of truth                                          |
-| ------------------- | --------------------------------------------------------------- |
-| Colour grade        | `adjustments.ts` → one CSS filter string                          |
-| Transitions         | `render.ts` `transitionFrame()` → opacity / scale / offset        |
+| Concern             | Single source of truth                                             |
+| ------------------- | ------------------------------------------------------------------ |
+| Colour grade        | `adjustments.ts` → one CSS filter string                           |
+| Transitions         | `render.ts` `transitionFrame()` → opacity / scale / offset         |
 | Vignette            | `render.ts` — `vignetteCss()` and `drawVignette()`, same constants |
-| Product pins        | `render.ts` — fractions of frame width, used by both              |
-| Captions / stickers | `after-shot-layers.ts` + `layer-bake.ts` (shared with after-shot) |
+| Product pins        | `render.ts` — fractions of frame width, used by both               |
+| Captions / stickers | `after-shot-layers.ts` + `layer-bake.ts` (shared with after-shot)  |
 
 `adjustments.ts` may only emit the six functions `canvas-filter.ts` implements (brightness,
 contrast, saturate, grayscale, sepia, hue-rotate). Anything else renders in the preview and silently
 vanishes from the export. Vignette is the deliberate exception: it is not expressible as a colour
-matrix, so it is *drawn* in both places rather than filtered.
+matrix, so it is _drawn_ in both places rather than filtered.
 
 Never use `ctx.filter` — see the root `CLAUDE.md`.
 
@@ -71,7 +71,7 @@ of ±1 around the playhead is mounted — mobile Safari caps concurrent decoders
 ## Timeline: scrollLeft is the playhead
 
 `StudioTimeline` welds the playhead to the centre of the screen and scrolls the tracks under it, so
-the browser's own momentum scrolling *is* the scrub gesture. Consequences:
+the browser's own momentum scrolling _is_ the scrub gesture. Consequences:
 
 - the component is `memo`'d and takes stable handles (`subscribe`/`seek`/`pause`/`timeRef`) rather
   than the `PlaybackApi` object, which is rebuilt every frame;
@@ -91,7 +91,7 @@ Two fast paths come first and both hand control back to existing code:
 Audio is mixed in an `OfflineAudioContext` (buffer sources for speed, gain nodes for volume and
 fades) and added as one `AudioBufferSource`. This is the one place the studio departs from
 `after-shot-export.ts`'s encoded-audio passthrough, and deliberately: that file's stated reason for
-passing audio through untouched is that *nothing on that screen edits sound*. Here volume, fades,
+passing audio through untouched is that _nothing on that screen edits sound_. Here volume, fades,
 detached tracks, added music and speed changes all do.
 
 Performance note: the colour-matrix pass costs ~20ms/frame at 540×960, but the GPU→CPU readback it

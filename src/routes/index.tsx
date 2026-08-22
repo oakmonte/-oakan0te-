@@ -313,8 +313,6 @@ function OakmonteLanding() {
     closeTimer.current = setTimeout(() => setOpenMenu(null), 150);
   };
 
-
-
   useEffect(() => {
     const onScroll = () => {
       setScrolled(window.scrollY > 8);
@@ -395,10 +393,11 @@ function OakmonteLanding() {
                       </svg>
                     </button>
                     {openMenu === item.key && (
-                      <div className="dd-wrap" style={{ animation: "ddFadeIn 180ms ease-out both" }}>
-                        <div
-                          className={`dd-panel${item.key === "product" ? " wide" : ""}`}
-                        >
+                      <div
+                        className="dd-wrap"
+                        style={{ animation: "ddFadeIn 180ms ease-out both" }}
+                      >
+                        <div className={`dd-panel${item.key === "product" ? " wide" : ""}`}>
                           {MENUS[item.key as MenuKey].items.map((it, i) => (
                             <a
                               key={it.title}
@@ -437,95 +436,90 @@ function OakmonteLanding() {
                   setMobileGroup(null);
                 }}
               >
-              <span />
-              <span />
-              <span />
-            </button>
+                <span />
+                <span />
+                <span />
+              </button>
             </div>
           </div>
         </div>
-
       </header>
-        {/* Mobile side drawer */}
+      {/* Mobile side drawer */}
+      <div className={`mobile-drawer${mobileOpen ? " open" : ""}`} aria-hidden={!mobileOpen}>
         <div
-          className={`mobile-drawer${mobileOpen ? " open" : ""}`}
-          aria-hidden={!mobileOpen}
-        >
-          <div
-            className="drawer-scrim"
-            onClick={() => {
-              setMobileOpen(false);
-              setMobileGroup(null);
-            }}
-          />
-          <aside className="drawer-panel">
-            <div className="drawer-stage">
-              <div className={`drawer-list${mobileGroup ? " shifted" : ""}`}>
-                {NAV.map((item) =>
-                  item.key ? (
-                    <button
-                      key={item.label}
-                      type="button"
-                      className="drawer-row"
-                      onClick={() => setMobileGroup(item.key as MenuKey)}
-                    >
-                      {item.label}
-                      <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
-                        <path
-                          d="M3 1l4 4-4 4"
-                          stroke="currentColor"
-                          strokeWidth="1.4"
-                          fill="none"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </button>
-                  ) : (
-                    <a
-                      key={item.label}
-                      href={item.href}
-                      className="drawer-row"
-                      onClick={() => setMobileOpen(false)}
-                    >
-                      {item.label}
-                    </a>
-                  ),
-                )}
-                <Link
-                  to="/sign-in"
-                  className="drawer-row signin-row"
-                  onClick={() => setMobileOpen(false)}
-                >
-                  Sign in
-                </Link>
-              </div>
-
-              <div className={`drawer-sub${mobileGroup ? " shown" : ""}`}>
-                {mobileGroup && (
-                  <div>
-                    <div className="drawer-sub-title">{MENUS[mobileGroup].label}</div>
-                    {MENUS[mobileGroup].items.map((it) => (
-                      <a
-                        key={it.title}
-                        href={it.href}
-                        className="drawer-sub-row"
-                        onClick={() => {
-                          setMobileOpen(false);
-                          setMobileGroup(null);
-                        }}
-                      >
-                        <span className="dd-title">{it.title}</span>
-                        <span className="dd-desc">{it.desc}</span>
-                      </a>
-                    ))}
-                  </div>
-                )}
-              </div>
+          className="drawer-scrim"
+          onClick={() => {
+            setMobileOpen(false);
+            setMobileGroup(null);
+          }}
+        />
+        <aside className="drawer-panel">
+          <div className="drawer-stage">
+            <div className={`drawer-list${mobileGroup ? " shifted" : ""}`}>
+              {NAV.map((item) =>
+                item.key ? (
+                  <button
+                    key={item.label}
+                    type="button"
+                    className="drawer-row"
+                    onClick={() => setMobileGroup(item.key as MenuKey)}
+                  >
+                    {item.label}
+                    <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
+                      <path
+                        d="M3 1l4 4-4 4"
+                        stroke="currentColor"
+                        strokeWidth="1.4"
+                        fill="none"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </button>
+                ) : (
+                  <a
+                    key={item.label}
+                    href={item.href}
+                    className="drawer-row"
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    {item.label}
+                  </a>
+                ),
+              )}
+              <Link
+                to="/sign-in"
+                className="drawer-row signin-row"
+                onClick={() => setMobileOpen(false)}
+              >
+                Sign in
+              </Link>
             </div>
-          </aside>
-        </div>
 
+            <div className={`drawer-sub${mobileGroup ? " shown" : ""}`}>
+              {mobileGroup && (
+                <div>
+                  <div className="drawer-sub-title">{MENUS[mobileGroup].label}</div>
+                  {MENUS[mobileGroup].items.map((it) => (
+                    <a
+                      key={it.title}
+                      href={it.href}
+                      className="drawer-sub-row"
+                      onClick={() => {
+                        setMobileOpen(false);
+                        setMobileGroup(null);
+                      }}
+                    >
+                      <span className="dd-title">{it.title}</span>
+                      <span className="dd-desc">{it.desc}</span>
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </aside>
+      </div>
 
       <main>
         {/* HERO */}
@@ -577,11 +571,10 @@ function OakmonteLanding() {
               </Link>
               <Link to="/become-a-curator" className="hero-cta-card card-tint">
                 <span className="cta-label">Define Your Wardrobe</span>
-              <span className="cta-hint">Discover pieces matched to your size.</span>
-            </Link>
-            <p className="hero-cta-helper">You can switch between these later</p>
-          </div>
-
+                <span className="cta-hint">Discover pieces matched to your size.</span>
+              </Link>
+              <p className="hero-cta-helper">You can switch between these later</p>
+            </div>
 
             <div className="hero-media">
               <img
@@ -924,7 +917,6 @@ function OakmonteLanding() {
             </div>
           </div>
         </footer>
-
       </main>
     </div>
   );

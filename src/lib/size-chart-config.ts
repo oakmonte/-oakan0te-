@@ -82,7 +82,12 @@ export function displayToCm(value: number, unit: "cm" | "in"): number {
 // Deliberately not surfaced to sellers (no ratio numbers, no rule text) —
 // see plausibility check call sites for the generic, non-specific copy shown
 // instead.
-type MeasurementKey = "shoulder_width" | "chest_width" | "body_length" | "sleeve_length" | "neck_width";
+type MeasurementKey =
+  | "shoulder_width"
+  | "chest_width"
+  | "body_length"
+  | "sleeve_length"
+  | "neck_width";
 
 const RATIO_BOUNDS: { a: MeasurementKey; b: MeasurementKey; min: number; max: number }[] = [
   { a: "sleeve_length", b: "body_length", min: 0.15, max: 0.55 },
@@ -97,7 +102,9 @@ const RATIO_BOUNDS: { a: MeasurementKey; b: MeasurementKey; min: number; max: nu
 // Checks every measurement pair that has both values filled in (cm, any
 // single size's set) against its ratio bounds. Returns true only if every
 // applicable pair is plausible — false the moment one falls outside range.
-export function isMeasurementSetPlausible(values: Partial<Record<MeasurementKey, number>>): boolean {
+export function isMeasurementSetPlausible(
+  values: Partial<Record<MeasurementKey, number>>,
+): boolean {
   for (const { a, b, min, max } of RATIO_BOUNDS) {
     const va = values[a];
     const vb = values[b];

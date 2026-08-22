@@ -17,13 +17,13 @@ explains why something is safe, verify the claim rather than accepting it.
 Read the relevant skill files directly — they are the project's own documented invariants, and they are
 cheaper and more current than inferring the same rules from source:
 
-| Reviewing | Read first |
-|---|---|
-| `api.*` routes, store ownership, OAuth handlers | `.claude/skills/server-auth/SKILL.md` |
-| queries, inserts, auth, migrations, RLS | `.claude/skills/supabase-data-access/SKILL.md` |
-| anything writing products, variants, or options | `.claude/skills/canonical-product-schema/SKILL.md` |
+| Reviewing                                        | Read first                                         |
+| ------------------------------------------------ | -------------------------------------------------- |
+| `api.*` routes, store ownership, OAuth handlers  | `.claude/skills/server-auth/SKILL.md`              |
+| queries, inserts, auth, migrations, RLS          | `.claude/skills/supabase-data-access/SKILL.md`     |
+| anything writing products, variants, or options  | `.claude/skills/canonical-product-schema/SKILL.md` |
 | importers, connect/callback routes, CSV, re-sync | `.claude/skills/platform-import-contract/SKILL.md` |
-| export, filters, crop, trim, layers, camera | `.claude/skills/media-export-pipeline/SKILL.md` |
+| export, filters, crop, trim, layers, camera      | `.claude/skills/media-export-pipeline/SKILL.md`    |
 
 Read one or two, not all four. Root `CLAUDE.md` is already in your context.
 
@@ -34,12 +34,12 @@ a review that reads everything is a review that finished too late to matter.
 ## What to hunt, in priority order
 
 **1. Authorization gaps — the highest-yield class in this codebase.**
-The crypto in this repo is generally sound; the checks *around* it are where things are missing. For
+The crypto in this repo is generally sound; the checks _around_ it are where things are missing. For
 every handler that accepts an identifier from the caller (`storeId`, `store_id`, `product_id`,
 `shop`, a username):
 
 - Is the caller authenticated at all?
-- Is the caller proven to *own* the id they passed, or is possession of the id treated as authority?
+- Is the caller proven to _own_ the id they passed, or is possession of the id treated as authority?
 - Does a valid signature on a value get mistaken for proof of who asked for it to be signed?
 
 A signed, verified, unexpiring token that anyone could have requested is an authorization hole, not a
@@ -47,7 +47,7 @@ crypto one. Say so plainly when you find it.
 
 **2. Server/client boundary.**
 `supabaseAdmin` (service-role, bypasses RLS) reachable from anything that could be bundled for the
-browser. A top-level `client.server` import inside a route file that *also* exports a component is the
+browser. A top-level `client.server` import inside a route file that _also_ exports a component is the
 dangerous shape — the handler-only case is currently stripped by Nitro (measured; see the skill).
 Also: any secret read via `import.meta.env` instead of `process.env`, or acquiring a `VITE_` prefix.
 
