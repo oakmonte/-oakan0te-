@@ -10,7 +10,6 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as OakmonteLandingRouteImport } from './routes/OakmonteLanding'
 import { Route as ActivityRouteImport } from './routes/activity'
 import { Route as BecomeACreatorRouteImport } from './routes/become-a-creator'
 import { Route as BecomeACuratorRouteImport } from './routes/become-a-curator'
@@ -24,6 +23,7 @@ import { Route as IndexUpgradeRouteImport } from './routes/index-upgrade'
 import { Route as NameYourStoreRouteImport } from './routes/name-your-store'
 import { Route as NoAccountRouteImport } from './routes/no-account'
 import { Route as OfflineVideosRouteImport } from './routes/offline-videos'
+import { Route as PreviousIndexRouteImport } from './routes/previous-index'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as SellerTypeRouteImport } from './routes/seller-type'
 import { Route as SetUpStoreRouteImport } from './routes/set-up-store'
@@ -66,11 +66,6 @@ import { Route as StoreProductsNewcomerRouteImport } from './routes/store.produc
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OakmonteLandingRoute = OakmonteLandingRouteImport.update({
-  id: '/OakmonteLanding',
-  path: '/OakmonteLanding',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ActivityRoute = ActivityRouteImport.update({
@@ -136,6 +131,11 @@ const NoAccountRoute = NoAccountRouteImport.update({
 const OfflineVideosRoute = OfflineVideosRouteImport.update({
   id: '/offline-videos',
   path: '/offline-videos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PreviousIndexRoute = PreviousIndexRouteImport.update({
+  id: '/previous-index',
+  path: '/previous-index',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacyRoute = PrivacyRouteImport.update({
@@ -331,7 +331,6 @@ const StoreProductsNewcomerRoute = StoreProductsNewcomerRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/OakmonteLanding': typeof OakmonteLandingRoute
   '/activity': typeof ActivityRoute
   '/become-a-creator': typeof BecomeACreatorRoute
   '/become-a-curator': typeof BecomeACuratorRoute
@@ -345,6 +344,7 @@ export interface FileRoutesByFullPath {
   '/name-your-store': typeof NameYourStoreRoute
   '/no-account': typeof NoAccountRoute
   '/offline-videos': typeof OfflineVideosRoute
+  '/previous-index': typeof PreviousIndexRoute
   '/privacy': typeof PrivacyRoute
   '/seller-type': typeof SellerTypeRoute
   '/set-up-store': typeof SetUpStoreRoute
@@ -386,7 +386,6 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/OakmonteLanding': typeof OakmonteLandingRoute
   '/activity': typeof ActivityRoute
   '/become-a-creator': typeof BecomeACreatorRoute
   '/become-a-curator': typeof BecomeACuratorRoute
@@ -399,6 +398,7 @@ export interface FileRoutesByTo {
   '/name-your-store': typeof NameYourStoreRoute
   '/no-account': typeof NoAccountRoute
   '/offline-videos': typeof OfflineVideosRoute
+  '/previous-index': typeof PreviousIndexRoute
   '/privacy': typeof PrivacyRoute
   '/seller-type': typeof SellerTypeRoute
   '/set-up-store': typeof SetUpStoreRoute
@@ -439,7 +439,6 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/OakmonteLanding': typeof OakmonteLandingRoute
   '/activity': typeof ActivityRoute
   '/become-a-creator': typeof BecomeACreatorRoute
   '/become-a-curator': typeof BecomeACuratorRoute
@@ -453,6 +452,7 @@ export interface FileRoutesById {
   '/name-your-store': typeof NameYourStoreRoute
   '/no-account': typeof NoAccountRoute
   '/offline-videos': typeof OfflineVideosRoute
+  '/previous-index': typeof PreviousIndexRoute
   '/privacy': typeof PrivacyRoute
   '/seller-type': typeof SellerTypeRoute
   '/set-up-store': typeof SetUpStoreRoute
@@ -496,7 +496,6 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/OakmonteLanding'
     | '/activity'
     | '/become-a-creator'
     | '/become-a-curator'
@@ -510,6 +509,7 @@ export interface FileRouteTypes {
     | '/name-your-store'
     | '/no-account'
     | '/offline-videos'
+    | '/previous-index'
     | '/privacy'
     | '/seller-type'
     | '/set-up-store'
@@ -551,7 +551,6 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/OakmonteLanding'
     | '/activity'
     | '/become-a-creator'
     | '/become-a-curator'
@@ -564,6 +563,7 @@ export interface FileRouteTypes {
     | '/name-your-store'
     | '/no-account'
     | '/offline-videos'
+    | '/previous-index'
     | '/privacy'
     | '/seller-type'
     | '/set-up-store'
@@ -603,7 +603,6 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
-    | '/OakmonteLanding'
     | '/activity'
     | '/become-a-creator'
     | '/become-a-curator'
@@ -617,6 +616,7 @@ export interface FileRouteTypes {
     | '/name-your-store'
     | '/no-account'
     | '/offline-videos'
+    | '/previous-index'
     | '/privacy'
     | '/seller-type'
     | '/set-up-store'
@@ -659,7 +659,6 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  OakmonteLandingRoute: typeof OakmonteLandingRoute
   ActivityRoute: typeof ActivityRoute
   BecomeACreatorRoute: typeof BecomeACreatorRoute
   BecomeACuratorRoute: typeof BecomeACuratorRoute
@@ -673,6 +672,7 @@ export interface RootRouteChildren {
   NameYourStoreRoute: typeof NameYourStoreRoute
   NoAccountRoute: typeof NoAccountRoute
   OfflineVideosRoute: typeof OfflineVideosRoute
+  PreviousIndexRoute: typeof PreviousIndexRoute
   PrivacyRoute: typeof PrivacyRoute
   SellerTypeRoute: typeof SellerTypeRoute
   SetUpStoreRoute: typeof SetUpStoreRoute
@@ -703,13 +703,6 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/OakmonteLanding': {
-      id: '/OakmonteLanding'
-      path: '/OakmonteLanding'
-      fullPath: '/OakmonteLanding'
-      preLoaderRoute: typeof OakmonteLandingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/activity': {
@@ -801,6 +794,13 @@ declare module '@tanstack/react-router' {
       path: '/offline-videos'
       fullPath: '/offline-videos'
       preLoaderRoute: typeof OfflineVideosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/previous-index': {
+      id: '/previous-index'
+      path: '/previous-index'
+      fullPath: '/previous-index'
+      preLoaderRoute: typeof PreviousIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacy': {
@@ -1135,7 +1135,6 @@ const StoreRouteWithChildren = StoreRoute._addFileChildren(StoreRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  OakmonteLandingRoute: OakmonteLandingRoute,
   ActivityRoute: ActivityRoute,
   BecomeACreatorRoute: BecomeACreatorRoute,
   BecomeACuratorRoute: BecomeACuratorRoute,
@@ -1149,6 +1148,7 @@ const rootRouteChildren: RootRouteChildren = {
   NameYourStoreRoute: NameYourStoreRoute,
   NoAccountRoute: NoAccountRoute,
   OfflineVideosRoute: OfflineVideosRoute,
+  PreviousIndexRoute: PreviousIndexRoute,
   PrivacyRoute: PrivacyRoute,
   SellerTypeRoute: SellerTypeRoute,
   SetUpStoreRoute: SetUpStoreRoute,
