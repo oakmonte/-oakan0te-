@@ -68,11 +68,11 @@ const QUOTES = [
   },
   {
     text: "I share pieces I actually believe in — and I get credit for every sale it drives.",
-    who: "Jamal — Creator (sample)",
+    who: "Jamal",
   },
   {
     text: "The size chart alone saved me two returns in my first week.",
-    who: "Nathan — Curator (sample)",
+    who: "Nathan",
   },
 ];
 
@@ -787,9 +787,6 @@ function OakmonteLanding() {
           <div className="wrap">
             <Reveal className="value-head">
               <h2>Why people choose Oakmonte.</h2>
-            </Reveal>
-            <Reveal as="p" className="value-note">
-              Sample layout — swap in real customer quotes once you have them.
             </Reveal>
             <div className="quotes-grid">
               {QUOTES.map((q, i) => (
