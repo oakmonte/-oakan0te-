@@ -425,9 +425,6 @@ function OakmonteLanding() {
               )}
             </nav>
             <div className="header-actions">
-              <div className="desktop-auth">
-                <Auth />
-              </div>
               <button
                 className={`mobile-toggle${mobileOpen ? " is-open" : ""}`}
                 aria-label={mobileOpen ? "Close menu" : "Open menu"}
@@ -492,6 +489,13 @@ function OakmonteLanding() {
                     </a>
                   ),
                 )}
+                <Link
+                  to="/sign-in"
+                  className="drawer-row signin-row"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  Sign in
+                </Link>
               </div>
 
               <div className={`drawer-sub${mobileGroup ? " shown" : ""}`}>
