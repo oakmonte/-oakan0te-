@@ -985,7 +985,7 @@ const CSS = `
 .oak .cta-btn.on-black{background:var(--blue);}
 .oak .cta-btn.on-black:hover{background:var(--white);color:var(--black);}
 
-.oak .desktop-auth{display:flex;align-items:center;gap:4px;}
+.oak .desktop-auth{display:flex;align-items:center;gap:30px;}
 
 .oak .mobile-toggle{display:none;padding:8px;}
 .oak .mobile-toggle span{display:block;width:22px;height:2px;background:var(--black);margin-bottom:6px;transition:transform .3s ease,opacity .2s ease;}
