@@ -698,7 +698,7 @@ function OakmonteLanding() {
                   <span className="stars">★★★★★</span>Loved by our early shoppers
                 </p>
               </Reveal>
-              <Reveal delay={2} className="offer-card">
+              <Reveal delay={2} className="offer-card accent-border">
                 <span className="tag">For Creators and Creatives</span>
                 <h3>Make money from your content</h3>
                 <p>
@@ -1111,6 +1111,7 @@ const CSS = `
 .oak .offer-card{border:2px solid var(--black);border-radius:22px;padding:44px;position:relative;overflow:hidden;transition:transform .3s ease,box-shadow .3s ease;background:var(--white);}
 .oak .offer-card:hover{box-shadow:0 24px 48px rgba(10,10,10,.12);}
 .oak .offer-card.blue{background:var(--blue);color:#fff;border-color:var(--blue);}
+.oak .offer-card.accent-border{border-color:var(--blue);}
 .oak .offer-card .tag{font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin-bottom:18px;display:block;}
 .oak .offer-card.blue .tag{color:rgba(255,255,255,.8);}
 .oak .offer-card:not(.blue) .tag{color:var(--blue);}
