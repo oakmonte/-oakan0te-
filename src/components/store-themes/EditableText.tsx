@@ -65,7 +65,7 @@ export function EditableText({
     );
   }
 
-  const editClassName = `${className ?? ""} w-full resize-none border-b border-dashed border-white/30 bg-transparent outline-none focus:border-white/70`;
+  const editClassName = `${className ?? ""} w-full resize-none rounded-md border border-white/25 bg-white/5 px-2 py-1 outline-none focus:border-white/60 focus:bg-white/10`;
 
   function commit() {
     if (local !== value) onChange(local);

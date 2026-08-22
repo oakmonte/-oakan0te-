@@ -485,7 +485,7 @@ export function CollectionsGrid({
                 style={{ background: tileBg }}
               >
                 <div
-                  className="mb-2 flex h-20 items-center justify-center overflow-hidden rounded-lg"
+                  className="mb-2 flex h-32 items-center justify-center overflow-hidden rounded-lg"
                   style={{ background: `${accent}22` }}
                 >
                   <img
@@ -514,7 +514,7 @@ export function CollectionsGrid({
                   style={{ background: tileBg }}
                 >
                   <div
-                    className="mb-2 flex h-20 items-center justify-center overflow-hidden rounded-lg"
+                    className="mb-2 flex h-32 items-center justify-center overflow-hidden rounded-lg"
                     style={{ background: `${accent}22` }}
                   >
                     <img src={productPlaceholder} alt="" className="h-full w-full object-cover" />
@@ -536,7 +536,7 @@ export function CollectionsGrid({
                   style={{ background: tileBg }}
                 >
                   <div
-                    className="mb-2 flex h-20 items-center justify-center overflow-hidden rounded-lg"
+                    className="mb-2 flex h-32 items-center justify-center overflow-hidden rounded-lg"
                     style={{ background: `${accent}22` }}
                   >
                     <img src={productPlaceholder} alt="" className="h-full w-full object-cover" />

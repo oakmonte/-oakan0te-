@@ -4,10 +4,10 @@ import {
   CirclePlay,
   Cpu,
   Crown,
-  Eye,
   Gem,
   Grid2X2,
   Heart,
+  Pencil,
   ShoppingBag,
   Sparkles,
   Stars,
@@ -19,8 +19,14 @@ import { ThemePreviewSheet } from "./store-themes/full-previews";
 export function StoreThemeSelector() {
   const [selected, setSelected] = useState<ThemeId>("motion");
   const [previewing, setPreviewing] = useState<ThemeId | null>(null);
+  const [previewMode, setPreviewMode] = useState<"view" | "edit">("view");
 
   const previewTheme = THEMES.find((t) => t.id === previewing) ?? null;
+
+  function openPreview(themeId: ThemeId, mode: "view" | "edit") {
+    setPreviewing(themeId);
+    setPreviewMode(mode);
+  }
 
   return (
     <main className="min-h-[calc(100vh-3.5rem)] bg-[#f6f5f2] px-4 py-7 sm:px-6 lg:px-8">
@@ -65,14 +71,6 @@ export function StoreThemeSelector() {
                   >
                     <StorefrontPreview theme={theme.id} demoBrand={theme.demoBrand} />
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setPreviewing(theme.id)}
-                    className="absolute right-2.5 top-2.5 flex items-center gap-1 rounded-full bg-black/55 px-2.5 py-1.5 text-[10px] font-semibold text-white backdrop-blur transition-colors duration-200 hover:bg-black/70"
-                  >
-                    <Eye size={12} />
-                    Preview
-                  </button>
                 </div>
 
                 <div className="px-2 pb-2 pt-4">
@@ -104,10 +102,27 @@ export function StoreThemeSelector() {
                   <p className="mt-3 min-h-10 text-sm leading-5 text-[#706c65]">
                     {theme.description}
                   </p>
+                  <div className="mt-4 grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => openPreview(theme.id, "edit")}
+                      className="flex items-center justify-center gap-1.5 rounded-xl border border-[#e1ddd6] py-2.5 text-sm font-medium text-[#262421] transition-colors duration-200 hover:bg-[#f5f3ef]"
+                    >
+                      <Pencil size={14} />
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openPreview(theme.id, "view")}
+                      className="flex items-center justify-center gap-1.5 rounded-xl border border-[#e1ddd6] py-2.5 text-sm font-medium text-[#262421] transition-colors duration-200 hover:bg-[#f5f3ef]"
+                    >
+                      Preview
+                    </button>
+                  </div>
                   <button
                     type="button"
                     onClick={() => setSelected(theme.id)}
-                    className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-xl border border-[#e1ddd6] py-2.5 text-sm font-medium text-[#262421] transition-colors duration-200 hover:bg-[#f5f3ef]"
+                    className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl border border-[#e1ddd6] py-2.5 text-sm font-medium text-[#262421] transition-colors duration-200 hover:bg-[#f5f3ef]"
                   >
                     {isSelected ? "Selected" : "Use this theme"}
                     {!isSelected && <ChevronRight size={16} />}
@@ -127,6 +142,7 @@ export function StoreThemeSelector() {
         <ThemePreviewSheet
           theme={previewTheme}
           isSelected={selected === previewTheme.id}
+          initialMode={previewMode}
           onClose={() => setPreviewing(null)}
           onSelect={() => {
             setSelected(previewTheme.id);

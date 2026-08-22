@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useRef, useState, type ReactNode } from "react";
+import { Fragment, useMemo, useState, type ReactNode } from "react";
 import {
   ArrowLeft,
   BadgeCheck,
@@ -20,8 +20,10 @@ import {
   Zap,
   Cpu,
 } from "lucide-react";
-import placeholderPhoto1 from "@/assets/Store theme placeholder images/photo_2026-08-21_05-49-54.jpg";
-import placeholderPhoto2 from "@/assets/Store theme placeholder images/photo_2026-08-21_05-50-21.jpg";
+import placeholderPhoto1 from "@/assets/Store theme placeholder images/photo_1_2026-08-22_00-20-52.jpg";
+import placeholderPhoto2 from "@/assets/Store theme placeholder images/photo_2_2026-08-22_00-20-52.jpg";
+import placeholderPhoto3 from "@/assets/Store theme placeholder images/photo_3_2026-08-22_00-20-52.jpg";
+import placeholderPhoto4 from "@/assets/Store theme placeholder images/photo_4_2026-08-22_00-20-52.jpg";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { Theme, ThemeId } from "./types";
 import {
@@ -42,7 +44,12 @@ import {
 } from "./edit-types";
 import { LAYOUT_PRESETS, type ArrangeableBlockId } from "./layout-presets";
 
-const HERO_SLIDESHOW_IMAGES = [placeholderPhoto1, placeholderPhoto2];
+const HERO_SLIDESHOW_IMAGES = [
+  placeholderPhoto1,
+  placeholderPhoto2,
+  placeholderPhoto3,
+  placeholderPhoto4,
+];
 
 // One bespoke "full preview" per theme: shared blocks (header, stats,
 // features, collections, promo, footer) handle the repeated storefront
@@ -672,35 +679,57 @@ export function ThemePreviewSheet({
   isSelected,
   onClose,
   onSelect,
+  initialMode = "view",
 }: {
   theme: Theme;
   isSelected: boolean;
   onClose: () => void;
   onSelect: () => void;
+  /** Lets the theme grid send sellers straight into edit mode via its own
+   * "Edit" button, without changing what the in-sheet Edit pill does. */
+  initialMode?: "view" | "edit";
 }) {
-  const [mode, setMode] = useState<"view" | "edit">("view");
-  const [state, setState] = useState<ThemeEditState>(() => ({
-    ...createInitialEditState(),
-    // Seeded with the real default photos (not left as a "use defaults"
-    // sentinel) so an explicit remove-down-to-zero is unambiguous — an empty
-    // array always means "the seller removed every photo," never "untouched."
-    slideshowImages: HERO_SLIDESHOW_IMAGES,
+  const [mode, setMode] = useState<"view" | "edit">(initialMode);
+  // `current` + `history` live in one state object on purpose: a setState
+  // updater must be pure (React/StrictMode double-invokes it in dev to catch
+  // exactly this), so `mutate` can't call a second setState from inside the
+  // first one to record history as a side effect — that double-pushes under
+  // StrictMode. One object, one updater, no nesting.
+  const [editState, setEditState] = useState<{
+    current: ThemeEditState;
+    history: ThemeEditState[];
+  }>(() => ({
+    current: {
+      ...createInitialEditState(),
+      // Seeded with the real default photos (not left as a "use defaults"
+      // sentinel) so an explicit remove-down-to-zero is unambiguous — an
+      // empty array always means "the seller removed every photo," never
+      // "untouched."
+      slideshowImages: HERO_SLIDESHOW_IMAGES,
+    },
+    history: [],
   }));
+  const state = editState.current;
+  const history = editState.history;
   const [hint, setHint] = useState<string | null>(null);
-  const preEditSnapshot = useRef<ThemeEditState | null>(null);
+
+  function mutate(updater: (s: ThemeEditState) => ThemeEditState) {
+    setEditState((es) => ({ current: updater(es.current), history: [...es.history, es.current] }));
+  }
 
   function enterEdit() {
-    preEditSnapshot.current = state;
+    setEditState((es) => ({ ...es, history: [] }));
     setMode("edit");
   }
   function handleSave() {
-    preEditSnapshot.current = null;
+    setEditState((es) => ({ ...es, history: [] }));
     setMode("view");
   }
-  function handleBack() {
-    if (preEditSnapshot.current) setState(preEditSnapshot.current);
-    preEditSnapshot.current = null;
-    setMode("view");
+  function handleUndo() {
+    setEditState((es) => {
+      if (es.history.length === 0) return es;
+      return { current: es.history[es.history.length - 1], history: es.history.slice(0, -1) };
+    });
   }
 
   const editingProps: ThemeEditingProps = useMemo(
@@ -708,16 +737,16 @@ export function ThemePreviewSheet({
       isEditing: mode === "edit",
       logoMode: state.logoMode,
       onLogoModeChange: (logoMode) => {
-        setState((s) => ({ ...s, logoMode }));
+        mutate((s) => ({ ...s, logoMode }));
       },
       logoImage: state.logoImage,
       onLogoChange: (file) => {
         const url = URL.createObjectURL(file);
-        setState((s) => ({ ...s, logoImage: url }));
+        mutate((s) => ({ ...s, logoImage: url }));
       },
       slideshowImages: state.slideshowImages,
       onAddSlideshowImages: (files) => {
-        setState((s) => {
+        mutate((s) => {
           const room = MAX_SLIDESHOW_IMAGES - s.slideshowImages.length;
           if (room <= 0) return s;
           const added = Array.from(files)
@@ -727,33 +756,33 @@ export function ThemePreviewSheet({
         });
       },
       onRemoveSlideshowImage: (index) => {
-        setState((s) => ({
+        mutate((s) => ({
           ...s,
           slideshowImages: s.slideshowImages.filter((_, i) => i !== index),
         }));
       },
       onClearSlideshow: () => {
-        setState((s) => ({ ...s, slideshowImages: [] }));
+        mutate((s) => ({ ...s, slideshowImages: [] }));
       },
       text: state.text,
       onTextChange: (field, value) => {
-        setState((s) => ({ ...s, text: { ...s.text, [field]: value } }));
+        mutate((s) => ({ ...s, text: { ...s.text, [field]: value } }));
       },
       textFonts: state.textFonts,
       onTextFontChange: (field, font) => {
-        setState((s) => ({ ...s, textFonts: { ...s.textFonts, [field]: font } }));
+        mutate((s) => ({ ...s, textFonts: { ...s.textFonts, [field]: font } }));
       },
       hiddenBlocks: state.hiddenBlocks,
       onRemoveBlock: (block: RemovableBlockId) => {
-        setState((s) => ({ ...s, hiddenBlocks: [...s.hiddenBlocks, block] }));
+        mutate((s) => ({ ...s, hiddenBlocks: [...s.hiddenBlocks, block] }));
       },
       layoutId: state.layoutId,
       onLayoutChange: (id) => {
-        setState((s) => ({ ...s, layoutId: id }));
+        mutate((s) => ({ ...s, layoutId: id }));
       },
       collectionsMode: state.collectionsMode,
       onCollectionsModeChange: (collectionsMode) => {
-        setState((s) => ({ ...s, collectionsMode }));
+        mutate((s) => ({ ...s, collectionsMode }));
       },
       onTileTapBlocked: () => {
         setHint(
@@ -828,10 +857,12 @@ export function ThemePreviewSheet({
                 </button>
                 <button
                   type="button"
-                  onClick={handleBack}
-                  className="rounded-full px-3 py-1.5 text-[11px] font-semibold text-white/60 hover:bg-white/10 hover:text-white"
+                  onClick={handleUndo}
+                  disabled={history.length === 0}
+                  aria-label="Undo last edit"
+                  className="flex h-8 w-8 items-center justify-center rounded-full text-white/60 hover:bg-white/10 hover:text-white disabled:pointer-events-none disabled:opacity-30"
                 >
-                  Back
+                  <ArrowLeft size={16} strokeWidth={1.8} />
                 </button>
               </div>
               <Popover>
