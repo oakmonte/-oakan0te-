@@ -39,7 +39,7 @@ export const Route = createFileRoute("/")({
 
 /* ---------------- Images ---------------- */
 const IMG_LOGO = logoAsset.url;
-const IMG_HERO = phoneMockupAsset.url;
+
 const IMG_STORY = streetwearAsset.url;
 const IMG_SCALE = heroAsset.url;
 
