@@ -425,9 +425,6 @@ function OakmonteLanding() {
               )}
             </nav>
             <div className="header-actions">
-              <div className="desktop-auth">
-                <Auth />
-              </div>
               <button
                 className={`mobile-toggle${mobileOpen ? " is-open" : ""}`}
                 aria-label={mobileOpen ? "Close menu" : "Open menu"}
@@ -492,6 +489,13 @@ function OakmonteLanding() {
                     </a>
                   ),
                 )}
+                <Link
+                  to="/sign-in"
+                  className="drawer-row signin-row"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  Sign in
+                </Link>
               </div>
 
               <div className={`drawer-sub${mobileGroup ? " shown" : ""}`}>
@@ -987,8 +991,10 @@ const CSS = `
 .oak .cta-btn.on-black{background:var(--blue);}
 .oak .cta-btn.on-black:hover{background:var(--white);color:var(--black);}
 
-.oak .header-actions{display:flex;align-items:center;gap:30px;}
-.oak .desktop-auth{display:flex;align-items:center;}
+.oak .header-actions{display:flex;align-items:center;}
+
+.oak .signin-row{border-top:1px solid var(--line);color:var(--blue);}
+.oak .signin-row:hover{color:var(--white);background:var(--blue);}
 
 .oak .mobile-toggle{display:none;padding:8px;}
 .oak .mobile-toggle span{display:block;width:22px;height:2px;background:var(--black);margin-bottom:6px;transition:transform .3s ease,opacity .2s ease;}
