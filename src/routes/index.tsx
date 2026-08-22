@@ -580,9 +580,9 @@ function OakmonteLanding() {
             <div className="hero-media">
               <img
                 src={IMG_HERO}
-                alt="Models wearing curated fashion pieces"
-                width={1920}
-                height={848}
+                alt="Oakmonte app on a phone held toward the viewer"
+                width={1450}
+                height={1085}
               />
               <span className="media-cap">Sell · Share · Shop — all in one place</span>
             </div>
