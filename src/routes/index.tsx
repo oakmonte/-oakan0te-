@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import logoAsset from "@/assets/oakmonte-o-mark.png.asset.json";
 import logoO from "@/assets/logo-o.png";
 import heroAsset from "@/assets/hero-editorial.jpg.asset.json";
-import fabricAsset from "@/assets/fabric-detail.jpg.asset.json";
+import streetwearAsset from "@/assets/streetwear-summerstyle.jpeg.asset.json";
 import phoneMockupAsset from "@/assets/oakmonte-phone-mockup.png.asset.json";
 
 export const Route = createFileRoute("/")({
@@ -39,7 +39,7 @@ export const Route = createFileRoute("/")({
 /* ---------------- Images ---------------- */
 const IMG_LOGO = logoAsset.url;
 const IMG_HERO = phoneMockupAsset.url;
-const IMG_STORY = fabricAsset.url;
+const IMG_STORY = streetwearAsset.url;
 const IMG_SCALE = heroAsset.url;
 
 /* ---------------- Data ---------------- */
@@ -644,10 +644,10 @@ function OakmonteLanding() {
               <Reveal delay={2} className="story-media">
                 <img
                   src={IMG_STORY}
-                  alt="Editorial fashion portrait"
+                  alt="Streetwear summer style"
                   loading="lazy"
-                  width={912}
-                  height={1200}
+                  width={736}
+                  height={920}
                 />
               </Reveal>
             </div>
