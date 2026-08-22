@@ -179,7 +179,7 @@ export function AuthPanel({ intent, title, subtitle, defaultMode = "code" }: Pro
   }
 
   return (
-    <div className="min-h-dvh bg-white text-[#0A0A0A] flex flex-col">
+    <div data-onboarding className="min-h-dvh bg-white text-[#0A0A0A] flex flex-col">
       <header className="px-6 sm:px-10 py-6 flex items-center justify-between">
         <Link to="/" className="flex items-center">
           <img src="/favicon.png" alt="Oakmonte" className="h-9 w-auto" />

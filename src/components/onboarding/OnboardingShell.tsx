@@ -44,7 +44,7 @@ export function OnboardingShell({ title, subtitle, backTo, step, onSkip, childre
   return (
     // min-h-dvh, not min-h-screen: with the mobile keyboard open 100vh overflows
     // and pushes the submit button off-screen.
-    <div className="min-h-dvh bg-brand-bg text-brand-text flex flex-col">
+    <div data-onboarding className="min-h-dvh bg-brand-bg text-brand-text flex flex-col">
       {showHeader && (
         <header className="px-6 sm:px-10 py-6 flex items-center justify-between gap-4">
           <div className="flex-1 flex justify-start">

@@ -43,6 +43,16 @@
   }
 }
 
+/* iOS Safari automatically zooms the viewport when it focuses a text control
+   whose computed font size is below 16px. Keep onboarding controls at that
+   threshold on small screens instead of disabling viewport zoom, so people can
+   still pinch-to-zoom whenever they choose. */
+@media (max-width: 639px) {
+  [data-onboarding] :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+    font-size: 16px;
+  }
+}
+
 /* Applied only to routes that own their own fixed, full-screen layout
    (camera capture, after-shot editor) — stops iOS Safari from scrolling
    the document to keep a focused input visible, which is what drags
