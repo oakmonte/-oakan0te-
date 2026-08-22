@@ -38,7 +38,7 @@ export const Route = createFileRoute("/")({
 
 /* ---------------- Images ---------------- */
 const IMG_LOGO = logoAsset.url;
-const IMG_HERO = heroAsset.url;
+const IMG_HERO = phoneMockupAsset.url;
 const IMG_STORY = fabricAsset.url;
 const IMG_SCALE = heroAsset.url;
 
@@ -1060,9 +1060,8 @@ const CSS = `
 
 .oak .stars{color:var(--blue);letter-spacing:2px;margin-right:6px;}
 
-.oak .hero-media{position:relative;margin-top:72px;border-radius:24px;overflow:hidden;aspect-ratio:16/7;opacity:0;animation:oakFadeUp .9s ease forwards;animation-delay:.9s;background:#111;}
-.oak .hero-media img{width:100%;height:100%;object-fit:cover;transform:scale(1);animation:oakKen 18s ease-out forwards;}
-@keyframes oakKen{from{transform:scale(1);}to{transform:scale(1.08);}}
+.oak .hero-media{position:relative;margin-top:72px;border-radius:24px;overflow:hidden;opacity:0;animation:oakFadeUp .9s ease forwards;animation-delay:.9s;background:#e8e8e8;}
+.oak .hero-media img{width:100%;height:auto;display:block;object-fit:contain;}
 .oak .media-cap{position:absolute;left:24px;bottom:20px;z-index:3;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.6);}
 
 .oak .trust-marquee{width:100%;overflow:hidden;background:var(--black);padding:16px 0;margin-top:64px;}
