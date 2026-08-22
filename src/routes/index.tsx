@@ -1040,7 +1040,7 @@ const CSS = `
 @keyframes oakSafelyReveal{0%{transform:translateX(115%) scale(.9);opacity:0;}55%{opacity:1;}100%{transform:translateX(0) scale(1);opacity:1;}}
 @media (max-width:900px){.oak h1.headline .line-bottom{column-gap:16px;}.oak h1.headline .safely{font-size:clamp(26px,9vw,64px);}}
 
-.oak .hero-sub{font-size:18px;line-height:1.55;color:var(--gray);max-width:36rem;margin:0 0 40px;font-weight:500;opacity:0;animation:oakFadeUp .7s ease forwards;animation-delay:.55s;}
+.oak .hero-sub{font-size:14px;line-height:1.55;color:var(--gray);max-width:36rem;margin:0 0 40px;font-weight:500;opacity:0;animation:oakFadeUp .7s ease forwards;animation-delay:.55s;}
 .oak .hero-sub b{color:var(--black);opacity:0.77;display:block;margin-top:0.5rem;}
 .oak .hero-tagline{font-size:20px;line-height:1.4;color:var(--black);max-width:36rem;margin:-24px 0 40px;font-weight:800;opacity:0;animation:oakFadeUp .7s ease forwards;animation-delay:.65s;}
 @keyframes oakFadeUp{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
