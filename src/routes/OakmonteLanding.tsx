@@ -572,10 +572,6 @@ function OakmonteLanding() {
               </Link>
             </div>
 
-            <p className="trust-line">
-              *No catches, no fine print — just fashion commerce done right.{" "}
-              <b>Loved by our early community.</b>
-            </p>
 
             <div className="hero-media">
               <img
