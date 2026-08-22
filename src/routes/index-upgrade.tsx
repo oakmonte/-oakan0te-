@@ -66,7 +66,7 @@ const RESULTS = [
 const QUOTES = [
   {
     text: "Finally get paid without chasing invoices or hoping the buyer follows through.",
-    who: "David — Seller (sample)",
+    who: "David",
   },
   {
     text: "I share pieces I actually believe in — and I get credit for every sale it drives.",
@@ -544,9 +544,6 @@ function IndexUpgrade() {
                 </Reveal>
               ))}
             </div>
-            <p className="results-note">
-              * Placeholder figures for preview — replace with your verified numbers.
-            </p>
           </div>
         </section>
 
