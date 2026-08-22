@@ -424,22 +424,24 @@ function OakmonteLanding() {
                 ),
               )}
             </nav>
-            <div className="desktop-auth">
-              <Auth />
-            </div>
-            <button
-              className={`mobile-toggle${mobileOpen ? " is-open" : ""}`}
-              aria-label={mobileOpen ? "Close menu" : "Open menu"}
-              type="button"
-              onClick={() => {
-                setMobileOpen((v) => !v);
-                setMobileGroup(null);
-              }}
-            >
+            <div className="header-actions">
+              <div className="desktop-auth">
+                <Auth />
+              </div>
+              <button
+                className={`mobile-toggle${mobileOpen ? " is-open" : ""}`}
+                aria-label={mobileOpen ? "Close menu" : "Open menu"}
+                type="button"
+                onClick={() => {
+                  setMobileOpen((v) => !v);
+                  setMobileGroup(null);
+                }}
+              >
               <span />
               <span />
               <span />
             </button>
+            </div>
           </div>
         </div>
 
@@ -980,12 +982,13 @@ const CSS = `
 .oak .cta-btn.ghost{background:transparent;color:var(--black);border:1.5px solid var(--black);}
 .oak .cta-btn.ghost:hover{background:var(--black);color:var(--white);}
 .oak .cta-btn.small{padding:10px 20px;font-size:12px;}
-.oak .cta-btn.ghost.small{padding:8px 18px;border-radius:10px;}
+.oak .cta-btn.ghost.small{padding:6px 16px;border-radius:10px;}
 .oak .cta-btn.big{padding:18px 38px;font-size:15px;}
 .oak .cta-btn.on-black{background:var(--blue);}
 .oak .cta-btn.on-black:hover{background:var(--white);color:var(--black);}
 
-.oak .desktop-auth{display:flex;align-items:center;gap:30px;}
+.oak .header-actions{display:flex;align-items:center;gap:30px;}
+.oak .desktop-auth{display:flex;align-items:center;}
 
 .oak .mobile-toggle{display:none;padding:8px;}
 .oak .mobile-toggle span{display:block;width:22px;height:2px;background:var(--black);margin-bottom:6px;transition:transform .3s ease,opacity .2s ease;}
