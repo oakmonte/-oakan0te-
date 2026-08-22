@@ -9,12 +9,12 @@ deliberate mobile pattern. Match it rather than inventing per-screen styling.
   leading swatch/icon, label, trailing check circle on the right. Chips are only for compact
   secondary pickers (e.g. option-name presets).
 - **Selected state is black.** Chips: `bg-black text-white border-black`. Rows: `border-black
-  bg-gray-50` plus a filled black check. There is no accent color anywhere in this form.
+bg-gray-50` plus a filled black check. There is no accent color anywhere in this form.
 - Section headers `text-[15px] font-semibold text-gray-900`; hints `text-xs text-gray-400`; inputs
   `rounded-xl px-4 py-4 focus:border-gray-400`.
 - Section breaks are an 8px gray bar: `border-b-8 border-gray-50` between page sections, or
   `-mx-4 h-2 bg-gray-50` to split segments inside a full-screen sheet.
-- **Always offer one-tap *and* typing** in the same view — curated presets plus a free-text input, no
+- **Always offer one-tap _and_ typing** in the same view — curated presets plus a free-text input, no
   mode toggle. Typed values pin above the presets so they survive a preset-list swap.
 - **Full-screen sheets**, not bottom drawers: `fixed inset-0 z-50 bg-white flex flex-col min-h-dvh`
   with a sticky Cancel / title / Save header.

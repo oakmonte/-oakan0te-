@@ -63,13 +63,14 @@ export function CategoryPicker({
       const joined = tokens.join("");
       // Lower score = more relevant: exact leaf name, then leaf name starts
       // with the query, then substring-in-leaf-name, then breadcrumb-only.
-      const score = nameNorm === joined
-        ? 0
-        : nameNorm.startsWith(tokens[0])
-          ? 1
-          : nameNorm.includes(joined)
-            ? 2
-            : 3;
+      const score =
+        nameNorm === joined
+          ? 0
+          : nameNorm.startsWith(tokens[0])
+            ? 1
+            : nameNorm.includes(joined)
+              ? 2
+              : 3;
       scored.push({ entry, score });
     }
     scored.sort((a, b) => a.score - b.score);

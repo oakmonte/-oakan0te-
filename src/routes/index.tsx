@@ -313,8 +313,6 @@ function OakmonteLanding() {
     closeTimer.current = setTimeout(() => setOpenMenu(null), 150);
   };
 
-
-
   useEffect(() => {
     const onScroll = () => {
       setScrolled(window.scrollY > 8);
@@ -395,10 +393,11 @@ function OakmonteLanding() {
                       </svg>
                     </button>
                     {openMenu === item.key && (
-                      <div className="dd-wrap" style={{ animation: "ddFadeIn 180ms ease-out both" }}>
-                        <div
-                          className={`dd-panel${item.key === "product" ? " wide" : ""}`}
-                        >
+                      <div
+                        className="dd-wrap"
+                        style={{ animation: "ddFadeIn 180ms ease-out both" }}
+                      >
+                        <div className={`dd-panel${item.key === "product" ? " wide" : ""}`}>
                           {MENUS[item.key as MenuKey].items.map((it, i) => (
                             <a
                               key={it.title}
@@ -437,95 +436,90 @@ function OakmonteLanding() {
                   setMobileGroup(null);
                 }}
               >
-              <span />
-              <span />
-              <span />
-            </button>
+                <span />
+                <span />
+                <span />
+              </button>
             </div>
           </div>
         </div>
-
       </header>
-        {/* Mobile side drawer */}
+      {/* Mobile side drawer */}
+      <div className={`mobile-drawer${mobileOpen ? " open" : ""}`} aria-hidden={!mobileOpen}>
         <div
-          className={`mobile-drawer${mobileOpen ? " open" : ""}`}
-          aria-hidden={!mobileOpen}
-        >
-          <div
-            className="drawer-scrim"
-            onClick={() => {
-              setMobileOpen(false);
-              setMobileGroup(null);
-            }}
-          />
-          <aside className="drawer-panel">
-            <div className="drawer-stage">
-              <div className={`drawer-list${mobileGroup ? " shifted" : ""}`}>
-                {NAV.map((item) =>
-                  item.key ? (
-                    <button
-                      key={item.label}
-                      type="button"
-                      className="drawer-row"
-                      onClick={() => setMobileGroup(item.key as MenuKey)}
-                    >
-                      {item.label}
-                      <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
-                        <path
-                          d="M3 1l4 4-4 4"
-                          stroke="currentColor"
-                          strokeWidth="1.4"
-                          fill="none"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </button>
-                  ) : (
-                    <a
-                      key={item.label}
-                      href={item.href}
-                      className="drawer-row"
-                      onClick={() => setMobileOpen(false)}
-                    >
-                      {item.label}
-                    </a>
-                  ),
-                )}
-                <Link
-                  to="/sign-in"
-                  className="drawer-row signin-row"
-                  onClick={() => setMobileOpen(false)}
-                >
-                  Sign in
-                </Link>
-              </div>
-
-              <div className={`drawer-sub${mobileGroup ? " shown" : ""}`}>
-                {mobileGroup && (
-                  <div>
-                    <div className="drawer-sub-title">{MENUS[mobileGroup].label}</div>
-                    {MENUS[mobileGroup].items.map((it) => (
-                      <a
-                        key={it.title}
-                        href={it.href}
-                        className="drawer-sub-row"
-                        onClick={() => {
-                          setMobileOpen(false);
-                          setMobileGroup(null);
-                        }}
-                      >
-                        <span className="dd-title">{it.title}</span>
-                        <span className="dd-desc">{it.desc}</span>
-                      </a>
-                    ))}
-                  </div>
-                )}
-              </div>
+          className="drawer-scrim"
+          onClick={() => {
+            setMobileOpen(false);
+            setMobileGroup(null);
+          }}
+        />
+        <aside className="drawer-panel">
+          <div className="drawer-stage">
+            <div className={`drawer-list${mobileGroup ? " shifted" : ""}`}>
+              {NAV.map((item) =>
+                item.key ? (
+                  <button
+                    key={item.label}
+                    type="button"
+                    className="drawer-row"
+                    onClick={() => setMobileGroup(item.key as MenuKey)}
+                  >
+                    {item.label}
+                    <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
+                      <path
+                        d="M3 1l4 4-4 4"
+                        stroke="currentColor"
+                        strokeWidth="1.4"
+                        fill="none"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </button>
+                ) : (
+                  <a
+                    key={item.label}
+                    href={item.href}
+                    className="drawer-row"
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    {item.label}
+                  </a>
+                ),
+              )}
+              <Link
+                to="/sign-in"
+                className="drawer-row signin-row"
+                onClick={() => setMobileOpen(false)}
+              >
+                Sign in
+              </Link>
             </div>
-          </aside>
-        </div>
 
+            <div className={`drawer-sub${mobileGroup ? " shown" : ""}`}>
+              {mobileGroup && (
+                <div>
+                  <div className="drawer-sub-title">{MENUS[mobileGroup].label}</div>
+                  {MENUS[mobileGroup].items.map((it) => (
+                    <a
+                      key={it.title}
+                      href={it.href}
+                      className="drawer-sub-row"
+                      onClick={() => {
+                        setMobileOpen(false);
+                        setMobileGroup(null);
+                      }}
+                    >
+                      <span className="dd-title">{it.title}</span>
+                      <span className="dd-desc">{it.desc}</span>
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </aside>
+      </div>
 
       <main>
         {/* HERO */}
@@ -579,8 +573,8 @@ function OakmonteLanding() {
                 <span className="cta-label">Define Your Wardrobe</span>
                 <span className="cta-hint">Discover pieces matched to your size.</span>
               </Link>
+              <p className="hero-cta-helper">You can switch between these later</p>
             </div>
-
 
             <div className="hero-media">
               <img
@@ -923,7 +917,6 @@ function OakmonteLanding() {
             </div>
           </div>
         </footer>
-
       </main>
     </div>
   );
@@ -1052,24 +1045,27 @@ const CSS = `
 .oak .hero-tagline{font-size:20px;line-height:1.4;color:var(--black);max-width:36rem;margin:-24px 0 40px;font-weight:800;opacity:0;animation:oakFadeUp .7s ease forwards;animation-delay:.65s;}
 @keyframes oakFadeUp{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
 
-.oak .hero-cta-stack{display:flex;flex-direction:column;gap:12px;margin:36px 0 20px;padding:24px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);opacity:0;animation:oakFadeUp .7s ease forwards;animation-delay:.68s;}
-.oak .hero-cta-card{display:flex;flex-direction:column;gap:2px;padding:14px 20px;background:var(--white);border:2px solid var(--black);border-radius:16px;transition:transform .25s ease,background .25s ease,border-color .25s ease,color .25s ease;}
-.oak .hero-cta-card:hover{background:var(--blue);border-color:var(--blue);color:#fff;transform:translateY(-2px);}
+.oak .hero-cta-stack{display:flex;flex-direction:column;gap:12px;margin:64px 0 56px;padding:32px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);opacity:0;animation:oakFadeUp .7s ease forwards;animation-delay:.68s;}
+.oak .hero-cta-helper{text-align:center;font-size:13px;color:var(--gray);margin-top:20px;font-weight:500;letter-spacing:.01em;line-height:1.4;}
+.oak .hero-cta-card{display:flex;flex-direction:column;gap:2px;padding:14px 20px;background:var(--white);border:2px solid var(--black);border-radius:16px;transition:transform .25s ease,background .25s ease,border-color .25s ease,box-shadow .25s ease;}
+.oak .hero-cta-card:hover{transform:translateY(-2px);border-color:var(--blue);box-shadow:0 10px 24px rgba(33,81,245,.12);}
+.oak .hero-cta-card:active{transform:translateY(0);}
 .oak .hero-cta-card.card-blue{background:var(--blue);border-color:var(--blue);color:#fff;}
 .oak .hero-cta-card.card-blue .cta-hint{color:rgba(255,255,255,.8);}
+.oak .hero-cta-card.card-blue:hover{background:#1a45d8;box-shadow:0 10px 24px rgba(33,81,245,.22);}
 .oak .hero-cta-card.card-outline{background:var(--white);border-color:#2151F5;color:var(--black);}
 .oak .hero-cta-card.card-outline .cta-label{color:#2151F5;}
-.oak .hero-cta-card.card-outline:hover .cta-label{color:#fff;}
+.oak .hero-cta-card.card-outline:hover{background:rgba(33,81,245,.06);}
 .oak .hero-cta-card.card-tint{background:rgba(33,81,245,.08);border-color:var(--black);color:var(--black);}
 .oak .hero-cta-card.card-tint .cta-label{color:var(--black);}
+.oak .hero-cta-card.card-tint:hover{background:rgba(33,81,245,.14);border-color:#2151F5;}
 .oak .hero-cta-card .cta-label{font-family:var(--body);font-size:clamp(16px,2vw,20px);text-transform:uppercase;letter-spacing:.01em;font-weight:700;line-height:1.2;}
 .oak .hero-cta-card .cta-hint{font-size:13px;color:var(--gray);line-height:1.35;}
-.oak .hero-cta-card:hover .cta-hint{color:rgba(255,255,255,.8);}
-@media (max-width:640px){.oak .hero-cta-card{padding:12px 16px;border-radius:14px;}}
+@media (max-width:640px){.oak .hero-cta-card{padding:12px 16px;border-radius:14px;}.oak .hero-cta-helper{font-size:12px;margin-top:16px;}}
 
 .oak .stars{color:var(--blue);letter-spacing:2px;margin-right:6px;}
 
-.oak .hero-media{position:relative;margin-top:56px;border-radius:24px;overflow:hidden;aspect-ratio:16/7;opacity:0;animation:oakFadeUp .9s ease forwards;animation-delay:.9s;background:#111;}
+.oak .hero-media{position:relative;margin-top:72px;border-radius:24px;overflow:hidden;aspect-ratio:16/7;opacity:0;animation:oakFadeUp .9s ease forwards;animation-delay:.9s;background:#111;}
 .oak .hero-media img{width:100%;height:100%;object-fit:cover;transform:scale(1);animation:oakKen 18s ease-out forwards;}
 @keyframes oakKen{from{transform:scale(1);}to{transform:scale(1.08);}}
 .oak .media-cap{position:absolute;left:24px;bottom:20px;z-index:3;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.6);}

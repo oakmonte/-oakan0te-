@@ -14,13 +14,13 @@ authorization check — it is an attacker-supplied parameter.
 Both live in `src/lib/server-auth.ts` and both return a typed result union:
 
 ```ts
-type StoreAuthResult = { ok: true; value: OwnedStore } | { ok: false; response: Response }
+type StoreAuthResult = { ok: true; value: OwnedStore } | { ok: false; response: Response };
 ```
 
 The early-return pattern is always:
 
 ```ts
-const owns = await requireOwnStore(request);   // or requireStoreOwner
+const owns = await requireOwnStore(request); // or requireStoreOwner
 if (!owns.ok) return owns.response;
 const { storeId, user } = owns.value;
 ```

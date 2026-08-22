@@ -1,18 +1,40 @@
 {
   "permissions": {
     "allow": [
-      "Bash(bun run typecheck)", "Bash(bun run lint)", "Bash(bun run format)", "Bash(bun run build)",
-      "Bash(./node_modules/.bin/tsc:*)", "Bash(./node_modules/.bin/eslint:*)",
-      "Bash(git status:*)", "Bash(git diff:*)", "Bash(git log:*)", "Bash(git show:*)",
-      "Bash(head:*)", "Bash(tail:*)", "Bash(wc:*)", "Bash(ls:*)", "Bash(find:*)", "Bash(grep:*)", "Bash(rg:*)", "Bash(sed -n:*)",
-      "mcp__supabase__list_tables", "mcp__supabase__list_migrations", "mcp__supabase__get_advisors",
-      "mcp__supabase__generate_typescript_types", "mcp__supabase__search_docs"
+      "Bash(bun run typecheck)",
+      "Bash(bun run lint)",
+      "Bash(bun run format)",
+      "Bash(bun run build)",
+      "Bash(./node_modules/.bin/tsc:*)",
+      "Bash(./node_modules/.bin/eslint:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(wc:*)",
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(rg:*)",
+      "Bash(sed -n:*)",
+      "mcp__supabase__list_tables",
+      "mcp__supabase__list_migrations",
+      "mcp__supabase__get_advisors",
+      "mcp__supabase__generate_typescript_types",
+      "mcp__supabase__search_docs"
     ],
     "deny": [
-      "Bash(git push --force:*)", "Bash(git push -f:*)", "Bash(git rebase:*)",
-      "Bash(git commit --amend:*)", "Bash(git reset --hard:*)",
-      "Bash(npm install:*)", "Bash(npm ci:*)",
-      "Read(./.env)", "Read(./.env.*)"
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)",
+      "Bash(git rebase:*)",
+      "Bash(git commit --amend:*)",
+      "Bash(git reset --hard:*)",
+      "Bash(npm install:*)",
+      "Bash(npm ci:*)",
+      "Read(./.env)",
+      "Read(./.env.*)"
     ]
   },
   "hooks": {

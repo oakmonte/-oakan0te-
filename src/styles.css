@@ -163,7 +163,7 @@
        between black and white as the background does, and it is unlayered so it
        replaces the transition-all it sits next to. Leaving color out snapped it
        instantly, putting black text on a still-dark row for 180ms. */
-      color 180ms ease-out,
+    color 180ms ease-out,
     box-shadow 180ms ease-out;
 }
 
