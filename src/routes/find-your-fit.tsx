@@ -16,15 +16,21 @@ import fCurvy from "@/assets/body-types/female/curvy.webp";
 import fAthletic from "@/assets/body-types/female/athletic.webp";
 import fPlusModerate from "@/assets/body-types/female/plus-moderate.webp";
 import fPlusFuller from "@/assets/body-types/female/plus-fuller.webp";
+import mSkinny from "@/assets/body-types/male/skinny.webp";
+import mSlim from "@/assets/body-types/male/slim.webp";
+import mAthletic from "@/assets/body-types/male/athletic.webp";
+import mMuscular from "@/assets/body-types/male/muscular.webp";
+import mChubby from "@/assets/body-types/male/chubby.webp";
+import mPlusModerate from "@/assets/body-types/male/plus-moderate.webp";
+import mPlusFuller from "@/assets/body-types/male/plus-fuller.webp";
 
 export const Route = createFileRoute("/find-your-fit")({
   head: () => ({ meta: [{ title: "Find your fit — Oakmonte" }] }),
   component: FindYourFitPage,
 });
 
-// Traced shape — still used by MALE_BODY_TYPES; no male reference art exists
-// yet to crop into images (see src/assets/body-types/README.md). Every
-// FEMALE_BODY_TYPES entry is image-based now. `paths` holds every
+// Legacy traced shape data is retained below for now, but the picker uses the
+// cropped reference art for both genders. `paths` holds every
 // <path d="..."> from the traced SVG file, in original order — the arm/body
 // separation, wrist creases, knee lines etc. only render correctly if all of
 // them are included, not just the main outline.
@@ -41,12 +47,6 @@ type ImageBodyShape = {
   label: string;
   src: string;
 };
-
-type BodyShape = TracedBodyShape | ImageBodyShape;
-
-function isImageBodyShape(shape: BodyShape): shape is ImageBodyShape {
-  return "src" in shape;
-}
 
 const FEMALE_BODY_TYPES: ImageBodyShape[] = [
   {
@@ -104,6 +104,16 @@ const FEMALE_BODY_TYPES: ImageBodyShape[] = [
     label: "Plus Size, Fuller",
     src: fPlusFuller,
   },
+];
+
+const MALE_BODY_TYPE_IMAGES: ImageBodyShape[] = [
+  { id: "m-skinny", label: "Skinny", src: mSkinny },
+  { id: "m-regular", label: "Slim", src: mSlim },
+  { id: "m-athletic", label: "Athletic", src: mAthletic },
+  { id: "m-muscular", label: "Muscular", src: mMuscular },
+  { id: "m-chubby", label: "Chubby", src: mChubby },
+  { id: "m-fat", label: "Plus Size, Moderate", src: mPlusModerate },
+  { id: "m-fattest", label: "Plus Size, Fuller", src: mPlusFuller },
 ];
 
 const MALE_BODY_TYPES: TracedBodyShape[] = [
@@ -601,7 +611,7 @@ function FindYourFitPage() {
   const [hips, setHips] = useState("");
   const [shoulderWidth, setShoulderWidth] = useState("");
 
-  const bodyTypeOptions: BodyShape[] = gender === "Male" ? MALE_BODY_TYPES : FEMALE_BODY_TYPES;
+  const bodyTypeOptions = gender === "Male" ? MALE_BODY_TYPE_IMAGES : FEMALE_BODY_TYPES;
 
   const handleGenderChange = (value: string) => {
     setGender(value);
@@ -734,15 +744,23 @@ function FindYourFitPage() {
           />
         </div>
 
-        <select
-          value={gender}
-          onChange={(e) => handleGenderChange(e.target.value)}
-          className="w-full rounded-full border border-brand-text/25 bg-transparent px-5 py-3.5 text-sm text-brand-text/80 focus:outline-none focus:border-brand-accent transition-colors"
-        >
-          <option value="">Gender (optional)</option>
-          <option value="Female">Female</option>
-          <option value="Male">Male</option>
-        </select>
+        <div className="grid grid-cols-2 gap-2" role="group" aria-label="Gender">
+          {(["Female", "Male"] as const).map((option) => (
+            <button
+              key={option}
+              type="button"
+              onClick={() => handleGenderChange(option)}
+              aria-pressed={gender === option}
+              className={`rounded-full border px-5 py-3.5 text-sm transition-colors ${
+                gender === option
+                  ? "border-brand-accent bg-brand-accent text-brand-bg"
+                  : "border-brand-text/25 text-brand-text/80 hover:border-brand-text/50"
+              }`}
+            >
+              {option}
+            </button>
+          ))}
+        </div>
 
         <div className="rounded-2xl border border-brand-text/15 overflow-hidden text-left">
           <button
@@ -799,34 +817,14 @@ function FindYourFitPage() {
           <div className="pt-4 text-left">
             <p className="text-sm text-brand-text/70 mb-3">Pick a close resembling body type.</p>
             <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory scrollbar-thin">
-              {bodyTypeOptions.map((option) => {
-                const isSelected = bodyType === option.id;
-                if (isImageBodyShape(option)) {
-                  return (
-                    <ImageBodyOption
-                      key={option.id}
-                      option={option}
-                      isSelected={isSelected}
-                      onSelect={() => setBodyType(option.id)}
-                    />
-                  );
-                }
-                return (
-                  <button
-                    key={option.id}
-                    type="button"
-                    onClick={() => setBodyType(option.id)}
-                    aria-label={`Body type option ${option.id}`}
-                    className={`flex items-center justify-center rounded-xl border py-3 px-3 shrink-0 snap-start transition-colors duration-300 ${
-                      isSelected
-                        ? "border-brand-accent text-brand-accent"
-                        : "border-brand-text/25 text-brand-text hover:border-brand-text/50"
-                    }`}
-                  >
-                    <TracedBodySilhouette {...option} />
-                  </button>
-                );
-              })}
+              {bodyTypeOptions.map((option) => (
+                <ImageBodyOption
+                  key={option.id}
+                  option={option}
+                  isSelected={bodyType === option.id}
+                  onSelect={() => setBodyType(option.id)}
+                />
+              ))}
             </div>
           </div>
         )}

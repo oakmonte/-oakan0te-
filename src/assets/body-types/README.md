@@ -5,8 +5,8 @@ Source artwork for the body-type picker in `src/routes/find-your-fit.tsx`. The t
 them directly. Every other file in `female/` **is** imported by the route; each is one figure
 cropped out of a source image, no re-tracing.
 
-Every `FEMALE_BODY_TYPES` entry is image-based now. Nothing in `MALE_BODY_TYPES` has source
-art yet — see Known gaps.
+Every body-type entry is image-based now. The `male/` and `female/` directories contain the
+individual figures imported by the route, plus the source sheets kept for provenance.
 
 ## How a crop becomes an option
 
@@ -44,10 +44,20 @@ Filenames don't appear in `find-your-fit.tsx` — each is imported and wired int
 | `athletic.webp` | `f-athletic` | Athletic |
 | `plus-fuller.webp` | `f-plus-fuller` | Plus Size, Fuller |
 
-`MALE_BODY_TYPES` ids (`m-skinny`, `m-regular`, `m-athletic`, `m-muscular`, `m-solid`,
-`m-chubby`, `m-fat`, `m-fattest`) are unchanged from before this migration — listed here only
-so a future contributor adding `male/` crops knows what ids to match up with which traced
-shape, without having to read the full route file.
+Male crops map to the following code-side ids and labels:
+
+| File | `id` | `label` |
+| --- | --- | --- |
+| `skinny.webp` | `m-skinny` | Skinny |
+| `slim.webp` | `m-regular` | Slim |
+| `athletic.webp` | `m-athletic` | Athletic |
+| `muscular.webp` | `m-muscular` | Muscular |
+| `chubby.webp` | `m-chubby` | Chubby |
+| `plus-moderate.webp` | `m-fat` | Plus Size, Moderate |
+| `plus-fuller.webp` | `m-fattest` | Plus Size, Fuller |
+
+The former `m-solid` SVG-only option has no matching supplied reference artwork and is not
+rendered.
 
 ## Sheet contents
 
@@ -97,11 +107,8 @@ gave, not something visible from the filenames alone.
   full of female figures. `f-muscular` was removed from `FEMALE_BODY_TYPES` outright rather
   than shipped with a wrong or placeholder figure. Add it back once real female-presenting
   reference art exists.
-- **`male/` is empty — no reference art exists for men at all.** All eight `MALE_BODY_TYPES`
-  entries are still the original hand-traced `TracedBodyShape` data. `TracedBodyShape` /
-  `TracedBodySilhouette` are kept in the route specifically because those eight entries still
-  depend on them — don't delete that machinery until real male reference art replaces them.
 - **The neutral/"Other" gender option and its five parametric silhouettes are gone from the
   app entirely** (not just unused — `NEUTRAL_BODY_TYPES`, `ParametricBodySilhouette`, and
-  `ParametricBodyShape` were deleted from `find-your-fit.tsx`). Body type is Female/Male only
-  now. Don't re-add a parametric fallback without discussing it first.
+  `ParametricBodyShape` were deleted from `find-your-fit.tsx`). The picker offers Female and
+  Male only; the selected gender determines which image references appear. Don't re-add a
+  parametric fallback without discussing it first.
