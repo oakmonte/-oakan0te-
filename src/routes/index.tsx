@@ -698,7 +698,7 @@ function OakmonteLanding() {
                   <span className="stars">★★★★★</span>Loved by our early shoppers
                 </p>
               </Reveal>
-              <Reveal delay={2} className="offer-card">
+              <Reveal delay={2} className="offer-card accent-border">
                 <span className="tag">For Creators and Creatives</span>
                 <h3>Make money from your content</h3>
                 <p>
