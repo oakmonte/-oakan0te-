@@ -11,11 +11,11 @@ Both look completely normal in a dev session. That's why this is written down.
 
 ## There are two Supabase projects. Only one is real.
 
-| Path | What it is | Use it? |
-|---|---|---|
-| `src/integrations/supabase/*` | Lovable Cloud's auto-managed integration | **No.** Generated, don't edit. |
-| `src/lib/integrations/supabase/*` | byte-identical duplicate of the above | **No.** |
-| `src/lib/integrations/my-supabase/*` | the app's own external project (`lzyflkrqexxuyxyudvbw`) | **Yes — this is the one.** |
+| Path                                 | What it is                                              | Use it?                        |
+| ------------------------------------ | ------------------------------------------------------- | ------------------------------ |
+| `src/integrations/supabase/*`        | Lovable Cloud's auto-managed integration                | **No.** Generated, don't edit. |
+| `src/lib/integrations/supabase/*`    | byte-identical duplicate of the above                   | **No.**                        |
+| `src/lib/integrations/my-supabase/*` | the app's own external project (`lzyflkrqexxuyxyudvbw`) | **Yes — this is the one.**     |
 
 Everything real imports from `my-supabase`: auth, sessions, every `store.*` route, all four `api.*`
 routes. If you find yourself importing `@/integrations/supabase/...`, you're in the wrong project and
@@ -24,7 +24,7 @@ your query will hit a database with none of the app's data in it.
 ## Which client
 
 **`@/lib/integrations/my-supabase/client`** → `supabase`. Browser client, publishable key. Safe in
-bundles. Subject to RLS *where RLS is enabled* — read the RLS section before assuming that's a
+bundles. Subject to RLS _where RLS is enabled_ — read the RLS section before assuming that's a
 protection.
 
 **`@/lib/integrations/my-supabase/client.server`** → `supabaseAdmin`. Service-role key from
@@ -47,7 +47,7 @@ bundler proving the module is unreachable from a client entry point — and that
 a route file grows a component alongside its handler, or a shared module starts re-exporting it. The
 failure is silent when it happens.
 
-So: pull it in with a dynamic `import()` *inside* the handler.
+So: pull it in with a dynamic `import()` _inside_ the handler.
 
 ```ts
 // in an api.*.ts handler or a server function

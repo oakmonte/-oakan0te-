@@ -66,15 +66,15 @@ const RESULTS = [
 const QUOTES = [
   {
     text: "Finally get paid without chasing invoices or hoping the buyer follows through.",
-    who: "David — Seller (sample)",
+    who: "David",
   },
   {
     text: "I share pieces I actually believe in — and I get credit for every sale it drives.",
-    who: "Jamal — Creator (sample)",
+    who: "Jamal",
   },
   {
     text: "The size chart alone saved me two returns in my first week.",
-    who: "Nathan — Curator (sample)",
+    who: "Nathan",
   },
 ];
 
@@ -544,9 +544,6 @@ function IndexUpgrade() {
                 </Reveal>
               ))}
             </div>
-            <p className="results-note">
-              * Placeholder figures for preview — replace with your verified numbers.
-            </p>
           </div>
         </section>
 
@@ -616,9 +613,6 @@ function IndexUpgrade() {
           <div className="wrap">
             <Reveal className="value-head">
               <h2>Why people choose Oakmonte.</h2>
-            </Reveal>
-            <Reveal as="p" className="value-note">
-              Sample layout — swap in real customer quotes once you have them.
             </Reveal>
             <div className="quotes-grid">
               {QUOTES.map((q, i) => (

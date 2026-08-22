@@ -19,7 +19,7 @@ What exists today: the `import_jobs` and `ig_posts` / `ig_post_files` tables, `s
 and the newcomer UI at `store.products_.newcomer.tsx` that offers the entry points.
 
 What doesn't: any importer that actually writes products. The mapping below is therefore the contract
-to build *to*, derived from the destination schema — not a description of running code. Where this
+to build _to_, derived from the destination schema — not a description of running code. Where this
 skill states a rule that no code enforces yet, it's a decision to honour, and if you're about to
 contradict one, that's worth raising rather than quietly diverging.
 
@@ -50,15 +50,15 @@ null` is the shape that fits.
 
 ## Mapping foreign products onto the canonical tables
 
-| Source concept | Oakmonte destination |
-|---|---|
-| product title, description, brand | `products.title`, `description_long` / `description_short`, `brand` |
-| product id / handle in source | `products.external_handle` (+ `source_platform`) |
-| category / product type | `products.product_type` (free text) — `category_id` needs the category tree, see below |
-| option axes ("Size", "Color") | `product_options` + `product_option_values` **and** the flat `option1_*`…`option3_*` columns |
-| each purchasable combination | one `product_variants` row + its `product_variant_options` links |
-| price, compare-at, cost, stock, SKU, barcode, weight | `product_variants` (never on `products` — there is no product-level price) |
-| images | `product_variants.main_image_url` / `additional_image_urls` |
+| Source concept                                       | Oakmonte destination                                                                         |
+| ---------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| product title, description, brand                    | `products.title`, `description_long` / `description_short`, `brand`                          |
+| product id / handle in source                        | `products.external_handle` (+ `source_platform`)                                             |
+| category / product type                              | `products.product_type` (free text) — `category_id` needs the category tree, see below       |
+| option axes ("Size", "Color")                        | `product_options` + `product_option_values` **and** the flat `option1_*`…`option3_*` columns |
+| each purchasable combination                         | one `product_variants` row + its `product_variant_options` links                             |
+| price, compare-at, cost, stock, SKU, barcode, weight | `product_variants` (never on `products` — there is no product-level price)                   |
+| images                                               | `product_variants.main_image_url` / `additional_image_urls`                                  |
 
 Two things importers get wrong, both silent:
 
