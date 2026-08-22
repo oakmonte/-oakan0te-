@@ -5,7 +5,6 @@ import logoO from "@/assets/logo-o.png";
 import heroAsset from "@/assets/hero-editorial.jpg.asset.json";
 import streetwearAsset from "@/assets/streetwear-summerstyle.jpeg.asset.json";
 import phoneMockupAsset from "@/assets/oakmonte-phone-mockup.png.asset.json";
-import contentToCartVideo from "@/assets/content-to-cart.mp4.asset.json";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -39,7 +38,7 @@ export const Route = createFileRoute("/")({
 
 /* ---------------- Images ---------------- */
 const IMG_LOGO = logoAsset.url;
-
+const IMG_HERO = phoneMockupAsset.url;
 const IMG_STORY = streetwearAsset.url;
 const IMG_SCALE = heroAsset.url;
 
@@ -179,20 +178,6 @@ function CountUp({ value, suffix }: { value: number; suffix: string }) {
       {display}
       {suffix}
     </b>
-  );
-}
-
-function PhoneMockup({ src }: { src: string }) {
-  return (
-    <div className="relative w-[160px] sm:w-[180px] md:w-[200px] aspect-[9/19.5] rounded-[2rem] border border-brand-text/80 bg-brand-text p-[5px] shadow-[0_16px_40px_-16px_rgba(0,0,0,0.35)]">
-      <div className="relative w-full h-full rounded-[1.65rem] overflow-hidden bg-brand-muted">
-        <div
-          className="absolute top-2 left-1/2 -translate-x-1/2 z-10 h-[18px] w-[72px] rounded-full bg-brand-text"
-          aria-hidden="true"
-        />
-        <video src={src} autoPlay muted loop playsInline className="w-full h-full object-cover" />
-      </div>
-    </div>
   );
 }
 
@@ -593,7 +578,12 @@ function OakmonteLanding() {
             </div>
 
             <div className="hero-media">
-              <PhoneMockup src={contentToCartVideo.url} />
+              <img
+                src={IMG_HERO}
+                alt="Oakmonte app on a phone held toward the viewer"
+                width={1450}
+                height={1085}
+              />
               <span className="media-cap">SELL · POST · SHOP — ALL IN ONE PLACE</span>
             </div>
           </div>
@@ -1070,8 +1060,8 @@ const CSS = `
 
 .oak .stars{color:var(--blue);letter-spacing:2px;margin-right:6px;}
 
-.oak .hero-media{position:relative;margin-top:72px;border-radius:24px;overflow:hidden;opacity:0;animation:oakFadeUp .9s ease forwards;animation-delay:.9s;background:#e8e8e8;display:flex;justify-content:center;align-items:center;padding:48px 0;}
-.oak .hero-media > div{flex:none;}
+.oak .hero-media{position:relative;margin-top:72px;border-radius:24px;overflow:hidden;opacity:0;animation:oakFadeUp .9s ease forwards;animation-delay:.9s;background:#e8e8e8;}
+.oak .hero-media img{width:100%;height:auto;display:block;object-fit:contain;}
 .oak .media-cap{position:absolute;left:24px;bottom:20px;z-index:3;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.6);}
 
 .oak .trust-marquee{width:100%;overflow:hidden;background:var(--black);padding:16px 0;margin-top:64px;}
