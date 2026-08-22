@@ -425,6 +425,9 @@ function OakmonteLanding() {
               )}
             </nav>
             <div className="header-actions">
+              <div className="desktop-auth">
+                <Auth />
+              </div>
               <button
                 className={`mobile-toggle${mobileOpen ? " is-open" : ""}`}
                 aria-label={mobileOpen ? "Close menu" : "Open menu"}
