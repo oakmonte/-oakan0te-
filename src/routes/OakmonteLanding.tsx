@@ -1053,8 +1053,6 @@ const CSS = `
 .oak .hero-cta-card:hover .cta-hint{color:rgba(255,255,255,.8);}
 @media (max-width:640px){.oak .hero-cta-card{padding:12px 16px;border-radius:14px;}}
 
-.oak .trust-line{font-size:13px;color:var(--gray);font-weight:500;opacity:0;animation:oakFadeUp .7s ease forwards;animation-delay:.8s;}
-.oak .trust-line b{color:var(--black);}
 .oak .stars{color:var(--blue);letter-spacing:2px;margin-right:6px;}
 
 .oak .hero-media{position:relative;margin-top:56px;border-radius:24px;overflow:hidden;aspect-ratio:16/7;opacity:0;animation:oakFadeUp .9s ease forwards;animation-delay:.9s;background:#111;}
