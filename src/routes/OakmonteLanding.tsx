@@ -425,6 +425,9 @@ function OakmonteLanding() {
               )}
             </nav>
             <div className="header-actions">
+              <div className="desktop-auth">
+                <Auth />
+              </div>
               <button
                 className={`mobile-toggle${mobileOpen ? " is-open" : ""}`}
                 aria-label={mobileOpen ? "Close menu" : "Open menu"}
@@ -991,10 +994,12 @@ const CSS = `
 .oak .cta-btn.on-black{background:var(--blue);}
 .oak .cta-btn.on-black:hover{background:var(--white);color:var(--black);}
 
-.oak .header-actions{display:flex;align-items:center;}
+.oak .header-actions{display:flex;align-items:center;gap:30px;}
+.oak .desktop-auth{display:flex;align-items:center;}
 
 .oak .signin-row{border-top:1px solid var(--line);color:var(--blue);}
 .oak .signin-row:hover{color:var(--white);background:var(--blue);}
+@media (min-width:901px){.oak .signin-row{display:none;}}
 
 .oak .mobile-toggle{display:none;padding:8px;}
 .oak .mobile-toggle span{display:block;width:22px;height:2px;background:var(--black);margin-bottom:6px;transition:transform .3s ease,opacity .2s ease;}
@@ -1019,7 +1024,7 @@ const CSS = `
 .oak .drawer-sub-title{padding:24px 24px 12px;font-size:11px;letter-spacing:.25em;text-transform:uppercase;color:rgba(0,0,0,.5);}
 .oak .drawer-sub-row{display:block;padding:16px 24px;border-bottom:1px solid var(--line);transition:background .2s ease;}
 .oak .drawer-sub-row:hover{background:#F4F5F7;}
-@media (max-width:900px){.oak nav.desktop-nav{display:none;}.oak .mobile-toggle{display:block;position:relative;z-index:101;}}
+@media (max-width:900px){.oak nav.desktop-nav{display:none;}.oak .desktop-auth{display:none;}.oak .mobile-toggle{display:block;position:relative;z-index:101;}}
 @media (min-width:901px){.oak .mobile-toggle,.oak .mobile-drawer{display:none !important;}}
 
 
