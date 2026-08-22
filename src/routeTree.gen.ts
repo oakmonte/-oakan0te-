@@ -23,7 +23,6 @@ import { Route as PreviousIndexRouteImport } from './routes/previous-index'
 import { Route as OfflineVideosRouteImport } from './routes/offline-videos'
 import { Route as NoAccountRouteImport } from './routes/no-account'
 import { Route as NameYourStoreRouteImport } from './routes/name-your-store'
-import { Route as IndexUpgradeRouteImport } from './routes/index-upgrade'
 import { Route as HomeRouteImport } from './routes/home'
 import { Route as FindYourFitRouteImport } from './routes/find-your-fit'
 import { Route as EditProfileRouteImport } from './routes/edit-profile'
@@ -131,11 +130,6 @@ const NoAccountRoute = NoAccountRouteImport.update({
 const NameYourStoreRoute = NameYourStoreRouteImport.update({
   id: '/name-your-store',
   path: '/name-your-store',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const IndexUpgradeRoute = IndexUpgradeRouteImport.update({
-  id: '/index-upgrade',
-  path: '/index-upgrade',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HomeRoute = HomeRouteImport.update({
@@ -340,7 +334,6 @@ export interface FileRoutesByFullPath {
   '/edit-profile': typeof EditProfileRoute
   '/find-your-fit': typeof FindYourFitRoute
   '/home': typeof HomeRoute
-  '/index-upgrade': typeof IndexUpgradeRoute
   '/name-your-store': typeof NameYourStoreRoute
   '/no-account': typeof NoAccountRoute
   '/offline-videos': typeof OfflineVideosRoute
@@ -394,7 +387,6 @@ export interface FileRoutesByTo {
   '/edit-profile': typeof EditProfileRoute
   '/find-your-fit': typeof FindYourFitRoute
   '/home': typeof HomeRoute
-  '/index-upgrade': typeof IndexUpgradeRoute
   '/name-your-store': typeof NameYourStoreRoute
   '/no-account': typeof NoAccountRoute
   '/offline-videos': typeof OfflineVideosRoute
@@ -448,7 +440,6 @@ export interface FileRoutesById {
   '/edit-profile': typeof EditProfileRoute
   '/find-your-fit': typeof FindYourFitRoute
   '/home': typeof HomeRoute
-  '/index-upgrade': typeof IndexUpgradeRoute
   '/name-your-store': typeof NameYourStoreRoute
   '/no-account': typeof NoAccountRoute
   '/offline-videos': typeof OfflineVideosRoute
@@ -505,7 +496,6 @@ export interface FileRouteTypes {
     | '/edit-profile'
     | '/find-your-fit'
     | '/home'
-    | '/index-upgrade'
     | '/name-your-store'
     | '/no-account'
     | '/offline-videos'
@@ -559,7 +549,6 @@ export interface FileRouteTypes {
     | '/edit-profile'
     | '/find-your-fit'
     | '/home'
-    | '/index-upgrade'
     | '/name-your-store'
     | '/no-account'
     | '/offline-videos'
@@ -612,7 +601,6 @@ export interface FileRouteTypes {
     | '/edit-profile'
     | '/find-your-fit'
     | '/home'
-    | '/index-upgrade'
     | '/name-your-store'
     | '/no-account'
     | '/offline-videos'
@@ -668,7 +656,6 @@ export interface RootRouteChildren {
   EditProfileRoute: typeof EditProfileRoute
   FindYourFitRoute: typeof FindYourFitRoute
   HomeRoute: typeof HomeRoute
-  IndexUpgradeRoute: typeof IndexUpgradeRoute
   NameYourStoreRoute: typeof NameYourStoreRoute
   NoAccountRoute: typeof NoAccountRoute
   OfflineVideosRoute: typeof OfflineVideosRoute
@@ -794,13 +781,6 @@ declare module '@tanstack/react-router' {
       path: '/name-your-store'
       fullPath: '/name-your-store'
       preLoaderRoute: typeof NameYourStoreRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/index-upgrade': {
-      id: '/index-upgrade'
-      path: '/index-upgrade'
-      fullPath: '/index-upgrade'
-      preLoaderRoute: typeof IndexUpgradeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/home': {
@@ -1144,7 +1124,6 @@ const rootRouteChildren: RootRouteChildren = {
   EditProfileRoute: EditProfileRoute,
   FindYourFitRoute: FindYourFitRoute,
   HomeRoute: HomeRoute,
-  IndexUpgradeRoute: IndexUpgradeRoute,
   NameYourStoreRoute: NameYourStoreRoute,
   NoAccountRoute: NoAccountRoute,
   OfflineVideosRoute: OfflineVideosRoute,
