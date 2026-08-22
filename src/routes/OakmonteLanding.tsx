@@ -1024,7 +1024,7 @@ const CSS = `
 .oak .drawer-sub-title{padding:24px 24px 12px;font-size:11px;letter-spacing:.25em;text-transform:uppercase;color:rgba(0,0,0,.5);}
 .oak .drawer-sub-row{display:block;padding:16px 24px;border-bottom:1px solid var(--line);transition:background .2s ease;}
 .oak .drawer-sub-row:hover{background:#F4F5F7;}
-@media (max-width:900px){.oak nav.desktop-nav{display:none;}.oak .mobile-toggle{display:block;position:relative;z-index:101;}}
+@media (max-width:900px){.oak nav.desktop-nav{display:none;}.oak .desktop-auth{display:none;}.oak .mobile-toggle{display:block;position:relative;z-index:101;}}
 @media (min-width:901px){.oak .mobile-toggle,.oak .mobile-drawer{display:none !important;}}
 
 
