@@ -644,10 +644,10 @@ function OakmonteLanding() {
               <Reveal delay={2} className="story-media">
                 <img
                   src={IMG_STORY}
-                  alt="Editorial fashion portrait"
+                  alt="Streetwear summer style"
                   loading="lazy"
-                  width={912}
-                  height={1200}
+                  width={736}
+                  height={920}
                 />
               </Reveal>
             </div>
