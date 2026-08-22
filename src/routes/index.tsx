@@ -663,7 +663,7 @@ function OakmonteLanding() {
             </Reveal>
             <div className="offering-grid">
               <Reveal className="offer-card blue">
-                <span className="tag">For sellers &amp; creators</span>
+                <span className="tag">FOR BRANDS, VENDORS &amp; TAILORS</span>
                 <h3>Sell With Oakmonte</h3>
                 <p>
                   Open a store, list your pieces, and let creators drive traffic — with payment that
