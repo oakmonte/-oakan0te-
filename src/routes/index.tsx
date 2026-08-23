@@ -73,7 +73,7 @@ const QUOTES = [
   },
   {
     text: "The size chart alone saved me two returns in my first week.",
-    who: "Nathan",
+    who: "LISA",
   },
 ];
 
