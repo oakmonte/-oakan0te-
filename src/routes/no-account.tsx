@@ -58,6 +58,10 @@ function NoAccountPage() {
               Define Your Wardrobe
             </button>
           </div>
+
+          <p className="mt-5 text-xs text-brand-text/60 leading-relaxed">
+            You can switch between these later.
+          </p>
         </div>
       </main>
     </div>
