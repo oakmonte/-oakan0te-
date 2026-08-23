@@ -683,13 +683,9 @@ function OakmonteLanding() {
                   Find pieces matched to your actual size, track every delivery, and share the finds
                   worth talking about — all backed by our dispute pipeline.
                 </p>
-                <button
-                  type="button"
-                  className="cta-btn"
-                  onClick={() => alert("Preview only — link to your shopper onboarding.")}
-                >
+                <Link to="/become-a-curator" className="cta-btn">
                   Let's shop!
-                </button>
+                </Link>
                 <p className="stars-line">
                   <span className="stars">★★★★★</span>Loved by our early shoppers
                 </p>
