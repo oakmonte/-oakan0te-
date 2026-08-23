@@ -975,7 +975,6 @@ const CSS = `
 .oak .dd-desc{display:block;font-size:12px;font-weight:400;line-height:1.4;color:rgba(0,0,0,.55);margin-top:2px;}
 .oak .nav-back{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--black);transition:color .3s ease;animation:ddFadeIn 220ms ease-out both;}
 .oak .nav-back:hover{color:var(--blue);}
-.oak .brand-o.only-o{height:56px;transform:translateY(2px);animation:ddFadeIn 220ms ease-out both;}
 
 
 .oak .cta-btn{display:inline-flex;align-items:center;gap:8px;padding:12px 22px;background:var(--black);color:var(--white);font-size:13px;font-weight:700;border-radius:999px;transition:transform .25s ease,background .25s ease;white-space:nowrap;}
