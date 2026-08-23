@@ -64,7 +64,7 @@ const RESULTS = [
 
 const QUOTES = [
   {
-    text: "Finally get paid without chasing invoices or hoping the buyer follows through.",
+    text: "WHO NEEDS A WEBSITE?!  — I literally get a free customizable storefront on the platform.",
     who: "David",
   },
   {
@@ -73,7 +73,7 @@ const QUOTES = [
   },
   {
     text: "The size chart alone saved me two returns in my first week.",
-    who: "Nathan",
+    who: "LISA",
   },
 ];
 
@@ -669,13 +669,9 @@ function OakmonteLanding() {
                   Open a store, list your pieces, and let creators drive traffic — with payment that
                   only releases once your customer's happy. No chargeback roulette.
                 </p>
-                <button
-                  type="button"
-                  className="cta-btn on-black"
-                  onClick={() => alert("Preview only — link to your seller onboarding.")}
-                >
+                <Link to="/set-up-store" className="cta-btn on-black">
                   Sell my stuff!
-                </button>
+                </Link>
                 <p className="stars-line">
                   <span className="stars">★★★★★</span>Loved by our early sellers
                 </p>
@@ -687,13 +683,9 @@ function OakmonteLanding() {
                   Find pieces matched to your actual size, track every delivery, and share the finds
                   worth talking about — all backed by our dispute pipeline.
                 </p>
-                <button
-                  type="button"
-                  className="cta-btn"
-                  onClick={() => alert("Preview only — link to your shopper onboarding.")}
-                >
+                <Link to="/become-a-curator" className="cta-btn">
                   Let's shop!
-                </button>
+                </Link>
                 <p className="stars-line">
                   <span className="stars">★★★★★</span>Loved by our early shoppers
                 </p>
@@ -705,13 +697,9 @@ function OakmonteLanding() {
                   Tag products in your fits, reviews, and hauls. When your audience buys through
                   your content, you earn — no invoices, no chasing brands, no middlemen.
                 </p>
-                <button
-                  type="button"
-                  className="cta-btn"
-                  onClick={() => alert("Preview only — link to your creator onboarding.")}
-                >
+                <Link to="/become-a-creator" className="cta-btn">
                   Start creating!
-                </button>
+                </Link>
                 <p className="stars-line">
                   <span className="stars">★★★★★</span>Loved by our early creators
                 </p>
@@ -902,13 +890,9 @@ function OakmonteLanding() {
               done right — no gimmicks, no ghosting.
             </Reveal>
             <Reveal delay={2}>
-              <button
-                type="button"
-                className="cta-btn big"
-                onClick={() => alert("Preview only — wire this to your signup flow.")}
-              >
+              <Link to="/no-account" className="cta-btn big">
                 Come join us — it's free!
-              </button>
+              </Link>
             </Reveal>
           </div>
         </section>
