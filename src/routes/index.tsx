@@ -697,13 +697,9 @@ function OakmonteLanding() {
                   Tag products in your fits, reviews, and hauls. When your audience buys through
                   your content, you earn — no invoices, no chasing brands, no middlemen.
                 </p>
-                <button
-                  type="button"
-                  className="cta-btn"
-                  onClick={() => alert("Preview only — link to your creator onboarding.")}
-                >
+                <Link to="/become-a-creator" className="cta-btn">
                   Start creating!
-                </button>
+                </Link>
                 <p className="stars-line">
                   <span className="stars">★★★★★</span>Loved by our early creators
                 </p>
