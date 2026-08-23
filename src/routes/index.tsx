@@ -584,7 +584,7 @@ function OakmonteLanding() {
                 width={1450}
                 height={1085}
               />
-              <span className="media-cap">Sell · Share · Shop — all in one place</span>
+              <span className="media-cap">SELL · POST · SHOP — ALL IN ONE PLACE</span>
             </div>
           </div>
 
@@ -663,7 +663,7 @@ function OakmonteLanding() {
             </Reveal>
             <div className="offering-grid">
               <Reveal className="offer-card blue">
-                <span className="tag">For sellers &amp; creators</span>
+                <span className="tag">FOR BRANDS, VENDORS &amp; TAILORS</span>
                 <h3>Sell With Oakmonte</h3>
                 <p>
                   Open a store, list your pieces, and let creators drive traffic — with payment that
@@ -696,6 +696,24 @@ function OakmonteLanding() {
                 </button>
                 <p className="stars-line">
                   <span className="stars">★★★★★</span>Loved by our early shoppers
+                </p>
+              </Reveal>
+              <Reveal delay={2} className="offer-card accent-border">
+                <span className="tag">For Creators and Creatives</span>
+                <h3>Make money from your content</h3>
+                <p>
+                  Tag products in your fits, reviews, and hauls. When your audience buys through
+                  your content, you earn — no invoices, no chasing brands, no middlemen.
+                </p>
+                <button
+                  type="button"
+                  className="cta-btn"
+                  onClick={() => alert("Preview only — link to your creator onboarding.")}
+                >
+                  Start creating!
+                </button>
+                <p className="stars-line">
+                  <span className="stars">★★★★★</span>Loved by our early creators
                 </p>
               </Reveal>
             </div>
@@ -981,6 +999,8 @@ const CSS = `
 .oak .cta-btn.big{padding:18px 38px;font-size:15px;}
 .oak .cta-btn.on-black{background:var(--blue);}
 .oak .cta-btn.on-black:hover{background:var(--white);color:var(--black);}
+.oak .offer-card.blue .cta-btn.on-black{background:var(--white);color:var(--black);}
+.oak .offer-card.blue .cta-btn.on-black:hover{background:var(--black);color:var(--white);}
 
 .oak .header-actions{display:flex;align-items:center;gap:30px;}
 .oak .desktop-auth{display:flex;align-items:center;}
@@ -1040,7 +1060,7 @@ const CSS = `
 .oak .hero-tagline{font-size:20px;line-height:1.4;color:var(--black);max-width:36rem;margin:-24px 0 40px;font-weight:800;opacity:0;animation:oakFadeUp .7s ease forwards;animation-delay:.65s;}
 @keyframes oakFadeUp{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
 
-.oak .hero-cta-stack{display:flex;flex-direction:column;gap:12px;margin:64px 0 56px;padding:32px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);opacity:0;animation:oakFadeUp .7s ease forwards;animation-delay:.68s;}
+.oak .hero-cta-stack{display:flex;flex-direction:column;gap:18px;margin:64px 0 56px;padding:32px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);opacity:0;animation:oakFadeUp .7s ease forwards;animation-delay:.68s;}
 .oak .hero-cta-helper{text-align:center;font-size:13px;color:var(--gray);margin-top:20px;font-weight:500;letter-spacing:.01em;line-height:1.4;}
 .oak .hero-cta-card{display:flex;flex-direction:column;gap:2px;padding:14px 20px;background:var(--white);border:2px solid var(--black);border-radius:16px;transition:transform .25s ease,background .25s ease,border-color .25s ease,box-shadow .25s ease;}
 .oak .hero-cta-card:hover{transform:translateY(-2px);border-color:var(--blue);box-shadow:0 10px 24px rgba(33,81,245,.12);}
@@ -1087,10 +1107,11 @@ const CSS = `
 .oak .offering-head h2{font-family:var(--display);font-size:clamp(30px,4.5vw,56px);line-height:1;text-transform:uppercase;margin:0 0 16px;}
 .oak .offering-head p{font-size:16px;color:var(--gray);line-height:1.6;}
 .oak .offering-grid{display:grid;grid-template-columns:1fr;gap:24px;}
-@media (min-width:800px){.oak .offering-grid{grid-template-columns:1fr 1fr;}}
+@media (min-width:800px){.oak .offering-grid{grid-template-columns:repeat(3, 1fr);}}
 .oak .offer-card{border:2px solid var(--black);border-radius:22px;padding:44px;position:relative;overflow:hidden;transition:transform .3s ease,box-shadow .3s ease;background:var(--white);}
 .oak .offer-card:hover{box-shadow:0 24px 48px rgba(10,10,10,.12);}
 .oak .offer-card.blue{background:var(--blue);color:#fff;border-color:var(--blue);}
+.oak .offer-card.accent-border{border-color:var(--blue);}
 .oak .offer-card .tag{font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin-bottom:18px;display:block;}
 .oak .offer-card.blue .tag{color:rgba(255,255,255,.8);}
 .oak .offer-card:not(.blue) .tag{color:var(--blue);}
