@@ -669,13 +669,9 @@ function OakmonteLanding() {
                   Open a store, list your pieces, and let creators drive traffic — with payment that
                   only releases once your customer's happy. No chargeback roulette.
                 </p>
-                <button
-                  type="button"
-                  className="cta-btn on-black"
-                  onClick={() => alert("Preview only — link to your seller onboarding.")}
-                >
+                <Link to="/set-up-store" className="cta-btn on-black">
                   Sell my stuff!
-                </button>
+                </Link>
                 <p className="stars-line">
                   <span className="stars">★★★★★</span>Loved by our early sellers
                 </p>
