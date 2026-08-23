@@ -942,8 +942,13 @@ const CSS = `
 
 .oak header{position:fixed;top:0;left:0;right:0;width:100%;height:76px;z-index:100;background:rgba(255,255,255,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);transition:box-shadow .3s ease;}
 .oak .header-row{position:relative;z-index:101;display:flex;align-items:flex-end;justify-content:space-between;height:76px;padding-bottom:10px;}
-.oak .brand{display:flex;align-items:baseline;gap:0;}
-.oak .brand-o{height:44px;width:auto;flex:none;display:inline-block;transform:translateY(4px);}
+.oak .brand{display:flex;align-items:baseline;gap:0;position:relative;}
+.oak .logo-stack{position:relative;width:44px;height:44px;flex:none;display:inline-block;transform:translateY(4px);}
+.oak .brand-o{height:44px;width:auto;flex:none;display:inline-block;position:absolute;left:0;top:0;transition:opacity .35s ease,transform .35s cubic-bezier(.16,1,.3,1);}
+.oak .brand-o.full-logo{opacity:1;transform:translateY(0) scale(1);}
+.oak .brand-o.only-o{height:44px;opacity:0;transform:translateY(4px) scale(.92);}
+.oak .logo-stack.is-open .brand-o.full-logo{opacity:0;transform:translateY(-4px) scale(.92);}
+.oak .logo-stack.is-open .brand-o.only-o{opacity:1;transform:translateY(0) scale(1);}
 .oak .footer-mark{width:34px;height:34px;border-radius:9px;background:var(--blue);object-fit:contain;padding:5px;flex:none;}
 .oak .brand .word{font-family:Inter,ui-sans-serif,system-ui,sans-serif;font-weight:400;font-size:26px;letter-spacing:-.01em;line-height:1;color:var(--black);}
 .oak .brand .tagline{margin-left:16px;font-size:9px;font-weight:500;letter-spacing:.16em;text-transform:uppercase;color:#2151F5;transform:translateY(-2px);white-space:nowrap;}
