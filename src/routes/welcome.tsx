@@ -12,7 +12,7 @@ export const Route = createFileRoute("/welcome")({
 });
 
 const HEADLINE = "Your style is proof that you think different.";
-const TYPE_SPEED_MS = 40; // ms per character
+const TYPE_SPEED_MS = 65; // ms per character
 const HOLD_AFTER_TYPE_MS = 900; // pause on the finished line before moving on
 
 function WelcomePage() {
@@ -82,10 +82,10 @@ function WelcomePage() {
         <img src={logoO} alt="" className="h-16 w-auto translate-y-1.5" />
         <span className="text-[36px] font-normal tracking-tight leading-none">akmonte</span>
       </div>
-      <p className="font-serif text-xl sm:text-2xl text-center leading-snug max-w-xs text-brand-text/80">
-        {typed}
-        <span className="inline-block w-[2px] h-[1em] align-middle bg-brand-text/70 ml-0.5 animate-pulse" />
-      </p>
+            <p className="font-serif text-base sm:text-lg text-center leading-snug max-w-xs text-brand-text/80">
+              {typed}
+              <span className="inline-block w-[2px] h-[1em] align-middle bg-brand-text/70 ml-0.5 animate-pulse" />
+            </p>
     </div>
   );
 }
