@@ -902,13 +902,9 @@ function OakmonteLanding() {
               done right — no gimmicks, no ghosting.
             </Reveal>
             <Reveal delay={2}>
-              <button
-                type="button"
-                className="cta-btn big"
-                onClick={() => alert("Preview only — wire this to your signup flow.")}
-              >
+              <Link to="/no-account" className="cta-btn big">
                 Come join us — it's free!
-              </button>
+              </Link>
             </Reveal>
           </div>
         </section>
