@@ -352,15 +352,12 @@ function OakmonteLanding() {
               </button>
             ) : (
               <a href="#product" className="brand">
-                {mobileOpen ? (
+                <span className={`logo-stack${mobileOpen ? " is-open" : ""}`}>
+                  <img src={logoO} alt="Oakmonte" className="brand-o full-logo" />
                   <img src={IMG_LOGO} alt="Oakmonte" className="brand-o only-o" />
-                ) : (
-                  <>
-                    <img src={logoO} alt="Oakmonte" className="brand-o" />
-                    <span className="word">akmonte</span>
-                    <span className="tagline">CREATED TO CREATE.</span>
-                  </>
-                )}
+                </span>
+                <span className="word">akmonte</span>
+                <span className="tagline">CREATED TO CREATE.</span>
               </a>
             )}
             <nav className="desktop-nav" onMouseLeave={scheduleClose}>
