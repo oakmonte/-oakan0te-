@@ -950,9 +950,11 @@ const CSS = `
 .oak .logo-stack.is-open .brand-o.full-logo{opacity:0;transform:translateY(-4px) scale(.92);}
 .oak .logo-stack.is-open .brand-o.only-o{opacity:1;transform:translateY(0) scale(1);}
 .oak .footer-mark{width:34px;height:34px;border-radius:9px;background:var(--blue);object-fit:contain;padding:5px;flex:none;}
-.oak .brand .word{font-family:Inter,ui-sans-serif,system-ui,sans-serif;font-weight:400;font-size:26px;letter-spacing:-.01em;line-height:1;color:var(--black);}
-.oak .brand .tagline{margin-left:16px;font-size:9px;font-weight:500;letter-spacing:.16em;text-transform:uppercase;color:#2151F5;transform:translateY(-2px);white-space:nowrap;}
+.oak .brand .word{font-family:Inter,ui-sans-serif,system-ui,sans-serif;font-weight:400;font-size:26px;letter-spacing:-.01em;line-height:1;color:var(--black);transition:opacity .35s ease,transform .35s cubic-bezier(.16,1,.3,1);}
+.oak .brand .tagline{margin-left:16px;font-size:9px;font-weight:500;letter-spacing:.16em;text-transform:uppercase;color:#2151F5;transform:translateY(-2px);white-space:nowrap;transition:opacity .35s ease,transform .35s cubic-bezier(.16,1,.3,1);}
 @media (max-width:640px){.oak .brand .tagline{margin-left:12px;font-size:8px;letter-spacing:.12em;}}
+.oak .logo-stack.is-open ~ .word,
+.oak .logo-stack.is-open ~ .tagline{opacity:0;transform:translateY(-4px);pointer-events:none;}
 
 .oak nav.desktop-nav{display:flex;align-items:center;gap:36px;}
 .oak nav.desktop-nav a,.oak nav.desktop-nav > .nav-item > button{font-size:13px;font-weight:600;position:relative;padding:4px 0;display:inline-flex;align-items:center;gap:6px;color:var(--black);transition:color .3s ease;background:none;}
