@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 720" role="img" aria-labelledby="title desc">
+  <title id="title">T-shirt measurement guide</title>
+  <desc id="desc">A short-sleeve T-shirt labelled a through e for shoulder width, chest width, body length, sleeve length, and neck width.</desc>
+  <rect width="720" height="720" fill="#f9fafb"/>
+
+  <g fill="#ffffff" stroke="#111827" stroke-linejoin="round" stroke-width="5">
+    <path d="M238 150 156 198 72 310l86 76 60-66v286h284V320l60 66 86-76-84-112-82-48c-20 28-48 42-82 42s-62-14-82-42Z"/>
+  </g>
+
+  <g fill="none" stroke="#111827" stroke-linecap="round" stroke-width="4">
+    <path d="M318 155c11 31 29 47 42 47s31-16 42-47"/>
+    <path d="M286 142c8 49 33 76 74 76s66-27 74-76"/>
+    <path d="M239 207 186 289"/>
+    <path d="M481 207 534 289"/>
+
+    <path d="M230 232H490"/>
+    <path d="M230 225v14M490 225v14"/>
+    <path d="M224 370H496"/>
+    <path d="M224 363v14M496 363v14"/>
+    <path d="M521 231v95"/>
+    <path d="M514 231h14M514 326h14"/>
+    <path d="M188 317v289"/>
+    <path d="M181 317h14M181 606h14"/>
+    <path d="M316 182H404"/>
+    <path d="M316 175v14M404 175v14"/>
+  </g>
+
+  <g fill="#111827" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700" text-anchor="middle">
+    <g><circle cx="360" cy="252" r="18"/><text x="360" y="260" fill="#fff">a</text></g>
+    <g><circle cx="360" cy="390" r="18"/><text x="360" y="398" fill="#fff">b</text></g>
+    <g><circle cx="158" cy="462" r="18"/><text x="158" y="470" fill="#fff">c</text></g>
+    <g><circle cx="551" cy="278" r="18"/><text x="551" y="286" fill="#fff">d</text></g>
+    <g><circle cx="360" cy="148" r="18"/><text x="360" y="156" fill="#fff">e</text></g>
+  </g>
+</svg>
