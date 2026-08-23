@@ -64,7 +64,7 @@ const RESULTS = [
 
 const QUOTES = [
   {
-    text: "Finally get paid without chasing invoices or hoping the buyer follows through.",
+    text: "WHO NEEDS A WEBSITE?!  — I literally get a free customizable storefront on the platform.",
     who: "David",
   },
   {
