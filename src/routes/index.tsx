@@ -5,6 +5,7 @@ import logoO from "@/assets/logo-o.png";
 import heroAsset from "@/assets/hero-editorial.jpg.asset.json";
 import streetwearAsset from "@/assets/streetwear-summerstyle.jpeg.asset.json";
 import phoneMockupAsset from "@/assets/oakmonte-phone-mockup.png.asset.json";
+import femalePov from "@/assets/female-first-person-pov.jpg";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -40,7 +41,7 @@ export const Route = createFileRoute("/")({
 const IMG_LOGO = logoAsset.url;
 const IMG_HERO = phoneMockupAsset.url;
 const IMG_STORY = streetwearAsset.url;
-const IMG_SCALE = heroAsset.url;
+const IMG_SCALE = femalePov;
 
 /* ---------------- Data ---------------- */
 const FEATURES = [
@@ -732,10 +733,10 @@ function OakmonteLanding() {
               <Reveal delay={1} className="scale-media">
                 <img
                   src={IMG_SCALE}
-                  alt="Curated rack of fashion pieces"
+                  alt="First-person fashion point of view"
                   loading="lazy"
-                  width={1008}
-                  height={1264}
+                  width={728}
+                  height={1280}
                 />
               </Reveal>
             </div>
@@ -1117,7 +1118,7 @@ const CSS = `
 @media (min-width:1000px){.oak .scale-banner-inner{grid-template-columns:1.1fr .9fr;}}
 .oak .scale-banner h2{font-family:var(--display);font-size:clamp(32px,6vw,80px);line-height:.98;letter-spacing:-.02em;text-transform:uppercase;margin:0;}
 .oak .scale-banner h2 span{color:var(--blue);}
-.oak .scale-media{border-radius:22px;overflow:hidden;position:relative;aspect-ratio:4/5;}
+.oak .scale-media{border-radius:22px;overflow:hidden;position:relative;aspect-ratio:91/160;}
 .oak .scale-media img{width:100%;height:100%;object-fit:cover;}
 
 .oak .guarantee-banner{background:var(--black);color:#fff;padding:64px 0;text-align:center;}
