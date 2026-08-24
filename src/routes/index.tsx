@@ -5,6 +5,7 @@ import logoO from "@/assets/logo-o.png";
 import heroAsset from "@/assets/hero-editorial.jpg.asset.json";
 import streetwearAsset from "@/assets/streetwear-summerstyle.jpeg.asset.json";
 import phoneMockupAsset from "@/assets/oakmonte-phone-mockup.png.asset.json";
+import femalePov from "@/assets/female-first-person-pov.jpg";
 
 export const Route = createFileRoute("/")({
   head: () => ({
