@@ -10,6 +10,7 @@ import {
   type SizeMeasurements,
 } from "@/lib/size-chart-config";
 import { SIZE_SYSTEMS } from "@/components/product-form/OptionEditorSheet";
+import tShirtGuide from "./T-shirt-Guide.jpg";
 
 type Unit = "cm" | "in";
 // sizeValue -> measurementKey -> raw typed string, in whatever `unit` currently is
@@ -215,7 +216,7 @@ export function SizeChartSheet({
           <>
             <div className="aspect-square w-full bg-gray-50 rounded-2xl p-4">
               <img
-                src="/size-chart/tshirt-guide.png"
+                src={tShirtGuide}
                 alt="T-shirt measurement guide: a shoulder width, b chest width, c body length, d sleeve length, e neck width"
                 className="w-full h-full object-contain"
               />
