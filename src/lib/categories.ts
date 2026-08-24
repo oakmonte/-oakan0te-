@@ -242,6 +242,7 @@ const APPAREL_ACCESSORIES: CategoryNode = {
             { id: "clothing-tops-cardigans", name: "Cardigans" },
             { id: "corset-tops", name: "Corset Tops" },
             { id: "clothing-tops-hoodies", name: "Hoodies" },
+            { id: "off-shoulder-tops", name: "Off Shoulder Top" },
             { id: "clothing-tops-overshirts", name: "Overshirts" },
             { id: "clothing-tops-polos", name: "Polos" },
             {
@@ -502,6 +503,7 @@ const APPAREL_ACCESSORIES: CategoryNode = {
           children: [
             { id: "cargo-pants", name: "Cargo Pants" },
             { id: "pants-chinos", name: "Chinos" },
+            { id: "baggy-joggers", name: "Baggy Joggers" },
             { id: "harem-pants", name: "Harem Pants" },
             { id: "pants-jeans", name: "Jeans" },
             { id: "pants-jeggings", name: "Jeggings" },
@@ -752,6 +754,7 @@ const APPAREL_ACCESSORIES: CategoryNode = {
                 { id: "cycling-jerseys", name: "Cycling Jerseys" },
                 { id: "football-jerseys", name: "Football Jerseys" },
                 { id: "hockey-jerseys", name: "Hockey Jerseys" },
+                { id: "nfl-jerseys", name: "NFL Jerseys" },
                 { id: "rugby-jerseys", name: "Rugby Jerseys" },
                 { id: "running-jerseys", name: "Running Jerseys" },
                 { id: "soccer-jerseys", name: "Soccer Jerseys" },

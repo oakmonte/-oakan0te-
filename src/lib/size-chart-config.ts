@@ -11,23 +11,79 @@ export type ManualSize = { value: string; system: string };
 
 export type SizeChartDefinition = {
   id: string;
-  outline: "tshirt-short-sleeve";
+  guide: "tshirt" | "polo" | "off-shoulder-top" | "nfl-jersey" | "football-jersey" | "baggy-joggers";
   lines: SizeChartLine[];
 };
 
-// Letter labels (a-e) match the lettered measurement guide image shown in the
-// sheet (public/size-chart/tshirt-guide.png) 1:1, so a seller reads the
-// letter off the picture and types the matching number below it — no need to
-// spell out "shoulder width" etc. in the row itself.
+// Letter labels match their guide image 1:1, so a seller reads the letter off
+// the picture and types the matching number below it — no need to spell out
+// the measurement name in the row itself.
 const TSHIRT_SHORT_SLEEVE: SizeChartDefinition = {
   id: "tshirt-short-sleeve",
-  outline: "tshirt-short-sleeve",
+  guide: "tshirt",
   lines: [
     { key: "shoulder_width", label: "a" },
     { key: "chest_width", label: "b" },
     { key: "body_length", label: "c" },
     { key: "sleeve_length", label: "d" },
     { key: "neck_width", label: "e" },
+  ],
+};
+
+const POLO_SHIRT: SizeChartDefinition = {
+  id: "polo-shirt",
+  guide: "polo",
+  lines: [
+    { key: "shoulder_width", label: "a" },
+    { key: "chest_width", label: "b" },
+    { key: "body_length", label: "c" },
+    { key: "sleeve_length", label: "d" },
+    { key: "neck_width", label: "e" },
+  ],
+};
+
+const OFF_SHOULDER_TOP: SizeChartDefinition = {
+  id: "off-shoulder-top",
+  guide: "off-shoulder-top",
+  lines: [
+    { key: "shoulder_width", label: "a" },
+    { key: "chest_width", label: "b" },
+    { key: "body_length", label: "c" },
+    { key: "neck_width", label: "e" },
+  ],
+};
+
+const NFL_JERSEY: SizeChartDefinition = {
+  id: "nfl-jersey",
+  guide: "nfl-jersey",
+  lines: [
+    { key: "shoulder_width", label: "a" },
+    { key: "chest_width", label: "b" },
+    { key: "body_length", label: "c" },
+    { key: "sleeve_length", label: "d" },
+    { key: "neck_width", label: "e" },
+  ],
+};
+
+const FOOTBALL_JERSEY: SizeChartDefinition = {
+  id: "football-jersey",
+  guide: "football-jersey",
+  lines: [
+    { key: "shoulder_width", label: "a" },
+    { key: "chest_width", label: "b" },
+    { key: "body_length", label: "c" },
+    { key: "sleeve_length", label: "d" },
+    { key: "neck_width", label: "e" },
+  ],
+};
+
+const BAGGY_JOGGERS: SizeChartDefinition = {
+  id: "baggy-joggers",
+  guide: "baggy-joggers",
+  lines: [
+    { key: "waist_width", label: "a" },
+    { key: "outseam_length", label: "b" },
+    { key: "leg_opening", label: "c" },
   ],
 };
 
@@ -40,12 +96,17 @@ const CHARTS_BY_CATEGORY: Record<string, SizeChartDefinition> = {
   "baby-childrens-tops-t-shirts": TSHIRT_SHORT_SLEEVE,
   "maternity-tops-t-shirts": TSHIRT_SHORT_SLEEVE,
   "nursing-t-shirts": TSHIRT_SHORT_SLEEVE,
+  polos: POLO_SHIRT,
+  "clothing-tops-polos": POLO_SHIRT,
+  "off-shoulder-tops": OFF_SHOULDER_TOP,
+  "nfl-jerseys": NFL_JERSEY,
+  "football-jerseys": FOOTBALL_JERSEY,
+  "baggy-joggers": BAGGY_JOGGERS,
 };
 
-// First test case for the universal size chart (see root CLAUDE.md /
-// POSTPONED.md §2.1) — deliberately narrow to one category. Add more entries
-// here (and more SizeChartDefinitions) once this shape has been reviewed;
-// nothing else needs to change to support it.
+// Only categories explicitly mapped above get a guide. Adding a new guide is
+// intentionally data-only: add the definition, map its category ids here,
+// and add its image to SizeChartSheet's GUIDE_IMAGES map.
 export function getSizeChartForCategory(categoryPath: CategoryNode[]): SizeChartDefinition | null {
   for (const node of categoryPath) {
     const chart = CHARTS_BY_CATEGORY[node.id];

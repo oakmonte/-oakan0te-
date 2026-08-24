@@ -11,11 +11,24 @@ import {
 } from "@/lib/size-chart-config";
 import { SIZE_SYSTEMS } from "@/components/product-form/OptionEditorSheet";
 import tShirtGuide from "./T-shirt-Guide.jpg";
+import poloShirtGuide from "./Polo-Shirt-Guide.png";
+import offShoulderTopGuide from "./Off-Shoulder-Top-Guide.png";
+import nflJerseyGuide from "./NFL-Jersey-Guide.png";
+import footballJerseyGuide from "./Football-Jersey-Guide.png";
+import baggyJoggersGuide from "./Baggy-Joggers-Guide.png";
 
 type Unit = "cm" | "in";
 // sizeValue -> measurementKey -> raw typed string, in whatever `unit` currently is
 type Draft = Record<string, Record<string, string>>;
 const SYSTEM_KEYS = Object.keys(SIZE_SYSTEMS) as (keyof typeof SIZE_SYSTEMS)[];
+const GUIDE_IMAGES = {
+  tshirt: tShirtGuide,
+  polo: poloShirtGuide,
+  "off-shoulder-top": offShoulderTopGuide,
+  "nfl-jersey": nflJerseyGuide,
+  "football-jersey": footballJerseyGuide,
+  "baggy-joggers": baggyJoggersGuide,
+} as const;
 
 function formatNum(n: number): string {
   return (Math.round(n * 100) / 100).toString();
@@ -216,8 +229,8 @@ export function SizeChartSheet({
           <>
             <div className="aspect-square w-full bg-gray-50 rounded-2xl p-4">
               <img
-                src={tShirtGuide}
-                alt="T-shirt measurement guide: a shoulder width, b chest width, c body length, d sleeve length, e neck width"
+                src={GUIDE_IMAGES[chart.guide]}
+                alt={`${chart.id} measurement guide`}
                 className="w-full h-full object-contain"
               />
             </div>
