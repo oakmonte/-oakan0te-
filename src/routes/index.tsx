@@ -733,10 +733,10 @@ function OakmonteLanding() {
               <Reveal delay={1} className="scale-media">
                 <img
                   src={IMG_SCALE}
-                  alt="Curated rack of fashion pieces"
+                  alt="First-person fashion point of view"
                   loading="lazy"
-                  width={1008}
-                  height={1264}
+                  width={728}
+                  height={1280}
                 />
               </Reveal>
             </div>
