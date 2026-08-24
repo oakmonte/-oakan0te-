@@ -1119,7 +1119,7 @@ const CSS = `
 .oak .scale-banner h2{font-family:var(--display);font-size:clamp(32px,6vw,80px);line-height:.98;letter-spacing:-.02em;text-transform:uppercase;margin:0;}
 .oak .scale-banner h2 span{color:var(--blue);}
 .oak .scale-media{border-radius:22px;overflow:hidden;position:relative;aspect-ratio:91/160;}
-.oak .scale-media img{position:absolute;inset:0;width:110%;height:110%;object-fit:cover;transform:translate(-4.5%,-4.5%);}
+.oak .scale-media img{position:absolute;inset:0;width:105%;height:105%;object-fit:cover;transform:translate(-2.5%,-2.5%);}
 
 .oak .guarantee-banner{background:var(--black);color:#fff;padding:64px 0;text-align:center;}
 .oak .guarantee-banner .eyebrow{color:#6E8CFF;justify-content:center;}
