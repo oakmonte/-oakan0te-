@@ -41,7 +41,7 @@ export const Route = createFileRoute("/")({
 const IMG_LOGO = logoAsset.url;
 const IMG_HERO = phoneMockupAsset.url;
 const IMG_STORY = streetwearAsset.url;
-const IMG_SCALE = heroAsset.url;
+const IMG_SCALE = femalePov;
 
 /* ---------------- Data ---------------- */
 const FEATURES = [
