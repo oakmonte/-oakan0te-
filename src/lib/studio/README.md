@@ -101,8 +101,9 @@ clip is actually graded. Encoding dominates everything else.
 ## Oakmonte-specific
 
 - **Product pins** (`render.ts`, `ProductPinOverlay`) — shoppable tags baked into the pixels so they
-  survive a re-share off-platform. Titles/prices are typed for now; once real store scoping replaces
-  `DEV_STORE_ID` this should read the seller's catalogue and carry a product id.
+  survive a re-share off-platform. Titles/prices are typed for now; real store scoping exists now
+  (`useActiveStoreId` in `src/hooks/use-own-store.ts`) — this should read the seller's catalogue
+  through it and carry a product id.
 - **Cover frame** — sets `CapturedMedia.poster`, rendered through the same grade and overlays as the
   video so the listing thumbnail is a real frame of the finished edit.
 - **Aspect presets** are named by placement (Feed / Product / Grid), and the safe-area guides show

@@ -3,10 +3,6 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Palette, Wallet, Package } from "lucide-react";
 import { useEffect, useState } from "react";
 
-// TODO: dev-only, matches store.products_.new.tsx / store.products.tsx.
-// Revert before launch.
-const DEV_STORE_ID = "4a492d4d-66bd-4d14-a5dc-e6d8d1723023";
-
 export const Route = createFileRoute("/store/")({
   component: StoreHome,
 });

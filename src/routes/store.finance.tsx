@@ -4,10 +4,6 @@ import { Landmark, Clock } from "lucide-react";
 import { PayoutAccountSheet } from "@/components/store/PayoutAccountSheet";
 import { authedFetch } from "@/lib/authed-fetch";
 
-// TODO: dev-only, matches store.products_.new.tsx / store.products.tsx.
-// Revert before launch.
-const DEV_STORE_ID = "4a492d4d-66bd-4d14-a5dc-e6d8d1723023";
-
 type PayoutAccount = {
   bank_name: string;
   account_number: string;

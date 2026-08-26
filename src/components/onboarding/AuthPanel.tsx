@@ -13,6 +13,7 @@ import { GoogleIcon } from "@/components/auth-icons";
 import { Spinner } from "@/components/spinner";
 import { CodeInput } from "@/components/onboarding/CodeInput";
 import { FormError } from "@/components/onboarding/OnboardingShell";
+import logoO from "@/assets/logo-o.png";
 
 const RESEND_SECONDS = 30;
 
@@ -181,8 +182,9 @@ export function AuthPanel({ intent, title, subtitle, defaultMode = "code" }: Pro
   return (
     <div data-onboarding className="min-h-dvh bg-white text-[#0A0A0A] flex flex-col">
       <header className="px-6 sm:px-10 py-6 flex items-center justify-between">
-        <Link to="/" className="flex items-center">
-          <img src="/favicon.png" alt="Oakmonte" className="h-9 w-auto" />
+        <Link to="/" className="flex items-baseline gap-0.5">
+          <img src={logoO} alt="" className="h-9 w-auto translate-y-0.5" />
+          <span className="text-lg tracking-tight leading-none">akmonte</span>
         </Link>
         <Link
           to="/"

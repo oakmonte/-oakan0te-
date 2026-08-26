@@ -65,6 +65,8 @@ function validate(username: string): string | null {
   return null;
 }
 
+type Availability = "idle" | "checking" | "available" | "taken" | "error";
+
 function ChooseUsernamePage() {
   const navigate = useNavigate();
   const { userId, checking } = useRequireSession();
@@ -75,6 +77,7 @@ function ChooseUsernamePage() {
   // Read after mount: reading storage during render made the server and the
   // client disagree and produced a hydration mismatch.
   const [intent, setIntentState] = useState<Intent | null>(null);
+  const [availability, setAvailability] = useState<Availability>("idle");
 
   useEffect(() => {
     setIntentState(readIntent() ?? "seller");
@@ -103,6 +106,34 @@ function ChooseUsernamePage() {
 
   const step = stepPosition(intent, "/choose-username");
   const problem = username ? validate(username) : null;
+
+  // Debounced live check — a hint only. The upsert's unique-constraint error
+  // on submit is still the authoritative check, since a name freed or taken
+  // between typing and submitting can't be caught here.
+  useEffect(() => {
+    if (problem || !username) {
+      setAvailability("idle");
+      return;
+    }
+    let cancelled = false;
+    setAvailability("checking");
+    const timeout = setTimeout(async () => {
+      const { data, error: rpcError } = await supabase.rpc("is_username_available", {
+        check_username: username,
+      });
+      if (cancelled) return;
+      if (rpcError) {
+        console.error("username availability check failed", rpcError);
+        setAvailability("error");
+        return;
+      }
+      setAvailability(data ? "available" : "taken");
+    }, 400);
+    return () => {
+      cancelled = true;
+      clearTimeout(timeout);
+    };
+  }, [username, problem]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -198,8 +229,20 @@ function ChooseUsernamePage() {
           aria-invalid={problem ? true : undefined}
           className="w-full rounded-full border border-brand-text/25 bg-transparent px-5 py-3.5 text-sm placeholder:text-brand-text/40 focus:outline-none focus:border-brand-accent transition-colors"
         />
-        <p id="username-hint" className="text-[11px] text-brand-text/50 px-2 text-left">
-          {problem ?? `oakmonte.com/profile/${username || "your-name"}`}
+        <p
+          id="username-hint"
+          className={`text-[11px] px-2 text-left ${
+            availability === "taken" ? "text-red-500" : "text-brand-text/50"
+          }`}
+        >
+          {problem ??
+            (availability === "checking"
+              ? "Checking availability…"
+              : availability === "taken"
+                ? "That username is taken."
+                : availability === "available"
+                  ? "Available."
+                  : `oakmonte.com/profile/${username || "your-name"}`)}
         </p>
 
         <label htmlFor="gender" className="sr-only">
@@ -218,7 +261,7 @@ function ChooseUsernamePage() {
 
         <button
           type="submit"
-          disabled={loading || !username || Boolean(problem)}
+          disabled={loading || !username || Boolean(problem) || availability === "taken"}
           className="w-full rounded-full bg-brand-accent text-brand-bg py-3.5 text-sm font-medium uppercase tracking-widest hover:bg-brand-accent/90 hover:scale-[1.01] transition-all duration-300 disabled:opacity-40"
         >
           {loading ? "Saving…" : "Continue"}

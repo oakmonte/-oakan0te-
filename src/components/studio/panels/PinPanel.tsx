@@ -10,9 +10,10 @@ import type { ProductPin } from "@/lib/studio/types";
 // off-platform, which is the whole reason to put it in the pixels rather than in
 // an interactive layer on top.
 //
-// Titles and prices are typed for now. Once real store scoping replaces
-// DEV_STORE_ID this should read the seller's own catalogue and carry the product
-// id through, so a tap on the finished post can deep-link to the listing.
+// Titles and prices are typed for now. Real store scoping exists now
+// (useActiveStoreId in src/hooks/use-own-store.ts) — this should read the
+// seller's own catalogue through it and carry the product id through, so a
+// tap on the finished post can deep-link to the listing.
 
 export function PinPanel({
   pin,

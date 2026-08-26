@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useSession } from "@/hooks/use-session";
+import { useActiveStore } from "@/hooks/use-own-store";
 
 export const Route = createFileRoute("/store")({
   component: StoreLayout,
@@ -35,6 +36,7 @@ function StoreLayout() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const { user } = useSession();
   const [username, setUsername] = useState<string | null>(null);
+  const { store, stores, setActiveId } = useActiveStore();
 
   useEffect(() => {
     if (!user) return;
@@ -62,7 +64,24 @@ function StoreLayout() {
         >
           <Menu size={22} />
         </button>
-        <span className="font-semibold text-sm">Oakmonte Store</span>
+        {stores.length > 1 ? (
+          <label className="relative">
+            <span className="sr-only">Switch store</span>
+            <select
+              value={store?.id ?? ""}
+              onChange={(e) => setActiveId(e.target.value)}
+              className="font-semibold text-sm bg-transparent text-center appearance-none pr-4"
+            >
+              {stores.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.brand_name}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : (
+          <span className="font-semibold text-sm">{store?.brand_name ?? "Oakmonte Store"}</span>
+        )}
         <div className="w-7" />
       </div>
 
