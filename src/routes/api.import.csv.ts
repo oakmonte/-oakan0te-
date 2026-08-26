@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { requireStoreOwner } from "@/lib/server-auth";
+import type { Json } from "@/lib/integrations/my-supabase/types";
 
 /**
  * Accepts a CSV upload, parks it on Bunny Storage, and enqueues an import job
@@ -130,7 +131,7 @@ export const Route = createFileRoute("/api/import/csv")({
           platform,
           status: "pending",
           file_path: fileUrl,
-          metadata,
+          metadata: metadata as Json,
         };
 
         const { data: job, error } = await supabase
