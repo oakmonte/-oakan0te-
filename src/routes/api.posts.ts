@@ -23,7 +23,13 @@ const MEDIA_TYPES = new Set(["photo", "video"]);
 const VISIBILITIES = new Set(["public", "followers", "only_me"]);
 const STATUSES = new Set(["published", "draft"]);
 
-async function uploadToBunny(remotePath: string, body: Blob, endpoint: string, zone: string, password: string) {
+async function uploadToBunny(
+  remotePath: string,
+  body: Blob,
+  endpoint: string,
+  zone: string,
+  password: string,
+) {
   const res = await fetch(`${endpoint.replace(/\/+$/, "")}/${zone}/${remotePath}`, {
     method: "PUT",
     headers: { AccessKey: password, "Content-Type": body.type || "application/octet-stream" },
@@ -103,7 +109,10 @@ export const Route = createFileRoute("/api/posts")({
               productIds = parsed;
             }
           } catch {
-            return Response.json({ error: "productIds must be a JSON array of strings" }, { status: 400 });
+            return Response.json(
+              { error: "productIds must be a JSON array of strings" },
+              { status: 400 },
+            );
           }
         }
 

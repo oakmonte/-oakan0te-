@@ -183,17 +183,14 @@ function AfterShotIndexPage() {
               { type: "video", blob, url, poster: media.poster },
         );
       }
-      // Publishing/compose isn't built yet, so the flow stops here rather than
-      // pretending to post. The composite is real and now sits in context —
-      // whatever screen comes next reads it straight from useAfterShotContext.
-      console.info("Export complete:", blob.type, blob.size, "bytes");
+      navigate({ to: "/create/after-shot/publish" });
     } catch (err) {
       console.error("Export failed:", err);
       setExportError(err instanceof Error ? err.message : "Export failed");
     } finally {
       setExporting(false);
     }
-  }, [media, exportFilterCss, layers, setMedia]);
+  }, [media, exportFilterCss, layers, setMedia, navigate]);
 
   return (
     <div

@@ -7,6 +7,7 @@ import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useSession } from "@/hooks/use-session";
 import { BottomNav } from "@/components/BottomNav";
 import { ProfileTabEmptyState } from "@/components/ProfileTabEmptyState";
+import { PostsGrid } from "@/components/profile/PostsGrid";
 
 export const Route = createFileRoute("/profile/$username")({
   head: () => ({ meta: [{ title: "Profile — Oakmonte" }] }),
@@ -150,13 +151,7 @@ function DraftsIcon(props: { className?: string }) {
 }
 
 export type TabKey =
-  | "posts"
-  | "store"
-  | "wardrobe"
-  | "reposts"
-  | "wishlist"
-  | "likedVideos"
-  | "drafts";
+  "posts" | "store" | "wardrobe" | "reposts" | "wishlist" | "likedVideos" | "drafts";
 
 const TABS: {
   key: TabKey;
@@ -452,7 +447,21 @@ function ProfilePage() {
             }}
             className="px-1 pt-4"
           >
-            <ProfileTabEmptyState tab={activeTab} />
+            {profile && activeTab === "posts" ? (
+              <PostsGrid
+                userId={profile.id}
+                status="published"
+                emptyState={<ProfileTabEmptyState tab="posts" />}
+              />
+            ) : profile && activeTab === "drafts" && isOwnProfile ? (
+              <PostsGrid
+                userId={profile.id}
+                status="draft"
+                emptyState={<ProfileTabEmptyState tab="drafts" />}
+              />
+            ) : (
+              <ProfileTabEmptyState tab={activeTab} />
+            )}
           </motion.div>
         </AnimatePresence>
       </div>

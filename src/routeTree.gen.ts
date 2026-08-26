@@ -58,6 +58,7 @@ import { Route as ApiShopifyInstallRouteImport } from './routes/api.shopify.inst
 import { Route as ApiStorePayoutRouteImport } from './routes/api.store.payout'
 import { Route as CreateAfterShotIndexRouteImport } from './routes/create.after-shot.index'
 import { Route as CreateAfterShotFiltersRouteImport } from './routes/create.after-shot.filters'
+import { Route as CreateAfterShotPublishRouteImport } from './routes/create.after-shot.publish'
 import { Route as CreateAfterShotStudioRouteImport } from './routes/create.after-shot.studio'
 import { Route as StoreCollectionsNewRouteImport } from './routes/store.collections_.new'
 import { Route as StoreProductsIdRouteImport } from './routes/store.products_.$id'
@@ -310,6 +311,11 @@ const CreateAfterShotFiltersRoute = CreateAfterShotFiltersRouteImport.update({
   path: '/filters',
   getParentRoute: () => CreateAfterShotRoute,
 } as any)
+const CreateAfterShotPublishRoute = CreateAfterShotPublishRouteImport.update({
+  id: '/publish',
+  path: '/publish',
+  getParentRoute: () => CreateAfterShotRoute,
+} as any)
 const CreateAfterShotStudioRoute = CreateAfterShotStudioRouteImport.update({
   id: '/studio',
   path: '/studio',
@@ -390,6 +396,7 @@ export interface FileRoutesByFullPath {
   '/api/shopify/install': typeof ApiShopifyInstallRoute
   '/api/store/payout': typeof ApiStorePayoutRoute
   '/create/after-shot/filters': typeof CreateAfterShotFiltersRoute
+  '/create/after-shot/publish': typeof CreateAfterShotPublishRoute
   '/create/after-shot/studio': typeof CreateAfterShotStudioRoute
   '/store/collections/new': typeof StoreCollectionsNewRoute
   '/store/products/$id': typeof StoreProductsIdRoute
@@ -444,6 +451,7 @@ export interface FileRoutesByTo {
   '/api/shopify/install': typeof ApiShopifyInstallRoute
   '/api/store/payout': typeof ApiStorePayoutRoute
   '/create/after-shot/filters': typeof CreateAfterShotFiltersRoute
+  '/create/after-shot/publish': typeof CreateAfterShotPublishRoute
   '/create/after-shot/studio': typeof CreateAfterShotStudioRoute
   '/store/collections/new': typeof StoreCollectionsNewRoute
   '/store/products/$id': typeof StoreProductsIdRoute
@@ -502,6 +510,7 @@ export interface FileRoutesById {
   '/api/shopify/install': typeof ApiShopifyInstallRoute
   '/api/store/payout': typeof ApiStorePayoutRoute
   '/create/after-shot/filters': typeof CreateAfterShotFiltersRoute
+  '/create/after-shot/publish': typeof CreateAfterShotPublishRoute
   '/create/after-shot/studio': typeof CreateAfterShotStudioRoute
   '/store/collections_/new': typeof StoreCollectionsNewRoute
   '/store/products_/$id': typeof StoreProductsIdRoute
@@ -561,6 +570,7 @@ export interface FileRouteTypes {
     | '/api/shopify/install'
     | '/api/store/payout'
     | '/create/after-shot/filters'
+    | '/create/after-shot/publish'
     | '/create/after-shot/studio'
     | '/store/collections/new'
     | '/store/products/$id'
@@ -615,6 +625,7 @@ export interface FileRouteTypes {
     | '/api/shopify/install'
     | '/api/store/payout'
     | '/create/after-shot/filters'
+    | '/create/after-shot/publish'
     | '/create/after-shot/studio'
     | '/store/collections/new'
     | '/store/products/$id'
@@ -672,6 +683,7 @@ export interface FileRouteTypes {
     | '/api/shopify/install'
     | '/api/store/payout'
     | '/create/after-shot/filters'
+    | '/create/after-shot/publish'
     | '/create/after-shot/studio'
     | '/store/collections_/new'
     | '/store/products_/$id'
@@ -1065,6 +1077,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CreateAfterShotFiltersRouteImport
       parentRoute: typeof CreateAfterShotRoute
     }
+    '/create/after-shot/publish': {
+      id: '/create/after-shot/publish'
+      path: '/publish'
+      fullPath: '/create/after-shot/publish'
+      preLoaderRoute: typeof CreateAfterShotPublishRouteImport
+      parentRoute: typeof CreateAfterShotRoute
+    }
     '/create/after-shot/studio': {
       id: '/create/after-shot/studio'
       path: '/studio'
@@ -1112,12 +1131,14 @@ declare module '@tanstack/react-router' {
 
 interface CreateAfterShotRouteChildren {
   CreateAfterShotFiltersRoute: typeof CreateAfterShotFiltersRoute
+  CreateAfterShotPublishRoute: typeof CreateAfterShotPublishRoute
   CreateAfterShotStudioRoute: typeof CreateAfterShotStudioRoute
   CreateAfterShotIndexRoute: typeof CreateAfterShotIndexRoute
 }
 
 const CreateAfterShotRouteChildren: CreateAfterShotRouteChildren = {
   CreateAfterShotFiltersRoute: CreateAfterShotFiltersRoute,
+  CreateAfterShotPublishRoute: CreateAfterShotPublishRoute,
   CreateAfterShotStudioRoute: CreateAfterShotStudioRoute,
   CreateAfterShotIndexRoute: CreateAfterShotIndexRoute,
 }

@@ -25,7 +25,6 @@ import mChubby from "@/assets/body-types/male/chubby.webp";
 import mPlusModerate from "@/assets/body-types/male/plus-moderate.webp";
 import mPlusFuller from "@/assets/body-types/male/plus-fuller.webp";
 import femaleMeasurementGuide from "@/assets/body-types/female/Body-type-measurement-female.png";
-// Not yet the real male guide — see the comment on MALE_MEASUREMENT_LINES below.
 import maleMeasurementGuide from "@/assets/body-types/male/Body-type-measurement-male.png";
 
 export const Route = createFileRoute("/find-your-fit")({
@@ -137,10 +136,6 @@ const FEMALE_MEASUREMENT_LINES: MeasurementLine[] = [
   { key: "leg", letter: "g", label: "Leg Length (Hip to Feet)" },
 ];
 
-// Labels match the intended male guide image, not the placeholder currently
-// wired up at maleMeasurementGuide (that file is a duplicate of the female
-// PNG — see its import comment). Once the real male guide is dropped in at
-// the same path, these letters will line up with it as-is.
 const MALE_MEASUREMENT_LINES: MeasurementLine[] = [
   { key: "shoulder", letter: "a", label: "Across Shoulder (Shoulder to Shoulder)" },
   { key: "chest", letter: "b", label: "Full Chest (Chest Circumference)" },
