@@ -1,9 +1,10 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
+import { ArrowLeft, ChevronRight } from "lucide-react";
 import { setAccountPassword, signInWithPassword, signOut } from "@/lib/auth";
+import { authedFetch } from "@/lib/authed-fetch";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { checkPassword, MIN_PASSWORD_LENGTH } from "@/lib/password-policy";
-import { FormError, OnboardingChecking } from "@/components/onboarding/OnboardingShell";
 import { useRequireSession } from "@/components/onboarding/use-require-session";
 
 export const Route = createFileRoute("/settings")({
@@ -11,7 +12,14 @@ export const Route = createFileRoute("/settings")({
   component: SettingsPage,
 });
 
+// Matches the rest of the interior app (profile, edit-profile) — black,
+// SF Pro, translucent white panels — not the light brand-serif look the
+// onboarding/marketing routes use. This page is reached from inside the app,
+// not from the landing flow, so it should look like the app it's part of.
+const SF_PRO = "'SF Pro', system-ui, sans-serif";
+
 function SettingsPage() {
+  const navigate = useNavigate();
   const { checking } = useRequireSession();
   const [email, setEmail] = useState<string | null>(null);
   const [hasPassword, setHasPassword] = useState(false);
@@ -24,37 +32,120 @@ function SettingsPage() {
     });
   }, []);
 
-  if (checking) return <OnboardingChecking />;
+  // A local, black loading state — OnboardingChecking's white brand-bg
+  // screen would flash between this page's black content and the black
+  // profile page it's opened from.
+  if (checking) {
+    return (
+      <div
+        className="min-h-screen bg-black text-white flex items-center justify-center"
+        style={{ fontFamily: SF_PRO }}
+      >
+        <span className="text-[14px] text-white/50">One moment…</span>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-dvh bg-brand-bg text-brand-text">
-      <header className="px-6 sm:px-10 py-6 flex items-center justify-between border-b border-brand-text/10">
-        <h1 className="font-serif text-2xl">Settings &amp; Privacy</h1>
-        <Link
-          to="/"
-          className="text-[11px] uppercase tracking-widest hover:text-brand-accent transition-colors"
+    <div className="min-h-screen bg-black text-white" style={{ fontFamily: SF_PRO }}>
+      <div className="flex items-center justify-center relative px-6 pt-4 pb-4">
+        <button
+          onClick={() => navigate({ to: ".." })}
+          aria-label="Back"
+          className="absolute left-6"
         >
-          ← Back
-        </Link>
-      </header>
+          <ArrowLeft size={22} />
+        </button>
+        <h1 className="text-[16px] font-bold">Settings &amp; Privacy</h1>
+      </div>
 
-      <main className="px-6 sm:px-10 py-8 max-w-sm mx-auto">
-        <h2 className="text-xs uppercase tracking-widest text-brand-text/50 mb-4">Account</h2>
-        <PasswordSection email={email} hasPassword={hasPassword} />
+      <main className="px-4 pt-2 pb-16 max-w-md mx-auto space-y-7">
+        <Section title="Account">
+          <Panel>
+            <FieldRow label="Email">
+              <span className="text-[14px] text-white/50 truncate">{email ?? "—"}</span>
+            </FieldRow>
+            <PasswordRow email={email} hasPassword={hasPassword} />
+          </Panel>
+        </Section>
+
+        <Section title="Profile">
+          <Panel>
+            <NavRow label="Edit profile" onClick={() => navigate({ to: "/edit-profile" })} />
+          </Panel>
+        </Section>
+
+        <Section title="Legal">
+          <Panel>
+            <NavRow label="Terms of Service" onClick={() => navigate({ to: "/terms" })} />
+            <NavRow label="Privacy Policy" onClick={() => navigate({ to: "/privacy" })} />
+          </Panel>
+        </Section>
 
         <button
           type="button"
-          onClick={() => signOut()}
-          className="mt-10 text-[11px] uppercase tracking-widest text-brand-text/50 hover:text-brand-text transition-colors"
+          onClick={async () => {
+            await signOut();
+            navigate({ to: "/", replace: true });
+          }}
+          className="w-full rounded-2xl bg-white/[0.06] py-3.5 text-[14px] font-semibold text-white text-center transition-colors duration-150 active:bg-white/[0.1]"
         >
           Sign out
         </button>
+
+        <Section title="Danger zone">
+          <Panel>
+            <DeleteAccountSection email={email} hasPassword={hasPassword} />
+          </Panel>
+        </Section>
       </main>
     </div>
   );
 }
 
-function PasswordSection({ email, hasPassword }: { email: string | null; hasPassword: boolean }) {
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <div className="text-[11px] uppercase tracking-wide text-white/40 mb-2 px-1">{title}</div>
+      {children}
+    </div>
+  );
+}
+
+function Panel({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="rounded-2xl bg-white/[0.06] divide-y divide-white/10 overflow-hidden">
+      {children}
+    </div>
+  );
+}
+
+function FieldRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between px-4 py-3.5 gap-3">
+      <span className="text-[14px] text-white/70 shrink-0">{label}</span>
+      {children}
+    </div>
+  );
+}
+
+function NavRow({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full flex items-center justify-between px-4 py-3.5 text-left"
+    >
+      <span className="text-[14px]">{label}</span>
+      <ChevronRight size={16} className="text-white/30 shrink-0" />
+    </button>
+  );
+}
+
+const inputClass =
+  "w-full rounded-xl border border-white/15 bg-white/[0.04] px-4 py-3.5 text-[14px] text-white placeholder:text-white/30 focus:outline-none focus:border-white/40 transition-colors";
+
+function PasswordRow({ email, hasPassword }: { email: string | null; hasPassword: boolean }) {
   const [open, setOpen] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [password, setPassword] = useState("");
@@ -117,28 +208,24 @@ function PasswordSection({ email, hasPassword }: { email: string | null; hasPass
 
   if (!open) {
     return (
-      <button
-        type="button"
+      <NavRow
+        label={hasPassword ? "Change password" : "Set a password"}
         onClick={() => setOpen(true)}
-        className="w-full flex items-center justify-between py-4 border-b border-brand-text/10 text-left"
-      >
-        <span className="text-sm">{hasPassword ? "Change password" : "Set a password"}</span>
-        <span className="text-brand-text/40">→</span>
-      </button>
+      />
     );
   }
 
   if (done) {
     return (
-      <div className="py-4 border-b border-brand-text/10">
-        <p className="text-sm">Password {hasPassword ? "changed" : "set"}.</p>
+      <div className="px-4 py-3.5">
+        <p className="text-[14px] text-white/70">Password {hasPassword ? "changed" : "set"}.</p>
         <button
           type="button"
           onClick={() => {
             reset();
             setOpen(false);
           }}
-          className="mt-2 text-[11px] uppercase tracking-widest text-brand-text/50 hover:text-brand-text transition-colors"
+          className="mt-2 text-[11px] uppercase tracking-widest text-white/40 hover:text-white transition-colors"
         >
           Done
         </button>
@@ -147,7 +234,7 @@ function PasswordSection({ email, hasPassword }: { email: string | null; hasPass
   }
 
   return (
-    <div className="py-4 border-b border-brand-text/10">
+    <div className="px-4 py-4">
       <form onSubmit={handleSubmit} className="space-y-3">
         {hasPassword && (
           <>
@@ -163,7 +250,7 @@ function PasswordSection({ email, hasPassword }: { email: string | null; hasPass
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
               placeholder="Current password"
-              className="w-full rounded-full border border-brand-text/25 bg-transparent px-5 py-3.5 text-sm placeholder:text-brand-text/40 focus:outline-none focus:border-brand-accent transition-colors"
+              className={inputClass}
             />
           </>
         )}
@@ -181,10 +268,10 @@ function PasswordSection({ email, hasPassword }: { email: string | null; hasPass
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder={`New password (${MIN_PASSWORD_LENGTH}+ characters)`}
-          className="w-full rounded-full border border-brand-text/25 bg-transparent px-5 py-3.5 text-sm placeholder:text-brand-text/40 focus:outline-none focus:border-brand-accent transition-colors"
+          className={inputClass}
         />
         {password && (
-          <div className="px-2 pt-1 text-left" aria-live="polite">
+          <div className="px-1 pt-1" aria-live="polite">
             <div className="flex items-center gap-1.5">
               {[0, 1, 2, 3].map((i) => (
                 <span
@@ -194,16 +281,16 @@ function PasswordSection({ email, hasPassword }: { email: string | null; hasPass
                       ? verdict.score >= 3
                         ? "bg-emerald-500"
                         : "bg-amber-500"
-                      : "bg-brand-text/15"
+                      : "bg-white/15"
                   }`}
                 />
               ))}
-              <span className="ml-2 text-[10px] uppercase tracking-widest text-brand-text/50">
+              <span className="ml-2 text-[10px] uppercase tracking-widest text-white/40">
                 {verdict.label}
               </span>
             </div>
             {verdict.problems.length > 0 && (
-              <p className="mt-1.5 text-[11px] text-brand-text/60">
+              <p className="mt-1.5 text-[11px] text-white/40">
                 Needs {verdict.problems.join(", ")}.
               </p>
             )}
@@ -221,32 +308,30 @@ function PasswordSection({ email, hasPassword }: { email: string | null; hasPass
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}
           placeholder="Confirm new password"
-          className="w-full rounded-full border border-brand-text/25 bg-transparent px-5 py-3.5 text-sm placeholder:text-brand-text/40 focus:outline-none focus:border-brand-accent transition-colors"
+          className={inputClass}
         />
         {confirm && password !== confirm && (
-          <p className="px-2 text-[11px] text-brand-text/60 text-left">
-            Those two passwords don't match yet.
-          </p>
+          <p className="px-1 text-[11px] text-white/40">Those two passwords don't match yet.</p>
         )}
 
-        <label className="flex items-center gap-2 text-xs text-brand-text/60 px-2 py-1 cursor-pointer">
+        <label className="flex items-center gap-2 text-[12px] text-white/50 px-1 py-1 cursor-pointer">
           <input
             type="checkbox"
             checked={show}
             onChange={(e) => setShow(e.target.checked)}
-            className="accent-brand-accent"
+            className="accent-white"
           />
           Show passwords
         </label>
 
-        <div className="flex gap-2">
+        <div className="flex gap-2 pt-1">
           <button
             type="button"
             onClick={() => {
               reset();
               setOpen(false);
             }}
-            className="flex-1 rounded-full border border-brand-text/25 py-3.5 text-sm font-medium uppercase tracking-widest hover:border-brand-text/50 transition-colors"
+            className="flex-1 rounded-full border border-white/20 py-3 text-[13px] font-medium uppercase tracking-widest text-white/70 hover:border-white/40 transition-colors"
           >
             Cancel
           </button>
@@ -255,13 +340,138 @@ function PasswordSection({ email, hasPassword }: { email: string | null; hasPass
             disabled={
               saving || !verdict.ok || password !== confirm || (hasPassword && !currentPassword)
             }
-            className="flex-1 rounded-full bg-brand-accent text-brand-bg py-3.5 text-sm font-medium uppercase tracking-widest hover:bg-brand-accent/90 transition-all duration-300 disabled:opacity-60"
+            className="flex-1 rounded-full bg-white text-black py-3 text-[13px] font-semibold uppercase tracking-widest disabled:opacity-40 transition-opacity"
           >
             {saving ? "Saving…" : "Save"}
           </button>
         </div>
-        <FormError>{error}</FormError>
+        {error && <p className="text-[12px] text-red-400 text-center">{error}</p>}
       </form>
+    </div>
+  );
+}
+
+function DeleteAccountSection({
+  email,
+  hasPassword,
+}: {
+  email: string | null;
+  hasPassword: boolean;
+}) {
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  const [password, setPassword] = useState("");
+  const [confirmText, setConfirmText] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const canSubmit = confirmText.trim().toUpperCase() === "DELETE" && (!hasPassword || password);
+
+  const handleDelete = async () => {
+    if (!canSubmit || deleting) return;
+    setError(null);
+    setDeleting(true);
+
+    // Same re-verification as changing a password: a device left signed in
+    // shouldn't be enough on its own to destroy the account.
+    if (hasPassword) {
+      if (!email) {
+        setDeleting(false);
+        setError("Something went wrong. Please try again.");
+        return;
+      }
+      const { error: verifyError } = await signInWithPassword(email, password);
+      if (verifyError) {
+        setDeleting(false);
+        setError("Your password doesn't match.");
+        return;
+      }
+    }
+
+    const response = await authedFetch("/api/account/delete", { method: "POST" });
+    if (!response.ok) {
+      setDeleting(false);
+      const body = await response.json().catch(() => null);
+      setError(body?.error ?? "Could not delete your account. Please try again.");
+      return;
+    }
+
+    await signOut();
+    navigate({ to: "/", replace: true });
+  };
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="w-full flex items-center justify-between px-4 py-3.5 text-left"
+      >
+        <span className="text-[14px] text-red-400">Delete account</span>
+        <ChevronRight size={16} className="text-red-400/40 shrink-0" />
+      </button>
+    );
+  }
+
+  return (
+    <div className="px-4 py-4 space-y-3">
+      <p className="text-[13px] text-white/60 leading-relaxed">
+        This permanently deletes your profile, store, products and posts. This can&apos;t be undone.
+      </p>
+
+      {hasPassword && (
+        <>
+          <label htmlFor="delete-password" className="sr-only">
+            Password
+          </label>
+          <input
+            id="delete-password"
+            type="password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Confirm your password"
+            className={inputClass}
+          />
+        </>
+      )}
+
+      <label htmlFor="delete-confirm" className="sr-only">
+        Type DELETE to confirm
+      </label>
+      <input
+        id="delete-confirm"
+        type="text"
+        autoComplete="off"
+        value={confirmText}
+        onChange={(e) => setConfirmText(e.target.value)}
+        placeholder='Type "DELETE" to confirm'
+        className={inputClass}
+      />
+
+      <div className="flex gap-2 pt-1">
+        <button
+          type="button"
+          onClick={() => {
+            setOpen(false);
+            setPassword("");
+            setConfirmText("");
+            setError(null);
+          }}
+          className="flex-1 rounded-full border border-white/20 py-3 text-[13px] font-medium uppercase tracking-widest text-white/70 hover:border-white/40 transition-colors"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          onClick={handleDelete}
+          disabled={!canSubmit || deleting}
+          className="flex-1 rounded-full bg-red-500 text-white py-3 text-[13px] font-semibold uppercase tracking-widest disabled:opacity-40 transition-opacity"
+        >
+          {deleting ? "Deleting…" : "Delete permanently"}
+        </button>
+      </div>
+      {error && <p className="text-[12px] text-red-400 text-center">{error}</p>}
     </div>
   );
 }

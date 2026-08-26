@@ -47,6 +47,7 @@ import { Route as StoreGrowthRouteImport } from './routes/store.growth'
 import { Route as StoreOrdersRouteImport } from './routes/store.orders'
 import { Route as StoreProductsRouteImport } from './routes/store.products'
 import { Route as StoreThemeRouteImport } from './routes/store.theme'
+import { Route as ApiAccountDeleteRouteImport } from './routes/api.account.delete'
 import { Route as ApiBumpaConnectRouteImport } from './routes/api.bumpa.connect'
 import { Route as ApiImportCsvRouteImport } from './routes/api.import.csv'
 import { Route as ApiImportStatusRouteImport } from './routes/api.import.status'
@@ -256,6 +257,11 @@ const StoreThemeRoute = StoreThemeRouteImport.update({
   path: '/theme',
   getParentRoute: () => StoreRoute,
 } as any)
+const ApiAccountDeleteRoute = ApiAccountDeleteRouteImport.update({
+  id: '/api/account/delete',
+  path: '/api/account/delete',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiBumpaConnectRoute = ApiBumpaConnectRouteImport.update({
   id: '/api/bumpa/connect',
   path: '/api/bumpa/connect',
@@ -386,6 +392,7 @@ export interface FileRoutesByFullPath {
   '/store/theme': typeof StoreThemeRoute
   '/create/': typeof CreateIndexRoute
   '/store/': typeof StoreIndexRoute
+  '/api/account/delete': typeof ApiAccountDeleteRoute
   '/api/bumpa/connect': typeof ApiBumpaConnectRoute
   '/api/import/csv': typeof ApiImportCsvRoute
   '/api/import/status': typeof ApiImportStatusRoute
@@ -441,6 +448,7 @@ export interface FileRoutesByTo {
   '/store/theme': typeof StoreThemeRoute
   '/create': typeof CreateIndexRoute
   '/store': typeof StoreIndexRoute
+  '/api/account/delete': typeof ApiAccountDeleteRoute
   '/api/bumpa/connect': typeof ApiBumpaConnectRoute
   '/api/import/csv': typeof ApiImportCsvRoute
   '/api/import/status': typeof ApiImportStatusRoute
@@ -500,6 +508,7 @@ export interface FileRoutesById {
   '/store/theme': typeof StoreThemeRoute
   '/create/': typeof CreateIndexRoute
   '/store/': typeof StoreIndexRoute
+  '/api/account/delete': typeof ApiAccountDeleteRoute
   '/api/bumpa/connect': typeof ApiBumpaConnectRoute
   '/api/import/csv': typeof ApiImportCsvRoute
   '/api/import/status': typeof ApiImportStatusRoute
@@ -560,6 +569,7 @@ export interface FileRouteTypes {
     | '/store/theme'
     | '/create/'
     | '/store/'
+    | '/api/account/delete'
     | '/api/bumpa/connect'
     | '/api/import/csv'
     | '/api/import/status'
@@ -615,6 +625,7 @@ export interface FileRouteTypes {
     | '/store/theme'
     | '/create'
     | '/store'
+    | '/api/account/delete'
     | '/api/bumpa/connect'
     | '/api/import/csv'
     | '/api/import/status'
@@ -673,6 +684,7 @@ export interface FileRouteTypes {
     | '/store/theme'
     | '/create/'
     | '/store/'
+    | '/api/account/delete'
     | '/api/bumpa/connect'
     | '/api/import/csv'
     | '/api/import/status'
@@ -721,6 +733,7 @@ export interface RootRouteChildren {
   ApiPostsRoute: typeof ApiPostsRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
   ProfileUsernameRoute: typeof ProfileUsernameRoute
+  ApiAccountDeleteRoute: typeof ApiAccountDeleteRoute
   ApiBumpaConnectRoute: typeof ApiBumpaConnectRoute
   ApiImportCsvRoute: typeof ApiImportCsvRoute
   ApiImportStatusRoute: typeof ApiImportStatusRoute
@@ -1000,6 +1013,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StoreThemeRouteImport
       parentRoute: typeof StoreRoute
     }
+    '/api/account/delete': {
+      id: '/api/account/delete'
+      path: '/api/account/delete'
+      fullPath: '/api/account/delete'
+      preLoaderRoute: typeof ApiAccountDeleteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/bumpa/connect': {
       id: '/api/bumpa/connect'
       path: '/api/bumpa/connect'
@@ -1224,6 +1244,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPostsRoute: ApiPostsRoute,
   AuthCallbackRoute: AuthCallbackRoute,
   ProfileUsernameRoute: ProfileUsernameRoute,
+  ApiAccountDeleteRoute: ApiAccountDeleteRoute,
   ApiBumpaConnectRoute: ApiBumpaConnectRoute,
   ApiImportCsvRoute: ApiImportCsvRoute,
   ApiImportStatusRoute: ApiImportStatusRoute,

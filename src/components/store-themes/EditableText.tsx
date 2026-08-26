@@ -17,12 +17,16 @@ import type { TextFieldId, ThemeEditingProps } from "./edit-types";
 // className/style, not from trying to keep the semantic tag), with a dashed
 // underline as the edit hint. Commits on blur, not on every keystroke.
 //
-// Focusing the field reveals a small font-picker row above it (Sans/Serif/
-// Display, all already-loaded families — see fonts.ts) so every text box can
-// carry its own font, never forced to match the rest of the storefront. A
-// small remove button sits at the field's own top-right corner whenever it
-// currently holds text, letting a seller delete just that line and fall back
-// to the editorial default rather than removing a whole block.
+// Focusing the field reveals a font control docked to the right edge of the
+// screen (fixed, not relative to the field, so it reads the same regardless
+// of where on the page the field sits). It starts collapsed to a single
+// pill showing the current font — tap it to expand into a scrollable list
+// of all 40 options; picking one collapses it back to the pill. Both the
+// pill and the list disappear entirely once the field blurs. Every text box
+// can carry its own font, never forced to match the rest of the storefront.
+// A small remove button sits at the field's own top-right corner whenever
+// it currently holds text, letting a seller delete just that line and fall
+// back to the editorial default rather than removing a whole block.
 export function EditableText({
   value,
   onChange,
@@ -50,6 +54,7 @@ export function EditableText({
 }) {
   const [local, setLocal] = useState(value);
   const [focused, setFocused] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   useEffect(() => {
     setLocal(value);
@@ -76,38 +81,66 @@ export function EditableText({
     if (local !== value) onChange(local);
   }
 
+  function handleFocus() {
+    setFocused(true);
+    setPickerOpen(false);
+  }
+
   function handleBlur() {
     commit();
     setFocused(false);
+    setPickerOpen(false);
   }
 
   function handleKeyDown(e: KeyboardEvent<HTMLInputElement>) {
     if (e.key === "Enter") e.currentTarget.blur();
   }
 
+  const activeFont = FONT_OPTIONS.find((f) => f.id === currentFont) ?? FONT_OPTIONS[0];
+
   return (
     <span className="relative block w-full">
       {focused && onFontChange && (
-        <div className="absolute -top-9 left-0 z-20 flex max-w-[240px] flex-wrap gap-0.5 rounded-xl bg-neutral-900 p-1 shadow-lg">
-          {FONT_OPTIONS.map((f) => {
-            const active = currentFont ? currentFont === f.id : f.id === "sans";
-            return (
-              <button
-                key={f.id}
-                type="button"
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => onFontChange(f.id)}
-                className="rounded-full px-1.5 py-0.5 text-[9px] font-medium whitespace-nowrap text-white"
-                style={{
-                  fontFamily: f.fontFamily,
-                  background: active ? "rgba(255,255,255,0.2)" : "transparent",
-                  opacity: active ? 1 : 0.55,
-                }}
-              >
-                {f.label}
-              </button>
-            );
-          })}
+        <div className="fixed right-3 top-1/2 z-30 -translate-y-1/2">
+          {pickerOpen ? (
+            <div
+              className="max-h-[65vh] w-fit overflow-y-auto rounded-2xl bg-neutral-900 p-1.5 shadow-xl"
+              style={{ minWidth: "10.5rem" }}
+            >
+              {FONT_OPTIONS.map((f) => {
+                const active = currentFont ? currentFont === f.id : f.id === "sans";
+                return (
+                  <button
+                    key={f.id}
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => {
+                      onFontChange(f.id);
+                      setPickerOpen(false);
+                    }}
+                    className="block w-full rounded-lg px-3 py-2 text-left text-[13px] font-medium whitespace-nowrap text-white"
+                    style={{
+                      fontFamily: f.fontFamily,
+                      background: active ? "rgba(255,255,255,0.2)" : "transparent",
+                      opacity: active ? 1 : 0.65,
+                    }}
+                  >
+                    {f.label}
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => setPickerOpen(true)}
+              className="rounded-full bg-neutral-900 px-3 py-2 text-[13px] font-medium whitespace-nowrap text-white shadow-xl"
+              style={{ fontFamily: activeFont.fontFamily }}
+            >
+              {activeFont.label}
+            </button>
+          )}
         </div>
       )}
       {onRemove && value && (
@@ -127,7 +160,7 @@ export function EditableText({
           value={local}
           placeholder={placeholder}
           onChange={(e) => setLocal(e.target.value)}
-          onFocus={() => setFocused(true)}
+          onFocus={handleFocus}
           onBlur={handleBlur}
           className={editClassName}
           style={editStyle}
@@ -138,7 +171,7 @@ export function EditableText({
           value={local}
           placeholder={placeholder}
           onChange={(e) => setLocal(e.target.value)}
-          onFocus={() => setFocused(true)}
+          onFocus={handleFocus}
           onBlur={handleBlur}
           onKeyDown={handleKeyDown}
           className={editClassName}

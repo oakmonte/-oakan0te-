@@ -66,6 +66,20 @@
   height: 100%;
 }
 
+/* `no-scrollbar` is used on a handful of horizontally-scrolling rows (profile
+   tabs, home) that rely on native touch scrolling for the gesture but don't
+   want the scrollbar track visible. Only Tailwind's *utility* classes are
+   generated from usage; a bare class like this needs its own rule or it's a
+   no-op and the native scrollbar (the thick line that tracks a horizontal
+   swipe) shows through. */
+.no-scrollbar {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* old Edge */
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari */
+}
+
 @keyframes ddFadeIn {
   from {
     opacity: 0;
