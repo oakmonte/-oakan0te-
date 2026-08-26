@@ -125,9 +125,6 @@ export const Route = createFileRoute("/api/import/csv")({
         // mapper stays the default for jobs created anywhere else.
         if (platform === "bumpa" && profile) metadata.engine = "universal";
 
-        // SCHEMA DRIFT: import_jobs.metadata arrives in migration
-        // 20260819120000_import_infrastructure.sql. Remove this cast once that
-        // is applied and my-supabase/types.ts has been regenerated.
         const jobPayload = {
           store_id: storeId,
           platform,
@@ -138,7 +135,7 @@ export const Route = createFileRoute("/api/import/csv")({
 
         const { data: job, error } = await supabase
           .from("import_jobs")
-          .insert(jobPayload as never)
+          .insert(jobPayload)
           .select("id, status, created_at")
           .single();
 

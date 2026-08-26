@@ -1,16 +1,18 @@
-import { Fragment, useMemo, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   ArrowLeft,
+  ArrowRight,
   BadgeCheck,
-  Camera,
   Check,
-  CirclePlay,
   Crown,
   Flame,
   Gem,
   Heart,
   Hexagon,
+  Layers,
   LayoutGrid,
+  Leaf,
+  Moon,
   Pencil,
   Check as CheckIcon,
   ShieldCheck,
@@ -43,6 +45,7 @@ import {
   type ThemeEditState,
 } from "./edit-types";
 import { LAYOUT_PRESETS, type ArrangeableBlockId } from "./layout-presets";
+import { useThemeCustomization } from "./useThemeCustomization";
 
 const HERO_SLIDESHOW_IMAGES = [
   placeholderPhoto1,
@@ -81,13 +84,7 @@ function MotionGridFull({ editing }: { editing?: ThemeEditingProps }) {
       <StatsRow
         clusterColors={["#b673ff", "#722ee8", "#3a1a63"]}
         followersText={text.statsFollowersText ?? "2.7K+ followers love this store"}
-        badgeLabel={text.statsBadgeLabel ?? "Top Rated Store"}
-        rating="4.9"
-        reviews={120}
-        accent="#c9a3ff"
-        chipBg="rgba(156,77,255,0.16)"
         cardBg="#09070d"
-        textColor="#fff"
         mutedColor="rgba(255,255,255,0.55)"
         editing={editing}
       />
@@ -194,13 +191,7 @@ function ImmersiveBannerFull({ editing }: { editing?: ThemeEditingProps }) {
       <StatsRow
         clusterColors={["#c2aa8c", "#8b735b", "#e5d9c4"]}
         followersText={text.statsFollowersText ?? "1.3K+ shop here"}
-        badgeLabel={text.statsBadgeLabel ?? "Considered Store"}
-        rating="4.8"
-        reviews={64}
-        accent="#8b735b"
-        chipBg="rgba(166,124,82,0.14)"
         cardBg="#f6f2e9"
-        textColor="#292219"
         mutedColor="rgba(41,34,25,0.55)"
         editing={editing}
       />
@@ -297,137 +288,6 @@ function ImmersiveBannerFull({ editing }: { editing?: ThemeEditingProps }) {
   );
 }
 
-function InteractiveStoryFull({ editing }: { editing?: ThemeEditingProps }) {
-  const hidden = editing?.hiddenBlocks ?? [];
-  const text = editing?.text ?? {};
-
-  const blocks: Partial<Record<ArrangeableBlockId, ReactNode>> = {
-    stats: !hidden.includes("stats") && (
-      <StatsRow
-        clusterColors={["#ff9bc8", "#ec4b9a", "#7144e8"]}
-        followersText={text.statsFollowersText ?? "3.6K+ following the feed"}
-        badgeLabel={text.statsBadgeLabel ?? "Rising Star"}
-        rating="4.7"
-        reviews={58}
-        accent="#ff9bc8"
-        chipBg="rgba(236,75,154,0.16)"
-        cardBg="#171018"
-        textColor="#fff"
-        mutedColor="rgba(255,255,255,0.55)"
-        editing={editing}
-      />
-    ),
-    collections: (
-      <CollectionsGrid
-        textColor="#fff"
-        mutedColor="rgba(255,255,255,0.5)"
-        tileBg="rgba(255,255,255,0.04)"
-        accent="#ec4b9a"
-        editing={editing}
-        fallbackItems={[
-          { icon: <Sparkles size={18} />, label: "New In", count: 20 },
-          { icon: <Camera size={18} />, label: "Studio", count: 14 },
-          { icon: <Heart size={18} />, label: "Fits", count: 18 },
-          { icon: <CirclePlay size={18} />, label: "Archive", count: 10 },
-        ]}
-        fallbackProducts={[
-          { icon: <Sparkles size={18} />, name: "Layered Set", price: 27000 },
-          { icon: <Camera size={18} />, name: "Sunday Bag", price: 19500 },
-          { icon: <Heart size={18} />, name: "Film Tee", price: 14000 },
-          { icon: <CirclePlay size={18} />, name: "Archive Cap", price: 9000 },
-        ]}
-      />
-    ),
-    promo: !hidden.includes("promo") && (
-      <PromoBanner
-        eyebrow={text.promoEyebrow ?? "New drop"}
-        title={text.promoTitle ?? "Colour after dark."}
-        cta="Shop the edit"
-        accent="#ff9bc8"
-        cardBg="rgba(236,75,154,0.08)"
-        textColor="#fff"
-        editing={editing}
-      />
-    ),
-    footer: !hidden.includes("footer") && (
-      <FooterTeaser
-        label={text.footerLabel ?? "Live now"}
-        sub={text.footerSub ?? "23 people scrolling the feed"}
-        clusterColors={["#ff9bc8", "#7144e8", "#2b9ddf"]}
-        cardBg="rgba(255,255,255,0.04)"
-        textColor="#fff"
-        mutedColor="rgba(255,255,255,0.5)"
-        accent="#ff9bc8"
-        editing={editing}
-      />
-    ),
-  };
-
-  return (
-    <div className="relative bg-[#171018] pb-2 text-white">
-      <div className="absolute inset-0 h-[340px] bg-[radial-gradient(circle_at_85%_12%,rgba(255,105,180,0.22),transparent_30%),radial-gradient(circle_at_8%_43%,rgba(136,88,255,0.28),transparent_36%)]" />
-      <div className="relative">
-        <PhoneHeader
-          mutedColor="rgba(255,255,255,0.65)"
-          brandInitial="S"
-          defaultLogoText="Sunday Social"
-          editing={editing}
-        />
-        <HeroSlideshow
-          images={editing?.slideshowImages ?? HERO_SLIDESHOW_IMAGES}
-          editing={editing}
-        />
-
-        <div className="px-4 pt-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-[#ff9bc8] via-[#ec4b9a] to-[#7144e8] p-[2px]">
-              <div className="flex h-full w-full items-center justify-center rounded-full bg-[#241520] text-[13px] font-bold">
-                S
-              </div>
-            </div>
-            <div>
-              <ThemeText
-                editing={editing}
-                field="hero1"
-                defaultValue="Sunday Social"
-                as="p"
-                className="text-sm font-semibold tracking-[-0.03em]"
-              />
-              <ThemeText
-                editing={editing}
-                field="hero2"
-                defaultValue="Your everyday moodboard"
-                as="p"
-                className="text-[9px] text-white/55"
-              />
-            </div>
-            <span className="ml-auto rounded-full bg-white/10 px-2.5 py-1 text-[8px] font-semibold">
-              Follow
-            </span>
-          </div>
-          <div className="mt-4 flex gap-2 overflow-hidden">
-            {[
-              { label: "New in", tint: "from-[#f060a9] to-[#743ed7]" },
-              { label: "Studio", tint: "from-[#ffb47a] to-[#e75383]" },
-              { label: "On film", tint: "from-[#6c62ef] to-[#2b9ddf]" },
-              { label: "Fits", tint: "from-[#bb64eb] to-[#ec4b9a]" },
-            ].map((s) => (
-              <div key={s.label} className="shrink-0 text-center">
-                <div className={`h-10 w-10 rounded-full bg-gradient-to-br ${s.tint} p-[2px]`}>
-                  <div className="h-full w-full rounded-full bg-[#1d1420]" />
-                </div>
-                <span className="mt-1 block text-[8px] text-white/75">{s.label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {orderedBlocks(editing, blocks)}
-      </div>
-    </div>
-  );
-}
-
 function GalleryEditFull({ editing }: { editing?: ThemeEditingProps }) {
   const hidden = editing?.hiddenBlocks ?? [];
   const text = editing?.text ?? {};
@@ -437,13 +297,7 @@ function GalleryEditFull({ editing }: { editing?: ThemeEditingProps }) {
       <StatsRow
         clusterColors={["#c9a227", "#6b5a1f", "#e9d98f"]}
         followersText={text.statsFollowersText ?? "890 in the atelier"}
-        badgeLabel={text.statsBadgeLabel ?? "Est. 2024"}
-        rating="4.9"
-        reviews={41}
-        accent="#c9a227"
-        chipBg="rgba(201,162,39,0.14)"
         cardBg="#0c0b0a"
-        textColor="#f3ede2"
         mutedColor="rgba(243,237,226,0.55)"
         editing={editing}
       />
@@ -550,13 +404,7 @@ function NeonTerminalFull({ editing }: { editing?: ThemeEditingProps }) {
       <StatsRow
         clusterColors={["#2dd4ff", "#0a5a6e", "#9be9f7"]}
         followersText={text.statsFollowersText ?? "4.1K+ nodes connected"}
-        badgeLabel={text.statsBadgeLabel ?? "Elite Store"}
-        rating="4.8"
-        reviews={98}
-        accent="#2dd4ff"
-        chipBg="rgba(45,212,255,0.14)"
         cardBg="#05070a"
-        textColor="#eafcff"
         mutedColor="rgba(234,252,255,0.55)"
         editing={editing}
       />
@@ -653,6 +501,428 @@ function NeonTerminalFull({ editing }: { editing?: ThemeEditingProps }) {
   );
 }
 
+function VerdantNoirFull({ editing }: { editing?: ThemeEditingProps }) {
+  const hidden = editing?.hiddenBlocks ?? [];
+  const text = editing?.text ?? {};
+
+  const blocks: Partial<Record<ArrangeableBlockId, ReactNode>> = {
+    stats: !hidden.includes("stats") && (
+      <StatsRow
+        clusterColors={["#3fae63", "#1d5c34", "#153c22"]}
+        followersText={text.statsFollowersText ?? "1.8K+ growing this store"}
+        cardBg="#0a0f0b"
+        mutedColor="rgba(232,242,235,0.55)"
+        editing={editing}
+      />
+    ),
+    collections: (
+      <CollectionsGrid
+        textColor="#eaf2ec"
+        mutedColor="rgba(234,242,236,0.5)"
+        tileBg="rgba(63,174,99,0.07)"
+        accent="#3fae63"
+        editing={editing}
+        fallbackItems={[
+          { icon: <Leaf size={18} />, label: "New Growth", count: 14 },
+          { icon: <ShieldCheck size={18} />, label: "Outerwear", count: 19 },
+          { icon: <Heart size={18} />, label: "Essentials", count: 26 },
+          { icon: <Sparkles size={18} />, label: "Accessories", count: 11 },
+        ]}
+        fallbackProducts={[
+          { icon: <Leaf size={18} />, name: "Moss Jacket", price: 58000 },
+          { icon: <ShieldCheck size={18} />, name: "Field Vest", price: 41000 },
+          { icon: <Heart size={18} />, name: "Fern Tee", price: 16500 },
+          { icon: <Sparkles size={18} />, name: "Grove Cap", price: 9500 },
+        ]}
+      />
+    ),
+    promo: !hidden.includes("promo") && (
+      <PromoBanner
+        eyebrow={text.promoEyebrow ?? "New season"}
+        title={text.promoTitle ?? "Rooted pieces, built to outlast a trend"}
+        cta="Explore"
+        accent="#3fae63"
+        cardBg="rgba(63,174,99,0.08)"
+        textColor="#eaf2ec"
+        editing={editing}
+      />
+    ),
+    footer: !hidden.includes("footer") && (
+      <FooterTeaser
+        label={text.footerLabel ?? "From the grove"}
+        sub={text.footerSub ?? "A short note on this season's materials"}
+        clusterColors={["#3fae63", "#1d5c34", "#153c22"]}
+        cardBg="rgba(63,174,99,0.07)"
+        textColor="#eaf2ec"
+        mutedColor="rgba(234,242,236,0.5)"
+        accent="#3fae63"
+        editing={editing}
+      />
+    ),
+  };
+
+  return (
+    <div className="relative bg-[#0a0f0b] pb-2 text-[#eaf2ec]">
+      <div className="absolute inset-x-0 top-0 h-64 bg-[radial-gradient(circle_at_20%_0%,rgba(63,174,99,0.16),transparent_45%)]" />
+      <div className="relative">
+        <PhoneHeader
+          mutedColor="rgba(234,242,236,0.6)"
+          brandInitial="F"
+          defaultLogoText="Fern & Co."
+          editing={editing}
+        />
+        <HeroSlideshow
+          images={editing?.slideshowImages ?? HERO_SLIDESHOW_IMAGES}
+          editing={editing}
+        />
+
+        <div className="px-4 pt-6">
+          <ThemeText
+            editing={editing}
+            field="hero1"
+            defaultValue="Grown, not manufactured"
+            as="p"
+            className="text-[9px] font-semibold uppercase tracking-[0.25em] text-[#7fcf9a]"
+          />
+          <ThemeText
+            editing={editing}
+            field="hero2"
+            defaultValue="Fern & Co."
+            as="h2"
+            className="mt-1 font-serif text-[38px] leading-[0.9] tracking-[-0.03em]"
+          />
+          <ThemeText
+            editing={editing}
+            field="hero3"
+            defaultValue="Quiet colour for slow living."
+            as="p"
+            className="mt-2 text-[11px] leading-4 text-[#c3d6ca]"
+          />
+        </div>
+
+        {orderedBlocks(editing, blocks)}
+      </div>
+    </div>
+  );
+}
+
+function MonochromeFull({ editing }: { editing?: ThemeEditingProps }) {
+  const hidden = editing?.hiddenBlocks ?? [];
+  const text = editing?.text ?? {};
+
+  const blocks: Partial<Record<ArrangeableBlockId, ReactNode>> = {
+    stats: !hidden.includes("stats") && (
+      <StatsRow
+        clusterColors={["#111111", "#4a4a4a", "#c9c9c9"]}
+        followersText={text.statsFollowersText ?? "2.1K+ shop the edit"}
+        cardBg="#fafafa"
+        mutedColor="rgba(17,17,17,0.55)"
+        editing={editing}
+      />
+    ),
+    collections: (
+      <CollectionsGrid
+        textColor="#111111"
+        mutedColor="rgba(17,17,17,0.5)"
+        tileBg="rgba(17,17,17,0.05)"
+        accent="#111111"
+        editing={editing}
+        fallbackItems={[
+          { icon: <Layers size={18} />, label: "Basics", count: 24 },
+          { icon: <Check size={18} />, label: "Tailored", count: 15 },
+          { icon: <Hexagon size={18} />, label: "Structure", count: 9 },
+          { icon: <ShieldCheck size={18} />, label: "Outerwear", count: 12 },
+        ]}
+        fallbackProducts={[
+          { icon: <Layers size={18} />, name: "Grid Tee", price: 15000 },
+          { icon: <Check size={18} />, name: "Tailored Trouser", price: 47000 },
+          { icon: <Hexagon size={18} />, name: "Structured Bag", price: 39000 },
+          { icon: <ShieldCheck size={18} />, name: "Panel Coat", price: 89000 },
+        ]}
+      />
+    ),
+    promo: !hidden.includes("promo") && (
+      <PromoBanner
+        eyebrow={text.promoEyebrow ?? "New arrivals"}
+        title={text.promoTitle ?? "Black and white. Nothing to hide behind."}
+        cta="Shop now"
+        accent="#111111"
+        cardBg="rgba(17,17,17,0.04)"
+        textColor="#111111"
+        editing={editing}
+      />
+    ),
+    footer: !hidden.includes("footer") && (
+      <FooterTeaser
+        label={text.footerLabel ?? "Worn by the community"}
+        sub={text.footerSub ?? "118 people wearing it today"}
+        clusterColors={["#111111", "#4a4a4a", "#c9c9c9"]}
+        cardBg="rgba(17,17,17,0.05)"
+        textColor="#111111"
+        mutedColor="rgba(17,17,17,0.5)"
+        accent="#111111"
+        editing={editing}
+      />
+    ),
+  };
+
+  return (
+    <div className="relative bg-[#fafafa] pb-2 text-[#111111]">
+      <div className="absolute inset-x-0 top-0 h-52 bg-[linear-gradient(135deg,#ffffff_0%,#e8e8e8_100%)]" />
+      <div className="relative">
+        <PhoneHeader
+          mutedColor="rgba(17,17,17,0.6)"
+          brandInitial="N"
+          defaultLogoText="NOIR/BLANC"
+          editing={editing}
+        />
+        <HeroSlideshow
+          images={editing?.slideshowImages ?? HERO_SLIDESHOW_IMAGES}
+          editing={editing}
+        />
+
+        <div className="px-4 pt-6 text-center">
+          <ThemeText
+            editing={editing}
+            field="hero1"
+            defaultValue="No colour to distract you"
+            as="p"
+            className="text-[9px] font-semibold uppercase tracking-[0.25em] text-[#5a5a5a]"
+          />
+          <ThemeText
+            editing={editing}
+            field="hero2"
+            defaultValue="NOIR/BLANC"
+            as="h2"
+            className="mt-1 font-display text-[34px] uppercase leading-[0.9] tracking-[-0.02em]"
+          />
+          <div className="mx-auto mt-2.5 h-px w-14 bg-[#111111]" />
+          <ThemeText
+            editing={editing}
+            field="hero3"
+            defaultValue="Two colours. Every shape."
+            as="p"
+            className="mx-auto mt-2.5 max-w-[190px] text-[11px] leading-4 text-[#5a5a5a]"
+          />
+        </div>
+
+        {orderedBlocks(editing, blocks)}
+      </div>
+    </div>
+  );
+}
+
+function GildedFull({ editing }: { editing?: ThemeEditingProps }) {
+  const hidden = editing?.hiddenBlocks ?? [];
+  const text = editing?.text ?? {};
+
+  const blocks: Partial<Record<ArrangeableBlockId, ReactNode>> = {
+    stats: !hidden.includes("stats") && (
+      <StatsRow
+        clusterColors={["#d4af37", "#8a6d1f", "#f3e2a6"]}
+        followersText={text.statsFollowersText ?? "3.2K+ in the house"}
+        cardBg="#0d0904"
+        mutedColor="rgba(243,236,220,0.55)"
+        editing={editing}
+      />
+    ),
+    collections: (
+      <CollectionsGrid
+        textColor="#f3ecdc"
+        mutedColor="rgba(243,236,220,0.5)"
+        tileBg="rgba(212,175,55,0.07)"
+        accent="#d4af37"
+        editing={editing}
+        fallbackItems={[
+          { icon: <Crown size={18} />, label: "Outerwear", count: 8 },
+          { icon: <Gem size={18} />, label: "Jewellery", count: 16 },
+          { icon: <BadgeCheck size={18} />, label: "Signature", count: 10 },
+          { icon: <Sparkles size={18} />, label: "Evening", count: 13 },
+        ]}
+        fallbackProducts={[
+          { icon: <Crown size={18} />, name: "Regal Coat", price: 220000 },
+          { icon: <Gem size={18} />, name: "Gold Cuff", price: 65000 },
+          { icon: <BadgeCheck size={18} />, name: "Signature Belt", price: 48000 },
+          { icon: <Sparkles size={18} />, name: "Evening Gown", price: 310000 },
+        ]}
+      />
+    ),
+    promo: !hidden.includes("promo") && (
+      <PromoBanner
+        eyebrow={text.promoEyebrow ?? "By invitation"}
+        title={text.promoTitle ?? "The gilded edit — available for a short while"}
+        cta="Enter"
+        accent="#d4af37"
+        cardBg="rgba(212,175,55,0.08)"
+        textColor="#f3ecdc"
+        editing={editing}
+      />
+    ),
+    footer: !hidden.includes("footer") && (
+      <FooterTeaser
+        label={text.footerLabel ?? "From the house"}
+        sub={text.footerSub ?? "A note from Aurum House"}
+        clusterColors={["#d4af37", "#8a6d1f", "#f3e2a6"]}
+        cardBg="rgba(212,175,55,0.07)"
+        textColor="#f3ecdc"
+        mutedColor="rgba(243,236,220,0.5)"
+        accent="#d4af37"
+        editing={editing}
+      />
+    ),
+  };
+
+  return (
+    <div className="relative bg-[#0d0904] pb-2 text-[#f3ecdc]">
+      <div className="absolute inset-x-0 top-0 h-64 bg-[radial-gradient(circle_at_80%_0%,rgba(212,175,55,0.2),transparent_45%)]" />
+      <div className="relative">
+        <PhoneHeader
+          mutedColor="rgba(243,236,220,0.55)"
+          brandInitial="A"
+          defaultLogoText="Aurum House"
+          editing={editing}
+        />
+        <HeroSlideshow
+          images={editing?.slideshowImages ?? HERO_SLIDESHOW_IMAGES}
+          editing={editing}
+        />
+
+        <div className="px-4 pt-6 text-center">
+          <ThemeText
+            editing={editing}
+            field="hero1"
+            defaultValue="Opulence, quietly worn"
+            as="p"
+            className="text-[9px] font-semibold uppercase tracking-[0.3em] text-[#d4af37]"
+          />
+          <ThemeText
+            editing={editing}
+            field="hero2"
+            defaultValue="Aurum House"
+            as="h2"
+            className="mt-2 font-serif text-[36px] leading-none tracking-[-0.02em]"
+          />
+          <div className="mx-auto mt-3 h-px w-12 bg-[#d4af37]/60" />
+          <ThemeText
+            editing={editing}
+            field="hero3"
+            defaultValue="Gold is a finish, not a shortcut."
+            as="p"
+            className="mx-auto mt-3 max-w-[190px] text-[10.5px] leading-4 text-[#d8cbaa]"
+          />
+        </div>
+
+        {orderedBlocks(editing, blocks)}
+      </div>
+    </div>
+  );
+}
+
+function ObsidianFull({ editing }: { editing?: ThemeEditingProps }) {
+  const hidden = editing?.hiddenBlocks ?? [];
+  const text = editing?.text ?? {};
+
+  const blocks: Partial<Record<ArrangeableBlockId, ReactNode>> = {
+    stats: !hidden.includes("stats") && (
+      <StatsRow
+        clusterColors={["#3a3a3a", "#1a1a1a", "#5c5c5c"]}
+        followersText={text.statsFollowersText ?? "980+ watching this space"}
+        cardBg="#030303"
+        mutedColor="rgba(230,230,230,0.5)"
+        editing={editing}
+      />
+    ),
+    collections: (
+      <CollectionsGrid
+        textColor="#e6e6e6"
+        mutedColor="rgba(230,230,230,0.45)"
+        tileBg="rgba(255,255,255,0.03)"
+        accent="#6b6b6b"
+        editing={editing}
+        fallbackItems={[
+          { icon: <Moon size={18} />, label: "Night", count: 11 },
+          { icon: <Hexagon size={18} />, label: "Form", count: 9 },
+          { icon: <ShieldCheck size={18} />, label: "Armour", count: 13 },
+          { icon: <Flame size={18} />, label: "Limited", count: 6 },
+        ]}
+        fallbackProducts={[
+          { icon: <Moon size={18} />, name: "Void Jacket", price: 76000 },
+          { icon: <Hexagon size={18} />, name: "Form Tee", price: 19000 },
+          { icon: <ShieldCheck size={18} />, name: "Armour Vest", price: 58000 },
+          { icon: <Flame size={18} />, name: "Limited Boot", price: 92000 },
+        ]}
+      />
+    ),
+    promo: !hidden.includes("promo") && (
+      <PromoBanner
+        eyebrow={text.promoEyebrow ?? "Almost nothing left"}
+        title={text.promoTitle ?? "The whole drop, one shade of black"}
+        cta="See it"
+        accent="#6b6b6b"
+        cardBg="rgba(255,255,255,0.04)"
+        textColor="#e6e6e6"
+        editing={editing}
+      />
+    ),
+    footer: !hidden.includes("footer") && (
+      <FooterTeaser
+        label={text.footerLabel ?? "Still here"}
+        sub={text.footerSub ?? "9 people looking right now"}
+        clusterColors={["#3a3a3a", "#1a1a1a", "#5c5c5c"]}
+        cardBg="rgba(255,255,255,0.03)"
+        textColor="#e6e6e6"
+        mutedColor="rgba(230,230,230,0.45)"
+        accent="#6b6b6b"
+        editing={editing}
+      />
+    ),
+  };
+
+  return (
+    <div className="relative bg-[#030303] pb-2 text-[#e6e6e6]">
+      <div className="absolute inset-x-0 top-0 h-56 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.05),transparent_55%)]" />
+      <div className="relative">
+        <PhoneHeader
+          mutedColor="rgba(230,230,230,0.55)"
+          brandInitial="V"
+          defaultLogoText="VOID"
+          editing={editing}
+        />
+        <HeroSlideshow
+          images={editing?.slideshowImages ?? HERO_SLIDESHOW_IMAGES}
+          editing={editing}
+        />
+
+        <div className="px-4 pt-6">
+          <ThemeText
+            editing={editing}
+            field="hero1"
+            defaultValue="Nothing extra"
+            as="p"
+            className="text-[9px] font-semibold uppercase tracking-[0.3em] text-[#7a7a7a]"
+          />
+          <ThemeText
+            editing={editing}
+            field="hero2"
+            defaultValue="VOID"
+            as="h2"
+            className="mt-1 font-display text-[40px] uppercase leading-[0.85] tracking-[-0.03em]"
+          />
+          <ThemeText
+            editing={editing}
+            field="hero3"
+            defaultValue="One colour. Every silhouette."
+            as="p"
+            className="mt-2 text-[11px] uppercase tracking-[0.08em] text-[#8a8a8a]"
+          />
+        </div>
+
+        {orderedBlocks(editing, blocks)}
+      </div>
+    </div>
+  );
+}
+
 export function FullPreview({
   themeId,
   editing,
@@ -665,12 +935,18 @@ export function FullPreview({
       return <MotionGridFull editing={editing} />;
     case "banner":
       return <ImmersiveBannerFull editing={editing} />;
-    case "story":
-      return <InteractiveStoryFull editing={editing} />;
     case "atelier":
       return <GalleryEditFull editing={editing} />;
     case "circuit":
       return <NeonTerminalFull editing={editing} />;
+    case "verdant":
+      return <VerdantNoirFull editing={editing} />;
+    case "monochrome":
+      return <MonochromeFull editing={editing} />;
+    case "gilded":
+      return <GildedFull editing={editing} />;
+    case "obsidian":
+      return <ObsidianFull editing={editing} />;
   }
 }
 
@@ -698,6 +974,7 @@ export function ThemePreviewSheet({
   const [editState, setEditState] = useState<{
     current: ThemeEditState;
     history: ThemeEditState[];
+    future: ThemeEditState[];
   }>(() => ({
     current: {
       ...createInitialEditState(),
@@ -708,27 +985,64 @@ export function ThemePreviewSheet({
       slideshowImages: HERO_SLIDESHOW_IMAGES,
     },
     history: [],
+    future: [],
   }));
   const state = editState.current;
   const history = editState.history;
+  const future = editState.future;
   const [hint, setHint] = useState<string | null>(null);
 
+  const { saved, save: saveCustomization } = useThemeCustomization(theme.id);
+  // Applied once, the instant a saved row shows up — but skipped if the
+  // seller has already started editing by the time it arrives. Without
+  // hasEditedRef, a fetch that resolves after the first keystroke would
+  // silently overwrite that in-progress edit with the (older) saved value.
+  const appliedSavedRef = useRef(false);
+  const hasEditedRef = useRef(false);
+  useEffect(() => {
+    if (!saved || appliedSavedRef.current || hasEditedRef.current) return;
+    appliedSavedRef.current = true;
+    setEditState((es) => ({ current: { ...es.current, ...saved }, history: [], future: [] }));
+  }, [saved]);
+
   function mutate(updater: (s: ThemeEditState) => ThemeEditState) {
-    setEditState((es) => ({ current: updater(es.current), history: [...es.history, es.current] }));
+    hasEditedRef.current = true;
+    // A fresh edit invalidates whatever was undone before it — otherwise
+    // redo could resurrect a branch that the seller has since diverged from.
+    setEditState((es) => ({
+      current: updater(es.current),
+      history: [...es.history, es.current],
+      future: [],
+    }));
   }
 
   function enterEdit() {
-    setEditState((es) => ({ ...es, history: [] }));
+    setEditState((es) => ({ ...es, history: [], future: [] }));
     setMode("edit");
   }
   function handleSave() {
-    setEditState((es) => ({ ...es, history: [] }));
+    setEditState((es) => ({ ...es, history: [], future: [] }));
     setMode("view");
+    void saveCustomization(state);
   }
   function handleUndo() {
     setEditState((es) => {
       if (es.history.length === 0) return es;
-      return { current: es.history[es.history.length - 1], history: es.history.slice(0, -1) };
+      return {
+        current: es.history[es.history.length - 1],
+        history: es.history.slice(0, -1),
+        future: [es.current, ...es.future],
+      };
+    });
+  }
+  function handleRedo() {
+    setEditState((es) => {
+      if (es.future.length === 0) return es;
+      return {
+        current: es.future[0],
+        history: [...es.history, es.current],
+        future: es.future.slice(1),
+      };
     });
   }
 
@@ -863,6 +1177,15 @@ export function ThemePreviewSheet({
                   className="flex h-8 w-8 items-center justify-center rounded-full text-white/60 hover:bg-white/10 hover:text-white disabled:pointer-events-none disabled:opacity-30"
                 >
                   <ArrowLeft size={16} strokeWidth={1.8} />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleRedo}
+                  disabled={future.length === 0}
+                  aria-label="Redo last undone edit"
+                  className="flex h-8 w-8 items-center justify-center rounded-full text-white/60 hover:bg-white/10 hover:text-white disabled:pointer-events-none disabled:opacity-30"
+                >
+                  <ArrowRight size={16} strokeWidth={1.8} />
                 </button>
               </div>
               <Popover>

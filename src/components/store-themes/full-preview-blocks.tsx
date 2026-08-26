@@ -15,7 +15,6 @@ import {
   Search,
   Share2,
   ShoppingBag,
-  Star,
   Type as TypeIcon,
 } from "lucide-react";
 import productPlaceholder from "@/assets/Store theme placeholder images/Products and collection image placeholder.jpg";
@@ -43,17 +42,17 @@ function LogoModeSwitch({
       type="button"
       onMouseDown={(e) => e.preventDefault()}
       onClick={() => onChange(id)}
-      className="flex h-5 w-5 items-center justify-center rounded-full"
+      className="flex h-7 w-7 items-center justify-center rounded-full"
       style={{
         background: mode === id ? "rgba(255,255,255,0.25)" : "transparent",
         color: mode === id ? "#fff" : "rgba(255,255,255,0.5)",
       }}
     >
-      <Icon size={10} />
+      <Icon size={14} />
     </button>
   );
   return (
-    <div className="mt-1 flex items-center gap-0.5 rounded-full bg-black/40 p-0.5 backdrop-blur-md">
+    <div className="mt-3 flex items-center gap-1 rounded-full bg-black/40 p-1 backdrop-blur-md">
       {opt("image", ImageIcon)}
       {opt("text", TypeIcon)}
     </div>
@@ -311,77 +310,46 @@ export function HeroSlideshow({
 export function StatsRow({
   clusterColors,
   followersText,
-  badgeLabel,
-  rating,
-  reviews,
-  accent,
-  chipBg,
   cardBg,
-  textColor,
   mutedColor,
   editing,
 }: {
   clusterColors: [string, string, string];
   followersText: string;
-  badgeLabel: string;
-  rating: string;
-  reviews: number;
-  accent: string;
-  chipBg: string;
   cardBg: string;
-  textColor: string;
   mutedColor: string;
   editing?: ThemeEditingProps;
 }) {
   return (
-    <div className="relative mt-4 flex flex-wrap items-center justify-between gap-2 px-4">
+    <div className="relative mt-4 flex items-center gap-2 px-4">
       {editing?.isEditing && (
         <button
           type="button"
           aria-label="Remove this block"
           onClick={() => editing.onRemoveBlock("stats")}
           className="absolute right-2 top-0 rounded-full p-1 opacity-60 hover:opacity-100"
-          style={{ color: textColor }}
+          style={{ color: mutedColor }}
         >
           <Minus size={12} />
         </button>
       )}
-      <div className="flex items-center gap-2">
-        <div className="flex -space-x-2">
-          {clusterColors.map((c, i) => (
-            <div
-              key={i}
-              className="h-6 w-6 rounded-full border-2"
-              style={{ background: c, borderColor: cardBg }}
-            />
-          ))}
-        </div>
-        <ThemeText
-          editing={editing}
-          field="statsFollowersText"
-          defaultValue={followersText}
-          as="p"
-          className="max-w-[120px] text-[9px] leading-tight"
-          style={{ color: mutedColor }}
-        />
+      <div className="flex -space-x-2">
+        {clusterColors.map((c, i) => (
+          <div
+            key={i}
+            className="h-6 w-6 rounded-full border-2"
+            style={{ background: c, borderColor: cardBg }}
+          />
+        ))}
       </div>
-      <div
-        className="flex items-center gap-1 rounded-full px-2.5 py-1.5"
-        style={{ background: chipBg }}
-      >
-        <Star size={10} fill={accent} style={{ color: accent }} />
-        <ThemeText
-          editing={editing}
-          field="statsBadgeLabel"
-          defaultValue={badgeLabel}
-          as="span"
-          className="text-[8.5px] font-semibold whitespace-nowrap"
-          style={{ color: textColor }}
-        />
-        <span className="text-[8.5px] font-semibold whitespace-nowrap" style={{ color: textColor }}>
-          · {rating} ({reviews})
-        </span>
-      </div>
+      <ThemeText
+        editing={editing}
+        field="statsFollowersText"
+        defaultValue={followersText}
+        as="p"
+        className="max-w-[200px] text-[9px] leading-tight"
+        style={{ color: mutedColor }}
+      />
     </div>
   );
 }
@@ -485,7 +453,7 @@ export function CollectionsGrid({
                 style={{ background: tileBg }}
               >
                 <div
-                  className="mb-2 flex h-32 items-center justify-center overflow-hidden rounded-lg"
+                  className="mb-2 aspect-[4/5] w-full overflow-hidden rounded-lg"
                   style={{ background: `${accent}22` }}
                 >
                   <img
@@ -514,7 +482,7 @@ export function CollectionsGrid({
                   style={{ background: tileBg }}
                 >
                   <div
-                    className="mb-2 flex h-32 items-center justify-center overflow-hidden rounded-lg"
+                    className="mb-2 aspect-[4/5] w-full overflow-hidden rounded-lg"
                     style={{ background: `${accent}22` }}
                   >
                     <img src={productPlaceholder} alt="" className="h-full w-full object-cover" />
@@ -536,7 +504,7 @@ export function CollectionsGrid({
                   style={{ background: tileBg }}
                 >
                   <div
-                    className="mb-2 flex h-32 items-center justify-center overflow-hidden rounded-lg"
+                    className="mb-2 aspect-[4/5] w-full overflow-hidden rounded-lg"
                     style={{ background: `${accent}22` }}
                   >
                     <img src={productPlaceholder} alt="" className="h-full w-full object-cover" />

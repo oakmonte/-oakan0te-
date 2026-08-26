@@ -9,167 +9,62 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as WhereDidYouHearAboutUsRouteImport } from './routes/where-did-you-hear-about-us'
-import { Route as WelcomeRouteImport } from './routes/welcome'
-import { Route as TermsRouteImport } from './routes/terms'
-import { Route as StudioRouteImport } from './routes/studio'
-import { Route as StoreRouteImport } from './routes/store'
-import { Route as SignInRouteImport } from './routes/sign-in'
-import { Route as SettingsRouteImport } from './routes/settings'
-import { Route as SetUpStoreRouteImport } from './routes/set-up-store'
-import { Route as SellerTypeRouteImport } from './routes/seller-type'
-import { Route as PrivacyRouteImport } from './routes/privacy'
-import { Route as PreviousIndexRouteImport } from './routes/previous-index'
-import { Route as OfflineVideosRouteImport } from './routes/offline-videos'
-import { Route as NoAccountRouteImport } from './routes/no-account'
-import { Route as NameYourStoreRouteImport } from './routes/name-your-store'
-import { Route as HomeRouteImport } from './routes/home'
-import { Route as FindYourFitRouteImport } from './routes/find-your-fit'
-import { Route as EditProfileRouteImport } from './routes/edit-profile'
-import { Route as CreatePasswordRouteImport } from './routes/create-password'
-import { Route as CreateRouteImport } from './routes/create'
-import { Route as ChooseUsernameRouteImport } from './routes/choose-username'
-import { Route as BecomeACuratorRouteImport } from './routes/become-a-curator'
-import { Route as BecomeACreatorRouteImport } from './routes/become-a-creator'
-import { Route as ActivityRouteImport } from './routes/activity'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as StoreIndexRouteImport } from './routes/store.index'
-import { Route as CreateIndexRouteImport } from './routes/create.index'
-import { Route as StoreThemeRouteImport } from './routes/store.theme'
-import { Route as StoreProductsRouteImport } from './routes/store.products'
-import { Route as StoreOrdersRouteImport } from './routes/store.orders'
-import { Route as StoreGrowthRouteImport } from './routes/store.growth'
-import { Route as StoreFinanceRouteImport } from './routes/store.finance'
-import { Route as StoreDiscountsRouteImport } from './routes/store.discounts'
-import { Route as StoreCustomersRouteImport } from './routes/store.customers'
-import { Route as StoreContentRouteImport } from './routes/store.content'
-import { Route as ProfileUsernameRouteImport } from './routes/profile.$username'
-import { Route as CreateAfterShotRouteImport } from './routes/create.after-shot'
+import { Route as ActivityRouteImport } from './routes/activity'
+import { Route as BecomeACreatorRouteImport } from './routes/become-a-creator'
+import { Route as BecomeACuratorRouteImport } from './routes/become-a-curator'
+import { Route as ChooseUsernameRouteImport } from './routes/choose-username'
+import { Route as CreateRouteImport } from './routes/create'
+import { Route as CreatePasswordRouteImport } from './routes/create-password'
+import { Route as EditProfileRouteImport } from './routes/edit-profile'
+import { Route as FindYourFitRouteImport } from './routes/find-your-fit'
+import { Route as HomeRouteImport } from './routes/home'
+import { Route as NameYourStoreRouteImport } from './routes/name-your-store'
+import { Route as NoAccountRouteImport } from './routes/no-account'
+import { Route as OfflineVideosRouteImport } from './routes/offline-videos'
+import { Route as PreviousIndexRouteImport } from './routes/previous-index'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as SellerTypeRouteImport } from './routes/seller-type'
+import { Route as SetUpStoreRouteImport } from './routes/set-up-store'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as SignInRouteImport } from './routes/sign-in'
+import { Route as StoreRouteImport } from './routes/store'
+import { Route as StudioRouteImport } from './routes/studio'
+import { Route as TermsRouteImport } from './routes/terms'
+import { Route as WelcomeRouteImport } from './routes/welcome'
+import { Route as WhereDidYouHearAboutUsRouteImport } from './routes/where-did-you-hear-about-us'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
-import { Route as CreateAfterShotIndexRouteImport } from './routes/create.after-shot.index'
-import { Route as StoreProductsNewcomerRouteImport } from './routes/store.products_.newcomer'
-import { Route as StoreProductsNewRouteImport } from './routes/store.products_.new'
-import { Route as StoreCollectionsNewRouteImport } from './routes/store.collections_.new'
-import { Route as CreateAfterShotStudioRouteImport } from './routes/create.after-shot.studio'
-import { Route as CreateAfterShotFiltersRouteImport } from './routes/create.after-shot.filters'
-import { Route as ApiStorePayoutRouteImport } from './routes/api.store.payout'
-import { Route as ApiShopifyInstallRouteImport } from './routes/api.shopify.install'
-import { Route as ApiShopifyCallbackRouteImport } from './routes/api.shopify.callback'
-import { Route as ApiShipbubblePingRouteImport } from './routes/api.shipbubble.ping'
-import { Route as ApiInstagramConnectRouteImport } from './routes/api.instagram.connect'
-import { Route as ApiInstagramCallbackRouteImport } from './routes/api.instagram.callback'
-import { Route as ApiImportStatusRouteImport } from './routes/api.import.status'
-import { Route as ApiImportCsvRouteImport } from './routes/api.import.csv'
+import { Route as CreateIndexRouteImport } from './routes/create.index'
+import { Route as CreateAfterShotRouteImport } from './routes/create.after-shot'
+import { Route as ProfileUsernameRouteImport } from './routes/profile.$username'
+import { Route as StoreIndexRouteImport } from './routes/store.index'
+import { Route as StoreContentRouteImport } from './routes/store.content'
+import { Route as StoreCustomersRouteImport } from './routes/store.customers'
+import { Route as StoreDiscountsRouteImport } from './routes/store.discounts'
+import { Route as StoreFinanceRouteImport } from './routes/store.finance'
+import { Route as StoreGrowthRouteImport } from './routes/store.growth'
+import { Route as StoreOrdersRouteImport } from './routes/store.orders'
+import { Route as StoreProductsRouteImport } from './routes/store.products'
+import { Route as StoreThemeRouteImport } from './routes/store.theme'
 import { Route as ApiBumpaConnectRouteImport } from './routes/api.bumpa.connect'
+import { Route as ApiImportCsvRouteImport } from './routes/api.import.csv'
+import { Route as ApiImportStatusRouteImport } from './routes/api.import.status'
+import { Route as ApiInstagramCallbackRouteImport } from './routes/api.instagram.callback'
+import { Route as ApiInstagramConnectRouteImport } from './routes/api.instagram.connect'
+import { Route as ApiShipbubblePingRouteImport } from './routes/api.shipbubble.ping'
+import { Route as ApiShopifyCallbackRouteImport } from './routes/api.shopify.callback'
+import { Route as ApiShopifyInstallRouteImport } from './routes/api.shopify.install'
+import { Route as ApiStorePayoutRouteImport } from './routes/api.store.payout'
+import { Route as CreateAfterShotIndexRouteImport } from './routes/create.after-shot.index'
+import { Route as CreateAfterShotFiltersRouteImport } from './routes/create.after-shot.filters'
+import { Route as CreateAfterShotStudioRouteImport } from './routes/create.after-shot.studio'
+import { Route as StoreCollectionsNewRouteImport } from './routes/store.collections_.new'
+import { Route as StoreProductsNewRouteImport } from './routes/store.products_.new'
+import { Route as StoreProductsNewcomerRouteImport } from './routes/store.products_.newcomer'
 
-const WhereDidYouHearAboutUsRoute = WhereDidYouHearAboutUsRouteImport.update({
-  id: '/where-did-you-hear-about-us',
-  path: '/where-did-you-hear-about-us',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const WelcomeRoute = WelcomeRouteImport.update({
-  id: '/welcome',
-  path: '/welcome',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TermsRoute = TermsRouteImport.update({
-  id: '/terms',
-  path: '/terms',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const StudioRoute = StudioRouteImport.update({
-  id: '/studio',
-  path: '/studio',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const StoreRoute = StoreRouteImport.update({
-  id: '/store',
-  path: '/store',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SignInRoute = SignInRouteImport.update({
-  id: '/sign-in',
-  path: '/sign-in',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SettingsRoute = SettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SetUpStoreRoute = SetUpStoreRouteImport.update({
-  id: '/set-up-store',
-  path: '/set-up-store',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SellerTypeRoute = SellerTypeRouteImport.update({
-  id: '/seller-type',
-  path: '/seller-type',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PrivacyRoute = PrivacyRouteImport.update({
-  id: '/privacy',
-  path: '/privacy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PreviousIndexRoute = PreviousIndexRouteImport.update({
-  id: '/previous-index',
-  path: '/previous-index',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OfflineVideosRoute = OfflineVideosRouteImport.update({
-  id: '/offline-videos',
-  path: '/offline-videos',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const NoAccountRoute = NoAccountRouteImport.update({
-  id: '/no-account',
-  path: '/no-account',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const NameYourStoreRoute = NameYourStoreRouteImport.update({
-  id: '/name-your-store',
-  path: '/name-your-store',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const HomeRoute = HomeRouteImport.update({
-  id: '/home',
-  path: '/home',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FindYourFitRoute = FindYourFitRouteImport.update({
-  id: '/find-your-fit',
-  path: '/find-your-fit',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const EditProfileRoute = EditProfileRouteImport.update({
-  id: '/edit-profile',
-  path: '/edit-profile',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CreatePasswordRoute = CreatePasswordRouteImport.update({
-  id: '/create-password',
-  path: '/create-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CreateRoute = CreateRouteImport.update({
-  id: '/create',
-  path: '/create',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ChooseUsernameRoute = ChooseUsernameRouteImport.update({
-  id: '/choose-username',
-  path: '/choose-username',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BecomeACuratorRoute = BecomeACuratorRouteImport.update({
-  id: '/become-a-curator',
-  path: '/become-a-curator',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BecomeACreatorRoute = BecomeACreatorRouteImport.update({
-  id: '/become-a-creator',
-  path: '/become-a-creator',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ActivityRoute = ActivityRouteImport.update({
@@ -177,9 +72,134 @@ const ActivityRoute = ActivityRouteImport.update({
   path: '/activity',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
+const BecomeACreatorRoute = BecomeACreatorRouteImport.update({
+  id: '/become-a-creator',
+  path: '/become-a-creator',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BecomeACuratorRoute = BecomeACuratorRouteImport.update({
+  id: '/become-a-curator',
+  path: '/become-a-curator',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChooseUsernameRoute = ChooseUsernameRouteImport.update({
+  id: '/choose-username',
+  path: '/choose-username',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CreateRoute = CreateRouteImport.update({
+  id: '/create',
+  path: '/create',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CreatePasswordRoute = CreatePasswordRouteImport.update({
+  id: '/create-password',
+  path: '/create-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EditProfileRoute = EditProfileRouteImport.update({
+  id: '/edit-profile',
+  path: '/edit-profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FindYourFitRoute = FindYourFitRouteImport.update({
+  id: '/find-your-fit',
+  path: '/find-your-fit',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HomeRoute = HomeRouteImport.update({
+  id: '/home',
+  path: '/home',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NameYourStoreRoute = NameYourStoreRouteImport.update({
+  id: '/name-your-store',
+  path: '/name-your-store',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NoAccountRoute = NoAccountRouteImport.update({
+  id: '/no-account',
+  path: '/no-account',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OfflineVideosRoute = OfflineVideosRouteImport.update({
+  id: '/offline-videos',
+  path: '/offline-videos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PreviousIndexRoute = PreviousIndexRouteImport.update({
+  id: '/previous-index',
+  path: '/previous-index',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SellerTypeRoute = SellerTypeRouteImport.update({
+  id: '/seller-type',
+  path: '/seller-type',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SetUpStoreRoute = SetUpStoreRouteImport.update({
+  id: '/set-up-store',
+  path: '/set-up-store',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignInRoute = SignInRouteImport.update({
+  id: '/sign-in',
+  path: '/sign-in',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StoreRoute = StoreRouteImport.update({
+  id: '/store',
+  path: '/store',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StudioRoute = StudioRouteImport.update({
+  id: '/studio',
+  path: '/studio',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WelcomeRoute = WelcomeRouteImport.update({
+  id: '/welcome',
+  path: '/welcome',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WhereDidYouHearAboutUsRoute = WhereDidYouHearAboutUsRouteImport.update({
+  id: '/where-did-you-hear-about-us',
+  path: '/where-did-you-hear-about-us',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthCallbackRoute = AuthCallbackRouteImport.update({
+  id: '/auth/callback',
+  path: '/auth/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CreateIndexRoute = CreateIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => CreateRoute,
+} as any)
+const CreateAfterShotRoute = CreateAfterShotRouteImport.update({
+  id: '/after-shot',
+  path: '/after-shot',
+  getParentRoute: () => CreateRoute,
+} as any)
+const ProfileUsernameRoute = ProfileUsernameRouteImport.update({
+  id: '/profile/$username',
+  path: '/profile/$username',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StoreIndexRoute = StoreIndexRouteImport.update({
@@ -187,39 +207,9 @@ const StoreIndexRoute = StoreIndexRouteImport.update({
   path: '/',
   getParentRoute: () => StoreRoute,
 } as any)
-const CreateIndexRoute = CreateIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => CreateRoute,
-} as any)
-const StoreThemeRoute = StoreThemeRouteImport.update({
-  id: '/theme',
-  path: '/theme',
-  getParentRoute: () => StoreRoute,
-} as any)
-const StoreProductsRoute = StoreProductsRouteImport.update({
-  id: '/products',
-  path: '/products',
-  getParentRoute: () => StoreRoute,
-} as any)
-const StoreOrdersRoute = StoreOrdersRouteImport.update({
-  id: '/orders',
-  path: '/orders',
-  getParentRoute: () => StoreRoute,
-} as any)
-const StoreGrowthRoute = StoreGrowthRouteImport.update({
-  id: '/growth',
-  path: '/growth',
-  getParentRoute: () => StoreRoute,
-} as any)
-const StoreFinanceRoute = StoreFinanceRouteImport.update({
-  id: '/finance',
-  path: '/finance',
-  getParentRoute: () => StoreRoute,
-} as any)
-const StoreDiscountsRoute = StoreDiscountsRouteImport.update({
-  id: '/discounts',
-  path: '/discounts',
+const StoreContentRoute = StoreContentRouteImport.update({
+  id: '/content',
+  path: '/content',
   getParentRoute: () => StoreRoute,
 } as any)
 const StoreCustomersRoute = StoreCustomersRouteImport.update({
@@ -227,89 +217,39 @@ const StoreCustomersRoute = StoreCustomersRouteImport.update({
   path: '/customers',
   getParentRoute: () => StoreRoute,
 } as any)
-const StoreContentRoute = StoreContentRouteImport.update({
-  id: '/content',
-  path: '/content',
+const StoreDiscountsRoute = StoreDiscountsRouteImport.update({
+  id: '/discounts',
+  path: '/discounts',
   getParentRoute: () => StoreRoute,
 } as any)
-const ProfileUsernameRoute = ProfileUsernameRouteImport.update({
-  id: '/profile/$username',
-  path: '/profile/$username',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CreateAfterShotRoute = CreateAfterShotRouteImport.update({
-  id: '/after-shot',
-  path: '/after-shot',
-  getParentRoute: () => CreateRoute,
-} as any)
-const AuthCallbackRoute = AuthCallbackRouteImport.update({
-  id: '/auth/callback',
-  path: '/auth/callback',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CreateAfterShotIndexRoute = CreateAfterShotIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => CreateAfterShotRoute,
-} as any)
-const StoreProductsNewcomerRoute = StoreProductsNewcomerRouteImport.update({
-  id: '/products_/newcomer',
-  path: '/products/newcomer',
+const StoreFinanceRoute = StoreFinanceRouteImport.update({
+  id: '/finance',
+  path: '/finance',
   getParentRoute: () => StoreRoute,
 } as any)
-const StoreProductsNewRoute = StoreProductsNewRouteImport.update({
-  id: '/products_/new',
-  path: '/products/new',
+const StoreGrowthRoute = StoreGrowthRouteImport.update({
+  id: '/growth',
+  path: '/growth',
   getParentRoute: () => StoreRoute,
 } as any)
-const StoreCollectionsNewRoute = StoreCollectionsNewRouteImport.update({
-  id: '/collections_/new',
-  path: '/collections/new',
+const StoreOrdersRoute = StoreOrdersRouteImport.update({
+  id: '/orders',
+  path: '/orders',
   getParentRoute: () => StoreRoute,
 } as any)
-const CreateAfterShotStudioRoute = CreateAfterShotStudioRouteImport.update({
-  id: '/studio',
-  path: '/studio',
-  getParentRoute: () => CreateAfterShotRoute,
+const StoreProductsRoute = StoreProductsRouteImport.update({
+  id: '/products',
+  path: '/products',
+  getParentRoute: () => StoreRoute,
 } as any)
-const CreateAfterShotFiltersRoute = CreateAfterShotFiltersRouteImport.update({
-  id: '/filters',
-  path: '/filters',
-  getParentRoute: () => CreateAfterShotRoute,
+const StoreThemeRoute = StoreThemeRouteImport.update({
+  id: '/theme',
+  path: '/theme',
+  getParentRoute: () => StoreRoute,
 } as any)
-const ApiStorePayoutRoute = ApiStorePayoutRouteImport.update({
-  id: '/api/store/payout',
-  path: '/api/store/payout',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiShopifyInstallRoute = ApiShopifyInstallRouteImport.update({
-  id: '/api/shopify/install',
-  path: '/api/shopify/install',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiShopifyCallbackRoute = ApiShopifyCallbackRouteImport.update({
-  id: '/api/shopify/callback',
-  path: '/api/shopify/callback',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiShipbubblePingRoute = ApiShipbubblePingRouteImport.update({
-  id: '/api/shipbubble/ping',
-  path: '/api/shipbubble/ping',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiInstagramConnectRoute = ApiInstagramConnectRouteImport.update({
-  id: '/api/instagram/connect',
-  path: '/api/instagram/connect',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiInstagramCallbackRoute = ApiInstagramCallbackRouteImport.update({
-  id: '/api/instagram/callback',
-  path: '/api/instagram/callback',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiImportStatusRoute = ApiImportStatusRouteImport.update({
-  id: '/api/import/status',
-  path: '/api/import/status',
+const ApiBumpaConnectRoute = ApiBumpaConnectRouteImport.update({
+  id: '/api/bumpa/connect',
+  path: '/api/bumpa/connect',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiImportCsvRoute = ApiImportCsvRouteImport.update({
@@ -317,10 +257,70 @@ const ApiImportCsvRoute = ApiImportCsvRouteImport.update({
   path: '/api/import/csv',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiBumpaConnectRoute = ApiBumpaConnectRouteImport.update({
-  id: '/api/bumpa/connect',
-  path: '/api/bumpa/connect',
+const ApiImportStatusRoute = ApiImportStatusRouteImport.update({
+  id: '/api/import/status',
+  path: '/api/import/status',
   getParentRoute: () => rootRouteImport,
+} as any)
+const ApiInstagramCallbackRoute = ApiInstagramCallbackRouteImport.update({
+  id: '/api/instagram/callback',
+  path: '/api/instagram/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiInstagramConnectRoute = ApiInstagramConnectRouteImport.update({
+  id: '/api/instagram/connect',
+  path: '/api/instagram/connect',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiShipbubblePingRoute = ApiShipbubblePingRouteImport.update({
+  id: '/api/shipbubble/ping',
+  path: '/api/shipbubble/ping',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiShopifyCallbackRoute = ApiShopifyCallbackRouteImport.update({
+  id: '/api/shopify/callback',
+  path: '/api/shopify/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiShopifyInstallRoute = ApiShopifyInstallRouteImport.update({
+  id: '/api/shopify/install',
+  path: '/api/shopify/install',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiStorePayoutRoute = ApiStorePayoutRouteImport.update({
+  id: '/api/store/payout',
+  path: '/api/store/payout',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CreateAfterShotIndexRoute = CreateAfterShotIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => CreateAfterShotRoute,
+} as any)
+const CreateAfterShotFiltersRoute = CreateAfterShotFiltersRouteImport.update({
+  id: '/filters',
+  path: '/filters',
+  getParentRoute: () => CreateAfterShotRoute,
+} as any)
+const CreateAfterShotStudioRoute = CreateAfterShotStudioRouteImport.update({
+  id: '/studio',
+  path: '/studio',
+  getParentRoute: () => CreateAfterShotRoute,
+} as any)
+const StoreCollectionsNewRoute = StoreCollectionsNewRouteImport.update({
+  id: '/collections_/new',
+  path: '/collections/new',
+  getParentRoute: () => StoreRoute,
+} as any)
+const StoreProductsNewRoute = StoreProductsNewRouteImport.update({
+  id: '/products_/new',
+  path: '/products/new',
+  getParentRoute: () => StoreRoute,
+} as any)
+const StoreProductsNewcomerRoute = StoreProductsNewcomerRouteImport.update({
+  id: '/products_/newcomer',
+  path: '/products/newcomer',
+  getParentRoute: () => StoreRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -685,158 +685,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/where-did-you-hear-about-us': {
-      id: '/where-did-you-hear-about-us'
-      path: '/where-did-you-hear-about-us'
-      fullPath: '/where-did-you-hear-about-us'
-      preLoaderRoute: typeof WhereDidYouHearAboutUsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/welcome': {
-      id: '/welcome'
-      path: '/welcome'
-      fullPath: '/welcome'
-      preLoaderRoute: typeof WelcomeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/terms': {
-      id: '/terms'
-      path: '/terms'
-      fullPath: '/terms'
-      preLoaderRoute: typeof TermsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/studio': {
-      id: '/studio'
-      path: '/studio'
-      fullPath: '/studio'
-      preLoaderRoute: typeof StudioRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/store': {
-      id: '/store'
-      path: '/store'
-      fullPath: '/store'
-      preLoaderRoute: typeof StoreRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sign-in': {
-      id: '/sign-in'
-      path: '/sign-in'
-      fullPath: '/sign-in'
-      preLoaderRoute: typeof SignInRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/settings': {
-      id: '/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof SettingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/set-up-store': {
-      id: '/set-up-store'
-      path: '/set-up-store'
-      fullPath: '/set-up-store'
-      preLoaderRoute: typeof SetUpStoreRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/seller-type': {
-      id: '/seller-type'
-      path: '/seller-type'
-      fullPath: '/seller-type'
-      preLoaderRoute: typeof SellerTypeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/privacy': {
-      id: '/privacy'
-      path: '/privacy'
-      fullPath: '/privacy'
-      preLoaderRoute: typeof PrivacyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/previous-index': {
-      id: '/previous-index'
-      path: '/previous-index'
-      fullPath: '/previous-index'
-      preLoaderRoute: typeof PreviousIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/offline-videos': {
-      id: '/offline-videos'
-      path: '/offline-videos'
-      fullPath: '/offline-videos'
-      preLoaderRoute: typeof OfflineVideosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/no-account': {
-      id: '/no-account'
-      path: '/no-account'
-      fullPath: '/no-account'
-      preLoaderRoute: typeof NoAccountRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/name-your-store': {
-      id: '/name-your-store'
-      path: '/name-your-store'
-      fullPath: '/name-your-store'
-      preLoaderRoute: typeof NameYourStoreRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/home': {
-      id: '/home'
-      path: '/home'
-      fullPath: '/home'
-      preLoaderRoute: typeof HomeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/find-your-fit': {
-      id: '/find-your-fit'
-      path: '/find-your-fit'
-      fullPath: '/find-your-fit'
-      preLoaderRoute: typeof FindYourFitRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/edit-profile': {
-      id: '/edit-profile'
-      path: '/edit-profile'
-      fullPath: '/edit-profile'
-      preLoaderRoute: typeof EditProfileRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/create-password': {
-      id: '/create-password'
-      path: '/create-password'
-      fullPath: '/create-password'
-      preLoaderRoute: typeof CreatePasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/create': {
-      id: '/create'
-      path: '/create'
-      fullPath: '/create'
-      preLoaderRoute: typeof CreateRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/choose-username': {
-      id: '/choose-username'
-      path: '/choose-username'
-      fullPath: '/choose-username'
-      preLoaderRoute: typeof ChooseUsernameRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/become-a-curator': {
-      id: '/become-a-curator'
-      path: '/become-a-curator'
-      fullPath: '/become-a-curator'
-      preLoaderRoute: typeof BecomeACuratorRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/become-a-creator': {
-      id: '/become-a-creator'
-      path: '/become-a-creator'
-      fullPath: '/become-a-creator'
-      preLoaderRoute: typeof BecomeACreatorRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/activity': {
@@ -846,11 +699,186 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ActivityRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
+    '/become-a-creator': {
+      id: '/become-a-creator'
+      path: '/become-a-creator'
+      fullPath: '/become-a-creator'
+      preLoaderRoute: typeof BecomeACreatorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/become-a-curator': {
+      id: '/become-a-curator'
+      path: '/become-a-curator'
+      fullPath: '/become-a-curator'
+      preLoaderRoute: typeof BecomeACuratorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/choose-username': {
+      id: '/choose-username'
+      path: '/choose-username'
+      fullPath: '/choose-username'
+      preLoaderRoute: typeof ChooseUsernameRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/create': {
+      id: '/create'
+      path: '/create'
+      fullPath: '/create'
+      preLoaderRoute: typeof CreateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/create-password': {
+      id: '/create-password'
+      path: '/create-password'
+      fullPath: '/create-password'
+      preLoaderRoute: typeof CreatePasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/edit-profile': {
+      id: '/edit-profile'
+      path: '/edit-profile'
+      fullPath: '/edit-profile'
+      preLoaderRoute: typeof EditProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/find-your-fit': {
+      id: '/find-your-fit'
+      path: '/find-your-fit'
+      fullPath: '/find-your-fit'
+      preLoaderRoute: typeof FindYourFitRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/home': {
+      id: '/home'
+      path: '/home'
+      fullPath: '/home'
+      preLoaderRoute: typeof HomeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/name-your-store': {
+      id: '/name-your-store'
+      path: '/name-your-store'
+      fullPath: '/name-your-store'
+      preLoaderRoute: typeof NameYourStoreRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/no-account': {
+      id: '/no-account'
+      path: '/no-account'
+      fullPath: '/no-account'
+      preLoaderRoute: typeof NoAccountRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/offline-videos': {
+      id: '/offline-videos'
+      path: '/offline-videos'
+      fullPath: '/offline-videos'
+      preLoaderRoute: typeof OfflineVideosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/previous-index': {
+      id: '/previous-index'
+      path: '/previous-index'
+      fullPath: '/previous-index'
+      preLoaderRoute: typeof PreviousIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/seller-type': {
+      id: '/seller-type'
+      path: '/seller-type'
+      fullPath: '/seller-type'
+      preLoaderRoute: typeof SellerTypeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/set-up-store': {
+      id: '/set-up-store'
+      path: '/set-up-store'
+      fullPath: '/set-up-store'
+      preLoaderRoute: typeof SetUpStoreRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sign-in': {
+      id: '/sign-in'
+      path: '/sign-in'
+      fullPath: '/sign-in'
+      preLoaderRoute: typeof SignInRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/store': {
+      id: '/store'
+      path: '/store'
+      fullPath: '/store'
+      preLoaderRoute: typeof StoreRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/studio': {
+      id: '/studio'
+      path: '/studio'
+      fullPath: '/studio'
+      preLoaderRoute: typeof StudioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/welcome': {
+      id: '/welcome'
+      path: '/welcome'
+      fullPath: '/welcome'
+      preLoaderRoute: typeof WelcomeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/where-did-you-hear-about-us': {
+      id: '/where-did-you-hear-about-us'
+      path: '/where-did-you-hear-about-us'
+      fullPath: '/where-did-you-hear-about-us'
+      preLoaderRoute: typeof WhereDidYouHearAboutUsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/callback': {
+      id: '/auth/callback'
+      path: '/auth/callback'
+      fullPath: '/auth/callback'
+      preLoaderRoute: typeof AuthCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/create/': {
+      id: '/create/'
       path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+      fullPath: '/create/'
+      preLoaderRoute: typeof CreateIndexRouteImport
+      parentRoute: typeof CreateRoute
+    }
+    '/create/after-shot': {
+      id: '/create/after-shot'
+      path: '/after-shot'
+      fullPath: '/create/after-shot'
+      preLoaderRoute: typeof CreateAfterShotRouteImport
+      parentRoute: typeof CreateRoute
+    }
+    '/profile/$username': {
+      id: '/profile/$username'
+      path: '/profile/$username'
+      fullPath: '/profile/$username'
+      preLoaderRoute: typeof ProfileUsernameRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/store/': {
@@ -860,53 +888,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StoreIndexRouteImport
       parentRoute: typeof StoreRoute
     }
-    '/create/': {
-      id: '/create/'
-      path: '/'
-      fullPath: '/create/'
-      preLoaderRoute: typeof CreateIndexRouteImport
-      parentRoute: typeof CreateRoute
-    }
-    '/store/theme': {
-      id: '/store/theme'
-      path: '/theme'
-      fullPath: '/store/theme'
-      preLoaderRoute: typeof StoreThemeRouteImport
-      parentRoute: typeof StoreRoute
-    }
-    '/store/products': {
-      id: '/store/products'
-      path: '/products'
-      fullPath: '/store/products'
-      preLoaderRoute: typeof StoreProductsRouteImport
-      parentRoute: typeof StoreRoute
-    }
-    '/store/orders': {
-      id: '/store/orders'
-      path: '/orders'
-      fullPath: '/store/orders'
-      preLoaderRoute: typeof StoreOrdersRouteImport
-      parentRoute: typeof StoreRoute
-    }
-    '/store/growth': {
-      id: '/store/growth'
-      path: '/growth'
-      fullPath: '/store/growth'
-      preLoaderRoute: typeof StoreGrowthRouteImport
-      parentRoute: typeof StoreRoute
-    }
-    '/store/finance': {
-      id: '/store/finance'
-      path: '/finance'
-      fullPath: '/store/finance'
-      preLoaderRoute: typeof StoreFinanceRouteImport
-      parentRoute: typeof StoreRoute
-    }
-    '/store/discounts': {
-      id: '/store/discounts'
-      path: '/discounts'
-      fullPath: '/store/discounts'
-      preLoaderRoute: typeof StoreDiscountsRouteImport
+    '/store/content': {
+      id: '/store/content'
+      path: '/content'
+      fullPath: '/store/content'
+      preLoaderRoute: typeof StoreContentRouteImport
       parentRoute: typeof StoreRoute
     }
     '/store/customers': {
@@ -916,123 +902,53 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StoreCustomersRouteImport
       parentRoute: typeof StoreRoute
     }
-    '/store/content': {
-      id: '/store/content'
-      path: '/content'
-      fullPath: '/store/content'
-      preLoaderRoute: typeof StoreContentRouteImport
+    '/store/discounts': {
+      id: '/store/discounts'
+      path: '/discounts'
+      fullPath: '/store/discounts'
+      preLoaderRoute: typeof StoreDiscountsRouteImport
       parentRoute: typeof StoreRoute
     }
-    '/profile/$username': {
-      id: '/profile/$username'
-      path: '/profile/$username'
-      fullPath: '/profile/$username'
-      preLoaderRoute: typeof ProfileUsernameRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/create/after-shot': {
-      id: '/create/after-shot'
-      path: '/after-shot'
-      fullPath: '/create/after-shot'
-      preLoaderRoute: typeof CreateAfterShotRouteImport
-      parentRoute: typeof CreateRoute
-    }
-    '/auth/callback': {
-      id: '/auth/callback'
-      path: '/auth/callback'
-      fullPath: '/auth/callback'
-      preLoaderRoute: typeof AuthCallbackRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/create/after-shot/': {
-      id: '/create/after-shot/'
-      path: '/'
-      fullPath: '/create/after-shot/'
-      preLoaderRoute: typeof CreateAfterShotIndexRouteImport
-      parentRoute: typeof CreateAfterShotRoute
-    }
-    '/store/products_/newcomer': {
-      id: '/store/products_/newcomer'
-      path: '/products/newcomer'
-      fullPath: '/store/products/newcomer'
-      preLoaderRoute: typeof StoreProductsNewcomerRouteImport
+    '/store/finance': {
+      id: '/store/finance'
+      path: '/finance'
+      fullPath: '/store/finance'
+      preLoaderRoute: typeof StoreFinanceRouteImport
       parentRoute: typeof StoreRoute
     }
-    '/store/products_/new': {
-      id: '/store/products_/new'
-      path: '/products/new'
-      fullPath: '/store/products/new'
-      preLoaderRoute: typeof StoreProductsNewRouteImport
+    '/store/growth': {
+      id: '/store/growth'
+      path: '/growth'
+      fullPath: '/store/growth'
+      preLoaderRoute: typeof StoreGrowthRouteImport
       parentRoute: typeof StoreRoute
     }
-    '/store/collections_/new': {
-      id: '/store/collections_/new'
-      path: '/collections/new'
-      fullPath: '/store/collections/new'
-      preLoaderRoute: typeof StoreCollectionsNewRouteImport
+    '/store/orders': {
+      id: '/store/orders'
+      path: '/orders'
+      fullPath: '/store/orders'
+      preLoaderRoute: typeof StoreOrdersRouteImport
       parentRoute: typeof StoreRoute
     }
-    '/create/after-shot/studio': {
-      id: '/create/after-shot/studio'
-      path: '/studio'
-      fullPath: '/create/after-shot/studio'
-      preLoaderRoute: typeof CreateAfterShotStudioRouteImport
-      parentRoute: typeof CreateAfterShotRoute
+    '/store/products': {
+      id: '/store/products'
+      path: '/products'
+      fullPath: '/store/products'
+      preLoaderRoute: typeof StoreProductsRouteImport
+      parentRoute: typeof StoreRoute
     }
-    '/create/after-shot/filters': {
-      id: '/create/after-shot/filters'
-      path: '/filters'
-      fullPath: '/create/after-shot/filters'
-      preLoaderRoute: typeof CreateAfterShotFiltersRouteImport
-      parentRoute: typeof CreateAfterShotRoute
+    '/store/theme': {
+      id: '/store/theme'
+      path: '/theme'
+      fullPath: '/store/theme'
+      preLoaderRoute: typeof StoreThemeRouteImport
+      parentRoute: typeof StoreRoute
     }
-    '/api/store/payout': {
-      id: '/api/store/payout'
-      path: '/api/store/payout'
-      fullPath: '/api/store/payout'
-      preLoaderRoute: typeof ApiStorePayoutRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/shopify/install': {
-      id: '/api/shopify/install'
-      path: '/api/shopify/install'
-      fullPath: '/api/shopify/install'
-      preLoaderRoute: typeof ApiShopifyInstallRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/shopify/callback': {
-      id: '/api/shopify/callback'
-      path: '/api/shopify/callback'
-      fullPath: '/api/shopify/callback'
-      preLoaderRoute: typeof ApiShopifyCallbackRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/shipbubble/ping': {
-      id: '/api/shipbubble/ping'
-      path: '/api/shipbubble/ping'
-      fullPath: '/api/shipbubble/ping'
-      preLoaderRoute: typeof ApiShipbubblePingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/instagram/connect': {
-      id: '/api/instagram/connect'
-      path: '/api/instagram/connect'
-      fullPath: '/api/instagram/connect'
-      preLoaderRoute: typeof ApiInstagramConnectRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/instagram/callback': {
-      id: '/api/instagram/callback'
-      path: '/api/instagram/callback'
-      fullPath: '/api/instagram/callback'
-      preLoaderRoute: typeof ApiInstagramCallbackRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/import/status': {
-      id: '/api/import/status'
-      path: '/api/import/status'
-      fullPath: '/api/import/status'
-      preLoaderRoute: typeof ApiImportStatusRouteImport
+    '/api/bumpa/connect': {
+      id: '/api/bumpa/connect'
+      path: '/api/bumpa/connect'
+      fullPath: '/api/bumpa/connect'
+      preLoaderRoute: typeof ApiBumpaConnectRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/import/csv': {
@@ -1042,12 +958,96 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiImportCsvRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/bumpa/connect': {
-      id: '/api/bumpa/connect'
-      path: '/api/bumpa/connect'
-      fullPath: '/api/bumpa/connect'
-      preLoaderRoute: typeof ApiBumpaConnectRouteImport
+    '/api/import/status': {
+      id: '/api/import/status'
+      path: '/api/import/status'
+      fullPath: '/api/import/status'
+      preLoaderRoute: typeof ApiImportStatusRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/api/instagram/callback': {
+      id: '/api/instagram/callback'
+      path: '/api/instagram/callback'
+      fullPath: '/api/instagram/callback'
+      preLoaderRoute: typeof ApiInstagramCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/instagram/connect': {
+      id: '/api/instagram/connect'
+      path: '/api/instagram/connect'
+      fullPath: '/api/instagram/connect'
+      preLoaderRoute: typeof ApiInstagramConnectRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/shipbubble/ping': {
+      id: '/api/shipbubble/ping'
+      path: '/api/shipbubble/ping'
+      fullPath: '/api/shipbubble/ping'
+      preLoaderRoute: typeof ApiShipbubblePingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/shopify/callback': {
+      id: '/api/shopify/callback'
+      path: '/api/shopify/callback'
+      fullPath: '/api/shopify/callback'
+      preLoaderRoute: typeof ApiShopifyCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/shopify/install': {
+      id: '/api/shopify/install'
+      path: '/api/shopify/install'
+      fullPath: '/api/shopify/install'
+      preLoaderRoute: typeof ApiShopifyInstallRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/store/payout': {
+      id: '/api/store/payout'
+      path: '/api/store/payout'
+      fullPath: '/api/store/payout'
+      preLoaderRoute: typeof ApiStorePayoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/create/after-shot/': {
+      id: '/create/after-shot/'
+      path: '/'
+      fullPath: '/create/after-shot/'
+      preLoaderRoute: typeof CreateAfterShotIndexRouteImport
+      parentRoute: typeof CreateAfterShotRoute
+    }
+    '/create/after-shot/filters': {
+      id: '/create/after-shot/filters'
+      path: '/filters'
+      fullPath: '/create/after-shot/filters'
+      preLoaderRoute: typeof CreateAfterShotFiltersRouteImport
+      parentRoute: typeof CreateAfterShotRoute
+    }
+    '/create/after-shot/studio': {
+      id: '/create/after-shot/studio'
+      path: '/studio'
+      fullPath: '/create/after-shot/studio'
+      preLoaderRoute: typeof CreateAfterShotStudioRouteImport
+      parentRoute: typeof CreateAfterShotRoute
+    }
+    '/store/collections_/new': {
+      id: '/store/collections_/new'
+      path: '/collections/new'
+      fullPath: '/store/collections/new'
+      preLoaderRoute: typeof StoreCollectionsNewRouteImport
+      parentRoute: typeof StoreRoute
+    }
+    '/store/products_/new': {
+      id: '/store/products_/new'
+      path: '/products/new'
+      fullPath: '/store/products/new'
+      preLoaderRoute: typeof StoreProductsNewRouteImport
+      parentRoute: typeof StoreRoute
+    }
+    '/store/products_/newcomer': {
+      id: '/store/products_/newcomer'
+      path: '/products/newcomer'
+      fullPath: '/store/products/newcomer'
+      preLoaderRoute: typeof StoreProductsNewcomerRouteImport
+      parentRoute: typeof StoreRoute
     }
   }
 }

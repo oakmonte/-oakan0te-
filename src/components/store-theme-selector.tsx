@@ -1,13 +1,16 @@
 import {
   Check,
   ChevronRight,
-  CirclePlay,
   Cpu,
   Crown,
   Gem,
-  Grid2X2,
   Heart,
+  Hexagon,
+  Layers,
+  Leaf,
+  Moon,
   Pencil,
+  ShieldCheck,
   ShoppingBag,
   Sparkles,
   Stars,
@@ -15,9 +18,10 @@ import {
 import { useState, type ReactNode } from "react";
 import { THEMES, type ThemeId } from "./store-themes/types";
 import { ThemePreviewSheet } from "./store-themes/full-previews";
+import { useStoreTheme } from "./store-themes/useStoreTheme";
 
 export function StoreThemeSelector() {
-  const [selected, setSelected] = useState<ThemeId>("motion");
+  const { themeId: selected, selectTheme } = useStoreTheme();
   const [previewing, setPreviewing] = useState<ThemeId | null>(null);
   const [previewMode, setPreviewMode] = useState<"view" | "edit">("view");
 
@@ -64,7 +68,7 @@ export function StoreThemeSelector() {
                 <div className="relative">
                   <button
                     type="button"
-                    onClick={() => setSelected(theme.id)}
+                    onClick={() => void selectTheme(theme.id)}
                     className="block w-full rounded-[1.1rem] text-left focus:outline-none"
                     aria-pressed={isSelected}
                     aria-label={`Select ${theme.name}`}
@@ -121,7 +125,7 @@ export function StoreThemeSelector() {
                   </div>
                   <button
                     type="button"
-                    onClick={() => setSelected(theme.id)}
+                    onClick={() => void selectTheme(theme.id)}
                     className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl border border-[#e1ddd6] py-2.5 text-sm font-medium text-[#262421] transition-colors duration-200 hover:bg-[#f5f3ef]"
                   >
                     {isSelected ? "Selected" : "Use this theme"}
@@ -145,7 +149,7 @@ export function StoreThemeSelector() {
           initialMode={previewMode}
           onClose={() => setPreviewing(null)}
           onSelect={() => {
-            setSelected(previewTheme.id);
+            void selectTheme(previewTheme.id);
             setPreviewing(null);
           }}
         />
@@ -157,9 +161,12 @@ export function StoreThemeSelector() {
 function StorefrontPreview({ theme, demoBrand }: { theme: ThemeId; demoBrand: string }) {
   if (theme === "motion") return <MotionGridPreview brand={demoBrand} />;
   if (theme === "banner") return <ImmersiveBannerPreview brand={demoBrand} />;
-  if (theme === "story") return <InteractiveStoryPreview />;
   if (theme === "atelier") return <GalleryEditPreview brand={demoBrand} />;
-  return <NeonTerminalPreview brand={demoBrand} />;
+  if (theme === "circuit") return <NeonTerminalPreview brand={demoBrand} />;
+  if (theme === "verdant") return <VerdantNoirPreview brand={demoBrand} />;
+  if (theme === "monochrome") return <MonochromePreview brand={demoBrand} />;
+  if (theme === "gilded") return <GildedPreview brand={demoBrand} />;
+  return <ObsidianPreview brand={demoBrand} />;
 }
 
 function PreviewHeader({ dark = false, brand }: { dark?: boolean; brand: string }) {
@@ -282,85 +289,6 @@ function BannerProduct({ label, shape }: { label: string; shape: string }) {
   );
 }
 
-function InteractiveStoryPreview() {
-  return (
-    <div className="relative min-h-[390px] overflow-hidden rounded-[1.1rem] bg-[#171018] text-white">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_85%_12%,rgba(255,105,180,0.2),transparent_28%),radial-gradient(circle_at_8%_43%,rgba(136,88,255,0.26),transparent_34%)]" />
-      <div className="relative">
-        <PreviewHeader dark brand="Sunday Social" />
-        <div className="px-4 pt-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-[#ff9bc8] via-[#ec4b9a] to-[#7144e8] p-[2px]">
-              <div className="flex h-full w-full items-center justify-center rounded-full bg-[#241520] text-[13px] font-bold">
-                S
-              </div>
-            </div>
-            <div>
-              <p className="text-sm font-semibold tracking-[-0.03em]">Sunday Social</p>
-              <p className="text-[9px] text-white/55">Your everyday moodboard</p>
-            </div>
-            <span className="ml-auto rounded-full bg-white/10 px-2.5 py-1 text-[8px] font-semibold">
-              Follow
-            </span>
-          </div>
-
-          <div className="mt-5 flex gap-2 overflow-hidden">
-            <StoryBubble label="New in" tint="from-[#f060a9] to-[#743ed7]" />
-            <StoryBubble label="Studio" tint="from-[#ffb47a] to-[#e75383]" />
-            <StoryBubble label="On film" tint="from-[#6c62ef] to-[#2b9ddf]" />
-            <StoryBubble label="Fits" tint="from-[#bb64eb] to-[#ec4b9a]" />
-          </div>
-        </div>
-        <div className="mt-5 border-t border-white/10 px-4 pt-3">
-          <div className="flex items-center justify-between text-[10px]">
-            <span className="font-semibold">Shop the edit</span>
-            <span className="text-[#ff8fc4]">See all</span>
-          </div>
-          <div className="mt-3 grid grid-cols-[1.08fr_.92fr] gap-2">
-            <div className="relative h-32 overflow-hidden rounded-xl bg-gradient-to-br from-[#f281b8] via-[#6f3fd2] to-[#22142d] p-3">
-              <span className="rounded-full bg-white/20 px-2 py-1 text-[8px] font-semibold uppercase tracking-[0.1em]">
-                New drop
-              </span>
-              <p className="absolute bottom-3 text-xl font-semibold leading-none tracking-[-0.06em]">
-                Colour after dark.
-              </p>
-            </div>
-            <div className="grid gap-2">
-              <StoryTile label="Layered" tint="from-[#f8a7ca] to-[#6a3bbd]" />
-              <StoryTile label="Sunday bag" tint="from-[#f7bb8d] to-[#c64c7c]" />
-            </div>
-          </div>
-        </div>
-        <div className="mt-4 flex items-center justify-around border-t border-white/10 py-3 text-white/55">
-          <Grid2X2 size={15} className="text-[#ff70b5]" />
-          <CirclePlay size={16} />
-          <Sparkles size={15} />
-          <Heart size={15} />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function StoryBubble({ label, tint }: { label: string; tint: string }) {
-  return (
-    <div className="shrink-0 text-center">
-      <div className={`h-10 w-10 rounded-full bg-gradient-to-br ${tint} p-[2px]`}>
-        <div className="h-full w-full rounded-full bg-[#1d1420]" />
-      </div>
-      <span className="mt-1 block text-[8px] text-white/75">{label}</span>
-    </div>
-  );
-}
-
-function StoryTile({ label, tint }: { label: string; tint: string }) {
-  return (
-    <div className={`relative h-[60px] overflow-hidden rounded-lg bg-gradient-to-br ${tint}`}>
-      <span className="absolute bottom-1.5 left-2 text-[8px] font-semibold">{label}</span>
-    </div>
-  );
-}
-
 function GalleryEditPreview({ brand }: { brand: string }) {
   return (
     <div className="relative min-h-[390px] overflow-hidden rounded-[1.1rem] bg-[#0c0b0a] text-[#f3ede2]">
@@ -451,6 +379,192 @@ function CircuitProduct({ icon }: { icon: ReactNode }) {
   return (
     <div className="flex h-24 items-center justify-center rounded-lg border border-[#2dd4ff]/25 bg-[#2dd4ff]/[0.04] shadow-[0_0_18px_rgba(45,212,255,0.08)]">
       <span className="text-[#2dd4ff]">{icon}</span>
+    </div>
+  );
+}
+
+// Shared product tile for the four newer, calmer themes below — each just
+// supplies its own palette instead of repeating the same markup.
+function SwatchProduct({
+  icon,
+  borderColor,
+  bgColor,
+}: {
+  icon: ReactNode;
+  borderColor: string;
+  bgColor: string;
+}) {
+  return (
+    <div
+      className="flex h-24 items-center justify-center rounded-lg border"
+      style={{ borderColor, background: bgColor }}
+    >
+      {icon}
+    </div>
+  );
+}
+
+function VerdantNoirPreview({ brand }: { brand: string }) {
+  return (
+    <div className="relative min-h-[390px] overflow-hidden rounded-[1.1rem] bg-[#0a0f0b] text-[#eaf2ec]">
+      <div className="absolute inset-x-0 top-0 h-64 bg-[radial-gradient(circle_at_20%_0%,rgba(63,174,99,0.18),transparent_45%)]" />
+      <div className="relative">
+        <PreviewHeader dark brand={brand} />
+        <div className="px-4 pt-7">
+          <p className="text-[9px] font-semibold uppercase tracking-[0.25em] text-[#7fcf9a]">
+            Grown, not manufactured
+          </p>
+          <h2 className="mt-2 max-w-[210px] font-serif text-[36px] leading-[0.9] tracking-[-0.03em]">
+            Fern &amp; Co.
+          </h2>
+          <p className="mt-2 max-w-[190px] text-[11px] leading-4 text-[#c3d6ca]">
+            Quiet colour for slow living.
+          </p>
+        </div>
+        <div className="mt-6 grid grid-cols-3 gap-2 px-4">
+          <SwatchProduct
+            icon={<Leaf size={16} color="#3fae63" />}
+            borderColor="rgba(63,174,99,0.3)"
+            bgColor="rgba(63,174,99,0.06)"
+          />
+          <SwatchProduct
+            icon={<ShieldCheck size={16} color="#3fae63" />}
+            borderColor="rgba(63,174,99,0.3)"
+            bgColor="rgba(63,174,99,0.06)"
+          />
+          <SwatchProduct
+            icon={<Sparkles size={16} color="#3fae63" />}
+            borderColor="rgba(63,174,99,0.3)"
+            bgColor="rgba(63,174,99,0.06)"
+          />
+        </div>
+        <div className="mx-4 mt-4 flex items-center justify-between rounded-xl border border-[#3fae63]/30 bg-[#3fae63]/[0.06] px-3 py-2.5 text-[10px]">
+          <span className="font-semibold">New season</span>
+          <span className="text-[#7fcf9a]">Explore</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MonochromePreview({ brand }: { brand: string }) {
+  return (
+    <div className="relative min-h-[390px] overflow-hidden rounded-[1.1rem] bg-[#fafafa] text-[#111111]">
+      <div className="absolute inset-x-0 top-0 h-52 bg-[linear-gradient(135deg,#ffffff_0%,#e8e8e8_100%)]" />
+      <div className="relative">
+        <PreviewHeader brand={brand} />
+        <div className="px-4 pt-8 text-center">
+          <p className="text-[9px] font-semibold uppercase tracking-[0.25em] text-[#5a5a5a]">
+            No colour to distract you
+          </p>
+          <h2 className="mt-2 font-display text-[32px] uppercase leading-[0.9] tracking-[-0.02em]">
+            NOIR/BLANC
+          </h2>
+          <div className="mx-auto mt-3 h-px w-14 bg-[#111111]" />
+        </div>
+        <div className="mt-6 grid grid-cols-3 gap-2 px-4">
+          <SwatchProduct
+            icon={<Layers size={16} color="#111111" />}
+            borderColor="rgba(17,17,17,0.15)"
+            bgColor="rgba(17,17,17,0.04)"
+          />
+          <SwatchProduct
+            icon={<Check size={16} color="#111111" />}
+            borderColor="rgba(17,17,17,0.15)"
+            bgColor="rgba(17,17,17,0.04)"
+          />
+          <SwatchProduct
+            icon={<Hexagon size={16} color="#111111" />}
+            borderColor="rgba(17,17,17,0.15)"
+            bgColor="rgba(17,17,17,0.04)"
+          />
+        </div>
+        <div className="mx-4 mt-4 flex items-center justify-between rounded-xl border border-[#111111]/15 bg-[#111111]/[0.03] px-3 py-2.5 text-[10px]">
+          <span className="font-semibold">New arrivals</span>
+          <span className="text-[#5a5a5a]">Shop now</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function GildedPreview({ brand }: { brand: string }) {
+  return (
+    <div className="relative min-h-[390px] overflow-hidden rounded-[1.1rem] bg-[#0d0904] text-[#f3ecdc]">
+      <div className="absolute inset-x-0 top-0 h-64 bg-[radial-gradient(circle_at_80%_0%,rgba(212,175,55,0.22),transparent_45%)]" />
+      <div className="relative">
+        <PreviewHeader dark brand={brand} />
+        <div className="px-4 pt-8 text-center">
+          <p className="text-[9px] font-semibold uppercase tracking-[0.3em] text-[#d4af37]">
+            Opulence, quietly worn
+          </p>
+          <h2 className="mt-2.5 font-serif text-[32px] leading-none tracking-[-0.02em]">
+            Aurum House
+          </h2>
+          <div className="mx-auto mt-3 h-px w-12 bg-[#d4af37]/60" />
+        </div>
+        <div className="mt-6 grid grid-cols-3 gap-2 px-4">
+          <SwatchProduct
+            icon={<Crown size={16} color="#d4af37" />}
+            borderColor="rgba(212,175,55,0.35)"
+            bgColor="rgba(212,175,55,0.06)"
+          />
+          <SwatchProduct
+            icon={<Gem size={16} color="#d4af37" />}
+            borderColor="rgba(212,175,55,0.35)"
+            bgColor="rgba(212,175,55,0.06)"
+          />
+          <SwatchProduct
+            icon={<Sparkles size={16} color="#d4af37" />}
+            borderColor="rgba(212,175,55,0.35)"
+            bgColor="rgba(212,175,55,0.06)"
+          />
+        </div>
+        <div className="mx-4 mt-4 flex items-center justify-between rounded-xl border border-[#d4af37]/35 bg-[#d4af37]/[0.06] px-3 py-2.5 text-[10px]">
+          <span className="font-semibold">By invitation</span>
+          <span className="text-[#d4af37]">Enter</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ObsidianPreview({ brand }: { brand: string }) {
+  return (
+    <div className="relative min-h-[390px] overflow-hidden rounded-[1.1rem] bg-[#030303] text-[#e6e6e6]">
+      <div className="absolute inset-x-0 top-0 h-56 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.06),transparent_55%)]" />
+      <div className="relative">
+        <PreviewHeader dark brand={brand} />
+        <div className="px-4 pt-8">
+          <p className="text-[9px] font-semibold uppercase tracking-[0.3em] text-[#7a7a7a]">
+            Nothing extra
+          </p>
+          <h2 className="mt-2 max-w-[210px] font-display text-[34px] uppercase leading-[0.85] tracking-[-0.03em]">
+            VOID
+          </h2>
+        </div>
+        <div className="mt-6 grid grid-cols-3 gap-2 px-4">
+          <SwatchProduct
+            icon={<Moon size={16} color="#9a9a9a" />}
+            borderColor="rgba(255,255,255,0.12)"
+            bgColor="rgba(255,255,255,0.03)"
+          />
+          <SwatchProduct
+            icon={<Hexagon size={16} color="#9a9a9a" />}
+            borderColor="rgba(255,255,255,0.12)"
+            bgColor="rgba(255,255,255,0.03)"
+          />
+          <SwatchProduct
+            icon={<ShieldCheck size={16} color="#9a9a9a" />}
+            borderColor="rgba(255,255,255,0.12)"
+            bgColor="rgba(255,255,255,0.03)"
+          />
+        </div>
+        <div className="mx-4 mt-4 flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5 text-[10px]">
+          <span className="font-semibold">Almost nothing left</span>
+          <span className="text-[#9a9a9a]">See it</span>
+        </div>
+      </div>
     </div>
   );
 }

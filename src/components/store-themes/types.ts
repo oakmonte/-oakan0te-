@@ -1,4 +1,5 @@
-export type ThemeId = "motion" | "banner" | "story" | "atelier" | "circuit";
+export type ThemeId =
+  "motion" | "banner" | "atelier" | "circuit" | "verdant" | "monochrome" | "gilded" | "obsidian";
 
 export type Theme = {
   id: ThemeId;
@@ -28,14 +29,6 @@ export const THEMES: Theme[] = [
     demoBrand: "terra",
   },
   {
-    id: "story",
-    name: "Interactive Story",
-    eyebrow: "SOCIAL · EXPRESSIVE · ENGAGING",
-    description: "Turn products, campaigns, and creator moments into a living feed.",
-    accent: "#ec4b9a",
-    demoBrand: "Sunday Social",
-  },
-  {
     id: "atelier",
     name: "Gallery Edit",
     eyebrow: "QUIET · LUXE · CONSIDERED",
@@ -50,5 +43,37 @@ export const THEMES: Theme[] = [
     description: "A HUD-inspired storefront for brands building what's next.",
     accent: "#2dd4ff",
     demoBrand: "Circuit",
+  },
+  {
+    id: "verdant",
+    name: "Verdant Noir",
+    eyebrow: "BOTANICAL · MOODY · GROUNDED",
+    description: "Deep black grounded by a single living green — for brands rooted in craft.",
+    accent: "#3fae63",
+    demoBrand: "Fern & Co.",
+  },
+  {
+    id: "monochrome",
+    name: "Monochrome",
+    eyebrow: "STARK · GRAPHIC · TIMELESS",
+    description: "Just black and white — nothing to distract from the product.",
+    accent: "#111111",
+    demoBrand: "NOIR/BLANC",
+  },
+  {
+    id: "gilded",
+    name: "Gilded",
+    eyebrow: "OPULENT · RICH · REGAL",
+    description: "Black lacquered in gold, for stores that want to feel like an occasion.",
+    accent: "#d4af37",
+    demoBrand: "Aurum House",
+  },
+  {
+    id: "obsidian",
+    name: "Obsidian",
+    eyebrow: "MINIMAL · MONOLITHIC · SEVERE",
+    description: "One shade of black, layered on itself — as pared-back as a storefront gets.",
+    accent: "#6b6b6b",
+    demoBrand: "VOID",
   },
 ];

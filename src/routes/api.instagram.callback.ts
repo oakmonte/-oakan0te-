@@ -141,12 +141,6 @@ export const Route = createFileRoute("/api/instagram/callback")({
         const { supabaseAdmin: supabase } =
           await import("@/lib/integrations/my-supabase/client.server");
 
-        // SCHEMA DRIFT: the instagram_* columns arrive in migration
-        // 20260819120000_import_infrastructure.sql. my-supabase/types.ts is
-        // generated from the *live* schema, so until that migration is applied
-        // and the types regenerated, these columns resolve to `never`.
-        // Remove the cast after regenerating — it is the only thing hiding a
-        // real column-name check.
         const credentialsPayload = {
           store_id: storeId,
           instagram_user_id: instagramUserId,
@@ -157,7 +151,7 @@ export const Route = createFileRoute("/api/instagram/callback")({
 
         const { error: credentialsError } = await supabase
           .from("store_credentials")
-          .upsert(credentialsPayload as never, { onConflict: "store_id" });
+          .upsert(credentialsPayload, { onConflict: "store_id" });
 
         if (credentialsError) {
           console.error("Failed to store Instagram credentials:", credentialsError.message);
@@ -165,7 +159,6 @@ export const Route = createFileRoute("/api/instagram/callback")({
         }
 
         // ---- enqueue the media pull ---------------------------------------
-        // Same drift: import_jobs.metadata arrives in the same migration.
         const jobPayload = {
           store_id: storeId,
           platform: "instagram",
@@ -175,7 +168,7 @@ export const Route = createFileRoute("/api/instagram/callback")({
 
         const { data: job, error: jobError } = await supabase
           .from("import_jobs")
-          .insert(jobPayload as never)
+          .insert(jobPayload)
           .select("id")
           .single();
 

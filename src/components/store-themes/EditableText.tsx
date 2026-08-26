@@ -66,6 +66,11 @@ export function EditableText({
   }
 
   const editClassName = `${className ?? ""} w-full resize-none rounded-md border border-white/25 bg-white/5 px-2 py-1 outline-none focus:border-white/60 focus:bg-white/10`;
+  // iOS Safari auto-zooms the page on focus for any input under 16px. Forcing
+  // 16px here (inputs only — view mode is untouched) satisfies that threshold
+  // without touching the viewport meta tag, so a user's own pinch-zoom still
+  // works exactly as normal.
+  const editStyle = { ...style, fontSize: "max(16px, 1em)" };
 
   function commit() {
     if (local !== value) onChange(local);
@@ -83,7 +88,7 @@ export function EditableText({
   return (
     <span className="relative block w-full">
       {focused && onFontChange && (
-        <div className="absolute -top-7 left-0 z-20 flex gap-0.5 rounded-full bg-neutral-900 p-1 shadow-lg">
+        <div className="absolute -top-9 left-0 z-20 flex max-w-[240px] flex-wrap gap-0.5 rounded-xl bg-neutral-900 p-1 shadow-lg">
           {FONT_OPTIONS.map((f) => {
             const active = currentFont ? currentFont === f.id : f.id === "sans";
             return (
@@ -92,7 +97,7 @@ export function EditableText({
                 type="button"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => onFontChange(f.id)}
-                className="rounded-full px-1.5 py-0.5 text-[9px] font-medium text-white"
+                className="rounded-full px-1.5 py-0.5 text-[9px] font-medium whitespace-nowrap text-white"
                 style={{
                   fontFamily: f.fontFamily,
                   background: active ? "rgba(255,255,255,0.2)" : "transparent",
@@ -125,7 +130,7 @@ export function EditableText({
           onFocus={() => setFocused(true)}
           onBlur={handleBlur}
           className={editClassName}
-          style={style}
+          style={editStyle}
         />
       ) : (
         <input
@@ -137,7 +142,7 @@ export function EditableText({
           onBlur={handleBlur}
           onKeyDown={handleKeyDown}
           className={editClassName}
-          style={style}
+          style={editStyle}
         />
       )}
     </span>

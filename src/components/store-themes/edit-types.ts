@@ -10,7 +10,6 @@ export type TextFieldId =
   | "hero2"
   | "hero3"
   | "statsFollowersText"
-  | "statsBadgeLabel"
   | "promoEyebrow"
   | "promoTitle"
   | "footerLabel"

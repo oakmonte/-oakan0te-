@@ -60,6 +60,18 @@
         ]
       }
     ],
+    "PostToolUse": [
+      {
+        "matcher": "mcp__supabase__generate_typescript_types",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/mark-types-generated.mjs\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [
