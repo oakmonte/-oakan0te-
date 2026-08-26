@@ -118,7 +118,7 @@ export const Route = createFileRoute("/api/import/csv")({
         const { supabaseAdmin: supabase } =
           await import("@/lib/integrations/my-supabase/client.server");
 
-        const metadata: Record<string, string | number | boolean | null> = {};
+        const metadata: Record<string, unknown> = {};
         if (profile) metadata.profile = profile;
         if (Object.keys(columnMap).length > 0) metadata.columnMap = columnMap;
         // Route a Bumpa upload through the new engine explicitly; the legacy
