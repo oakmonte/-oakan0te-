@@ -74,6 +74,21 @@ function JobBanner({ job, onDismiss }: { job: JobStatus; onDismiss: () => void }
   );
 }
 
+// Numbers the two paths inside an expanded Shopify/Bumpa section — "connect"
+// and "upload a CSV" read as one continuous block without this, and a seller
+// skimming past the first button can miss that a second, actually-working
+// option sits right below it.
+function OptionLabel({ n, children }: { n: number; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-2 mb-2">
+      <span className="w-5 h-5 rounded-full bg-gray-900 text-white text-[11px] font-medium flex items-center justify-center shrink-0">
+        {n}
+      </span>
+      <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">{children}</span>
+    </div>
+  );
+}
+
 /** Hidden file input; exposes a single `pick()` that resolves with the chosen file. */
 function useFilePicker() {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -276,8 +291,9 @@ function ProductsUpload() {
               />
             </button>
             {openSection === "shopify" && (
-              <div className="border-t border-gray-100 px-4 py-4 flex flex-col gap-3 animate-in fade-in slide-in-from-top-2 duration-200 ease-out">
+              <div className="border-t border-gray-100 px-4 py-4 flex flex-col gap-5 animate-in fade-in slide-in-from-top-2 duration-200 ease-out">
                 <div>
+                  <OptionLabel n={1}>Connect directly</OptionLabel>
                   <label className="flex flex-col gap-1">
                     <span className="text-xs text-gray-400">Shop domain</span>
                     <input
@@ -299,10 +315,11 @@ function ProductsUpload() {
                   </button>
                   <p className="text-[11px] text-gray-400 mt-1.5">
                     Connecting links your account for later — it doesn't pull products in on its own
-                    yet. Use the CSV upload below to actually bring your catalogue in today.
+                    yet. Use option 2 to actually bring your catalogue in today.
                   </p>
                 </div>
-                <div className="border-t border-gray-100 pt-3">
+                <div className="border-t border-gray-100 pt-4">
+                  <OptionLabel n={2}>Upload a CSV</OptionLabel>
                   <button
                     type="button"
                     onClick={async () => {
@@ -310,11 +327,11 @@ function ProductsUpload() {
                       if (file) uploadCsv(file, "csv", "shopify");
                     }}
                     disabled={busy}
-                    className="w-full text-left text-sm text-gray-900 font-medium disabled:opacity-40"
+                    className="w-full text-left border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-900 font-medium oak-motion-control disabled:opacity-40"
                   >
                     Upload Shopify CSV export
                   </button>
-                  <p className="text-[11px] text-gray-400 mt-1">
+                  <p className="text-[11px] text-gray-400 mt-1.5">
                     From Shopify admin: Products → Export.
                   </p>
                 </div>
@@ -342,8 +359,9 @@ function ProductsUpload() {
               />
             </button>
             {openSection === "bumpa" && (
-              <div className="border-t border-gray-100 px-4 py-4 flex flex-col gap-3 animate-in fade-in slide-in-from-top-2 duration-200 ease-out">
+              <div className="border-t border-gray-100 px-4 py-4 flex flex-col gap-5 animate-in fade-in slide-in-from-top-2 duration-200 ease-out">
                 <div>
+                  <OptionLabel n={1}>Connect directly</OptionLabel>
                   <label className="flex flex-col gap-1">
                     <span className="text-xs text-gray-400">Bumpa API key</span>
                     <input
@@ -366,7 +384,7 @@ function ProductsUpload() {
                   </button>
                   {connectedNote === "bumpa" ? (
                     <p className="text-[11px] text-gray-500 mt-1.5 flex items-center gap-1">
-                      <Check size={12} /> Connected. Use the CSV upload below to bring products in.
+                      <Check size={12} /> Connected. Use option 2 to bring products in.
                     </p>
                   ) : (
                     <p className="text-[11px] text-gray-400 mt-1.5">
@@ -374,7 +392,8 @@ function ProductsUpload() {
                     </p>
                   )}
                 </div>
-                <div className="border-t border-gray-100 pt-3">
+                <div className="border-t border-gray-100 pt-4">
+                  <OptionLabel n={2}>Upload a CSV</OptionLabel>
                   <button
                     type="button"
                     onClick={async () => {
@@ -382,7 +401,7 @@ function ProductsUpload() {
                       if (file) uploadCsv(file, "bumpa");
                     }}
                     disabled={busy}
-                    className="w-full text-left text-sm text-gray-900 font-medium disabled:opacity-40"
+                    className="w-full text-left border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-900 font-medium oak-motion-control disabled:opacity-40"
                   >
                     Upload Bumpa CSV export
                   </button>
