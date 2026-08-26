@@ -5,6 +5,7 @@ import { readIntent, type Intent } from "@/lib/onboarding-state";
 import { nextRoute, previousStep, stepPosition } from "@/lib/onboarding-flow";
 import { OnboardingChecking, OnboardingShell } from "@/components/onboarding/OnboardingShell";
 import { useRequireSession } from "@/components/onboarding/use-require-session";
+import { cmToDisplay, displayToCm } from "@/lib/size-chart-config";
 import fSkinny from "@/assets/body-types/female/skinny.webp";
 import fSlim from "@/assets/body-types/female/slim.webp";
 import fMedium from "@/assets/body-types/female/medium.webp";
@@ -23,6 +24,9 @@ import mMuscular from "@/assets/body-types/male/muscular.webp";
 import mChubby from "@/assets/body-types/male/chubby.webp";
 import mPlusModerate from "@/assets/body-types/male/plus-moderate.webp";
 import mPlusFuller from "@/assets/body-types/male/plus-fuller.webp";
+import femaleMeasurementGuide from "@/assets/body-types/female/Body-type-measurement-female.png";
+// Not yet the real male guide — see the comment on MALE_MEASUREMENT_LINES below.
+import maleMeasurementGuide from "@/assets/body-types/male/Body-type-measurement-male.png";
 
 export const Route = createFileRoute("/find-your-fit")({
   head: () => ({ meta: [{ title: "Find your fit — Oakmonte" }] }),
@@ -115,6 +119,40 @@ const MALE_BODY_TYPE_IMAGES: ImageBodyShape[] = [
   { id: "m-fat", label: "Plus Size, Moderate", src: mPlusModerate },
   { id: "m-fattest", label: "Plus Size, Fuller", src: mPlusFuller },
 ];
+
+// Same "read the letter off the picture, type the number below it" pattern as
+// the seller-facing size chart (src/components/product-form/size-chart/SizeChartSheet.tsx)
+// — `letter` matches the guide image's callout, `label` spells it out since,
+// unlike sellers filling in a garment chart, onboarding users have no reason
+// to already know what "b" means.
+type MeasurementLine = { key: string; letter: string; label: string };
+
+const FEMALE_MEASUREMENT_LINES: MeasurementLine[] = [
+  { key: "shoulder", letter: "a", label: "Across Shoulder" },
+  { key: "bust", letter: "b", label: "Full Bust" },
+  { key: "waist", letter: "c", label: "Waist Circumference" },
+  { key: "hip", letter: "d", label: "Hip / Full Hip" },
+  { key: "thigh", letter: "e", label: "Thigh Circumference" },
+  { key: "arm", letter: "f", label: "Arm Length (Shoulder to Wrist)" },
+  { key: "leg", letter: "g", label: "Leg Length (Hip to Feet)" },
+];
+
+// Labels match the intended male guide image, not the placeholder currently
+// wired up at maleMeasurementGuide (that file is a duplicate of the female
+// PNG — see its import comment). Once the real male guide is dropped in at
+// the same path, these letters will line up with it as-is.
+const MALE_MEASUREMENT_LINES: MeasurementLine[] = [
+  { key: "shoulder", letter: "a", label: "Across Shoulder (Shoulder to Shoulder)" },
+  { key: "chest", letter: "b", label: "Full Chest (Chest Circumference)" },
+  { key: "hip", letter: "c", label: "Hip / Full Hip (Hip Circumference)" },
+  { key: "arm", letter: "d", label: "Arm Length (Shoulder to Wrist)" },
+  { key: "thigh", letter: "e", label: "Thigh Circumference (Mid-Thigh)" },
+  { key: "leg", letter: "f", label: "Leg Length (Hip to Feet)" },
+];
+
+function formatMeasurement(n: number): string {
+  return (Math.round(n * 100) / 100).toString();
+}
 
 const MALE_BODY_TYPES: TracedBodyShape[] = [
   {
@@ -606,17 +644,44 @@ function FindYourFitPage() {
   const [bodyType, setBodyType] = useState<string | null>(null);
 
   const [measurementsOpen, setMeasurementsOpen] = useState(false);
-  const [bust, setBust] = useState("");
-  const [waistMeasurement, setWaistMeasurement] = useState("");
-  const [hips, setHips] = useState("");
-  const [shoulderWidth, setShoulderWidth] = useState("");
+  const [measurementUnit, setMeasurementUnit] = useState<"cm" | "in">("cm");
+  const [measurements, setMeasurements] = useState<Record<string, string>>({});
+  const [focusedMeasurementKey, setFocusedMeasurementKey] = useState<string | null>(null);
 
   const bodyTypeOptions = gender === "Male" ? MALE_BODY_TYPE_IMAGES : FEMALE_BODY_TYPES;
+  const measurementLines = gender === "Male" ? MALE_MEASUREMENT_LINES : FEMALE_MEASUREMENT_LINES;
+  const measurementGuideImage = gender === "Male" ? maleMeasurementGuide : femaleMeasurementGuide;
 
   const handleGenderChange = (value: string) => {
     setGender(value);
     setBodyType(null);
+    // Keys differ between genders (e.g. "bust" vs "chest") — carrying over the
+    // other gender's stale values would just be dead data.
+    setMeasurements({});
+    setFocusedMeasurementKey(null);
   };
+
+  // Mirrors SizeChartSheet's switchUnit: convert every typed value through cm
+  // rather than just relabeling the unit, so switching cm/in mid-entry
+  // doesn't silently change what number is saved.
+  function switchMeasurementUnit(next: "cm" | "in") {
+    if (next === measurementUnit) return;
+    setMeasurements((prev) => {
+      const out: Record<string, string> = {};
+      for (const key of Object.keys(prev)) {
+        const raw = prev[key];
+        const num = parseFloat(raw);
+        if (!raw.trim() || isNaN(num)) {
+          out[key] = raw;
+          continue;
+        }
+        const cm = displayToCm(num, measurementUnit);
+        out[key] = formatMeasurement(cmToDisplay(cm, next));
+      }
+      return out;
+    });
+    setMeasurementUnit(next);
+  }
 
   // Last form step of the creator and curator flows — both hand off to the
   // welcome screen, which is what ends onboarding. It used to navigate to
@@ -645,9 +710,7 @@ function FindYourFitPage() {
         weight: { unit: weightUnit, value: weight },
         gender: gender || null,
         bodyType,
-        measurements: measurementsOpen
-          ? { bust, waist: waistMeasurement, hips, shoulderWidth }
-          : null,
+        measurements: measurementsOpen ? { unit: measurementUnit, values: measurements } : null,
       }),
     );
 
@@ -762,56 +825,92 @@ function FindYourFitPage() {
           ))}
         </div>
 
-        <div className="rounded-2xl border border-brand-text/15 overflow-hidden text-left">
-          <button
-            type="button"
-            onClick={() => setMeasurementsOpen((v) => !v)}
-            className="w-full flex items-center justify-between px-5 py-3.5 text-sm text-brand-text/80 hover:bg-brand-text/5 transition-colors"
-          >
-            <span>Optional — add specific measurements</span>
-            <span
-              className={`transition-transform duration-200 ${measurementsOpen ? "rotate-90" : ""}`}
+        {(gender === "Female" || gender === "Male") && (
+          <div className="rounded-2xl border border-brand-text/15 overflow-hidden text-left">
+            <button
+              type="button"
+              onClick={() => setMeasurementsOpen((v) => !v)}
+              className="w-full flex items-center justify-between px-5 py-3.5 text-sm text-brand-text/80 hover:bg-brand-text/5 transition-colors"
             >
-              ›
-            </span>
-          </button>
-          {measurementsOpen && (
-            <div className="px-5 pb-4 space-y-3 border-t border-brand-text/10 pt-4">
-              <input
-                type="text"
-                inputMode="numeric"
-                value={bust}
-                onChange={(e) => setBust(onlyDigits(e.target.value))}
-                placeholder={gender === "Male" ? "Chest (cm)" : "Bust (cm)"}
-                className="w-full rounded-full border border-brand-text/25 bg-transparent px-5 py-3 text-sm placeholder:text-brand-text/40 focus:outline-none focus:border-brand-accent transition-colors"
-              />
-              <input
-                type="text"
-                inputMode="numeric"
-                value={waistMeasurement}
-                onChange={(e) => setWaistMeasurement(onlyDigits(e.target.value))}
-                placeholder="Waist (cm)"
-                className="w-full rounded-full border border-brand-text/25 bg-transparent px-5 py-3 text-sm placeholder:text-brand-text/40 focus:outline-none focus:border-brand-accent transition-colors"
-              />
-              <input
-                type="text"
-                inputMode="numeric"
-                value={hips}
-                onChange={(e) => setHips(onlyDigits(e.target.value))}
-                placeholder="Hips (cm)"
-                className="w-full rounded-full border border-brand-text/25 bg-transparent px-5 py-3 text-sm placeholder:text-brand-text/40 focus:outline-none focus:border-brand-accent transition-colors"
-              />
-              <input
-                type="text"
-                inputMode="numeric"
-                value={shoulderWidth}
-                onChange={(e) => setShoulderWidth(onlyDigits(e.target.value))}
-                placeholder="Shoulder width (cm)"
-                className="w-full rounded-full border border-brand-text/25 bg-transparent px-5 py-3 text-sm placeholder:text-brand-text/40 focus:outline-none focus:border-brand-accent transition-colors"
-              />
-            </div>
-          )}
-        </div>
+              <span>Optional — add specific measurements</span>
+              <span
+                className={`transition-transform duration-200 ${measurementsOpen ? "rotate-90" : ""}`}
+              >
+                ›
+              </span>
+            </button>
+            {measurementsOpen && (
+              <div className="px-5 pb-5 pt-4 border-t border-brand-text/10 space-y-4">
+                <div className="w-full max-w-[220px] mx-auto aspect-[3/4] bg-brand-text/5 rounded-2xl p-3">
+                  <img
+                    src={measurementGuideImage}
+                    alt={`${gender} body measurement guide`}
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+
+                <div className="flex justify-end">
+                  <div className="flex bg-brand-text/10 rounded-full p-1">
+                    {(["cm", "in"] as const).map((u) => (
+                      <button
+                        key={u}
+                        type="button"
+                        onClick={() => switchMeasurementUnit(u)}
+                        className={`px-3 py-1 rounded-full text-xs font-medium uppercase tracking-widest transition-colors duration-200 ${
+                          measurementUnit === u
+                            ? "bg-brand-accent text-brand-bg"
+                            : "text-brand-text/50"
+                        }`}
+                      >
+                        {u}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-2.5">
+                  {measurementLines.map((line) => (
+                    <div
+                      key={line.key}
+                      className={`flex items-center justify-between gap-3 rounded-xl border px-4 py-3 transition-colors duration-150 ${
+                        focusedMeasurementKey === line.key
+                          ? "border-brand-accent"
+                          : "border-brand-text/15"
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setFocusedMeasurementKey(line.key)}
+                        className="flex items-center gap-2 text-left min-w-0"
+                      >
+                        <span className="text-[11px] font-semibold text-brand-text/40 uppercase shrink-0">
+                          {line.letter}
+                        </span>
+                        <span className="text-sm text-brand-text/90">{line.label}</span>
+                      </button>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <input
+                          value={measurements[line.key] ?? ""}
+                          onChange={(e) =>
+                            setMeasurements((prev) => ({
+                              ...prev,
+                              [line.key]: e.target.value.replace(/[^0-9.]/g, ""),
+                            }))
+                          }
+                          onFocus={() => setFocusedMeasurementKey(line.key)}
+                          inputMode="decimal"
+                          placeholder="0"
+                          className="w-14 text-right text-sm outline-none bg-transparent text-brand-text"
+                        />
+                        <span className="text-xs text-brand-text/40">{measurementUnit}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {(gender === "Female" || gender === "Male") && (
           <div className="pt-4 text-left">

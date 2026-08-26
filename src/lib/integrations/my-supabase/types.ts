@@ -310,6 +310,103 @@ export type Database = {
           },
         ]
       }
+      post_product_tags: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          product_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          product_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          product_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_product_tags_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_product_tags_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      posts: {
+        Row: {
+          caption: string | null
+          created_at: string
+          id: string
+          location: string | null
+          media_type: string
+          media_url: string
+          status: string
+          thumbnail_url: string | null
+          user_id: string
+          visibility: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          location?: string | null
+          media_type: string
+          media_url: string
+          status?: string
+          thumbnail_url?: string | null
+          user_id: string
+          visibility?: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          location?: string | null
+          media_type?: string
+          media_url?: string
+          status?: string
+          thumbnail_url?: string | null
+          user_id?: string
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "posts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profile_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_collections: {
         Row: {
           collection_id: string
@@ -970,8 +1067,8 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "stores_theme_id_fkey"
-            columns: ["theme_id"]
+            foreignKeyName: "stores_owner_id_fkey"
+            columns: ["owner_id"]
             isOneToOne: false
             referencedRelation: "store_themes"
             referencedColumns: ["id"]

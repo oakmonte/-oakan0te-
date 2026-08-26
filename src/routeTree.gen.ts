@@ -33,6 +33,7 @@ import { Route as StudioRouteImport } from './routes/studio'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as WelcomeRouteImport } from './routes/welcome'
 import { Route as WhereDidYouHearAboutUsRouteImport } from './routes/where-did-you-hear-about-us'
+import { Route as ApiPostsRouteImport } from './routes/api.posts'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as CreateIndexRouteImport } from './routes/create.index'
 import { Route as CreateAfterShotRouteImport } from './routes/create.after-shot'
@@ -182,6 +183,11 @@ const WelcomeRoute = WelcomeRouteImport.update({
 const WhereDidYouHearAboutUsRoute = WhereDidYouHearAboutUsRouteImport.update({
   id: '/where-did-you-hear-about-us',
   path: '/where-did-you-hear-about-us',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPostsRoute = ApiPostsRouteImport.update({
+  id: '/api/posts',
+  path: '/api/posts',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthCallbackRoute = AuthCallbackRouteImport.update({
@@ -360,6 +366,7 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/welcome': typeof WelcomeRoute
   '/where-did-you-hear-about-us': typeof WhereDidYouHearAboutUsRoute
+  '/api/posts': typeof ApiPostsRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/create/after-shot': typeof CreateAfterShotRouteWithChildren
   '/profile/$username': typeof ProfileUsernameRoute
@@ -414,6 +421,7 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/welcome': typeof WelcomeRoute
   '/where-did-you-hear-about-us': typeof WhereDidYouHearAboutUsRoute
+  '/api/posts': typeof ApiPostsRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/profile/$username': typeof ProfileUsernameRoute
   '/store/content': typeof StoreContentRoute
@@ -470,6 +478,7 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/welcome': typeof WelcomeRoute
   '/where-did-you-hear-about-us': typeof WhereDidYouHearAboutUsRoute
+  '/api/posts': typeof ApiPostsRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/create/after-shot': typeof CreateAfterShotRouteWithChildren
   '/profile/$username': typeof ProfileUsernameRoute
@@ -528,6 +537,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/welcome'
     | '/where-did-you-hear-about-us'
+    | '/api/posts'
     | '/auth/callback'
     | '/create/after-shot'
     | '/profile/$username'
@@ -582,6 +592,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/welcome'
     | '/where-did-you-hear-about-us'
+    | '/api/posts'
     | '/auth/callback'
     | '/profile/$username'
     | '/store/content'
@@ -637,6 +648,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/welcome'
     | '/where-did-you-hear-about-us'
+    | '/api/posts'
     | '/auth/callback'
     | '/create/after-shot'
     | '/profile/$username'
@@ -694,6 +706,7 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   WelcomeRoute: typeof WelcomeRoute
   WhereDidYouHearAboutUsRoute: typeof WhereDidYouHearAboutUsRoute
+  ApiPostsRoute: typeof ApiPostsRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
   ProfileUsernameRoute: typeof ProfileUsernameRoute
   ApiBumpaConnectRoute: typeof ApiBumpaConnectRoute
@@ -875,6 +888,13 @@ declare module '@tanstack/react-router' {
       path: '/where-did-you-hear-about-us'
       fullPath: '/where-did-you-hear-about-us'
       preLoaderRoute: typeof WhereDidYouHearAboutUsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/posts': {
+      id: '/api/posts'
+      path: '/api/posts'
+      fullPath: '/api/posts'
+      preLoaderRoute: typeof ApiPostsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/callback': {
@@ -1180,6 +1200,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   WelcomeRoute: WelcomeRoute,
   WhereDidYouHearAboutUsRoute: WhereDidYouHearAboutUsRoute,
+  ApiPostsRoute: ApiPostsRoute,
   AuthCallbackRoute: AuthCallbackRoute,
   ProfileUsernameRoute: ProfileUsernameRoute,
   ApiBumpaConnectRoute: ApiBumpaConnectRoute,
