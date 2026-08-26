@@ -4,7 +4,7 @@ Everything deliberately deferred, plus the things that turned out to be deferred
 accident. Nothing here is a bug report you need to triage — it is the list you asked for
 so the pile stops living in chat history.
 
-Ordered by what stops a launch, not by when it came up. Last updated 2026-08-20.
+Ordered by what stops a launch, not by when it came up. Last updated 2026-08-26.
 
 Legend: **[BLOCKS LAUNCH]** · **[NEEDS A DECISION]** — I cannot pick for you, it changes
 the schema or costs money · **[SMALL]** — do it any afternoon · **[BY DESIGN]** — noted so
@@ -14,33 +14,39 @@ nobody "fixes" it later.
 
 ## 1. Blocks launch
 
-### 1.1 RLS is off on seven tables · [BLOCKS LAUNCH]
+### 1.1 RLS is off on twelve tables · [BLOCKS LAUNCH — migration drafted, held]
 
-`collections`, `product_collections`, `product_tags`, `product_variants`, `products`,
-`stores`, `tags` — row-level security disabled. The browser's publishable key can read
-and write **every seller's** catalogue, not just its own. `stores` already has 3 policies
-written; they do nothing while RLS is off.
+`stores`, `products`, `product_variants`, `product_options`, `product_option_values`,
+`product_variant_options`, `collections`, `product_collections`, `tags`, `product_tags`,
+`product_size_measurements`, `store_theme_customizations` — row-level security disabled.
+The browser's publishable key can read and write **every seller's** catalogue, not just
+its own. `stores` already has 3 policies written; they do nothing while RLS is off.
 
-Blocked on 1.2. Turning RLS on without real store scoping breaks every dashboard write at
-once.
+Unblocked by 1.2 (done, below). A full migration is written — 6 `SECURITY DEFINER` helper
+functions (`owns_store`, `owns_product`, `owns_option`, `owns_variant`, `owns_collection`,
+`owns_tag`) plus one owner-scoped policy per table — and has been reviewed, but the user
+has explicitly held it rather than applying it yet. Ask before running it; it isn't a
+"just do it" item even though the code and copy are ready. Folds in 3.7 (below).
 
-### 1.2 `DEV_STORE_ID` is hardcoded · [BLOCKS LAUNCH]
+### 1.2 `DEV_STORE_ID` is hardcoded · [DONE — 2026-08-26]
 
-`src/routes/store.products.tsx:14` and `src/routes/store.products_.new.tsx:31`. The
-dashboard reads one fixed store id instead of the signed-in seller's. Consequence today: a
-store created during onboarding is orphaned — the seller makes one, then the dashboard
-shows a different store's products.
+Replaced everywhere (`store.products.tsx`, `store.products_.new.tsx`,
+`store.collections_.new.tsx`, `CollectionsSheet.tsx`, `TagsSheet.tsx`, and the three
+store-theme hooks) with `useOwnStores`/`useActiveStore`/`useActiveStoreId` in
+`src/hooks/use-own-store.ts`, which resolve the signed-in seller's own store(s) from
+`stores.owner_id = auth.uid()` — same tie-break order (`created_at`, then `id`) that
+`requireOwnStore` already uses server-side, so client and server agree on which store is
+"the" store for a single-store seller.
 
-This is the keystone. 1.1 and 1.3 both unblock the moment it lands.
+### 1.3 Two-store sellers have no store picker · [DONE — 2026-08-26]
 
-### 1.3 Two-store sellers have no store picker · [BLOCKS LAUNCH]
-
-`stores` has no unique constraint on `owner_id`, and one live account already owns two
-(created by the Back-then-resubmit path in `/name-your-store`, now closed with
-`replace: true`). `requireOwnStore` in `src/lib/server-auth.ts` deliberately picks the
-**oldest** store; `src/routes/store.finance.tsx` has no selector. A two-store owner can
-therefore bind payout details to the store they did not mean to. Fine while nobody is
-being paid; not fine after Paystack.
+`stores` still has no unique constraint on `owner_id` (unchanged, and not needed to fix
+this), but `useActiveStore` now tracks which of the account's stores is active
+(sessionStorage-backed, not localStorage — see 3.6) and `src/routes/store.tsx` shows a
+switcher in the header whenever a seller owns more than one, silently staying a static
+label otherwise. Every write path (`store.products_.new.tsx`, `store.collections_.new.tsx`,
+the theme hooks) reads the same active id, so switching stores in the shell changes what
+the "escaped" `_new` routes write into as well.
 
 ### 1.4 Supabase dashboard settings there is no API for · [BLOCKS LAUNCH]
 
@@ -86,15 +92,17 @@ Knock-on: onboarding cannot **resume** into `/find-your-fit`. `resolvePostAuthRe
 no way to tell whether a creator finished it, so a creator who abandons at that step is
 treated as fully onboarded on their next sign-in.
 
-### 2.3 Public profiles do not work · [NEEDS A DECISION]
+### 2.3 Public profiles do not work · [DONE — 2026-08-26]
 
-The `profiles` SELECT policy is `auth.uid() = id`, so `/profile/$username` can only ever
-load **your own** profile. Anyone else's returns 0 rows (406) and the page silently falls
-back to the URL username with zeroed counts.
-
-The decision: `profiles` also holds `personal_email`, `personal_phone` and `gender`, and
-RLS is row-level, so a naive public policy exposes those too. The shape that fits is a
-public **view** over the safe columns, like the existing `profile_stats`.
+Fixed with a public **view**, `public_profiles` (migration
+`20260826155813_add_public_profiles_view.sql`) — exposes only `id`, `personal_username`,
+`display_name`, `avatar_url`, `bio`. Same deliberate `SECURITY DEFINER`-style RLS bypass as
+`profile_stats`; `personal_email`, `personal_phone`, `gender`, `referral_source` stay behind
+the row-scoped policy on `profiles` itself. `src/routes/profile.$username.tsx` now queries
+the view instead of `profiles` directly, and `isOwnProfile` (previously hardcoded `true`)
+is a real check against the signed-in session — verified in the browser signed-out,
+against a real account (`/profile/diadem`), with no edit/menu affordances shown and no
+console errors.
 
 ### 2.4 OAuth `state` has no per-session nonce · [NEEDS A DECISION]
 
@@ -109,18 +117,18 @@ cookie the callback checks — i.e. a migration in the import area that is postp
 Nothing in the UI calls these routes yet, so it is not urgent, but it is the most serious
 thing still open.
 
-### 2.5 Stored-XSS fuse in the description editor · [NEEDS A DECISION]
+### 2.5 Stored-XSS fuse in the description editor · [DONE — 2026-08-26]
 
-`src/components/product-form/DescriptionSheet.tsx:96` does `el.innerHTML = value`, and
-lines 137-138 save raw `innerHTML`. No sanitizer exists anywhere in the project.
-
-**Not exploitable today** — nothing renders descriptions back as HTML. The day a product
-page does, a seller can plant a script that steals any buyer's session (which lives in
-localStorage, see 3.6). Two ways to fix it:
-
-- **DOMPurify** — needs a `bunfig.toml` exclusion from the 24h `minimumReleaseAge` guard,
-  which CLAUDE.md says to ask about first; or
-- **a hand-rolled allow-list**, roughly 40 lines, no dependency.
+Fixed with the hand-rolled allow-list option (not DOMPurify, to avoid a `bunfig.toml`
+exclusion) — `src/lib/sanitize-html.ts`. Allow-lists tags the editor's own toolbar can
+actually produce (`b`/`i`/`u`/`p`/`div`/`br`/`ul`/`ol`/`li`/`a`/`span`), drops
+`script`/`style`/`iframe`/`svg`/etc. entirely rather than unwrapping them, strips every
+attribute except a scheme-checked `a[href]` (http/https/mailto only) and the exact
+`text-align` inline style `justifyLeft`/`Center`/`Right` write. Called on both the load
+path (`el.innerHTML = value`) and the save path, so an already-stashed unsanitized draft
+gets cleaned too. Verified against `onclick`, `<img onerror>`, `<script>`, `javascript:`
+hrefs, and disallowed inline styles in a real browser — all neutralized, safe content
+passed through unchanged.
 
 ### 2.6 Two-factor auth · [NEEDS A DECISION]
 
@@ -143,71 +151,77 @@ call, not a bug fix.
 
 ## 3. Small, unblocked
 
-### 3.1 Live username availability · [SMALL]
+### 3.1 Live username availability · [DONE — 2026-08-26]
 
-`/choose-username` only discovers a collision when Continue is pressed, via the unique
-constraint. A debounced RPC would say so as you type.
+Added `is_username_available(check_username)` (migration
+`20260826155757_add_is_username_available_rpc.sql`) — `SECURITY DEFINER`, returns only a
+boolean so it can't leak whether an id exists, excludes the caller's own row via
+`id IS DISTINCT FROM auth.uid()` so re-submitting your current username doesn't self-report
+as taken. `/choose-username` calls it on a 400ms debounce and shows
+Checking/Available/Taken inline; the upsert's unique-constraint error on submit is still
+the authoritative check. Verified directly against the DB (`diadem` → false, an unused name
+→ true).
 
-### 3.2 Change-password UI in settings · [SMALL]
+### 3.2 Change-password UI in settings · [DONE — 2026-08-26]
 
-`/create-password` is the only place a password can be set. The forgot-password route now
-works (sign-in → "Forgot password? Email me a code" → code → `/create-password`), but a
-signed-in user who simply wants to _change_ theirs has nowhere to go.
-`src/routes/settings.tsx` is the home for it.
+`src/routes/settings.tsx` (previously a bare placeholder) now has a Password section that
+adapts its copy for Google-only accounts ("Set a password") vs. accounts that already have
+one ("Change password", which re-verifies the current password via `signInWithPassword`
+before calling `setAccountPassword` — closes the "device left signed in" lockout risk that
+a bare `updateUser` call would have left open). Reuses `checkPassword`/`MIN_PASSWORD_LENGTH`
+and the strength-meter markup from `/create-password`.
 
-### 3.3 A sign-up link on `/sign-in` · [SMALL]
+### 3.3 A sign-up link on `/sign-in` · [DONE]
 
-`/sign-in` is a dead end for someone without an account. It deliberately will not say the
-address is unregistered — that would be an enumeration oracle — so it has to offer a way
-out instead. Waiting on the new `index.tsx`, whose three CTAs are the sign-up path.
+`/sign-in` now has a "Create a new account" link to `/no-account`, and `/no-account`'s
+session-required guard was removed so it works for a signed-out visitor arriving that way,
+not just post-auth.
 
-### 3.4 `AuthPanel` header uses `/favicon.png` · [SMALL]
+### 3.4 `AuthPanel` header uses `/favicon.png` · [DONE — 2026-08-26]
 
-`src/components/onboarding/AuthPanel.tsx` shows the favicon where the landing shows the
-full lockup (`logo-o.png` + "akmonte" + "CREATED TO CREATE."). The `/welcome` screen uses
-the real lockup. Cosmetic, and not a colour change, so it was left alone.
+Now shows `logo-o.png` + "akmonte" (matching the `/welcome` screen's lockup, not the
+landing's larger one with the tagline — same portable Tailwind pattern, no landing-specific
+CSS classes pulled in).
 
 ### 3.5 Fonts do not match the landing · [SMALL]
 
 The landing uses **Archivo Black** for display and **Inter** for body. The onboarding
 routes use **Cormorant Garamond** (`font-serif`) for headings. The last brief was colour
 only, so nothing changed — but the two will read as different products side by side until
-one of them moves.
+one of them moves. Explicitly left alone again on 2026-08-26 — deliberate, not forgotten.
 
 ### 3.6 Session tokens live in localStorage · [BY DESIGN, for now]
 
 Standard for a Supabase SPA, and the reason 2.5 matters. Moving to httpOnly cookies means
 an SSR cookie-auth rewrite across every route. Not worth it before launch; worth knowing.
 
-### 3.7 `product_options`, `product_option_values`, `product_variant_options` · [SMALL]
+### 3.7 `product_options`, `product_option_values`, `product_variant_options` · [FOLDED INTO 1.1]
 
-RLS **on**, 0 policies — so the browser client reads _nothing_ from them, while the flat
-`option1_*` columns on `product_variants` are wide open (1.1). Exactly backwards. Any
-browser-side read of the normalized option tables silently returns empty. Fold this into
-the 1.1 policy pass.
+As of 2026-08-26 these three are actually RLS **disabled** (matching `products`), not
+"RLS on, 0 policies" as this used to say — check `mcp__supabase__get_advisors` rather than
+trusting either version if it matters. Either way, the held 1.1 migration already covers
+all three (`owns_product`/`owns_option`/`owns_variant` helpers), so there's nothing separate
+left to do here.
 
 ---
 
 ## 4. Waiting on the landing page
 
-### 4.1 `index.tsx` ← `OakmonteLanding.tsx`
+### 4.1 `index.tsx` ← `OakmonteLanding.tsx` · [DONE]
 
-The landing gets pasted over `index.tsx` with the three CTAs wired to `/set-up-store`,
-`/become-a-creator`, `/become-a-curator`. Two things must not survive that swap:
+The landing is now `index.tsx`, CTAs wired to `/set-up-store`, `/become-a-creator`,
+`/become-a-curator`. `/no-account` is still live (see 3.3) — kept as the destination for a
+signed-in user with no recorded intent, and as the exit from `/sign-in`'s "Create a new
+account" link, rather than being deleted.
 
-- **`getProfileUsernameFromUser`** (`src/lib/auth.ts`). It is a legacy client-side _guess_
-  at a username from the email address. `index.tsx:39` still calls it for "View profile".
-  Real navigation goes through `resolvePostAuthRedirect`; display names come from
-  `getDisplayNameFromUser`.
-- **`/no-account`** and the standalone sign-up button, both of which disappear with the new
-  landing. `resolvePostAuthRedirect` can still return `/no-account` for a signed-in user
-  with no recorded intent — once the landing lands, that branch needs to point somewhere
-  real.
+### 4.2 `privacy.tsx` and `terms.tsx` · [DONE — 2026-08-26]
 
-### 4.2 `privacy.tsx` and `terms.tsx`
-
-Both use the `brand-*` tokens, so they picked up the new white/black/blue palette
-automatically when the tokens flipped. Neither has been looked at since. Worth an eyeball.
+Eyeballed. Both are in good shape: `brand-*` tokens applied correctly, and every genuinely
+undecided legal/business detail (payment processor name, age policy, fee %, jurisdiction,
+retention period, etc.) is already marked with a visible `Placeholder` component rather
+than invented — that's the right pattern, not a gap to fill in here. One real bug fixed:
+`terms.tsx`'s footer had a dead `<a href="#">` for Privacy instead of a real `Link`
+(`privacy.tsx`'s footer already linked correctly both ways).
 
 ---
 
@@ -227,9 +241,10 @@ automatically when the tokens flipped. Neither has been looked at since. Worth a
 
 ### Not a bug — do not "fix" these
 
-- **`profile_stats` shows as a Supabase advisor ERROR.** It is `SECURITY DEFINER` on
-  purpose and exposes only an id and follower counts — no PII. A false positive for this
-  design, and the same shape 2.3 should use.
+- **`profile_stats` and `public_profiles` show as Supabase advisor ERRORs** (`security_definer_view`).
+  Both are deliberately plain views with no `security_invoker` option, exposing only an id
+  plus non-sensitive columns (follower counts; username/display name/avatar/bio). False
+  positives for this design — see 2.3.
 - **Hard-refreshing `/create/after-shot/studio` drops a pending capture.** Known and
   accepted: the camera handoff is an in-memory module variable because the payload is a
   `Blob` and client-side navigation never reloads the page.

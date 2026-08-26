@@ -4,6 +4,7 @@ import type { ReactElement } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Share2, Search, Menu, Star, X, ChevronRight, Pencil } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
+import { useSession } from "@/hooks/use-session";
 import { BottomNav } from "@/components/BottomNav";
 import { ProfileTabEmptyState } from "@/components/ProfileTabEmptyState";
 
@@ -200,6 +201,7 @@ type ProfileRow = {
 function ProfilePage() {
   const navigate = useNavigate();
   const { username } = useParams({ from: "/profile/$username" });
+  const { user } = useSession();
   const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabKey>("posts");
@@ -212,7 +214,7 @@ function ProfilePage() {
     {} as Record<TabKey, HTMLButtonElement | null>,
   );
 
-  const isOwnProfile = true; // TODO: wire up real check
+  const isOwnProfile = !!user && !!profile && user.id === profile.id;
 
   const tabIndex = TABS.findIndex((t) => t.key === activeTab);
 
@@ -225,29 +227,37 @@ function ProfilePage() {
   useEffect(() => {
     let cancelled = false;
     setProfileLoading(true);
+    // public_profiles, not profiles: profiles' SELECT policy is auth.uid() =
+    // id, so it can only ever return the signed-in user's own row. The view
+    // exposes just the columns this page renders publicly.
     supabase
-      .from("profiles")
+      .from("public_profiles")
       .select("id, personal_username, display_name, avatar_url, bio")
       .eq("personal_username", username)
       .single()
       .then(async ({ data, error }) => {
         if (cancelled) return;
-        if (error || !data) {
+        // id/personal_username are NOT NULL on the base table — the view's
+        // generated type just can't express that for a view's columns.
+        if (error || !data || !data.id || !data.personal_username) {
           setProfileLoading(false);
           return;
         }
+        const { id, personal_username } = data;
 
         // The counts live on the profile_stats view, not on profiles — asking
         // profiles for them makes PostgREST reject the whole select.
         const { data: stats } = await supabase
           .from("profile_stats")
           .select("following_count, followers_count, sold_items_count, rating, rating_count")
-          .eq("id", data.id)
+          .eq("id", id)
           .maybeSingle();
         if (cancelled) return;
 
         setProfile({
           ...data,
+          id,
+          personal_username,
           following_count: stats?.following_count ?? 0,
           followers_count: stats?.followers_count ?? 0,
           sold_items_count: stats?.sold_items_count ?? 0,

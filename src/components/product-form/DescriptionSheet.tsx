@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
 import { useVisibleViewport } from "@/hooks/use-visible-viewport";
+import { sanitizeDescriptionHtml } from "@/lib/sanitize-html";
 
 type FormatState = {
   bold: boolean;
@@ -93,7 +94,10 @@ export function DescriptionSheet({
   useEffect(() => {
     const el = editorRef.current;
     if (!el) return;
-    el.innerHTML = value;
+    // Sanitized on the way in too, not just on save — a draft stashed before
+    // this fix (or restored via product-draft-handoff) could still carry
+    // unsanitized HTML.
+    el.innerHTML = sanitizeDescriptionHtml(value);
 
     el.focus({ preventScroll: true });
     requestAnimationFrame(() => {
@@ -135,7 +139,7 @@ export function DescriptionSheet({
   function handleSave() {
     const el = editorRef.current;
     const html = el && el.textContent?.trim() ? el.innerHTML : "";
-    onSave(html);
+    onSave(sanitizeDescriptionHtml(html));
   }
 
   const activeAlign = ALIGN_OPTIONS.find((o) => formats[o.command]) ?? ALIGN_OPTIONS[0];
