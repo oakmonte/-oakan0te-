@@ -130,7 +130,7 @@ export const Route = createFileRoute("/api/import/csv")({
           platform,
           status: "pending",
           file_path: fileUrl,
-          metadata,
+          metadata: metadata as Json,
         };
 
         const { data: job, error } = await supabase
