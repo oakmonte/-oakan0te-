@@ -4,35 +4,13 @@ import { Search, Plus } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useNavigate } from "@tanstack/react-router";
 import { CreateProductTypeModal } from "@/components/product-form/CreateProductTypeModal";
+import { useActiveStoreId } from "@/hooks/use-own-store";
 
 export const Route = createFileRoute("/store/products")({
   component: StoreProducts,
 });
 
 const TABS = ["All", "Active", "Draft", "Archived"] as const;
-
-// TODO: dev-only. Revert to session-scoped lookup (owner_id = user.id) before launch.
-const DEV_STORE_ID = "4a492d4d-66bd-4d14-a5dc-e6d8d1723023";
-
-async function getDevStoreId(): Promise<{ id: string; bumpa_connected_at: string | null } | null> {
-  const { data: store, error: storeErr } = await supabase
-    .from("stores")
-    .select("id")
-    .eq("id", DEV_STORE_ID)
-    .single();
-  if (storeErr || !store) {
-    console.error("getDevStoreId failed:", storeErr?.message, storeErr?.code);
-    return null;
-  }
-
-  const { data: creds } = await supabase
-    .from("store_credentials")
-    .select("bumpa_connected_at")
-    .eq("store_id", store.id)
-    .maybeSingle();
-
-  return { id: store.id, bumpa_connected_at: creds?.bumpa_connected_at ?? null };
-}
 
 type ProductRow = {
   id: string;
@@ -48,25 +26,12 @@ type ProductRow = {
 
 function StoreProducts() {
   const navigate = useNavigate();
-  const [storeId, setStoreId] = useState<string | null>(null);
-  const [storeLoading, setStoreLoading] = useState(true);
+  const { storeId, loading: storeLoading } = useActiveStoreId();
 
   const [activeTab, setActiveTab] = useState<(typeof TABS)[number]>("All");
   const [search, setSearch] = useState("");
   const [products, setProducts] = useState<ProductRow[]>([]);
   const [listLoading, setListLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-    getDevStoreId().then((store) => {
-      if (cancelled) return;
-      if (store) setStoreId(store.id);
-      setStoreLoading(false);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const fetchProducts = useCallback(async () => {
     if (!storeId) return;
@@ -91,11 +56,7 @@ function StoreProducts() {
 
   if (storeLoading) return <div className="px-4 py-8 text-sm text-gray-400">Loading…</div>;
   if (!storeId)
-    return (
-      <div className="px-4 py-8 text-sm text-gray-400">
-        No store found yet — create one in Supabase to test against.
-      </div>
-    );
+    return <div className="px-4 py-8 text-sm text-gray-400">No store found on this account.</div>;
 
   return (
     <div className="px-4 py-5">

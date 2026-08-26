@@ -2,10 +2,6 @@ import { useEffect, useState } from "react";
 import { X, Search, ImageIcon, Check, Plus } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 
-// TODO: dev-only, matches store.products_.new.tsx / store.products.tsx.
-// Revert before launch.
-const DEV_STORE_ID = "4a492d4d-66bd-4d14-a5dc-e6d8d1723023";
-
 type CollectionRow = {
   id: string;
   title: string;
@@ -16,11 +12,13 @@ type CollectionRow = {
 // Picker for *existing* collections only — creating one happens on its own
 // route (see the empty-state CTA below), not inline in this sheet.
 export function CollectionsSheet({
+  storeId,
   selectedIds,
   onDone,
   onClose,
   onCreateNew,
 }: {
+  storeId: string;
   selectedIds: string[];
   onDone: (ids: string[]) => void;
   onClose: () => void;
@@ -36,7 +34,7 @@ export function CollectionsSheet({
       const { data: cols } = await supabase
         .from("collections")
         .select("id, title, image_url")
-        .eq("store_id", DEV_STORE_ID)
+        .eq("store_id", storeId)
         .order("created_at", { ascending: false });
       if (cancelled) return;
 
@@ -58,7 +56,7 @@ export function CollectionsSheet({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [storeId]);
 
   function toggle(id: string) {
     setSelected((prev) => {

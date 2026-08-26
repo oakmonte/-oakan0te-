@@ -24,13 +24,11 @@ import {
   takeProductDraft,
   takePendingNewCollectionId,
 } from "@/lib/product-draft-handoff";
+import { useActiveStoreId } from "@/hooks/use-own-store";
 
 export const Route = createFileRoute("/store/products_/new")({
   component: NewProduct,
 });
-
-// TODO: dev-only, matches store.products.tsx. Revert before launch.
-const DEV_STORE_ID = "4a492d4d-66bd-4d14-a5dc-e6d8d1723023";
 
 function slugify(title: string) {
   return (
@@ -48,6 +46,7 @@ type ProductKind = "regular" | "variant";
 
 function NewProduct() {
   const navigate = useNavigate();
+  const { storeId } = useActiveStoreId();
 
   // Restoring a draft stashed before a side-trip to create a collection — see
   // handleCreateCollection below. Read once via lazy initializers so every
@@ -136,6 +135,10 @@ function NewProduct() {
   }
 
   async function handleSave() {
+    if (!storeId) {
+      setError("No store found on this account");
+      return;
+    }
     if (!title.trim()) {
       setError("Title is required");
       return;
@@ -169,7 +172,7 @@ function NewProduct() {
     const { data: product, error: productErr } = await supabase
       .from("products")
       .insert({
-        store_id: DEV_STORE_ID,
+        store_id: storeId,
         handle: slugify(title),
         title: title.trim(),
         description_short: descriptionShort.trim() || null,
@@ -464,8 +467,9 @@ function NewProduct() {
         />
       )}
 
-      {collectionsSheetOpen && (
+      {collectionsSheetOpen && storeId && (
         <CollectionsSheet
+          storeId={storeId}
           selectedIds={collectionIds}
           onDone={(ids) => {
             setCollectionIds(ids);
@@ -476,8 +480,9 @@ function NewProduct() {
         />
       )}
 
-      {tagsSheetOpen && (
+      {tagsSheetOpen && storeId && (
         <TagsSheet
+          storeId={storeId}
           selectedIds={tagIds}
           onToggle={toggleTag}
           onClose={() => setTagsSheetOpen(false)}
@@ -530,7 +535,7 @@ function NewProduct() {
         <button
           type="button"
           onClick={handleSave}
-          disabled={saving}
+          disabled={saving || !storeId}
           className="w-full bg-black text-white text-sm font-semibold rounded-full py-4 disabled:opacity-50 oak-motion-control active:scale-[0.98]"
         >
           {saving ? "Saving…" : "Save Product"}

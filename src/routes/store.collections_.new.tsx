@@ -5,14 +5,11 @@ import { supabase } from "@/lib/integrations/my-supabase/client";
 import { MediaSection } from "@/components/product-form/MediaSection";
 import { DescriptionSheet } from "@/components/product-form/DescriptionSheet";
 import { hasPendingProductDraft, setPendingNewCollectionId } from "@/lib/product-draft-handoff";
+import { useActiveStoreId } from "@/hooks/use-own-store";
 
 export const Route = createFileRoute("/store/collections_/new")({
   component: NewCollection,
 });
-
-// TODO: dev-only, matches store.products_.new.tsx / store.products.tsx.
-// Revert before launch.
-const DEV_STORE_ID = "4a492d4d-66bd-4d14-a5dc-e6d8d1723023";
 
 function stripHtml(html: string) {
   return html
@@ -23,6 +20,7 @@ function stripHtml(html: string) {
 
 function NewCollection() {
   const navigate = useNavigate();
+  const { storeId } = useActiveStoreId();
 
   const [imageUrl, setImageUrl] = useState("");
   const [title, setTitle] = useState("");
@@ -38,6 +36,10 @@ function NewCollection() {
   const returnTo = hasPendingProductDraft() ? "/store/products/new" : "/store/products";
 
   async function handleSave() {
+    if (!storeId) {
+      setError("No store found on this account");
+      return;
+    }
     if (!title.trim()) {
       setError("Title is required");
       return;
@@ -49,7 +51,7 @@ function NewCollection() {
     const { data: created, error: insertErr } = await supabase
       .from("collections")
       .insert({
-        store_id: DEV_STORE_ID,
+        store_id: storeId,
         title: title.trim(),
         description: description.trim() || null,
         image_url: imageUrl.trim() || null,
@@ -84,7 +86,7 @@ function NewCollection() {
         <span className="font-semibold text-[15px]">New Collection</span>
         <button
           onClick={handleSave}
-          disabled={saving}
+          disabled={saving || !storeId}
           type="button"
           className="text-sm font-medium text-black disabled:text-gray-300"
         >

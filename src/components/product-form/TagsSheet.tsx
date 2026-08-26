@@ -2,20 +2,18 @@ import { useEffect, useState } from "react";
 import { ArrowUpDown, Check, MoreHorizontal, Search, X } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 
-// TODO: dev-only, matches store.products_.new.tsx / store.products.tsx.
-// Revert before launch.
-const DEV_STORE_ID = "4a492d4d-66bd-4d14-a5dc-e6d8d1723023";
-
 type TagRow = { id: string; title: string };
 
 // Selection here is live — every tap calls onToggle straight through to the
 // parent's tagIds state, so there's no separate Save step. Closing the sheet
 // never discards anything; it's just leaving the picker.
 export function TagsSheet({
+  storeId,
   selectedIds,
   onToggle,
   onClose,
 }: {
+  storeId: string;
   selectedIds: string[];
   onToggle: (id: string) => void;
   onClose: () => void;
@@ -33,14 +31,14 @@ export function TagsSheet({
       const { data } = await supabase
         .from("tags")
         .select("id, title")
-        .eq("store_id", DEV_STORE_ID)
+        .eq("store_id", storeId)
         .order("title", { ascending: true });
       if (!cancelled) setTags(data ?? []);
     })();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [storeId]);
 
   const selected = new Set(selectedIds);
   const q = query.trim().toLowerCase();
@@ -60,7 +58,7 @@ export function TagsSheet({
     setCreating(true);
     const { data: created, error } = await supabase
       .from("tags")
-      .insert({ store_id: DEV_STORE_ID, title })
+      .insert({ store_id: storeId, title })
       .select("id, title")
       .single();
     setCreating(false);

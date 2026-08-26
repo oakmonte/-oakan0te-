@@ -1,9 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
-
-// TODO: dev-only, matches store.products.tsx / store.collections_.new.tsx. Revert to
-// session-scoped lookup (owner_id = user.id) before launch.
-const DEV_STORE_ID = "4a492d4d-66bd-4d14-a5dc-e6d8d1723023";
+import { useActiveStoreId } from "@/hooks/use-own-store";
 
 export type PreviewTile = {
   id: string;
@@ -16,10 +13,17 @@ export type PreviewTile = {
 // fall back to fictional demo content whenever this comes back empty — that
 // fallback is the caller's job, this hook just reports what it found.
 export function useThemePreviewCatalog(mode: "collections" | "products") {
+  const { storeId, loading: storeLoading } = useActiveStoreId();
   const [tiles, setTiles] = useState<PreviewTile[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (storeLoading) return;
+    if (!storeId) {
+      setTiles([]);
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
     setLoading(true);
 
@@ -28,7 +32,7 @@ export function useThemePreviewCatalog(mode: "collections" | "products") {
         const { data, error } = await supabase
           .from("collections")
           .select("id, title, image_url")
-          .eq("store_id", DEV_STORE_ID)
+          .eq("store_id", storeId)
           .limit(4);
         if (cancelled) return;
         setTiles(
@@ -40,7 +44,7 @@ export function useThemePreviewCatalog(mode: "collections" | "products") {
         const { data, error } = await supabase
           .from("products")
           .select("id, title, product_variants(main_image_url, price)")
-          .eq("store_id", DEV_STORE_ID)
+          .eq("store_id", storeId)
           .limit(4);
         if (cancelled) return;
         setTiles(
@@ -60,7 +64,7 @@ export function useThemePreviewCatalog(mode: "collections" | "products") {
     return () => {
       cancelled = true;
     };
-  }, [mode]);
+  }, [mode, storeId, storeLoading]);
 
   return { tiles, loading };
 }
