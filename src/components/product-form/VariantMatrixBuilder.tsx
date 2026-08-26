@@ -3,6 +3,7 @@ import { Plus, ChevronRight } from "lucide-react";
 import { OptionEditorSheet } from "./OptionEditorSheet";
 import { VariantListSheet } from "./VariantListSheet";
 import { VariantCombinationsSheet } from "./VariantCombinationsSheet";
+import { cartesian, buildKey } from "./variant-combinations";
 
 export type VariantOption = { name: string; values: string[] };
 export type VariantOptionValue = { name: string; value: string };
@@ -18,38 +19,20 @@ export type VariantRow = {
   stockQty: string;
   sku: string;
   mainImageUrl: string;
+  // Columns this form has no UI for yet (importers write them — see
+  // canonical-product-schema — this form doesn't). Optional and untouched by
+  // anything here; the edit page round-trips them so opening an imported
+  // product in the editor and hitting Save doesn't silently drop them.
+  barcode?: string | null;
+  material?: string | null;
+  materialFeel?: string | null;
+  weightGrams?: number | null;
+  additionalImageUrls?: string[] | null;
 };
 
-// Matches Shopify's ceiling. Without a cap, six modest options would try to
-// render tens of thousands of rows and lock up the page.
-export const MAX_COMBINATIONS = 2048;
-
-// Generous rather than unlimited — the combination cap above is the real
-// guard, this just keeps the option list itself sane.
+// Generous rather than unlimited — variant-combinations.ts's MAX_COMBINATIONS
+// is the real guard, this just keeps the option list itself sane.
 export const MAX_OPTIONS = 8;
-
-function buildKey(combo: VariantOptionValue[]) {
-  return combo.map((o) => o.value).join("|");
-}
-
-// N-way cartesian product — any number of options, not just two.
-function cartesian(options: VariantOption[]): VariantOptionValue[][] {
-  const usable = options.filter((o) => o.name.trim() && o.values.length > 0);
-  if (usable.length === 0) return [];
-
-  let combos: VariantOptionValue[][] = [[]];
-  for (const opt of usable) {
-    const next: VariantOptionValue[][] = [];
-    for (const combo of combos) {
-      for (const value of opt.values) {
-        next.push([...combo, { name: opt.name, value }]);
-        if (next.length >= MAX_COMBINATIONS) return next;
-      }
-    }
-    combos = next;
-  }
-  return combos;
-}
 
 // The variant-building flow is a small wizard once at least one option
 // exists: the inline row just opens it back up rather than rendering the

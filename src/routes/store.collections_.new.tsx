@@ -4,7 +4,11 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { MediaSection } from "@/components/product-form/MediaSection";
 import { DescriptionSheet } from "@/components/product-form/DescriptionSheet";
-import { hasPendingProductDraft, setPendingNewCollectionId } from "@/lib/product-draft-handoff";
+import {
+  hasPendingProductDraft,
+  peekPendingProductDraftId,
+  setPendingNewCollectionId,
+} from "@/lib/product-draft-handoff";
 import { useActiveStoreId } from "@/hooks/use-own-store";
 
 export const Route = createFileRoute("/store/collections_/new")({
@@ -30,10 +34,18 @@ function NewCollection() {
   const [error, setError] = useState("");
 
   const hasDescription = stripHtml(description).length > 0;
-  // Reached from the new-product form's Collections picker — return there
-  // (with the draft it stashed) instead of the products list, both on save
-  // and on cancel, so the in-progress listing isn't lost.
-  const returnTo = hasPendingProductDraft() ? "/store/products/new" : "/store/products";
+  // Reached from the new-product OR the edit-product form's Collections
+  // picker — return to whichever one stashed a draft (with it intact) instead
+  // of the products list, both on save and on cancel, so the in-progress
+  // listing isn't lost. peekPendingProductDraftId (not takeProductDraft) is
+  // deliberate: only the destination page should consume the draft, this is
+  // just reading where "destination" is.
+  const editingProductId = peekPendingProductDraftId();
+  const returnTo = hasPendingProductDraft()
+    ? editingProductId
+      ? `/store/products/${editingProductId}`
+      : "/store/products/new"
+    : "/store/products";
 
   async function handleSave() {
     if (!storeId) {
@@ -65,7 +77,9 @@ function NewCollection() {
       return;
     }
 
-    if (returnTo === "/store/products/new") {
+    // Both destinations restore collectionIds off the stashed draft, then
+    // append this one before rendering — same handoff either way.
+    if (hasPendingProductDraft()) {
       setPendingNewCollectionId(created.id);
     }
 

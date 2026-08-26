@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useCallback } from "react";
-import { Search, Plus } from "lucide-react";
+import { Search, Plus, Upload } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useNavigate } from "@tanstack/react-router";
 import { CreateProductTypeModal } from "@/components/product-form/CreateProductTypeModal";
@@ -10,13 +10,18 @@ export const Route = createFileRoute("/store/products")({
   component: StoreProducts,
 });
 
-const TABS = ["All", "Active", "Draft", "Archived"] as const;
+// "Uploaded" isn't a status like the other three — it's every product whose
+// source_platform isn't "manual" (csv/shopify/bumpa import), regardless of
+// draft/active. Filtered separately below rather than folded into the status
+// column.
+const TABS = ["All", "Active", "Draft", "Archived", "Uploaded"] as const;
 
 type ProductRow = {
   id: string;
   title: string | null;
   status: string;
   product_type: string | null;
+  source_platform: string | null;
   product_variants: {
     price: number | null;
     stock_qty: number | null;
@@ -38,11 +43,14 @@ function StoreProducts() {
     setListLoading(true);
     let query = supabase
       .from("products")
-      .select("id, title, status, product_type, product_variants(price, stock_qty, main_image_url)")
+      .select(
+        "id, title, status, product_type, source_platform, product_variants(price, stock_qty, main_image_url)",
+      )
       .eq("store_id", storeId)
       .order("created_at", { ascending: false });
 
-    if (activeTab !== "All") query = query.eq("status", activeTab.toLowerCase());
+    if (activeTab === "Uploaded") query = query.not("source_platform", "eq", "manual");
+    else if (activeTab !== "All") query = query.eq("status", activeTab.toLowerCase());
     if (search.trim()) query = query.ilike("title", `%${search.trim()}%`);
 
     const { data, error } = await query;
@@ -72,7 +80,15 @@ function StoreProducts() {
           />
         </div>
         <button
+          onClick={() => navigate({ to: "/store/products/upload" })}
+          aria-label="Upload products"
+          className="p-2 rounded-lg bg-gray-100 text-gray-700 oak-motion-control active:scale-90"
+        >
+          <Upload size={16} />
+        </button>
+        <button
           onClick={() => navigate({ to: "/store/products/new" })}
+          aria-label="Add product"
           className="p-2 rounded-lg bg-black text-white oak-motion-control active:scale-90"
         >
           <Plus size={16} />
@@ -101,30 +117,34 @@ function StoreProducts() {
         <div className="flex flex-col gap-3 animate-in fade-in duration-300">
           {products.map((p) => {
             const v = p.product_variants[0];
+            const imported = p.source_platform && p.source_platform !== "manual";
             return (
-              <div
+              <button
                 key={p.id}
-                className="flex items-center gap-3 border border-gray-100 rounded-xl p-3"
+                type="button"
+                onClick={() => navigate({ to: "/store/products/$id", params: { id: p.id } })}
+                className="w-full flex items-center gap-3 border border-gray-100 rounded-xl p-3 text-left oak-motion-control active:scale-[0.99]"
               >
                 <img
                   src={v?.main_image_url ?? "https://placehold.co/64x64"}
-                  className="w-14 h-14 rounded-lg object-cover bg-gray-100"
+                  className="w-14 h-14 rounded-lg object-cover bg-gray-100 shrink-0"
                   alt=""
                 />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{p.title ?? "Untitled"}</p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-500 truncate">
                     {v?.price != null ? `₦${v.price.toLocaleString()}` : "No price"} ·{" "}
                     {v?.stock_qty ?? 0} in stock
                     {p.product_variants.length > 1
                       ? ` · ${p.product_variants.length} variants`
                       : ""}
+                    {imported ? ` · via ${p.source_platform}` : ""}
                   </p>
                 </div>
-                <span className="text-[11px] px-2 py-1 rounded-full bg-gray-100 text-gray-500 capitalize">
+                <span className="text-[11px] px-2 py-1 rounded-full bg-gray-100 text-gray-500 capitalize shrink-0">
                   {p.status}
                 </span>
-              </div>
+              </button>
             );
           })}
         </div>

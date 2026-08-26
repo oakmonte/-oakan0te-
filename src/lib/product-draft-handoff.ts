@@ -7,6 +7,10 @@ import { VariantOption, VariantRow } from "@/components/product-form/VariantMatr
 import { ManualSize, SizeMeasurements } from "@/lib/size-chart-config";
 
 export type ProductDraft = {
+  // Set only when the draft was stashed from the edit page, not the new-product
+  // page — the collection side-trip needs to know which screen to return to,
+  // and whether to UPDATE that product's row instead of creating one.
+  productId?: string;
   kind: "regular" | "variant";
   status: "draft" | "active";
   mainImageUrl: string;
@@ -40,6 +44,13 @@ export function takeProductDraft(): ProductDraft | null {
 
 export function hasPendingProductDraft() {
   return pendingDraft !== null;
+}
+
+/** Peeks the stashed draft's productId without consuming the draft — lets the
+ *  collections page decide where "back" goes before the destination page
+ *  itself calls takeProductDraft(). */
+export function peekPendingProductDraftId(): string | null {
+  return pendingDraft?.productId ?? null;
 }
 
 export function setPendingNewCollectionId(id: string) {

@@ -59,8 +59,10 @@ import { Route as CreateAfterShotIndexRouteImport } from './routes/create.after-
 import { Route as CreateAfterShotFiltersRouteImport } from './routes/create.after-shot.filters'
 import { Route as CreateAfterShotStudioRouteImport } from './routes/create.after-shot.studio'
 import { Route as StoreCollectionsNewRouteImport } from './routes/store.collections_.new'
+import { Route as StoreProductsIdRouteImport } from './routes/store.products_.$id'
 import { Route as StoreProductsNewRouteImport } from './routes/store.products_.new'
 import { Route as StoreProductsNewcomerRouteImport } from './routes/store.products_.newcomer'
+import { Route as StoreProductsUploadRouteImport } from './routes/store.products_.upload'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -312,6 +314,11 @@ const StoreCollectionsNewRoute = StoreCollectionsNewRouteImport.update({
   path: '/collections/new',
   getParentRoute: () => StoreRoute,
 } as any)
+const StoreProductsIdRoute = StoreProductsIdRouteImport.update({
+  id: '/products_/$id',
+  path: '/products/$id',
+  getParentRoute: () => StoreRoute,
+} as any)
 const StoreProductsNewRoute = StoreProductsNewRouteImport.update({
   id: '/products_/new',
   path: '/products/new',
@@ -320,6 +327,11 @@ const StoreProductsNewRoute = StoreProductsNewRouteImport.update({
 const StoreProductsNewcomerRoute = StoreProductsNewcomerRouteImport.update({
   id: '/products_/newcomer',
   path: '/products/newcomer',
+  getParentRoute: () => StoreRoute,
+} as any)
+const StoreProductsUploadRoute = StoreProductsUploadRouteImport.update({
+  id: '/products_/upload',
+  path: '/products/upload',
   getParentRoute: () => StoreRoute,
 } as any)
 
@@ -373,8 +385,10 @@ export interface FileRoutesByFullPath {
   '/create/after-shot/filters': typeof CreateAfterShotFiltersRoute
   '/create/after-shot/studio': typeof CreateAfterShotStudioRoute
   '/store/collections/new': typeof StoreCollectionsNewRoute
+  '/store/products/$id': typeof StoreProductsIdRoute
   '/store/products/new': typeof StoreProductsNewRoute
   '/store/products/newcomer': typeof StoreProductsNewcomerRoute
+  '/store/products/upload': typeof StoreProductsUploadRoute
   '/create/after-shot/': typeof CreateAfterShotIndexRoute
 }
 export interface FileRoutesByTo {
@@ -424,8 +438,10 @@ export interface FileRoutesByTo {
   '/create/after-shot/filters': typeof CreateAfterShotFiltersRoute
   '/create/after-shot/studio': typeof CreateAfterShotStudioRoute
   '/store/collections/new': typeof StoreCollectionsNewRoute
+  '/store/products/$id': typeof StoreProductsIdRoute
   '/store/products/new': typeof StoreProductsNewRoute
   '/store/products/newcomer': typeof StoreProductsNewcomerRoute
+  '/store/products/upload': typeof StoreProductsUploadRoute
   '/create/after-shot': typeof CreateAfterShotIndexRoute
 }
 export interface FileRoutesById {
@@ -479,8 +495,10 @@ export interface FileRoutesById {
   '/create/after-shot/filters': typeof CreateAfterShotFiltersRoute
   '/create/after-shot/studio': typeof CreateAfterShotStudioRoute
   '/store/collections_/new': typeof StoreCollectionsNewRoute
+  '/store/products_/$id': typeof StoreProductsIdRoute
   '/store/products_/new': typeof StoreProductsNewRoute
   '/store/products_/newcomer': typeof StoreProductsNewcomerRoute
+  '/store/products_/upload': typeof StoreProductsUploadRoute
   '/create/after-shot/': typeof CreateAfterShotIndexRoute
 }
 export interface FileRouteTypes {
@@ -535,8 +553,10 @@ export interface FileRouteTypes {
     | '/create/after-shot/filters'
     | '/create/after-shot/studio'
     | '/store/collections/new'
+    | '/store/products/$id'
     | '/store/products/new'
     | '/store/products/newcomer'
+    | '/store/products/upload'
     | '/create/after-shot/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -586,8 +606,10 @@ export interface FileRouteTypes {
     | '/create/after-shot/filters'
     | '/create/after-shot/studio'
     | '/store/collections/new'
+    | '/store/products/$id'
     | '/store/products/new'
     | '/store/products/newcomer'
+    | '/store/products/upload'
     | '/create/after-shot'
   id:
     | '__root__'
@@ -640,8 +662,10 @@ export interface FileRouteTypes {
     | '/create/after-shot/filters'
     | '/create/after-shot/studio'
     | '/store/collections_/new'
+    | '/store/products_/$id'
     | '/store/products_/new'
     | '/store/products_/newcomer'
+    | '/store/products_/upload'
     | '/create/after-shot/'
   fileRoutesById: FileRoutesById
 }
@@ -1035,6 +1059,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StoreCollectionsNewRouteImport
       parentRoute: typeof StoreRoute
     }
+    '/store/products_/$id': {
+      id: '/store/products_/$id'
+      path: '/products/$id'
+      fullPath: '/store/products/$id'
+      preLoaderRoute: typeof StoreProductsIdRouteImport
+      parentRoute: typeof StoreRoute
+    }
     '/store/products_/new': {
       id: '/store/products_/new'
       path: '/products/new'
@@ -1047,6 +1078,13 @@ declare module '@tanstack/react-router' {
       path: '/products/newcomer'
       fullPath: '/store/products/newcomer'
       preLoaderRoute: typeof StoreProductsNewcomerRouteImport
+      parentRoute: typeof StoreRoute
+    }
+    '/store/products_/upload': {
+      id: '/store/products_/upload'
+      path: '/products/upload'
+      fullPath: '/store/products/upload'
+      preLoaderRoute: typeof StoreProductsUploadRouteImport
       parentRoute: typeof StoreRoute
     }
   }
@@ -1092,8 +1130,10 @@ interface StoreRouteChildren {
   StoreThemeRoute: typeof StoreThemeRoute
   StoreIndexRoute: typeof StoreIndexRoute
   StoreCollectionsNewRoute: typeof StoreCollectionsNewRoute
+  StoreProductsIdRoute: typeof StoreProductsIdRoute
   StoreProductsNewRoute: typeof StoreProductsNewRoute
   StoreProductsNewcomerRoute: typeof StoreProductsNewcomerRoute
+  StoreProductsUploadRoute: typeof StoreProductsUploadRoute
 }
 
 const StoreRouteChildren: StoreRouteChildren = {
@@ -1107,8 +1147,10 @@ const StoreRouteChildren: StoreRouteChildren = {
   StoreThemeRoute: StoreThemeRoute,
   StoreIndexRoute: StoreIndexRoute,
   StoreCollectionsNewRoute: StoreCollectionsNewRoute,
+  StoreProductsIdRoute: StoreProductsIdRoute,
   StoreProductsNewRoute: StoreProductsNewRoute,
   StoreProductsNewcomerRoute: StoreProductsNewcomerRoute,
+  StoreProductsUploadRoute: StoreProductsUploadRoute,
 }
 
 const StoreRouteWithChildren = StoreRoute._addFileChildren(StoreRouteChildren)
