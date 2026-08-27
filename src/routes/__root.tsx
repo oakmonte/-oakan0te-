@@ -4,6 +4,7 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -153,6 +154,24 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+
+  // The seller dashboard (/store, /store/*) is white — everywhere else on
+  // the site (profile, the public storefront at /store-profile/*, etc.) is
+  // deliberately black at the scroll-bounce/toolbar edges (see the
+  // html/body rule in styles.css). That rule is global, so it has to be
+  // overridden per-route here rather than in the dashboard's own layout:
+  // several /store/* routes (store.products_.new.tsx and friends) escape
+  // the store layout's <Outlet /> entirely via the trailing-underscore
+  // convention (see routes/README.md) and would never see a layout-scoped
+  // effect. `/store-profile/...` starts with "/store" as a string but isn't
+  // part of the dashboard, hence the explicit second check below.
+  useEffect(() => {
+    const isStoreDashboard = pathname === "/store" || pathname.startsWith("/store/");
+    const bg = isStoreDashboard ? "#fff" : "";
+    document.documentElement.style.backgroundColor = bg;
+    document.body.style.backgroundColor = bg;
+  }, [pathname]);
 
   return (
     <QueryClientProvider client={queryClient}>

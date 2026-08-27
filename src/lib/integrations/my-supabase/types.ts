@@ -59,6 +59,7 @@ export type Database = {
           id: string
           measurements_cm: Json | null
           owner_id: string
+          styles: string[] | null
           weight_kg: number | null
         }
         Insert: {
@@ -70,6 +71,7 @@ export type Database = {
           id?: string
           measurements_cm?: Json | null
           owner_id: string
+          styles?: string[] | null
           weight_kg?: number | null
         }
         Update: {
@@ -81,6 +83,7 @@ export type Database = {
           id?: string
           measurements_cm?: Json | null
           owner_id?: string
+          styles?: string[] | null
           weight_kg?: number | null
         }
         Relationships: [
@@ -117,6 +120,7 @@ export type Database = {
           id: string
           measurements_cm: Json | null
           owner_id: string
+          styles: string[] | null
           weight_kg: number | null
         }
         Insert: {
@@ -128,6 +132,7 @@ export type Database = {
           id?: string
           measurements_cm?: Json | null
           owner_id: string
+          styles?: string[] | null
           weight_kg?: number | null
         }
         Update: {
@@ -139,6 +144,7 @@ export type Database = {
           id?: string
           measurements_cm?: Json | null
           owner_id?: string
+          styles?: string[] | null
           weight_kg?: number | null
         }
         Relationships: [

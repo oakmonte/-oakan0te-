@@ -10,6 +10,14 @@ export const Route = createFileRoute("/store/")({
   component: StoreHome,
 });
 
+function StepNumber({ n }: { n: number }) {
+  return (
+    <span className="w-5 h-5 rounded-full bg-gray-900 text-white text-[11px] font-medium flex items-center justify-center shrink-0 mt-0.5">
+      {n}
+    </span>
+  );
+}
+
 function StoreHome() {
   const { storeId } = useActiveStoreId();
   const [payoutSet, setPayoutSet] = useState(false);
@@ -87,19 +95,12 @@ function StoreHome() {
     setLocationSheetOpen(false);
   }
 
-  const cards = [
+  const linkCards = [
     {
-      label: "Pick a store theme",
-      description: "Choose how your store should look like.",
-      to: "/store/theme",
-      icon: Palette,
-      badge: false,
-    },
-    {
-      label: "Set up payments",
+      label: "Get paid",
       description: payoutSet
         ? "Payout account added — pending verification."
-        : "Add your payout details so you can get paid.",
+        : "Add your bank account details so you can get paid.",
       to: "/store/finance",
       icon: Wallet,
       badge: payoutSet,
@@ -111,7 +112,14 @@ function StoreHome() {
       icon: Package,
       badge: false,
     },
-  ];
+    {
+      label: "Pick a store theme",
+      description: "Choose how your store should look like.",
+      to: "/store/theme",
+      icon: Palette,
+      badge: false,
+    },
+  ] as const;
 
   return (
     <div className="px-4 py-6">
@@ -119,12 +127,13 @@ function StoreHome() {
       <p className="text-sm text-gray-500 mb-6">What do you want to work on next?</p>
 
       <div className="flex flex-col gap-3">
-        {cards.map(({ label, description, to, icon: Icon, badge }) => (
+        {linkCards.map(({ label, description, to, icon: Icon, badge }, i) => (
           <Link
             key={to}
             to={to}
             className="flex items-start gap-3 border border-gray-200 rounded-2xl p-4 hover:bg-gray-50 oak-motion-control"
           >
+            <StepNumber n={i + 1} />
             <div className="p-2 rounded-full bg-gray-100 relative">
               <Icon size={18} />
               {badge && (
@@ -143,6 +152,7 @@ function StoreHome() {
           onClick={() => setLocationSheetOpen(true)}
           className="flex items-start gap-3 border border-gray-200 rounded-2xl p-4 hover:bg-gray-50 oak-motion-control text-left"
         >
+          <StepNumber n={linkCards.length + 1} />
           <div className="p-2 rounded-full bg-gray-100 relative">
             <MapPin size={18} />
             {pickupSet && (

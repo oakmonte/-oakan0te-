@@ -157,9 +157,14 @@ const iconColumnLeft = (size: number) => ICON_COLUMN_CENTER_X - size / 2;
 const CAPTURE_ROW_BOTTOM = ROW_EDGE + 25;
 const CAPTURE_ROW_TOP = CAPTURE_ROW_BOTTOM + CAPTURE_SIZE;
 
-// Bottom-most of the three left-column icons (flash top, rotate middle,
-// gallery bottom).
-const GALLERY_ICON_BOTTOM = ROW_EDGE + -3;
+// The three left-column icons (gallery bottom, rotate middle, flash top),
+// spaced by one shared gap regardless of their differing heights — rotate is
+// the anchor (its position is unchanged from before), flash sits one gap
+// above it, and gallery sits one gap below it.
+const ICON_COLUMN_GAP = 12;
+const ROTATE_BOTTOM = CAPTURE_ROW_BOTTOM + (CAPTURE_SIZE - ROTATE_SIZE) / 2;
+const FLASH_TOGGLE_BOTTOM = ROTATE_BOTTOM + ROTATE_SIZE + ICON_COLUMN_GAP;
+const GALLERY_ICON_BOTTOM = ROTATE_BOTTOM - ICON_COLUMN_GAP - GALLERY_ICON_SIZE;
 
 // Gap between the mode toggle's bottom edge and the filter strip's top edge.
 const MODE_PILL_GAP = 8;
@@ -1257,7 +1262,7 @@ function CreatePage() {
         style={{
           zIndex: 3,
           left: iconColumnLeft(ROTATE_SIZE),
-          bottom: `calc(env(safe-area-inset-bottom) + ${CAPTURE_ROW_BOTTOM + (CAPTURE_SIZE - ROTATE_SIZE) / 2}px)`,
+          bottom: `calc(env(safe-area-inset-bottom) + ${ROTATE_BOTTOM}px)`,
           width: ROTATE_SIZE,
           height: ROTATE_SIZE,
           background: "rgba(255,255,255,0.10)",
@@ -1276,7 +1281,7 @@ function CreatePage() {
         style={{
           zIndex: 3,
           left: iconColumnLeft(FLASH_TOGGLE_SIZE),
-          bottom: `calc(env(safe-area-inset-bottom) + ${CAPTURE_ROW_BOTTOM + (CAPTURE_SIZE - ROTATE_SIZE) / 2 + ROTATE_SIZE + 12}px)`,
+          bottom: `calc(env(safe-area-inset-bottom) + ${FLASH_TOGGLE_BOTTOM}px)`,
           width: FLASH_TOGGLE_SIZE,
           height: FLASH_TOGGLE_SIZE,
           background: flashOn ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.10)",

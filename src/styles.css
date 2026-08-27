@@ -379,14 +379,21 @@
     background-color: #000;
   }
 
-  /* Mobile-first app, not a document — the page's own vertical scrollbar
-     track has no place here, same reasoning as .no-scrollbar above but for
-     the whole document instead of one horizontal row. */
-  html {
+  /* Mobile-first app, not a document — no scroll container here (page,
+     bottom sheet, dropdown, whatever) should show a native scrollbar track.
+     Same reasoning as the old .no-scrollbar utility, just applied once,
+     everywhere, instead of per-element — nothing in this codebase turned out
+     to actually rely on a visible one (checked: no CLAUDE.md/skill note, no
+     comment, and the one place that looked deliberate — find-your-fit.tsx's
+     `scrollbar-thin` — turned out to be a dead class with no plugin or rule
+     backing it, not an intentional exception). Radix's ScrollArea component
+     (components/ui/scroll-area.tsx) is unaffected either way — it draws its
+     own thumb with divs rather than the native scrollbar this rule hides. */
+  * {
     scrollbar-width: none; /* Firefox */
     -ms-overflow-style: none; /* old Edge */
   }
-  html::-webkit-scrollbar {
+  *::-webkit-scrollbar {
     display: none; /* Chrome, Safari */
   }
 

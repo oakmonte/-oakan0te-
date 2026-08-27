@@ -18,6 +18,10 @@ import { useSession } from "@/hooks/use-session";
 import { useActiveStore } from "@/hooks/use-own-store";
 
 export const Route = createFileRoute("/store")({
+  // Overrides root's #000000 theme-color for the whole dashboard (this
+  // covers the trailing-underscore routes too — see __root.tsx's comment on
+  // why the scroll-edge background itself has to be set there instead).
+  head: () => ({ meta: [{ name: "theme-color", content: "#ffffff" }] }),
   component: StoreLayout,
 });
 
