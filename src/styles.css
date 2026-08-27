@@ -366,8 +366,20 @@
     border-color: var(--color-border);
   }
 
+  /* Every route paints its own bg-black wrapper, but nothing here ever
+     toggles the `.dark` class, so --color-background stays the light-theme
+     white underneath it. That white shows through at the top/bottom edges —
+     on iOS scroll-bounce, and because Safari colors its own status bar and
+     bottom toolbar to match the page's true background, not the app div
+     drawn on top of it. Hardcoded, not var-driven: the 404/error boundary
+     pages deliberately keep the light bg-background look on their own
+     wrapper, and that's unaffected since it paints over this. */
+  html,
   body {
-    background-color: var(--color-background);
+    background-color: #000;
+  }
+
+  body {
     color: var(--color-foreground);
   }
 }

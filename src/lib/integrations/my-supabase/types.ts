@@ -53,6 +53,7 @@ export type Database = {
         Row: {
           body_type: string | null
           created_at: string
+          full_body_photo_url: string | null
           gender: string | null
           height_cm: number | null
           id: string
@@ -63,6 +64,7 @@ export type Database = {
         Insert: {
           body_type?: string | null
           created_at?: string
+          full_body_photo_url?: string | null
           gender?: string | null
           height_cm?: number | null
           id?: string
@@ -73,6 +75,7 @@ export type Database = {
         Update: {
           body_type?: string | null
           created_at?: string
+          full_body_photo_url?: string | null
           gender?: string | null
           height_cm?: number | null
           id?: string
@@ -108,6 +111,7 @@ export type Database = {
         Row: {
           body_type: string | null
           created_at: string
+          full_body_photo_url: string | null
           gender: string | null
           height_cm: number | null
           id: string
@@ -118,6 +122,7 @@ export type Database = {
         Insert: {
           body_type?: string | null
           created_at?: string
+          full_body_photo_url?: string | null
           gender?: string | null
           height_cm?: number | null
           id?: string
@@ -128,6 +133,7 @@ export type Database = {
         Update: {
           body_type?: string | null
           created_at?: string
+          full_body_photo_url?: string | null
           gender?: string | null
           height_cm?: number | null
           id?: string
@@ -1027,6 +1033,13 @@ export type Database = {
           id: string
           offers_custom_orders: boolean | null
           owner_id: string
+          pickup_address_line: string | null
+          pickup_city: string | null
+          pickup_country: string | null
+          pickup_lat: number | null
+          pickup_lng: number | null
+          pickup_location_updated_at: string | null
+          pickup_state: string | null
           product_category: string[] | null
           shopify_access_token: string | null
           shopify_connected_at: string | null
@@ -1046,6 +1059,13 @@ export type Database = {
           id?: string
           offers_custom_orders?: boolean | null
           owner_id: string
+          pickup_address_line?: string | null
+          pickup_city?: string | null
+          pickup_country?: string | null
+          pickup_lat?: number | null
+          pickup_lng?: number | null
+          pickup_location_updated_at?: string | null
+          pickup_state?: string | null
           product_category?: string[] | null
           shopify_access_token?: string | null
           shopify_connected_at?: string | null
@@ -1065,6 +1085,13 @@ export type Database = {
           id?: string
           offers_custom_orders?: boolean | null
           owner_id?: string
+          pickup_address_line?: string | null
+          pickup_city?: string | null
+          pickup_country?: string | null
+          pickup_lat?: number | null
+          pickup_lng?: number | null
+          pickup_location_updated_at?: string | null
+          pickup_state?: string | null
           product_category?: string[] | null
           shopify_access_token?: string | null
           shopify_connected_at?: string | null

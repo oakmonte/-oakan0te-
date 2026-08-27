@@ -144,6 +144,11 @@ const FEMALE_MEASUREMENT_LINES: MeasurementLine[] = [
 const MALE_MEASUREMENT_LINES: MeasurementLine[] = [
   { key: "shoulder", letter: "a", label: "Across Shoulder (Shoulder to Shoulder)" },
   { key: "chest", letter: "b", label: "Full Chest (Chest Circumference)" },
+  // Not one of the lettered points on the reference image (that only shows
+  // a–f) — added anyway since waist is asked of the female flow and sellers
+  // need it just as much for menswear. Given "g" rather than reusing/shifting
+  // an existing letter, so it doesn't misclaim a spot on the image.
+  { key: "waist", letter: "g", label: "Waist Circumference" },
   { key: "hip", letter: "c", label: "Hip / Full Hip (Hip Circumference)" },
   { key: "arm", letter: "d", label: "Arm Length (Shoulder to Wrist)" },
   { key: "thigh", letter: "e", label: "Thigh Circumference (Mid-Thigh)" },
@@ -651,6 +656,38 @@ function FindYourFitPage() {
   const [measurements, setMeasurements] = useState<Record<string, string>>({});
   const [focusedMeasurementKey, setFocusedMeasurementKey] = useState<string | null>(null);
 
+  const [bodyPhotoFile, setBodyPhotoFile] = useState<File | null>(null);
+  const [bodyPhotoPreview, setBodyPhotoPreview] = useState<string | null>(null);
+  const bodyPhotoInputRef = useRef<HTMLInputElement>(null);
+
+  // Revoke on unmount only — handleBodyPhotoChange/clearBodyPhoto revoke the
+  // previous URL themselves before replacing it.
+  useEffect(() => {
+    return () => {
+      if (bodyPhotoPreview) URL.revokeObjectURL(bodyPhotoPreview);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleBodyPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setBodyPhotoFile(file);
+    setBodyPhotoPreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return URL.createObjectURL(file);
+    });
+  };
+
+  const clearBodyPhoto = () => {
+    setBodyPhotoFile(null);
+    setBodyPhotoPreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
+    if (bodyPhotoInputRef.current) bodyPhotoInputRef.current.value = "";
+  };
+
   const bodyTypeOptions = gender === "Male" ? MALE_BODY_TYPE_IMAGES : FEMALE_BODY_TYPES;
   const measurementLines = gender === "Male" ? MALE_MEASUREMENT_LINES : FEMALE_MEASUREMENT_LINES;
   const measurementGuideImage = gender === "Male" ? maleMeasurementGuide : femaleMeasurementGuide;
@@ -733,6 +770,24 @@ function FindYourFitPage() {
         }, {})
       : null;
 
+    let fullBodyPhotoUrl: string | null = null;
+    if (bodyPhotoFile) {
+      // Same "avatars" bucket + {owner_id}/filename convention edit-profile.tsx
+      // uses for the profile picture.
+      const ext = bodyPhotoFile.name.split(".").pop() || "jpg";
+      const path = `${userId}/body-photo.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(path, bodyPhotoFile, { upsert: true });
+      if (uploadError) {
+        console.error("find-your-fit: failed to upload body photo", uploadError);
+        setSaving(false);
+        setSaveError("Couldn't upload that photo — please try again.");
+        return;
+      }
+      fullBodyPhotoUrl = supabase.storage.from("avatars").getPublicUrl(path).data.publicUrl;
+    }
+
     const { error } = await supabase.from(targetTable).upsert(
       {
         owner_id: userId,
@@ -741,6 +796,7 @@ function FindYourFitPage() {
         gender: gender || null,
         body_type: bodyType,
         measurements_cm: measurementsCm,
+        full_body_photo_url: fullBodyPhotoUrl,
       },
       { onConflict: "owner_id" },
     );
@@ -807,31 +863,40 @@ function FindYourFitPage() {
               className="w-full rounded-full border border-brand-text/25 bg-transparent px-5 py-3.5 text-sm placeholder:text-brand-text/40 focus:outline-none focus:border-brand-accent transition-colors"
             />
           ) : (
+            // Fixed-width, not flex-1 — a value here is never more than 2
+            // digits, so stretching each box to half the row (like a normal
+            // full-width field) left the Inches box overflowing the screen.
             <div className="flex gap-2">
-              <input
-                type="text"
-                inputMode="numeric"
-                value={heightFt}
-                onChange={(e) => {
-                  // A person's height in feet is always one digit — advance to
-                  // Inches the moment it's typed instead of making them tap
-                  // over manually.
-                  const digits = onlyDigits(e.target.value).slice(0, 1);
-                  setHeightFt(digits);
-                  if (digits.length === 1) heightInRef.current?.focus();
-                }}
-                placeholder="Feet"
-                className="flex-1 rounded-full border border-brand-text/25 bg-transparent px-5 py-3.5 text-sm placeholder:text-brand-text/40 focus:outline-none focus:border-brand-accent transition-colors"
-              />
-              <input
-                ref={heightInRef}
-                type="text"
-                inputMode="numeric"
-                value={heightIn}
-                onChange={(e) => setHeightIn(onlyDigits(e.target.value).slice(0, 2))}
-                placeholder="Inches"
-                className="flex-1 rounded-full border border-brand-text/25 bg-transparent px-5 py-3.5 text-sm placeholder:text-brand-text/40 focus:outline-none focus:border-brand-accent transition-colors"
-              />
+              <div className="flex items-center gap-1.5 w-[108px] rounded-full border border-brand-text/25 px-4 py-3.5 focus-within:border-brand-accent transition-colors">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={heightFt}
+                  onChange={(e) => {
+                    // A person's height in feet is always one digit — advance
+                    // to Inches the moment it's typed instead of making them
+                    // tap over manually.
+                    const digits = onlyDigits(e.target.value).slice(0, 1);
+                    setHeightFt(digits);
+                    if (digits.length === 1) heightInRef.current?.focus();
+                  }}
+                  placeholder="0"
+                  className="w-6 min-w-0 bg-transparent text-sm placeholder:text-brand-text/40 focus:outline-none"
+                />
+                <span className="text-xs text-brand-text/40">ft</span>
+              </div>
+              <div className="flex items-center gap-1.5 w-[108px] rounded-full border border-brand-text/25 px-4 py-3.5 focus-within:border-brand-accent transition-colors">
+                <input
+                  ref={heightInRef}
+                  type="text"
+                  inputMode="numeric"
+                  value={heightIn}
+                  onChange={(e) => setHeightIn(onlyDigits(e.target.value).slice(0, 2))}
+                  placeholder="0"
+                  className="w-6 min-w-0 bg-transparent text-sm placeholder:text-brand-text/40 focus:outline-none"
+                />
+                <span className="text-xs text-brand-text/40">in</span>
+              </div>
             </div>
           )}
         </div>
@@ -882,7 +947,11 @@ function FindYourFitPage() {
         </div>
 
         {(gender === "Female" || gender === "Male") && (
-          <div className="rounded-2xl border border-brand-text/15 overflow-hidden text-left">
+          // Only this outer container gets the accent color — everything
+          // inside (image box, rows, photo uploader) keeps its own neutral
+          // borders so the blue reads as "this section," not as emphasis on
+          // any one field inside it.
+          <div className="rounded-2xl border-2 border-brand-accent overflow-hidden text-left">
             <button
               type="button"
               onClick={() => setMeasurementsOpen((v) => !v)}
@@ -897,7 +966,7 @@ function FindYourFitPage() {
             </button>
             {measurementsOpen && (
               <div className="px-5 pb-5 pt-4 border-t border-brand-text/10 space-y-4">
-                <div className="w-full max-w-[220px] mx-auto aspect-[3/4] bg-brand-text/5 rounded-2xl p-3">
+                <div className="w-full aspect-[3/4] bg-brand-text/5 rounded-2xl p-3">
                   <img
                     src={measurementGuideImage}
                     alt={`${gender} body measurement guide`}
@@ -962,6 +1031,58 @@ function FindYourFitPage() {
                       </div>
                     </div>
                   ))}
+                </div>
+
+                <div className="pt-4 border-t border-brand-text/10">
+                  <p className="text-sm text-brand-text/90 mb-1">Full body photo</p>
+                  <p className="text-xs text-brand-text/50 mb-3">
+                    Optional — helps us judge your proportions more accurately than measurements
+                    alone.
+                  </p>
+
+                  {bodyPhotoPreview ? (
+                    <div className="flex items-center gap-3">
+                      <div className="relative w-16 aspect-[3/4] rounded-lg overflow-hidden shrink-0 border border-brand-text/15">
+                        <img
+                          src={bodyPhotoPreview}
+                          alt="Your uploaded full body photo"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1.5 items-start">
+                        <button
+                          type="button"
+                          onClick={() => bodyPhotoInputRef.current?.click()}
+                          className="text-xs uppercase tracking-widest text-brand-accent hover:underline"
+                        >
+                          Replace photo
+                        </button>
+                        <button
+                          type="button"
+                          onClick={clearBodyPhoto}
+                          className="text-xs uppercase tracking-widest text-brand-text/50 hover:text-brand-text/80"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => bodyPhotoInputRef.current?.click()}
+                      className="w-full rounded-xl border border-dashed border-brand-text/25 py-5 text-sm text-brand-text/60 hover:border-brand-text/50 transition-colors"
+                    >
+                      Tap to snap a photo or upload from gallery
+                    </button>
+                  )}
+
+                  <input
+                    ref={bodyPhotoInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleBodyPhotoChange}
+                    className="hidden"
+                  />
                 </div>
               </div>
             )}

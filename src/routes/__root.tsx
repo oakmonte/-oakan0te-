@@ -78,8 +78,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       {
         name: "viewport",
-        content: "width=device-width, initial-scale=1, interactive-widget=overlays-content",
+        content:
+          "width=device-width, initial-scale=1, interactive-widget=overlays-content, viewport-fit=cover",
       },
+      // Every route is black; this tells the browser to color its own chrome
+      // (iOS Safari's status bar and bottom toolbar, Android's address bar)
+      // to match instead of defaulting to white at the page's edges.
+      { name: "theme-color", content: "#000000" },
       { title: "Oakmonte — Share your style" },
       {
         name: "description",

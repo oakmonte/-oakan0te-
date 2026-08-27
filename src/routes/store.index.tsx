@@ -1,14 +1,21 @@
 import { authedFetch } from "@/lib/authed-fetch";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Palette, Wallet, Package } from "lucide-react";
+import { Palette, Wallet, Package, MapPin } from "lucide-react";
 import { useEffect, useState } from "react";
+import { supabase } from "@/lib/integrations/my-supabase/client";
+import { useActiveStoreId } from "@/hooks/use-own-store";
+import { LocationSheet, type PickupLocationValues } from "@/components/store/LocationSheet";
 
 export const Route = createFileRoute("/store/")({
   component: StoreHome,
 });
 
 function StoreHome() {
+  const { storeId } = useActiveStoreId();
   const [payoutSet, setPayoutSet] = useState(false);
+  const [pickupSet, setPickupSet] = useState(false);
+  const [locationSheetOpen, setLocationSheetOpen] = useState(false);
+  const [initialLocation, setInitialLocation] = useState<PickupLocationValues | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -21,6 +28,64 @@ function StoreHome() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (!storeId) return;
+    let cancelled = false;
+    supabase
+      .from("stores")
+      .select(
+        "pickup_address_line, pickup_city, pickup_state, pickup_country, pickup_lat, pickup_lng",
+      )
+      .eq("id", storeId)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) {
+          console.error("StoreHome: failed to load pickup location", error);
+          return;
+        }
+        setPickupSet(!!(data?.pickup_city && data?.pickup_country));
+        setInitialLocation(
+          data
+            ? {
+                addressLine: data.pickup_address_line ?? "",
+                city: data.pickup_city ?? "",
+                state: data.pickup_state ?? "",
+                country: data.pickup_country ?? "",
+                lat: data.pickup_lat,
+                lng: data.pickup_lng,
+              }
+            : null,
+        );
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [storeId]);
+
+  async function handleSaveLocation(values: PickupLocationValues) {
+    if (!storeId) return;
+    const { error } = await supabase
+      .from("stores")
+      .update({
+        pickup_address_line: values.addressLine || null,
+        pickup_city: values.city || null,
+        pickup_state: values.state || null,
+        pickup_country: values.country || null,
+        pickup_lat: values.lat,
+        pickup_lng: values.lng,
+        pickup_location_updated_at: new Date().toISOString(),
+      })
+      .eq("id", storeId);
+    if (error) {
+      console.error("StoreHome: failed to save pickup location", error);
+      return;
+    }
+    setInitialLocation(values);
+    setPickupSet(!!(values.city && values.country));
+    setLocationSheetOpen(false);
+  }
 
   const cards = [
     {
@@ -72,7 +137,36 @@ function StoreHome() {
             </div>
           </Link>
         ))}
+
+        <button
+          type="button"
+          onClick={() => setLocationSheetOpen(true)}
+          className="flex items-start gap-3 border border-gray-200 rounded-2xl p-4 hover:bg-gray-50 oak-motion-control text-left"
+        >
+          <div className="p-2 rounded-full bg-gray-100 relative">
+            <MapPin size={18} />
+            {pickupSet && (
+              <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-amber-400 border-2 border-white oak-motion-pop" />
+            )}
+          </div>
+          <div>
+            <p className="text-sm font-medium">Set your pickup location</p>
+            <p className="text-xs text-gray-500 mt-0.5">
+              {pickupSet
+                ? "Riders use this to find you — tap to update."
+                : "So riders know where to collect orders from."}
+            </p>
+          </div>
+        </button>
       </div>
+
+      {locationSheetOpen && (
+        <LocationSheet
+          initial={initialLocation}
+          onSave={handleSaveLocation}
+          onClose={() => setLocationSheetOpen(false)}
+        />
+      )}
     </div>
   );
 }

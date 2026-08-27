@@ -63,7 +63,13 @@ function ProfilePage() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
-  const [store, setStore] = useState<{ id: string; store_username: string } | null>(null);
+  const [stores, setStores] = useState<
+    { id: string; store_username: string; brand_name: string }[]
+  >([]);
+  const [storePickerOpen, setStorePickerOpen] = useState(false);
+  // Oldest-first, same tie-break as useOwnStores — "the" store for anything
+  // on this page that isn't multi-store aware yet (the Store tab preview).
+  const store = stores[0] ?? null;
   const searchInputRef = useRef<HTMLInputElement>(null);
   const tabScrollRef = useRef<HTMLDivElement>(null);
   const tabButtonRefs = useRef<Record<TabKey, HTMLButtonElement | null>>(
@@ -141,24 +147,30 @@ function ProfilePage() {
     };
   }, [username]);
 
-  // Whether this person has a store — drives both the Store tab's content
-  // and the switch-profile icon. stores has RLS off project-wide today (see
-  // supabase-data-access skill), so this read works for any viewer.
+  // Every store this person owns — drives the Store tab's content (via
+  // `store`, the first one) and the switch-profile icon, which needs the
+  // full list to know whether to jump straight to the one store or offer a
+  // picker. stores has RLS off project-wide today (see supabase-data-access
+  // skill), so this read works for any viewer. An account can own more than
+  // one store (the dashboard's store switcher) — .maybeSingle() used to
+  // error out on the second+ row and leave this whole page thinking the
+  // seller had no store at all.
   useEffect(() => {
     if (!profile) {
-      setStore(null);
+      setStores([]);
       return;
     }
     let cancelled = false;
     supabase
       .from("stores")
-      .select("id, store_username")
+      .select("id, store_username, brand_name")
       .eq("owner_id", profile.id)
-      .maybeSingle()
+      .order("created_at", { ascending: true })
+      .order("id", { ascending: true })
       .then(({ data, error }) => {
         if (cancelled) return;
         if (error) console.error("ProfilePage: failed to check for store", error);
-        setStore(data ?? null);
+        setStores(data ?? []);
       });
     return () => {
       cancelled = true;
@@ -340,10 +352,12 @@ function ProfilePage() {
           {isOwnProfile && store && (
             <button
               onClick={() =>
-                navigate({
-                  to: "/store-profile/$storeUsername",
-                  params: { storeUsername: store.store_username },
-                })
+                stores.length > 1
+                  ? setStorePickerOpen(true)
+                  : navigate({
+                      to: "/store-profile/$storeUsername",
+                      params: { storeUsername: store.store_username },
+                    })
               }
               aria-label="Switch to store profile"
               className="transition-transform duration-200 active:scale-90"
@@ -578,6 +592,54 @@ function ProfilePage() {
 
           <div className="mt-6 pt-4 border-t border-white/10">
             <MenuRow label="Settings and privacy" onClick={() => navigate({ to: "/settings" })} />
+          </div>
+        </div>
+      </div>
+
+      {/* Store switcher — only ever reachable once an account owns more than
+          one store (not enabled anywhere yet), so this sits unused until
+          then. Bottom sheet, not the ArrowLeftRight tap's old direct jump,
+          since with 2+ stores that tap no longer has a single obvious
+          destination. */}
+      <div
+        className={`fixed inset-0 z-50 transition-opacity duration-300 ${
+          storePickerOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        }`}
+      >
+        <div className="absolute inset-0 bg-black/40" onClick={() => setStorePickerOpen(false)} />
+        <div
+          className={`absolute inset-x-0 bottom-0 rounded-t-[28px] bg-black border-t border-white/10 transition-transform duration-300 ease-out ${
+            storePickerOpen ? "translate-y-0" : "translate-y-full"
+          }`}
+          style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+        >
+          <div className="flex justify-center pt-2.5 pb-1">
+            <div className="h-1 w-9 rounded-full bg-white/25" />
+          </div>
+          <p className="px-5 pt-2 pb-1 text-[11px] font-semibold text-white/40 uppercase tracking-wide">
+            Switch to
+          </p>
+          <div className="pb-4">
+            {stores.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => {
+                  setStorePickerOpen(false);
+                  navigate({
+                    to: "/store-profile/$storeUsername",
+                    params: { storeUsername: s.store_username },
+                  });
+                }}
+                className="w-full flex items-center justify-between gap-3 px-5 py-3.5 text-left active:bg-white/5 transition-colors duration-150"
+              >
+                <div className="min-w-0">
+                  <p className="text-[15px] font-medium text-white truncate">{s.brand_name}</p>
+                  <p className="text-[12px] text-white/40">@{s.store_username}</p>
+                </div>
+                <ArrowLeftRight size={16} className="text-white/30 shrink-0" />
+              </button>
+            ))}
           </div>
         </div>
       </div>
