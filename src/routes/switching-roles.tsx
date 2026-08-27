@@ -16,11 +16,12 @@ const ROLE_LABEL: Record<Intent, string> = {
   curator: "curator",
 };
 
-// Where "Continue" sends each target role — the one remaining onboarding
+// Where "Continue" sends each target role — the first remaining onboarding
 // step for that role, per FLOWS in onboarding-flow.ts, minus the parts
-// already answered (username, referral source). A seller still needs
-// seller-type before name-your-store; creator/curator only need
-// find-your-fit.
+// already answered (username, referral source). Each step's own submit
+// handler chains to the next one via nextRoute, so this only has to name the
+// first: seller-type before name-your-store; find-your-fit before
+// whats-your-style for creator/curator.
 const NEXT_STEP: Record<Intent, "/seller-type" | "/find-your-fit"> = {
   seller: "/seller-type",
   creator: "/find-your-fit",

@@ -17,17 +17,33 @@ import { compileGrade, isNoopFilter, type CameraFilter } from "@/components/came
 import { drawLayers, preloadStickers } from "@/lib/layer-bake";
 import type { Layer } from "@/lib/after-shot-layers";
 import type { CapturedMedia } from "@/lib/capture-handoff";
+import { isCropNoop, type CropRect } from "@/lib/crop-rect";
 
 // The single place a finished post is produced. Everything the after-shot screen
-// lets you do — filter, text, drawings, stickers — lands on the frame in ONE
-// pass here.
+// lets you do — crop, filter, text, drawings, stickers — lands on the frame in
+// ONE pass here.
 //
 // It reads as more code than calling the old per-tool helpers in sequence, and
 // that is the point. Those helpers each decoded, re-encoded and handed back a
 // new blob, so a filtered + captioned clip went through three generations of
 // lossy re-encode before anyone saw it, and picking a second filter re-filtered
 // the already-filtered pixels. Compositing once, from the untouched capture,
-// costs one generation regardless of how many edits are stacked.
+// costs one generation regardless of how many edits are stacked. Crop used to
+// be the one holdout — CropPanel baked immediately via crop-media.ts — which
+// meant a cropped-then-filtered photo paid for two generations instead of one;
+// it's a CropRect (crop-rect.ts) carried as intent now, same as everything
+// else here.
+
+/** Pixel crop rect for a specific naturalWidth/naturalHeight, from a
+ *  fractional CropRect. Shared by the photo and video paths below. */
+function pixelCrop(rect: CropRect, naturalWidth: number, naturalHeight: number) {
+  return {
+    x: Math.round(rect.x * naturalWidth),
+    y: Math.round(rect.y * naturalHeight),
+    w: Math.max(1, Math.round(rect.w * naturalWidth)),
+    h: Math.max(1, Math.round(rect.h * naturalHeight)),
+  };
+}
 
 export type ExportProgress = (ratio: number) => void;
 
@@ -52,6 +68,7 @@ export async function exportPhoto(
   filter: CameraFilter,
   intensity: number,
   layers: Layer[],
+  crop: CropRect | null,
 ): Promise<Blob> {
   const img = new Image();
   const url = URL.createObjectURL(blob);
@@ -63,13 +80,22 @@ export async function exportPhoto(
     });
 
     const canvas = document.createElement("canvas");
-    canvas.width = img.naturalWidth;
-    canvas.height = img.naturalHeight;
     const ctx = canvas.getContext("2d", { willReadFrequently: true });
     if (!ctx) throw new Error("Canvas 2D context unavailable");
 
-    ctx.drawImage(img, 0, 0);
-    // Filter first, layers second — a caption shouldn't get tinted by the
+    // Crop first — everything after this (filter, layers) draws against the
+    // already-cropped frame, matching what the live preview showed.
+    if (crop && !isCropNoop(crop)) {
+      const c = pixelCrop(crop, img.naturalWidth, img.naturalHeight);
+      canvas.width = c.w;
+      canvas.height = c.h;
+      ctx.drawImage(img, c.x, c.y, c.w, c.h, 0, 0, c.w, c.h);
+    } else {
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      ctx.drawImage(img, 0, 0);
+    }
+    // Filter next, layers last — a caption shouldn't get tinted by the
     // filter sitting under it, which is what the preview shows too (the CSS
     // filter is on the media element, not the layer overlay). Uses the real
     // grade (compileGrade), not the preview's CSS approximation — a one-shot
@@ -94,6 +120,7 @@ export async function exportVideo(
   filter: CameraFilter,
   intensity: number,
   layers: Layer[],
+  crop: CropRect | null,
   onProgress?: ExportProgress,
 ): Promise<Blob> {
   const input = new Input({ source: new BlobSource(blob), formats: ALL_FORMATS });
@@ -101,8 +128,12 @@ export async function exportVideo(
   if (!videoTrack) throw new Error("No video track to export");
 
   const duration = await input.computeDuration();
-  const width = videoTrack.displayWidth;
-  const height = videoTrack.displayHeight;
+  const sourceWidth = videoTrack.displayWidth;
+  const sourceHeight = videoTrack.displayHeight;
+  const hasCrop = !!crop && !isCropNoop(crop);
+  const cropPx = hasCrop ? pixelCrop(crop!, sourceWidth, sourceHeight) : null;
+  const width = cropPx?.w ?? sourceWidth;
+  const height = cropPx?.h ?? sourceHeight;
 
   const canvas = document.createElement("canvas");
   canvas.width = width;
@@ -169,7 +200,16 @@ export async function exportVideo(
       const timestamp = sample.timestamp;
       try {
         ctx.clearRect(0, 0, width, height);
-        sample.draw(ctx, 0, 0, width, height);
+        // No source-rect form on VideoSample.draw, so cropping is done the
+        // same way the live preview simulates it (create.after-shot.index.tsx):
+        // draw the full frame at natural size, shifted so the crop's top-left
+        // lands at the canvas origin — the canvas being sized to exactly the
+        // crop clips the rest for free.
+        if (cropPx) {
+          sample.draw(ctx, -cropPx.x, -cropPx.y, sourceWidth, sourceHeight);
+        } else {
+          sample.draw(ctx, 0, 0, width, height);
+        }
         drawFilteredFrame(ctx, compiled, width, height);
         drawLayers(ctx, layers, width, height, stickers);
         // Encode against the source frame's real presentation timestamp rather
@@ -195,9 +235,15 @@ export async function exportVideo(
   }
 }
 
-/** Nothing to composite: no filter, no captions, no drawings, no stickers. */
-function isUnedited(filter: CameraFilter, intensity: number, layers: Layer[]): boolean {
-  return isNoopFilter(filter, intensity) && layers.length === 0;
+/** Nothing to composite: no crop, no filter, no captions, no drawings, no
+ *  stickers. */
+function isUnedited(
+  filter: CameraFilter,
+  intensity: number,
+  layers: Layer[],
+  crop: CropRect | null,
+): boolean {
+  return isNoopFilter(filter, intensity) && layers.length === 0 && isCropNoop(crop);
 }
 
 // What the Next button calls. Keeps the photo/video branch in one place so the
@@ -214,13 +260,14 @@ export async function exportComposite(
   filter: CameraFilter,
   intensity: number,
   layers: Layer[],
+  crop: CropRect | null,
   onProgress?: ExportProgress,
 ): Promise<Blob> {
-  if (isUnedited(filter, intensity, layers)) {
+  if (isUnedited(filter, intensity, layers, crop)) {
     onProgress?.(1);
     return media.blob;
   }
   return media.type === "photo"
-    ? await exportPhoto(media.blob, filter, intensity, layers)
-    : await exportVideo(media.blob, filter, intensity, layers, onProgress);
+    ? await exportPhoto(media.blob, filter, intensity, layers, crop)
+    : await exportVideo(media.blob, filter, intensity, layers, crop, onProgress);
 }

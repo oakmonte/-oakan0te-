@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { X, Check, RotateCcw } from "lucide-react";
-import { useAfterShotContext } from "@/lib/after-shot-context";
-import { cropPhotoBlob, cropVideoBlob, type CropRect } from "@/lib/crop-media";
+import { composeCropRect, type CropRect } from "@/lib/crop-rect";
 
 type Handle = "nw" | "ne" | "sw" | "se" | "n" | "s" | "w" | "e";
 
@@ -124,12 +123,24 @@ type CropPanelProps = {
   // onLoadedMetadata>) and passed down — CropPanel no longer probes for
   // this itself.
   naturalSize: { w: number; h: number } | null;
+  // The committed crop, fractional and relative to the ORIGINAL untouched
+  // media — see crop-rect.ts. CropPanel no longer bakes a crop into the
+  // media itself; it only ever proposes a new value for this. The live
+  // preview (create.after-shot.index.tsx) is what makes that visible, by
+  // simulating the crop with CSS on the still-uncropped media element.
+  cropRect: CropRect | null;
+  onCropChange: (rect: CropRect | null) => void;
   onClose: () => void;
 };
 
-export default function CropPanel({ open, containerRef, naturalSize, onClose }: CropPanelProps) {
-  const { media, setMedia } = useAfterShotContext();
-
+export default function CropPanel({
+  open,
+  containerRef,
+  naturalSize,
+  cropRect,
+  onCropChange,
+  onClose,
+}: CropPanelProps) {
   // Position AND size of the media box in viewport coordinates. CropPanel renders
   // as a sibling of that box (not a child), so its controls can anchor to the
   // screen while the crop surface still lines up exactly with the media.

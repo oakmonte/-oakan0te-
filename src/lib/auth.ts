@@ -55,6 +55,7 @@ export type PostAuthRedirect =
   | { to: "/where-did-you-hear-about-us" }
   | { to: "/name-your-store" }
   | { to: "/find-your-fit" }
+  | { to: "/whats-your-style" }
   | { to: "/switching-roles" }
   | { to: "/create-password" }
   | { to: "/no-account" };
@@ -170,20 +171,27 @@ export async function resolvePostAuthRedirect(
     if (!storeError && !count) return { to: "/name-your-store" } as const;
   }
 
-  // Creator/curator onboarding's one differentiating step (see FLOWS in
+  // Creator/curator onboarding's two differentiating steps (see FLOWS in
   // onboarding-flow.ts) — a creators/curators row is only ever written when
   // find-your-fit is submitted or skipped, so its absence means the flow was
   // abandoned there, not "nothing left to ask." Without this, a creator who
   // closed the tab on /find-your-fit was treated as fully onboarded on their
-  // next sign-in.
+  // next sign-in. `styles` is null until /whats-your-style is submitted or
+  // skipped (both always write it, even as an empty array) — the same
+  // absence-means-abandoned reasoning, one step later.
   if (intent === "creator" || intent === "curator") {
-    const table = ROLE_TABLE[intent];
-    const { count, error: fitError } = await supabase
+    // Not ROLE_TABLE[intent]: that Record's value type is the union across all
+    // three roles (including stores, which has no `styles` column), so
+    // indexing it here doesn't narrow to a table that's known to have one.
+    const table = intent === "curator" ? "curators" : "creators";
+    const { data: fitRow, error: fitError } = await supabase
       .from(table)
-      .select("id", { count: "exact", head: true })
-      .eq("owner_id", userId);
+      .select("id, styles")
+      .eq("owner_id", userId)
+      .maybeSingle();
     if (fitError) console.error("resolvePostAuthRedirect: failed to check fit profile", fitError);
-    if (!fitError && !count) return { to: "/find-your-fit" } as const;
+    if (!fitError && !fitRow) return { to: "/find-your-fit" } as const;
+    if (!fitError && fitRow && fitRow.styles === null) return { to: "/whats-your-style" } as const;
   }
 
   return { to: "/profile/$username", params: { username: profile.personal_username } } as const;

@@ -723,8 +723,8 @@ function FindYourFitPage() {
     setMeasurementUnit(next);
   }
 
-  // Last form step of the creator and curator flows — both hand off to the
-  // welcome screen, which is what ends onboarding. It used to navigate to
+  // Hands off to whats-your-style, the next step in the creator/curator
+  // flows (see FLOWS in onboarding-flow.ts). It used to navigate to
   // /phone-number, which for curators sent them straight back to the step they
   // had just come from: an onboarding loop with no exit, Skip included.
   const finish = () => {

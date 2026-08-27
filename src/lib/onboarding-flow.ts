@@ -9,12 +9,23 @@ export type OnboardingStep =
   | "/seller-type"
   | "/where-did-you-hear-about-us"
   | "/name-your-store"
-  | "/find-your-fit";
+  | "/find-your-fit"
+  | "/whats-your-style";
 
 export const FLOWS: Record<Intent, readonly OnboardingStep[]> = {
   seller: ["/choose-username", "/seller-type", "/where-did-you-hear-about-us", "/name-your-store"],
-  creator: ["/choose-username", "/where-did-you-hear-about-us", "/find-your-fit"],
-  curator: ["/choose-username", "/where-did-you-hear-about-us", "/find-your-fit"],
+  creator: [
+    "/choose-username",
+    "/where-did-you-hear-about-us",
+    "/find-your-fit",
+    "/whats-your-style",
+  ],
+  curator: [
+    "/choose-username",
+    "/where-did-you-hear-about-us",
+    "/find-your-fit",
+    "/whats-your-style",
+  ],
 };
 
 export function flowFor(intent: Intent | null): readonly OnboardingStep[] {

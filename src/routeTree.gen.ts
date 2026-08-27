@@ -33,6 +33,7 @@ import { Route as StudioRouteImport } from './routes/studio'
 import { Route as SwitchingRolesRouteImport } from './routes/switching-roles'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as WelcomeRouteImport } from './routes/welcome'
+import { Route as WhatsYourStyleRouteImport } from './routes/whats-your-style'
 import { Route as WhereDidYouHearAboutUsRouteImport } from './routes/where-did-you-hear-about-us'
 import { Route as ApiPostsRouteImport } from './routes/api.posts'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
@@ -187,6 +188,11 @@ const TermsRoute = TermsRouteImport.update({
 const WelcomeRoute = WelcomeRouteImport.update({
   id: '/welcome',
   path: '/welcome',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WhatsYourStyleRoute = WhatsYourStyleRouteImport.update({
+  id: '/whats-your-style',
+  path: '/whats-your-style',
   getParentRoute: () => rootRouteImport,
 } as any)
 const WhereDidYouHearAboutUsRoute = WhereDidYouHearAboutUsRouteImport.update({
@@ -391,6 +397,7 @@ export interface FileRoutesByFullPath {
   '/switching-roles': typeof SwitchingRolesRoute
   '/terms': typeof TermsRoute
   '/welcome': typeof WelcomeRoute
+  '/whats-your-style': typeof WhatsYourStyleRoute
   '/where-did-you-hear-about-us': typeof WhereDidYouHearAboutUsRoute
   '/api/posts': typeof ApiPostsRoute
   '/auth/callback': typeof AuthCallbackRoute
@@ -450,6 +457,7 @@ export interface FileRoutesByTo {
   '/switching-roles': typeof SwitchingRolesRoute
   '/terms': typeof TermsRoute
   '/welcome': typeof WelcomeRoute
+  '/whats-your-style': typeof WhatsYourStyleRoute
   '/where-did-you-hear-about-us': typeof WhereDidYouHearAboutUsRoute
   '/api/posts': typeof ApiPostsRoute
   '/auth/callback': typeof AuthCallbackRoute
@@ -511,6 +519,7 @@ export interface FileRoutesById {
   '/switching-roles': typeof SwitchingRolesRoute
   '/terms': typeof TermsRoute
   '/welcome': typeof WelcomeRoute
+  '/whats-your-style': typeof WhatsYourStyleRoute
   '/where-did-you-hear-about-us': typeof WhereDidYouHearAboutUsRoute
   '/api/posts': typeof ApiPostsRoute
   '/auth/callback': typeof AuthCallbackRoute
@@ -574,6 +583,7 @@ export interface FileRouteTypes {
     | '/switching-roles'
     | '/terms'
     | '/welcome'
+    | '/whats-your-style'
     | '/where-did-you-hear-about-us'
     | '/api/posts'
     | '/auth/callback'
@@ -633,6 +643,7 @@ export interface FileRouteTypes {
     | '/switching-roles'
     | '/terms'
     | '/welcome'
+    | '/whats-your-style'
     | '/where-did-you-hear-about-us'
     | '/api/posts'
     | '/auth/callback'
@@ -693,6 +704,7 @@ export interface FileRouteTypes {
     | '/switching-roles'
     | '/terms'
     | '/welcome'
+    | '/whats-your-style'
     | '/where-did-you-hear-about-us'
     | '/api/posts'
     | '/auth/callback'
@@ -755,6 +767,7 @@ export interface RootRouteChildren {
   SwitchingRolesRoute: typeof SwitchingRolesRoute
   TermsRoute: typeof TermsRoute
   WelcomeRoute: typeof WelcomeRoute
+  WhatsYourStyleRoute: typeof WhatsYourStyleRoute
   WhereDidYouHearAboutUsRoute: typeof WhereDidYouHearAboutUsRoute
   ApiPostsRoute: typeof ApiPostsRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
@@ -940,6 +953,13 @@ declare module '@tanstack/react-router' {
       path: '/welcome'
       fullPath: '/welcome'
       preLoaderRoute: typeof WelcomeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/whats-your-style': {
+      id: '/whats-your-style'
+      path: '/whats-your-style'
+      fullPath: '/whats-your-style'
+      preLoaderRoute: typeof WhatsYourStyleRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/where-did-you-hear-about-us': {
@@ -1282,6 +1302,7 @@ const rootRouteChildren: RootRouteChildren = {
   SwitchingRolesRoute: SwitchingRolesRoute,
   TermsRoute: TermsRoute,
   WelcomeRoute: WelcomeRoute,
+  WhatsYourStyleRoute: WhatsYourStyleRoute,
   WhereDidYouHearAboutUsRoute: WhereDidYouHearAboutUsRoute,
   ApiPostsRoute: ApiPostsRoute,
   AuthCallbackRoute: AuthCallbackRoute,
