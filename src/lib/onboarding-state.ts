@@ -57,6 +57,16 @@ export function readIntent(): Intent | null {
   return isIntent(stored) ? stored : null;
 }
 
+/** Called when someone commits to a fresh /sign-in attempt (no intent of its
+ *  own). Without this, an intent left over from an abandoned flow on the same
+ *  browser (e.g. someone poked "Set Up A Store" and never finished) survives
+ *  until /welcome and gets picked up by resolvePostAuthRedirect's storage
+ *  fallback, silently routing a brand-new account into that stale flow
+ *  instead of /no-account. */
+export function clearIntent() {
+  remove(INTENT_KEY);
+}
+
 /** Set when someone takes the "Forgot password? Email me a code" route out of
  *  the sign-in form.
  *

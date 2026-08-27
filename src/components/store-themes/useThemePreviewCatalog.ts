@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
-import { useActiveStoreId } from "@/hooks/use-own-store";
 
 export type PreviewTile = {
   id: string;
@@ -9,16 +8,16 @@ export type PreviewTile = {
   price: number | null;
 };
 
-// Real, read-only preview of the seller's own collections/products. Callers
-// fall back to fictional demo content whenever this comes back empty — that
-// fallback is the caller's job, this hook just reports what it found.
-export function useThemePreviewCatalog(mode: "collections" | "products") {
-  const { storeId, loading: storeLoading } = useActiveStoreId();
+// Real, read-only preview of a store's collections/products — the seller's
+// own store while editing, or any store's when rendered publicly (see
+// PublicStorefront). storeId is always caller-supplied rather than derived
+// from the viewer's session, since a viewer with no store of their own (or a
+// different one) still needs to see the store actually being looked at.
+export function useThemePreviewCatalog(mode: "collections" | "products", storeId: string | null) {
   const [tiles, setTiles] = useState<PreviewTile[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (storeLoading) return;
     if (!storeId) {
       setTiles([]);
       setLoading(false);
@@ -64,7 +63,7 @@ export function useThemePreviewCatalog(mode: "collections" | "products") {
     return () => {
       cancelled = true;
     };
-  }, [mode, storeId, storeLoading]);
+  }, [mode, storeId]);
 
   return { tiles, loading };
 }

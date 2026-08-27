@@ -3,14 +3,18 @@ import {
   useRef,
   useState,
   type ChangeEvent,
+  type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
   type ReactNode,
   type SyntheticEvent,
 } from "react";
 import {
   Camera,
   ChevronRight,
+  GripHorizontal,
   Image as ImageIcon,
   Minus,
+  Move,
   Plus,
   Search,
   Share2,
@@ -19,8 +23,128 @@ import {
 } from "lucide-react";
 import productPlaceholder from "@/assets/Store theme placeholder images/Products and collection image placeholder.jpg";
 import { ThemeText } from "./EditableText";
-import { MAX_SLIDESHOW_IMAGES, type ThemeEditingProps } from "./edit-types";
+import { MAX_SLIDESHOW_IMAGES, type CropPosition, type ThemeEditingProps } from "./edit-types";
 import { useThemePreviewCatalog } from "./useThemePreviewCatalog";
+
+function clamp(v: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, v));
+}
+
+// Drag-to-reposition image, used anywhere a fixed-aspect container crops a
+// seller's photo (slideshow slide, collection/product tile). Not editable:
+// a plain <img> with the stored (or centered) object-position. Editable:
+// dragging moves the focal point live; the crop only commits — one history
+// entry, not one per pointermove — on release, and a real drag suppresses
+// the click that would otherwise reach the tile's own onClick underneath.
+function CroppableImage({
+  src,
+  alt = "",
+  position,
+  onPositionChange,
+  editable,
+  onLoad,
+}: {
+  src: string;
+  alt?: string;
+  position?: CropPosition;
+  onPositionChange?: (position: CropPosition) => void;
+  editable?: boolean;
+  onLoad?: (e: SyntheticEvent<HTMLImageElement>) => void;
+}) {
+  const savedPos = position ?? { x: 50, y: 50 };
+  const [livePos, setLivePos] = useState(savedPos);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef<{
+    startX: number;
+    startY: number;
+    origin: CropPosition;
+    current: CropPosition;
+    moved: boolean;
+  } | null>(null);
+  const suppressClickRef = useRef(false);
+
+  useEffect(() => {
+    if (!dragRef.current) setLivePos(savedPos);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [savedPos.x, savedPos.y]);
+
+  function handlePointerDown(e: ReactPointerEvent<HTMLDivElement>) {
+    if (!editable || !onPositionChange) return;
+    e.stopPropagation();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    dragRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      origin: livePos,
+      current: livePos,
+      moved: false,
+    };
+  }
+
+  function handlePointerMove(e: ReactPointerEvent<HTMLDivElement>) {
+    const drag = dragRef.current;
+    if (!drag || !containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const dx = e.clientX - drag.startX;
+    const dy = e.clientY - drag.startY;
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) drag.moved = true;
+    // Dragging right should reveal more of the image's left edge, so the
+    // focal point moves opposite the drag direction.
+    const next = {
+      x: clamp(drag.origin.x - (dx / rect.width) * 100, 0, 100),
+      y: clamp(drag.origin.y - (dy / rect.height) * 100, 0, 100),
+    };
+    // Committed from this ref, not the `livePos` state, below — pointerup can
+    // land in the same batched update flush as the preceding pointermove(s),
+    // in which case a state read there would still see the pre-drag value.
+    drag.current = next;
+    setLivePos(next);
+  }
+
+  function handlePointerUp() {
+    const drag = dragRef.current;
+    dragRef.current = null;
+    if (drag?.moved) {
+      suppressClickRef.current = true;
+      onPositionChange?.(drag.current);
+    }
+  }
+
+  function handleClick(e: ReactMouseEvent) {
+    if (suppressClickRef.current) {
+      e.stopPropagation();
+      e.preventDefault();
+      suppressClickRef.current = false;
+    }
+  }
+
+  return (
+    <div
+      ref={containerRef}
+      className="relative h-full w-full"
+      style={editable ? { touchAction: "none" } : undefined}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
+      onClick={handleClick}
+    >
+      <img
+        src={src}
+        alt={alt}
+        draggable={false}
+        onLoad={onLoad}
+        className="h-full w-full object-cover"
+        style={{ objectPosition: `${livePos.x}% ${livePos.y}%` }}
+      />
+      {editable && onPositionChange && (
+        <div className="pointer-events-none absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/50 text-white/80">
+          <Move size={10} />
+        </div>
+      )}
+    </div>
+  );
+}
 
 // Shared, theme-agnostic building blocks for the full (phone-frame) storefront
 // preview. Every theme's colors/copy/icons are passed in as props — this is
@@ -140,6 +264,12 @@ export function PhoneHeader({
 // than wide, and this avoids an initial-load flash of a squat box.
 const DEFAULT_ASPECT_RATIO = 4 / 5;
 
+// How far the resize handle can push the crop frame: from a tall 1:2 banner
+// down to a short, almost-landscape 1.91:1 one. Wide enough for real
+// creative range, tight enough that the frame can't collapse to a sliver.
+const MIN_SLIDESHOW_ASPECT = 0.5;
+const MAX_SLIDESHOW_ASPECT = 1.91;
+
 export function HeroSlideshow({
   images,
   intervalMs = 3200,
@@ -151,7 +281,16 @@ export function HeroSlideshow({
 }) {
   const [index, setIndex] = useState(0);
   const [ratios, setRatios] = useState<Record<string, number>>({});
+  const [liveAspectRatio, setLiveAspectRatio] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cropBoxRef = useRef<HTMLDivElement>(null);
+  const resizeDragRef = useRef<{
+    startY: number;
+    startHeight: number;
+    width: number;
+    current: number;
+    moved: boolean;
+  } | null>(null);
   const isEditing = editing?.isEditing ?? false;
 
   useEffect(() => {
@@ -192,115 +331,188 @@ export function HeroSlideshow({
     );
   }
 
-  // Sized to the ACTIVE slide's own aspect ratio — with a matching container
-  // ratio, object-cover shows the whole image with zero cropping and zero
-  // stretching, tall or wide, whatever the seller actually uploaded.
-  const activeRatio = ratios[images[index]] ?? DEFAULT_ASPECT_RATIO;
+  // Auto-sized to the ACTIVE slide's own aspect ratio (zero cropping) until
+  // the seller drags the resize handle below the frame — once they do, every
+  // slide shares that one fixed frame instead of each reflowing to its own
+  // shape, same as any real crop tool.
+  const baseAspectRatio =
+    editing?.slideshowAspectRatio ?? ratios[images[index]] ?? DEFAULT_ASPECT_RATIO;
+  const activeRatio = liveAspectRatio ?? baseAspectRatio;
+
+  // Drag the handle below the frame to resize it, Instagram-crop-style — the
+  // frame's own ratio changes (not the photo), so this stacks with per-slide
+  // repositioning: resize picks how much shows, drag-on-photo picks which
+  // part. Live-updates for a smooth drag, commits once on release so undo
+  // gets one history entry per resize, not one per pointermove.
+  function handleResizeStart(e: ReactPointerEvent<HTMLDivElement>) {
+    if (!isEditing || !editing?.onSlideshowAspectRatioChange) return;
+    e.stopPropagation();
+    const rect = cropBoxRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    resizeDragRef.current = {
+      startY: e.clientY,
+      startHeight: rect.height,
+      width: rect.width,
+      current: baseAspectRatio,
+      moved: false,
+    };
+    setLiveAspectRatio(baseAspectRatio);
+  }
+
+  function handleResizeMove(e: ReactPointerEvent<HTMLDivElement>) {
+    const drag = resizeDragRef.current;
+    if (!drag) return;
+    const dy = e.clientY - drag.startY;
+    if (Math.abs(dy) > 3) drag.moved = true;
+    const newHeight = Math.max(40, drag.startHeight + dy);
+    const next = clamp(drag.width / newHeight, MIN_SLIDESHOW_ASPECT, MAX_SLIDESHOW_ASPECT);
+    // Committed from this ref, not the `liveAspectRatio` state, below — see
+    // the matching comment in CroppableImage's handlePointerMove.
+    drag.current = next;
+    setLiveAspectRatio(next);
+  }
+
+  function handleResizeEnd() {
+    const drag = resizeDragRef.current;
+    if (drag?.moved) {
+      editing?.onSlideshowAspectRatioChange(drag.current);
+    }
+    resizeDragRef.current = null;
+    setLiveAspectRatio(null);
+  }
 
   return (
-    <div className="relative w-full overflow-hidden" style={{ aspectRatio: activeRatio }}>
+    <div className="relative w-full">
       <div
-        className="flex h-full transition-transform duration-700 ease-out"
-        style={{
-          width: `${images.length * 100}%`,
-          transform: `translateX(-${index * (100 / images.length)}%)`,
-        }}
+        ref={cropBoxRef}
+        className="relative w-full overflow-hidden"
+        style={{ aspectRatio: activeRatio }}
       >
-        {images.map((src, i) => (
-          <img
-            key={src}
-            src={src}
-            alt=""
-            onLoad={(e) => handleLoad(src, e)}
-            className="h-full w-full shrink-0 object-cover"
-            style={{ width: `${100 / images.length}%` }}
-          />
-        ))}
-      </div>
-
-      {isEditing && (
-        <button
-          type="button"
-          aria-label="Remove the slideshow"
-          onClick={() => editing?.onClearSlideshow()}
-          className="absolute right-2.5 top-2.5 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white/80 hover:bg-black/80 hover:text-white"
+        <div
+          className="flex h-full transition-transform duration-700 ease-out"
+          style={{
+            width: `${images.length * 100}%`,
+            transform: `translateX(-${index * (100 / images.length)}%)`,
+          }}
         >
-          <Minus size={13} />
-        </button>
-      )}
-
-      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-1 px-6 text-center [text-shadow:0_2px_10px_rgba(0,0,0,0.6)]">
-        <div className="pointer-events-auto w-full">
-          <ThemeText
-            editing={editing}
-            field="overlayLine1"
-            placeholder={isEditing ? "Add a headline" : undefined}
-            as="p"
-            className="text-[26px] font-display uppercase leading-[0.9] text-white"
-          />
-        </div>
-        <div className="pointer-events-auto w-full">
-          <ThemeText
-            editing={editing}
-            field="overlayLine2"
-            placeholder={isEditing ? "Add a tagline" : undefined}
-            as="p"
-            className="text-[11px] font-medium text-white/85"
-          />
-        </div>
-      </div>
-
-      {!isEditing && images.length > 1 && (
-        <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 items-center gap-1">
-          {images.map((_, i) => (
-            <span
-              key={i}
-              className="h-1 rounded-full transition-all"
-              style={{
-                width: i === index ? 12 : 4,
-                background: i === index ? "#fff" : "rgba(255,255,255,0.5)",
-              }}
-            />
-          ))}
-        </div>
-      )}
-
-      {isEditing && (
-        <div className="absolute inset-x-0 bottom-0 flex items-center gap-1.5 overflow-x-auto bg-gradient-to-t from-black/70 to-transparent px-2 pb-2 pt-6">
-          {images.map((src, i) => (
-            <div key={src} className="relative shrink-0">
-              <img
+          {images.map((src) => (
+            <div key={src} className="h-full shrink-0" style={{ width: `${100 / images.length}%` }}>
+              <CroppableImage
                 src={src}
-                alt=""
-                className="h-10 w-10 rounded-md border border-white/30 object-cover"
+                editable={isEditing}
+                position={editing?.slideshowCrops[src]}
+                onPositionChange={(pos) => editing?.onSlideshowCropChange(src, pos)}
+                onLoad={(e) => handleLoad(src, e)}
               />
-              <button
-                type="button"
-                aria-label="Remove photo"
-                onClick={() => editing?.onRemoveSlideshowImage(i)}
-                className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-black/80 text-white"
-              >
-                <Minus size={9} />
-              </button>
             </div>
           ))}
-          {images.length < MAX_SLIDESHOW_IMAGES && (
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-dashed border-white/40 text-white/70"
-            >
-              <Plus size={14} />
-            </button>
-          )}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            multiple
-            className="hidden"
-            onChange={handleFiles}
-          />
+        </div>
+
+        {isEditing && (
+          <button
+            type="button"
+            aria-label="Remove the slideshow"
+            onClick={() => editing?.onClearSlideshow()}
+            className="absolute right-2.5 top-2.5 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white/80 hover:bg-black/80 hover:text-white"
+          >
+            <Minus size={13} />
+          </button>
+        )}
+
+        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-1 px-6 text-center [text-shadow:0_2px_10px_rgba(0,0,0,0.6)]">
+          <div className="pointer-events-auto w-full">
+            <ThemeText
+              editing={editing}
+              field="overlayLine1"
+              placeholder={isEditing ? "Add a headline" : undefined}
+              as="p"
+              className="text-[26px] font-display uppercase leading-[0.9] text-white"
+            />
+          </div>
+          <div className="pointer-events-auto w-full">
+            <ThemeText
+              editing={editing}
+              field="overlayLine2"
+              placeholder={isEditing ? "Add a tagline" : undefined}
+              as="p"
+              className="text-[11px] font-medium text-white/85"
+            />
+          </div>
+        </div>
+
+        {!isEditing && images.length > 1 && (
+          <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 items-center gap-1">
+            {images.map((_, i) => (
+              <span
+                key={i}
+                className="h-1 rounded-full transition-all"
+                style={{
+                  width: i === index ? 12 : 4,
+                  background: i === index ? "#fff" : "rgba(255,255,255,0.5)",
+                }}
+              />
+            ))}
+          </div>
+        )}
+
+        {isEditing && (
+          <div className="absolute inset-x-0 bottom-0 flex items-center gap-1.5 overflow-x-auto bg-gradient-to-t from-black/70 to-transparent px-2 pb-2 pt-6">
+            {images.map((src, i) => (
+              <div key={src} className="relative shrink-0">
+                <img
+                  src={src}
+                  alt=""
+                  className="h-10 w-10 rounded-md border border-white/30 object-cover"
+                />
+                <button
+                  type="button"
+                  aria-label="Remove photo"
+                  onClick={() => editing?.onRemoveSlideshowImage(i)}
+                  className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-black/80 text-white"
+                >
+                  <Minus size={9} />
+                </button>
+              </div>
+            ))}
+            {images.length < MAX_SLIDESHOW_IMAGES && (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-dashed border-white/40 text-white/70"
+              >
+                <Plus size={14} />
+              </button>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={handleFiles}
+            />
+          </div>
+        )}
+      </div>
+
+      {isEditing && editing?.onSlideshowAspectRatioChange && (
+        <div
+          role="slider"
+          aria-label="Resize the slideshow frame"
+          aria-valuenow={Math.round(activeRatio * 100)}
+          aria-valuemin={Math.round(MIN_SLIDESHOW_ASPECT * 100)}
+          aria-valuemax={Math.round(MAX_SLIDESHOW_ASPECT * 100)}
+          tabIndex={0}
+          className="relative z-20 -mt-2.5 flex h-5 cursor-ns-resize touch-none items-center justify-center"
+          onPointerDown={handleResizeStart}
+          onPointerMove={handleResizeMove}
+          onPointerUp={handleResizeEnd}
+          onPointerCancel={handleResizeEnd}
+        >
+          <span className="flex h-5 w-9 items-center justify-center rounded-full bg-neutral-900 text-white/80 shadow-lg">
+            <GripHorizontal size={13} />
+          </span>
         </div>
       )}
     </div>
@@ -392,6 +604,7 @@ export function CollectionsGrid({
   tileBg,
   accent,
   editing,
+  storeId,
 }: {
   fallbackItems: { icon: ReactNode; label: string; count: number }[];
   fallbackProducts: { icon: ReactNode; name: string; price: number }[];
@@ -400,9 +613,13 @@ export function CollectionsGrid({
   tileBg: string;
   accent: string;
   editing?: ThemeEditingProps;
+  /** Whose catalog to preview — the seller's own store while editing, or the
+   * store actually being viewed on a public storefront. Always explicit:
+   * see the comment on useThemePreviewCatalog for why. */
+  storeId: string | null;
 }) {
   const mode = editing?.collectionsMode ?? "collections";
-  const { tiles } = useThemePreviewCatalog(mode);
+  const { tiles } = useThemePreviewCatalog(mode, storeId);
   const useReal = tiles.length > 0;
   const heading = mode === "products" ? "Products" : "Collections";
 
@@ -444,34 +661,38 @@ export function CollectionsGrid({
       </div>
       <div className="mt-2.5 grid grid-cols-2 gap-2">
         {useReal
-          ? tiles.map((tile) => (
-              <button
-                type="button"
-                key={tile.id}
-                onClick={handleTileTap}
-                className="rounded-xl p-2.5 text-left"
-                style={{ background: tileBg }}
-              >
-                <div
-                  className="mb-2 aspect-[4/5] w-full overflow-hidden rounded-lg"
-                  style={{ background: `${accent}22` }}
+          ? tiles.map((tile) => {
+              const cropKey = `${mode}:${tile.id}`;
+              return (
+                <button
+                  type="button"
+                  key={tile.id}
+                  onClick={handleTileTap}
+                  className="rounded-xl p-2.5 text-left"
+                  style={{ background: tileBg }}
                 >
-                  <img
-                    src={tile.image_url ?? productPlaceholder}
-                    alt=""
-                    className="h-full w-full object-cover"
-                  />
-                </div>
-                <p className="truncate text-[10px] font-medium" style={{ color: textColor }}>
-                  {tile.title}
-                </p>
-                {mode === "products" && tile.price != null && (
-                  <p className="text-[8px]" style={{ color: mutedColor }}>
-                    ₦{tile.price.toLocaleString()}
+                  <div
+                    className="mb-2 aspect-[4/5] w-full overflow-hidden rounded-lg"
+                    style={{ background: `${accent}22` }}
+                  >
+                    <CroppableImage
+                      src={tile.image_url ?? productPlaceholder}
+                      editable={editing?.isEditing}
+                      position={editing?.tileCrops[cropKey]}
+                      onPositionChange={(pos) => editing?.onTileCropChange(cropKey, pos)}
+                    />
+                  </div>
+                  <p className="truncate text-[10px] font-medium" style={{ color: textColor }}>
+                    {tile.title}
                   </p>
-                )}
-              </button>
-            ))
+                  {mode === "products" && tile.price != null && (
+                    <p className="text-[8px]" style={{ color: mutedColor }}>
+                      ₦{tile.price.toLocaleString()}
+                    </p>
+                  )}
+                </button>
+              );
+            })
           : mode === "products"
             ? fallbackProducts.map((p, i) => (
                 <button

@@ -10,16 +10,26 @@ import type {
 } from "./edit-types";
 import type { ThemeId } from "./types";
 
-export type SavedThemeCustomization = Omit<ThemeEditState, "logoImage" | "slideshowImages">;
+export type SavedThemeCustomization = Omit<
+  ThemeEditState,
+  "logoImage" | "slideshowImages" | "slideshowCrops" | "slideshowAspectRatio" | "tileCrops"
+>;
 
-// Persists everything in ThemeEditState EXCEPT uploaded images. logoImage and
-// slideshowImages are blob: URLs from URL.createObjectURL — they don't survive
-// a reload or another device, so they stay session-only until bunny.net is
-// wired up. logo_image_url / slideshow_image_urls already exist on the table,
-// unwritten, so wiring real uploads in later is a code change, not a migration
-// (see POSTPONED.md).
-export function useThemeCustomization(themeId: ThemeId) {
-  const { storeId, loading: storeLoading } = useActiveStoreId();
+// Persists everything in ThemeEditState EXCEPT uploaded images and crop
+// positions. logoImage and slideshowImages are blob: URLs from
+// URL.createObjectURL — they don't survive a reload or another device, so
+// they stay session-only until bunny.net is wired up. logo_image_url /
+// slideshow_image_urls already exist on the table, unwritten, so wiring real
+// uploads in later is a code change, not a migration (see POSTPONED.md).
+// slideshowCrops/slideshowAspectRatio/tileCrops ride along as session-only
+// for the same reason — see the comments on those fields in edit-types.ts.
+// storeId is optional — omit it for the editor (the seller's own active
+// store, from session); pass it explicitly to read a specific store's
+// customization for public/read-only rendering (see PublicStorefront).
+export function useThemeCustomization(themeId: ThemeId, storeIdOverride?: string | null) {
+  const { storeId: activeStoreId, loading: activeStoreLoading } = useActiveStoreId();
+  const storeId = storeIdOverride ?? activeStoreId;
+  const storeLoading = storeIdOverride === undefined && activeStoreLoading;
   const [loading, setLoading] = useState(true);
   const [saved, setSaved] = useState<SavedThemeCustomization | null>(null);
 

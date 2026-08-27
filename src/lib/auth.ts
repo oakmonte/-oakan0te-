@@ -1,6 +1,6 @@
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/integrations/my-supabase/client";
-import { isPasswordResetPending, readIntent, type Intent } from "@/lib/onboarding-state";
+import { isPasswordResetPending, readIntent, setIntent, type Intent } from "@/lib/onboarding-state";
 
 function callbackUrl() {
   return `${window.location.origin}/auth/callback`;
@@ -55,6 +55,7 @@ export type PostAuthRedirect =
   | { to: "/where-did-you-hear-about-us" }
   | { to: "/name-your-store" }
   | { to: "/find-your-fit" }
+  | { to: "/switching-roles" }
   | { to: "/create-password" }
   | { to: "/no-account" };
 
@@ -75,6 +76,15 @@ export async function ownProfileRedirect(
     ? ({ to: "/profile/$username", params: { username: data.personal_username } } as const)
     : ({ to: "/" } as const);
 }
+
+// Each role's identity table — a row's existence is that role's durable
+// "onboarding for this role is done" signal (see the creators/curators
+// migration and stores' pre-existing use below).
+const ROLE_TABLE: Record<Intent, "creators" | "curators" | "stores"> = {
+  seller: "stores",
+  creator: "creators",
+  curator: "curators",
+};
 
 // Single source of truth for "where should this user land after auth."
 //
@@ -117,6 +127,29 @@ export async function resolvePostAuthRedirect(
       : ({ to: "/no-account" } as const);
   }
 
+  // A returning user picking up a role they don't already have (e.g. an
+  // existing seller clicking "Become a Creator", or a creator clicking "Set
+  // Up A Store") gets a beat to acknowledge that before the one remaining
+  // step in that role's onboarding — everything else (username, referral
+  // source) is already answered. Gated on the *target* role's own identity
+  // row being absent, not on account_type alone, so re-clicking a role
+  // you've already finished just goes straight to your profile like it
+  // always has.
+  if (intentHint && profile.account_type && profile.account_type !== intentHint) {
+    const table = ROLE_TABLE[intentHint];
+    const { count, error: roleError } = await supabase
+      .from(table)
+      .select("id", { count: "exact", head: true })
+      .eq("owner_id", userId);
+    if (roleError) console.error("resolvePostAuthRedirect: failed to check role", roleError);
+    if (!roleError && !count) {
+      // The acknowledgment page and find-your-fit both read intent back out
+      // of storage rather than off a route param.
+      setIntent(intentHint);
+      return { to: "/switching-roles" } as const;
+    }
+  }
+
   // account_type is written at profile creation and is the durable record of
   // intent — fall back to local state only for profiles created before it.
   const intent = (profile.account_type as Intent | null) ?? intentHint ?? readIntent() ?? "seller";
@@ -135,6 +168,22 @@ export async function resolvePostAuthRedirect(
 
     if (storeError) console.error("resolvePostAuthRedirect: failed to check store", storeError);
     if (!storeError && !count) return { to: "/name-your-store" } as const;
+  }
+
+  // Creator/curator onboarding's one differentiating step (see FLOWS in
+  // onboarding-flow.ts) — a creators/curators row is only ever written when
+  // find-your-fit is submitted or skipped, so its absence means the flow was
+  // abandoned there, not "nothing left to ask." Without this, a creator who
+  // closed the tab on /find-your-fit was treated as fully onboarded on their
+  // next sign-in.
+  if (intent === "creator" || intent === "curator") {
+    const table = ROLE_TABLE[intent];
+    const { count, error: fitError } = await supabase
+      .from(table)
+      .select("id", { count: "exact", head: true })
+      .eq("owner_id", userId);
+    if (fitError) console.error("resolvePostAuthRedirect: failed to check fit profile", fitError);
+    if (!fitError && !count) return { to: "/find-your-fit" } as const;
   }
 
   return { to: "/profile/$username", params: { username: profile.personal_username } } as const;

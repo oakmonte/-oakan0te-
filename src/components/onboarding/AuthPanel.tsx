@@ -7,7 +7,12 @@ import {
   signInWithPassword,
   verifyEmailCode,
 } from "@/lib/auth";
-import { setIntent, setPasswordResetPending, type Intent } from "@/lib/onboarding-state";
+import {
+  clearIntent,
+  setIntent,
+  setPasswordResetPending,
+  type Intent,
+} from "@/lib/onboarding-state";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { GoogleIcon } from "@/components/auth-icons";
 import { Spinner } from "@/components/spinner";
@@ -73,7 +78,12 @@ export function AuthPanel({ intent, title, subtitle, defaultMode = "code" }: Pro
   };
 
   const handleGoogle = async () => {
+    // /sign-in passes intent=null: this is a returning-user attempt, so any
+    // intent left over from an abandoned flow on this browser must not leak
+    // into the OAuth round-trip (auth.callback.tsx has no way to pass a hint
+    // and falls back to reading storage — see clearIntent's doc comment).
     if (intent) setIntent(intent);
+    else clearIntent();
     setError(null);
     setBusy("google");
     const { error: oauthError } = await signInWithGoogle();
@@ -87,6 +97,7 @@ export function AuthPanel({ intent, title, subtitle, defaultMode = "code" }: Pro
     e.preventDefault();
     if (!email.trim()) return;
     if (intent) setIntent(intent);
+    else clearIntent();
     setError(null);
     setNotice(null);
     setBusy("send");

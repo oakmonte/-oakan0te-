@@ -46,6 +46,10 @@ import {
 } from "./edit-types";
 import { LAYOUT_PRESETS, type ArrangeableBlockId } from "./layout-presets";
 import { useThemeCustomization } from "./useThemeCustomization";
+import { useStoreTheme } from "./useStoreTheme";
+import { useActiveStoreId } from "@/hooks/use-own-store";
+
+function noop() {}
 
 const HERO_SLIDESHOW_IMAGES = [
   placeholderPhoto1,
@@ -75,7 +79,13 @@ function orderedBlocks(
   return order.map((id) => <Fragment key={id}>{blocks[id]}</Fragment>);
 }
 
-function MotionGridFull({ editing }: { editing?: ThemeEditingProps }) {
+function MotionGridFull({
+  editing,
+  storeId,
+}: {
+  editing?: ThemeEditingProps;
+  storeId: string | null;
+}) {
   const hidden = editing?.hiddenBlocks ?? [];
   const text = editing?.text ?? {};
 
@@ -96,6 +106,7 @@ function MotionGridFull({ editing }: { editing?: ThemeEditingProps }) {
         tileBg="rgba(255,255,255,0.04)"
         accent="#9c4dff"
         editing={editing}
+        storeId={storeId}
         fallbackItems={[
           { icon: <Zap size={18} />, label: "New Arrivals", count: 12 },
           { icon: <ShieldCheck size={18} />, label: "Graphic Tees", count: 32 },
@@ -182,7 +193,13 @@ function MotionGridFull({ editing }: { editing?: ThemeEditingProps }) {
   );
 }
 
-function ImmersiveBannerFull({ editing }: { editing?: ThemeEditingProps }) {
+function ImmersiveBannerFull({
+  editing,
+  storeId,
+}: {
+  editing?: ThemeEditingProps;
+  storeId: string | null;
+}) {
   const hidden = editing?.hiddenBlocks ?? [];
   const text = editing?.text ?? {};
 
@@ -203,6 +220,7 @@ function ImmersiveBannerFull({ editing }: { editing?: ThemeEditingProps }) {
         tileBg="rgba(166,124,82,0.08)"
         accent="#a67c52"
         editing={editing}
+        storeId={storeId}
         fallbackItems={[
           { icon: <Sparkles size={18} />, label: "Home", count: 16 },
           { icon: <Heart size={18} />, label: "Clothing", count: 24 },
@@ -288,7 +306,13 @@ function ImmersiveBannerFull({ editing }: { editing?: ThemeEditingProps }) {
   );
 }
 
-function GalleryEditFull({ editing }: { editing?: ThemeEditingProps }) {
+function GalleryEditFull({
+  editing,
+  storeId,
+}: {
+  editing?: ThemeEditingProps;
+  storeId: string | null;
+}) {
   const hidden = editing?.hiddenBlocks ?? [];
   const text = editing?.text ?? {};
 
@@ -309,6 +333,7 @@ function GalleryEditFull({ editing }: { editing?: ThemeEditingProps }) {
         tileBg="rgba(201,162,39,0.06)"
         accent="#c9a227"
         editing={editing}
+        storeId={storeId}
         fallbackItems={[
           { icon: <Crown size={18} />, label: "Outerwear", count: 9 },
           { icon: <Gem size={18} />, label: "Tailoring", count: 14 },
@@ -395,7 +420,13 @@ function GalleryEditFull({ editing }: { editing?: ThemeEditingProps }) {
   );
 }
 
-function NeonTerminalFull({ editing }: { editing?: ThemeEditingProps }) {
+function NeonTerminalFull({
+  editing,
+  storeId,
+}: {
+  editing?: ThemeEditingProps;
+  storeId: string | null;
+}) {
   const hidden = editing?.hiddenBlocks ?? [];
   const text = editing?.text ?? {};
 
@@ -416,6 +447,7 @@ function NeonTerminalFull({ editing }: { editing?: ThemeEditingProps }) {
         tileBg="rgba(45,212,255,0.06)"
         accent="#2dd4ff"
         editing={editing}
+        storeId={storeId}
         fallbackItems={[
           { icon: <Cpu size={18} />, label: "Techwear", count: 20 },
           { icon: <Zap size={18} />, label: "Utility", count: 18 },
@@ -501,7 +533,13 @@ function NeonTerminalFull({ editing }: { editing?: ThemeEditingProps }) {
   );
 }
 
-function VerdantNoirFull({ editing }: { editing?: ThemeEditingProps }) {
+function VerdantNoirFull({
+  editing,
+  storeId,
+}: {
+  editing?: ThemeEditingProps;
+  storeId: string | null;
+}) {
   const hidden = editing?.hiddenBlocks ?? [];
   const text = editing?.text ?? {};
 
@@ -522,6 +560,7 @@ function VerdantNoirFull({ editing }: { editing?: ThemeEditingProps }) {
         tileBg="rgba(63,174,99,0.07)"
         accent="#3fae63"
         editing={editing}
+        storeId={storeId}
         fallbackItems={[
           { icon: <Leaf size={18} />, label: "New Growth", count: 14 },
           { icon: <ShieldCheck size={18} />, label: "Outerwear", count: 19 },
@@ -606,7 +645,13 @@ function VerdantNoirFull({ editing }: { editing?: ThemeEditingProps }) {
   );
 }
 
-function MonochromeFull({ editing }: { editing?: ThemeEditingProps }) {
+function MonochromeFull({
+  editing,
+  storeId,
+}: {
+  editing?: ThemeEditingProps;
+  storeId: string | null;
+}) {
   const hidden = editing?.hiddenBlocks ?? [];
   const text = editing?.text ?? {};
 
@@ -627,6 +672,7 @@ function MonochromeFull({ editing }: { editing?: ThemeEditingProps }) {
         tileBg="rgba(17,17,17,0.05)"
         accent="#111111"
         editing={editing}
+        storeId={storeId}
         fallbackItems={[
           { icon: <Layers size={18} />, label: "Basics", count: 24 },
           { icon: <Check size={18} />, label: "Tailored", count: 15 },
@@ -712,7 +758,7 @@ function MonochromeFull({ editing }: { editing?: ThemeEditingProps }) {
   );
 }
 
-function GildedFull({ editing }: { editing?: ThemeEditingProps }) {
+function GildedFull({ editing, storeId }: { editing?: ThemeEditingProps; storeId: string | null }) {
   const hidden = editing?.hiddenBlocks ?? [];
   const text = editing?.text ?? {};
 
@@ -733,6 +779,7 @@ function GildedFull({ editing }: { editing?: ThemeEditingProps }) {
         tileBg="rgba(212,175,55,0.07)"
         accent="#d4af37"
         editing={editing}
+        storeId={storeId}
         fallbackItems={[
           { icon: <Crown size={18} />, label: "Outerwear", count: 8 },
           { icon: <Gem size={18} />, label: "Jewellery", count: 16 },
@@ -818,7 +865,13 @@ function GildedFull({ editing }: { editing?: ThemeEditingProps }) {
   );
 }
 
-function ObsidianFull({ editing }: { editing?: ThemeEditingProps }) {
+function ObsidianFull({
+  editing,
+  storeId,
+}: {
+  editing?: ThemeEditingProps;
+  storeId: string | null;
+}) {
   const hidden = editing?.hiddenBlocks ?? [];
   const text = editing?.text ?? {};
 
@@ -839,6 +892,7 @@ function ObsidianFull({ editing }: { editing?: ThemeEditingProps }) {
         tileBg="rgba(255,255,255,0.03)"
         accent="#6b6b6b"
         editing={editing}
+        storeId={storeId}
         fallbackItems={[
           { icon: <Moon size={18} />, label: "Night", count: 11 },
           { icon: <Hexagon size={18} />, label: "Form", count: 9 },
@@ -926,28 +980,87 @@ function ObsidianFull({ editing }: { editing?: ThemeEditingProps }) {
 export function FullPreview({
   themeId,
   editing,
+  storeId,
 }: {
   themeId: ThemeId;
   editing?: ThemeEditingProps;
+  storeId: string | null;
 }) {
   switch (themeId) {
     case "motion":
-      return <MotionGridFull editing={editing} />;
+      return <MotionGridFull editing={editing} storeId={storeId} />;
     case "banner":
-      return <ImmersiveBannerFull editing={editing} />;
+      return <ImmersiveBannerFull editing={editing} storeId={storeId} />;
     case "atelier":
-      return <GalleryEditFull editing={editing} />;
+      return <GalleryEditFull editing={editing} storeId={storeId} />;
     case "circuit":
-      return <NeonTerminalFull editing={editing} />;
+      return <NeonTerminalFull editing={editing} storeId={storeId} />;
     case "verdant":
-      return <VerdantNoirFull editing={editing} />;
+      return <VerdantNoirFull editing={editing} storeId={storeId} />;
     case "monochrome":
-      return <MonochromeFull editing={editing} />;
+      return <MonochromeFull editing={editing} storeId={storeId} />;
     case "gilded":
-      return <GildedFull editing={editing} />;
+      return <GildedFull editing={editing} storeId={storeId} />;
     case "obsidian":
-      return <ObsidianFull editing={editing} />;
+      return <ObsidianFull editing={editing} storeId={storeId} />;
   }
+}
+
+// Renders a store's actual chosen theme, with its saved customizations, as
+// plain non-editable content — this is what makes an already-designed
+// storefront show up on /profile/$username and /store-profile/$storeUsername
+// instead of those pages falling back to a generic product grid. Every write
+// handler below is a no-op: edit affordances (inputs, remove buttons, the
+// font picker, drag-to-crop) only render when `isEditing` is true, so none
+// of them can ever actually fire here — no need for real mutate/undo/save
+// wiring on a page that can't edit.
+export function PublicStorefront({ storeId }: { storeId: string }) {
+  const { themeId, loading: themeLoading } = useStoreTheme(storeId);
+  const { saved, loading: savedLoading } = useThemeCustomization(themeId, storeId);
+
+  if (themeLoading || savedLoading) {
+    return <div className="py-12 text-center text-[13px] text-white/40">Loading…</div>;
+  }
+
+  const state: ThemeEditState = {
+    ...createInitialEditState(),
+    // Real uploads aren't persisted yet (see useThemeCustomization) — same
+    // placeholder photos the editor itself starts from before the seller
+    // adds their own.
+    slideshowImages: HERO_SLIDESHOW_IMAGES,
+    ...saved,
+  };
+
+  const editing: ThemeEditingProps = {
+    isEditing: false,
+    logoMode: state.logoMode,
+    onLogoModeChange: noop,
+    logoImage: state.logoImage,
+    onLogoChange: noop,
+    slideshowImages: state.slideshowImages,
+    onAddSlideshowImages: noop,
+    onRemoveSlideshowImage: noop,
+    onClearSlideshow: noop,
+    slideshowCrops: state.slideshowCrops,
+    onSlideshowCropChange: noop,
+    slideshowAspectRatio: state.slideshowAspectRatio,
+    onSlideshowAspectRatioChange: noop,
+    tileCrops: state.tileCrops,
+    onTileCropChange: noop,
+    text: state.text,
+    onTextChange: noop,
+    textFonts: state.textFonts,
+    onTextFontChange: noop,
+    hiddenBlocks: state.hiddenBlocks,
+    onRemoveBlock: noop,
+    layoutId: state.layoutId,
+    onLayoutChange: noop,
+    collectionsMode: state.collectionsMode,
+    onCollectionsModeChange: noop,
+    onTileTapBlocked: noop,
+  };
+
+  return <FullPreview themeId={themeId} editing={editing} storeId={storeId} />;
 }
 
 export function ThemePreviewSheet({
@@ -965,6 +1078,7 @@ export function ThemePreviewSheet({
    * "Edit" button, without changing what the in-sheet Edit pill does. */
   initialMode?: "view" | "edit";
 }) {
+  const { storeId } = useActiveStoreId();
   const [mode, setMode] = useState<"view" | "edit">(initialMode);
   // `current` + `history` live in one state object on purpose: a setState
   // updater must be pure (React/StrictMode double-invokes it in dev to catch
@@ -1074,6 +1188,18 @@ export function ThemePreviewSheet({
           ...s,
           slideshowImages: s.slideshowImages.filter((_, i) => i !== index),
         }));
+      },
+      slideshowCrops: state.slideshowCrops,
+      onSlideshowCropChange: (src, position) => {
+        mutate((s) => ({ ...s, slideshowCrops: { ...s.slideshowCrops, [src]: position } }));
+      },
+      slideshowAspectRatio: state.slideshowAspectRatio,
+      onSlideshowAspectRatioChange: (ratio) => {
+        mutate((s) => ({ ...s, slideshowAspectRatio: ratio }));
+      },
+      tileCrops: state.tileCrops,
+      onTileCropChange: (key, position) => {
+        mutate((s) => ({ ...s, tileCrops: { ...s.tileCrops, [key]: position } }));
       },
       onClearSlideshow: () => {
         mutate((s) => ({ ...s, slideshowImages: [] }));
@@ -1227,7 +1353,7 @@ export function ThemePreviewSheet({
         </div>
         <div className="relative w-full max-w-[430px] shrink-0 overflow-hidden rounded-[2.5rem] border-[6px] border-neutral-900 bg-neutral-900 shadow-[0_30px_80px_rgba(0,0,0,0.55)]">
           <div className="max-h-[82vh] overflow-y-auto">
-            <FullPreview themeId={theme.id} editing={editingProps} />
+            <FullPreview themeId={theme.id} editing={editingProps} storeId={storeId} />
           </div>
           {hint && (
             <div className="pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-black/80 px-3 py-1.5 text-[11px] text-white backdrop-blur">

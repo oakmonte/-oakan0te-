@@ -1,64 +1,55 @@
 import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ArrowLeftRight, Share2, Search, Menu, Star, X, Pencil } from "lucide-react";
+import { ArrowLeft, ArrowLeftRight, Share2, Search, Menu, Star, X } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useSession } from "@/hooks/use-session";
 import { BottomNav } from "@/components/BottomNav";
 import { ProfileTabEmptyState } from "@/components/ProfileTabEmptyState";
-import { PostsGrid } from "@/components/profile/PostsGrid";
 import { PublicStorefront } from "@/components/store-themes/full-previews";
 import { Stat, MenuRow } from "@/components/profile/profile-chrome";
 import { TABS, type TabKey } from "@/components/profile/profile-tabs";
 
-export const Route = createFileRoute("/profile/$username")({
-  head: () => ({ meta: [{ title: "Profile — Oakmonte" }] }),
-  component: ProfilePage,
+export const Route = createFileRoute("/store-profile/$storeUsername")({
+  head: () => ({ meta: [{ title: "Store — Oakmonte" }] }),
+  component: StoreProfilePage,
 });
 
-const MOCK_ITEMS = [
-  { id: "1", src: "https://placehold.co/400x400" },
-  { id: "2", src: "https://placehold.co/400x400" },
-  { id: "3", src: "https://placehold.co/400x400" },
-  { id: "4", src: "https://placehold.co/400x400" },
-  { id: "5", src: "https://placehold.co/400x400" },
-  { id: "6", src: "https://placehold.co/400x400" },
-  { id: "7", src: "https://placehold.co/400x400" },
-  { id: "8", src: "https://placehold.co/400x400" },
-  { id: "9", src: "https://placehold.co/400x400" },
-];
-
-type ProfileRow = {
+// The same profile shell as /profile/$username, wearing a store's identity
+// instead of a person's — brand_name/store_username/logo stand in for
+// display_name/personal_username/avatar_url. Every tab except Store (the
+// one thing the two profiles deliberately share — see StoreFrontGrid) is
+// intentionally separate content, not a re-show of the owner's personal
+// posts/wardrobe/etc: there's no schema linking those to a store, and a
+// store isn't the same identity as the person who owns it.
+type StoreRow = {
   id: string;
-  personal_username: string;
-  display_name: string | null;
-  avatar_url: string | null;
+  store_username: string;
+  brand_name: string;
   bio: string | null;
-  following_count: number;
-  followers_count: number;
-  sold_items_count: number;
-  rating: number;
-  rating_count: number;
+  owner_id: string;
+  logo_url: string | null;
 };
 
-function ProfilePage() {
+function StoreProfilePage() {
   const navigate = useNavigate();
-  const { username } = useParams({ from: "/profile/$username" });
+  const { storeUsername } = useParams({ from: "/store-profile/$storeUsername" });
   const { user } = useSession();
-  const [profile, setProfile] = useState<ProfileRow | null>(null);
-  const [profileLoading, setProfileLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<TabKey>("posts");
+  const [store, setStore] = useState<StoreRow | null>(null);
+  const [storeLoading, setStoreLoading] = useState(true);
+  const [productCount, setProductCount] = useState(0);
+  const [ownerUsername, setOwnerUsername] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<TabKey>("store");
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
-  const [store, setStore] = useState<{ id: string; store_username: string } | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const tabScrollRef = useRef<HTMLDivElement>(null);
   const tabButtonRefs = useRef<Record<TabKey, HTMLButtonElement | null>>(
     {} as Record<TabKey, HTMLButtonElement | null>,
   );
 
-  const isOwnProfile = !!user && !!profile && user.id === profile.id;
+  const isOwnStoreProfile = !!user && !!store && user.id === store.owner_id;
 
   const tabIndex = TABS.findIndex((t) => t.key === activeTab);
 
@@ -70,74 +61,74 @@ function ProfilePage() {
 
   useEffect(() => {
     let cancelled = false;
-    setProfileLoading(true);
-    // public_profiles, not profiles: profiles' SELECT policy is auth.uid() =
-    // id, so it can only ever return the signed-in user's own row. The view
-    // exposes just the columns this page renders publicly.
+    setStoreLoading(true);
+    // stores has RLS off project-wide today (see supabase-data-access
+    // skill), so a plain select works for any viewer, same as the seller
+    // dashboard's own reads.
     supabase
-      .from("public_profiles")
-      .select("id, personal_username, display_name, avatar_url, bio")
-      .eq("personal_username", username)
-      .single()
+      .from("stores")
+      .select("id, store_username, brand_name, bio, owner_id")
+      .eq("store_username", storeUsername)
+      .maybeSingle()
       .then(async ({ data, error }) => {
         if (cancelled) return;
-        // id/personal_username are NOT NULL on the base table — the view's
-        // generated type just can't express that for a view's columns.
-        if (error || !data || !data.id || !data.personal_username) {
-          setProfileLoading(false);
+        if (error || !data) {
+          console.error("StoreProfilePage: failed to load store", error);
+          setStoreLoading(false);
           return;
         }
-        const { id, personal_username } = data;
 
-        // The counts live on the profile_stats view, not on profiles — asking
-        // profiles for them makes PostgREST reject the whole select.
-        const { data: stats } = await supabase
-          .from("profile_stats")
-          .select("following_count, followers_count, sold_items_count, rating, rating_count")
-          .eq("id", id)
+        const { data: theme } = await supabase
+          .from("store_theme_customizations")
+          .select("logo_image_url")
+          .eq("store_id", data.id)
           .maybeSingle();
         if (cancelled) return;
 
-        setProfile({
-          ...data,
-          id,
-          personal_username,
-          following_count: stats?.following_count ?? 0,
-          followers_count: stats?.followers_count ?? 0,
-          sold_items_count: stats?.sold_items_count ?? 0,
-          rating: stats?.rating ?? 0,
-          rating_count: stats?.rating_count ?? 0,
-        });
-        setProfileLoading(false);
+        setStore({ ...data, logo_url: theme?.logo_image_url ?? null });
+        setStoreLoading(false);
       });
     return () => {
       cancelled = true;
     };
-  }, [username]);
+  }, [storeUsername]);
 
-  // Whether this person has a store — drives both the Store tab's content
-  // and the switch-profile icon. stores has RLS off project-wide today (see
-  // supabase-data-access skill), so this read works for any viewer.
   useEffect(() => {
-    if (!profile) {
-      setStore(null);
+    if (!store) {
+      setProductCount(0);
+      setOwnerUsername(null);
       return;
     }
     let cancelled = false;
+
     supabase
-      .from("stores")
-      .select("id, store_username")
-      .eq("owner_id", profile.id)
+      .from("products")
+      .select("id", { count: "exact", head: true })
+      .eq("store_id", store.id)
+      .eq("status", "active")
+      .then(({ count, error }) => {
+        if (cancelled) return;
+        if (error) console.error("StoreProfilePage: failed to count products", error);
+        setProductCount(count ?? 0);
+      });
+
+    // public_profiles, not profiles: same RLS reason as /profile/$username —
+    // profiles only ever returns the signed-in user's own row.
+    supabase
+      .from("public_profiles")
+      .select("personal_username")
+      .eq("id", store.owner_id)
       .maybeSingle()
       .then(({ data, error }) => {
         if (cancelled) return;
-        if (error) console.error("ProfilePage: failed to check for store", error);
-        setStore(data ?? null);
+        if (error) console.error("StoreProfilePage: failed to load owner", error);
+        setOwnerUsername(data?.personal_username ?? null);
       });
+
     return () => {
       cancelled = true;
     };
-  }, [profile]);
+  }, [store]);
 
   useEffect(() => {
     if (searchOpen) {
@@ -178,21 +169,18 @@ function ProfilePage() {
           >
             <Search size={22} className={searchOpen ? "text-[#FF7300]" : "text-white"} />
           </button>
-          {store && (
+          {ownerUsername && (
             <button
               onClick={() =>
-                navigate({
-                  to: "/store-profile/$storeUsername",
-                  params: { storeUsername: store.store_username },
-                })
+                navigate({ to: "/profile/$username", params: { username: ownerUsername } })
               }
-              aria-label="Switch to store profile"
+              aria-label="Switch to personal profile"
               className="transition-transform duration-200 active:scale-90"
             >
               <ArrowLeftRight size={20} />
             </button>
           )}
-          {isOwnProfile && (
+          {isOwnStoreProfile && (
             <button
               onClick={() => setMenuOpen(true)}
               aria-label="Menu"
@@ -204,32 +192,19 @@ function ProfilePage() {
         </div>
       </div>
 
-      {/* Profile info */}
+      {/* Store info */}
       <div className="flex flex-col items-center gap-4 px-6 mt-2">
         <img
-          src={profile?.avatar_url || "https://placehold.co/135x139"}
-          alt={username}
+          src={store?.logo_url || "https://placehold.co/135x139"}
+          alt={storeUsername}
           className="w-[110px] h-[110px] rounded-full border-[3px] border-white object-cover"
         />
         <div className="text-center">
-          <div className="flex items-center justify-center gap-1.5">
-            <div className="text-[15px] font-bold">
-              {profileLoading
-                ? "…"
-                : profile?.display_name || profile?.personal_username || username}
-            </div>
-            {isOwnProfile && (
-              <button
-                onClick={() => navigate({ to: "/edit-profile" })}
-                aria-label="Edit profile"
-                className="text-white/50 hover:text-white transition-colors"
-              >
-                <Pencil size={13} />
-              </button>
-            )}
+          <div className="text-[15px] font-bold">
+            {storeLoading ? "…" : store?.brand_name || storeUsername}
           </div>
           <div className="text-[11px] font-bold text-[#B0ADAD] mt-0.5">
-            @{profile?.personal_username || username}
+            @{store?.store_username || storeUsername}
           </div>
           <div className="flex items-center justify-center gap-1.5 mt-1.5">
             <div className="flex items-center gap-[2px]">
@@ -237,17 +212,15 @@ function ProfilePage() {
                 <Star key={i} size={13} className="fill-[#FF7300] text-[#FF7300]" />
               ))}
             </div>
-            <span className="text-[11px] font-medium">({profile?.rating_count ?? 0})</span>
+            <span className="text-[11px] font-medium">(0)</span>
           </div>
         </div>
 
         <div className="flex items-center gap-8">
-          <Stat value={String(profile?.following_count ?? 0)} label="Following" />
-          <Stat value={String(profile?.followers_count ?? 0)} label="Followers" />
-          <Stat value={String(profile?.sold_items_count ?? 0)} label="Sold Items" />
+          <Stat value={String(productCount)} label="Products" />
         </div>
 
-        {profile?.bio && <p className="text-[14px] font-bold text-center">{profile.bio}</p>}
+        {store?.bio && <p className="text-[14px] font-bold text-center">{store.bio}</p>}
       </div>
 
       {/* Tab row */}
@@ -334,19 +307,7 @@ function ProfilePage() {
             }}
             className={activeTab === "store" && store ? "" : "px-1 pt-4"}
           >
-            {profile && activeTab === "posts" ? (
-              <PostsGrid
-                userId={profile.id}
-                status="published"
-                emptyState={<ProfileTabEmptyState tab="posts" />}
-              />
-            ) : profile && activeTab === "drafts" && isOwnProfile ? (
-              <PostsGrid
-                userId={profile.id}
-                status="draft"
-                emptyState={<ProfileTabEmptyState tab="drafts" />}
-              />
-            ) : activeTab === "store" && store ? (
+            {activeTab === "store" && store ? (
               <PublicStorefront storeId={store.id} />
             ) : (
               <ProfileTabEmptyState tab={activeTab} />
@@ -371,17 +332,16 @@ function ProfilePage() {
             <ArrowLeft size={20} />
           </button>
 
-          <div className="text-[11px] uppercase tracking-wide text-white/40 mb-2">
-            Creation &amp; business
-          </div>
-          <MenuRow label="Oakmonte Studio" onClick={() => navigate({ to: "/studio" })} />
-          <MenuRow label="Oakmonte Store" onClick={() => navigate({ to: "/store" })} />
-
-          <div className="text-[11px] uppercase tracking-wide text-white/40 mt-6 mb-2">
-            Personal
-          </div>
-          <MenuRow label="Activity centre" onClick={() => navigate({ to: "/activity" })} />
-          <MenuRow label="Offline videos" onClick={() => navigate({ to: "/offline-videos" })} />
+          <div className="text-[11px] uppercase tracking-wide text-white/40 mb-2">Store</div>
+          <MenuRow label="Manage store" onClick={() => navigate({ to: "/store" })} />
+          {ownerUsername && (
+            <MenuRow
+              label="Return to personal profile"
+              onClick={() =>
+                navigate({ to: "/profile/$username", params: { username: ownerUsername } })
+              }
+            />
+          )}
 
           <div className="mt-6 pt-4 border-t border-white/10">
             <MenuRow label="Settings and privacy" onClick={() => navigate({ to: "/settings" })} />
@@ -389,9 +349,9 @@ function ProfilePage() {
         </div>
       </div>
 
-      {/* Bottom nav — shown only when viewing your own profile */}
-      {isOwnProfile && (
-        <BottomNav active="profile" ownUsername={profile?.personal_username || username} />
+      {/* Bottom nav — shown only when viewing your own store profile */}
+      {isOwnStoreProfile && ownerUsername && (
+        <BottomNav active="profile" ownUsername={ownerUsername} />
       )}
     </div>
   );

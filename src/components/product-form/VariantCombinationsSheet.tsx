@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Check, ChevronLeft, ImageIcon, X } from "lucide-react";
 import type { VariantOption, VariantRow } from "./VariantMatrixBuilder";
+import { DraftImagePickerSheet } from "./DraftImagePickerSheet";
 
 export function VariantCombinationsSheet({
   options,
@@ -260,8 +261,12 @@ export function VariantCombinationsSheet({
       {imagePickerKey && (
         <VariantImagePopover
           initialValue={rows.find((r) => r.key === imagePickerKey)?.mainImageUrl ?? ""}
-          onDone={(url) => {
-            updateRow(imagePickerKey, { mainImageUrl: url });
+          initialAdditional={rows.find((r) => r.key === imagePickerKey)?.additionalImageUrls ?? []}
+          onDone={(url, additional) => {
+            updateRow(imagePickerKey, {
+              mainImageUrl: url,
+              additionalImageUrls: additional.length > 0 ? additional : null,
+            });
             setImagePickerKey(null);
           }}
           onClose={() => setImagePickerKey(null)}
@@ -273,14 +278,32 @@ export function VariantCombinationsSheet({
 
 function VariantImagePopover({
   initialValue,
+  initialAdditional,
   onDone,
   onClose,
 }: {
   initialValue: string;
-  onDone: (url: string) => void;
+  initialAdditional: string[];
+  onDone: (url: string, additional: string[]) => void;
   onClose: () => void;
 }) {
   const [value, setValue] = useState(initialValue);
+  const [additional, setAdditional] = useState(initialAdditional);
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  function handlePicked(urls: string[]) {
+    setPickerOpen(false);
+    if (urls.length === 0) return;
+    const [first, ...rest] = urls;
+    if (!value.trim()) {
+      setValue(first);
+      setAdditional((prev) => [...prev, ...rest]);
+    } else {
+      setAdditional((prev) =>
+        [...prev, ...urls].filter((u, i, arr) => arr.indexOf(u) === i && u !== value),
+      );
+    }
+  }
 
   return (
     <div
@@ -313,11 +336,43 @@ function VariantImagePopover({
           className="w-full text-sm text-center text-gray-500 outline-none placeholder:text-gray-400 border border-gray-200 rounded-lg px-3 py-2.5"
         />
 
+        <button
+          type="button"
+          onClick={() => setPickerOpen(true)}
+          className="mt-2 w-full text-center text-sm font-medium text-gray-900"
+        >
+          Choose from drafts
+        </button>
+
+        {additional.length > 0 && (
+          <div className="mt-2 flex gap-2 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+            {additional.map((url) => (
+              <div
+                key={url}
+                className="relative w-12 h-12 shrink-0 rounded-lg bg-gray-100 overflow-hidden"
+              >
+                <img src={url} alt="" className="w-full h-full object-cover" />
+                <button
+                  type="button"
+                  onClick={() => setAdditional((prev) => prev.filter((u) => u !== url))}
+                  aria-label="Remove image"
+                  className="absolute top-0.5 right-0.5 w-[16px] h-[16px] rounded-full bg-black/60 flex items-center justify-center"
+                >
+                  <X size={9} className="text-white" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
         <div className="flex gap-2 mt-3">
-          {value && (
+          {(value || additional.length > 0) && (
             <button
               type="button"
-              onClick={() => setValue("")}
+              onClick={() => {
+                setValue("");
+                setAdditional([]);
+              }}
               className="flex-1 text-sm font-medium text-gray-500 border border-gray-200 rounded-lg py-2.5"
             >
               Remove
@@ -325,12 +380,16 @@ function VariantImagePopover({
           )}
           <button
             type="button"
-            onClick={() => onDone(value.trim())}
+            onClick={() => onDone(value.trim(), additional)}
             className="flex-1 bg-black text-white text-sm font-medium rounded-lg py-2.5"
           >
             Done
           </button>
         </div>
+
+        {pickerOpen && (
+          <DraftImagePickerSheet onSelect={handlePicked} onClose={() => setPickerOpen(false)} />
+        )}
       </div>
     </div>
   );

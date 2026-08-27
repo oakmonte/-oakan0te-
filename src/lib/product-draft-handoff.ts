@@ -14,6 +14,7 @@ export type ProductDraft = {
   kind: "regular" | "variant";
   status: "draft" | "active";
   mainImageUrl: string;
+  additionalImageUrls?: string[] | null;
   title: string;
   descriptionShort: string;
   categoryPath: CategoryNode[];

@@ -57,6 +57,9 @@ function NewProduct() {
   const [kind, setKind] = useState<ProductKind>(initialDraft?.kind ?? "variant");
   const [status, setStatus] = useState<"draft" | "active">(initialDraft?.status ?? "draft");
   const [mainImageUrl, setMainImageUrl] = useState(initialDraft?.mainImageUrl ?? "");
+  const [additionalImageUrls, setAdditionalImageUrls] = useState<string[]>(
+    initialDraft?.additionalImageUrls ?? [],
+  );
   const [title, setTitle] = useState(initialDraft?.title ?? "");
   const [descriptionShort, setDescriptionShort] = useState(initialDraft?.descriptionShort ?? "");
   const [priceSheetOpen, setPriceSheetOpen] = useState(false);
@@ -109,6 +112,7 @@ function NewProduct() {
       kind,
       status,
       mainImageUrl,
+      additionalImageUrls,
       title,
       descriptionShort,
       categoryPath,
@@ -210,6 +214,7 @@ function NewProduct() {
         stock_qty: stockQty,
         material: material.trim() || null,
         main_image_url: mainImageUrl.trim() || null,
+        additional_image_urls: additionalImageUrls.length > 0 ? additionalImageUrls : null,
       });
       if (variantErr) {
         setError(variantErr.message);
@@ -256,6 +261,7 @@ function NewProduct() {
         stock_qty: r.stockQty ? Number(r.stockQty) : 0,
         sku: r.sku.trim() || null,
         main_image_url: r.mainImageUrl.trim() || mainImageUrl.trim() || null,
+        additional_image_urls: r.additionalImageUrls ?? null,
       }));
 
       const linksPayload = selectedRows.flatMap((r, ri) =>
@@ -350,7 +356,12 @@ function NewProduct() {
 
       {error && <p className="px-4 pt-3 text-sm text-red-500">{error}</p>}
 
-      <MediaSection mainImageUrl={mainImageUrl} onChange={setMainImageUrl} />
+      <MediaSection
+        mainImageUrl={mainImageUrl}
+        onChange={setMainImageUrl}
+        additionalImageUrls={additionalImageUrls}
+        onAdditionalChange={setAdditionalImageUrls}
+      />
 
       <DetailsSection
         title={title}

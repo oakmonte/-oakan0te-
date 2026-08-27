@@ -3,9 +3,14 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Check } from "lucide-react";
 import { readIntent, type Intent } from "@/lib/onboarding-state";
 import { nextRoute, previousStep, stepPosition } from "@/lib/onboarding-flow";
-import { OnboardingChecking, OnboardingShell } from "@/components/onboarding/OnboardingShell";
+import {
+  FormError,
+  OnboardingChecking,
+  OnboardingShell,
+} from "@/components/onboarding/OnboardingShell";
 import { useRequireSession } from "@/components/onboarding/use-require-session";
-import { cmToDisplay, displayToCm } from "@/lib/size-chart-config";
+import { supabase } from "@/lib/integrations/my-supabase/client";
+import { cmToDisplay, displayToCm, CM_PER_INCH } from "@/lib/size-chart-config";
 import fSkinny from "@/assets/body-types/female/skinny.webp";
 import fSlim from "@/assets/body-types/female/slim.webp";
 import fMedium from "@/assets/body-types/female/medium.webp";
@@ -619,9 +624,11 @@ function ImageBodyOption({
 
 function FindYourFitPage() {
   const navigate = useNavigate();
-  const { checking } = useRequireSession();
+  const { userId, checking } = useRequireSession();
   // Read after mount, so the server render and hydration agree.
   const [intent, setIntentState] = useState<Intent | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     setIntentState(readIntent() ?? "creator");
@@ -686,33 +693,78 @@ function FindYourFitPage() {
     navigate({ to: nextRoute(intent, "/find-your-fit"), replace: true });
   };
 
-  const handleSubmit = (e: FormEvent) => {
+  function toNum(raw: string): number | null {
+    const n = parseFloat(raw);
+    return isNaN(n) ? null : n;
+  }
+
+  // A row's existence in creators/curators (not the values in it) is what
+  // resolvePostAuthRedirect treats as "this account finished find-your-fit" —
+  // see src/lib/auth.ts. Submit and Skip both have to write one, or an
+  // account that skipped would be asked again on every future sign-in.
+  const targetTable = intent === "curator" ? "curators" : "creators";
+
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (!userId || saving) return;
+    setSaving(true);
+    setSaveError(null);
 
-    const height =
+    const heightCmValue =
       heightUnit === "cm"
-        ? { unit: "cm", value: heightCm }
-        : { unit: "ftin", feet: heightFt, inches: heightIn };
+        ? toNum(heightCm)
+        : (() => {
+            const feet = toNum(heightFt);
+            const inches = toNum(heightIn);
+            if (feet === null && inches === null) return null;
+            return ((feet ?? 0) * 12 + (inches ?? 0)) * CM_PER_INCH;
+          })();
 
-    // TODO: these answers are still only kept for the length of the session —
-    // there are no columns for height, weight, body type or measurements yet,
-    // and nothing reads this back. Persisting them is deferred until the
-    // universal size chart schema lands.
-    sessionStorage.setItem(
-      "oakmonte_creator_fit",
-      JSON.stringify({
-        height,
-        weight: { unit: weightUnit, value: weight },
+    const weightRaw = toNum(weight);
+    const weightKgValue =
+      weightRaw === null ? null : weightUnit === "kg" ? weightRaw : weightRaw * 0.453592;
+
+    const measurementsCm = measurementsOpen
+      ? Object.entries(measurements).reduce<Record<string, number>>((acc, [key, raw]) => {
+          const n = toNum(raw);
+          if (n !== null) acc[key] = displayToCm(n, measurementUnit);
+          return acc;
+        }, {})
+      : null;
+
+    const { error } = await supabase.from(targetTable).upsert(
+      {
+        owner_id: userId,
+        height_cm: heightCmValue,
+        weight_kg: weightKgValue,
         gender: gender || null,
-        bodyType,
-        measurements: measurementsOpen ? { unit: measurementUnit, values: measurements } : null,
-      }),
+        body_type: bodyType,
+        measurements_cm: measurementsCm,
+      },
+      { onConflict: "owner_id" },
     );
+
+    setSaving(false);
+    if (error) {
+      console.error("find-your-fit: failed to save", error);
+      setSaveError("Couldn't save that — please try again.");
+      return;
+    }
 
     finish();
   };
 
-  const handleSkip = () => {
+  const handleSkip = async () => {
+    if (!userId || saving) return;
+    setSaving(true);
+    const { error } = await supabase
+      .from(targetTable)
+      .upsert({ owner_id: userId }, { onConflict: "owner_id" });
+    setSaving(false);
+    // Skipping shouldn't be able to strand someone here if the write fails —
+    // worst case they're just asked again next sign-in, via
+    // resolvePostAuthRedirect's own fit-profile check.
+    if (error) console.error("find-your-fit: failed to record skip", error);
     finish();
   };
 
@@ -928,11 +980,14 @@ function FindYourFitPage() {
           meant to be or seem intrusive or abusive in any way.
         </p>
 
+        <FormError>{saveError}</FormError>
+
         <button
           type="submit"
-          className="w-full rounded-full bg-brand-accent text-brand-bg py-3.5 text-sm font-medium uppercase tracking-widest hover:bg-brand-accent/90 hover:scale-[1.01] transition-all duration-300 mt-2"
+          disabled={saving}
+          className="w-full rounded-full bg-brand-accent text-brand-bg py-3.5 text-sm font-medium uppercase tracking-widest hover:bg-brand-accent/90 hover:scale-[1.01] transition-all duration-300 mt-2 disabled:opacity-60"
         >
-          Finish
+          {saving ? "Saving…" : "Finish"}
         </button>
       </form>
     </OnboardingShell>

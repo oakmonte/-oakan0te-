@@ -30,6 +30,7 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as StoreRouteImport } from './routes/store'
 import { Route as StudioRouteImport } from './routes/studio'
+import { Route as SwitchingRolesRouteImport } from './routes/switching-roles'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as WelcomeRouteImport } from './routes/welcome'
 import { Route as WhereDidYouHearAboutUsRouteImport } from './routes/where-did-you-hear-about-us'
@@ -38,6 +39,7 @@ import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as CreateIndexRouteImport } from './routes/create.index'
 import { Route as CreateAfterShotRouteImport } from './routes/create.after-shot'
 import { Route as ProfileUsernameRouteImport } from './routes/profile.$username'
+import { Route as StoreProfileStoreUsernameRouteImport } from './routes/store-profile.$storeUsername'
 import { Route as StoreIndexRouteImport } from './routes/store.index'
 import { Route as StoreContentRouteImport } from './routes/store.content'
 import { Route as StoreCustomersRouteImport } from './routes/store.customers'
@@ -172,6 +174,11 @@ const StudioRoute = StudioRouteImport.update({
   path: '/studio',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SwitchingRolesRoute = SwitchingRolesRouteImport.update({
+  id: '/switching-roles',
+  path: '/switching-roles',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
@@ -212,6 +219,12 @@ const ProfileUsernameRoute = ProfileUsernameRouteImport.update({
   path: '/profile/$username',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StoreProfileStoreUsernameRoute =
+  StoreProfileStoreUsernameRouteImport.update({
+    id: '/store-profile/$storeUsername',
+    path: '/store-profile/$storeUsername',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const StoreIndexRoute = StoreIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -375,6 +388,7 @@ export interface FileRoutesByFullPath {
   '/sign-in': typeof SignInRoute
   '/store': typeof StoreRouteWithChildren
   '/studio': typeof StudioRoute
+  '/switching-roles': typeof SwitchingRolesRoute
   '/terms': typeof TermsRoute
   '/welcome': typeof WelcomeRoute
   '/where-did-you-hear-about-us': typeof WhereDidYouHearAboutUsRoute
@@ -382,6 +396,7 @@ export interface FileRoutesByFullPath {
   '/auth/callback': typeof AuthCallbackRoute
   '/create/after-shot': typeof CreateAfterShotRouteWithChildren
   '/profile/$username': typeof ProfileUsernameRoute
+  '/store-profile/$storeUsername': typeof StoreProfileStoreUsernameRoute
   '/store/content': typeof StoreContentRoute
   '/store/customers': typeof StoreCustomersRoute
   '/store/discounts': typeof StoreDiscountsRoute
@@ -432,12 +447,14 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/sign-in': typeof SignInRoute
   '/studio': typeof StudioRoute
+  '/switching-roles': typeof SwitchingRolesRoute
   '/terms': typeof TermsRoute
   '/welcome': typeof WelcomeRoute
   '/where-did-you-hear-about-us': typeof WhereDidYouHearAboutUsRoute
   '/api/posts': typeof ApiPostsRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/profile/$username': typeof ProfileUsernameRoute
+  '/store-profile/$storeUsername': typeof StoreProfileStoreUsernameRoute
   '/store/content': typeof StoreContentRoute
   '/store/customers': typeof StoreCustomersRoute
   '/store/discounts': typeof StoreDiscountsRoute
@@ -491,6 +508,7 @@ export interface FileRoutesById {
   '/sign-in': typeof SignInRoute
   '/store': typeof StoreRouteWithChildren
   '/studio': typeof StudioRoute
+  '/switching-roles': typeof SwitchingRolesRoute
   '/terms': typeof TermsRoute
   '/welcome': typeof WelcomeRoute
   '/where-did-you-hear-about-us': typeof WhereDidYouHearAboutUsRoute
@@ -498,6 +516,7 @@ export interface FileRoutesById {
   '/auth/callback': typeof AuthCallbackRoute
   '/create/after-shot': typeof CreateAfterShotRouteWithChildren
   '/profile/$username': typeof ProfileUsernameRoute
+  '/store-profile/$storeUsername': typeof StoreProfileStoreUsernameRoute
   '/store/content': typeof StoreContentRoute
   '/store/customers': typeof StoreCustomersRoute
   '/store/discounts': typeof StoreDiscountsRoute
@@ -552,6 +571,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/store'
     | '/studio'
+    | '/switching-roles'
     | '/terms'
     | '/welcome'
     | '/where-did-you-hear-about-us'
@@ -559,6 +579,7 @@ export interface FileRouteTypes {
     | '/auth/callback'
     | '/create/after-shot'
     | '/profile/$username'
+    | '/store-profile/$storeUsername'
     | '/store/content'
     | '/store/customers'
     | '/store/discounts'
@@ -609,12 +630,14 @@ export interface FileRouteTypes {
     | '/settings'
     | '/sign-in'
     | '/studio'
+    | '/switching-roles'
     | '/terms'
     | '/welcome'
     | '/where-did-you-hear-about-us'
     | '/api/posts'
     | '/auth/callback'
     | '/profile/$username'
+    | '/store-profile/$storeUsername'
     | '/store/content'
     | '/store/customers'
     | '/store/discounts'
@@ -667,6 +690,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/store'
     | '/studio'
+    | '/switching-roles'
     | '/terms'
     | '/welcome'
     | '/where-did-you-hear-about-us'
@@ -674,6 +698,7 @@ export interface FileRouteTypes {
     | '/auth/callback'
     | '/create/after-shot'
     | '/profile/$username'
+    | '/store-profile/$storeUsername'
     | '/store/content'
     | '/store/customers'
     | '/store/discounts'
@@ -727,12 +752,14 @@ export interface RootRouteChildren {
   SignInRoute: typeof SignInRoute
   StoreRoute: typeof StoreRouteWithChildren
   StudioRoute: typeof StudioRoute
+  SwitchingRolesRoute: typeof SwitchingRolesRoute
   TermsRoute: typeof TermsRoute
   WelcomeRoute: typeof WelcomeRoute
   WhereDidYouHearAboutUsRoute: typeof WhereDidYouHearAboutUsRoute
   ApiPostsRoute: typeof ApiPostsRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
   ProfileUsernameRoute: typeof ProfileUsernameRoute
+  StoreProfileStoreUsernameRoute: typeof StoreProfileStoreUsernameRoute
   ApiAccountDeleteRoute: typeof ApiAccountDeleteRoute
   ApiBumpaConnectRoute: typeof ApiBumpaConnectRoute
   ApiImportCsvRoute: typeof ApiImportCsvRoute
@@ -894,6 +921,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StudioRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/switching-roles': {
+      id: '/switching-roles'
+      path: '/switching-roles'
+      fullPath: '/switching-roles'
+      preLoaderRoute: typeof SwitchingRolesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/terms': {
       id: '/terms'
       path: '/terms'
@@ -948,6 +982,13 @@ declare module '@tanstack/react-router' {
       path: '/profile/$username'
       fullPath: '/profile/$username'
       preLoaderRoute: typeof ProfileUsernameRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/store-profile/$storeUsername': {
+      id: '/store-profile/$storeUsername'
+      path: '/store-profile/$storeUsername'
+      fullPath: '/store-profile/$storeUsername'
+      preLoaderRoute: typeof StoreProfileStoreUsernameRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/store/': {
@@ -1238,12 +1279,14 @@ const rootRouteChildren: RootRouteChildren = {
   SignInRoute: SignInRoute,
   StoreRoute: StoreRouteWithChildren,
   StudioRoute: StudioRoute,
+  SwitchingRolesRoute: SwitchingRolesRoute,
   TermsRoute: TermsRoute,
   WelcomeRoute: WelcomeRoute,
   WhereDidYouHearAboutUsRoute: WhereDidYouHearAboutUsRoute,
   ApiPostsRoute: ApiPostsRoute,
   AuthCallbackRoute: AuthCallbackRoute,
   ProfileUsernameRoute: ProfileUsernameRoute,
+  StoreProfileStoreUsernameRoute: StoreProfileStoreUsernameRoute,
   ApiAccountDeleteRoute: ApiAccountDeleteRoute,
   ApiBumpaConnectRoute: ApiBumpaConnectRoute,
   ApiImportCsvRoute: ApiImportCsvRoute,

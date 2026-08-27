@@ -51,19 +51,34 @@ export type Database = {
       }
       creators: {
         Row: {
+          body_type: string | null
           created_at: string
+          gender: string | null
+          height_cm: number | null
           id: string
+          measurements_cm: Json | null
           owner_id: string
+          weight_kg: number | null
         }
         Insert: {
+          body_type?: string | null
           created_at?: string
+          gender?: string | null
+          height_cm?: number | null
           id?: string
+          measurements_cm?: Json | null
           owner_id: string
+          weight_kg?: number | null
         }
         Update: {
+          body_type?: string | null
           created_at?: string
+          gender?: string | null
+          height_cm?: number | null
           id?: string
+          measurements_cm?: Json | null
           owner_id?: string
+          weight_kg?: number | null
         }
         Relationships: [
           {
@@ -91,19 +106,34 @@ export type Database = {
       }
       curators: {
         Row: {
+          body_type: string | null
           created_at: string
+          gender: string | null
+          height_cm: number | null
           id: string
+          measurements_cm: Json | null
           owner_id: string
+          weight_kg: number | null
         }
         Insert: {
+          body_type?: string | null
           created_at?: string
+          gender?: string | null
+          height_cm?: number | null
           id?: string
+          measurements_cm?: Json | null
           owner_id: string
+          weight_kg?: number | null
         }
         Update: {
+          body_type?: string | null
           created_at?: string
+          gender?: string | null
+          height_cm?: number | null
           id?: string
+          measurements_cm?: Json | null
           owner_id?: string
+          weight_kg?: number | null
         }
         Relationships: [
           {
@@ -1067,8 +1097,8 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "stores_owner_id_fkey"
-            columns: ["owner_id"]
+            foreignKeyName: "stores_theme_id_fkey"
+            columns: ["theme_id"]
             isOneToOne: false
             referencedRelation: "store_themes"
             referencedColumns: ["id"]

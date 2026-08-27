@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Image as ImageIcon, Instagram } from "lucide-react";
-import type { TabKey } from "@/routes/profile.$username";
+import type { TabKey } from "@/components/profile/profile-tabs";
 
 const EMPTY_COPY: Record<Exclude<TabKey, "posts">, { title: string; subtitle: string }> = {
   store: { title: "Nothing listed yet", subtitle: "Products you list for sale will show up here." },

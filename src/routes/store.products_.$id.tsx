@@ -128,7 +128,7 @@ function EditProduct() {
   const [regularMaterialFeel, setRegularMaterialFeel] = useState<string | null>(null);
   const [regularWeightGrams, setRegularWeightGrams] = useState<number | null>(null);
   const [regularAdditionalImageUrls, setRegularAdditionalImageUrls] = useState<string[] | null>(
-    null,
+    initialDraft?.additionalImageUrls ?? null,
   );
 
   // Variant-mode state
@@ -333,6 +333,7 @@ function EditProduct() {
       kind,
       status,
       mainImageUrl,
+      additionalImageUrls: regularAdditionalImageUrls,
       title,
       descriptionShort,
       categoryPath,
@@ -609,7 +610,12 @@ function EditProduct() {
 
       {error && <p className="px-4 pt-3 text-sm text-red-500">{error}</p>}
 
-      <MediaSection mainImageUrl={mainImageUrl} onChange={setMainImageUrl} />
+      <MediaSection
+        mainImageUrl={mainImageUrl}
+        onChange={setMainImageUrl}
+        additionalImageUrls={regularAdditionalImageUrls ?? []}
+        onAdditionalChange={(urls) => setRegularAdditionalImageUrls(urls.length > 0 ? urls : null)}
+      />
 
       <DetailsSection
         title={title}

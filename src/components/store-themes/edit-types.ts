@@ -23,6 +23,11 @@ export type TextFieldId =
 export type ThemeTextEdits = Partial<Record<TextFieldId, string>>;
 export type ThemeTextFonts = Partial<Record<TextFieldId, FontId>>;
 
+// object-position percentages (0-100, matching CSS), set by dragging a
+// cropped image in edit mode. Absent key means "centered" (50/50), not zero.
+export type CropPosition = { x: number; y: number };
+export type ThemeImageCrops = Record<string, CropPosition>;
+
 // The seller's edit-session draft. Every field only stores a DELTA from the
 // theme's hardcoded defaults — an unset/empty value means "show the default,"
 // never a copy of the default itself. Session-only: no persistence yet.
@@ -31,6 +36,23 @@ export type ThemeEditState = {
   logoMode: "image" | "text";
   logoImage: string | null;
   slideshowImages: string[];
+  // Keyed by slideshow image src. Preview-only, same as slideshowImages
+  // itself: those srcs are blob: URLs that don't survive a reload, so a crop
+  // tied to one is equally dead on reload — no separate persistence story
+  // needed here.
+  slideshowCrops: ThemeImageCrops;
+  // width / height of the slideshow's crop frame. Null means "auto" — the
+  // active slide's own natural ratio, today's behavior. Set once the seller
+  // drags the resize handle; from then on every slide crops to this same
+  // frame instead of each reflowing to its own shape. Same preview-only tier
+  // as slideshowCrops — it's meaningless once slideshowImages resets on load.
+  slideshowAspectRatio: number | null;
+  // Keyed by `${collectionsMode}:${tileId}` for the real-catalog tiles in
+  // CollectionsGrid. Deliberately preview-only (not saved against the
+  // product/collection itself) — repositioning here only changes how the
+  // photo sits inside this theme's tile frame, not the source image, so it
+  // doesn't need to follow the product everywhere else it's shown.
+  tileCrops: ThemeImageCrops;
   text: ThemeTextEdits;
   textFonts: ThemeTextFonts;
   hiddenBlocks: RemovableBlockId[];
@@ -43,6 +65,9 @@ export function createInitialEditState(): ThemeEditState {
     logoMode: "image",
     logoImage: null,
     slideshowImages: [],
+    slideshowCrops: {},
+    slideshowAspectRatio: null,
+    tileCrops: {},
     text: {},
     textFonts: {},
     hiddenBlocks: [],
@@ -62,6 +87,12 @@ export type ThemeEditingProps = {
   onAddSlideshowImages: (files: FileList) => void;
   onRemoveSlideshowImage: (index: number) => void;
   onClearSlideshow: () => void;
+  slideshowCrops: ThemeImageCrops;
+  onSlideshowCropChange: (src: string, position: CropPosition) => void;
+  slideshowAspectRatio: number | null;
+  onSlideshowAspectRatioChange: (ratio: number) => void;
+  tileCrops: ThemeImageCrops;
+  onTileCropChange: (key: string, position: CropPosition) => void;
   text: ThemeTextEdits;
   onTextChange: (field: TextFieldId, value: string) => void;
   textFonts: ThemeTextFonts;

@@ -8,8 +8,14 @@ const DEFAULT_THEME: ThemeId = "motion";
 // `stores.theme_id` is a uuid FK into store_themes; the app picks themes by
 // slug (ThemeId). This hook is the one place that translates between them, so
 // nothing else in the app needs to know store_themes has a surrogate id.
-export function useStoreTheme() {
-  const { storeId, loading: storeLoading } = useActiveStoreId();
+//
+// storeId is optional — omit it to read/write the seller's own active store
+// (from session); pass it explicitly to look up which theme a specific store
+// has picked, for public/read-only rendering (see PublicStorefront).
+export function useStoreTheme(storeIdOverride?: string | null) {
+  const { storeId: activeStoreId, loading: activeStoreLoading } = useActiveStoreId();
+  const storeId = storeIdOverride ?? activeStoreId;
+  const storeLoading = storeIdOverride === undefined && activeStoreLoading;
   const [themeId, setThemeIdState] = useState<ThemeId>(DEFAULT_THEME);
   const [loading, setLoading] = useState(true);
 
