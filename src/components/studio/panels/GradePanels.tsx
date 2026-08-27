@@ -1,8 +1,28 @@
 import { useState } from "react";
-import { CAMERA_FILTERS, FILTER_CATEGORIES } from "@/components/camera/filter-data";
+import {
+  CAMERA_FILTERS,
+  FILTER_CATEGORIES,
+  type CameraFilter,
+} from "@/components/camera/filter-data";
 import { ADJUSTMENT_CONTROLS, resetAdjustments } from "@/lib/studio/adjustments";
+import { useFilterThumbnail } from "@/lib/filter-thumbnail";
 import { EmptyHint, Pill, StudioSheet, StudioSlider } from "../controls";
 import type { Adjustments, VideoClip } from "@/lib/studio/types";
+
+function FilterSwatch({ filter, active }: { filter: CameraFilter; active: boolean }) {
+  const thumb = useFilterThumbnail(filter);
+  return (
+    <span
+      className="block h-12 w-12 rounded-lg bg-cover bg-center"
+      style={{
+        backgroundColor: filter.thumbnailColor,
+        backgroundImage: thumb ? `url(${thumb})` : undefined,
+        outline: active ? "2px solid #fff" : "1px solid rgba(255,255,255,0.15)",
+        outlineOffset: 1,
+      }}
+    />
+  );
+}
 
 type Group = { begin: () => void; end: () => void };
 
@@ -68,16 +88,7 @@ export function FilterPanel({
             }}
             className="flex shrink-0 flex-col items-center gap-1"
           >
-            <span
-              className="block h-12 w-12 rounded-lg"
-              style={{
-                background: f.thumbnailColor,
-                filter: f.css === "none" ? undefined : f.css,
-                outline:
-                  clip.filterId === f.id ? "2px solid #fff" : "1px solid rgba(255,255,255,0.15)",
-                outlineOffset: 1,
-              }}
-            />
+            <FilterSwatch filter={f} active={clip.filterId === f.id} />
             <span className="text-[9px] text-white/70">{f.name}</span>
           </button>
         ))}

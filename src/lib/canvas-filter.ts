@@ -4,6 +4,15 @@
 // CanvasRenderingContext2D.filter — it silently no-ops or partially
 // applies combined filter strings, while drawImage + pixel math works
 // identically everywhere.
+//
+// CompiledFilter is a small ordered list of FilterOps so a true 3D-LUT grade
+// (lut-registry.ts) and a CSS matrix chain can compose in one pixel pass —
+// still exactly one getImageData/putImageData round trip regardless of how
+// many ops are stacked. See filter-data.ts's compileGrade() for how a
+// CameraFilter becomes one of these.
+
+import { applyLutToImageData } from "./lut/apply-lut";
+import type { LutTable } from "./lut/generate-lut";
 
 type Mat3 = number[]; // row-major 3x3
 type Vec3 = [number, number, number];
@@ -109,28 +118,47 @@ function hueRotateMat(deg: number): Mat3 {
   ];
 }
 
+type FilterOp = { kind: "matrix"; matrix: Mat3; offset: Vec3 } | { kind: "lut"; table: LutTable };
+
 export interface CompiledFilter {
-  matrix: Mat3;
-  offset: Vec3;
+  ops: FilterOp[];
+  /** How strongly the graded result replaces the original pixel, 0..1.
+   *  Omitted/1 means fully replace (today's default everywhere this was
+   *  called before intensity existed). Below 1, applyCompiledFilter lerps
+   *  back toward the untouched original — an intensity slider, not a second
+   *  weaker grade, so it costs one extra pass over the pixels it already
+   *  has in hand rather than a second LUT evaluation. */
+  amount?: number;
 }
 
-export const IDENTITY_FILTER: CompiledFilter = { matrix: IDENTITY, offset: [0, 0, 0] };
+export const IDENTITY_FILTER: CompiledFilter = { ops: [] };
+
+/** Returns a filter that applies `compiled` at `amount` strength (0..1)
+ *  instead of full strength. Composes with any amount already on `compiled`
+ *  by multiplying, so scaling an already-scaled filter keeps behaving. */
+export function withAmount(compiled: CompiledFilter, amount: number): CompiledFilter {
+  if (compiled === IDENTITY_FILTER || compiled.ops.length === 0) return compiled;
+  const combined = (compiled.amount ?? 1) * amount;
+  if (combined >= 1) return { ops: compiled.ops };
+  return { ops: compiled.ops, amount: combined };
+}
 
 /** Parses a CSS filter string (e.g. "brightness(1.05) saturate(1.2) sepia(0.15)")
- *  into a single composed 3x3 matrix + offset. Functions compose left-to-right,
+ *  into a single composed matrix op. Functions compose left-to-right,
  *  matching how the browser applies CSS filter chains. */
 export function compileFilter(css: string): CompiledFilter {
   if (!css || css === "none") return IDENTITY_FILTER;
 
   let matrix: Mat3 = IDENTITY;
   let offset: Vec3 = [0, 0, 0];
+  let any = false;
 
   const fnRe = /([\w-]+)\(([^)]+)\)/g;
   let match: RegExpExecArray | null;
   while ((match = fnRe.exec(css))) {
     const name = match[1];
     const raw = match[2].trim();
-    const value = raw.endsWith("deg") ? parseFloat(raw) : parseFloat(raw);
+    const value = parseFloat(raw);
 
     let m: Mat3 = IDENTITY;
     let o: Vec3 = [0, 0, 0];
@@ -159,27 +187,57 @@ export function compileFilter(css: string): CompiledFilter {
         continue; // unknown function, skip
     }
 
+    any = true;
     // Compose: apply this filter *after* everything accumulated so far.
     matrix = mulMat3(m, matrix);
     offset = addVec3(mulMat3Vec3(m, offset), o);
   }
 
-  return { matrix, offset };
+  if (!any) return IDENTITY_FILTER;
+  return { ops: [{ kind: "matrix", matrix, offset }] };
 }
 
-/** Applies a compiled filter to ImageData in place. */
+/** Wraps a pre-baked 3D LUT (see lut-registry.ts) as a CompiledFilter op. */
+export function compileLutOp(table: LutTable): CompiledFilter {
+  return { ops: [{ kind: "lut", table }] };
+}
+
+/** Applies every op in order to ImageData in place, in one getImageData /
+ *  putImageData round trip regardless of how many ops or whether an
+ *  intensity below 1 is set. */
 export function applyCompiledFilter(imageData: ImageData, compiled: CompiledFilter): void {
-  if (compiled === IDENTITY_FILTER) return;
-  const { matrix: m, offset: o } = compiled;
+  if (compiled === IDENTITY_FILTER || compiled.ops.length === 0) return;
+
+  const amount = compiled.amount ?? 1;
   const data = imageData.data;
-  for (let i = 0; i < data.length; i += 4) {
-    const r = data[i];
-    const g = data[i + 1];
-    const b = data[i + 2];
-    data[i] = clamp(m[0] * r + m[1] * g + m[2] * b + o[0]);
-    data[i + 1] = clamp(m[3] * r + m[4] * g + m[5] * b + o[1]);
-    data[i + 2] = clamp(m[6] * r + m[7] * g + m[8] * b + o[2]);
-    // alpha untouched
+  // Only needed to lerp back toward the original at the end — skipped
+  // entirely at full strength, which is every filter before intensity
+  // existed and most uses of it today.
+  const original = amount < 1 ? data.slice() : null;
+
+  for (const op of compiled.ops) {
+    if (op.kind === "lut") {
+      applyLutToImageData(imageData, op.table);
+      continue;
+    }
+    const { matrix: m, offset: o } = op;
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      data[i] = clamp(m[0] * r + m[1] * g + m[2] * b + o[0]);
+      data[i + 1] = clamp(m[3] * r + m[4] * g + m[5] * b + o[1]);
+      data[i + 2] = clamp(m[6] * r + m[7] * g + m[8] * b + o[2]);
+      // alpha untouched
+    }
+  }
+
+  if (original) {
+    for (let i = 0; i < data.length; i += 4) {
+      data[i] = original[i] + (data[i] - original[i]) * amount;
+      data[i + 1] = original[i + 1] + (data[i + 1] - original[i + 1]) * amount;
+      data[i + 2] = original[i + 2] + (data[i + 2] - original[i + 2]) * amount;
+    }
   }
 }
 

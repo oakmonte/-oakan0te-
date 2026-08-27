@@ -21,6 +21,8 @@ import {
 
 import { compileFilter, applyCompiledFilter, IDENTITY_FILTER } from "@/lib/canvas-filter";
 import { setPendingCapture } from "@/lib/capture-handoff";
+import { useFilterThumbnail } from "@/lib/filter-thumbnail";
+import { exportVideo } from "@/lib/after-shot-export";
 
 import RatioPanel, { type CameraRatio } from "@/components/camera/RatioPanel";
 import TimerPanel, { type CameraTimer } from "@/components/camera/TimerPanel";
@@ -28,7 +30,12 @@ import FilterPanel from "@/components/camera/FilterPanel";
 import LayoutPanel from "@/components/camera/LayoutPanel";
 import LayoutPreview from "@/components/camera/LayoutPreview";
 import LiquidGlassSegmented from "@/components/camera/LiquidGlassSegmented";
-import { CAMERA_FILTERS } from "@/components/camera/filter-data";
+import {
+  CAMERA_FILTERS,
+  compileGrade,
+  previewCssAtIntensity,
+  type CameraFilter,
+} from "@/components/camera/filter-data";
 import { CAMERA_LAYOUTS } from "@/components/camera/layout-data";
 import type { CameraLayout, LayoutCell } from "@/components/camera/layout-data";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
@@ -106,6 +113,24 @@ function applyZoomToCrop(crop: { sx: number; sy: number; sw: number; sh: number 
     sw: zsw,
     sh: zsh,
   };
+}
+
+// A real baked preview of the filter's grade instead of a flat color circle —
+// see filter-thumbnail.ts. The swatch color still shows as a skeleton for the
+// instant before the bake resolves, so the strip never flashes empty.
+function FilterSwatchThumb({ filter, diameter }: { filter: CameraFilter; diameter: number }) {
+  const thumb = useFilterThumbnail(filter);
+  return (
+    <span
+      className="rounded-full overflow-hidden block bg-cover bg-center"
+      style={{
+        width: diameter,
+        height: diameter,
+        backgroundColor: filter.thumbnailColor,
+        backgroundImage: thumb ? `url(${thumb})` : undefined,
+      }}
+    />
+  );
 }
 
 // Quick filter strip: Natural is pinned, favorites fill in, and up to this
@@ -198,6 +223,10 @@ function CreatePage() {
   const [ratio, setRatio] = useState<CameraRatio>("9:16");
   const [timer, setTimer] = useState<CameraTimer>(0);
   const [selectedFilterId, setSelectedFilterId] = useState(DEFAULT_FILTER_ID);
+  // Reset to the newly-picked filter's own default (100) whenever the id
+  // changes via the swipe strip; FilterPanel sets both together explicitly
+  // when the user drags its own intensity slider instead.
+  const [filterIntensity, setFilterIntensity] = useState(100);
   const [favoritedFilterIds, setFavoritedFilterIds] = useState<Set<string>>(new Set());
   const [randomFillerIds, setRandomFillerIds] = useState<string[]>([]);
   const [selectedLayoutId, setSelectedLayoutId] = useState(DEFAULT_LAYOUT_ID);
@@ -216,6 +245,12 @@ function CreatePage() {
   const [countdownRemaining, setCountdownRemaining] = useState<number | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+  // True only while a recording that used a true-LUT filter is being
+  // re-graded post-recording — see startRecording's needsPostGrade. Every
+  // other capture (photo, or a video whose filter is matrix-only) never
+  // touches this; it stays false and navigates on immediately.
+  const [isGradingVideo, setIsGradingVideo] = useState(false);
+  const [gradingProgress, setGradingProgress] = useState(0);
 
   // --- Multi-cell layout capture ---
   // Keyed by layout id so progress isn't lost if the user switches to a
@@ -340,14 +375,20 @@ function CreatePage() {
     const index = Math.round(el.scrollLeft / CAPTURE_SIZE);
     const clamped = Math.max(0, Math.min(quickStripFilters.length - 1, index));
     const next = quickStripFilters[clamped];
-    if (next && next.id !== selectedFilterId) setSelectedFilterId(next.id);
+    if (next && next.id !== selectedFilterId) {
+      setSelectedFilterId(next.id);
+      setFilterIntensity(next.intensity);
+    }
   }, [quickStripFilters, selectedFilterId]);
 
   const scrollFilterIntoRing = useCallback(
     (index: number) => {
       filterStripRef.current?.scrollTo({ left: index * CAPTURE_SIZE, behavior: "smooth" });
       const next = quickStripFilters[index];
-      if (next) setSelectedFilterId(next.id);
+      if (next) {
+        setSelectedFilterId(next.id);
+        setFilterIntensity(next.intensity);
+      }
     },
     [quickStripFilters],
   );
@@ -412,9 +453,22 @@ function CreatePage() {
 
   // Front-camera screen flash, driven by the same flashOn toggle.
   const screenFlashActive = facing === "user" && flashOn;
+  const previewFilterCssAtIntensity = previewCssAtIntensity(activeFilter, filterIntensity);
   const currentFilterCss = screenFlashActive
-    ? `${activeFilter.css} brightness(1.25)`
-    : activeFilter.css;
+    ? `${previewFilterCssAtIntensity} brightness(1.25)`
+    : previewFilterCssAtIntensity;
+
+  // The true grade (LUT included) for one-shot bakes — shutter press, layout
+  // cell capture. Screen-flash's brightness boost is a capture-time-only
+  // simulation, so it's appended as an extra matrix op rather than folded
+  // into the filter itself. Deliberately NOT used by the live preview
+  // (currentFilterCss, above) or the recording draw loop (which stays on the
+  // cheap matrix path) — see canvas-filter.ts's CompiledFilter doc.
+  const resolveCaptureFilter = useCallback(() => {
+    const graded = compileGrade(activeFilter, filterIntensity);
+    if (!screenFlashActive) return graded;
+    return { ops: [...graded.ops, ...compileFilter("brightness(1.25)").ops] };
+  }, [activeFilter, filterIntensity, screenFlashActive]);
 
   const applyZoom = useCallback(
     (level: number) => {
@@ -499,7 +553,7 @@ function CreatePage() {
 
     ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
 
-    const compiled = compileFilter(currentFilterCss);
+    const compiled = resolveCaptureFilter();
     if (compiled !== IDENTITY_FILTER) {
       const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       applyCompiledFilter(imgData, compiled);
@@ -516,7 +570,7 @@ function CreatePage() {
       "image/jpeg",
       0.96,
     );
-  }, [facing, currentFilterCss, navigate, ratio, cssZoomScale]);
+  }, [facing, resolveCaptureFilter, navigate, ratio, cssZoomScale]);
 
   // Captures one layout cell exactly the way capturePhoto captures a full
   // single shot: center-crop the WHOLE raw camera frame to a target aspect
@@ -553,7 +607,7 @@ function CreatePage() {
       }
       ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
 
-      const compiled = compileFilter(currentFilterCss);
+      const compiled = resolveCaptureFilter();
       if (compiled !== IDENTITY_FILTER) {
         const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         applyCompiledFilter(imgData, compiled);
@@ -561,7 +615,7 @@ function CreatePage() {
       }
       return canvas;
     },
-    [facing, currentFilterCss, targetAspect, cssZoomScale],
+    [facing, resolveCaptureFilter, targetAspect, cssZoomScale],
   );
 
   // Flattens every filled cell onto one output canvas at the layout's
@@ -657,6 +711,16 @@ function CreatePage() {
 
     let recordingStream: MediaStream = stream;
 
+    // A filter with a true LUT grade is deliberately NOT baked live below
+    // (see resolveCaptureFilter's doc) — recording stays raw/unfiltered at
+    // 60fps, and recorder.onstop further down runs the true grade once as a
+    // post-process instead. A filter without a grade already IS its own
+    // matrix at full accuracy, so those still bake live exactly as before:
+    // no post-process, no extra encode generation, no change.
+    const needsPostGrade = !!activeFilter.grade && filterIntensity > 0;
+    const gradeFilter = activeFilter;
+    const gradeIntensity = filterIntensity;
+
     if (video.videoWidth > 0) {
       const { sx, sy, sw, sh } = applyZoomToCrop(
         getCropRect(video.videoWidth, video.videoHeight, RATIO_ASPECT[ratio]),
@@ -668,7 +732,9 @@ function CreatePage() {
       const rctx = recordCanvas.getContext("2d");
 
       if (rctx) {
-        const compiledFilterAtStart = compileFilter(currentFilterCss);
+        const compiledFilterAtStart = needsPostGrade
+          ? IDENTITY_FILTER
+          : compileFilter(currentFilterCss);
         const shouldMirror = facing === "user";
 
         const drawFrame = () => {
@@ -678,9 +744,11 @@ function CreatePage() {
             rctx.scale(-1, 1);
           }
           rctx.drawImage(video, sx, sy, sw, sh, 0, 0, recordCanvas.width, recordCanvas.height);
-          const frame = rctx.getImageData(0, 0, recordCanvas.width, recordCanvas.height);
-          applyCompiledFilter(frame, compiledFilterAtStart);
-          rctx.putImageData(frame, 0, 0);
+          if (compiledFilterAtStart !== IDENTITY_FILTER) {
+            const frame = rctx.getImageData(0, 0, recordCanvas.width, recordCanvas.height);
+            applyCompiledFilter(frame, compiledFilterAtStart);
+            rctx.putImageData(frame, 0, 0);
+          }
           rctx.restore();
           mirrorDrawLoopRef.current = requestAnimationFrame(drawFrame);
         };
@@ -706,11 +774,34 @@ function CreatePage() {
     recorder.ondataavailable = (e) => {
       if (e.data.size > 0) recordedChunksRef.current.push(e.data);
     };
-    recorder.onstop = () => {
+    recorder.onstop = async () => {
       stopMirrorDrawLoop();
-      const blob = new Blob(recordedChunksRef.current, { type: mimeType || "video/webm" });
-      const url = URL.createObjectURL(blob);
-      setPendingCapture({ type: "video", blob, url });
+      const rawBlob = new Blob(recordedChunksRef.current, { type: mimeType || "video/webm" });
+
+      let finalBlob = rawBlob;
+      if (needsPostGrade) {
+        setIsGradingVideo(true);
+        setGradingProgress(0);
+        try {
+          // Same true-grade bake exportVideo already does for after-shot's
+          // export step — reused here instead of duplicated, with no layers
+          // (there aren't any yet at capture time).
+          finalBlob = await exportVideo(
+            rawBlob,
+            gradeFilter,
+            gradeIntensity,
+            [],
+            setGradingProgress,
+          );
+        } catch (err) {
+          console.error("Post-recording grade failed, keeping the unfiltered capture:", err);
+        } finally {
+          setIsGradingVideo(false);
+        }
+      }
+
+      const url = URL.createObjectURL(finalBlob);
+      setPendingCapture({ type: "video", blob: finalBlob, url });
       navigate({ to: "/create/after-shot" });
     };
 
@@ -726,7 +817,16 @@ function CreatePage() {
         setIsPaused(false);
       }
     }, 60_000);
-  }, [navigate, facing, currentFilterCss, stopMirrorDrawLoop, ratio, cssZoomScale]);
+  }, [
+    navigate,
+    facing,
+    currentFilterCss,
+    activeFilter,
+    filterIntensity,
+    stopMirrorDrawLoop,
+    ratio,
+    cssZoomScale,
+  ]);
 
   const stopRecording = useCallback(() => {
     mediaRecorderRef.current?.stop();
@@ -965,6 +1065,17 @@ function CreatePage() {
         </div>
       )}
 
+      {isGradingVideo && (
+        <div
+          className="oak-motion-fade absolute inset-0 flex items-center justify-center z-30"
+          style={{ background: "rgba(0,0,0,0.75)" }}
+        >
+          <span className="text-sm uppercase tracking-widest">
+            Grading… {Math.round(gradingProgress * 100)}%
+          </span>
+        </div>
+      )}
+
       <div className="absolute top-0 left-0 right-0 flex items-center px-4 pt-[calc(env(safe-area-inset-top)+12px)]">
         <button
           onClick={handleBack}
@@ -1134,14 +1245,7 @@ function CreatePage() {
             className="shrink-0 flex items-center justify-center"
             style={{ width: CAPTURE_SIZE, scrollSnapAlign: "center" }}
           >
-            <span
-              className="rounded-full overflow-hidden block"
-              style={{
-                width: SWATCH_DIAMETER,
-                height: SWATCH_DIAMETER,
-                background: f.thumbnailColor,
-              }}
-            />
+            <FilterSwatchThumb filter={f} diameter={SWATCH_DIAMETER} />
           </button>
         ))}
       </div>
@@ -1325,10 +1429,17 @@ function CreatePage() {
       <FilterPanel
         open={openPanel === "filters"}
         selectedId={selectedFilterId}
+        intensity={filterIntensity}
         favoriteIds={favoritedFilterIds}
         onClose={() => setOpenPanel(null)}
-        onPreview={setSelectedFilterId}
-        onApply={setSelectedFilterId}
+        onPreview={(id, intensity) => {
+          setSelectedFilterId(id);
+          setFilterIntensity(intensity);
+        }}
+        onApply={(id, intensity) => {
+          setSelectedFilterId(id);
+          setFilterIntensity(intensity);
+        }}
         onToggleFavorite={toggleFilterFavorite}
       />
       <LayoutPanel

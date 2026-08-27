@@ -19,7 +19,7 @@ import TextPanel from "@/components/camera/aftershot/TextPanel";
 import CropPanel from "@/components/camera/aftershot/CropPanel";
 import DrawPanel from "@/components/camera/aftershot/DrawPanel";
 import FilterPanel from "@/components/camera/FilterPanel";
-import { CAMERA_FILTERS } from "@/components/camera/filter-data";
+import { CAMERA_FILTERS, previewCssAtIntensity } from "@/components/camera/filter-data";
 import { exportComposite } from "@/lib/after-shot-export";
 import LayerOverlay from "@/components/camera/LayerOverlay";
 import { useAfterShotLayers } from "@/lib/after-shot-layers";
@@ -77,9 +77,11 @@ function AfterShotIndexPage() {
   // an overlay panel like Crop/Text/Draw, since there's nothing to place or
   // drag — just re-encoding the whole frame, same as the old filters route.
   const [selectedFilterId, setSelectedFilterId] = useState(DEFAULT_FILTER_ID);
+  const [selectedFilterIntensity, setSelectedFilterIntensity] = useState(100);
   // What the filter list is currently hovering on, before you commit to it.
   // FilterPanel drives this through onPreview and resets it itself on discard.
   const [previewFilterId, setPreviewFilterId] = useState<string | null>(null);
+  const [previewFilterIntensity, setPreviewFilterIntensity] = useState<number | null>(null);
   const [favoritedFilterIds, setFavoritedFilterIds] = useState<Set<string>>(new Set());
   const [editingLayerId, setEditingLayerId] = useState<string | null>(null);
 
@@ -152,9 +154,13 @@ function AfterShotIndexPage() {
   // pick re-filtered the ALREADY filtered pixels, so choosing Vivid then Noir
   // gave you Noir stacked on Vivid, plus a fresh generation of compression loss
   // for every filter you merely auditioned.
-  const previewFilterCss =
-    CAMERA_FILTERS.find((f) => f.id === (previewFilterId ?? selectedFilterId))?.css ?? "none";
-  const exportFilterCss = CAMERA_FILTERS.find((f) => f.id === selectedFilterId)?.css ?? "none";
+  const previewingFilter =
+    CAMERA_FILTERS.find((f) => f.id === (previewFilterId ?? selectedFilterId)) ?? CAMERA_FILTERS[0];
+  const previewFilterCss = previewCssAtIntensity(
+    previewingFilter,
+    previewFilterIntensity ?? selectedFilterIntensity,
+  );
+  const selectedFilter = CAMERA_FILTERS.find((f) => f.id === selectedFilterId) ?? CAMERA_FILTERS[0];
 
   const toggleFilterFavorite = useCallback((id: string) => {
     setFavoritedFilterIds((prev) => {
@@ -170,7 +176,13 @@ function AfterShotIndexPage() {
     setExportProgress(0);
     setExportError(null);
     try {
-      const blob = await exportComposite(media, exportFilterCss, layers, setExportProgress);
+      const blob = await exportComposite(
+        media,
+        selectedFilter,
+        selectedFilterIntensity,
+        layers,
+        setExportProgress,
+      );
       // Same blob back means exportComposite took its no-op fast path; replacing
       // the media (and revoking the old URL) would only churn for nothing.
       if (blob !== media.blob) {
@@ -190,7 +202,7 @@ function AfterShotIndexPage() {
     } finally {
       setExporting(false);
     }
-  }, [media, exportFilterCss, layers, setMedia, navigate]);
+  }, [media, selectedFilter, selectedFilterIntensity, layers, setMedia, navigate]);
 
   return (
     <div
@@ -446,12 +458,18 @@ function AfterShotIndexPage() {
       <FilterPanel
         open={activeTool === "filter"}
         selectedId={selectedFilterId}
+        intensity={selectedFilterIntensity}
         favoriteIds={favoritedFilterIds}
         onClose={closeTool}
-        onPreview={setPreviewFilterId}
-        onApply={(id) => {
+        onPreview={(id, intensity) => {
+          setPreviewFilterId(id);
+          setPreviewFilterIntensity(intensity);
+        }}
+        onApply={(id, intensity) => {
           setSelectedFilterId(id);
+          setSelectedFilterIntensity(intensity);
           setPreviewFilterId(null);
+          setPreviewFilterIntensity(null);
         }}
         onToggleFavorite={toggleFilterFavorite}
       />

@@ -1,16 +1,25 @@
 import { useState, useEffect, useRef } from "react";
 import { Heart, Check } from "lucide-react";
 import CameraPanel from "./CameraPanel";
-import { CAMERA_FILTERS, FILTER_CATEGORIES, type FilterCategory } from "./filter-data";
-import heroEditorial from "@/assets/hero-editorial.jpg";
+import {
+  CAMERA_FILTERS,
+  FILTER_CATEGORIES,
+  type FilterCategory,
+  type CameraFilter,
+} from "./filter-data";
+import { useFilterThumbnail } from "@/lib/filter-thumbnail";
 
 type FilterPanelProps = {
   open: boolean;
   selectedId: string;
+  /** Committed intensity (0..100) for selectedId. Defaults to the filter's
+   *  own default the moment a new filter is picked — this is only for
+   *  resuming a previously-dialed-in value when reopening the panel. */
+  intensity: number;
   favoriteIds: Set<string>;
   onClose: () => void;
-  onPreview: (id: string) => void;
-  onApply: (id: string) => void;
+  onPreview: (id: string, intensity: number) => void;
+  onApply: (id: string, intensity: number) => void;
   onToggleFavorite: (id: string) => void;
 };
 
@@ -27,9 +36,28 @@ const CATEGORY_LABELS: Record<FilterCategory, string> = {
 
 const PANEL_HEIGHT = 640;
 
+/** A real baked preview of the filter's actual grade, not a CSS-filtered
+ *  static image — see filter-thumbnail.ts. Shows the swatch color as a
+ *  skeleton until the bake resolves. Always shown at the filter's own
+ *  default intensity — this is for browsing/picking, not a live readout of
+ *  the intensity slider below. */
+function FilterThumb({ filter }: { filter: CameraFilter }) {
+  const thumb = useFilterThumbnail(filter);
+  return (
+    <div
+      className="w-full aspect-square overflow-hidden bg-cover bg-center transition-opacity duration-200"
+      style={{
+        backgroundColor: filter.thumbnailColor,
+        backgroundImage: thumb ? `url(${thumb})` : undefined,
+      }}
+    />
+  );
+}
+
 export default function FilterPanel({
   open,
   selectedId,
+  intensity,
   favoriteIds,
   onClose,
   onPreview,
@@ -37,41 +65,54 @@ export default function FilterPanel({
   onToggleFavorite,
 }: FilterPanelProps) {
   const [category, setCategory] = useState<FilterCategory>("favorites");
-  const [previewId, setPreviewId] = useState<string | null>(null);
+  // null means "no local override" — activeId/activeIntensity fall back to
+  // the committed props, exactly like previewId already did before
+  // intensity existed.
+  const [preview, setPreview] = useState<{ id: string; intensity: number } | null>(null);
 
-  // Snapshot the committed filter on open, so closing without Apply
-  // (backdrop tap, swipe-down) can revert the live preview cleanly.
-  const committedOnOpenRef = useRef(selectedId);
+  // Snapshot the committed filter+intensity on open, so closing without
+  // Apply (backdrop tap, swipe-down) can revert the live preview cleanly.
+  const committedOnOpenRef = useRef({ id: selectedId, intensity });
 
   useEffect(() => {
     if (!open) return;
-    committedOnOpenRef.current = selectedId;
-    setPreviewId(null);
+    committedOnOpenRef.current = { id: selectedId, intensity };
+    setPreview(null);
     setCategory(favoriteIds.size > 0 ? "favorites" : "portrait");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  const activeId = previewId ?? selectedId;
+  const activeId = preview?.id ?? selectedId;
+  const activeIntensity = preview?.intensity ?? intensity;
+  const activeFilter = CAMERA_FILTERS.find((f) => f.id === activeId);
 
   const visibleFilters =
     category === "favorites"
       ? CAMERA_FILTERS.filter((f) => favoriteIds.has(f.id))
       : CAMERA_FILTERS.filter((f) => f.category === category);
 
-  const handlePick = (id: string) => {
-    setPreviewId(id);
-    onPreview(id);
+  const handlePick = (f: CameraFilter) => {
+    const next = { id: f.id, intensity: f.intensity };
+    setPreview(next);
+    onPreview(next.id, next.intensity);
+  };
+
+  const handleIntensityDrag = (value: number) => {
+    const next = { id: activeId, intensity: value };
+    setPreview(next);
+    onPreview(next.id, next.intensity);
   };
 
   const handleDiscardAndClose = () => {
-    if (previewId !== null && previewId !== committedOnOpenRef.current) {
-      onPreview(committedOnOpenRef.current);
+    const committed = committedOnOpenRef.current;
+    if (preview && (preview.id !== committed.id || preview.intensity !== committed.intensity)) {
+      onPreview(committed.id, committed.intensity);
     }
     onClose();
   };
 
   const handleApply = () => {
-    onApply(activeId);
+    onApply(activeId, activeIntensity);
     onClose();
   };
 
@@ -111,7 +152,7 @@ export default function FilterPanel({
             : "No filters in this category yet."}
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-3 pb-24">
+        <div className="grid grid-cols-2 gap-3 pb-4">
           {visibleFilters.map((f) => {
             const selected = f.id === activeId;
             const favorited = favoriteIds.has(f.id);
@@ -119,20 +160,13 @@ export default function FilterPanel({
               <button
                 key={f.id}
                 type="button"
-                onClick={() => handlePick(f.id)}
+                onClick={() => handlePick(f)}
                 className="oak-motion-control relative rounded-2xl overflow-hidden text-left"
                 style={{
                   border: selected ? "2px solid #fff" : "1px solid rgba(255,255,255,0.08)",
                 }}
               >
-                <div className="w-full aspect-square overflow-hidden bg-neutral-800">
-                  <img
-                    src={heroEditorial}
-                    alt={f.name}
-                    className="w-full h-full object-cover"
-                    style={{ filter: f.css }}
-                  />
-                </div>
+                <FilterThumb filter={f} />
 
                 {selected && (
                   <span
@@ -166,9 +200,32 @@ export default function FilterPanel({
       )}
 
       <div
-        className="sticky bottom-0 left-0 right-0 -mx-6 px-6 pt-4 pb-2"
-        style={{ background: "linear-gradient(to top, #111 60%, rgba(17,17,17,0))" }}
+        className="sticky bottom-0 left-0 right-0 -mx-6 px-6 pt-3 pb-2"
+        style={{ background: "linear-gradient(to top, #111 65%, rgba(17,17,17,0))" }}
       >
+        {activeId !== "natural" && (
+          <div className="pb-3">
+            <div className="flex items-center justify-between pb-1.5">
+              <span className="text-xs font-medium text-white/60 uppercase tracking-wide">
+                Intensity
+              </span>
+              <span className="text-xs font-semibold tabular-nums">
+                {Math.round(activeIntensity)}%
+              </span>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={1}
+              value={activeIntensity}
+              onChange={(e) => handleIntensityDrag(Number(e.target.value))}
+              aria-label={`${activeFilter?.name ?? "Filter"} intensity`}
+              className="oak-intensity-slider w-full"
+            />
+          </div>
+        )}
+
         <button
           type="button"
           onClick={handleApply}

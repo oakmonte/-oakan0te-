@@ -12,7 +12,8 @@ import {
   QUALITY_HIGH,
   getFirstEncodableVideoCodec,
 } from "mediabunny";
-import { compileFilter, applyCompiledFilter, IDENTITY_FILTER } from "@/lib/canvas-filter";
+import { applyCompiledFilter, IDENTITY_FILTER, type CompiledFilter } from "@/lib/canvas-filter";
+import { compileGrade, isNoopFilter, type CameraFilter } from "@/components/camera/filter-data";
 import { drawLayers, preloadStickers } from "@/lib/layer-bake";
 import type { Layer } from "@/lib/after-shot-layers";
 import type { CapturedMedia } from "@/lib/capture-handoff";
@@ -36,7 +37,7 @@ const OUTPUT_FPS = 30;
 
 function drawFilteredFrame(
   ctx: CanvasRenderingContext2D,
-  compiled: ReturnType<typeof compileFilter>,
+  compiled: CompiledFilter,
   width: number,
   height: number,
 ) {
@@ -46,7 +47,12 @@ function drawFilteredFrame(
   ctx.putImageData(frame, 0, 0);
 }
 
-export async function exportPhoto(blob: Blob, filterCss: string, layers: Layer[]): Promise<Blob> {
+export async function exportPhoto(
+  blob: Blob,
+  filter: CameraFilter,
+  intensity: number,
+  layers: Layer[],
+): Promise<Blob> {
   const img = new Image();
   const url = URL.createObjectURL(blob);
   try {
@@ -65,8 +71,10 @@ export async function exportPhoto(blob: Blob, filterCss: string, layers: Layer[]
     ctx.drawImage(img, 0, 0);
     // Filter first, layers second — a caption shouldn't get tinted by the
     // filter sitting under it, which is what the preview shows too (the CSS
-    // filter is on the media element, not the layer overlay).
-    drawFilteredFrame(ctx, compileFilter(filterCss), canvas.width, canvas.height);
+    // filter is on the media element, not the layer overlay). Uses the real
+    // grade (compileGrade), not the preview's CSS approximation — a one-shot
+    // bake like this one can afford the true LUT.
+    drawFilteredFrame(ctx, compileGrade(filter, intensity), canvas.width, canvas.height);
     drawLayers(ctx, layers, canvas.width, canvas.height, await preloadStickers(layers));
 
     return await new Promise<Blob>((resolve, reject) => {
@@ -83,7 +91,8 @@ export async function exportPhoto(blob: Blob, filterCss: string, layers: Layer[]
 
 export async function exportVideo(
   blob: Blob,
-  filterCss: string,
+  filter: CameraFilter,
+  intensity: number,
   layers: Layer[],
   onProgress?: ExportProgress,
 ): Promise<Blob> {
@@ -101,7 +110,11 @@ export async function exportVideo(
   const ctx = canvas.getContext("2d", { willReadFrequently: true });
   if (!ctx) throw new Error("Canvas 2D context unavailable");
 
-  const compiled = compileFilter(filterCss);
+  // Same true-grade bake as exportPhoto. This runs once per frame of the
+  // finished clip, same as the matrix engine did before it — heavier per
+  // pixel, but this is an async "Applying…" step with a progress bar, not a
+  // live/interactive path, so the extra cost is time, not jank.
+  const compiled = compileGrade(filter, intensity);
   const stickers = await preloadStickers(layers);
 
   const target = new BufferTarget();
@@ -183,8 +196,8 @@ export async function exportVideo(
 }
 
 /** Nothing to composite: no filter, no captions, no drawings, no stickers. */
-function isUnedited(filterCss: string, layers: Layer[]): boolean {
-  return (!filterCss || filterCss === "none") && layers.length === 0;
+function isUnedited(filter: CameraFilter, intensity: number, layers: Layer[]): boolean {
+  return isNoopFilter(filter, intensity) && layers.length === 0;
 }
 
 // What the Next button calls. Keeps the photo/video branch in one place so the
@@ -198,15 +211,16 @@ function isUnedited(filterCss: string, layers: Layer[]): boolean {
 // nothing, the honest number of passes is zero.
 export async function exportComposite(
   media: CapturedMedia,
-  filterCss: string,
+  filter: CameraFilter,
+  intensity: number,
   layers: Layer[],
   onProgress?: ExportProgress,
 ): Promise<Blob> {
-  if (isUnedited(filterCss, layers)) {
+  if (isUnedited(filter, intensity, layers)) {
     onProgress?.(1);
     return media.blob;
   }
   return media.type === "photo"
-    ? await exportPhoto(media.blob, filterCss, layers)
-    : await exportVideo(media.blob, filterCss, layers, onProgress);
+    ? await exportPhoto(media.blob, filter, intensity, layers)
+    : await exportVideo(media.blob, filter, intensity, layers, onProgress);
 }

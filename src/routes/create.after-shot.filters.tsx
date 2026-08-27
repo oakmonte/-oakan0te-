@@ -23,6 +23,7 @@ function FiltersPage() {
   // later (localStorage or a shared store) if favoriting should carry
   // across both screens.
   const [selectedFilterId, setSelectedFilterId] = useState(DEFAULT_FILTER_ID);
+  const [selectedFilterIntensity, setSelectedFilterIntensity] = useState(100);
   const [favoritedFilterIds, setFavoritedFilterIds] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -49,8 +50,8 @@ function FiltersPage() {
     try {
       const filteredBlob =
         media.type === "photo"
-          ? await applyFilterToPhotoBlob(media.blob, activeFilter.css)
-          : await applyFilterToVideoBlob(media.blob, activeFilter.css, setProgress);
+          ? await applyFilterToPhotoBlob(media.blob, activeFilter.previewCss)
+          : await applyFilterToVideoBlob(media.blob, activeFilter.previewCss, setProgress);
       const url = URL.createObjectURL(filteredBlob);
       setMedia(
         media.type === "photo"
@@ -62,7 +63,7 @@ function FiltersPage() {
       console.error("Filter apply failed:", err);
       setBusy(false);
     }
-  }, [selectedFilterId, activeFilter.css, media, setMedia, navigate]);
+  }, [selectedFilterId, activeFilter.previewCss, media, setMedia, navigate]);
 
   return (
     <div
@@ -100,7 +101,7 @@ function FiltersPage() {
               src={media.url}
               alt="Captured"
               className="absolute inset-0 w-full h-full object-cover"
-              style={{ filter: activeFilter.css }}
+              style={{ filter: activeFilter.previewCss }}
             />
           ) : (
             <video
@@ -110,7 +111,7 @@ function FiltersPage() {
               muted
               playsInline
               className="absolute inset-0 w-full h-full object-cover"
-              style={{ filter: activeFilter.css }}
+              style={{ filter: activeFilter.previewCss }}
             />
           )}
 
@@ -127,10 +128,17 @@ function FiltersPage() {
       <FilterPanel
         open
         selectedId={selectedFilterId}
+        intensity={selectedFilterIntensity}
         favoriteIds={favoritedFilterIds}
         onClose={() => navigate({ to: "/create/after-shot" })}
-        onPreview={setSelectedFilterId}
-        onApply={setSelectedFilterId}
+        onPreview={(id, intensity) => {
+          setSelectedFilterId(id);
+          setSelectedFilterIntensity(intensity);
+        }}
+        onApply={(id, intensity) => {
+          setSelectedFilterId(id);
+          setSelectedFilterIntensity(intensity);
+        }}
         onToggleFavorite={toggleFavorite}
       />
     </div>

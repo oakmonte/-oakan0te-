@@ -1,7 +1,19 @@
 import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ArrowLeftRight, Share2, Search, Menu, Star, X, Pencil } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowLeftRight,
+  Share2,
+  Search,
+  Menu,
+  Star,
+  X,
+  Pencil,
+  Bell,
+  BellRing,
+  Send,
+} from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useSession } from "@/hooks/use-session";
 import { BottomNav } from "@/components/BottomNav";
@@ -57,6 +69,20 @@ function ProfilePage() {
   const tabButtonRefs = useRef<Record<TabKey, HTMLButtonElement | null>>(
     {} as Record<TabKey, HTMLButtonElement | null>,
   );
+  // Where the Store sheet's top edge should sit — the bottom of the avatar/
+  // name/stats/bio block, so the sheet rises to meet it instead of covering
+  // the whole screen. Tracked continuously (not just on the tap that opens
+  // it) so it stays correct if that block's height changes, e.g. once the
+  // bio finishes loading.
+  const profileInfoRef = useRef<HTMLDivElement>(null);
+  const [sheetTop, setSheetTop] = useState(0);
+  const previousTabRef = useRef<TabKey>("posts");
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followBusy, setFollowBusy] = useState(false);
+  // Whether the bell shows as "on" — the follows table has no notify column
+  // yet, so this is visual/session-only, not persisted.
+  const [notifyEnabled, setNotifyEnabled] = useState(false);
+  const [messageHint, setMessageHint] = useState<string | null>(null);
 
   const isOwnProfile = !!user && !!profile && user.id === profile.id;
 
@@ -139,6 +165,61 @@ function ProfilePage() {
     };
   }, [profile]);
 
+  // Whether the signed-in viewer already follows this profile — irrelevant
+  // (and skipped) when looking at your own profile.
+  useEffect(() => {
+    if (!user || !profile || user.id === profile.id) {
+      setIsFollowing(false);
+      return;
+    }
+    let cancelled = false;
+    supabase
+      .from("follows")
+      .select("follower_id")
+      .eq("follower_id", user.id)
+      .eq("following_id", profile.id)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) console.error("ProfilePage: failed to check follow status", error);
+        setIsFollowing(!!data);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user, profile]);
+
+  async function toggleFollow() {
+    if (!profile || followBusy) return;
+    if (!user) {
+      navigate({ to: "/sign-in" });
+      return;
+    }
+    const wasFollowing = isFollowing;
+    setFollowBusy(true);
+    setIsFollowing(!wasFollowing);
+    setProfile((p) =>
+      p ? { ...p, followers_count: Math.max(0, p.followers_count + (wasFollowing ? -1 : 1)) } : p,
+    );
+    const { error } = wasFollowing
+      ? await supabase
+          .from("follows")
+          .delete()
+          .eq("follower_id", user.id)
+          .eq("following_id", profile.id)
+      : await supabase.from("follows").insert({ follower_id: user.id, following_id: profile.id });
+    if (error) {
+      console.error("ProfilePage: failed to toggle follow", error);
+      setIsFollowing(wasFollowing);
+      setProfile((p) =>
+        p ? { ...p, followers_count: Math.max(0, p.followers_count + (wasFollowing ? 1 : -1)) } : p,
+      );
+    } else if (wasFollowing) {
+      setNotifyEnabled(false);
+    }
+    setFollowBusy(false);
+  }
+
   useEffect(() => {
     if (searchOpen) {
       const t = setTimeout(() => searchInputRef.current?.focus(), 200);
@@ -157,6 +238,71 @@ function ProfilePage() {
     }
   }, [activeTab]);
 
+  useEffect(() => {
+    const el = profileInfoRef.current;
+    if (!el) return;
+    const update = () => setSheetTop(el.getBoundingClientRect().bottom);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    window.addEventListener("resize", update);
+    window.addEventListener("scroll", update, { passive: true });
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", update);
+      window.removeEventListener("scroll", update);
+    };
+  }, [profile]);
+
+  // Body scroll lock while the Store sheet is up, same as any bottom sheet —
+  // also keeps sheetTop from drifting out from under the sheet mid-view.
+  useEffect(() => {
+    if (activeTab === "store" && store) {
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = "";
+      };
+    }
+  }, [activeTab, store]);
+
+  const tabRow = (
+    <div
+      ref={tabScrollRef}
+      className="grid grid-flow-col auto-cols-[20%] gap-x-2 px-6 overflow-x-auto snap-x snap-mandatory no-scrollbar scroll-smooth"
+    >
+      {TABS.map(({ key, label, Icon, size }) => {
+        const isActive = activeTab === key;
+        return (
+          <button
+            key={key}
+            ref={(el) => {
+              tabButtonRefs.current[key] = el;
+            }}
+            onClick={() => {
+              if (key === "store") previousTabRef.current = activeTab;
+              setActiveTab(key);
+            }}
+            aria-label={label}
+            className="flex flex-col items-center gap-2 snap-start pt-3 pb-2 transition-transform duration-150 active:scale-90"
+          >
+            <Icon
+              className={`${size ?? "w-[21px] h-[21px]"} transition-all duration-200 ${
+                isActive ? "text-white opacity-100" : "text-white/40 opacity-100"
+              }`}
+            />
+            <span
+              className={`block h-[2px] rounded-full bg-white transition-all duration-300 ease-out ${
+                isActive ? "w-6 opacity-100" : "w-0 opacity-0"
+              }`}
+            />
+          </button>
+        );
+      })}
+    </div>
+  );
+
+  const storeSheetOpen = activeTab === "store" && !!store;
+
   return (
     <div
       className="min-h-screen bg-black text-white"
@@ -168,6 +314,19 @@ function ProfilePage() {
           <ArrowLeft size={22} />
         </button>
         <div className="flex items-center gap-5">
+          {!isOwnProfile && isFollowing && (
+            <button
+              onClick={() => setNotifyEnabled((v) => !v)}
+              aria-label={notifyEnabled ? "Turn off notifications" : "Turn on notifications"}
+              className="transition-transform duration-200 active:scale-90"
+            >
+              {notifyEnabled ? (
+                <BellRing size={20} className="text-[#FF7300]" />
+              ) : (
+                <Bell size={20} />
+              )}
+            </button>
+          )}
           <button aria-label="Share">
             <Share2 size={20} />
           </button>
@@ -178,7 +337,7 @@ function ProfilePage() {
           >
             <Search size={22} className={searchOpen ? "text-[#FF7300]" : "text-white"} />
           </button>
-          {store && (
+          {isOwnProfile && store && (
             <button
               onClick={() =>
                 navigate({
@@ -205,7 +364,7 @@ function ProfilePage() {
       </div>
 
       {/* Profile info */}
-      <div className="flex flex-col items-center gap-4 px-6 mt-2">
+      <div ref={profileInfoRef} className="flex flex-col items-center gap-4 px-6 mt-2">
         <img
           src={profile?.avatar_url || "https://placehold.co/135x139"}
           alt={username}
@@ -247,113 +406,147 @@ function ProfilePage() {
           <Stat value={String(profile?.sold_items_count ?? 0)} label="Sold Items" />
         </div>
 
+        {!isOwnProfile && profile && (
+          <div className="flex items-center gap-2.5">
+            <button
+              onClick={toggleFollow}
+              disabled={followBusy}
+              className={`min-w-[110px] rounded-full px-6 py-2 text-[13px] font-bold transition-colors active:scale-95 disabled:opacity-60 ${
+                isFollowing ? "bg-white/10 text-white" : "bg-white text-black"
+              }`}
+            >
+              {isFollowing ? "Following" : "Follow"}
+            </button>
+            <button
+              onClick={() => {
+                setMessageHint("Messaging is coming soon");
+                setTimeout(() => setMessageHint(null), 2500);
+              }}
+              aria-label="Message"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-black transition-transform active:scale-90"
+            >
+              <Send size={15} />
+            </button>
+          </div>
+        )}
+        {messageHint && <p className="text-[11px] text-white/50">{messageHint}</p>}
+
         {profile?.bio && <p className="text-[14px] font-bold text-center">{profile.bio}</p>}
       </div>
 
-      {/* Tab row */}
-      <div className="mt-6 border-b border-[#474747]">
-        <div
-          ref={tabScrollRef}
-          className="grid grid-flow-col auto-cols-[20%] gap-x-2 px-6 overflow-x-auto snap-x snap-mandatory no-scrollbar scroll-smooth"
-        >
-          {TABS.map(({ key, label, Icon, size }) => {
-            const isActive = activeTab === key;
-            return (
-              <button
-                key={key}
-                ref={(el) => {
-                  tabButtonRefs.current[key] = el;
-                }}
-                onClick={() => setActiveTab(key)}
-                aria-label={label}
-                className="flex flex-col items-center gap-2 snap-start pt-3 pb-2 transition-transform duration-150 active:scale-90"
-              >
-                <Icon
-                  className={`${size ?? "w-[21px] h-[21px]"} transition-all duration-200 ${
-                    isActive ? "text-white opacity-100" : "text-white/40 opacity-100"
-                  }`}
-                />
-                <span
-                  className={`block h-[2px] rounded-full bg-white transition-all duration-300 ease-out ${
-                    isActive ? "w-6 opacity-100" : "w-0 opacity-0"
-                  }`}
-                />
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      {!storeSheetOpen && (
+        <>
+          {/* Tab row */}
+          <div className="mt-6 border-b border-[#474747]">{tabRow}</div>
 
-      {/* Inline search */}
-      <div
-        className={`grid transition-[grid-template-rows] duration-300 ease-out ${
-          searchOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
-        }`}
-      >
-        <div className="overflow-hidden">
+          {/* Inline search */}
           <div
-            className={`px-6 pt-3 pb-1 transition-opacity duration-300 ${
-              searchOpen ? "opacity-100 delay-100" : "opacity-0"
+            className={`grid transition-[grid-template-rows] duration-300 ease-out ${
+              searchOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
             }`}
           >
-            <div className="flex items-center gap-2.5 rounded-xl border border-[#FFFBFB] px-4 py-2.5">
-              <Search size={18} className="text-white shrink-0" />
-              <input
-                ref={searchInputRef}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search"
-                className="w-full bg-transparent text-[16px] placeholder:text-white/50 focus:outline-none"
-              />
-              {searchQuery && (
-                <button onClick={() => setSearchQuery("")} aria-label="Clear search">
-                  <X size={16} className="text-white/60" />
-                </button>
-              )}
+            <div className="overflow-hidden">
+              <div
+                className={`px-6 pt-3 pb-1 transition-opacity duration-300 ${
+                  searchOpen ? "opacity-100 delay-100" : "opacity-0"
+                }`}
+              >
+                <div className="flex items-center gap-2.5 rounded-xl border border-[#FFFBFB] px-4 py-2.5">
+                  <Search size={18} className="text-white shrink-0" />
+                  <input
+                    ref={searchInputRef}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search"
+                    className="w-full bg-transparent text-[16px] placeholder:text-white/50 focus:outline-none"
+                  />
+                  {searchQuery && (
+                    <button onClick={() => setSearchQuery("")} aria-label="Clear search">
+                      <X size={16} className="text-white/60" />
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Content grid */}
-      <div className="overflow-hidden pb-24">
-        <AnimatePresence mode="wait" custom={tabIndex}>
+          {/* Content grid */}
+          <div className="overflow-hidden pb-24">
+            <AnimatePresence mode="wait" custom={tabIndex}>
+              <motion.div
+                key={activeTab}
+                custom={tabIndex}
+                initial={{ opacity: 0, x: 40 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -40 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+                drag="x"
+                dragConstraints={{ left: 0, right: 0 }}
+                dragElastic={0.15}
+                onDragEnd={(_, info) => {
+                  if (info.offset.x < -60) goToTab(tabIndex + 1);
+                  else if (info.offset.x > 60) goToTab(tabIndex - 1);
+                }}
+                className="px-1 pt-4"
+              >
+                {profile && activeTab === "posts" ? (
+                  <PostsGrid
+                    userId={profile.id}
+                    status="published"
+                    emptyState={<ProfileTabEmptyState tab="posts" />}
+                  />
+                ) : profile && activeTab === "drafts" && isOwnProfile ? (
+                  <PostsGrid
+                    userId={profile.id}
+                    status="draft"
+                    emptyState={<ProfileTabEmptyState tab="drafts" />}
+                  />
+                ) : (
+                  <ProfileTabEmptyState tab={activeTab} />
+                )}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        </>
+      )}
+
+      {/* Store sheet — Store is the one tab that rises up over the rest of
+          the page instead of sitting flat under the tab row like every other
+          tab. Tapping anywhere above it (the avatar/name/stats area, still
+          visible above the sheet) closes it back to whatever tab was active
+          before Store was opened. No explicit close button by design. */}
+      <AnimatePresence>
+        {storeSheetOpen && (
           <motion.div
-            key={activeTab}
-            custom={tabIndex}
-            initial={{ opacity: 0, x: 40 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -40 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-            drag="x"
-            dragConstraints={{ left: 0, right: 0 }}
-            dragElastic={0.15}
-            onDragEnd={(_, info) => {
-              if (info.offset.x < -60) goToTab(tabIndex + 1);
-              else if (info.offset.x > 60) goToTab(tabIndex - 1);
-            }}
-            className={activeTab === "store" && store ? "" : "px-1 pt-4"}
+            key="store-sheet-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-40"
+            onClick={() => setActiveTab(previousTabRef.current)}
+          />
+        )}
+        {storeSheetOpen && (
+          <motion.div
+            key="store-sheet"
+            initial={{ y: "100%" }}
+            animate={{ y: 0 }}
+            exit={{ y: "100%" }}
+            transition={{ duration: 0.32, ease: [0.32, 0.72, 0, 1] }}
+            style={{ top: sheetTop }}
+            className="fixed inset-x-0 bottom-0 z-50 flex flex-col rounded-t-[28px] bg-black shadow-[0_-12px_40px_rgba(0,0,0,0.6)]"
           >
-            {profile && activeTab === "posts" ? (
-              <PostsGrid
-                userId={profile.id}
-                status="published"
-                emptyState={<ProfileTabEmptyState tab="posts" />}
-              />
-            ) : profile && activeTab === "drafts" && isOwnProfile ? (
-              <PostsGrid
-                userId={profile.id}
-                status="draft"
-                emptyState={<ProfileTabEmptyState tab="drafts" />}
-              />
-            ) : activeTab === "store" && store ? (
-              <PublicStorefront storeId={store.id} />
-            ) : (
-              <ProfileTabEmptyState tab={activeTab} />
-            )}
+            <div className="flex shrink-0 justify-center pt-2.5 pb-1">
+              <div className="h-1 w-9 rounded-full bg-white/25" />
+            </div>
+            <div className="border-b border-[#474747]">{tabRow}</div>
+            <div className="flex-1 overflow-y-auto pb-24">
+              {store && <PublicStorefront storeId={store.id} />}
+            </div>
           </motion.div>
-        </AnimatePresence>
-      </div>
+        )}
+      </AnimatePresence>
 
       {/* Hamburger side panel */}
       <div

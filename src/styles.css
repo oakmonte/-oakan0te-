@@ -80,6 +80,45 @@
   display: none; /* Chrome, Safari */
 }
 
+/* Native <input type="range"> for the filter intensity slider (FilterPanel).
+   Browsers give this element no cross-browser-consistent default look at
+   all, so track and thumb are both hand-styled here rather than left to
+   whatever each engine ships. */
+.oak-intensity-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 20px;
+  background: transparent;
+}
+.oak-intensity-slider::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.18);
+}
+.oak-intensity-slider::-moz-range-track {
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.18);
+}
+.oak-intensity-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  margin-top: -7px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+.oak-intensity-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
 @keyframes ddFadeIn {
   from {
     opacity: 0;

@@ -142,11 +142,19 @@ function PostViewer({ post, onClose }: { post: PostRow | null; onClose: () => vo
         {post.media_type === "photo" ? (
           <img src={post.media_url} alt="" className="max-h-full max-w-full object-contain" />
         ) : (
+          // No native `controls` here -- on iOS Safari its own top-right
+          // mute/AirPlay icon lands in the exact same corner as our close
+          // button. Tap-to-pause instead, TikTok/Reels-style.
           <video
             src={post.media_url}
-            controls
             autoPlay
+            loop
             playsInline
+            onClick={(e) => {
+              const v = e.currentTarget;
+              if (v.paused) void v.play();
+              else v.pause();
+            }}
             className="max-h-full max-w-full object-contain"
           />
         )}

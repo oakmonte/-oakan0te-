@@ -18,7 +18,7 @@ import { NEUTRAL_ADJUSTMENTS } from "./types";
 
 export function filterCssFor(filterId: string): string {
   const preset = CAMERA_FILTERS.find((f) => f.id === filterId);
-  return preset && preset.css !== "none" ? preset.css : "";
+  return preset && preset.previewCss !== "none" ? preset.previewCss : "";
 }
 
 /** The Adjust sliders as CSS filter functions. Empty string when untouched. */

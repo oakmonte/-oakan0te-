@@ -638,6 +638,7 @@ function FindYourFitPage() {
   const [heightCm, setHeightCm] = useState("");
   const [heightFt, setHeightFt] = useState("");
   const [heightIn, setHeightIn] = useState("");
+  const heightInRef = useRef<HTMLInputElement>(null);
 
   const [weightUnit, setWeightUnit] = useState<"kg" | "lbs">("kg");
   const [weight, setWeight] = useState("");
@@ -811,15 +812,23 @@ function FindYourFitPage() {
                 type="text"
                 inputMode="numeric"
                 value={heightFt}
-                onChange={(e) => setHeightFt(onlyDigits(e.target.value))}
+                onChange={(e) => {
+                  // A person's height in feet is always one digit — advance to
+                  // Inches the moment it's typed instead of making them tap
+                  // over manually.
+                  const digits = onlyDigits(e.target.value).slice(0, 1);
+                  setHeightFt(digits);
+                  if (digits.length === 1) heightInRef.current?.focus();
+                }}
                 placeholder="Feet"
                 className="flex-1 rounded-full border border-brand-text/25 bg-transparent px-5 py-3.5 text-sm placeholder:text-brand-text/40 focus:outline-none focus:border-brand-accent transition-colors"
               />
               <input
+                ref={heightInRef}
                 type="text"
                 inputMode="numeric"
                 value={heightIn}
-                onChange={(e) => setHeightIn(onlyDigits(e.target.value))}
+                onChange={(e) => setHeightIn(onlyDigits(e.target.value).slice(0, 2))}
                 placeholder="Inches"
                 className="flex-1 rounded-full border border-brand-text/25 bg-transparent px-5 py-3.5 text-sm placeholder:text-brand-text/40 focus:outline-none focus:border-brand-accent transition-colors"
               />
