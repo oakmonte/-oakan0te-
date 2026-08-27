@@ -379,6 +379,17 @@
     background-color: #000;
   }
 
+  /* Mobile-first app, not a document — the page's own vertical scrollbar
+     track has no place here, same reasoning as .no-scrollbar above but for
+     the whole document instead of one horizontal row. */
+  html {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* old Edge */
+  }
+  html::-webkit-scrollbar {
+    display: none; /* Chrome, Safari */
+  }
+
   body {
     color: var(--color-foreground);
   }
