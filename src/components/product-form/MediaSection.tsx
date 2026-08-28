@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ImageIcon, X, Loader2 } from "lucide-react";
 import { DraftImagePickerSheet } from "./DraftImagePickerSheet";
+import { ImageSourceSheet, type ImageSource } from "./ImageSourceSheet";
 import { useFilePicker } from "@/hooks/use-file-picker";
 import { uploadProductImage } from "@/lib/upload-product-image";
 
@@ -15,11 +16,13 @@ export function MediaSection({
   additionalImageUrls?: string[];
   onAdditionalChange?: (urls: string[]) => void;
 }) {
-  const [pickerOpen, setPickerOpen] = useState(false);
-  const [urlEntryOpen, setUrlEntryOpen] = useState(false);
+  const [sourceSheetOpen, setSourceSheetOpen] = useState(false);
+  const [draftsOpen, setDraftsOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
-  const filePicker = useFilePicker("image/jpeg,image/png,image/webp,image/gif");
+  const libraryPicker = useFilePicker("image/*");
+  const cameraPicker = useFilePicker("image/*", "environment");
+  const filePicker = useFilePicker("image/*");
 
   function addUrls(urls: string[]) {
     if (urls.length === 0) return;
@@ -37,14 +40,12 @@ export function MediaSection({
     }
   }
 
-  async function handleUpload() {
-    const file = await filePicker.pick();
+  async function uploadFile(file: File | null) {
     if (!file) return;
     setUploading(true);
     setUploadError("");
     try {
-      const url = await uploadProductImage(file);
-      addUrls([url]);
+      addUrls([await uploadProductImage(file)]);
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : "Couldn't upload that image");
     } finally {
@@ -52,8 +53,19 @@ export function MediaSection({
     }
   }
 
+  async function handleSource(source: ImageSource) {
+    setSourceSheetOpen(false);
+    if (source === "drafts") {
+      setDraftsOpen(true);
+      return;
+    }
+    const picker =
+      source === "library" ? libraryPicker : source === "camera" ? cameraPicker : filePicker;
+    await uploadFile(await picker.pick());
+  }
+
   function handlePicked(urls: string[]) {
-    setPickerOpen(false);
+    setDraftsOpen(false);
     addUrls(urls);
   }
 
@@ -63,13 +75,16 @@ export function MediaSection({
 
   return (
     <div className="px-4 py-5 border-b-8 border-gray-50">
+      {libraryPicker.node}
+      {cameraPicker.node}
       {filePicker.node}
+
       <div className="w-full flex flex-col items-center gap-2">
         <button
           type="button"
-          onClick={handleUpload}
+          onClick={() => setSourceSheetOpen(true)}
           disabled={uploading}
-          aria-label="Upload photo"
+          aria-label="Add images"
           className="w-24 h-24 rounded-2xl bg-gray-100 flex items-center justify-center overflow-hidden disabled:opacity-60"
         >
           {uploading ? (
@@ -83,43 +98,7 @@ export function MediaSection({
         <span className="text-sm font-medium text-gray-900">Add images</span>
       </div>
 
-      <div className="flex items-center justify-center gap-4 mt-3">
-        <button
-          type="button"
-          onClick={handleUpload}
-          disabled={uploading}
-          className="text-sm font-medium text-gray-900 disabled:opacity-50"
-        >
-          {uploading ? "Uploading…" : "Upload photo"}
-        </button>
-        <button
-          type="button"
-          onClick={() => setPickerOpen(true)}
-          className="text-sm font-medium text-gray-900"
-        >
-          Choose from drafts
-        </button>
-      </div>
-
       {uploadError && <p className="text-xs text-red-500 text-center mt-2">{uploadError}</p>}
-
-      {urlEntryOpen ? (
-        <input
-          value={mainImageUrl}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="Paste an image URL"
-          autoFocus
-          className="mt-3 w-full text-sm text-center text-gray-500 outline-none placeholder:text-gray-400"
-        />
-      ) : (
-        <button
-          type="button"
-          onClick={() => setUrlEntryOpen(true)}
-          className="mt-3 w-full text-center text-xs text-gray-400"
-        >
-          or paste an image URL instead
-        </button>
-      )}
 
       {onAdditionalChange && additionalImageUrls.length > 0 && (
         <div className="mt-3 flex gap-2 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
@@ -142,8 +121,11 @@ export function MediaSection({
         </div>
       )}
 
-      {pickerOpen && (
-        <DraftImagePickerSheet onSelect={handlePicked} onClose={() => setPickerOpen(false)} />
+      {sourceSheetOpen && (
+        <ImageSourceSheet onSelect={handleSource} onClose={() => setSourceSheetOpen(false)} />
+      )}
+      {draftsOpen && (
+        <DraftImagePickerSheet onSelect={handlePicked} onClose={() => setDraftsOpen(false)} />
       )}
     </div>
   );
