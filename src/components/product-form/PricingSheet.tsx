@@ -134,7 +134,7 @@ export function PricingSheet({
               <p className="text-[15px] font-medium text-gray-900">{formatNaira(profit)}</p>
             ) : (
               <p className="text-xs text-gray-400 leading-snug">
-                Measure your profit by inputting cost per Item
+                Measure your profit by inputting <span className="font-bold">cost per item</span>
               </p>
             )}
             {margin !== null && (

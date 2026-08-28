@@ -85,7 +85,7 @@ export function DraftImagePickerSheet({
           <div className="flex flex-col items-center gap-2 py-16 px-6 text-center">
             <ImageIcon size={28} className="text-gray-300" />
             <p className="text-sm text-gray-400">
-              No draft photos yet. Save a shot as a draft from the camera first.
+              No draft photos yet. Save or upload an image as a draft from the camera first.
             </p>
           </div>
         ) : (
