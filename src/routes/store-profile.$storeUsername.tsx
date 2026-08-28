@@ -74,7 +74,7 @@ function StoreProfilePage() {
     // dashboard's own reads.
     supabase
       .from("stores")
-      .select("id, store_username, brand_name, bio, owner_id")
+      .select("id, store_username, brand_name, bio, owner_id, store_themes(slug)")
       .eq("store_username", storeUsername)
       .maybeSingle()
       .then(async ({ data, error }) => {
@@ -85,14 +85,23 @@ function StoreProfilePage() {
           return;
         }
 
-        const { data: theme } = await supabase
-          .from("store_theme_customizations")
-          .select("logo_image_url")
-          .eq("store_id", data.id)
-          .maybeSingle();
+        const { store_themes, ...storeRow } = data;
+        // store_theme_customizations is keyed by (store_id, theme_slug), so a
+        // store that has customised more than one theme has several rows —
+        // scope the read to the theme the store actually has selected instead
+        // of asking for "the" row (which errored out and dropped the logo).
+        const themeSlug = store_themes?.slug ?? null;
+        const { data: theme } = themeSlug
+          ? await supabase
+              .from("store_theme_customizations")
+              .select("logo_image_url")
+              .eq("store_id", storeRow.id)
+              .eq("theme_slug", themeSlug)
+              .maybeSingle()
+          : { data: null };
         if (cancelled) return;
 
-        setStore({ ...data, logo_url: theme?.logo_image_url ?? null });
+        setStore({ ...storeRow, logo_url: theme?.logo_image_url ?? null });
         setStoreLoading(false);
       });
     return () => {
