@@ -32,10 +32,17 @@ function clamp(v: number, min: number, max: number) {
 
 // Drag-to-reposition image, used anywhere a fixed-aspect container crops a
 // seller's photo (slideshow slide, collection/product tile). Not editable:
-// a plain <img> with the stored (or centered) object-position. Editable:
-// dragging moves the focal point live; the crop only commits — one history
-// entry, not one per pointermove — on release, and a real drag suppresses
-// the click that would otherwise reach the tile's own onClick underneath.
+// a plain <img> with the stored (or centered) object-position. Editable: a
+// small handle (bottom-right) is the only draggable surface — NOT the whole
+// photo. touch-action:none has to live somewhere to stop a touch drag from
+// also panning the page, and if it covered the full image (most of the
+// screen on a phone) it would swallow every scroll gesture starting there
+// too, not just drag gestures — that's what made every edit sheet except
+// the shortest one feel unscrollable. Confined to the handle, the photo
+// itself is normal scrollable content; only that one small grab point
+// opts out. Repositioning only commits — one history entry, not one per
+// pointermove — on release, and a real drag suppresses the click that
+// would otherwise reach the tile's own onClick underneath.
 function CroppableImage({
   src,
   alt = "",
@@ -110,7 +117,7 @@ function CroppableImage({
     }
   }
 
-  function handleClick(e: ReactMouseEvent) {
+  function handleHandleClick(e: ReactMouseEvent) {
     if (suppressClickRef.current) {
       e.stopPropagation();
       e.preventDefault();
@@ -119,16 +126,7 @@ function CroppableImage({
   }
 
   return (
-    <div
-      ref={containerRef}
-      className="relative h-full w-full"
-      style={editable ? { touchAction: "none" } : undefined}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerUp}
-      onClick={handleClick}
-    >
+    <div ref={containerRef} className="relative h-full w-full">
       <img
         src={src}
         alt={alt}
@@ -138,8 +136,16 @@ function CroppableImage({
         style={{ objectPosition: `${livePos.x}% ${livePos.y}%` }}
       />
       {editable && onPositionChange && (
-        <div className="pointer-events-none absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/50 text-white/80">
-          <Move size={10} />
+        <div
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+          onClick={handleHandleClick}
+          style={{ touchAction: "none" }}
+          className="absolute bottom-0.5 right-0.5 flex h-7 w-7 cursor-move items-center justify-center rounded-full bg-black/50 text-white/80 active:bg-black/70"
+        >
+          <Move size={12} />
         </div>
       )}
     </div>

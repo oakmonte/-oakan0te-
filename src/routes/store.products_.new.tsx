@@ -398,7 +398,7 @@ function NewProduct() {
             <span className="text-[15px] font-semibold text-gray-900">Inventory</span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-[15px] text-gray-900">Available</span>
+            <span className="text-[15px] text-gray-900">Stock</span>
             <div className="flex items-center gap-3">
               <button
                 type="button"

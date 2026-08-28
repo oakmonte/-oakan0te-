@@ -12,6 +12,8 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { preloadStoreThemeAssets } from "../lib/preload-store-theme-assets";
+import { useSession } from "../hooks/use-session";
 
 function NotFoundComponent() {
   return (
@@ -155,6 +157,16 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { user } = useSession();
+
+  // Fires the instant a session exists — right after sign-in and equally
+  // right after finishing seller account creation, since both land here
+  // with a fresh session. Not gated to sellers specifically: the payload is
+  // a handful of small placeholder photos, cheap enough that warming it for
+  // every signed-in visitor beats adding a role check to decide who gets it.
+  useEffect(() => {
+    if (user) preloadStoreThemeAssets();
+  }, [user]);
 
   // The seller dashboard (/store, /store/*) is white — everywhere else on
   // the site (profile, the public storefront at /store-profile/*, etc.) is

@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
-import { Check, ChevronLeft, ImageIcon, Loader2, X } from "lucide-react";
+import { Check, ChevronLeft, ImageIcon, X } from "lucide-react";
 import type { VariantOption, VariantRow } from "./VariantMatrixBuilder";
+import { ImageGallery } from "./ImageGallery";
 import { DraftImagePickerSheet } from "./DraftImagePickerSheet";
 import { ImageSourceSheet, type ImageSource } from "./ImageSourceSheet";
 import { useMultiFilePicker } from "@/hooks/use-file-picker";
@@ -303,32 +304,25 @@ function VariantImagePopover({
   onDone: (url: string, additional: string[]) => void;
   onClose: () => void;
 }) {
-  const [value, setValue] = useState(initialValue);
-  const [additional, setAdditional] = useState(initialAdditional);
+  const [images, setImages] = useState(
+    initialValue ? [initialValue, ...initialAdditional] : initialAdditional,
+  );
   const [sourceSheetOpen, setSourceSheetOpen] = useState(false);
   const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
   const [draftsOpen, setDraftsOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const filePicker = useMultiFilePicker("image/*");
-  const imageButtonRef = useRef<HTMLButtonElement>(null);
+  const addButtonRef = useRef<HTMLButtonElement>(null);
 
   function openSourceSheet() {
-    setAnchorRect(imageButtonRef.current?.getBoundingClientRect() ?? null);
+    setAnchorRect(addButtonRef.current?.getBoundingClientRect() ?? null);
     setSourceSheetOpen(true);
   }
 
   function addUrls(urls: string[]) {
     if (urls.length === 0) return;
-    const [first, ...rest] = urls;
-    if (!value.trim()) {
-      setValue(first);
-      setAdditional((prev) => [...prev, ...rest]);
-    } else {
-      setAdditional((prev) =>
-        [...prev, ...urls].filter((u, i, arr) => arr.indexOf(u) === i && u !== value),
-      );
-    }
+    setImages((prev) => [...prev, ...urls.filter((u) => !prev.includes(u))]);
   }
 
   async function uploadFiles(files: File[]) {
@@ -360,15 +354,11 @@ function VariantImagePopover({
   }
 
   // Tapping a base-product photo adds it to this variant; tapping it again
-  // (it's already showing as this variant's main or an extra) removes just
-  // that assignment — the photo itself stays on the base product either way.
+  // (it's already in this variant's list) removes just that assignment — the
+  // photo itself stays on the base product either way.
   function toggleBaseImage(url: string) {
-    if (url === value) {
-      const [nextMain, ...rest] = additional;
-      setValue(nextMain ?? "");
-      setAdditional(rest);
-    } else if (additional.includes(url)) {
-      setAdditional((prev) => prev.filter((u) => u !== url));
+    if (images.includes(url)) {
+      setImages((prev) => prev.filter((u) => u !== url));
     } else {
       addUrls([url]);
     }
@@ -391,31 +381,23 @@ function VariantImagePopover({
           </button>
         </div>
 
-        <button
-          ref={imageButtonRef}
-          type="button"
-          onClick={openSourceSheet}
-          disabled={uploading}
-          aria-label="Add image"
-          className="w-full aspect-square rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden mb-3 disabled:opacity-60"
-        >
-          {uploading ? (
-            <Loader2 size={22} className="text-gray-400 animate-spin" />
-          ) : value ? (
-            <img src={value} alt="" className="w-full h-full object-cover" />
-          ) : (
-            <ImageIcon size={28} className="text-gray-300" />
-          )}
-        </button>
+        <ImageGallery
+          images={images}
+          onReorder={setImages}
+          onRemove={(url) => setImages((prev) => prev.filter((u) => u !== url))}
+          onAddTap={openSourceSheet}
+          uploading={uploading}
+          addButtonRef={addButtonRef}
+        />
 
-        {uploadError && <p className="text-xs text-red-500 text-center mb-2">{uploadError}</p>}
+        {uploadError && <p className="text-xs text-red-500 text-center mt-2">{uploadError}</p>}
 
         {baseImages.length > 0 && (
-          <div className="mb-3">
+          <div className="mt-3">
             <p className="text-xs text-gray-500 mb-1.5">From your product photos</p>
             <div className="flex gap-2 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
               {baseImages.map((url) => {
-                const selected = url === value || additional.includes(url);
+                const selected = images.includes(url);
                 return (
                   <button
                     key={url}
@@ -437,48 +419,13 @@ function VariantImagePopover({
           </div>
         )}
 
-        {additional.length > 0 && (
-          <div className="mt-2 flex gap-2 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
-            {additional.map((url) => (
-              <div
-                key={url}
-                className="relative w-12 h-12 shrink-0 rounded-lg bg-gray-100 overflow-hidden"
-              >
-                <img src={url} alt="" className="w-full h-full object-cover" />
-                <button
-                  type="button"
-                  onClick={() => setAdditional((prev) => prev.filter((u) => u !== url))}
-                  aria-label="Remove image"
-                  className="absolute top-0.5 right-0.5 w-[16px] h-[16px] rounded-full bg-black/60 flex items-center justify-center"
-                >
-                  <X size={9} className="text-white" />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        <div className="flex gap-2 mt-3">
-          {(value || additional.length > 0) && (
-            <button
-              type="button"
-              onClick={() => {
-                setValue("");
-                setAdditional([]);
-              }}
-              className="flex-1 text-sm font-medium text-gray-500 border border-gray-200 rounded-lg py-2.5"
-            >
-              Remove
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={() => onDone(value.trim(), additional)}
-            className="flex-1 bg-black text-white text-sm font-medium rounded-lg py-2.5"
-          >
-            Done
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => onDone(images[0] ?? "", images.slice(1))}
+          className="w-full bg-black text-white text-sm font-medium rounded-lg py-2.5 mt-3"
+        >
+          Done
+        </button>
 
         {sourceSheetOpen && (
           <ImageSourceSheet

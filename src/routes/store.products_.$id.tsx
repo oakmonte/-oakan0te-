@@ -76,6 +76,7 @@ type LoadedProduct = {
     material_feel: string | null;
     weight_grams: number | null;
     additional_image_urls: string[] | null;
+    product_variant_options: { variant_id: string; option_id: string; value_id: string }[];
   }[];
   product_options: {
     id: string;
@@ -83,7 +84,6 @@ type LoadedProduct = {
     position: number;
     product_option_values: { id: string; value: string; position: number }[];
   }[];
-  product_variant_options: { variant_id: string; option_id: string; value_id: string }[];
   product_collections: { collection_id: string }[];
   product_tags: { tag_id: string }[];
   product_size_measurements: { size_value: string; measurement_key: string; value_cm: number }[];
@@ -175,9 +175,8 @@ function EditProduct() {
         .from("products")
         .select(
           `id, title, description_short, product_type, status, manual_size_value, manual_size_system,
-           product_variants(id, sku, price, compare_at_price, cost_price, stock_qty, material, main_image_url, barcode, material_feel, weight_grams, additional_image_urls),
+           product_variants(id, sku, price, compare_at_price, cost_price, stock_qty, material, main_image_url, barcode, material_feel, weight_grams, additional_image_urls, product_variant_options(variant_id, option_id, value_id)),
            product_options(id, name, position, product_option_values(id, value, position)),
-           product_variant_options(variant_id, option_id, value_id),
            product_collections(collection_id),
            product_tags(tag_id),
            product_size_measurements(size_value, measurement_key, value_cm)`,
@@ -214,12 +213,14 @@ function EditProduct() {
       const optionOrder = new Map(optionsState.map((o, i) => [o.name, i]));
 
       const variantOptionValues = new Map<string, VariantOptionValue[]>();
-      for (const link of product.product_variant_options) {
-        const info = valueLookup.get(link.value_id);
-        if (!info) continue;
-        const arr = variantOptionValues.get(link.variant_id) ?? [];
-        arr.push(info);
-        variantOptionValues.set(link.variant_id, arr);
+      for (const v of product.product_variants) {
+        for (const link of v.product_variant_options) {
+          const info = valueLookup.get(link.value_id);
+          if (!info) continue;
+          const arr = variantOptionValues.get(link.variant_id) ?? [];
+          arr.push(info);
+          variantOptionValues.set(link.variant_id, arr);
+        }
       }
       for (const arr of variantOptionValues.values()) {
         arr.sort((a, b) => (optionOrder.get(a.name) ?? 0) - (optionOrder.get(b.name) ?? 0));
@@ -642,7 +643,7 @@ function EditProduct() {
             <span className="text-[15px] font-semibold text-gray-900">Inventory</span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-[15px] text-gray-900">Available</span>
+            <span className="text-[15px] text-gray-900">Stock</span>
             <div className="flex items-center gap-3">
               <button
                 type="button"
