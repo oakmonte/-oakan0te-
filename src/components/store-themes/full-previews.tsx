@@ -1073,10 +1073,12 @@ export function PublicStorefront({ storeId }: { storeId: string }) {
 
   const state: ThemeEditState = {
     ...createInitialEditState(),
-    // Same placeholder photos the editor itself starts from — shown until
-    // `saved` arrives with the seller's own uploaded logo/slideshow, if any.
-    slideshowImages: HERO_SLIDESHOW_IMAGES,
     ...saved,
+    // A saved row with no real photos (never uploaded, or every one since
+    // cleared) still needs something to show on a live storefront — an
+    // empty hero reads as broken, not as a deliberate look. Only a genuinely
+    // non-empty saved list overrides the theme's own placeholder photos.
+    slideshowImages: saved?.slideshowImages.length ? saved.slideshowImages : HERO_SLIDESHOW_IMAGES,
   };
 
   const editing: ThemeEditingProps = {
@@ -1170,7 +1172,21 @@ export function ThemePreviewSheet({
   useEffect(() => {
     if (!saved || appliedSavedRef.current || hasEditedRef.current) return;
     appliedSavedRef.current = true;
-    setEditState((es) => ({ current: { ...es.current, ...saved }, history: [], future: [] }));
+    setEditState((es) => ({
+      current: {
+        ...es.current,
+        ...saved,
+        // Same "empty saved list falls back to the placeholders" rule as
+        // PublicStorefront — otherwise reopening a theme that was saved
+        // before any photo was uploaded greets the seller with a blank
+        // slideshow instead of the defaults they last saw.
+        slideshowImages: saved.slideshowImages.length
+          ? saved.slideshowImages
+          : es.current.slideshowImages,
+      },
+      history: [],
+      future: [],
+    }));
   }, [saved]);
 
   function mutate(updater: (s: ThemeEditState) => ThemeEditState) {

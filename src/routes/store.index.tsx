@@ -115,7 +115,7 @@ function StoreHome() {
       badge: false,
     },
     {
-      label: "Pick a store theme",
+      label: "Customise your store front",
       description: "Choose how your store should look like.",
       to: "/store/theme",
       icon: Palette,
@@ -126,16 +126,55 @@ function StoreHome() {
   return (
     <div className="px-4 py-6">
       <h1 className="text-lg font-semibold mb-1">Your online store is starting to take shape</h1>
-      <p className="text-sm text-gray-500 mb-6">What do you want to work on next?</p>
+      <p className="text-sm text-gray-500 mb-6">We recommend this order for simplicity.</p>
 
       <div className="flex flex-col gap-3">
-        {linkCards.map(({ label, description, to, icon: Icon, badge }, i) => (
+        <Link
+          to={linkCards[0].to}
+          className="flex items-start gap-3 border border-gray-200 rounded-2xl p-4 hover:bg-gray-50 oak-motion-control"
+        >
+          <StepNumber n={1} />
+          <div className="p-2 rounded-full bg-gray-100 relative">
+            <Wallet size={18} />
+            {linkCards[0].badge && (
+              <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-amber-400 border-2 border-white oak-motion-pop" />
+            )}
+          </div>
+          <div>
+            <p className="text-sm font-medium">{linkCards[0].label}</p>
+            <p className="text-xs text-gray-500 mt-0.5">{linkCards[0].description}</p>
+          </div>
+        </Link>
+
+        <button
+          type="button"
+          onClick={() => setLocationSheetOpen(true)}
+          className="flex items-start gap-3 border border-gray-200 rounded-2xl p-4 hover:bg-gray-50 oak-motion-control text-left"
+        >
+          <StepNumber n={2} />
+          <div className="p-2 rounded-full bg-gray-100 relative">
+            <MapPin size={18} />
+            {pickupSet && (
+              <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-amber-400 border-2 border-white oak-motion-pop" />
+            )}
+          </div>
+          <div>
+            <p className="text-sm font-medium">Set your pickup locations</p>
+            <p className="text-xs text-gray-500 mt-0.5">
+              {pickupSet
+                ? "Riders use this to find you — tap to update."
+                : "So riders know where to collect orders from."}
+            </p>
+          </div>
+        </button>
+
+        {linkCards.slice(1).map(({ label, description, to, icon: Icon, badge }, i) => (
           <Link
             key={to}
             to={to}
             className="flex items-start gap-3 border border-gray-200 rounded-2xl p-4 hover:bg-gray-50 oak-motion-control"
           >
-            <StepNumber n={i + 1} />
+            <StepNumber n={i + 3} />
             <div className="p-2 rounded-full bg-gray-100 relative">
               <Icon size={18} />
               {badge && (
@@ -148,28 +187,6 @@ function StoreHome() {
             </div>
           </Link>
         ))}
-
-        <button
-          type="button"
-          onClick={() => setLocationSheetOpen(true)}
-          className="flex items-start gap-3 border border-gray-200 rounded-2xl p-4 hover:bg-gray-50 oak-motion-control text-left"
-        >
-          <StepNumber n={linkCards.length + 1} />
-          <div className="p-2 rounded-full bg-gray-100 relative">
-            <MapPin size={18} />
-            {pickupSet && (
-              <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-amber-400 border-2 border-white oak-motion-pop" />
-            )}
-          </div>
-          <div>
-            <p className="text-sm font-medium">Set your pickup location</p>
-            <p className="text-xs text-gray-500 mt-0.5">
-              {pickupSet
-                ? "Riders use this to find you — tap to update."
-                : "So riders know where to collect orders from."}
-            </p>
-          </div>
-        </button>
       </div>
 
       {locationSheetOpen && (

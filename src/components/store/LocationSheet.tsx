@@ -1,6 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { X, MapPin, LocateFixed, ChevronRight } from "lucide-react";
+import { Country, State, City } from "country-state-city";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
+import { LocationListPicker, type LocationListItem } from "./LocationListPicker";
 
 export type PickupLocationValues = {
   addressLine: string;
@@ -59,11 +61,90 @@ export function LocationSheet({
   const [lat, setLat] = useState<number | null>(initial?.lat ?? null);
   const [lng, setLng] = useState<number | null>(initial?.lng ?? null);
 
+  // isoCodes drive the country -> state -> city cascade; the saved values
+  // stay plain names (matches existing DB rows and avoids a schema change).
+  // Seeded from the saved name on mount so editing an existing location
+  // still shows the right cascade -- falls back to unmatched (no code) for
+  // older free-text rows that don't line up with the dataset, which just
+  // means re-picking that field replaces it.
+  const [countryCode, setCountryCode] = useState<string>(
+    () => Country.getAllCountries().find((c) => c.name === initial?.country)?.isoCode ?? "",
+  );
+  const [stateCode, setStateCode] = useState<string>(
+    () =>
+      (countryCode &&
+        State.getStatesOfCountry(countryCode).find((s) => s.name === initial?.state)?.isoCode) ||
+      "",
+  );
+
+  const [pickerOpen, setPickerOpen] = useState<"country" | "state" | "city" | null>(null);
   const [promptVisible, setPromptVisible] = useState(false);
   const [locating, setLocating] = useState(false);
   const [locateError, setLocateError] = useState("");
   const [saving, setSaving] = useState(false);
   const [showErrors, setShowErrors] = useState(false);
+
+  const countryItems: LocationListItem[] = useMemo(
+    () =>
+      Country.getAllCountries()
+        .map((c) => ({ code: c.isoCode, name: c.name }))
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    [],
+  );
+  const stateItems: LocationListItem[] = useMemo(
+    () =>
+      countryCode
+        ? State.getStatesOfCountry(countryCode)
+            .map((s) => ({ code: s.isoCode, name: s.name }))
+            .sort((a, b) => a.name.localeCompare(b.name))
+        : [],
+    [countryCode],
+  );
+  // Coverage gap in the dataset: ~53 countries (mostly city-states/small
+  // island nations) have no state-level data at all. Those fall back to a
+  // plain text field for state instead of a dead-end picker with nothing in
+  // it, and city then keys off the country directly.
+  const hasStateOptions = countryCode !== "" && stateItems.length > 0;
+
+  const cityItems: LocationListItem[] = useMemo(() => {
+    if (countryCode && stateCode) {
+      return City.getCitiesOfState(countryCode, stateCode)
+        .map((c) => ({ code: c.name, name: c.name }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+    }
+    if (countryCode && !hasStateOptions) {
+      return (City.getCitiesOfCountry(countryCode) ?? [])
+        .map((c) => ({ code: c.name, name: c.name }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+    }
+    return [];
+  }, [countryCode, stateCode, hasStateOptions]);
+  // Also a real gap: ~31% of states in the dataset have zero cities listed.
+  // Same fallback -- free text once that state is reachable, rather than a
+  // required field with an empty picker and no way to satisfy it.
+  const cityReachable = hasStateOptions ? stateCode !== "" : countryCode !== "";
+  const hasCityOptions = cityReachable && cityItems.length > 0;
+
+  function selectCountry(item: LocationListItem) {
+    setCountryCode(item.code);
+    setCountry(item.name);
+    setStateCode("");
+    setState("");
+    setCity("");
+    setPickerOpen(null);
+  }
+
+  function selectState(item: LocationListItem) {
+    setStateCode(item.code);
+    setState(item.name);
+    setCity("");
+    setPickerOpen(null);
+  }
+
+  function selectCity(item: LocationListItem) {
+    setCity(item.name);
+    setPickerOpen(null);
+  }
 
   useEffect(() => {
     const t = setTimeout(() => setPromptVisible(true), 350);
@@ -85,9 +166,21 @@ export function LocationSheet({
         const geocoded = await reverseGeocode(latitude, longitude).catch(() => null);
         if (geocoded) {
           setAddressLine((v) => v || geocoded.addressLine);
+          if (!country) {
+            const matchedCountry = Country.getAllCountries().find(
+              (c) => c.name === geocoded.country,
+            );
+            setCountry(geocoded.country);
+            setCountryCode(matchedCountry?.isoCode ?? "");
+            if (!state && matchedCountry) {
+              const matchedState = State.getStatesOfCountry(matchedCountry.isoCode).find(
+                (s) => s.name === geocoded.state,
+              );
+              setState(geocoded.state);
+              setStateCode(matchedState?.isoCode ?? "");
+            }
+          }
           setCity((v) => v || geocoded.city);
-          setState((v) => v || geocoded.state);
-          setCountry((v) => v || geocoded.country);
         }
         setLocating(false);
         setPromptVisible(false);
@@ -104,7 +197,11 @@ export function LocationSheet({
     );
   }
 
-  const valid = city.trim().length > 0 && state.trim().length > 0 && country.trim().length > 0;
+  const valid =
+    addressLine.trim().length > 0 &&
+    city.trim().length > 0 &&
+    state.trim().length > 0 &&
+    country.trim().length > 0;
 
   async function handleSave() {
     if (!valid) {
@@ -179,8 +276,10 @@ export function LocationSheet({
             <input
               value={addressLine}
               onChange={(e) => setAddressLine(e.target.value)}
-              placeholder="Address line 1 (optional)"
-              className="w-full text-base border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-gray-400 transition-colors duration-150"
+              placeholder="Address line 1"
+              className={`w-full text-base border rounded-xl px-4 py-3 outline-none focus:border-gray-400 transition-colors duration-150 ${
+                showErrors && !addressLine.trim() ? "border-red-300" : "border-gray-200"
+              }`}
             />
             <input
               value={addressLine2}
@@ -188,35 +287,102 @@ export function LocationSheet({
               placeholder="Address line 2 — apartment, suite, landmark (optional)"
               className="w-full text-base border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-gray-400 transition-colors duration-150"
             />
-            <input
-              value={city}
-              onChange={(e) => setCity(e.target.value)}
-              placeholder="City"
-              className={`w-full text-base border rounded-xl px-4 py-3 outline-none focus:border-gray-400 transition-colors duration-150 ${
-                showErrors && !city.trim() ? "border-red-300" : "border-gray-200"
-              }`}
-            />
-            <input
-              value={state}
-              onChange={(e) => setState(e.target.value)}
-              placeholder="State"
-              className={`w-full text-base border rounded-xl px-4 py-3 outline-none focus:border-gray-400 transition-colors duration-150 ${
-                showErrors && !state.trim() ? "border-red-300" : "border-gray-200"
-              }`}
-            />
-            <input
-              value={country}
-              onChange={(e) => setCountry(e.target.value)}
-              placeholder="Country"
-              className={`w-full text-base border rounded-xl px-4 py-3 outline-none focus:border-gray-400 transition-colors duration-150 ${
+
+            <button
+              type="button"
+              onClick={() => setPickerOpen("country")}
+              className={`w-full flex items-center justify-between text-base border rounded-xl px-4 py-3 transition-colors duration-150 ${
                 showErrors && !country.trim() ? "border-red-300" : "border-gray-200"
               }`}
-            />
+            >
+              <span className={country ? "text-gray-900" : "text-gray-400"}>
+                {country || "Country"}
+              </span>
+              <ChevronRight size={16} className="text-gray-300 shrink-0" />
+            </button>
+
+            {countryCode && !hasStateOptions ? (
+              <input
+                value={state}
+                onChange={(e) => {
+                  setState(e.target.value);
+                  setCity("");
+                }}
+                placeholder="State"
+                className={`w-full text-base border rounded-xl px-4 py-3 outline-none focus:border-gray-400 transition-colors duration-150 ${
+                  showErrors && !state.trim() ? "border-red-300" : "border-gray-200"
+                }`}
+              />
+            ) : (
+              <button
+                type="button"
+                onClick={() => countryCode && setPickerOpen("state")}
+                disabled={!countryCode}
+                className={`w-full flex items-center justify-between text-base border rounded-xl px-4 py-3 transition-colors duration-150 disabled:opacity-50 ${
+                  showErrors && !state.trim() ? "border-red-300" : "border-gray-200"
+                }`}
+              >
+                <span className={state ? "text-gray-900" : "text-gray-400"}>
+                  {state || "State"}
+                </span>
+                <ChevronRight size={16} className="text-gray-300 shrink-0" />
+              </button>
+            )}
+
+            {cityReachable && !hasCityOptions ? (
+              <input
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                placeholder="City"
+                className={`w-full text-base border rounded-xl px-4 py-3 outline-none focus:border-gray-400 transition-colors duration-150 ${
+                  showErrors && !city.trim() ? "border-red-300" : "border-gray-200"
+                }`}
+              />
+            ) : (
+              <button
+                type="button"
+                onClick={() => cityReachable && setPickerOpen("city")}
+                disabled={!cityReachable}
+                className={`w-full flex items-center justify-between text-base border rounded-xl px-4 py-3 transition-colors duration-150 disabled:opacity-50 ${
+                  showErrors && !city.trim() ? "border-red-300" : "border-gray-200"
+                }`}
+              >
+                <span className={city ? "text-gray-900" : "text-gray-400"}>{city || "City"}</span>
+                <ChevronRight size={16} className="text-gray-300 shrink-0" />
+              </button>
+            )}
           </div>
           {showErrors && !valid && (
-            <p className="text-xs text-red-500 mt-2">City, state, and country are required.</p>
+            <p className="text-xs text-red-500 mt-2">
+              Address line 1, city, state, and country are required.
+            </p>
           )}
         </div>
+
+        {pickerOpen === "country" && (
+          <LocationListPicker
+            title="Country"
+            items={countryItems}
+            onSelect={selectCountry}
+            onClose={() => setPickerOpen(null)}
+          />
+        )}
+        {pickerOpen === "state" && (
+          <LocationListPicker
+            title="State"
+            items={stateItems}
+            onSelect={selectState}
+            onClose={() => setPickerOpen(null)}
+          />
+        )}
+        {pickerOpen === "city" && (
+          <LocationListPicker
+            title="City"
+            items={cityItems}
+            onSelect={selectCity}
+            onClose={() => setPickerOpen(null)}
+          />
+        )}
 
         {lat != null && lng != null && (
           <div className="flex items-center gap-2 text-xs text-gray-500">
