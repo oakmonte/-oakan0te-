@@ -44,11 +44,18 @@ export function VariantMatrixBuilder({
   setOptions,
   rows,
   setRows,
+  mainImageUrl,
+  additionalImageUrls,
 }: {
   options: VariantOption[];
   setOptions: (fn: (prev: VariantOption[]) => VariantOption[]) => void;
   rows: VariantRow[];
   setRows: (fn: (prev: VariantRow[]) => VariantRow[]) => void;
+  // The photos already added on the base product page — offered as a
+  // one-tap pool inside each variant's image picker instead of forcing a
+  // re-upload of something the seller already has.
+  mainImageUrl: string;
+  additionalImageUrls: string[];
 }) {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [wizardStep, setWizardStep] = useState<WizardStep>(null);
@@ -140,6 +147,8 @@ export function VariantMatrixBuilder({
           options={options}
           rows={rows}
           setRows={setRows}
+          mainImageUrl={mainImageUrl}
+          additionalImageUrls={additionalImageUrls}
           onBack={() => setWizardStep("list")}
           onDone={() => setWizardStep(null)}
         />

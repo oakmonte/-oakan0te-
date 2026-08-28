@@ -10,15 +10,22 @@ export function VariantCombinationsSheet({
   options,
   rows,
   setRows,
+  mainImageUrl,
+  additionalImageUrls,
   onBack,
   onDone,
 }: {
   options: VariantOption[];
   rows: VariantRow[];
   setRows: (fn: (prev: VariantRow[]) => VariantRow[]) => void;
+  mainImageUrl: string;
+  additionalImageUrls: string[];
   onBack: () => void;
   onDone: () => void;
 }) {
+  const baseImages = mainImageUrl
+    ? [mainImageUrl, ...additionalImageUrls.filter((u) => u !== mainImageUrl)]
+    : additionalImageUrls;
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkPrice, setBulkPrice] = useState("");
   const [bulkStock, setBulkStock] = useState("");
@@ -265,6 +272,7 @@ export function VariantCombinationsSheet({
         <VariantImagePopover
           initialValue={rows.find((r) => r.key === imagePickerKey)?.mainImageUrl ?? ""}
           initialAdditional={rows.find((r) => r.key === imagePickerKey)?.additionalImageUrls ?? []}
+          baseImages={baseImages}
           onDone={(url, additional) => {
             updateRow(imagePickerKey, {
               mainImageUrl: url,
@@ -282,11 +290,16 @@ export function VariantCombinationsSheet({
 function VariantImagePopover({
   initialValue,
   initialAdditional,
+  baseImages,
   onDone,
   onClose,
 }: {
   initialValue: string;
   initialAdditional: string[];
+  // Photos already uploaded on the base product page — shown as a one-tap
+  // pool here so a seller assigning a variant image doesn't have to
+  // re-upload something that's already sitting on the product.
+  baseImages: string[];
   onDone: (url: string, additional: string[]) => void;
   onClose: () => void;
 }) {
@@ -346,6 +359,21 @@ function VariantImagePopover({
     addUrls(urls);
   }
 
+  // Tapping a base-product photo adds it to this variant; tapping it again
+  // (it's already showing as this variant's main or an extra) removes just
+  // that assignment — the photo itself stays on the base product either way.
+  function toggleBaseImage(url: string) {
+    if (url === value) {
+      const [nextMain, ...rest] = additional;
+      setValue(nextMain ?? "");
+      setAdditional(rest);
+    } else if (additional.includes(url)) {
+      setAdditional((prev) => prev.filter((u) => u !== url));
+    } else {
+      addUrls([url]);
+    }
+  }
+
   return (
     <div
       className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center px-6 animate-in fade-in duration-200"
@@ -381,6 +409,33 @@ function VariantImagePopover({
         </button>
 
         {uploadError && <p className="text-xs text-red-500 text-center mb-2">{uploadError}</p>}
+
+        {baseImages.length > 0 && (
+          <div className="mb-3">
+            <p className="text-xs text-gray-500 mb-1.5">From your product photos</p>
+            <div className="flex gap-2 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+              {baseImages.map((url) => {
+                const selected = url === value || additional.includes(url);
+                return (
+                  <button
+                    key={url}
+                    type="button"
+                    onClick={() => toggleBaseImage(url)}
+                    aria-label={selected ? "Remove from variant" : "Add to variant"}
+                    className="relative w-12 h-12 shrink-0 rounded-lg bg-gray-100 overflow-hidden"
+                  >
+                    <img src={url} alt="" className="w-full h-full object-cover" />
+                    {selected && (
+                      <span className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                        <Check size={16} className="text-white" />
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {additional.length > 0 && (
           <div className="mt-2 flex gap-2 overflow-x-auto" style={{ scrollbarWidth: "none" }}>

@@ -426,6 +426,8 @@ function NewProduct() {
           setOptions={setOptions}
           rows={rows}
           setRows={setRows}
+          mainImageUrl={mainImageUrl}
+          additionalImageUrls={additionalImageUrls}
         />
       )}
 

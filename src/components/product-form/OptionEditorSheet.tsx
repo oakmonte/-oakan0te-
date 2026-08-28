@@ -229,7 +229,15 @@ export function OptionEditorSheet({
   // Which option is option1 vs option2 is positional in the DB, so the order
   // names were first given values has to survive edits and renames.
   const [nameOrder, setNameOrder] = useState<string[]>(() => initialOptions.map((o) => o.name));
-  const [confirmedByName, setConfirmedByName] = useState<Record<string, boolean>>({});
+  // Anything handed in already has saved values from a prior pass through
+  // this sheet — starting it unconfirmed locked navigation behind a
+  // redundant Save on every pill, and turned an accidental Cancel into data
+  // loss for values that were never actually being edited.
+  const [confirmedByName, setConfirmedByName] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(
+      initialOptions.filter((o) => o.values.length > 0).map((o) => [o.name, true]),
+    ),
+  );
   const [valueDraft, setValueDraft] = useState("");
   const [selectedSystems, setSelectedSystems] = useState<Record<string, string>>(DEFAULT_SYSTEM);
   const [systemMenuOpen, setSystemMenuOpen] = useState(false);
