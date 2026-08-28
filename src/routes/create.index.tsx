@@ -141,7 +141,7 @@ const RANDOM_FILLER_COUNT = 6;
 
 const ROTATE_SIZE = 48;
 const FLASH_TOGGLE_SIZE = 47;
-const GALLERY_ICON_SIZE = 40;
+const GALLERY_ICON_SIZE = 48;
 const CAPTURE_SIZE = 84;
 const ROW_EDGE = 20;
 
@@ -157,16 +157,19 @@ const iconColumnLeft = (size: number) => ICON_COLUMN_CENTER_X - size / 2;
 const CAPTURE_ROW_BOTTOM = ROW_EDGE + 25;
 const CAPTURE_ROW_TOP = CAPTURE_ROW_BOTTOM + CAPTURE_SIZE;
 
-// The three left-column icons, stacked bottom-to-top as rotate, flash,
-// gallery — spaced by one shared gap regardless of their differing heights.
-// Rotate is the anchor (its position is unchanged from before). Gallery used
-// to sit BELOW rotate, low enough in frame to land in whatever the camera
-// feed itself is showing down there (a dim floor/wall, not anything the app
-// draws) — moved above flash instead, same gap, clear of that area.
+// The three left-column icons, stacked bottom-to-top as gallery, rotate,
+// flash — spaced by one shared gap regardless of their differing heights.
+// Lifted as a group off the row's base offset so gallery, the lowest of the
+// three, clears the bottom of frame (where the camera feed itself tends to
+// run darker — see the ICON_COLUMN_LIFT note).
 const ICON_COLUMN_GAP = 12;
-const ROTATE_BOTTOM = CAPTURE_ROW_BOTTOM + (CAPTURE_SIZE - ROTATE_SIZE) / 2;
+// How far to raise the whole three-icon column above where it'd otherwise
+// sit. Gallery is the lowest of the three, so this is really "how much
+// clearance gallery gets from the bottom of frame."
+const ICON_COLUMN_LIFT = 32;
+const ROTATE_BOTTOM = CAPTURE_ROW_BOTTOM + (CAPTURE_SIZE - ROTATE_SIZE) / 2 + ICON_COLUMN_LIFT;
 const FLASH_TOGGLE_BOTTOM = ROTATE_BOTTOM + ROTATE_SIZE + ICON_COLUMN_GAP;
-const GALLERY_ICON_BOTTOM = FLASH_TOGGLE_BOTTOM + FLASH_TOGGLE_SIZE + ICON_COLUMN_GAP;
+const GALLERY_ICON_BOTTOM = ROTATE_BOTTOM - ICON_COLUMN_GAP - GALLERY_ICON_SIZE;
 
 // Gap between the mode toggle's bottom edge and the filter strip's top edge.
 const MODE_PILL_GAP = 8;
@@ -1309,7 +1312,7 @@ function CreatePage() {
           border: "1px solid rgba(255,255,255,0.15)",
         }}
       >
-        <ImageIcon size={16} className="opacity-80" />
+        <ImageIcon size={19} className="opacity-80" />
       </button>
 
       <input
