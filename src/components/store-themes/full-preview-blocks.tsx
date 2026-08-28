@@ -764,6 +764,13 @@ export function PromoBanner({
   textColor: string;
   editing?: ThemeEditingProps;
 }) {
+  const [showCountdownHint, setShowCountdownHint] = useState(false);
+
+  function handleCountdownTap() {
+    setShowCountdownHint(true);
+    setTimeout(() => setShowCountdownHint(false), 2500);
+  }
+
   return (
     <div
       className="relative mx-4 mt-5 rounded-2xl p-3.5"
@@ -801,12 +808,14 @@ export function PromoBanner({
           />
         </div>
         {countdown ? (
-          <span
+          <button
+            type="button"
+            onClick={handleCountdownTap}
             className="shrink-0 text-[11px] font-semibold tabular-nums"
             style={{ color: accent }}
           >
             {countdown}
-          </span>
+          </button>
         ) : (
           <span
             className="shrink-0 rounded-full px-2.5 py-1.5 text-[8.5px] font-semibold whitespace-nowrap"
@@ -816,6 +825,12 @@ export function PromoBanner({
           </span>
         )}
       </div>
+
+      {showCountdownHint && (
+        <div className="absolute right-2 top-full z-20 mt-2 w-44 rounded-lg bg-black/90 px-2.5 py-2 text-[10px] leading-4 text-white shadow-lg">
+          A live drop timer will be available at full launch.
+        </div>
+      )}
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useLockedViewport } from "@/hooks/use-locked-viewport";
 
 export type PickupLocationValues = {
   addressLine: string;
+  addressLine2: string;
   city: string;
   state: string;
   country: string;
@@ -51,6 +52,7 @@ export function LocationSheet({
   useLockedViewport();
 
   const [addressLine, setAddressLine] = useState(initial?.addressLine ?? "");
+  const [addressLine2, setAddressLine2] = useState(initial?.addressLine2 ?? "");
   const [city, setCity] = useState(initial?.city ?? "");
   const [state, setState] = useState(initial?.state ?? "");
   const [country, setCountry] = useState(initial?.country ?? "");
@@ -102,7 +104,7 @@ export function LocationSheet({
     );
   }
 
-  const valid = city.trim().length > 0 && country.trim().length > 0;
+  const valid = city.trim().length > 0 && state.trim().length > 0 && country.trim().length > 0;
 
   async function handleSave() {
     if (!valid) {
@@ -113,6 +115,7 @@ export function LocationSheet({
     try {
       await onSave({
         addressLine: addressLine.trim(),
+        addressLine2: addressLine2.trim(),
         city: city.trim(),
         state: state.trim(),
         country: country.trim(),
@@ -176,7 +179,13 @@ export function LocationSheet({
             <input
               value={addressLine}
               onChange={(e) => setAddressLine(e.target.value)}
-              placeholder="Street address (optional)"
+              placeholder="Address line 1 (optional)"
+              className="w-full text-base border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-gray-400 transition-colors duration-150"
+            />
+            <input
+              value={addressLine2}
+              onChange={(e) => setAddressLine2(e.target.value)}
+              placeholder="Address line 2 — apartment, suite, landmark (optional)"
               className="w-full text-base border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-gray-400 transition-colors duration-150"
             />
             <input
@@ -190,8 +199,10 @@ export function LocationSheet({
             <input
               value={state}
               onChange={(e) => setState(e.target.value)}
-              placeholder="State (optional)"
-              className="w-full text-base border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-gray-400 transition-colors duration-150"
+              placeholder="State"
+              className={`w-full text-base border rounded-xl px-4 py-3 outline-none focus:border-gray-400 transition-colors duration-150 ${
+                showErrors && !state.trim() ? "border-red-300" : "border-gray-200"
+              }`}
             />
             <input
               value={country}
@@ -203,7 +214,7 @@ export function LocationSheet({
             />
           </div>
           {showErrors && !valid && (
-            <p className="text-xs text-red-500 mt-2">City and country are required.</p>
+            <p className="text-xs text-red-500 mt-2">City, state, and country are required.</p>
           )}
         </div>
 

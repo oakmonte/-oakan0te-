@@ -47,7 +47,8 @@ import {
 import { LAYOUT_PRESETS, type ArrangeableBlockId } from "./layout-presets";
 import { useThemeCustomization } from "./useThemeCustomization";
 import { useStoreTheme } from "./useStoreTheme";
-import { useActiveStoreId } from "@/hooks/use-own-store";
+import { useActiveStore } from "@/hooks/use-own-store";
+import { supabase } from "@/lib/integrations/my-supabase/client";
 import { uploadStoreThemeImage } from "@/lib/upload-store-theme-image";
 
 function noop() {}
@@ -83,9 +84,11 @@ function orderedBlocks(
 function MotionGridFull({
   editing,
   storeId,
+  brandName,
 }: {
   editing?: ThemeEditingProps;
   storeId: string | null;
+  brandName: string;
 }) {
   const hidden = editing?.hiddenBlocks ?? [];
   const text = editing?.text ?? {};
@@ -155,8 +158,8 @@ function MotionGridFull({
       <div className="relative">
         <PhoneHeader
           mutedColor="rgba(255,255,255,0.7)"
-          brandInitial="D"
-          defaultLogoText="District 17"
+          brandInitial={brandName.charAt(0).toUpperCase()}
+          defaultLogoText={brandName}
           editing={editing}
         />
         <HeroSlideshow
@@ -175,7 +178,7 @@ function MotionGridFull({
           <ThemeText
             editing={editing}
             field="hero2"
-            defaultValue="District 17"
+            defaultValue={brandName}
             as="h2"
             className="mt-1 font-display text-[38px] uppercase leading-[0.85] tracking-[-0.03em]"
           />
@@ -197,9 +200,11 @@ function MotionGridFull({
 function ImmersiveBannerFull({
   editing,
   storeId,
+  brandName,
 }: {
   editing?: ThemeEditingProps;
   storeId: string | null;
+  brandName: string;
 }) {
   const hidden = editing?.hiddenBlocks ?? [];
   const text = editing?.text ?? {};
@@ -267,8 +272,8 @@ function ImmersiveBannerFull({
       <div className="relative">
         <PhoneHeader
           mutedColor="rgba(41,34,25,0.6)"
-          brandInitial="t"
-          defaultLogoText="terra"
+          brandInitial={brandName.charAt(0).toUpperCase()}
+          defaultLogoText={brandName}
           editing={editing}
         />
         <HeroSlideshow
@@ -287,7 +292,7 @@ function ImmersiveBannerFull({
           <ThemeText
             editing={editing}
             field="hero2"
-            defaultValue="terra"
+            defaultValue={brandName}
             as="h2"
             className="mt-1 font-serif text-[46px] leading-none tracking-[-0.04em]"
           />
@@ -310,9 +315,11 @@ function ImmersiveBannerFull({
 function GalleryEditFull({
   editing,
   storeId,
+  brandName,
 }: {
   editing?: ThemeEditingProps;
   storeId: string | null;
+  brandName: string;
 }) {
   const hidden = editing?.hiddenBlocks ?? [];
   const text = editing?.text ?? {};
@@ -381,8 +388,8 @@ function GalleryEditFull({
       <div className="relative">
         <PhoneHeader
           mutedColor="rgba(243,237,226,0.55)"
-          brandInitial="A"
-          defaultLogoText="Atelier Noir"
+          brandInitial={brandName.charAt(0).toUpperCase()}
+          defaultLogoText={brandName}
           editing={editing}
         />
         <HeroSlideshow
@@ -401,7 +408,7 @@ function GalleryEditFull({
           <ThemeText
             editing={editing}
             field="hero2"
-            defaultValue="Atelier Noir"
+            defaultValue={brandName}
             as="h2"
             className="mt-2 font-serif text-[36px] italic leading-none tracking-[-0.02em]"
           />
@@ -424,9 +431,11 @@ function GalleryEditFull({
 function NeonTerminalFull({
   editing,
   storeId,
+  brandName,
 }: {
   editing?: ThemeEditingProps;
   storeId: string | null;
+  brandName: string;
 }) {
   const hidden = editing?.hiddenBlocks ?? [];
   const text = editing?.text ?? {};
@@ -497,8 +506,8 @@ function NeonTerminalFull({
       <div className="relative">
         <PhoneHeader
           mutedColor="rgba(234,252,255,0.6)"
-          brandInitial="C"
-          defaultLogoText="Circuit"
+          brandInitial={brandName.charAt(0).toUpperCase()}
+          defaultLogoText={brandName}
           editing={editing}
         />
         <HeroSlideshow
@@ -514,7 +523,7 @@ function NeonTerminalFull({
           <ThemeText
             editing={editing}
             field="hero2"
-            defaultValue="Circuit"
+            defaultValue={brandName}
             as="h2"
             className="mt-2 font-display text-[40px] uppercase leading-[0.85] tracking-[-0.02em]"
             style={{ textShadow: "0 0 18px rgba(45,212,255,0.5)" }}
@@ -537,9 +546,11 @@ function NeonTerminalFull({
 function VerdantNoirFull({
   editing,
   storeId,
+  brandName,
 }: {
   editing?: ThemeEditingProps;
   storeId: string | null;
+  brandName: string;
 }) {
   const hidden = editing?.hiddenBlocks ?? [];
   const text = editing?.text ?? {};
@@ -607,8 +618,8 @@ function VerdantNoirFull({
       <div className="relative">
         <PhoneHeader
           mutedColor="rgba(234,242,236,0.6)"
-          brandInitial="F"
-          defaultLogoText="Fern & Co."
+          brandInitial={brandName.charAt(0).toUpperCase()}
+          defaultLogoText={brandName}
           editing={editing}
         />
         <HeroSlideshow
@@ -627,7 +638,7 @@ function VerdantNoirFull({
           <ThemeText
             editing={editing}
             field="hero2"
-            defaultValue="Fern & Co."
+            defaultValue={brandName}
             as="h2"
             className="mt-1 font-serif text-[38px] leading-[0.9] tracking-[-0.03em]"
           />
@@ -649,9 +660,11 @@ function VerdantNoirFull({
 function MonochromeFull({
   editing,
   storeId,
+  brandName,
 }: {
   editing?: ThemeEditingProps;
   storeId: string | null;
+  brandName: string;
 }) {
   const hidden = editing?.hiddenBlocks ?? [];
   const text = editing?.text ?? {};
@@ -719,8 +732,8 @@ function MonochromeFull({
       <div className="relative">
         <PhoneHeader
           mutedColor="rgba(17,17,17,0.6)"
-          brandInitial="N"
-          defaultLogoText="NOIR/BLANC"
+          brandInitial={brandName.charAt(0).toUpperCase()}
+          defaultLogoText={brandName}
           editing={editing}
         />
         <HeroSlideshow
@@ -739,7 +752,7 @@ function MonochromeFull({
           <ThemeText
             editing={editing}
             field="hero2"
-            defaultValue="NOIR/BLANC"
+            defaultValue={brandName}
             as="h2"
             className="mt-1 font-display text-[34px] uppercase leading-[0.9] tracking-[-0.02em]"
           />
@@ -759,7 +772,15 @@ function MonochromeFull({
   );
 }
 
-function GildedFull({ editing, storeId }: { editing?: ThemeEditingProps; storeId: string | null }) {
+function GildedFull({
+  editing,
+  storeId,
+  brandName,
+}: {
+  editing?: ThemeEditingProps;
+  storeId: string | null;
+  brandName: string;
+}) {
   const hidden = editing?.hiddenBlocks ?? [];
   const text = editing?.text ?? {};
 
@@ -809,7 +830,7 @@ function GildedFull({ editing, storeId }: { editing?: ThemeEditingProps; storeId
     footer: !hidden.includes("footer") && (
       <FooterTeaser
         label={text.footerLabel ?? "From the house"}
-        sub={text.footerSub ?? "A note from Aurum House"}
+        sub={text.footerSub ?? `A note from ${brandName}`}
         clusterColors={["#d4af37", "#8a6d1f", "#f3e2a6"]}
         cardBg="rgba(212,175,55,0.07)"
         textColor="#f3ecdc"
@@ -826,8 +847,8 @@ function GildedFull({ editing, storeId }: { editing?: ThemeEditingProps; storeId
       <div className="relative">
         <PhoneHeader
           mutedColor="rgba(243,236,220,0.55)"
-          brandInitial="A"
-          defaultLogoText="Aurum House"
+          brandInitial={brandName.charAt(0).toUpperCase()}
+          defaultLogoText={brandName}
           editing={editing}
         />
         <HeroSlideshow
@@ -846,7 +867,7 @@ function GildedFull({ editing, storeId }: { editing?: ThemeEditingProps; storeId
           <ThemeText
             editing={editing}
             field="hero2"
-            defaultValue="Aurum House"
+            defaultValue={brandName}
             as="h2"
             className="mt-2 font-serif text-[36px] leading-none tracking-[-0.02em]"
           />
@@ -869,9 +890,11 @@ function GildedFull({ editing, storeId }: { editing?: ThemeEditingProps; storeId
 function ObsidianFull({
   editing,
   storeId,
+  brandName,
 }: {
   editing?: ThemeEditingProps;
   storeId: string | null;
+  brandName: string;
 }) {
   const hidden = editing?.hiddenBlocks ?? [];
   const text = editing?.text ?? {};
@@ -939,8 +962,8 @@ function ObsidianFull({
       <div className="relative">
         <PhoneHeader
           mutedColor="rgba(230,230,230,0.55)"
-          brandInitial="V"
-          defaultLogoText="VOID"
+          brandInitial={brandName.charAt(0).toUpperCase()}
+          defaultLogoText={brandName}
           editing={editing}
         />
         <HeroSlideshow
@@ -959,7 +982,7 @@ function ObsidianFull({
           <ThemeText
             editing={editing}
             field="hero2"
-            defaultValue="VOID"
+            defaultValue={brandName}
             as="h2"
             className="mt-1 font-display text-[40px] uppercase leading-[0.85] tracking-[-0.03em]"
           />
@@ -982,28 +1005,30 @@ export function FullPreview({
   themeId,
   editing,
   storeId,
+  brandName,
 }: {
   themeId: ThemeId;
   editing?: ThemeEditingProps;
   storeId: string | null;
+  brandName: string;
 }) {
   switch (themeId) {
     case "motion":
-      return <MotionGridFull editing={editing} storeId={storeId} />;
+      return <MotionGridFull editing={editing} storeId={storeId} brandName={brandName} />;
     case "banner":
-      return <ImmersiveBannerFull editing={editing} storeId={storeId} />;
+      return <ImmersiveBannerFull editing={editing} storeId={storeId} brandName={brandName} />;
     case "atelier":
-      return <GalleryEditFull editing={editing} storeId={storeId} />;
+      return <GalleryEditFull editing={editing} storeId={storeId} brandName={brandName} />;
     case "circuit":
-      return <NeonTerminalFull editing={editing} storeId={storeId} />;
+      return <NeonTerminalFull editing={editing} storeId={storeId} brandName={brandName} />;
     case "verdant":
-      return <VerdantNoirFull editing={editing} storeId={storeId} />;
+      return <VerdantNoirFull editing={editing} storeId={storeId} brandName={brandName} />;
     case "monochrome":
-      return <MonochromeFull editing={editing} storeId={storeId} />;
+      return <MonochromeFull editing={editing} storeId={storeId} brandName={brandName} />;
     case "gilded":
-      return <GildedFull editing={editing} storeId={storeId} />;
+      return <GildedFull editing={editing} storeId={storeId} brandName={brandName} />;
     case "obsidian":
-      return <ObsidianFull editing={editing} storeId={storeId} />;
+      return <ObsidianFull editing={editing} storeId={storeId} brandName={brandName} />;
   }
 }
 
@@ -1018,8 +1043,31 @@ export function FullPreview({
 export function PublicStorefront({ storeId }: { storeId: string }) {
   const { themeId, loading: themeLoading } = useStoreTheme(storeId);
   const { saved, loading: savedLoading } = useThemeCustomization(themeId, storeId);
+  // The real name the seller picked at onboarding (stores.brand_name) is the
+  // default brand text/logo everywhere below — never each theme's own
+  // fictional demo brand (District 17, terra, ...). Still just a default: a
+  // seller who's typed their own headline or logo text keeps that (see
+  // state.text/logoMode below), same as any other field.
+  const [brandName, setBrandName] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    setBrandName(null);
+    supabase
+      .from("stores")
+      .select("brand_name")
+      .eq("id", storeId)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) console.error("PublicStorefront: failed to load brand name", error);
+        setBrandName(data?.brand_name ?? "");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [storeId]);
 
-  if (themeLoading || savedLoading) {
+  if (themeLoading || savedLoading || brandName === null) {
     return <div className="py-12 text-center text-[13px] text-white/40">Loading…</div>;
   }
 
@@ -1060,7 +1108,9 @@ export function PublicStorefront({ storeId }: { storeId: string }) {
     onTileTapBlocked: noop,
   };
 
-  return <FullPreview themeId={themeId} editing={editing} storeId={storeId} />;
+  return (
+    <FullPreview themeId={themeId} editing={editing} storeId={storeId} brandName={brandName} />
+  );
 }
 
 export function ThemePreviewSheet({
@@ -1078,7 +1128,11 @@ export function ThemePreviewSheet({
    * "Edit" button, without changing what the in-sheet Edit pill does. */
   initialMode?: "view" | "edit";
 }) {
-  const { storeId } = useActiveStoreId();
+  const { store, storeId } = useActiveStore();
+  // The real store name, same default-not-override rule as PublicStorefront
+  // — falls back to the theme's own fictional demo brand only in the sliver
+  // of time before useActiveStore resolves.
+  const brandName = store?.brand_name ?? theme.demoBrand;
   const [mode, setMode] = useState<"view" | "edit">(initialMode);
   // `current` + `history` live in one state object on purpose: a setState
   // updater must be pure (React/StrictMode double-invokes it in dev to catch
@@ -1366,7 +1420,12 @@ export function ThemePreviewSheet({
         </div>
         <div className="relative w-full max-w-[430px] shrink-0 overflow-hidden rounded-[2.5rem] border-[6px] border-neutral-900 bg-neutral-900 shadow-[0_30px_80px_rgba(0,0,0,0.55)]">
           <div className="max-h-[82vh] overflow-y-auto">
-            <FullPreview themeId={theme.id} editing={editingProps} storeId={storeId} />
+            <FullPreview
+              themeId={theme.id}
+              editing={editingProps}
+              storeId={storeId}
+              brandName={brandName}
+            />
           </div>
           {hint && (
             <div className="pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-black/80 px-3 py-1.5 text-[11px] text-white backdrop-blur">

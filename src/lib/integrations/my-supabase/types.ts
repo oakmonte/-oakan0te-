@@ -1059,6 +1059,7 @@ export type Database = {
           offers_custom_orders: boolean | null
           owner_id: string
           pickup_address_line: string | null
+          pickup_address_line2: string | null
           pickup_city: string | null
           pickup_country: string | null
           pickup_lat: number | null
@@ -1085,6 +1086,7 @@ export type Database = {
           offers_custom_orders?: boolean | null
           owner_id: string
           pickup_address_line?: string | null
+          pickup_address_line2?: string | null
           pickup_city?: string | null
           pickup_country?: string | null
           pickup_lat?: number | null
@@ -1111,6 +1113,7 @@ export type Database = {
           offers_custom_orders?: boolean | null
           owner_id?: string
           pickup_address_line?: string | null
+          pickup_address_line2?: string | null
           pickup_city?: string | null
           pickup_country?: string | null
           pickup_lat?: number | null

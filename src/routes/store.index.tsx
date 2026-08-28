@@ -43,7 +43,7 @@ function StoreHome() {
     supabase
       .from("stores")
       .select(
-        "pickup_address_line, pickup_city, pickup_state, pickup_country, pickup_lat, pickup_lng",
+        "pickup_address_line, pickup_address_line2, pickup_city, pickup_state, pickup_country, pickup_lat, pickup_lng",
       )
       .eq("id", storeId)
       .maybeSingle()
@@ -53,11 +53,12 @@ function StoreHome() {
           console.error("StoreHome: failed to load pickup location", error);
           return;
         }
-        setPickupSet(!!(data?.pickup_city && data?.pickup_country));
+        setPickupSet(!!(data?.pickup_city && data?.pickup_state && data?.pickup_country));
         setInitialLocation(
           data
             ? {
                 addressLine: data.pickup_address_line ?? "",
+                addressLine2: data.pickup_address_line2 ?? "",
                 city: data.pickup_city ?? "",
                 state: data.pickup_state ?? "",
                 country: data.pickup_country ?? "",
@@ -78,6 +79,7 @@ function StoreHome() {
       .from("stores")
       .update({
         pickup_address_line: values.addressLine || null,
+        pickup_address_line2: values.addressLine2 || null,
         pickup_city: values.city || null,
         pickup_state: values.state || null,
         pickup_country: values.country || null,
@@ -91,7 +93,7 @@ function StoreHome() {
       return;
     }
     setInitialLocation(values);
-    setPickupSet(!!(values.city && values.country));
+    setPickupSet(!!(values.city && values.state && values.country));
     setLocationSheetOpen(false);
   }
 
