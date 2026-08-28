@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { ImageIcon, X, Loader2, Layers } from "lucide-react";
+import { ImageIcon, X, Loader2 } from "lucide-react";
 import { DraftImagePickerSheet } from "./DraftImagePickerSheet";
+import { ImageSourceSheet, type ImageSource } from "./ImageSourceSheet";
 import { useFilePicker } from "@/hooks/use-file-picker";
 import { uploadProductImage } from "@/lib/upload-product-image";
 
@@ -15,6 +16,7 @@ export function MediaSection({
   additionalImageUrls?: string[];
   onAdditionalChange?: (urls: string[]) => void;
 }) {
+  const [sourceSheetOpen, setSourceSheetOpen] = useState(false);
   const [draftsOpen, setDraftsOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
@@ -49,6 +51,15 @@ export function MediaSection({
     }
   }
 
+  async function handleSource(source: ImageSource) {
+    setSourceSheetOpen(false);
+    if (source === "drafts") {
+      setDraftsOpen(true);
+      return;
+    }
+    await uploadFile(await filePicker.pick());
+  }
+
   function handlePicked(urls: string[]) {
     setDraftsOpen(false);
     addUrls(urls);
@@ -65,7 +76,7 @@ export function MediaSection({
       <div className="w-full flex flex-col items-center gap-2">
         <button
           type="button"
-          onClick={() => filePicker.pick().then(uploadFile)}
+          onClick={() => setSourceSheetOpen(true)}
           disabled={uploading}
           aria-label="Add images"
           className="w-24 h-24 rounded-2xl bg-gray-100 flex items-center justify-center overflow-hidden disabled:opacity-60"
@@ -79,16 +90,6 @@ export function MediaSection({
           )}
         </button>
         <span className="text-sm font-medium text-gray-900">Add images</span>
-
-        <button
-          type="button"
-          onClick={() => setDraftsOpen(true)}
-          disabled={uploading}
-          className="mt-1 pt-2 border-t border-gray-200 flex items-center gap-1.5 text-sm font-medium text-gray-600 disabled:opacity-60"
-        >
-          <Layers size={14} />
-          Upload from Drafts
-        </button>
       </div>
 
       {uploadError && <p className="text-xs text-red-500 text-center mt-2">{uploadError}</p>}
@@ -114,6 +115,9 @@ export function MediaSection({
         </div>
       )}
 
+      {sourceSheetOpen && (
+        <ImageSourceSheet onSelect={handleSource} onClose={() => setSourceSheetOpen(false)} />
+      )}
       {draftsOpen && (
         <DraftImagePickerSheet onSelect={handlePicked} onClose={() => setDraftsOpen(false)} />
       )}
