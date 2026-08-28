@@ -1,4 +1,4 @@
-import { Plus, ChevronRight } from "lucide-react";
+import { Plus, Check, ChevronRight } from "lucide-react";
 import { CategoryNode } from "@/lib/categories";
 
 export function DetailsSection({
@@ -43,7 +43,11 @@ export function DetailsSection({
         className="w-full flex items-center justify-between py-4 border-b border-gray-100 text-left"
       >
         <span className="flex items-center gap-3 text-[15px] text-gray-900">
-          <Plus size={18} className="text-gray-400" />
+          {hasDescription ? (
+            <Check size={18} className="text-gray-900" />
+          ) : (
+            <Plus size={18} className="text-gray-400" />
+          )}
           {hasDescription ? "Description" : "Add description"}
         </span>
         <ChevronRight size={16} className="text-gray-300 shrink-0" />
@@ -55,7 +59,11 @@ export function DetailsSection({
         className={`w-full flex items-center justify-between py-4 ${showPrice ? "border-b border-gray-100" : ""}`}
       >
         <span className="flex items-center gap-3 text-[15px] text-gray-900">
-          <Plus size={18} className="text-gray-400" />
+          {categoryLabel ? (
+            <Check size={18} className="text-gray-900" />
+          ) : (
+            <Plus size={18} className="text-gray-400" />
+          )}
           {categoryLabel ?? "Select category"}
         </span>
         <ChevronRight size={16} className="text-gray-300" />

@@ -123,6 +123,16 @@ export function PricingSheet({
           </div>
         )}
       </div>
+
+      <div className="sticky bottom-0 bg-white/95 backdrop-blur border-t border-gray-100 px-4 py-3">
+        <button
+          type="button"
+          onClick={onClose}
+          className="w-full bg-black text-white text-sm font-medium rounded-xl py-3.5"
+        >
+          Save
+        </button>
+      </div>
     </div>
   );
 }

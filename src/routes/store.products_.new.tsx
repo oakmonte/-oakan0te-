@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronDown, ChevronRight, Tag, Hash, ListChecks } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { CategoryNode } from "@/lib/categories";
@@ -18,7 +18,8 @@ import {
   VariantOption,
   VariantRow,
 } from "@/components/product-form/VariantMatrixBuilder";
-import { ManualSize, SizeMeasurements } from "@/lib/size-chart-config";
+import { ManualSize, SizeMeasurements, getSizeChartForCategory } from "@/lib/size-chart-config";
+import { preloadGuideImage } from "@/components/product-form/size-chart/guide-images";
 import {
   stashProductDraft,
   takeProductDraft,
@@ -74,6 +75,13 @@ function NewProduct() {
   const [categoryPath, setCategoryPath] = useState<CategoryNode[]>(
     initialDraft?.categoryPath ?? [],
   );
+
+  // Kick off the size-chart guide image fetch the moment a category is
+  // picked, so it's already cached by the time the seller opens Necessities.
+  useEffect(() => {
+    const chart = getSizeChartForCategory(categoryPath);
+    if (chart) preloadGuideImage(chart.guide);
+  }, [categoryPath]);
 
   // Regular-mode state
   const [price, setPrice] = useState(initialDraft?.price ?? "");

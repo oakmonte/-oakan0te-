@@ -14,6 +14,7 @@ import {
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
 import { useVisibleViewport } from "@/hooks/use-visible-viewport";
 import { sanitizeDescriptionHtml } from "@/lib/sanitize-html";
+import { checkTextPolicy, policyViolationMessage } from "@/lib/content-policy";
 
 type FormatState = {
   bold: boolean;
@@ -76,6 +77,7 @@ export function DescriptionSheet({
     insertOrderedList: false,
   });
   const [openGroup, setOpenGroup] = useState<ToolbarGroup>(null);
+  const [policyError, setPolicyError] = useState<string | null>(null);
 
   // Stops iOS from scrolling the document to reveal the focused field (which
   // drags position:fixed elements with it) — necessary but not sufficient on
@@ -138,7 +140,13 @@ export function DescriptionSheet({
 
   function handleSave() {
     const el = editorRef.current;
-    const html = el && el.textContent?.trim() ? el.innerHTML : "";
+    const text = el?.textContent ?? "";
+    const violation = checkTextPolicy(text);
+    if (violation) {
+      setPolicyError(policyViolationMessage(violation));
+      return;
+    }
+    const html = text.trim() ? (el?.innerHTML ?? "") : "";
     onSave(sanitizeDescriptionHtml(html));
   }
 
@@ -174,11 +182,20 @@ export function DescriptionSheet({
           </button>
         </div>
 
+        {policyError && (
+          <p className="shrink-0 px-4 py-2 text-xs text-red-500 bg-red-50 border-b border-red-100">
+            {policyError}
+          </p>
+        )}
+
         <div
           ref={editorRef}
           contentEditable
           suppressContentEditableWarning
-          onInput={() => setFormats(readFormats())}
+          onInput={() => {
+            setFormats(readFormats());
+            setPolicyError(null);
+          }}
           data-placeholder="Describe your product…"
           className="oak-description-editor flex-1 min-h-0 overflow-y-auto px-4 py-5 text-base text-gray-900 outline-none"
         />
@@ -199,12 +216,14 @@ export function DescriptionSheet({
           </ToolbarButton>
 
           {openGroup === "align" ? (
-            ALIGN_OPTIONS.map(({ command, label, Icon }) => (
+            ALIGN_OPTIONS.map(({ command, label, Icon }, i) => (
               <ToolbarButton
                 key={command}
                 label={label}
                 active={formats[command]}
                 onClick={() => applyAndCollapse(command)}
+                style={{ animationDelay: `${i * 30}ms` }}
+                className="animate-in fade-in slide-in-from-left-2 duration-200 ease-out fill-mode-both"
               >
                 <Icon size={18} />
               </ToolbarButton>
@@ -213,6 +232,7 @@ export function DescriptionSheet({
             <ToolbarButton
               label="Alignment"
               onClick={() => setOpenGroup((g) => (g === "align" ? null : "align"))}
+              className="animate-in fade-in duration-200 ease-out"
             >
               <activeAlign.Icon size={18} />
               <ChevronDown size={12} className="text-gray-400" />
@@ -220,12 +240,14 @@ export function DescriptionSheet({
           )}
 
           {openGroup === "list" ? (
-            LIST_OPTIONS.map(({ command, label, Icon }) => (
+            LIST_OPTIONS.map(({ command, label, Icon }, i) => (
               <ToolbarButton
                 key={command}
                 label={label}
                 active={formats[command]}
                 onClick={() => applyAndCollapse(command)}
+                style={{ animationDelay: `${i * 30}ms` }}
+                className="animate-in fade-in slide-in-from-left-2 duration-200 ease-out fill-mode-both"
               >
                 <Icon size={18} />
               </ToolbarButton>
@@ -235,6 +257,7 @@ export function DescriptionSheet({
               label="List"
               active={formats.insertUnorderedList || formats.insertOrderedList}
               onClick={() => setOpenGroup((g) => (g === "list" ? null : "list"))}
+              className="animate-in fade-in duration-200 ease-out"
             >
               <List size={18} />
               <ChevronDown size={12} className="text-gray-400" />
@@ -255,11 +278,15 @@ function ToolbarButton({
   active,
   onClick,
   children,
+  className = "",
+  style,
 }: {
   label: string;
   active?: boolean;
   onClick: () => void;
   children: React.ReactNode;
+  className?: string;
+  style?: React.CSSProperties;
 }) {
   return (
     <button
@@ -271,9 +298,10 @@ function ToolbarButton({
       onClick={onClick}
       aria-label={label}
       aria-pressed={active}
+      style={style}
       className={`shrink-0 h-9 px-2.5 rounded-lg flex items-center gap-0.5 transition-colors duration-150 ${
         active ? "bg-gray-900 text-white" : "text-gray-700"
-      }`}
+      } ${className}`}
     >
       {children}
     </button>

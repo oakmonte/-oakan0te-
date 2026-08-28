@@ -10,25 +10,12 @@ import {
   type SizeMeasurements,
 } from "@/lib/size-chart-config";
 import { SIZE_SYSTEMS } from "@/components/product-form/OptionEditorSheet";
-import tShirtGuide from "./T-shirt-Guide.jpg";
-import poloShirtGuide from "./Polo-Shirt-Guide.png";
-import offShoulderTopGuide from "./Off-Shoulder-Top-Guide.png";
-import nflJerseyGuide from "./NFL-Jersey-Guide.png";
-import footballJerseyGuide from "./Football-Jersey-Guide.png";
-import baggyJoggersGuide from "./Baggy-Joggers-Guide.png";
+import { GUIDE_IMAGES } from "./guide-images";
 
 type Unit = "cm" | "in";
 // sizeValue -> measurementKey -> raw typed string, in whatever `unit` currently is
 type Draft = Record<string, Record<string, string>>;
 const SYSTEM_KEYS = Object.keys(SIZE_SYSTEMS) as (keyof typeof SIZE_SYSTEMS)[];
-const GUIDE_IMAGES = {
-  tshirt: tShirtGuide,
-  polo: poloShirtGuide,
-  "off-shoulder-top": offShoulderTopGuide,
-  "nfl-jersey": nflJerseyGuide,
-  "football-jersey": footballJerseyGuide,
-  "baggy-joggers": baggyJoggersGuide,
-} as const;
 
 function formatNum(n: number): string {
   return (Math.round(n * 100) / 100).toString();

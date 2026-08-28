@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Check, ChevronLeft, ImageIcon, Loader2, X } from "lucide-react";
 import type { VariantOption, VariantRow } from "./VariantMatrixBuilder";
 import { DraftImagePickerSheet } from "./DraftImagePickerSheet";
@@ -293,10 +293,17 @@ function VariantImagePopover({
   const [value, setValue] = useState(initialValue);
   const [additional, setAdditional] = useState(initialAdditional);
   const [sourceSheetOpen, setSourceSheetOpen] = useState(false);
+  const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
   const [draftsOpen, setDraftsOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const filePicker = useFilePicker("image/*");
+  const imageButtonRef = useRef<HTMLButtonElement>(null);
+
+  function openSourceSheet() {
+    setAnchorRect(imageButtonRef.current?.getBoundingClientRect() ?? null);
+    setSourceSheetOpen(true);
+  }
 
   function addUrls(urls: string[]) {
     if (urls.length === 0) return;
@@ -356,8 +363,9 @@ function VariantImagePopover({
         </div>
 
         <button
+          ref={imageButtonRef}
           type="button"
-          onClick={() => setSourceSheetOpen(true)}
+          onClick={openSourceSheet}
           disabled={uploading}
           aria-label="Add image"
           className="w-full aspect-square rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden mb-3 disabled:opacity-60"
@@ -417,7 +425,11 @@ function VariantImagePopover({
         </div>
 
         {sourceSheetOpen && (
-          <ImageSourceSheet onSelect={handleSource} onClose={() => setSourceSheetOpen(false)} />
+          <ImageSourceSheet
+            anchorRect={anchorRect}
+            onSelect={handleSource}
+            onClose={() => setSourceSheetOpen(false)}
+          />
         )}
         {draftsOpen && (
           <DraftImagePickerSheet onSelect={handlePicked} onClose={() => setDraftsOpen(false)} />

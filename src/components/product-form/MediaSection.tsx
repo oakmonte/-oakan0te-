@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ImageIcon, X, Loader2 } from "lucide-react";
 import { DraftImagePickerSheet } from "./DraftImagePickerSheet";
 import { ImageSourceSheet, type ImageSource } from "./ImageSourceSheet";
@@ -17,10 +17,17 @@ export function MediaSection({
   onAdditionalChange?: (urls: string[]) => void;
 }) {
   const [sourceSheetOpen, setSourceSheetOpen] = useState(false);
+  const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
   const [draftsOpen, setDraftsOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const filePicker = useFilePicker("image/*");
+  const anchorRef = useRef<HTMLDivElement>(null);
+
+  function openSourceSheet() {
+    setAnchorRect(anchorRef.current?.getBoundingClientRect() ?? null);
+    setSourceSheetOpen(true);
+  }
 
   function addUrls(urls: string[]) {
     if (urls.length === 0) return;
@@ -73,10 +80,10 @@ export function MediaSection({
     <div className="px-4 py-5 border-b-8 border-gray-50">
       {filePicker.node}
 
-      <div className="w-full flex flex-col items-center gap-2">
+      <div ref={anchorRef} className="w-full flex flex-col items-center gap-2">
         <button
           type="button"
-          onClick={() => setSourceSheetOpen(true)}
+          onClick={openSourceSheet}
           disabled={uploading}
           aria-label="Add images"
           className="w-24 h-24 rounded-2xl bg-gray-100 flex items-center justify-center overflow-hidden disabled:opacity-60"
@@ -116,7 +123,11 @@ export function MediaSection({
       )}
 
       {sourceSheetOpen && (
-        <ImageSourceSheet onSelect={handleSource} onClose={() => setSourceSheetOpen(false)} />
+        <ImageSourceSheet
+          anchorRect={anchorRect}
+          onSelect={handleSource}
+          onClose={() => setSourceSheetOpen(false)}
+        />
       )}
       {draftsOpen && (
         <DraftImagePickerSheet onSelect={handlePicked} onClose={() => setDraftsOpen(false)} />

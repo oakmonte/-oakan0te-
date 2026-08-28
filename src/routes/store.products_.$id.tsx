@@ -20,7 +20,8 @@ import {
   VariantRow,
 } from "@/components/product-form/VariantMatrixBuilder";
 import { cartesian, buildKey } from "@/components/product-form/variant-combinations";
-import { ManualSize, SizeMeasurements } from "@/lib/size-chart-config";
+import { ManualSize, SizeMeasurements, getSizeChartForCategory } from "@/lib/size-chart-config";
+import { preloadGuideImage } from "@/components/product-form/size-chart/guide-images";
 import {
   stashProductDraft,
   takeProductDraft,
@@ -115,6 +116,11 @@ function EditProduct() {
   const [categoryPath, setCategoryPath] = useState<CategoryNode[]>(
     initialDraft?.categoryPath ?? [],
   );
+
+  useEffect(() => {
+    const chart = getSizeChartForCategory(categoryPath);
+    if (chart) preloadGuideImage(chart.guide);
+  }, [categoryPath]);
 
   // Regular-mode state
   const [price, setPrice] = useState(initialDraft?.price ?? "");
