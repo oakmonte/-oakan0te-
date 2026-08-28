@@ -5,7 +5,6 @@
 import { CategoryNode } from "@/lib/categories";
 import { VariantOption, VariantRow } from "@/components/product-form/VariantMatrixBuilder";
 import { ManualSize, SizeMeasurements } from "@/lib/size-chart-config";
-import { Unit } from "@/lib/unit-pricing";
 
 export type ProductDraft = {
   // Set only when the draft was stashed from the edit page, not the new-product
@@ -29,11 +28,6 @@ export type ProductDraft = {
   collectionIds: string[];
   sizeMeasurements: SizeMeasurements;
   manualSize: ManualSize | null;
-  chargeSalesTax: boolean;
-  showUnitPrice: boolean;
-  unitTotalMeasurement: string;
-  unitTotalUnit: Unit;
-  unitBaseUnit: Unit;
 };
 
 let pendingDraft: ProductDraft | null = null;

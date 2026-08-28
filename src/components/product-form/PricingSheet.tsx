@@ -1,12 +1,5 @@
-import { useEffect, useState } from "react";
-import { X, ChevronDown, XCircle, Check } from "lucide-react";
-import {
-  computeUnitPrice,
-  unitCategory,
-  unitsForCategory,
-  UNIT_ORDER,
-  type Unit,
-} from "@/lib/unit-pricing";
+import { useState } from "react";
+import { X, ChevronDown, XCircle } from "lucide-react";
 
 const COMMISSION_RATE = 0.045;
 const PAYSTACK_RATE = 0.015;
@@ -20,10 +13,10 @@ function formatNaira(n: number) {
 
 function computeFees(price: number) {
   const commission = price * COMMISSION_RATE;
-  let paystackFee =
-    price * PAYSTACK_RATE + (price >= PAYSTACK_FLAT_FEE_THRESHOLD ? PAYSTACK_FLAT_FEE : 0);
+  const hasFlatFee = price >= PAYSTACK_FLAT_FEE_THRESHOLD;
+  let paystackFee = price * PAYSTACK_RATE + (hasFlatFee ? PAYSTACK_FLAT_FEE : 0);
   paystackFee = Math.min(paystackFee, PAYSTACK_FEE_CAP);
-  return { commission, paystackFee, total: commission + paystackFee };
+  return { commission, paystackFee, hasFlatFee, total: commission + paystackFee };
 }
 
 // Keeps at most one decimal point and 2 digits after it, stripping everything
@@ -67,16 +60,6 @@ export function PricingSheet({
   onChangePrice,
   onChangeCompareAtPrice,
   onChangeCostPrice,
-  chargeSalesTax,
-  onChangeChargeSalesTax,
-  showUnitPrice,
-  onChangeShowUnitPrice,
-  unitTotalMeasurement,
-  onChangeUnitTotalMeasurement,
-  unitTotalUnit,
-  onChangeUnitTotalUnit,
-  unitBaseUnit,
-  onChangeUnitBaseUnit,
   onClose,
 }: {
   price: string;
@@ -85,45 +68,21 @@ export function PricingSheet({
   onChangePrice: (v: string) => void;
   onChangeCompareAtPrice: (v: string) => void;
   onChangeCostPrice: (v: string) => void;
-  chargeSalesTax: boolean;
-  onChangeChargeSalesTax: (v: boolean) => void;
-  showUnitPrice: boolean;
-  onChangeShowUnitPrice: (v: boolean) => void;
-  unitTotalMeasurement: string;
-  onChangeUnitTotalMeasurement: (v: string) => void;
-  unitTotalUnit: Unit;
-  onChangeUnitTotalUnit: (v: Unit) => void;
-  unitBaseUnit: Unit;
-  onChangeUnitBaseUnit: (v: Unit) => void;
   onClose: () => void;
 }) {
   const [breakdownOpen, setBreakdownOpen] = useState(false);
 
   const numPrice = parseFloat(price);
+  const numCompareAt = parseFloat(compareAtPrice);
   const numCost = parseFloat(costPrice);
   const hasPrice = !isNaN(numPrice) && numPrice > 0;
   const hasCost = !isNaN(numCost) && numCost >= 0;
+  const compareAtTooLow = hasPrice && !isNaN(numCompareAt) && numCompareAt < numPrice;
 
   const fees = hasPrice ? computeFees(numPrice) : null;
   const youReceive = hasPrice && fees ? numPrice - fees.total : null;
   const profit = hasPrice && hasCost && fees ? numPrice - numCost - fees.total : null;
   const margin = profit !== null && hasPrice ? (profit / numPrice) * 100 : null;
-
-  // The base unit has to stay in the same family as the total measurement's
-  // unit (can't price "per lb" against a total given in "ft") — reset it
-  // whenever a category-changing total-unit pick makes it stale.
-  useEffect(() => {
-    if (unitCategory(unitBaseUnit) !== unitCategory(unitTotalUnit)) {
-      onChangeUnitBaseUnit(unitTotalUnit);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [unitTotalUnit]);
-
-  const numTotalMeasurement = parseFloat(unitTotalMeasurement);
-  const unitPrice =
-    showUnitPrice && hasPrice && !isNaN(numTotalMeasurement)
-      ? computeUnitPrice(numPrice, numTotalMeasurement, unitTotalUnit, unitBaseUnit)
-      : null;
 
   return (
     <div className="fixed inset-0 z-50 bg-white flex flex-col min-h-dvh animate-in fade-in slide-in-from-bottom-6 duration-300 ease-out">
@@ -146,12 +105,21 @@ export function PricingSheet({
           value={compareAtPrice}
           onChange={onChangeCompareAtPrice}
         />
-        <p className="text-xs text-gray-400 mt-1.5 mb-5">
+        <p className="text-xs text-gray-400 mt-1.5">
           What the product would've cost without a discount — shown crossed out next to your actual
           price.
         </p>
+        {compareAtTooLow && (
+          <p className="text-xs text-amber-600 mt-1">
+            This is lower than the actual price, so it won't read as a discount.
+          </p>
+        )}
+        <div className="mb-5" />
+
         <PriceBox label="Cost per item" value={costPrice} onChange={onChangeCostPrice} />
-        <p className="text-xs text-gray-400 mt-1.5 mb-5">Customers won't see this</p>
+        <p className="text-xs text-gray-400 mt-1.5 mb-5">
+          Measure how much each item costs you, customers won't see this.
+        </p>
 
         <div className="border border-gray-300 rounded-xl overflow-hidden grid grid-cols-2 divide-x divide-gray-300">
           <div className="p-3">
@@ -162,9 +130,13 @@ export function PricingSheet({
           </div>
           <div className="p-3">
             <p className="text-xs text-gray-500 mb-1">Profit</p>
-            <p className="text-[15px] font-medium text-gray-900">
-              {profit !== null ? formatNaira(profit) : "–"}
-            </p>
+            {profit !== null ? (
+              <p className="text-[15px] font-medium text-gray-900">{formatNaira(profit)}</p>
+            ) : (
+              <p className="text-xs text-gray-400 leading-snug">
+                Measure your profit by inputting cost per Item
+              </p>
+            )}
             {margin !== null && (
               <p className="text-[11px] text-gray-400 mt-0.5">{margin.toFixed(1)}% margin</p>
             )}
@@ -192,7 +164,7 @@ export function PricingSheet({
                   value={`– ${formatNaira(fees.commission)}`}
                 />
                 <FeeLine
-                  label="Payment processing (Paystack)"
+                  label={`Paystack Payment Processing (1.5%${fees.hasFlatFee ? "+₦100" : ""})`}
                   value={`– ${formatNaira(fees.paystackFee)}`}
                 />
                 <div className="border-t border-gray-300 pt-2">
@@ -205,58 +177,6 @@ export function PricingSheet({
                   </div>
                 )}
               </div>
-            )}
-          </div>
-        )}
-
-        <div className="mt-5 border-t border-gray-300 pt-1">
-          <CheckboxRow
-            label="Charge sales tax"
-            checked={chargeSalesTax}
-            onChange={onChangeChargeSalesTax}
-          />
-          <CheckboxRow
-            label="Show unit price"
-            checked={showUnitPrice}
-            onChange={onChangeShowUnitPrice}
-          />
-        </div>
-
-        {showUnitPrice && (
-          <div className="mt-2 flex flex-col gap-3 animate-in fade-in slide-in-from-top-2 duration-200 ease-out">
-            <div className="flex items-center justify-between border border-gray-300 rounded-xl px-3 py-2.5">
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-gray-500 mb-1">Total product measurement</p>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  value={unitTotalMeasurement}
-                  onChange={(e) =>
-                    onChangeUnitTotalMeasurement(e.target.value.replace(/[^\d.]/g, ""))
-                  }
-                  placeholder="0"
-                  className="text-base outline-none w-full min-w-0"
-                />
-              </div>
-              <UnitSelect value={unitTotalUnit} onChange={onChangeUnitTotalUnit} />
-            </div>
-
-            <div className="flex items-center justify-between border border-gray-300 rounded-xl px-3 py-2.5 bg-gray-50">
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-gray-500 mb-1">Base measurement</p>
-                <p className="text-base text-gray-400">1</p>
-              </div>
-              <UnitSelect
-                value={unitBaseUnit}
-                onChange={onChangeUnitBaseUnit}
-                options={unitsForCategory(unitCategory(unitTotalUnit) ?? "count")}
-              />
-            </div>
-
-            {unitPrice !== null && (
-              <p className="text-xs text-gray-500">
-                ≈ {formatNaira(unitPrice)} per {unitBaseUnit}
-              </p>
             )}
           </div>
         )}
@@ -287,7 +207,7 @@ function PriceBox({
   autoFocus?: boolean;
 }) {
   return (
-    <label className="block border border-gray-300 rounded-xl px-3 py-2.5 mb-3">
+    <label className="block border border-gray-400 bg-gray-50 rounded-xl px-3 py-2.5 mb-3">
       <span className="block text-xs text-gray-500 mb-1">{label}</span>
       <span className="flex items-center gap-1">
         <span className="text-base text-gray-500">₦</span>
@@ -299,7 +219,7 @@ function PriceBox({
           onBlur={() => value && onChange(padOnBlur(value))}
           autoFocus={autoFocus}
           placeholder="0.00"
-          className="text-base flex-1 outline-none min-w-0"
+          className="text-base flex-1 outline-none min-w-0 bg-transparent"
         />
         {value && (
           <button
@@ -313,63 +233,6 @@ function PriceBox({
         )}
       </span>
     </label>
-  );
-}
-
-function CheckboxRow({
-  label,
-  checked,
-  onChange,
-}: {
-  label: string;
-  checked: boolean;
-  onChange: (v: boolean) => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={() => onChange(!checked)}
-      className="w-full flex items-center gap-3 py-2.5"
-    >
-      <span
-        className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 ${
-          checked ? "bg-black border-black" : "border-gray-300"
-        }`}
-      >
-        {checked && <Check size={13} className="text-white" />}
-      </span>
-      <span className="text-[15px] text-gray-900">{label}</span>
-    </button>
-  );
-}
-
-function UnitSelect({
-  value,
-  onChange,
-  options = [...UNIT_ORDER],
-}: {
-  value: Unit;
-  onChange: (v: Unit) => void;
-  options?: Unit[];
-}) {
-  return (
-    <div className="relative shrink-0 ml-2">
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value as Unit)}
-        className="appearance-none bg-gray-100 rounded-lg pl-2.5 pr-6 py-1.5 text-sm text-gray-900 outline-none"
-      >
-        {options.map((u) => (
-          <option key={u} value={u}>
-            {u}
-          </option>
-        ))}
-      </select>
-      <ChevronDown
-        size={12}
-        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
-      />
-    </div>
   );
 }
 

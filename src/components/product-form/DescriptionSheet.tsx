@@ -8,7 +8,6 @@ import {
   AlignRight,
   List,
   ListOrdered,
-  Link2,
   ChevronDown,
 } from "lucide-react";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
@@ -130,12 +129,6 @@ export function DescriptionSheet({
   function applyAndCollapse(command: string) {
     exec(command);
     setOpenGroup(null);
-  }
-
-  function handleLink() {
-    const url = window.prompt("Link URL");
-    if (!url) return;
-    exec("createLink", url);
   }
 
   function handleSave() {
@@ -263,10 +256,6 @@ export function DescriptionSheet({
               <ChevronDown size={12} className="text-gray-400" />
             </ToolbarButton>
           )}
-
-          <ToolbarButton label="Link" onClick={handleLink}>
-            <Link2 size={18} />
-          </ToolbarButton>
         </div>
       </div>
     </div>

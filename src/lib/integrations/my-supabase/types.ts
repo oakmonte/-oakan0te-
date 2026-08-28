@@ -680,7 +680,6 @@ export type Database = {
         Row: {
           additional_image_urls: string[] | null
           barcode: string | null
-          charge_sales_tax: boolean
           compare_at_price: number | null
           cost_price: number | null
           created_at: string
@@ -696,18 +695,13 @@ export type Database = {
           option3_value: string | null
           price: number | null
           product_id: string
-          show_unit_price: boolean
           sku: string | null
           stock_qty: number | null
-          unit_base_unit: string | null
-          unit_total_measurement: number | null
-          unit_total_unit: string | null
           weight_grams: number | null
         }
         Insert: {
           additional_image_urls?: string[] | null
           barcode?: string | null
-          charge_sales_tax?: boolean
           compare_at_price?: number | null
           cost_price?: number | null
           created_at?: string
@@ -723,18 +717,13 @@ export type Database = {
           option3_value?: string | null
           price?: number | null
           product_id: string
-          show_unit_price?: boolean
           sku?: string | null
           stock_qty?: number | null
-          unit_base_unit?: string | null
-          unit_total_measurement?: number | null
-          unit_total_unit?: string | null
           weight_grams?: number | null
         }
         Update: {
           additional_image_urls?: string[] | null
           barcode?: string | null
-          charge_sales_tax?: boolean
           compare_at_price?: number | null
           cost_price?: number | null
           created_at?: string
@@ -750,12 +739,8 @@ export type Database = {
           option3_value?: string | null
           price?: number | null
           product_id?: string
-          show_unit_price?: boolean
           sku?: string | null
           stock_qty?: number | null
-          unit_base_unit?: string | null
-          unit_total_measurement?: number | null
-          unit_total_unit?: string | null
           weight_grams?: number | null
         }
         Relationships: [
