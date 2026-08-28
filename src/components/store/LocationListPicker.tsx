@@ -12,11 +12,17 @@ const BROWSE_CAP = 200;
 export function LocationListPicker({
   title,
   items,
+  allowCustom = false,
   onSelect,
   onClose,
 }: {
   title: string;
   items: LocationListItem[];
+  // The city/state datasets have real gaps (e.g. Lagos only lists 8 of its
+  // dozens of LGAs, so "Alimosho" isn't in there at all) -- when true, a
+  // typed value that doesn't match anything is still usable via a "Use
+  // '<query>'" row, so a real place missing from the list never blocks entry.
+  allowCustom?: boolean;
   onSelect: (item: LocationListItem) => void;
   onClose: () => void;
 }) {
@@ -28,6 +34,12 @@ export function LocationListPicker({
     if (!q) return items.slice(0, BROWSE_CAP);
     return items.filter((item) => item.name.toLowerCase().includes(q));
   }, [items, search]);
+
+  const trimmedSearch = search.trim();
+  const hasExactMatch = filtered.some(
+    (item) => item.name.toLowerCase() === trimmedSearch.toLowerCase(),
+  );
+  const showCustomOption = allowCustom && trimmedSearch.length > 0 && !hasExactMatch;
 
   return (
     <div className="fixed inset-0 z-50 bg-white flex flex-col min-h-dvh animate-in fade-in slide-in-from-bottom-6 duration-300 ease-out">
@@ -49,7 +61,18 @@ export function LocationListPicker({
       </div>
 
       <div className="flex-1 overflow-y-auto pb-8">
-        {filtered.length === 0 ? (
+        {showCustomOption && (
+          <button
+            onClick={() => onSelect({ code: trimmedSearch, name: trimmedSearch })}
+            className="w-full flex items-center justify-between px-4 py-3 border-b border-gray-100 text-left bg-gray-50"
+            type="button"
+          >
+            <span className="text-[15px] text-gray-900">
+              Use "<span className="font-medium">{trimmedSearch}</span>"
+            </span>
+          </button>
+        )}
+        {filtered.length === 0 && !showCustomOption ? (
           <p className="px-4 py-6 text-sm text-gray-400 text-center">Nothing found.</p>
         ) : (
           filtered.map((item) => (

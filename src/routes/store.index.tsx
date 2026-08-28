@@ -4,7 +4,7 @@ import { Palette, Wallet, Package, MapPin } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useActiveStoreId } from "@/hooks/use-own-store";
-import { LocationSheet, type PickupLocationValues } from "@/components/store/LocationSheet";
+import { LocationsListSheet } from "@/components/store/LocationsListSheet";
 
 export const Route = createFileRoute("/store/")({
   component: StoreHome,
@@ -21,9 +21,8 @@ function StepNumber({ n }: { n: number }) {
 function StoreHome() {
   const { storeId } = useActiveStoreId();
   const [payoutSet, setPayoutSet] = useState(false);
-  const [pickupSet, setPickupSet] = useState(false);
-  const [locationSheetOpen, setLocationSheetOpen] = useState(false);
-  const [initialLocation, setInitialLocation] = useState<PickupLocationValues | null>(null);
+  const [locationCount, setLocationCount] = useState<number | null>(null);
+  const [locationsSheetOpen, setLocationsSheetOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -41,61 +40,21 @@ function StoreHome() {
     if (!storeId) return;
     let cancelled = false;
     supabase
-      .from("stores")
-      .select(
-        "pickup_address_line, pickup_address_line2, pickup_city, pickup_state, pickup_country, pickup_lat, pickup_lng",
-      )
-      .eq("id", storeId)
-      .maybeSingle()
-      .then(({ data, error }) => {
+      .from("store_locations")
+      .select("id", { count: "exact", head: true })
+      .eq("store_id", storeId)
+      .then(({ count, error }) => {
         if (cancelled) return;
         if (error) {
-          console.error("StoreHome: failed to load pickup location", error);
+          console.error("StoreHome: failed to load pickup location count", error);
           return;
         }
-        setPickupSet(!!(data?.pickup_city && data?.pickup_state && data?.pickup_country));
-        setInitialLocation(
-          data
-            ? {
-                addressLine: data.pickup_address_line ?? "",
-                addressLine2: data.pickup_address_line2 ?? "",
-                city: data.pickup_city ?? "",
-                state: data.pickup_state ?? "",
-                country: data.pickup_country ?? "",
-                lat: data.pickup_lat,
-                lng: data.pickup_lng,
-              }
-            : null,
-        );
+        setLocationCount(count ?? 0);
       });
     return () => {
       cancelled = true;
     };
   }, [storeId]);
-
-  async function handleSaveLocation(values: PickupLocationValues) {
-    if (!storeId) return;
-    const { error } = await supabase
-      .from("stores")
-      .update({
-        pickup_address_line: values.addressLine || null,
-        pickup_address_line2: values.addressLine2 || null,
-        pickup_city: values.city || null,
-        pickup_state: values.state || null,
-        pickup_country: values.country || null,
-        pickup_lat: values.lat,
-        pickup_lng: values.lng,
-        pickup_location_updated_at: new Date().toISOString(),
-      })
-      .eq("id", storeId);
-    if (error) {
-      console.error("StoreHome: failed to save pickup location", error);
-      return;
-    }
-    setInitialLocation(values);
-    setPickupSet(!!(values.city && values.state && values.country));
-    setLocationSheetOpen(false);
-  }
 
   const linkCards = [
     {
@@ -148,22 +107,22 @@ function StoreHome() {
 
         <button
           type="button"
-          onClick={() => setLocationSheetOpen(true)}
+          onClick={() => setLocationsSheetOpen(true)}
           className="flex items-start gap-3 border border-gray-200 rounded-2xl p-4 hover:bg-gray-50 oak-motion-control text-left"
         >
           <StepNumber n={2} />
           <div className="p-2 rounded-full bg-gray-100 relative">
             <MapPin size={18} />
-            {pickupSet && (
+            {!!locationCount && (
               <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-amber-400 border-2 border-white oak-motion-pop" />
             )}
           </div>
           <div>
-            <p className="text-sm font-medium">Set your pickup locations</p>
+            <p className="text-sm font-medium">Pickup locations</p>
             <p className="text-xs text-gray-500 mt-0.5">
-              {pickupSet
-                ? "Riders use this to find you — tap to update."
-                : "So riders know where to collect orders from."}
+              {locationCount
+                ? `${locationCount} location${locationCount === 1 ? "" : "s"} saved — tap to manage.`
+                : "Add every store or warehouse riders can collect orders from."}
             </p>
           </div>
         </button>
@@ -189,11 +148,11 @@ function StoreHome() {
         ))}
       </div>
 
-      {locationSheetOpen && (
-        <LocationSheet
-          initial={initialLocation}
-          onSave={handleSaveLocation}
-          onClose={() => setLocationSheetOpen(false)}
+      {locationsSheetOpen && storeId && (
+        <LocationsListSheet
+          storeId={storeId}
+          onClose={() => setLocationsSheetOpen(false)}
+          onCountChange={setLocationCount}
         />
       )}
     </div>

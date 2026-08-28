@@ -95,6 +95,10 @@ export function ImageGallery({
         uploading={uploading}
         addButtonRef={addButtonRef}
       />
+
+      {images.length > 1 && (
+        <p className="text-xs text-gray-400 mt-1.5">Long-press and drag a photo to reorder</p>
+      )}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Check, Plus, Search, X } from "lucide-react";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
+import { checkNubanAccountNumber } from "@/lib/nuban";
 
 // Every Nigeria bank/fintech Paystack supports transfers to — pulled from
 // their public `GET /bank?country=nigeria` endpoint (active + supports_transfer
@@ -291,6 +292,11 @@ export function PayoutAccountSheet({
   const validAccountNumber = accountNumber.trim().length >= 10;
   const valid = bankName.trim().length > 0 && validAccountNumber;
 
+  // Non-blocking: an "invalid" checksum is a nudge to double-check, not a
+  // hard stop -- we only have verified bank codes for a subset of banks, and
+  // a wrong or missing code must never be able to stop a genuine save.
+  const nubanCheck = checkNubanAccountNumber(bankName.trim(), accountNumber.trim());
+
   const filteredBanks = useMemo(() => {
     const q = bankName.trim().toLowerCase();
     if (!q) return NIGERIAN_BANKS;
@@ -397,6 +403,12 @@ export function PayoutAccountSheet({
           />
           {showErrors && !validAccountNumber && (
             <p className="text-xs text-red-500 mt-1">Enter a 10-digit account number.</p>
+          )}
+          {validAccountNumber && nubanCheck === "invalid" && (
+            <p className="text-xs text-amber-600 mt-1">
+              This doesn't look like a valid account number for {bankName.trim()} — double-check it
+              before saving.
+            </p>
           )}
         </div>
 

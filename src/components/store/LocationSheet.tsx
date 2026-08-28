@@ -4,12 +4,15 @@ import { Country, State, City } from "country-state-city";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
 import { LocationListPicker, type LocationListItem } from "./LocationListPicker";
 
-export type PickupLocationValues = {
+export type StoreLocationValues = {
+  id?: string;
+  name: string;
   addressLine: string;
   addressLine2: string;
   city: string;
   state: string;
   country: string;
+  postalCode: string;
   lat: number | null;
   lng: number | null;
 };
@@ -17,7 +20,10 @@ export type PickupLocationValues = {
 // No paid geocoding provider is wired up yet (no Mapbox/Google Maps key in
 // env) -- Nominatim's free reverse endpoint is a placeholder that's fine at
 // this volume (one lookup per seller tap, not bulk/automated) but should
-// move to a paid provider before this needs to hold up at scale.
+// move to a paid provider before this needs to hold up at scale. Street-level
+// guesses (house number/road) are unreliable enough for informal Nigerian
+// addressing that we don't even use them -- only city/state/country plus the
+// exact lat/lng pin are trustworthy enough to autofill.
 async function reverseGeocode(lat: number, lng: number) {
   const res = await fetch(
     `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`,
@@ -27,37 +33,38 @@ async function reverseGeocode(lat: number, lng: number) {
   const data = await res.json();
   const addr = data.address ?? {};
   return {
-    addressLine:
-      [addr.house_number, addr.road].filter(Boolean).join(" ") ||
-      (data.display_name as string | undefined)?.split(",")[0] ||
-      "",
     city: addr.city || addr.town || addr.village || addr.county || "",
     state: addr.state || "",
     country: addr.country || "",
   };
 }
 
-/** Full-screen sheet for the store's pickup/dispatch location. Opens straight
- *  to the manual address form, and a beat later surfaces a "use current
- *  location" prompt on top of it -- accepting that just fills the same
- *  fields (still editable) and captures the exact lat/lng pin riders need,
- *  it never replaces manual entry. */
+/** Full-screen sheet for adding or editing one of the store's pickup/dispatch
+ *  locations. Opens straight to the manual address form, and a beat later
+ *  surfaces a "use current location" prompt on top of it -- accepting that
+ *  just fills the same fields (still editable) and captures the exact
+ *  lat/lng pin riders need, it never replaces manual entry. */
 export function LocationSheet({
   initial,
   onSave,
+  onDelete,
   onClose,
 }: {
-  initial: PickupLocationValues | null;
-  onSave: (values: PickupLocationValues) => Promise<void>;
+  initial: StoreLocationValues | null;
+  onSave: (values: StoreLocationValues) => Promise<void>;
+  onDelete?: (id: string) => Promise<void>;
   onClose: () => void;
 }) {
   useLockedViewport();
+  const isEditing = !!initial?.id;
 
+  const [name, setName] = useState(initial?.name ?? "");
   const [addressLine, setAddressLine] = useState(initial?.addressLine ?? "");
   const [addressLine2, setAddressLine2] = useState(initial?.addressLine2 ?? "");
   const [city, setCity] = useState(initial?.city ?? "");
   const [state, setState] = useState(initial?.state ?? "");
   const [country, setCountry] = useState(initial?.country ?? "");
+  const [postalCode, setPostalCode] = useState(initial?.postalCode ?? "");
   const [lat, setLat] = useState<number | null>(initial?.lat ?? null);
   const [lng, setLng] = useState<number | null>(initial?.lng ?? null);
 
@@ -82,6 +89,7 @@ export function LocationSheet({
   const [locating, setLocating] = useState(false);
   const [locateError, setLocateError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [showErrors, setShowErrors] = useState(false);
 
   const countryItems: LocationListItem[] = useMemo(
@@ -100,30 +108,25 @@ export function LocationSheet({
         : [],
     [countryCode],
   );
-  // Coverage gap in the dataset: ~53 countries (mostly city-states/small
-  // island nations) have no state-level data at all. Those fall back to a
-  // plain text field for state instead of a dead-end picker with nothing in
-  // it, and city then keys off the country directly.
-  const hasStateOptions = countryCode !== "" && stateItems.length > 0;
-
+  // Real gaps in this dataset: ~53 countries have no state-level data at
+  // all, and even within a listed state the city list can be sparse (Lagos
+  // shows only 8 entries and is missing major LGAs like Alimosho entirely).
+  // Rather than blocking on either gap, both pickers stay open via
+  // LocationListPicker's allowCustom -- a typed value that isn't in the
+  // list is still usable.
   const cityItems: LocationListItem[] = useMemo(() => {
     if (countryCode && stateCode) {
       return City.getCitiesOfState(countryCode, stateCode)
         .map((c) => ({ code: c.name, name: c.name }))
         .sort((a, b) => a.name.localeCompare(b.name));
     }
-    if (countryCode && !hasStateOptions) {
+    if (countryCode) {
       return (City.getCitiesOfCountry(countryCode) ?? [])
         .map((c) => ({ code: c.name, name: c.name }))
         .sort((a, b) => a.name.localeCompare(b.name));
     }
     return [];
-  }, [countryCode, stateCode, hasStateOptions]);
-  // Also a real gap: ~31% of states in the dataset have zero cities listed.
-  // Same fallback -- free text once that state is reachable, rather than a
-  // required field with an empty picker and no way to satisfy it.
-  const cityReachable = hasStateOptions ? stateCode !== "" : countryCode !== "";
-  const hasCityOptions = cityReachable && cityItems.length > 0;
+  }, [countryCode, stateCode]);
 
   function selectCountry(item: LocationListItem) {
     setCountryCode(item.code);
@@ -135,7 +138,10 @@ export function LocationSheet({
   }
 
   function selectState(item: LocationListItem) {
-    setStateCode(item.code);
+    // A typed custom value has no isoCode (it's not in the dataset), so the
+    // city list falls back to the whole country's cities rather than a
+    // specific state's -- still useful as suggestions, just not filtered.
+    setStateCode(stateItems.some((s) => s.code === item.code) ? item.code : "");
     setState(item.name);
     setCity("");
     setPickerOpen(null);
@@ -164,23 +170,18 @@ export function LocationSheet({
         setLat(latitude);
         setLng(longitude);
         const geocoded = await reverseGeocode(latitude, longitude).catch(() => null);
-        if (geocoded) {
-          setAddressLine((v) => v || geocoded.addressLine);
-          if (!country) {
-            const matchedCountry = Country.getAllCountries().find(
-              (c) => c.name === geocoded.country,
+        if (geocoded && !country) {
+          const matchedCountry = Country.getAllCountries().find((c) => c.name === geocoded.country);
+          setCountry(geocoded.country);
+          setCountryCode(matchedCountry?.isoCode ?? "");
+          if (!state && matchedCountry) {
+            const matchedState = State.getStatesOfCountry(matchedCountry.isoCode).find(
+              (s) => s.name === geocoded.state,
             );
-            setCountry(geocoded.country);
-            setCountryCode(matchedCountry?.isoCode ?? "");
-            if (!state && matchedCountry) {
-              const matchedState = State.getStatesOfCountry(matchedCountry.isoCode).find(
-                (s) => s.name === geocoded.state,
-              );
-              setState(geocoded.state);
-              setStateCode(matchedState?.isoCode ?? "");
-            }
+            setState(geocoded.state);
+            setStateCode(matchedState?.isoCode ?? "");
           }
-          setCity((v) => v || geocoded.city);
+          if (!city) setCity(geocoded.city);
         }
         setLocating(false);
         setPromptVisible(false);
@@ -198,6 +199,7 @@ export function LocationSheet({
   }
 
   const valid =
+    name.trim().length > 0 &&
     addressLine.trim().length > 0 &&
     city.trim().length > 0 &&
     state.trim().length > 0 &&
@@ -211,16 +213,29 @@ export function LocationSheet({
     setSaving(true);
     try {
       await onSave({
+        id: initial?.id,
+        name: name.trim(),
         addressLine: addressLine.trim(),
         addressLine2: addressLine2.trim(),
         city: city.trim(),
         state: state.trim(),
         country: country.trim(),
+        postalCode: postalCode.trim(),
         lat,
         lng,
       });
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!initial?.id || !onDelete) return;
+    setDeleting(true);
+    try {
+      await onDelete(initial.id);
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -231,12 +246,28 @@ export function LocationSheet({
           <X size={20} className="text-gray-500" />
         </button>
         <span className="font-semibold text-[15px] absolute left-1/2 -translate-x-1/2">
-          Pickup location
+          {isEditing ? "Edit location" : "New location"}
         </span>
         <span className="w-5" />
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-5 flex flex-col gap-6">
+        <div>
+          <p className="text-[15px] font-semibold text-gray-900 mb-1">Location name</p>
+          <p className="text-xs text-gray-500 mb-3">
+            So you can tell it apart from your other locations — e.g. "Lekki warehouse" or "Main
+            store".
+          </p>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Location name"
+            className={`w-full text-base border rounded-xl px-4 py-3 outline-none focus:border-gray-400 transition-colors duration-150 ${
+              showErrors && !name.trim() ? "border-red-300" : "border-gray-200"
+            }`}
+          />
+        </div>
+
         {promptVisible && (
           <div className="border border-gray-200 rounded-2xl p-4 flex items-start gap-3 bg-gray-50 animate-in fade-in slide-in-from-top-2 duration-300">
             <div className="p-2 rounded-full bg-white border border-gray-200 shrink-0">
@@ -245,8 +276,8 @@ export function LocationSheet({
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-900">Use my current location</p>
               <p className="text-xs text-gray-500 mt-0.5">
-                Fills the form below and saves the exact pin riders use to find you — you can still
-                edit everything before saving.
+                Fills in city, state and country, and saves the exact pin riders use to find you —
+                you'll still enter the street address yourself.
               </p>
               {locateError && <p className="text-xs text-red-500 mt-1.5">{locateError}</p>}
               <div className="flex items-center gap-3 mt-2.5">
@@ -301,60 +332,40 @@ export function LocationSheet({
               <ChevronRight size={16} className="text-gray-300 shrink-0" />
             </button>
 
-            {countryCode && !hasStateOptions ? (
-              <input
-                value={state}
-                onChange={(e) => {
-                  setState(e.target.value);
-                  setCity("");
-                }}
-                placeholder="State"
-                className={`w-full text-base border rounded-xl px-4 py-3 outline-none focus:border-gray-400 transition-colors duration-150 ${
-                  showErrors && !state.trim() ? "border-red-300" : "border-gray-200"
-                }`}
-              />
-            ) : (
-              <button
-                type="button"
-                onClick={() => countryCode && setPickerOpen("state")}
-                disabled={!countryCode}
-                className={`w-full flex items-center justify-between text-base border rounded-xl px-4 py-3 transition-colors duration-150 disabled:opacity-50 ${
-                  showErrors && !state.trim() ? "border-red-300" : "border-gray-200"
-                }`}
-              >
-                <span className={state ? "text-gray-900" : "text-gray-400"}>
-                  {state || "State"}
-                </span>
-                <ChevronRight size={16} className="text-gray-300 shrink-0" />
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => countryCode && setPickerOpen("state")}
+              disabled={!countryCode}
+              className={`w-full flex items-center justify-between text-base border rounded-xl px-4 py-3 transition-colors duration-150 disabled:opacity-50 ${
+                showErrors && !state.trim() ? "border-red-300" : "border-gray-200"
+              }`}
+            >
+              <span className={state ? "text-gray-900" : "text-gray-400"}>{state || "State"}</span>
+              <ChevronRight size={16} className="text-gray-300 shrink-0" />
+            </button>
 
-            {cityReachable && !hasCityOptions ? (
-              <input
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                placeholder="City"
-                className={`w-full text-base border rounded-xl px-4 py-3 outline-none focus:border-gray-400 transition-colors duration-150 ${
-                  showErrors && !city.trim() ? "border-red-300" : "border-gray-200"
-                }`}
-              />
-            ) : (
-              <button
-                type="button"
-                onClick={() => cityReachable && setPickerOpen("city")}
-                disabled={!cityReachable}
-                className={`w-full flex items-center justify-between text-base border rounded-xl px-4 py-3 transition-colors duration-150 disabled:opacity-50 ${
-                  showErrors && !city.trim() ? "border-red-300" : "border-gray-200"
-                }`}
-              >
-                <span className={city ? "text-gray-900" : "text-gray-400"}>{city || "City"}</span>
-                <ChevronRight size={16} className="text-gray-300 shrink-0" />
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => countryCode && setPickerOpen("city")}
+              disabled={!countryCode}
+              className={`w-full flex items-center justify-between text-base border rounded-xl px-4 py-3 transition-colors duration-150 disabled:opacity-50 ${
+                showErrors && !city.trim() ? "border-red-300" : "border-gray-200"
+              }`}
+            >
+              <span className={city ? "text-gray-900" : "text-gray-400"}>{city || "City"}</span>
+              <ChevronRight size={16} className="text-gray-300 shrink-0" />
+            </button>
+
+            <input
+              value={postalCode}
+              onChange={(e) => setPostalCode(e.target.value)}
+              placeholder="Postal code (optional)"
+              className="w-full text-base border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-gray-400 transition-colors duration-150"
+            />
           </div>
           {showErrors && !valid && (
             <p className="text-xs text-red-500 mt-2">
-              Address line 1, city, state, and country are required.
+              Location name, address line 1, city, state, and country are required.
             </p>
           )}
         </div>
@@ -371,6 +382,7 @@ export function LocationSheet({
           <LocationListPicker
             title="State"
             items={stateItems}
+            allowCustom
             onSelect={selectState}
             onClose={() => setPickerOpen(null)}
           />
@@ -379,6 +391,7 @@ export function LocationSheet({
           <LocationListPicker
             title="City"
             items={cityItems}
+            allowCustom
             onSelect={selectCity}
             onClose={() => setPickerOpen(null)}
           />
@@ -396,6 +409,17 @@ export function LocationSheet({
           Only riders dispatching your orders (and you, at checkout as a buyer) see this. Curators
           and creators never do.
         </p>
+
+        {isEditing && onDelete && (
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={deleting}
+            className="text-xs font-medium text-red-500 disabled:opacity-50 self-start"
+          >
+            {deleting ? "Deleting…" : "Delete this location"}
+          </button>
+        )}
       </div>
 
       <div className="sticky bottom-0 px-4 py-3 border-t border-gray-100 bg-white shrink-0">
@@ -405,7 +429,7 @@ export function LocationSheet({
           disabled={saving}
           className="w-full bg-black text-white text-sm font-medium rounded-full py-3.5 disabled:opacity-50"
         >
-          {saving ? "Saving…" : "Save location"}
+          {saving ? "Saving…" : isEditing ? "Save changes" : "Add location"}
         </button>
       </div>
     </div>

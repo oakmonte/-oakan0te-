@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.17"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -913,6 +913,59 @@ export type Database = {
           },
         ]
       }
+      store_locations: {
+        Row: {
+          address_line: string | null
+          address_line2: string | null
+          city: string | null
+          country: string | null
+          created_at: string
+          id: string
+          lat: number | null
+          lng: number | null
+          name: string
+          postal_code: string | null
+          state: string | null
+          store_id: string
+        }
+        Insert: {
+          address_line?: string | null
+          address_line2?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          name: string
+          postal_code?: string | null
+          state?: string | null
+          store_id: string
+        }
+        Update: {
+          address_line?: string | null
+          address_line2?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          name?: string
+          postal_code?: string | null
+          state?: string | null
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_locations_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_payout_accounts: {
         Row: {
           account_name: string | null
@@ -1065,6 +1118,7 @@ export type Database = {
           pickup_lat: number | null
           pickup_lng: number | null
           pickup_location_updated_at: string | null
+          pickup_postal_code: string | null
           pickup_state: string | null
           product_category: string[] | null
           shopify_access_token: string | null
@@ -1092,6 +1146,7 @@ export type Database = {
           pickup_lat?: number | null
           pickup_lng?: number | null
           pickup_location_updated_at?: string | null
+          pickup_postal_code?: string | null
           pickup_state?: string | null
           product_category?: string[] | null
           shopify_access_token?: string | null
@@ -1119,6 +1174,7 @@ export type Database = {
           pickup_lat?: number | null
           pickup_lng?: number | null
           pickup_location_updated_at?: string | null
+          pickup_postal_code?: string | null
           pickup_state?: string | null
           product_category?: string[] | null
           shopify_access_token?: string | null
