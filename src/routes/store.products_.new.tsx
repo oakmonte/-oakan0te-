@@ -20,6 +20,7 @@ import {
 } from "@/components/product-form/VariantMatrixBuilder";
 import { ManualSize, SizeMeasurements, getSizeChartForCategory } from "@/lib/size-chart-config";
 import { preloadGuideImage } from "@/components/product-form/size-chart/guide-images";
+import { Unit } from "@/lib/unit-pricing";
 import {
   stashProductDraft,
   takeProductDraft,
@@ -88,6 +89,13 @@ function NewProduct() {
   const [compareAtPrice, setCompareAtPrice] = useState(initialDraft?.compareAtPrice ?? "");
   const [costPrice, setCostPrice] = useState(initialDraft?.costPrice ?? "");
   const [stockQty, setStockQty] = useState(initialDraft?.stockQty ?? 0);
+  const [chargeSalesTax, setChargeSalesTax] = useState(initialDraft?.chargeSalesTax ?? true);
+  const [showUnitPrice, setShowUnitPrice] = useState(initialDraft?.showUnitPrice ?? false);
+  const [unitTotalMeasurement, setUnitTotalMeasurement] = useState(
+    initialDraft?.unitTotalMeasurement ?? "",
+  );
+  const [unitTotalUnit, setUnitTotalUnit] = useState<Unit>(initialDraft?.unitTotalUnit ?? "oz");
+  const [unitBaseUnit, setUnitBaseUnit] = useState<Unit>(initialDraft?.unitBaseUnit ?? "oz");
   // No UI sets this on this page anymore — material is filled in via
   // Necessities now. Still round-tripped through drafts/save.
   const material = initialDraft?.material ?? "";
@@ -142,6 +150,11 @@ function NewProduct() {
       collectionIds,
       sizeMeasurements,
       manualSize,
+      chargeSalesTax,
+      showUnitPrice,
+      unitTotalMeasurement,
+      unitTotalUnit,
+      unitBaseUnit,
     });
     navigate({ to: "/store/collections/new" });
   }
@@ -231,6 +244,12 @@ function NewProduct() {
         material: material.trim() || null,
         main_image_url: mainImageUrl.trim() || null,
         additional_image_urls: additionalImageUrls.length > 0 ? additionalImageUrls : null,
+        charge_sales_tax: chargeSalesTax,
+        show_unit_price: showUnitPrice,
+        unit_total_measurement:
+          showUnitPrice && unitTotalMeasurement ? Number(unitTotalMeasurement) : null,
+        unit_total_unit: showUnitPrice ? unitTotalUnit : null,
+        unit_base_unit: showUnitPrice ? unitBaseUnit : null,
       });
       if (variantErr) {
         setError(variantErr.message);
@@ -471,6 +490,16 @@ function NewProduct() {
           onChangePrice={setPrice}
           onChangeCompareAtPrice={setCompareAtPrice}
           onChangeCostPrice={setCostPrice}
+          chargeSalesTax={chargeSalesTax}
+          onChangeChargeSalesTax={setChargeSalesTax}
+          showUnitPrice={showUnitPrice}
+          onChangeShowUnitPrice={setShowUnitPrice}
+          unitTotalMeasurement={unitTotalMeasurement}
+          onChangeUnitTotalMeasurement={setUnitTotalMeasurement}
+          unitTotalUnit={unitTotalUnit}
+          onChangeUnitTotalUnit={setUnitTotalUnit}
+          unitBaseUnit={unitBaseUnit}
+          onChangeUnitBaseUnit={setUnitBaseUnit}
           onClose={() => setPriceSheetOpen(false)}
         />
       )}

@@ -3,7 +3,7 @@ import { Check, ChevronLeft, ImageIcon, Loader2, X } from "lucide-react";
 import type { VariantOption, VariantRow } from "./VariantMatrixBuilder";
 import { DraftImagePickerSheet } from "./DraftImagePickerSheet";
 import { ImageSourceSheet, type ImageSource } from "./ImageSourceSheet";
-import { useFilePicker } from "@/hooks/use-file-picker";
+import { useMultiFilePicker } from "@/hooks/use-file-picker";
 import { uploadProductImage } from "@/lib/upload-product-image";
 
 export function VariantCombinationsSheet({
@@ -297,7 +297,7 @@ function VariantImagePopover({
   const [draftsOpen, setDraftsOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
-  const filePicker = useFilePicker("image/*");
+  const filePicker = useMultiFilePicker("image/*");
   const imageButtonRef = useRef<HTMLButtonElement>(null);
 
   function openSourceSheet() {
@@ -318,14 +318,15 @@ function VariantImagePopover({
     }
   }
 
-  async function uploadFile(file: File | null) {
-    if (!file) return;
+  async function uploadFiles(files: File[]) {
+    if (files.length === 0) return;
     setUploading(true);
     setUploadError("");
     try {
-      addUrls([await uploadProductImage(file)]);
+      const urls = await Promise.all(files.map((f) => uploadProductImage(f)));
+      addUrls(urls);
     } catch (err) {
-      setUploadError(err instanceof Error ? err.message : "Couldn't upload that image");
+      setUploadError(err instanceof Error ? err.message : "Couldn't upload one or more images");
     } finally {
       setUploading(false);
     }
@@ -337,7 +338,7 @@ function VariantImagePopover({
       setDraftsOpen(true);
       return;
     }
-    await uploadFile(await filePicker.pick());
+    await uploadFiles(await filePicker.pick());
   }
 
   function handlePicked(urls: string[]) {

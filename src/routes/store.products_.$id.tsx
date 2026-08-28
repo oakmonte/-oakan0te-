@@ -22,6 +22,7 @@ import {
 import { cartesian, buildKey } from "@/components/product-form/variant-combinations";
 import { ManualSize, SizeMeasurements, getSizeChartForCategory } from "@/lib/size-chart-config";
 import { preloadGuideImage } from "@/components/product-form/size-chart/guide-images";
+import { Unit } from "@/lib/unit-pricing";
 import {
   stashProductDraft,
   takeProductDraft,
@@ -76,6 +77,11 @@ type LoadedProduct = {
     material_feel: string | null;
     weight_grams: number | null;
     additional_image_urls: string[] | null;
+    charge_sales_tax: boolean | null;
+    show_unit_price: boolean | null;
+    unit_total_measurement: number | null;
+    unit_total_unit: string | null;
+    unit_base_unit: string | null;
   }[];
   product_options: {
     id: string;
@@ -136,6 +142,13 @@ function EditProduct() {
   const [regularAdditionalImageUrls, setRegularAdditionalImageUrls] = useState<string[] | null>(
     initialDraft?.additionalImageUrls ?? null,
   );
+  const [chargeSalesTax, setChargeSalesTax] = useState(initialDraft?.chargeSalesTax ?? true);
+  const [showUnitPrice, setShowUnitPrice] = useState(initialDraft?.showUnitPrice ?? false);
+  const [unitTotalMeasurement, setUnitTotalMeasurement] = useState(
+    initialDraft?.unitTotalMeasurement ?? "",
+  );
+  const [unitTotalUnit, setUnitTotalUnit] = useState<Unit>(initialDraft?.unitTotalUnit ?? "oz");
+  const [unitBaseUnit, setUnitBaseUnit] = useState<Unit>(initialDraft?.unitBaseUnit ?? "oz");
 
   // Variant-mode state
   const [options, setOptions] = useState<VariantOption[]>(initialDraft?.options ?? []);
@@ -175,7 +188,7 @@ function EditProduct() {
         .from("products")
         .select(
           `id, title, description_short, product_type, status, manual_size_value, manual_size_system,
-           product_variants(id, sku, price, compare_at_price, cost_price, stock_qty, material, main_image_url, barcode, material_feel, weight_grams, additional_image_urls),
+           product_variants(id, sku, price, compare_at_price, cost_price, stock_qty, material, main_image_url, barcode, material_feel, weight_grams, additional_image_urls, charge_sales_tax, show_unit_price, unit_total_measurement, unit_total_unit, unit_base_unit),
            product_options(id, name, position, product_option_values(id, value, position)),
            product_variant_options(variant_id, option_id, value_id),
            product_collections(collection_id),
@@ -289,6 +302,13 @@ function EditProduct() {
         setRegularMaterialFeel(v?.material_feel ?? null);
         setRegularWeightGrams(v?.weight_grams ?? null);
         setRegularAdditionalImageUrls(v?.additional_image_urls ?? null);
+        setChargeSalesTax(v?.charge_sales_tax ?? true);
+        setShowUnitPrice(v?.show_unit_price ?? false);
+        setUnitTotalMeasurement(
+          v?.unit_total_measurement != null ? String(v.unit_total_measurement) : "",
+        );
+        setUnitTotalUnit((v?.unit_total_unit as Unit) ?? "oz");
+        setUnitBaseUnit((v?.unit_base_unit as Unit) ?? "oz");
       }
 
       setKind(kindState);
@@ -353,6 +373,11 @@ function EditProduct() {
       collectionIds,
       sizeMeasurements,
       manualSize,
+      chargeSalesTax,
+      showUnitPrice,
+      unitTotalMeasurement,
+      unitTotalUnit,
+      unitBaseUnit,
     });
     navigate({ to: "/store/collections/new" });
   }
@@ -453,6 +478,12 @@ function EditProduct() {
         material_feel: regularMaterialFeel,
         weight_grams: regularWeightGrams,
         additional_image_urls: regularAdditionalImageUrls,
+        charge_sales_tax: chargeSalesTax,
+        show_unit_price: showUnitPrice,
+        unit_total_measurement:
+          showUnitPrice && unitTotalMeasurement ? Number(unitTotalMeasurement) : null,
+        unit_total_unit: showUnitPrice ? unitTotalUnit : null,
+        unit_base_unit: showUnitPrice ? unitBaseUnit : null,
       });
       if (variantErr) return fail("product_variants", variantErr.message);
     } else {
@@ -715,6 +746,16 @@ function EditProduct() {
           onChangePrice={setPrice}
           onChangeCompareAtPrice={setCompareAtPrice}
           onChangeCostPrice={setCostPrice}
+          chargeSalesTax={chargeSalesTax}
+          onChangeChargeSalesTax={setChargeSalesTax}
+          showUnitPrice={showUnitPrice}
+          onChangeShowUnitPrice={setShowUnitPrice}
+          unitTotalMeasurement={unitTotalMeasurement}
+          onChangeUnitTotalMeasurement={setUnitTotalMeasurement}
+          unitTotalUnit={unitTotalUnit}
+          onChangeUnitTotalUnit={setUnitTotalUnit}
+          unitBaseUnit={unitBaseUnit}
+          onChangeUnitBaseUnit={setUnitBaseUnit}
           onClose={() => setPriceSheetOpen(false)}
         />
       )}
