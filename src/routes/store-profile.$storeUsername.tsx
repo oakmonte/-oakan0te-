@@ -48,8 +48,9 @@ function StoreProfilePage() {
     {} as Record<TabKey, HTMLButtonElement | null>,
   );
   // See profile.$username.tsx for why this is tracked continuously rather
-  // than only captured on the tap that opens the sheet.
-  const profileInfoRef = useRef<HTMLDivElement>(null);
+  // than only captured on the tap that opens the sheet — and why it targets
+  // the avatar circle, not the whole info block.
+  const avatarRef = useRef<HTMLImageElement>(null);
   const [sheetTop, setSheetTop] = useState(0);
   const previousTabRef = useRef<TabKey>("posts");
 
@@ -141,7 +142,7 @@ function StoreProfilePage() {
   }, [activeTab]);
 
   useEffect(() => {
-    const el = profileInfoRef.current;
+    const el = avatarRef.current;
     if (!el) return;
     const update = () => setSheetTop(el.getBoundingClientRect().bottom);
     update();
@@ -250,8 +251,9 @@ function StoreProfilePage() {
       </div>
 
       {/* Store info */}
-      <div ref={profileInfoRef} className="flex flex-col items-center gap-4 px-6 mt-2">
+      <div className="flex flex-col items-center gap-4 px-6 mt-2">
         <img
+          ref={avatarRef}
           src={store?.logo_url || "https://placehold.co/135x139"}
           alt={storeUsername}
           className="w-[110px] h-[110px] rounded-full border-[3px] border-white object-cover"

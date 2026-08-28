@@ -74,12 +74,12 @@ function ProfilePage() {
   const tabButtonRefs = useRef<Record<TabKey, HTMLButtonElement | null>>(
     {} as Record<TabKey, HTMLButtonElement | null>,
   );
-  // Where the Store sheet's top edge should sit — the bottom of the avatar/
-  // name/stats/bio block, so the sheet rises to meet it instead of covering
-  // the whole screen. Tracked continuously (not just on the tap that opens
-  // it) so it stays correct if that block's height changes, e.g. once the
-  // bio finishes loading.
-  const profileInfoRef = useRef<HTMLDivElement>(null);
+  // Where the Store sheet's top edge should sit — the bottom of the avatar
+  // circle itself, so the sheet rises to cover the name/rating/stats/bio too
+  // instead of just sitting flush under them. Tracked continuously (not just
+  // on the tap that opens it) in case layout shifts, e.g. once the avatar
+  // image finishes loading.
+  const avatarRef = useRef<HTMLImageElement>(null);
   const [sheetTop, setSheetTop] = useState(0);
   const previousTabRef = useRef<TabKey>("posts");
   const [isFollowing, setIsFollowing] = useState(false);
@@ -249,7 +249,7 @@ function ProfilePage() {
   }, [activeTab]);
 
   useEffect(() => {
-    const el = profileInfoRef.current;
+    const el = avatarRef.current;
     if (!el) return;
     const update = () => setSheetTop(el.getBoundingClientRect().bottom);
     update();
@@ -376,8 +376,9 @@ function ProfilePage() {
       </div>
 
       {/* Profile info */}
-      <div ref={profileInfoRef} className="flex flex-col items-center gap-4 px-6 mt-2">
+      <div className="flex flex-col items-center gap-4 px-6 mt-2">
         <img
+          ref={avatarRef}
           src={profile?.avatar_url || "https://placehold.co/135x139"}
           alt={username}
           className="w-[110px] h-[110px] rounded-full border-[3px] border-white object-cover"
