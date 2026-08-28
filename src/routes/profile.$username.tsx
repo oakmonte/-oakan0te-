@@ -74,13 +74,17 @@ function ProfilePage() {
   const tabButtonRefs = useRef<Record<TabKey, HTMLButtonElement | null>>(
     {} as Record<TabKey, HTMLButtonElement | null>,
   );
-  // Where the Store sheet's top edge should sit — the bottom of the avatar
-  // circle itself, so the sheet rises to cover the name/rating/stats/bio too
-  // instead of just sitting flush under them. Tracked continuously (not just
-  // on the tap that opens it) in case layout shifts, e.g. once the avatar
-  // image finishes loading.
+  // Where the Store sheet's top edge should sit — the vertical MIDDLE of the
+  // avatar circle, so the sheet rises high enough to cover the bottom half of
+  // the avatar plus the name/rating/stats/bio below it, with only the top
+  // half of the avatar and the header bar left showing (dimmed by the
+  // backdrop). Tracked continuously (not just on the tap that opens it) in
+  // case layout shifts, e.g. once the avatar image finishes loading.
   const avatarRef = useRef<HTMLImageElement>(null);
   const [sheetTop, setSheetTop] = useState(0);
+  // Which tab was active right before Store was opened — tapping above the
+  // sheet, or swiping out of it, restores this instead of always landing on
+  // Posts.
   const previousTabRef = useRef<TabKey>("posts");
   const [isFollowing, setIsFollowing] = useState(false);
   const [followBusy, setFollowBusy] = useState(false);
@@ -251,7 +255,10 @@ function ProfilePage() {
   useEffect(() => {
     const el = avatarRef.current;
     if (!el) return;
-    const update = () => setSheetTop(el.getBoundingClientRect().bottom);
+    const update = () => {
+      const rect = el.getBoundingClientRect();
+      setSheetTop(rect.top + rect.height / 2);
+    };
     update();
     const ro = new ResizeObserver(update);
     ro.observe(el);
@@ -524,9 +531,12 @@ function ProfilePage() {
 
       {/* Store sheet — Store is the one tab that rises up over the rest of
           the page instead of sitting flat under the tab row like every other
-          tab. Tapping anywhere above it (the avatar/name/stats area, still
-          visible above the sheet) closes it back to whatever tab was active
-          before Store was opened. No explicit close button by design. */}
+          tab. No tab row of its own inside it: swiping left/right moves to
+          the adjacent tab (same drag gesture as the flat content grid),
+          closing the sheet since that tab isn't "store" anymore. Tapping
+          anywhere above it (the header/top of the avatar, still visible
+          above the sheet, dimmed by the backdrop) restores whichever tab was
+          active before Store was opened. No explicit close button by design. */}
       <AnimatePresence>
         {storeSheetOpen && (
           <motion.div
@@ -535,7 +545,7 @@ function ProfilePage() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-40"
+            className="fixed inset-0 z-40 bg-black/55"
             onClick={() => setActiveTab(previousTabRef.current)}
           />
         )}
@@ -552,10 +562,18 @@ function ProfilePage() {
             <div className="flex shrink-0 justify-center pt-2.5 pb-1">
               <div className="h-1 w-9 rounded-full bg-white/25" />
             </div>
-            <div className="border-b border-[#474747]">{tabRow}</div>
-            <div className="flex-1 overflow-y-auto pb-24">
+            <motion.div
+              drag="x"
+              dragConstraints={{ left: 0, right: 0 }}
+              dragElastic={0.15}
+              onDragEnd={(_, info) => {
+                if (info.offset.x < -60) goToTab(tabIndex + 1);
+                else if (info.offset.x > 60) goToTab(tabIndex - 1);
+              }}
+              className="flex-1 overflow-y-auto pb-24"
+            >
               {store && <PublicStorefront storeId={store.id} />}
-            </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
