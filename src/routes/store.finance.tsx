@@ -7,7 +7,6 @@ import { authedFetch } from "@/lib/authed-fetch";
 type PayoutAccount = {
   bank_name: string;
   account_number: string;
-  account_name: string;
   status: string;
 };
 
@@ -37,11 +36,7 @@ function FinancePage() {
     };
   }, []);
 
-  async function handleSave(values: {
-    bankName: string;
-    accountNumber: string;
-    accountName: string;
-  }) {
+  async function handleSave(values: { bankName: string; accountNumber: string }) {
     const res = await authedFetch("/api/store/payout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -101,7 +96,6 @@ function FinancePage() {
               {maskAccountNumber(account.account_number)}
             </p>
             <p className="text-sm text-white/70 mt-1">{account.bank_name}</p>
-            <p className="text-sm text-white/70">{account.account_name}</p>
           </div>
         </button>
       )}
@@ -116,13 +110,7 @@ function FinancePage() {
       {sheetOpen && (
         <PayoutAccountSheet
           initial={
-            account
-              ? {
-                  bankName: account.bank_name,
-                  accountNumber: account.account_number,
-                  accountName: account.account_name,
-                }
-              : null
+            account ? { bankName: account.bank_name, accountNumber: account.account_number } : null
           }
           onSave={handleSave}
           onClose={() => setSheetOpen(false)}

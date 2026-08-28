@@ -157,14 +157,16 @@ const iconColumnLeft = (size: number) => ICON_COLUMN_CENTER_X - size / 2;
 const CAPTURE_ROW_BOTTOM = ROW_EDGE + 25;
 const CAPTURE_ROW_TOP = CAPTURE_ROW_BOTTOM + CAPTURE_SIZE;
 
-// The three left-column icons (gallery bottom, rotate middle, flash top),
-// spaced by one shared gap regardless of their differing heights — rotate is
-// the anchor (its position is unchanged from before), flash sits one gap
-// above it, and gallery sits one gap below it.
+// The three left-column icons, stacked bottom-to-top as rotate, flash,
+// gallery — spaced by one shared gap regardless of their differing heights.
+// Rotate is the anchor (its position is unchanged from before). Gallery used
+// to sit BELOW rotate, low enough in frame to land in whatever the camera
+// feed itself is showing down there (a dim floor/wall, not anything the app
+// draws) — moved above flash instead, same gap, clear of that area.
 const ICON_COLUMN_GAP = 12;
 const ROTATE_BOTTOM = CAPTURE_ROW_BOTTOM + (CAPTURE_SIZE - ROTATE_SIZE) / 2;
 const FLASH_TOGGLE_BOTTOM = ROTATE_BOTTOM + ROTATE_SIZE + ICON_COLUMN_GAP;
-const GALLERY_ICON_BOTTOM = ROTATE_BOTTOM - ICON_COLUMN_GAP - GALLERY_ICON_SIZE;
+const GALLERY_ICON_BOTTOM = FLASH_TOGGLE_BOTTOM + FLASH_TOGGLE_SIZE + ICON_COLUMN_GAP;
 
 // Gap between the mode toggle's bottom edge and the filter strip's top edge.
 const MODE_PILL_GAP = 8;
@@ -796,6 +798,7 @@ function CreatePage() {
             gradeFilter,
             gradeIntensity,
             [],
+            null,
             setGradingProgress,
           );
         } catch (err) {

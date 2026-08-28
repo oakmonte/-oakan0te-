@@ -48,6 +48,7 @@ import { LAYOUT_PRESETS, type ArrangeableBlockId } from "./layout-presets";
 import { useThemeCustomization } from "./useThemeCustomization";
 import { useStoreTheme } from "./useStoreTheme";
 import { useActiveStoreId } from "@/hooks/use-own-store";
+import { uploadStoreThemeImage } from "@/lib/upload-store-theme-image";
 
 function noop() {}
 
@@ -1024,9 +1025,8 @@ export function PublicStorefront({ storeId }: { storeId: string }) {
 
   const state: ThemeEditState = {
     ...createInitialEditState(),
-    // Real uploads aren't persisted yet (see useThemeCustomization) — same
-    // placeholder photos the editor itself starts from before the seller
-    // adds their own.
+    // Same placeholder photos the editor itself starts from — shown until
+    // `saved` arrives with the seller's own uploaded logo/slideshow, if any.
     slideshowImages: HERO_SLIDESHOW_IMAGES,
     ...saved,
   };
@@ -1169,19 +1169,32 @@ export function ThemePreviewSheet({
       },
       logoImage: state.logoImage,
       onLogoChange: (file) => {
-        const url = URL.createObjectURL(file);
-        mutate((s) => ({ ...s, logoImage: url }));
+        setHint("Uploading photo…");
+        uploadStoreThemeImage(file)
+          .then((url) => {
+            mutate((s) => ({ ...s, logoImage: url }));
+            setHint(null);
+          })
+          .catch((err) => {
+            setHint(err instanceof Error ? err.message : "Couldn't upload that photo");
+            setTimeout(() => setHint(null), 2500);
+          });
       },
       slideshowImages: state.slideshowImages,
       onAddSlideshowImages: (files) => {
-        mutate((s) => {
-          const room = MAX_SLIDESHOW_IMAGES - s.slideshowImages.length;
-          if (room <= 0) return s;
-          const added = Array.from(files)
-            .slice(0, room)
-            .map((f) => URL.createObjectURL(f));
-          return { ...s, slideshowImages: [...s.slideshowImages, ...added] };
-        });
+        const room = MAX_SLIDESHOW_IMAGES - state.slideshowImages.length;
+        if (room <= 0) return;
+        const picked = Array.from(files).slice(0, room);
+        setHint(picked.length > 1 ? "Uploading photos…" : "Uploading photo…");
+        Promise.all(picked.map((f) => uploadStoreThemeImage(f)))
+          .then((urls) => {
+            mutate((s) => ({ ...s, slideshowImages: [...s.slideshowImages, ...urls] }));
+            setHint(null);
+          })
+          .catch((err) => {
+            setHint(err instanceof Error ? err.message : "Couldn't upload those photos");
+            setTimeout(() => setHint(null), 2500);
+          });
       },
       onRemoveSlideshowImage: (index) => {
         mutate((s) => ({

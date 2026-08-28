@@ -12,17 +12,16 @@ import type { ThemeId } from "./types";
 
 export type SavedThemeCustomization = Omit<
   ThemeEditState,
-  "logoImage" | "slideshowImages" | "slideshowCrops" | "slideshowAspectRatio" | "tileCrops"
+  "slideshowCrops" | "slideshowAspectRatio" | "tileCrops"
 >;
 
-// Persists everything in ThemeEditState EXCEPT uploaded images and crop
-// positions. logoImage and slideshowImages are blob: URLs from
-// URL.createObjectURL — they don't survive a reload or another device, so
-// they stay session-only until bunny.net is wired up. logo_image_url /
-// slideshow_image_urls already exist on the table, unwritten, so wiring real
-// uploads in later is a code change, not a migration (see POSTPONED.md).
+// Persists everything in ThemeEditState EXCEPT crop positions. logoImage and
+// slideshowImages are real Bunny Storage URLs by the time they land in state
+// (see full-previews.tsx's onLogoChange/onAddSlideshowImages, which upload
+// the file before ever touching state) — plain strings that survive a reload
+// or another device fine, unlike the blob: URLs they used to hold.
 // slideshowCrops/slideshowAspectRatio/tileCrops ride along as session-only
-// for the same reason — see the comments on those fields in edit-types.ts.
+// still — see the comments on those fields in edit-types.ts.
 // storeId is optional — omit it for the editor (the seller's own active
 // store, from session); pass it explicitly to read a specific store's
 // customization for public/read-only rendering (see PublicStorefront).
@@ -47,7 +46,9 @@ export function useThemeCustomization(themeId: ThemeId, storeIdOverride?: string
     (async () => {
       const { data, error } = await supabase
         .from("store_theme_customizations")
-        .select("layout_id, logo_mode, text, text_fonts, hidden_blocks, collections_mode")
+        .select(
+          "layout_id, logo_mode, logo_image_url, slideshow_image_urls, text, text_fonts, hidden_blocks, collections_mode",
+        )
         .eq("store_id", storeId)
         .eq("theme_slug", themeId)
         .maybeSingle();
@@ -58,6 +59,8 @@ export function useThemeCustomization(themeId: ThemeId, storeIdOverride?: string
           : {
               layoutId: data.layout_id as LayoutId,
               logoMode: data.logo_mode as "image" | "text",
+              logoImage: data.logo_image_url,
+              slideshowImages: data.slideshow_image_urls ?? [],
               text: (data.text ?? {}) as ThemeTextEdits,
               textFonts: (data.text_fonts ?? {}) as ThemeTextFonts,
               hiddenBlocks: (data.hidden_blocks ?? []) as RemovableBlockId[],
@@ -81,6 +84,8 @@ export function useThemeCustomization(themeId: ThemeId, storeIdOverride?: string
           theme_slug: themeId,
           layout_id: state.layoutId,
           logo_mode: state.logoMode,
+          logo_image_url: state.logoImage,
+          slideshow_image_urls: state.slideshowImages,
           text: state.text,
           text_fonts: state.textFonts,
           hidden_blocks: state.hiddenBlocks,

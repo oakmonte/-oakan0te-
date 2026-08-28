@@ -44,7 +44,9 @@ function WhatsYourStylePage() {
     Cosmetics: "",
     Art: "",
   });
-  const [addErrorByCategory, setAddErrorByCategory] = useState<Record<StyleCategory, string | null>>({
+  const [addErrorByCategory, setAddErrorByCategory] = useState<
+    Record<StyleCategory, string | null>
+  >({
     Fashion: null,
     Cosmetics: null,
     Art: null,
@@ -90,26 +92,23 @@ function WhatsYourStylePage() {
     }
   };
 
-  // targetTable/onConflict mirror find-your-fit's pattern exactly — this
-  // step updates the same row find-your-fit just created rather than
-  // upserting a fresh one, so an update with no matching row (find-your-fit
-  // somehow not having run) silently no-ops instead of erroring; that's fine
-  // since resolvePostAuthRedirect never sends anyone here before that row
-  // exists.
-  const targetTable = intent === "curator" ? "curators" : "creators";
-
   const finish = () => {
     navigate({ to: nextRoute(intent, "/whats-your-style"), replace: true });
   };
 
+  // Upsert, not update: find-your-fit's Submit already created a fit_profiles
+  // row with the body data, but Skip doesn't (there's nothing to write yet),
+  // so this can't assume one exists. fit_profiles is shared across roles —
+  // not per creator/curator table — so someone who already answered these
+  // via the other role never reaches this page at all (resolvePostAuthRedirect
+  // reuses their existing data instead).
   const save = async (styles: string[]) => {
     if (!userId || saving) return;
     setSaving(true);
     setSaveError(null);
     const { error } = await supabase
-      .from(targetTable)
-      .update({ styles })
-      .eq("owner_id", userId);
+      .from("fit_profiles")
+      .upsert({ owner_id: userId, styles }, { onConflict: "owner_id" });
     setSaving(false);
     if (error) {
       console.error("whats-your-style: failed to save", error);

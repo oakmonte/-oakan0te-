@@ -26,7 +26,16 @@ import {
 } from "@/lib/product-draft-handoff";
 import { useActiveStoreId } from "@/hooks/use-own-store";
 
+type ProductKind = "regular" | "variant";
+
 export const Route = createFileRoute("/store/products_/new")({
+  // Lets the "Create new product" picker on the products list (see
+  // CreateProductTypeModal) open this page with intent instead of always
+  // landing on the variant default — the in-page regular/variant switch
+  // stays as the fallback for anyone who arrives without picking first.
+  validateSearch: (search: Record<string, unknown>): { kind?: ProductKind } => ({
+    kind: search.kind === "regular" || search.kind === "variant" ? search.kind : undefined,
+  }),
   component: NewProduct,
 });
 
@@ -42,11 +51,10 @@ function slugify(title: string) {
   );
 }
 
-type ProductKind = "regular" | "variant";
-
 function NewProduct() {
   const navigate = useNavigate();
   const { storeId } = useActiveStoreId();
+  const { kind: intentKind } = Route.useSearch();
 
   // Restoring a draft stashed before a side-trip to create a collection — see
   // handleCreateCollection below. Read once via lazy initializers so every
@@ -54,7 +62,7 @@ function NewProduct() {
   const [initialDraft] = useState(() => takeProductDraft());
   const [initialNewCollectionId] = useState(() => takePendingNewCollectionId());
 
-  const [kind, setKind] = useState<ProductKind>(initialDraft?.kind ?? "variant");
+  const [kind, setKind] = useState<ProductKind>(initialDraft?.kind ?? intentKind ?? "variant");
   const [status, setStatus] = useState<"draft" | "active">(initialDraft?.status ?? "draft");
   const [mainImageUrl, setMainImageUrl] = useState(initialDraft?.mainImageUrl ?? "");
   const [additionalImageUrls, setAdditionalImageUrls] = useState<string[]>(

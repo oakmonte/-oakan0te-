@@ -1,8 +1,9 @@
 // src/components/ProfileTabEmptyState.tsx
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Image as ImageIcon, Instagram } from "lucide-react";
 import type { TabKey } from "@/components/profile/profile-tabs";
+import { setPendingCapture } from "@/lib/capture-handoff";
 
 const EMPTY_COPY: Record<Exclude<TabKey, "posts">, { title: string; subtitle: string }> = {
   store: { title: "Nothing listed yet", subtitle: "Products you list for sale will show up here." },
@@ -25,6 +26,7 @@ const EMPTY_COPY: Record<Exclude<TabKey, "posts">, { title: string; subtitle: st
 export function ProfileTabEmptyState({ tab }: { tab: TabKey }) {
   const navigate = useNavigate();
   const [uploadOpen, setUploadOpen] = useState(false);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
 
   if (tab === "posts") {
     return (
@@ -54,21 +56,39 @@ export function ProfileTabEmptyState({ tab }: { tab: TabKey }) {
             <div className="overflow-hidden">
               <div className="flex flex-col gap-2 pt-2">
                 <button
-                  onClick={() => navigate({ to: "/create", search: { source: "gallery" } })}
+                  onClick={() => galleryInputRef.current?.click()}
                   className="w-full flex items-center justify-center gap-2 rounded-full bg-white/[0.06] py-2.5 text-[13px] font-medium"
                 >
                   <ImageIcon size={15} /> Upload from gallery
                 </button>
-                <button
-                  onClick={() => navigate({ to: "/create", search: { source: "instagram" } })}
-                  className="w-full flex items-center justify-center gap-2 rounded-full bg-white/[0.06] py-2.5 text-[13px] font-medium"
-                >
+                <button className="w-full flex items-center justify-center gap-2 rounded-full bg-white/[0.06] py-2.5 text-[13px] font-medium">
                   <Instagram size={15} /> Upload from Instagram
                 </button>
               </div>
             </div>
           </div>
         </div>
+
+        <input
+          ref={galleryInputRef}
+          type="file"
+          accept="image/*,video/*"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) {
+              const url = URL.createObjectURL(file);
+              setPendingCapture({
+                type: file.type.startsWith("video") ? "video" : "photo",
+                blob: file,
+                url,
+              });
+              navigate({ to: "/create/after-shot" }).catch((err) => {
+                console.error("navigate() rejected:", err);
+              });
+            }
+          }}
+        />
       </div>
     );
   }

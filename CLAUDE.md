@@ -66,14 +66,10 @@ means "has children, not filled in yet". Not interchangeable.
 Full list, including everything postponed on purpose, in `POSTPONED.md` at the repo root.
 Keep the two in step — this section is the short form.
 
-- **`DEV_STORE_ID` hardcoded** in `store.products_.new.tsx` and `store.products.tsx`. Real
-  session-derived store scoping must replace it before launch.
 - **Size chart not built.** `cm`/`in` size systems emit plain strings like `"91 cm"`, not structured
   measurements. Needs a schema decision before any UI work — don't bolt on local-only state.
-- **RLS off** on `stores`, `products`, `product_variants` — browser client can read/write every
-  seller's rows. Coupled to `DEV_STORE_ID`: enabling RLS without policies breaks every dashboard write.
-  See the `supabase-data-access` skill.
-- **Public profiles broken.** `profiles` SELECT policy is `auth.uid() = id`, so `/profile/$username`
-  returns 406 for anyone else's profile and silently falls back to zeroed counts. Fix requires a public
-  view over safe columns — `profiles` also holds `personal_email`, `personal_phone`, `gender`, so a
-  row-level public policy exposes those.
+- **RLS off** on `stores`, `products`, `product_variants`, and nine other tables — browser client can
+  read/write every seller's rows. Store scoping itself is real now (`useOwnStores`/`useActiveStore` in
+  `src/hooks/use-own-store.ts`, derived from the signed-in session), so that's no longer what's holding
+  this back — a full migration is drafted and reviewed, just deliberately held pending explicit sign-off.
+  See `POSTPONED.md` §1.1 and the `supabase-data-access` skill.

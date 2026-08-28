@@ -21,6 +21,7 @@ import DrawPanel from "@/components/camera/aftershot/DrawPanel";
 import FilterPanel from "@/components/camera/FilterPanel";
 import { CAMERA_FILTERS, previewCssAtIntensity } from "@/components/camera/filter-data";
 import { exportComposite } from "@/lib/after-shot-export";
+import type { CropRect } from "@/lib/crop-rect";
 import LayerOverlay from "@/components/camera/LayerOverlay";
 import { useAfterShotLayers } from "@/lib/after-shot-layers";
 import { useLayerRenderer } from "@/components/camera/aftershot/use-layer-renderer";
@@ -72,6 +73,13 @@ function AfterShotIndexPage() {
   // own invisible probe element to re-derive the same numbers.
   const [naturalSize, setNaturalSize] = useState<{ w: number; h: number } | null>(null);
 
+  // The committed crop — fractional, relative to the ORIGINAL untouched
+  // media (see crop-rect.ts). CropPanel only ever proposes a new value here;
+  // it no longer bakes a crop into media.blob itself. The live preview below
+  // simulates the crop with CSS on the still-uncropped media element, and
+  // exportComposite bakes it for real, once, alongside the filter and layers.
+  const [cropRect, setCropRect] = useState<CropRect | null>(null);
+
   // Filters stay a quick pick-one-and-apply interaction (matching
   // FilterPanel's existing bottom-sheet shape from create.tsx) rather than
   // an overlay panel like Crop/Text/Draw, since there's nothing to place or
@@ -104,9 +112,44 @@ function AfterShotIndexPage() {
     setNaturalSize({ w, h });
   }, []);
 
+  // The box shapes itself to the CROPPED aspect once a crop is committed —
+  // same effect as the old eager-bake had (the box re-measured against a
+  // genuinely smaller image), just computed instead of re-encoded.
+  const effectiveAspect =
+    cropRect && naturalSize
+      ? (cropRect.w * naturalSize.w) / (cropRect.h * naturalSize.h)
+      : mediaAspect;
+
   // Explicit contain-fit. See use-fitted-size.ts for why CSS alone silently
   // gave the box the SCREEN's aspect instead of the media's.
-  const fitted = useFittedSize(mediaAreaRef, mediaAspect);
+  const fitted = useFittedSize(mediaAreaRef, effectiveAspect);
+
+  // Simulates the crop on the still-uncropped <img>/<video>: the element is
+  // rendered at its full natural size (scaled so the crop rect exactly fills
+  // the box) and shifted so the crop's top-left lands at the box's origin —
+  // the box's overflow:hidden clips everything outside it. Falls back to
+  // today's plain object-cover fill when there's no crop, so the untouched
+  // case renders identically to before this existed.
+  const mediaStyle = useCallback(
+    (filterCss: string): React.CSSProperties => {
+      if (!cropRect || !naturalSize || !fitted.width || !fitted.height) {
+        return { filter: filterCss };
+      }
+      const cropPxW = cropRect.w * naturalSize.w;
+      const cropPxH = cropRect.h * naturalSize.h;
+      const scale = fitted.width / cropPxW;
+      return {
+        position: "absolute",
+        left: -(cropRect.x * naturalSize.w * scale),
+        top: -(cropRect.y * naturalSize.h * scale),
+        width: naturalSize.w * scale,
+        height: naturalSize.h * scale,
+        maxWidth: "none",
+        filter: filterCss,
+      };
+    },
+    [cropRect, naturalSize, fitted.width, fitted.height],
+  );
 
   const closeTool = useCallback(() => setActiveTool(null), []);
 
@@ -181,6 +224,7 @@ function AfterShotIndexPage() {
         selectedFilter,
         selectedFilterIntensity,
         layers,
+        cropRect,
         setExportProgress,
       );
       // Same blob back means exportComposite took its no-op fast path; replacing
@@ -202,7 +246,7 @@ function AfterShotIndexPage() {
     } finally {
       setExporting(false);
     }
-  }, [media, selectedFilter, selectedFilterIntensity, layers, setMedia, navigate]);
+  }, [media, selectedFilter, selectedFilterIntensity, layers, cropRect, setMedia, navigate]);
 
   return (
     <div
@@ -237,8 +281,8 @@ function AfterShotIndexPage() {
               src={media.url}
               alt="Captured"
               onLoad={handlePhotoLoad}
-              className="absolute inset-0 w-full h-full object-cover"
-              style={{ filter: previewFilterCss }}
+              className={cropRect ? "" : "absolute inset-0 w-full h-full object-cover"}
+              style={mediaStyle(previewFilterCss)}
             />
           ) : (
             <video
@@ -248,8 +292,8 @@ function AfterShotIndexPage() {
               muted={videoMuted}
               playsInline
               onLoadedMetadata={handleVideoLoad}
-              className="absolute inset-0 w-full h-full object-cover"
-              style={{ filter: previewFilterCss }}
+              className={cropRect ? "" : "absolute inset-0 w-full h-full object-cover"}
+              style={mediaStyle(previewFilterCss)}
             />
           )}
 
@@ -318,6 +362,8 @@ function AfterShotIndexPage() {
         open={activeTool === "crop"}
         containerRef={mediaBoxRef}
         naturalSize={naturalSize}
+        cropRect={cropRect}
+        onCropChange={setCropRect}
         onClose={closeTool}
       />
 

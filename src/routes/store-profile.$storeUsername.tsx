@@ -37,7 +37,6 @@ function StoreProfilePage() {
   const { user } = useSession();
   const [store, setStore] = useState<StoreRow | null>(null);
   const [storeLoading, setStoreLoading] = useState(true);
-  const [productCount, setProductCount] = useState(0);
   const [ownerUsername, setOwnerUsername] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabKey>("store");
   const [searchOpen, setSearchOpen] = useState(false);
@@ -100,22 +99,10 @@ function StoreProfilePage() {
 
   useEffect(() => {
     if (!store) {
-      setProductCount(0);
       setOwnerUsername(null);
       return;
     }
     let cancelled = false;
-
-    supabase
-      .from("products")
-      .select("id", { count: "exact", head: true })
-      .eq("store_id", store.id)
-      .eq("status", "active")
-      .then(({ count, error }) => {
-        if (cancelled) return;
-        if (error) console.error("StoreProfilePage: failed to count products", error);
-        setProductCount(count ?? 0);
-      });
 
     // public_profiles, not profiles: same RLS reason as /profile/$username —
     // profiles only ever returns the signed-in user's own row.
@@ -287,7 +274,13 @@ function StoreProfilePage() {
         </div>
 
         <div className="flex items-center gap-8">
-          <Stat value={String(productCount)} label="Products" />
+          {/* A store follow relationship doesn't exist in the schema yet
+              (`follows` only links profile to profile) — these sit at 0 as
+              placeholders, same as sold_items_count/rating on profile_stats
+              until that's wired up. */}
+          <Stat value="0" label="Following" />
+          <Stat value="0" label="Followers" />
+          <Stat value="0" label="Sold Items" />
         </div>
 
         {store?.bio && <p className="text-[14px] font-bold text-center">{store.bio}</p>}

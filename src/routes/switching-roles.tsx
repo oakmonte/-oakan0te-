@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { readIntent, type Intent } from "@/lib/onboarding-state";
+import { firstRoleSpecificStep } from "@/lib/onboarding-flow";
 import { OnboardingChecking, OnboardingShell } from "@/components/onboarding/OnboardingShell";
 import { useRequireSession } from "@/components/onboarding/use-require-session";
 
@@ -14,18 +15,6 @@ const ROLE_LABEL: Record<Intent, string> = {
   seller: "seller",
   creator: "creator",
   curator: "curator",
-};
-
-// Where "Continue" sends each target role — the first remaining onboarding
-// step for that role, per FLOWS in onboarding-flow.ts, minus the parts
-// already answered (username, referral source). Each step's own submit
-// handler chains to the next one via nextRoute, so this only has to name the
-// first: seller-type before name-your-store; find-your-fit before
-// whats-your-style for creator/curator.
-const NEXT_STEP: Record<Intent, "/seller-type" | "/find-your-fit"> = {
-  seller: "/seller-type",
-  creator: "/find-your-fit",
-  curator: "/find-your-fit",
 };
 
 // Only reachable via resolvePostAuthRedirect, which sets the target role in
@@ -74,7 +63,7 @@ function SwitchingRolesPage() {
     >
       <button
         type="button"
-        onClick={() => navigate({ to: NEXT_STEP[targetRole], replace: true })}
+        onClick={() => navigate({ to: firstRoleSpecificStep(targetRole), replace: true })}
         className="w-full rounded-full bg-brand-accent text-brand-bg py-3.5 text-sm font-medium uppercase tracking-widest hover:bg-brand-accent/90 transition-all duration-300"
       >
         Continue

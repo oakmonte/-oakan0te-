@@ -39,7 +39,7 @@ export const Route = createFileRoute("/api/store/payout")({
 
         const { data, error } = await supabase
           .from("store_payout_accounts")
-          .select("bank_name, account_number, account_name, status")
+          .select("bank_name, account_number, status")
           .eq("store_id", auth.value.storeId)
           .maybeSingle();
 
@@ -57,7 +57,6 @@ export const Route = createFileRoute("/api/store/payout")({
         let body: {
           bankName?: string;
           accountNumber?: string;
-          accountName?: string;
         };
         try {
           body = await request.json();
@@ -67,11 +66,10 @@ export const Route = createFileRoute("/api/store/payout")({
 
         const bankName = body.bankName?.trim();
         const accountNumber = body.accountNumber?.trim();
-        const accountName = body.accountName?.trim();
 
-        if (!bankName || !accountNumber || !accountName) {
+        if (!bankName || !accountNumber) {
           return Response.json(
-            { error: "bankName, accountNumber and accountName are required" },
+            { error: "bankName and accountNumber are required" },
             { status: 400 },
           );
         }
@@ -82,8 +80,8 @@ export const Route = createFileRoute("/api/store/payout")({
             { status: 400 },
           );
         }
-        if (bankName.length > 120 || accountName.length > 120) {
-          return Response.json({ error: "Bank or account name is too long" }, { status: 400 });
+        if (bankName.length > 120) {
+          return Response.json({ error: "Bank name is too long" }, { status: 400 });
         }
 
         const { data, error } = await supabase
@@ -94,13 +92,12 @@ export const Route = createFileRoute("/api/store/payout")({
               store_id: auth.value.storeId,
               bank_name: bankName,
               account_number: accountNumber,
-              account_name: accountName,
               status: "pending",
               updated_at: new Date().toISOString(),
             },
             { onConflict: "store_id" },
           )
-          .select("bank_name, account_number, account_name, status")
+          .select("bank_name, account_number, status")
           .single();
 
         if (error) {

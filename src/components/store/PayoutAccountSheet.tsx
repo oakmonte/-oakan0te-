@@ -266,7 +266,7 @@ const NIGERIAN_BANKS = [
   "Zitra MFB",
 ];
 
-type PayoutFormValues = { bankName: string; accountNumber: string; accountName: string };
+type PayoutFormValues = { bankName: string; accountNumber: string };
 
 export function PayoutAccountSheet({
   initial,
@@ -281,18 +281,28 @@ export function PayoutAccountSheet({
 
   const [bankName, setBankName] = useState(initial?.bankName ?? "");
   const [accountNumber, setAccountNumber] = useState(initial?.accountNumber ?? "");
-  const [accountName, setAccountName] = useState(initial?.accountName ?? "");
   const [saving, setSaving] = useState(false);
   const [showErrors, setShowErrors] = useState(false);
+  // Once a bank is picked the list collapses to just that row — tapping the
+  // search bar again is the only way back into the full list, so re-picking
+  // doesn't mean scrolling past every bank a second time.
+  const [listOpen, setListOpen] = useState(!initial?.bankName);
 
   const validAccountNumber = accountNumber.trim().length >= 10;
-  const valid = bankName.trim().length > 0 && validAccountNumber && accountName.trim().length > 0;
+  const valid = bankName.trim().length > 0 && validAccountNumber;
 
   const filteredBanks = useMemo(() => {
     const q = bankName.trim().toLowerCase();
     if (!q) return NIGERIAN_BANKS;
     return NIGERIAN_BANKS.filter((b) => b.toLowerCase().includes(q));
   }, [bankName]);
+
+  const visibleBanks = listOpen ? filteredBanks : bankName.trim() ? [bankName.trim()] : [];
+
+  function selectBank(b: string) {
+    setBankName(b);
+    setListOpen(false);
+  }
 
   async function handleSave() {
     if (!valid) {
@@ -301,11 +311,7 @@ export function PayoutAccountSheet({
     }
     setSaving(true);
     try {
-      await onSave({
-        bankName: bankName.trim(),
-        accountNumber: accountNumber.trim(),
-        accountName: accountName.trim(),
-      });
+      await onSave({ bankName: bankName.trim(), accountNumber: accountNumber.trim() });
     } finally {
       setSaving(false);
     }
@@ -335,25 +341,29 @@ export function PayoutAccountSheet({
             <Search size={16} className="text-gray-400 shrink-0" />
             <input
               value={bankName}
-              onChange={(e) => setBankName(e.target.value)}
+              onChange={(e) => {
+                setBankName(e.target.value);
+                setListOpen(true);
+              }}
+              onFocus={() => setListOpen(true)}
               placeholder="Search banks"
               className="bg-transparent text-base flex-1 outline-none min-w-0"
             />
           </div>
 
-          <div className="mt-2 max-h-56 overflow-y-auto border border-gray-100 rounded-xl">
-            {filteredBanks.length === 0 ? (
+          <div className="mt-2 max-h-56 overflow-y-auto border border-gray-300 rounded-xl">
+            {visibleBanks.length === 0 ? (
               <p className="px-4 py-6 text-sm text-gray-400 text-center">
-                No matches — you can still use what you typed.
+                {listOpen ? "No matches — you can still use what you typed." : "No bank selected."}
               </p>
             ) : (
-              filteredBanks.map((b) => {
+              visibleBanks.map((b) => {
                 const isSelected = bankName === b;
                 return (
                   <button
                     key={b}
                     type="button"
-                    onClick={() => setBankName(b)}
+                    onClick={() => selectBank(b)}
                     aria-label={`Select ${b}`}
                     className="w-full flex items-center justify-between gap-3 px-4 py-3 border-b border-gray-50 last:border-0 text-left oak-motion-control"
                   >
@@ -388,18 +398,6 @@ export function PayoutAccountSheet({
           {showErrors && !validAccountNumber && (
             <p className="text-xs text-red-500 mt-1">Enter a 10-digit account number.</p>
           )}
-        </div>
-
-        <div>
-          <p className="text-[15px] font-semibold text-gray-900 mb-3">Account name</p>
-          <input
-            value={accountName}
-            onChange={(e) => setAccountName(e.target.value)}
-            placeholder="Name on the account"
-            className={`w-full text-base border rounded-xl px-4 py-3 outline-none focus:border-gray-400 transition-colors duration-150 ${
-              showErrors && !accountName.trim() ? "border-red-300" : "border-gray-200"
-            }`}
-          />
         </div>
 
         <p className="text-xs text-gray-500">

@@ -48,7 +48,6 @@ type ProfileRow = {
   bio: string | null;
   following_count: number;
   followers_count: number;
-  sold_items_count: number;
   rating: number;
   rating_count: number;
 };
@@ -125,7 +124,7 @@ function ProfilePage() {
         // profiles for them makes PostgREST reject the whole select.
         const { data: stats } = await supabase
           .from("profile_stats")
-          .select("following_count, followers_count, sold_items_count, rating, rating_count")
+          .select("following_count, followers_count, rating, rating_count")
           .eq("id", id)
           .maybeSingle();
         if (cancelled) return;
@@ -136,7 +135,6 @@ function ProfilePage() {
           personal_username,
           following_count: stats?.following_count ?? 0,
           followers_count: stats?.followers_count ?? 0,
-          sold_items_count: stats?.sold_items_count ?? 0,
           rating: stats?.rating ?? 0,
           rating_count: stats?.rating_count ?? 0,
         });
@@ -417,7 +415,6 @@ function ProfilePage() {
         <div className="flex items-center gap-8">
           <Stat value={String(profile?.following_count ?? 0)} label="Following" />
           <Stat value={String(profile?.followers_count ?? 0)} label="Followers" />
-          <Stat value={String(profile?.sold_items_count ?? 0)} label="Sold Items" />
         </div>
 
         {!isOwnProfile && profile && (

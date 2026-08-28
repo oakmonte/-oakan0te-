@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { X, Check, RotateCcw } from "lucide-react";
-import { composeCropRect, type CropRect } from "@/lib/crop-rect";
+import { composeCropRect, isCropNoop, type CropRect } from "@/lib/crop-rect";
 
 type Handle = "nw" | "ne" | "sw" | "se" | "n" | "s" | "w" | "e";
 
@@ -163,9 +163,6 @@ export default function CropPanel({
     | null
   >(null);
 
-  const [busy, setBusy] = useState(false);
-  const [progress, setProgress] = useState(0);
-
   // Reads size off containerRef (the PARENT's media box) instead of a
   // box this component owns — same media element the whole after-shot
   // page shares, not a second copy rendered just for cropping.
@@ -279,46 +276,28 @@ export default function CropPanel({
   const handleCancel = useCallback(() => {
     setRect(null);
     setAspectId("free");
-    setBusy(false);
-    setProgress(0);
     onClose();
   }, [onClose]);
 
-  const handleConfirm = useCallback(async () => {
+  // No re-encode here anymore — just a state update. `rect` is in the CURRENT
+  // box's pixels, and that box already shows whatever crop was committed
+  // before (the live preview simulates it), so this rect is relative to that
+  // already-cropped frame, not the original media. composeCropRect folds it
+  // into cropRect to get one fraction of the true original — see crop-rect.ts.
+  const handleConfirm = useCallback(() => {
     if (!rect || !boxRect || !naturalSize) return;
-    setBusy(true);
-    setProgress(0);
-    try {
-      // Scale per axis. A single width-derived scale silently assumed the media
-      // box's aspect exactly equals the source's — true today, but it produced a
-      // wrong crop the moment they diverged by even a rounding pixel.
-      const scaleX = naturalSize.w / boxRect.w;
-      const scaleY = naturalSize.h / boxRect.h;
-      const natural: CropRect = {
-        x: Math.round(rect.x * scaleX),
-        y: Math.round(rect.y * scaleY),
-        w: Math.round(rect.w * scaleX),
-        h: Math.round(rect.h * scaleY),
-      };
-      const croppedBlob =
-        media.type === "photo"
-          ? await cropPhotoBlob(media.blob, natural)
-          : await cropVideoBlob(media.blob, natural, setProgress);
-      const url = URL.createObjectURL(croppedBlob);
-      setMedia(
-        media.type === "photo"
-          ? { type: "photo", blob: croppedBlob, url }
-          : { type: "video", blob: croppedBlob, url },
-      );
-      setRect(null);
-      setAspectId("free");
-      setBusy(false);
-      onClose();
-    } catch (err) {
-      console.error("Crop failed:", err);
-      setBusy(false);
-    }
-  }, [rect, boxRect, naturalSize, media, setMedia, onClose]);
+    const inner: CropRect = {
+      x: rect.x / boxRect.w,
+      y: rect.y / boxRect.h,
+      w: rect.w / boxRect.w,
+      h: rect.h / boxRect.h,
+    };
+    const composed = composeCropRect(cropRect, inner);
+    onCropChange(isCropNoop(composed) ? null : composed);
+    setRect(null);
+    setAspectId("free");
+    onClose();
+  }, [rect, boxRect, naturalSize, cropRect, onCropChange, onClose]);
 
   if (!open) return null;
 
@@ -430,14 +409,6 @@ export default function CropPanel({
             ))}
           </div>
         )}
-
-        {busy && (
-          <div className="oak-motion-fade absolute inset-0 flex items-center justify-center bg-black/70 z-30">
-            <span className="text-sm uppercase tracking-widest text-white">
-              {media.type === "video" ? `Cropping… ${Math.round(progress * 100)}%` : "Cropping…"}
-            </span>
-          </div>
-        )}
       </div>
 
       {/* Controls sit above the dimming, anchored to the SCREEN rather than to
@@ -449,7 +420,6 @@ export default function CropPanel({
         <button
           onClick={handleCancel}
           aria-label="Cancel crop"
-          disabled={busy}
           className="oak-motion-control flex items-center justify-center w-10 h-10 rounded-full active:scale-90"
           style={{ background: "rgba(255,255,255,0.15)", backdropFilter: "blur(12px)" }}
         >
@@ -458,7 +428,6 @@ export default function CropPanel({
         <button
           onClick={resetRect}
           aria-label="Reset crop"
-          disabled={busy}
           className="oak-motion-control flex items-center justify-center w-10 h-10 rounded-full active:scale-90"
           style={{ background: "rgba(255,255,255,0.15)", backdropFilter: "blur(12px)" }}
         >
@@ -467,7 +436,7 @@ export default function CropPanel({
         <button
           onClick={handleConfirm}
           aria-label="Confirm crop"
-          disabled={busy || !rect}
+          disabled={!rect}
           className="oak-motion-control flex items-center justify-center w-10 h-10 rounded-full disabled:opacity-40 active:scale-90"
           style={{ background: "#fff", color: "#000" }}
         >

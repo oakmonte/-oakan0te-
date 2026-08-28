@@ -4,7 +4,7 @@ Everything deliberately deferred, plus the things that turned out to be deferred
 accident. Nothing here is a bug report you need to triage — it is the list you asked for
 so the pile stops living in chat history.
 
-Ordered by what stops a launch, not by when it came up. Last updated 2026-08-26.
+Ordered by what stops a launch, not by when it came up. Last updated 2026-08-28.
 
 Legend: **[BLOCKS LAUNCH]** · **[NEEDS A DECISION]** — I cannot pick for you, it changes
 the schema or costs money · **[SMALL]** — do it any afternoon · **[BY DESIGN]** — noted so
@@ -81,16 +81,23 @@ cm/inch numbers live?
 Do **not** bolt on local-only UI state — it has to persist. This is the largest piece of
 deferred product work, and everything in 2.2 hangs off it.
 
-### 2.2 `/find-your-fit` collects nothing · [NEEDS A DECISION]
+### 2.2 `/find-your-fit` collects nothing · [DONE — 2026-08-28]
 
-`src/routes/find-your-fit.tsx:768`. Height, weight, gender, body type and measurements are
-written to `sessionStorage` and read by nothing. There are no columns for them. The page is
-a working, navigable shell — which is all the last brief asked for — and it stays that way
-until 2.1 is settled.
+Height, weight, gender, body type, measurements and a full-body photo now persist to a real
+table, plus a follow-up step (`/whats-your-style` — fashion/cosmetics/art style tags, with a
+validated custom-entry option) for creators and curators. Both write to `fit_profiles`, one
+row per person keyed by `owner_id` rather than one per role — `creators`/`curators` shrank to
+pure role-membership markers (`id`/`owner_id`/`created_at`), so someone who's both creator
+and curator answers these questions once, not twice; picking up the second role just records
+membership and reuses the existing data. `resolvePostAuthRedirect` now resumes correctly into
+either step, so the knock-on below is also fixed.
 
-Knock-on: onboarding cannot **resume** into `/find-your-fit`. `resolvePostAuthRedirect` has
+~~Knock-on: onboarding cannot **resume** into `/find-your-fit`. `resolvePostAuthRedirect` has
 no way to tell whether a creator finished it, so a creator who abandons at that step is
-treated as fully onboarded on their next sign-in.
+treated as fully onboarded on their next sign-in.~~ Fixed alongside the above.
+
+2.1 (the universal size chart, product-facing) is a separate, still-open decision — this item
+was only ever about find-your-fit's own persistence, not the buyer-facing size chart.
 
 ### 2.3 Public profiles do not work · [DONE — 2026-08-26]
 

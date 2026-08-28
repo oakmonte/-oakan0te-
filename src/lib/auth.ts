@@ -87,6 +87,28 @@ const ROLE_TABLE: Record<Intent, "creators" | "curators" | "stores"> = {
   curator: "curators",
 };
 
+/** Every role this account actually holds, independent of
+ *  `profiles.account_type`. account_type is written once, at profile
+ *  creation, and records only the *first* role someone picked — it's never
+ *  updated when they pick up a second one (see resolvePostAuthRedirect's
+ *  cross-role branch below), so it answers "what did they sign up as," not
+ *  "what are they now." Anything that needs the latter — "does this account
+ *  also sell," a multi-role badge, access gating — should call this instead
+ *  of trusting account_type alone. */
+export async function getUserRoles(userId: string): Promise<Intent[]> {
+  const [storesRes, creatorsRes, curatorsRes] = await Promise.all([
+    supabase.from("stores").select("id", { count: "exact", head: true }).eq("owner_id", userId),
+    supabase.from("creators").select("id", { count: "exact", head: true }).eq("owner_id", userId),
+    supabase.from("curators").select("id", { count: "exact", head: true }).eq("owner_id", userId),
+  ]);
+
+  const roles: Intent[] = [];
+  if (!storesRes.error && storesRes.count) roles.push("seller");
+  if (!creatorsRes.error && creatorsRes.count) roles.push("creator");
+  if (!curatorsRes.error && curatorsRes.count) roles.push("curator");
+  return roles;
+}
+
 // Single source of truth for "where should this user land after auth."
 //
 // It resumes an unfinished flow rather than dropping a half-onboarded user on
@@ -120,12 +142,24 @@ export async function resolvePostAuthRedirect(
     console.error("resolvePostAuthRedirect: failed to check profile", error);
   }
 
+  // Resolved once, here, and used for both checks below. Previously each used
+  // `intentHint` directly, which is only ever passed by AuthPanel's own
+  // sign-in/sign-up handlers — the Google OAuth round-trip and the
+  // create-password flow both call this with no hint at all, relying
+  // entirely on storage. That meant a seller who clicked "Become a Creator"
+  // and signed in with Google skipped the cross-role branch below entirely
+  // (intentHint was undefined) and fell through to `intent = account_type`,
+  // silently continuing the *seller* flow instead of picking up the creator
+  // role they'd just asked for — the acknowledgment page never fired and the
+  // creator intent was dropped. Falling back to storage here, once, fixes it
+  // for every caller instead of requiring each call site to remember to pass
+  // a hint.
+  const hint = intentHint ?? readIntent();
+
   if (!profile?.personal_username) {
     // No profile yet. If they came through one of the three entry points we
     // know what they want; otherwise ask.
-    return (intentHint ?? readIntent())
-      ? ({ to: "/choose-username" } as const)
-      : ({ to: "/no-account" } as const);
+    return hint ? ({ to: "/choose-username" } as const) : ({ to: "/no-account" } as const);
   }
 
   // A returning user picking up a role they don't already have (e.g. an
@@ -136,8 +170,8 @@ export async function resolvePostAuthRedirect(
   // row being absent, not on account_type alone, so re-clicking a role
   // you've already finished just goes straight to your profile like it
   // always has.
-  if (intentHint && profile.account_type && profile.account_type !== intentHint) {
-    const table = ROLE_TABLE[intentHint];
+  if (hint && profile.account_type && profile.account_type !== hint) {
+    const table = ROLE_TABLE[hint];
     const { count, error: roleError } = await supabase
       .from(table)
       .select("id", { count: "exact", head: true })
@@ -146,14 +180,16 @@ export async function resolvePostAuthRedirect(
     if (!roleError && !count) {
       // The acknowledgment page and find-your-fit both read intent back out
       // of storage rather than off a route param.
-      setIntent(intentHint);
+      setIntent(hint);
       return { to: "/switching-roles" } as const;
     }
   }
 
-  // account_type is written at profile creation and is the durable record of
-  // intent — fall back to local state only for profiles created before it.
-  const intent = (profile.account_type as Intent | null) ?? intentHint ?? readIntent() ?? "seller";
+  // Which flow's remaining steps to check below — not "what roles does this
+  // account hold" (see getUserRoles for that). account_type only ever records
+  // the first role picked at signup; fall back to the resolved hint only for
+  // profiles created before account_type existed.
+  const intent = (profile.account_type as Intent | null) ?? hint ?? "seller";
 
   if (!profile.referral_source) {
     return intent === "seller"
@@ -172,26 +208,53 @@ export async function resolvePostAuthRedirect(
   }
 
   // Creator/curator onboarding's two differentiating steps (see FLOWS in
-  // onboarding-flow.ts) — a creators/curators row is only ever written when
-  // find-your-fit is submitted or skipped, so its absence means the flow was
-  // abandoned there, not "nothing left to ask." Without this, a creator who
-  // closed the tab on /find-your-fit was treated as fully onboarded on their
-  // next sign-in. `styles` is null until /whats-your-style is submitted or
-  // skipped (both always write it, even as an empty array) — the same
-  // absence-means-abandoned reasoning, one step later.
+  // onboarding-flow.ts). creators/curators are pure role-membership markers —
+  // the actual body/style data lives in fit_profiles, shared across both
+  // roles, so someone who's already done this as (say) a creator never has to
+  // answer the same questions again as a curator; picking up the second role
+  // just records membership and reuses what's there.
   if (intent === "creator" || intent === "curator") {
-    // Not ROLE_TABLE[intent]: that Record's value type is the union across all
-    // three roles (including stores, which has no `styles` column), so
-    // indexing it here doesn't narrow to a table that's known to have one.
+    // Not ROLE_TABLE[intent]: that Record's value type is the union across
+    // all three roles (including stores), so indexing it here wouldn't
+    // narrow to a specific table.
     const table = intent === "curator" ? "curators" : "creators";
-    const { data: fitRow, error: fitError } = await supabase
-      .from(table)
-      .select("id, styles")
-      .eq("owner_id", userId)
-      .maybeSingle();
-    if (fitError) console.error("resolvePostAuthRedirect: failed to check fit profile", fitError);
-    if (!fitError && !fitRow) return { to: "/find-your-fit" } as const;
-    if (!fitError && fitRow && fitRow.styles === null) return { to: "/whats-your-style" } as const;
+    const [{ count: roleCount, error: roleError }, { data: fitProfile, error: fitProfileError }] =
+      await Promise.all([
+        supabase.from(table).select("id", { count: "exact", head: true }).eq("owner_id", userId),
+        supabase.from("fit_profiles").select("styles").eq("owner_id", userId).maybeSingle(),
+      ]);
+    if (roleError) console.error("resolvePostAuthRedirect: failed to check role", roleError);
+    if (fitProfileError) {
+      console.error("resolvePostAuthRedirect: failed to check fit profile", fitProfileError);
+    }
+
+    // No membership row yet — a creators/curators row is only ever written
+    // when find-your-fit is submitted or skipped, so its absence means that
+    // step was abandoned, not "nothing left to ask." Without this, closing
+    // the tab on /find-your-fit was treated as fully onboarded on the next
+    // sign-in.
+    if (!roleError && !roleCount) {
+      if (fitProfile) {
+        // Fit data already exists from the other role — just record
+        // membership here instead of asking find-your-fit/whats-your-style
+        // again for a body that hasn't changed.
+        const { error: insertError } = await supabase.from(table).insert({ owner_id: userId });
+        if (insertError)
+          console.error("resolvePostAuthRedirect: failed to record role", insertError);
+      } else {
+        return { to: "/find-your-fit" } as const;
+      }
+    } else if (
+      !roleError &&
+      roleCount &&
+      !fitProfileError &&
+      (!fitProfile || fitProfile.styles === null)
+    ) {
+      // Membership exists but styles is still null — same absence-means-
+      // abandoned reasoning, one step later: /whats-your-style always writes
+      // styles (even as an empty array) on submit or skip.
+      return { to: "/whats-your-style" } as const;
+    }
   }
 
   return { to: "/profile/$username", params: { username: profile.personal_username } } as const;

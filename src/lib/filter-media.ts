@@ -35,10 +35,9 @@ export async function applyFilterToPhotoBlob(blob: Blob, filterCss: string): Pro
   }
 }
 
-// Same draw-loop + MediaRecorder re-encode as crop-media.ts's cropVideoBlob
-// — full frame here (no crop rect), filter baked in per-frame via the same
-// getImageData/applyCompiledFilter/putImageData round-trip capturePhoto and
-// startRecording already use on the camera page.
+// Same draw-loop + MediaRecorder re-encode technique the camera page's own
+// startRecording uses — full frame here, filter baked in per-frame via the
+// same getImageData/applyCompiledFilter/putImageData round-trip.
 export async function applyFilterToVideoBlob(
   blob: Blob,
   filterCss: string,

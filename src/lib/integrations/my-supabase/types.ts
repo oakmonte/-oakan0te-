@@ -51,40 +51,19 @@ export type Database = {
       }
       creators: {
         Row: {
-          body_type: string | null
           created_at: string
-          full_body_photo_url: string | null
-          gender: string | null
-          height_cm: number | null
           id: string
-          measurements_cm: Json | null
           owner_id: string
-          styles: string[] | null
-          weight_kg: number | null
         }
         Insert: {
-          body_type?: string | null
           created_at?: string
-          full_body_photo_url?: string | null
-          gender?: string | null
-          height_cm?: number | null
           id?: string
-          measurements_cm?: Json | null
           owner_id: string
-          styles?: string[] | null
-          weight_kg?: number | null
         }
         Update: {
-          body_type?: string | null
           created_at?: string
-          full_body_photo_url?: string | null
-          gender?: string | null
-          height_cm?: number | null
           id?: string
-          measurements_cm?: Json | null
           owner_id?: string
-          styles?: string[] | null
-          weight_kg?: number | null
         }
         Relationships: [
           {
@@ -111,6 +90,46 @@ export type Database = {
         ]
       }
       curators: {
+        Row: {
+          created_at: string
+          id: string
+          owner_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          owner_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          owner_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "curators_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: true
+            referencedRelation: "profile_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "curators_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "curators_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: true
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fit_profiles: {
         Row: {
           body_type: string | null
           created_at: string
@@ -149,21 +168,21 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "curators_owner_id_fkey"
+            foreignKeyName: "fit_profiles_owner_id_fkey"
             columns: ["owner_id"]
             isOneToOne: true
             referencedRelation: "profile_stats"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "curators_owner_id_fkey"
+            foreignKeyName: "fit_profiles_owner_id_fkey"
             columns: ["owner_id"]
             isOneToOne: true
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "curators_owner_id_fkey"
+            foreignKeyName: "fit_profiles_owner_id_fkey"
             columns: ["owner_id"]
             isOneToOne: true
             referencedRelation: "public_profiles"
@@ -896,7 +915,7 @@ export type Database = {
       }
       store_payout_accounts: {
         Row: {
-          account_name: string
+          account_name: string | null
           account_number: string
           bank_name: string
           created_at: string
@@ -905,7 +924,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          account_name: string
+          account_name?: string | null
           account_number: string
           bank_name: string
           created_at?: string
@@ -914,7 +933,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          account_name?: string
+          account_name?: string | null
           account_number?: string
           bank_name?: string
           created_at?: string

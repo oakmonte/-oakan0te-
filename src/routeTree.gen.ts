@@ -56,9 +56,11 @@ import { Route as ApiImportCsvRouteImport } from './routes/api.import.csv'
 import { Route as ApiImportStatusRouteImport } from './routes/api.import.status'
 import { Route as ApiInstagramCallbackRouteImport } from './routes/api.instagram.callback'
 import { Route as ApiInstagramConnectRouteImport } from './routes/api.instagram.connect'
+import { Route as ApiProductsUploadImageRouteImport } from './routes/api.products.upload-image'
 import { Route as ApiShipbubblePingRouteImport } from './routes/api.shipbubble.ping'
 import { Route as ApiShopifyCallbackRouteImport } from './routes/api.shopify.callback'
 import { Route as ApiShopifyInstallRouteImport } from './routes/api.shopify.install'
+import { Route as ApiStoreThemeUploadImageRouteImport } from './routes/api.store-theme.upload-image'
 import { Route as ApiStorePayoutRouteImport } from './routes/api.store.payout'
 import { Route as CreateAfterShotIndexRouteImport } from './routes/create.after-shot.index'
 import { Route as CreateAfterShotFiltersRouteImport } from './routes/create.after-shot.filters'
@@ -306,6 +308,11 @@ const ApiInstagramConnectRoute = ApiInstagramConnectRouteImport.update({
   path: '/api/instagram/connect',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiProductsUploadImageRoute = ApiProductsUploadImageRouteImport.update({
+  id: '/api/products/upload-image',
+  path: '/api/products/upload-image',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiShipbubblePingRoute = ApiShipbubblePingRouteImport.update({
   id: '/api/shipbubble/ping',
   path: '/api/shipbubble/ping',
@@ -321,6 +328,12 @@ const ApiShopifyInstallRoute = ApiShopifyInstallRouteImport.update({
   path: '/api/shopify/install',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiStoreThemeUploadImageRoute =
+  ApiStoreThemeUploadImageRouteImport.update({
+    id: '/api/store-theme/upload-image',
+    path: '/api/store-theme/upload-image',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiStorePayoutRoute = ApiStorePayoutRouteImport.update({
   id: '/api/store/payout',
   path: '/api/store/payout',
@@ -420,9 +433,11 @@ export interface FileRoutesByFullPath {
   '/api/import/status': typeof ApiImportStatusRoute
   '/api/instagram/callback': typeof ApiInstagramCallbackRoute
   '/api/instagram/connect': typeof ApiInstagramConnectRoute
+  '/api/products/upload-image': typeof ApiProductsUploadImageRoute
   '/api/shipbubble/ping': typeof ApiShipbubblePingRoute
   '/api/shopify/callback': typeof ApiShopifyCallbackRoute
   '/api/shopify/install': typeof ApiShopifyInstallRoute
+  '/api/store-theme/upload-image': typeof ApiStoreThemeUploadImageRoute
   '/api/store/payout': typeof ApiStorePayoutRoute
   '/create/after-shot/filters': typeof CreateAfterShotFiltersRoute
   '/create/after-shot/publish': typeof CreateAfterShotPublishRoute
@@ -479,9 +494,11 @@ export interface FileRoutesByTo {
   '/api/import/status': typeof ApiImportStatusRoute
   '/api/instagram/callback': typeof ApiInstagramCallbackRoute
   '/api/instagram/connect': typeof ApiInstagramConnectRoute
+  '/api/products/upload-image': typeof ApiProductsUploadImageRoute
   '/api/shipbubble/ping': typeof ApiShipbubblePingRoute
   '/api/shopify/callback': typeof ApiShopifyCallbackRoute
   '/api/shopify/install': typeof ApiShopifyInstallRoute
+  '/api/store-theme/upload-image': typeof ApiStoreThemeUploadImageRoute
   '/api/store/payout': typeof ApiStorePayoutRoute
   '/create/after-shot/filters': typeof CreateAfterShotFiltersRoute
   '/create/after-shot/publish': typeof CreateAfterShotPublishRoute
@@ -542,9 +559,11 @@ export interface FileRoutesById {
   '/api/import/status': typeof ApiImportStatusRoute
   '/api/instagram/callback': typeof ApiInstagramCallbackRoute
   '/api/instagram/connect': typeof ApiInstagramConnectRoute
+  '/api/products/upload-image': typeof ApiProductsUploadImageRoute
   '/api/shipbubble/ping': typeof ApiShipbubblePingRoute
   '/api/shopify/callback': typeof ApiShopifyCallbackRoute
   '/api/shopify/install': typeof ApiShopifyInstallRoute
+  '/api/store-theme/upload-image': typeof ApiStoreThemeUploadImageRoute
   '/api/store/payout': typeof ApiStorePayoutRoute
   '/create/after-shot/filters': typeof CreateAfterShotFiltersRoute
   '/create/after-shot/publish': typeof CreateAfterShotPublishRoute
@@ -606,9 +625,11 @@ export interface FileRouteTypes {
     | '/api/import/status'
     | '/api/instagram/callback'
     | '/api/instagram/connect'
+    | '/api/products/upload-image'
     | '/api/shipbubble/ping'
     | '/api/shopify/callback'
     | '/api/shopify/install'
+    | '/api/store-theme/upload-image'
     | '/api/store/payout'
     | '/create/after-shot/filters'
     | '/create/after-shot/publish'
@@ -665,9 +686,11 @@ export interface FileRouteTypes {
     | '/api/import/status'
     | '/api/instagram/callback'
     | '/api/instagram/connect'
+    | '/api/products/upload-image'
     | '/api/shipbubble/ping'
     | '/api/shopify/callback'
     | '/api/shopify/install'
+    | '/api/store-theme/upload-image'
     | '/api/store/payout'
     | '/create/after-shot/filters'
     | '/create/after-shot/publish'
@@ -727,9 +750,11 @@ export interface FileRouteTypes {
     | '/api/import/status'
     | '/api/instagram/callback'
     | '/api/instagram/connect'
+    | '/api/products/upload-image'
     | '/api/shipbubble/ping'
     | '/api/shopify/callback'
     | '/api/shopify/install'
+    | '/api/store-theme/upload-image'
     | '/api/store/payout'
     | '/create/after-shot/filters'
     | '/create/after-shot/publish'
@@ -779,9 +804,11 @@ export interface RootRouteChildren {
   ApiImportStatusRoute: typeof ApiImportStatusRoute
   ApiInstagramCallbackRoute: typeof ApiInstagramCallbackRoute
   ApiInstagramConnectRoute: typeof ApiInstagramConnectRoute
+  ApiProductsUploadImageRoute: typeof ApiProductsUploadImageRoute
   ApiShipbubblePingRoute: typeof ApiShipbubblePingRoute
   ApiShopifyCallbackRoute: typeof ApiShopifyCallbackRoute
   ApiShopifyInstallRoute: typeof ApiShopifyInstallRoute
+  ApiStoreThemeUploadImageRoute: typeof ApiStoreThemeUploadImageRoute
   ApiStorePayoutRoute: typeof ApiStorePayoutRoute
 }
 
@@ -1116,6 +1143,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiInstagramConnectRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/products/upload-image': {
+      id: '/api/products/upload-image'
+      path: '/api/products/upload-image'
+      fullPath: '/api/products/upload-image'
+      preLoaderRoute: typeof ApiProductsUploadImageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/shipbubble/ping': {
       id: '/api/shipbubble/ping'
       path: '/api/shipbubble/ping'
@@ -1135,6 +1169,13 @@ declare module '@tanstack/react-router' {
       path: '/api/shopify/install'
       fullPath: '/api/shopify/install'
       preLoaderRoute: typeof ApiShopifyInstallRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/store-theme/upload-image': {
+      id: '/api/store-theme/upload-image'
+      path: '/api/store-theme/upload-image'
+      fullPath: '/api/store-theme/upload-image'
+      preLoaderRoute: typeof ApiStoreThemeUploadImageRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/store/payout': {
@@ -1314,9 +1355,11 @@ const rootRouteChildren: RootRouteChildren = {
   ApiImportStatusRoute: ApiImportStatusRoute,
   ApiInstagramCallbackRoute: ApiInstagramCallbackRoute,
   ApiInstagramConnectRoute: ApiInstagramConnectRoute,
+  ApiProductsUploadImageRoute: ApiProductsUploadImageRoute,
   ApiShipbubblePingRoute: ApiShipbubblePingRoute,
   ApiShopifyCallbackRoute: ApiShopifyCallbackRoute,
   ApiShopifyInstallRoute: ApiShopifyInstallRoute,
+  ApiStoreThemeUploadImageRoute: ApiStoreThemeUploadImageRoute,
   ApiStorePayoutRoute: ApiStorePayoutRoute,
 }
 export const routeTree = rootRouteImport

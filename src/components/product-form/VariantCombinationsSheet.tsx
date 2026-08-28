@@ -1,7 +1,9 @@
 import { useState } from "react";
-import { Check, ChevronLeft, ImageIcon, X } from "lucide-react";
+import { Check, ChevronLeft, ImageIcon, Loader2, X } from "lucide-react";
 import type { VariantOption, VariantRow } from "./VariantMatrixBuilder";
 import { DraftImagePickerSheet } from "./DraftImagePickerSheet";
+import { useFilePicker } from "@/hooks/use-file-picker";
+import { uploadProductImage } from "@/lib/upload-product-image";
 
 export function VariantCombinationsSheet({
   options,
@@ -290,9 +292,12 @@ function VariantImagePopover({
   const [value, setValue] = useState(initialValue);
   const [additional, setAdditional] = useState(initialAdditional);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [urlEntryOpen, setUrlEntryOpen] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+  const filePicker = useFilePicker("image/jpeg,image/png,image/webp,image/gif");
 
-  function handlePicked(urls: string[]) {
-    setPickerOpen(false);
+  function addUrls(urls: string[]) {
     if (urls.length === 0) return;
     const [first, ...rest] = urls;
     if (!value.trim()) {
@@ -305,6 +310,25 @@ function VariantImagePopover({
     }
   }
 
+  async function handleUpload() {
+    const file = await filePicker.pick();
+    if (!file) return;
+    setUploading(true);
+    setUploadError("");
+    try {
+      addUrls([await uploadProductImage(file)]);
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "Couldn't upload that image");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  function handlePicked(urls: string[]) {
+    setPickerOpen(false);
+    addUrls(urls);
+  }
+
   return (
     <div
       className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center px-6 animate-in fade-in duration-200"
@@ -314,6 +338,7 @@ function VariantImagePopover({
         className="bg-white rounded-2xl p-4 w-full max-w-xs animate-in fade-in zoom-in-95 duration-200 ease-out"
         onClick={(e) => e.stopPropagation()}
       >
+        {filePicker.node}
         <div className="flex items-center justify-between mb-3">
           <p className="text-sm font-semibold text-gray-900">Variant image</p>
           <button type="button" onClick={onClose} className="p-1 -mr-1">
@@ -321,28 +346,59 @@ function VariantImagePopover({
           </button>
         </div>
 
-        <div className="w-full aspect-square rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden mb-3">
-          {value ? (
+        <button
+          type="button"
+          onClick={handleUpload}
+          disabled={uploading}
+          aria-label="Upload photo"
+          className="w-full aspect-square rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden mb-3 disabled:opacity-60"
+        >
+          {uploading ? (
+            <Loader2 size={22} className="text-gray-400 animate-spin" />
+          ) : value ? (
             <img src={value} alt="" className="w-full h-full object-cover" />
           ) : (
             <ImageIcon size={28} className="text-gray-300" />
           )}
+        </button>
+
+        {uploadError && <p className="text-xs text-red-500 text-center mb-2">{uploadError}</p>}
+
+        <div className="flex items-center justify-center gap-4">
+          <button
+            type="button"
+            onClick={handleUpload}
+            disabled={uploading}
+            className="text-sm font-medium text-gray-900 disabled:opacity-50"
+          >
+            {uploading ? "Uploading…" : "Upload photo"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setPickerOpen(true)}
+            className="text-sm font-medium text-gray-900"
+          >
+            Choose from drafts
+          </button>
         </div>
 
-        <input
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          placeholder="Paste an image URL for now"
-          className="w-full text-sm text-center text-gray-500 outline-none placeholder:text-gray-400 border border-gray-200 rounded-lg px-3 py-2.5"
-        />
-
-        <button
-          type="button"
-          onClick={() => setPickerOpen(true)}
-          className="mt-2 w-full text-center text-sm font-medium text-gray-900"
-        >
-          Choose from drafts
-        </button>
+        {urlEntryOpen ? (
+          <input
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            placeholder="Paste an image URL"
+            autoFocus
+            className="mt-2 w-full text-sm text-center text-gray-500 outline-none placeholder:text-gray-400 border border-gray-200 rounded-lg px-3 py-2.5"
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => setUrlEntryOpen(true)}
+            className="mt-2 w-full text-center text-xs text-gray-400"
+          >
+            or paste an image URL instead
+          </button>
+        )}
 
         {additional.length > 0 && (
           <div className="mt-2 flex gap-2 overflow-x-auto" style={{ scrollbarWidth: "none" }}>

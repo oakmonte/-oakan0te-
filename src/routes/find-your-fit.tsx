@@ -739,8 +739,11 @@ function FindYourFitPage() {
   // A row's existence in creators/curators (not the values in it) is what
   // resolvePostAuthRedirect treats as "this account finished find-your-fit" —
   // see src/lib/auth.ts. Submit and Skip both have to write one, or an
-  // account that skipped would be asked again on every future sign-in.
-  const targetTable = intent === "curator" ? "curators" : "creators";
+  // account that skipped would be asked again on every future sign-in. The
+  // actual body/style data lives in fit_profiles instead, keyed by owner_id
+  // and shared across roles, so a person who's both creator and curator only
+  // answers these questions once.
+  const roleTable = intent === "curator" ? "curators" : "creators";
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -788,7 +791,7 @@ function FindYourFitPage() {
       fullBodyPhotoUrl = supabase.storage.from("avatars").getPublicUrl(path).data.publicUrl;
     }
 
-    const { error } = await supabase.from(targetTable).upsert(
+    const { error: fitError } = await supabase.from("fit_profiles").upsert(
       {
         owner_id: userId,
         height_cm: heightCmValue,
@@ -801,9 +804,15 @@ function FindYourFitPage() {
       { onConflict: "owner_id" },
     );
 
+    const { error: roleError } = fitError
+      ? { error: null }
+      : await supabase
+          .from(roleTable)
+          .upsert({ owner_id: userId }, { onConflict: "owner_id", ignoreDuplicates: true });
+
     setSaving(false);
-    if (error) {
-      console.error("find-your-fit: failed to save", error);
+    if (fitError || roleError) {
+      console.error("find-your-fit: failed to save", fitError || roleError);
       setSaveError("Couldn't save that — please try again.");
       return;
     }
@@ -814,9 +823,12 @@ function FindYourFitPage() {
   const handleSkip = async () => {
     if (!userId || saving) return;
     setSaving(true);
+    // Only records role membership — no bare fit_profiles row on skip, since
+    // whats-your-style's own upsert creates one if it's still missing by
+    // then, and there's no data worth writing yet either way.
     const { error } = await supabase
-      .from(targetTable)
-      .upsert({ owner_id: userId }, { onConflict: "owner_id" });
+      .from(roleTable)
+      .upsert({ owner_id: userId }, { onConflict: "owner_id", ignoreDuplicates: true });
     setSaving(false);
     // Skipping shouldn't be able to strand someone here if the write fails —
     // worst case they're just asked again next sign-in, via

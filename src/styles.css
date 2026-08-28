@@ -43,12 +43,15 @@
   }
 }
 
-/* iOS Safari automatically zooms the viewport when it focuses a text control
-   whose computed font size is below 16px. Keep onboarding controls at that
-   threshold on small screens instead of disabling viewport zoom, so people can
-   still pinch-to-zoom whenever they choose. */
+/* iOS Safari (and Chrome on Android) automatically zooms the viewport when it
+   focuses a text control whose computed font size is below 16px. Keep every
+   text control at that threshold on small screens instead of disabling
+   viewport zoom, so people can still pinch-to-zoom whenever they choose —
+   this just stops it from happening involuntarily on focus. Was scoped to
+   [data-onboarding] only; broadened app-wide since the same forced zoom hit
+   any small-font input outside onboarding too. */
 @media (max-width: 639px) {
-  [data-onboarding] :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+  :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
     font-size: 16px;
   }
 }

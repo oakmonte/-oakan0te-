@@ -57,6 +57,25 @@ export function previousStep(intent: Intent | null, step: OnboardingStep): Onboa
   return flow[index - 1] ?? null;
 }
 
+// Steps every returning account has already answered before any role's flow
+// ever finishes — never a role-specific step to redo when picking up a
+// second role. Only these two today; a step joins this list if (and only if)
+// it asks for something that isn't per-role.
+const ALREADY_ANSWERED_BY_ANY_ROLE: readonly OnboardingStep[] = [
+  "/choose-username",
+  "/where-did-you-hear-about-us",
+];
+
+/** The first step in `intent`'s flow that a *returning* account (one that's
+ *  already finished a different role) still needs to answer — where a "pick
+ *  up a second role" beat like /switching-roles should send them next.
+ *  Derived from FLOWS instead of hand-maintained, so it can't drift out of
+ *  sync with a flow's step order the way a parallel lookup table could. */
+export function firstRoleSpecificStep(intent: Intent): OnboardingStep {
+  const flow = flowFor(intent);
+  return flow.find((step) => !ALREADY_ANSWERED_BY_ANY_ROLE.includes(step)) ?? flow[0];
+}
+
 /** Where all three flows end, before the profile.
  *
  *  Deliberately NOT a member of FLOWS: it asks the user for nothing, so

@@ -37,6 +37,7 @@ function StoreProducts() {
   const [search, setSearch] = useState("");
   const [products, setProducts] = useState<ProductRow[]>([]);
   const [listLoading, setListLoading] = useState(true);
+  const [createTypeOpen, setCreateTypeOpen] = useState(false);
 
   const fetchProducts = useCallback(async () => {
     if (!storeId) return;
@@ -87,13 +88,23 @@ function StoreProducts() {
           <Upload size={16} />
         </button>
         <button
-          onClick={() => navigate({ to: "/store/products/new" })}
+          onClick={() => setCreateTypeOpen(true)}
           aria-label="Add product"
           className="p-2 rounded-lg bg-black text-white oak-motion-control active:scale-90"
         >
           <Plus size={16} />
         </button>
       </div>
+
+      {createTypeOpen && (
+        <CreateProductTypeModal
+          onClose={() => setCreateTypeOpen(false)}
+          onSelect={(kind) => {
+            setCreateTypeOpen(false);
+            navigate({ to: "/store/products/new", search: { kind } });
+          }}
+        />
+      )}
 
       <div className="flex items-center gap-4 mb-6 border-b border-gray-100 text-sm">
         {TABS.map((tab) => (

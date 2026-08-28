@@ -18,8 +18,15 @@ shape (see `src/lib/studio/README.md`). It replaced the old single-clip `.edit.t
 - The route→route media handoff is an in-memory module variable (`src/lib/capture-handoff.ts`), not
   storage — see the root `CLAUDE.md`. `src/lib/after-shot-context.ts` is the React context the edit
   sub-routes consume.
-- Media helpers live in `src/lib/`: `crop-media.ts`, `filter-media.ts`, `video-trim.ts` (still the
-  lossless-remux fast path the studio falls back to),
-  `layer-bake.ts`, `canvas-filter.ts`, `after-shot-layers.ts`, `after-shot-export.ts`. Encode/decode
-  goes through **`mediabunny`** (client-side, in `video-trim.ts` / `after-shot-export.ts`) — note this
-  is the media library, unrelated to Bunny.net.
+- Media helpers live in `src/lib/`: `crop-rect.ts` (fractional crop-as-intent type, composed on
+  re-crop, baked once at export — see `after-shot-export.ts`), `filter-media.ts`, `video-trim.ts`
+  (still the lossless-remux fast path the studio falls back to), `layer-bake.ts`, `canvas-filter.ts`,
+  `after-shot-layers.ts`, `after-shot-export.ts`. Encode/decode goes through **`mediabunny`**
+  (client-side, in `video-trim.ts` / `after-shot-export.ts`) — note this is the media library,
+  unrelated to Bunny.net.
+- **Crop is intent, not a bake.** `CropPanel` only ever proposes a `CropRect` up to
+  `create.after-shot.index.tsx`; it doesn't touch `media.blob`. The live preview simulates the crop
+  with CSS (shift + scale the still-uncropped `<img>`/`<video>`, clipped by the media box's
+  `overflow:hidden`) so cropping, filtering, and layering all still cost exactly one encode
+  generation together, at export. Don't reintroduce an eager `cropPhotoBlob`/`cropVideoBlob`-style
+  helper — that pattern was deliberately removed.
