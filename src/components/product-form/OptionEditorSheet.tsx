@@ -339,9 +339,12 @@ export function OptionEditorSheet({
             // blocked, so the only hard stop is the option cap itself.
             const disabled =
               (nameLocked && p !== name) || (atCap && !definedNames.includes(p) && p !== name);
-            // Black persists once an option's values are saved, not just while
-            // it's the one currently open — that's the whole point of the cue.
-            const isDone = name === p || (confirmedByName[p] ?? false);
+            // Black fill means values are actually saved for this name — not
+            // just that it's the one currently open. Being open with nothing
+            // confirmed yet only gets a blue outline, so the seller can tell
+            // "editing" apart from "done" at a glance.
+            const isConfirmed = confirmedByName[p] ?? false;
+            const isActive = name === p && !isConfirmed;
             return (
               <button
                 key={p}
@@ -349,11 +352,13 @@ export function OptionEditorSheet({
                 disabled={disabled}
                 onClick={() => selectName(p)}
                 className={`px-3 py-1.5 rounded-full text-sm border ${
-                  isDone
+                  isConfirmed
                     ? "bg-black text-white border-black"
-                    : disabled
-                      ? "bg-white text-gray-300 border-gray-100"
-                      : "bg-white text-gray-700 border-gray-200"
+                    : isActive
+                      ? "bg-white text-gray-900 border-blue-500"
+                      : disabled
+                        ? "bg-white text-gray-300 border-gray-100"
+                        : "bg-white text-gray-700 border-gray-200"
                 }`}
               >
                 {p}
