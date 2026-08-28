@@ -1,40 +1,33 @@
-import { Minus, Plus } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 
+/** Collapsed "Inventory" row on the regular-product form — tapping it opens
+ *  InventorySheet, which owns SKU/barcode/continue-selling-out-of-stock and
+ *  the per-location quantity breakdown. This row is just a summary + entry
+ *  point, no editing happens here. */
 export function InventorySection({
-  stockQty,
-  setStockQty,
+  available,
+  locationCount,
+  onOpen,
 }: {
-  stockQty: number;
-  setStockQty: (fn: (q: number) => number) => void;
+  available: number;
+  locationCount: number;
+  onOpen: () => void;
 }) {
   return (
-    <div className="px-4 py-4 border-b-8 border-gray-50">
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-[15px] font-semibold text-gray-900">Inventory</span>
-        <span className="text-sm text-blue-600 font-medium">Edit</span>
+    <button
+      type="button"
+      onClick={onOpen}
+      className="w-full flex items-center justify-between px-4 py-4 border-b-8 border-gray-50 text-left"
+    >
+      <div>
+        <p className="text-[15px] font-semibold text-gray-900">Inventory</p>
+        <p className="text-xs text-gray-400 mt-0.5">
+          {locationCount > 0
+            ? `${available} available · ${locationCount} location${locationCount === 1 ? "" : "s"}`
+            : "Set your SKU, barcode, and stock levels"}
+        </p>
       </div>
-      <div className="flex items-center justify-between">
-        <span className="text-[15px] text-gray-900">Available</span>
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setStockQty((q) => Math.max(0, q - 1))}
-            className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600"
-          >
-            <Minus size={14} />
-          </button>
-          <span className="w-10 text-center text-[15px] font-medium bg-gray-100 rounded-full py-1">
-            {stockQty}
-          </span>
-          <button
-            type="button"
-            onClick={() => setStockQty((q) => q + 1)}
-            className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600"
-          >
-            <Plus size={14} />
-          </button>
-        </div>
-      </div>
-    </div>
+      <ChevronRight size={16} className="text-gray-300 shrink-0" />
+    </button>
   );
 }

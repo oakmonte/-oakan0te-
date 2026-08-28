@@ -4,6 +4,7 @@ import type { VariantOption, VariantRow } from "./VariantMatrixBuilder";
 import { ImageGallery } from "./ImageGallery";
 import { DraftImagePickerSheet } from "./DraftImagePickerSheet";
 import { ImageSourceSheet, type ImageSource } from "./ImageSourceSheet";
+import { InventorySheet, type InventoryValues } from "./InventorySheet";
 import { useMultiFilePicker } from "@/hooks/use-file-picker";
 import { uploadProductImage } from "@/lib/upload-product-image";
 
@@ -13,6 +14,7 @@ export function VariantCombinationsSheet({
   setRows,
   mainImageUrl,
   additionalImageUrls,
+  storeId,
   onBack,
   onDone,
 }: {
@@ -21,6 +23,7 @@ export function VariantCombinationsSheet({
   setRows: (fn: (prev: VariantRow[]) => VariantRow[]) => void;
   mainImageUrl: string;
   additionalImageUrls: string[];
+  storeId: string;
   onBack: () => void;
   onDone: () => void;
 }) {
@@ -29,9 +32,9 @@ export function VariantCombinationsSheet({
     : additionalImageUrls;
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkPrice, setBulkPrice] = useState("");
-  const [bulkStock, setBulkStock] = useState("");
   const [bulkImageUrl, setBulkImageUrl] = useState("");
   const [imagePickerKey, setImagePickerKey] = useState<string | null>(null);
+  const [inventoryKey, setInventoryKey] = useState<string | null>(null);
   const [showPriceErrors, setShowPriceErrors] = useState(false);
 
   const optionNames = options
@@ -60,12 +63,10 @@ export function VariantCombinationsSheet({
   function applyToAll() {
     const patch: Partial<VariantRow> = {};
     if (bulkPrice.trim()) patch.price = bulkPrice.trim();
-    if (bulkStock.trim()) patch.stockQty = bulkStock.trim();
     if (bulkImageUrl.trim()) patch.mainImageUrl = bulkImageUrl.trim();
     if (Object.keys(patch).length === 0) return;
     setRows((prev) => prev.map((r) => (r.selected ? { ...r, ...patch } : r)));
     setBulkPrice("");
-    setBulkStock("");
     setBulkImageUrl("");
     setBulkOpen(false);
   }
@@ -194,7 +195,6 @@ export function VariantCombinationsSheet({
               </p>
               <div className="grid grid-cols-2 gap-2">
                 <MiniField label="Price" value={bulkPrice} onChange={setBulkPrice} />
-                <MiniField label="Stock" value={bulkStock} onChange={setBulkStock} />
                 <MiniField
                   label="Image URL"
                   value={bulkImageUrl}
@@ -205,7 +205,7 @@ export function VariantCombinationsSheet({
               <button
                 type="button"
                 onClick={applyToAll}
-                disabled={!bulkPrice.trim() && !bulkStock.trim() && !bulkImageUrl.trim()}
+                disabled={!bulkPrice.trim() && !bulkImageUrl.trim()}
                 className="mt-3 w-full bg-black text-white text-sm font-medium rounded-lg py-2.5 disabled:bg-gray-200 disabled:text-gray-400"
               >
                 Apply
@@ -240,11 +240,16 @@ export function VariantCombinationsSheet({
                     onChange={(v) => updateRow(row.key, { price: v })}
                     error={showPriceErrors && !row.price.trim()}
                   />
-                  <MiniField
-                    label="Stock"
-                    value={row.stockQty}
-                    onChange={(v) => updateRow(row.key, { stockQty: v })}
-                  />
+                  <label className="flex flex-col gap-1">
+                    <span className="text-xs text-gray-400">Stock</span>
+                    <button
+                      type="button"
+                      onClick={() => setInventoryKey(row.key)}
+                      className="text-base border border-gray-200 rounded-lg px-2 py-2 text-left"
+                    >
+                      {Object.values(row.locationQuantities).reduce((sum, n) => sum + n, 0)}
+                    </button>
+                  </label>
                   <MiniField
                     label="Compare-at"
                     value={row.compareAtPrice}
@@ -284,6 +289,34 @@ export function VariantCombinationsSheet({
           onClose={() => setImagePickerKey(null)}
         />
       )}
+
+      {inventoryKey &&
+        (() => {
+          const row = rows.find((r) => r.key === inventoryKey);
+          if (!row) return null;
+          return (
+            <InventorySheet
+              productLabel={row.options.map((o) => o.value).join(" / ")}
+              storeId={storeId}
+              initial={{
+                sku: row.sku,
+                barcode: row.barcode ?? "",
+                continueSellingOutOfStock: row.continueSellingOutOfStock,
+                locationQuantities: row.locationQuantities,
+              }}
+              onSave={(values: InventoryValues) => {
+                updateRow(inventoryKey, {
+                  sku: values.sku,
+                  barcode: values.barcode,
+                  continueSellingOutOfStock: values.continueSellingOutOfStock,
+                  locationQuantities: values.locationQuantities,
+                });
+                setInventoryKey(null);
+              }}
+              onClose={() => setInventoryKey(null)}
+            />
+          );
+        })()}
     </div>
   );
 }

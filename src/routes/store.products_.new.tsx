@@ -11,6 +11,8 @@ import { CollectionsSheet } from "@/components/product-form/CollectionsSheet";
 import { TagsSheet } from "@/components/product-form/TagsSheet";
 import { NecessitiesSheet } from "@/components/product-form/NecessitiesSheet";
 import { PricingSheet } from "@/components/product-form/PricingSheet";
+import { InventorySection } from "@/components/product-form/InventorySection";
+import { InventorySheet, type InventoryValues } from "@/components/product-form/InventorySheet";
 import { CategoryPicker } from "@/components/product-form/CategoryPicker";
 import { ProductTypeSwitchSheet } from "@/components/product-form/ProductTypeSwitchSheet";
 import {
@@ -87,7 +89,16 @@ function NewProduct() {
   const [price, setPrice] = useState(initialDraft?.price ?? "");
   const [compareAtPrice, setCompareAtPrice] = useState(initialDraft?.compareAtPrice ?? "");
   const [costPrice, setCostPrice] = useState(initialDraft?.costPrice ?? "");
-  const [stockQty, setStockQty] = useState(initialDraft?.stockQty ?? 0);
+  const [regularSku, setRegularSku] = useState(initialDraft?.regularSku ?? "");
+  const [regularBarcode, setRegularBarcode] = useState(initialDraft?.regularBarcode ?? "");
+  const [regularContinueSellingOutOfStock, setRegularContinueSellingOutOfStock] = useState(
+    initialDraft?.regularContinueSellingOutOfStock ?? false,
+  );
+  const [regularLocationQuantities, setRegularLocationQuantities] = useState<
+    Record<string, number>
+  >(initialDraft?.regularLocationQuantities ?? {});
+  const [inventorySheetOpen, setInventorySheetOpen] = useState(false);
+  const regularStockQty = Object.values(regularLocationQuantities).reduce((sum, n) => sum + n, 0);
   // No UI sets this on this page anymore — material is filled in via
   // Necessities now. Still round-tripped through drafts/save.
   const material = initialDraft?.material ?? "";
@@ -135,7 +146,11 @@ function NewProduct() {
       price,
       compareAtPrice,
       costPrice,
-      stockQty,
+      stockQty: regularStockQty,
+      regularSku,
+      regularBarcode,
+      regularContinueSellingOutOfStock,
+      regularLocationQuantities,
       material,
       options,
       rows,
@@ -222,20 +237,34 @@ function NewProduct() {
     };
 
     if (kind === "regular") {
-      const { error: variantErr } = await supabase.from("product_variants").insert({
-        product_id: product.id,
-        price: Number(price),
-        compare_at_price: compareAtPrice ? Number(compareAtPrice) : null,
-        cost_price: costPrice ? Number(costPrice) : null,
-        stock_qty: stockQty,
-        material: material.trim() || null,
-        main_image_url: mainImageUrl.trim() || null,
-        additional_image_urls: additionalImageUrls.length > 0 ? additionalImageUrls : null,
-      });
-      if (variantErr) {
-        setError(variantErr.message);
+      const { data: variant, error: variantErr } = await supabase
+        .from("product_variants")
+        .insert({
+          product_id: product.id,
+          price: Number(price),
+          compare_at_price: compareAtPrice ? Number(compareAtPrice) : null,
+          cost_price: costPrice ? Number(costPrice) : null,
+          stock_qty: regularStockQty,
+          sku: regularSku.trim() || null,
+          barcode: regularBarcode.trim() || null,
+          continue_selling_out_of_stock: regularContinueSellingOutOfStock,
+          material: material.trim() || null,
+          main_image_url: mainImageUrl.trim() || null,
+          additional_image_urls: additionalImageUrls.length > 0 ? additionalImageUrls : null,
+        })
+        .select("id")
+        .single();
+      if (variantErr || !variant) {
+        setError(variantErr?.message ?? "Failed to create product variant");
         setSaving(false);
         return;
+      }
+      const stockPayload = Object.entries(regularLocationQuantities).map(
+        ([locationId, quantity]) => ({ variant_id: variant.id, location_id: locationId, quantity }),
+      );
+      if (stockPayload.length > 0) {
+        const stockRes = await supabase.from("product_variant_stock").insert(stockPayload);
+        if (stockRes.error) return fail("product_variant_stock", stockRes.error.message);
       }
     } else {
       const usableOptions = options.filter((o) => o.name.trim() && o.values.length > 0);
@@ -274,11 +303,20 @@ function NewProduct() {
         price: Number(r.price),
         compare_at_price: r.compareAtPrice ? Number(r.compareAtPrice) : null,
         cost_price: r.costPrice ? Number(r.costPrice) : null,
-        stock_qty: r.stockQty ? Number(r.stockQty) : 0,
+        stock_qty: Object.values(r.locationQuantities).reduce((sum, n) => sum + n, 0),
         sku: r.sku.trim() || null,
+        continue_selling_out_of_stock: r.continueSellingOutOfStock,
         main_image_url: r.mainImageUrl.trim() || mainImageUrl.trim() || null,
         additional_image_urls: r.additionalImageUrls ?? null,
       }));
+
+      const stockPayload = selectedRows.flatMap((r, ri) =>
+        Object.entries(r.locationQuantities).map(([locationId, quantity]) => ({
+          variant_id: variantsPayload[ri].id,
+          location_id: locationId,
+          quantity,
+        })),
+      );
 
       const linksPayload = selectedRows.flatMap((r, ri) =>
         r.options.map((o, oi) => ({
@@ -299,6 +337,11 @@ function NewProduct() {
 
       const linksRes = await supabase.from("product_variant_options").insert(linksPayload);
       if (linksRes.error) return fail("product_variant_options", linksRes.error.message);
+
+      if (stockPayload.length > 0) {
+        const stockRes = await supabase.from("product_variant_stock").insert(stockPayload);
+        if (stockRes.error) return fail("product_variant_stock", stockRes.error.message);
+      }
     }
 
     // Not kind-gated: a regular product (or a variant product with no Size
@@ -393,42 +436,23 @@ function NewProduct() {
       />
 
       {kind === "regular" ? (
-        <div className="px-4 py-4 border-b-8 border-gray-50">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-[15px] font-semibold text-gray-900">Inventory</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-[15px] text-gray-900">Stock</span>
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => setStockQty((q) => Math.max(0, q - 1))}
-                className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600"
-              >
-                −
-              </button>
-              <span className="w-10 text-center text-[15px] font-medium bg-gray-100 rounded-full py-1">
-                {stockQty}
-              </span>
-              <button
-                type="button"
-                onClick={() => setStockQty((q) => q + 1)}
-                className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600"
-              >
-                +
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <VariantMatrixBuilder
-          options={options}
-          setOptions={setOptions}
-          rows={rows}
-          setRows={setRows}
-          mainImageUrl={mainImageUrl}
-          additionalImageUrls={additionalImageUrls}
+        <InventorySection
+          available={regularStockQty}
+          locationCount={Object.keys(regularLocationQuantities).length}
+          onOpen={() => setInventorySheetOpen(true)}
         />
+      ) : (
+        storeId && (
+          <VariantMatrixBuilder
+            options={options}
+            setOptions={setOptions}
+            rows={rows}
+            setRows={setRows}
+            mainImageUrl={mainImageUrl}
+            additionalImageUrls={additionalImageUrls}
+            storeId={storeId}
+          />
+        )
       )}
 
       <button
@@ -474,6 +498,26 @@ function NewProduct() {
           onChangeCompareAtPrice={setCompareAtPrice}
           onChangeCostPrice={setCostPrice}
           onClose={() => setPriceSheetOpen(false)}
+        />
+      )}
+
+      {inventorySheetOpen && storeId && (
+        <InventorySheet
+          storeId={storeId}
+          initial={{
+            sku: regularSku,
+            barcode: regularBarcode,
+            continueSellingOutOfStock: regularContinueSellingOutOfStock,
+            locationQuantities: regularLocationQuantities,
+          }}
+          onSave={(values: InventoryValues) => {
+            setRegularSku(values.sku);
+            setRegularBarcode(values.barcode);
+            setRegularContinueSellingOutOfStock(values.continueSellingOutOfStock);
+            setRegularLocationQuantities(values.locationQuantities);
+            setInventorySheetOpen(false);
+          }}
+          onClose={() => setInventorySheetOpen(false)}
         />
       )}
 

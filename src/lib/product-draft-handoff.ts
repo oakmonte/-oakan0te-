@@ -22,6 +22,10 @@ export type ProductDraft = {
   compareAtPrice: string;
   costPrice: string;
   stockQty: number;
+  regularSku: string;
+  regularBarcode: string;
+  regularContinueSellingOutOfStock: boolean;
+  regularLocationQuantities: Record<string, number>;
   material: string;
   options: VariantOption[];
   rows: VariantRow[];

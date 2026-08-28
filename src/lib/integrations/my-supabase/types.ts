@@ -676,11 +676,48 @@ export type Database = {
           },
         ]
       }
+      product_variant_stock: {
+        Row: {
+          id: string
+          location_id: string
+          quantity: number
+          variant_id: string
+        }
+        Insert: {
+          id?: string
+          location_id: string
+          quantity?: number
+          variant_id: string
+        }
+        Update: {
+          id?: string
+          location_id?: string
+          quantity?: number
+          variant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_variant_stock_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "store_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_variant_stock_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_variants: {
         Row: {
           additional_image_urls: string[] | null
           barcode: string | null
           compare_at_price: number | null
+          continue_selling_out_of_stock: boolean
           cost_price: number | null
           created_at: string
           id: string
@@ -703,6 +740,7 @@ export type Database = {
           additional_image_urls?: string[] | null
           barcode?: string | null
           compare_at_price?: number | null
+          continue_selling_out_of_stock?: boolean
           cost_price?: number | null
           created_at?: string
           id?: string
@@ -725,6 +763,7 @@ export type Database = {
           additional_image_urls?: string[] | null
           barcode?: string | null
           compare_at_price?: number | null
+          continue_selling_out_of_stock?: boolean
           cost_price?: number | null
           created_at?: string
           id?: string

@@ -16,9 +16,12 @@ export type VariantRow = {
   price: string;
   compareAtPrice: string;
   costPrice: string;
-  stockQty: string;
   sku: string;
   mainImageUrl: string;
+  // Inventory, edited via InventorySheet -- stock_qty at save time is the
+  // sum of locationQuantities, not a field anyone types into directly.
+  continueSellingOutOfStock: boolean;
+  locationQuantities: Record<string, number>;
   // Columns this form has no UI for yet (importers write them — see
   // canonical-product-schema — this form doesn't). Optional and untouched by
   // anything here; the edit page round-trips them so opening an imported
@@ -46,6 +49,7 @@ export function VariantMatrixBuilder({
   setRows,
   mainImageUrl,
   additionalImageUrls,
+  storeId,
 }: {
   options: VariantOption[];
   setOptions: (fn: (prev: VariantOption[]) => VariantOption[]) => void;
@@ -56,6 +60,9 @@ export function VariantMatrixBuilder({
   // re-upload of something the seller already has.
   mainImageUrl: string;
   additionalImageUrls: string[];
+  // For InventorySheet's location list, opened per-variant from the combos
+  // sheet.
+  storeId: string;
 }) {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [wizardStep, setWizardStep] = useState<WizardStep>(null);
@@ -79,9 +86,10 @@ export function VariantMatrixBuilder({
               price: "",
               compareAtPrice: "",
               costPrice: "",
-              stockQty: "",
               sku: "",
               mainImageUrl: "",
+              continueSellingOutOfStock: false,
+              locationQuantities: {},
             };
       });
     });
@@ -149,6 +157,7 @@ export function VariantMatrixBuilder({
           setRows={setRows}
           mainImageUrl={mainImageUrl}
           additionalImageUrls={additionalImageUrls}
+          storeId={storeId}
           onBack={() => setWizardStep("list")}
           onDone={() => setWizardStep(null)}
         />
