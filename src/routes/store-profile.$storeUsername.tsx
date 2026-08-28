@@ -90,15 +90,20 @@ function StoreProfilePage() {
         // store that has customised more than one theme has several rows —
         // scope the read to the theme the store actually has selected instead
         // of asking for "the" row (which errored out and dropped the logo).
-        const themeSlug = store_themes?.slug ?? null;
-        const { data: theme } = themeSlug
-          ? await supabase
-              .from("store_theme_customizations")
-              .select("logo_image_url")
-              .eq("store_id", storeRow.id)
-              .eq("theme_slug", themeSlug)
-              .maybeSingle()
-          : { data: null };
+        // A null theme_id does NOT mean "no theme" — useStoreTheme.ts defaults
+        // an unset theme_id to "motion" client-side without ever writing that
+        // back, so a store that never explicitly picked a theme still has its
+        // real customizations saved under theme_slug "motion". Falling back to
+        // null here (instead of mirroring that same default) would skip the
+        // lookup entirely and drop the logo for exactly that — the most
+        // common — case.
+        const themeSlug = store_themes?.slug ?? "motion";
+        const { data: theme } = await supabase
+          .from("store_theme_customizations")
+          .select("logo_image_url")
+          .eq("store_id", storeRow.id)
+          .eq("theme_slug", themeSlug)
+          .maybeSingle();
         if (cancelled) return;
 
         setStore({ ...storeRow, logo_url: theme?.logo_image_url ?? null });
