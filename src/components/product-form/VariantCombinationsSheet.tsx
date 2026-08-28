@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { Check, ChevronLeft, ImageIcon, Loader2, X } from "lucide-react";
+import { Check, ChevronLeft, ImageIcon, Layers, Loader2, X } from "lucide-react";
 import type { VariantOption, VariantRow } from "./VariantMatrixBuilder";
 import { DraftImagePickerSheet } from "./DraftImagePickerSheet";
-import { ImageSourceSheet, type ImageSource } from "./ImageSourceSheet";
 import { useFilePicker } from "@/hooks/use-file-picker";
 import { uploadProductImage } from "@/lib/upload-product-image";
 
@@ -292,12 +291,9 @@ function VariantImagePopover({
 }) {
   const [value, setValue] = useState(initialValue);
   const [additional, setAdditional] = useState(initialAdditional);
-  const [sourceSheetOpen, setSourceSheetOpen] = useState(false);
   const [draftsOpen, setDraftsOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
-  const libraryPicker = useFilePicker("image/*");
-  const cameraPicker = useFilePicker("image/*", "environment");
   const filePicker = useFilePicker("image/*");
 
   function addUrls(urls: string[]) {
@@ -326,17 +322,6 @@ function VariantImagePopover({
     }
   }
 
-  async function handleSource(source: ImageSource) {
-    setSourceSheetOpen(false);
-    if (source === "drafts") {
-      setDraftsOpen(true);
-      return;
-    }
-    const picker =
-      source === "library" ? libraryPicker : source === "camera" ? cameraPicker : filePicker;
-    await uploadFile(await picker.pick());
-  }
-
   function handlePicked(urls: string[]) {
     setDraftsOpen(false);
     addUrls(urls);
@@ -351,8 +336,6 @@ function VariantImagePopover({
         className="bg-white rounded-2xl p-4 w-full max-w-xs animate-in fade-in zoom-in-95 duration-200 ease-out"
         onClick={(e) => e.stopPropagation()}
       >
-        {libraryPicker.node}
-        {cameraPicker.node}
         {filePicker.node}
         <div className="flex items-center justify-between mb-3">
           <p className="text-sm font-semibold text-gray-900">Variant image</p>
@@ -363,7 +346,7 @@ function VariantImagePopover({
 
         <button
           type="button"
-          onClick={() => setSourceSheetOpen(true)}
+          onClick={() => filePicker.pick().then(uploadFile)}
           disabled={uploading}
           aria-label="Add image"
           className="w-full aspect-square rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden mb-3 disabled:opacity-60"
@@ -375,6 +358,16 @@ function VariantImagePopover({
           ) : (
             <ImageIcon size={28} className="text-gray-300" />
           )}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setDraftsOpen(true)}
+          disabled={uploading}
+          className="w-full pt-2 border-t border-gray-200 flex items-center justify-center gap-1.5 text-sm font-medium text-gray-600 mb-1 disabled:opacity-60"
+        >
+          <Layers size={14} />
+          Upload from Drafts
         </button>
 
         {uploadError && <p className="text-xs text-red-500 text-center mb-2">{uploadError}</p>}
@@ -422,9 +415,6 @@ function VariantImagePopover({
           </button>
         </div>
 
-        {sourceSheetOpen && (
-          <ImageSourceSheet onSelect={handleSource} onClose={() => setSourceSheetOpen(false)} />
-        )}
         {draftsOpen && (
           <DraftImagePickerSheet onSelect={handlePicked} onClose={() => setDraftsOpen(false)} />
         )}
