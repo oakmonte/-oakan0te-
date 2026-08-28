@@ -397,10 +397,13 @@ function StoreProfilePage() {
             exit={{ y: "100%" }}
             transition={{ duration: 0.32, ease: [0.32, 0.72, 0, 1] }}
             style={{ top: sheetTop }}
-            className="fixed inset-x-0 bottom-0 z-50 flex flex-col rounded-t-[28px] bg-black shadow-[0_-12px_40px_rgba(0,0,0,0.6)]"
+            className="fixed inset-x-0 bottom-0 z-50 flex flex-col overflow-hidden rounded-t-[28px] shadow-[0_-12px_40px_rgba(0,0,0,0.6)]"
           >
-            <div className="flex shrink-0 justify-center pt-2.5 pb-1">
-              <div className="h-1 w-9 rounded-full bg-white/25" />
+            {/* See profile.$username.tsx for why there's no black strip
+                here — the theme's own background runs up into the rounded
+                corners, and the grabber just floats on top of it. */}
+            <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex justify-center pt-2.5">
+              <div className="h-1 w-9 rounded-full bg-white mix-blend-difference" />
             </div>
             <motion.div
               drag="x"
@@ -451,8 +454,10 @@ function StoreProfilePage() {
         </div>
       </div>
 
-      {/* Bottom nav — shown only when viewing your own store profile */}
-      {isOwnStoreProfile && ownerUsername && (
+      {/* Bottom nav — shown only when viewing your own store profile, and
+          hidden while the Store sheet is up (it has no use there and just
+          crowds the storefront). */}
+      {isOwnStoreProfile && ownerUsername && !storeSheetOpen && (
         <BottomNav active="profile" ownUsername={ownerUsername} />
       )}
     </div>
