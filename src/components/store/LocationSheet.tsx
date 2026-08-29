@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { X, MapPin, LocateFixed, ChevronRight } from "lucide-react";
+import { X, MapPin, LocateFixed, ChevronRight, Check } from "lucide-react";
 import { Country, State, City } from "country-state-city";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
 import { LocationListPicker, type LocationListItem } from "./LocationListPicker";
@@ -93,6 +93,7 @@ export function LocationSheet({
   const [pickerOpen, setPickerOpen] = useState<"country" | "state" | "city" | null>(null);
   const [promptVisible, setPromptVisible] = useState(false);
   const [locating, setLocating] = useState(false);
+  const [located, setLocated] = useState(false);
   const [locateError, setLocateError] = useState("");
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -168,6 +169,7 @@ export function LocationSheet({
       setLocateError("Location isn't available on this device.");
       return;
     }
+    setLocated(false);
     setLocating(true);
     setLocateError("");
     navigator.geolocation.getCurrentPosition(
@@ -190,7 +192,7 @@ export function LocationSheet({
           if (!city) setCity(geocoded.city);
         }
         setLocating(false);
-        setPromptVisible(false);
+        setLocated(true);
       },
       (err) => {
         setLocating(false);
@@ -291,16 +293,18 @@ export function LocationSheet({
                   type="button"
                   onClick={useCurrentLocation}
                   disabled={locating}
-                  className="text-xs font-medium text-white bg-black rounded-full px-3.5 py-1.5 disabled:opacity-50"
+                  className="flex items-center gap-1.5 text-sm font-medium text-white bg-black rounded-full px-5 py-2.5 disabled:opacity-50"
                 >
-                  {locating ? "Locating…" : "Use current location"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPromptVisible(false)}
-                  className="text-xs font-medium text-gray-500"
-                >
-                  Enter manually
+                  {locating ? (
+                    "Locating…"
+                  ) : located ? (
+                    <>
+                      <Check size={16} />
+                      Location added
+                    </>
+                  ) : (
+                    "Use current location"
+                  )}
                 </button>
               </div>
             </div>
