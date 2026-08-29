@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { Check, ChevronLeft, ImageIcon, X } from "lucide-react";
-import type { VariantOption, VariantRow } from "./VariantMatrixBuilder";
+import { stockTotal, type VariantOption, type VariantRow } from "./VariantMatrixBuilder";
 import { ImageGallery } from "./ImageGallery";
 import { DraftImagePickerSheet } from "./DraftImagePickerSheet";
 import { ImageSourceSheet, type ImageSource } from "./ImageSourceSheet";
@@ -249,7 +249,7 @@ export function VariantCombinationsSheet({
                       onClick={() => setInventoryKey(row.key)}
                       className="text-base border border-gray-200 rounded-lg px-2 py-2 text-left"
                     >
-                      {Object.values(row.locationQuantities).reduce((sum, n) => sum + n, 0)}
+                      {stockTotal(row)}
                     </button>
                   </label>
                   <MiniField
