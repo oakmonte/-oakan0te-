@@ -119,7 +119,7 @@ function ProfilePage() {
       .select("id, personal_username, display_name, avatar_url, bio")
       .eq("personal_username", username)
       .single()
-      .then(async ({ data, error }) => {
+      .then(({ data, error }) => {
         if (cancelled) return;
         // id/personal_username are NOT NULL on the base table — the view's
         // generated type just can't express that for a view's columns.
@@ -129,25 +129,44 @@ function ProfilePage() {
         }
         const { id, personal_username } = data;
 
-        // The counts live on the profile_stats view, not on profiles — asking
-        // profiles for them makes PostgREST reject the whole select.
-        const { data: stats } = await supabase
-          .from("profile_stats")
-          .select("following_count, followers_count, rating, rating_count")
-          .eq("id", id)
-          .maybeSingle();
-        if (cancelled) return;
-
+        // Paint the header (avatar/name/bio) the instant this resolves,
+        // with placeholder counts — this also unblocks the stores/follows
+        // effects below (both gated on [profile]) instead of making them
+        // wait behind the stats round-trip too. Real counts merge in below
+        // as soon as they arrive, not before.
         setProfile({
           ...data,
           id,
           personal_username,
-          following_count: stats?.following_count ?? 0,
-          followers_count: stats?.followers_count ?? 0,
-          rating: stats?.rating ?? 0,
-          rating_count: stats?.rating_count ?? 0,
+          following_count: 0,
+          followers_count: 0,
+          rating: 0,
+          rating_count: 0,
         });
         setProfileLoading(false);
+
+        // The counts live on the profile_stats view, not on profiles — asking
+        // profiles for them makes PostgREST reject the whole select. Fetched
+        // separately, not awaited above, so it can't block first paint.
+        supabase
+          .from("profile_stats")
+          .select("following_count, followers_count, rating, rating_count")
+          .eq("id", id)
+          .maybeSingle()
+          .then(({ data: stats }) => {
+            if (cancelled || !stats) return;
+            setProfile((prev) =>
+              prev && prev.id === id
+                ? {
+                    ...prev,
+                    following_count: stats.following_count ?? 0,
+                    followers_count: stats.followers_count ?? 0,
+                    rating: stats.rating ?? 0,
+                    rating_count: stats.rating_count ?? 0,
+                  }
+                : prev,
+            );
+          });
       });
     return () => {
       cancelled = true;
