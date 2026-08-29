@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useParams, useRouter } from "@tanstack/react-router";
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -54,6 +54,7 @@ type ProfileRow = {
 
 function ProfilePage() {
   const navigate = useNavigate();
+  const router = useRouter();
   const { username } = useParams({ from: "/profile/$username" });
   const { user } = useSession();
   const [profile, setProfile] = useState<ProfileRow | null>(null);
@@ -172,6 +173,17 @@ function ProfilePage() {
       cancelled = true;
     };
   }, [username]);
+
+  // Home and the seller dashboard are the two places people jump to next
+  // from a profile most often (the bottom pill, and "Manage store" from the
+  // Store sheet) — warming their route chunk here means that tap doesn't
+  // pay for it. defaultPreload is "intent" (hover/touch-start), which never
+  // fires on a page you're already sitting on, so this is deliberately
+  // manual rather than relying on the router's own preload config.
+  useEffect(() => {
+    router.preloadRoute({ to: "/home" }).catch(() => {});
+    router.preloadRoute({ to: "/store" }).catch(() => {});
+  }, [router]);
 
   // Every store this person owns — drives the Store tab's content (via
   // `store`, the first one) and the switch-profile icon, which needs the
@@ -412,6 +424,7 @@ function ProfilePage() {
           ref={avatarRef}
           src={profile?.avatar_url || "https://placehold.co/135x139"}
           alt={username}
+          loading="eager"
           className="w-[110px] h-[110px] rounded-full border-[3px] border-white object-cover"
         />
         <div className="text-center">

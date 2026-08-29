@@ -72,7 +72,7 @@ export function PostsGrid({
                 className="w-full h-full object-cover"
               />
             ) : (
-              <img src={p.media_url} alt="" className="w-full h-full object-cover" />
+              <img src={p.media_url} alt="" loading="lazy" className="w-full h-full object-cover" />
             )}
             {p.media_type === "video" && (
               <span className="absolute top-1.5 right-1.5 drop-shadow">

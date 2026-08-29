@@ -70,6 +70,7 @@ function HomePage() {
                 <img
                   src={item.src}
                   alt=""
+                  loading="lazy"
                   className="w-full rounded-[14px] object-cover"
                   style={{ height: 220 }}
                 />
@@ -86,6 +87,7 @@ function HomePage() {
               key={item.id}
               src={item.src}
               alt=""
+              loading="lazy"
               className="w-full mb-2 rounded-[13px] object-cover break-inside-avoid"
             />
           ))}

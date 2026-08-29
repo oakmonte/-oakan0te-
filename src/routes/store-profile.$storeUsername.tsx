@@ -77,7 +77,7 @@ function StoreProfilePage() {
       .select("id, store_username, brand_name, bio, owner_id, store_themes(slug)")
       .eq("store_username", storeUsername)
       .maybeSingle()
-      .then(async ({ data, error }) => {
+      .then(({ data, error }) => {
         if (cancelled) return;
         if (error || !data) {
           console.error("StoreProfilePage: failed to load store", error);
@@ -86,6 +86,16 @@ function StoreProfilePage() {
         }
 
         const { store_themes, ...storeRow } = data;
+
+        // Paint the header the instant the store row resolves, with the logo
+        // null until the customizations read below fills it in — this also
+        // unblocks the owner-username effect below (gated on [store]) instead
+        // of making it wait behind the store_theme_customizations round-trip
+        // too. The caller falls back to a placeholder when logo_url is null,
+        // so there's visual continuity either way.
+        setStore({ ...storeRow, logo_url: null });
+        setStoreLoading(false);
+
         // store_theme_customizations is keyed by (store_id, theme_slug), so a
         // store that has customised more than one theme has several rows —
         // scope the read to the theme the store actually has selected instead
@@ -98,16 +108,20 @@ function StoreProfilePage() {
         // lookup entirely and drop the logo for exactly that — the most
         // common — case.
         const themeSlug = store_themes?.slug ?? "motion";
-        const { data: theme } = await supabase
+        supabase
           .from("store_theme_customizations")
           .select("logo_image_url")
           .eq("store_id", storeRow.id)
           .eq("theme_slug", themeSlug)
-          .maybeSingle();
-        if (cancelled) return;
-
-        setStore({ ...storeRow, logo_url: theme?.logo_image_url ?? null });
-        setStoreLoading(false);
+          .maybeSingle()
+          .then(({ data: theme }) => {
+            if (cancelled) return;
+            setStore((prev) =>
+              prev && prev.id === storeRow.id
+                ? { ...prev, logo_url: theme?.logo_image_url ?? null }
+                : prev,
+            );
+          });
       });
     return () => {
       cancelled = true;
@@ -275,6 +289,7 @@ function StoreProfilePage() {
           ref={avatarRef}
           src={store?.logo_url || "https://placehold.co/135x139"}
           alt={storeUsername}
+          loading="eager"
           className="w-[110px] h-[110px] rounded-full border-[3px] border-white object-cover"
         />
         <div className="text-center">
