@@ -16,12 +16,12 @@ import { InventorySheet, type InventoryValues } from "@/components/product-form/
 import { CategoryPicker } from "@/components/product-form/CategoryPicker";
 import { ProductTypeSwitchSheet } from "@/components/product-form/ProductTypeSwitchSheet";
 import {
-  stockTotal,
   VariantMatrixBuilder,
   VariantOption,
   VariantOptionValue,
   VariantRow,
 } from "@/components/product-form/VariantMatrixBuilder";
+import { stockTotal } from "@/components/product-form/variant-stock";
 import { cartesian, buildKey } from "@/components/product-form/variant-combinations";
 import { ManualSize, SizeMeasurements, getSizeChartForCategory } from "@/lib/size-chart-config";
 import { preloadGuideImage } from "@/components/product-form/size-chart/guide-images";

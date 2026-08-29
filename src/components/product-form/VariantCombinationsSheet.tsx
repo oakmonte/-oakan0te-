@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { Check, ChevronLeft, ImageIcon, X } from "lucide-react";
-import { stockTotal, type VariantOption, type VariantRow } from "./VariantMatrixBuilder";
+import type { VariantOption, VariantRow } from "./VariantMatrixBuilder";
+import { stockTotal } from "./variant-stock";
 import { ImageGallery } from "./ImageGallery";
 import { DraftImagePickerSheet } from "./DraftImagePickerSheet";
 import { ImageSourceSheet, type ImageSource } from "./ImageSourceSheet";
