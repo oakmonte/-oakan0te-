@@ -19,6 +19,9 @@ function StoreCollections() {
   const navigate = useNavigate();
   const { storeId, loading: storeLoading } = useActiveStoreId();
   const [collections, setCollections] = useState<CollectionRow[] | null>(null);
+  // Deleting a collection is destructive and cascades, so the trash icon only
+  // arms a confirm step -- a single mis-tap can't remove anything.
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!storeId) return;
@@ -57,6 +60,7 @@ function StoreCollections() {
       console.error("StoreCollections: failed to delete collection", error);
       return;
     }
+    setPendingDeleteId(null);
     setCollections((prev) => prev?.filter((c) => c.id !== id) ?? prev);
   }
 
@@ -111,14 +115,33 @@ function StoreCollections() {
                   {c.count} product{c.count === 1 ? "" : "s"}
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => handleDelete(c.id)}
-                aria-label={`Delete ${c.title}`}
-                className="p-2 text-gray-300 shrink-0"
-              >
-                <Trash2 size={16} />
-              </button>
+              {pendingDeleteId === c.id ? (
+                <span className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setPendingDeleteId(null)}
+                    className="text-xs text-gray-500 px-2 py-1.5"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(c.id)}
+                    className="text-xs font-medium text-white bg-red-600 rounded-full px-3 py-1.5"
+                  >
+                    Delete
+                  </button>
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setPendingDeleteId(c.id)}
+                  aria-label={`Delete ${c.title}`}
+                  className="p-2 text-gray-300 shrink-0"
+                >
+                  <Trash2 size={16} />
+                </button>
+              )}
             </div>
           ))}
         </div>
