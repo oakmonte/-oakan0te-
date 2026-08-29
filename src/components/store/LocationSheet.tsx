@@ -269,7 +269,7 @@ export function LocationSheet({
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Location name"
+            placeholder="Custom location name e.g main store"
             className={`w-full text-base border rounded-xl px-4 py-3 outline-none focus:border-gray-400 transition-colors duration-150 ${
               showErrors && !name.trim() ? "border-red-300" : "border-gray-200"
             }`}
