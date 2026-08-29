@@ -296,8 +296,7 @@ function EditProduct() {
             locationQuantities: Object.fromEntries(
               v.product_variant_stock.map((s) => [s.location_id, s.quantity]),
             ),
-            legacyStockQty:
-              v.product_variant_stock.length === 0 ? (v.stock_qty ?? 0) : undefined,
+            legacyStockQty: v.product_variant_stock.length === 0 ? (v.stock_qty ?? 0) : undefined,
             barcode: v.barcode,
             material: v.material,
             materialFeel: v.material_feel,
