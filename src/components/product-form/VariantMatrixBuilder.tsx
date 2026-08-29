@@ -38,7 +38,6 @@ export type VariantRow = {
   additionalImageUrls?: string[] | null;
 };
 
-
 // Generous rather than unlimited — variant-combinations.ts's MAX_COMBINATIONS
 // is the real guard, this just keeps the option list itself sane.
 export const MAX_OPTIONS = 8;
