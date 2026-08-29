@@ -79,15 +79,33 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
+      // Deliberately no interactive-widget=overlays-content here — that made
+      // the on-screen keyboard cover the focused input instead of the page
+      // resizing/scrolling to reveal it, on every route including onboarding,
+      // which never compensates for it (unlike the camera/after-shot editor,
+      // which does and needs it — see useLockedViewport). Normal pages get
+      // the ordinary "keyboard pushes the page up" behavior every other site
+      // has; the few fixed-layout screens that need overlays-content opt in
+      // themselves via useLockedViewport.
       {
         name: "viewport",
-        content:
-          "width=device-width, initial-scale=1, interactive-widget=overlays-content, viewport-fit=cover",
+        content: "width=device-width, initial-scale=1, viewport-fit=cover",
       },
       // Every route is black; this tells the browser to color its own chrome
       // (iOS Safari's status bar and bottom toolbar, Android's address bar)
       // to match instead of defaulting to white at the page's edges.
       { name: "theme-color", content: "#000000" },
+      // Without this, Android Chrome's "force dark" / "auto dark theme for
+      // web contents" setting (on by default on plenty of Android devices)
+      // treats an undeclared page as fair game and auto-inverts its colors —
+      // most of the store is a deliberate white background, and that
+      // heuristic doesn't know that. Declaring "light" here (not "light
+      // dark") tells the browser this site has its own light design and
+      // opts it out of that auto-theming entirely, until dark mode is built
+      // for real. Paired with the `color-scheme: light` CSS declaration in
+      // styles.css, which some engines honor more reliably than the meta tag
+      // alone, especially for native form control theming.
+      { name: "color-scheme", content: "light" },
       { title: "Oakmonte — Share your style" },
       {
         name: "description",

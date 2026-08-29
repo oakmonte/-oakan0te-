@@ -23,6 +23,10 @@
 @layer base {
   html {
     scroll-behavior: smooth;
+    /* Opts out of Android/Chrome's automatic dark-theme inversion — see the
+       color-scheme meta tag in __root.tsx for the full reasoning. This is the
+       CSS half of that same declaration. */
+    color-scheme: light;
   }
   html,
   body {

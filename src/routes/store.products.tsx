@@ -70,14 +70,14 @@ function StoreProducts() {
   return (
     <div className="px-4 py-5">
       <div className="flex items-center gap-2 mb-4">
-        <div className="flex-1 flex items-center gap-2 bg-gray-100 rounded-lg px-3 py-2">
-          <Search size={16} className="text-gray-400" />
+        <div className="flex-1 min-w-0 flex items-center gap-2 bg-gray-100 rounded-lg px-3 py-2">
+          <Search size={16} className="text-gray-400 shrink-0" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search products"
-            className="bg-transparent text-base flex-1 outline-none"
+            className="w-full min-w-0 bg-transparent text-base outline-none"
           />
         </div>
         <button
@@ -106,12 +106,12 @@ function StoreProducts() {
         />
       )}
 
-      <div className="flex items-center gap-4 mb-6 border-b border-gray-100 text-sm">
+      <div className="flex items-center gap-4 mb-6 border-b border-gray-100 text-sm overflow-x-auto">
         {TABS.map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`pb-2 -mb-px border-b-2 transition-colors duration-200 ${activeTab === tab ? "border-black font-medium text-black" : "border-transparent text-gray-400"}`}
+            className={`shrink-0 pb-2 -mb-px border-b-2 transition-colors duration-200 ${activeTab === tab ? "border-black font-medium text-black" : "border-transparent text-gray-400"}`}
           >
             {tab}
           </button>
