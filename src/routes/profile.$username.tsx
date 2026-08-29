@@ -63,12 +63,17 @@ function ProfilePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [stores, setStores] = useState<
-    { id: string; store_username: string; brand_name: string }[]
+    { id: string; store_username: string; brand_name: string; theme_id: string | null }[]
   >([]);
   const [storePickerOpen, setStorePickerOpen] = useState(false);
   // Oldest-first, same tie-break as useOwnStores — "the" store for anything
   // on this page that isn't multi-store aware yet (the Store tab preview).
   const store = stores[0] ?? null;
+  // theme_id stays null until the seller explicitly saves a theme (see
+  // useStoreTheme.ts) — a store row exists as soon as onboarding names it,
+  // well before there's anything real to preview, so this is the signal for
+  // "actually set up" rather than just "a stores row exists".
+  const storeIsSetUp = !!store?.theme_id;
   const searchInputRef = useRef<HTMLInputElement>(null);
   const tabScrollRef = useRef<HTMLDivElement>(null);
   const tabButtonRefs = useRef<Record<TabKey, HTMLButtonElement | null>>(
@@ -165,7 +170,7 @@ function ProfilePage() {
     let cancelled = false;
     supabase
       .from("stores")
-      .select("id, store_username, brand_name")
+      .select("id, store_username, brand_name, theme_id")
       .eq("owner_id", profile.id)
       .order("created_at", { ascending: true })
       .order("id", { ascending: true })
@@ -274,13 +279,13 @@ function ProfilePage() {
   // Body scroll lock while the Store sheet is up, same as any bottom sheet —
   // also keeps sheetTop from drifting out from under the sheet mid-view.
   useEffect(() => {
-    if (activeTab === "store" && store) {
+    if (activeTab === "store" && store && storeIsSetUp) {
       document.body.style.overflow = "hidden";
       return () => {
         document.body.style.overflow = "";
       };
     }
-  }, [activeTab, store]);
+  }, [activeTab, store, storeIsSetUp]);
 
   const tabRow = (
     <div
@@ -318,7 +323,7 @@ function ProfilePage() {
     </div>
   );
 
-  const storeSheetOpen = activeTab === "store" && !!store;
+  const storeSheetOpen = activeTab === "store" && !!store && storeIsSetUp;
 
   return (
     <div
@@ -354,7 +359,7 @@ function ProfilePage() {
           >
             <Search size={22} className={searchOpen ? "text-[#FF7300]" : "text-white"} />
           </button>
-          {isOwnProfile && store && (
+          {isOwnProfile && store && storeIsSetUp && (
             <button
               onClick={() =>
                 stores.length > 1
@@ -520,6 +525,19 @@ function ProfilePage() {
                     status="draft"
                     emptyState={<ProfileTabEmptyState tab="drafts" />}
                   />
+                ) : activeTab === "store" && isOwnProfile && !storeIsSetUp ? (
+                  <div className="flex flex-col items-center text-center px-8 pt-16 gap-3">
+                    <h3 className="text-[16px] font-bold">Set up your store</h3>
+                    <p className="text-[13px] text-white/50 max-w-[220px]">
+                      Add your products, pickup locations, and storefront look to start selling.
+                    </p>
+                    <button
+                      onClick={() => navigate({ to: "/store" })}
+                      className="mt-1 rounded-full bg-white text-black px-6 py-2.5 text-[14px] font-semibold"
+                    >
+                      Set up store
+                    </button>
+                  </div>
                 ) : (
                   <ProfileTabEmptyState tab={activeTab} />
                 )}
