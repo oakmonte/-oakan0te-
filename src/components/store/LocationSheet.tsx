@@ -266,14 +266,26 @@ export function LocationSheet({
             So you can tell it apart from your other locations — e.g. "Lekki warehouse" or "Main
             store".
           </p>
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Custom location name e.g main store"
-            className={`w-full text-base border rounded-xl px-4 py-3 outline-none focus:border-gray-400 transition-colors duration-150 ${
-              showErrors && !name.trim() ? "border-red-300" : "border-gray-200"
-            }`}
-          />
+          <div className="relative">
+            <input
+              id="location-name-input"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder=" "
+              className={`w-full text-base border rounded-xl px-4 py-3 outline-none focus:border-gray-400 transition-colors duration-150 ${
+                showErrors && !name.trim() ? "border-red-300" : "border-gray-200"
+              }`}
+            />
+            {!name.trim() && (
+              <label
+                htmlFor="location-name-input"
+                className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-1 text-gray-400 pointer-events-none"
+              >
+                <span className="text-base">Custom location name</span>
+                <span className="text-xs">e.g main store</span>
+              </label>
+            )}
+          </div>
         </div>
 
         {promptVisible && (
