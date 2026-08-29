@@ -1,6 +1,6 @@
 import { authedFetch } from "@/lib/authed-fetch";
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { Palette, Wallet, Package, MapPin } from "lucide-react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { Palette, Wallet, Package, MapPin, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useActiveStoreId } from "@/hooks/use-own-store";
@@ -19,10 +19,20 @@ function StepNumber({ n }: { n: number }) {
 }
 
 function StoreHome() {
+  const navigate = useNavigate();
   const { storeId } = useActiveStoreId();
   const [payoutSet, setPayoutSet] = useState(false);
   const [locationCount, setLocationCount] = useState<number | null>(null);
+  const [productCount, setProductCount] = useState<number | null>(null);
+  // Raw stores.theme_id, not useStoreTheme()'s value — that hook defaults an
+  // unset theme_id to "motion" client-side (see store-profile page's own
+  // comment on this), so it's never null and can't tell us whether the
+  // seller has actually picked one yet.
+  const [themeIdSet, setThemeIdSet] = useState(false);
   const [locationsSheetOpen, setLocationsSheetOpen] = useState(false);
+  // Set when a step is tapped before every step before it is done — holds
+  // which step to actually run if the seller taps through anyway.
+  const [orderWarningIndex, setOrderWarningIndex] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -56,31 +66,92 @@ function StoreHome() {
     };
   }, [storeId]);
 
-  const linkCards = [
+  useEffect(() => {
+    if (!storeId) return;
+    let cancelled = false;
+    supabase
+      .from("products")
+      .select("id", { count: "exact", head: true })
+      .eq("store_id", storeId)
+      .then(({ count, error }) => {
+        if (cancelled) return;
+        if (error) {
+          console.error("StoreHome: failed to load product count", error);
+          return;
+        }
+        setProductCount(count ?? 0);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [storeId]);
+
+  useEffect(() => {
+    if (!storeId) return;
+    let cancelled = false;
+    supabase
+      .from("stores")
+      .select("theme_id")
+      .eq("id", storeId)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) {
+          console.error("StoreHome: failed to load theme status", error);
+          return;
+        }
+        setThemeIdSet(!!data?.theme_id);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [storeId]);
+
+  const steps = [
     {
       label: "Get paid",
       description: payoutSet
         ? "Payout account added — pending verification."
         : "Add your bank account details so you can get paid.",
-      to: "/store/finance",
       icon: Wallet,
-      badge: payoutSet,
+      done: payoutSet,
+      go: () => navigate({ to: "/store/finance", search: { checklist: true } }),
+    },
+    {
+      label: "Pickup locations",
+      description: locationCount
+        ? `${locationCount} location${locationCount === 1 ? "" : "s"} saved — tap to manage.`
+        : "Add every store or warehouse riders can collect orders from.",
+      icon: MapPin,
+      done: !!locationCount,
+      go: () => setLocationsSheetOpen(true),
     },
     {
       label: "List products",
-      description: "Add items or import your existing catalog.",
-      to: "/store/products",
+      description: productCount
+        ? `${productCount} product${productCount === 1 ? "" : "s"} listed.`
+        : "Add items or import your existing catalog.",
       icon: Package,
-      badge: false,
+      done: !!productCount,
+      go: () => navigate({ to: "/store/products", search: { checklist: true } }),
     },
     {
       label: "Customise your store front",
       description: "Choose how your store should look like.",
-      to: "/store/theme",
       icon: Palette,
-      badge: false,
+      done: themeIdSet,
+      go: () => navigate({ to: "/store/theme", search: { checklist: true } }),
     },
-  ] as const;
+  ];
+
+  function handleStepTap(index: number) {
+    const priorIncomplete = steps.slice(0, index).some((s) => !s.done);
+    if (priorIncomplete) {
+      setOrderWarningIndex(index);
+      return;
+    }
+    steps[index].go();
+  }
 
   return (
     <div className="px-4 py-6">
@@ -88,63 +159,25 @@ function StoreHome() {
       <p className="text-sm text-gray-500 mb-6">We recommend this order for simplicity.</p>
 
       <div className="flex flex-col gap-3">
-        <Link
-          to={linkCards[0].to}
-          className="flex items-start gap-3 border border-gray-200 rounded-2xl p-4 hover:bg-gray-50 oak-motion-control"
-        >
-          <StepNumber n={1} />
-          <div className="p-2 rounded-full bg-gray-100 relative">
-            <Wallet size={18} />
-            {linkCards[0].badge && (
-              <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-amber-400 border-2 border-white oak-motion-pop" />
-            )}
-          </div>
-          <div>
-            <p className="text-sm font-medium">{linkCards[0].label}</p>
-            <p className="text-xs text-gray-500 mt-0.5">{linkCards[0].description}</p>
-          </div>
-        </Link>
-
-        <button
-          type="button"
-          onClick={() => setLocationsSheetOpen(true)}
-          className="flex items-start gap-3 border border-gray-200 rounded-2xl p-4 hover:bg-gray-50 oak-motion-control text-left"
-        >
-          <StepNumber n={2} />
-          <div className="p-2 rounded-full bg-gray-100 relative">
-            <MapPin size={18} />
-            {!!locationCount && (
-              <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-amber-400 border-2 border-white oak-motion-pop" />
-            )}
-          </div>
-          <div>
-            <p className="text-sm font-medium">Pickup locations</p>
-            <p className="text-xs text-gray-500 mt-0.5">
-              {locationCount
-                ? `${locationCount} location${locationCount === 1 ? "" : "s"} saved — tap to manage.`
-                : "Add every store or warehouse riders can collect orders from."}
-            </p>
-          </div>
-        </button>
-
-        {linkCards.slice(1).map(({ label, description, to, icon: Icon, badge }, i) => (
-          <Link
-            key={to}
-            to={to}
-            className="flex items-start gap-3 border border-gray-200 rounded-2xl p-4 hover:bg-gray-50 oak-motion-control"
+        {steps.map((step, i) => (
+          <button
+            key={step.label}
+            type="button"
+            onClick={() => handleStepTap(i)}
+            className="flex items-start gap-3 border border-gray-200 rounded-2xl p-4 hover:bg-gray-50 oak-motion-control text-left"
           >
-            <StepNumber n={i + 3} />
+            <StepNumber n={i + 1} />
             <div className="p-2 rounded-full bg-gray-100 relative">
-              <Icon size={18} />
-              {badge && (
+              <step.icon size={18} />
+              {step.done && (
                 <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-amber-400 border-2 border-white oak-motion-pop" />
               )}
             </div>
             <div>
-              <p className="text-sm font-medium">{label}</p>
-              <p className="text-xs text-gray-500 mt-0.5">{description}</p>
+              <p className="text-sm font-medium">{step.label}</p>
+              <p className="text-xs text-gray-500 mt-0.5">{step.description}</p>
             </div>
-          </Link>
+          </button>
         ))}
       </div>
 
@@ -154,6 +187,50 @@ function StoreHome() {
           onClose={() => setLocationsSheetOpen(false)}
           onCountChange={setLocationCount}
         />
+      )}
+
+      {orderWarningIndex !== null && (
+        <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/40 px-4 pb-8 sm:items-center">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-[0_30px_80px_rgba(0,0,0,0.25)]">
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-base font-semibold tracking-[-0.02em] text-gray-900">
+                Follow the order?
+              </p>
+              <button
+                type="button"
+                onClick={() => setOrderWarningIndex(null)}
+                aria-label="Cancel"
+                className="shrink-0 rounded-full p-1 text-gray-400 hover:bg-gray-50"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <p className="mt-1.5 text-sm leading-5 text-gray-500">
+              We recommend completing these steps in order to avoid confusion. You can still skip
+              ahead if you'd rather.
+            </p>
+            <div className="mt-4 flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={() => setOrderWarningIndex(null)}
+                className="rounded-xl bg-black py-2.5 text-sm font-semibold text-white"
+              >
+                Go in order
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const index = orderWarningIndex;
+                  setOrderWarningIndex(null);
+                  steps[index].go();
+                }}
+                className="rounded-xl border border-gray-200 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Skip ahead anyway
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

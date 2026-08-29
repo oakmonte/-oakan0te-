@@ -7,6 +7,9 @@ import { CreateProductTypeModal } from "@/components/product-form/CreateProductT
 import { useActiveStoreId } from "@/hooks/use-own-store";
 
 export const Route = createFileRoute("/store/products")({
+  validateSearch: (search: Record<string, unknown>): { checklist?: boolean } => ({
+    checklist: search.checklist === true || search.checklist === "true" ? true : undefined,
+  }),
   component: StoreProducts,
 });
 
@@ -31,6 +34,7 @@ type ProductRow = {
 
 function StoreProducts() {
   const navigate = useNavigate();
+  const { checklist } = Route.useSearch();
   const { storeId, loading: storeLoading } = useActiveStoreId();
 
   const [activeTab, setActiveTab] = useState<(typeof TABS)[number]>("All");
@@ -158,6 +162,18 @@ function StoreProducts() {
               </button>
             );
           })}
+        </div>
+      )}
+
+      {checklist && (
+        <div className="mt-6">
+          <button
+            type="button"
+            onClick={() => navigate({ to: "/store" })}
+            className="w-full bg-black text-white text-sm font-semibold rounded-full py-4 oak-motion-control active:scale-[0.98]"
+          >
+            Next
+          </button>
         </div>
       )}
     </div>

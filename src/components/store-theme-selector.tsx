@@ -1,7 +1,9 @@
 import { Check, ChevronRight, Pencil, X } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useActiveStoreId } from "@/hooks/use-own-store";
+import { useSession } from "@/hooks/use-session";
 import { THEMES, type Theme, type ThemeId } from "./store-themes/types";
 import { ThemePreviewSheet } from "./store-themes/full-previews";
 import { useStoreTheme } from "./store-themes/useStoreTheme";
@@ -40,6 +42,9 @@ function ThemeColorSwatch({ theme }: { theme: Theme }) {
 }
 
 export function StoreThemeSelector() {
+  const navigate = useNavigate();
+  const { checklist } = useSearch({ from: "/store/theme" });
+  const { user } = useSession();
   const { storeId } = useActiveStoreId();
   const { themeId: selected, selectTheme } = useStoreTheme();
   const [previewing, setPreviewing] = useState<ThemeId | null>(null);
@@ -49,6 +54,46 @@ export function StoreThemeSelector() {
   // render anything (see PublicStorefront for the render-time read).
   const [customizedThemes, setCustomizedThemes] = useState<Set<ThemeId>>(new Set());
   const [confirmUse, setConfirmUse] = useState<ThemeId | null>(null);
+  // Raw stores.theme_id, not useStoreTheme()'s `selected` — that hook
+  // defaults an unset theme_id to "motion" client-side, so it's never null
+  // and can't tell the checklist flow below whether a theme has really been
+  // picked yet.
+  const [themeIdSet, setThemeIdSet] = useState(false);
+  const [ownUsername, setOwnUsername] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    if (!storeId) return;
+    let cancelled = false;
+    supabase
+      .from("stores")
+      .select("theme_id")
+      .eq("id", storeId)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) console.error("StoreThemeSelector: failed to load theme status", error);
+        setThemeIdSet(!!data?.theme_id);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [storeId]);
+
+  useEffect(() => {
+    if (!checklist || !user) return;
+    let cancelled = false;
+    supabase
+      .from("profiles")
+      .select("personal_username")
+      .eq("id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!cancelled && data) setOwnUsername(data.personal_username);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [checklist, user]);
 
   const previewTheme = THEMES.find((t) => t.id === previewing) ?? null;
   const confirmTheme = THEMES.find((t) => t.id === confirmUse) ?? null;
@@ -87,6 +132,7 @@ export function StoreThemeSelector() {
       return;
     }
     void selectTheme(themeId);
+    setThemeIdSet(true);
   }
 
   return (
@@ -195,6 +241,18 @@ export function StoreThemeSelector() {
         <p className="mt-6 text-center text-xs text-[#8c8881]">
           Your storefront content stays yours — a theme only changes how it is presented.
         </p>
+
+        {checklist && themeIdSet && ownUsername && (
+          <button
+            type="button"
+            onClick={() =>
+              navigate({ to: "/profile/$username", params: { username: ownUsername } })
+            }
+            className="mt-6 w-full rounded-xl bg-[#1d1c1a] py-3.5 text-sm font-semibold text-white oak-motion-control active:scale-[0.98]"
+          >
+            Next — see your store front
+          </button>
+        )}
       </div>
 
       {previewTheme && (
@@ -205,6 +263,7 @@ export function StoreThemeSelector() {
           onClose={() => setPreviewing(null)}
           onSelect={() => {
             void selectTheme(previewTheme.id);
+            setThemeIdSet(true);
             setPreviewing(null);
           }}
         />
@@ -247,6 +306,7 @@ export function StoreThemeSelector() {
                 type="button"
                 onClick={() => {
                   void selectTheme(confirmTheme.id);
+                  setThemeIdSet(true);
                   setConfirmUse(null);
                 }}
                 className="rounded-xl border border-[#e1ddd6] py-2.5 text-sm font-medium text-[#262421] hover:bg-[#f5f3ef]"

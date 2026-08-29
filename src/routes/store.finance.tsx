@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Landmark, Clock } from "lucide-react";
 import { PayoutAccountSheet } from "@/components/store/PayoutAccountSheet";
@@ -16,10 +16,15 @@ function maskAccountNumber(number: string) {
 }
 
 export const Route = createFileRoute("/store/finance")({
+  validateSearch: (search: Record<string, unknown>): { checklist?: boolean } => ({
+    checklist: search.checklist === true || search.checklist === "true" ? true : undefined,
+  }),
   component: FinancePage,
 });
 
 function FinancePage() {
+  const navigate = useNavigate();
+  const { checklist } = Route.useSearch();
   // undefined = still loading, null = no account saved yet
   const [account, setAccount] = useState<PayoutAccount | null | undefined>(undefined);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -115,6 +120,18 @@ function FinancePage() {
           onSave={handleSave}
           onClose={() => setSheetOpen(false)}
         />
+      )}
+
+      {checklist && (
+        <div className="mt-8">
+          <button
+            type="button"
+            onClick={() => navigate({ to: "/store" })}
+            className="w-full bg-black text-white text-sm font-semibold rounded-full py-4 oak-motion-control active:scale-[0.98]"
+          >
+            Next
+          </button>
+        </div>
       )}
     </div>
   );
