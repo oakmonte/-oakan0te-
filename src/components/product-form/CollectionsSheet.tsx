@@ -27,6 +27,9 @@ export function CollectionsSheet({
   const [collections, setCollections] = useState<CollectionRow[] | null>(null); // null = loading
   const [selected, setSelected] = useState<Set<string>>(new Set(selectedIds));
   const [query, setQuery] = useState("");
+  // Deleting a collection is destructive and cascades, so the trash icon only
+  // arms a confirm step -- a single mis-tap can't remove anything.
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
