@@ -45,6 +45,7 @@ import { Route as StoreFinanceRouteImport } from './routes/store.finance'
 import { Route as StoreDiscountsRouteImport } from './routes/store.discounts'
 import { Route as StoreCustomersRouteImport } from './routes/store.customers'
 import { Route as StoreContentRouteImport } from './routes/store.content'
+import { Route as StoreCollectionsRouteImport } from './routes/store.collections'
 import { Route as StoreProfileStoreUsernameRouteImport } from './routes/store-profile.$storeUsername'
 import { Route as ProfileUsernameRouteImport } from './routes/profile.$username'
 import { Route as CreateAfterShotRouteImport } from './routes/create.after-shot'
@@ -253,6 +254,11 @@ const StoreContentRoute = StoreContentRouteImport.update({
   path: '/content',
   getParentRoute: () => StoreRoute,
 } as any)
+const StoreCollectionsRoute = StoreCollectionsRouteImport.update({
+  id: '/collections',
+  path: '/collections',
+  getParentRoute: () => StoreRoute,
+} as any)
 const StoreProfileStoreUsernameRoute =
   StoreProfileStoreUsernameRouteImport.update({
     id: '/store-profile/$storeUsername',
@@ -423,6 +429,7 @@ export interface FileRoutesByFullPath {
   '/create/after-shot': typeof CreateAfterShotRouteWithChildren
   '/profile/$username': typeof ProfileUsernameRoute
   '/store-profile/$storeUsername': typeof StoreProfileStoreUsernameRoute
+  '/store/collections': typeof StoreCollectionsRoute
   '/store/content': typeof StoreContentRoute
   '/store/customers': typeof StoreCustomersRoute
   '/store/discounts': typeof StoreDiscountsRoute
@@ -485,6 +492,7 @@ export interface FileRoutesByTo {
   '/auth/callback': typeof AuthCallbackRoute
   '/profile/$username': typeof ProfileUsernameRoute
   '/store-profile/$storeUsername': typeof StoreProfileStoreUsernameRoute
+  '/store/collections': typeof StoreCollectionsRoute
   '/store/content': typeof StoreContentRoute
   '/store/customers': typeof StoreCustomersRoute
   '/store/discounts': typeof StoreDiscountsRoute
@@ -551,6 +559,7 @@ export interface FileRoutesById {
   '/create/after-shot': typeof CreateAfterShotRouteWithChildren
   '/profile/$username': typeof ProfileUsernameRoute
   '/store-profile/$storeUsername': typeof StoreProfileStoreUsernameRoute
+  '/store/collections': typeof StoreCollectionsRoute
   '/store/content': typeof StoreContentRoute
   '/store/customers': typeof StoreCustomersRoute
   '/store/discounts': typeof StoreDiscountsRoute
@@ -618,6 +627,7 @@ export interface FileRouteTypes {
     | '/create/after-shot'
     | '/profile/$username'
     | '/store-profile/$storeUsername'
+    | '/store/collections'
     | '/store/content'
     | '/store/customers'
     | '/store/discounts'
@@ -680,6 +690,7 @@ export interface FileRouteTypes {
     | '/auth/callback'
     | '/profile/$username'
     | '/store-profile/$storeUsername'
+    | '/store/collections'
     | '/store/content'
     | '/store/customers'
     | '/store/discounts'
@@ -745,6 +756,7 @@ export interface FileRouteTypes {
     | '/create/after-shot'
     | '/profile/$username'
     | '/store-profile/$storeUsername'
+    | '/store/collections'
     | '/store/content'
     | '/store/customers'
     | '/store/discounts'
@@ -1078,6 +1090,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StoreContentRouteImport
       parentRoute: typeof StoreRoute
     }
+    '/store/collections': {
+      id: '/store/collections'
+      path: '/collections'
+      fullPath: '/store/collections'
+      preLoaderRoute: typeof StoreCollectionsRouteImport
+      parentRoute: typeof StoreRoute
+    }
     '/store-profile/$storeUsername': {
       id: '/store-profile/$storeUsername'
       path: '/store-profile/$storeUsername'
@@ -1302,6 +1321,7 @@ const CreateRouteWithChildren =
   CreateRoute._addFileChildren(CreateRouteChildren)
 
 interface StoreRouteChildren {
+  StoreCollectionsRoute: typeof StoreCollectionsRoute
   StoreContentRoute: typeof StoreContentRoute
   StoreCustomersRoute: typeof StoreCustomersRoute
   StoreDiscountsRoute: typeof StoreDiscountsRoute
@@ -1320,6 +1340,7 @@ interface StoreRouteChildren {
 }
 
 const StoreRouteChildren: StoreRouteChildren = {
+  StoreCollectionsRoute: StoreCollectionsRoute,
   StoreContentRoute: StoreContentRoute,
   StoreCustomersRoute: StoreCustomersRoute,
   StoreDiscountsRoute: StoreDiscountsRoute,

@@ -45,7 +45,7 @@ function NewCollection() {
     ? editingProductId
       ? `/store/products/${editingProductId}`
       : "/store/products/new"
-    : "/store/products";
+    : "/store/collections";
 
   async function handleSave() {
     if (!storeId) {
