@@ -22,6 +22,11 @@ export type VariantRow = {
   // sum of locationQuantities, not a field anyone types into directly.
   continueSellingOutOfStock: boolean;
   locationQuantities: Record<string, number>;
+  // Stock recorded before per-location inventory existed (or by importers),
+  // which has no location attached yet. Kept so editing an older product and
+  // saving doesn't silently zero its stock; superseded as soon as the seller
+  // assigns any location quantities.
+  legacyStockQty?: number;
   // Columns this form has no UI for yet (importers write them — see
   // canonical-product-schema — this form doesn't). Optional and untouched by
   // anything here; the edit page round-trips them so opening an imported

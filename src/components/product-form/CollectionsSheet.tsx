@@ -27,6 +27,9 @@ export function CollectionsSheet({
   const [collections, setCollections] = useState<CollectionRow[] | null>(null); // null = loading
   const [selected, setSelected] = useState<Set<string>>(new Set(selectedIds));
   const [query, setQuery] = useState("");
+  // Deleting a collection is destructive and cascades, so the trash icon only
+  // arms a confirm step -- a single mis-tap can't remove anything.
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -77,6 +80,7 @@ export function CollectionsSheet({
       console.error("CollectionsSheet: failed to delete collection", error);
       return;
     }
+    setPendingDeleteId(null);
     setCollections((prev) => prev?.filter((c) => c.id !== id) ?? prev);
     setSelected((prev) => {
       if (!prev.has(id)) return prev;
@@ -168,14 +172,33 @@ export function CollectionsSheet({
                       </span>
                     </span>
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDelete(c.id)}
-                    aria-label={`Delete ${c.title}`}
-                    className="p-3 text-gray-300 shrink-0"
-                  >
-                    <Trash2 size={16} />
-                  </button>
+                  {pendingDeleteId === c.id ? (
+                    <span className="flex items-center gap-2 pr-3 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setPendingDeleteId(null)}
+                        className="text-xs text-gray-500 px-2 py-1.5"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(c.id)}
+                        className="text-xs font-medium text-white bg-red-600 rounded-full px-3 py-1.5"
+                      >
+                        Delete
+                      </button>
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setPendingDeleteId(c.id)}
+                      aria-label={`Delete ${c.title}`}
+                      className="p-3 text-gray-300 shrink-0"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
                 </div>
               );
             })}
