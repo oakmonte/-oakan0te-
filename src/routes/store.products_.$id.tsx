@@ -16,6 +16,7 @@ import { InventorySheet, type InventoryValues } from "@/components/product-form/
 import { CategoryPicker } from "@/components/product-form/CategoryPicker";
 import { ProductTypeSwitchSheet } from "@/components/product-form/ProductTypeSwitchSheet";
 import {
+  stockTotal,
   VariantMatrixBuilder,
   VariantOption,
   VariantOptionValue,
@@ -145,7 +146,13 @@ function EditProduct() {
       : base;
   });
   const [inventorySheetOpen, setInventorySheetOpen] = useState(false);
-  const regularStockQty = Object.values(regularLocationQuantities).reduce((sum, n) => sum + n, 0);
+  // Stock saved before per-location inventory existed has no location rows;
+  // keep it so an unrelated edit + Save doesn't zero the product's stock.
+  const [regularLegacyStockQty, setRegularLegacyStockQty] = useState(0);
+  const regularStockQty = stockTotal({
+    locationQuantities: regularLocationQuantities,
+    legacyStockQty: regularLegacyStockQty,
+  });
   // No UI edits these yet (mirrors "material" on the new-product form) —
   // round-tripped so opening an imported product and saving doesn't drop them.
   const [regularBarcode, setRegularBarcode] = useState<string | null>(null);
@@ -289,6 +296,8 @@ function EditProduct() {
             locationQuantities: Object.fromEntries(
               v.product_variant_stock.map((s) => [s.location_id, s.quantity]),
             ),
+            legacyStockQty:
+              v.product_variant_stock.length === 0 ? (v.stock_qty ?? 0) : undefined,
             barcode: v.barcode,
             material: v.material,
             materialFeel: v.material_feel,
@@ -313,6 +322,9 @@ function EditProduct() {
           Object.fromEntries(
             (v?.product_variant_stock ?? []).map((s) => [s.location_id, s.quantity]),
           ),
+        );
+        setRegularLegacyStockQty(
+          (v?.product_variant_stock ?? []).length === 0 ? (v?.stock_qty ?? 0) : 0,
         );
         setRegularMaterialFeel(v?.material_feel ?? null);
         setRegularWeightGrams(v?.weight_grams ?? null);
@@ -544,7 +556,7 @@ function EditProduct() {
         price: Number(r.price),
         compare_at_price: r.compareAtPrice ? Number(r.compareAtPrice) : null,
         cost_price: r.costPrice ? Number(r.costPrice) : null,
-        stock_qty: Object.values(r.locationQuantities).reduce((sum, n) => sum + n, 0),
+        stock_qty: stockTotal(r),
         sku: r.sku.trim() || null,
         continue_selling_out_of_stock: r.continueSellingOutOfStock,
         main_image_url: r.mainImageUrl.trim() || mainImageUrl.trim() || null,
