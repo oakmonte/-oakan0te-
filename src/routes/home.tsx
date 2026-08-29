@@ -1,8 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { BottomNav } from "@/components/BottomNav";
 import { TopToggleNav } from "@/components/TopToggleNav";
 import { Search } from "lucide-react";
+import { supabase } from "@/lib/integrations/my-supabase/client";
+import { useSession } from "@/hooks/use-session";
 
 export const Route = createFileRoute("/home")({
   head: () => ({ meta: [{ title: "Oakmonte" }] }),
@@ -27,8 +29,24 @@ const EXPLORE_ITEMS = [
 
 function HomePage() {
   const [tab, setTab] = useState<"shop" | "explore">("shop");
-  // TODO: replace with the real logged-in user's username
-  const ownUsername = "diadem-ebenezer";
+  const { user } = useSession();
+  const [ownUsername, setOwnUsername] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    supabase
+      .from("profiles")
+      .select("personal_username")
+      .eq("id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!cancelled && data) setOwnUsername(data.personal_username);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   return (
     <div

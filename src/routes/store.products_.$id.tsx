@@ -1,6 +1,14 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ChevronLeft, ChevronDown, ChevronRight, Tag, Hash, ListChecks } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronDown,
+  ChevronRight,
+  Tag,
+  Hash,
+  ListChecks,
+  MoreVertical,
+} from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { CategoryNode, ROOT_CATEGORY } from "@/lib/categories";
 import { StubRow } from "@/components/product-form/ui";
@@ -15,6 +23,7 @@ import { InventorySection } from "@/components/product-form/InventorySection";
 import { InventorySheet, type InventoryValues } from "@/components/product-form/InventorySheet";
 import { CategoryPicker } from "@/components/product-form/CategoryPicker";
 import { ProductTypeSwitchSheet } from "@/components/product-form/ProductTypeSwitchSheet";
+import { ProductActionsSheet } from "@/components/product-form/ProductActionsSheet";
 import {
   VariantMatrixBuilder,
   VariantOption,
@@ -172,6 +181,7 @@ function EditProduct() {
 
   const [categoryPickerOpen, setCategoryPickerOpen] = useState(false);
   const [typeSwitchOpen, setTypeSwitchOpen] = useState(false);
+  const [actionsSheetOpen, setActionsSheetOpen] = useState(false);
   const [descriptionSheetOpen, setDescriptionSheetOpen] = useState(false);
   const [collectionsSheetOpen, setCollectionsSheetOpen] = useState(false);
   const [collectionIds, setCollectionIds] = useState<string[]>(() => {
@@ -415,6 +425,23 @@ function EditProduct() {
   function handleTypeSwitch(next: ProductKind) {
     setTypeSwitchOpen(false);
     setKind(next);
+  }
+
+  // product_tags has no ON DELETE CASCADE on product_id (unlike its sibling
+  // tables — product_variants/product_options/product_collections/
+  // product_size_measurements all cascade), so a tagged product must have its
+  // tags cleared first or the products delete fails on the FK constraint.
+  async function handleDeleteProduct() {
+    const { error: tagsErr } = await supabase
+      .from("product_tags")
+      .delete()
+      .eq("product_id", productId);
+    if (tagsErr) throw new Error(tagsErr.message);
+
+    const { error: productErr } = await supabase.from("products").delete().eq("id", productId);
+    if (productErr) throw new Error(productErr.message);
+
+    navigate({ to: "/store/products" });
   }
 
   async function handleSave() {
@@ -685,14 +712,24 @@ function EditProduct() {
           <ChevronLeft size={18} />
           Cancel
         </button>
-        <button
-          onClick={() => setTypeSwitchOpen(true)}
-          type="button"
-          className="text-sm font-medium text-gray-900 flex items-center gap-1"
-        >
-          {kind === "regular" ? "Regular product" : "Product with variations"}
-          <ChevronDown size={14} className="text-gray-400" />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setTypeSwitchOpen(true)}
+            type="button"
+            className="text-sm font-medium text-gray-900 flex items-center gap-1"
+          >
+            {kind === "regular" ? "Regular product" : "Product with variations"}
+            <ChevronDown size={14} className="text-gray-400" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setActionsSheetOpen(true)}
+            aria-label="Product actions"
+            className="p-1.5 -mr-1.5 text-gray-500"
+          >
+            <MoreVertical size={18} />
+          </button>
+        </div>
       </div>
 
       {error && <p className="px-4 pt-3 text-sm text-red-500">{error}</p>}
@@ -806,6 +843,13 @@ function EditProduct() {
           current={kind}
           onSelect={handleTypeSwitch}
           onClose={() => setTypeSwitchOpen(false)}
+        />
+      )}
+
+      {actionsSheetOpen && (
+        <ProductActionsSheet
+          onClose={() => setActionsSheetOpen(false)}
+          onDelete={handleDeleteProduct}
         />
       )}
 
