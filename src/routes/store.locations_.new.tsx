@@ -7,6 +7,7 @@ import {
   setPendingNewLocationId,
 } from "@/lib/product-draft-handoff";
 import { useActiveStoreId } from "@/hooks/use-own-store";
+import { Spinner } from "@/components/spinner";
 
 export const Route = createFileRoute("/store/locations_/new")({
   component: NewLocation,
@@ -14,7 +15,7 @@ export const Route = createFileRoute("/store/locations_/new")({
 
 function NewLocation() {
   const navigate = useNavigate();
-  const { storeId } = useActiveStoreId();
+  const { storeId, loading: storeLoading } = useActiveStoreId();
 
   // Reached from the product form's Inventory sheet ("Add pickup location")
   // as well as directly from Pickup locations on the store home — same
@@ -52,6 +53,14 @@ function NewLocation() {
       setPendingNewLocationId(created.id);
     }
     navigate({ to: returnTo });
+  }
+
+  if (storeLoading) {
+    return (
+      <div className="min-h-dvh bg-white flex items-center justify-center">
+        <Spinner className="text-gray-300" />
+      </div>
+    );
   }
 
   return (
