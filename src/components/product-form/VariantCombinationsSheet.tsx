@@ -15,6 +15,7 @@ export function VariantCombinationsSheet({
   mainImageUrl,
   additionalImageUrls,
   storeId,
+  onCreateLocation,
   onBack,
   onDone,
 }: {
@@ -24,6 +25,7 @@ export function VariantCombinationsSheet({
   mainImageUrl: string;
   additionalImageUrls: string[];
   storeId: string;
+  onCreateLocation: () => void;
   onBack: () => void;
   onDone: () => void;
 }) {
@@ -299,15 +301,12 @@ export function VariantCombinationsSheet({
               productLabel={row.options.map((o) => o.value).join(" / ")}
               storeId={storeId}
               initial={{
-                sku: row.sku,
-                barcode: row.barcode ?? "",
                 continueSellingOutOfStock: row.continueSellingOutOfStock,
                 locationQuantities: row.locationQuantities,
               }}
+              onCreateLocation={onCreateLocation}
               onSave={(values: InventoryValues) => {
                 updateRow(inventoryKey, {
-                  sku: values.sku,
-                  barcode: values.barcode,
                   continueSellingOutOfStock: values.continueSellingOutOfStock,
                   locationQuantities: values.locationQuantities,
                 });

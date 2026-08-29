@@ -22,8 +22,6 @@ export type ProductDraft = {
   compareAtPrice: string;
   costPrice: string;
   stockQty: number;
-  regularSku: string;
-  regularBarcode: string;
   regularContinueSellingOutOfStock: boolean;
   regularLocationQuantities: Record<string, number>;
   material: string;
@@ -36,6 +34,7 @@ export type ProductDraft = {
 
 let pendingDraft: ProductDraft | null = null;
 let pendingNewCollectionId: string | null = null;
+let pendingNewLocationId: string | null = null;
 
 export function stashProductDraft(draft: ProductDraft) {
   pendingDraft = draft;
@@ -65,5 +64,21 @@ export function setPendingNewCollectionId(id: string) {
 export function takePendingNewCollectionId(): string | null {
   const id = pendingNewCollectionId;
   pendingNewCollectionId = null;
+  return id;
+}
+
+// Same side-trip pattern as collections, for the "Add pickup location"
+// entry point inside the Inventory sheet's location picker. Only the
+// regular-product page auto-selects the new location on return (its
+// Inventory state is top-level); a variant row's Inventory sheet is nested
+// several levels deep in the wizard, so for now the new location just shows
+// up next time that row's Edit Locations is opened.
+export function setPendingNewLocationId(id: string) {
+  pendingNewLocationId = id;
+}
+
+export function takePendingNewLocationId(): string | null {
+  const id = pendingNewLocationId;
+  pendingNewLocationId = null;
   return id;
 }

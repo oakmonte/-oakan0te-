@@ -1,8 +1,8 @@
 import { ChevronRight } from "lucide-react";
 
 /** Collapsed "Inventory" row on the regular-product form — tapping it opens
- *  InventorySheet, which owns SKU/barcode/continue-selling-out-of-stock and
- *  the per-location quantity breakdown. This row is just a summary + entry
+ *  InventorySheet, which owns continue-selling-out-of-stock and the
+ *  per-location quantity breakdown. This row is just a summary + entry
  *  point, no editing happens here. */
 export function InventorySection({
   available,
@@ -24,7 +24,7 @@ export function InventorySection({
         <p className="text-xs text-gray-400 mt-0.5">
           {locationCount > 0
             ? `${available} available · ${locationCount} location${locationCount === 1 ? "" : "s"}`
-            : "Set your SKU, barcode, and stock levels"}
+            : "Set your stock levels and locations"}
         </p>
       </div>
       <ChevronRight size={16} className="text-gray-300 shrink-0" />

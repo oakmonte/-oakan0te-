@@ -28,6 +28,7 @@ import {
   stashProductDraft,
   takeProductDraft,
   takePendingNewCollectionId,
+  takePendingNewLocationId,
 } from "@/lib/product-draft-handoff";
 import { useActiveStoreId } from "@/hooks/use-own-store";
 import { Spinner } from "@/components/spinner";
@@ -131,18 +132,23 @@ function EditProduct() {
   const [compareAtPrice, setCompareAtPrice] = useState(initialDraft?.compareAtPrice ?? "");
   const [costPrice, setCostPrice] = useState(initialDraft?.costPrice ?? "");
   const [material, setMaterial] = useState(initialDraft?.material ?? "");
-  const [regularSku, setRegularSku] = useState(initialDraft?.regularSku ?? "");
-  const [regularBarcode, setRegularBarcode] = useState(initialDraft?.regularBarcode ?? "");
   const [regularContinueSellingOutOfStock, setRegularContinueSellingOutOfStock] = useState(
     initialDraft?.regularContinueSellingOutOfStock ?? false,
   );
   const [regularLocationQuantities, setRegularLocationQuantities] = useState<
     Record<string, number>
-  >(initialDraft?.regularLocationQuantities ?? {});
+  >(() => {
+    const base = initialDraft?.regularLocationQuantities ?? {};
+    const pendingLocationId = takePendingNewLocationId();
+    return pendingLocationId && !(pendingLocationId in base)
+      ? { ...base, [pendingLocationId]: 0 }
+      : base;
+  });
   const [inventorySheetOpen, setInventorySheetOpen] = useState(false);
   const regularStockQty = Object.values(regularLocationQuantities).reduce((sum, n) => sum + n, 0);
   // No UI edits these yet (mirrors "material" on the new-product form) —
   // round-tripped so opening an imported product and saving doesn't drop them.
+  const [regularBarcode, setRegularBarcode] = useState<string | null>(null);
   const [regularMaterialFeel, setRegularMaterialFeel] = useState<string | null>(null);
   const [regularWeightGrams, setRegularWeightGrams] = useState<number | null>(null);
   const [regularAdditionalImageUrls, setRegularAdditionalImageUrls] = useState<string[] | null>(
@@ -301,8 +307,7 @@ function EditProduct() {
         setCostPrice(v?.cost_price != null ? String(v.cost_price) : "");
         setMaterial(v?.material ?? "");
         setMainImageUrl(v?.main_image_url ?? "");
-        setRegularSku(v?.sku ?? "");
-        setRegularBarcode(v?.barcode ?? "");
+        setRegularBarcode(v?.barcode ?? null);
         setRegularContinueSellingOutOfStock(v?.continue_selling_out_of_stock ?? false);
         setRegularLocationQuantities(
           Object.fromEntries(
@@ -356,8 +361,11 @@ function EditProduct() {
     setTagIds((prev) => (prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]));
   }
 
-  function handleCreateCollection() {
-    stashProductDraft({
+  // Shared by both side-trips below — a seller can leave this form to create
+  // a collection or a pickup location mid-edit, and either way needs the
+  // whole draft stashed so nothing edited so far is lost on return.
+  function currentDraft() {
+    return {
       productId,
       kind,
       status,
@@ -370,8 +378,6 @@ function EditProduct() {
       compareAtPrice,
       costPrice,
       stockQty: regularStockQty,
-      regularSku,
-      regularBarcode,
       regularContinueSellingOutOfStock,
       regularLocationQuantities,
       material,
@@ -380,8 +386,17 @@ function EditProduct() {
       collectionIds,
       sizeMeasurements,
       manualSize,
-    });
+    };
+  }
+
+  function handleCreateCollection() {
+    stashProductDraft(currentDraft());
     navigate({ to: "/store/collections/new" });
+  }
+
+  function handleCreateLocation() {
+    stashProductDraft(currentDraft());
+    navigate({ to: "/store/locations/new" });
   }
 
   const selectedRows = rows.filter((r) => r.selected);
@@ -476,10 +491,9 @@ function EditProduct() {
           compare_at_price: compareAtPrice ? Number(compareAtPrice) : null,
           cost_price: costPrice ? Number(costPrice) : null,
           stock_qty: regularStockQty,
-          sku: regularSku.trim() || null,
           material: material.trim() || null,
           main_image_url: mainImageUrl.trim() || null,
-          barcode: regularBarcode.trim() || null,
+          barcode: regularBarcode,
           continue_selling_out_of_stock: regularContinueSellingOutOfStock,
           material_feel: regularMaterialFeel,
           weight_grams: regularWeightGrams,
@@ -708,6 +722,7 @@ function EditProduct() {
             mainImageUrl={mainImageUrl}
             additionalImageUrls={regularAdditionalImageUrls ?? []}
             storeId={storeId}
+            onCreateLocation={handleCreateLocation}
           />
         )
       )}
@@ -762,14 +777,11 @@ function EditProduct() {
         <InventorySheet
           storeId={storeId}
           initial={{
-            sku: regularSku,
-            barcode: regularBarcode,
             continueSellingOutOfStock: regularContinueSellingOutOfStock,
             locationQuantities: regularLocationQuantities,
           }}
+          onCreateLocation={handleCreateLocation}
           onSave={(values: InventoryValues) => {
-            setRegularSku(values.sku);
-            setRegularBarcode(values.barcode);
             setRegularContinueSellingOutOfStock(values.continueSellingOutOfStock);
             setRegularLocationQuantities(values.locationQuantities);
             setInventorySheetOpen(false);

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { X, Search, ImageIcon, Check, Plus } from "lucide-react";
+import { X, Search, ImageIcon, Check, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 
 type CollectionRow = {
@@ -67,6 +67,25 @@ export function CollectionsSheet({
     });
   }
 
+  // Deletes the collection everywhere (not just off this product) -- there
+  // was previously no way for a seller to remove a collection they created
+  // by mistake or no longer use. Cascades to product_collections, so no
+  // separate cleanup needed there.
+  async function handleDelete(id: string) {
+    const { error } = await supabase.from("collections").delete().eq("id", id);
+    if (error) {
+      console.error("CollectionsSheet: failed to delete collection", error);
+      return;
+    }
+    setCollections((prev) => prev?.filter((c) => c.id !== id) ?? prev);
+    setSelected((prev) => {
+      if (!prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+  }
+
   const filtered = (collections ?? []).filter((c) =>
     c.title.toLowerCase().includes(query.trim().toLowerCase()),
   );
@@ -121,34 +140,43 @@ export function CollectionsSheet({
             {filtered.map((c) => {
               const isSelected = selected.has(c.id);
               return (
-                <button
-                  key={c.id}
-                  type="button"
-                  onClick={() => toggle(c.id)}
-                  aria-label={`${isSelected ? "Deselect" : "Select"} ${c.title}`}
-                  className="w-full flex items-center gap-3 px-4 py-3 border-b border-gray-50 text-left"
-                >
-                  <span
-                    className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition-colors duration-200 ${
-                      isSelected ? "bg-black border-black" : "border-gray-300"
-                    }`}
+                <div key={c.id} className="flex items-center border-b border-gray-50">
+                  <button
+                    type="button"
+                    onClick={() => toggle(c.id)}
+                    aria-label={`${isSelected ? "Deselect" : "Select"} ${c.title}`}
+                    className="flex-1 min-w-0 flex items-center gap-3 px-4 py-3 text-left"
                   >
-                    {isSelected && <Check size={13} className="text-white oak-motion-pop" />}
-                  </span>
-                  <span className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
-                    {c.image_url ? (
-                      <img src={c.image_url} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      <ImageIcon size={16} className="text-gray-300" />
-                    )}
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block text-[15px] text-gray-900 truncate">{c.title}</span>
-                    <span className="block text-xs text-gray-400">
-                      {c.count} product{c.count === 1 ? "" : "s"}
+                    <span
+                      className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition-colors duration-200 ${
+                        isSelected ? "bg-black border-black" : "border-gray-300"
+                      }`}
+                    >
+                      {isSelected && <Check size={13} className="text-white oak-motion-pop" />}
                     </span>
-                  </span>
-                </button>
+                    <span className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
+                      {c.image_url ? (
+                        <img src={c.image_url} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <ImageIcon size={16} className="text-gray-300" />
+                      )}
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block text-[15px] text-gray-900 truncate">{c.title}</span>
+                      <span className="block text-xs text-gray-400">
+                        {c.count} product{c.count === 1 ? "" : "s"}
+                      </span>
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(c.id)}
+                    aria-label={`Delete ${c.title}`}
+                    className="p-3 text-gray-300 shrink-0"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
               );
             })}
             {filtered.length === 0 && (

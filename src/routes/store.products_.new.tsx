@@ -26,6 +26,7 @@ import {
   stashProductDraft,
   takeProductDraft,
   takePendingNewCollectionId,
+  takePendingNewLocationId,
 } from "@/lib/product-draft-handoff";
 import { useActiveStoreId } from "@/hooks/use-own-store";
 
@@ -89,14 +90,18 @@ function NewProduct() {
   const [price, setPrice] = useState(initialDraft?.price ?? "");
   const [compareAtPrice, setCompareAtPrice] = useState(initialDraft?.compareAtPrice ?? "");
   const [costPrice, setCostPrice] = useState(initialDraft?.costPrice ?? "");
-  const [regularSku, setRegularSku] = useState(initialDraft?.regularSku ?? "");
-  const [regularBarcode, setRegularBarcode] = useState(initialDraft?.regularBarcode ?? "");
   const [regularContinueSellingOutOfStock, setRegularContinueSellingOutOfStock] = useState(
     initialDraft?.regularContinueSellingOutOfStock ?? false,
   );
   const [regularLocationQuantities, setRegularLocationQuantities] = useState<
     Record<string, number>
-  >(initialDraft?.regularLocationQuantities ?? {});
+  >(() => {
+    const base = initialDraft?.regularLocationQuantities ?? {};
+    const pendingLocationId = takePendingNewLocationId();
+    return pendingLocationId && !(pendingLocationId in base)
+      ? { ...base, [pendingLocationId]: 0 }
+      : base;
+  });
   const [inventorySheetOpen, setInventorySheetOpen] = useState(false);
   const regularStockQty = Object.values(regularLocationQuantities).reduce((sum, n) => sum + n, 0);
   // No UI sets this on this page anymore — material is filled in via
@@ -134,8 +139,11 @@ function NewProduct() {
     setTagIds((prev) => (prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]));
   }
 
-  function handleCreateCollection() {
-    stashProductDraft({
+  // Shared by both side-trips below — a seller can leave this form to create
+  // a collection or a pickup location mid-listing, and either way needs the
+  // whole draft stashed so nothing typed so far is lost on return.
+  function currentDraft() {
+    return {
       kind,
       status,
       mainImageUrl,
@@ -147,8 +155,6 @@ function NewProduct() {
       compareAtPrice,
       costPrice,
       stockQty: regularStockQty,
-      regularSku,
-      regularBarcode,
       regularContinueSellingOutOfStock,
       regularLocationQuantities,
       material,
@@ -157,8 +163,17 @@ function NewProduct() {
       collectionIds,
       sizeMeasurements,
       manualSize,
-    });
+    };
+  }
+
+  function handleCreateCollection() {
+    stashProductDraft(currentDraft());
     navigate({ to: "/store/collections/new" });
+  }
+
+  function handleCreateLocation() {
+    stashProductDraft(currentDraft());
+    navigate({ to: "/store/locations/new" });
   }
 
   // Sellers can uncheck combinations they don't stock — only these get written.
@@ -245,8 +260,6 @@ function NewProduct() {
           compare_at_price: compareAtPrice ? Number(compareAtPrice) : null,
           cost_price: costPrice ? Number(costPrice) : null,
           stock_qty: regularStockQty,
-          sku: regularSku.trim() || null,
-          barcode: regularBarcode.trim() || null,
           continue_selling_out_of_stock: regularContinueSellingOutOfStock,
           material: material.trim() || null,
           main_image_url: mainImageUrl.trim() || null,
@@ -451,6 +464,7 @@ function NewProduct() {
             mainImageUrl={mainImageUrl}
             additionalImageUrls={additionalImageUrls}
             storeId={storeId}
+            onCreateLocation={handleCreateLocation}
           />
         )
       )}
@@ -505,14 +519,11 @@ function NewProduct() {
         <InventorySheet
           storeId={storeId}
           initial={{
-            sku: regularSku,
-            barcode: regularBarcode,
             continueSellingOutOfStock: regularContinueSellingOutOfStock,
             locationQuantities: regularLocationQuantities,
           }}
+          onCreateLocation={handleCreateLocation}
           onSave={(values: InventoryValues) => {
-            setRegularSku(values.sku);
-            setRegularBarcode(values.barcode);
             setRegularContinueSellingOutOfStock(values.continueSellingOutOfStock);
             setRegularLocationQuantities(values.locationQuantities);
             setInventorySheetOpen(false);

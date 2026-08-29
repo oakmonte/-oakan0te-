@@ -50,6 +50,7 @@ export function VariantMatrixBuilder({
   mainImageUrl,
   additionalImageUrls,
   storeId,
+  onCreateLocation,
 }: {
   options: VariantOption[];
   setOptions: (fn: (prev: VariantOption[]) => VariantOption[]) => void;
@@ -63,6 +64,7 @@ export function VariantMatrixBuilder({
   // For InventorySheet's location list, opened per-variant from the combos
   // sheet.
   storeId: string;
+  onCreateLocation: () => void;
 }) {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [wizardStep, setWizardStep] = useState<WizardStep>(null);
@@ -158,6 +160,7 @@ export function VariantMatrixBuilder({
           mainImageUrl={mainImageUrl}
           additionalImageUrls={additionalImageUrls}
           storeId={storeId}
+          onCreateLocation={onCreateLocation}
           onBack={() => setWizardStep("list")}
           onDone={() => setWizardStep(null)}
         />
