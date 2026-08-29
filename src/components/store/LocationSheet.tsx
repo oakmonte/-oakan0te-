@@ -17,6 +17,12 @@ export type StoreLocationValues = {
   lng: number | null;
 };
 
+// Known gaps in the country-state-city dataset, keyed by `${countryIsoCode}-${stateIsoCode}`.
+// Lagos (NG-LA) only lists 8 of its dozens of LGAs and is missing Alimosho entirely.
+const EXTRA_CITIES: Record<string, string[]> = {
+  "NG-LA": ["Alimosho"],
+};
+
 // No paid geocoding provider is wired up yet (no Mapbox/Google Maps key in
 // env) -- Nominatim's free reverse endpoint is a placeholder that's fine at
 // this volume (one lookup per seller tap, not bulk/automated) but should
@@ -111,21 +117,21 @@ export function LocationSheet({
   // Real gaps in this dataset: ~53 countries have no state-level data at
   // all, and even within a listed state the city list can be sparse (Lagos
   // shows only 8 entries and is missing major LGAs like Alimosho entirely).
-  // Rather than blocking on either gap, both pickers stay open via
-  // LocationListPicker's allowCustom -- a typed value that isn't in the
-  // list is still usable.
+  // EXTRA_CITIES patches in known-missing places we've hit; anything else
+  // still isn't blocked -- both pickers stay open via LocationListPicker's
+  // allowCustom, so a typed value that isn't in the list is still usable.
   const cityItems: LocationListItem[] = useMemo(() => {
+    const extra = EXTRA_CITIES[`${countryCode}-${stateCode}`] ?? [];
+    let base: string[];
     if (countryCode && stateCode) {
-      return City.getCitiesOfState(countryCode, stateCode)
-        .map((c) => ({ code: c.name, name: c.name }))
-        .sort((a, b) => a.name.localeCompare(b.name));
+      base = City.getCitiesOfState(countryCode, stateCode).map((c) => c.name);
+    } else if (countryCode) {
+      base = (City.getCitiesOfCountry(countryCode) ?? []).map((c) => c.name);
+    } else {
+      base = [];
     }
-    if (countryCode) {
-      return (City.getCitiesOfCountry(countryCode) ?? [])
-        .map((c) => ({ code: c.name, name: c.name }))
-        .sort((a, b) => a.name.localeCompare(b.name));
-    }
-    return [];
+    const names = new Set([...base, ...(countryCode ? extra : [])]);
+    return [...names].sort((a, b) => a.localeCompare(b)).map((name) => ({ code: name, name }));
   }, [countryCode, stateCode]);
 
   function selectCountry(item: LocationListItem) {
@@ -340,7 +346,9 @@ export function LocationSheet({
                 showErrors && !state.trim() ? "border-red-300" : "border-gray-200"
               }`}
             >
-              <span className={state ? "text-gray-900" : "text-gray-400"}>{state || "State"}</span>
+              <span className={state ? "text-gray-900" : "text-gray-400"}>
+                {state || "State/Province/Region"}
+              </span>
               <ChevronRight size={16} className="text-gray-300 shrink-0" />
             </button>
 
@@ -359,7 +367,7 @@ export function LocationSheet({
             <input
               value={postalCode}
               onChange={(e) => setPostalCode(e.target.value)}
-              placeholder="Postal code (optional)"
+              placeholder="ZIP/Postal code (optional)"
               className="w-full text-base border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-gray-400 transition-colors duration-150"
             />
           </div>
@@ -380,7 +388,7 @@ export function LocationSheet({
         )}
         {pickerOpen === "state" && (
           <LocationListPicker
-            title="State"
+            title="State/Province/Region"
             items={stateItems}
             allowCustom
             onSelect={selectState}
