@@ -17,7 +17,8 @@ import {
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useSession } from "@/hooks/use-session";
 import { useActiveStore } from "@/hooks/use-own-store";
-import { StoreHeaderProvider, useStoreHeader } from "@/hooks/use-store-header";
+import { StoreHeaderProvider } from "@/context/store-header";
+import { useStoreHeader } from "@/hooks/use-store-header";
 
 export const Route = createFileRoute("/store")({
   // Overrides root's #000000 theme-color for the whole dashboard (this
