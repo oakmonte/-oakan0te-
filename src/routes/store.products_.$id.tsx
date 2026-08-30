@@ -109,6 +109,7 @@ function EditProduct() {
   const navigate = useNavigate();
   const { id: productId } = Route.useParams();
   const { storeId, loading: storeLoading } = useActiveStoreId();
+  const { setRightAction } = useStoreHeader();
 
   // Returning from a collection-creation side-trip taken from THIS product's
   // Collections picker — see handleCreateCollection. Only trusted when the
