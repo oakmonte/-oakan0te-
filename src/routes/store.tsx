@@ -17,7 +17,7 @@ import {
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useSession } from "@/hooks/use-session";
 import { useActiveStore } from "@/hooks/use-own-store";
-import { StoreHeaderProvider } from "@/context/store-header";
+import { StoreHeaderProvider } from "@/context/store-header-provider";
 import { useStoreHeader } from "@/hooks/use-store-header";
 
 export const Route = createFileRoute("/store")({
