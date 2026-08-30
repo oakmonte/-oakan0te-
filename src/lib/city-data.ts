@@ -12,7 +12,7 @@ import seed from "./data/city-seed.json";
 type Seed = Record<string, Record<string, string[]>>;
 const SEED = seed as Seed;
 
-type CityModule = typeof import("country-state-city")["City"];
+type CityModule = (typeof import("country-state-city"))["City"];
 
 let fullCities: CityModule | null = null;
 let loading: Promise<void> | null = null;
