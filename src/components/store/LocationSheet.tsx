@@ -1,6 +1,17 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { X, MapPin, LocateFixed, ChevronRight, Check } from "lucide-react";
-import { Country, State, City } from "country-state-city";
+// Deep imports on purpose: the package's index also pulls in the ~8 MB world
+// city dataset, which would block this sheet from opening. Cities come from
+// @/lib/city-data instead (NG/US instantly, the rest in the background).
+import Country from "country-state-city/lib/country";
+import State from "country-state-city/lib/state";
+import {
+  allCitiesReady,
+  getCityNames,
+  isSeededCountry,
+  loadAllCities,
+  subscribeToCities,
+} from "@/lib/city-data";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
 import { LocationListPicker, type LocationListItem } from "./LocationListPicker";
 
