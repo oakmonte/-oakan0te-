@@ -20,10 +20,11 @@ import type { TextFieldId, ThemeEditingProps } from "./edit-types";
 // Focusing the field reveals a font control docked to the right edge of the
 // screen (fixed, not relative to the field, so it reads the same regardless
 // of where on the page the field sits). It starts collapsed to a single
-// pill showing the current font — tap it to expand into a scrollable list
-// of all 40 options; picking one collapses it back to the pill. Both the
-// pill and the list disappear entirely once the field blurs. Every text box
-// can carry its own font, never forced to match the rest of the storefront.
+// "Change font" pill — tap it to expand into a scrollable list of every
+// option, with the field's current font highlighted in place; picking one
+// collapses it back to the pill. Both the pill and the list disappear
+// entirely once the field blurs. Every text box can carry its own font,
+// never forced to match the rest of the storefront.
 // A small remove button sits at the field's own top-right corner whenever
 // it currently holds text, letting a seller delete just that line and fall
 // back to the editorial default rather than removing a whole block.
@@ -96,8 +97,6 @@ export function EditableText({
     if (e.key === "Enter") e.currentTarget.blur();
   }
 
-  const activeFont = FONT_OPTIONS.find((f) => f.id === currentFont) ?? FONT_OPTIONS[0];
-
   return (
     <span className="relative block w-full">
       {focused && onFontChange && (
@@ -136,9 +135,8 @@ export function EditableText({
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => setPickerOpen(true)}
               className="rounded-full bg-neutral-900 px-3 py-2 text-[13px] font-medium whitespace-nowrap text-white shadow-xl"
-              style={{ fontFamily: activeFont.fontFamily }}
             >
-              {activeFont.label}
+              Change font
             </button>
           )}
         </div>

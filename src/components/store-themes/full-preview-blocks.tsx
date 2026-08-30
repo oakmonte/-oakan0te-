@@ -212,8 +212,13 @@ export function PhoneHeader({
     e.target.value = "";
   }
 
+  // Grows with the text (no fixed max-width) so a short brand name doesn't
+  // sit in an oversized box and a long one isn't clipped sooner than it has
+  // to be — the header row's own layout (flex-1 + min-w-0 on this side,
+  // shrink-0 on the icon row) is what stops it from reaching the icons,
+  // truncating with an ellipsis if it still would.
   const textLogo = (
-    <div className="flex h-10 max-w-[150px] items-center rounded-xl border border-white/15 bg-black/25 px-3 backdrop-blur-md">
+    <div className="flex h-10 max-w-full items-center rounded-xl border border-white/15 bg-black/25 px-3 backdrop-blur-md">
       <ThemeText
         editing={editing}
         field="logoText"
@@ -240,8 +245,8 @@ export function PhoneHeader({
   );
 
   return (
-    <div className="flex items-start justify-between px-4 py-3">
-      <div>
+    <div className="flex items-start justify-between gap-3 px-4 py-3">
+      <div className="min-w-0 flex-1">
         {logoMode === "text" ? (
           textLogo
         ) : editing?.isEditing ? (
@@ -256,7 +261,7 @@ export function PhoneHeader({
           <LogoModeSwitch mode={logoMode} onChange={(m) => editing.onLogoModeChange(m)} />
         )}
       </div>
-      <div className="flex items-center gap-5 pt-1.5" style={{ color: mutedColor }}>
+      <div className="flex shrink-0 items-center gap-5 pt-1.5" style={{ color: mutedColor }}>
         <Search size={18} strokeWidth={1.8} />
         <ShoppingBag size={18} strokeWidth={1.8} />
         <Share2 size={18} strokeWidth={1.8} />

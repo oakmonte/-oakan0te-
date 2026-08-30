@@ -40,6 +40,17 @@ never a raw `<p>`, or it won't participate in edit mode / undo / font choice. `T
 Hero sections are the one place each theme is genuinely bespoke (background gradient, decoration,
 headline layout) — everything below the hero is shared blocks.
 
+## Live drop is compulsory
+
+Every theme must include a live-drop element — a countdown/urgency piece surfacing the store's next
+or current live drop. **This isn't built yet anywhere**: the only trace of it today is a single
+tooltip string in `full-preview-blocks.tsx` ("A live drop timer will be available at full launch"),
+not a real component, and no existing theme actually renders one. Treat this section as the
+requirement for whatever ships it, not a description of current behavior — when a real live-drop
+component exists, it belongs in `full-preview-blocks.tsx` as a shared block (per the "config exercise,
+not bespoke JSX" rule above) so every theme picks it up the same way, rather than each theme growing
+its own bespoke countdown markup.
+
 ## What NOT to add back
 
 - **No star-rating badge.** It was deliberately removed from `StatsRow` — ratings live on the profile
@@ -66,6 +77,5 @@ was just undone in this session, it doesn't survive a fresh edit.
 ## Everything else
 
 Backend wiring (per-store-per-theme persistence) is session-only today — see `POSTPONED.md` and the
-`supabase-data-access` skill for the `store_theme_customizations` table and `DEV_STORE_ID` gating.
-Don't wire a new theme's save path differently from the others; it goes through the same
-`ThemeEditState`.
+`supabase-data-access` skill for the `store_theme_customizations` table. Don't wire a new theme's save
+path differently from the others; it goes through the same `ThemeEditState`.

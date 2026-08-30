@@ -1362,9 +1362,9 @@ export function ThemePreviewSheet({
               <button
                 type="button"
                 onClick={enterEdit}
-                className="flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-1.5 text-[11px] font-semibold text-white/80 hover:bg-white/15 hover:text-white"
+                className="flex items-center gap-1.5 rounded-full bg-white/10 px-4 py-2.5 text-[13px] font-semibold text-white/80 hover:bg-white/15 hover:text-white"
               >
-                <Pencil size={12} />
+                <Pencil size={15} />
                 Edit
               </button>
             </>
@@ -1401,9 +1401,9 @@ export function ThemePreviewSheet({
                 <PopoverTrigger asChild>
                   <button
                     type="button"
-                    className="flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-1.5 text-[11px] font-semibold text-white/80 hover:bg-white/15 hover:text-white"
+                    className="flex items-center gap-1.5 rounded-full bg-white/10 px-4 py-2.5 text-[13px] font-semibold text-white/80 hover:bg-white/15 hover:text-white"
                   >
-                    <LayoutGrid size={12} />
+                    <LayoutGrid size={15} />
                     Layout
                   </button>
                 </PopoverTrigger>
