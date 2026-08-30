@@ -61,6 +61,22 @@ means "has children, not filled in yet". Not interchangeable.
   devtools, `tanstackStart`, viteReact, tailwind, tsConfigPaths, Nitro and the `@` alias. Don't re-add.
 - LF everywhere. On Windows keep `core.autocrlf=false` for this repo.
 
+## Performance — keep it fast
+
+Every page is mobile-first and often on slow networks. Treat load speed as a first-class feature.
+
+**Fonts.** Only the core app fonts belong in `src/routes/__root.tsx`'s Google Fonts link. Theme-picker fonts (the ~38-family list) must load on demand inside the theme editor, not on every route. Always preconnect `https://fonts.gstatic.com`.
+
+**Images.** Prefer WebP. Preload the LCP image via the leaf route's `head().links` with `rel: "preload"`, `as: "image"`, `fetchpriority: "high"`. Keep `loading="lazy"` for below-the-fold images. Convert oversized PNGs/JPEGs; downscale charts and illustrations that are larger than their rendered size.
+
+**Code splitting.** TanStack Start splits by route by default. Heavy editors (studio, camera, after-shot, mediabunny) should live only inside their own route chunks — verify with a production build that they do not leak into `index-*.js` or shared vendor chunks.
+
+**Heavy reference data.** Never import a multi-megabyte dataset at the top of a widely-used component. Split it: ship a small seed synchronously for the common case, start the full dataset with a dynamic import when the sheet mounts, and swap in full coverage when it arrives. Provide a non-blocking "loading…" cue and always keep a typed fallback.
+
+**Prefetch the next screen.** In wizards and onboarding, each step should call `router.preloadRoute({ to: nextRoute(...) })` after mount (defer with `requestIdleCallback` / `setTimeout`) so the next route's chunk is already in memory before the user taps. For image-heavy next steps, warm the images in priority tiers with `new Image()` preloads.
+
+**Measure before claiming a win.** Run `bun run build` and compare chunk sizes. Check the preview's Network tab for the actual request timing. A change that only feels faster is not done until the numbers show it.
+
 ## Pre-launch state
 
 Full list, including everything postponed on purpose, in `POSTPONED.md` at the repo root.
