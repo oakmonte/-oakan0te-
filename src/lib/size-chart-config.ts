@@ -12,7 +12,12 @@ export type ManualSize = { value: string; system: string };
 export type SizeChartDefinition = {
   id: string;
   guide:
-    "tshirt" | "polo" | "off-shoulder-top" | "nfl-jersey" | "football-jersey" | "baggy-joggers";
+    | "tshirt"
+    | "polo"
+    | "off-shoulder-top"
+    | "nfl-jersey"
+    | "football-jersey"
+    | "baggy-joggers";
   lines: SizeChartLine[];
 };
 
@@ -145,7 +150,11 @@ export function displayToCm(value: number, unit: "cm" | "in"): number {
 // see plausibility check call sites for the generic, non-specific copy shown
 // instead.
 type MeasurementKey =
-  "shoulder_width" | "chest_width" | "body_length" | "sleeve_length" | "neck_width";
+  | "shoulder_width"
+  | "chest_width"
+  | "body_length"
+  | "sleeve_length"
+  | "neck_width";
 
 const RATIO_BOUNDS: { a: MeasurementKey; b: MeasurementKey; min: number; max: number }[] = [
   { a: "sleeve_length", b: "body_length", min: 0.15, max: 0.55 },

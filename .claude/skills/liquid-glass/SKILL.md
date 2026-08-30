@@ -5,7 +5,7 @@ description: The translucent, blurred "liquid glass" surface treatment used for 
 
 # Liquid glass
 
-A floating-surface treatment for chrome that sits *over* scrollable content rather than being part of
+A floating-surface treatment for chrome that sits _over_ scrollable content rather than being part of
 the page flow — the bottom nav pill (`src/components/BottomNav.tsx`) and the home page's shop/explore
 toggle (`src/components/TopToggleNav.tsx`) are the two reference implementations. There is no shared
 component for this yet — each surface writes its own inline `style` object with this recipe, because
