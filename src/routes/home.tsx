@@ -56,7 +56,7 @@ function HomePage() {
       className="min-h-screen bg-black text-white pb-28"
       style={{ fontFamily: "'SF Pro', system-ui, sans-serif" }}
     >
-      <div className="sticky top-0 z-50 pt-4 px-4 flex justify-center bg-black/95 backdrop-blur-md">
+      <div className="fixed inset-x-0 top-0 z-50 flex h-[76px] justify-center bg-black/95 px-4 pt-4 backdrop-blur-md">
         <TopToggleNav
           active={tab}
           onChange={setTab}
@@ -65,7 +65,7 @@ function HomePage() {
       </div>
 
       {tab === "shop" ? (
-        <div className="px-4 mt-6">
+        <div className="px-4 pt-[100px]">
           <h2 className="text-[24px] font-bold mb-3">Hoodie shelf</h2>
           <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
             {SHOP_ITEMS.map((item) => (
@@ -84,7 +84,7 @@ function HomePage() {
           </div>
         </div>
       ) : (
-        <div className="px-3 mt-6 columns-2 gap-2 [column-fill:_balance]">
+        <div className="columns-2 gap-2 px-3 pt-[100px] [column-fill:_balance]">
           {EXPLORE_ITEMS.map((item) => (
             <button
               key={item.id}
