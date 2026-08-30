@@ -199,6 +199,21 @@ function EditProduct() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
+  // Render the horizontal three-dot delete trigger in the shared store header.
+  useEffect(() => {
+    setRightAction(
+      <button
+        type="button"
+        onClick={() => setActionsSheetOpen(true)}
+        aria-label="Product actions"
+        className="p-1 -mr-1 text-gray-900"
+      >
+        <MoreHorizontal size={20} />
+      </button>,
+    );
+    return () => setRightAction(null);
+  }, [setRightAction]);
+
   // Loads the product once, unless a stashed draft already seeded every
   // field above (the collection side-trip round-trip) — in that case there's
   // nothing to fetch, the draft IS the current form state.
