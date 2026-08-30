@@ -9,6 +9,7 @@ import {
   OnboardingShell,
 } from "@/components/onboarding/OnboardingShell";
 import { useRequireSession } from "@/components/onboarding/use-require-session";
+import { usePrefetchNextStep } from "@/hooks/use-prefetch-next-step";
 
 export const Route = createFileRoute("/name-your-store")({
   head: () => ({ meta: [{ title: "Name your store — Oakmonte" }] }),
@@ -37,6 +38,7 @@ function slugify(value: string) {
 function NameYourStorePage() {
   const navigate = useNavigate();
   const { userId, checking } = useRequireSession();
+  usePrefetchNextStep("seller", "/name-your-store");
   const [brandName, setBrandName] = useState("");
   const [businessEmail, setBusinessEmail] = useState("");
   const [loading, setLoading] = useState(false);

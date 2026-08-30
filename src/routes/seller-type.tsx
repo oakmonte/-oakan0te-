@@ -4,6 +4,7 @@ import { readStoreDraft, setStoreDraft } from "@/lib/onboarding-state";
 import { nextRoute, previousStep, stepPosition } from "@/lib/onboarding-flow";
 import { OnboardingChecking, OnboardingShell } from "@/components/onboarding/OnboardingShell";
 import { useRequireSession } from "@/components/onboarding/use-require-session";
+import { usePrefetchNextStep } from "@/hooks/use-prefetch-next-step";
 
 export const Route = createFileRoute("/seller-type")({
   head: () => ({ meta: [{ title: "What kind of seller are you — Oakmonte" }] }),
@@ -15,6 +16,7 @@ const OPTIONS = ["Brand", "Vendor", "Tailor"];
 function SellerTypePage() {
   const navigate = useNavigate();
   const { checking } = useRequireSession();
+  usePrefetchNextStep("seller", "/seller-type");
   const [sellerType, setSellerType] = useState<string | null>(null);
   const [customOrders, setCustomOrders] = useState(false);
 
