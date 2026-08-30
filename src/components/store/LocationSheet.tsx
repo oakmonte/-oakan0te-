@@ -176,6 +176,12 @@ export function LocationSheet({
     return () => clearTimeout(t);
   }, []);
 
+  // Start pulling the rest of the world's cities the moment the sheet opens,
+  // so it's usually there before anyone taps into the city picker.
+  useEffect(() => {
+    void loadAllCities();
+  }, []);
+
   function useCurrentLocation() {
     if (!("geolocation" in navigator)) {
       setLocateError("Location isn't available on this device.");
