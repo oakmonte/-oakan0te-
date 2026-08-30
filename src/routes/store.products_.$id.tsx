@@ -7,7 +7,7 @@ import {
   Tag,
   Hash,
   ListChecks,
-  MoreVertical,
+  MoreHorizontal,
 } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { CategoryNode, ROOT_CATEGORY } from "@/lib/categories";
@@ -41,6 +41,7 @@ import {
   takePendingNewLocationId,
 } from "@/lib/product-draft-handoff";
 import { useActiveStoreId } from "@/hooks/use-own-store";
+import { useStoreHeader } from "@/hooks/use-store-header";
 import { Spinner } from "@/components/spinner";
 
 export const Route = createFileRoute("/store/products_/$id")({
