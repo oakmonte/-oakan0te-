@@ -1,5 +1,5 @@
 import { useContext } from "react";
-import { StoreHeaderContext } from "@/context/store-header";
+import { StoreHeaderContext } from "@/context/store-header-context";
 
 export function useStoreHeader() {
   const ctx = useContext(StoreHeaderContext);
