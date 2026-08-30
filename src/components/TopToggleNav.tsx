@@ -1,6 +1,12 @@
 import walletIcon from "@/assets/wallet.svg";
 import searchIconAsset from "@/assets/search.svg";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 
 type TopToggleNavProps = {
   active: "shop" | "explore";
@@ -10,7 +16,7 @@ type TopToggleNavProps = {
   searchIcon?: ReactNode;
 };
 
-const glassButtonStyle: React.CSSProperties = {
+const glassButtonStyle: CSSProperties = {
   width: 44,
   height: 44,
   position: "relative",
