@@ -26,6 +26,13 @@ export const Route = createFileRoute("/")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [
+      // Hero phone mockup is the LCP image — start its fetch before hydration.
+      {
+        rel: "preload",
+        as: "image",
+        href: phoneMockupAsset.url,
+        fetchPriority: "high",
+      },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
@@ -584,6 +591,8 @@ function OakmonteLanding() {
                 alt="Oakmonte app on a phone held toward the viewer"
                 width={1450}
                 height={1085}
+                fetchPriority="high"
+                decoding="async"
               />
               <span className="media-cap">SELL · POST · SHOP — ALL IN ONE PLACE</span>
             </div>

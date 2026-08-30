@@ -235,6 +235,7 @@ const label = profileUsername ?? providerSecondName ?? user.email?.split("@")[0]
 const short = label.length > 18 ? label.slice(0, 16) + "…" : label;
 
 return (
+
 <div className="auth-wrap">
 <button type="button" className="cta-btn ghost small" onClick={() => setOpen((v) => !v)}>
 {short}
@@ -270,6 +271,7 @@ variant: "on-black" | "on-blue" | "on-light";
 caption?: string;
 }) {
 return (
+
 <div className={`brand-art ${variant}`}>
 <span className="ring ring2" />
 <span className="ring" />
@@ -287,6 +289,7 @@ return (
 // lands from here is correct and final.
 function RoleCtaRow() {
 return (
+
 <div className="role-cta-row">
 <Link to="/set-up-store" className="cta-btn">
 Set up a store
@@ -319,6 +322,7 @@ return () => window.removeEventListener("scroll", onScroll);
 }, []);
 
 return (
+
 <div className="oak">
 <style>{CSS}</style>
 

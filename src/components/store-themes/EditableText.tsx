@@ -6,7 +6,7 @@ import {
   type KeyboardEvent,
 } from "react";
 import { Minus } from "lucide-react";
-import { FONT_OPTIONS, type FontId } from "./fonts";
+import { FONT_OPTIONS, ensureThemeFont, ensureThemePickerFonts, type FontId } from "./fonts";
 import type { TextFieldId, ThemeEditingProps } from "./edit-types";
 
 // Shared view/edit toggle for every piece of copy in the preview. In view
@@ -133,7 +133,10 @@ export function EditableText({
             <button
               type="button"
               onMouseDown={(e) => e.preventDefault()}
-              onClick={() => setPickerOpen(true)}
+              onClick={() => {
+                ensureThemePickerFonts();
+                setPickerOpen(true);
+              }}
               className="rounded-full bg-neutral-900 px-3 py-2 text-[13px] font-medium whitespace-nowrap text-white shadow-xl"
             >
               Change font
@@ -205,6 +208,13 @@ export function ThemeText({
 }) {
   const value = editing?.text[field] ?? defaultValue;
   const fontId = editing?.textFonts[field];
+
+  // Theme fonts are loaded on demand (fonts.ts): the moment a field renders
+  // in a non-core face, fetch that one family. No-op for sans/serif/display.
+  useEffect(() => {
+    ensureThemeFont(fontId);
+  }, [fontId]);
+
   const fontFamily = fontId ? FONT_OPTIONS.find((f) => f.id === fontId)?.fontFamily : undefined;
   const mergedStyle = fontFamily ? { ...style, fontFamily } : style;
 

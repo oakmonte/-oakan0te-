@@ -29,8 +29,8 @@ import mMuscular from "@/assets/body-types/male/muscular.webp";
 import mChubby from "@/assets/body-types/male/chubby.webp";
 import mPlusModerate from "@/assets/body-types/male/plus-moderate.webp";
 import mPlusFuller from "@/assets/body-types/male/plus-fuller.webp";
-import femaleMeasurementGuide from "@/assets/body-types/female/Body-type-measurement-female.png";
-import maleMeasurementGuide from "@/assets/body-types/male/Body-type-measurement-male.png";
+import femaleMeasurementGuide from "@/assets/body-types/female/Body-type-measurement-female.webp";
+import maleMeasurementGuide from "@/assets/body-types/male/Body-type-measurement-male.webp";
 
 export const Route = createFileRoute("/find-your-fit")({
   head: () => ({ meta: [{ title: "Find your fit — Oakmonte" }] }),
