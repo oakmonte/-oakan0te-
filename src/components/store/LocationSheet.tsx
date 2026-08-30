@@ -143,8 +143,9 @@ export function LocationSheet({
     const base = countryCode ? getCityNames(countryCode, stateCode) : [];
     const names = new Set([...base, ...(countryCode ? extra : [])]);
     return [...names].sort((a, b) => a.localeCompare(b)).map((name) => ({ code: name, name }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- citiesReady is
-    // not read here; it exists purely to recompute when the dataset lands.
+    // citiesReady isn't read above; it's a dep so the list recomputes the
+    // moment the background dataset lands.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [countryCode, stateCode, citiesReady]);
   const citiesStillLoading = !citiesReady && !!countryCode && !isSeededCountry(countryCode);
 
