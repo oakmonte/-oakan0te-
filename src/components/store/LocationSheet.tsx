@@ -132,19 +132,20 @@ export function LocationSheet({
   // EXTRA_CITIES patches in known-missing places we've hit; anything else
   // still isn't blocked -- both pickers stay open via LocationListPicker's
   // allowCustom, so a typed value that isn't in the list is still usable.
+  // Re-renders once the full world city dataset finishes streaming in.
+  const citiesReady = useSyncExternalStore(
+    subscribeToCities,
+    allCitiesReady,
+    () => false, // SSR: only the seed exists on the server
+  );
   const cityItems: LocationListItem[] = useMemo(() => {
     const extra = EXTRA_CITIES[`${countryCode}-${stateCode}`] ?? [];
-    let base: string[];
-    if (countryCode && stateCode) {
-      base = City.getCitiesOfState(countryCode, stateCode).map((c) => c.name);
-    } else if (countryCode) {
-      base = (City.getCitiesOfCountry(countryCode) ?? []).map((c) => c.name);
-    } else {
-      base = [];
-    }
+    const base = countryCode ? getCityNames(countryCode, stateCode) : [];
     const names = new Set([...base, ...(countryCode ? extra : [])]);
     return [...names].sort((a, b) => a.localeCompare(b)).map((name) => ({ code: name, name }));
-  }, [countryCode, stateCode]);
+    // citiesReady flips when the background dataset lands -- recompute then.
+  }, [countryCode, stateCode, citiesReady]);
+  const citiesStillLoading = !citiesReady && !!countryCode && !isSeededCountry(countryCode);
 
   function selectCountry(item: LocationListItem) {
     setCountryCode(item.code);
