@@ -1,26 +1,18 @@
-import { createContext, useContext, useState, ReactNode, useCallback } from "react";
+import { createContext, useContext, useState, ReactNode } from "react";
 
 export type StoreHeaderContextValue = {
+  rightAction: ReactNode;
   setRightAction: (node: ReactNode) => void;
 };
 
 const StoreHeaderContext = createContext<StoreHeaderContextValue | null>(null);
 
 export function StoreHeaderProvider({ children }: { children: ReactNode }) {
-  const [rightAction, setRightActionState] = useState<ReactNode>(null);
-
-  const setRightAction = useCallback((node: ReactNode) => {
-    setRightActionState(node);
-  }, []);
+  const [rightAction, setRightAction] = useState<ReactNode>(null);
 
   return (
-    <StoreHeaderContext.Provider value={{ setRightAction }}>
+    <StoreHeaderContext.Provider value={{ rightAction, setRightAction }}>
       {children}
-      {rightAction && (
-        <div className="sr-only" aria-hidden="true">
-          {rightAction}
-        </div>
-      )}
     </StoreHeaderContext.Provider>
   );
 }
