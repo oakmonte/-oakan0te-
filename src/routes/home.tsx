@@ -84,7 +84,7 @@ function HomePage() {
           </div>
         </div>
       ) : (
-        <div className="columns-2 gap-2 px-3 pt-[100px] [column-fill:_balance]">
+        <div className="columns-2 gap-2 px-3 pt-[88px] [column-fill:_balance]">
           {EXPLORE_ITEMS.map((item) => (
             <button
               key={item.id}
