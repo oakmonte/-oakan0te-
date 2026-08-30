@@ -434,6 +434,11 @@ export function LocationSheet({
             title="City"
             items={cityItems}
             allowCustom
+            loadingNote={
+              citiesStillLoading
+                ? "Still loading cities for this country — you can type yours in."
+                : undefined
+            }
             onSelect={selectCity}
             onClose={() => setPickerOpen(null)}
           />
