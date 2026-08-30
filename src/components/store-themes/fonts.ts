@@ -1,8 +1,8 @@
 // Sans/Serif/Display reuse families already loaded globally for the rest of
-// the app. Everything after that is a deliberate, one-time addition of new
-// Google Fonts (see __root.tsx) picked for fashion/editorial character — the
-// old zero-new-network-request rule was a fine default, not a permanent one,
-// and sellers asked for real creative range in the text editor.
+// the app. Everything after that is a deliberate addition of Google Fonts
+// picked for fashion/editorial character — but they are loaded ON DEMAND
+// (see ensureThemeFont / ensureThemePickerFonts below), not in __root.tsx,
+// so storefronts and core pages never pay for ~35 families they don't use.
 export type FontId =
   | "sans"
   | "serif"
