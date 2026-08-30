@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { AnimatePresence } from "framer-motion";
 import { BottomNav } from "@/components/BottomNav";
 import { TopToggleNav } from "@/components/TopToggleNav";
+import { ExploreFeedOverlay } from "@/components/ExploreFeedOverlay";
 import { Search } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useSession } from "@/hooks/use-session";
@@ -28,9 +30,10 @@ const EXPLORE_ITEMS = [
 ];
 
 function HomePage() {
-  const [tab, setTab] = useState<"shop" | "explore">("shop");
+  const [tab, setTab] = useState<"shop" | "explore">("explore");
   const { user } = useSession();
   const [ownUsername, setOwnUsername] = useState<string | undefined>(undefined);
+  const [feedOpen, setFeedOpen] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -83,18 +86,30 @@ function HomePage() {
       ) : (
         <div className="px-3 mt-6 columns-2 gap-2 [column-fill:_balance]">
           {EXPLORE_ITEMS.map((item) => (
-            <img
+            <button
               key={item.id}
-              src={item.src}
-              alt=""
-              loading="lazy"
-              className="w-full mb-2 rounded-[13px] object-cover break-inside-avoid"
-            />
+              type="button"
+              onClick={() => setFeedOpen(true)}
+              className="block w-full mb-2 break-inside-avoid oak-motion-control active:scale-[0.98]"
+            >
+              <img
+                src={item.src}
+                alt=""
+                loading="lazy"
+                className="w-full rounded-[13px] object-cover"
+              />
+            </button>
           ))}
         </div>
       )}
 
       <BottomNav active="home" ownUsername={ownUsername} />
+
+      <AnimatePresence>
+        {feedOpen && (
+          <ExploreFeedOverlay ownUsername={ownUsername} onClose={() => setFeedOpen(false)} />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
