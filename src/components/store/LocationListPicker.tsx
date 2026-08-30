@@ -65,6 +65,9 @@ export function LocationListPicker({
       </div>
 
       <div className="flex-1 overflow-y-auto pb-8">
+        {loadingNote && (
+          <p className="px-4 py-2 text-xs text-gray-400 border-b border-gray-50">{loadingNote}</p>
+        )}
         {showCustomOption && (
           <button
             onClick={() => onSelect({ code: trimmedSearch, name: trimmedSearch })}
