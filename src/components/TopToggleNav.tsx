@@ -1,12 +1,6 @@
 import walletIcon from "@/assets/wallet.svg";
 import searchIconAsset from "@/assets/search.svg";
-import {
-  useEffect,
-  useRef,
-  useState,
-  type CSSProperties,
-  type ReactNode,
-} from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 
 type TopToggleNavProps = {
   active: "shop" | "explore";
@@ -55,8 +49,7 @@ function GlassIconButton({
           right: "18%",
           height: "38%",
           borderRadius: 999,
-          background:
-            "linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0))",
+          background: "linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0))",
           filter: "blur(1px)",
           pointerEvents: "none",
         }}
@@ -121,8 +114,7 @@ export function TopToggleNav({
             right: "10%",
             height: "42%",
             borderRadius: 999,
-            background:
-              "linear-gradient(180deg, rgba(255,255,255,0.5), rgba(255,255,255,0))",
+            background: "linear-gradient(180deg, rgba(255,255,255,0.5), rgba(255,255,255,0))",
             filter: "blur(1.5px)",
             pointerEvents: "none",
           }}
@@ -137,8 +129,7 @@ export function TopToggleNav({
             right: "20%",
             height: "30%",
             borderRadius: 999,
-            background:
-              "linear-gradient(0deg, rgba(255,255,255,0.18), rgba(255,255,255,0))",
+            background: "linear-gradient(0deg, rgba(255,255,255,0.18), rgba(255,255,255,0))",
             filter: "blur(2px)",
             pointerEvents: "none",
           }}
@@ -176,8 +167,7 @@ export function TopToggleNav({
               right: "14%",
               height: "40%",
               borderRadius: 999,
-              background:
-                "linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0))",
+              background: "linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0))",
               filter: "blur(1px)",
               pointerEvents: "none",
             }}
@@ -211,9 +201,7 @@ export function TopToggleNav({
           <img src={walletIcon} alt="" style={{ width: 18, height: 18 }} />
         </GlassIconButton>
         <GlassIconButton label="Search" onClick={onSearchClick}>
-          {searchIcon ?? (
-            <img src={searchIconAsset} alt="" style={{ width: 18, height: 18 }} />
-          )}
+          {searchIcon ?? <img src={searchIconAsset} alt="" style={{ width: 18, height: 18 }} />}
         </GlassIconButton>
       </div>
     </div>

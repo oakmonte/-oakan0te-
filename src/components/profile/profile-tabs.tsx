@@ -146,7 +146,13 @@ function DraftsIcon(props: { className?: string }) {
 }
 
 export type TabKey =
-  "posts" | "store" | "wardrobe" | "reposts" | "wishlist" | "likedVideos" | "drafts";
+  | "posts"
+  | "store"
+  | "wardrobe"
+  | "reposts"
+  | "wishlist"
+  | "likedVideos"
+  | "drafts";
 
 export const TABS: {
   key: TabKey;

@@ -1,5 +1,12 @@
 export type ThemeId =
-  "motion" | "banner" | "atelier" | "circuit" | "verdant" | "monochrome" | "gilded" | "obsidian";
+  | "motion"
+  | "banner"
+  | "atelier"
+  | "circuit"
+  | "verdant"
+  | "monochrome"
+  | "gilded"
+  | "obsidian";
 
 export type Theme = {
   id: ThemeId;

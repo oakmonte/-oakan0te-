@@ -17,6 +17,8 @@ import {
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useSession } from "@/hooks/use-session";
 import { useActiveStore } from "@/hooks/use-own-store";
+import { StoreHeaderProvider } from "@/context/store-header-provider";
+import { useStoreHeader } from "@/hooks/use-store-header";
 
 export const Route = createFileRoute("/store")({
   // Overrides root's #000000 theme-color for the whole dashboard (this
@@ -38,11 +40,12 @@ const NAV_ITEMS = [
   { label: "Finance", to: "/store/finance", icon: Wallet },
 ];
 
-function StoreLayout() {
+function StoreLayoutInner() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const { user } = useSession();
   const [username, setUsername] = useState<string | null>(null);
   const { store, stores, setActiveId } = useActiveStore();
+  const { rightAction } = useStoreHeader();
 
   useEffect(() => {
     if (!user) return;
@@ -62,7 +65,7 @@ function StoreLayout() {
 
   return (
     <div className="min-h-screen bg-white">
-      <div className="sticky top-0 z-30 bg-white border-b border-gray-100 px-4 h-14 flex items-center justify-between">
+      <div className="fixed inset-x-0 top-0 z-30 bg-white border-b border-gray-100 px-4 h-14 flex items-center justify-between">
         <button
           onClick={() => setDrawerOpen(true)}
           className="p-1 -ml-1 oak-motion-control active:scale-90"
@@ -88,10 +91,12 @@ function StoreLayout() {
         ) : (
           <span className="font-semibold text-sm">{store?.brand_name ?? "Oakmonte Store"}</span>
         )}
-        <div className="w-7" />
+        <div className="flex items-center justify-end min-w-[28px]">{rightAction}</div>
       </div>
 
-      <Outlet />
+      <div className="pt-14">
+        <Outlet />
+      </div>
 
       {drawerOpen && (
         <div className="fixed inset-0 z-40">
@@ -143,5 +148,13 @@ function StoreLayout() {
         </div>
       )}
     </div>
+  );
+}
+
+function StoreLayout() {
+  return (
+    <StoreHeaderProvider>
+      <StoreLayoutInner />
+    </StoreHeaderProvider>
   );
 }

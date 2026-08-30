@@ -3,7 +3,14 @@ import { recipe, type GradeRecipe } from "@/lib/lut/grade-recipe";
 import { getLutTable } from "@/lib/lut/lut-registry";
 
 export type FilterCategory =
-  "favorites" | "portrait" | "fashion" | "film" | "vintage" | "bw" | "lifestyle" | "creative";
+  | "favorites"
+  | "portrait"
+  | "fashion"
+  | "film"
+  | "vintage"
+  | "bw"
+  | "lifestyle"
+  | "creative";
 
 export interface CameraFilter {
   id: string;

@@ -7,280 +7,278 @@ import { signInWithGoogle, signOut } from "@/lib/auth";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 
 export const Route = createFileRoute("/index-upgrade")({
-  head: () => ({
-    meta: [
-      { title: "Oakmonte — Sell, Share & Shop Fashion Safely" },
-      {
-        name: "description",
-        content:
-          "Oakmonte is fashion commerce rebuilt: escrow-protected payments, paid creators and size-matched pieces for curators.",
-      },
-      { property: "og:title", content: "Oakmonte — Sell, Share & Shop Fashion Safely" },
-      {
-        property: "og:description",
-        content:
-          "Escrow-protected payments, paid creators and size-matched pieces — fashion commerce done right.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-    links: [
-      { rel: "preconnect", href: "https://fonts.googleapis.com" },
-      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      {
-        rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700;800;900&display=swap",
-      },
-    ],
-  }),
-  component: IndexUpgrade,
+head: () => ({
+meta: [
+{ title: "Oakmonte — Sell, Share & Shop Fashion Safely" },
+{
+name: "description",
+content:
+"Oakmonte is fashion commerce rebuilt: escrow-protected payments, paid creators and size-matched pieces for curators.",
+},
+{ property: "og:title", content: "Oakmonte — Sell, Share & Shop Fashion Safely" },
+{
+property: "og:description",
+content:
+"Escrow-protected payments, paid creators and size-matched pieces — fashion commerce done right.",
+},
+{ property: "og:type", content: "website" },
+{ name: "twitter:card", content: "summary_large_image" },
+],
+links: [
+{ rel: "preconnect", href: "https://fonts.googleapis.com" },
+{ rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+{
+rel: "stylesheet",
+href: "https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700;800;900&display=swap",
+},
+],
+}),
+component: IndexUpgrade,
 });
 
-/* ---------------- Data ---------------- */
+/_ ---------------- Data ---------------- _/
 const NAV_ITEMS = [
-  { label: "Product", href: "#product", key: "PRODUCT" },
-  { label: "Story", href: "#story", key: "STORY" },
-  { label: "Solutions", href: "#solutions", key: "SOLUTIONS" },
-  { label: "FAQ", href: "#faq", key: "FAQ" },
+{ label: "Product", href: "#product", key: "PRODUCT" },
+{ label: "Story", href: "#story", key: "STORY" },
+{ label: "Solutions", href: "#solutions", key: "SOLUTIONS" },
+{ label: "FAQ", href: "#faq", key: "FAQ" },
 ];
 
 const FEATURES = [
-  { title: "Sellers", points: ["Logistics handled", "Wider customer base", "Custom stores"] },
-  {
-    title: "Creators",
-    points: ["Get paid for what you drive", "Real collaboration tools", "Greater visibility"],
-  },
-  {
-    title: "Curators",
-    points: ["Pieces that actually fit", "Track every delivery", "Share inspiration that matters"],
-  },
+{ title: "Sellers", points: ["Logistics handled", "Wider customer base", "Custom stores"] },
+{
+title: "Creators",
+points: ["Get paid for what you drive", "Real collaboration tools", "Greater visibility"],
+},
+{
+title: "Curators",
+points: ["Pieces that actually fit", "Track every delivery", "Share inspiration that matters"],
+},
 ];
 
 const RESULTS = [
-  { value: 0, suffix: "", label: "Payments released before delivery confirmed" },
-  { value: 100, suffix: "%", label: "Disputes routed through review" },
-  { value: 3, suffix: "", label: "Roles served on one platform" },
-  { value: 1, suffix: "", label: "Size chart, shared across every piece" },
+{ value: 0, suffix: "", label: "Payments released before delivery confirmed" },
+{ value: 100, suffix: "%", label: "Disputes routed through review" },
+{ value: 3, suffix: "", label: "Roles served on one platform" },
+{ value: 1, suffix: "", label: "Size chart, shared across every piece" },
 ];
 
 const QUOTES = [
-  {
-    text: "Finally get paid without chasing invoices or hoping the buyer follows through.",
-    who: "David",
-  },
-  {
-    text: "I share pieces I actually believe in — and I get credit for every sale it drives.",
-    who: "Jamal",
-  },
-  {
-    text: "The size chart alone saved me two returns in my first week.",
-    who: "Nathan",
-  },
+{
+text: "Finally get paid without chasing invoices or hoping the buyer follows through.",
+who: "David",
+},
+{
+text: "I share pieces I actually believe in — and I get credit for every sale it drives.",
+who: "Jamal",
+},
+{
+text: "The size chart alone saved me two returns in my first week.",
+who: "Nathan",
+},
 ];
 
 const FAQS = [
-  {
-    q: "Is my payment actually safe?",
-    a: "Yes. Money sits in escrow until the customer confirms they're satisfied — sellers never get paid before that happens.",
-  },
-  {
-    q: "How do creators get paid?",
-    a: "Creators earn a share of the sales they drive through their shared links, tracked automatically through the platform.",
-  },
-  {
-    q: "What if an item doesn't fit?",
-    a: "Every piece is checked against our shared size chart before listing, and if something's still off, it goes through our dispute pipeline instead of becoming your problem.",
-  },
-  {
-    q: "Do I need to be a business to sell?",
-    a: "No. Whether you're clearing out your closet or running a full storefront, Oakmonte scales with you.",
-  },
-  {
-    q: "Is there a fee to join?",
-    a: "Creating an account is free. Selling fees are laid out clearly before you list — no surprise deductions.",
-  },
+{
+q: "Is my payment actually safe?",
+a: "Yes. Money sits in escrow until the customer confirms they're satisfied — sellers never get paid before that happens.",
+},
+{
+q: "How do creators get paid?",
+a: "Creators earn a share of the sales they drive through their shared links, tracked automatically through the platform.",
+},
+{
+q: "What if an item doesn't fit?",
+a: "Every piece is checked against our shared size chart before listing, and if something's still off, it goes through our dispute pipeline instead of becoming your problem.",
+},
+{
+q: "Do I need to be a business to sell?",
+a: "No. Whether you're clearing out your closet or running a full storefront, Oakmonte scales with you.",
+},
+{
+q: "Is there a fee to join?",
+a: "Creating an account is free. Selling fees are laid out clearly before you list — no surprise deductions.",
+},
 ];
 
-/* ---------------- Hooks ---------------- */
+/_ ---------------- Hooks ---------------- _/
 function useReveal<T extends HTMLElement>() {
-  const ref = useRef<T | null>(null);
-  const [inView, setInView] = useState(false);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const io = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((e) => {
-          if (e.isIntersecting) {
-            setInView(true);
-            io.unobserve(e.target);
-          }
-        });
-      },
-      { threshold: 0.15 },
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
-  return { ref, className: `reveal${inView ? " in-view" : ""}` };
+const ref = useRef<T | null>(null);
+const [inView, setInView] = useState(false);
+useEffect(() => {
+const el = ref.current;
+if (!el) return;
+const io = new IntersectionObserver(
+(entries) => {
+entries.forEach((e) => {
+if (e.isIntersecting) {
+setInView(true);
+io.unobserve(e.target);
+}
+});
+},
+{ threshold: 0.15 },
+);
+io.observe(el);
+return () => io.disconnect();
+}, []);
+return { ref, className: `reveal${inView ? " in-view" : ""}` };
 }
 
 function Reveal({
-  children,
-  delay = 0,
-  className = "",
-  as: Tag = "div",
+children,
+delay = 0,
+className = "",
+as: Tag = "div",
 }: {
-  children: ReactNode;
-  delay?: 0 | 1 | 2 | 3;
-  className?: string;
-  as?: ElementType;
+children: ReactNode;
+delay?: 0 | 1 | 2 | 3;
+className?: string;
+as?: ElementType;
 }) {
-  const { ref, className: rc } = useReveal<HTMLDivElement>();
-  const delayClass = delay ? ` reveal-delay-${delay}` : "";
-  return (
-    <Tag ref={ref} className={`${rc}${delayClass} ${className}`.trim()}>
-      {children}
-    </Tag>
-  );
+const { ref, className: rc } = useReveal<HTMLDivElement>();
+const delayClass = delay ? ` reveal-delay-${delay}` : "";
+return (
+<Tag ref={ref} className={`${rc}${delayClass} ${className}`.trim()}>
+{children}
+</Tag>
+);
 }
 
 function CountUp({ value, suffix }: { value: number; suffix: string }) {
-  const ref = useRef<HTMLElement | null>(null);
-  const [display, setDisplay] = useState(0);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const io = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((e) => {
-          if (!e.isIntersecting) return;
-          io.unobserve(e.target);
-          if (value === 0) return;
-          let current = 0;
-          const step = Math.max(1, Math.ceil(value / 30));
-          const timer = setInterval(() => {
-            current += step;
-            if (current >= value) {
-              current = value;
-              clearInterval(timer);
-            }
-            setDisplay(current);
-          }, 30);
-        });
-      },
-      { threshold: 0.4 },
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, [value]);
-  return (
-    <b ref={ref as React.RefObject<HTMLElement>}>
-      {display}
-      {suffix}
-    </b>
-  );
+const ref = useRef<HTMLElement | null>(null);
+const [display, setDisplay] = useState(0);
+useEffect(() => {
+const el = ref.current;
+if (!el) return;
+const io = new IntersectionObserver(
+(entries) => {
+entries.forEach((e) => {
+if (!e.isIntersecting) return;
+io.unobserve(e.target);
+if (value === 0) return;
+let current = 0;
+const step = Math.max(1, Math.ceil(value / 30));
+const timer = setInterval(() => {
+current += step;
+if (current >= value) {
+current = value;
+clearInterval(timer);
+}
+setDisplay(current);
+}, 30);
+});
+},
+{ threshold: 0.4 },
+);
+io.observe(el);
+return () => io.disconnect();
+}, [value]);
+return (
+<b ref={ref as React.RefObject<HTMLElement>}>
+{display}
+{suffix}
+</b>
+);
 }
 
-/* ---------------- Auth ---------------- */
+/_ ---------------- Auth ---------------- _/
 function HeaderAuth() {
-  const { user, loading } = useSession();
-  const [open, setOpen] = useState(false);
-  const [profileUsername, setProfileUsername] = useState<string | null>(null);
+const { user, loading } = useSession();
+const [open, setOpen] = useState(false);
+const [profileUsername, setProfileUsername] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!user) {
-      setProfileUsername(null);
-      return;
-    }
-    let cancelled = false;
-    supabase
-      .from("profiles")
-      .select("personal_username")
-      .eq("id", user.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (cancelled) return;
-        setProfileUsername(data?.personal_username ?? null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [user]);
+useEffect(() => {
+if (!user) {
+setProfileUsername(null);
+return;
+}
+let cancelled = false;
+supabase
+.from("profiles")
+.select("personal_username")
+.eq("id", user.id)
+.maybeSingle()
+.then(({ data }) => {
+if (cancelled) return;
+setProfileUsername(data?.personal_username ?? null);
+});
+return () => {
+cancelled = true;
+};
+}, [user]);
 
-  if (loading) {
-    return <div style={{ width: 96, height: 36 }} aria-hidden="true" />;
-  }
-
-  if (!user) {
-    const handleSignIn = async () => {
-      const { error } = await signInWithGoogle();
-      if (error) {
-        console.error("Google sign-in failed", error);
-      }
-    };
-    return (
-      <button type="button" className="cta-btn ghost small" onClick={() => void handleSignIn()}>
-        Sign in
-      </button>
-    );
-  }
-
-  const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
-  const str = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : null);
-  const fullName = str(meta.full_name) ?? str(meta.name);
-  const secondWord = fullName ? (fullName.split(/\s+/)[1] ?? null) : null;
-  const providerSecondName = str(meta.family_name) ?? str(meta.last_name) ?? secondWord ?? fullName;
-  const label = profileUsername ?? providerSecondName ?? user.email?.split("@")[0] ?? "Account";
-  const short = label.length > 18 ? label.slice(0, 16) + "…" : label;
-
-  return (
-    <div className="auth-wrap">
-      <button type="button" className="cta-btn ghost small" onClick={() => setOpen((v) => !v)}>
-        {short}
-      </button>
-      <div className={`auth-menu${open ? " open" : ""}`}>
-        {profileUsername && (
-          <Link
-            to="/profile/$username"
-            params={{ username: profileUsername }}
-            onClick={() => setOpen(false)}
-          >
-            View profile
-          </Link>
-        )}
-        <button
-          type="button"
-          onClick={async () => {
-            setOpen(false);
-            await signOut();
-          }}
-        >
-          Sign out
-        </button>
-      </div>
-    </div>
-  );
+if (loading) {
+return <div style={{ width: 96, height: 36 }} aria-hidden="true" />;
 }
 
-/* ---------------- Shared bits ---------------- */
+if (!user) {
+const handleSignIn = async () => {
+const { error } = await signInWithGoogle();
+if (error) {
+console.error("Google sign-in failed", error);
+}
+};
+return (
+<button type="button" className="cta-btn ghost small" onClick={() => void handleSignIn()}>
+Sign in
+</button>
+);
+}
+
+const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
+const str = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : null);
+const fullName = str(meta.full_name) ?? str(meta.name);
+const secondWord = fullName ? (fullName.split(/\s+/)[1] ?? null) : null;
+const providerSecondName = str(meta.family_name) ?? str(meta.last_name) ?? secondWord ?? fullName;
+const label = profileUsername ?? providerSecondName ?? user.email?.split("@")[0] ?? "Account";
+const short = label.length > 18 ? label.slice(0, 16) + "…" : label;
+
+return (
+<div className="auth-wrap">
+<button type="button" className="cta-btn ghost small" onClick={() => setOpen((v) => !v)}>
+{short}
+</button>
+<div className={`auth-menu${open ? " open" : ""}`}>
+{profileUsername && (
+<Link
+to="/profile/$username"
+params={{ username: profileUsername }}
+onClick={() => setOpen(false)} >
+View profile
+</Link>
+)}
+<button
+type="button"
+onClick={async () => {
+setOpen(false);
+await signOut();
+}} >
+Sign out
+</button>
+</div>
+</div>
+);
+}
+
+/_ ---------------- Shared bits ---------------- _/
 function BrandArt({
-  variant,
-  caption,
+variant,
+caption,
 }: {
-  variant: "on-black" | "on-blue" | "on-light";
-  caption?: string;
+variant: "on-black" | "on-blue" | "on-light";
+caption?: string;
 }) {
-  return (
-    <div className={`brand-art ${variant}`}>
-      <span className="ring ring2" />
-      <span className="ring" />
-      <div className="logo-wrap">
-        <img src={logoO} alt="Oakmonte" />
-      </div>
-      {caption && <span className="cap">{caption}</span>}
-    </div>
-  );
+return (
+<div className={`brand-art ${variant}`}>
+<span className="ring ring2" />
+<span className="ring" />
+<div className="logo-wrap">
+<img src={logoO} alt="Oakmonte" />
+</div>
+{caption && <span className="cap">{caption}</span>}
+</div>
+);
 }
 
 // The three real onboarding paths — reused in the hero and the closing CTA so
@@ -288,41 +286,41 @@ function BrandArt({
 // The routes each button leads to are still rough (WIP), but where a visitor
 // lands from here is correct and final.
 function RoleCtaRow() {
-  return (
-    <div className="role-cta-row">
-      <Link to="/set-up-store" className="cta-btn">
-        Set up a store
-      </Link>
-      <Link to="/become-a-creator" className="cta-btn">
-        Become a creator
-      </Link>
-      <Link to="/become-a-curator" className="cta-btn ghost">
-        Define your wardrobe
-      </Link>
-    </div>
-  );
+return (
+<div className="role-cta-row">
+<Link to="/set-up-store" className="cta-btn">
+Set up a store
+</Link>
+<Link to="/become-a-creator" className="cta-btn">
+Become a creator
+</Link>
+<Link to="/become-a-curator" className="cta-btn ghost">
+Define your wardrobe
+</Link>
+</div>
+);
 }
 
-/* ---------------- Page ---------------- */
+/_ ---------------- Page ---------------- _/
 function IndexUpgrade() {
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
-  const [scrolled, setScrolled] = useState(false);
-  const [activeNav, setActiveNav] = useState("PRODUCT");
+const [mobileOpen, setMobileOpen] = useState(false);
+const [openFaq, setOpenFaq] = useState<number | null>(null);
+const [scrolled, setScrolled] = useState(false);
+const [activeNav, setActiveNav] = useState("PRODUCT");
 
-  useEffect(() => {
-    const onScroll = () => {
-      setScrolled(window.scrollY > 8);
-      setActiveNav(window.scrollY > window.innerHeight * 0.6 ? "STORY" : "PRODUCT");
-    };
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+useEffect(() => {
+const onScroll = () => {
+setScrolled(window.scrollY > 8);
+setActiveNav(window.scrollY > window.innerHeight \* 0.6 ? "STORY" : "PRODUCT");
+};
+onScroll();
+window.addEventListener("scroll", onScroll, { passive: true });
+return () => window.removeEventListener("scroll", onScroll);
+}, []);
 
-  return (
-    <div className="oak">
-      <style>{CSS}</style>
+return (
+<div className="oak">
+<style>{CSS}</style>
 
       <header style={{ boxShadow: scrolled ? "0 1px 0 rgba(0,0,0,.06)" : "none" }}>
         <div className="wrap">
@@ -725,20 +723,21 @@ function IndexUpgrade() {
         </footer>
       </main>
     </div>
-  );
+
+);
 }
 
-/* ---------------- Styles ---------------- */
+/_ ---------------- Styles ---------------- _/
 const CSS = `
 .oak{
-  --black:#0A0A0A;--white:#FFFFFF;--blue:#2151F5;--blue-dim:#2151F51a;--gray:#6B6B6B;
-  --line:rgba(10,10,10,.1);
-  --display:"Archivo Black","Helvetica Neue",Arial,sans-serif;
-  --body:"Inter","Helvetica Neue",Arial,sans-serif;
-  background:var(--white);color:var(--black);font-family:var(--body);font-weight:400;
-  -webkit-font-smoothing:antialiased;overflow-x:hidden;
+--black:#0A0A0A;--white:#FFFFFF;--blue:#2151F5;--blue-dim:#2151F51a;--gray:#6B6B6B;
+--line:rgba(10,10,10,.1);
+--display:"Archivo Black","Helvetica Neue",Arial,sans-serif;
+--body:"Inter","Helvetica Neue",Arial,sans-serif;
+background:var(--white);color:var(--black);font-family:var(--body);font-weight:400;
+-webkit-font-smoothing:antialiased;overflow-x:hidden;
 }
-.oak *{box-sizing:border-box;}
+.oak \*{box-sizing:border-box;}
 .oak a{color:inherit;text-decoration:none;}
 .oak button{font:inherit;cursor:pointer;background:none;border:none;color:inherit;}
 .oak ul{margin:0;padding:0;list-style:none;}
@@ -824,7 +823,7 @@ const CSS = `
 .oak .hero-media{position:relative;margin-top:56px;border-radius:24px;overflow:hidden;aspect-ratio:16/7;opacity:0;animation:oakFadeUp .9s ease forwards;animation-delay:.9s;background:#111;}
 .oak .media-cap{position:absolute;left:24px;bottom:20px;z-index:3;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.6);}
 
-/* Self-contained brand-art panels — logo-centered, no external image fetch required */
+/_ Self-contained brand-art panels — logo-centered, no external image fetch required _/
 .oak .brand-art{position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden;}
 .oak .brand-art.on-black{background:radial-gradient(circle at 30% 30%,#132057 0%,var(--black) 65%);}
 .oak .brand-art.on-blue{background:linear-gradient(135deg,var(--blue) 0%,#0d2c9e 100%);}

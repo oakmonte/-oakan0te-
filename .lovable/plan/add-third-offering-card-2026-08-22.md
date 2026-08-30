@@ -1,9 +1,11 @@
 # Add third offering card
 
 ## Goal
+
 Restore the "Pick your path" section to three cards by adding the missing creator card and updating the grid layout so all three sit correctly on desktop and stack cleanly on mobile.
 
 ## Changes
+
 1. **Content — `src/routes/index.tsx` offering section**
    - Insert a third `Reveal`/`offer-card` after the existing shopper card.
    - Tag: `For Creators and Creatives`
@@ -18,4 +20,5 @@ Restore the "Pick your path" section to three cards by adding the missing creato
    - Preserve the `.offer-card.blue` styling on the first (seller) card; the new creator card should use the default white/card styling like the shopper card.
 
 ## Out of scope
+
 No changes to copy on the existing seller or shopper cards, and no changes to other sections.
