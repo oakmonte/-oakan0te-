@@ -56,7 +56,7 @@ function HomePage() {
       className="min-h-screen bg-black text-white pb-28"
       style={{ fontFamily: "'SF Pro', system-ui, sans-serif" }}
     >
-      <div className="fixed inset-x-0 top-0 z-50 flex h-[76px] justify-center bg-black/95 px-4 pt-4 backdrop-blur-md">
+      <div className="fixed inset-x-0 top-0 z-50 flex justify-center px-4 pt-4 pb-2">
         <TopToggleNav
           active={tab}
           onChange={setTab}
