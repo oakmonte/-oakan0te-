@@ -9,6 +9,7 @@ import {
   OnboardingShell,
 } from "@/components/onboarding/OnboardingShell";
 import { useRequireSession } from "@/components/onboarding/use-require-session";
+import { usePrefetchNextStep } from "@/hooks/use-prefetch-next-step";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { cmToDisplay, displayToCm, CM_PER_INCH } from "@/lib/size-chart-config";
 import fSkinny from "@/assets/body-types/female/skinny.webp";
@@ -632,6 +633,7 @@ function FindYourFitPage() {
   const { userId, checking } = useRequireSession();
   // Read after mount, so the server render and hydration agree.
   const [intent, setIntentState] = useState<Intent | null>(null);
+  usePrefetchNextStep(intent, "/find-your-fit");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 

@@ -13,11 +13,15 @@ export function LocationListPicker({
   title,
   items,
   allowCustom = false,
+  loadingNote,
   onSelect,
   onClose,
 }: {
   title: string;
   items: LocationListItem[];
+  // Shown above the list while a bigger dataset is still streaming in behind
+  // this one (see src/lib/city-data.ts) -- the list stays fully usable.
+  loadingNote?: string;
   // The city/state datasets have real gaps (e.g. Lagos only lists 8 of its
   // dozens of LGAs, so "Alimosho" isn't in there at all) -- when true, a
   // typed value that doesn't match anything is still usable via a "Use
@@ -61,6 +65,9 @@ export function LocationListPicker({
       </div>
 
       <div className="flex-1 overflow-y-auto pb-8">
+        {loadingNote && (
+          <p className="px-4 py-2 text-xs text-gray-400 border-b border-gray-50">{loadingNote}</p>
+        )}
         {showCustomOption && (
           <button
             onClick={() => onSelect({ code: trimmedSearch, name: trimmedSearch })}

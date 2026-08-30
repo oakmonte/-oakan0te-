@@ -9,6 +9,7 @@ import {
   OnboardingShell,
 } from "@/components/onboarding/OnboardingShell";
 import { useRequireSession } from "@/components/onboarding/use-require-session";
+import { usePrefetchNextStep } from "@/hooks/use-prefetch-next-step";
 
 export const Route = createFileRoute("/where-did-you-hear-about-us")({
   head: () => ({ meta: [{ title: "Where did you hear about us — Oakmonte" }] }),
@@ -60,6 +61,7 @@ function WhereDidYouHearPage() {
   // Read after mount: reading storage during render served the seller list
   // from the server and swapped it on hydration.
   const [intent, setIntentState] = useState<Intent | null>(null);
+  usePrefetchNextStep(intent, "/where-did-you-hear-about-us");
 
   useEffect(() => {
     setIntentState(readIntent() ?? "seller");

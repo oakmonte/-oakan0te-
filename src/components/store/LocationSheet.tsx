@@ -1,6 +1,17 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { X, MapPin, LocateFixed, ChevronRight, Check } from "lucide-react";
-import { Country, State, City } from "country-state-city";
+// Deep imports on purpose: the package's index also pulls in the ~8 MB world
+// city dataset, which would block this sheet from opening. Cities come from
+// @/lib/city-data instead (NG/US instantly, the rest in the background).
+import Country from "country-state-city/lib/country";
+import State from "country-state-city/lib/state";
+import {
+  allCitiesReady,
+  getCityNames,
+  isSeededCountry,
+  loadAllCities,
+  subscribeToCities,
+} from "@/lib/city-data";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
 import { LocationListPicker, type LocationListItem } from "./LocationListPicker";
 
@@ -121,19 +132,22 @@ export function LocationSheet({
   // EXTRA_CITIES patches in known-missing places we've hit; anything else
   // still isn't blocked -- both pickers stay open via LocationListPicker's
   // allowCustom, so a typed value that isn't in the list is still usable.
+  // Re-renders once the full world city dataset finishes streaming in.
+  const citiesReady = useSyncExternalStore(
+    subscribeToCities,
+    allCitiesReady,
+    () => false, // SSR: only the seed exists on the server
+  );
   const cityItems: LocationListItem[] = useMemo(() => {
     const extra = EXTRA_CITIES[`${countryCode}-${stateCode}`] ?? [];
-    let base: string[];
-    if (countryCode && stateCode) {
-      base = City.getCitiesOfState(countryCode, stateCode).map((c) => c.name);
-    } else if (countryCode) {
-      base = (City.getCitiesOfCountry(countryCode) ?? []).map((c) => c.name);
-    } else {
-      base = [];
-    }
+    const base = countryCode ? getCityNames(countryCode, stateCode) : [];
     const names = new Set([...base, ...(countryCode ? extra : [])]);
     return [...names].sort((a, b) => a.localeCompare(b)).map((name) => ({ code: name, name }));
-  }, [countryCode, stateCode]);
+    // citiesReady isn't read above; it's a dep so the list recomputes the
+    // moment the background dataset lands.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [countryCode, stateCode, citiesReady]);
+  const citiesStillLoading = !citiesReady && !!countryCode && !isSeededCountry(countryCode);
 
   function selectCountry(item: LocationListItem) {
     setCountryCode(item.code);
@@ -162,6 +176,12 @@ export function LocationSheet({
   useEffect(() => {
     const t = setTimeout(() => setPromptVisible(true), 350);
     return () => clearTimeout(t);
+  }, []);
+
+  // Start pulling the rest of the world's cities the moment the sheet opens,
+  // so it's usually there before anyone taps into the city picker.
+  useEffect(() => {
+    void loadAllCities();
   }, []);
 
   function useCurrentLocation() {
@@ -416,6 +436,11 @@ export function LocationSheet({
             title="City"
             items={cityItems}
             allowCustom
+            loadingNote={
+              citiesStillLoading
+                ? "Still loading cities for this country — you can type yours in."
+                : undefined
+            }
             onSelect={selectCity}
             onClose={() => setPickerOpen(null)}
           />
