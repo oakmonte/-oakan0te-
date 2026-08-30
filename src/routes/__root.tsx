@@ -148,7 +148,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Anton&family=Playfair+Display:ital,wght@0,500;0,700;1,500&family=Abril+Fatface&family=Bodoni+Moda:ital,wght@0,500;0,700;1,500&family=Cinzel:wght@500;700&family=Italiana&family=Marcellus&family=Unbounded:wght@500;700&family=Syne:wght@600;700&family=Poppins:wght@400;500;600&family=DM+Serif+Display&family=Fraunces:ital,wght@0,400;0,600;1,400&family=Libre+Caslon+Display&family=Spectral:wght@400;600&family=EB+Garamond:wght@400;600&family=Prata&family=Josefin+Sans:wght@400;600&family=Space+Grotesk:wght@400;500;700&family=Bebas+Neue&family=Oswald:wght@400;500;600&family=Archivo+Black&family=Zilla+Slab:wght@400;600&family=Crimson+Text:wght@400;600&family=Libre+Baskerville:wght@400;700&family=Fjalla+One&family=Staatliches&family=Manrope:wght@400;500;700&family=Sora:wght@400;500;700&family=DM+Sans:wght@400;500;700&family=Outfit:wght@400;500;700&family=Bricolage+Grotesque:wght@400;600;800&family=Instrument+Serif&family=Newsreader:ital,wght@0,400;0,600;1,400&family=Vollkorn:wght@400;600&family=Tenor+Sans&family=Yeseva+One&family=Cardo:wght@400;700&display=swap",
+        // Core faces only. The ~35 store-theme families load on demand via
+        // ensureThemeFont / ensureThemePickerFonts in store-themes/fonts.ts.
+        href: "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Anton&display=swap",
       },
     ],
   }),
