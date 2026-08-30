@@ -721,7 +721,7 @@ function EditProduct() {
 
   return (
     <div className="min-h-dvh bg-white pb-10">
-      <div className="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
+      <div className="sticky top-14 z-20 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
         <button
           onClick={() => navigate({ to: "/store/products" })}
           className="text-sm text-gray-500 flex items-center gap-0.5 -ml-1"
@@ -729,24 +729,14 @@ function EditProduct() {
           <ChevronLeft size={18} />
           Cancel
         </button>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => setTypeSwitchOpen(true)}
-            type="button"
-            className="text-sm font-medium text-gray-900 flex items-center gap-1"
-          >
-            {kind === "regular" ? "Regular product" : "Product with variations"}
-            <ChevronDown size={14} className="text-gray-400" />
-          </button>
-          <button
-            type="button"
-            onClick={() => setActionsSheetOpen(true)}
-            aria-label="Product actions"
-            className="p-1.5 -mr-1.5 text-gray-500"
-          >
-            <MoreVertical size={18} />
-          </button>
-        </div>
+        <button
+          onClick={() => setTypeSwitchOpen(true)}
+          type="button"
+          className="text-sm font-medium text-gray-900 flex items-center gap-1"
+        >
+          {kind === "regular" ? "Regular product" : "Product with variations"}
+          <ChevronDown size={14} className="text-gray-400" />
+        </button>
       </div>
 
       {error && <p className="px-4 pt-3 text-sm text-red-500">{error}</p>}
