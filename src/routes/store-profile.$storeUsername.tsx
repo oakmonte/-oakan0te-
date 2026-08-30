@@ -246,7 +246,7 @@ function StoreProfilePage() {
     >
       {/* Top bar */}
       <div className="flex items-center justify-between px-6 pt-4 pb-2">
-        <button onClick={() => navigate({ to: ".." })} aria-label="Back">
+        <button onClick={() => navigate({ to: "/" })} aria-label="Back">
           <ArrowLeft size={22} />
         </button>
         <div className="flex items-center gap-5">

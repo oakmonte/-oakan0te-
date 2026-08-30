@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate, useParams, useRouter } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -22,8 +23,18 @@ import { PostsGrid } from "@/components/profile/PostsGrid";
 import { PublicStorefront } from "@/components/store-themes/full-previews";
 import { Stat, MenuRow } from "@/components/profile/profile-chrome";
 import { TABS, type TabKey } from "@/components/profile/profile-tabs";
+import { profileQueryOptions } from "@/lib/queries/profile";
 
 export const Route = createFileRoute("/profile/$username")({
+  // Fire-and-forget: starts this fetch as early as `intent` preload allows
+  // (hover/touch-start on a Link to this route — see router.tsx) without
+  // making navigation wait on it. The component below still reads the same
+  // query via useQuery in its ordinary non-suspending loading/data pattern,
+  // so a cold visit (no preload — e.g. a direct URL) behaves exactly as
+  // before; a preloaded one just finds the data already there.
+  loader: ({ context, params }) => {
+    void context.queryClient.ensureQueryData(profileQueryOptions(params.username));
+  },
   head: () => ({ meta: [{ title: "Profile — Oakmonte" }] }),
   component: ProfilePage,
 });
@@ -57,8 +68,14 @@ function ProfilePage() {
   const router = useRouter();
   const { username } = useParams({ from: "/profile/$username" });
   const { user } = useSession();
-  const [profile, setProfile] = useState<ProfileRow | null>(null);
-  const [profileLoading, setProfileLoading] = useState(true);
+  const { data: baseProfile, isPending: profileLoading } = useQuery(profileQueryOptions(username));
+  const [stats, setStats] = useState({
+    following_count: 0,
+    followers_count: 0,
+    rating: 0,
+    rating_count: 0,
+  });
+  const profile: ProfileRow | null = baseProfile ? { ...baseProfile, ...stats } : null;
   const [activeTab, setActiveTab] = useState<TabKey>("posts");
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -109,70 +126,36 @@ function ProfilePage() {
     }
   };
 
+  // The counts live on the profile_stats view, not on profiles — asking
+  // profiles for them makes PostgREST reject the whole select, so this stays
+  // its own fetch rather than folding into the profileQueryOptions query.
+  // Not blocking: baseProfile (and everything gated on it below) is already
+  // available before this resolves, with these counts at their 0 default.
   useEffect(() => {
+    if (!baseProfile) {
+      setStats({ following_count: 0, followers_count: 0, rating: 0, rating_count: 0 });
+      return;
+    }
     let cancelled = false;
-    setProfileLoading(true);
-    // public_profiles, not profiles: profiles' SELECT policy is auth.uid() =
-    // id, so it can only ever return the signed-in user's own row. The view
-    // exposes just the columns this page renders publicly.
+    const id = baseProfile.id;
     supabase
-      .from("public_profiles")
-      .select("id, personal_username, display_name, avatar_url, bio")
-      .eq("personal_username", username)
-      .single()
-      .then(({ data, error }) => {
-        if (cancelled) return;
-        // id/personal_username are NOT NULL on the base table — the view's
-        // generated type just can't express that for a view's columns.
-        if (error || !data || !data.id || !data.personal_username) {
-          setProfileLoading(false);
-          return;
-        }
-        const { id, personal_username } = data;
-
-        // Paint the header (avatar/name/bio) the instant this resolves,
-        // with placeholder counts — this also unblocks the stores/follows
-        // effects below (both gated on [profile]) instead of making them
-        // wait behind the stats round-trip too. Real counts merge in below
-        // as soon as they arrive, not before.
-        setProfile({
-          ...data,
-          id,
-          personal_username,
-          following_count: 0,
-          followers_count: 0,
-          rating: 0,
-          rating_count: 0,
+      .from("profile_stats")
+      .select("following_count, followers_count, rating, rating_count")
+      .eq("id", id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (cancelled || !data) return;
+        setStats({
+          following_count: data.following_count ?? 0,
+          followers_count: data.followers_count ?? 0,
+          rating: data.rating ?? 0,
+          rating_count: data.rating_count ?? 0,
         });
-        setProfileLoading(false);
-
-        // The counts live on the profile_stats view, not on profiles — asking
-        // profiles for them makes PostgREST reject the whole select. Fetched
-        // separately, not awaited above, so it can't block first paint.
-        supabase
-          .from("profile_stats")
-          .select("following_count, followers_count, rating, rating_count")
-          .eq("id", id)
-          .maybeSingle()
-          .then(({ data: stats }) => {
-            if (cancelled || !stats) return;
-            setProfile((prev) =>
-              prev && prev.id === id
-                ? {
-                    ...prev,
-                    following_count: stats.following_count ?? 0,
-                    followers_count: stats.followers_count ?? 0,
-                    rating: stats.rating ?? 0,
-                    rating_count: stats.rating_count ?? 0,
-                  }
-                : prev,
-            );
-          });
       });
     return () => {
       cancelled = true;
     };
-  }, [username]);
+  }, [baseProfile]);
 
   // Home and the seller dashboard are the two places people jump to next
   // from a profile most often (the bottom pill, and "Manage store" from the
@@ -213,7 +196,11 @@ function ProfilePage() {
     return () => {
       cancelled = true;
     };
-  }, [profile]);
+    // profile is a freshly-derived object every render (baseProfile + stats
+    // merged) — depending on the whole thing would re-run this on every
+    // stats update. Only the id actually matters here.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.id]);
 
   // Whether the signed-in viewer already follows this profile — irrelevant
   // (and skipped) when looking at your own profile.
@@ -237,7 +224,9 @@ function ProfilePage() {
     return () => {
       cancelled = true;
     };
-  }, [user, profile]);
+    // Same reasoning as the stores effect above — only the id matters.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, profile?.id]);
 
   async function toggleFollow() {
     if (!profile || followBusy) return;
@@ -248,9 +237,10 @@ function ProfilePage() {
     const wasFollowing = isFollowing;
     setFollowBusy(true);
     setIsFollowing(!wasFollowing);
-    setProfile((p) =>
-      p ? { ...p, followers_count: Math.max(0, p.followers_count + (wasFollowing ? -1 : 1)) } : p,
-    );
+    setStats((s) => ({
+      ...s,
+      followers_count: Math.max(0, s.followers_count + (wasFollowing ? -1 : 1)),
+    }));
     const { error } = wasFollowing
       ? await supabase
           .from("follows")
@@ -261,9 +251,10 @@ function ProfilePage() {
     if (error) {
       console.error("ProfilePage: failed to toggle follow", error);
       setIsFollowing(wasFollowing);
-      setProfile((p) =>
-        p ? { ...p, followers_count: Math.max(0, p.followers_count + (wasFollowing ? 1 : -1)) } : p,
-      );
+      setStats((s) => ({
+        ...s,
+        followers_count: Math.max(0, s.followers_count + (wasFollowing ? 1 : -1)),
+      }));
     } else if (wasFollowing) {
       setNotifyEnabled(false);
     }
@@ -305,7 +296,7 @@ function ProfilePage() {
       window.removeEventListener("resize", update);
       window.removeEventListener("scroll", update);
     };
-  }, [profile]);
+  }, [profile?.id]);
 
   // Body scroll lock while the Store sheet is up, same as any bottom sheet —
   // also keeps sheetTop from drifting out from under the sheet mid-view.
@@ -363,7 +354,7 @@ function ProfilePage() {
     >
       {/* Top bar */}
       <div className="flex items-center justify-between px-6 pt-4 pb-2">
-        <button onClick={() => navigate({ to: ".." })} aria-label="Back">
+        <button onClick={() => navigate({ to: "/" })} aria-label="Back">
           <ArrowLeft size={22} />
         </button>
         <div className="flex items-center gap-5">
