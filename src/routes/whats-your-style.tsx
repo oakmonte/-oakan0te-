@@ -10,6 +10,7 @@ import {
   OnboardingShell,
 } from "@/components/onboarding/OnboardingShell";
 import { useRequireSession } from "@/components/onboarding/use-require-session";
+import { usePrefetchNextStep } from "@/hooks/use-prefetch-next-step";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 
 export const Route = createFileRoute("/whats-your-style")({
@@ -25,6 +26,7 @@ function WhatsYourStylePage() {
   // Read after mount, same reasoning as the rest of onboarding: reading
   // storage during render served a stale value from the server on hydration.
   const [intent, setIntentState] = useState<Intent | null>(null);
+  usePrefetchNextStep(intent, "/whats-your-style");
 
   useEffect(() => {
     setIntentState(readIntent() ?? "creator");

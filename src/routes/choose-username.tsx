@@ -10,6 +10,7 @@ import {
   OnboardingShell,
 } from "@/components/onboarding/OnboardingShell";
 import { useRequireSession } from "@/components/onboarding/use-require-session";
+import { usePrefetchNextStep } from "@/hooks/use-prefetch-next-step";
 
 export const Route = createFileRoute("/choose-username")({
   head: () => ({ meta: [{ title: "Choose a username — Oakmonte" }] }),
@@ -77,6 +78,7 @@ function ChooseUsernamePage() {
   // Read after mount: reading storage during render made the server and the
   // client disagree and produced a hydration mismatch.
   const [intent, setIntentState] = useState<Intent | null>(null);
+  usePrefetchNextStep(intent, "/choose-username");
   const [availability, setAvailability] = useState<Availability>("idle");
 
   useEffect(() => {
