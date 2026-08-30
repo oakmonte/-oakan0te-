@@ -65,7 +65,7 @@ function HomePage() {
       </div>
 
       {tab === "shop" ? (
-        <div className="px-4 pt-[100px]">
+        <div className="px-4 pt-[88px]">
           <h2 className="text-[24px] font-bold mb-3">Hoodie shelf</h2>
           <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
             {SHOP_ITEMS.map((item) => (
