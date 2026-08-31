@@ -14,10 +14,22 @@ export type SizeChartDefinition = {
   guide:
     | "tshirt"
     | "polo"
+    | "dress-shirt"
     | "off-shoulder-top"
     | "nfl-jersey"
     | "football-jersey"
-    | "baggy-joggers";
+    | "baggy-joggers"
+    | "cuffed-joggers"
+    | "straight-joggers"
+    | "skinny-joggers"
+    | "baggy-corporate-trousers"
+    | "baggy-jeans"
+    | "shorts"
+    | "jogger-jorts"
+    | "denim-jorts"
+    | "dolphin-shorts"
+    | "bum-shorts"
+    | "denim-bum-shorts";
   lines: SizeChartLine[];
 };
 
