@@ -408,7 +408,7 @@ function NewProduct() {
 
   return (
     <div className="min-h-dvh bg-white pb-10">
-      <div className="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
+      <div className="sticky top-14 z-20 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
         <button
           onClick={() => navigate({ to: "/store/products" })}
           className="text-sm text-gray-500 flex items-center gap-0.5 -ml-1"
