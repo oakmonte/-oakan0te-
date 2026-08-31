@@ -107,8 +107,7 @@ function FinancePage() {
 
       {account !== undefined && (
         <p className="text-xs text-gray-400 mt-4 animate-in fade-in duration-300">
-          We can&apos;t verify account details yet — Paystack isn&apos;t connected. Once it is, this
-          card flips to &quot;Verified&quot; automatically, no re-entry needed.
+          Actively verifying your account. If it is verified, this card flips to &quot;Verified&quot; automatically, no re-entry needed.
         </p>
       )}
 
