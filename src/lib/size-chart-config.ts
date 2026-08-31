@@ -14,10 +14,22 @@ export type SizeChartDefinition = {
   guide:
     | "tshirt"
     | "polo"
+    | "dress-shirt"
     | "off-shoulder-top"
     | "nfl-jersey"
     | "football-jersey"
-    | "baggy-joggers";
+    | "baggy-joggers"
+    | "cuffed-joggers"
+    | "straight-joggers"
+    | "skinny-joggers"
+    | "baggy-corporate-trousers"
+    | "baggy-jeans"
+    | "shorts"
+    | "jogger-jorts"
+    | "denim-jorts"
+    | "dolphin-shorts"
+    | "bum-shorts"
+    | "denim-bum-shorts";
   lines: SizeChartLine[];
 };
 
@@ -83,20 +95,58 @@ const FOOTBALL_JERSEY: SizeChartDefinition = {
   ],
 };
 
-const BAGGY_JOGGERS: SizeChartDefinition = {
-  id: "baggy-joggers",
-  guide: "baggy-joggers",
+// Long-sleeve button-up: same five lettered lines as the tee guide, with the
+// sleeve line (d) running to the cuff.
+const DRESS_SHIRT: SizeChartDefinition = {
+  id: "dress-shirt",
+  guide: "dress-shirt",
   lines: [
-    { key: "waist_width", label: "a" },
-    { key: "outseam_length", label: "b" },
-    { key: "leg_opening", label: "c" },
+    { key: "shoulder_width", label: "a" },
+    { key: "chest_width", label: "b" },
+    { key: "body_length", label: "c" },
+    { key: "sleeve_length", label: "d" },
+    { key: "neck_width", label: "e" },
   ],
 };
 
-// Every category node id (at any depth in the path) that should get the
-// T-shirt chart. All five "T-Shirts" leaves in categories.ts share one
-// definition — see src/lib/categories.ts:49,168,257,409,415.
+// Every bottoms guide (trousers, joggers, jorts, shorts) is drawn with the
+// same three lettered lines, so they share one shape and differ only by
+// which illustration a seller sees.
+function bottomsChart(id: string, guide: SizeChartDefinition["guide"]): SizeChartDefinition {
+  return {
+    id,
+    guide,
+    lines: [
+      { key: "waist_width", label: "a" },
+      { key: "outseam_length", label: "b" },
+      { key: "leg_opening", label: "c" },
+    ],
+  };
+}
+
+const BAGGY_JOGGERS = bottomsChart("baggy-joggers", "baggy-joggers");
+const CUFFED_JOGGERS = bottomsChart("cuffed-joggers", "cuffed-joggers");
+const STRAIGHT_JOGGERS = bottomsChart("straight-joggers", "straight-joggers");
+const SKINNY_JOGGERS = bottomsChart("skinny-joggers", "skinny-joggers");
+const BAGGY_CORPORATE_TROUSERS = bottomsChart(
+  "baggy-corporate-trousers",
+  "baggy-corporate-trousers",
+);
+const BAGGY_JEANS = bottomsChart("baggy-jeans", "baggy-jeans");
+const SHORTS = bottomsChart("shorts", "shorts");
+const JOGGER_JORTS = bottomsChart("jogger-jorts", "jogger-jorts");
+const DENIM_JORTS = bottomsChart("denim-jorts", "denim-jorts");
+const DOLPHIN_SHORTS = bottomsChart("dolphin-shorts", "dolphin-shorts");
+const BUM_SHORTS = bottomsChart("bum-shorts", "bum-shorts");
+const DENIM_BUM_SHORTS = bottomsChart("denim-bum-shorts", "denim-bum-shorts");
+
+// Every category node id (at any depth in the path) that should get a chart.
+// A guide is reused wherever its illustration fairly represents the garment,
+// not only for the category it was drawn for — e.g. the generic drawstring
+// Shorts guide also covers chino/cargo/jogger shorts, and the T-shirt guide
+// covers all five "T-Shirts" leaves in categories.ts.
 const CHARTS_BY_CATEGORY: Record<string, SizeChartDefinition> = {
+  // Tops
   "clothing-tops-t-shirts": TSHIRT_SHORT_SLEEVE,
   "t-shirts": TSHIRT_SHORT_SLEEVE,
   "baby-childrens-tops-t-shirts": TSHIRT_SHORT_SLEEVE,
@@ -107,7 +157,46 @@ const CHARTS_BY_CATEGORY: Record<string, SizeChartDefinition> = {
   "off-shoulder-tops": OFF_SHOULDER_TOP,
   "nfl-jerseys": NFL_JERSEY,
   "football-jerseys": FOOTBALL_JERSEY,
+  "dress-shirts": DRESS_SHIRT,
+  "clothing-tops-shirts": DRESS_SHIRT,
+  shirts: DRESS_SHIRT,
+  "clothing-tops-overshirts": DRESS_SHIRT,
+
+  // Pants & joggers
   "baggy-joggers": BAGGY_JOGGERS,
+  "cuffed-joggers": CUFFED_JOGGERS,
+  "pants-joggers": CUFFED_JOGGERS,
+  joggers: CUFFED_JOGGERS,
+  "loungewear-bottoms-joggers": CUFFED_JOGGERS,
+  "straight-joggers": STRAIGHT_JOGGERS,
+  "lounge-pants": STRAIGHT_JOGGERS,
+  "skinny-joggers": SKINNY_JOGGERS,
+  "baggy-corporate-trousers": BAGGY_CORPORATE_TROUSERS,
+  "pants-trousers": BAGGY_CORPORATE_TROUSERS,
+  "pants-chinos": BAGGY_CORPORATE_TROUSERS,
+  "cargo-pants": BAGGY_CORPORATE_TROUSERS,
+  "palazzo-pants": BAGGY_CORPORATE_TROUSERS,
+  "harem-pants": BAGGY_CORPORATE_TROUSERS,
+  "baggy-jeans": BAGGY_JEANS,
+  "pants-jeans": BAGGY_JEANS,
+  "pants-jeggings": BAGGY_JEANS,
+
+  // Shorts & jorts
+  shorts: SHORTS,
+  "jogger-shorts": SHORTS,
+  "chino-shorts": SHORTS,
+  "cargo-shorts": SHORTS,
+  bermudas: SHORTS,
+  "short-trousers": SHORTS,
+  "legging-shorts": SHORTS,
+  "loungewear-bottoms-shorts": SHORTS,
+  "jogger-jorts": JOGGER_JORTS,
+  "denim-jorts": DENIM_JORTS,
+  "denim-shorts": DENIM_JORTS,
+  "dolphin-shorts": DOLPHIN_SHORTS,
+  "bum-shorts": BUM_SHORTS,
+  "jegging-shorts": BUM_SHORTS,
+  "denim-bum-shorts": DENIM_BUM_SHORTS,
 };
 
 // Only categories explicitly mapped above get a guide. Adding a new guide is
