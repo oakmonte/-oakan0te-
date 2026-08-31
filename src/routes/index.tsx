@@ -583,6 +583,7 @@ function OakmonteLanding() {
                 <span className="cta-hint">Discover pieces matched to your size.</span>
               </Link>
               <p className="hero-cta-helper">You can switch between these later</p>
+              <p className="hero-cta-helper all-free">All for free!</p>
             </div>
 
             <div className="hero-media">
