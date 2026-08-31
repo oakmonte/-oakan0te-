@@ -112,10 +112,7 @@ const DRESS_SHIRT: SizeChartDefinition = {
 // Every bottoms guide (trousers, joggers, jorts, shorts) is drawn with the
 // same three lettered lines, so they share one shape and differ only by
 // which illustration a seller sees.
-function bottomsChart(
-  id: string,
-  guide: SizeChartDefinition["guide"],
-): SizeChartDefinition {
+function bottomsChart(id: string, guide: SizeChartDefinition["guide"]): SizeChartDefinition {
   return {
     id,
     guide,
