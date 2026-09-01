@@ -570,6 +570,8 @@ function OakmonteLanding() {
             <p className="hero-tagline">THE WORLD'S FIRST CONTENT OPTIMISED MARKETPLACE.</p>
 
             <div className="hero-cta-stack">
+              <p className="hero-cta-helper all-free">All for free!</p>
+              <p className="hero-cta-helper hero-cta-helper-above">You can switch between these later</p>
               <Link to="/set-up-store" className="hero-cta-card card-blue">
                 <span className="cta-label">Set Up A Store</span>
                 <span className="cta-hint">Open your storefront and start selling.</span>
@@ -582,8 +584,6 @@ function OakmonteLanding() {
                 <span className="cta-label">Define Your Wardrobe</span>
                 <span className="cta-hint">Discover pieces matched to your size.</span>
               </Link>
-              <p className="hero-cta-helper">You can switch between these later</p>
-              <p className="hero-cta-helper all-free">All for free!</p>
             </div>
 
             <div className="hero-media">
