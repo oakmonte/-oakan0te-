@@ -10,6 +10,7 @@ export function GoogleIcon() {
 }
 
 // Currently unused: the Apple button was removed from the auth panel until an
+
 // Apple Developer account exists. Kept so re-adding it is a one-line import.
 export function AppleIcon() {
   return (
