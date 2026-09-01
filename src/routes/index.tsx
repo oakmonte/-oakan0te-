@@ -584,7 +584,7 @@ function OakmonteLanding() {
               </Link>
               <Link to="/become-a-curator" className="hero-cta-card card-tint">
                 <span className="cta-label">Define Your Wardrobe</span>
-                <span className="cta-hint">Discover pieces matched to your size.</span>
+                <span className="cta-hint">Discover pieces matched to your style and size.</span>
               </Link>
             </div>
 
