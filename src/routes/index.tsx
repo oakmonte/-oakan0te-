@@ -576,7 +576,7 @@ function OakmonteLanding() {
               </p>
               <Link to="/set-up-store" className="hero-cta-card card-blue">
                 <span className="cta-label">Set Up A Store</span>
-                <span className="cta-hint">Open your <strong className="font-bold">customizable</strong> storefront and start selling.</span>
+                <span className="cta-hint">Open your <strong className="font-bold text-white">customizable</strong> storefront and start selling.</span>
               </Link>
               <Link to="/become-a-creator" className="hero-cta-card card-outline">
                 <span className="cta-label">Become A Creator</span>
