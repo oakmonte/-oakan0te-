@@ -570,7 +570,7 @@ function OakmonteLanding() {
             <p className="hero-tagline">THE WORLD'S FIRST CONTENT OPTIMISED MARKETPLACE.</p>
 
             <div className="hero-cta-stack">
-              <p className="hero-cta-helper all-free">All for free!</p>
+              <p className="hero-cta-helper all-free">All free</p>
               <p className="hero-cta-helper hero-cta-helper-above">
                 You can switch between these later
               </p>
