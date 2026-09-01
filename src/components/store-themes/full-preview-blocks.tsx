@@ -246,7 +246,7 @@ export function PhoneHeader({
 
   return (
     <div className="flex items-start justify-between gap-3 px-4 py-3">
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0">
         {logoMode === "text" ? (
           textLogo
         ) : editing?.isEditing ? (
