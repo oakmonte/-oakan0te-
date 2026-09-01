@@ -571,7 +571,9 @@ function OakmonteLanding() {
 
             <div className="hero-cta-stack">
               <p className="hero-cta-helper all-free">All for free!</p>
-              <p className="hero-cta-helper hero-cta-helper-above">You can switch between these later</p>
+              <p className="hero-cta-helper hero-cta-helper-above">
+                You can switch between these later
+              </p>
               <Link to="/set-up-store" className="hero-cta-card card-blue">
                 <span className="cta-label">Set Up A Store</span>
                 <span className="cta-hint">Open your storefront and start selling.</span>
