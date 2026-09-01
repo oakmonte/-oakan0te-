@@ -1056,7 +1056,7 @@ const CSS = `
 @keyframes oakFadeUp{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
 
 .oak .hero-cta-stack{display:flex;flex-direction:column;gap:18px;margin:64px 0 56px;padding:32px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);opacity:0;animation:oakFadeUp .7s ease forwards;animation-delay:.68s;}
-.oak .hero-cta-helper{text-align:center;font-size:13px;color:var(--gray);margin-top:20px;font-weight:500;letter-spacing:.01em;line-height:1.4;}.oak .hero-cta-helper.all-free{margin-top:6px;color:var(--blue);font-weight:600;}
+.oak .hero-cta-helper{text-align:center;font-size:13px;color:var(--gray);margin:20px 0 0;font-weight:500;letter-spacing:.01em;line-height:1.4;}.oak .hero-cta-helper.hero-cta-helper-above{margin:0 0 22px;}.oak .hero-cta-helper.all-free{margin:0 0 6px;color:var(--blue);font-weight:600;}
 .oak .hero-cta-card{display:flex;flex-direction:column;gap:2px;padding:14px 20px;background:var(--white);border:2px solid var(--black);border-radius:16px;transition:transform .25s ease,background .25s ease,border-color .25s ease,box-shadow .25s ease;}
 .oak .hero-cta-card:hover{transform:translateY(-2px);border-color:var(--blue);box-shadow:0 10px 24px rgba(33,81,245,.12);}
 .oak .hero-cta-card:active{transform:translateY(0);}
