@@ -580,7 +580,7 @@ function OakmonteLanding() {
               </Link>
               <Link to="/become-a-creator" className="hero-cta-card card-outline">
                 <span className="cta-label">Become A Creator</span>
-                <span className="cta-hint"><strong className="font-bold text-black">Get paid</strong> for the content you create.</span>
+                <span className="cta-hint"><strong className="font-bold text-neutral-800">Get paid</strong> for the content you create.</span>
               </Link>
               <Link to="/become-a-curator" className="hero-cta-card card-tint">
                 <span className="cta-label">Define Your Wardrobe</span>
