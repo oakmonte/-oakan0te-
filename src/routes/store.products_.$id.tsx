@@ -22,7 +22,6 @@ import { PricingSheet } from "@/components/product-form/PricingSheet";
 import { InventorySection } from "@/components/product-form/InventorySection";
 import { InventorySheet, type InventoryValues } from "@/components/product-form/InventorySheet";
 import { WeightSection } from "@/components/product-form/WeightSection";
-import { SkuSection } from "@/components/product-form/SkuSection";
 import { WeightSheet } from "@/components/product-form/WeightSheet";
 import { CategoryPicker } from "@/components/product-form/CategoryPicker";
 import { ProductTypeSwitchSheet } from "@/components/product-form/ProductTypeSwitchSheet";
@@ -605,7 +604,7 @@ function EditProduct() {
           stock_qty: regularStockQty,
           material: material.trim() || null,
           main_image_url: mainImageUrl.trim() || null,
-          barcode: regularBarcode,
+          barcode: regularBarcode?.trim() || null,
           sku: regularSku.trim() || null,
           continue_selling_out_of_stock: regularContinueSellingOutOfStock,
           material_feel: regularMaterialFeel,
@@ -661,7 +660,7 @@ function EditProduct() {
         sku: r.sku.trim() || null,
         continue_selling_out_of_stock: r.continueSellingOutOfStock,
         main_image_url: r.mainImageUrl.trim() || mainImageUrl.trim() || null,
-        barcode: r.barcode ?? null,
+        barcode: r.barcode?.trim() || null,
         material: r.material ?? null,
         material_feel: r.materialFeel ?? null,
         weight_grams: r.weightGrams ?? null,
@@ -841,7 +840,6 @@ function EditProduct() {
             onOpen={() => setInventorySheetOpen(true)}
           />
           <WeightSection grams={regularWeightGrams} onOpen={() => setWeightSheetOpen(true)} />
-          <SkuSection value={regularSku} onChange={setRegularSku} />
         </>
       ) : (
         storeId && (
@@ -911,11 +909,15 @@ function EditProduct() {
           initial={{
             continueSellingOutOfStock: regularContinueSellingOutOfStock,
             locationQuantities: regularLocationQuantities,
+            sku: regularSku,
+            barcode: regularBarcode ?? "",
           }}
           onCreateLocation={handleCreateLocation}
           onSave={(values: InventoryValues) => {
             setRegularContinueSellingOutOfStock(values.continueSellingOutOfStock);
             setRegularLocationQuantities(values.locationQuantities);
+            setRegularSku(values.sku);
+            setRegularBarcode(values.barcode || null);
             setInventorySheetOpen(false);
           }}
           onClose={() => setInventorySheetOpen(false)}

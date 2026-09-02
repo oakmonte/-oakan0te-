@@ -305,7 +305,7 @@ export function VariantCombinationsSheet({
                     error={showPriceErrors && !row.price.trim()}
                   />
                   <label className="flex flex-col gap-1">
-                    <span className="text-xs text-gray-400">Stock</span>
+                    <span className="text-xs text-gray-400">Inventory</span>
                     <button
                       type="button"
                       onClick={() => setInventoryKey(row.key)}
@@ -318,12 +318,6 @@ export function VariantCombinationsSheet({
                     label="Compare-at"
                     value={row.compareAtPrice}
                     onChange={(v) => updateRow(row.key, { compareAtPrice: v })}
-                  />
-                  <MiniField
-                    label="SKU"
-                    value={row.sku}
-                    onChange={(v) => updateRow(row.key, { sku: v })}
-                    type="text"
                   />
                   <label className="flex flex-col gap-1">
                     <span className="text-xs text-gray-400">Weight</span>
@@ -375,12 +369,16 @@ export function VariantCombinationsSheet({
               initial={{
                 continueSellingOutOfStock: row.continueSellingOutOfStock,
                 locationQuantities: row.locationQuantities,
+                sku: row.sku,
+                barcode: row.barcode ?? "",
               }}
               onCreateLocation={onCreateLocation}
               onSave={(values: InventoryValues) => {
                 updateRow(inventoryKey, {
                   continueSellingOutOfStock: values.continueSellingOutOfStock,
                   locationQuantities: values.locationQuantities,
+                  sku: values.sku,
+                  barcode: values.barcode || null,
                 });
                 setInventoryKey(null);
               }}

@@ -3,6 +3,7 @@ import { X, ChevronLeft, Check, Plus } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
+import { Code128Barcode } from "./Code128Barcode";
 
 export type InventoryValues = {
   continueSellingOutOfStock: boolean;
@@ -10,6 +11,11 @@ export type InventoryValues = {
   // once it's been picked in "Edit locations" -- absence means not stocked
   // at that location, not zero-and-tracked.
   locationQuantities: Record<string, number>;
+  // Both per-SKU tracking identifiers, same as everything else in this
+  // sheet -- live alongside stock rather than as their own top-level
+  // sections, since they're all facets of "how this SKU is tracked."
+  sku: string;
+  barcode: string;
 };
 
 type StoreLocationOption = { id: string; name: string };
@@ -46,6 +52,8 @@ export function InventorySheet({
   const [locationQuantities, setLocationQuantities] = useState<Record<string, number>>(
     initial.locationQuantities,
   );
+  const [sku, setSku] = useState(initial.sku);
+  const [barcode, setBarcode] = useState(initial.barcode);
   const [locations, setLocations] = useState<StoreLocationOption[] | null>(null);
   const [locationsPickerOpen, setLocationsPickerOpen] = useState(false);
 
@@ -89,7 +97,7 @@ export function InventorySheet({
   }
 
   function handleSave() {
-    onSave({ continueSellingOutOfStock, locationQuantities });
+    onSave({ continueSellingOutOfStock, locationQuantities, sku, barcode });
   }
 
   return (
@@ -113,6 +121,33 @@ export function InventorySheet({
             checked={continueSellingOutOfStock}
             onCheckedChange={setContinueSellingOutOfStock}
           />
+        </div>
+
+        <div className="-mx-4 h-2 bg-gray-50 mt-2" />
+
+        <div className="pt-2">
+          <span className="text-[15px] font-semibold text-gray-900">Identifiers</span>
+          <div className="grid grid-cols-2 gap-2 mt-2">
+            <label className="flex flex-col gap-1">
+              <span className="text-xs text-gray-400">SKU</span>
+              <input
+                value={sku}
+                onChange={(e) => setSku(e.target.value)}
+                placeholder="Optional"
+                className="text-base border border-gray-200 rounded-lg px-2 py-2 outline-none"
+              />
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className="text-xs text-gray-400">Barcode</span>
+              <input
+                value={barcode}
+                onChange={(e) => setBarcode(e.target.value)}
+                placeholder="UPC, EAN, etc."
+                className="text-base border border-gray-200 rounded-lg px-2 py-2 outline-none"
+              />
+            </label>
+          </div>
+          {barcode.trim() && <Code128Barcode value={barcode.trim()} className="mt-3" />}
         </div>
 
         <div className="-mx-4 h-2 bg-gray-50 mt-2" />

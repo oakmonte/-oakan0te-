@@ -14,7 +14,6 @@ import { PricingSheet } from "@/components/product-form/PricingSheet";
 import { InventorySection } from "@/components/product-form/InventorySection";
 import { InventorySheet, type InventoryValues } from "@/components/product-form/InventorySheet";
 import { WeightSection } from "@/components/product-form/WeightSection";
-import { SkuSection } from "@/components/product-form/SkuSection";
 import { WeightSheet } from "@/components/product-form/WeightSheet";
 import { CategoryPicker } from "@/components/product-form/CategoryPicker";
 import { ProductTypeSwitchSheet } from "@/components/product-form/ProductTypeSwitchSheet";
@@ -129,6 +128,10 @@ function NewProduct() {
   );
   const [weightSheetOpen, setWeightSheetOpen] = useState(false);
   const [regularSku, setRegularSku] = useState(initialDraft?.regularSku ?? "");
+  // Never surfaced anywhere on this page before now -- new products start
+  // with none, unlike the edit page's regularBarcode which round-trips a
+  // value an import may have set.
+  const [regularBarcode, setRegularBarcode] = useState("");
 
   // Variant-mode state
   const [options, setOptions] = useState<VariantOption[]>(initialDraft?.options ?? []);
@@ -321,6 +324,7 @@ function NewProduct() {
           material: material.trim() || null,
           weight_grams: regularWeightGrams,
           sku: regularSku.trim() || null,
+          barcode: regularBarcode.trim() || null,
           main_image_url: mainImageUrl.trim() || null,
           additional_image_urls: additionalImageUrls.length > 0 ? additionalImageUrls : null,
         })
@@ -377,6 +381,7 @@ function NewProduct() {
         cost_price: r.costPrice ? Number(r.costPrice) : null,
         stock_qty: Object.values(r.locationQuantities).reduce((sum, n) => sum + n, 0),
         sku: r.sku.trim() || null,
+        barcode: r.barcode?.trim() || null,
         continue_selling_out_of_stock: r.continueSellingOutOfStock,
         weight_grams: r.weightGrams ?? null,
         main_image_url: r.mainImageUrl.trim() || mainImageUrl.trim() || null,
@@ -530,7 +535,6 @@ function NewProduct() {
             onOpen={() => setInventorySheetOpen(true)}
           />
           <WeightSection grams={regularWeightGrams} onOpen={() => setWeightSheetOpen(true)} />
-          <SkuSection value={regularSku} onChange={setRegularSku} />
         </>
       ) : (
         storeId && (
@@ -600,11 +604,15 @@ function NewProduct() {
           initial={{
             continueSellingOutOfStock: regularContinueSellingOutOfStock,
             locationQuantities: regularLocationQuantities,
+            sku: regularSku,
+            barcode: regularBarcode,
           }}
           onCreateLocation={handleCreateLocation}
           onSave={(values: InventoryValues) => {
             setRegularContinueSellingOutOfStock(values.continueSellingOutOfStock);
             setRegularLocationQuantities(values.locationQuantities);
+            setRegularSku(values.sku);
+            setRegularBarcode(values.barcode);
             setInventorySheetOpen(false);
           }}
           onClose={() => setInventorySheetOpen(false)}
