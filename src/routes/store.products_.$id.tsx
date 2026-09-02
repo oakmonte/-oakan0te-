@@ -42,6 +42,9 @@ import {
   takeProductDraft,
   takePendingNewCollectionId,
   takePendingNewLocationId,
+  readAutosavedDraft,
+  writeAutosavedDraft,
+  clearAutosavedDraft,
 } from "@/lib/product-draft-handoff";
 import { useActiveStoreId } from "@/hooks/use-own-store";
 import { useStoreHeader } from "@/hooks/use-store-header";
@@ -114,14 +117,20 @@ function EditProduct() {
   const { storeId, loading: storeLoading } = useActiveStoreId();
   const { setRightAction } = useStoreHeader();
 
-  // Returning from a collection-creation side-trip taken from THIS product's
-  // Collections picker — see handleCreateCollection. Only trusted when the
-  // stashed draft actually names this product; a draft left over from
-  // somewhere else must not silently overwrite an unrelated product's form.
-  const [initialDraft] = useState(() => {
+  // Two sources of "come back to where I was," checked in order: a draft
+  // stashed just before a side-trip to create a collection/location (see
+  // handleCreateCollection below) always wins since it's the most recent
+  // state; only trusted when it actually names this product, so a draft left
+  // over from somewhere else can't silently overwrite an unrelated product's
+  // form. Otherwise fall back to the autosaved draft from localStorage,
+  // which is what survives an actual page refresh — either way, having one
+  // means there's nothing to fetch, the draft IS the current form state.
+  const [handoffDraft] = useState(() => {
     const draft = takeProductDraft();
     return draft && draft.productId === productId ? draft : null;
   });
+  const [restoredFromAutosave] = useState(() => !handoffDraft && !!readAutosavedDraft(productId));
+  const [initialDraft] = useState(() => handoffDraft ?? readAutosavedDraft(productId));
   const [initialNewCollectionId] = useState(() => takePendingNewCollectionId());
 
   const [loading, setLoading] = useState(initialDraft === null);
@@ -226,6 +235,7 @@ function EditProduct() {
   const [necessitiesSheetOpen, setNecessitiesSheetOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [showRestoredBanner, setShowRestoredBanner] = useState(restoredFromAutosave);
 
   // Render the horizontal three-dot delete trigger in the shared store header.
   useEffect(() => {
@@ -456,6 +466,19 @@ function EditProduct() {
     };
   }
 
+  // Debounced localStorage autosave — the only thing that survives a hard
+  // refresh. Guarded on `loading` so the still-fetching, mostly-blank form
+  // doesn't overwrite a real autosave (or the product's actual saved state)
+  // before the DB load has even populated it. JSON.stringify as the dep is
+  // deliberate: simplest way to react to "any field actually changed"
+  // without listing every piece of state that feeds currentDraft() by hand.
+  useEffect(() => {
+    if (loading) return;
+    const t = setTimeout(() => writeAutosavedDraft(productId, currentDraft()), 800);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, JSON.stringify(currentDraft())]);
+
   function handleCreateCollection() {
     stashProductDraft(currentDraft());
     navigate({ to: "/store/collections/new" });
@@ -487,6 +510,7 @@ function EditProduct() {
     const { error: productErr } = await supabase.from("products").delete().eq("id", productId);
     if (productErr) throw new Error(productErr.message);
 
+    clearAutosavedDraft(productId);
     navigate({ to: "/store/products" });
   }
 
@@ -720,6 +744,7 @@ function EditProduct() {
       if (tagsErr) return fail("product_tags", tagsErr.message);
     }
 
+    clearAutosavedDraft(productId);
     navigate({ to: "/store/products" });
   }
 
@@ -767,6 +792,19 @@ function EditProduct() {
           <ChevronDown size={14} className="text-gray-400" />
         </button>
       </div>
+
+      {showRestoredBanner && (
+        <div className="mx-4 mt-3 flex items-center justify-between gap-3 rounded-xl bg-gray-50 px-3 py-2.5">
+          <p className="text-xs text-gray-500">Restored your unsaved progress from last time.</p>
+          <button
+            type="button"
+            onClick={() => setShowRestoredBanner(false)}
+            className="text-xs font-medium text-gray-900 shrink-0"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {error && <p className="px-4 pt-3 text-sm text-red-500">{error}</p>}
 

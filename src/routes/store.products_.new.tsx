@@ -30,6 +30,9 @@ import {
   takeProductDraft,
   takePendingNewCollectionId,
   takePendingNewLocationId,
+  readAutosavedDraft,
+  writeAutosavedDraft,
+  clearAutosavedDraft,
 } from "@/lib/product-draft-handoff";
 import { useActiveStoreId } from "@/hooks/use-own-store";
 
@@ -63,10 +66,15 @@ function NewProduct() {
   const { storeId } = useActiveStoreId();
   const { kind: intentKind } = Route.useSearch();
 
-  // Restoring a draft stashed before a side-trip to create a collection — see
-  // handleCreateCollection below. Read once via lazy initializers so every
-  // field seeds correctly on the very first render (no restore flash).
-  const [initialDraft] = useState(() => takeProductDraft());
+  // Two sources of "come back to where I was," checked in order: a draft
+  // stashed just before a side-trip to create a collection/location (see
+  // handleCreateCollection below) always wins since it's the most recent
+  // state; otherwise fall back to the autosaved draft from localStorage,
+  // which is what survives an actual page refresh. Read once via lazy
+  // initializers so every field seeds correctly on the very first render.
+  const [handoffDraft] = useState(() => takeProductDraft());
+  const [restoredFromAutosave] = useState(() => !handoffDraft && !!readAutosavedDraft(undefined));
+  const [initialDraft] = useState(() => handoffDraft ?? readAutosavedDraft(undefined));
   const [initialNewCollectionId] = useState(() => takePendingNewCollectionId());
 
   const [kind, setKind] = useState<ProductKind>(initialDraft?.kind ?? intentKind ?? "variant");
@@ -163,6 +171,7 @@ function NewProduct() {
   const [necessitiesSheetOpen, setNecessitiesSheetOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [showRestoredBanner, setShowRestoredBanner] = useState(restoredFromAutosave);
 
   function toggleTag(id: string) {
     setTagIds((prev) => (prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]));
@@ -195,6 +204,17 @@ function NewProduct() {
       manualSize,
     };
   }
+
+  // Debounced localStorage autosave — the only thing that survives a hard
+  // refresh (currentDraft's module-variable stash above only survives
+  // client-side navigation). JSON.stringify as the dep is deliberate: it's
+  // the simplest way to react to "any field actually changed" without
+  // listing every piece of state that feeds currentDraft() by hand.
+  useEffect(() => {
+    const t = setTimeout(() => writeAutosavedDraft(undefined, currentDraft()), 800);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(currentDraft())]);
 
   function handleCreateCollection() {
     stashProductDraft(currentDraft());
@@ -439,6 +459,7 @@ function NewProduct() {
       }
     }
 
+    clearAutosavedDraft(undefined);
     navigate({ to: "/store/products" });
   }
 
@@ -461,6 +482,19 @@ function NewProduct() {
           <ChevronDown size={14} className="text-gray-400" />
         </button>
       </div>
+
+      {showRestoredBanner && (
+        <div className="mx-4 mt-3 flex items-center justify-between gap-3 rounded-xl bg-gray-50 px-3 py-2.5">
+          <p className="text-xs text-gray-500">Restored your unsaved progress from last time.</p>
+          <button
+            type="button"
+            onClick={() => setShowRestoredBanner(false)}
+            className="text-xs font-medium text-gray-900 shrink-0"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {error && <p className="px-4 pt-3 text-sm text-red-500">{error}</p>}
 
