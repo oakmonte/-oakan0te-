@@ -45,6 +45,7 @@ export function VariantCombinationsSheet({
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkPrice, setBulkPrice] = useState("");
   const [bulkCompareAtPrice, setBulkCompareAtPrice] = useState("");
+  const [bulkStock, setBulkStock] = useState("");
   const [bulkWeight, setBulkWeight] = useState("");
   const [bulkImageUrl, setBulkImageUrl] = useState("");
   const [imagePickerKey, setImagePickerKey] = useState<string | null>(null);
@@ -76,12 +77,13 @@ export function VariantCombinationsSheet({
   // price doesn't silently wipe stock counts they already entered by hand.
   // Untouched rows they've unchecked are left alone entirely.
   //
-  // Stock and SKU are deliberately NOT here. Stock is a sum across pickup
-  // locations (see InventorySheet), not a single number — bulk-filling it
-  // would mean guessing which location gets the quantity. SKU is supposed to
-  // be unique per variant, so bulk-applying one literal value would hand
-  // every selected row the same SKU, which is a correctness bug, not a
-  // convenience.
+  // Stock sets the quantity at every location a row ALREADY has picked, since
+  // it's a sum across pickup locations (see InventorySheet) rather than a
+  // single number — a row with no locations picked yet still needs "Edit
+  // locations" first, bulk-apply can't invent one for it. SKU is deliberately
+  // not here at all: it's supposed to be unique per variant, so bulk-applying
+  // one literal value would hand every selected row the same SKU, which is a
+  // correctness bug, not a convenience.
   function applyToAll() {
     const patch: Partial<VariantRow> = {};
     if (bulkPrice.trim()) patch.price = bulkPrice.trim();
@@ -91,10 +93,28 @@ export function VariantCombinationsSheet({
       const grams = parseFloat(bulkWeight.trim());
       if (!isNaN(grams)) patch.weightGrams = grams;
     }
-    if (Object.keys(patch).length === 0) return;
-    setRows((prev) => prev.map((r) => (r.selected ? { ...r, ...patch } : r)));
+    let stockQty: number | null = null;
+    if (bulkStock.trim()) {
+      const n = parseInt(bulkStock.trim(), 10);
+      if (!isNaN(n)) stockQty = Math.max(0, n);
+    }
+    if (Object.keys(patch).length === 0 && stockQty === null) return;
+    setRows((prev) =>
+      prev.map((r) => {
+        if (!r.selected) return r;
+        const next = { ...r, ...patch };
+        if (stockQty !== null && Object.keys(r.locationQuantities).length > 0) {
+          const locationQuantities: Record<string, number> = {};
+          for (const locId of Object.keys(r.locationQuantities))
+            locationQuantities[locId] = stockQty;
+          next.locationQuantities = locationQuantities;
+        }
+        return next;
+      }),
+    );
     setBulkPrice("");
     setBulkCompareAtPrice("");
+    setBulkStock("");
     setBulkWeight("");
     setBulkImageUrl("");
     setBulkOpen(false);
@@ -221,7 +241,8 @@ export function VariantCombinationsSheet({
             <div className="border border-gray-200 rounded-xl p-3 mb-3 bg-gray-50">
               <p className="text-xs text-gray-500 mb-2">
                 Fills every selected variant at once — you can still edit them individually after.
-                Stock and SKU aren't included here since they need to stay specific to each variant.
+                Stock only fills locations a variant already has picked; SKU isn't included since it
+                needs to stay unique per variant.
               </p>
               <div className="grid grid-cols-2 gap-2">
                 <MiniField label="Price" value={bulkPrice} onChange={setBulkPrice} />
@@ -230,6 +251,7 @@ export function VariantCombinationsSheet({
                   value={bulkCompareAtPrice}
                   onChange={setBulkCompareAtPrice}
                 />
+                <MiniField label="Stock" value={bulkStock} onChange={setBulkStock} />
                 <MiniField label="Weight (g)" value={bulkWeight} onChange={setBulkWeight} />
                 <MiniField
                   label="Image URL"
@@ -244,6 +266,7 @@ export function VariantCombinationsSheet({
                 disabled={
                   !bulkPrice.trim() &&
                   !bulkCompareAtPrice.trim() &&
+                  !bulkStock.trim() &&
                   !bulkWeight.trim() &&
                   !bulkImageUrl.trim()
                 }
