@@ -6,6 +6,7 @@ import { ImageGallery } from "./ImageGallery";
 import { DraftImagePickerSheet } from "./DraftImagePickerSheet";
 import { ImageSourceSheet, type ImageSource } from "./ImageSourceSheet";
 import { InventorySheet, type InventoryValues } from "./InventorySheet";
+import { WeightSheet } from "./WeightSheet";
 import { useMultiFilePicker } from "@/hooks/use-file-picker";
 import { uploadProductImage } from "@/lib/upload-product-image";
 
@@ -17,6 +18,7 @@ export function VariantCombinationsSheet({
   additionalImageUrls,
   storeId,
   onCreateLocation,
+  estimateWeightForRow,
   onBack,
   onDone,
 }: {
@@ -27,6 +29,7 @@ export function VariantCombinationsSheet({
   additionalImageUrls: string[];
   storeId: string;
   onCreateLocation: () => void;
+  estimateWeightForRow: (row: VariantRow) => number | null;
   onBack: () => void;
   onDone: () => void;
 }) {
@@ -38,6 +41,7 @@ export function VariantCombinationsSheet({
   const [bulkImageUrl, setBulkImageUrl] = useState("");
   const [imagePickerKey, setImagePickerKey] = useState<string | null>(null);
   const [inventoryKey, setInventoryKey] = useState<string | null>(null);
+  const [weightKey, setWeightKey] = useState<string | null>(null);
   const [showPriceErrors, setShowPriceErrors] = useState(false);
 
   const optionNames = options
@@ -264,6 +268,16 @@ export function VariantCombinationsSheet({
                     onChange={(v) => updateRow(row.key, { sku: v })}
                     type="text"
                   />
+                  <label className="flex flex-col gap-1">
+                    <span className="text-xs text-gray-400">Weight</span>
+                    <button
+                      type="button"
+                      onClick={() => setWeightKey(row.key)}
+                      className="text-base border border-gray-200 rounded-lg px-2 py-2 text-left"
+                    >
+                      {row.weightGrams != null ? `${row.weightGrams} g` : "—"}
+                    </button>
+                  </label>
                 </div>
               </div>
             ))}
@@ -314,6 +328,24 @@ export function VariantCombinationsSheet({
                 setInventoryKey(null);
               }}
               onClose={() => setInventoryKey(null)}
+            />
+          );
+        })()}
+
+      {weightKey &&
+        (() => {
+          const row = rows.find((r) => r.key === weightKey);
+          if (!row) return null;
+          return (
+            <WeightSheet
+              productLabel={row.options.map((o) => o.value).join(" / ")}
+              initial={row.weightGrams ?? null}
+              estimate={estimateWeightForRow(row)}
+              onSave={(grams) => {
+                updateRow(weightKey, { weightGrams: grams });
+                setWeightKey(null);
+              }}
+              onClose={() => setWeightKey(null)}
             />
           );
         })()}

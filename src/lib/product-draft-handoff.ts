@@ -24,6 +24,7 @@ export type ProductDraft = {
   stockQty: number;
   regularContinueSellingOutOfStock: boolean;
   regularLocationQuantities: Record<string, number>;
+  regularWeightGrams: number | null;
   material: string;
   options: VariantOption[];
   rows: VariantRow[];

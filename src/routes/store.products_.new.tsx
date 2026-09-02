@@ -13,6 +13,8 @@ import { NecessitiesSheet } from "@/components/product-form/NecessitiesSheet";
 import { PricingSheet } from "@/components/product-form/PricingSheet";
 import { InventorySection } from "@/components/product-form/InventorySection";
 import { InventorySheet, type InventoryValues } from "@/components/product-form/InventorySheet";
+import { WeightSection } from "@/components/product-form/WeightSection";
+import { WeightSheet } from "@/components/product-form/WeightSheet";
 import { CategoryPicker } from "@/components/product-form/CategoryPicker";
 import { ProductTypeSwitchSheet } from "@/components/product-form/ProductTypeSwitchSheet";
 import {
@@ -21,6 +23,7 @@ import {
   VariantRow,
 } from "@/components/product-form/VariantMatrixBuilder";
 import { ManualSize, SizeMeasurements, getSizeChartForCategory } from "@/lib/size-chart-config";
+import { estimateWeightGrams } from "@/lib/weight-estimate";
 import { preloadGuideImage } from "@/components/product-form/size-chart/guide-images";
 import {
   stashProductDraft,
@@ -79,12 +82,17 @@ function NewProduct() {
     initialDraft?.categoryPath ?? [],
   );
 
+  // Reused both to kick off the guide-image preload below and to pick which
+  // weight-estimate formula applies (see weight-estimate.ts) — stable across
+  // renders for the same category since CHARTS_BY_CATEGORY always returns
+  // the same object reference.
+  const chart = getSizeChartForCategory(categoryPath);
+
   // Kick off the size-chart guide image fetch the moment a category is
   // picked, so it's already cached by the time the seller opens Necessities.
   useEffect(() => {
-    const chart = getSizeChartForCategory(categoryPath);
     if (chart) preloadGuideImage(chart.guide);
-  }, [categoryPath]);
+  }, [chart]);
 
   // Regular-mode state
   const [price, setPrice] = useState(initialDraft?.price ?? "");
@@ -107,6 +115,10 @@ function NewProduct() {
   // No UI sets this on this page anymore — material is filled in via
   // Necessities now. Still round-tripped through drafts/save.
   const material = initialDraft?.material ?? "";
+  const [regularWeightGrams, setRegularWeightGrams] = useState<number | null>(
+    initialDraft?.regularWeightGrams ?? null,
+  );
+  const [weightSheetOpen, setWeightSheetOpen] = useState(false);
 
   // Variant-mode state
   const [options, setOptions] = useState<VariantOption[]>(initialDraft?.options ?? []);
@@ -117,6 +129,23 @@ function NewProduct() {
   // Manual size pick — only meaningful when there's no Variant Size axis
   // (regular products, or variant products that only vary by e.g. Color).
   const [manualSize, setManualSize] = useState<ManualSize | null>(initialDraft?.manualSize ?? null);
+
+  // A regular product has no Variant Size axis, so its own measurements (if
+  // any were picked via the size chart) live under manualSize's value.
+  const regularWeightEstimate = chart
+    ? estimateWeightGrams(chart.guide, sizeMeasurements[manualSize?.value ?? ""] ?? {}, material)
+    : null;
+
+  // Per-row suggestion for the variant matrix: prefer the row's own Size/
+  // Material option values over the shared manualSize/material fallback,
+  // since a variant product's rows can each be a different size or fabric.
+  function estimateWeightForRow(row: VariantRow): number | null {
+    if (!chart) return null;
+    const rowSize = row.options.find((o) => o.name.trim().toLowerCase() === "size")?.value;
+    const rowMaterial = row.options.find((o) => o.name.trim().toLowerCase() === "material")?.value;
+    const measurements = sizeMeasurements[rowSize ?? manualSize?.value ?? ""] ?? {};
+    return estimateWeightGrams(chart.guide, measurements, rowMaterial ?? material);
+  }
 
   const [categoryPickerOpen, setCategoryPickerOpen] = useState(false);
   const [typeSwitchOpen, setTypeSwitchOpen] = useState(false);
@@ -157,6 +186,7 @@ function NewProduct() {
       stockQty: regularStockQty,
       regularContinueSellingOutOfStock,
       regularLocationQuantities,
+      regularWeightGrams,
       material,
       options,
       rows,
@@ -266,6 +296,7 @@ function NewProduct() {
           stock_qty: regularStockQty,
           continue_selling_out_of_stock: regularContinueSellingOutOfStock,
           material: material.trim() || null,
+          weight_grams: regularWeightGrams,
           main_image_url: mainImageUrl.trim() || null,
           additional_image_urls: additionalImageUrls.length > 0 ? additionalImageUrls : null,
         })
@@ -323,6 +354,7 @@ function NewProduct() {
         stock_qty: Object.values(r.locationQuantities).reduce((sum, n) => sum + n, 0),
         sku: r.sku.trim() || null,
         continue_selling_out_of_stock: r.continueSellingOutOfStock,
+        weight_grams: r.weightGrams ?? null,
         main_image_url: r.mainImageUrl.trim() || mainImageUrl.trim() || null,
         additional_image_urls: r.additionalImageUrls ?? null,
       }));
@@ -453,11 +485,14 @@ function NewProduct() {
       />
 
       {kind === "regular" ? (
-        <InventorySection
-          available={regularStockQty}
-          locationCount={Object.keys(regularLocationQuantities).length}
-          onOpen={() => setInventorySheetOpen(true)}
-        />
+        <>
+          <InventorySection
+            available={regularStockQty}
+            locationCount={Object.keys(regularLocationQuantities).length}
+            onOpen={() => setInventorySheetOpen(true)}
+          />
+          <WeightSection grams={regularWeightGrams} onOpen={() => setWeightSheetOpen(true)} />
+        </>
       ) : (
         storeId && (
           <VariantMatrixBuilder
@@ -469,6 +504,7 @@ function NewProduct() {
             additionalImageUrls={additionalImageUrls}
             storeId={storeId}
             onCreateLocation={handleCreateLocation}
+            estimateWeightForRow={estimateWeightForRow}
           />
         )
       )}
@@ -533,6 +569,18 @@ function NewProduct() {
             setInventorySheetOpen(false);
           }}
           onClose={() => setInventorySheetOpen(false)}
+        />
+      )}
+
+      {weightSheetOpen && (
+        <WeightSheet
+          initial={regularWeightGrams}
+          estimate={regularWeightEstimate}
+          onSave={(grams) => {
+            setRegularWeightGrams(grams);
+            setWeightSheetOpen(false);
+          }}
+          onClose={() => setWeightSheetOpen(false)}
         />
       )}
 

@@ -82,8 +82,11 @@ Every page is mobile-first and often on slow networks. Treat load speed as a fir
 Full list, including everything postponed on purpose, in `POSTPONED.md` at the repo root.
 Keep the two in step — this section is the short form.
 
-- **Size chart not built.** `cm`/`in` size systems emit plain strings like `"91 cm"`, not structured
-  measurements. Needs a schema decision before any UI work — don't bolt on local-only state.
+- **Size chart mostly done.** `src/lib/size-chart-config.ts` + `SizeChartSheet` collect real,
+  structured cm measurements per category, persisted to `product_size_measurements`. 18 guide
+  images are wired up (tops + bottoms); shoes, dresses, and costumes still fall back to
+  manual-pick-only (`ManualSize`), no chart yet — extend `CHARTS_BY_CATEGORY` + `GUIDE_IMAGES` to
+  add more.
 - **RLS off** on `stores`, `products`, `product_variants`, and nine other tables — browser client can
   read/write every seller's rows. Store scoping itself is real now (`useOwnStores`/`useActiveStore` in
   `src/hooks/use-own-store.ts`, derived from the signed-in session), so that's no longer what's holding

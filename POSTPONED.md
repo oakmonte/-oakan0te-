@@ -68,18 +68,23 @@ because nothing verifies an account. The table currently holds 0 rows.
 
 ## 2. Needs a decision
 
-### 2.1 The universal size chart · [NEEDS A DECISION]
+### 2.1 The universal size chart · [MOSTLY DONE]
 
-The `cm` / `in` size systems emit plain strings — `"91 cm"` — not structured measurements.
-Before any UI gets built, the schema question has to be answered: where do the per-value
-cm/inch numbers live?
+Built and real, not local-only state: `src/lib/size-chart-config.ts` defines a per-category
+chart (lettered measurement lines — shoulder/chest/body-length/sleeve/waist/etc. — matched to
+a guide illustration), sellers fill in actual cm numbers per size via `SizeChartSheet`, and
+those numbers persist to a real `product_size_measurements` table (not a schema question
+anymore — this shipped 2026-08-31, referenced from both product-form save paths and the
+account-deletion cleanup route). A loose plausibility check (real garment ratio bounds, widened
+deliberately so no legitimate cut gets rejected) catches typo'd/garbled input without exposing
+any rule text to sellers.
 
-- on the option,
-- on `product_variants`, or
-- in a separate size-chart table keyed to the buyer's body measurements.
-
-Do **not** bolt on local-only UI state — it has to persist. This is the largest piece of
-deferred product work, and everything in 2.2 hangs off it.
+What's left is coverage, not architecture: 18 guide images are wired up (tops: t-shirt, polo,
+dress shirt, off-shoulder, NFL/football jersey; bottoms: joggers x4, trousers, jeans, shorts x5),
+but categories that require Size and have no chart yet — shoes, dresses, costumes &
+accessories — fall back to the old manual-pick-only flow (`ManualSize`) with no measurement
+chart. Add more by extending `CHARTS_BY_CATEGORY` + `GUIDE_IMAGES`, same pattern as the existing
+entries.
 
 ### 2.2 `/find-your-fit` collects nothing · [DONE — 2026-08-28]
 
