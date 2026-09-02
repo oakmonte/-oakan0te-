@@ -44,6 +44,8 @@ export function VariantCombinationsSheet({
   useLockedViewport();
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkPrice, setBulkPrice] = useState("");
+  const [bulkCompareAtPrice, setBulkCompareAtPrice] = useState("");
+  const [bulkWeight, setBulkWeight] = useState("");
   const [bulkImageUrl, setBulkImageUrl] = useState("");
   const [imagePickerKey, setImagePickerKey] = useState<string | null>(null);
   const [inventoryKey, setInventoryKey] = useState<string | null>(null);
@@ -73,13 +75,27 @@ export function VariantCombinationsSheet({
   // Only overwrite the fields the seller actually filled in, so applying a
   // price doesn't silently wipe stock counts they already entered by hand.
   // Untouched rows they've unchecked are left alone entirely.
+  //
+  // Stock and SKU are deliberately NOT here. Stock is a sum across pickup
+  // locations (see InventorySheet), not a single number — bulk-filling it
+  // would mean guessing which location gets the quantity. SKU is supposed to
+  // be unique per variant, so bulk-applying one literal value would hand
+  // every selected row the same SKU, which is a correctness bug, not a
+  // convenience.
   function applyToAll() {
     const patch: Partial<VariantRow> = {};
     if (bulkPrice.trim()) patch.price = bulkPrice.trim();
+    if (bulkCompareAtPrice.trim()) patch.compareAtPrice = bulkCompareAtPrice.trim();
     if (bulkImageUrl.trim()) patch.mainImageUrl = bulkImageUrl.trim();
+    if (bulkWeight.trim()) {
+      const grams = parseFloat(bulkWeight.trim());
+      if (!isNaN(grams)) patch.weightGrams = grams;
+    }
     if (Object.keys(patch).length === 0) return;
     setRows((prev) => prev.map((r) => (r.selected ? { ...r, ...patch } : r)));
     setBulkPrice("");
+    setBulkCompareAtPrice("");
+    setBulkWeight("");
     setBulkImageUrl("");
     setBulkOpen(false);
   }
@@ -205,9 +221,16 @@ export function VariantCombinationsSheet({
             <div className="border border-gray-200 rounded-xl p-3 mb-3 bg-gray-50">
               <p className="text-xs text-gray-500 mb-2">
                 Fills every selected variant at once — you can still edit them individually after.
+                Stock and SKU aren't included here since they need to stay specific to each variant.
               </p>
               <div className="grid grid-cols-2 gap-2">
                 <MiniField label="Price" value={bulkPrice} onChange={setBulkPrice} />
+                <MiniField
+                  label="Compare-at"
+                  value={bulkCompareAtPrice}
+                  onChange={setBulkCompareAtPrice}
+                />
+                <MiniField label="Weight (g)" value={bulkWeight} onChange={setBulkWeight} />
                 <MiniField
                   label="Image URL"
                   value={bulkImageUrl}
@@ -218,7 +241,12 @@ export function VariantCombinationsSheet({
               <button
                 type="button"
                 onClick={applyToAll}
-                disabled={!bulkPrice.trim() && !bulkImageUrl.trim()}
+                disabled={
+                  !bulkPrice.trim() &&
+                  !bulkCompareAtPrice.trim() &&
+                  !bulkWeight.trim() &&
+                  !bulkImageUrl.trim()
+                }
                 className="mt-3 w-full bg-black text-white text-sm font-medium rounded-lg py-2.5 disabled:bg-gray-200 disabled:text-gray-400"
               >
                 Apply
