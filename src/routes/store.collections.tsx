@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Plus, ImageIcon, Trash2 } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useActiveStoreId } from "@/hooks/use-own-store";
+import { deleteCollection } from "@/lib/collections";
 
 export const Route = createFileRoute("/store/collections")({
   component: StoreCollections,
@@ -54,8 +55,8 @@ function StoreCollections() {
     };
   }, [storeId]);
 
-  async function handleDelete(id: string) {
-    const { error } = await supabase.from("collections").delete().eq("id", id);
+  async function handleDelete(id: string, withProducts: boolean) {
+    const { error } = await deleteCollection(id, withProducts);
     if (error) {
       console.error("StoreCollections: failed to delete collection", error);
       return;
@@ -102,21 +103,27 @@ function StoreCollections() {
               key={c.id}
               className="border border-gray-100 rounded-xl p-3 flex items-center gap-3"
             >
-              <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
-                {c.image_url ? (
-                  <img src={c.image_url} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <ImageIcon size={16} className="text-gray-300" />
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{c.title}</p>
-                <p className="text-xs text-gray-500">
-                  {c.count} product{c.count === 1 ? "" : "s"}
-                </p>
-              </div>
+              <button
+                type="button"
+                onClick={() => navigate({ to: "/store/collections/$id", params: { id: c.id } })}
+                className="flex-1 min-w-0 flex items-center gap-3 text-left"
+              >
+                <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
+                  {c.image_url ? (
+                    <img src={c.image_url} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <ImageIcon size={16} className="text-gray-300" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{c.title}</p>
+                  <p className="text-xs text-gray-500">
+                    {c.count} product{c.count === 1 ? "" : "s"}
+                  </p>
+                </div>
+              </button>
               {pendingDeleteId === c.id ? (
-                <span className="flex items-center gap-2 shrink-0">
+                <span className="flex items-center gap-1.5 shrink-0">
                   <button
                     type="button"
                     onClick={() => setPendingDeleteId(null)}
@@ -126,10 +133,17 @@ function StoreCollections() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleDelete(c.id)}
-                    className="text-xs font-medium text-white bg-red-600 rounded-full px-3 py-1.5"
+                    onClick={() => handleDelete(c.id, false)}
+                    className="text-xs font-medium text-gray-900 border border-gray-200 rounded-full px-3 py-1.5 whitespace-nowrap"
                   >
-                    Delete
+                    Collection only
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(c.id, true)}
+                    className="text-xs font-medium text-white bg-red-600 rounded-full px-3 py-1.5 whitespace-nowrap"
+                  >
+                    With products
                   </button>
                 </span>
               ) : (

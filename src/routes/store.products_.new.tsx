@@ -13,6 +13,8 @@ import { NecessitiesSheet } from "@/components/product-form/NecessitiesSheet";
 import { PricingSheet } from "@/components/product-form/PricingSheet";
 import { InventorySection } from "@/components/product-form/InventorySection";
 import { InventorySheet, type InventoryValues } from "@/components/product-form/InventorySheet";
+import { WeightSection } from "@/components/product-form/WeightSection";
+import { WeightSheet } from "@/components/product-form/WeightSheet";
 import { CategoryPicker } from "@/components/product-form/CategoryPicker";
 import { ProductTypeSwitchSheet } from "@/components/product-form/ProductTypeSwitchSheet";
 import {
@@ -21,12 +23,16 @@ import {
   VariantRow,
 } from "@/components/product-form/VariantMatrixBuilder";
 import { ManualSize, SizeMeasurements, getSizeChartForCategory } from "@/lib/size-chart-config";
+import { estimateWeightGrams } from "@/lib/weight-estimate";
 import { preloadGuideImage } from "@/components/product-form/size-chart/guide-images";
 import {
   stashProductDraft,
   takeProductDraft,
   takePendingNewCollectionId,
   takePendingNewLocationId,
+  readAutosavedDraft,
+  writeAutosavedDraft,
+  clearAutosavedDraft,
 } from "@/lib/product-draft-handoff";
 import { useActiveStoreId } from "@/hooks/use-own-store";
 
@@ -60,10 +66,15 @@ function NewProduct() {
   const { storeId } = useActiveStoreId();
   const { kind: intentKind } = Route.useSearch();
 
-  // Restoring a draft stashed before a side-trip to create a collection — see
-  // handleCreateCollection below. Read once via lazy initializers so every
-  // field seeds correctly on the very first render (no restore flash).
-  const [initialDraft] = useState(() => takeProductDraft());
+  // Two sources of "come back to where I was," checked in order: a draft
+  // stashed just before a side-trip to create a collection/location (see
+  // handleCreateCollection below) always wins since it's the most recent
+  // state; otherwise fall back to the autosaved draft from localStorage,
+  // which is what survives an actual page refresh. Read once via lazy
+  // initializers so every field seeds correctly on the very first render.
+  const [handoffDraft] = useState(() => takeProductDraft());
+  const [restoredFromAutosave] = useState(() => !handoffDraft && !!readAutosavedDraft(undefined));
+  const [initialDraft] = useState(() => handoffDraft ?? readAutosavedDraft(undefined));
   const [initialNewCollectionId] = useState(() => takePendingNewCollectionId());
 
   const [kind, setKind] = useState<ProductKind>(initialDraft?.kind ?? intentKind ?? "variant");
@@ -79,12 +90,17 @@ function NewProduct() {
     initialDraft?.categoryPath ?? [],
   );
 
+  // Reused both to kick off the guide-image preload below and to pick which
+  // weight-estimate formula applies (see weight-estimate.ts) — stable across
+  // renders for the same category since CHARTS_BY_CATEGORY always returns
+  // the same object reference.
+  const chart = getSizeChartForCategory(categoryPath);
+
   // Kick off the size-chart guide image fetch the moment a category is
   // picked, so it's already cached by the time the seller opens Necessities.
   useEffect(() => {
-    const chart = getSizeChartForCategory(categoryPath);
     if (chart) preloadGuideImage(chart.guide);
-  }, [categoryPath]);
+  }, [chart]);
 
   // Regular-mode state
   const [price, setPrice] = useState(initialDraft?.price ?? "");
@@ -107,6 +123,10 @@ function NewProduct() {
   // No UI sets this on this page anymore — material is filled in via
   // Necessities now. Still round-tripped through drafts/save.
   const material = initialDraft?.material ?? "";
+  const [regularWeightGrams, setRegularWeightGrams] = useState<number | null>(
+    initialDraft?.regularWeightGrams ?? null,
+  );
+  const [weightSheetOpen, setWeightSheetOpen] = useState(false);
 
   // Variant-mode state
   const [options, setOptions] = useState<VariantOption[]>(initialDraft?.options ?? []);
@@ -117,6 +137,23 @@ function NewProduct() {
   // Manual size pick — only meaningful when there's no Variant Size axis
   // (regular products, or variant products that only vary by e.g. Color).
   const [manualSize, setManualSize] = useState<ManualSize | null>(initialDraft?.manualSize ?? null);
+
+  // A regular product has no Variant Size axis, so its own measurements (if
+  // any were picked via the size chart) live under manualSize's value.
+  const regularWeightEstimate = chart
+    ? estimateWeightGrams(chart.guide, sizeMeasurements[manualSize?.value ?? ""] ?? {}, material)
+    : null;
+
+  // Per-row suggestion for the variant matrix: prefer the row's own Size/
+  // Material option values over the shared manualSize/material fallback,
+  // since a variant product's rows can each be a different size or fabric.
+  function estimateWeightForRow(row: VariantRow): number | null {
+    if (!chart) return null;
+    const rowSize = row.options.find((o) => o.name.trim().toLowerCase() === "size")?.value;
+    const rowMaterial = row.options.find((o) => o.name.trim().toLowerCase() === "material")?.value;
+    const measurements = sizeMeasurements[rowSize ?? manualSize?.value ?? ""] ?? {};
+    return estimateWeightGrams(chart.guide, measurements, rowMaterial ?? material);
+  }
 
   const [categoryPickerOpen, setCategoryPickerOpen] = useState(false);
   const [typeSwitchOpen, setTypeSwitchOpen] = useState(false);
@@ -134,6 +171,7 @@ function NewProduct() {
   const [necessitiesSheetOpen, setNecessitiesSheetOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [showRestoredBanner, setShowRestoredBanner] = useState(restoredFromAutosave);
 
   function toggleTag(id: string) {
     setTagIds((prev) => (prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]));
@@ -157,6 +195,7 @@ function NewProduct() {
       stockQty: regularStockQty,
       regularContinueSellingOutOfStock,
       regularLocationQuantities,
+      regularWeightGrams,
       material,
       options,
       rows,
@@ -165,6 +204,17 @@ function NewProduct() {
       manualSize,
     };
   }
+
+  // Debounced localStorage autosave — the only thing that survives a hard
+  // refresh (currentDraft's module-variable stash above only survives
+  // client-side navigation). JSON.stringify as the dep is deliberate: it's
+  // the simplest way to react to "any field actually changed" without
+  // listing every piece of state that feeds currentDraft() by hand.
+  useEffect(() => {
+    const t = setTimeout(() => writeAutosavedDraft(undefined, currentDraft()), 800);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(currentDraft())]);
 
   function handleCreateCollection() {
     stashProductDraft(currentDraft());
@@ -182,6 +232,10 @@ function NewProduct() {
   function handleTypeSwitch(next: ProductKind) {
     setTypeSwitchOpen(false);
     setKind(next);
+    // Keep the URL's ?kind in sync with the in-page switch -- otherwise a
+    // refresh re-reads the stale value from the initial navigation (e.g. the
+    // CreateProductTypeModal pick) and silently reverts the switch.
+    navigate({ to: ".", search: (prev) => ({ ...prev, kind: next }), replace: true });
   }
 
   async function handleSave() {
@@ -262,6 +316,7 @@ function NewProduct() {
           stock_qty: regularStockQty,
           continue_selling_out_of_stock: regularContinueSellingOutOfStock,
           material: material.trim() || null,
+          weight_grams: regularWeightGrams,
           main_image_url: mainImageUrl.trim() || null,
           additional_image_urls: additionalImageUrls.length > 0 ? additionalImageUrls : null,
         })
@@ -319,6 +374,7 @@ function NewProduct() {
         stock_qty: Object.values(r.locationQuantities).reduce((sum, n) => sum + n, 0),
         sku: r.sku.trim() || null,
         continue_selling_out_of_stock: r.continueSellingOutOfStock,
+        weight_grams: r.weightGrams ?? null,
         main_image_url: r.mainImageUrl.trim() || mainImageUrl.trim() || null,
         additional_image_urls: r.additionalImageUrls ?? null,
       }));
@@ -403,6 +459,7 @@ function NewProduct() {
       }
     }
 
+    clearAutosavedDraft(undefined);
     navigate({ to: "/store/products" });
   }
 
@@ -425,6 +482,19 @@ function NewProduct() {
           <ChevronDown size={14} className="text-gray-400" />
         </button>
       </div>
+
+      {showRestoredBanner && (
+        <div className="mx-4 mt-3 flex items-center justify-between gap-3 rounded-xl bg-gray-50 px-3 py-2.5">
+          <p className="text-xs text-gray-500">Restored your unsaved progress from last time.</p>
+          <button
+            type="button"
+            onClick={() => setShowRestoredBanner(false)}
+            className="text-xs font-medium text-gray-900 shrink-0"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {error && <p className="px-4 pt-3 text-sm text-red-500">{error}</p>}
 
@@ -449,11 +519,14 @@ function NewProduct() {
       />
 
       {kind === "regular" ? (
-        <InventorySection
-          available={regularStockQty}
-          locationCount={Object.keys(regularLocationQuantities).length}
-          onOpen={() => setInventorySheetOpen(true)}
-        />
+        <>
+          <InventorySection
+            available={regularStockQty}
+            locationCount={Object.keys(regularLocationQuantities).length}
+            onOpen={() => setInventorySheetOpen(true)}
+          />
+          <WeightSection grams={regularWeightGrams} onOpen={() => setWeightSheetOpen(true)} />
+        </>
       ) : (
         storeId && (
           <VariantMatrixBuilder
@@ -465,6 +538,7 @@ function NewProduct() {
             additionalImageUrls={additionalImageUrls}
             storeId={storeId}
             onCreateLocation={handleCreateLocation}
+            estimateWeightForRow={estimateWeightForRow}
           />
         )
       )}
@@ -529,6 +603,18 @@ function NewProduct() {
             setInventorySheetOpen(false);
           }}
           onClose={() => setInventorySheetOpen(false)}
+        />
+      )}
+
+      {weightSheetOpen && (
+        <WeightSheet
+          initial={regularWeightGrams}
+          estimate={regularWeightEstimate}
+          onSave={(grams) => {
+            setRegularWeightGrams(grams);
+            setWeightSheetOpen(false);
+          }}
+          onClose={() => setWeightSheetOpen(false)}
         />
       )}
 

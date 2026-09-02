@@ -72,11 +72,28 @@ export function EditableText({
   }
 
   const editClassName = `${className ?? ""} w-full resize-none rounded-md border border-white/25 bg-white/5 px-2 py-1 outline-none focus:border-white/60 focus:bg-white/10`;
-  // iOS Safari auto-zooms the page on focus for any input under 16px. Forcing
-  // 16px here (inputs only — view mode is untouched) satisfies that threshold
+  // iOS Safari auto-zooms the page on focus for any input under 16px. Every
+  // theme sets its copy size via a Tailwind arbitrary class (text-[Npx]), so
+  // pull that intended size back out of className to know what we're
+  // overriding. Below 16px we force the real font-size to 16px (satisfying
+  // iOS's check, which looks at the computed property, not the rendered
+  // size) and counter-scale with a CSS transform so the field still *looks*
+  // its original size instead of blowing up and overflowing its container —
   // without touching the viewport meta tag, so a user's own pinch-zoom still
   // works exactly as normal.
-  const editStyle = { ...style, fontSize: "max(16px, 1em)" };
+  const sizeMatch = className?.match(/text-\[(\d+(?:\.\d+)?)px\]/);
+  const intendedPx = sizeMatch ? parseFloat(sizeMatch[1]) : null;
+  const needsZoomFix = intendedPx !== null && intendedPx < 16;
+  const scale = needsZoomFix ? intendedPx / 16 : 1;
+  const editStyle = { ...style, fontSize: needsZoomFix ? "16px" : style?.fontSize };
+  const scaleWrapperStyle: CSSProperties | undefined = needsZoomFix
+    ? {
+        display: "block",
+        width: `${100 / scale}%`,
+        transform: `scale(${scale})`,
+        transformOrigin: "top center",
+      }
+    : undefined;
 
   function commit() {
     if (local !== value) onChange(local);
@@ -155,30 +172,32 @@ export function EditableText({
           <Minus size={8} />
         </button>
       )}
-      {multiline ? (
-        <textarea
-          rows={2}
-          value={local}
-          placeholder={placeholder}
-          onChange={(e) => setLocal(e.target.value)}
-          onFocus={handleFocus}
-          onBlur={handleBlur}
-          className={editClassName}
-          style={editStyle}
-        />
-      ) : (
-        <input
-          type="text"
-          value={local}
-          placeholder={placeholder}
-          onChange={(e) => setLocal(e.target.value)}
-          onFocus={handleFocus}
-          onBlur={handleBlur}
-          onKeyDown={handleKeyDown}
-          className={editClassName}
-          style={editStyle}
-        />
-      )}
+      <div style={scaleWrapperStyle}>
+        {multiline ? (
+          <textarea
+            rows={2}
+            value={local}
+            placeholder={placeholder}
+            onChange={(e) => setLocal(e.target.value)}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
+            className={editClassName}
+            style={editStyle}
+          />
+        ) : (
+          <input
+            type="text"
+            value={local}
+            placeholder={placeholder}
+            onChange={(e) => setLocal(e.target.value)}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
+            onKeyDown={handleKeyDown}
+            className={editClassName}
+            style={editStyle}
+          />
+        )}
+      </div>
     </span>
   );
 }

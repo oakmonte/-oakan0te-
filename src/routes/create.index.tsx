@@ -287,7 +287,7 @@ function CreatePage() {
           video: {
             facingMode: facing,
             width: { ideal: 1920 },
-            frameRate: { ideal: 60 },
+            frameRate: { ideal: 30 },
           },
           audio: mode === "video",
         });
@@ -721,7 +721,7 @@ function CreatePage() {
 
     // A filter with a true LUT grade is deliberately NOT baked live below
     // (see resolveCaptureFilter's doc) — recording stays raw/unfiltered at
-    // 60fps, and recorder.onstop further down runs the true grade once as a
+    // 30fps, and recorder.onstop further down runs the true grade once as a
     // post-process instead. A filter without a grade already IS its own
     // matrix at full accuracy, so those still bake live exactly as before:
     // no post-process, no extra encode generation, no change.
@@ -762,7 +762,7 @@ function CreatePage() {
         };
         drawFrame();
 
-        const canvasStream = recordCanvas.captureStream(60);
+        const canvasStream = recordCanvas.captureStream();
         stream.getAudioTracks().forEach((track) => canvasStream.addTrack(track));
 
         mirrorCanvasStreamRef.current = canvasStream;
@@ -777,7 +777,10 @@ function CreatePage() {
       "video/mp4",
     ];
     const mimeType = candidates.find((t) => MediaRecorder.isTypeSupported(t)) ?? "";
-    const recorder = new MediaRecorder(recordingStream, mimeType ? { mimeType } : undefined);
+    const recorder = new MediaRecorder(
+      recordingStream,
+      mimeType ? { mimeType, videoBitsPerSecond: 8_000_000 } : { videoBitsPerSecond: 8_000_000 },
+    );
 
     recorder.ondataavailable = (e) => {
       if (e.data.size > 0) recordedChunksRef.current.push(e.data);

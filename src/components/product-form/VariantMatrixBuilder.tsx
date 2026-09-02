@@ -56,6 +56,7 @@ export function VariantMatrixBuilder({
   additionalImageUrls,
   storeId,
   onCreateLocation,
+  estimateWeightForRow,
 }: {
   options: VariantOption[];
   setOptions: (fn: (prev: VariantOption[]) => VariantOption[]) => void;
@@ -70,6 +71,10 @@ export function VariantMatrixBuilder({
   // sheet.
   storeId: string;
   onCreateLocation: () => void;
+  // Rough weight suggestion for one row, from its own size/material — see
+  // weight-estimate.ts. Computed by the page (it has category/chart context
+  // this component doesn't) and only ever pre-fills an empty WeightSheet.
+  estimateWeightForRow: (row: VariantRow) => number | null;
 }) {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [wizardStep, setWizardStep] = useState<WizardStep>(null);
@@ -166,6 +171,7 @@ export function VariantMatrixBuilder({
           additionalImageUrls={additionalImageUrls}
           storeId={storeId}
           onCreateLocation={onCreateLocation}
+          estimateWeightForRow={estimateWeightForRow}
           onBack={() => setWizardStep("list")}
           onDone={() => setWizardStep(null)}
         />

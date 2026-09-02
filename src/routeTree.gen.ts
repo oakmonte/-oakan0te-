@@ -59,6 +59,7 @@ import { Route as StoreProductsNewRouteImport } from './routes/store.products_.n
 import { Route as StoreProductsIdRouteImport } from './routes/store.products_.$id'
 import { Route as StoreLocationsNewRouteImport } from './routes/store.locations_.new'
 import { Route as StoreCollectionsNewRouteImport } from './routes/store.collections_.new'
+import { Route as StoreCollectionsIdRouteImport } from './routes/store.collections_.$id'
 import { Route as CreateAfterShotStudioRouteImport } from './routes/create.after-shot.studio'
 import { Route as CreateAfterShotPublishRouteImport } from './routes/create.after-shot.publish'
 import { Route as CreateAfterShotFiltersRouteImport } from './routes/create.after-shot.filters'
@@ -326,6 +327,11 @@ const StoreCollectionsNewRoute = StoreCollectionsNewRouteImport.update({
   path: '/collections/new',
   getParentRoute: () => StoreRoute,
 } as any)
+const StoreCollectionsIdRoute = StoreCollectionsIdRouteImport.update({
+  id: '/collections_/$id',
+  path: '/collections/$id',
+  getParentRoute: () => StoreRoute,
+} as any)
 const CreateAfterShotStudioRoute = CreateAfterShotStudioRouteImport.update({
   id: '/studio',
   path: '/studio',
@@ -462,6 +468,7 @@ export interface FileRoutesByFullPath {
   '/create/after-shot/filters': typeof CreateAfterShotFiltersRoute
   '/create/after-shot/publish': typeof CreateAfterShotPublishRoute
   '/create/after-shot/studio': typeof CreateAfterShotStudioRoute
+  '/store/collections/$id': typeof StoreCollectionsIdRoute
   '/store/collections/new': typeof StoreCollectionsNewRoute
   '/store/locations/new': typeof StoreLocationsNewRoute
   '/store/products/$id': typeof StoreProductsIdRoute
@@ -526,6 +533,7 @@ export interface FileRoutesByTo {
   '/create/after-shot/filters': typeof CreateAfterShotFiltersRoute
   '/create/after-shot/publish': typeof CreateAfterShotPublishRoute
   '/create/after-shot/studio': typeof CreateAfterShotStudioRoute
+  '/store/collections/$id': typeof StoreCollectionsIdRoute
   '/store/collections/new': typeof StoreCollectionsNewRoute
   '/store/locations/new': typeof StoreLocationsNewRoute
   '/store/products/$id': typeof StoreProductsIdRoute
@@ -594,6 +602,7 @@ export interface FileRoutesById {
   '/create/after-shot/filters': typeof CreateAfterShotFiltersRoute
   '/create/after-shot/publish': typeof CreateAfterShotPublishRoute
   '/create/after-shot/studio': typeof CreateAfterShotStudioRoute
+  '/store/collections_/$id': typeof StoreCollectionsIdRoute
   '/store/collections_/new': typeof StoreCollectionsNewRoute
   '/store/locations_/new': typeof StoreLocationsNewRoute
   '/store/products_/$id': typeof StoreProductsIdRoute
@@ -663,6 +672,7 @@ export interface FileRouteTypes {
     | '/create/after-shot/filters'
     | '/create/after-shot/publish'
     | '/create/after-shot/studio'
+    | '/store/collections/$id'
     | '/store/collections/new'
     | '/store/locations/new'
     | '/store/products/$id'
@@ -727,6 +737,7 @@ export interface FileRouteTypes {
     | '/create/after-shot/filters'
     | '/create/after-shot/publish'
     | '/create/after-shot/studio'
+    | '/store/collections/$id'
     | '/store/collections/new'
     | '/store/locations/new'
     | '/store/products/$id'
@@ -794,6 +805,7 @@ export interface FileRouteTypes {
     | '/create/after-shot/filters'
     | '/create/after-shot/publish'
     | '/create/after-shot/studio'
+    | '/store/collections_/$id'
     | '/store/collections_/new'
     | '/store/locations_/new'
     | '/store/products_/$id'
@@ -1201,6 +1213,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StoreCollectionsNewRouteImport
       parentRoute: typeof StoreRoute
     }
+    '/store/collections_/$id': {
+      id: '/store/collections_/$id'
+      path: '/collections/$id'
+      fullPath: '/store/collections/$id'
+      preLoaderRoute: typeof StoreCollectionsIdRouteImport
+      parentRoute: typeof StoreRoute
+    }
     '/create/after-shot/studio': {
       id: '/create/after-shot/studio'
       path: '/studio'
@@ -1351,6 +1370,7 @@ interface StoreRouteChildren {
   StoreProductsRoute: typeof StoreProductsRoute
   StoreThemeRoute: typeof StoreThemeRoute
   StoreIndexRoute: typeof StoreIndexRoute
+  StoreCollectionsIdRoute: typeof StoreCollectionsIdRoute
   StoreCollectionsNewRoute: typeof StoreCollectionsNewRoute
   StoreLocationsNewRoute: typeof StoreLocationsNewRoute
   StoreProductsIdRoute: typeof StoreProductsIdRoute
@@ -1370,6 +1390,7 @@ const StoreRouteChildren: StoreRouteChildren = {
   StoreProductsRoute: StoreProductsRoute,
   StoreThemeRoute: StoreThemeRoute,
   StoreIndexRoute: StoreIndexRoute,
+  StoreCollectionsIdRoute: StoreCollectionsIdRoute,
   StoreCollectionsNewRoute: StoreCollectionsNewRoute,
   StoreLocationsNewRoute: StoreLocationsNewRoute,
   StoreProductsIdRoute: StoreProductsIdRoute,

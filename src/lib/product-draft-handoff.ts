@@ -24,6 +24,7 @@ export type ProductDraft = {
   stockQty: number;
   regularContinueSellingOutOfStock: boolean;
   regularLocationQuantities: Record<string, number>;
+  regularWeightGrams: number | null;
   material: string;
   options: VariantOption[];
   rows: VariantRow[];
@@ -81,4 +82,43 @@ export function takePendingNewLocationId(): string | null {
   const id = pendingNewLocationId;
   pendingNewLocationId = null;
   return id;
+}
+
+// Autosave, separate from the in-memory handoff above: that one only
+// survives client-side navigation (a module variable, wiped by any hard
+// refresh); this persists to localStorage so a refresh -- or closing the
+// tab entirely -- doesn't lose an in-progress listing. Keyed by productId so
+// editing product A can't clobber an untouched autosave for product B; the
+// new-product page (no id yet) always uses one shared "new" slot, same
+// single-in-progress-draft assumption the in-memory handoff already makes.
+const AUTOSAVE_KEY_PREFIX = "oak_product_draft_autosave:";
+
+function autosaveKey(productId: string | undefined) {
+  return AUTOSAVE_KEY_PREFIX + (productId ?? "new");
+}
+
+export function writeAutosavedDraft(productId: string | undefined, draft: ProductDraft) {
+  try {
+    localStorage.setItem(autosaveKey(productId), JSON.stringify(draft));
+  } catch {
+    // Storage full or unavailable (Safari private browsing, etc.) — the
+    // draft just won't survive a refresh this time, nothing else to do.
+  }
+}
+
+export function readAutosavedDraft(productId: string | undefined): ProductDraft | null {
+  try {
+    const raw = localStorage.getItem(autosaveKey(productId));
+    return raw ? (JSON.parse(raw) as ProductDraft) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function clearAutosavedDraft(productId: string | undefined) {
+  try {
+    localStorage.removeItem(autosaveKey(productId));
+  } catch {
+    // Nothing to do if storage itself is unavailable.
+  }
 }
