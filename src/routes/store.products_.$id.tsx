@@ -22,6 +22,7 @@ import { PricingSheet } from "@/components/product-form/PricingSheet";
 import { InventorySection } from "@/components/product-form/InventorySection";
 import { InventorySheet, type InventoryValues } from "@/components/product-form/InventorySheet";
 import { WeightSection } from "@/components/product-form/WeightSection";
+import { SkuSection } from "@/components/product-form/SkuSection";
 import { WeightSheet } from "@/components/product-form/WeightSheet";
 import { CategoryPicker } from "@/components/product-form/CategoryPicker";
 import { ProductTypeSwitchSheet } from "@/components/product-form/ProductTypeSwitchSheet";
@@ -189,6 +190,7 @@ function EditProduct() {
     initialDraft?.regularWeightGrams ?? null,
   );
   const [weightSheetOpen, setWeightSheetOpen] = useState(false);
+  const [regularSku, setRegularSku] = useState(initialDraft?.regularSku ?? "");
   const [regularAdditionalImageUrls, setRegularAdditionalImageUrls] = useState<string[] | null>(
     initialDraft?.additionalImageUrls ?? null,
   );
@@ -381,6 +383,7 @@ function EditProduct() {
         setMaterial(v?.material ?? "");
         setMainImageUrl(v?.main_image_url ?? "");
         setRegularBarcode(v?.barcode ?? null);
+        setRegularSku(v?.sku ?? "");
         setRegularContinueSellingOutOfStock(v?.continue_selling_out_of_stock ?? false);
         setRegularLocationQuantities(
           Object.fromEntries(
@@ -457,6 +460,7 @@ function EditProduct() {
       regularContinueSellingOutOfStock,
       regularLocationQuantities,
       regularWeightGrams,
+      regularSku,
       material,
       options,
       rows,
@@ -602,6 +606,7 @@ function EditProduct() {
           material: material.trim() || null,
           main_image_url: mainImageUrl.trim() || null,
           barcode: regularBarcode,
+          sku: regularSku.trim() || null,
           continue_selling_out_of_stock: regularContinueSellingOutOfStock,
           material_feel: regularMaterialFeel,
           weight_grams: regularWeightGrams,
@@ -836,6 +841,7 @@ function EditProduct() {
             onOpen={() => setInventorySheetOpen(true)}
           />
           <WeightSection grams={regularWeightGrams} onOpen={() => setWeightSheetOpen(true)} />
+          <SkuSection value={regularSku} onChange={setRegularSku} />
         </>
       ) : (
         storeId && (

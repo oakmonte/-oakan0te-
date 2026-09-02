@@ -14,6 +14,7 @@ import { PricingSheet } from "@/components/product-form/PricingSheet";
 import { InventorySection } from "@/components/product-form/InventorySection";
 import { InventorySheet, type InventoryValues } from "@/components/product-form/InventorySheet";
 import { WeightSection } from "@/components/product-form/WeightSection";
+import { SkuSection } from "@/components/product-form/SkuSection";
 import { WeightSheet } from "@/components/product-form/WeightSheet";
 import { CategoryPicker } from "@/components/product-form/CategoryPicker";
 import { ProductTypeSwitchSheet } from "@/components/product-form/ProductTypeSwitchSheet";
@@ -127,6 +128,7 @@ function NewProduct() {
     initialDraft?.regularWeightGrams ?? null,
   );
   const [weightSheetOpen, setWeightSheetOpen] = useState(false);
+  const [regularSku, setRegularSku] = useState(initialDraft?.regularSku ?? "");
 
   // Variant-mode state
   const [options, setOptions] = useState<VariantOption[]>(initialDraft?.options ?? []);
@@ -196,6 +198,7 @@ function NewProduct() {
       regularContinueSellingOutOfStock,
       regularLocationQuantities,
       regularWeightGrams,
+      regularSku,
       material,
       options,
       rows,
@@ -317,6 +320,7 @@ function NewProduct() {
           continue_selling_out_of_stock: regularContinueSellingOutOfStock,
           material: material.trim() || null,
           weight_grams: regularWeightGrams,
+          sku: regularSku.trim() || null,
           main_image_url: mainImageUrl.trim() || null,
           additional_image_urls: additionalImageUrls.length > 0 ? additionalImageUrls : null,
         })
@@ -526,6 +530,7 @@ function NewProduct() {
             onOpen={() => setInventorySheetOpen(true)}
           />
           <WeightSection grams={regularWeightGrams} onOpen={() => setWeightSheetOpen(true)} />
+          <SkuSection value={regularSku} onChange={setRegularSku} />
         </>
       ) : (
         storeId && (
