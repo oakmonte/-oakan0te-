@@ -1,9 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Plus, ImageIcon, Trash2 } from "lucide-react";
+import { Plus, ImageIcon } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useActiveStoreId } from "@/hooks/use-own-store";
-import { deleteCollection } from "@/lib/collections";
 
 export const Route = createFileRoute("/store/collections")({
   component: StoreCollections,
@@ -20,9 +19,6 @@ function StoreCollections() {
   const navigate = useNavigate();
   const { storeId, loading: storeLoading } = useActiveStoreId();
   const [collections, setCollections] = useState<CollectionRow[] | null>(null);
-  // Deleting a collection is destructive and cascades, so the trash icon only
-  // arms a confirm step -- a single mis-tap can't remove anything.
-  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!storeId) return;
@@ -54,16 +50,6 @@ function StoreCollections() {
       cancelled = true;
     };
   }, [storeId]);
-
-  async function handleDelete(id: string, withProducts: boolean) {
-    const { error } = await deleteCollection(id, withProducts);
-    if (error) {
-      console.error("StoreCollections: failed to delete collection", error);
-      return;
-    }
-    setPendingDeleteId(null);
-    setCollections((prev) => prev?.filter((c) => c.id !== id) ?? prev);
-  }
 
   if (storeLoading) return <div className="px-4 py-8 text-sm text-gray-400">Loading…</div>;
   if (!storeId)
@@ -99,64 +85,24 @@ function StoreCollections() {
       ) : (
         <div className="flex flex-col gap-3 animate-in fade-in duration-300">
           {collections.map((c) => (
-            <div
+            <button
               key={c.id}
-              className="border border-gray-100 rounded-xl p-3 flex items-center gap-3"
+              type="button"
+              onClick={() => navigate({ to: "/store/collections/$id", params: { id: c.id } })}
+              className="w-full flex items-center gap-3 border border-gray-100 rounded-xl p-3 text-left oak-motion-control active:scale-[0.99]"
             >
-              <button
-                type="button"
-                onClick={() => navigate({ to: "/store/collections/$id", params: { id: c.id } })}
-                className="flex-1 min-w-0 flex items-center gap-3 text-left"
-              >
-                <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
-                  {c.image_url ? (
-                    <img src={c.image_url} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                    <ImageIcon size={16} className="text-gray-300" />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{c.title}</p>
-                  <p className="text-xs text-gray-500">
-                    {c.count} product{c.count === 1 ? "" : "s"}
-                  </p>
-                </div>
-              </button>
-              {pendingDeleteId === c.id ? (
-                <span className="flex items-center gap-1.5 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => setPendingDeleteId(null)}
-                    className="text-xs text-gray-500 px-2 py-1.5"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDelete(c.id, false)}
-                    className="text-xs font-medium text-gray-900 border border-gray-200 rounded-full px-3 py-1.5 whitespace-nowrap"
-                  >
-                    Collection only
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDelete(c.id, true)}
-                    className="text-xs font-medium text-white bg-red-600 rounded-full px-3 py-1.5 whitespace-nowrap"
-                  >
-                    With products
-                  </button>
-                </span>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setPendingDeleteId(c.id)}
-                  aria-label={`Delete ${c.title}`}
-                  className="p-2 text-gray-300 shrink-0"
-                >
-                  <Trash2 size={16} />
-                </button>
-              )}
-            </div>
+              <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
+                {c.image_url ? (
+                  <img src={c.image_url} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <ImageIcon size={16} className="text-gray-300" />
+                )}
+              </div>
+              <span className="flex-1 min-w-0 text-sm font-medium truncate">{c.title}</span>
+              <span className="text-xs text-gray-400 shrink-0">
+                {c.count} product{c.count === 1 ? "" : "s"}
+              </span>
+            </button>
           ))}
         </div>
       )}
