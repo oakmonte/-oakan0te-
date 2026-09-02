@@ -61,6 +61,19 @@ export function EditableText({
     setLocal(value);
   }, [value]);
 
+  // Safety net for the viewport-meta swap below: if this field unmounts
+  // (e.g. the sheet closes) while still focused, blur never fires to put
+  // the meta tag back.
+  useEffect(() => {
+    return () => {
+      const meta = document.querySelector<HTMLMetaElement>('meta[name="viewport"]');
+      if (meta && meta.dataset.oakPrevContent !== undefined) {
+        meta.setAttribute("content", meta.dataset.oakPrevContent);
+        delete meta.dataset.oakPrevContent;
+      }
+    };
+  }, []);
+
   if (!isEditing) {
     if (!value) return null;
     const Tag = as;
@@ -72,28 +85,19 @@ export function EditableText({
   }
 
   const editClassName = `${className ?? ""} w-full resize-none rounded-md border border-white/25 bg-white/5 px-2 py-1 outline-none focus:border-white/60 focus:bg-white/10`;
-  // iOS Safari auto-zooms the page on focus for any input under 16px. Every
-  // theme sets its copy size via a Tailwind arbitrary class (text-[Npx]), so
-  // pull that intended size back out of className to know what we're
-  // overriding. Below 16px we force the real font-size to 16px (satisfying
-  // iOS's check, which looks at the computed property, not the rendered
-  // size) and counter-scale with a CSS transform so the field still *looks*
-  // its original size instead of blowing up and overflowing its container —
-  // without touching the viewport meta tag, so a user's own pinch-zoom still
-  // works exactly as normal.
+  // styles.css forces every input/select/textarea to 16px under 639px width,
+  // app-wide, so iOS Safari doesn't auto-zoom on focus. Theme copy is sized
+  // as small as 8px to fit a phone-mockup scale, and letting that rule win
+  // here blows a field past the tight max-w/flex box it was designed for —
+  // a single-line input can't wrap, so the overflow reads as chopped-off
+  // text. This field suppresses the zoom itself instead (the viewport-meta
+  // swap in handleFocus/restoreViewport below, same technique TextPanel.tsx
+  // uses for the after-shot text tool), so it doesn't need the 16px floor —
+  // restore the real design size via inline style, which beats that class
+  // rule on specificity.
   const sizeMatch = className?.match(/text-\[(\d+(?:\.\d+)?)px\]/);
   const intendedPx = sizeMatch ? parseFloat(sizeMatch[1]) : null;
-  const needsZoomFix = intendedPx !== null && intendedPx < 16;
-  const scale = needsZoomFix ? intendedPx / 16 : 1;
-  const editStyle = { ...style, fontSize: needsZoomFix ? "16px" : style?.fontSize };
-  const scaleWrapperStyle: CSSProperties | undefined = needsZoomFix
-    ? {
-        display: "block",
-        width: `${100 / scale}%`,
-        transform: `scale(${scale})`,
-        transformOrigin: "top center",
-      }
-    : undefined;
+  const editStyle = intendedPx !== null ? { ...style, fontSize: `${intendedPx}px` } : style;
 
   function commit() {
     if (local !== value) onChange(local);
@@ -102,12 +106,29 @@ export function EditableText({
   function handleFocus() {
     setFocused(true);
     setPickerOpen(false);
+    const meta = document.querySelector<HTMLMetaElement>('meta[name="viewport"]');
+    if (meta) {
+      meta.dataset.oakPrevContent = meta.getAttribute("content") ?? "";
+      meta.setAttribute(
+        "content",
+        "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no",
+      );
+    }
+  }
+
+  function restoreViewport() {
+    const meta = document.querySelector<HTMLMetaElement>('meta[name="viewport"]');
+    if (meta && meta.dataset.oakPrevContent !== undefined) {
+      meta.setAttribute("content", meta.dataset.oakPrevContent);
+      delete meta.dataset.oakPrevContent;
+    }
   }
 
   function handleBlur() {
     commit();
     setFocused(false);
     setPickerOpen(false);
+    restoreViewport();
   }
 
   function handleKeyDown(e: KeyboardEvent<HTMLInputElement>) {
@@ -172,32 +193,30 @@ export function EditableText({
           <Minus size={8} />
         </button>
       )}
-      <div style={scaleWrapperStyle}>
-        {multiline ? (
-          <textarea
-            rows={2}
-            value={local}
-            placeholder={placeholder}
-            onChange={(e) => setLocal(e.target.value)}
-            onFocus={handleFocus}
-            onBlur={handleBlur}
-            className={editClassName}
-            style={editStyle}
-          />
-        ) : (
-          <input
-            type="text"
-            value={local}
-            placeholder={placeholder}
-            onChange={(e) => setLocal(e.target.value)}
-            onFocus={handleFocus}
-            onBlur={handleBlur}
-            onKeyDown={handleKeyDown}
-            className={editClassName}
-            style={editStyle}
-          />
-        )}
-      </div>
+      {multiline ? (
+        <textarea
+          rows={2}
+          value={local}
+          placeholder={placeholder}
+          onChange={(e) => setLocal(e.target.value)}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          className={editClassName}
+          style={editStyle}
+        />
+      ) : (
+        <input
+          type="text"
+          value={local}
+          placeholder={placeholder}
+          onChange={(e) => setLocal(e.target.value)}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          onKeyDown={handleKeyDown}
+          className={editClassName}
+          style={editStyle}
+        />
+      )}
     </span>
   );
 }
