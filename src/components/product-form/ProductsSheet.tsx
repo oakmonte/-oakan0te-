@@ -9,9 +9,12 @@ type ProductRow = {
 };
 
 // Picker for a store's *existing* products, used from inside a collection's
-// detail page — the reverse of CollectionsSheet.tsx (which picks collections
-// from inside a product). Creating a brand-new product happens on its own
-// route via onCreateNew, same split as CollectionsSheet's onCreateNew.
+// detail page (and the new-collection form) — the reverse of
+// CollectionsSheet.tsx (which picks collections from inside a product).
+// Creating a brand-new product happens on its own route via onCreateNew, same
+// split as CollectionsSheet's onCreateNew — omit it (new-collection form,
+// which has no collection id yet to hand a new product back to) to hide the
+// create-new entry points entirely.
 export function ProductsSheet({
   storeId,
   selectedIds,
@@ -23,7 +26,7 @@ export function ProductsSheet({
   selectedIds: string[];
   onDone: (ids: string[]) => void;
   onClose: () => void;
-  onCreateNew: () => void;
+  onCreateNew?: () => void;
 }) {
   const [products, setProducts] = useState<ProductRow[] | null>(null); // null = loading
   const [selected, setSelected] = useState<Set<string>>(new Set(selectedIds));
@@ -74,26 +77,32 @@ export function ProductsSheet({
         <span className="font-semibold text-[15px] absolute left-1/2 -translate-x-1/2">
           Products
         </span>
-        <button
-          onClick={onCreateNew}
-          type="button"
-          aria-label="Create product"
-          className="p-1 -mr-1"
-        >
-          <Plus size={20} className="text-gray-900" />
-        </button>
+        {onCreateNew ? (
+          <button
+            onClick={onCreateNew}
+            type="button"
+            aria-label="Create product"
+            className="p-1 -mr-1"
+          >
+            <Plus size={20} className="text-gray-900" />
+          </button>
+        ) : (
+          <span className="w-6" />
+        )}
       </div>
 
       {products !== null && products.length === 0 && (
         <div className="flex-1 flex flex-col items-center justify-center gap-3 px-8 text-center">
           <p className="text-[15px] text-gray-400">No products yet</p>
-          <button
-            type="button"
-            onClick={onCreateNew}
-            className="bg-black text-white text-sm font-medium rounded-full px-5 py-2.5"
-          >
-            Create product
-          </button>
+          {onCreateNew && (
+            <button
+              type="button"
+              onClick={onCreateNew}
+              className="bg-black text-white text-sm font-medium rounded-full px-5 py-2.5"
+            >
+              Create product
+            </button>
+          )}
         </div>
       )}
 
