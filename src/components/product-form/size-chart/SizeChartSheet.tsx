@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronLeft, X } from "lucide-react";
+import { Check, ChevronDown, ChevronLeft, X } from "lucide-react";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
 import {
   cmToDisplay,
@@ -335,6 +335,8 @@ function SizePicker({
   onChangeSystem: (s: keyof typeof SIZE_SYSTEMS) => void;
   onPick: (value: string) => void;
 }) {
+  const [systemMenuOpen, setSystemMenuOpen] = useState(false);
+
   return (
     <div className="flex flex-col gap-4">
       <div>
@@ -344,30 +346,55 @@ function SizePicker({
         </p>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        {SYSTEM_KEYS.map((key) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => onChangeSystem(key)}
-            className={`text-sm rounded-full px-3 py-1.5 border transition-colors duration-150 ${
-              system === key ? "bg-black text-white border-black" : "border-gray-200 text-gray-700"
-            }`}
-          >
-            {key}
-          </button>
-        ))}
+      <div className="relative flex justify-end">
+        <button
+          type="button"
+          onClick={() => setSystemMenuOpen((v) => !v)}
+          className="flex items-center gap-1 text-xs text-gray-500 border border-gray-200 rounded-full px-3 py-1.5"
+        >
+          {system}
+          <ChevronDown size={13} className="text-gray-400" />
+        </button>
+        {systemMenuOpen && (
+          <>
+            <button
+              type="button"
+              aria-label="Close unit menu"
+              onClick={() => setSystemMenuOpen(false)}
+              className="fixed inset-0 z-10 cursor-default"
+            />
+            <div className="absolute right-0 top-9 z-20 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden min-w-28">
+              {SYSTEM_KEYS.map((key) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => {
+                    onChangeSystem(key);
+                    setSystemMenuOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 text-sm text-left ${
+                    key === system ? "text-gray-900 font-medium" : "text-gray-600"
+                  }`}
+                >
+                  {key}
+                  {key === system && <Check size={14} />}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-col gap-2">
         {SIZE_SYSTEMS[system].map((v) => (
           <button
             key={v}
             type="button"
             onClick={() => onPick(v)}
-            className="text-sm rounded-full px-3.5 py-2 border border-gray-200 text-gray-900 oak-motion-control"
+            className="w-full flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3.5 text-left oak-motion-control"
           >
-            {v}
+            <span className="text-[15px] text-gray-900 truncate">{v}</span>
+            <span className="ml-auto w-5 h-5 rounded-full border border-gray-300 shrink-0" />
           </button>
         ))}
       </div>

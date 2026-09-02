@@ -389,7 +389,7 @@ export function OptionEditorSheet({
           ref={nameInputRef}
           value={name}
           onChange={(e) => renameName(e.target.value)}
-          placeholder="Option name"
+          placeholder="Option name e.g size, colour... etc"
           autoFocus={!initialName}
           className="w-full text-lg font-medium text-gray-900 border border-gray-200 rounded-xl px-4 py-4 outline-none focus:border-gray-400 mb-3"
         />
