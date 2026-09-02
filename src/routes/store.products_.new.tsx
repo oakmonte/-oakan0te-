@@ -182,6 +182,10 @@ function NewProduct() {
   function handleTypeSwitch(next: ProductKind) {
     setTypeSwitchOpen(false);
     setKind(next);
+    // Keep the URL's ?kind in sync with the in-page switch -- otherwise a
+    // refresh re-reads the stale value from the initial navigation (e.g. the
+    // CreateProductTypeModal pick) and silently reverts the switch.
+    navigate({ to: ".", search: (prev) => ({ ...prev, kind: next }), replace: true });
   }
 
   async function handleSave() {
