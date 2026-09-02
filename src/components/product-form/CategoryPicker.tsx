@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { CategoryNode, ROOT_CATEGORY } from "@/lib/categories";
+import { useLockedViewport } from "@/hooks/use-locked-viewport";
 
 type FlatEntry = {
   node: CategoryNode;
@@ -45,6 +46,8 @@ export function CategoryPicker({
   onSelect: (path: CategoryNode[]) => void;
   onClose: () => void;
 }) {
+  useLockedViewport();
+
   const [stack, setStack] = useState<CategoryNode[]>([ROOT_CATEGORY]);
   const [search, setSearch] = useState("");
   const current = stack[stack.length - 1];

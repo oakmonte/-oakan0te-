@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ArrowUpDown, Check, MoreHorizontal, Search, X } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
+import { useLockedViewport } from "@/hooks/use-locked-viewport";
 
 type TagRow = { id: string; title: string };
 
@@ -18,6 +19,8 @@ export function TagsSheet({
   onToggle: (id: string) => void;
   onClose: () => void;
 }) {
+  useLockedViewport();
+
   const [tags, setTags] = useState<TagRow[] | null>(null); // null = loading
   const [query, setQuery] = useState("");
   const [sortDesc, setSortDesc] = useState(false);

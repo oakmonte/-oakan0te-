@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Check, Plus } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { MediaSection } from "@/components/product-form/MediaSection";
 import { DescriptionSheet } from "@/components/product-form/DescriptionSheet";
@@ -138,7 +138,12 @@ function NewCollection() {
           onClick={() => setDescriptionSheetOpen(true)}
           className="w-full flex items-center justify-between py-4 text-left"
         >
-          <span className="text-[15px] text-gray-900">
+          <span className="flex items-center gap-3 text-[15px] text-gray-900">
+            {hasDescription ? (
+              <Check size={18} className="text-gray-900" />
+            ) : (
+              <Plus size={18} className="text-gray-400" />
+            )}
             {hasDescription ? "Description" : "Add description"}
           </span>
           <ChevronRight size={16} className="text-gray-300 shrink-0" />

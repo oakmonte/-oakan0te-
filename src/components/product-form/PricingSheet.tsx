@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { X, ChevronDown, XCircle } from "lucide-react";
+import { useLockedViewport } from "@/hooks/use-locked-viewport";
 
 const COMMISSION_RATE = 0.045;
 const PAYSTACK_RATE = 0.015;
@@ -70,6 +71,8 @@ export function PricingSheet({
   onChangeCostPrice: (v: string) => void;
   onClose: () => void;
 }) {
+  useLockedViewport();
+
   const [breakdownOpen, setBreakdownOpen] = useState(false);
 
   const numPrice = parseFloat(price);

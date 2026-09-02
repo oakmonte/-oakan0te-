@@ -9,6 +9,7 @@ import { InventorySheet, type InventoryValues } from "./InventorySheet";
 import { WeightSheet } from "./WeightSheet";
 import { useMultiFilePicker } from "@/hooks/use-file-picker";
 import { uploadProductImage } from "@/lib/upload-product-image";
+import { useLockedViewport } from "@/hooks/use-locked-viewport";
 
 export function VariantCombinationsSheet({
   options,
@@ -36,6 +37,11 @@ export function VariantCombinationsSheet({
   const baseImages = mainImageUrl
     ? [mainImageUrl, ...additionalImageUrls.filter((u) => u !== mainImageUrl)]
     : additionalImageUrls;
+  // Has its own SKU input (per-row), so — like every other full-screen sheet
+  // with a text field — needs this to stop the keyboard from dragging the
+  // fixed sheet upward instead of overlaying it. Missing here was the actual
+  // "variant popups pushing up" bug.
+  useLockedViewport();
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkPrice, setBulkPrice] = useState("");
   const [bulkImageUrl, setBulkImageUrl] = useState("");

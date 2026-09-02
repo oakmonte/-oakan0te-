@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { X, Search, ImageIcon, Check, Plus } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
+import { useLockedViewport } from "@/hooks/use-locked-viewport";
 
 type ProductRow = {
   id: string;
@@ -28,6 +29,8 @@ export function ProductsSheet({
   onClose: () => void;
   onCreateNew?: () => void;
 }) {
+  useLockedViewport();
+
   const [products, setProducts] = useState<ProductRow[] | null>(null); // null = loading
   const [selected, setSelected] = useState<Set<string>>(new Set(selectedIds));
   const [query, setQuery] = useState("");

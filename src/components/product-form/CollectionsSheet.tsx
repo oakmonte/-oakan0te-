@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { X, Search, ImageIcon, Check, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
+import { useLockedViewport } from "@/hooks/use-locked-viewport";
 
 type CollectionRow = {
   id: string;
@@ -24,6 +25,8 @@ export function CollectionsSheet({
   onClose: () => void;
   onCreateNew: () => void;
 }) {
+  useLockedViewport();
+
   const [collections, setCollections] = useState<CollectionRow[] | null>(null); // null = loading
   const [selected, setSelected] = useState<Set<string>>(new Set(selectedIds));
   const [query, setQuery] = useState("");
