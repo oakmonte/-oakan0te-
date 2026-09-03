@@ -174,7 +174,9 @@ function EditProduct() {
   const [inventorySheetOpen, setInventorySheetOpen] = useState(false);
   // Stock saved before per-location inventory existed has no location rows;
   // keep it so an unrelated edit + Save doesn't zero the product's stock.
-  const [regularLegacyStockQty, setRegularLegacyStockQty] = useState(0);
+  const [regularLegacyStockQty, setRegularLegacyStockQty] = useState(
+    initialDraft?.regularLegacyStockQty ?? 0,
+  );
   const regularStockQty = stockTotal({
     locationQuantities: regularLocationQuantities,
     legacyStockQty: regularLegacyStockQty,
