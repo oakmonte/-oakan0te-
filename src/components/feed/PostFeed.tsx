@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
-import { motion, useDragControls, type PanInfo } from "framer-motion";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
+import { animate, motion, useMotionValue, useTransform } from "framer-motion";
 import {
   Heart,
   MessageCircle,
@@ -20,6 +21,9 @@ import { useSession } from "@/hooks/use-session";
 // Bare icons over the media with no chip behind them, per the reference —
 // every one needs its own shadow or they wash out against a light photo.
 const ICON_SHADOW = "drop-shadow(0 1px 4px rgba(0,0,0,0.65))";
+
+// Snap back from a pull that didn't go far enough to dismiss.
+const SETTLE_SPRING = { type: "spring" as const, stiffness: 400, damping: 40 };
 
 export type FeedScope =
   | { type: "for-you" }
@@ -47,17 +51,25 @@ function scopeKey(scope: FeedScope): string {
 }
 
 async function fetchFeed(scope: FeedScope, viewerId: string | null): Promise<FeedPost[]> {
+  // public_profiles, not profiles: profiles' SELECT policy is auth.uid() = id,
+  // so embedding it returns a row for your OWN posts and null for everybody
+  // else's — which is why every other author showed up as "User" with a blank
+  // avatar. The view exposes exactly the public columns, and posts_user_id_fkey
+  // resolves against it.
   let query = supabase
     .from("posts")
     .select(
-      "id, user_id, media_url, media_type, thumbnail_url, caption, location, profiles(display_name, personal_username, avatar_url)",
+      "id, user_id, media_url, media_type, thumbnail_url, caption, location, public_profiles(display_name, personal_username, avatar_url)",
     )
-    .order("created_at", { ascending: false })
-    .limit(FEED_LIMIT);
+    .order("created_at", { ascending: false });
 
   if (scope.type === "user") {
+    // No limit for a single profile's grid — PostsGrid renders every post it
+    // finds, and capping here meant tapping anything past the cap scrolled to
+    // a post that wasn't in the feed and silently landed on the first one.
     query = query.eq("user_id", scope.userId).eq("status", scope.status);
   } else {
+    query = query.limit(FEED_LIMIT);
     query = query.eq("status", "published");
     if (scope.type === "following") {
       const { data: followRows } = await supabase
@@ -123,8 +135,9 @@ async function fetchFeed(scope: FeedScope, viewerId: string | null): Promise<Fee
     thumbnail_url: p.thumbnail_url,
     caption: p.caption,
     location: p.location,
-    authorDisplayName: p.profiles?.display_name ?? p.profiles?.personal_username ?? null,
-    authorAvatar: p.profiles?.avatar_url ?? null,
+    authorDisplayName:
+      p.public_profiles?.display_name ?? p.public_profiles?.personal_username ?? null,
+    authorAvatar: p.public_profiles?.avatar_url ?? null,
     authorIsFollowed: followedAuthorIds.has(p.user_id),
     tags: tagsByPost.get(p.id) ?? [],
   }));
@@ -180,79 +193,160 @@ export function PostFeed({
       ?.scrollIntoView({ block: "start" });
   }, [initialPostId, posts]);
 
-  const wrapperClass =
+  // `relative` on the embedded shell matters: the inner layers are
+  // `absolute inset-0`, and embedded mode has no `fixed` to position against.
+  const shellClass =
     mode === "standalone"
-      ? "fixed inset-0 z-[70] bg-black overflow-y-auto"
-      : "w-full h-full bg-black overflow-y-auto";
+      ? "fixed inset-0 z-[70] bg-black"
+      : "relative w-full h-full bg-black overflow-hidden";
 
-  // Pull-to-dismiss, TikTok-style: dragging down while already scrolled to
-  // the first post (the only moment a downward drag isn't "go to the
-  // previous post") slides the whole feed down with the finger and either
-  // snaps back or dismisses on release — not an instant cut at a threshold,
-  // which read as broken since nothing visibly moved until it teleported
-  // shut. framer's drag is what gives that visible, spring-back follow (see
-  // the same trick used for the Following/For you tab swipe).
+  // Pull-to-dismiss, the way it actually has to be done on touch.
   //
-  // The container itself owns the drag (dragListener={false}, started
-  // manually) instead of the outer fixed overlay, because it's also the
-  // vertically-scrolling post list — arming only fires once a gesture is
-  // confirmed to be a downward pull from scrollTop 0, so a normal upward
-  // swipe to the next post is untouched.
-  const dragControls = useDragControls();
-  const pullStart = useRef<{ x: number; y: number } | null>(null);
-  const pullArmed = useRef(false);
+  // The previous two attempts both used pointer events, and both were doomed:
+  // the moment the browser decides a touch is a scroll it fires pointercancel
+  // and stops delivering pointermove, so a gesture that starts on a scrolling
+  // list can never be picked up that way. The fix is a NON-PASSIVE touchmove
+  // listener — while the list is already at the top and the finger is heading
+  // down, preventDefault() stops the browser claiming the gesture as a scroll
+  // and we drive the transform ourselves. Anything else (finger heading up, or
+  // the list not at the top) is handed straight back to native scrolling, so
+  // swiping between posts is untouched.
+  //
+  // Registered imperatively rather than as onTouchMove because React attaches
+  // that one passively, where preventDefault() is a no-op.
+  const dismissY = useMotionValue(0);
+  // Shrinks and rounds toward a card as it's pulled, the way Reels and TikTok
+  // do — the motion alone read as the page glitching rather than as the post
+  // being put back. Opacity lives on the backdrop behind it, never on the
+  // media itself (fading a photo looks like a broken render).
+  const dismissScale = useTransform(dismissY, [0, 320], [1, 0.86]);
+  const dismissRadius = useTransform(dismissY, [0, 120], [0, 26]);
+  const backdropOpacity = useTransform(dismissY, [0, 320], [1, 0.35]);
 
-  function handlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
-    if (!onClose) return;
-    pullStart.current = { x: e.clientX, y: e.clientY };
-    pullArmed.current = false;
-  }
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || !onClose) return;
 
-  function handlePointerMove(e: React.PointerEvent<HTMLDivElement>) {
-    if (!onClose || !pullStart.current || pullArmed.current) return;
-    const dy = e.clientY - pullStart.current.y;
-    const dx = e.clientX - pullStart.current.x;
-    if (dy > 12 && dy > Math.abs(dx) && (containerRef.current?.scrollTop ?? 0) <= 0) {
-      pullArmed.current = true;
-      dragControls.start(e);
-    }
-  }
+    let startY = 0;
+    let lastY = 0;
+    let lastT = 0;
+    let velocity = 0;
+    let tracking = false;
+    let engaged = false;
 
-  function handlePointerEnd() {
-    pullStart.current = null;
-    pullArmed.current = false;
-  }
+    // Engaged at ANY snap point, not just scrollTop 0: the grid opens the
+    // viewer scrolled straight to the tapped post, so gating on "top of the
+    // list" meant pull-to-dismiss only ever worked on the very first post.
+    // Equal-height cards under `scroll-snap-type: y mandatory` means "resting
+    // on a card" is just scrollTop landing on a multiple of the card height.
+    const atSnapPoint = () => {
+      const page = el.clientHeight;
+      if (!page) return true;
+      const rest = el.scrollTop % page;
+      return rest < 2 || page - rest < 2;
+    };
 
-  function handleDragEnd(_: unknown, info: PanInfo) {
-    if (onClose && (info.offset.y > 110 || info.velocity.y > 600)) onClose();
-  }
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length !== 1) return;
+      startY = lastY = e.touches[0].clientY;
+      lastT = e.timeStamp;
+      velocity = 0;
+      tracking = atSnapPoint();
+      engaged = false;
+    };
 
-  if (posts === null) {
-    return (
-      <div className={`${wrapperClass} flex items-center justify-center`}>
-        <p className="text-[13px] text-white/40">Loading…</p>
-      </div>
-    );
-  }
+    const onTouchMove = (e: TouchEvent) => {
+      if (!tracking || e.touches.length !== 1) return;
+      const y = e.touches[0].clientY;
+      const dy = y - startY;
+      // Heading up, or no longer resting on a card — an ordinary scroll to
+      // the next post. Hand it straight back to the browser.
+      if (dy <= 0 || !atSnapPoint()) {
+        if (engaged) {
+          animate(dismissY, 0, SETTLE_SPRING);
+          engaged = false;
+        }
+        tracking = false;
+        return;
+      }
+      const dt = e.timeStamp - lastT;
+      if (dt > 0) velocity = ((y - lastY) / dt) * 1000;
+      lastY = y;
+      lastT = e.timeStamp;
 
-  // Plain icon, no chip behind it — matches the bare-icon treatment used
-  // over the media everywhere else in this component, not the liquid-glass
-  // circle other back buttons in the app use.
+      engaged = true;
+      e.preventDefault();
+      // Damped so it resists rather than falls away. The threshold below is
+      // measured against raw finger travel, not this damped value — testing
+      // the damped one silently doubled how far you had to drag.
+      dismissY.set(dy * 0.5);
+    };
+
+    const onTouchEnd = () => {
+      if (engaged) {
+        const travelled = lastY - startY;
+        if (travelled > 110 || velocity > 500) {
+          // Carry it the rest of the way off-screen instead of cutting: an
+          // instant unmount mid-gesture is what made this feel broken.
+          animate(dismissY, el.clientHeight, { duration: 0.18, ease: "easeIn" }).then(() =>
+            onClose(),
+          );
+        } else {
+          animate(dismissY, 0, SETTLE_SPRING);
+        }
+      }
+      tracking = false;
+      engaged = false;
+    };
+
+    el.addEventListener("touchstart", onTouchStart, { passive: true });
+    el.addEventListener("touchmove", onTouchMove, { passive: false });
+    el.addEventListener("touchend", onTouchEnd, { passive: true });
+    el.addEventListener("touchcancel", onTouchEnd, { passive: true });
+    return () => {
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchmove", onTouchMove);
+      el.removeEventListener("touchend", onTouchEnd);
+      el.removeEventListener("touchcancel", onTouchEnd);
+    };
+  }, [onClose, dismissY]);
+
+  // The page behind a full-screen viewer must not scroll under it — and
+  // scrollIntoView below walks scrollable ANCESTORS, so without this opening
+  // the viewer also dragged the profile page around behind it.
+  useEffect(() => {
+    if (mode !== "standalone") return;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [mode]);
+
+  // Declared before the early returns so the loading and empty states get it
+  // too — the loading state used to be a black screen with no way out.
   const closeButton = onClose && (
     <button
       type="button"
       onClick={onClose}
       aria-label="Back"
-      className="fixed z-20 flex items-center justify-center active:scale-90"
+      className="absolute z-20 flex items-center justify-center active:scale-90"
       style={{ top: "calc(env(safe-area-inset-top) + 12px)", left: 16, filter: ICON_SHADOW }}
     >
       <ChevronLeft size={26} className="text-white" />
     </button>
   );
 
-  if (posts.length === 0) {
-    return (
-      <div className={`${wrapperClass} flex flex-col items-center justify-center text-center px-8`}>
+  let body: ReactNode;
+  if (posts === null) {
+    body = (
+      <div className={`${shellClass} flex items-center justify-center`}>
+        {closeButton}
+        <p className="text-[13px] text-white/40">Loading…</p>
+      </div>
+    );
+  } else if (posts.length === 0) {
+    body = (
+      <div className={`${shellClass} flex flex-col items-center justify-center text-center px-8`}>
         {closeButton}
         <p className="text-[13px] text-white/50 max-w-[220px]">
           {scope.type === "following"
@@ -261,30 +355,48 @@ export function PostFeed({
         </p>
       </div>
     );
+  } else {
+    body = (
+      // Three nodes on purpose: a static backdrop that stays put and fades,
+      // the shell that carries the dismiss transform, and the scroller.
+      // Transforming the scroller itself (what this used to do) fights
+      // scroll-snap and leaves the snap points offset mid-gesture.
+      <div className={shellClass}>
+        <motion.div className="absolute inset-0 bg-black" style={{ opacity: backdropOpacity }} />
+        <motion.div
+          className="absolute inset-0 overflow-hidden bg-black"
+          style={{
+            y: dismissY,
+            scale: dismissScale,
+            borderRadius: dismissRadius,
+          }}
+        >
+          {closeButton}
+          <div
+            ref={containerRef}
+            className="h-full w-full overflow-y-auto"
+            style={{ scrollSnapType: "y mandatory" }}
+          >
+            {posts.map((post) => (
+              <FeedPostCard key={post.id} post={post} viewerId={viewerId} />
+            ))}
+          </div>
+        </motion.div>
+      </div>
+    );
   }
 
-  return (
-    <motion.div
-      ref={containerRef}
-      className={wrapperClass}
-      style={{ scrollSnapType: "y mandatory" }}
-      drag={onClose ? "y" : false}
-      dragControls={dragControls}
-      dragListener={false}
-      dragConstraints={{ top: 0, bottom: 0 }}
-      dragElastic={0.8}
-      onDragEnd={handleDragEnd}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerEnd}
-      onPointerCancel={handlePointerEnd}
-    >
-      {closeButton}
-      {posts.map((post) => (
-        <FeedPostCard key={post.id} post={post} viewerId={viewerId} />
-      ))}
-    </motion.div>
-  );
+  // Portalled in standalone mode. It renders from inside PostsGrid, which now
+  // lives inside the profile pager's transformed track — and a transformed
+  // ancestor becomes the containing block for `position: fixed`, so the
+  // overlay was being laid out against the track and dragged N screen-widths
+  // off to the left with it. On the Posts tab (x = 0, no transform emitted) it
+  // happened to look right, which is exactly the kind of bug that only shows
+  // up on the Drafts tab.
+  if (mode === "standalone" && typeof document !== "undefined") {
+    return createPortal(body, document.body);
+  }
+  return <>{body}</>;
 }
 
 function FeedPostCard({ post, viewerId }: { post: FeedPost; viewerId: string | null }) {

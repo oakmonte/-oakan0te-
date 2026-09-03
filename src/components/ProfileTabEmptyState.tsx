@@ -23,10 +23,40 @@ const EMPTY_COPY: Record<Exclude<TabKey, "posts">, { title: string; subtitle: st
   },
 };
 
-export function ProfileTabEmptyState({ tab }: { tab: TabKey }) {
+// Second-person copy only makes sense on your own profile. On someone
+// else's, "Pieces you own" describes the wrong person entirely.
+const VISITOR_COPY: Record<TabKey, string> = {
+  posts: "No posts yet",
+  store: "Nothing listed yet",
+  wardrobe: "No wardrobe yet",
+  reposts: "No reposts yet",
+  wishlist: "Nothing saved yet",
+  likedVideos: "No liked videos yet",
+  drafts: "No drafts",
+};
+
+export function ProfileTabEmptyState({
+  tab,
+  isOwnProfile = true,
+}: {
+  tab: TabKey;
+  /** Defaults to true so existing owner-only call sites are unchanged. */
+  isOwnProfile?: boolean;
+}) {
   const navigate = useNavigate();
   const [uploadOpen, setUploadOpen] = useState(false);
   const galleryInputRef = useRef<HTMLInputElement>(null);
+
+  // A visitor gets a plain statement of fact, never a prompt — the Posts tab
+  // in particular was offering the viewer's own camera and gallery upload on
+  // a stranger's profile.
+  if (!isOwnProfile) {
+    return (
+      <div className="flex flex-col items-center text-center px-8 pt-16">
+        <h3 className="text-[16px] font-bold text-white/70">{VISITOR_COPY[tab]}</h3>
+      </div>
+    );
+  }
 
   if (tab === "posts") {
     return (

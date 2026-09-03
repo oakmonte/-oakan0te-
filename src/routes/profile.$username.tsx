@@ -1,7 +1,8 @@
 import { createFileRoute, useNavigate, useParams, useRouter } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { useState, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState, useRef, useEffect, type ReactElement } from "react";
+import { motion, AnimatePresence, useMotionValue, useTransform } from "framer-motion";
+import type { MotionValue } from "framer-motion";
 import {
   ArrowLeft,
   ArrowLeftRight,
@@ -23,7 +24,14 @@ import { PostsGrid } from "@/components/profile/PostsGrid";
 import { PublicStorefront } from "@/components/store-themes/full-previews";
 import { Stat, MenuRow } from "@/components/profile/profile-chrome";
 import { TABS, type TabKey } from "@/components/profile/profile-tabs";
-import { profileQueryOptions } from "@/lib/queries/profile";
+import { TabPager } from "@/components/profile/TabPager";
+import { ProfileTabStrip } from "@/components/profile/ProfileTabStrip";
+import {
+  profileQueryOptions,
+  profileStatsQueryOptions,
+  profileStoresQueryOptions,
+  followStatusQueryOptions,
+} from "@/lib/queries/profile";
 
 export const Route = createFileRoute("/profile/$username")({
   // Fire-and-forget: starts this fetch as early as `intent` preload allows
@@ -38,18 +46,6 @@ export const Route = createFileRoute("/profile/$username")({
   head: () => ({ meta: [{ title: "Profile — Oakmonte" }] }),
   component: ProfilePage,
 });
-
-const MOCK_ITEMS = [
-  { id: "1", src: "https://placehold.co/400x400" },
-  { id: "2", src: "https://placehold.co/400x400" },
-  { id: "3", src: "https://placehold.co/400x400" },
-  { id: "4", src: "https://placehold.co/400x400" },
-  { id: "5", src: "https://placehold.co/400x400" },
-  { id: "6", src: "https://placehold.co/400x400" },
-  { id: "7", src: "https://placehold.co/400x400" },
-  { id: "8", src: "https://placehold.co/400x400" },
-  { id: "9", src: "https://placehold.co/400x400" },
-];
 
 type ProfileRow = {
   id: string;
@@ -67,22 +63,28 @@ function ProfilePage() {
   const navigate = useNavigate();
   const router = useRouter();
   const { username } = useParams({ from: "/profile/$username" });
-  const { user } = useSession();
+  const { user, loading: sessionLoading } = useSession();
+  const queryClient = useQueryClient();
   const { data: baseProfile, isPending: profileLoading } = useQuery(profileQueryOptions(username));
-  const [stats, setStats] = useState({
-    following_count: 0,
-    followers_count: 0,
-    rating: 0,
-    rating_count: 0,
-  });
-  const profile: ProfileRow | null = baseProfile ? { ...baseProfile, ...stats } : null;
+  // Every read this page does is cached. They used to be raw useEffect
+  // fetches with no cache at all, which is what made the page visibly
+  // reassemble itself — name "…", counts 0, empty grid — on every single
+  // open, even when you'd been here seconds earlier.
+  const { data: stats } = useQuery(profileStatsQueryOptions(baseProfile?.id));
+  const profile: ProfileRow | null = baseProfile
+    ? {
+        ...baseProfile,
+        following_count: stats?.following_count ?? 0,
+        followers_count: stats?.followers_count ?? 0,
+        rating: stats?.rating ?? 0,
+        rating_count: stats?.rating_count ?? 0,
+      }
+    : null;
   const [activeTab, setActiveTab] = useState<TabKey>("posts");
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
-  const [stores, setStores] = useState<
-    { id: string; store_username: string; brand_name: string; theme_id: string | null }[]
-  >([]);
+  const { data: stores = [] } = useQuery(profileStoresQueryOptions(baseProfile?.id));
   const [storePickerOpen, setStorePickerOpen] = useState(false);
   // Oldest-first, same tie-break as useOwnStores — "the" store for anything
   // on this page that isn't multi-store aware yet (the Store tab preview).
@@ -93,10 +95,6 @@ function ProfilePage() {
   // "actually set up" rather than just "a stores row exists".
   const storeIsSetUp = !!store?.theme_id;
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const tabScrollRef = useRef<HTMLDivElement>(null);
-  const tabButtonRefs = useRef<Record<TabKey, HTMLButtonElement | null>>(
-    {} as Record<TabKey, HTMLButtonElement | null>,
-  );
   // Where the Store sheet's top edge should sit — the vertical MIDDLE of the
   // avatar circle, so the sheet rises high enough to cover the bottom half of
   // the avatar plus the name/rating/stats/bio below it, with only the top
@@ -109,7 +107,9 @@ function ProfilePage() {
   // sheet, or swiping out of it, restores this instead of always landing on
   // Posts.
   const previousTabRef = useRef<TabKey>("posts");
-  const [isFollowing, setIsFollowing] = useState(false);
+  const { data: isFollowing = false, isPending: followPending } = useQuery(
+    followStatusQueryOptions(user?.id, baseProfile?.id),
+  );
   const [followBusy, setFollowBusy] = useState(false);
   // Whether the bell shows as "on" — the follows table has no notify column
   // yet, so this is visual/session-only, not persisted.
@@ -117,45 +117,30 @@ function ProfilePage() {
   const [messageHint, setMessageHint] = useState<string | null>(null);
 
   const isOwnProfile = !!user && !!profile && user.id === profile.id;
+  // Until the session resolves we don't know whose profile this is, and
+  // guessing "not yours" meant your own profile briefly rendered a Follow
+  // button and a Message button, with no menu and no bottom nav, before
+  // swapping — the exact "page reassembling itself" this pass is fixing.
+  // Owner-only chrome waits; visitor-only chrome waits too.
+  const ownershipKnown = !sessionLoading && !!profile;
 
-  const tabIndex = TABS.findIndex((t) => t.key === activeTab);
+  // Shared with TabPager so the tab strip animates off the same value the
+  // content does, frame for frame.
+  const pagerX = useMotionValue(0);
+  const [pageWidth, setPageWidth] = useState(0);
+
+  // findIndex can't miss (activeTab is always a TabKey), but a -1 would send
+  // the pager to +pageWidth and strand it off-screen, so it's clamped.
+  const tabIndex = Math.max(
+    0,
+    TABS.findIndex((t) => t.key === activeTab),
+  );
 
   const goToTab = (nextIndex: number) => {
     if (nextIndex >= 0 && nextIndex < TABS.length) {
       setActiveTab(TABS[nextIndex].key);
     }
   };
-
-  // The counts live on the profile_stats view, not on profiles — asking
-  // profiles for them makes PostgREST reject the whole select, so this stays
-  // its own fetch rather than folding into the profileQueryOptions query.
-  // Not blocking: baseProfile (and everything gated on it below) is already
-  // available before this resolves, with these counts at their 0 default.
-  useEffect(() => {
-    if (!baseProfile) {
-      setStats({ following_count: 0, followers_count: 0, rating: 0, rating_count: 0 });
-      return;
-    }
-    let cancelled = false;
-    const id = baseProfile.id;
-    supabase
-      .from("profile_stats")
-      .select("following_count, followers_count, rating, rating_count")
-      .eq("id", id)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (cancelled || !data) return;
-        setStats({
-          following_count: data.following_count ?? 0,
-          followers_count: data.followers_count ?? 0,
-          rating: data.rating ?? 0,
-          rating_count: data.rating_count ?? 0,
-        });
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [baseProfile]);
 
   // Home and the seller dashboard are the two places people jump to next
   // from a profile most often (the bottom pill, and "Manage store" from the
@@ -168,66 +153,6 @@ function ProfilePage() {
     router.preloadRoute({ to: "/store" }).catch(() => {});
   }, [router]);
 
-  // Every store this person owns — drives the Store tab's content (via
-  // `store`, the first one) and the switch-profile icon, which needs the
-  // full list to know whether to jump straight to the one store or offer a
-  // picker. stores has RLS off project-wide today (see supabase-data-access
-  // skill), so this read works for any viewer. An account can own more than
-  // one store (the dashboard's store switcher) — .maybeSingle() used to
-  // error out on the second+ row and leave this whole page thinking the
-  // seller had no store at all.
-  useEffect(() => {
-    if (!profile) {
-      setStores([]);
-      return;
-    }
-    let cancelled = false;
-    supabase
-      .from("stores")
-      .select("id, store_username, brand_name, theme_id")
-      .eq("owner_id", profile.id)
-      .order("created_at", { ascending: true })
-      .order("id", { ascending: true })
-      .then(({ data, error }) => {
-        if (cancelled) return;
-        if (error) console.error("ProfilePage: failed to check for store", error);
-        setStores(data ?? []);
-      });
-    return () => {
-      cancelled = true;
-    };
-    // profile is a freshly-derived object every render (baseProfile + stats
-    // merged) — depending on the whole thing would re-run this on every
-    // stats update. Only the id actually matters here.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profile?.id]);
-
-  // Whether the signed-in viewer already follows this profile — irrelevant
-  // (and skipped) when looking at your own profile.
-  useEffect(() => {
-    if (!user || !profile || user.id === profile.id) {
-      setIsFollowing(false);
-      return;
-    }
-    let cancelled = false;
-    supabase
-      .from("follows")
-      .select("follower_id")
-      .eq("follower_id", user.id)
-      .eq("following_id", profile.id)
-      .maybeSingle()
-      .then(({ data, error }) => {
-        if (cancelled) return;
-        if (error) console.error("ProfilePage: failed to check follow status", error);
-        setIsFollowing(!!data);
-      });
-    return () => {
-      cancelled = true;
-    };
-    // Same reasoning as the stores effect above — only the id matters.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, profile?.id]);
-
   async function toggleFollow() {
     if (!profile || followBusy) return;
     if (!user) {
@@ -235,12 +160,19 @@ function ProfilePage() {
       return;
     }
     const wasFollowing = isFollowing;
+    const followKey = followStatusQueryOptions(user.id, profile.id).queryKey;
+    const statsKey = profileStatsQueryOptions(profile.id).queryKey;
+    const shiftFollowers = (by: number) =>
+      queryClient.setQueryData(statsKey, (old) =>
+        old ? { ...old, followers_count: Math.max(0, old.followers_count + by) } : old,
+      );
+
     setFollowBusy(true);
-    setIsFollowing(!wasFollowing);
-    setStats((s) => ({
-      ...s,
-      followers_count: Math.max(0, s.followers_count + (wasFollowing ? -1 : 1)),
-    }));
+    // Optimistic, straight into the cache so the button and the follower
+    // count flip on the tap rather than on the round-trip.
+    queryClient.setQueryData(followKey, !wasFollowing);
+    shiftFollowers(wasFollowing ? -1 : 1);
+
     const { error } = wasFollowing
       ? await supabase
           .from("follows")
@@ -250,11 +182,8 @@ function ProfilePage() {
       : await supabase.from("follows").insert({ follower_id: user.id, following_id: profile.id });
     if (error) {
       console.error("ProfilePage: failed to toggle follow", error);
-      setIsFollowing(wasFollowing);
-      setStats((s) => ({
-        ...s,
-        followers_count: Math.max(0, s.followers_count + (wasFollowing ? 1 : -1)),
-      }));
+      queryClient.setQueryData(followKey, wasFollowing);
+      shiftFollowers(wasFollowing ? 1 : -1);
     } else if (wasFollowing) {
       setNotifyEnabled(false);
     }
@@ -267,17 +196,6 @@ function ProfilePage() {
       return () => clearTimeout(t);
     }
   }, [searchOpen]);
-
-  useEffect(() => {
-    const btn = tabButtonRefs.current[activeTab];
-    if (btn) {
-      btn.scrollIntoView({
-        behavior: "smooth",
-        inline: "center",
-        block: "nearest",
-      });
-    }
-  }, [activeTab]);
 
   useEffect(() => {
     const el = avatarRef.current;
@@ -310,39 +228,15 @@ function ProfilePage() {
   }, [activeTab, store, storeIsSetUp]);
 
   const tabRow = (
-    <div
-      ref={tabScrollRef}
-      className="grid grid-flow-col auto-cols-[20%] gap-x-2 px-6 overflow-x-auto snap-x snap-mandatory no-scrollbar scroll-smooth"
-    >
-      {TABS.map(({ key, label, Icon, size }) => {
-        const isActive = activeTab === key;
-        return (
-          <button
-            key={key}
-            ref={(el) => {
-              tabButtonRefs.current[key] = el;
-            }}
-            onClick={() => {
-              if (key === "store") previousTabRef.current = activeTab;
-              setActiveTab(key);
-            }}
-            aria-label={label}
-            className="flex flex-col items-center gap-2 snap-start pt-3 pb-2 transition-transform duration-150 active:scale-90"
-          >
-            <Icon
-              className={`${size ?? "w-[21px] h-[21px]"} transition-all duration-200 ${
-                isActive ? "text-white opacity-100" : "text-white/40 opacity-100"
-              }`}
-            />
-            <span
-              className={`block h-[2px] rounded-full bg-white transition-all duration-300 ease-out ${
-                isActive ? "w-6 opacity-100" : "w-0 opacity-0"
-              }`}
-            />
-          </button>
-        );
-      })}
-    </div>
+    <ProfileTabStrip
+      activeTab={activeTab}
+      onSelect={(key) => {
+        if (key === "store") previousTabRef.current = activeTab;
+        setActiveTab(key);
+      }}
+      pagerX={pagerX}
+      pageWidth={pageWidth}
+    />
   );
 
   const storeSheetOpen = activeTab === "store" && !!store && storeIsSetUp;
@@ -358,7 +252,7 @@ function ProfilePage() {
           <ArrowLeft size={22} />
         </button>
         <div className="flex items-center gap-5">
-          {!isOwnProfile && isFollowing && (
+          {ownershipKnown && !isOwnProfile && isFollowing && (
             <button
               onClick={() => setNotifyEnabled((v) => !v)}
               aria-label={notifyEnabled ? "Turn off notifications" : "Turn on notifications"}
@@ -381,7 +275,7 @@ function ProfilePage() {
           >
             <Search size={22} className={searchOpen ? "text-[#FF7300]" : "text-white"} />
           </button>
-          {isOwnProfile && store && storeIsSetUp && (
+          {ownershipKnown && isOwnProfile && store && storeIsSetUp && (
             <button
               onClick={() =>
                 stores.length > 1
@@ -397,7 +291,7 @@ function ProfilePage() {
               <ArrowLeftRight size={20} />
             </button>
           )}
-          {isOwnProfile && (
+          {ownershipKnown && isOwnProfile && (
             <button
               onClick={() => setMenuOpen(true)}
               aria-label="Menu"
@@ -420,10 +314,12 @@ function ProfilePage() {
         />
         <div className="text-center">
           <div className="flex items-center justify-center gap-1.5">
-            <div className="text-[15px] font-bold">
-              {profileLoading
-                ? "…"
-                : profile?.display_name || profile?.personal_username || username}
+            {/* The username from the URL is already the right width and
+                almost always the right text, so it stands in while the row
+                loads instead of an ellipsis that then jumps to a longer
+                name. */}
+            <div className={`text-[15px] font-bold ${profileLoading ? "opacity-40" : ""}`}>
+              {profile?.display_name || profile?.personal_username || username}
             </div>
             {isOwnProfile && (
               <button
@@ -453,11 +349,14 @@ function ProfilePage() {
           <Stat value={String(profile?.followers_count ?? 0)} label="Followers" />
         </div>
 
-        {!isOwnProfile && profile && (
+        {ownershipKnown && !isOwnProfile && (
           <div className="flex items-center gap-2.5">
             <button
               onClick={toggleFollow}
-              disabled={followBusy}
+              // Also disabled until the follow query resolves: tapping while
+              // it defaulted to "Follow" fired an insert on a row that might
+              // already exist, and the optimistic flip bounced back.
+              disabled={followBusy || followPending}
               className={`min-w-[110px] rounded-full px-6 py-2 text-[13px] font-bold transition-colors active:scale-95 disabled:opacity-60 ${
                 isFollowing ? "bg-white/10 text-white" : "bg-white text-black"
               }`}
@@ -481,7 +380,12 @@ function ProfilePage() {
         {profile?.bio && <p className="text-[14px] font-bold text-center">{profile.bio}</p>}
       </div>
 
-      {!storeSheetOpen && (
+      {/* Kept mounted even while the Store sheet is up. Unmounting it there
+          hard-cut the pager mid-swipe: releasing a drag onto Store flipped
+          storeSheetOpen in the same commit, so the settle spring never drew
+          a frame and the content just vanished. The sheet is fixed z-50 over
+          this anyway, so it simply settles behind the rising sheet. */}
+      {
         <>
           {/* Tab row */}
           <div className="mt-6 border-b border-[#474747]">{tabRow}</div>
@@ -517,44 +421,33 @@ function ProfilePage() {
             </div>
           </div>
 
-          {/* Content grid. Drag lives on this OUTER, never-remounted node —
-              it used to sit on the AnimatePresence-keyed child below, which
-              gets torn down and rebuilt on every tab change; that remount
-              was dropping the in-progress touch/pointer capture mid-gesture,
-              which is why swiping between tabs silently did nothing. The
-              inner child now only crossfades. */}
-          <div className="overflow-hidden pb-24">
-            <motion.div
-              drag="x"
-              dragConstraints={{ left: 0, right: 0 }}
-              dragElastic={0.12}
-              onDragEnd={(_, info) => {
-                if (info.offset.x < -60) goToTab(tabIndex + 1);
-                else if (info.offset.x > 60) goToTab(tabIndex - 1);
-              }}
+          {/* Content pager. Every tab is a real page in one horizontal
+              track that follows the finger 1:1 — see TabPager for what this
+              replaces and why. Pages stay mounted, so paging back is
+              instant and nothing refetches. */}
+          <div className="pb-24">
+            <TabPager
+              index={tabIndex}
+              count={TABS.length}
+              onIndexChange={goToTab}
+              x={pagerX}
+              onPageWidth={setPageWidth}
             >
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={activeTab}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.15, ease: "easeOut" }}
-                  className="px-1 pt-4"
-                >
-                  {profile && activeTab === "posts" ? (
+              {TABS.map(({ key }) => (
+                <div key={key} className="px-1 pt-4">
+                  {profile && key === "posts" ? (
                     <PostsGrid
                       userId={profile.id}
                       status="published"
-                      emptyState={<ProfileTabEmptyState tab="posts" />}
+                      emptyState={<ProfileTabEmptyState tab="posts" isOwnProfile={isOwnProfile} />}
                     />
-                  ) : profile && activeTab === "drafts" && isOwnProfile ? (
+                  ) : profile && key === "drafts" && isOwnProfile ? (
                     <PostsGrid
                       userId={profile.id}
                       status="draft"
                       emptyState={<ProfileTabEmptyState tab="drafts" />}
                     />
-                  ) : activeTab === "store" && isOwnProfile && !storeIsSetUp ? (
+                  ) : key === "store" && isOwnProfile && !storeIsSetUp ? (
                     <div className="flex flex-col items-center text-center px-8 pt-16 gap-3">
                       <h3 className="text-[16px] font-bold">Set up your store</h3>
                       <p className="text-[13px] text-white/50 max-w-[220px]">
@@ -568,14 +461,14 @@ function ProfilePage() {
                       </button>
                     </div>
                   ) : (
-                    <ProfileTabEmptyState tab={activeTab} />
+                    <ProfileTabEmptyState tab={key} isOwnProfile={isOwnProfile} />
                   )}
-                </motion.div>
-              </AnimatePresence>
-            </motion.div>
+                </div>
+              ))}
+            </TabPager>
           </div>
         </>
-      )}
+      }
 
       {/* Store sheet — Store is the one tab that rises up over the rest of
           the page instead of sitting flat under the tab row like every other
@@ -617,10 +510,14 @@ function ProfilePage() {
             <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex justify-center pt-2.5">
               <div className="h-1 w-9 rounded-full bg-white mix-blend-difference" />
             </div>
+            {/* dragElastic stays high: pinned constraints with a near-zero
+                elastic (what this was) clamp the visible travel to a few px,
+                so the sheet read as unresponsive even though onDragEnd fired. */}
             <motion.div
               drag="x"
               dragConstraints={{ left: 0, right: 0 }}
-              dragElastic={0.15}
+              dragElastic={0.7}
+              dragSnapToOrigin
               onDragEnd={(_, info) => {
                 if (info.offset.x < -60) goToTab(tabIndex + 1);
                 else if (info.offset.x > 60) goToTab(tabIndex - 1);

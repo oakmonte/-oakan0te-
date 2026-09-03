@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
 import { useState, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useMotionValue } from "framer-motion";
 import { ArrowLeft, ArrowLeftRight, Share2, Search, Menu, Star, X } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useSession } from "@/hooks/use-session";
@@ -9,6 +9,8 @@ import { ProfileTabEmptyState } from "@/components/ProfileTabEmptyState";
 import { PublicStorefront } from "@/components/store-themes/full-previews";
 import { Stat, MenuRow } from "@/components/profile/profile-chrome";
 import { TABS, type TabKey } from "@/components/profile/profile-tabs";
+import { TabPager } from "@/components/profile/TabPager";
+import { ProfileTabStrip } from "@/components/profile/ProfileTabStrip";
 
 export const Route = createFileRoute("/store-profile/$storeUsername")({
   head: () => ({ meta: [{ title: "Store — Oakmonte" }] }),
@@ -43,10 +45,6 @@ function StoreProfilePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const tabScrollRef = useRef<HTMLDivElement>(null);
-  const tabButtonRefs = useRef<Record<TabKey, HTMLButtonElement | null>>(
-    {} as Record<TabKey, HTMLButtonElement | null>,
-  );
   // See profile.$username.tsx for why this is tracked continuously rather
   // than only captured on the tap that opens the sheet — and why it targets
   // the avatar circle, not the whole info block.
@@ -58,7 +56,14 @@ function StoreProfilePage() {
 
   const isOwnStoreProfile = !!user && !!store && user.id === store.owner_id;
 
-  const tabIndex = TABS.findIndex((t) => t.key === activeTab);
+  // Shared with TabPager so the strip animates off the same value the content
+  // does, frame for frame.
+  const pagerX = useMotionValue(0);
+  const [pageWidth, setPageWidth] = useState(0);
+  const tabIndex = Math.max(
+    0,
+    TABS.findIndex((t) => t.key === activeTab),
+  );
 
   const goToTab = (nextIndex: number) => {
     if (nextIndex >= 0 && nextIndex < TABS.length) {
@@ -161,17 +166,6 @@ function StoreProfilePage() {
   }, [searchOpen]);
 
   useEffect(() => {
-    const btn = tabButtonRefs.current[activeTab];
-    if (btn) {
-      btn.scrollIntoView({
-        behavior: "smooth",
-        inline: "center",
-        block: "nearest",
-      });
-    }
-  }, [activeTab]);
-
-  useEffect(() => {
     const el = avatarRef.current;
     if (!el) return;
     const update = () => {
@@ -202,39 +196,15 @@ function StoreProfilePage() {
   }, [activeTab, store]);
 
   const tabRow = (
-    <div
-      ref={tabScrollRef}
-      className="grid grid-flow-col auto-cols-[20%] gap-x-2 px-6 overflow-x-auto snap-x snap-mandatory no-scrollbar scroll-smooth"
-    >
-      {TABS.map(({ key, label, Icon, size }) => {
-        const isActive = activeTab === key;
-        return (
-          <button
-            key={key}
-            ref={(el) => {
-              tabButtonRefs.current[key] = el;
-            }}
-            onClick={() => {
-              if (key === "store") previousTabRef.current = activeTab;
-              setActiveTab(key);
-            }}
-            aria-label={label}
-            className="flex flex-col items-center gap-2 snap-start pt-3 pb-2 transition-transform duration-150 active:scale-90"
-          >
-            <Icon
-              className={`${size ?? "w-[21px] h-[21px]"} transition-all duration-200 ${
-                isActive ? "text-white opacity-100" : "text-white/40 opacity-100"
-              }`}
-            />
-            <span
-              className={`block h-[2px] rounded-full bg-white transition-all duration-300 ease-out ${
-                isActive ? "w-6 opacity-100" : "w-0 opacity-0"
-              }`}
-            />
-          </button>
-        );
-      })}
-    </div>
+    <ProfileTabStrip
+      activeTab={activeTab}
+      onSelect={(key) => {
+        if (key === "store") previousTabRef.current = activeTab;
+        setActiveTab(key);
+      }}
+      pagerX={pagerX}
+      pageWidth={pageWidth}
+    />
   );
 
   const storeSheetOpen = activeTab === "store" && !!store;
@@ -358,28 +328,25 @@ function StoreProfilePage() {
             </div>
           </div>
 
-          {/* Content grid */}
-          <div className="overflow-hidden pb-24">
-            <AnimatePresence mode="wait" custom={tabIndex}>
-              <motion.div
-                key={activeTab}
-                custom={tabIndex}
-                initial={{ opacity: 0, x: 40 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -40 }}
-                transition={{ duration: 0.2, ease: "easeOut" }}
-                drag="x"
-                dragConstraints={{ left: 0, right: 0 }}
-                dragElastic={0.15}
-                onDragEnd={(_, info) => {
-                  if (info.offset.x < -60) goToTab(tabIndex + 1);
-                  else if (info.offset.x > 60) goToTab(tabIndex - 1);
-                }}
-                className="px-1 pt-4"
-              >
-                <ProfileTabEmptyState tab={activeTab} />
-              </motion.div>
-            </AnimatePresence>
+          {/* Content pager — the same component the personal profile uses, so
+              swiping behaves identically on both. This used to be its own
+              third variant: an AnimatePresence crossfade with drag pinned to
+              zero constraints at 0.15 elastic, i.e. a swipe that moved the
+              content a finger's width and sprang back. */}
+          <div className="pb-24">
+            <TabPager
+              index={tabIndex}
+              count={TABS.length}
+              onIndexChange={goToTab}
+              x={pagerX}
+              onPageWidth={setPageWidth}
+            >
+              {TABS.map(({ key }) => (
+                <div key={key} className="px-1 pt-4">
+                  <ProfileTabEmptyState tab={key} isOwnProfile={isOwnStoreProfile} />
+                </div>
+              ))}
+            </TabPager>
           </div>
         </>
       )}

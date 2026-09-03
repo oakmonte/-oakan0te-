@@ -106,7 +106,12 @@ function EditProfilePage() {
     }
 
     const { data } = supabase.storage.from("avatars").getPublicUrl(path);
-    setAvatarUrl(data.publicUrl);
+    // The storage path is deterministic (same user, same extension) and
+    // upsert overwrites it in place, so getPublicUrl returns the exact same
+    // URL as before the upload — the browser (and any CDN in front of
+    // storage) just keeps showing the cached old image at that URL. A
+    // cache-busting query param forces every consumer to actually refetch.
+    setAvatarUrl(`${data.publicUrl}?v=${Date.now()}`);
   };
 
   // Safe navigation back to a profile — never routes to an empty username
@@ -179,18 +184,17 @@ function EditProfilePage() {
       </div>
 
       <form onSubmit={handleSubmit}>
-        {/* Profile picture — the only image field */}
-        <div className="flex flex-col items-center gap-2 mt-2 mb-6">
+        {/* Profile picture — the only image field. The whole label (photo
+            included, not just the "Change photo" text) opens the picker. */}
+        <label className="flex flex-col items-center gap-2 mt-2 mb-6 cursor-pointer">
           <img
             src={avatarUrl || "https://placehold.co/110x110"}
             alt="Profile"
             className="w-[90px] h-[90px] rounded-full object-cover border border-white/10"
           />
-          <label className="text-[13px] font-medium text-white/70 cursor-pointer">
-            Change photo
-            <input type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
-          </label>
-        </div>
+          <span className="text-[13px] font-medium text-white/70">Change photo</span>
+          <input type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+        </label>
 
         {/* Name + Username block */}
         <div className="mx-4 rounded-2xl bg-white/[0.06] divide-y divide-white/10 overflow-hidden">

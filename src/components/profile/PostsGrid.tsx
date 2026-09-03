@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { ReactNode } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Play } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import type { Tables } from "@/lib/integrations/my-supabase/types";
@@ -10,13 +11,36 @@ type PostRow = Pick<
   "id" | "media_url" | "media_type" | "thumbnail_url" | "caption" | "location"
 >;
 
+async function fetchProfilePosts(
+  userId: string,
+  status: "published" | "draft",
+): Promise<PostRow[]> {
+  const { data, error } = await supabase
+    .from("posts")
+    .select("id, media_url, media_type, thumbnail_url, caption, location")
+    .eq("user_id", userId)
+    .eq("status", status)
+    .order("created_at", { ascending: false });
+  if (error) {
+    console.error("PostsGrid: failed to load posts", error);
+    return [];
+  }
+  return data ?? [];
+}
+
 /** Renders a profile's Posts or Drafts tab: a 3-col grid of a user's real
  *  posts, backed by the `posts` table (RLS decides what a non-owner viewer
  *  gets back — this component doesn't re-filter by visibility itself). Falls
  *  back to `emptyState` (the existing per-tab copy) when there's nothing.
  *  Tapping a thumbnail opens the same full-bleed, swipeable feed viewer used
  *  by Explore's For You/Following tabs, scoped to this same user+status set
- *  and scrolled to the tapped post — one feed-viewing implementation, not two. */
+ *  and scrolled to the tapped post — one feed-viewing implementation, not two.
+ *
+ *  Read through react-query, not a raw useEffect: the profile page keeps
+ *  every tab panel mounted and people bounce in and out of a profile
+ *  constantly, so an uncached fetch meant a "Loading…" flash on every single
+ *  visit and every tab switch. Cached, a revisit paints the previous grid
+ *  immediately and revalidates behind it. */
 export function PostsGrid({
   userId,
   status,
@@ -26,32 +50,27 @@ export function PostsGrid({
   status: "published" | "draft";
   emptyState: ReactNode;
 }) {
-  const [posts, setPosts] = useState<PostRow[] | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const { data: posts, isPending } = useQuery({
+    queryKey: ["profile-posts", userId, status] as const,
+    queryFn: () => fetchProfilePosts(userId, status),
+    staleTime: 30_000,
+  });
 
-  useEffect(() => {
-    let cancelled = false;
-    setPosts(null);
-    supabase
-      .from("posts")
-      .select("id, media_url, media_type, thumbnail_url, caption, location")
-      .eq("user_id", userId)
-      .eq("status", status)
-      .order("created_at", { ascending: false })
-      .then(({ data, error }) => {
-        if (cancelled) return;
-        if (error) console.error("PostsGrid: failed to load posts", error);
-        setPosts(data ?? []);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [userId, status]);
-
-  if (posts === null) {
-    return <div className="text-center text-[13px] text-white/40 py-12">Loading…</div>;
+  // Skeleton tiles rather than a centred "Loading…" line: same 3-col grid,
+  // same aspect ratio, so the real thumbnails drop straight into the boxes
+  // the skeleton already reserved instead of shoving the page around.
+  if (isPending) {
+    return (
+      <div className="grid grid-cols-3 gap-0.5">
+        {Array.from({ length: 9 }).map((_, i) => (
+          <div key={i} className="aspect-square bg-white/[0.06] animate-pulse" />
+        ))}
+      </div>
+    );
   }
-  if (posts.length === 0) return <>{emptyState}</>;
+
+  if (!posts || posts.length === 0) return <>{emptyState}</>;
 
   return (
     <>
