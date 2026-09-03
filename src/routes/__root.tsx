@@ -15,6 +15,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { preloadStoreThemeAssets } from "../lib/preload-store-theme-assets";
 import { useSession } from "../hooks/use-session";
 import { useBuildFreshness } from "../hooks/use-build-freshness";
+import { PostUploadToast } from "../components/PostUploadToast";
 
 function NotFoundComponent() {
   return (
@@ -206,7 +207,11 @@ function RootComponent() {
   // part of the dashboard, hence the explicit second check below.
   useEffect(() => {
     const isStoreDashboard = pathname === "/store" || pathname.startsWith("/store/");
-    const bg = isStoreDashboard ? "#fff" : "";
+    // The publish/"New post" screen is white too — a deliberate exception to
+    // the rest of the create/after-shot flow (camera, filters, crop, etc.)
+    // which stays black like every other camera-app editor.
+    const isPublishPage = pathname === "/create/after-shot/publish";
+    const bg = isStoreDashboard || isPublishPage ? "#fff" : "";
     document.documentElement.style.backgroundColor = bg;
     document.body.style.backgroundColor = bg;
   }, [pathname]);
@@ -215,6 +220,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
+      <PostUploadToast />
     </QueryClientProvider>
   );
 }
