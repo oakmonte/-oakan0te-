@@ -4,11 +4,12 @@ import {
   MessageCircle,
   Bookmark,
   Send,
+  MoreHorizontal,
   ShoppingBag,
   Plus,
   Check,
   Play,
-  X,
+  ChevronLeft,
   MapPin,
 } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
@@ -183,6 +184,30 @@ export function PostFeed({
       ? "fixed inset-0 z-[70] bg-black overflow-y-auto"
       : "w-full h-full bg-black overflow-y-auto";
 
+  // Pull-to-dismiss: swiping down while already scrolled to the first post
+  // (the only moment a downward swipe isn't just "go to the previous post")
+  // acts the same as tapping Back. Tracked in a ref, not state — this fires
+  // on every pointermove and shouldn't trigger a re-render.
+  const pullState = useRef<{ startY: number } | null>(null);
+
+  function handlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    if (!onClose) return;
+    if ((containerRef.current?.scrollTop ?? 0) > 0) return;
+    pullState.current = { startY: e.clientY };
+  }
+
+  function handlePointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    if (!pullState.current || !onClose) return;
+    if (e.clientY - pullState.current.startY > 70) {
+      pullState.current = null;
+      onClose();
+    }
+  }
+
+  function handlePointerEnd() {
+    pullState.current = null;
+  }
+
   if (posts === null) {
     return (
       <div className={`${wrapperClass} flex items-center justify-center`}>
@@ -191,20 +216,18 @@ export function PostFeed({
     );
   }
 
+  // Plain icon, no chip behind it — matches the bare-icon treatment used
+  // over the media everywhere else in this component, not the liquid-glass
+  // circle other back buttons in the app use.
   const closeButton = onClose && (
     <button
       type="button"
       onClick={onClose}
-      aria-label="Close"
-      className="fixed z-20 flex items-center justify-center w-9 h-9 rounded-full active:scale-90"
-      style={{
-        top: "calc(env(safe-area-inset-top) + 12px)",
-        left: 16,
-        background: "rgba(0,0,0,0.45)",
-        backdropFilter: "blur(10px)",
-      }}
+      aria-label="Back"
+      className="fixed z-20 flex items-center justify-center active:scale-90"
+      style={{ top: "calc(env(safe-area-inset-top) + 12px)", left: 16, filter: ICON_SHADOW }}
     >
-      <X size={18} className="text-white" />
+      <ChevronLeft size={26} className="text-white" />
     </button>
   );
 
@@ -222,7 +245,15 @@ export function PostFeed({
   }
 
   return (
-    <div ref={containerRef} className={wrapperClass} style={{ scrollSnapType: "y mandatory" }}>
+    <div
+      ref={containerRef}
+      className={wrapperClass}
+      style={{ scrollSnapType: "y mandatory" }}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerEnd}
+      onPointerCancel={handlePointerEnd}
+    >
       {closeButton}
       {posts.map((post) => (
         <FeedPostCard key={post.id} post={post} viewerId={viewerId} />
@@ -301,7 +332,7 @@ function FeedPostCard({ post, viewerId }: { post: FeedPost; viewerId: string | n
         <img src={post.media_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
       )}
 
-      <div className="absolute right-5 bottom-40 flex flex-col items-center">
+      <div className="absolute right-5 bottom-28 flex flex-col items-center">
         {/* Avatar always sits above the action rail, in line with it — only
             the follow +/check badge is conditional on not being your own post. */}
         <div className="relative mb-8">
@@ -329,27 +360,37 @@ function FeedPostCard({ post, viewerId }: { post: FeedPost; viewerId: string | n
           <MessageCircle size={26} style={{ filter: ICON_SHADOW }} />
           <Bookmark size={26} style={{ filter: ICON_SHADOW }} />
           {/* Add-to-cart: adds every product tagged on this post at once so
-              the viewer can keep scrolling without leaving the feed. Always
-              shown, per the reference, even when this post has no tags yet —
-              there's no cart table or /cart route anywhere in the app yet
-              (BottomNav already links to a /cart route that doesn't exist),
-              so wiring this for real means standing up a whole cart
+              the viewer can keep scrolling without leaving the feed. Hidden
+              on your own post — you can't add your own tagged items to your
+              own cart. There's no cart table or /cart route anywhere in the
+              app yet (BottomNav already links to a /cart route that doesn't
+              exist), so wiring this for real means standing up a whole cart
               subsystem first, not something to improvise as a side effect
               of a feed icon. */}
-          <div className="relative" style={{ filter: ICON_SHADOW }}>
-            <ShoppingBag size={26} />
-            {post.tags.length > 0 && (
-              <span className="absolute -top-1 -right-1 flex items-center justify-center w-4 h-4 rounded-full bg-white text-black">
-                <Plus size={11} strokeWidth={3} />
-              </span>
-            )}
-          </div>
-          <Send
-            size={26}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            style={{ filter: ICON_SHADOW }}
-          />
+          {!isOwnPost && (
+            <div className="relative" style={{ filter: ICON_SHADOW }}>
+              <ShoppingBag size={26} />
+              {post.tags.length > 0 && (
+                <span className="absolute -top-1 -right-1 flex items-center justify-center w-4 h-4 rounded-full bg-white text-black">
+                  <Plus size={11} strokeWidth={3} />
+                </span>
+              )}
+            </div>
+          )}
+          {/* Your own post gets a "more" menu (options like delete) instead
+              of a share arrow — sharing your own post to yourself doesn't
+              make sense. No options menu exists yet; this is just the icon
+              swap the reference asked for. */}
+          {isOwnPost ? (
+            <MoreHorizontal size={26} style={{ filter: ICON_SHADOW }} />
+          ) : (
+            <Send
+              size={26}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{ filter: ICON_SHADOW }}
+            />
+          )}
         </div>
       </div>
 
