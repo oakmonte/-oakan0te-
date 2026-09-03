@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { Check, ChevronRight, X } from "lucide-react";
 import { CategoryNode } from "@/lib/categories";
-import { VariantOption } from "@/components/product-form/VariantMatrixBuilder";
+import { VariantOption, VariantRow } from "@/components/product-form/VariantMatrixBuilder";
 import {
   getSizeChartForCategory,
   type ManualSize,
   type SizeMeasurements,
 } from "@/lib/size-chart-config";
 import { SizeChartSheet } from "@/components/product-form/size-chart/SizeChartSheet";
+import { WeightSheet } from "@/components/product-form/WeightSheet";
 
 // Which category-specific parameters a category requires before a product in
 // it can be published, keyed by category id anywhere in the chosen path —
@@ -32,10 +33,12 @@ const NECESSITY_PARAMS: Record<string, string[]> = {
   jewelry: ["Material", "Color"],
 };
 
-// "Link content" applies to every category — a product isn't ready to
-// publish until it has a piece of content (video/post) linked to it,
-// regardless of what other attributes that category tracks.
-const UNIVERSAL_PARAMS = ["Link content"];
+// Applies to every category, regardless of what else it tracks: "Link
+// content" because a product isn't ready to publish without one, "Weight"
+// because shipping needs it for literally any physical product, not just
+// categories with a Size/Material axis (a lipstick or a craft item still
+// ships in a box).
+const UNIVERSAL_PARAMS = ["Weight", "Link content"];
 
 function paramsForCategory(categoryPath: CategoryNode[]): string[] {
   if (categoryPath.length === 0) return [];
@@ -76,6 +79,8 @@ function isFilled(
   variantSizeValues: string[],
   sizeMeasurements: SizeMeasurements,
   manualSize: ManualSize | null,
+  rows: VariantRow[],
+  regularWeightGrams: number | null,
 ): boolean {
   if (param === "Link content") return false;
   if (param === "Size" && hasChart) {
@@ -83,6 +88,17 @@ function isFilled(
       return variantSizeValues.every((sv) => Object.keys(sizeMeasurements[sv] ?? {}).length > 0);
     }
     return manualSize !== null;
+  }
+  // Weight isn't a variant option axis the way Color/Size/Material are —
+  // nobody picks "142g" as a buyer-facing choice — so it doesn't go through
+  // the options.some(...) check below even for a variant product. Filled
+  // once every selected row has its own weight set; a regular product has
+  // exactly the one implicit "row".
+  if (param === "Weight") {
+    if (kind === "variant") {
+      return rows.filter((r) => r.selected).every((r) => r.weightGrams != null);
+    }
+    return regularWeightGrams != null;
   }
   if (kind === "variant") {
     return options.some(
@@ -101,6 +117,10 @@ export function NecessitiesSheet({
   onChangeSizeMeasurements,
   manualSize,
   onChangeManualSize,
+  rows,
+  regularWeightGrams,
+  regularWeightEstimate,
+  onChangeRegularWeightGrams,
   onClose,
 }: {
   categoryPath: CategoryNode[];
@@ -111,10 +131,18 @@ export function NecessitiesSheet({
   onChangeSizeMeasurements: (m: SizeMeasurements) => void;
   manualSize: ManualSize | null;
   onChangeManualSize: (m: ManualSize | null) => void;
+  // Only the variant matrix's own rows matter for Weight's filled-check on
+  // a variant product; a regular product has no rows at all, hence the
+  // separate regularWeightGrams/-Estimate pair mirroring manualSize's split.
+  rows: VariantRow[];
+  regularWeightGrams: number | null;
+  regularWeightEstimate: number | null;
+  onChangeRegularWeightGrams: (g: number | null) => void;
   onClose: () => void;
 }) {
   const params = paramsForCategory(categoryPath);
   const [sizeChartOpen, setSizeChartOpen] = useState(false);
+  const [weightSheetOpen, setWeightSheetOpen] = useState(false);
   // Chart applies regardless of kind now — a regular product is exactly the
   // case that has no Variant Size axis to fall back on, so it needs this
   // just as much as a variant product with only Color/Material options.
@@ -152,14 +180,29 @@ export function NecessitiesSheet({
               variantSizeValues,
               sizeMeasurements,
               manualSize,
+              rows,
+              regularWeightGrams,
             );
             const opensSizeChart = p === "Size" && !!sizeChart;
+            // Weight only opens a real editor for a regular product -- it
+            // has exactly one value. A variant product's weight lives per
+            // row in the variant matrix (its own Weight button there), so
+            // this stays a status-only checkmark for now, same as Color/
+            // Material below until those get their own fill-in sheets too.
+            const opensWeightSheet = p === "Weight" && kind === "regular";
             return (
               <button
                 key={p}
                 type="button"
                 aria-label={p}
-                onClick={opensSizeChart ? () => setSizeChartOpen(true) : () => {}} // TODO: open the per-parameter fill-in sheet once its design is specced, for everything but Size
+                onClick={
+                  opensSizeChart
+                    ? () => setSizeChartOpen(true)
+                    : opensWeightSheet
+                      ? () => setWeightSheetOpen(true)
+                      : // TODO: open the per-parameter fill-in sheet once its design is specced, for everything but Size/Weight
+                        () => {}
+                }
                 className="w-full flex items-center justify-between px-4 py-4 border-b border-gray-50 text-left oak-motion-control"
               >
                 <span className="flex items-center gap-3">
@@ -191,6 +234,18 @@ export function NecessitiesSheet({
             setSizeChartOpen(false);
           }}
           onClose={() => setSizeChartOpen(false)}
+        />
+      )}
+
+      {weightSheetOpen && (
+        <WeightSheet
+          initial={regularWeightGrams}
+          estimate={regularWeightEstimate}
+          onSave={(grams) => {
+            onChangeRegularWeightGrams(grams);
+            setWeightSheetOpen(false);
+          }}
+          onClose={() => setWeightSheetOpen(false)}
         />
       )}
     </div>

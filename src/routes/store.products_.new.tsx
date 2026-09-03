@@ -13,8 +13,6 @@ import { NecessitiesSheet } from "@/components/product-form/NecessitiesSheet";
 import { PricingSheet } from "@/components/product-form/PricingSheet";
 import { InventorySection } from "@/components/product-form/InventorySection";
 import { InventorySheet, type InventoryValues } from "@/components/product-form/InventorySheet";
-import { WeightSection } from "@/components/product-form/WeightSection";
-import { WeightSheet } from "@/components/product-form/WeightSheet";
 import { CategoryPicker } from "@/components/product-form/CategoryPicker";
 import { ProductTypeSwitchSheet } from "@/components/product-form/ProductTypeSwitchSheet";
 import {
@@ -126,7 +124,6 @@ function NewProduct() {
   const [regularWeightGrams, setRegularWeightGrams] = useState<number | null>(
     initialDraft?.regularWeightGrams ?? null,
   );
-  const [weightSheetOpen, setWeightSheetOpen] = useState(false);
   const [regularSku, setRegularSku] = useState(initialDraft?.regularSku ?? "");
   // Never surfaced anywhere on this page before now -- new products start
   // with none, unlike the edit page's regularBarcode which round-trips a
@@ -534,7 +531,6 @@ function NewProduct() {
             locationCount={Object.keys(regularLocationQuantities).length}
             onOpen={() => setInventorySheetOpen(true)}
           />
-          <WeightSection grams={regularWeightGrams} onOpen={() => setWeightSheetOpen(true)} />
         </>
       ) : (
         storeId && (
@@ -619,18 +615,6 @@ function NewProduct() {
         />
       )}
 
-      {weightSheetOpen && (
-        <WeightSheet
-          initial={regularWeightGrams}
-          estimate={regularWeightEstimate}
-          onSave={(grams) => {
-            setRegularWeightGrams(grams);
-            setWeightSheetOpen(false);
-          }}
-          onClose={() => setWeightSheetOpen(false)}
-        />
-      )}
-
       {typeSwitchOpen && (
         <ProductTypeSwitchSheet
           current={kind}
@@ -682,6 +666,10 @@ function NewProduct() {
           onChangeSizeMeasurements={setSizeMeasurements}
           manualSize={manualSize}
           onChangeManualSize={setManualSize}
+          rows={rows}
+          regularWeightGrams={regularWeightGrams}
+          regularWeightEstimate={regularWeightEstimate}
+          onChangeRegularWeightGrams={setRegularWeightGrams}
           onClose={() => setNecessitiesSheetOpen(false)}
         />
       )}
