@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useSession } from "@/hooks/use-session";
+import { useOwnStores } from "@/hooks/use-own-store";
 import { BottomNav } from "@/components/BottomNav";
 import { ProfileTabEmptyState } from "@/components/ProfileTabEmptyState";
 import { PostsGrid } from "@/components/profile/PostsGrid";
@@ -27,6 +28,13 @@ import { TABS, type TabKey } from "@/components/profile/profile-tabs";
 import { TabPager } from "@/components/profile/TabPager";
 import { ProfileTabStrip } from "@/components/profile/ProfileTabStrip";
 import { ShareProfileOverlay } from "@/components/profile/ShareProfileOverlay";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   profileQueryOptions,
   profileStatsQueryOptions,
@@ -60,11 +68,30 @@ type ProfileRow = {
   rating_count: number;
 };
 
+const PROFILE_SELLER_PROMPT_KEY = "oak-profile-seller-prompt-seen";
+
+function hasSeenSellerPrompt(userId: string) {
+  try {
+    return sessionStorage.getItem(`${PROFILE_SELLER_PROMPT_KEY}:${userId}`) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function markSellerPromptSeen(userId: string) {
+  try {
+    sessionStorage.setItem(`${PROFILE_SELLER_PROMPT_KEY}:${userId}`, "1");
+  } catch {
+    return;
+  }
+}
+
 function ProfilePage() {
   const navigate = useNavigate();
   const router = useRouter();
   const { username } = useParams({ from: "/profile/$username" });
   const { user, loading: sessionLoading } = useSession();
+  const { stores: ownedStores, loading: ownedStoresLoading } = useOwnStores();
   const queryClient = useQueryClient();
   const { data: baseProfile, isPending: profileLoading } = useQuery(profileQueryOptions(username));
   // Every read this page does is cached. They used to be raw useEffect
@@ -117,6 +144,7 @@ function ProfilePage() {
   // yet, so this is visual/session-only, not persisted.
   const [notifyEnabled, setNotifyEnabled] = useState(false);
   const [messageHint, setMessageHint] = useState<string | null>(null);
+  const [sellerPromptOpen, setSellerPromptOpen] = useState(false);
 
   const isOwnProfile = !!user && !!profile && user.id === profile.id;
   // Until the session resolves we don't know whose profile this is, and
@@ -125,6 +153,22 @@ function ProfilePage() {
   // swapping — the exact "page reassembling itself" this pass is fixing.
   // Owner-only chrome waits; visitor-only chrome waits too.
   const ownershipKnown = !sessionLoading && !!profile;
+
+  useEffect(() => {
+    if (
+      !ownershipKnown ||
+      !isOwnProfile ||
+      !user ||
+      ownedStoresLoading ||
+      ownedStores.length === 0 ||
+      hasSeenSellerPrompt(user.id)
+    ) {
+      return;
+    }
+
+    markSellerPromptSeen(user.id);
+    setSellerPromptOpen(true);
+  }, [isOwnProfile, ownedStores, ownedStoresLoading, ownershipKnown, user]);
 
   // Shared with TabPager so the tab strip animates off the same value the
   // content does, frame for frame.
@@ -640,6 +684,36 @@ function ProfilePage() {
             : ""
         }
       />
+
+      <Dialog open={sellerPromptOpen} onOpenChange={setSellerPromptOpen}>
+        <DialogContent className="w-[calc(100%-32px)] max-w-sm rounded-xl border-gray-200 bg-white p-5 text-gray-900">
+          <DialogHeader className="text-left">
+            <DialogTitle className="text-[18px]">What would you like to do?</DialogTitle>
+            <DialogDescription className="pt-1 text-sm text-gray-500">
+              Share something with your audience or keep building your store.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-2">
+            <button
+              type="button"
+              onClick={() => setSellerPromptOpen(false)}
+              className="w-full rounded-xl bg-black py-3 text-[15px] font-semibold text-white"
+            >
+              Upload or create content
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setSellerPromptOpen(false);
+                navigate({ to: "/store" });
+              }}
+              className="w-full rounded-xl border border-gray-200 py-3 text-[15px] font-medium text-gray-900"
+            >
+              Set up my store
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
