@@ -3,7 +3,7 @@ import {
   Heart,
   MessageCircle,
   Bookmark,
-  Send,
+  ArrowUpRight,
   ShoppingBag,
   Plus,
   Check,
@@ -332,21 +332,23 @@ function FeedPostCard({ post, viewerId }: { post: FeedPost; viewerId: string | n
           <Heart size={26} style={{ filter: ICON_SHADOW }} />
           <MessageCircle size={26} style={{ filter: ICON_SHADOW }} />
           <Bookmark size={26} style={{ filter: ICON_SHADOW }} />
-          {post.tags.length > 0 && (
-            // Add-to-cart: adds every product tagged on this post at once so
-            // the viewer can keep scrolling without leaving the feed. There's
-            // no cart table or /cart route anywhere in the app yet (BottomNav
-            // already links to a /cart route that doesn't exist), so wiring
-            // this for real means standing up a whole cart subsystem first,
-            // not something to improvise as a side effect of a feed icon.
-            <div className="relative" style={{ filter: ICON_SHADOW }}>
-              <ShoppingBag size={26} />
+          {/* Add-to-cart: adds every product tagged on this post at once so
+              the viewer can keep scrolling without leaving the feed. Always
+              shown, per the reference, even when this post has no tags yet —
+              there's no cart table or /cart route anywhere in the app yet
+              (BottomNav already links to a /cart route that doesn't exist),
+              so wiring this for real means standing up a whole cart
+              subsystem first, not something to improvise as a side effect
+              of a feed icon. */}
+          <div className="relative" style={{ filter: ICON_SHADOW }}>
+            <ShoppingBag size={26} />
+            {post.tags.length > 0 && (
               <span className="absolute -top-1 -right-1 flex items-center justify-center w-4 h-4 rounded-full bg-white text-black">
                 <Plus size={11} strokeWidth={3} />
               </span>
-            </div>
-          )}
-          <Send size={26} style={{ filter: ICON_SHADOW }} />
+            )}
+          </div>
+          <ArrowUpRight size={26} style={{ filter: ICON_SHADOW }} />
         </div>
       </div>
 
