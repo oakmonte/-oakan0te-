@@ -161,11 +161,17 @@ export function PostFeed({
   initialPostId,
   onClose,
   mode = "standalone",
+  asStore = false,
 }: {
   scope: FeedScope;
   initialPostId?: string;
   onClose?: () => void;
   mode?: "embedded" | "standalone";
+  /** Set by a surface where the viewer is acting as one of their stores
+   *  (the store profile's own post viewer, once stores can post). Hides
+   *  add-to-cart: a store is a seller identity, it doesn't buy. Browsing as
+   *  yourself this stays false everywhere — you can buy from your own store. */
+  asStore?: boolean;
 }) {
   const [posts, setPosts] = useState<FeedPost[] | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -379,7 +385,13 @@ export function PostFeed({
             style={{ scrollSnapType: "y mandatory" }}
           >
             {posts.map((post) => (
-              <FeedPostCard key={post.id} post={post} viewerId={viewerId} />
+              <FeedPostCard
+                key={post.id}
+                post={post}
+                viewerId={viewerId}
+                isProfileViewer={scope.type === "user"}
+                asStore={asStore}
+              />
             ))}
           </div>
         </motion.div>
@@ -400,7 +412,22 @@ export function PostFeed({
   return <>{body}</>;
 }
 
-function FeedPostCard({ post, viewerId }: { post: FeedPost; viewerId: string | null }) {
+function FeedPostCard({
+  post,
+  viewerId,
+  isProfileViewer,
+  asStore,
+}: {
+  post: FeedPost;
+  viewerId: string | null;
+  /** True when this feed is a profile grid's post viewer rather than the home
+   *  feed. The "more" menu is scoped to that view: in the home feed your own
+   *  post is just another post in the stream and still gets the share plane. */
+  isProfileViewer: boolean;
+  /** True when the viewer is acting as a store rather than as a person.
+   *  Stores don't buy, so the add-to-cart bag is hidden. */
+  asStore: boolean;
+}) {
   const cardRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   // Two separate ideas, deliberately not one `playing` flag: `onScreen` is
@@ -623,14 +650,17 @@ function FeedPostCard({ post, viewerId }: { post: FeedPost; viewerId: string | n
           </button>
           <Bookmark size={26} style={{ filter: ICON_SHADOW }} />
           {/* Add-to-cart: adds every product tagged on this post at once so
-              the viewer can keep scrolling without leaving the feed. Hidden
-              on your own post — you can't add your own tagged items to your
-              own cart. There's no cart table or /cart route anywhere in the
+              the viewer can keep scrolling without leaving the feed.
+              Hidden by WHO'S BROWSING, not by who owns the post: a store
+              identity doesn't buy, so it never sees the bag. Browsing as
+              yourself you always see it — including on your own posts and
+              your own store's, because owning a shop doesn't stop you buying
+              from it. There's no cart table or /cart route anywhere in the
               app yet (BottomNav already links to a /cart route that doesn't
               exist), so wiring this for real means standing up a whole cart
               subsystem first, not something to improvise as a side effect
               of a feed icon. */}
-          {!isOwnPost && (
+          {!asStore && (
             <div className="relative" style={{ filter: ICON_SHADOW }}>
               <ShoppingBag size={26} />
               {post.tags.length > 0 && (
@@ -640,11 +670,12 @@ function FeedPostCard({ post, viewerId }: { post: FeedPost; viewerId: string | n
               )}
             </div>
           )}
-          {/* Your own post gets a "more" menu (options like delete) instead
-              of a share arrow — sharing your own post to yourself doesn't
-              make sense. No options menu exists yet; this is just the icon
-              swap the reference asked for. */}
-          {isOwnPost ? (
+          {/* "More" (delete, edit, and so on) replaces the share plane only in
+              your own profile's post viewer — that's the management surface.
+              In the home feed the same post of yours is just another post in
+              the stream, so it keeps the plane. No options menu exists yet;
+              this is the icon swap. */}
+          {isOwnPost && isProfileViewer ? (
             <MoreHorizontal size={26} style={{ filter: ICON_SHADOW }} />
           ) : (
             <Send
