@@ -168,3 +168,8 @@ export const TABS: {
   { key: "likedVideos", label: "Liked videos", Icon: LikedVideosIcon },
   { key: "drafts", label: "Drafts", Icon: DraftsIcon },
 ];
+
+/** The store profile's tabs. A store is a seller identity, not a person — it
+ *  has no wardrobe, so that tab isn't offered there. Everything else stays in
+ *  the same order, so the two profile shapes still read as siblings. */
+export const STORE_TABS = TABS.filter((t) => t.key !== "wardrobe");

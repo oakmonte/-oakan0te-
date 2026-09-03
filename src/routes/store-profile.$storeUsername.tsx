@@ -8,7 +8,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { ProfileTabEmptyState } from "@/components/ProfileTabEmptyState";
 import { PublicStorefront } from "@/components/store-themes/full-previews";
 import { Stat, MenuRow } from "@/components/profile/profile-chrome";
-import { TABS, type TabKey } from "@/components/profile/profile-tabs";
+import { STORE_TABS, type TabKey } from "@/components/profile/profile-tabs";
 import { TabPager } from "@/components/profile/TabPager";
 import { ProfileTabStrip } from "@/components/profile/ProfileTabStrip";
 
@@ -62,12 +62,12 @@ function StoreProfilePage() {
   const [pageWidth, setPageWidth] = useState(0);
   const tabIndex = Math.max(
     0,
-    TABS.findIndex((t) => t.key === activeTab),
+    STORE_TABS.findIndex((t) => t.key === activeTab),
   );
 
   const goToTab = (nextIndex: number) => {
-    if (nextIndex >= 0 && nextIndex < TABS.length) {
-      setActiveTab(TABS[nextIndex].key);
+    if (nextIndex >= 0 && nextIndex < STORE_TABS.length) {
+      setActiveTab(STORE_TABS[nextIndex].key);
     }
   };
 
@@ -204,6 +204,7 @@ function StoreProfilePage() {
       }}
       pagerX={pagerX}
       pageWidth={pageWidth}
+      tabs={STORE_TABS}
     />
   );
 
@@ -336,12 +337,12 @@ function StoreProfilePage() {
           <div className="pb-24">
             <TabPager
               index={tabIndex}
-              count={TABS.length}
+              count={STORE_TABS.length}
               onIndexChange={goToTab}
               x={pagerX}
               onPageWidth={setPageWidth}
             >
-              {TABS.map(({ key }) => (
+              {STORE_TABS.map(({ key }) => (
                 <div key={key} className="px-1 pt-4">
                   <ProfileTabEmptyState tab={key} isOwnProfile={isOwnStoreProfile} />
                 </div>

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { motion, AnimatePresence, type PanInfo } from "framer-motion";
 import { ChevronLeft, Bookmark, Lock, Search, ShoppingBag, User, UserPlus } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
-import { PostFeed } from "@/components/feed/PostFeed";
+import { PostFeed, type ActivePost, type TaggedProduct } from "@/components/feed/PostFeed";
 import { useSession } from "@/hooks/use-session";
 
 type FeedTab = "following" | "for-you" | "listed-items" | "profile";
@@ -22,17 +22,6 @@ const TAB_BAR_ORDER: { key: FeedTab; label: string }[] = [
   { key: "profile", label: "Profile" },
 ];
 
-// No post/video backend is wired into this prototype yet — icons and
-// transitions only, per the brief. Swap for real feed/listing data once
-// this is ready to be wired up for real.
-const MOCK_LISTED_ITEMS = [
-  { id: "l1", name: "Pink cap", price: "20,000", size: "Size 7 (58cm)" },
-  { id: "l2", name: "Zip hoodie", price: "30,000", size: "Size XXL" },
-  { id: "l3", name: "Graphic tee", price: "30,000", size: "Size XXL" },
-  { id: "l4", name: "Silk tie", price: "5,000", size: "30in (H) · 4in (W)" },
-  { id: "l5", name: "Chain necklace", price: "8,000", size: "20in (H) · 2in (W)" },
-];
-
 export function ExploreFeedOverlay({
   ownUsername,
   onClose,
@@ -41,6 +30,10 @@ export function ExploreFeedOverlay({
   onClose: () => void;
 }) {
   const [active, setActive] = useState<FeedTab>("for-you");
+  // Held HERE, not in the feed, because the feed unmounts the moment you swipe
+  // to Listed items — the whole point is that the tab remembers the post you
+  // just left.
+  const [activePost, setActivePost] = useState<ActivePost | null>(null);
   const { user } = useSession();
   const index = PAGE_ORDER.indexOf(active);
 
@@ -115,12 +108,13 @@ export function ExploreFeedOverlay({
             className="w-full h-full"
           >
             {active === "listed-items" ? (
-              <ListedItemsPage />
+              <ListedItemsPage items={activePost?.tags ?? []} />
             ) : active === "profile" ? (
               <ProfileTeaserPage />
             ) : (
               <PostFeed
                 mode="embedded"
+                onActivePost={setActivePost}
                 scope={
                   active === "following"
                     ? { type: "following", viewerId: user?.id ?? "" }
@@ -137,21 +131,46 @@ export function ExploreFeedOverlay({
   );
 }
 
-function ListedItemsPage() {
+/** The products linked to whatever post you were just looking at — the other
+ *  half of the post viewer's link-products rail. Swiping here from For you is
+ *  how a post becomes shoppable, so this list is only ever about ONE post: the
+ *  one that was filling the screen when you swiped away from it. */
+function ListedItemsPage({ items }: { items: TaggedProduct[] }) {
+  if (items.length === 0) {
+    return (
+      <div className="w-full h-full flex flex-col items-center justify-center px-10 text-center gap-1.5">
+        <p className="text-[15px] font-semibold text-white/80">Nothing listed on this post</p>
+        <p className="max-w-[240px] text-[12px] text-white/40">
+          When a seller links products to a post, they show up here.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full h-full overflow-y-auto px-4 pb-28">
       <div className="flex flex-col gap-3">
-        {MOCK_LISTED_ITEMS.map((item) => (
+        {items.map((item) => (
           <div
             key={item.id}
             className="flex items-center gap-3 border border-white/10 rounded-xl p-2.5"
           >
-            <div className="w-14 h-14 rounded-lg bg-white/5 flex items-center justify-center shrink-0">
-              <ShoppingBag size={20} className="text-white/30" />
-            </div>
+            {item.image ? (
+              <img
+                src={item.image}
+                alt=""
+                className="w-14 h-14 rounded-lg object-cover bg-white/5 shrink-0"
+              />
+            ) : (
+              <div className="w-14 h-14 rounded-lg bg-white/5 flex items-center justify-center shrink-0">
+                <ShoppingBag size={20} className="text-white/30" />
+              </div>
+            )}
             <div className="min-w-0 flex-1">
-              <p className="text-[13px] font-semibold">₦{item.price}</p>
-              <p className="text-[11px] text-white/50 truncate">{item.size}</p>
+              <p className="text-[13px] font-semibold">
+                {item.price != null ? `₦${item.price.toLocaleString()}` : "—"}
+              </p>
+              <p className="text-[11px] text-white/50 truncate">{item.title}</p>
             </div>
             <button
               type="button"

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, animate, motion, useMotionValue, useTransform } from "framer-motion";
 import {
@@ -12,18 +12,20 @@ import {
   Check,
   Play,
   ChevronLeft,
+  Link2,
   MapPin,
 } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import type { Tables } from "@/lib/integrations/my-supabase/types";
 import { useSession } from "@/hooks/use-session";
 import { CommentSheet } from "@/components/feed/CommentSheet";
+import { LinkProductsSheet } from "@/components/feed/LinkProductsSheet";
 
 // Bare icons over the media with no chip behind them, per the reference —
 // every one needs its own shadow or they wash out against a light photo.
 const ICON_SHADOW = "drop-shadow(0 1px 4px rgba(0,0,0,0.65))";
 
-// Snap back from a pull that didn't go far enough to dismiss.
+// Snap back from a swipe that didn't go far enough to dismiss.
 const SETTLE_SPRING = { type: "spring" as const, stiffness: 400, damping: 40 };
 
 export type FeedScope =
@@ -31,7 +33,17 @@ export type FeedScope =
   | { type: "following"; viewerId: string }
   | { type: "user"; userId: string; status: "published" | "draft" };
 
-type TaggedProduct = { id: string; title: string; price: number | null; image: string | null };
+export type TaggedProduct = {
+  id: string;
+  title: string;
+  price: number | null;
+  image: string | null;
+};
+
+/** The post currently filling the screen, reported up so a caller can show
+ *  something about it beside the feed — Explore's Listed items tab reads this
+ *  to list the products linked to whatever you're looking at. */
+export type ActivePost = { id: string; tags: TaggedProduct[] };
 
 type FeedPost = Pick<
   Tables<"posts">,
@@ -162,6 +174,7 @@ export function PostFeed({
   onClose,
   mode = "standalone",
   asStore = false,
+  onActivePost,
 }: {
   scope: FeedScope;
   initialPostId?: string;
@@ -172,12 +185,19 @@ export function PostFeed({
    *  add-to-cart: a store is a seller identity, it doesn't buy. Browsing as
    *  yourself this stays false everywhere — you can buy from your own store. */
   asStore?: boolean;
+  /** Called with whichever post is currently filling the screen, including on
+   *  every scroll to a new one. Explore uses it to keep its Listed items tab
+   *  pointed at the post you were just looking at. */
+  onActivePost?: (active: ActivePost) => void;
 }) {
   const [posts, setPosts] = useState<FeedPost[] | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const key = scopeKey(scope);
   const { user: viewer } = useSession();
   const viewerId = viewer?.id ?? null;
+  // Stable, so the card's "I'm on screen" effect doesn't re-run every render
+  // of the feed.
+  const handleActive = useCallback((active: ActivePost) => onActivePost?.(active), [onActivePost]);
 
   useEffect(() => {
     let cancelled = false;
@@ -207,99 +227,97 @@ export function PostFeed({
       ? "fixed inset-0 z-[70] bg-black"
       : "relative w-full h-full bg-black overflow-hidden";
 
-  // Pull-to-dismiss, the way it actually has to be done on touch.
+  // Swipe RIGHT to dismiss.
   //
-  // The previous two attempts both used pointer events, and both were doomed:
-  // the moment the browser decides a touch is a scroll it fires pointercancel
-  // and stops delivering pointermove, so a gesture that starts on a scrolling
-  // list can never be picked up that way. The fix is a NON-PASSIVE touchmove
-  // listener — while the list is already at the top and the finger is heading
-  // down, preventDefault() stops the browser claiming the gesture as a scroll
-  // and we drive the transform ourselves. Anything else (finger heading up, or
-  // the list not at the top) is handed straight back to native scrolling, so
-  // swiping between posts is untouched.
+  // This used to be swipe-down, which meant every downward drag had to be
+  // classified as either "scroll to the previous post" or "close the viewer" —
+  // and the only thing separating them was where the scroller happened to be
+  // resting. That's a coin flip from the viewer's point of view. Right is a
+  // free axis here (the feed only ever scrolls vertically), so the two
+  // gestures can't be confused: up/down always pages posts, right always
+  // leaves.
   //
-  // Registered imperatively rather than as onTouchMove because React attaches
-  // that one passively, where preventDefault() is a no-op.
-  const dismissY = useMotionValue(0);
-  // Shrinks and rounds toward a card as it's pulled, the way Reels and TikTok
+  // Still a NON-PASSIVE touchmove listener rather than pointer events: the
+  // moment the browser decides a touch is a scroll it fires pointercancel and
+  // stops delivering pointermove, so a gesture starting on a scrolling list
+  // can never be picked up that way. preventDefault() on the first clearly
+  // horizontal move stops the browser claiming it. Registered imperatively
+  // because React attaches onTouchMove passively, where preventDefault() is a
+  // no-op.
+  const dismissX = useMotionValue(0);
+  // Shrinks and rounds toward a card as it slides off, the way both references
   // do — the motion alone read as the page glitching rather than as the post
-  // being put back. Opacity lives on the backdrop behind it, never on the
+  // being put away. Opacity lives on the backdrop behind it, never on the
   // media itself (fading a photo looks like a broken render).
-  const dismissScale = useTransform(dismissY, [0, 320], [1, 0.86]);
-  const dismissRadius = useTransform(dismissY, [0, 120], [0, 26]);
-  const backdropOpacity = useTransform(dismissY, [0, 320], [1, 0.35]);
+  const dismissScale = useTransform(dismissX, [0, 320], [1, 0.86]);
+  const dismissRadius = useTransform(dismissX, [0, 120], [0, 26]);
+  const backdropOpacity = useTransform(dismissX, [0, 320], [1, 0.35]);
 
   useEffect(() => {
     const el = containerRef.current;
     if (!el || !onClose) return;
 
+    let startX = 0;
     let startY = 0;
-    let lastY = 0;
+    let lastX = 0;
     let lastT = 0;
     let velocity = 0;
     let tracking = false;
     let engaged = false;
 
-    // Engaged at ANY snap point, not just scrollTop 0: the grid opens the
-    // viewer scrolled straight to the tapped post, so gating on "top of the
-    // list" meant pull-to-dismiss only ever worked on the very first post.
-    // Equal-height cards under `scroll-snap-type: y mandatory` means "resting
-    // on a card" is just scrollTop landing on a multiple of the card height.
-    const atSnapPoint = () => {
-      const page = el.clientHeight;
-      if (!page) return true;
-      const rest = el.scrollTop % page;
-      return rest < 2 || page - rest < 2;
-    };
-
     const onTouchStart = (e: TouchEvent) => {
       if (e.touches.length !== 1) return;
-      startY = lastY = e.touches[0].clientY;
+      startX = lastX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
       lastT = e.timeStamp;
       velocity = 0;
-      tracking = atSnapPoint();
+      tracking = true;
       engaged = false;
     };
 
     const onTouchMove = (e: TouchEvent) => {
       if (!tracking || e.touches.length !== 1) return;
-      const y = e.touches[0].clientY;
-      const dy = y - startY;
-      // Heading up, or no longer resting on a card — an ordinary scroll to
-      // the next post. Hand it straight back to the browser.
-      if (dy <= 0 || !atSnapPoint()) {
-        if (engaged) {
-          animate(dismissY, 0, SETTLE_SPRING);
-          engaged = false;
+      const x = e.touches[0].clientX;
+      const dx = x - startX;
+      const dy = e.touches[0].clientY - startY;
+
+      // Direction lock, decided once on the first move big enough to have a
+      // direction. Anything that isn't a clear rightward swipe — vertical, or
+      // leftward — is handed straight back to native scrolling for the rest of
+      // the gesture, so paging between posts is untouched.
+      if (!engaged) {
+        if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+        if (dx <= 0 || Math.abs(dx) <= Math.abs(dy)) {
+          tracking = false;
+          return;
         }
-        tracking = false;
-        return;
+        engaged = true;
       }
+
       const dt = e.timeStamp - lastT;
-      if (dt > 0) velocity = ((y - lastY) / dt) * 1000;
-      lastY = y;
+      if (dt > 0) velocity = ((x - lastX) / dt) * 1000;
+      lastX = x;
       lastT = e.timeStamp;
 
-      engaged = true;
       e.preventDefault();
-      // Damped so it resists rather than falls away. The threshold below is
-      // measured against raw finger travel, not this damped value — testing
-      // the damped one silently doubled how far you had to drag.
-      dismissY.set(dy * 0.5);
+      // 1:1 with the finger. A back-swipe that lags behind the thumb is the
+      // thing that made the old gesture feel synthetic.
+      dismissX.set(Math.max(0, dx));
     };
 
     const onTouchEnd = () => {
       if (engaged) {
-        const travelled = lastY - startY;
-        if (travelled > 110 || velocity > 500) {
+        const travelled = lastX - startX;
+        // A quarter of the screen, or a flick — the same deal every
+        // swipe-back on the platform offers.
+        if (travelled > el.clientWidth * 0.25 || velocity > 500) {
           // Carry it the rest of the way off-screen instead of cutting: an
           // instant unmount mid-gesture is what made this feel broken.
-          animate(dismissY, el.clientHeight, { duration: 0.18, ease: "easeIn" }).then(() =>
+          animate(dismissX, el.clientWidth, { duration: 0.18, ease: "easeOut" }).then(() =>
             onClose(),
           );
         } else {
-          animate(dismissY, 0, SETTLE_SPRING);
+          animate(dismissX, 0, SETTLE_SPRING);
         }
       }
       tracking = false;
@@ -316,7 +334,7 @@ export function PostFeed({
       el.removeEventListener("touchend", onTouchEnd);
       el.removeEventListener("touchcancel", onTouchEnd);
     };
-  }, [onClose, dismissY]);
+  }, [onClose, dismissX]);
 
   // The page behind a full-screen viewer must not scroll under it — and
   // scrollIntoView below walks scrollable ANCESTORS, so without this opening
@@ -373,7 +391,7 @@ export function PostFeed({
         <motion.div
           className="absolute inset-0 overflow-hidden bg-black"
           style={{
-            y: dismissY,
+            x: dismissX,
             scale: dismissScale,
             borderRadius: dismissRadius,
           }}
@@ -391,6 +409,7 @@ export function PostFeed({
                 viewerId={viewerId}
                 isProfileViewer={scope.type === "user"}
                 asStore={asStore}
+                onActive={handleActive}
               />
             ))}
           </div>
@@ -417,9 +436,12 @@ function FeedPostCard({
   viewerId,
   isProfileViewer,
   asStore,
+  onActive,
 }: {
   post: FeedPost;
   viewerId: string | null;
+  /** Fired when this card becomes the one on screen. */
+  onActive: (active: ActivePost) => void;
   /** True when this feed is a profile grid's post viewer rather than the home
    *  feed. The "more" menu is scoped to that view: in the home feed your own
    *  post is just another post in the stream and still gets the share plane. */
@@ -441,22 +463,35 @@ function FeedPostCard({
   const [liked, setLiked] = useState(false);
   const [burst, setBurst] = useState(0);
   const [commentsOpen, setCommentsOpen] = useState(false);
+  const [linkOpen, setLinkOpen] = useState(false);
+  // Local so linking a product updates the chips under the caption straight
+  // away — the feed's post list is fetched once and isn't refetched on a
+  // link, and re-running the whole query to move one chip would jump the
+  // scroller off the post you're standing on.
+  const [tags, setTags] = useState<TaggedProduct[]>(post.tags);
   const isOwnPost = viewerId === post.user_id;
   const isVideo = post.media_type === "video";
+  // The owner-only management surface: link products, and the "more" menu.
+  const isOwnerView = isOwnPost && isProfileViewer;
 
-  // Autoplay is scoped to the visible card. Every video in the feed mounting
-  // and playing at once would saturate the connection on the mobile networks
-  // this app is built for, so exactly one plays and the rest sit paused with
-  // their poster showing.
+  // "Is this the card being looked at" — two things ride on it. Autoplay is
+  // scoped to it (every video in the feed playing at once would saturate the
+  // connection on the mobile networks this app is built for, so exactly one
+  // plays and the rest sit paused on their poster), and it's what tells the
+  // caller which post's linked products to show on its Listed items tab.
   useEffect(() => {
     const el = cardRef.current;
-    if (!el || !isVideo) return;
+    if (!el) return;
     const io = new IntersectionObserver(([entry]) => setOnScreen(entry.intersectionRatio >= 0.6), {
       threshold: [0, 0.6, 1],
     });
     io.observe(el);
     return () => io.disconnect();
-  }, [isVideo]);
+  }, []);
+
+  useEffect(() => {
+    if (onScreen) onActive({ id: post.id, tags });
+  }, [onScreen, post.id, tags, onActive]);
 
   useEffect(() => {
     const v = videoRef.current;
@@ -663,19 +698,39 @@ function FeedPostCard({
           {!asStore && (
             <div className="relative" style={{ filter: ICON_SHADOW }}>
               <ShoppingBag size={26} />
-              {post.tags.length > 0 && (
+              {tags.length > 0 && (
                 <span className="absolute -top-1 -right-1 flex items-center justify-center w-4 h-4 rounded-full bg-white text-black">
                   <Plus size={11} strokeWidth={3} />
                 </span>
               )}
             </div>
           )}
+          {/* Link products — owner-only, directly above the "more" dots.
+              Linking is what makes a post shoppable: the products picked here
+              are what draw the chips under the caption and what a stranger
+              swiping to Listed items on this post ends up looking at. */}
+          {isOwnerView && (
+            <button
+              type="button"
+              onClick={() => setLinkOpen(true)}
+              aria-label="Link products"
+              className="relative active:scale-90 transition-transform duration-150"
+              style={{ filter: ICON_SHADOW }}
+            >
+              <Link2 size={26} />
+              {tags.length > 0 && (
+                <span className="absolute -top-1.5 -right-2 min-w-[16px] h-4 px-1 flex items-center justify-center rounded-full bg-white text-black text-[10px] font-bold">
+                  {tags.length}
+                </span>
+              )}
+            </button>
+          )}
           {/* "More" (delete, edit, and so on) replaces the share plane only in
               your own profile's post viewer — that's the management surface.
               In the home feed the same post of yours is just another post in
               the stream, so it keeps the plane. No options menu exists yet;
               this is the icon swap. */}
-          {isOwnPost && isProfileViewer ? (
+          {isOwnerView ? (
             <MoreHorizontal size={26} style={{ filter: ICON_SHADOW }} />
           ) : (
             <Send
@@ -701,9 +756,9 @@ function FeedPostCard({
             <MapPin size={12} /> {post.location}
           </p>
         )}
-        {post.tags.length > 0 && (
+        {tags.length > 0 && (
           <div className="flex gap-2 overflow-x-auto pt-2.5" style={{ scrollbarWidth: "none" }}>
-            {post.tags.map((t) => (
+            {tags.map((t) => (
               <div
                 key={t.id}
                 className="shrink-0 flex items-center gap-2 rounded-full pl-1 pr-3 py-1"
@@ -725,6 +780,15 @@ function FeedPostCard({
       </div>
 
       <CommentSheet open={commentsOpen} onClose={() => setCommentsOpen(false)} />
+      {isOwnerView && (
+        <LinkProductsSheet
+          open={linkOpen}
+          onClose={() => setLinkOpen(false)}
+          postId={post.id}
+          linked={tags}
+          onChange={setTags}
+        />
+      )}
     </div>
   );
 }

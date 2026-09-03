@@ -5,7 +5,8 @@ import { TABS, type TabKey } from "@/components/profile/profile-tabs";
 /** The profile tab strip, shared by /profile/$username and
  *  /store-profile/$storeUsername so the two can't drift apart.
  *
- *  All seven tabs are on screen at once. The old strip showed five
+ *  Every tab is on screen at once, whichever set the caller passes. The old
+ *  strip showed five
  *  (`auto-cols-[20%]`, horizontally scrollable) which paired badly with swipe
  *  paging: from Posts you couldn't see Liked videos or Drafts at all and the
  *  swipe gave no hint they existed, and the scroll-into-view that compensated
@@ -20,18 +21,29 @@ export function ProfileTabStrip({
   onSelect,
   pagerX,
   pageWidth,
+  tabs = TABS,
 }: {
   activeTab: TabKey;
   onSelect: (key: TabKey) => void;
   pagerX: MotionValue<number>;
   pageWidth: number;
+  /** Which tabs to show. Defaults to the full personal-profile set; the store
+   *  profile passes STORE_TABS, which drops Wardrobe. Must be the same list
+   *  the caller's TabPager is paging over or the indicator won't line up. */
+  tabs?: typeof TABS;
 }) {
-  const slotWidth = pageWidth ? (pageWidth - 16) / TABS.length : 0;
+  const slotWidth = pageWidth ? (pageWidth - 16) / tabs.length : 0;
   const indicatorX = useTransform(pagerX, (v) => (pageWidth ? (-v / pageWidth) * slotWidth : 0));
 
   return (
-    <div className="relative grid grid-flow-col auto-cols-[14.2857%] px-2">
-      {TABS.map(({ key, label, Icon, size }, i) => (
+    <div
+      className="relative grid grid-flow-col px-2"
+      // Every tab on screen at once, however many there are — the strip must
+      // never scroll (see above), so the column width is a function of the
+      // count rather than a hardcoded 1/7.
+      style={{ gridAutoColumns: `${100 / tabs.length}%` }}
+    >
+      {tabs.map(({ key, label, Icon, size }, i) => (
         <button
           key={key}
           onClick={() => onSelect(key)}
