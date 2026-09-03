@@ -1,19 +1,9 @@
 import { useState } from "react";
 import { motion, AnimatePresence, type PanInfo } from "framer-motion";
-import {
-  ChevronLeft,
-  Heart,
-  MessageCircle,
-  Bookmark,
-  Lock,
-  Share2,
-  Search,
-  Play,
-  ShoppingBag,
-  User,
-  UserPlus,
-} from "lucide-react";
+import { ChevronLeft, Bookmark, Lock, Search, ShoppingBag, User, UserPlus } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
+import { PostFeed } from "@/components/feed/PostFeed";
+import { useSession } from "@/hooks/use-session";
 
 type FeedTab = "following" | "for-you" | "listed-items" | "profile";
 
@@ -51,6 +41,7 @@ export function ExploreFeedOverlay({
   onClose: () => void;
 }) {
   const [active, setActive] = useState<FeedTab>("for-you");
+  const { user } = useSession();
   const index = PAGE_ORDER.indexOf(active);
 
   function go(delta: number) {
@@ -99,77 +90,47 @@ export function ExploreFeedOverlay({
         </button>
       </div>
 
-      <AnimatePresence mode="wait" custom={index}>
-        <motion.div
-          key={active}
-          custom={index}
-          initial={{ opacity: 0, x: 40 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -40 }}
-          transition={{ duration: 0.2, ease: "easeOut" }}
-          drag="x"
-          dragConstraints={{ left: 0, right: 0 }}
-          dragElastic={0.15}
-          onDragEnd={handleDragEnd}
-          className="w-full h-full pt-14"
-        >
-          {active === "listed-items" ? (
-            <ListedItemsPage />
-          ) : active === "profile" ? (
-            <ProfileTeaserPage />
-          ) : (
-            <VideoLikePage />
-          )}
-        </motion.div>
-      </AnimatePresence>
+      {/* Drag lives on this OUTER, never-remounted node. It used to sit on
+          the AnimatePresence-keyed child below, which gets torn down and
+          rebuilt on every tab change — that remount was dropping the
+          in-progress touch/pointer capture mid-gesture, which is why the
+          swipe silently did nothing. The inner child now only crossfades. */}
+      <motion.div
+        drag="x"
+        dragConstraints={{ left: 0, right: 0 }}
+        dragElastic={0.12}
+        onDragEnd={handleDragEnd}
+        className="w-full h-full pt-14"
+      >
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={active}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
+            className="w-full h-full"
+          >
+            {active === "listed-items" ? (
+              <ListedItemsPage />
+            ) : active === "profile" ? (
+              <ProfileTeaserPage />
+            ) : (
+              <PostFeed
+                mode="embedded"
+                scope={
+                  active === "following"
+                    ? { type: "following", viewerId: user?.id ?? "" }
+                    : { type: "for-you" }
+                }
+              />
+            )}
+          </motion.div>
+        </AnimatePresence>
+      </motion.div>
 
       <BottomNav active="home" ownUsername={ownUsername} />
     </motion.div>
-  );
-}
-
-function VideoLikePage() {
-  return (
-    <div className="relative w-full h-full flex items-center justify-center bg-neutral-950">
-      <div className="p-6 rounded-full bg-white/5 border border-white/10">
-        <Play size={40} className="text-white/30" />
-      </div>
-
-      <div className="absolute right-3 bottom-28 flex flex-col items-center gap-6">
-        <button aria-label="Like" className="flex flex-col items-center gap-1">
-          <div className="p-2.5 rounded-full bg-white/10">
-            <Heart size={22} />
-          </div>
-          <span className="text-[11px] text-white/70">2.4k</span>
-        </button>
-        <button aria-label="Comment" className="flex flex-col items-center gap-1">
-          <div className="p-2.5 rounded-full bg-white/10">
-            <MessageCircle size={22} />
-          </div>
-          <span className="text-[11px] text-white/70">86</span>
-        </button>
-        <button aria-label="Save" className="flex flex-col items-center gap-1">
-          <div className="p-2.5 rounded-full bg-white/10">
-            <Bookmark size={22} />
-          </div>
-        </button>
-        <button aria-label="Buy" className="flex flex-col items-center gap-1">
-          <div className="p-2.5 rounded-full bg-white/10">
-            <Lock size={22} />
-          </div>
-        </button>
-        <button aria-label="Share" className="flex flex-col items-center gap-1">
-          <div className="p-2.5 rounded-full bg-white/10">
-            <Share2 size={22} />
-          </div>
-        </button>
-      </div>
-
-      <div className="absolute left-4 bottom-28 right-20">
-        <p className="text-[14px] font-semibold">@seller_handle</p>
-        <p className="text-[13px] text-white/70 mt-1">Placeholder caption for this post.</p>
-      </div>
-    </div>
   );
 }
 

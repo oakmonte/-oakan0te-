@@ -14,6 +14,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { preloadStoreThemeAssets } from "../lib/preload-store-theme-assets";
 import { useSession } from "../hooks/use-session";
+import { useBuildFreshness } from "../hooks/use-build-freshness";
 
 function NotFoundComponent() {
   return (
@@ -106,6 +107,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       // styles.css, which some engines honor more reliably than the meta tag
       // alone, especially for native form control theming.
       { name: "color-scheme", content: "light" },
+      // Read back by useBuildFreshness to detect a newer deploy — see that
+      // file. Must stay a plain meta tag (not injected via JS) since the
+      // freshness check reads it out of a freshly-fetched page's raw HTML.
+      { name: "build-id", content: __BUILD_ID__ },
       { title: "Oakmonte — Share your style" },
       {
         name: "description",
@@ -178,6 +183,7 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { user } = useSession();
+  useBuildFreshness();
 
   // Fires the instant a session exists — right after sign-in and equally
   // right after finishing seller account creation, since both land here

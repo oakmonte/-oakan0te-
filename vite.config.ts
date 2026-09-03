@@ -12,4 +12,13 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  vite: {
+    define: {
+      // Baked in once per `vite build`, identically into the server and
+      // client bundles of that same build — see use-build-freshness.ts,
+      // which compares this against a freshly-fetched page's own copy to
+      // detect that a newer deploy exists and self-reload.
+      __BUILD_ID__: JSON.stringify(String(Date.now())),
+    },
+  },
 });

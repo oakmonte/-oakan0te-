@@ -115,6 +115,154 @@ function applyZoomToCrop(crop: { sx: number; sy: number; sw: number; sh: number 
   };
 }
 
+type LiveFilterRenderer = {
+  canvas: HTMLCanvasElement;
+  draw: (source: HTMLVideoElement) => void;
+  dispose: () => void;
+};
+
+function createLiveFilterRenderer(
+  width: number,
+  height: number,
+  sourceWidth: number,
+  sourceHeight: number,
+  crop: { sx: number; sy: number; sw: number; sh: number },
+  shouldMirror: boolean,
+  compiledFilter: ReturnType<typeof compileFilter>,
+): LiveFilterRenderer | null {
+  const matrixOp = compiledFilter.ops[0];
+  if (compiledFilter.ops.length !== 1 || matrixOp?.kind !== "matrix") return null;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const gl = canvas.getContext("webgl2", { premultipliedAlpha: false });
+  if (!gl) return null;
+
+  const vertexShader = gl.createShader(gl.VERTEX_SHADER);
+  const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+  if (!vertexShader || !fragmentShader) return null;
+  gl.shaderSource(
+    vertexShader,
+    `#version 300 es
+     in vec2 aPosition;
+     in vec2 aTexCoord;
+     out vec2 vTexCoord;
+     void main() {
+       gl_Position = vec4(aPosition, 0.0, 1.0);
+       vTexCoord = aTexCoord;
+     }`,
+  );
+  gl.shaderSource(
+    fragmentShader,
+    `#version 300 es
+     precision highp float;
+     uniform sampler2D uTexture;
+     uniform vec3 uMatrix0;
+     uniform vec3 uMatrix1;
+     uniform vec3 uMatrix2;
+     uniform vec3 uOffset;
+     in vec2 vTexCoord;
+     out vec4 outColor;
+     void main() {
+       vec3 rgb = texture(uTexture, vTexCoord).rgb;
+       vec3 graded = vec3(
+         dot(uMatrix0, rgb),
+         dot(uMatrix1, rgb),
+         dot(uMatrix2, rgb)
+       ) + uOffset;
+       outColor = vec4(clamp(graded, 0.0, 1.0), 1.0);
+     }`,
+  );
+  gl.compileShader(vertexShader);
+  gl.compileShader(fragmentShader);
+  if (
+    !gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS) ||
+    !gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS)
+  ) {
+    return null;
+  }
+
+  const program = gl.createProgram();
+  if (!program) return null;
+  gl.attachShader(program, vertexShader);
+  gl.attachShader(program, fragmentShader);
+  gl.linkProgram(program);
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) return null;
+
+  // Video/image sources upload to WebGL textures top-row-first, but GL's
+  // texcoord v=0 addresses the texture's row 0 — so without this flag,
+  // sampling v directly (row/height) renders upside down. Flipping at
+  // upload time lets every UV below use the same plain, direct
+  // row-over-height math as u — no manual 1-minus-x compensation to get
+  // wrong, matching the standard WebGL video-texture pattern.
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+
+  const u0 = crop.sx / sourceWidth;
+  const u1 = (crop.sx + crop.sw) / sourceWidth;
+  const v0 = crop.sy / sourceHeight;
+  const v1 = (crop.sy + crop.sh) / sourceHeight;
+  const left = shouldMirror ? u1 : u0;
+  const right = shouldMirror ? u0 : u1;
+  const positions = new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]);
+  const texCoords = new Float32Array([left, v1, right, v1, left, v0, right, v0]);
+  const positionBuffer = gl.createBuffer();
+  const texCoordBuffer = gl.createBuffer();
+  const texture = gl.createTexture();
+  if (!positionBuffer || !texCoordBuffer || !texture) return null;
+
+  gl.useProgram(program);
+  const positionLocation = gl.getAttribLocation(program, "aPosition");
+  const texCoordLocation = gl.getAttribLocation(program, "aTexCoord");
+  gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(positionLocation);
+  gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+  gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, texCoords, gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(texCoordLocation);
+  gl.vertexAttribPointer(texCoordLocation, 2, gl.FLOAT, false, 0, 0);
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.uniform1i(gl.getUniformLocation(program, "uTexture"), 0);
+  gl.uniform3fv(gl.getUniformLocation(program, "uMatrix0"), matrixOp.matrix.slice(0, 3));
+  gl.uniform3fv(gl.getUniformLocation(program, "uMatrix1"), matrixOp.matrix.slice(3, 6));
+  gl.uniform3fv(gl.getUniformLocation(program, "uMatrix2"), matrixOp.matrix.slice(6, 9));
+  gl.uniform3fv(
+    gl.getUniformLocation(program, "uOffset"),
+    matrixOp.offset.map((value) => value / 255),
+  );
+  gl.viewport(0, 0, width, height);
+
+  return {
+    canvas,
+    draw: (source) => {
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, texture);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    },
+    // WebGL contexts are a capped, page-wide resource (browsers cap live
+    // contexts around 8-16) — a fresh one is created per recording, so it
+    // must be explicitly released on stop. Without this, filming several
+    // filtered clips in one session silently exhausts the cap and
+    // getContext("webgl2") starts returning null, which falls back to the
+    // slow CPU path with no visible error.
+    dispose: () => {
+      gl.deleteProgram(program);
+      gl.deleteShader(vertexShader);
+      gl.deleteShader(fragmentShader);
+      gl.deleteBuffer(positionBuffer);
+      gl.deleteBuffer(texCoordBuffer);
+      gl.deleteTexture(texture);
+      gl.getExtension("WEBGL_lose_context")?.loseContext();
+    },
+  };
+}
+
 // A real baked preview of the filter's grade instead of a flat color circle —
 // see filter-thumbnail.ts. The swatch color still shows as a skeleton for the
 // instant before the bake resolves, so the strip never flashes empty.
@@ -213,6 +361,7 @@ function CreatePage() {
   const recordedChunksRef = useRef<Blob[]>([]);
   const mirrorDrawLoopRef = useRef<number | null>(null);
   const mirrorCanvasStreamRef = useRef<MediaStream | null>(null);
+  const liveFilterRendererRef = useRef<LiveFilterRenderer | null>(null);
   // One live-preview <video> per empty layout cell during multi-cell
   // capture, all bound to the same MediaStream — see the streamVersion
   // effect below for why they need explicit rebinding on camera switch.
@@ -709,6 +858,8 @@ function CreatePage() {
     }
     mirrorCanvasStreamRef.current?.getTracks().forEach((t) => t.stop());
     mirrorCanvasStreamRef.current = null;
+    liveFilterRendererRef.current?.dispose();
+    liveFilterRendererRef.current = null;
   }, []);
 
   const startRecording = useCallback(() => {
@@ -730,43 +881,84 @@ function CreatePage() {
     const gradeIntensity = filterIntensity;
 
     if (video.videoWidth > 0) {
+      const sourceWidth = video.videoWidth;
+      const sourceHeight = video.videoHeight;
       const { sx, sy, sw, sh } = applyZoomToCrop(
-        getCropRect(video.videoWidth, video.videoHeight, RATIO_ASPECT[ratio]),
+        getCropRect(sourceWidth, sourceHeight, RATIO_ASPECT[ratio]),
         cssZoomScale,
       );
-      const recordCanvas = document.createElement("canvas");
-      recordCanvas.width = sw;
-      recordCanvas.height = sh;
-      const rctx = recordCanvas.getContext("2d");
+      const compiledFilterAtStart = needsPostGrade
+        ? IDENTITY_FILTER
+        : compileFilter(currentFilterCss);
+      const shouldMirror = facing === "user";
+      const cropIsNoop = sx === 0 && sy === 0 && sw === sourceWidth && sh === sourceHeight;
+      const canUseNativeStream =
+        cropIsNoop &&
+        cssZoomScale === 1 &&
+        !shouldMirror &&
+        compiledFilterAtStart === IDENTITY_FILTER;
 
-      if (rctx) {
-        const compiledFilterAtStart = needsPostGrade
-          ? IDENTITY_FILTER
-          : compileFilter(currentFilterCss);
-        const shouldMirror = facing === "user";
+      if (!canUseNativeStream) {
+        const recordCanvas = document.createElement("canvas");
+        recordCanvas.width = sw;
+        recordCanvas.height = sh;
+        const rctx = recordCanvas.getContext("2d");
 
-        const drawFrame = () => {
-          rctx.save();
-          if (shouldMirror) {
-            rctx.translate(recordCanvas.width, 0);
-            rctx.scale(-1, 1);
-          }
-          rctx.drawImage(video, sx, sy, sw, sh, 0, 0, recordCanvas.width, recordCanvas.height);
-          if (compiledFilterAtStart !== IDENTITY_FILTER) {
-            const frame = rctx.getImageData(0, 0, recordCanvas.width, recordCanvas.height);
-            applyCompiledFilter(frame, compiledFilterAtStart);
-            rctx.putImageData(frame, 0, 0);
-          }
-          rctx.restore();
-          mirrorDrawLoopRef.current = requestAnimationFrame(drawFrame);
-        };
-        drawFrame();
+        if (rctx) {
+          // Any renderer left over from a previous recording in this session
+          // must be released before creating a new one — otherwise each
+          // filmed clip leaks a WebGL context instead of reusing the slot.
+          liveFilterRendererRef.current?.dispose();
+          liveFilterRendererRef.current = null;
 
-        const canvasStream = recordCanvas.captureStream();
-        stream.getAudioTracks().forEach((track) => canvasStream.addTrack(track));
+          const liveFilterRenderer =
+            compiledFilterAtStart !== IDENTITY_FILTER
+              ? createLiveFilterRenderer(
+                  recordCanvas.width,
+                  recordCanvas.height,
+                  sourceWidth,
+                  sourceHeight,
+                  { sx, sy, sw, sh },
+                  shouldMirror,
+                  compiledFilterAtStart,
+                )
+              : null;
+          liveFilterRendererRef.current = liveFilterRenderer;
 
-        mirrorCanvasStreamRef.current = canvasStream;
-        recordingStream = canvasStream;
+          const drawFrame = () => {
+            if (liveFilterRenderer) {
+              liveFilterRenderer.draw(video);
+              rctx.drawImage(
+                liveFilterRenderer.canvas,
+                0,
+                0,
+                recordCanvas.width,
+                recordCanvas.height,
+              );
+            } else {
+              rctx.save();
+              if (shouldMirror) {
+                rctx.translate(recordCanvas.width, 0);
+                rctx.scale(-1, 1);
+              }
+              rctx.drawImage(video, sx, sy, sw, sh, 0, 0, recordCanvas.width, recordCanvas.height);
+              if (compiledFilterAtStart !== IDENTITY_FILTER) {
+                const frame = rctx.getImageData(0, 0, recordCanvas.width, recordCanvas.height);
+                applyCompiledFilter(frame, compiledFilterAtStart);
+                rctx.putImageData(frame, 0, 0);
+              }
+              rctx.restore();
+            }
+            mirrorDrawLoopRef.current = requestAnimationFrame(drawFrame);
+          };
+          drawFrame();
+
+          const canvasStream = recordCanvas.captureStream();
+          stream.getAudioTracks().forEach((track) => canvasStream.addTrack(track));
+
+          mirrorCanvasStreamRef.current = canvasStream;
+          recordingStream = canvasStream;
+        }
       }
     }
 
