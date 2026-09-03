@@ -301,9 +301,9 @@ function FeedPostCard({ post, viewerId }: { post: FeedPost; viewerId: string | n
         <img src={post.media_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
       )}
 
-      <div className="absolute right-3 bottom-56 flex flex-col items-center gap-6">
+      <div className="absolute right-3 bottom-56 flex flex-col items-center">
         {!isOwnPost && (
-          <div className="relative">
+          <div className="relative mb-8">
             <div
               className="w-9 h-9 rounded-full overflow-hidden bg-white/20 border-2 border-white"
               style={{ filter: ICON_SHADOW }}
@@ -328,23 +328,26 @@ function FeedPostCard({ post, viewerId }: { post: FeedPost; viewerId: string | n
             )}
           </div>
         )}
-        <Heart size={26} style={{ filter: ICON_SHADOW }} />
-        <MessageCircle size={26} style={{ filter: ICON_SHADOW }} />
-        <Bookmark size={26} style={{ filter: ICON_SHADOW }} />
-        {post.tags.length > 0 && (
-          // "Add all tagged products to cart" — decorative for now. There's
-          // no cart table or /cart route anywhere in the app yet (BottomNav
-          // already links to a /cart route that doesn't exist), so wiring
-          // this for real means standing up a whole cart subsystem first,
-          // not something to improvise as a side effect of a feed icon.
-          <div className="relative" style={{ filter: ICON_SHADOW }}>
-            <ShoppingBag size={26} />
-            <span className="absolute -top-1 -right-1 flex items-center justify-center w-4 h-4 rounded-full bg-white text-black">
-              <Plus size={11} strokeWidth={3} />
-            </span>
-          </div>
-        )}
-        <Send size={26} style={{ filter: ICON_SHADOW }} />
+        <div className="flex flex-col items-center gap-8">
+          <Heart size={26} style={{ filter: ICON_SHADOW }} />
+          <MessageCircle size={26} style={{ filter: ICON_SHADOW }} />
+          <Bookmark size={26} style={{ filter: ICON_SHADOW }} />
+          {post.tags.length > 0 && (
+            // Add-to-cart: adds every product tagged on this post at once so
+            // the viewer can keep scrolling without leaving the feed. There's
+            // no cart table or /cart route anywhere in the app yet (BottomNav
+            // already links to a /cart route that doesn't exist), so wiring
+            // this for real means standing up a whole cart subsystem first,
+            // not something to improvise as a side effect of a feed icon.
+            <div className="relative" style={{ filter: ICON_SHADOW }}>
+              <ShoppingBag size={26} />
+              <span className="absolute -top-1 -right-1 flex items-center justify-center w-4 h-4 rounded-full bg-white text-black">
+                <Plus size={11} strokeWidth={3} />
+              </span>
+            </div>
+          )}
+          <Send size={26} style={{ filter: ICON_SHADOW }} />
+        </div>
       </div>
 
       <div className="absolute left-4 bottom-28 right-20">

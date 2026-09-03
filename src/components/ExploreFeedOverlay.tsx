@@ -94,11 +94,14 @@ export function ExploreFeedOverlay({
           the AnimatePresence-keyed child below, which gets torn down and
           rebuilt on every tab change — that remount was dropping the
           in-progress touch/pointer capture mid-gesture, which is why the
-          swipe silently did nothing. The inner child now only crossfades. */}
+          swipe silently did nothing. The inner child now only crossfades.
+          dragElastic must stay high (not ~0) — a near-zero value clamps the
+          visible travel to a few px even on a full-width drag, so the swipe
+          reads as unresponsive even though onDragEnd does fire. */}
       <motion.div
         drag="x"
-        dragConstraints={{ left: 0, right: 0 }}
-        dragElastic={0.12}
+        dragElastic={0.7}
+        dragSnapToOrigin
         onDragEnd={handleDragEnd}
         className="w-full h-full pt-14"
       >
