@@ -472,17 +472,32 @@ function EditProduct() {
       sizeMeasurements,
       manualSize,
       tagIds,
+      regularLegacyStockQty,
     };
   }
 
+  // Baseline = the form exactly as it came out of the DB load (or out of a
+  // restored draft). Anything identical to it is not "unsaved progress".
+  const autosaveBaseline = useRef<string | null>(null);
+
   // Debounced localStorage autosave — the only thing that survives a hard
   // refresh. Guarded on `loading` so the still-fetching, mostly-blank form
-  // doesn't overwrite a real autosave (or the product's actual saved state)
-  // before the DB load has even populated it. JSON.stringify as the dep is
-  // deliberate: simplest way to react to "any field actually changed"
-  // without listing every piece of state that feeds currentDraft() by hand.
+  // doesn't overwrite a real autosave before the DB load has populated it.
+  // Only writes once the form actually differs from that baseline: merely
+  // opening a product must NOT leave a draft behind, otherwise the next open
+  // would skip the DB fetch and show stale data with a bogus "restored"
+  // banner. Back at baseline (undo, or save) means the draft is dropped.
   useEffect(() => {
     if (loading) return;
+    const snapshot = JSON.stringify(currentDraft());
+    if (autosaveBaseline.current === null) {
+      autosaveBaseline.current = snapshot;
+      return;
+    }
+    if (snapshot === autosaveBaseline.current) {
+      clearAutosavedDraft(productId);
+      return;
+    }
     const t = setTimeout(() => writeAutosavedDraft(productId, currentDraft()), 800);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
