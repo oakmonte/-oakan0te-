@@ -21,6 +21,7 @@ import {
 
 import { compileFilter, applyCompiledFilter, IDENTITY_FILTER } from "@/lib/canvas-filter";
 import { setPendingCapture } from "@/lib/capture-handoff";
+import { getLastNonCreateRoute } from "@/lib/last-visited-route";
 import { useFilterThumbnail } from "@/lib/filter-thumbnail";
 import { exportVideo } from "@/lib/after-shot-export";
 
@@ -343,14 +344,15 @@ function CreatePage() {
     }
   }, [flashOn, facing]);
 
-  // A direct navigate, not window.history.back() — this is opened from an
-  // in-app "+" tab (BottomNav), often inside a third-party in-app browser
+  // A direct navigate to wherever the seller actually came from (tracked in
+  // last-visited-route.ts), not window.history.back() — this is opened from
+  // an in-app "+" tab (BottomNav), often inside a third-party in-app browser
   // (Instagram/TikTok webviews, when reached via a bio link) where native
   // history.back() behavior is inconsistent and can feel sluggish or
   // unresponsive, since it competes with the host app's own back handling
   // instead of being a plain client-side route change we control.
   const handleBack = useCallback(() => {
-    navigate({ to: "/home" });
+    navigate({ to: getLastNonCreateRoute() });
   }, [navigate]);
 
   // Quick strip: Natural pinned + favorites + random fillers, capped at

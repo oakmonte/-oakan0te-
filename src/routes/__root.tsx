@@ -16,6 +16,7 @@ import { preloadStoreThemeAssets } from "../lib/preload-store-theme-assets";
 import { useSession } from "../hooks/use-session";
 import { useBuildFreshness } from "../hooks/use-build-freshness";
 import { PostUploadToast } from "../components/PostUploadToast";
+import { setLastNonCreateRoute } from "../lib/last-visited-route";
 
 function NotFoundComponent() {
   return (
@@ -194,6 +195,15 @@ function RootComponent() {
   useEffect(() => {
     if (user) preloadStoreThemeAssets();
   }, [user]);
+
+  // Lets the camera's exit button return to wherever the seller actually
+  // came from (see last-visited-route.ts) instead of a hardcoded page — the
+  // camera/after-shot flow itself is excluded so stepping between its own
+  // sub-routes (filters, crop, publish, ...) never overwrites this with
+  // another camera route.
+  useEffect(() => {
+    if (!pathname.startsWith("/create")) setLastNonCreateRoute(pathname);
+  }, [pathname]);
 
   // The seller dashboard (/store, /store/*) is white — everywhere else on
   // the site (profile, the public storefront at /store-profile/*, etc.) is
