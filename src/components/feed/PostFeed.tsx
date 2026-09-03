@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { motion, useDragControls, type PanInfo } from "framer-motion";
 import {
   Heart,
   MessageCircle,
@@ -184,28 +185,46 @@ export function PostFeed({
       ? "fixed inset-0 z-[70] bg-black overflow-y-auto"
       : "w-full h-full bg-black overflow-y-auto";
 
-  // Pull-to-dismiss: swiping down while already scrolled to the first post
-  // (the only moment a downward swipe isn't just "go to the previous post")
-  // acts the same as tapping Back. Tracked in a ref, not state — this fires
-  // on every pointermove and shouldn't trigger a re-render.
-  const pullState = useRef<{ startY: number } | null>(null);
+  // Pull-to-dismiss, TikTok-style: dragging down while already scrolled to
+  // the first post (the only moment a downward drag isn't "go to the
+  // previous post") slides the whole feed down with the finger and either
+  // snaps back or dismisses on release — not an instant cut at a threshold,
+  // which read as broken since nothing visibly moved until it teleported
+  // shut. framer's drag is what gives that visible, spring-back follow (see
+  // the same trick used for the Following/For you tab swipe).
+  //
+  // The container itself owns the drag (dragListener={false}, started
+  // manually) instead of the outer fixed overlay, because it's also the
+  // vertically-scrolling post list — arming only fires once a gesture is
+  // confirmed to be a downward pull from scrollTop 0, so a normal upward
+  // swipe to the next post is untouched.
+  const dragControls = useDragControls();
+  const pullStart = useRef<{ x: number; y: number } | null>(null);
+  const pullArmed = useRef(false);
 
   function handlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
     if (!onClose) return;
-    if ((containerRef.current?.scrollTop ?? 0) > 0) return;
-    pullState.current = { startY: e.clientY };
+    pullStart.current = { x: e.clientX, y: e.clientY };
+    pullArmed.current = false;
   }
 
   function handlePointerMove(e: React.PointerEvent<HTMLDivElement>) {
-    if (!pullState.current || !onClose) return;
-    if (e.clientY - pullState.current.startY > 70) {
-      pullState.current = null;
-      onClose();
+    if (!onClose || !pullStart.current || pullArmed.current) return;
+    const dy = e.clientY - pullStart.current.y;
+    const dx = e.clientX - pullStart.current.x;
+    if (dy > 12 && dy > Math.abs(dx) && (containerRef.current?.scrollTop ?? 0) <= 0) {
+      pullArmed.current = true;
+      dragControls.start(e);
     }
   }
 
   function handlePointerEnd() {
-    pullState.current = null;
+    pullStart.current = null;
+    pullArmed.current = false;
+  }
+
+  function handleDragEnd(_: unknown, info: PanInfo) {
+    if (onClose && (info.offset.y > 110 || info.velocity.y > 600)) onClose();
   }
 
   if (posts === null) {
@@ -245,10 +264,16 @@ export function PostFeed({
   }
 
   return (
-    <div
+    <motion.div
       ref={containerRef}
       className={wrapperClass}
       style={{ scrollSnapType: "y mandatory" }}
+      drag={onClose ? "y" : false}
+      dragControls={dragControls}
+      dragListener={false}
+      dragConstraints={{ top: 0, bottom: 0 }}
+      dragElastic={0.8}
+      onDragEnd={handleDragEnd}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerEnd}
@@ -258,7 +283,7 @@ export function PostFeed({
       {posts.map((post) => (
         <FeedPostCard key={post.id} post={post} viewerId={viewerId} />
       ))}
-    </div>
+    </motion.div>
   );
 }
 
