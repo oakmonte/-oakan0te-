@@ -26,6 +26,7 @@ import { Stat, MenuRow } from "@/components/profile/profile-chrome";
 import { TABS, type TabKey } from "@/components/profile/profile-tabs";
 import { TabPager } from "@/components/profile/TabPager";
 import { ProfileTabStrip } from "@/components/profile/ProfileTabStrip";
+import { ShareProfileOverlay } from "@/components/profile/ShareProfileOverlay";
 import {
   profileQueryOptions,
   profileStatsQueryOptions,
@@ -86,6 +87,7 @@ function ProfilePage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { data: stores = [] } = useQuery(profileStoresQueryOptions(baseProfile?.id));
   const [storePickerOpen, setStorePickerOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   // Oldest-first, same tie-break as useOwnStores — "the" store for anything
   // on this page that isn't multi-store aware yet (the Store tab preview).
   const store = stores[0] ?? null;
@@ -265,7 +267,7 @@ function ProfilePage() {
               )}
             </button>
           )}
-          <button aria-label="Share">
+          <button onClick={() => setShareOpen(true)} aria-label="Share profile">
             <Share2 size={20} />
           </button>
           <button
@@ -305,13 +307,22 @@ function ProfilePage() {
 
       {/* Profile info */}
       <div className="flex flex-col items-center gap-4 px-6 mt-2">
-        <img
-          ref={avatarRef}
-          src={profile?.avatar_url || "https://placehold.co/135x139"}
-          alt={username}
-          loading="eager"
-          className="w-[110px] h-[110px] rounded-full border-[3px] border-white object-cover"
-        />
+        {/* The photo is the share affordance — tapping it opens the full-screen
+            share view, same as both references. */}
+        <button
+          type="button"
+          onClick={() => setShareOpen(true)}
+          aria-label="Share profile"
+          className="transition-transform duration-150 active:scale-95"
+        >
+          <img
+            ref={avatarRef}
+            src={profile?.avatar_url || "https://placehold.co/135x139"}
+            alt={username}
+            loading="eager"
+            className="w-[110px] h-[110px] rounded-full border-[3px] border-white object-cover"
+          />
+        </button>
         <div className="text-center">
           <div className="flex items-center justify-center gap-1.5">
             {/* The username from the URL is already the right width and
@@ -618,6 +629,17 @@ function ProfilePage() {
       {isOwnProfile && !storeSheetOpen && (
         <BottomNav active="profile" ownUsername={profile?.personal_username || username} />
       )}
+
+      <ShareProfileOverlay
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        avatarUrl={profile?.avatar_url ?? null}
+        shareUrl={
+          typeof window !== "undefined"
+            ? `${window.location.origin}/profile/${profile?.personal_username || username}`
+            : ""
+        }
+      />
     </div>
   );
 }

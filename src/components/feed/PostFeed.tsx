@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { animate, motion, useMotionValue, useTransform } from "framer-motion";
+import { AnimatePresence, animate, motion, useMotionValue, useTransform } from "framer-motion";
 import {
   Heart,
   MessageCircle,
@@ -17,6 +17,7 @@ import {
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import type { Tables } from "@/lib/integrations/my-supabase/types";
 import { useSession } from "@/hooks/use-session";
+import { CommentSheet } from "@/components/feed/CommentSheet";
 
 // Bare icons over the media with no chip behind them, per the reference —
 // every one needs its own shadow or they wash out against a light photo.
@@ -400,11 +401,84 @@ export function PostFeed({
 }
 
 function FeedPostCard({ post, viewerId }: { post: FeedPost; viewerId: string | null }) {
+  const cardRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [playing, setPlaying] = useState(false);
+  // Two separate ideas, deliberately not one `playing` flag: `onScreen` is
+  // whether this card is the one being looked at, `userPaused` is whether the
+  // viewer deliberately stopped it. Only the second should ever show the pause
+  // glyph, and only the second should survive a scroll away and back.
+  const [onScreen, setOnScreen] = useState(false);
+  const [userPaused, setUserPaused] = useState(false);
   const [following, setFollowing] = useState(post.authorIsFollowed);
   const [followPending, setFollowPending] = useState(false);
+  const [liked, setLiked] = useState(false);
+  const [burst, setBurst] = useState(0);
+  const [commentsOpen, setCommentsOpen] = useState(false);
   const isOwnPost = viewerId === post.user_id;
+  const isVideo = post.media_type === "video";
+
+  // Autoplay is scoped to the visible card. Every video in the feed mounting
+  // and playing at once would saturate the connection on the mobile networks
+  // this app is built for, so exactly one plays and the rest sit paused with
+  // their poster showing.
+  useEffect(() => {
+    const el = cardRef.current;
+    if (!el || !isVideo) return;
+    const io = new IntersectionObserver(([entry]) => setOnScreen(entry.intersectionRatio >= 0.6), {
+      threshold: [0, 0.6, 1],
+    });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [isVideo]);
+
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    if (onScreen && !userPaused) {
+      // Rejected play() is normal (a still-loading src, a backgrounded tab) —
+      // it must not surface as an unhandled rejection.
+      void v.play().catch(() => {});
+    } else {
+      v.pause();
+      // Scrolling back to a post should start it over, the way both references
+      // do, rather than resuming from wherever it was abandoned.
+      if (!onScreen) v.currentTime = 0;
+    }
+  }, [onScreen, userPaused]);
+
+  // A deliberate pause belongs to the moment, not to the post: scroll away and
+  // back and it plays again.
+  useEffect(() => {
+    if (!onScreen) setUserPaused(false);
+  }, [onScreen]);
+
+  // Single tap toggles playback, double tap likes — so a single tap has to
+  // wait out the double-tap window before it commits. 260ms is short enough
+  // not to feel laggy and long enough that a real double tap lands inside it.
+  const tapTimer = useRef<number | null>(null);
+  const tapStart = useRef({ x: 0, y: 0 });
+  useEffect(
+    () => () => {
+      if (tapTimer.current) clearTimeout(tapTimer.current);
+    },
+    [],
+  );
+
+  function handleTap() {
+    if (tapTimer.current !== null) {
+      clearTimeout(tapTimer.current);
+      tapTimer.current = null;
+      // Double tap only ever likes, never unlikes — same as Instagram. The
+      // heart in the rail is the way back out.
+      setLiked(true);
+      setBurst((n) => n + 1);
+      return;
+    }
+    tapTimer.current = window.setTimeout(() => {
+      tapTimer.current = null;
+      if (isVideo) setUserPaused((p) => !p);
+    }, 260);
+  }
 
   async function toggleFollow() {
     if (!viewerId || followPending) return;
@@ -432,44 +506,76 @@ function FeedPostCard({ post, viewerId }: { post: FeedPost; viewerId: string | n
 
   return (
     <div
+      ref={cardRef}
       data-post-id={post.id}
-      className="relative w-full h-full bg-neutral-950"
+      className="relative w-full h-full bg-neutral-950 text-white"
       style={{ scrollSnapAlign: "start" }}
     >
-      {post.media_type === "video" ? (
-        <>
-          <video
-            ref={videoRef}
-            src={post.media_url}
-            poster={post.thumbnail_url ?? undefined}
-            loop
-            playsInline
-            onClick={() => {
-              const v = videoRef.current;
-              if (!v) return;
-              if (v.paused) {
-                void v.play();
-                setPlaying(true);
-              } else {
-                v.pause();
-                setPlaying(false);
-              }
-            }}
-            className="absolute inset-0 w-full h-full object-cover"
-          />
-          {!playing && (
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="p-6 rounded-full bg-white/5 border border-white/10">
-                <Play size={40} className="text-white/70" />
-              </div>
-            </div>
-          )}
-        </>
+      {isVideo ? (
+        <video
+          ref={videoRef}
+          src={post.media_url}
+          poster={post.thumbnail_url ?? undefined}
+          loop
+          muted
+          playsInline
+          preload="metadata"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
       ) : (
         <img src={post.media_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
       )}
 
-      <div className="absolute right-5 bottom-28 flex flex-col items-center">
+      {/* The tap surface. Its own layer rather than a handler on the media so
+          it can sit under the rail and the caption — those get their own taps
+          — and so a photo post is tappable for the double-tap like too. The
+          movement guard keeps a scroll that ends with a lift from registering
+          as a tap. */}
+      <div
+        className="absolute inset-0"
+        onPointerDown={(e) => {
+          tapStart.current = { x: e.clientX, y: e.clientY };
+        }}
+        onPointerUp={(e) => {
+          const dx = e.clientX - tapStart.current.x;
+          const dy = e.clientY - tapStart.current.y;
+          if (Math.hypot(dx, dy) < 10) handleTap();
+        }}
+      />
+
+      {/* Pause glyph, only for a deliberate pause. It used to show whenever
+          the video wasn't playing, which — now that playback starts on its
+          own — would mean a play button flashing over every card you scroll
+          past. */}
+      {isVideo && userPaused && (
+        <motion.div
+          className="absolute inset-0 flex items-center justify-center pointer-events-none"
+          initial={{ opacity: 0, scale: 1.25 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.12 }}
+        >
+          <Play size={64} className="text-white/75" fill="currentColor" strokeWidth={0} />
+        </motion.div>
+      )}
+
+      {/* Double-tap like burst. Keyed on a counter so tapping again while the
+          previous heart is still fading restarts it instead of doing nothing. */}
+      <AnimatePresence>
+        {burst > 0 && (
+          <motion.div
+            key={burst}
+            className="absolute inset-0 flex items-center justify-center pointer-events-none"
+            initial={{ opacity: 0, scale: 0.4 }}
+            animate={{ opacity: [0, 1, 1, 0], scale: [0.4, 1.15, 1, 1.4] }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.85, times: [0, 0.2, 0.6, 1] }}
+          >
+            <Heart size={112} className="text-white" fill="#fe2c55" strokeWidth={0} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="absolute right-5 bottom-28 flex flex-col items-center text-white">
         {/* Avatar always sits above the action rail, in line with it — only
             the follow +/check badge is conditional on not being your own post. */}
         <div className="relative mb-8">
@@ -493,8 +599,28 @@ function FeedPostCard({ post, viewerId }: { post: FeedPost; viewerId: string | n
           )}
         </div>
         <div className="flex flex-col items-center gap-10">
-          <Heart size={26} style={{ filter: ICON_SHADOW }} />
-          <MessageCircle size={26} style={{ filter: ICON_SHADOW }} />
+          <button
+            type="button"
+            onClick={() => setLiked((v) => !v)}
+            aria-label={liked ? "Unlike" : "Like"}
+            aria-pressed={liked}
+            className="active:scale-90 transition-transform duration-150"
+          >
+            <Heart
+              size={26}
+              style={{ filter: ICON_SHADOW }}
+              className={liked ? "text-[#fe2c55]" : "text-white"}
+              fill={liked ? "#fe2c55" : "none"}
+            />
+          </button>
+          <button
+            type="button"
+            onClick={() => setCommentsOpen(true)}
+            aria-label="Comments"
+            className="active:scale-90 transition-transform duration-150"
+          >
+            <MessageCircle size={26} style={{ filter: ICON_SHADOW }} />
+          </button>
           <Bookmark size={26} style={{ filter: ICON_SHADOW }} />
           {/* Add-to-cart: adds every product tagged on this post at once so
               the viewer can keep scrolling without leaving the feed. Hidden
@@ -532,7 +658,12 @@ function FeedPostCard({ post, viewerId }: { post: FeedPost; viewerId: string | n
       </div>
 
       <div className="absolute left-4 bottom-28 right-20">
-        <p className="text-[14px] font-semibold truncate">{post.authorDisplayName ?? "User"}</p>
+        <p
+          className="text-[14px] font-semibold truncate text-white"
+          style={{ filter: ICON_SHADOW }}
+        >
+          {post.authorDisplayName ?? "User"}
+        </p>
         {post.caption && <p className="text-[13px] text-white/80 mt-0.5">{post.caption}</p>}
         {post.location && (
           <p className="text-[12px] text-white/50 flex items-center gap-1 mt-1">
@@ -561,6 +692,8 @@ function FeedPostCard({ post, viewerId }: { post: FeedPost; viewerId: string | n
           </div>
         )}
       </div>
+
+      <CommentSheet open={commentsOpen} onClose={() => setCommentsOpen(false)} />
     </div>
   );
 }
