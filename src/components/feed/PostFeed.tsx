@@ -30,7 +30,7 @@ type FeedPost = Pick<
   Tables<"posts">,
   "id" | "user_id" | "media_url" | "media_type" | "thumbnail_url" | "caption" | "location"
 > & {
-  authorUsername: string | null;
+  authorDisplayName: string | null;
   authorAvatar: string | null;
   authorIsFollowed: boolean;
   tags: TaggedProduct[];
@@ -48,7 +48,7 @@ async function fetchFeed(scope: FeedScope, viewerId: string | null): Promise<Fee
   let query = supabase
     .from("posts")
     .select(
-      "id, user_id, media_url, media_type, thumbnail_url, caption, location, profiles(personal_username, avatar_url)",
+      "id, user_id, media_url, media_type, thumbnail_url, caption, location, profiles(display_name, personal_username, avatar_url)",
     )
     .order("created_at", { ascending: false })
     .limit(FEED_LIMIT);
@@ -121,7 +121,7 @@ async function fetchFeed(scope: FeedScope, viewerId: string | null): Promise<Fee
     thumbnail_url: p.thumbnail_url,
     caption: p.caption,
     location: p.location,
-    authorUsername: p.profiles?.personal_username ?? null,
+    authorDisplayName: p.profiles?.display_name ?? p.profiles?.personal_username ?? null,
     authorAvatar: p.profiles?.avatar_url ?? null,
     authorIsFollowed: followedAuthorIds.has(p.user_id),
     tags: tagsByPost.get(p.id) ?? [],
@@ -301,34 +301,30 @@ function FeedPostCard({ post, viewerId }: { post: FeedPost; viewerId: string | n
         <img src={post.media_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
       )}
 
-      <div className="absolute right-3 bottom-56 flex flex-col items-center">
-        {!isOwnPost && (
-          <div className="relative mb-8">
-            <div
-              className="w-9 h-9 rounded-full overflow-hidden bg-white/20 border-2 border-white"
-              style={{ filter: ICON_SHADOW }}
-            >
-              {post.authorAvatar && (
-                <img src={post.authorAvatar} alt="" className="w-full h-full object-cover" />
-              )}
-            </div>
-            {viewerId && (
-              <button
-                type="button"
-                onClick={toggleFollow}
-                aria-label={following ? "Unfollow" : "Follow"}
-                className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 flex items-center justify-center w-[18px] h-[18px] rounded-full bg-[#fe2c55] text-white active:scale-90"
-              >
-                {following ? (
-                  <Check size={11} strokeWidth={3} />
-                ) : (
-                  <Plus size={11} strokeWidth={3} />
-                )}
-              </button>
+      <div className="absolute right-5 bottom-40 flex flex-col items-center">
+        {/* Avatar always sits above the action rail, in line with it — only
+            the follow +/check badge is conditional on not being your own post. */}
+        <div className="relative mb-8">
+          <div
+            className="w-9 h-9 rounded-full overflow-hidden bg-white/20 border-2 border-white"
+            style={{ filter: ICON_SHADOW }}
+          >
+            {post.authorAvatar && (
+              <img src={post.authorAvatar} alt="" className="w-full h-full object-cover" />
             )}
           </div>
-        )}
-        <div className="flex flex-col items-center gap-8">
+          {!isOwnPost && viewerId && (
+            <button
+              type="button"
+              onClick={toggleFollow}
+              aria-label={following ? "Unfollow" : "Follow"}
+              className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 flex items-center justify-center w-[18px] h-[18px] rounded-full bg-[#fe2c55] text-white active:scale-90"
+            >
+              {following ? <Check size={11} strokeWidth={3} /> : <Plus size={11} strokeWidth={3} />}
+            </button>
+          )}
+        </div>
+        <div className="flex flex-col items-center gap-10">
           <Heart size={26} style={{ filter: ICON_SHADOW }} />
           <MessageCircle size={26} style={{ filter: ICON_SHADOW }} />
           <Bookmark size={26} style={{ filter: ICON_SHADOW }} />
@@ -358,15 +354,8 @@ function FeedPostCard({ post, viewerId }: { post: FeedPost; viewerId: string | n
       </div>
 
       <div className="absolute left-4 bottom-28 right-20">
-        <div className="flex items-center gap-2 mb-1.5">
-          <div className="w-6 h-6 rounded-full bg-white/15 overflow-hidden shrink-0">
-            {post.authorAvatar && (
-              <img src={post.authorAvatar} alt="" className="w-full h-full object-cover" />
-            )}
-          </div>
-          <p className="text-[14px] font-semibold truncate">@{post.authorUsername ?? "user"}</p>
-        </div>
-        {post.caption && <p className="text-[13px] text-white/80">{post.caption}</p>}
+        <p className="text-[14px] font-semibold truncate">{post.authorDisplayName ?? "User"}</p>
+        {post.caption && <p className="text-[13px] text-white/80 mt-0.5">{post.caption}</p>}
         {post.location && (
           <p className="text-[12px] text-white/50 flex items-center gap-1 mt-1">
             <MapPin size={12} /> {post.location}
