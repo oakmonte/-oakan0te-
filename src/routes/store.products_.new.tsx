@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronDown, ChevronRight, Tag, Hash, ListChecks } from "lucide-react";
-import { supabase } from "@/lib/integrations/my-supabase/client";
+import { startProductSave } from "@/lib/product-save";
 import { CategoryNode } from "@/lib/categories";
 import { StubRow } from "@/components/product-form/ui";
 import { MediaSection } from "@/components/product-form/MediaSection";
@@ -30,7 +30,6 @@ import {
   takePendingNewLocationId,
   readAutosavedDraft,
   writeAutosavedDraft,
-  clearAutosavedDraft,
 } from "@/lib/product-draft-handoff";
 import { useActiveStoreId } from "@/hooks/use-own-store";
 
@@ -47,18 +46,6 @@ export const Route = createFileRoute("/store/products_/new")({
   component: NewProduct,
 });
 
-function slugify(title: string) {
-  return (
-    title
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "") +
-    "-" +
-    Math.random().toString(36).slice(2, 7)
-  );
-}
-
 function NewProduct() {
   const navigate = useNavigate();
   const { storeId } = useActiveStoreId();
@@ -74,6 +61,12 @@ function NewProduct() {
   const [restoredFromAutosave] = useState(() => !handoffDraft && !!readAutosavedDraft(undefined));
   const [initialDraft] = useState(() => handoffDraft ?? readAutosavedDraft(undefined));
   const [initialNewCollectionId] = useState(() => takePendingNewCollectionId());
+  // Consumed once here (not inside the regularLocationQuantities initializer
+  // below) so the same id can also decide whether to reopen the Inventory
+  // sheet on return -- a seller who just created a location came here
+  // specifically to enter its stock count, not to land back on the
+  // collapsed product form.
+  const [initialNewLocationId] = useState(() => takePendingNewLocationId());
 
   const [kind, setKind] = useState<ProductKind>(initialDraft?.kind ?? intentKind ?? "variant");
   const [status, setStatus] = useState<"draft" | "active">(initialDraft?.status ?? "draft");
@@ -111,12 +104,11 @@ function NewProduct() {
     Record<string, number>
   >(() => {
     const base = initialDraft?.regularLocationQuantities ?? {};
-    const pendingLocationId = takePendingNewLocationId();
-    return pendingLocationId && !(pendingLocationId in base)
-      ? { ...base, [pendingLocationId]: 0 }
+    return initialNewLocationId && !(initialNewLocationId in base)
+      ? { ...base, [initialNewLocationId]: 0 }
       : base;
   });
-  const [inventorySheetOpen, setInventorySheetOpen] = useState(false);
+  const [inventorySheetOpen, setInventorySheetOpen] = useState(() => !!initialNewLocationId);
   const regularStockQty = Object.values(regularLocationQuantities).reduce((sum, n) => sum + n, 0);
   // No UI sets this on this page anymore — material is filled in via
   // Necessities now. Still round-tripped through drafts/save.
@@ -243,7 +235,7 @@ function NewProduct() {
     navigate({ to: ".", search: (prev) => ({ ...prev, kind: next }), replace: true });
   }
 
-  async function handleSave() {
+  function handleSave() {
     if (!storeId) {
       setError("No store found on this account");
       return;
@@ -278,196 +270,38 @@ function NewProduct() {
     setSaving(true);
     setError("");
 
-    const { data: product, error: productErr } = await supabase
-      .from("products")
-      .insert({
-        store_id: storeId,
-        handle: slugify(title),
-        title: title.trim(),
-        description_short: descriptionShort.trim() || null,
-        product_type: categoryPath.at(-1)?.name || null,
-        status,
-        source_platform: "manual",
-        is_complete: true,
-        manual_size_value: manualSize?.value ?? null,
-        manual_size_system: manualSize?.system ?? null,
-      })
-      .select("id")
-      .single();
-
-    if (productErr || !product) {
-      setError(productErr?.message ?? "Failed to create product");
-      setSaving(false);
-      return;
-    }
-
-    // Written out rather than looped so each payload is checked against its
-    // own table's Insert type — a loop over a {table, payload} union erases
-    // that. Order is forced by the foreign keys, and there's no transaction:
-    // a failure here leaves the earlier rows behind.
-    const fail = (table: string, message: string) => {
-      setError(`${table}: ${message}`);
-      setSaving(false);
-    };
-
-    if (kind === "regular") {
-      const { data: variant, error: variantErr } = await supabase
-        .from("product_variants")
-        .insert({
-          product_id: product.id,
-          price: Number(price),
-          compare_at_price: compareAtPrice ? Number(compareAtPrice) : null,
-          cost_price: costPrice ? Number(costPrice) : null,
-          stock_qty: regularStockQty,
-          continue_selling_out_of_stock: regularContinueSellingOutOfStock,
-          material: material.trim() || null,
-          weight_grams: regularWeightGrams,
-          sku: regularSku.trim() || null,
-          barcode: regularBarcode.trim() || null,
-          main_image_url: mainImageUrl.trim() || null,
-          additional_image_urls: additionalImageUrls.length > 0 ? additionalImageUrls : null,
-        })
-        .select("id")
-        .single();
-      if (variantErr || !variant) {
-        setError(variantErr?.message ?? "Failed to create product variant");
-        setSaving(false);
-        return;
-      }
-      const stockPayload = Object.entries(regularLocationQuantities).map(
-        ([locationId, quantity]) => ({ variant_id: variant.id, location_id: locationId, quantity }),
-      );
-      if (stockPayload.length > 0) {
-        const stockRes = await supabase.from("product_variant_stock").insert(stockPayload);
-        if (stockRes.error) return fail("product_variant_stock", stockRes.error.message);
-      }
-    } else {
-      const usableOptions = options.filter((o) => o.name.trim() && o.values.length > 0);
-
-      // Ids are minted client-side so every row can be linked without a
-      // round-trip, and without relying on insert order coming back intact.
-      const optionIds = usableOptions.map(() => crypto.randomUUID());
-      const valueIds = new Map<string, string>(); // `${optionIndex}|${value}` -> uuid
-
-      const optionsPayload = usableOptions.map((o, i) => ({
-        id: optionIds[i],
-        product_id: product.id,
-        name: o.name.trim(),
-        position: i,
-      }));
-
-      const valuesPayload = usableOptions.flatMap((o, oi) =>
-        o.values.map((v, vi) => {
-          const id = crypto.randomUUID();
-          valueIds.set(`${oi}|${v}`, id);
-          return { id, option_id: optionIds[oi], value: v, position: vi };
-        }),
-      );
-
-      const variantsPayload = selectedRows.map((r) => ({
-        id: crypto.randomUUID(),
-        product_id: product.id,
-        // The flat columns stay in sync until the contract migration drops
-        // them, so anything still reading option1_*/option2_* keeps working.
-        option1_name: r.options[0]?.name ?? null,
-        option1_value: r.options[0]?.value ?? null,
-        option2_name: r.options[1]?.name ?? null,
-        option2_value: r.options[1]?.value ?? null,
-        option3_name: r.options[2]?.name ?? null,
-        option3_value: r.options[2]?.value ?? null,
-        price: Number(r.price),
-        compare_at_price: r.compareAtPrice ? Number(r.compareAtPrice) : null,
-        cost_price: r.costPrice ? Number(r.costPrice) : null,
-        stock_qty: Object.values(r.locationQuantities).reduce((sum, n) => sum + n, 0),
-        sku: r.sku.trim() || null,
-        barcode: r.barcode?.trim() || null,
-        continue_selling_out_of_stock: r.continueSellingOutOfStock,
-        weight_grams: r.weightGrams ?? null,
-        main_image_url: r.mainImageUrl.trim() || mainImageUrl.trim() || null,
-        additional_image_urls: r.additionalImageUrls ?? null,
-      }));
-
-      const stockPayload = selectedRows.flatMap((r, ri) =>
-        Object.entries(r.locationQuantities).map(([locationId, quantity]) => ({
-          variant_id: variantsPayload[ri].id,
-          location_id: locationId,
-          quantity,
-        })),
-      );
-
-      const linksPayload = selectedRows.flatMap((r, ri) =>
-        r.options.map((o, oi) => ({
-          variant_id: variantsPayload[ri].id,
-          option_id: optionIds[oi],
-          value_id: valueIds.get(`${oi}|${o.value}`)!,
-        })),
-      );
-
-      const optionsRes = await supabase.from("product_options").insert(optionsPayload);
-      if (optionsRes.error) return fail("product_options", optionsRes.error.message);
-
-      const valuesRes = await supabase.from("product_option_values").insert(valuesPayload);
-      if (valuesRes.error) return fail("product_option_values", valuesRes.error.message);
-
-      const variantsRes = await supabase.from("product_variants").insert(variantsPayload);
-      if (variantsRes.error) return fail("product_variants", variantsRes.error.message);
-
-      const linksRes = await supabase.from("product_variant_options").insert(linksPayload);
-      if (linksRes.error) return fail("product_variant_options", linksRes.error.message);
-
-      if (stockPayload.length > 0) {
-        const stockRes = await supabase.from("product_variant_stock").insert(stockPayload);
-        if (stockRes.error) return fail("product_variant_stock", stockRes.error.message);
-      }
-    }
-
-    // Not kind-gated: a regular product (or a variant product with no Size
-    // axis) can still have measurements against its manually-picked size.
-    const measurementsPayload = Object.entries(sizeMeasurements).flatMap(([sizeValue, byKey]) =>
-      Object.entries(byKey).map(([measurementKey, valueCm]) => ({
-        product_id: product.id,
-        size_value: sizeValue,
-        measurement_key: measurementKey,
-        value_cm: valueCm,
-      })),
-    );
-    if (measurementsPayload.length > 0) {
-      const measurementsRes = await supabase
-        .from("product_size_measurements")
-        .insert(measurementsPayload);
-      if (measurementsRes.error)
-        return fail("product_size_measurements", measurementsRes.error.message);
-    }
-
-    if (collectionIds.length > 0) {
-      const { error: collectionsErr } = await supabase.from("product_collections").insert(
-        collectionIds.map((collectionId) => ({
-          product_id: product.id,
-          collection_id: collectionId,
-        })),
-      );
-      if (collectionsErr) {
-        setError(`product_collections: ${collectionsErr.message}`);
-        setSaving(false);
-        return;
-      }
-    }
-
-    if (tagIds.length > 0) {
-      const { error: tagsErr } = await supabase.from("product_tags").insert(
-        tagIds.map((tagId) => ({
-          product_id: product.id,
-          tag_id: tagId,
-        })),
-      );
-      if (tagsErr) {
-        setError(`product_tags: ${tagsErr.message}`);
-        setSaving(false);
-        return;
-      }
-    }
-
-    clearAutosavedDraft(undefined);
+    // Fired without awaiting: this used to block the whole page until every
+    // insert finished (several seconds for a variant product), leaving the
+    // seller stuck here with nothing to do. startProductSave runs the write
+    // sequence in the background and reports progress/errors via
+    // ProductSaveToast, so navigating away immediately is safe.
+    startProductSave({
+      mode: "create",
+      storeId,
+      title,
+      descriptionShort,
+      categoryName: categoryPath.at(-1)?.name || null,
+      status,
+      manualSize,
+      kind,
+      price,
+      compareAtPrice,
+      costPrice,
+      material,
+      regularContinueSellingOutOfStock,
+      regularLocationQuantities,
+      regularWeightGrams,
+      regularSku,
+      regularBarcode,
+      regularMaterialFeel: null,
+      mainImageUrl,
+      regularAdditionalImageUrls: additionalImageUrls,
+      options,
+      rows,
+      sizeMeasurements,
+      collectionIds,
+      tagIds,
+    });
     navigate({ to: "/store/products" });
   }
 

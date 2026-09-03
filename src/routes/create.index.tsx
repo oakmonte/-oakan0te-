@@ -1336,7 +1336,7 @@ function CreatePage() {
       <input
         ref={galleryInputRef}
         type="file"
-        accept="image/*,video/*"
+        accept="image/*"
         className="hidden"
         onChange={(e) => {
           const file = e.target.files?.[0];

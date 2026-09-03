@@ -192,9 +192,18 @@ export function InventorySheet({
                     >
                       −
                     </button>
-                    <span className="w-10 text-center text-[15px] font-medium bg-gray-100 rounded-full py-1">
-                      {locationQuantities[loc.id] ?? 0}
-                    </span>
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      min={0}
+                      value={locationQuantities[loc.id] ?? 0}
+                      onChange={(e) =>
+                        setQuantity(loc.id, e.target.value === "" ? 0 : Number(e.target.value))
+                      }
+                      onFocus={(e) => e.target.select()}
+                      aria-label={`${loc.name} quantity`}
+                      className="w-12 text-center text-[15px] font-medium bg-gray-100 rounded-full py-1 outline-none focus:ring-1 focus:ring-gray-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
                     <button
                       type="button"
                       onClick={() => setQuantity(loc.id, (locationQuantities[loc.id] ?? 0) + 1)}

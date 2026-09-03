@@ -10,6 +10,7 @@ import {
   MoreHorizontal,
 } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
+import { startProductSave } from "@/lib/product-save";
 import { CategoryNode, ROOT_CATEGORY } from "@/lib/categories";
 import { StubRow } from "@/components/product-form/ui";
 import { MediaSection } from "@/components/product-form/MediaSection";
@@ -130,6 +131,12 @@ function EditProduct() {
   const [restoredFromAutosave] = useState(() => !handoffDraft && !!readAutosavedDraft(productId));
   const [initialDraft] = useState(() => handoffDraft ?? readAutosavedDraft(productId));
   const [initialNewCollectionId] = useState(() => takePendingNewCollectionId());
+  // Consumed once here (not inside the regularLocationQuantities initializer
+  // below) so the same id can also decide whether to reopen the Inventory
+  // sheet on return -- a seller who just created a location came here
+  // specifically to enter its stock count, not to land back on the
+  // collapsed product form.
+  const [initialNewLocationId] = useState(() => takePendingNewLocationId());
 
   const [loading, setLoading] = useState(initialDraft === null);
   const [notFound, setNotFound] = useState(false);
@@ -166,12 +173,11 @@ function EditProduct() {
     Record<string, number>
   >(() => {
     const base = initialDraft?.regularLocationQuantities ?? {};
-    const pendingLocationId = takePendingNewLocationId();
-    return pendingLocationId && !(pendingLocationId in base)
-      ? { ...base, [pendingLocationId]: 0 }
+    return initialNewLocationId && !(initialNewLocationId in base)
+      ? { ...base, [initialNewLocationId]: 0 }
       : base;
   });
-  const [inventorySheetOpen, setInventorySheetOpen] = useState(false);
+  const [inventorySheetOpen, setInventorySheetOpen] = useState(() => !!initialNewLocationId);
   // Stock saved before per-location inventory existed has no location rows;
   // keep it so an unrelated edit + Save doesn't zero the product's stock.
   const [regularLegacyStockQty, setRegularLegacyStockQty] = useState(
@@ -538,7 +544,7 @@ function EditProduct() {
     navigate({ to: "/store/products" });
   }
 
-  async function handleSave() {
+  function handleSave() {
     if (!storeId) {
       setError("No store found on this account");
       return;
@@ -573,203 +579,41 @@ function EditProduct() {
     setSaving(true);
     setError("");
 
-    const { error: productErr } = await supabase
-      .from("products")
-      .update({
-        title: title.trim(),
-        description_short: descriptionShort.trim() || null,
-        product_type: categoryPath.at(-1)?.name || null,
-        status,
-        is_complete: true,
-        manual_size_value: manualSize?.value ?? null,
-        manual_size_system: manualSize?.system ?? null,
-      })
-      // handle, source_platform, external_handle and category_id are
-      // deliberately left out of this payload: handle is the public slug (a
-      // seller renaming the title must not change their product's URL), and
-      // the rest are provenance an edit here shouldn't touch.
-      .eq("id", productId);
-
-    if (productErr) {
-      setError(productErr.message);
-      setSaving(false);
-      return;
-    }
-
-    const fail = (table: string, message: string) => {
-      setError(`${table}: ${message}`);
-      setSaving(false);
-    };
-
-    // Rebuild children from scratch rather than diffing them by id — same
-    // choice execute.js makes for imports, for the same reason: diffing
-    // sounds better until a seller renames or removes an option, at which
-    // point it silently strands the old rows. product_variants cascades
-    // product_variant_options; product_options cascades product_option_values.
-    const variantsDel = await supabase
-      .from("product_variants")
-      .delete()
-      .eq("product_id", productId);
-    if (variantsDel.error) return fail("product_variants", variantsDel.error.message);
-    const optionsDel = await supabase.from("product_options").delete().eq("product_id", productId);
-    if (optionsDel.error) return fail("product_options", optionsDel.error.message);
-
-    if (kind === "regular") {
-      const { data: variant, error: variantErr } = await supabase
-        .from("product_variants")
-        .insert({
-          product_id: productId,
-          price: Number(price),
-          compare_at_price: compareAtPrice ? Number(compareAtPrice) : null,
-          cost_price: costPrice ? Number(costPrice) : null,
-          stock_qty: regularStockQty,
-          material: material.trim() || null,
-          main_image_url: mainImageUrl.trim() || null,
-          barcode: regularBarcode?.trim() || null,
-          sku: regularSku.trim() || null,
-          continue_selling_out_of_stock: regularContinueSellingOutOfStock,
-          material_feel: regularMaterialFeel,
-          weight_grams: regularWeightGrams,
-          additional_image_urls: regularAdditionalImageUrls,
-        })
-        .select("id")
-        .single();
-      if (variantErr || !variant)
-        return fail("product_variants", variantErr?.message ?? "insert failed");
-
-      const stockPayload = Object.entries(regularLocationQuantities).map(
-        ([locationId, quantity]) => ({ variant_id: variant.id, location_id: locationId, quantity }),
-      );
-      if (stockPayload.length > 0) {
-        const stockRes = await supabase.from("product_variant_stock").insert(stockPayload);
-        if (stockRes.error) return fail("product_variant_stock", stockRes.error.message);
-      }
-    } else {
-      const usableOptions = options.filter((o) => o.name.trim() && o.values.length > 0);
-
-      const optionIds = usableOptions.map(() => crypto.randomUUID());
-      const valueIds = new Map<string, string>();
-
-      const optionsPayload = usableOptions.map((o, i) => ({
-        id: optionIds[i],
-        product_id: productId,
-        name: o.name.trim(),
-        position: i,
-      }));
-
-      const valuesPayload = usableOptions.flatMap((o, oi) =>
-        o.values.map((v, vi) => {
-          const id = crypto.randomUUID();
-          valueIds.set(`${oi}|${v}`, id);
-          return { id, option_id: optionIds[oi], value: v, position: vi };
-        }),
-      );
-
-      const variantsPayload = selectedRows.map((r) => ({
-        id: crypto.randomUUID(),
-        product_id: productId,
-        option1_name: r.options[0]?.name ?? null,
-        option1_value: r.options[0]?.value ?? null,
-        option2_name: r.options[1]?.name ?? null,
-        option2_value: r.options[1]?.value ?? null,
-        option3_name: r.options[2]?.name ?? null,
-        option3_value: r.options[2]?.value ?? null,
-        price: Number(r.price),
-        compare_at_price: r.compareAtPrice ? Number(r.compareAtPrice) : null,
-        cost_price: r.costPrice ? Number(r.costPrice) : null,
-        stock_qty: stockTotal(r),
-        sku: r.sku.trim() || null,
-        continue_selling_out_of_stock: r.continueSellingOutOfStock,
-        main_image_url: r.mainImageUrl.trim() || mainImageUrl.trim() || null,
-        barcode: r.barcode?.trim() || null,
-        material: r.material ?? null,
-        material_feel: r.materialFeel ?? null,
-        weight_grams: r.weightGrams ?? null,
-        additional_image_urls: r.additionalImageUrls ?? null,
-      }));
-
-      const stockPayload = selectedRows.flatMap((r, ri) =>
-        Object.entries(r.locationQuantities).map(([locationId, quantity]) => ({
-          variant_id: variantsPayload[ri].id,
-          location_id: locationId,
-          quantity,
-        })),
-      );
-
-      const linksPayload = selectedRows.flatMap((r, ri) =>
-        r.options.map((o, oi) => ({
-          variant_id: variantsPayload[ri].id,
-          option_id: optionIds[oi],
-          value_id: valueIds.get(`${oi}|${o.value}`)!,
-        })),
-      );
-
-      const optionsRes = await supabase.from("product_options").insert(optionsPayload);
-      if (optionsRes.error) return fail("product_options", optionsRes.error.message);
-
-      const valuesRes = await supabase.from("product_option_values").insert(valuesPayload);
-      if (valuesRes.error) return fail("product_option_values", valuesRes.error.message);
-
-      const variantsRes = await supabase.from("product_variants").insert(variantsPayload);
-      if (variantsRes.error) return fail("product_variants", variantsRes.error.message);
-
-      const linksRes = await supabase.from("product_variant_options").insert(linksPayload);
-      if (linksRes.error) return fail("product_variant_options", linksRes.error.message);
-
-      if (stockPayload.length > 0) {
-        const stockRes = await supabase.from("product_variant_stock").insert(stockPayload);
-        if (stockRes.error) return fail("product_variant_stock", stockRes.error.message);
-      }
-    }
-
-    const measurementsDel = await supabase
-      .from("product_size_measurements")
-      .delete()
-      .eq("product_id", productId);
-    if (measurementsDel.error)
-      return fail("product_size_measurements", measurementsDel.error.message);
-
-    const measurementsPayload = Object.entries(sizeMeasurements).flatMap(([sizeValue, byKey]) =>
-      Object.entries(byKey).map(([measurementKey, valueCm]) => ({
-        product_id: productId,
-        size_value: sizeValue,
-        measurement_key: measurementKey,
-        value_cm: valueCm,
-      })),
-    );
-    if (measurementsPayload.length > 0) {
-      const measurementsRes = await supabase
-        .from("product_size_measurements")
-        .insert(measurementsPayload);
-      if (measurementsRes.error)
-        return fail("product_size_measurements", measurementsRes.error.message);
-    }
-
-    const collectionsDel = await supabase
-      .from("product_collections")
-      .delete()
-      .eq("product_id", productId);
-    if (collectionsDel.error) return fail("product_collections", collectionsDel.error.message);
-    if (collectionIds.length > 0) {
-      const { error: collectionsErr } = await supabase.from("product_collections").insert(
-        collectionIds.map((collectionId) => ({
-          product_id: productId,
-          collection_id: collectionId,
-        })),
-      );
-      if (collectionsErr) return fail("product_collections", collectionsErr.message);
-    }
-
-    const tagsDel = await supabase.from("product_tags").delete().eq("product_id", productId);
-    if (tagsDel.error) return fail("product_tags", tagsDel.error.message);
-    if (tagIds.length > 0) {
-      const { error: tagsErr } = await supabase
-        .from("product_tags")
-        .insert(tagIds.map((tagId) => ({ product_id: productId, tag_id: tagId })));
-      if (tagsErr) return fail("product_tags", tagsErr.message);
-    }
-
-    clearAutosavedDraft(productId);
+    // Fired without awaiting: this used to block the whole page until every
+    // update/delete/insert finished (a dozen+ sequential round trips for a
+    // variant product), leaving the seller stuck here with nothing to do.
+    // startProductSave runs the write sequence in the background and reports
+    // progress/errors via ProductSaveToast, so navigating away immediately
+    // is safe.
+    startProductSave({
+      mode: "update",
+      productId,
+      storeId,
+      title,
+      descriptionShort,
+      categoryName: categoryPath.at(-1)?.name || null,
+      status,
+      manualSize,
+      kind,
+      price,
+      compareAtPrice,
+      costPrice,
+      material,
+      regularContinueSellingOutOfStock,
+      regularLocationQuantities,
+      regularLegacyStockQty,
+      regularWeightGrams,
+      regularSku,
+      regularBarcode: regularBarcode ?? "",
+      regularMaterialFeel,
+      mainImageUrl,
+      regularAdditionalImageUrls,
+      options,
+      rows,
+      sizeMeasurements,
+      collectionIds,
+      tagIds,
+    });
     navigate({ to: "/store/products" });
   }
 

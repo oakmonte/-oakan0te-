@@ -16,6 +16,7 @@ import { preloadStoreThemeAssets } from "../lib/preload-store-theme-assets";
 import { useSession } from "../hooks/use-session";
 import { useBuildFreshness } from "../hooks/use-build-freshness";
 import { PostUploadToast } from "../components/PostUploadToast";
+import { ProductSaveToast } from "../components/ProductSaveToast";
 import { setLastNonCreateRoute } from "../lib/last-visited-route";
 
 function NotFoundComponent() {
@@ -231,6 +232,7 @@ function RootComponent() {
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
       <PostUploadToast />
+      <ProductSaveToast />
     </QueryClientProvider>
   );
 }
