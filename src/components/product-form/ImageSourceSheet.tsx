@@ -1,10 +1,11 @@
-import { UploadCloud, Layers } from "lucide-react";
+import { UploadCloud, Layers, Image } from "lucide-react";
 
-export type ImageSource = "device" | "drafts";
+export type ImageSource = "device" | "drafts" | "posts";
 
 const OPTIONS: { key: ImageSource; label: string; icon: typeof UploadCloud }[] = [
   { key: "device", label: "Upload from Device", icon: UploadCloud },
   { key: "drafts", label: "Upload from Drafts", icon: Layers },
+  { key: "posts", label: "Upload from Posts", icon: Image },
 ];
 
 export function ImageSourceSheet({

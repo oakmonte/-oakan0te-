@@ -14,6 +14,9 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { preloadStoreThemeAssets } from "../lib/preload-store-theme-assets";
 import { useSession } from "../hooks/use-session";
+import { useBuildFreshness } from "../hooks/use-build-freshness";
+import { PostUploadToast } from "../components/PostUploadToast";
+import { setLastNonCreateRoute } from "../lib/last-visited-route";
 
 function NotFoundComponent() {
   return (
@@ -106,6 +109,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       // styles.css, which some engines honor more reliably than the meta tag
       // alone, especially for native form control theming.
       { name: "color-scheme", content: "light" },
+      // Read back by useBuildFreshness to detect a newer deploy — see that
+      // file. Must stay a plain meta tag (not injected via JS) since the
+      // freshness check reads it out of a freshly-fetched page's raw HTML.
+      { name: "build-id", content: __BUILD_ID__ },
       { title: "Oakmonte — Share your style" },
       {
         name: "description",
@@ -178,6 +185,7 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { user } = useSession();
+  useBuildFreshness();
 
   // Fires the instant a session exists — right after sign-in and equally
   // right after finishing seller account creation, since both land here
@@ -187,6 +195,15 @@ function RootComponent() {
   useEffect(() => {
     if (user) preloadStoreThemeAssets();
   }, [user]);
+
+  // Lets the camera's exit button return to wherever the seller actually
+  // came from (see last-visited-route.ts) instead of a hardcoded page — the
+  // camera/after-shot flow itself is excluded so stepping between its own
+  // sub-routes (filters, crop, publish, ...) never overwrites this with
+  // another camera route.
+  useEffect(() => {
+    if (!pathname.startsWith("/create")) setLastNonCreateRoute(pathname);
+  }, [pathname]);
 
   // The seller dashboard (/store, /store/*) is white — everywhere else on
   // the site (profile, the public storefront at /store-profile/*, etc.) is
@@ -200,7 +217,11 @@ function RootComponent() {
   // part of the dashboard, hence the explicit second check below.
   useEffect(() => {
     const isStoreDashboard = pathname === "/store" || pathname.startsWith("/store/");
-    const bg = isStoreDashboard ? "#fff" : "";
+    // The publish/"New post" screen is white too — a deliberate exception to
+    // the rest of the create/after-shot flow (camera, filters, crop, etc.)
+    // which stays black like every other camera-app editor.
+    const isPublishPage = pathname === "/create/after-shot/publish";
+    const bg = isStoreDashboard || isPublishPage ? "#fff" : "";
     document.documentElement.style.backgroundColor = bg;
     document.body.style.backgroundColor = bg;
   }, [pathname]);
@@ -209,6 +230,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
+      <PostUploadToast />
     </QueryClientProvider>
   );
 }

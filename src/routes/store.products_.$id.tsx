@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ChevronLeft,
   ChevronDown,
@@ -21,8 +21,6 @@ import { NecessitiesSheet } from "@/components/product-form/NecessitiesSheet";
 import { PricingSheet } from "@/components/product-form/PricingSheet";
 import { InventorySection } from "@/components/product-form/InventorySection";
 import { InventorySheet, type InventoryValues } from "@/components/product-form/InventorySheet";
-import { WeightSection } from "@/components/product-form/WeightSection";
-import { WeightSheet } from "@/components/product-form/WeightSheet";
 import { CategoryPicker } from "@/components/product-form/CategoryPicker";
 import { ProductTypeSwitchSheet } from "@/components/product-form/ProductTypeSwitchSheet";
 import { ProductActionsSheet } from "@/components/product-form/ProductActionsSheet";
@@ -176,19 +174,25 @@ function EditProduct() {
   const [inventorySheetOpen, setInventorySheetOpen] = useState(false);
   // Stock saved before per-location inventory existed has no location rows;
   // keep it so an unrelated edit + Save doesn't zero the product's stock.
-  const [regularLegacyStockQty, setRegularLegacyStockQty] = useState(0);
+  const [regularLegacyStockQty, setRegularLegacyStockQty] = useState(
+    initialDraft?.regularLegacyStockQty ?? 0,
+  );
   const regularStockQty = stockTotal({
     locationQuantities: regularLocationQuantities,
     legacyStockQty: regularLegacyStockQty,
   });
   // No UI edits these yet (mirrors "material" on the new-product form) —
   // round-tripped so opening an imported product and saving doesn't drop them.
-  const [regularBarcode, setRegularBarcode] = useState<string | null>(null);
-  const [regularMaterialFeel, setRegularMaterialFeel] = useState<string | null>(null);
+  const [regularBarcode, setRegularBarcode] = useState<string | null>(
+    initialDraft?.regularBarcode ?? null,
+  );
+  const [regularMaterialFeel, setRegularMaterialFeel] = useState<string | null>(
+    initialDraft?.regularMaterialFeel ?? null,
+  );
   const [regularWeightGrams, setRegularWeightGrams] = useState<number | null>(
     initialDraft?.regularWeightGrams ?? null,
   );
-  const [weightSheetOpen, setWeightSheetOpen] = useState(false);
+  const [regularSku, setRegularSku] = useState(initialDraft?.regularSku ?? "");
   const [regularAdditionalImageUrls, setRegularAdditionalImageUrls] = useState<string[] | null>(
     initialDraft?.additionalImageUrls ?? null,
   );
@@ -231,7 +235,7 @@ function EditProduct() {
     return base;
   });
   const [tagsSheetOpen, setTagsSheetOpen] = useState(false);
-  const [tagIds, setTagIds] = useState<string[]>([]);
+  const [tagIds, setTagIds] = useState<string[]>(initialDraft?.tagIds ?? []);
   const [necessitiesSheetOpen, setNecessitiesSheetOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -381,6 +385,7 @@ function EditProduct() {
         setMaterial(v?.material ?? "");
         setMainImageUrl(v?.main_image_url ?? "");
         setRegularBarcode(v?.barcode ?? null);
+        setRegularSku(v?.sku ?? "");
         setRegularContinueSellingOutOfStock(v?.continue_selling_out_of_stock ?? false);
         setRegularLocationQuantities(
           Object.fromEntries(
@@ -457,23 +462,42 @@ function EditProduct() {
       regularContinueSellingOutOfStock,
       regularLocationQuantities,
       regularWeightGrams,
+      regularSku,
+      regularBarcode,
+      regularMaterialFeel,
       material,
       options,
       rows,
       collectionIds,
       sizeMeasurements,
       manualSize,
+      tagIds,
+      regularLegacyStockQty,
     };
   }
 
+  // Baseline = the form exactly as it came out of the DB load (or out of a
+  // restored draft). Anything identical to it is not "unsaved progress".
+  const autosaveBaseline = useRef<string | null>(null);
+
   // Debounced localStorage autosave — the only thing that survives a hard
   // refresh. Guarded on `loading` so the still-fetching, mostly-blank form
-  // doesn't overwrite a real autosave (or the product's actual saved state)
-  // before the DB load has even populated it. JSON.stringify as the dep is
-  // deliberate: simplest way to react to "any field actually changed"
-  // without listing every piece of state that feeds currentDraft() by hand.
+  // doesn't overwrite a real autosave before the DB load has populated it.
+  // Only writes once the form actually differs from that baseline: merely
+  // opening a product must NOT leave a draft behind, otherwise the next open
+  // would skip the DB fetch and show stale data with a bogus "restored"
+  // banner. Back at baseline (undo, or save) means the draft is dropped.
   useEffect(() => {
     if (loading) return;
+    const snapshot = JSON.stringify(currentDraft());
+    if (autosaveBaseline.current === null) {
+      autosaveBaseline.current = snapshot;
+      return;
+    }
+    if (snapshot === autosaveBaseline.current) {
+      clearAutosavedDraft(productId);
+      return;
+    }
     const t = setTimeout(() => writeAutosavedDraft(productId, currentDraft()), 800);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -601,7 +625,8 @@ function EditProduct() {
           stock_qty: regularStockQty,
           material: material.trim() || null,
           main_image_url: mainImageUrl.trim() || null,
-          barcode: regularBarcode,
+          barcode: regularBarcode?.trim() || null,
+          sku: regularSku.trim() || null,
           continue_selling_out_of_stock: regularContinueSellingOutOfStock,
           material_feel: regularMaterialFeel,
           weight_grams: regularWeightGrams,
@@ -656,7 +681,7 @@ function EditProduct() {
         sku: r.sku.trim() || null,
         continue_selling_out_of_stock: r.continueSellingOutOfStock,
         main_image_url: r.mainImageUrl.trim() || mainImageUrl.trim() || null,
-        barcode: r.barcode ?? null,
+        barcode: r.barcode?.trim() || null,
         material: r.material ?? null,
         material_feel: r.materialFeel ?? null,
         weight_grams: r.weightGrams ?? null,
@@ -835,7 +860,6 @@ function EditProduct() {
             locationCount={Object.keys(regularLocationQuantities).length}
             onOpen={() => setInventorySheetOpen(true)}
           />
-          <WeightSection grams={regularWeightGrams} onOpen={() => setWeightSheetOpen(true)} />
         </>
       ) : (
         storeId && (
@@ -905,26 +929,18 @@ function EditProduct() {
           initial={{
             continueSellingOutOfStock: regularContinueSellingOutOfStock,
             locationQuantities: regularLocationQuantities,
+            sku: regularSku,
+            barcode: regularBarcode ?? "",
           }}
           onCreateLocation={handleCreateLocation}
           onSave={(values: InventoryValues) => {
             setRegularContinueSellingOutOfStock(values.continueSellingOutOfStock);
             setRegularLocationQuantities(values.locationQuantities);
+            setRegularSku(values.sku);
+            setRegularBarcode(values.barcode || null);
             setInventorySheetOpen(false);
           }}
           onClose={() => setInventorySheetOpen(false)}
-        />
-      )}
-
-      {weightSheetOpen && (
-        <WeightSheet
-          initial={regularWeightGrams}
-          estimate={regularWeightEstimate}
-          onSave={(grams) => {
-            setRegularWeightGrams(grams);
-            setWeightSheetOpen(false);
-          }}
-          onClose={() => setWeightSheetOpen(false)}
         />
       )}
 
@@ -986,6 +1002,10 @@ function EditProduct() {
           onChangeSizeMeasurements={setSizeMeasurements}
           manualSize={manualSize}
           onChangeManualSize={setManualSize}
+          rows={rows}
+          regularWeightGrams={regularWeightGrams}
+          regularWeightEstimate={regularWeightEstimate}
+          onChangeRegularWeightGrams={setRegularWeightGrams}
           onClose={() => setNecessitiesSheetOpen(false)}
         />
       )}

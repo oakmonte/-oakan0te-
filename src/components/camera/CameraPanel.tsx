@@ -6,6 +6,11 @@ type CameraPanelProps = {
   children: ReactNode;
   onClose: () => void;
   height?: number;
+  /** Every other CameraPanel consumer lives inside the black camera/after-shot
+   *  editor and wants the default dark sheet. The publish page is the one
+   *  deliberate white-background exception (see __root.tsx) — this lets its
+   *  sheets match without changing the shared default. */
+  light?: boolean;
 };
 
 export default function CameraPanel({
@@ -14,6 +19,7 @@ export default function CameraPanel({
   children,
   onClose,
   height = 320,
+  light = false,
 }: CameraPanelProps) {
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -73,8 +79,8 @@ export default function CameraPanel({
           pointerEvents: open ? "auto" : "none",
           borderTopLeftRadius: 28,
           borderTopRightRadius: 28,
-          background: "#111",
-          borderTop: "1px solid rgba(255,255,255,.08)",
+          background: light ? "#fff" : "#111",
+          borderTop: light ? "1px solid rgba(0,0,0,.08)" : "1px solid rgba(255,255,255,.08)",
           boxShadow: "0 -12px 40px rgba(0,0,0,.45)",
           paddingBottom: "calc(env(safe-area-inset-bottom) + 16px)",
           willChange: "transform",
@@ -87,7 +93,7 @@ export default function CameraPanel({
               width: 46,
               height: 5,
               borderRadius: 9999,
-              background: "rgba(255,255,255,.28)",
+              background: light ? "rgba(0,0,0,.16)" : "rgba(255,255,255,.28)",
             }}
           />
         </div>
@@ -95,7 +101,9 @@ export default function CameraPanel({
         {/* Header */}
         <div className="px-6 pb-4">
           <h2
-            className="text-white text-lg font-semibold"
+            className={
+              light ? "text-black text-lg font-semibold" : "text-white text-lg font-semibold"
+            }
             style={{
               fontFamily: "'SF Pro', system-ui, sans-serif",
             }}

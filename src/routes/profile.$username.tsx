@@ -517,55 +517,62 @@ function ProfilePage() {
             </div>
           </div>
 
-          {/* Content grid */}
+          {/* Content grid. Drag lives on this OUTER, never-remounted node —
+              it used to sit on the AnimatePresence-keyed child below, which
+              gets torn down and rebuilt on every tab change; that remount
+              was dropping the in-progress touch/pointer capture mid-gesture,
+              which is why swiping between tabs silently did nothing. The
+              inner child now only crossfades. */}
           <div className="overflow-hidden pb-24">
-            <AnimatePresence mode="wait" custom={tabIndex}>
-              <motion.div
-                key={activeTab}
-                custom={tabIndex}
-                initial={{ opacity: 0, x: 40 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -40 }}
-                transition={{ duration: 0.2, ease: "easeOut" }}
-                drag="x"
-                dragConstraints={{ left: 0, right: 0 }}
-                dragElastic={0.15}
-                onDragEnd={(_, info) => {
-                  if (info.offset.x < -60) goToTab(tabIndex + 1);
-                  else if (info.offset.x > 60) goToTab(tabIndex - 1);
-                }}
-                className="px-1 pt-4"
-              >
-                {profile && activeTab === "posts" ? (
-                  <PostsGrid
-                    userId={profile.id}
-                    status="published"
-                    emptyState={<ProfileTabEmptyState tab="posts" />}
-                  />
-                ) : profile && activeTab === "drafts" && isOwnProfile ? (
-                  <PostsGrid
-                    userId={profile.id}
-                    status="draft"
-                    emptyState={<ProfileTabEmptyState tab="drafts" />}
-                  />
-                ) : activeTab === "store" && isOwnProfile && !storeIsSetUp ? (
-                  <div className="flex flex-col items-center text-center px-8 pt-16 gap-3">
-                    <h3 className="text-[16px] font-bold">Set up your store</h3>
-                    <p className="text-[13px] text-white/50 max-w-[220px]">
-                      Add your products, pickup locations, and storefront look to start selling.
-                    </p>
-                    <button
-                      onClick={() => navigate({ to: "/store" })}
-                      className="mt-1 rounded-full bg-white text-black px-6 py-2.5 text-[14px] font-semibold"
-                    >
-                      Set up store
-                    </button>
-                  </div>
-                ) : (
-                  <ProfileTabEmptyState tab={activeTab} />
-                )}
-              </motion.div>
-            </AnimatePresence>
+            <motion.div
+              drag="x"
+              dragConstraints={{ left: 0, right: 0 }}
+              dragElastic={0.12}
+              onDragEnd={(_, info) => {
+                if (info.offset.x < -60) goToTab(tabIndex + 1);
+                else if (info.offset.x > 60) goToTab(tabIndex - 1);
+              }}
+            >
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeTab}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.15, ease: "easeOut" }}
+                  className="px-1 pt-4"
+                >
+                  {profile && activeTab === "posts" ? (
+                    <PostsGrid
+                      userId={profile.id}
+                      status="published"
+                      emptyState={<ProfileTabEmptyState tab="posts" />}
+                    />
+                  ) : profile && activeTab === "drafts" && isOwnProfile ? (
+                    <PostsGrid
+                      userId={profile.id}
+                      status="draft"
+                      emptyState={<ProfileTabEmptyState tab="drafts" />}
+                    />
+                  ) : activeTab === "store" && isOwnProfile && !storeIsSetUp ? (
+                    <div className="flex flex-col items-center text-center px-8 pt-16 gap-3">
+                      <h3 className="text-[16px] font-bold">Set up your store</h3>
+                      <p className="text-[13px] text-white/50 max-w-[220px]">
+                        Add your products, pickup locations, and storefront look to start selling.
+                      </p>
+                      <button
+                        onClick={() => navigate({ to: "/store" })}
+                        className="mt-1 rounded-full bg-white text-black px-6 py-2.5 text-[14px] font-semibold"
+                      >
+                        Set up store
+                      </button>
+                    </div>
+                  ) : (
+                    <ProfileTabEmptyState tab={activeTab} />
+                  )}
+                </motion.div>
+              </AnimatePresence>
+            </motion.div>
           </div>
         </>
       )}

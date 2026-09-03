@@ -1,9 +1,10 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Check, Plus } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { MediaSection } from "@/components/product-form/MediaSection";
 import { DescriptionSheet } from "@/components/product-form/DescriptionSheet";
+import { ProductsSheet } from "@/components/product-form/ProductsSheet";
 import {
   hasPendingProductDraft,
   peekPendingProductDraftId,
@@ -30,6 +31,8 @@ function NewCollection() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState(""); // HTML
   const [descriptionSheetOpen, setDescriptionSheetOpen] = useState(false);
+  const [productIds, setProductIds] = useState<string[]>([]);
+  const [productsSheetOpen, setProductsSheetOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -75,6 +78,12 @@ function NewCollection() {
       setError(insertErr?.message ?? "Failed to create collection");
       setSaving(false);
       return;
+    }
+
+    if (productIds.length > 0) {
+      await supabase
+        .from("product_collections")
+        .insert(productIds.map((product_id) => ({ product_id, collection_id: created.id })));
     }
 
     // Both destinations restore collectionIds off the stashed draft, then
@@ -129,12 +138,31 @@ function NewCollection() {
           onClick={() => setDescriptionSheetOpen(true)}
           className="w-full flex items-center justify-between py-4 text-left"
         >
-          <span className="text-[15px] text-gray-900">
+          <span className="flex items-center gap-3 text-[15px] text-gray-900">
+            {hasDescription ? (
+              <Check size={18} className="text-gray-900" />
+            ) : (
+              <Plus size={18} className="text-gray-400" />
+            )}
             {hasDescription ? "Description" : "Add description"}
           </span>
           <ChevronRight size={16} className="text-gray-300 shrink-0" />
         </button>
       </div>
+
+      <button
+        type="button"
+        onClick={() => setProductsSheetOpen(true)}
+        className="w-full flex items-center justify-between px-4 py-4 border-b-8 border-gray-50 text-left"
+      >
+        <span className="text-[15px] text-gray-900">Products</span>
+        <span className="flex items-center gap-1 shrink-0">
+          {productIds.length > 0 && (
+            <span className="text-xs text-gray-400">{productIds.length} selected</span>
+          )}
+          <ChevronRight size={16} className="text-gray-300" />
+        </span>
+      </button>
 
       {descriptionSheetOpen && (
         <DescriptionSheet
@@ -144,6 +172,18 @@ function NewCollection() {
             setDescriptionSheetOpen(false);
           }}
           onClose={() => setDescriptionSheetOpen(false)}
+        />
+      )}
+
+      {productsSheetOpen && storeId && (
+        <ProductsSheet
+          storeId={storeId}
+          selectedIds={productIds}
+          onDone={(ids) => {
+            setProductIds(ids);
+            setProductsSheetOpen(false);
+          }}
+          onClose={() => setProductsSheetOpen(false)}
         />
       )}
     </div>

@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { ImageGallery } from "./ImageGallery";
 import { DraftImagePickerSheet } from "./DraftImagePickerSheet";
+import { PostImagePickerSheet } from "./PostImagePickerSheet";
 import { ImageSourceSheet, type ImageSource } from "./ImageSourceSheet";
 import { useMultiFilePicker } from "@/hooks/use-file-picker";
 import { uploadProductImage } from "@/lib/upload-product-image";
@@ -25,6 +26,7 @@ export function MediaSection({
   const [sourceSheetOpen, setSourceSheetOpen] = useState(false);
   const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
   const [draftsOpen, setDraftsOpen] = useState(false);
+  const [postsOpen, setPostsOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const filePicker = useMultiFilePicker("image/*", supportsGallery);
@@ -70,11 +72,20 @@ export function MediaSection({
       setDraftsOpen(true);
       return;
     }
+    if (source === "posts") {
+      setPostsOpen(true);
+      return;
+    }
     await uploadFiles(await filePicker.pick());
   }
 
   function handlePicked(urls: string[]) {
     setDraftsOpen(false);
+    addUrls(urls);
+  }
+
+  function handlePickedFromPosts(urls: string[]) {
+    setPostsOpen(false);
     addUrls(urls);
   }
 
@@ -102,6 +113,12 @@ export function MediaSection({
       )}
       {draftsOpen && (
         <DraftImagePickerSheet onSelect={handlePicked} onClose={() => setDraftsOpen(false)} />
+      )}
+      {postsOpen && (
+        <PostImagePickerSheet
+          onSelect={handlePickedFromPosts}
+          onClose={() => setPostsOpen(false)}
+        />
       )}
     </div>
   );

@@ -9,8 +9,11 @@ import { useLockedViewport } from "@/hooks/use-locked-viewport";
  *
  *  `estimate` is a rough auto-guess from size measurements + material (see
  *  weight-estimate.ts), computed by the caller since it needs category/chart
- *  context this sheet doesn't have. It only ever pre-fills an empty field —
- *  never overwrites a weight the seller already typed in. */
+ *  context this sheet doesn't have. Filling it in is an explicit tap on
+ *  "Estimate weight" -- the button only shows up when there's actually
+ *  enough data (category + size + material) to compute one -- rather than
+ *  silently pre-filling on open, so a seller always knows where a number in
+ *  this field came from. */
 export function WeightSheet({
   productLabel,
   initial,
@@ -25,10 +28,13 @@ export function WeightSheet({
   onClose: () => void;
 }) {
   useLockedViewport();
-  const [value, setValue] = useState(
-    initial != null ? String(initial) : estimate != null ? String(estimate) : "",
-  );
-  const isEstimate = initial == null && estimate != null && value === String(estimate);
+  const [value, setValue] = useState(initial != null ? String(initial) : "");
+  const isEstimate = estimate != null && value === String(estimate);
+
+  function applyEstimate() {
+    if (estimate == null) return;
+    setValue(String(estimate));
+  }
 
   function handleSave() {
     const trimmed = value.trim();
@@ -65,6 +71,15 @@ export function WeightSheet({
           />
           <span className="text-sm text-gray-400">g</span>
         </div>
+        {estimate != null && (
+          <button
+            type="button"
+            onClick={applyEstimate}
+            className="mt-3 text-xs font-medium text-gray-900 border border-gray-200 rounded-full px-3 py-1.5"
+          >
+            Estimate weight
+          </button>
+        )}
         {isEstimate && (
           <p className="text-xs text-gray-400 mt-2">
             Estimated from this size's measurements and material — edit if it's off.

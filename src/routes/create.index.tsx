@@ -21,6 +21,7 @@ import {
 
 import { compileFilter, applyCompiledFilter, IDENTITY_FILTER } from "@/lib/canvas-filter";
 import { setPendingCapture } from "@/lib/capture-handoff";
+import { getLastNonCreateRoute } from "@/lib/last-visited-route";
 import { useFilterThumbnail } from "@/lib/filter-thumbnail";
 import { exportVideo } from "@/lib/after-shot-export";
 
@@ -343,9 +344,15 @@ function CreatePage() {
     }
   }, [flashOn, facing]);
 
+  // A direct navigate to wherever the seller actually came from (tracked in
+  // last-visited-route.ts), not window.history.back() — this is opened from
+  // an in-app "+" tab (BottomNav), often inside a third-party in-app browser
+  // (Instagram/TikTok webviews, when reached via a bio link) where native
+  // history.back() behavior is inconsistent and can feel sluggish or
+  // unresponsive, since it competes with the host app's own back handling
+  // instead of being a plain client-side route change we control.
   const handleBack = useCallback(() => {
-    if (window.history.length > 1) window.history.back();
-    else navigate({ to: "/home" });
+    navigate({ to: getLastNonCreateRoute() });
   }, [navigate]);
 
   // Quick strip: Natural pinned + favorites + random fillers, capped at
@@ -730,43 +737,53 @@ function CreatePage() {
     const gradeIntensity = filterIntensity;
 
     if (video.videoWidth > 0) {
+      const sourceWidth = video.videoWidth;
+      const sourceHeight = video.videoHeight;
       const { sx, sy, sw, sh } = applyZoomToCrop(
-        getCropRect(video.videoWidth, video.videoHeight, RATIO_ASPECT[ratio]),
+        getCropRect(sourceWidth, sourceHeight, RATIO_ASPECT[ratio]),
         cssZoomScale,
       );
-      const recordCanvas = document.createElement("canvas");
-      recordCanvas.width = sw;
-      recordCanvas.height = sh;
-      const rctx = recordCanvas.getContext("2d");
+      const compiledFilterAtStart = needsPostGrade
+        ? IDENTITY_FILTER
+        : compileFilter(currentFilterCss);
+      const shouldMirror = facing === "user";
+      const cropIsNoop = sx === 0 && sy === 0 && sw === sourceWidth && sh === sourceHeight;
+      const canUseNativeStream =
+        cropIsNoop &&
+        cssZoomScale === 1 &&
+        !shouldMirror &&
+        compiledFilterAtStart === IDENTITY_FILTER;
 
-      if (rctx) {
-        const compiledFilterAtStart = needsPostGrade
-          ? IDENTITY_FILTER
-          : compileFilter(currentFilterCss);
-        const shouldMirror = facing === "user";
+      if (!canUseNativeStream) {
+        const recordCanvas = document.createElement("canvas");
+        recordCanvas.width = sw;
+        recordCanvas.height = sh;
+        const rctx = recordCanvas.getContext("2d");
 
-        const drawFrame = () => {
-          rctx.save();
-          if (shouldMirror) {
-            rctx.translate(recordCanvas.width, 0);
-            rctx.scale(-1, 1);
-          }
-          rctx.drawImage(video, sx, sy, sw, sh, 0, 0, recordCanvas.width, recordCanvas.height);
-          if (compiledFilterAtStart !== IDENTITY_FILTER) {
-            const frame = rctx.getImageData(0, 0, recordCanvas.width, recordCanvas.height);
-            applyCompiledFilter(frame, compiledFilterAtStart);
-            rctx.putImageData(frame, 0, 0);
-          }
-          rctx.restore();
-          mirrorDrawLoopRef.current = requestAnimationFrame(drawFrame);
-        };
-        drawFrame();
+        if (rctx) {
+          const drawFrame = () => {
+            rctx.save();
+            if (shouldMirror) {
+              rctx.translate(recordCanvas.width, 0);
+              rctx.scale(-1, 1);
+            }
+            rctx.drawImage(video, sx, sy, sw, sh, 0, 0, recordCanvas.width, recordCanvas.height);
+            if (compiledFilterAtStart !== IDENTITY_FILTER) {
+              const frame = rctx.getImageData(0, 0, recordCanvas.width, recordCanvas.height);
+              applyCompiledFilter(frame, compiledFilterAtStart);
+              rctx.putImageData(frame, 0, 0);
+            }
+            rctx.restore();
+            mirrorDrawLoopRef.current = requestAnimationFrame(drawFrame);
+          };
+          drawFrame();
 
-        const canvasStream = recordCanvas.captureStream();
-        stream.getAudioTracks().forEach((track) => canvasStream.addTrack(track));
+          const canvasStream = recordCanvas.captureStream();
+          stream.getAudioTracks().forEach((track) => canvasStream.addTrack(track));
 
-        mirrorCanvasStreamRef.current = canvasStream;
-        recordingStream = canvasStream;
+          mirrorCanvasStreamRef.current = canvasStream;
+          recordingStream = canvasStream;
+        }
       }
     }
 

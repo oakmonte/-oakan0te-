@@ -13,8 +13,6 @@ import { NecessitiesSheet } from "@/components/product-form/NecessitiesSheet";
 import { PricingSheet } from "@/components/product-form/PricingSheet";
 import { InventorySection } from "@/components/product-form/InventorySection";
 import { InventorySheet, type InventoryValues } from "@/components/product-form/InventorySheet";
-import { WeightSection } from "@/components/product-form/WeightSection";
-import { WeightSheet } from "@/components/product-form/WeightSheet";
 import { CategoryPicker } from "@/components/product-form/CategoryPicker";
 import { ProductTypeSwitchSheet } from "@/components/product-form/ProductTypeSwitchSheet";
 import {
@@ -126,7 +124,11 @@ function NewProduct() {
   const [regularWeightGrams, setRegularWeightGrams] = useState<number | null>(
     initialDraft?.regularWeightGrams ?? null,
   );
-  const [weightSheetOpen, setWeightSheetOpen] = useState(false);
+  const [regularSku, setRegularSku] = useState(initialDraft?.regularSku ?? "");
+  // Never surfaced anywhere on this page before now -- new products start
+  // with none, unlike the edit page's regularBarcode which round-trips a
+  // value an import may have set.
+  const [regularBarcode, setRegularBarcode] = useState(initialDraft?.regularBarcode ?? "");
 
   // Variant-mode state
   const [options, setOptions] = useState<VariantOption[]>(initialDraft?.options ?? []);
@@ -167,7 +169,7 @@ function NewProduct() {
     return base;
   });
   const [tagsSheetOpen, setTagsSheetOpen] = useState(false);
-  const [tagIds, setTagIds] = useState<string[]>([]);
+  const [tagIds, setTagIds] = useState<string[]>(initialDraft?.tagIds ?? []);
   const [necessitiesSheetOpen, setNecessitiesSheetOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -196,12 +198,15 @@ function NewProduct() {
       regularContinueSellingOutOfStock,
       regularLocationQuantities,
       regularWeightGrams,
+      regularSku,
+      regularBarcode,
       material,
       options,
       rows,
       collectionIds,
       sizeMeasurements,
       manualSize,
+      tagIds,
     };
   }
 
@@ -317,6 +322,8 @@ function NewProduct() {
           continue_selling_out_of_stock: regularContinueSellingOutOfStock,
           material: material.trim() || null,
           weight_grams: regularWeightGrams,
+          sku: regularSku.trim() || null,
+          barcode: regularBarcode.trim() || null,
           main_image_url: mainImageUrl.trim() || null,
           additional_image_urls: additionalImageUrls.length > 0 ? additionalImageUrls : null,
         })
@@ -373,6 +380,7 @@ function NewProduct() {
         cost_price: r.costPrice ? Number(r.costPrice) : null,
         stock_qty: Object.values(r.locationQuantities).reduce((sum, n) => sum + n, 0),
         sku: r.sku.trim() || null,
+        barcode: r.barcode?.trim() || null,
         continue_selling_out_of_stock: r.continueSellingOutOfStock,
         weight_grams: r.weightGrams ?? null,
         main_image_url: r.mainImageUrl.trim() || mainImageUrl.trim() || null,
@@ -525,7 +533,6 @@ function NewProduct() {
             locationCount={Object.keys(regularLocationQuantities).length}
             onOpen={() => setInventorySheetOpen(true)}
           />
-          <WeightSection grams={regularWeightGrams} onOpen={() => setWeightSheetOpen(true)} />
         </>
       ) : (
         storeId && (
@@ -595,26 +602,18 @@ function NewProduct() {
           initial={{
             continueSellingOutOfStock: regularContinueSellingOutOfStock,
             locationQuantities: regularLocationQuantities,
+            sku: regularSku,
+            barcode: regularBarcode,
           }}
           onCreateLocation={handleCreateLocation}
           onSave={(values: InventoryValues) => {
             setRegularContinueSellingOutOfStock(values.continueSellingOutOfStock);
             setRegularLocationQuantities(values.locationQuantities);
+            setRegularSku(values.sku);
+            setRegularBarcode(values.barcode);
             setInventorySheetOpen(false);
           }}
           onClose={() => setInventorySheetOpen(false)}
-        />
-      )}
-
-      {weightSheetOpen && (
-        <WeightSheet
-          initial={regularWeightGrams}
-          estimate={regularWeightEstimate}
-          onSave={(grams) => {
-            setRegularWeightGrams(grams);
-            setWeightSheetOpen(false);
-          }}
-          onClose={() => setWeightSheetOpen(false)}
         />
       )}
 
@@ -669,6 +668,10 @@ function NewProduct() {
           onChangeSizeMeasurements={setSizeMeasurements}
           manualSize={manualSize}
           onChangeManualSize={setManualSize}
+          rows={rows}
+          regularWeightGrams={regularWeightGrams}
+          regularWeightEstimate={regularWeightEstimate}
+          onChangeRegularWeightGrams={setRegularWeightGrams}
           onClose={() => setNecessitiesSheetOpen(false)}
         />
       )}

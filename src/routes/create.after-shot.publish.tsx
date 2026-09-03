@@ -7,7 +7,7 @@ import { useLockedViewport } from "@/hooks/use-locked-viewport";
 import { useSession } from "@/hooks/use-session";
 import { useActiveStoreId } from "@/hooks/use-own-store";
 import { supabase } from "@/lib/integrations/my-supabase/client";
-import { authedFetch } from "@/lib/authed-fetch";
+import { startPostUpload } from "@/lib/post-upload";
 import CameraPanel from "@/components/camera/CameraPanel";
 
 export const Route = createFileRoute("/create/after-shot/publish")({
@@ -48,8 +48,10 @@ function PublishPage() {
   const [visibilityOpen, setVisibilityOpen] = useState(false);
   const [taggedProducts, setTaggedProducts] = useState<ProductOption[]>([]);
   const [tagPickerOpen, setTagPickerOpen] = useState(false);
-  const [pending, setPending] = useState<"published" | "draft" | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  // Only guards against a double-tap in the brief tick before navigate()
+  // unmounts this page — the actual upload runs in the background via
+  // post-upload.ts and isn't gated on this.
+  const [submitting, setSubmitting] = useState(false);
   const captionRef = useRef<HTMLTextAreaElement>(null);
 
   const insertToken = (token: string) => {
@@ -64,61 +66,47 @@ function PublishPage() {
     });
   };
 
+  // Posting/saving used to await the whole upload before doing anything
+  // else, so the seller was stuck on this screen — sometimes for a while, on
+  // a big video — with nothing to do but watch a "Posting…" button. Now the
+  // upload is fired in the background (post-upload.ts) and this navigates
+  // away immediately; PostUploadToast (mounted globally in __root.tsx)
+  // reports progress and errors wherever the seller ends up.
   const publish = useCallback(
-    async (status: "published" | "draft") => {
-      if (!user || pending) return;
-      setPending(status);
-      setError(null);
-      try {
-        const fd = new FormData();
-        fd.set("file", media.blob, media.type === "video" ? "media.mp4" : "media.jpg");
-        fd.set("mediaType", media.type);
-        if (media.poster) fd.set("thumbnail", media.poster.blob, "thumbnail.jpg");
-        if (caption.trim()) fd.set("caption", caption.trim());
-        if (location.trim()) fd.set("location", location.trim());
-        fd.set("visibility", visibility);
-        fd.set("status", status);
-        if (taggedProducts.length > 0) {
-          fd.set("productIds", JSON.stringify(taggedProducts.map((p) => p.id)));
-        }
+    (status: "published" | "draft") => {
+      if (!user || submitting) return;
+      setSubmitting(true);
 
-        const res = await authedFetch("/api/posts", { method: "POST", body: fd });
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({}) as { error?: string });
-          throw new Error(body.error || "Could not publish");
-        }
-
-        // The post is safely on Bunny + in the database now — release the
-        // in-memory capture and its object URLs ourselves rather than through
-        // discard(), which is written for the "back out" path and would
-        // navigate to /create instead of the profile the post just landed on.
-        URL.revokeObjectURL(media.url);
-        if (media.poster) URL.revokeObjectURL(media.poster.url);
-
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("personal_username")
-          .eq("id", user.id)
-          .single();
-
-        navigate({
-          to: "/profile/$username",
-          params: { username: profile?.personal_username ?? user.id },
-          replace: true,
-        });
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Could not publish");
-        setPending(null);
+      const fd = new FormData();
+      fd.set("file", media.blob, media.type === "video" ? "media.mp4" : "media.jpg");
+      fd.set("mediaType", media.type);
+      if (media.poster) fd.set("thumbnail", media.poster.blob, "thumbnail.jpg");
+      if (caption.trim()) fd.set("caption", caption.trim());
+      if (location.trim()) fd.set("location", location.trim());
+      fd.set("visibility", visibility);
+      fd.set("status", status);
+      if (taggedProducts.length > 0) {
+        fd.set("productIds", JSON.stringify(taggedProducts.map((p) => p.id)));
       }
+
+      startPostUpload(fd, status);
+
+      // FormData already holds the Blobs themselves (not the object URLs),
+      // so it's safe to release ours now instead of waiting for the
+      // now-backgrounded upload to finish.
+      URL.revokeObjectURL(media.url);
+      if (media.poster) URL.revokeObjectURL(media.poster.url);
+
+      navigate({ to: "/home", replace: true });
     },
-    [user, pending, media, caption, location, visibility, taggedProducts, navigate],
+    [user, submitting, media, caption, location, visibility, taggedProducts, navigate],
   );
 
   const activeVisibility = VISIBILITY_OPTIONS.find((v) => v.id === visibility)!;
 
   return (
     <div
-      className="fixed inset-0 bg-black text-white overflow-y-auto"
+      className="fixed inset-0 bg-white text-black overflow-y-auto"
       style={{ fontFamily: "'SF Pro', system-ui, sans-serif" }}
     >
       <div className="flex items-center justify-between px-4 pt-[calc(env(safe-area-inset-top)+12px)] pb-3">
@@ -136,7 +124,7 @@ function PublishPage() {
       <div className="px-4 pb-40">
         {/* Cover + caption */}
         <div className="flex gap-3 pt-2">
-          <div className="w-24 h-32 shrink-0 rounded-xl overflow-hidden bg-neutral-900 relative">
+          <div className="w-24 h-32 shrink-0 rounded-xl overflow-hidden bg-gray-100 relative">
             {media.type === "photo" ? (
               <img src={media.url} alt="" className="w-full h-full object-cover" />
             ) : media.poster ? (
@@ -154,15 +142,14 @@ function PublishPage() {
               placeholder="Write a caption that gets people talking…"
               rows={4}
               maxLength={2200}
-              className="flex-1 bg-transparent text-[15px] placeholder:text-white/40 focus:outline-none resize-none"
+              className="flex-1 bg-transparent text-[15px] placeholder:text-gray-400 focus:outline-none resize-none"
             />
             <div className="flex items-center gap-3 pt-1">
               <button
                 type="button"
                 onClick={() => insertToken("#")}
                 aria-label="Add hashtag"
-                className="oak-motion-control flex items-center justify-center w-8 h-8 rounded-full active:scale-90"
-                style={{ background: "rgba(255,255,255,0.08)" }}
+                className="oak-motion-control flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 active:scale-90"
               >
                 <Hash size={15} />
               </button>
@@ -170,28 +157,27 @@ function PublishPage() {
                 type="button"
                 onClick={() => insertToken("@")}
                 aria-label="Mention someone"
-                className="oak-motion-control flex items-center justify-center w-8 h-8 rounded-full active:scale-90"
-                style={{ background: "rgba(255,255,255,0.08)" }}
+                className="oak-motion-control flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 active:scale-90"
               >
                 <AtSign size={15} />
               </button>
-              <span className="text-[11px] text-white/35">{caption.length}/2200</span>
+              <span className="text-[11px] text-gray-400">{caption.length}/2200</span>
             </div>
           </div>
         </div>
 
         {/* Location */}
-        <div className="oak-motion-fade flex items-center gap-2.5 mt-5 rounded-xl border border-white/10 px-3.5 py-3">
-          <MapPin size={17} className="text-white/50 shrink-0" />
+        <div className="oak-motion-fade flex items-center gap-2.5 mt-5 rounded-xl border border-gray-200 px-3.5 py-3">
+          <MapPin size={17} className="text-gray-400 shrink-0" />
           <input
             value={location}
             onChange={(e) => setLocation(e.target.value)}
             placeholder="Add location"
-            className="flex-1 bg-transparent text-[14px] placeholder:text-white/40 focus:outline-none min-w-0"
+            className="flex-1 bg-transparent text-[14px] placeholder:text-gray-400 focus:outline-none min-w-0"
           />
           {location && (
             <button onClick={() => setLocation("")} aria-label="Clear location">
-              <X size={15} className="text-white/40" />
+              <X size={15} className="text-gray-400" />
             </button>
           )}
         </div>
@@ -201,15 +187,15 @@ function PublishPage() {
           <button
             type="button"
             onClick={() => setTagPickerOpen(true)}
-            className="oak-motion-control flex items-center gap-2.5 w-full rounded-xl border border-white/10 px-3.5 py-3 text-left active:scale-[0.99]"
+            className="oak-motion-control flex items-center gap-2.5 w-full rounded-xl border border-gray-200 px-3.5 py-3 text-left active:scale-[0.99]"
           >
-            <Tag size={17} className="text-white/50 shrink-0" />
+            <Tag size={17} className="text-gray-400 shrink-0" />
             <span className="flex-1 text-[14px]">
               {taggedProducts.length > 0
                 ? `${taggedProducts.length} product${taggedProducts.length > 1 ? "s" : ""} tagged`
                 : "Tag products"}
             </span>
-            <span className="text-[12px] text-white/40">Edit</span>
+            <span className="text-[12px] text-gray-400">Edit</span>
           </button>
 
           {taggedProducts.length > 0 && (
@@ -217,8 +203,7 @@ function PublishPage() {
               {taggedProducts.map((p) => (
                 <div
                   key={p.id}
-                  className="oak-motion-pop shrink-0 flex items-center gap-2 rounded-full pl-1 pr-2.5 py-1"
-                  style={{ background: "rgba(255,255,255,0.08)" }}
+                  className="oak-motion-pop shrink-0 flex items-center gap-2 rounded-full bg-gray-100 pl-1 pr-2.5 py-1"
                 >
                   <img
                     src={p.image ?? "https://placehold.co/40x40"}
@@ -230,7 +215,7 @@ function PublishPage() {
                     onClick={() => setTaggedProducts((prev) => prev.filter((x) => x.id !== p.id))}
                     aria-label={`Remove ${p.title} tag`}
                   >
-                    <X size={12} className="text-white/50" />
+                    <X size={12} className="text-gray-400" />
                   </button>
                 </div>
               ))}
@@ -242,16 +227,12 @@ function PublishPage() {
         <button
           type="button"
           onClick={() => setVisibilityOpen(true)}
-          className="oak-motion-control flex items-center gap-2.5 w-full rounded-xl border border-white/10 px-3.5 py-3 mt-3 text-left active:scale-[0.99]"
+          className="oak-motion-control flex items-center gap-2.5 w-full rounded-xl border border-gray-200 px-3.5 py-3 mt-3 text-left active:scale-[0.99]"
         >
-          <activeVisibility.Icon size={17} className="text-white/50 shrink-0" />
+          <activeVisibility.Icon size={17} className="text-gray-400 shrink-0" />
           <span className="flex-1 text-[14px]">{activeVisibility.description}</span>
-          <span className="text-[12px] text-white/40">Change</span>
+          <span className="text-[12px] text-gray-400">Change</span>
         </button>
-
-        {error && (
-          <p className="oak-motion-enter text-[13px] text-red-400 mt-4 text-center">{error}</p>
-        )}
       </div>
 
       {/* Footer */}
@@ -259,25 +240,25 @@ function PublishPage() {
         className="fixed left-0 right-0 bottom-0 flex gap-3 px-4 pt-3"
         style={{
           paddingBottom: "calc(env(safe-area-inset-bottom) + 16px)",
-          background: "linear-gradient(to top, #000 60%, rgba(0,0,0,0))",
+          background: "linear-gradient(to top, #fff 60%, rgba(255,255,255,0))",
         }}
       >
         <button
           type="button"
           onClick={() => publish("draft")}
-          disabled={pending !== null}
-          className="oak-motion-control flex-1 rounded-full border border-white/25 py-3.5 text-[14px] font-semibold disabled:opacity-50 active:scale-[0.98]"
+          disabled={submitting}
+          className="oak-motion-control flex-1 rounded-full border border-gray-300 py-3.5 text-[14px] font-semibold disabled:opacity-50 active:scale-[0.98]"
         >
-          {pending === "draft" ? "Saving…" : "Save to Drafts"}
+          Save to Drafts
         </button>
         <button
           type="button"
           onClick={() => publish("published")}
-          disabled={pending !== null}
+          disabled={submitting}
           className="oak-motion-control flex-[1.3] rounded-full py-3.5 text-[14px] font-bold disabled:opacity-50 active:scale-[0.98]"
-          style={{ background: "#fff", color: "#000" }}
+          style={{ background: "#000", color: "#fff" }}
         >
-          {pending === "published" ? "Posting…" : "Post"}
+          Post
         </button>
       </div>
 
@@ -320,7 +301,7 @@ function VisibilityPanel({
   onSelect: (v: Visibility) => void;
 }) {
   return (
-    <CameraPanel open={open} onClose={onClose} title="Who can view this post" height={340}>
+    <CameraPanel open={open} onClose={onClose} title="Who can view this post" height={340} light>
       <div className="flex flex-col gap-1.5 pb-4">
         {VISIBILITY_OPTIONS.map(({ id, label, description, Icon }) => {
           const active = id === selected;
@@ -329,13 +310,13 @@ function VisibilityPanel({
               key={id}
               type="button"
               onClick={() => onSelect(id)}
-              className="oak-motion-control flex items-center gap-3 rounded-xl px-3 py-3 text-left active:scale-[0.99]"
-              style={{ background: active ? "rgba(255,255,255,0.08)" : "transparent" }}
+              className="oak-motion-control flex items-center gap-3 rounded-xl px-3 py-3 text-left text-black active:scale-[0.99]"
+              style={{ background: active ? "#f3f4f6" : "transparent" }}
             >
               <Icon size={19} className="shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="text-[14px] font-semibold">{label}</p>
-                <p className="text-[12px] text-white/45 truncate">{description}</p>
+                <p className="text-[12px] text-gray-500 truncate">{description}</p>
               </div>
               {active && <Check size={18} />}
             </button>
@@ -393,10 +374,10 @@ function ProductTagPanel({
   }, [open, storeId]);
 
   return (
-    <CameraPanel open={open} onClose={onClose} title="Tag products" height={520}>
+    <CameraPanel open={open} onClose={onClose} title="Tag products" height={520} light>
       {!storeId ? (
         <div className="flex flex-col items-center text-center gap-3 py-10">
-          <p className="text-[13px] text-white/50 max-w-[220px]">
+          <p className="text-[13px] text-gray-500 max-w-[220px]">
             List a product in your store before you can tag it on a post.
           </p>
           <button
@@ -404,15 +385,15 @@ function ProductTagPanel({
               onClose();
               navigate({ to: "/store/products/new" });
             }}
-            className="oak-motion-control rounded-full bg-white text-black text-[13px] font-semibold px-5 py-2.5 active:scale-95"
+            className="oak-motion-control rounded-full bg-black text-white text-[13px] font-semibold px-5 py-2.5 active:scale-95"
           >
             List a product
           </button>
         </div>
       ) : loading ? (
-        <div className="text-center text-[13px] text-white/40 py-10">Loading your products…</div>
+        <div className="text-center text-[13px] text-gray-400 py-10">Loading your products…</div>
       ) : products.length === 0 ? (
-        <div className="text-center text-[13px] text-white/40 py-10">
+        <div className="text-center text-[13px] text-gray-400 py-10">
           No active products to tag yet.
         </div>
       ) : (
@@ -424,25 +405,25 @@ function ProductTagPanel({
                 key={p.id}
                 type="button"
                 onClick={() => onToggle(p)}
-                className="oak-motion-control flex items-center gap-3 rounded-xl px-2 py-2 text-left active:scale-[0.99]"
-                style={{ background: active ? "rgba(255,255,255,0.08)" : "transparent" }}
+                className="oak-motion-control flex items-center gap-3 rounded-xl px-2 py-2 text-left text-black active:scale-[0.99]"
+                style={{ background: active ? "#f3f4f6" : "transparent" }}
               >
                 <img
                   src={p.image ?? "https://placehold.co/48x48"}
                   alt=""
-                  className="w-11 h-11 rounded-lg object-cover bg-neutral-800 shrink-0"
+                  className="w-11 h-11 rounded-lg object-cover bg-gray-100 shrink-0"
                 />
                 <div className="flex-1 min-w-0">
                   <p className="text-[14px] font-medium truncate">{p.title}</p>
-                  <p className="text-[12px] text-white/45">
+                  <p className="text-[12px] text-gray-500">
                     {p.price != null ? `₦${p.price.toLocaleString()}` : "No price"}
                   </p>
                 </div>
                 <span
                   className="flex items-center justify-center w-6 h-6 rounded-full shrink-0"
                   style={{
-                    background: active ? "#fff" : "rgba(255,255,255,0.1)",
-                    color: active ? "#000" : "transparent",
+                    background: active ? "#000" : "#f3f4f6",
+                    color: active ? "#fff" : "transparent",
                   }}
                 >
                   <Check size={14} strokeWidth={3} />

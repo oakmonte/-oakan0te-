@@ -1,11 +1,13 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
-import { ChevronLeft, ImageIcon, Plus, Trash2 } from "lucide-react";
+import { ChevronLeft, ImageIcon, MoreHorizontal, Plus } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useActiveStoreId } from "@/hooks/use-own-store";
+import { useStoreHeader } from "@/hooks/use-store-header";
 import { deleteCollection } from "@/lib/collections";
 import { setPendingNewCollectionId } from "@/lib/product-draft-handoff";
 import { ProductsSheet } from "@/components/product-form/ProductsSheet";
+import { CollectionActionsSheet } from "@/components/product-form/CollectionActionsSheet";
 
 export const Route = createFileRoute("/store/collections_/$id")({
   component: CollectionDetail,
@@ -27,15 +29,15 @@ function CollectionDetail() {
   const navigate = useNavigate();
   const { id } = Route.useParams();
   const { storeId } = useActiveStoreId();
+  const { setRightAction } = useStoreHeader();
 
   const [collection, setCollection] = useState<CollectionInfo | null | undefined>(undefined); // undefined = loading, null = not found
   const [products, setProducts] = useState<ProductRow[] | null>(null);
   const [productsSheetOpen, setProductsSheetOpen] = useState(false);
-  // Deleting a collection is destructive (and can also delete its products),
-  // so it's a two-step confirm with an explicit choice between the two modes
-  // rather than a single "are you sure".
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  // Deleting a collection is destructive (and can also delete its products) —
+  // same "..." -> actions sheet -> explicit confirm pattern as the product
+  // edit page, rather than a bare trash icon in this page's own header.
+  const [actionsSheetOpen, setActionsSheetOpen] = useState(false);
 
   const fetchCollection = useCallback(async () => {
     const { data } = await supabase
@@ -74,6 +76,20 @@ function CollectionDetail() {
     fetchProducts();
   }, [fetchCollection, fetchProducts]);
 
+  useEffect(() => {
+    setRightAction(
+      <button
+        type="button"
+        onClick={() => setActionsSheetOpen(true)}
+        aria-label="Collection actions"
+        className="p-1 -mr-1 text-gray-900"
+      >
+        <MoreHorizontal size={20} />
+      </button>,
+    );
+    return () => setRightAction(null);
+  }, [setRightAction]);
+
   async function handleApplyProducts(nextIds: string[]) {
     const currentIds = new Set((products ?? []).map((p) => p.id));
     const nextSet = new Set(nextIds);
@@ -99,13 +115,8 @@ function CollectionDetail() {
   }
 
   async function handleDelete(withProducts: boolean) {
-    setDeleting(true);
     const { error } = await deleteCollection(id, withProducts);
-    setDeleting(false);
-    if (error) {
-      console.error("CollectionDetail: failed to delete collection", error);
-      return;
-    }
+    if (error) throw new Error(error);
     navigate({ to: "/store/collections" });
   }
 
@@ -126,14 +137,7 @@ function CollectionDetail() {
           Collections
         </button>
         <span className="font-semibold text-[15px] truncate max-w-[45%]">{collection.title}</span>
-        <button
-          onClick={() => setDeleteConfirmOpen(true)}
-          aria-label="Delete collection"
-          className="p-1 -mr-1 text-gray-500"
-          type="button"
-        >
-          <Trash2 size={18} />
-        </button>
+        <span className="w-6" />
       </div>
 
       <div className="px-4 py-4 flex items-center gap-3 border-b-8 border-gray-50">
@@ -204,42 +208,13 @@ function CollectionDetail() {
         />
       )}
 
-      {deleteConfirmOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-end animate-in fade-in duration-200">
-          <div className="w-full bg-white rounded-t-2xl p-4 pb-8 animate-in slide-in-from-bottom-6 duration-300 ease-out">
-            <p className="text-[15px] font-semibold text-gray-900 mb-1">
-              Delete "{collection.title}"?
-            </p>
-            <p className="text-xs text-gray-500 mb-4">
-              Choose whether to keep the {products?.length ?? 0} product
-              {(products?.length ?? 0) === 1 ? "" : "s"} in this collection.
-            </p>
-            <button
-              type="button"
-              disabled={deleting}
-              onClick={() => handleDelete(false)}
-              className="w-full text-sm font-medium text-gray-900 border border-gray-200 rounded-xl py-3 mb-2 disabled:opacity-50"
-            >
-              Delete collection only
-            </button>
-            <button
-              type="button"
-              disabled={deleting}
-              onClick={() => handleDelete(true)}
-              className="w-full text-sm font-medium text-white bg-red-600 rounded-xl py-3 mb-2 disabled:opacity-50"
-            >
-              Delete collection and its products
-            </button>
-            <button
-              type="button"
-              disabled={deleting}
-              onClick={() => setDeleteConfirmOpen(false)}
-              className="w-full text-sm text-gray-500 py-2"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
+      {actionsSheetOpen && (
+        <CollectionActionsSheet
+          productCount={products?.length ?? 0}
+          onClose={() => setActionsSheetOpen(false)}
+          onDeleteOnly={() => handleDelete(false)}
+          onDeleteWithProducts={() => handleDelete(true)}
+        />
       )}
     </div>
   );

@@ -25,12 +25,22 @@ export type ProductDraft = {
   regularContinueSellingOutOfStock: boolean;
   regularLocationQuantities: Record<string, number>;
   regularWeightGrams: number | null;
+  regularSku: string;
   material: string;
   options: VariantOption[];
   rows: VariantRow[];
   collectionIds: string[];
   sizeMeasurements: SizeMeasurements;
   manualSize: ManualSize | null;
+  // Optional because drafts written before these fields existed are still
+  // sitting in some sellers' localStorage — `?? []`/`?? null` at every read
+  // site treats a missing value as "the draft never touched this", not as
+  // "clear it". Only the edit page ($id.tsx) tracks regularMaterialFeel; the
+  // new-product page has no such field to lose.
+  tagIds?: string[];
+  regularBarcode?: string | null;
+  regularMaterialFeel?: string | null;
+  regularLegacyStockQty?: number;
 };
 
 let pendingDraft: ProductDraft | null = null;
@@ -93,13 +103,21 @@ export function takePendingNewLocationId(): string | null {
 // single-in-progress-draft assumption the in-memory handoff already makes.
 const AUTOSAVE_KEY_PREFIX = "oak_product_draft_autosave:";
 
+// How long an autosave is trusted before it's treated as abandoned rather
+// than "unsaved progress" — long enough to survive an accidental refresh or
+// a short interruption, short enough that a forgotten tab doesn't silently
+// resurrect a stale, since-superseded edit (and the DB fields it never
+// tracked, like tags) days or weeks later.
+const AUTOSAVE_MAX_AGE_MS = 6 * 60 * 60 * 1000;
+
 function autosaveKey(productId: string | undefined) {
   return AUTOSAVE_KEY_PREFIX + (productId ?? "new");
 }
 
 export function writeAutosavedDraft(productId: string | undefined, draft: ProductDraft) {
   try {
-    localStorage.setItem(autosaveKey(productId), JSON.stringify(draft));
+    const stamped: ProductDraft & { savedAt: number } = { ...draft, savedAt: Date.now() };
+    localStorage.setItem(autosaveKey(productId), JSON.stringify(stamped));
   } catch {
     // Storage full or unavailable (Safari private browsing, etc.) — the
     // draft just won't survive a refresh this time, nothing else to do.
@@ -109,7 +127,18 @@ export function writeAutosavedDraft(productId: string | undefined, draft: Produc
 export function readAutosavedDraft(productId: string | undefined): ProductDraft | null {
   try {
     const raw = localStorage.getItem(autosaveKey(productId));
-    return raw ? (JSON.parse(raw) as ProductDraft) : null;
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as ProductDraft & { savedAt?: number };
+    // No savedAt at all means this was written before that stamp existed —
+    // treat it the same as expired rather than trusting it indefinitely, so
+    // a pre-fix draft missing tagIds/regularBarcode/regularMaterialFeel gets
+    // discarded (forcing a real DB load) instead of silently wiping those
+    // fields on the next save.
+    if (parsed.savedAt == null || Date.now() - parsed.savedAt > AUTOSAVE_MAX_AGE_MS) {
+      clearAutosavedDraft(productId);
+      return null;
+    }
+    return parsed;
   } catch {
     return null;
   }

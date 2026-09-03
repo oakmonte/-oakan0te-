@@ -189,7 +189,7 @@ export function DescriptionSheet({
             setFormats(readFormats());
             setPolicyError(null);
           }}
-          data-placeholder="Describe your product…"
+          data-placeholder="Describe your product and try to answer questions you know your customers will ask...there are tools including bullet points and numbering if you need them."
           className="oak-description-editor flex-1 min-h-0 overflow-y-auto px-4 py-5 text-base text-gray-900 outline-none"
         />
 

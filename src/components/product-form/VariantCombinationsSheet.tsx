@@ -9,6 +9,7 @@ import { InventorySheet, type InventoryValues } from "./InventorySheet";
 import { WeightSheet } from "./WeightSheet";
 import { useMultiFilePicker } from "@/hooks/use-file-picker";
 import { uploadProductImage } from "@/lib/upload-product-image";
+import { useLockedViewport } from "@/hooks/use-locked-viewport";
 
 export function VariantCombinationsSheet({
   options,
@@ -36,8 +37,16 @@ export function VariantCombinationsSheet({
   const baseImages = mainImageUrl
     ? [mainImageUrl, ...additionalImageUrls.filter((u) => u !== mainImageUrl)]
     : additionalImageUrls;
+  // Has its own SKU input (per-row), so — like every other full-screen sheet
+  // with a text field — needs this to stop the keyboard from dragging the
+  // fixed sheet upward instead of overlaying it. Missing here was the actual
+  // "variant popups pushing up" bug.
+  useLockedViewport();
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkPrice, setBulkPrice] = useState("");
+  const [bulkCompareAtPrice, setBulkCompareAtPrice] = useState("");
+  const [bulkStock, setBulkStock] = useState("");
+  const [bulkWeight, setBulkWeight] = useState("");
   const [bulkImageUrl, setBulkImageUrl] = useState("");
   const [imagePickerKey, setImagePickerKey] = useState<string | null>(null);
   const [inventoryKey, setInventoryKey] = useState<string | null>(null);
@@ -67,13 +76,46 @@ export function VariantCombinationsSheet({
   // Only overwrite the fields the seller actually filled in, so applying a
   // price doesn't silently wipe stock counts they already entered by hand.
   // Untouched rows they've unchecked are left alone entirely.
+  //
+  // Stock sets the quantity at every location a row ALREADY has picked, since
+  // it's a sum across pickup locations (see InventorySheet) rather than a
+  // single number — a row with no locations picked yet still needs "Edit
+  // locations" first, bulk-apply can't invent one for it. SKU is deliberately
+  // not here at all: it's supposed to be unique per variant, so bulk-applying
+  // one literal value would hand every selected row the same SKU, which is a
+  // correctness bug, not a convenience.
   function applyToAll() {
     const patch: Partial<VariantRow> = {};
     if (bulkPrice.trim()) patch.price = bulkPrice.trim();
+    if (bulkCompareAtPrice.trim()) patch.compareAtPrice = bulkCompareAtPrice.trim();
     if (bulkImageUrl.trim()) patch.mainImageUrl = bulkImageUrl.trim();
-    if (Object.keys(patch).length === 0) return;
-    setRows((prev) => prev.map((r) => (r.selected ? { ...r, ...patch } : r)));
+    if (bulkWeight.trim()) {
+      const grams = parseFloat(bulkWeight.trim());
+      if (!isNaN(grams)) patch.weightGrams = grams;
+    }
+    let stockQty: number | null = null;
+    if (bulkStock.trim()) {
+      const n = parseInt(bulkStock.trim(), 10);
+      if (!isNaN(n)) stockQty = Math.max(0, n);
+    }
+    if (Object.keys(patch).length === 0 && stockQty === null) return;
+    setRows((prev) =>
+      prev.map((r) => {
+        if (!r.selected) return r;
+        const next = { ...r, ...patch };
+        if (stockQty !== null && Object.keys(r.locationQuantities).length > 0) {
+          const locationQuantities: Record<string, number> = {};
+          for (const locId of Object.keys(r.locationQuantities))
+            locationQuantities[locId] = stockQty;
+          next.locationQuantities = locationQuantities;
+        }
+        return next;
+      }),
+    );
     setBulkPrice("");
+    setBulkCompareAtPrice("");
+    setBulkStock("");
+    setBulkWeight("");
     setBulkImageUrl("");
     setBulkOpen(false);
   }
@@ -199,9 +241,18 @@ export function VariantCombinationsSheet({
             <div className="border border-gray-200 rounded-xl p-3 mb-3 bg-gray-50">
               <p className="text-xs text-gray-500 mb-2">
                 Fills every selected variant at once — you can still edit them individually after.
+                Stock only fills locations a variant already has picked; SKU isn't included since it
+                needs to stay unique per variant.
               </p>
               <div className="grid grid-cols-2 gap-2">
                 <MiniField label="Price" value={bulkPrice} onChange={setBulkPrice} />
+                <MiniField
+                  label="Compare-at"
+                  value={bulkCompareAtPrice}
+                  onChange={setBulkCompareAtPrice}
+                />
+                <MiniField label="Stock" value={bulkStock} onChange={setBulkStock} />
+                <MiniField label="Weight (g)" value={bulkWeight} onChange={setBulkWeight} />
                 <MiniField
                   label="Image URL"
                   value={bulkImageUrl}
@@ -212,7 +263,13 @@ export function VariantCombinationsSheet({
               <button
                 type="button"
                 onClick={applyToAll}
-                disabled={!bulkPrice.trim() && !bulkImageUrl.trim()}
+                disabled={
+                  !bulkPrice.trim() &&
+                  !bulkCompareAtPrice.trim() &&
+                  !bulkStock.trim() &&
+                  !bulkWeight.trim() &&
+                  !bulkImageUrl.trim()
+                }
                 className="mt-3 w-full bg-black text-white text-sm font-medium rounded-lg py-2.5 disabled:bg-gray-200 disabled:text-gray-400"
               >
                 Apply
@@ -248,7 +305,7 @@ export function VariantCombinationsSheet({
                     error={showPriceErrors && !row.price.trim()}
                   />
                   <label className="flex flex-col gap-1">
-                    <span className="text-xs text-gray-400">Stock</span>
+                    <span className="text-xs text-gray-400">Inventory</span>
                     <button
                       type="button"
                       onClick={() => setInventoryKey(row.key)}
@@ -261,12 +318,6 @@ export function VariantCombinationsSheet({
                     label="Compare-at"
                     value={row.compareAtPrice}
                     onChange={(v) => updateRow(row.key, { compareAtPrice: v })}
-                  />
-                  <MiniField
-                    label="SKU"
-                    value={row.sku}
-                    onChange={(v) => updateRow(row.key, { sku: v })}
-                    type="text"
                   />
                   <label className="flex flex-col gap-1">
                     <span className="text-xs text-gray-400">Weight</span>
@@ -318,12 +369,16 @@ export function VariantCombinationsSheet({
               initial={{
                 continueSellingOutOfStock: row.continueSellingOutOfStock,
                 locationQuantities: row.locationQuantities,
+                sku: row.sku,
+                barcode: row.barcode ?? "",
               }}
               onCreateLocation={onCreateLocation}
               onSave={(values: InventoryValues) => {
                 updateRow(inventoryKey, {
                   continueSellingOutOfStock: values.continueSellingOutOfStock,
                   locationQuantities: values.locationQuantities,
+                  sku: values.sku,
+                  barcode: values.barcode || null,
                 });
                 setInventoryKey(null);
               }}
