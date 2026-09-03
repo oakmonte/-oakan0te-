@@ -40,6 +40,7 @@ export type ProductDraft = {
   tagIds?: string[];
   regularBarcode?: string | null;
   regularMaterialFeel?: string | null;
+  regularLegacyStockQty?: number;
 };
 
 let pendingDraft: ProductDraft | null = null;
