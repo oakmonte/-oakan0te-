@@ -128,7 +128,7 @@ function NewProduct() {
   // Never surfaced anywhere on this page before now -- new products start
   // with none, unlike the edit page's regularBarcode which round-trips a
   // value an import may have set.
-  const [regularBarcode, setRegularBarcode] = useState("");
+  const [regularBarcode, setRegularBarcode] = useState(initialDraft?.regularBarcode ?? "");
 
   // Variant-mode state
   const [options, setOptions] = useState<VariantOption[]>(initialDraft?.options ?? []);
@@ -169,7 +169,7 @@ function NewProduct() {
     return base;
   });
   const [tagsSheetOpen, setTagsSheetOpen] = useState(false);
-  const [tagIds, setTagIds] = useState<string[]>([]);
+  const [tagIds, setTagIds] = useState<string[]>(initialDraft?.tagIds ?? []);
   const [necessitiesSheetOpen, setNecessitiesSheetOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -199,12 +199,14 @@ function NewProduct() {
       regularLocationQuantities,
       regularWeightGrams,
       regularSku,
+      regularBarcode,
       material,
       options,
       rows,
       collectionIds,
       sizeMeasurements,
       manualSize,
+      tagIds,
     };
   }
 

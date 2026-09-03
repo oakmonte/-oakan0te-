@@ -3,7 +3,7 @@ import {
   Heart,
   MessageCircle,
   Bookmark,
-  ArrowUpRight,
+  Send,
   ShoppingBag,
   Plus,
   Check,
@@ -348,7 +348,12 @@ function FeedPostCard({ post, viewerId }: { post: FeedPost; viewerId: string | n
               </span>
             )}
           </div>
-          <ArrowUpRight size={26} style={{ filter: ICON_SHADOW }} />
+          <Send
+            size={26}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={{ filter: ICON_SHADOW }}
+          />
         </div>
       </div>
 

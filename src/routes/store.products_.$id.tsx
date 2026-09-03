@@ -181,8 +181,12 @@ function EditProduct() {
   });
   // No UI edits these yet (mirrors "material" on the new-product form) —
   // round-tripped so opening an imported product and saving doesn't drop them.
-  const [regularBarcode, setRegularBarcode] = useState<string | null>(null);
-  const [regularMaterialFeel, setRegularMaterialFeel] = useState<string | null>(null);
+  const [regularBarcode, setRegularBarcode] = useState<string | null>(
+    initialDraft?.regularBarcode ?? null,
+  );
+  const [regularMaterialFeel, setRegularMaterialFeel] = useState<string | null>(
+    initialDraft?.regularMaterialFeel ?? null,
+  );
   const [regularWeightGrams, setRegularWeightGrams] = useState<number | null>(
     initialDraft?.regularWeightGrams ?? null,
   );
@@ -229,7 +233,7 @@ function EditProduct() {
     return base;
   });
   const [tagsSheetOpen, setTagsSheetOpen] = useState(false);
-  const [tagIds, setTagIds] = useState<string[]>([]);
+  const [tagIds, setTagIds] = useState<string[]>(initialDraft?.tagIds ?? []);
   const [necessitiesSheetOpen, setNecessitiesSheetOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -457,12 +461,15 @@ function EditProduct() {
       regularLocationQuantities,
       regularWeightGrams,
       regularSku,
+      regularBarcode,
+      regularMaterialFeel,
       material,
       options,
       rows,
       collectionIds,
       sizeMeasurements,
       manualSize,
+      tagIds,
     };
   }
 
