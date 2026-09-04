@@ -169,7 +169,9 @@ export function BottomNav({ active, ownUsername }: BottomNavProps) {
                 style={{
                   width: 21,
                   height: 20,
-                  opacity: isActive ? 1 : 0.55,
+                  // icons are white artwork — darken them to sit on the light glass
+                  filter: "brightness(0)",
+                  opacity: isActive ? 1 : 0.5,
                   transform: isActive ? "scale(1.08)" : "scale(1)",
                 }}
               />
