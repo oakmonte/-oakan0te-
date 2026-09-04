@@ -19,11 +19,12 @@ import { supabase } from "@/lib/integrations/my-supabase/client";
 import type { Tables } from "@/lib/integrations/my-supabase/types";
 import { useSession } from "@/hooks/use-session";
 import { CommentSheet } from "@/components/feed/CommentSheet";
+import { SaveToast } from "@/components/feed/SaveToast";
 import { LinkProductsSheet } from "@/components/feed/LinkProductsSheet";
 
-// Bare icons over the media with no chip behind them, per the reference —
-// every one needs its own shadow or they wash out against a light photo.
-const ICON_SHADOW = "drop-shadow(0 1px 4px rgba(0,0,0,0.65))";
+// Bare icons over the media — no chip behind them and no drop shadow either.
+// The shadow was there so they'd survive a light photo, but it read as grubby
+// on everything else; they're plain white now, per the reference.
 
 // Snap back from a swipe that didn't go far enough to dismiss.
 const SETTLE_SPRING = { type: "spring" as const, stiffness: 400, damping: 40 };
@@ -355,7 +356,7 @@ export function PostFeed({
       onClick={onClose}
       aria-label="Back"
       className="absolute z-20 flex items-center justify-center active:scale-90"
-      style={{ top: "calc(env(safe-area-inset-top) + 12px)", left: 16, filter: ICON_SHADOW }}
+      style={{ top: "calc(env(safe-area-inset-top) + 12px)", left: 16 }}
     >
       <ChevronLeft size={26} className="text-white" />
     </button>
@@ -431,6 +432,50 @@ export function PostFeed({
   return <>{body}</>;
 }
 
+/** One item in the action rail: the icon, and the count beneath it.
+ *
+ *  Presses fire on POINTER DOWN, not click. A click on touch waits for the
+ *  browser to rule out a scroll, a double tap and a long press before it
+ *  dispatches — which is exactly the lag that made the heart look like it was
+ *  thinking about it. Nothing here is destructive, so acting on contact is
+ *  safe. `touchAction: manipulation` keeps the browser from holding the event
+ *  back for a double-tap-to-zoom it will never get. */
+function RailAction({
+  label,
+  count,
+  pressed,
+  onPress,
+  children,
+}: {
+  label: string;
+  count?: number;
+  pressed?: boolean;
+  onPress?: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      aria-pressed={pressed}
+      onPointerDown={onPress}
+      style={{ touchAction: "manipulation" }}
+      className="flex flex-col items-center gap-1 active:scale-90 transition-transform duration-100"
+    >
+      {children}
+      {count !== undefined && (
+        <span className="text-[11px] font-semibold leading-none">{formatCount(count)}</span>
+      )}
+    </button>
+  );
+}
+
+function formatCount(n: number): string {
+  if (n < 1000) return String(n);
+  if (n < 1_000_000) return `${(n / 1000).toFixed(n < 10_000 ? 1 : 0).replace(/\.0$/, "")}K`;
+  return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
+}
+
 function FeedPostCard({
   post,
   viewerId,
@@ -461,6 +506,8 @@ function FeedPostCard({
   const [following, setFollowing] = useState(post.authorIsFollowed);
   const [followPending, setFollowPending] = useState(false);
   const [liked, setLiked] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [toastOpen, setToastOpen] = useState(false);
   const [burst, setBurst] = useState(0);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
@@ -522,6 +569,32 @@ function FeedPostCard({
   useEffect(
     () => () => {
       if (tapTimer.current) clearTimeout(tapTimer.current);
+    },
+    [],
+  );
+
+  // Counts. There is no likes, comments, saves or shares table yet, so these
+  // are the only honest numbers available: what this viewer has done in this
+  // session, and how many products are actually linked. Everything else reads
+  // 0 rather than showing an invented number.
+  const likeCount = liked ? 1 : 0;
+  const saveCount = saved ? 1 : 0;
+
+  function handleSave() {
+    const next = !saved;
+    setSaved(next);
+    // The strip only makes sense as confirmation of a save. Un-saving needs no
+    // announcement, and re-announcing on every toggle would be noise.
+    if (!next) return;
+    setToastOpen(true);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = window.setTimeout(() => setToastOpen(false), 4500);
+  }
+
+  const toastTimer = useRef<number | null>(null);
+  useEffect(
+    () => () => {
+      if (toastTimer.current) clearTimeout(toastTimer.current);
     },
     [],
   );
@@ -637,14 +710,13 @@ function FeedPostCard({
         )}
       </AnimatePresence>
 
-      <div className="absolute right-5 bottom-28 flex flex-col items-center text-white">
+      <div className="absolute right-5 bottom-20 flex flex-col items-center text-white">
         {/* Avatar always sits above the action rail, in line with it — only
-            the follow +/check badge is conditional on not being your own post. */}
-        <div className="relative mb-8">
-          <div
-            className="w-9 h-9 rounded-full overflow-hidden bg-white/20 border-2 border-white"
-            style={{ filter: ICON_SHADOW }}
-          >
+            the follow +/check badge is conditional on not being your own post.
+            Sized well above the 26px icons below it: at 36px it read as just
+            another item in the rail rather than the head of it. */}
+        <div className="relative mb-7">
+          <div className="w-[52px] h-[52px] rounded-full overflow-hidden bg-white/20 border-2 border-white">
             {post.authorAvatar && (
               <img src={post.authorAvatar} alt="" className="w-full h-full object-cover" />
             )}
@@ -654,36 +726,61 @@ function FeedPostCard({
               type="button"
               onClick={toggleFollow}
               aria-label={following ? "Unfollow" : "Follow"}
-              className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 flex items-center justify-center w-[18px] h-[18px] rounded-full bg-[#fe2c55] text-white active:scale-90"
+              className="absolute -bottom-2 left-1/2 -translate-x-1/2 flex items-center justify-center w-[21px] h-[21px] rounded-full bg-[#fe2c55] text-white active:scale-90"
             >
-              {following ? <Check size={11} strokeWidth={3} /> : <Plus size={11} strokeWidth={3} />}
+              {following ? <Check size={13} strokeWidth={3} /> : <Plus size={13} strokeWidth={3} />}
             </button>
           )}
         </div>
-        <div className="flex flex-col items-center gap-10">
-          <button
-            type="button"
-            onClick={() => setLiked((v) => !v)}
-            aria-label={liked ? "Unlike" : "Like"}
-            aria-pressed={liked}
-            className="active:scale-90 transition-transform duration-150"
+        <div className="flex flex-col items-center gap-5">
+          <RailAction
+            label={liked ? "Unlike" : "Like"}
+            count={likeCount}
+            pressed={liked}
+            onPress={() => setLiked((v) => !v)}
           >
-            <Heart
-              size={26}
-              style={{ filter: ICON_SHADOW }}
-              className={liked ? "text-[#fe2c55]" : "text-white"}
-              fill={liked ? "#fe2c55" : "none"}
-            />
-          </button>
-          <button
-            type="button"
-            onClick={() => setCommentsOpen(true)}
-            aria-label="Comments"
-            className="active:scale-90 transition-transform duration-150"
+            {/* Keyed on `liked` so the icon remounts and replays its pop on
+                every change — the state itself is already synchronous. */}
+            <motion.span
+              key={liked ? "on" : "off"}
+              initial={{ scale: liked ? 0.6 : 1 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", stiffness: 800, damping: 18 }}
+              className="block"
+            >
+              <Heart
+                size={26}
+                className={liked ? "text-[#fe2c55]" : "text-white"}
+                fill={liked ? "#fe2c55" : "none"}
+              />
+            </motion.span>
+          </RailAction>
+
+          <RailAction label="Comments" count={0} onPress={() => setCommentsOpen(true)}>
+            <MessageCircle size={26} />
+          </RailAction>
+
+          <RailAction
+            label={saved ? "Remove from favourites" : "Add to favourites"}
+            count={saveCount}
+            pressed={saved}
+            onPress={handleSave}
           >
-            <MessageCircle size={26} style={{ filter: ICON_SHADOW }} />
-          </button>
-          <Bookmark size={26} style={{ filter: ICON_SHADOW }} />
+            <motion.span
+              key={saved ? "on" : "off"}
+              initial={{ scale: saved ? 0.6 : 1 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", stiffness: 800, damping: 18 }}
+              className="block"
+            >
+              <Bookmark
+                size={26}
+                className={saved ? "text-[#f5c518]" : "text-white"}
+                fill={saved ? "#f5c518" : "none"}
+              />
+            </motion.span>
+          </RailAction>
+
           {/* Add-to-cart: adds every product tagged on this post at once so
               the viewer can keep scrolling without leaving the feed.
               Hidden by WHO'S BROWSING, not by who owns the post: a store
@@ -696,58 +793,40 @@ function FeedPostCard({
               subsystem first, not something to improvise as a side effect
               of a feed icon. */}
           {!asStore && (
-            <div className="relative" style={{ filter: ICON_SHADOW }}>
+            <RailAction label="Add tagged items to cart" count={tags.length}>
               <ShoppingBag size={26} />
-              {tags.length > 0 && (
-                <span className="absolute -top-1 -right-1 flex items-center justify-center w-4 h-4 rounded-full bg-white text-black">
-                  <Plus size={11} strokeWidth={3} />
-                </span>
-              )}
-            </div>
+            </RailAction>
           )}
+
           {/* Link products — owner-only, directly above the "more" dots.
               Linking is what makes a post shoppable: the products picked here
               are what draw the chips under the caption and what a stranger
               swiping to Listed items on this post ends up looking at. */}
           {isOwnerView && (
-            <button
-              type="button"
-              onClick={() => setLinkOpen(true)}
-              aria-label="Link products"
-              className="relative active:scale-90 transition-transform duration-150"
-              style={{ filter: ICON_SHADOW }}
-            >
+            <RailAction label="Link products" count={tags.length} onPress={() => setLinkOpen(true)}>
               <Link2 size={26} />
-              {tags.length > 0 && (
-                <span className="absolute -top-1.5 -right-2 min-w-[16px] h-4 px-1 flex items-center justify-center rounded-full bg-white text-black text-[10px] font-bold">
-                  {tags.length}
-                </span>
-              )}
-            </button>
+            </RailAction>
           )}
+
           {/* "More" (delete, edit, and so on) replaces the share plane only in
               your own profile's post viewer — that's the management surface.
               In the home feed the same post of yours is just another post in
               the stream, so it keeps the plane. No options menu exists yet;
               this is the icon swap. */}
           {isOwnerView ? (
-            <MoreHorizontal size={26} style={{ filter: ICON_SHADOW }} />
+            <RailAction label="More">
+              <MoreHorizontal size={26} />
+            </RailAction>
           ) : (
-            <Send
-              size={26}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              style={{ filter: ICON_SHADOW }}
-            />
+            <RailAction label="Share" count={0}>
+              <Send size={26} strokeLinecap="round" strokeLinejoin="round" />
+            </RailAction>
           )}
         </div>
       </div>
 
-      <div className="absolute left-4 bottom-28 right-20">
-        <p
-          className="text-[14px] font-semibold truncate text-white"
-          style={{ filter: ICON_SHADOW }}
-        >
+      <div className="absolute left-4 bottom-10 right-20">
+        <p className="text-[14px] font-semibold truncate text-white">
           {post.authorDisplayName ?? "User"}
         </p>
         {post.caption && <p className="text-[13px] text-white/80 mt-0.5">{post.caption}</p>}
@@ -778,6 +857,12 @@ function FeedPostCard({
           </div>
         )}
       </div>
+
+      <SaveToast
+        open={toastOpen}
+        hasItems={tags.length > 0}
+        onDismiss={() => setToastOpen(false)}
+      />
 
       <CommentSheet open={commentsOpen} onClose={() => setCommentsOpen(false)} />
       {isOwnerView && (
