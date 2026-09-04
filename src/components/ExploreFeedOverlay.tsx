@@ -7,15 +7,13 @@ import { useSession } from "@/hooks/use-session";
 
 type FeedTab = "following" | "for-you" | "listed-items" | "profile";
 
-// Swipe direction is driven by position in THIS array (dragging left
-// advances to the next/higher index, dragging right goes back — same
-// convention as the drag handler already used for profile page tab
-// swiping). The tab bar below renders in a fixed visual order
-// (Following/For you/Listed items/Profile) independent of this — only the
-// underline moves, same as the swipe reference this was built from.
-const PAGE_ORDER: FeedTab[] = ["profile", "listed-items", "for-you", "following"];
-
-const TAB_BAR_ORDER: { key: FeedTab; label: string }[] = [
+// One order, and it is the order you can see. Swiping left moves the content
+// left, which brings in the tab to the RIGHT of the current one — the same
+// convention as the profile and store-profile pagers, and the one every social
+// feed uses. This used to be a second, reversed array whose comment claimed to
+// match the profile pager but did the opposite of it, so every swipe here ran
+// backwards: dragging left walked toward Following.
+const TABS: { key: FeedTab; label: string }[] = [
   { key: "following", label: "Following" },
   { key: "for-you", label: "For you" },
   { key: "listed-items", label: "Listed items" },
@@ -35,11 +33,11 @@ export function ExploreFeedOverlay({
   // just left.
   const [activePost, setActivePost] = useState<ActivePost | null>(null);
   const { user } = useSession();
-  const index = PAGE_ORDER.indexOf(active);
+  const index = TABS.findIndex((t) => t.key === active);
 
   function go(delta: number) {
     const next = index + delta;
-    if (next >= 0 && next < PAGE_ORDER.length) setActive(PAGE_ORDER[next]);
+    if (next >= 0 && next < TABS.length) setActive(TABS[next].key);
   }
 
   function handleDragEnd(_: unknown, info: PanInfo) {
@@ -65,7 +63,7 @@ export function ExploreFeedOverlay({
           <ChevronLeft size={24} />
         </button>
         <div className="flex items-center gap-4 text-[13px] font-medium text-white/50 overflow-x-auto no-scrollbar">
-          {TAB_BAR_ORDER.map((t) => (
+          {TABS.map((t) => (
             <button
               key={t.key}
               type="button"

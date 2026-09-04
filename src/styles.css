@@ -47,6 +47,25 @@
   }
 }
 
+/* Chrome/Safari auto-fill a saved email into a text input with their own pale
+   yellow background — nothing in our CSS was overriding it, so it showed
+   through on every text input app-wide the moment a browser recognized the
+   field (most visibly the email field on sign-in/sign-up, shared by all
+   three roles since they all route through the one AuthPanel component).
+   The inset box-shadow is the only technique every engine honors; the
+   background-image gradient layers on top for browsers that respect it. */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-text-fill-color: var(--color-brand-text);
+  caret-color: var(--color-brand-text);
+  background-image: linear-gradient(135deg, #eaf1ff, #dce8ff);
+  -webkit-box-shadow: 0 0 0 1000px #eaf1ff inset;
+  box-shadow: 0 0 0 1000px #eaf1ff inset;
+  transition: background-color 9999s ease-in-out 0s;
+}
+
 /* iOS Safari (and Chrome on Android) automatically zooms the viewport when it
    focuses a text control whose computed font size is below 16px. Keep every
    text control at that threshold on small screens instead of disabling
