@@ -73,6 +73,10 @@ export type AfterShotLayersContextValue = {
   addLayer: (layer: Layer) => void;
   updateLayer: (id: string, patch: Partial<Layer>) => void;
   removeLayer: (id: string) => void;
+  /** Swap the whole stack at once. The photo editor needs it: a carousel keeps
+   *  one layer stack per photo and hands the right one over when you switch
+   *  between them. Nothing in the single-media after-shot flow calls it. */
+  replaceLayers: (layers: Layer[]) => void;
   selectedLayerId: string | null;
   setSelectedLayerId: (id: string | null) => void;
 };
@@ -107,5 +111,18 @@ export function useAfterShotLayersState(): AfterShotLayersContextValue {
     setSelectedLayerId((cur) => (cur === id ? null : cur));
   }, []);
 
-  return { layers, addLayer, updateLayer, removeLayer, selectedLayerId, setSelectedLayerId };
+  const replaceLayers = useCallback((next: Layer[]) => {
+    setLayers(next);
+    setSelectedLayerId(null);
+  }, []);
+
+  return {
+    layers,
+    addLayer,
+    updateLayer,
+    removeLayer,
+    replaceLayers,
+    selectedLayerId,
+    setSelectedLayerId,
+  };
 }

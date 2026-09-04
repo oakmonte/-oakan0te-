@@ -49,6 +49,7 @@ import { Route as StoreContentRouteImport } from './routes/store.content'
 import { Route as StoreCollectionsRouteImport } from './routes/store.collections'
 import { Route as StoreProfileStoreUsernameRouteImport } from './routes/store-profile.$storeUsername'
 import { Route as ProfileUsernameRouteImport } from './routes/profile.$username'
+import { Route as CreatePhotoEditorRouteImport } from './routes/create.photo-editor'
 import { Route as CreateAfterShotRouteImport } from './routes/create.after-shot'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as ApiPostsRouteImport } from './routes/api.posts'
@@ -277,6 +278,11 @@ const ProfileUsernameRoute = ProfileUsernameRouteImport.update({
   path: '/profile/$username',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CreatePhotoEditorRoute = CreatePhotoEditorRouteImport.update({
+  id: '/photo-editor',
+  path: '/photo-editor',
+  getParentRoute: () => CreateRoute,
+} as any)
 const CreateAfterShotRoute = CreateAfterShotRouteImport.update({
   id: '/after-shot',
   path: '/after-shot',
@@ -440,6 +446,7 @@ export interface FileRoutesByFullPath {
   '/api/posts': typeof ApiPostsRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/create/after-shot': typeof CreateAfterShotRouteWithChildren
+  '/create/photo-editor': typeof CreatePhotoEditorRoute
   '/profile/$username': typeof ProfileUsernameRoute
   '/store-profile/$storeUsername': typeof StoreProfileStoreUsernameRoute
   '/store/collections': typeof StoreCollectionsRoute
@@ -505,6 +512,7 @@ export interface FileRoutesByTo {
   '/where-did-you-hear-about-us': typeof WhereDidYouHearAboutUsRoute
   '/api/posts': typeof ApiPostsRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/create/photo-editor': typeof CreatePhotoEditorRoute
   '/profile/$username': typeof ProfileUsernameRoute
   '/store-profile/$storeUsername': typeof StoreProfileStoreUsernameRoute
   '/store/collections': typeof StoreCollectionsRoute
@@ -574,6 +582,7 @@ export interface FileRoutesById {
   '/api/posts': typeof ApiPostsRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/create/after-shot': typeof CreateAfterShotRouteWithChildren
+  '/create/photo-editor': typeof CreatePhotoEditorRoute
   '/profile/$username': typeof ProfileUsernameRoute
   '/store-profile/$storeUsername': typeof StoreProfileStoreUsernameRoute
   '/store/collections': typeof StoreCollectionsRoute
@@ -644,6 +653,7 @@ export interface FileRouteTypes {
     | '/api/posts'
     | '/auth/callback'
     | '/create/after-shot'
+    | '/create/photo-editor'
     | '/profile/$username'
     | '/store-profile/$storeUsername'
     | '/store/collections'
@@ -709,6 +719,7 @@ export interface FileRouteTypes {
     | '/where-did-you-hear-about-us'
     | '/api/posts'
     | '/auth/callback'
+    | '/create/photo-editor'
     | '/profile/$username'
     | '/store-profile/$storeUsername'
     | '/store/collections'
@@ -777,6 +788,7 @@ export interface FileRouteTypes {
     | '/api/posts'
     | '/auth/callback'
     | '/create/after-shot'
+    | '/create/photo-editor'
     | '/profile/$username'
     | '/store-profile/$storeUsername'
     | '/store/collections'
@@ -1143,6 +1155,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProfileUsernameRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/create/photo-editor': {
+      id: '/create/photo-editor'
+      path: '/photo-editor'
+      fullPath: '/create/photo-editor'
+      preLoaderRoute: typeof CreatePhotoEditorRouteImport
+      parentRoute: typeof CreateRoute
+    }
     '/create/after-shot': {
       id: '/create/after-shot'
       path: '/after-shot'
@@ -1348,11 +1367,13 @@ const CreateAfterShotRouteWithChildren = CreateAfterShotRoute._addFileChildren(
 
 interface CreateRouteChildren {
   CreateAfterShotRoute: typeof CreateAfterShotRouteWithChildren
+  CreatePhotoEditorRoute: typeof CreatePhotoEditorRoute
   CreateIndexRoute: typeof CreateIndexRoute
 }
 
 const CreateRouteChildren: CreateRouteChildren = {
   CreateAfterShotRoute: CreateAfterShotRouteWithChildren,
+  CreatePhotoEditorRoute: CreatePhotoEditorRoute,
   CreateIndexRoute: CreateIndexRoute,
 }
 

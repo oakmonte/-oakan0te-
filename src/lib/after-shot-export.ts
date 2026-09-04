@@ -12,7 +12,12 @@ import {
   QUALITY_HIGH,
   getFirstEncodableVideoCodec,
 } from "mediabunny";
-import { applyCompiledFilter, IDENTITY_FILTER, type CompiledFilter } from "@/lib/canvas-filter";
+import {
+  applyCompiledFilter,
+  compileFilter,
+  IDENTITY_FILTER,
+  type CompiledFilter,
+} from "@/lib/canvas-filter";
 import { compileGrade, isNoopFilter, type CameraFilter } from "@/components/camera/filter-data";
 import { drawLayers, preloadStickers } from "@/lib/layer-bake";
 import type { Layer } from "@/lib/after-shot-layers";
@@ -69,6 +74,7 @@ export async function exportPhoto(
   intensity: number,
   layers: Layer[],
   crop: CropRect | null,
+  adjustCss = "",
 ): Promise<Blob> {
   const img = new Image();
   const url = URL.createObjectURL(blob);
@@ -100,7 +106,12 @@ export async function exportPhoto(
     // filter is on the media element, not the layer overlay). Uses the real
     // grade (compileGrade), not the preview's CSS approximation — a one-shot
     // bake like this one can afford the true LUT.
-    drawFilteredFrame(ctx, compileGrade(filter, intensity), canvas.width, canvas.height);
+    drawFilteredFrame(
+      ctx,
+      compileGradeWithAdjust(filter, intensity, adjustCss),
+      canvas.width,
+      canvas.height,
+    );
     drawLayers(ctx, layers, canvas.width, canvas.height, await preloadStickers(layers));
 
     return await new Promise<Blob>((resolve, reject) => {
@@ -242,8 +253,29 @@ function isUnedited(
   intensity: number,
   layers: Layer[],
   crop: CropRect | null,
+  adjustCss: string,
 ): boolean {
-  return isNoopFilter(filter, intensity) && layers.length === 0 && isCropNoop(crop);
+  return (
+    isNoopFilter(filter, intensity) && layers.length === 0 && isCropNoop(crop) && adjustCss === ""
+  );
+}
+
+/** The grade plus any manual tone adjustments, as ONE compiled filter.
+ *
+ *  Adjustments are appended as extra ops rather than merged into the grade's
+ *  own string: a graded filter bakes through a LUT, which has no CSS string to
+ *  concatenate onto. Both land in the same `ops` array, so
+ *  applyCompiledFilter still walks the pixels exactly once — the whole
+ *  one-pass invariant survives adding a tool. */
+function compileGradeWithAdjust(
+  filter: CameraFilter,
+  intensity: number,
+  adjustCss: string,
+): CompiledFilter {
+  const grade = compileGrade(filter, intensity);
+  if (!adjustCss) return grade;
+  const adjust = compileFilter(adjustCss);
+  return { ops: [...grade.ops, ...adjust.ops] };
 }
 
 // What the Next button calls. Keeps the photo/video branch in one place so the
@@ -262,12 +294,13 @@ export async function exportComposite(
   layers: Layer[],
   crop: CropRect | null,
   onProgress?: ExportProgress,
+  adjustCss = "",
 ): Promise<Blob> {
-  if (isUnedited(filter, intensity, layers, crop)) {
+  if (isUnedited(filter, intensity, layers, crop, adjustCss)) {
     onProgress?.(1);
     return media.blob;
   }
   return media.type === "photo"
-    ? await exportPhoto(media.blob, filter, intensity, layers, crop)
+    ? await exportPhoto(media.blob, filter, intensity, layers, crop, adjustCss)
     : await exportVideo(media.blob, filter, intensity, layers, crop, onProgress);
 }

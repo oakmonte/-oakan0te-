@@ -1424,7 +1424,13 @@ function CreatePage() {
         </>
       )}
 
-      {section === "create" && <CreatePanel onClose={handleBack} draftCount={0} />}
+      {section === "create" && (
+        <CreatePanel
+          onClose={handleBack}
+          draftCount={0}
+          onPhotoEditor={() => navigate({ to: "/create/photo-editor" })}
+        />
+      )}
 
       <div
         className="absolute left-0 right-0 flex items-center justify-center gap-8"
