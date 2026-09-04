@@ -34,6 +34,7 @@ import {
 import { stockTotal } from "@/components/product-form/variant-stock";
 import { cartesian, buildKey } from "@/components/product-form/variant-combinations";
 import { ManualSize, SizeMeasurements, getSizeChartForCategory } from "@/lib/size-chart-config";
+import { toBarcodeType, type BarcodeEntry } from "@/lib/barcode-types";
 import { estimateWeightGrams } from "@/lib/weight-estimate";
 import { preloadGuideImage } from "@/components/product-form/size-chart/guide-images";
 import {
@@ -91,13 +92,19 @@ type LoadedProduct = {
     stock_qty: number | null;
     material: string | null;
     main_image_url: string | null;
-    barcode: string | null;
     material_feel: string | null;
     weight_grams: number | null;
     additional_image_urls: string[] | null;
     continue_selling_out_of_stock: boolean;
     product_variant_options: { variant_id: string; option_id: string; value_id: string }[];
     product_variant_stock: { location_id: string; quantity: number }[];
+    product_variant_barcodes: { type: string; value: string; position: number }[];
+    // Deprecated (see product_variant_barcodes above) but still fetched: an
+    // importer (CSV/Bumpa) writes only this column, never the new table, so
+    // without reading it here an imported product's barcode would silently
+    // vanish the moment a seller opens and saves it — the load below falls
+    // back to this whenever product_variant_barcodes comes back empty.
+    barcode: string | null;
   }[];
   product_options: {
     id: string;
@@ -177,7 +184,14 @@ function EditProduct() {
       ? { ...base, [initialNewLocationId]: 0 }
       : base;
   });
-  const [inventorySheetOpen, setInventorySheetOpen] = useState(() => !!initialNewLocationId);
+  // Gated on kind === "regular" -- a variant row's own Inventory sheet
+  // shares this same location-creation side-trip, but has no top-level
+  // sheet of its own to reopen into; without this check, returning from
+  // creating a location while editing a variant product would pop open
+  // this unrelated regular-product sheet on top of the variant form.
+  const [inventorySheetOpen, setInventorySheetOpen] = useState(
+    () => kind === "regular" && !!initialNewLocationId,
+  );
   // Stock saved before per-location inventory existed has no location rows;
   // keep it so an unrelated edit + Save doesn't zero the product's stock.
   const [regularLegacyStockQty, setRegularLegacyStockQty] = useState(
@@ -187,10 +201,11 @@ function EditProduct() {
     locationQuantities: regularLocationQuantities,
     legacyStockQty: regularLegacyStockQty,
   });
-  // No UI edits these yet (mirrors "material" on the new-product form) —
-  // round-tripped so opening an imported product and saving doesn't drop them.
-  const [regularBarcode, setRegularBarcode] = useState<string | null>(
-    initialDraft?.regularBarcode ?? null,
+  // No UI edits materialFeel yet (mirrors "material" on the new-product
+  // form) — round-tripped so opening an imported product and saving
+  // doesn't drop it.
+  const [regularBarcodes, setRegularBarcodes] = useState<BarcodeEntry[]>(
+    initialDraft?.regularBarcodes ?? [],
   );
   const [regularMaterialFeel, setRegularMaterialFeel] = useState<string | null>(
     initialDraft?.regularMaterialFeel ?? null,
@@ -275,7 +290,7 @@ function EditProduct() {
         .from("products")
         .select(
           `id, title, description_short, product_type, status, manual_size_value, manual_size_system,
-           product_variants(id, sku, price, compare_at_price, cost_price, stock_qty, material, main_image_url, barcode, material_feel, weight_grams, additional_image_urls, continue_selling_out_of_stock, product_variant_options(variant_id, option_id, value_id), product_variant_stock(location_id, quantity)),
+           product_variants(id, sku, price, compare_at_price, cost_price, stock_qty, material, main_image_url, barcode, material_feel, weight_grams, additional_image_urls, continue_selling_out_of_stock, product_variant_options(variant_id, option_id, value_id), product_variant_stock(location_id, quantity), product_variant_barcodes(type, value, position)),
            product_options(id, name, position, product_option_values(id, value, position)),
            product_collections(collection_id),
            product_tags(tag_id),
@@ -326,6 +341,23 @@ function EditProduct() {
         arr.sort((a, b) => (optionOrder.get(a.name) ?? 0) - (optionOrder.get(b.name) ?? 0));
       }
 
+      // Falls back to the deprecated single-value column when the new table
+      // has nothing for this variant -- an importer-written barcode (CSV,
+      // Bumpa) only ever lands in that old column, never product_variant_
+      // barcodes, so without this fallback opening and saving an imported
+      // product would silently delete its barcode on the first edit.
+      const toBarcodeEntries = (
+        rows: { type: string; value: string; position: number }[],
+        legacyBarcode: string | null,
+      ): BarcodeEntry[] => {
+        if (rows.length === 0) {
+          return legacyBarcode?.trim() ? [{ type: "custom", value: legacyBarcode.trim() }] : [];
+        }
+        return [...rows]
+          .sort((a, b) => a.position - b.position)
+          .map((r) => ({ type: toBarcodeType(r.type), value: r.value }));
+      };
+
       const kindState: ProductKind = optionsState.length > 0 ? "variant" : "regular";
 
       if (kindState === "variant") {
@@ -372,7 +404,7 @@ function EditProduct() {
               v.product_variant_stock.map((s) => [s.location_id, s.quantity]),
             ),
             legacyStockQty: v.product_variant_stock.length === 0 ? (v.stock_qty ?? 0) : undefined,
-            barcode: v.barcode,
+            barcodes: toBarcodeEntries(v.product_variant_barcodes, v.barcode),
             material: v.material,
             materialFeel: v.material_feel,
             weightGrams: v.weight_grams,
@@ -390,7 +422,7 @@ function EditProduct() {
         setCostPrice(v?.cost_price != null ? String(v.cost_price) : "");
         setMaterial(v?.material ?? "");
         setMainImageUrl(v?.main_image_url ?? "");
-        setRegularBarcode(v?.barcode ?? null);
+        setRegularBarcodes(v ? toBarcodeEntries(v.product_variant_barcodes, v.barcode) : []);
         setRegularSku(v?.sku ?? "");
         setRegularContinueSellingOutOfStock(v?.continue_selling_out_of_stock ?? false);
         setRegularLocationQuantities(
@@ -469,7 +501,7 @@ function EditProduct() {
       regularLocationQuantities,
       regularWeightGrams,
       regularSku,
-      regularBarcode,
+      regularBarcodes,
       regularMaterialFeel,
       material,
       options,
@@ -604,7 +636,7 @@ function EditProduct() {
       regularLegacyStockQty,
       regularWeightGrams,
       regularSku,
-      regularBarcode: regularBarcode ?? "",
+      regularBarcodes,
       regularMaterialFeel,
       mainImageUrl,
       regularAdditionalImageUrls,
@@ -774,17 +806,17 @@ function EditProduct() {
             continueSellingOutOfStock: regularContinueSellingOutOfStock,
             locationQuantities: regularLocationQuantities,
             sku: regularSku,
-            barcode: regularBarcode ?? "",
+            barcodes: regularBarcodes,
           }}
+          initialLocationsPickerOpen={!!initialNewLocationId}
           onCreateLocation={handleCreateLocation}
           onSave={(values: InventoryValues) => {
             setRegularContinueSellingOutOfStock(values.continueSellingOutOfStock);
             setRegularLocationQuantities(values.locationQuantities);
             setRegularSku(values.sku);
-            setRegularBarcode(values.barcode || null);
+            setRegularBarcodes(values.barcodes);
             setInventorySheetOpen(false);
           }}
-          onClose={() => setInventorySheetOpen(false)}
         />
       )}
 

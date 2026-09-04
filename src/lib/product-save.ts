@@ -3,6 +3,7 @@ import { clearAutosavedDraft } from "@/lib/product-draft-handoff";
 import { stockTotal } from "@/components/product-form/variant-stock";
 import type { VariantOption, VariantRow } from "@/components/product-form/VariantMatrixBuilder";
 import type { ManualSize, SizeMeasurements } from "@/lib/size-chart-config";
+import type { BarcodeEntry } from "@/lib/barcode-types";
 
 // Saving a product used to block its form page until every insert/update
 // finished — a variant product alone is 8+ sequential round trips (options,
@@ -44,7 +45,9 @@ export type ProductSavePayload = {
   regularLegacyStockQty?: number;
   regularWeightGrams: number | null;
   regularSku: string;
-  regularBarcode: string;
+  // One-to-many now (see product_variant_barcodes) -- replaces the old
+  // single barcode column, which the app no longer reads or writes.
+  regularBarcodes: BarcodeEntry[];
   // Only the edit page has UI for this; the new-product page always passes
   // null, matching create's existing behaviour of never writing this column.
   regularMaterialFeel: string | null;
@@ -74,6 +77,18 @@ export function subscribeProductSave(listener: () => void): () => void {
 
 export function getProductSaveSnapshot(): ProductSaveState {
   return state;
+}
+
+function barcodeInsertRows(variantId: string, entries: BarcodeEntry[]) {
+  return entries
+    .filter((b) => b.value.trim().length > 0)
+    .map((b, i) => ({ variant_id: variantId, type: b.type, value: b.value.trim(), position: i }));
+}
+
+async function insertBarcodes(rows: ReturnType<typeof barcodeInsertRows>) {
+  if (rows.length === 0) return;
+  const res = await supabase.from("product_variant_barcodes").insert(rows);
+  if (res.error) throw new Error(`product_variant_barcodes: ${res.error.message}`);
 }
 
 function slugify(title: string) {
@@ -127,7 +142,6 @@ async function runCreate(payload: ProductSavePayload) {
         material: payload.material.trim() || null,
         weight_grams: payload.regularWeightGrams,
         sku: payload.regularSku.trim() || null,
-        barcode: payload.regularBarcode.trim() || null,
         main_image_url: payload.mainImageUrl.trim() || null,
         additional_image_urls:
           payload.regularAdditionalImageUrls && payload.regularAdditionalImageUrls.length > 0
@@ -138,6 +152,8 @@ async function runCreate(payload: ProductSavePayload) {
       .single();
     if (variantErr || !variant)
       throw new Error(variantErr?.message ?? "Failed to create product variant");
+
+    await insertBarcodes(barcodeInsertRows(variant.id, payload.regularBarcodes));
 
     const stockPayload = Object.entries(payload.regularLocationQuantities).map(
       ([locationId, quantity]) => ({ variant_id: variant.id, location_id: locationId, quantity }),
@@ -185,12 +201,15 @@ async function runCreate(payload: ProductSavePayload) {
       cost_price: r.costPrice ? Number(r.costPrice) : null,
       stock_qty: stockTotal(r),
       sku: r.sku.trim() || null,
-      barcode: r.barcode?.trim() || null,
       continue_selling_out_of_stock: r.continueSellingOutOfStock,
       weight_grams: r.weightGrams ?? null,
       main_image_url: r.mainImageUrl.trim() || payload.mainImageUrl.trim() || null,
       additional_image_urls: r.additionalImageUrls ?? null,
     }));
+
+    const barcodeRows = selectedRows.flatMap((r, ri) =>
+      barcodeInsertRows(variantsPayload[ri].id, r.barcodes ?? []),
+    );
 
     const stockPayload = selectedRows.flatMap((r, ri) =>
       Object.entries(r.locationQuantities).map(([locationId, quantity]) => ({
@@ -224,6 +243,8 @@ async function runCreate(payload: ProductSavePayload) {
       const stockRes = await supabase.from("product_variant_stock").insert(stockPayload);
       if (stockRes.error) throw new Error(`product_variant_stock: ${stockRes.error.message}`);
     }
+
+    await insertBarcodes(barcodeRows);
   }
 
   // Not kind-gated: a regular product (or a variant product with no Size
@@ -313,7 +334,6 @@ async function runUpdate(payload: Extract<ProductSavePayload, { mode: "update" }
         stock_qty: regularStockQty,
         material: payload.material.trim() || null,
         main_image_url: payload.mainImageUrl.trim() || null,
-        barcode: payload.regularBarcode.trim() || null,
         sku: payload.regularSku.trim() || null,
         continue_selling_out_of_stock: payload.regularContinueSellingOutOfStock,
         material_feel: payload.regularMaterialFeel,
@@ -332,6 +352,8 @@ async function runUpdate(payload: Extract<ProductSavePayload, { mode: "update" }
       const stockRes = await supabase.from("product_variant_stock").insert(stockPayload);
       if (stockRes.error) throw new Error(`product_variant_stock: ${stockRes.error.message}`);
     }
+
+    await insertBarcodes(barcodeInsertRows(variant.id, payload.regularBarcodes));
   } else {
     const usableOptions = payload.options.filter((o) => o.name.trim() && o.values.length > 0);
 
@@ -369,12 +391,15 @@ async function runUpdate(payload: Extract<ProductSavePayload, { mode: "update" }
       sku: r.sku.trim() || null,
       continue_selling_out_of_stock: r.continueSellingOutOfStock,
       main_image_url: r.mainImageUrl.trim() || payload.mainImageUrl.trim() || null,
-      barcode: r.barcode?.trim() || null,
       material: r.material ?? null,
       material_feel: r.materialFeel ?? null,
       weight_grams: r.weightGrams ?? null,
       additional_image_urls: r.additionalImageUrls ?? null,
     }));
+
+    const barcodeRows = selectedRows.flatMap((r, ri) =>
+      barcodeInsertRows(variantsPayload[ri].id, r.barcodes ?? []),
+    );
 
     const stockPayload = selectedRows.flatMap((r, ri) =>
       Object.entries(r.locationQuantities).map(([locationId, quantity]) => ({
@@ -408,6 +433,8 @@ async function runUpdate(payload: Extract<ProductSavePayload, { mode: "update" }
       const stockRes = await supabase.from("product_variant_stock").insert(stockPayload);
       if (stockRes.error) throw new Error(`product_variant_stock: ${stockRes.error.message}`);
     }
+
+    await insertBarcodes(barcodeRows);
   }
 
   const measurementsDel = await supabase

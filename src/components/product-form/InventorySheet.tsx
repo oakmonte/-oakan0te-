@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
-import { X, ChevronLeft, Check, Plus } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, Check, Plus } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
 import { Code128Barcode } from "./Code128Barcode";
+import { BarcodesSheet } from "./BarcodesSheet";
+import type { BarcodeEntry } from "@/lib/barcode-types";
 
 export type InventoryValues = {
   continueSellingOutOfStock: boolean;
@@ -15,7 +17,10 @@ export type InventoryValues = {
   // sheet -- live alongside stock rather than as their own top-level
   // sections, since they're all facets of "how this SKU is tracked."
   sku: string;
-  barcode: string;
+  // A SKU can carry more than one barcode (a custom one plus a
+  // manufacturer's GTIN/UPC/EAN, say) -- edited in BarcodesSheet, not
+  // typed directly here. See product_variant_barcodes.
+  barcodes: BarcodeEntry[];
 };
 
 type StoreLocationOption = { id: string; name: string };
@@ -33,16 +38,19 @@ export function InventorySheet({
   storeId,
   initial,
   onSave,
-  onClose,
   onCreateLocation,
+  initialLocationsPickerOpen,
 }: {
   productLabel?: string;
   storeId: string;
   initial: InventoryValues;
   onSave: (values: InventoryValues) => void;
-  onClose: () => void;
   // Side-trips to /store/locations/new -- see store.locations_.new.tsx.
   onCreateLocation: () => void;
+  // Set when this sheet is reopening right after the seller created a new
+  // pickup location from within "Edit locations" -- that's exactly where
+  // they were, so land back there instead of on this sheet's own base view.
+  initialLocationsPickerOpen?: boolean;
 }) {
   useLockedViewport();
 
@@ -53,9 +61,12 @@ export function InventorySheet({
     initial.locationQuantities,
   );
   const [sku, setSku] = useState(initial.sku);
-  const [barcode, setBarcode] = useState(initial.barcode);
+  const [barcodes, setBarcodes] = useState<BarcodeEntry[]>(initial.barcodes);
+  const [barcodesSheetOpen, setBarcodesSheetOpen] = useState(false);
   const [locations, setLocations] = useState<StoreLocationOption[] | null>(null);
-  const [locationsPickerOpen, setLocationsPickerOpen] = useState(false);
+  const [locationsPickerOpen, setLocationsPickerOpen] = useState(
+    () => !!initialLocationsPickerOpen,
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -97,14 +108,21 @@ export function InventorySheet({
   }
 
   function handleSave() {
-    onSave({ continueSellingOutOfStock, locationQuantities, sku, barcode });
+    onSave({ continueSellingOutOfStock, locationQuantities, sku, barcodes });
   }
 
   return (
     <div className="fixed inset-0 z-50 bg-white flex flex-col min-h-dvh animate-in fade-in slide-in-from-bottom-6 duration-300 ease-out">
       <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 pt-4 pb-3 flex flex-col items-center shrink-0 relative">
         <button
-          onClick={onClose}
+          // Commits, doesn't discard: BarcodesSheet and "Edit locations" both
+          // now apply on their own X/Save (the seller sees "3 barcodes" the
+          // instant they close that sub-sheet), so this X discarding those
+          // same edits would silently undo something the seller just saw
+          // confirmed. Nothing here writes to the DB either way -- Save/X
+          // both only update this form's in-memory draft, same as every
+          // other field, so there's no cost to always committing on close.
+          onClick={handleSave}
           type="button"
           className="absolute left-4 top-4 p-1.5 rounded-full bg-gray-100"
         >
@@ -126,7 +144,10 @@ export function InventorySheet({
         <div className="-mx-4 h-2 bg-gray-50 mt-2" />
 
         <div className="pt-2">
-          <span className="text-[15px] font-semibold text-gray-900">Identifiers</span>
+          <span className="flex items-baseline gap-1.5">
+            <span className="text-[15px] font-semibold text-gray-900">Identifiers</span>
+            <span className="text-xs text-gray-400 font-normal">Optional</span>
+          </span>
           <div className="grid grid-cols-2 gap-2 mt-2">
             <label className="flex flex-col gap-1">
               <span className="text-xs text-gray-400">SKU</span>
@@ -137,17 +158,29 @@ export function InventorySheet({
                 className="text-base border border-gray-200 rounded-lg px-2 py-2 outline-none"
               />
             </label>
-            <label className="flex flex-col gap-1">
+            <button
+              type="button"
+              onClick={() => setBarcodesSheetOpen(true)}
+              className="flex flex-col gap-1 text-left"
+            >
               <span className="text-xs text-gray-400">Barcode</span>
-              <input
-                value={barcode}
-                onChange={(e) => setBarcode(e.target.value)}
-                placeholder="UPC, EAN, etc."
-                className="text-base border border-gray-200 rounded-lg px-2 py-2 outline-none"
-              />
-            </label>
+              <span className="flex items-center justify-between border border-gray-200 rounded-lg px-2 py-2">
+                <span
+                  className={`text-base truncate ${barcodes.length > 0 ? "text-gray-900" : "text-gray-400"}`}
+                >
+                  {barcodes.length === 0
+                    ? "Add"
+                    : barcodes.length === 1
+                      ? barcodes[0].value
+                      : `${barcodes.length} barcodes`}
+                </span>
+                <ChevronRight size={14} className="text-gray-300 shrink-0" />
+              </span>
+            </button>
           </div>
-          {barcode.trim() && <Code128Barcode value={barcode.trim()} className="mt-3" />}
+          {barcodes[0]?.value.trim() && (
+            <Code128Barcode value={barcodes[0].value.trim()} className="mt-3" />
+          )}
         </div>
 
         <div className="-mx-4 h-2 bg-gray-50 mt-2" />
@@ -229,6 +262,17 @@ export function InventorySheet({
         />
       )}
 
+      {barcodesSheetOpen && (
+        <BarcodesSheet
+          productLabel={productLabel}
+          initial={barcodes}
+          onClose={(next) => {
+            setBarcodes(next);
+            setBarcodesSheetOpen(false);
+          }}
+        />
+      )}
+
       <div className="sticky bottom-0 px-4 py-3 border-t border-gray-100 bg-white shrink-0">
         <button
           type="button"
@@ -277,7 +321,7 @@ function InventoryLocationsPicker({
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto pb-8">
         {locations.length === 0 ? (
           <div className="flex flex-col items-center gap-3 px-8 py-12 text-center">
             <p className="text-[15px] text-gray-400">No pickup locations yet</p>
@@ -312,6 +356,18 @@ function InventoryLocationsPicker({
           })
         )}
       </div>
+
+      {locations.length > 0 && (
+        <div className="sticky bottom-0 px-4 py-3 border-t border-gray-100 bg-white shrink-0">
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full bg-black text-white text-sm font-medium rounded-full py-3.5"
+          >
+            Save
+          </button>
+        </div>
+      )}
     </div>
   );
 }

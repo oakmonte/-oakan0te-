@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useDragControls } from "framer-motion";
 import { X, SlidersHorizontal, ImageIcon, Smile, AtSign } from "lucide-react";
 
 /** The comment sheet behind the post viewer's comment icon.
@@ -26,6 +26,8 @@ export function CommentSheet({
   onClose: () => void;
   count?: number;
 }) {
+  const dragControls = useDragControls();
+
   // The feed behind is a scroll-snap list; letting it move under an open
   // sheet means closing the sheet lands you on a different post.
   useEffect(() => {
@@ -58,7 +60,11 @@ export function CommentSheet({
             exit={{ y: "100%" }}
             transition={{ type: "spring", stiffness: 460, damping: 44 }}
             drag="y"
-            dragDirectionLock
+            // Drag only from the handle, so the comment list can scroll —
+            // the default listener makes the whole sheet a drag surface and
+            // eats the scroll.
+            dragListener={false}
+            dragControls={dragControls}
             dragConstraints={{ top: 0, bottom: 0 }}
             dragElastic={{ top: 0, bottom: 0.7 }}
             onDragEnd={(_, info) => {
@@ -66,7 +72,11 @@ export function CommentSheet({
             }}
           >
             {/* Grab handle — also the drag target people reach for first. */}
-            <div className="flex justify-center pt-2 pb-1">
+            <div
+              className="flex justify-center pt-2 pb-1"
+              style={{ touchAction: "none" }}
+              onPointerDown={(e) => dragControls.start(e)}
+            >
               <span className="h-1 w-9 rounded-full bg-white/25" />
             </div>
 

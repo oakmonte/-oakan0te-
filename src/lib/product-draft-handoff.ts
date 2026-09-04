@@ -5,6 +5,7 @@
 import { CategoryNode } from "@/lib/categories";
 import { VariantOption, VariantRow } from "@/components/product-form/VariantMatrixBuilder";
 import { ManualSize, SizeMeasurements } from "@/lib/size-chart-config";
+import { BarcodeEntry } from "@/lib/barcode-types";
 
 export type ProductDraft = {
   // Set only when the draft was stashed from the edit page, not the new-product
@@ -38,7 +39,7 @@ export type ProductDraft = {
   // "clear it". Only the edit page ($id.tsx) tracks regularMaterialFeel; the
   // new-product page has no such field to lose.
   tagIds?: string[];
-  regularBarcode?: string | null;
+  regularBarcodes?: BarcodeEntry[];
   regularMaterialFeel?: string | null;
   regularLegacyStockQty?: number;
 };
@@ -110,13 +111,28 @@ const AUTOSAVE_KEY_PREFIX = "oak_product_draft_autosave:";
 // tracked, like tags) days or weeks later.
 const AUTOSAVE_MAX_AGE_MS = 6 * 60 * 60 * 1000;
 
+// Bump whenever ProductDraft's shape changes in a way an older draft can't
+// safely fill gaps for -- e.g. regularBarcode (string) becoming
+// regularBarcodes (BarcodeEntry[]): a draft written under the old shape
+// still has the old field name, so reading it back under the new type finds
+// nothing and looks exactly like "the seller never touched barcodes",
+// silently wiping real ones on the next save instead of round-tripping
+// them. A version mismatch is discarded the same way a missing/expired
+// savedAt is -- forces a real DB load instead of trusting a shape this
+// build can no longer interpret correctly.
+const AUTOSAVE_SCHEMA_VERSION = 2;
+
 function autosaveKey(productId: string | undefined) {
   return AUTOSAVE_KEY_PREFIX + (productId ?? "new");
 }
 
 export function writeAutosavedDraft(productId: string | undefined, draft: ProductDraft) {
   try {
-    const stamped: ProductDraft & { savedAt: number } = { ...draft, savedAt: Date.now() };
+    const stamped: ProductDraft & { savedAt: number; schemaVersion: number } = {
+      ...draft,
+      savedAt: Date.now(),
+      schemaVersion: AUTOSAVE_SCHEMA_VERSION,
+    };
     localStorage.setItem(autosaveKey(productId), JSON.stringify(stamped));
   } catch {
     // Storage full or unavailable (Safari private browsing, etc.) — the
@@ -128,13 +144,20 @@ export function readAutosavedDraft(productId: string | undefined): ProductDraft 
   try {
     const raw = localStorage.getItem(autosaveKey(productId));
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as ProductDraft & { savedAt?: number };
-    // No savedAt at all means this was written before that stamp existed —
-    // treat it the same as expired rather than trusting it indefinitely, so
-    // a pre-fix draft missing tagIds/regularBarcode/regularMaterialFeel gets
-    // discarded (forcing a real DB load) instead of silently wiping those
-    // fields on the next save.
-    if (parsed.savedAt == null || Date.now() - parsed.savedAt > AUTOSAVE_MAX_AGE_MS) {
+    const parsed = JSON.parse(raw) as ProductDraft & {
+      savedAt?: number;
+      schemaVersion?: number;
+    };
+    // No savedAt/schemaVersion at all means this was written before those
+    // stamps existed, and a version mismatch means it predates a shape
+    // change since — either way, treat it the same as expired rather than
+    // trusting it, so a stale draft never silently wipes a field it was
+    // written before this build knew to track.
+    if (
+      parsed.savedAt == null ||
+      parsed.schemaVersion !== AUTOSAVE_SCHEMA_VERSION ||
+      Date.now() - parsed.savedAt > AUTOSAVE_MAX_AGE_MS
+    ) {
       clearAutosavedDraft(productId);
       return null;
     }

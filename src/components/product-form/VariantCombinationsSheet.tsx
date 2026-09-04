@@ -370,7 +370,7 @@ export function VariantCombinationsSheet({
                 continueSellingOutOfStock: row.continueSellingOutOfStock,
                 locationQuantities: row.locationQuantities,
                 sku: row.sku,
-                barcode: row.barcode ?? "",
+                barcodes: row.barcodes ?? [],
               }}
               onCreateLocation={onCreateLocation}
               onSave={(values: InventoryValues) => {
@@ -378,11 +378,10 @@ export function VariantCombinationsSheet({
                   continueSellingOutOfStock: values.continueSellingOutOfStock,
                   locationQuantities: values.locationQuantities,
                   sku: values.sku,
-                  barcode: values.barcode || null,
+                  barcodes: values.barcodes,
                 });
                 setInventoryKey(null);
               }}
-              onClose={() => setInventoryKey(null)}
             />
           );
         })()}

@@ -4,6 +4,7 @@ import { OptionEditorSheet } from "./OptionEditorSheet";
 import { VariantListSheet } from "./VariantListSheet";
 import { VariantCombinationsSheet } from "./VariantCombinationsSheet";
 import { cartesian, buildKey } from "./variant-combinations";
+import type { BarcodeEntry } from "@/lib/barcode-types";
 
 export type VariantOption = { name: string; values: string[] };
 export type VariantOptionValue = { name: string; value: string };
@@ -31,7 +32,9 @@ export type VariantRow = {
   // canonical-product-schema — this form doesn't). Optional and untouched by
   // anything here; the edit page round-trips them so opening an imported
   // product in the editor and hitting Save doesn't silently drop them.
-  barcode?: string | null;
+  // One-to-many now (see product_variant_barcodes) -- absent/empty means no
+  // barcodes recorded for this row, not that the field was never fetched.
+  barcodes?: BarcodeEntry[];
   material?: string | null;
   materialFeel?: string | null;
   weightGrams?: number | null;

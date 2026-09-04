@@ -21,6 +21,7 @@ import {
   VariantRow,
 } from "@/components/product-form/VariantMatrixBuilder";
 import { ManualSize, SizeMeasurements, getSizeChartForCategory } from "@/lib/size-chart-config";
+import type { BarcodeEntry } from "@/lib/barcode-types";
 import { estimateWeightGrams } from "@/lib/weight-estimate";
 import { preloadGuideImage } from "@/components/product-form/size-chart/guide-images";
 import {
@@ -108,7 +109,14 @@ function NewProduct() {
       ? { ...base, [initialNewLocationId]: 0 }
       : base;
   });
-  const [inventorySheetOpen, setInventorySheetOpen] = useState(() => !!initialNewLocationId);
+  // Gated on kind === "regular" -- a variant row's own Inventory sheet
+  // shares this same location-creation side-trip, but has no top-level
+  // sheet of its own to reopen into; without this check, returning from
+  // creating a location while editing a variant product would pop open
+  // this unrelated regular-product sheet on top of the variant form.
+  const [inventorySheetOpen, setInventorySheetOpen] = useState(
+    () => kind === "regular" && !!initialNewLocationId,
+  );
   const regularStockQty = Object.values(regularLocationQuantities).reduce((sum, n) => sum + n, 0);
   // No UI sets this on this page anymore — material is filled in via
   // Necessities now. Still round-tripped through drafts/save.
@@ -118,9 +126,11 @@ function NewProduct() {
   );
   const [regularSku, setRegularSku] = useState(initialDraft?.regularSku ?? "");
   // Never surfaced anywhere on this page before now -- new products start
-  // with none, unlike the edit page's regularBarcode which round-trips a
-  // value an import may have set.
-  const [regularBarcode, setRegularBarcode] = useState(initialDraft?.regularBarcode ?? "");
+  // with none, unlike the edit page's regularBarcodes which round-trips
+  // values an import may have set.
+  const [regularBarcodes, setRegularBarcodes] = useState<BarcodeEntry[]>(
+    initialDraft?.regularBarcodes ?? [],
+  );
 
   // Variant-mode state
   const [options, setOptions] = useState<VariantOption[]>(initialDraft?.options ?? []);
@@ -191,7 +201,7 @@ function NewProduct() {
       regularLocationQuantities,
       regularWeightGrams,
       regularSku,
-      regularBarcode,
+      regularBarcodes,
       material,
       options,
       rows,
@@ -292,7 +302,7 @@ function NewProduct() {
       regularLocationQuantities,
       regularWeightGrams,
       regularSku,
-      regularBarcode,
+      regularBarcodes,
       regularMaterialFeel: null,
       mainImageUrl,
       regularAdditionalImageUrls: additionalImageUrls,
@@ -437,17 +447,17 @@ function NewProduct() {
             continueSellingOutOfStock: regularContinueSellingOutOfStock,
             locationQuantities: regularLocationQuantities,
             sku: regularSku,
-            barcode: regularBarcode,
+            barcodes: regularBarcodes,
           }}
+          initialLocationsPickerOpen={!!initialNewLocationId}
           onCreateLocation={handleCreateLocation}
           onSave={(values: InventoryValues) => {
             setRegularContinueSellingOutOfStock(values.continueSellingOutOfStock);
             setRegularLocationQuantities(values.locationQuantities);
             setRegularSku(values.sku);
-            setRegularBarcode(values.barcode);
+            setRegularBarcodes(values.barcodes);
             setInventorySheetOpen(false);
           }}
-          onClose={() => setInventorySheetOpen(false)}
         />
       )}
 
