@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import { motion } from "framer-motion";
 import homeIcon from "@/assets/Home.svg";
 import messagesIcon from "@/assets/messages.svg";
 import createIcon from "@/assets/create.svg";
@@ -14,6 +15,7 @@ type BottomNavProps = {
 };
 
 const PADDING = 5;
+const NAV_HEIGHT = 60;
 
 export function BottomNav({ active, ownUsername }: BottomNavProps) {
   const items: {
@@ -37,7 +39,7 @@ export function BottomNav({ active, ownUsername }: BottomNavProps) {
   ];
 
   const trackRef = useRef<HTMLDivElement>(null);
-  const [colWidth, setColWidth] = useState(54);
+  const [colWidth, setColWidth] = useState(58);
 
   useEffect(() => {
     const el = trackRef.current;
@@ -60,7 +62,7 @@ export function BottomNav({ active, ownUsername }: BottomNavProps) {
   return (
     <nav
       className="fixed left-1/2 -translate-x-1/2 z-50"
-      style={{ width: 300, height: 56, bottom: 10 }}
+      style={{ width: 320, height: NAV_HEIGHT, bottom: 12 }}
     >
       <div
         ref={trackRef}
@@ -68,17 +70,15 @@ export function BottomNav({ active, ownUsername }: BottomNavProps) {
         style={{
           padding: PADDING,
           borderRadius: 999,
-          // deep translucent track — content beneath is blurred + saturated
-          // through it, giving the "glass floats on the world" look
-          background: "rgba(255,255,255,0.35)",
-          border: "1px solid rgba(255,255,255,0.55)",
+          background: "rgba(255,255,255,0.34)",
+          border: "1px solid rgba(255,255,255,0.58)",
           boxShadow:
-            "0 14px 40px rgba(0,0,0,0.30), 0 3px 10px rgba(0,0,0,0.16), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 -1px 3px rgba(0,0,0,0.05)",
-          backdropFilter: "blur(28px) saturate(190%)",
-          WebkitBackdropFilter: "blur(28px) saturate(190%)",
+            "0 18px 46px rgba(0,0,0,0.28), 0 4px 12px rgba(0,0,0,0.14), inset 0 1px 0 rgba(255,255,255,0.72), inset 0 -1px 3px rgba(0,0,0,0.05)",
+          backdropFilter: "blur(30px) saturate(195%)",
+          WebkitBackdropFilter: "blur(30px) saturate(195%)",
         }}
       >
-        {/* top-edge specular highlight — the "wet glass" rim light */}
+        {/* top-edge specular highlight */}
         <span
           aria-hidden
           style={{
@@ -89,7 +89,7 @@ export function BottomNav({ active, ownUsername }: BottomNavProps) {
             height: "44%",
             borderRadius: 999,
             background:
-              "linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0))",
+              "linear-gradient(180deg, rgba(255,255,255,0.58), rgba(255,255,255,0))",
             filter: "blur(1.5px)",
             pointerEvents: "none",
           }}
@@ -105,51 +105,59 @@ export function BottomNav({ active, ownUsername }: BottomNavProps) {
             height: "30%",
             borderRadius: 999,
             background:
-              "linear-gradient(0deg, rgba(255,255,255,0.18), rgba(255,255,255,0))",
+              "linear-gradient(0deg, rgba(255,255,255,0.20), rgba(255,255,255,0))",
             filter: "blur(2px)",
             pointerEvents: "none",
           }}
         />
 
-        {/* sliding glass lens — its own blur+saturation pass makes content
-            under it visibly "refract" as it glides between icons */}
-        <span
+        {/* sliding glass lens — spring physics for a liquid, momentum feel */}
+        <motion.span
           aria-hidden
+          initial={false}
+          animate={{
+            x: activeIndex * colWidth,
+            scale: 1,
+          }}
+          transition={{
+            type: "spring",
+            stiffness: 260,
+            damping: 22,
+            mass: 0.7,
+          }}
           style={{
             position: "absolute",
             top: PADDING,
             left: PADDING,
             width: colWidth,
-            height: 56 - PADDING * 2,
+            height: NAV_HEIGHT - PADDING * 2,
             borderRadius: 999,
-            background: "rgba(255,255,255,0.85)",
-            border: "1px solid rgba(255,255,255,0.9)",
+            background: "rgba(255,255,255,0.88)",
+            border: "1px solid rgba(255,255,255,0.92)",
             boxShadow:
-              "inset 0 1.5px 1px rgba(255,255,255,0.95), inset 0 -2px 4px rgba(0,0,0,0.08), 0 4px 14px rgba(0,0,0,0.22)",
-            backdropFilter: "blur(16px) saturate(170%) brightness(1.06)",
-            WebkitBackdropFilter: "blur(16px) saturate(170%) brightness(1.06)",
-            transform: `translateX(${activeIndex * colWidth}px)`,
-            // springy, slightly overshooting ease for the liquid feel
-            transition:
-              "transform 480ms cubic-bezier(0.32, 1.4, 0.45, 1), width 480ms cubic-bezier(0.32, 1.4, 0.45, 1)",
+              "inset 0 1.5px 1px rgba(255,255,255,0.96), inset 0 -2px 5px rgba(0,0,0,0.08), 0 5px 18px rgba(0,0,0,0.20)",
+            backdropFilter: "blur(18px) saturate(175%) brightness(1.07)",
+            WebkitBackdropFilter: "blur(18px) saturate(175%) brightness(1.07)",
+            transformOrigin: "center center",
+            willChange: "transform",
           }}
         >
           {/* lens inner top streak */}
           <span
             style={{
               position: "absolute",
-              top: 1.5,
-              left: "16%",
-              right: "16%",
-              height: "40%",
+              top: 2,
+              left: "18%",
+              right: "18%",
+              height: "38%",
               borderRadius: 999,
               background:
-                "linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0))",
+                "linear-gradient(180deg, rgba(255,255,255,0.92), rgba(255,255,255,0))",
               filter: "blur(1px)",
               pointerEvents: "none",
             }}
           />
-        </span>
+        </motion.span>
 
         {items.map(({ key, label, icon, to, params }) => {
           const isActive = key === active;
@@ -159,20 +167,29 @@ export function BottomNav({ active, ownUsername }: BottomNavProps) {
               to={to}
               params={params}
               aria-label={label}
-              className="relative flex-1 flex items-center justify-center transition-transform duration-200 active:scale-90"
+              className="relative flex-1 flex items-center justify-center"
               style={{ zIndex: 1, height: "100%" }}
             >
-              <img
+              <motion.img
                 src={icon}
                 alt=""
-                className="transition-all duration-300"
+                initial={false}
+                animate={{
+                  scale: isActive ? 1.18 : 1,
+                  opacity: isActive ? 1 : 0.55,
+                  y: isActive ? -1 : 0,
+                }}
+                transition={{
+                  type: "spring",
+                  stiffness: 320,
+                  damping: 20,
+                  mass: 0.6,
+                }}
                 style={{
-                  width: 21,
-                  height: 20,
-                  // icons are white artwork — darken them to sit on the light glass
+                  width: 26,
+                  height: 26,
                   filter: "brightness(0)",
-                  opacity: isActive ? 1 : 0.5,
-                  transform: isActive ? "scale(1.08)" : "scale(1)",
+                  willChange: "transform, opacity",
                 }}
               />
             </Link>
