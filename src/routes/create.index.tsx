@@ -31,6 +31,7 @@ import FilterPanel from "@/components/camera/FilterPanel";
 import LayoutPanel from "@/components/camera/LayoutPanel";
 import LayoutPreview from "@/components/camera/LayoutPreview";
 import LiquidGlassSegmented from "@/components/camera/LiquidGlassSegmented";
+import CreatePanel from "@/components/create/CreatePanel";
 import {
   CAMERA_FILTERS,
   compileGrade,
@@ -1423,9 +1424,11 @@ function CreatePage() {
         </>
       )}
 
+      {section === "create" && <CreatePanel onClose={handleBack} draftCount={0} />}
+
       <div
         className="absolute left-0 right-0 flex items-center justify-center gap-8"
-        style={{ bottom: "calc(env(safe-area-inset-bottom) + 16px)" }}
+        style={{ bottom: "calc(env(safe-area-inset-bottom) + 16px)", zIndex: 20 }}
       >
         <button
           onClick={() => setSection("shoot")}
