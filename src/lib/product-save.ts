@@ -63,6 +63,11 @@ export type ProductSavePayload = {
 
 let state: ProductSaveState = null;
 let pendingPayload: ProductSavePayload | null = null;
+// Whether the pending save began life as a create. A retry after a PARTIAL
+// create runs as an update (see run()), so `pendingPayload.mode` stops being
+// the answer to "was this a new product?" — and the autosaved draft to clear
+// on success is still the new-product one, keyed undefined rather than by id.
+let pendingStartedAsCreate = false;
 const listeners = new Set<() => void>();
 
 function setState(next: ProductSaveState) {
@@ -103,7 +108,13 @@ function slugify(title: string) {
   );
 }
 
-async function runCreate(payload: ProductSavePayload) {
+async function runCreate(
+  payload: ProductSavePayload,
+  /** Called the instant the `products` row exists, before any child table is
+   *  touched. Everything after that point is retryable against the row rather
+   *  than by making a second one. */
+  onProductCreated: (productId: string) => void,
+) {
   const selectedRows = payload.rows.filter((r) => r.selected);
 
   const { data: product, error: productErr } = await supabase
@@ -124,6 +135,8 @@ async function runCreate(payload: ProductSavePayload) {
     .single();
 
   if (productErr || !product) throw new Error(productErr?.message ?? "Failed to create product");
+
+  onProductCreated(product.id);
 
   if (payload.kind === "regular") {
     const regularStockQty = stockTotal({
@@ -490,12 +503,25 @@ async function run(payload: ProductSavePayload) {
   setState({ status: "saving" });
   try {
     if (payload.mode === "create") {
-      await runCreate(payload);
-      clearAutosavedDraft(undefined);
+      await runCreate(payload, (productId) => {
+        // The products row is committed now. A create is many inserts across
+        // several tables and only the first one is the product itself, so a
+        // failure at any later step used to leave a real product behind — and
+        // Retry, still in create mode, made a SECOND one. Promoting the retry
+        // payload to an update against the row we just made is what stops
+        // that: runUpdate rebuilds every child table from scratch, which is
+        // exactly the cleanup a half-finished create needs.
+        pendingPayload = { ...payload, mode: "update", productId };
+      });
     } else {
       await runUpdate(payload);
-      clearAutosavedDraft(payload.productId);
     }
+    // Keyed on how this save STARTED, not on the mode it finished in — a
+    // promoted retry is still finishing the new-product draft, which the
+    // form autosaved under the undefined key.
+    clearAutosavedDraft(
+      pendingStartedAsCreate || payload.mode === "create" ? undefined : payload.productId,
+    );
     setState({ status: "success" });
     setTimeout(() => {
       // Only clear if nothing newer has started since (a fast second save).
@@ -513,15 +539,22 @@ async function run(payload: ProductSavePayload) {
  *  navigate away immediately after calling this rather than awaiting it. */
 export function startProductSave(payload: ProductSavePayload) {
   pendingPayload = payload;
+  pendingStartedAsCreate = payload.mode === "create";
   void run(payload);
 }
 
-/** Retries the most recent save with the exact payload it failed with. */
+/** Retries the most recent save.
+ *
+ *  Not necessarily with the payload it failed with: if the failure happened
+ *  after the product row was created, `pendingPayload` has been promoted to an
+ *  update against that row, so retrying finishes the product instead of
+ *  creating a duplicate. */
 export function retryProductSave() {
   if (pendingPayload) void run(pendingPayload);
 }
 
 export function dismissProductSave() {
   pendingPayload = null;
+  pendingStartedAsCreate = false;
   setState(null);
 }

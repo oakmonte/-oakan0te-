@@ -19,6 +19,7 @@ import {
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useSession } from "@/hooks/use-session";
 import { useOwnStores } from "@/hooks/use-own-store";
+import { useStoreSetupStatus } from "@/hooks/use-store-setup-status";
 import { BottomNav } from "@/components/BottomNav";
 import { ProfileTabEmptyState } from "@/components/ProfileTabEmptyState";
 import { PostsGrid } from "@/components/profile/PostsGrid";
@@ -123,6 +124,13 @@ function ProfilePage() {
   // well before there's anything real to preview, so this is the signal for
   // "actually set up" rather than just "a stores row exists".
   const storeIsSetUp = !!store?.theme_id;
+  // Full four-step checklist (payout, pickup location, a product listed, a
+  // theme picked) — the same "done" store.index.tsx's own cards use, and a
+  // stricter bar than storeIsSetUp above (which only checks the theme, for
+  // the narrower "is there enough to preview a storefront" question). This
+  // one gates the seller prompt below: a store row existing, or even having
+  // a theme, isn't "already set up my store" the way a seller means it.
+  const storeSetupStatus = useStoreSetupStatus(store?.id ?? null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   // Where the Store sheet's top edge should sit — the vertical MIDDLE of the
   // avatar circle, so the sheet rises high enough to cover the bottom half of
@@ -161,6 +169,12 @@ function ProfilePage() {
       !user ||
       ownedStoresLoading ||
       ownedStores.length === 0 ||
+      storeSetupStatus.loading ||
+      // Already finished the checklist — the prompt's whole job was getting
+      // them through onboarding, and it has nothing left to nudge them
+      // toward. Without this a fully set-up seller would see "Set up my
+      // store" forever, once per session, for no reason.
+      storeSetupStatus.complete ||
       hasSeenSellerPrompt(user.id)
     ) {
       return;
@@ -168,7 +182,15 @@ function ProfilePage() {
 
     markSellerPromptSeen(user.id);
     setSellerPromptOpen(true);
-  }, [isOwnProfile, ownedStores, ownedStoresLoading, ownershipKnown, user]);
+  }, [
+    isOwnProfile,
+    ownedStores,
+    ownedStoresLoading,
+    ownershipKnown,
+    storeSetupStatus.complete,
+    storeSetupStatus.loading,
+    user,
+  ]);
 
   // Shared with TabPager so the tab strip animates off the same value the
   // content does, frame for frame.
@@ -408,10 +430,17 @@ function ProfilePage() {
           <div className="flex items-center gap-2.5">
             <button
               onClick={toggleFollow}
-              // Also disabled until the follow query resolves: tapping while
-              // it defaulted to "Follow" fired an insert on a row that might
+              // Disabled until the follow query resolves: tapping while it
+              // defaulted to "Follow" fired an insert on a row that might
               // already exist, and the optimistic flip bounced back.
-              disabled={followBusy || followPending}
+              //
+              // Signed OUT is the exception, and it has to be. With no viewer
+              // the query is `enabled: false`, so isPending never stops being
+              // true — which left a visitor staring at a permanently greyed
+              // Follow button with no way to reach sign-in from it. There's no
+              // status to wait on when nobody's signed in; the tap should just
+              // take them to sign-in, which toggleFollow already does.
+              disabled={followBusy || (!!user && followPending)}
               className={`min-w-[110px] rounded-full px-6 py-2 text-[13px] font-bold transition-colors active:scale-95 disabled:opacity-60 ${
                 isFollowing ? "bg-white/10 text-white" : "bg-white text-black"
               }`}

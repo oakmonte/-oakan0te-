@@ -1,9 +1,8 @@
-import { authedFetch } from "@/lib/authed-fetch";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Palette, Wallet, Package, MapPin, X } from "lucide-react";
-import { useEffect, useState } from "react";
-import { supabase } from "@/lib/integrations/my-supabase/client";
+import { useState } from "react";
 import { useActiveStoreId } from "@/hooks/use-own-store";
+import { useStoreSetupStatus } from "@/hooks/use-store-setup-status";
 import { LocationsListSheet } from "@/components/store/LocationsListSheet";
 
 export const Route = createFileRoute("/store/")({
@@ -21,91 +20,16 @@ function StepNumber({ n }: { n: number }) {
 function StoreHome() {
   const navigate = useNavigate();
   const { storeId } = useActiveStoreId();
-  const [payoutSet, setPayoutSet] = useState(false);
-  const [locationCount, setLocationCount] = useState<number | null>(null);
-  const [productCount, setProductCount] = useState<number | null>(null);
-  // Raw stores.theme_id, not useStoreTheme()'s value — that hook defaults an
-  // unset theme_id to "motion" client-side (see store-profile page's own
-  // comment on this), so it's never null and can't tell us whether the
-  // seller has actually picked one yet.
-  const [themeIdSet, setThemeIdSet] = useState(false);
+  // Raw stores.theme_id (via themeIdSet below), not useStoreTheme()'s value —
+  // that hook defaults an unset theme_id to "motion" client-side (see
+  // store-profile page's own comment on this), so it's never null and can't
+  // tell us whether the seller has actually picked one yet.
+  const { payoutSet, locationCount, productCount, themeIdSet, setLocationCount } =
+    useStoreSetupStatus(storeId ?? null);
   const [locationsSheetOpen, setLocationsSheetOpen] = useState(false);
   // Set when a step is tapped before every step before it is done — holds
   // which step to actually run if the seller taps through anyway.
   const [orderWarningIndex, setOrderWarningIndex] = useState<number | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    authedFetch("/api/store/payout")
-      .then((res) => res.json())
-      .then((body) => {
-        if (!cancelled) setPayoutSet(!!body.account);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!storeId) return;
-    let cancelled = false;
-    supabase
-      .from("store_locations")
-      .select("id", { count: "exact", head: true })
-      .eq("store_id", storeId)
-      .then(({ count, error }) => {
-        if (cancelled) return;
-        if (error) {
-          console.error("StoreHome: failed to load pickup location count", error);
-          return;
-        }
-        setLocationCount(count ?? 0);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [storeId]);
-
-  useEffect(() => {
-    if (!storeId) return;
-    let cancelled = false;
-    supabase
-      .from("products")
-      .select("id", { count: "exact", head: true })
-      .eq("store_id", storeId)
-      .then(({ count, error }) => {
-        if (cancelled) return;
-        if (error) {
-          console.error("StoreHome: failed to load product count", error);
-          return;
-        }
-        setProductCount(count ?? 0);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [storeId]);
-
-  useEffect(() => {
-    if (!storeId) return;
-    let cancelled = false;
-    supabase
-      .from("stores")
-      .select("theme_id")
-      .eq("id", storeId)
-      .maybeSingle()
-      .then(({ data, error }) => {
-        if (cancelled) return;
-        if (error) {
-          console.error("StoreHome: failed to load theme status", error);
-          return;
-        }
-        setThemeIdSet(!!data?.theme_id);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [storeId]);
 
   const steps = [
     {
