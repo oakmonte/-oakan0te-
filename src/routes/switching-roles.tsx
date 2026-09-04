@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
+import { ownProfileRedirect } from "@/lib/auth";
 import { readIntent, type Intent } from "@/lib/onboarding-state";
 import { firstRoleSpecificStep } from "@/lib/onboarding-flow";
 import { OnboardingChecking, OnboardingShell } from "@/components/onboarding/OnboardingShell";
@@ -28,6 +29,17 @@ function SwitchingRolesPage() {
   // Read after mount, same reasoning as the rest of onboarding: reading
   // storage during render served a stale value from the server on hydration.
   const [targetRole, setTargetRole] = useState<Intent | null>(null);
+  const [declining, setDeclining] = useState(false);
+
+  // Free to bail out of: the target role's identity row (creators/curators)
+  // is only ever written when find-your-fit/whats-your-style is submitted,
+  // never by landing here — so nothing has actually joined the new role yet.
+  async function handleDecline() {
+    if (!userId) return;
+    setDeclining(true);
+    const redirect = await ownProfileRedirect(userId);
+    navigate({ ...redirect, replace: true });
+  }
 
   useEffect(() => {
     setTargetRole(readIntent());
@@ -63,10 +75,21 @@ function SwitchingRolesPage() {
     >
       <button
         type="button"
+        disabled={declining}
         onClick={() => navigate({ to: firstRoleSpecificStep(targetRole), replace: true })}
-        className="w-full rounded-full bg-brand-accent text-brand-bg py-3.5 text-sm font-medium uppercase tracking-widest hover:bg-brand-accent/90 transition-all duration-300"
+        className="w-full rounded-full bg-brand-accent text-brand-bg py-3.5 text-sm font-medium uppercase tracking-widest hover:bg-brand-accent/90 transition-all duration-300 disabled:opacity-60"
       >
         Continue
+      </button>
+      <button
+        type="button"
+        onClick={handleDecline}
+        disabled={declining}
+        className="w-full mt-4 text-[11px] uppercase tracking-widest text-brand-text/60 hover:text-brand-text transition-colors disabled:opacity-60"
+      >
+        {declining
+          ? "One moment…"
+          : `Not now — take me to my ${existingRole ? `${existingLabel} ` : ""}profile`}
       </button>
     </OnboardingShell>
   );
