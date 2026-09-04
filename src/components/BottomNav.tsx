@@ -88,8 +88,7 @@ export function BottomNav({ active, ownUsername }: BottomNavProps) {
             right: "12%",
             height: "44%",
             borderRadius: 999,
-            background:
-              "linear-gradient(180deg, rgba(255,255,255,0.58), rgba(255,255,255,0))",
+            background: "linear-gradient(180deg, rgba(255,255,255,0.58), rgba(255,255,255,0))",
             filter: "blur(1.5px)",
             pointerEvents: "none",
           }}
@@ -104,8 +103,7 @@ export function BottomNav({ active, ownUsername }: BottomNavProps) {
             right: "22%",
             height: "30%",
             borderRadius: 999,
-            background:
-              "linear-gradient(0deg, rgba(255,255,255,0.20), rgba(255,255,255,0))",
+            background: "linear-gradient(0deg, rgba(255,255,255,0.20), rgba(255,255,255,0))",
             filter: "blur(2px)",
             pointerEvents: "none",
           }}
@@ -151,8 +149,7 @@ export function BottomNav({ active, ownUsername }: BottomNavProps) {
               right: "18%",
               height: "38%",
               borderRadius: 999,
-              background:
-                "linear-gradient(180deg, rgba(255,255,255,0.92), rgba(255,255,255,0))",
+              background: "linear-gradient(180deg, rgba(255,255,255,0.92), rgba(255,255,255,0))",
               filter: "blur(1px)",
               pointerEvents: "none",
             }}
