@@ -7,8 +7,7 @@ import {
   Mp4OutputFormat,
   CanvasSource,
   VideoSampleSink,
-  AudioSampleSink,
-  AudioSampleSource,
+  AudioBufferSource,
   QUALITY_HIGH,
   QUALITY_MEDIUM,
   getFirstEncodableVideoCodec,
@@ -31,6 +30,7 @@ import {
   type Clip,
   type ProjectRatio,
 } from "@/lib/video-sequence";
+import { buildSequenceAudio, type MusicTrack } from "@/lib/video-sequence-audio";
 
 // Turning a timeline of clips into ONE video file.
 //
@@ -94,29 +94,11 @@ function loadImage(url: string): Promise<HTMLImageElement> {
   });
 }
 
-type AudioPlan = {
-  source: AudioSampleSource;
-  /** Locked in by the first sample that reaches the encoder. Later samples
-   *  that disagree are dropped rather than corrupting the track. */
-  sampleRate: number | null;
-  channels: number | null;
-};
-
-/** Whether a clip can contribute sound.
- *
- *  Speed is the interesting exclusion. Re-timing audio without resampling it
- *  turns speech into chipmunks or a drone, and a real resampler is a much
- *  bigger piece of work than this screen justifies today — so a clip at
- *  anything other than 1x exports silent, and the UI says so rather than
- *  letting someone discover it in the finished file. */
-export function clipCarriesAudio(clip: Clip): boolean {
-  return clip.kind === "video" && !clip.muted && clip.speed === 1;
-}
-
 export async function exportSequence(
   clips: Clip[],
   layersByClip: Record<string, Layer[]>,
   ratio: ProjectRatio,
+  music: MusicTrack | null,
   onProgress?: SequenceProgress,
 ): Promise<Blob> {
   if (clips.length === 0) throw new Error("Nothing on the timeline yet");
@@ -144,26 +126,32 @@ export async function exportSequence(
   const canvasSource = new CanvasSource(canvas, { codec: videoCodec, quality: QUALITY_HIGH });
   output.addVideoTrack(canvasSource);
 
-  // One audio track for the whole sequence, re-encoded from decoded samples.
-  // Passing packets through untouched (what the single-clip path does) is not
-  // available here: several sources with different codecs and configs cannot
-  // share one track, and re-timestamping an encoded packet doesn't re-time
-  // what's inside it. Clips that can't contribute leave silence, which is the
-  // honest result of muting them.
-  let audio: AudioPlan | null = null;
-  if (clips.some(clipCarriesAudio)) {
+  // The whole soundtrack, mixed before anything is encoded — see
+  // video-sequence-audio.ts. Doing it up front rather than clip-by-clip is
+  // what lets several sources overlap (music under speech) and lets a sped-up
+  // clip keep its sound; passing encoded packets through, which the
+  // single-clip path can do, can express neither.
+  //
+  // It has to happen BEFORE output.start(), because a track cannot be added to
+  // an output that has already begun.
+  const mixed = await buildSequenceAudio(clips, music, clipBlob);
+  let audioSource: AudioBufferSource | null = null;
+  if (mixed) {
     const audioCodec = await getFirstEncodableAudioCodec(format.getSupportedAudioCodecs(), {
-      numberOfChannels: 2,
-      sampleRate: 48000,
+      numberOfChannels: mixed.numberOfChannels,
+      sampleRate: mixed.sampleRate,
     });
     if (audioCodec) {
-      const source = new AudioSampleSource({ codec: audioCodec, quality: QUALITY_MEDIUM });
-      output.addAudioTrack(source);
-      audio = { source, sampleRate: null, channels: null };
+      audioSource = new AudioBufferSource({ codec: audioCodec, quality: QUALITY_MEDIUM });
+      output.addAudioTrack(audioSource);
     }
   }
 
   await output.start();
+
+  // One buffer, starting at zero, so the track's timing is the mixdown's own —
+  // nothing here has to re-derive where each clip's sound belongs.
+  if (mixed && audioSource) await audioSource.add(mixed);
 
   const totalDuration = clips.reduce((sum, clip) => sum + clipDuration(clip), 0);
   let offset = 0;
@@ -195,7 +183,6 @@ export async function exportSequence(
           layers,
           stickers,
           offset,
-          audio,
         );
       }
 
@@ -204,7 +191,7 @@ export async function exportSequence(
     }
 
     canvasSource.close();
-    audio?.source.close();
+    audioSource?.close();
     await output.finalize();
     onProgress?.(1);
 
@@ -268,7 +255,6 @@ async function writeVideo(
   layers: Layer[],
   stickers: Awaited<ReturnType<typeof preloadStickers>>,
   offset: number,
-  audio: AudioPlan | null,
 ) {
   const { ctx, canvasSource, width, height } = stage;
   const blob = await clipBlob(clip);
@@ -315,30 +301,9 @@ async function writeVideo(
       sample.close();
     }
   }
-
-  if (!audio || !clipCarriesAudio(clip)) return;
-
-  const audioTrack = await input.getPrimaryAudioTrack();
-  if (!audioTrack) return;
-
-  const audioSink = new AudioSampleSink(audioTrack);
-  for await (const sample of audioSink.samples(clip.trimStart, clip.trimEnd)) {
-    try {
-      // The first sample through fixes the track's format. Anything that
-      // disagrees would have to be resampled to join it, so it's dropped —
-      // one clip arriving silent beats an audio track that desyncs or fails
-      // to finalize the whole export.
-      if (audio.sampleRate === null) {
-        audio.sampleRate = sample.sampleRate;
-        audio.channels = sample.numberOfChannels;
-      }
-      if (sample.sampleRate !== audio.sampleRate || sample.numberOfChannels !== audio.channels) {
-        continue;
-      }
-      sample.setTimestamp(offset + (sample.timestamp - clip.trimStart));
-      await audio.source.add(sample);
-    } finally {
-      sample.close();
-    }
-  }
+  // Sound is not this function's job. It was, once — walking each clip's audio
+  // packets here — but that could only ever append one clip after another at
+  // 1x. Music over speech and sped-up audio both need sources to overlap and
+  // be resampled, which is a mix, and a mix has to happen before encoding
+  // starts. buildSequenceAudio owns it now.
 }

@@ -1361,6 +1361,10 @@ export type Database = {
       }
     }
     Functions: {
+      is_email_registered: {
+        Args: { check_email: string }
+        Returns: boolean
+      }
       is_username_available: {
         Args: { check_username: string }
         Returns: boolean

@@ -92,7 +92,9 @@ export function ClipSheet({
       title={isPhoto ? "Photo" : "Clip"}
       note={
         !isPhoto && clip.speed !== 1
-          ? "Sound is dropped at anything other than 1x — re-timing audio without resampling it would come out distorted."
+          ? clip.speed > 1
+            ? "Sound speeds up with the picture, so it comes out higher-pitched."
+            : "Sound slows down with the picture, so it comes out lower-pitched."
           : undefined
       }
       onClose={onClose}
@@ -167,6 +169,84 @@ export function RatioSheet({
           </Pill>
         ))}
       </div>
+    </OptionSheet>
+  );
+}
+
+/** The music laid over the whole timeline. One track, from the user's own
+ *  files — a licensed library is its own problem, and needing one shouldn't
+ *  stop someone scoring a post with audio they already have. */
+export function SoundSheet({
+  music,
+  onPick,
+  onVolume,
+  onRemove,
+  onClose,
+}: {
+  music: { name: string; volume: number } | null;
+  onPick: () => void;
+  onVolume: (v: number) => void;
+  onRemove: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <OptionSheet
+      title="Sound"
+      note={
+        music
+          ? "Plays under your clips for the whole video, looping if it's shorter. Mute a clip on the timeline to let the music through."
+          : undefined
+      }
+      onClose={onClose}
+    >
+      {music ? (
+        <>
+          <div className="flex items-center gap-3 rounded-xl bg-white/[0.07] px-4 py-3">
+            <span className="text-[15px] leading-none">♪</span>
+            <span className="min-w-0 flex-1 truncate text-[13px] text-white">{music.name}</span>
+            <button
+              type="button"
+              onClick={onRemove}
+              className="shrink-0 text-[12px] font-medium text-white/50 active:scale-95"
+            >
+              Remove
+            </button>
+          </div>
+          <div className="pt-4">
+            <div className="flex items-center justify-between pb-1.5">
+              <span className="text-[12px] text-white/60">Volume</span>
+              <span className="text-[12px] font-medium tabular-nums text-white">
+                {Math.round(music.volume * 100)}%
+              </span>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.01}
+              value={music.volume}
+              onChange={(e) => onVolume(Number(e.target.value))}
+              aria-label="Music volume"
+              className="oak-adjust-range w-full"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={onPick}
+            className="mt-4 w-full rounded-full bg-white/[0.12] py-2.5 text-[13px] font-medium text-white active:scale-[0.98]"
+          >
+            Replace track
+          </button>
+        </>
+      ) : (
+        <button
+          type="button"
+          onClick={onPick}
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-white/20 py-6 text-[13px] text-white/60 active:scale-[0.99]"
+        >
+          Choose an audio file
+        </button>
+      )}
     </OptionSheet>
   );
 }

@@ -30,10 +30,18 @@ export function LocationsListSheet({
   storeId,
   onClose,
   onCountChange,
+  fromChecklist = false,
 }: {
   storeId: string;
   onClose: () => void;
   onCountChange?: (count: number) => void;
+  /** True when this sheet was opened from the "Pickup locations" card on the
+   *  store setup checklist (store.index.tsx) — mirrors the `checklist` search
+   *  param the other three steps use, just as a prop since this one is a
+   *  sheet over that same page rather than its own route. Surfaces a Next
+   *  button matching those other steps', so this step doesn't feel like a
+   *  dead end back to "just close it" the way it did before. */
+  fromChecklist?: boolean;
 }) {
   useLockedViewport();
   const [rows, setRows] = useState<Row[] | null>(null);
@@ -187,6 +195,18 @@ export function LocationsListSheet({
           </div>
         )}
       </div>
+
+      {fromChecklist && (
+        <div className="sticky bottom-0 px-4 py-3 border-t border-gray-100 bg-white shrink-0">
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full bg-black text-white text-sm font-semibold rounded-full py-4 oak-motion-control active:scale-[0.98]"
+          >
+            Next
+          </button>
+        </div>
+      )}
 
       {editing && (
         <LocationSheet

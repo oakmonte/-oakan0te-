@@ -44,8 +44,22 @@ export type Clip = {
   filterId: string;
   filterIntensity: number;
   adjust: PhotoAdjust;
-  /** Poster frame for the timeline strip. Null until generated. */
+  /** Poster frame. Also the timeline's fallback until the filmstrip arrives. */
   thumbUrl: string | null;
+  /** Frames along the clip's length, for the timeline strip. Fills in
+   *  progressively after the clip is added; empty is a valid state. */
+  frames: ClipFrame[];
+};
+
+/** One frame of a clip's filmstrip, and the span of SOURCE time it stands for.
+ *
+ *  Source time, not timeline time, is the point: trimming and speed change
+ *  where a frame lands on the strip but not which frame it is, so a trim drag
+ *  re-positions what's already decoded instead of decoding again. */
+export type ClipFrame = {
+  start: number;
+  end: number;
+  url: string;
 };
 
 export const MIN_CLIP_DURATION = 0.3;
@@ -318,6 +332,89 @@ export function videoDuration(url: string): Promise<number> {
   });
 }
 
+/** Roughly how much source time one filmstrip frame covers, and the ceiling on
+ *  how many are decoded for a single clip.
+ *
+ *  Both exist to bound the cost. Every frame is a seek plus a decode plus a
+ *  JPEG encode on the main thread, so a long clip samples more coarsely rather
+ *  than doing proportionally more work — 24 frames is enough to read a clip's
+ *  content at a glance whether it's eight seconds or eighty. */
+const FILMSTRIP_SECONDS_PER_FRAME = 1.1;
+const FILMSTRIP_MAX_FRAMES = 24;
+const FILMSTRIP_HEIGHT = 128;
+
+function seekTo(video: HTMLVideoElement, time: number): Promise<void> {
+  return new Promise((resolve) => {
+    const done = () => {
+      video.removeEventListener("seeked", done);
+      resolve();
+    };
+    video.addEventListener("seeked", done);
+    video.currentTime = time;
+  });
+}
+
+/** Decode frames along a video and hand them back one at a time.
+ *
+ *  Progressive by design: the strip fills in left to right while the user is
+ *  already looking at it, instead of showing a placeholder until every frame
+ *  is ready. Decoding is sequential — one seek, one draw, one encode — because
+ *  running several at once on a phone is how you drop the frame rate of the
+ *  editor the strip belongs to.
+ *
+ *  A plain <video> rather than a mediabunny decode, for the same reason
+ *  `videoThumbnail` is: the browser's own decoder is already warm for a file
+ *  the page is playing, and this runs while the user waits. */
+export async function extractFilmstrip(
+  url: string,
+  duration: number,
+  onFrame: (frame: ClipFrame) => void,
+  isCancelled: () => boolean = () => false,
+): Promise<void> {
+  if (!(duration > 0)) return;
+
+  const count = Math.max(
+    1,
+    Math.min(FILMSTRIP_MAX_FRAMES, Math.round(duration / FILMSTRIP_SECONDS_PER_FRAME)),
+  );
+  const span = duration / count;
+
+  const video = document.createElement("video");
+  video.muted = true;
+  video.playsInline = true;
+  video.preload = "auto";
+  video.crossOrigin = "anonymous";
+
+  await new Promise<void>((resolve, reject) => {
+    video.onloadeddata = () => resolve();
+    video.onerror = () => reject(new Error("Couldn't read that video"));
+    video.src = url;
+  });
+
+  const canvas = document.createElement("canvas");
+  const aspect = video.videoWidth / Math.max(1, video.videoHeight);
+  canvas.height = FILMSTRIP_HEIGHT;
+  canvas.width = Math.max(1, Math.round(FILMSTRIP_HEIGHT * aspect));
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+
+  for (let i = 0; i < count; i++) {
+    if (isCancelled()) return;
+    const start = i * span;
+    // Sampled from the middle of the span it represents, so a frame is typical
+    // of its slice rather than of the cut that begins it.
+    await seekTo(video, Math.min(start + span / 2, duration - 0.02));
+    if (isCancelled()) return;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, "image/jpeg", 0.6),
+    );
+    if (!blob) continue;
+    if (isCancelled()) return;
+    onFrame({ start, end: start + span, url: URL.createObjectURL(blob) });
+  }
+}
+
 export function blankClipEdits() {
   return {
     naturalSize: null,
@@ -332,5 +429,6 @@ export function blankClipEdits() {
     filterIntensity: 100,
     adjust: NEUTRAL_ADJUST,
     thumbUrl: null,
+    frames: [] as ClipFrame[],
   };
 }

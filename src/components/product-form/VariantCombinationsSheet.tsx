@@ -4,6 +4,7 @@ import type { VariantOption, VariantRow } from "./VariantMatrixBuilder";
 import { stockTotal } from "./variant-stock";
 import { ImageGallery } from "./ImageGallery";
 import { DraftImagePickerSheet } from "./DraftImagePickerSheet";
+import type { PickedMedia } from "./MediaPickerSheet";
 import { ImageSourceSheet, type ImageSource } from "./ImageSourceSheet";
 import { InventorySheet, type InventoryValues } from "./InventorySheet";
 import { WeightSheet } from "./WeightSheet";
@@ -467,9 +468,9 @@ function VariantImagePopover({
     await uploadFiles(await filePicker.pick());
   }
 
-  function handlePicked(urls: string[]) {
+  function handlePicked(media: PickedMedia[]) {
     setDraftsOpen(false);
-    addUrls(urls);
+    addUrls(media.map((m) => m.url));
   }
 
   // Tapping a base-product photo adds it to this variant; tapping it again

@@ -110,6 +110,7 @@ function StoreHome() {
           storeId={storeId}
           onClose={() => setLocationsSheetOpen(false)}
           onCountChange={setLocationCount}
+          fromChecklist
         />
       )}
 

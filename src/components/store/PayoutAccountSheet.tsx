@@ -267,6 +267,28 @@ const NIGERIAN_BANKS = [
   "Zitra MFB",
 ];
 
+// Common short forms sellers actually type, keyed by the exact NIGERIAN_BANKS
+// entry they should surface — a plain substring match on the full name alone
+// misses these entirely (e.g. "uba" isn't a substring of "United Bank For
+// Africa"). Covers the household-name banks people abbreviate by habit, not
+// every MFB in the list.
+const BANK_ALIASES: Record<string, string[]> = {
+  "United Bank For Africa": ["UBA"],
+  "Guaranty Trust Bank": ["GTB", "GTBank", "GTCO"],
+  "First Bank of Nigeria": ["FBN", "First Bank"],
+  "First City Monument Bank": ["FCMB"],
+  "Union Bank of Nigeria": ["UBN"],
+  "Standard Chartered Bank": ["SCB", "Standard Chartered"],
+  "Stanbic IBTC Bank": ["IBTC", "Stanbic"],
+  "Access Bank (Diamond)": ["Diamond Bank", "Diamond"],
+  "Coronation Merchant Bank": ["Coronation"],
+};
+
+function bankMatches(bank: string, query: string): boolean {
+  if (bank.toLowerCase().includes(query)) return true;
+  return (BANK_ALIASES[bank] ?? []).some((alias) => alias.toLowerCase().includes(query));
+}
+
 type PayoutFormValues = { bankName: string; accountNumber: string };
 
 export function PayoutAccountSheet({
@@ -300,7 +322,7 @@ export function PayoutAccountSheet({
   const filteredBanks = useMemo(() => {
     const q = bankName.trim().toLowerCase();
     if (!q) return NIGERIAN_BANKS;
-    return NIGERIAN_BANKS.filter((b) => b.toLowerCase().includes(q));
+    return NIGERIAN_BANKS.filter((b) => bankMatches(b, q));
   }, [bankName]);
 
   const visibleBanks = listOpen ? filteredBanks : bankName.trim() ? [bankName.trim()] : [];

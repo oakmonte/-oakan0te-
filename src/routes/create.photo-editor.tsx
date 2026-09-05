@@ -33,6 +33,7 @@ import type { CropRect } from "@/lib/crop-rect";
 import { ImageSourceSheet, type ImageSource } from "@/components/product-form/ImageSourceSheet";
 import { DraftImagePickerSheet } from "@/components/product-form/DraftImagePickerSheet";
 import { PostImagePickerSheet } from "@/components/product-form/PostImagePickerSheet";
+import type { PickedMedia } from "@/components/product-form/MediaPickerSheet";
 import { setPendingCapture } from "@/lib/capture-handoff";
 
 export const Route = createFileRoute("/create/photo-editor")({
@@ -206,8 +207,10 @@ function PhotoEditor() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
-  function handlePickedUrls(urls: string[]) {
-    addPhotos(urls.map((url) => ({ url, remote: true })));
+  function handlePickedUrls(picked: PickedMedia[]) {
+    // Photos only here by construction — this editor asks the picker for
+    // stills, since a carousel slide can't be a video.
+    addPhotos(picked.map((m) => ({ url: m.url, remote: true })));
     setDraftsOpen(false);
     setPostsOpen(false);
   }

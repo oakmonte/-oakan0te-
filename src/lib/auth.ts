@@ -286,6 +286,15 @@ export async function sendEmailCode(email: string, { createUser = true } = {}) {
   return supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: createUser } });
 }
 
+/** Whether an account already exists for this email — an explicit, accepted
+ *  enumeration trade-off (see the is_email_registered migration) made so
+ *  AuthPanel can tell a seller/creator/curator signup screen "you already
+ *  have an account, sign in instead" and tell /sign-in "no account with that
+ *  email yet" instead of only ever a generic, deliberately-vague error. */
+export async function checkEmailRegistered(email: string) {
+  return supabase.rpc("is_email_registered", { check_email: email });
+}
+
 export async function verifyEmailCode(email: string, token: string) {
   return supabase.auth.verifyOtp({ email, token, type: "email" });
 }

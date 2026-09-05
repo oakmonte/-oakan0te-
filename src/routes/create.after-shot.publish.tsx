@@ -1,13 +1,26 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { LucideIcon } from "lucide-react";
-import { ArrowLeft, MapPin, Hash, AtSign, Tag, X, Check, Globe, Users, Lock } from "lucide-react";
+import {
+  ArrowLeft,
+  MapPin,
+  Hash,
+  AtSign,
+  Link2,
+  X,
+  Check,
+  Globe,
+  Users,
+  Lock,
+  ImageIcon,
+} from "lucide-react";
 import { useAfterShotContext } from "@/lib/after-shot-context";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
 import { useSession } from "@/hooks/use-session";
 import { useActiveStoreId } from "@/hooks/use-own-store";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { startPostUpload } from "@/lib/post-upload";
+import { discardVideoEditorSession } from "@/lib/video-editor-session";
 import CameraPanel from "@/components/camera/CameraPanel";
 
 export const Route = createFileRoute("/create/after-shot/publish")({
@@ -38,7 +51,7 @@ type ProductOption = { id: string; title: string; price: number | null; image: s
 function PublishPage() {
   useLockedViewport();
   const navigate = useNavigate();
-  const { media } = useAfterShotContext();
+  const { media, setMedia } = useAfterShotContext();
   const { user } = useSession();
   const { storeId } = useActiveStoreId();
 
@@ -48,6 +61,7 @@ function PublishPage() {
   const [visibilityOpen, setVisibilityOpen] = useState(false);
   const [taggedProducts, setTaggedProducts] = useState<ProductOption[]>([]);
   const [tagPickerOpen, setTagPickerOpen] = useState(false);
+  const [coverOpen, setCoverOpen] = useState(false);
   // Only guards against a double-tap in the brief tick before navigate()
   // unmounts this page — the actual upload runs in the background via
   // post-upload.ts and isn't gated on this.
@@ -91,6 +105,11 @@ function PublishPage() {
 
       startPostUpload(fd, status);
 
+      // The post is on its way, so the video editor's parked timeline is
+      // finished with. Left behind, the next "New video" would open onto this
+      // edit instead of an empty one.
+      discardVideoEditorSession();
+
       // FormData already holds the Blobs themselves (not the object URLs),
       // so it's safe to release ours now instead of waiting for the
       // now-backgrounded upload to finish.
@@ -111,7 +130,15 @@ function PublishPage() {
     >
       <div className="flex items-center justify-between px-4 pt-[calc(env(safe-area-inset-top)+12px)] pb-3">
         <button
-          onClick={() => navigate({ to: "/create/after-shot" })}
+          // Back to the editor the post actually came FROM. This used to be
+          // hardcoded to the after-shot screen, which a video-editor post
+          // never passes through — you'd tap back and land in a different
+          // editor holding your finished video.
+          onClick={() =>
+            navigate({
+              to: media.origin === "video-editor" ? "/create/video-editor" : "/create/after-shot",
+            })
+          }
           aria-label="Back to editor"
           className="oak-motion-control flex items-center justify-center w-9 h-9 -ml-1 active:scale-90"
         >
@@ -131,6 +158,18 @@ function PublishPage() {
               <img src={media.poster.url} alt="" className="w-full h-full object-cover" />
             ) : (
               <video src={media.url} muted playsInline className="w-full h-full object-cover" />
+            )}
+            {/* The cover is the frame the whole feed judges this post by, and
+                until now it was whatever the export happened to leave — with
+                no way to change it from the screen where you can see it. */}
+            {media.type === "video" && (
+              <button
+                type="button"
+                onClick={() => setCoverOpen(true)}
+                className="oak-motion-control absolute inset-x-0 bottom-0 flex items-center justify-center gap-1 bg-black/55 py-1.5 text-[11px] font-semibold text-white active:scale-95"
+              >
+                <ImageIcon size={11} /> Edit cover
+              </button>
             )}
           </div>
 
@@ -182,21 +221,26 @@ function PublishPage() {
           )}
         </div>
 
-        {/* Tagged products */}
+        {/* Linked products. "Link", not "tag": these are what a viewer finds
+            in Listed items when they swipe on the post, which is a connection
+            to something buyable rather than a label on a picture. */}
         <div className="mt-5">
           <button
             type="button"
             onClick={() => setTagPickerOpen(true)}
             className="oak-motion-control flex items-center gap-2.5 w-full rounded-xl border border-gray-200 px-3.5 py-3 text-left active:scale-[0.99]"
           >
-            <Tag size={17} className="text-gray-400 shrink-0" />
+            <Link2 size={17} className="text-gray-400 shrink-0" />
             <span className="flex-1 text-[14px]">
               {taggedProducts.length > 0
-                ? `${taggedProducts.length} product${taggedProducts.length > 1 ? "s" : ""} tagged`
-                : "Tag products"}
+                ? `${taggedProducts.length} product${taggedProducts.length > 1 ? "s" : ""} linked`
+                : "Link products"}
             </span>
             <span className="text-[12px] text-gray-400">Edit</span>
           </button>
+          <p className="pl-1 pt-1.5 text-[11px] text-gray-400">
+            So your customers can buy at a swipe.
+          </p>
 
           {taggedProducts.length > 0 && (
             <div className="flex gap-2 overflow-x-auto pt-2.5" style={{ scrollbarWidth: "none" }}>
@@ -272,6 +316,17 @@ function PublishPage() {
         }}
       />
 
+      {coverOpen && media.type === "video" && (
+        <CoverPickerSheet
+          url={media.url}
+          onClose={() => setCoverOpen(false)}
+          onPick={(poster) => {
+            setMedia({ ...media, poster });
+            setCoverOpen(false);
+          }}
+        />
+      )}
+
       <ProductTagPanel
         open={tagPickerOpen}
         storeId={storeId}
@@ -285,6 +340,100 @@ function PublishPage() {
           )
         }
       />
+    </div>
+  );
+}
+
+/** Pick which frame of the video represents the post.
+ *
+ *  A plain <video> seek rather than a decode through mediabunny: the source is
+ *  a local blob the browser can already scrub, and one frame does not justify
+ *  spinning up the full demuxer. Capturing is a canvas read, which is safe
+ *  here for the same reason — the blob is same-origin, so the canvas never
+ *  gets tainted. */
+function CoverPickerSheet({
+  url,
+  onPick,
+  onClose,
+}: {
+  url: string;
+  onPick: (poster: { blob: Blob; url: string }) => void;
+  onClose: () => void;
+}) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [duration, setDuration] = useState(0);
+  const [at, setAt] = useState(0);
+  const [saving, setSaving] = useState(false);
+
+  const capture = useCallback(() => {
+    const video = videoRef.current;
+    if (!video || saving) return;
+    setSaving(true);
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return setSaving(false);
+    ctx.drawImage(video, 0, 0);
+    canvas.toBlob(
+      (blob) => {
+        setSaving(false);
+        if (blob) onPick({ blob, url: URL.createObjectURL(blob) });
+      },
+      "image/jpeg",
+      0.92,
+    );
+  }, [onPick, saving]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex min-h-dvh flex-col bg-black text-white">
+      <div className="flex h-14 items-center justify-between px-4 pt-[env(safe-area-inset-top)]">
+        <button onClick={onClose} type="button" className="-ml-1 text-sm text-white/70">
+          Cancel
+        </button>
+        <span className="text-[15px] font-semibold">Choose cover</span>
+        <button
+          onClick={capture}
+          type="button"
+          disabled={saving}
+          className="text-sm font-semibold disabled:opacity-40"
+        >
+          Done
+        </button>
+      </div>
+
+      <div className="flex flex-1 items-center justify-center px-6">
+        <video
+          ref={videoRef}
+          src={url}
+          muted
+          playsInline
+          preload="auto"
+          onLoadedMetadata={(e) => setDuration(e.currentTarget.duration || 0)}
+          className="max-h-full w-full rounded-xl object-contain"
+        />
+      </div>
+
+      <div
+        className="flex items-center gap-3 px-6 pt-4"
+        style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 24px)" }}
+      >
+        <span className="text-[12px] tabular-nums text-white/60">{at.toFixed(1)}s</span>
+        <input
+          type="range"
+          min={0}
+          max={Math.max(duration, 0.1)}
+          step={0.05}
+          value={at}
+          onChange={(e) => {
+            const next = Number(e.target.value);
+            setAt(next);
+            if (videoRef.current) videoRef.current.currentTime = next;
+          }}
+          aria-label="Cover frame"
+          className="oak-adjust-range flex-1"
+        />
+      </div>
     </div>
   );
 }
@@ -374,11 +523,12 @@ function ProductTagPanel({
   }, [open, storeId]);
 
   return (
-    <CameraPanel open={open} onClose={onClose} title="Tag products" height={520} light>
+    <CameraPanel open={open} onClose={onClose} title="Link products" height={520} light>
+      <p className="pb-3 text-[12px] text-gray-500">So your customers can buy at a swipe.</p>
       {!storeId ? (
         <div className="flex flex-col items-center text-center gap-3 py-10">
           <p className="text-[13px] text-gray-500 max-w-[220px]">
-            List a product in your store before you can tag it on a post.
+            List a product in your store before you can link it to a post.
           </p>
           <button
             onClick={() => {
@@ -394,7 +544,7 @@ function ProductTagPanel({
         <div className="text-center text-[13px] text-gray-400 py-10">Loading your products…</div>
       ) : products.length === 0 ? (
         <div className="text-center text-[13px] text-gray-400 py-10">
-          No active products to tag yet.
+          No active products to link yet.
         </div>
       ) : (
         <div className="flex flex-col gap-2 pb-4">

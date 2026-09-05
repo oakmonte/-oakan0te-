@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { ImageGallery } from "./ImageGallery";
 import { DraftImagePickerSheet } from "./DraftImagePickerSheet";
 import { PostImagePickerSheet } from "./PostImagePickerSheet";
+import type { PickedMedia } from "./MediaPickerSheet";
 import { ImageSourceSheet, type ImageSource } from "./ImageSourceSheet";
 import { useMultiFilePicker } from "@/hooks/use-file-picker";
 import { uploadProductImage } from "@/lib/upload-product-image";
@@ -79,14 +80,14 @@ export function MediaSection({
     await uploadFiles(await filePicker.pick());
   }
 
-  function handlePicked(urls: string[]) {
+  function handlePicked(media: PickedMedia[]) {
     setDraftsOpen(false);
-    addUrls(urls);
+    addUrls(media.map((m) => m.url));
   }
 
-  function handlePickedFromPosts(urls: string[]) {
+  function handlePickedFromPosts(media: PickedMedia[]) {
     setPostsOpen(false);
-    addUrls(urls);
+    addUrls(media.map((m) => m.url));
   }
 
   return (

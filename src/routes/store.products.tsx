@@ -165,12 +165,25 @@ function StoreProducts() {
         </div>
       )}
 
-      {checklist && (
-        <div className="mt-6">
+      {/* Nothing to move on from until there's actually a product — showing
+          Next against an empty list let a seller "finish" this step without
+          ever listing anything. Once one exists, Next stops being the only
+          option: most sellers arriving from the checklist have more than one
+          item to add, so the primary action stays "keep going" and Next is
+          the deliberate opt-out. */}
+      {checklist && products.length > 0 && (
+        <div className="mt-6 flex flex-col gap-2">
+          <button
+            type="button"
+            onClick={() => setCreateTypeOpen(true)}
+            className="w-full bg-black text-white text-sm font-semibold rounded-full py-4 oak-motion-control active:scale-[0.98]"
+          >
+            Keep listing
+          </button>
           <button
             type="button"
             onClick={() => navigate({ to: "/store" })}
-            className="w-full bg-black text-white text-sm font-semibold rounded-full py-4 oak-motion-control active:scale-[0.98]"
+            className="w-full border border-gray-200 text-gray-900 text-sm font-medium rounded-full py-4 oak-motion-control active:scale-[0.98]"
           >
             Next
           </button>

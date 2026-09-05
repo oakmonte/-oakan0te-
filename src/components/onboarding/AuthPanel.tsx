@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
+  checkEmailRegistered,
   resolvePostAuthRedirect,
   sendEmailCode,
   signInWithGoogle,
@@ -21,9 +22,11 @@ import { FormError } from "@/components/onboarding/OnboardingShell";
 import logoO from "@/assets/logo-o.png";
 
 const RESEND_SECONDS = 30;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type Mode = "code" | "password";
 type Busy = "google" | "send" | "verify" | "password" | null;
+type EmailStatus = "idle" | "checking" | "registered" | "unregistered";
 
 type Props = {
   /** The flow this page starts. `null` on /sign-in, which is for people who
@@ -46,6 +49,7 @@ export function AuthPanel({ intent, title, subtitle, defaultMode = "code" }: Pro
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [checkingSession, setCheckingSession] = useState(true);
+  const [emailStatus, setEmailStatus] = useState<EmailStatus>("idle");
 
   // Someone who is already signed in used to be shown the sign-in form again,
   // most visibly when /no-account sent them back here to pick an intent.
@@ -71,6 +75,36 @@ export function AuthPanel({ intent, title, subtitle, defaultMode = "code" }: Pro
     const t = setInterval(() => setCountdown((c) => (c > 0 ? c - 1 : 0)), 1000);
     return () => clearInterval(t);
   }, [sent, countdown]);
+
+  // Debounced live check, same shape as choose-username's availability check —
+  // a hint only, and only worth running before a code/password has actually
+  // been sent/submitted. Powers the "you already have an account, sign in
+  // instead" banner on the onboarding pages and the "no account with that
+  // email yet" banner on /sign-in — an explicit, accepted enumeration
+  // trade-off (see the is_email_registered migration and checkEmailRegistered).
+  useEffect(() => {
+    const trimmed = email.trim();
+    if (sent || !EMAIL_RE.test(trimmed)) {
+      setEmailStatus("idle");
+      return;
+    }
+    let cancelled = false;
+    setEmailStatus("checking");
+    const t = setTimeout(async () => {
+      const { data, error: rpcError } = await checkEmailRegistered(trimmed);
+      if (cancelled) return;
+      if (rpcError) {
+        console.error("AuthPanel: email registration check failed", rpcError);
+        setEmailStatus("idle");
+        return;
+      }
+      setEmailStatus(data ? "registered" : "unregistered");
+    }, 500);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [email, sent]);
 
   const finish = async (userId: string) => {
     const redirect = await resolvePostAuthRedirect(userId, intent);
@@ -238,6 +272,42 @@ export function AuthPanel({ intent, title, subtitle, defaultMode = "code" }: Pro
 
           {notice && <p className="mb-4 text-xs text-[#0A0A0A]/60 text-center">{notice}</p>}
 
+          {/* Onboarding pages (intent set): this email already belongs to
+              someone — steer them to sign in rather than let them quietly
+              re-authenticate into their existing account through what still
+              reads as a signup screen. */}
+          {intent !== null && emailStatus === "registered" && (
+            <div className="mb-4 rounded-xl border border-[#2151F5]/20 bg-[#2151F5]/5 px-4 py-3 text-xs text-[#0A0A0A]/70">
+              You already have an account with this email.
+              {mode !== "password" && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode("password");
+                    setError(null);
+                  }}
+                  className="ml-1 font-medium text-[#2151F5] underline underline-offset-2"
+                >
+                  Sign in with your password
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* /sign-in (no intent): the inverse case — don't let a typo or a
+              genuinely new visitor sit here guessing why "Sign in" won't work. */}
+          {intent === null && emailStatus === "unregistered" && (
+            <div className="mb-4 rounded-xl border border-[#0A0A0A]/10 bg-[#0A0A0A]/5 px-4 py-3 text-xs text-[#0A0A0A]/70">
+              We couldn&apos;t find an account with that email.{" "}
+              <Link
+                to="/no-account"
+                className="font-medium text-[#2151F5] underline underline-offset-2"
+              >
+                Create one instead
+              </Link>
+            </div>
+          )}
+
           {mode === "password" ? (
             <form onSubmit={handlePasswordSignIn} className="space-y-3">
               <label htmlFor="auth-email" className="sr-only">
@@ -276,10 +346,26 @@ export function AuthPanel({ intent, title, subtitle, defaultMode = "code" }: Pro
               <FormError>{error}</FormError>
               <button
                 type="button"
-                onClick={switchToCode}
+                onClick={
+                  intent === null
+                    ? switchToCode
+                    : () => {
+                        // Reached via the "you already have an account"
+                        // banner, not a forgotten password — no reset flag,
+                        // so verifying the code lands straight on their
+                        // profile (or /switching-roles) via the normal
+                        // resolvePostAuthRedirect path, same as it would for
+                        // any other returning user.
+                        setMode("code");
+                        setError(null);
+                        setNotice(null);
+                      }
+                }
                 className="w-full text-[11px] uppercase tracking-widest text-[#0A0A0A]/60 hover:text-[#0A0A0A] transition-colors pt-2"
               >
-                Forgot password? Email me a code
+                {intent === null
+                  ? "Forgot password? Email me a code"
+                  : "Sign in with a code instead"}
               </button>
             </form>
           ) : !sent ? (

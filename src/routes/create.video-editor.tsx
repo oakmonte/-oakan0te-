@@ -40,6 +40,12 @@ import { adjustToCss, NEUTRAL_ADJUST } from "@/lib/photo-adjust";
 import { ImageSourceSheet, type ImageSource } from "@/components/product-form/ImageSourceSheet";
 import { DraftImagePickerSheet } from "@/components/product-form/DraftImagePickerSheet";
 import { PostImagePickerSheet } from "@/components/product-form/PostImagePickerSheet";
+import type { PickedMedia } from "@/components/product-form/MediaPickerSheet";
+import {
+  discardVideoEditorSession,
+  parkVideoEditorSession,
+  takeVideoEditorSession,
+} from "@/lib/video-editor-session";
 import { setPendingCapture } from "@/lib/capture-handoff";
 import VideoTimeline from "@/components/create/VideoTimeline";
 import {
@@ -47,12 +53,14 @@ import {
   ComingSoonSheet,
   RatioSheet,
   TransitionSheet,
+  SoundSheet,
 } from "@/components/create/ClipOptionSheets";
 import { exportSequence } from "@/lib/video-sequence-export";
 import {
   blankClipEdits,
   clipDuration,
   clipStarts,
+  extractFilmstrip,
   formatTime,
   locate,
   moveClip,
@@ -84,19 +92,18 @@ export const Route = createFileRoute("/create/video-editor")({
 // not have three implementations that drift apart. What is NOT reused is
 // after-shot-context, which carries exactly one CapturedMedia.
 //
-// Honest about what's decoration: Sound, Effects, Magic, Captions, Overlay and
+// Honest about what's decoration: Effects, Magic, Captions, Overlay and
 // transitions are drawn and open a sheet that says they aren't wired yet.
-// Everything else on this screen does what it looks like it does.
+// Everything else on this screen does what it looks like it does — Sound
+// included, which takes an audio file off the device and mixes it under the
+// whole timeline.
 
-type ToolId = "clip" | "text" | "sticker" | "filter" | "adjust" | "ratio" | "transition" | "soon";
+type ToolId =
+  "clip" | "text" | "sticker" | "filter" | "adjust" | "ratio" | "transition" | "sound" | "soon";
 
 type SoonInfo = { title: string; body: string };
 
 const SOON: Record<string, SoonInfo> = {
-  sound: {
-    title: "Sound",
-    body: "A music library and voiceover recording belong here. The exporter already writes a single audio track for the whole timeline, so added sound has somewhere to land once the library exists.",
-  },
   effects: {
     title: "Effects",
     body: "Timed visual effects sit on the timeline like clips do. The filter and tone tools next to this one are live today and apply per clip.",
@@ -136,10 +143,15 @@ function VideoEditor() {
   const { layers, addLayer, updateLayer, replaceLayers, selectedLayerId, setSelectedLayerId } =
     useAfterShotLayers();
 
-  const [clips, setClips] = useState<Clip[]>([]);
+  // Claimed once per mount, and BEFORE the state below is initialised — the
+  // timeline you left behind is on screen from the first render rather than
+  // appearing a frame after an empty one.
+  const [session] = useState(takeVideoEditorSession);
+
+  const [clips, setClips] = useState<Clip[]>(() => session?.clips ?? []);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [ratio, setRatio] = useState<ProjectRatio>("9:16");
-  const [time, setTime] = useState(0);
+  const [ratio, setRatio] = useState<ProjectRatio>(() => session?.ratio ?? "9:16");
+  const [time, setTime] = useState(() => session?.time ?? 0);
   const [playing, setPlaying] = useState(false);
   const [expanded, setExpanded] = useState(false);
 
@@ -154,6 +166,11 @@ function VideoEditor() {
   const [sourceAnchor, setSourceAnchor] = useState<DOMRect | null>(null);
   const [draftsOpen, setDraftsOpen] = useState(false);
   const [postsOpen, setPostsOpen] = useState(false);
+  // Music laid over the whole timeline. Session-lived like the clips are, and
+  // parked with them so it survives the trip to publish.
+  const [music, setMusic] = useState<{ file: File; name: string; volume: number } | null>(
+    () => session?.music ?? null,
+  );
   const [progress, setProgress] = useState<number | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -163,25 +180,60 @@ function VideoEditor() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const stickerInputRef = useRef<HTMLInputElement>(null);
+  const audioInputRef = useRef<HTMLInputElement>(null);
   const renderLayerContent = useLayerRenderer(frameRef);
 
   // One layer stack per clip. The shared layer context holds one at a time, so
   // changing selection parks the outgoing stack and hands over the incoming
   // one — same arrangement as the photo editor's carousel.
-  const layersByClip = useRef<Record<string, Layer[]>>({});
-  const ownedUrls = useRef<string[]>([]);
-  useEffect(
-    () => () => {
-      ownedUrls.current.forEach((u) => URL.revokeObjectURL(u));
-      ownedUrls.current = [];
-    },
-    [],
-  );
+  const layersByClip = useRef<Record<string, Layer[]>>(session?.layersByClip ?? {});
+  const ownedUrls = useRef<string[]>(session?.ownedUrls ?? []);
+
+  // Leaving parks the edit rather than destroying it. Ownership of the object
+  // URLs goes with it, and video-editor-session.ts is then the ONLY place they
+  // are freed — via discardVideoEditorSession, which the Back button and a
+  // sent post both call.
+  //
+  // The obvious alternative, revoking here on unmount, was tried and is wrong
+  // in a way that only shows up when it runs: StrictMode mounts, unmounts and
+  // remounts every component in dev, so the cleanup fired once on a component
+  // that was about to come straight back — and every clip returned from
+  // publish as a dead blob URL, "Format error", black preview. The after-shot
+  // layout carries a note about the same trap for the same reason.
+  //
+  // A ref, because a cleanup with an empty dep list closes over the state as
+  // it was on first render — which for a restored session is right, and for a
+  // fresh one is an empty timeline.
+  const latest = useRef({ clips, ratio, time, layers, music, currentId: null as string | null });
 
   const total = sequenceDuration(clips);
   const head = locate(clips, time);
   const current = head ? clips[head.index] : null;
   const selected = clips.find((c) => c.id === selectedId) ?? null;
+
+  latest.current = { clips, ratio, time, layers, music, currentId: current?.id ?? null };
+  // Read by the filmstrip queue to know whether a clip it is still decoding
+  // for is one the user has since deleted.
+  const liveClipIds = useRef(new Set<string>());
+  liveClipIds.current = new Set(clips.map((c) => c.id));
+  useEffect(
+    () => () => {
+      const { clips: c, ratio: r, time: t, layers: l, music: m, currentId } = latest.current;
+      if (c.length === 0) return;
+      // The live stack belongs to whichever clip was on screen; park it or the
+      // caption you could see would not come back with it.
+      if (currentId) layersByClip.current[currentId] = l;
+      parkVideoEditorSession({
+        clips: c,
+        layersByClip: layersByClip.current,
+        ratio: r,
+        time: t,
+        music: m,
+        ownedUrls: ownedUrls.current,
+      });
+    },
+    [],
+  );
   const empty = clips.length === 0;
 
   /* ---------------- undo / redo ---------------- */
@@ -257,6 +309,45 @@ function VideoEditor() {
     [push],
   );
 
+  // Filmstrip decoding, one clip at a time.
+  //
+  // A queue rather than firing them all off together: each frame is a seek, a
+  // decode and a JPEG encode on the main thread, and four clips racing to do
+  // that at once would visibly stutter the editor the strip is drawn in. The
+  // strips fill in left to right, in the order the clips were added, which is
+  // also the order the user is most likely to look at them.
+  const filmstripQueue = useRef<Promise<void>>(Promise.resolve());
+  const alive = useRef(true);
+  useEffect(
+    () => () => {
+      alive.current = false;
+    },
+    [],
+  );
+
+  const queueFilmstrip = useCallback((clipId: string, url: string, duration: number) => {
+    filmstripQueue.current = filmstripQueue.current
+      .then(() =>
+        extractFilmstrip(
+          url,
+          duration,
+          (frame) => {
+            ownedUrls.current.push(frame.url);
+            setClips((prev) =>
+              prev.map((c) => (c.id === clipId ? { ...c, frames: [...c.frames, frame] } : c)),
+            );
+          },
+          // Stops mid-clip when the screen goes away, and when the clip itself
+          // is deleted — decoding frames for a tile nobody will see is pure
+          // waste, and on a phone it is waste that costs battery.
+          () => !alive.current || !liveClipIds.current.has(clipId),
+        ),
+      )
+      // A clip whose frames can't be read (a remote file without CORS, say)
+      // keeps its poster fallback rather than taking the queue down with it.
+      .catch(() => {});
+  }, []);
+
   const measurePhoto = useCallback((clip: Clip) => {
     const img = new Image();
     img.onload = () =>
@@ -270,33 +361,53 @@ function VideoEditor() {
     img.src = clip.url;
   }, []);
 
-  const measureVideo = useCallback(async (clip: Clip) => {
-    try {
-      const [thumb, duration] = await Promise.all([
-        videoThumbnail(clip.url),
-        videoDuration(clip.url),
-      ]);
-      ownedUrls.current.push(thumb.url);
-      if (duration <= 0) {
-        setError("Couldn't read how long one of those videos is");
-        return;
-      }
-      setClips((prev) =>
-        prev.map((c) =>
-          c.id === clip.id
-            ? {
-                ...c,
-                thumbUrl: thumb.url,
-                naturalSize: { w: thumb.w, h: thumb.h },
-                sourceDuration: duration,
-                trimEnd: duration,
-              }
-            : c,
-        ),
-      );
-    } catch {
-      setError("Couldn't read one of those videos");
+  /** Read a video clip's length and poster frame.
+   *
+   *  `posterUrl` short-circuits the frame grab for clips picked from drafts or
+   *  posts, which already have a stored thumbnail. That matters beyond speed:
+   *  grabbing a frame means drawing a remote video to a canvas, which the
+   *  browser blocks unless the bucket sends CORS headers. Using the stored
+   *  poster avoids the question entirely.
+   *
+   *  Duration is required — a clip without one has no length on the timeline.
+   *  A poster is not, so a failed grab downgrades to a plain tile instead of
+   *  failing the whole add. */
+  const measureVideo = useCallback(async (clip: Clip, posterUrl?: string | null) => {
+    const duration = await videoDuration(clip.url);
+    if (duration <= 0) {
+      setError("Couldn't read how long one of those videos is");
+      return;
     }
+
+    let thumbUrl = posterUrl ?? null;
+    let size: { w: number; h: number } | null = null;
+    if (!thumbUrl) {
+      try {
+        const thumb = await videoThumbnail(clip.url);
+        ownedUrls.current.push(thumb.url);
+        thumbUrl = thumb.url;
+        size = { w: thumb.w, h: thumb.h };
+      } catch {
+        thumbUrl = null;
+      }
+    }
+
+    setClips((prev) =>
+      prev.map((c) =>
+        c.id === clip.id
+          ? {
+              ...c,
+              thumbUrl,
+              naturalSize: size ?? c.naturalSize,
+              sourceDuration: duration,
+              trimEnd: duration,
+            }
+          : c,
+      ),
+    );
+
+    queueFilmstrip(clip.id, clip.url, duration);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function handleDeviceFiles(files: FileList | null) {
@@ -324,19 +435,22 @@ function VideoEditor() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
-  function handlePickedUrls(urls: string[]) {
-    // The draft and post pickers are image pickers, so everything they return
-    // is a still.
-    const created: Clip[] = urls.map((url) => ({
+  /** Clips picked from drafts or published posts. Unlike the product form,
+   *  which can only use stills, this screen takes both — an old video is as
+   *  valid a piece of a new one as a photo is. */
+  function handlePicked(picked: PickedMedia[]) {
+    const created: Clip[] = picked.map((item) => ({
       id: newClipId(),
-      kind: "photo" as const,
+      kind: item.kind,
       blob: new Blob(),
-      url,
+      url: item.url,
       remote: true,
       ...blankClipEdits(),
     }));
     addClips(created);
-    created.forEach(measurePhoto);
+    created.forEach((clip, i) =>
+      clip.kind === "video" ? void measureVideo(clip, picked[i].thumbnailUrl) : measurePhoto(clip),
+    );
     setDraftsOpen(false);
     setPostsOpen(false);
   }
@@ -581,10 +695,26 @@ function VideoEditor() {
       // Park the live stack first, or the clip currently on screen would
       // export without the caption you can see on it.
       if (current) layersByClip.current[current.id] = layers;
-      const blob = await exportSequence(clips, layersByClip.current, ratio, setProgress);
+      const blob = await exportSequence(clips, layersByClip.current, ratio, music, setProgress);
       const url = URL.createObjectURL(blob);
-      setPendingCapture({ type: "video", blob, url });
-      await navigate({ to: "/create/after-shot" });
+
+      // A cover for the publish screen. Without one it falls back to rendering
+      // frame zero of the video element, which on a cut that opens dark is a
+      // black square — and the cover is what the whole feed judges the post by.
+      let poster: { blob: Blob; url: string } | undefined;
+      try {
+        const shot = await videoThumbnail(url, 0.1);
+        const res = await fetch(shot.url);
+        poster = { blob: await res.blob(), url: shot.url };
+      } catch {
+        poster = undefined;
+      }
+
+      setPendingCapture({ type: "video", blob, url, poster, origin: "video-editor" });
+
+      // The unmount cleanup parks the timeline on its own, so backing out of
+      // publish returns to the edit rather than an empty screen.
+      await navigate({ to: "/create/after-shot/publish" });
     } catch (err) {
       console.error("VideoEditor: export failed", err);
       setError(err instanceof Error ? err.message : "Couldn't make that video");
@@ -622,7 +752,7 @@ function VideoEditor() {
         run: () => setActiveTool("adjust"),
       },
       { id: "canvas", label: "Canvas", icon: Ratio, run: () => setActiveTool("ratio") },
-      { id: "sound", label: "Sound", icon: Music, run: () => openSoon(SOON.sound), off: true },
+      { id: "sound", label: "Sound", icon: Music, run: () => setActiveTool("sound") },
       {
         id: "effects",
         label: "Effects",
@@ -670,7 +800,13 @@ function VideoEditor() {
         >
           <button
             type="button"
-            onClick={() => navigate({ to: "/create" })}
+            onClick={() => {
+              // Leaving on purpose ends the edit, so the parked session goes
+              // with it — otherwise the next New video would open onto the
+              // timeline you just walked away from.
+              discardVideoEditorSession();
+              void navigate({ to: "/create" });
+            }}
             aria-label="Back"
             className="flex h-11 w-11 items-center justify-center rounded-full bg-white/[0.14] active:scale-90"
           >
@@ -893,6 +1029,16 @@ function VideoEditor() {
         />
       )}
 
+      {activeTool === "sound" && (
+        <SoundSheet
+          music={music}
+          onPick={() => audioInputRef.current?.click()}
+          onVolume={(volume) => setMusic((m) => (m ? { ...m, volume } : m))}
+          onRemove={() => setMusic(null)}
+          onClose={closeTool}
+        />
+      )}
+
       {activeTool === "transition" && <TransitionSheet onClose={closeTool} />}
 
       {activeTool === "soon" && soon && (
@@ -981,6 +1127,8 @@ function VideoEditor() {
                 commit(clips.map((c) => (c.id === id ? { ...c, muted: !c.muted } : c)));
               }}
               onTransition={() => setActiveTool("transition")}
+              onSound={() => setActiveTool("sound")}
+              musicName={music?.name ?? null}
             />
           )}
 
@@ -1031,6 +1179,19 @@ function VideoEditor() {
         className="hidden"
         onChange={(e) => handleStickerFiles(e.target.files)}
       />
+      <input
+        ref={audioInputRef}
+        type="file"
+        accept="audio/*"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          // No object URL: the file itself goes to the mixdown, and nothing on
+          // this screen plays it back yet.
+          if (file) setMusic({ file, name: file.name, volume: 0.7 });
+          if (audioInputRef.current) audioInputRef.current.value = "";
+        }}
+      />
 
       {sourceOpen && (
         <ImageSourceSheet
@@ -1040,10 +1201,18 @@ function VideoEditor() {
         />
       )}
       {draftsOpen && (
-        <DraftImagePickerSheet onSelect={handlePickedUrls} onClose={() => setDraftsOpen(false)} />
+        <DraftImagePickerSheet
+          include="all"
+          onSelect={handlePicked}
+          onClose={() => setDraftsOpen(false)}
+        />
       )}
       {postsOpen && (
-        <PostImagePickerSheet onSelect={handlePickedUrls} onClose={() => setPostsOpen(false)} />
+        <PostImagePickerSheet
+          include="all"
+          onSelect={handlePicked}
+          onClose={() => setPostsOpen(false)}
+        />
       )}
     </div>
   );

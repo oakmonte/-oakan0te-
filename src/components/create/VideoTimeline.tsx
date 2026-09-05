@@ -45,6 +45,8 @@ export default function VideoTimeline({
   onSplit,
   onToggleMute,
   onTransition,
+  onSound,
+  musicName,
 }: {
   clips: Clip[];
   selectedId: string | null;
@@ -58,6 +60,9 @@ export default function VideoTimeline({
   onSplit: () => void;
   onToggleMute: (id: string) => void;
   onTransition: (index: number) => void;
+  onSound: () => void;
+  /** Name of the added music track, shown in place of "Add sound". */
+  musicName?: string | null;
 }) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [pad, setPad] = useState(0);
@@ -196,9 +201,11 @@ export default function VideoTimeline({
       <div className="px-4 pt-3">
         <button
           type="button"
-          className="flex h-11 w-full items-center justify-center gap-2 rounded-[10px] bg-white/[0.09] text-[14px] font-semibold text-white/90 active:scale-[0.99]"
+          onClick={onSound}
+          className="flex h-11 w-full items-center justify-center gap-2 rounded-[10px] bg-white/[0.09] px-4 text-[14px] font-semibold text-white/90 active:scale-[0.99]"
         >
-          <span className="text-[15px] leading-none">♪</span> Add sound
+          <span className="shrink-0 text-[15px] leading-none">♪</span>
+          <span className="truncate">{musicName ?? "Add sound"}</span>
         </button>
       </div>
 
@@ -316,11 +323,11 @@ function ClipTile({
         } ${isDragging ? "opacity-70" : ""}`}
         style={{ width: Math.max(24, width) }}
       >
-        {/* The poster tiled across the clip's length. Decoding a real frame per
-            50px would be the accurate thing and is far too expensive on a
-            phone for a strip this size — the repeat reads as "footage" at a
-            glance, which is all this row is for. */}
-        {clip.thumbUrl || clip.kind === "photo" ? (
+        {clip.kind === "video" && clip.frames.length > 0 ? (
+          <Filmstrip clip={clip} />
+        ) : clip.thumbUrl || clip.kind === "photo" ? (
+          // A photo has one frame by definition, and a video falls back to its
+          // poster repeated while the filmstrip is still decoding.
           <div
             className="h-full w-full"
             style={{
@@ -354,6 +361,43 @@ function ClipTile({
         )}
       </div>
     </>
+  );
+}
+
+/** The clip's actual frames, laid along its length.
+ *
+ *  Each frame owns a span of SOURCE time, so placing it is a matter of mapping
+ *  that span onto the tile: subtract the trim start, divide by speed. Both are
+ *  pure arithmetic on data that is already decoded, which is what makes
+ *  dragging a trim handle cheap — the strip slides and re-clips rather than
+ *  re-reading the video.
+ *
+ *  Frames outside the trim window aren't rendered at all. They are kept in
+ *  state, though: widening the trim back out has to bring them back, and
+ *  decoding them a second time to do that would be absurd. */
+function Filmstrip({ clip }: { clip: Clip }) {
+  const speed = clip.speed || 1;
+  return (
+    <div className="h-full w-full bg-white/5">
+      {clip.frames.map((frame) => {
+        const from = Math.max(frame.start, clip.trimStart);
+        const to = Math.min(frame.end, clip.trimEnd);
+        if (to <= from) return null;
+        return (
+          <img
+            key={frame.start}
+            src={frame.url}
+            alt=""
+            draggable={false}
+            className="absolute top-0 h-full max-w-none object-cover"
+            style={{
+              left: ((from - clip.trimStart) / speed) * PX_PER_SECOND,
+              width: ((to - from) / speed) * PX_PER_SECOND,
+            }}
+          />
+        );
+      })}
+    </div>
   );
 }
 
