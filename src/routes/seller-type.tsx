@@ -17,8 +17,8 @@ export const Route = createFileRoute("/seller-type")({
 const OPTIONS: { label: string; hint?: string }[] = [
   { label: "Brand" },
   { label: "Vendor" },
-  { label: "Tailor", hint: "From sewing to leather works, As long as you personally make it" },
-  { label: "Artist", hint: "From painting to sculpting" },
+  { label: "Tailor", hint: "From sewing to leather works, As long as you personally make it." },
+  { label: "Artist", hint: "From painting to sculpting." },
 ];
 
 function SellerTypePage() {

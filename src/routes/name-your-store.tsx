@@ -52,7 +52,8 @@ function NameYourStorePage() {
   }, []);
 
   const isBrand = draft?.storeType === "Brand";
-  const noun = isBrand ? "brand" : "store";
+  const isArtist = draft?.storeType === "Artist";
+  const noun = isBrand ? "brand" : isArtist ? "store/gallery" : "store";
   const handle = slugify(brandName);
 
   // replace, not push: Back into this form and re-submitting is how a seller
@@ -154,7 +155,7 @@ function NameYourStorePage() {
 
   return (
     <OnboardingShell
-      title={isBrand ? "Name your brand" : "Name your store"}
+      title={isBrand ? "Name your brand" : isArtist ? "Name your Store/Gallery" : "Name your store"}
       subtitle={`Pick a name that reflects your ${noun}.`}
       backTo={previousStep("seller", "/name-your-store")}
       step={stepPosition("seller", "/name-your-store")}

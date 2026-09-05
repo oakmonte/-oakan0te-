@@ -3,6 +3,13 @@ import { useEffect, useState } from "react";
 import { Landmark, Clock } from "lucide-react";
 import { PayoutAccountSheet } from "@/components/store/PayoutAccountSheet";
 import { authedFetch } from "@/lib/authed-fetch";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 type PayoutAccount = {
   bank_name: string;
@@ -28,6 +35,7 @@ function FinancePage() {
   // undefined = still loading, null = no account saved yet
   const [account, setAccount] = useState<PayoutAccount | null | undefined>(undefined);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [skipPromptOpen, setSkipPromptOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -40,6 +48,17 @@ function FinancePage() {
       cancelled = true;
     };
   }, []);
+
+  // No account yet is exactly the case this checklist step exists to catch —
+  // nudge before letting them past it, rather than silently letting "Next"
+  // skip the one thing this page is for.
+  function handleNext() {
+    if (!account) {
+      setSkipPromptOpen(true);
+      return;
+    }
+    navigate({ to: "/store" });
+  }
 
   async function handleSave(values: { bankName: string; accountNumber: string }) {
     const res = await authedFetch("/api/store/payout", {
@@ -126,13 +145,47 @@ function FinancePage() {
         <div className="mt-8">
           <button
             type="button"
-            onClick={() => navigate({ to: "/store" })}
+            onClick={handleNext}
             className="w-full bg-black text-white text-sm font-semibold rounded-full py-4 oak-motion-control active:scale-[0.98]"
           >
             Next
           </button>
         </div>
       )}
+
+      <Dialog open={skipPromptOpen} onOpenChange={setSkipPromptOpen}>
+        <DialogContent className="w-[calc(100%-32px)] max-w-sm rounded-xl border-gray-200 bg-white p-5 text-gray-900">
+          <DialogHeader className="text-left">
+            <DialogTitle className="text-[18px]">Add a payout account?</DialogTitle>
+            <DialogDescription className="pt-1 text-sm text-gray-500">
+              You won&apos;t be able to receive payouts until you add one. You can always come back
+              to this later.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setSkipPromptOpen(false);
+                setSheetOpen(true);
+              }}
+              className="w-full rounded-xl bg-black py-3 text-[15px] font-semibold text-white"
+            >
+              Add payout account
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setSkipPromptOpen(false);
+                navigate({ to: "/store" });
+              }}
+              className="w-full rounded-xl border border-gray-200 py-3 text-[15px] font-medium text-gray-900"
+            >
+              Continue anyway
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

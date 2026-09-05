@@ -723,28 +723,28 @@ function ProfilePage() {
       <Dialog open={sellerPromptOpen} onOpenChange={setSellerPromptOpen}>
         <DialogContent className="w-[calc(100%-32px)] max-w-sm rounded-xl border-gray-200 bg-white p-5 text-gray-900">
           <DialogHeader className="text-left">
-            <DialogTitle className="text-[18px]">What would you like to do?</DialogTitle>
+            <DialogTitle className="text-[18px]">Which would you like to do now?</DialogTitle>
             <DialogDescription className="pt-1 text-sm text-gray-500">
-              Share something with your audience or keep building your store.
+              You can do the other one later.
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-2">
-            <button
-              type="button"
-              onClick={() => setSellerPromptOpen(false)}
-              className="w-full rounded-xl bg-black py-3 text-[15px] font-semibold text-white"
-            >
-              Upload or create content
-            </button>
             <button
               type="button"
               onClick={() => {
                 setSellerPromptOpen(false);
                 navigate({ to: "/store" });
               }}
-              className="w-full rounded-xl border border-gray-200 py-3 text-[15px] font-medium text-gray-900"
+              className="w-full rounded-xl bg-black py-3 text-[15px] font-semibold text-white"
             >
               Set up my store
+            </button>
+            <button
+              type="button"
+              onClick={() => setSellerPromptOpen(false)}
+              className="w-full rounded-xl border border-gray-200 py-3 text-[15px] font-medium text-gray-900"
+            >
+              Upload or create content
             </button>
           </div>
         </DialogContent>
