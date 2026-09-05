@@ -576,15 +576,24 @@ function OakmonteLanding() {
               </p>
               <Link to="/set-up-store" className="hero-cta-card card-blue">
                 <span className="cta-label">Set Up A Store</span>
-                <span className="cta-hint">Open your <strong className="font-bold text-white">customizable</strong> storefront and start selling.</span>
+                <span className="cta-hint">
+                  Open your <strong className="font-bold text-white">customizable</strong>{" "}
+                  storefront and start selling.
+                </span>
               </Link>
               <Link to="/become-a-creator" className="hero-cta-card card-outline">
                 <span className="cta-label">Become A Creator</span>
-                <span className="cta-hint"><strong className="font-bold text-neutral-600">Get paid</strong> for the content you create.</span>
+                <span className="cta-hint">
+                  <strong className="font-bold text-neutral-600">Get paid</strong> for the content
+                  you create.
+                </span>
               </Link>
               <Link to="/become-a-curator" className="hero-cta-card card-tint">
                 <span className="cta-label">Define Your Wardrobe</span>
-                <span className="cta-hint">Discover pieces matched to <strong className="font-bold">your style and size</strong>.</span>
+                <span className="cta-hint">
+                  Discover pieces matched to{" "}
+                  <strong className="font-bold">your style and size</strong>.
+                </span>
               </Link>
               <p className="hero-cta-helper hero-cta-signin">
                 Already have an account? <Link to="/sign-in">Sign In</Link>
