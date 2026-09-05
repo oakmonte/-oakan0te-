@@ -89,6 +89,7 @@ export type OwnedStore = {
   store_username: string;
   brand_name: string;
   theme_id: string | null;
+  personal_storefront_only: boolean;
 };
 
 /** Every store this profile owns, oldest first — same tie-break as
@@ -102,7 +103,7 @@ export function profileStoresQueryOptions(profileId: string | undefined) {
       if (!profileId) return [];
       const { data, error } = await supabase
         .from("stores")
-        .select("id, store_username, brand_name, theme_id")
+        .select("id, store_username, brand_name, theme_id, personal_storefront_only")
         .eq("owner_id", profileId)
         .order("created_at", { ascending: true })
         .order("id", { ascending: true });

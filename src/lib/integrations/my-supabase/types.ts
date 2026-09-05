@@ -1185,6 +1185,7 @@ export type Database = {
           id: string
           offers_custom_orders: boolean | null
           owner_id: string
+          personal_storefront_only: boolean
           pickup_address_line: string | null
           pickup_address_line2: string | null
           pickup_city: string | null
@@ -1213,6 +1214,7 @@ export type Database = {
           id?: string
           offers_custom_orders?: boolean | null
           owner_id: string
+          personal_storefront_only?: boolean
           pickup_address_line?: string | null
           pickup_address_line2?: string | null
           pickup_city?: string | null
@@ -1241,6 +1243,7 @@ export type Database = {
           id?: string
           offers_custom_orders?: boolean | null
           owner_id?: string
+          personal_storefront_only?: boolean
           pickup_address_line?: string | null
           pickup_address_line2?: string | null
           pickup_city?: string | null

@@ -6,6 +6,7 @@ import { authedFetch } from "@/lib/authed-fetch";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { checkPassword, MIN_PASSWORD_LENGTH } from "@/lib/password-policy";
 import { useRequireSession } from "@/components/onboarding/use-require-session";
+import { useActiveStore } from "@/hooks/use-own-store";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({ meta: [{ title: "Settings & Privacy — Oakmonte" }] }),
@@ -75,6 +76,8 @@ function SettingsPage() {
           </Panel>
         </Section>
 
+        <StoreSection />
+
         <Section title="Legal">
           <Panel>
             <NavRow label="Terms of Service" onClick={() => navigate({ to: "/terms" })} />
@@ -139,6 +142,86 @@ function NavRow({ label, onClick }: { label: string; onClick: () => void }) {
       <span className="text-[14px]">{label}</span>
       <ChevronRight size={16} className="text-white/30 shrink-0" />
     </button>
+  );
+}
+
+/** Only rendered for accounts that actually have a store — creators/curators
+ *  with no stores row see no "Store" section at all, same as how the rest of
+ *  this page only shows what applies to the signed-in account. */
+function StoreSection() {
+  const { storeId, loading: storeLoading } = useActiveStore();
+  const [personalOnly, setPersonalOnly] = useState<boolean | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!storeId) {
+      setPersonalOnly(null);
+      return;
+    }
+    let cancelled = false;
+    supabase
+      .from("stores")
+      .select("personal_storefront_only")
+      .eq("id", storeId)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) console.error("StoreSection: failed to load store", error);
+        setPersonalOnly(data?.personal_storefront_only ?? false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [storeId]);
+
+  async function toggle() {
+    if (!storeId || personalOnly === null || saving) return;
+    const next = !personalOnly;
+    setSaving(true);
+    setPersonalOnly(next);
+    const { error } = await supabase
+      .from("stores")
+      .update({ personal_storefront_only: next })
+      .eq("id", storeId);
+    setSaving(false);
+    if (error) {
+      console.error("StoreSection: failed to save toggle", error);
+      setPersonalOnly(!next);
+    }
+  }
+
+  if (storeLoading || !storeId || personalOnly === null) return null;
+
+  return (
+    <Section title="Store">
+      <Panel>
+        <div className="flex items-center justify-between gap-3 px-4 py-3.5">
+          <span className="text-[14px] text-white/70">
+            Only sell from my personal page
+            <span className="block text-[12px] text-white/40 mt-0.5">
+              No separate store page — your listings live on your profile's Store tab instead.
+            </span>
+          </span>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={personalOnly}
+            aria-label="Only sell from my personal page"
+            onClick={toggle}
+            disabled={saving}
+            className={`relative w-11 h-6 rounded-full transition-colors duration-200 shrink-0 disabled:opacity-60 ${
+              personalOnly ? "bg-white" : "bg-white/20"
+            }`}
+          >
+            <span
+              className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-black transition-transform duration-200 ${
+                personalOnly ? "translate-x-5" : "translate-x-0"
+              }`}
+            />
+          </button>
+        </div>
+      </Panel>
+    </Section>
   );
 }
 

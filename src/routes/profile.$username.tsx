@@ -343,22 +343,26 @@ function ProfilePage() {
           >
             <Search size={22} className={searchOpen ? "text-[#FF7300]" : "text-white"} />
           </button>
-          {ownershipKnown && isOwnProfile && store && storeIsSetUp && (
-            <button
-              onClick={() =>
-                stores.length > 1
-                  ? setStorePickerOpen(true)
-                  : navigate({
-                      to: "/store-profile/$storeUsername",
-                      params: { storeUsername: store.store_username },
-                    })
-              }
-              aria-label="Switch to store profile"
-              className="transition-transform duration-200 active:scale-90"
-            >
-              <ArrowLeftRight size={20} />
-            </button>
-          )}
+          {ownershipKnown &&
+            isOwnProfile &&
+            store &&
+            storeIsSetUp &&
+            !store.personal_storefront_only && (
+              <button
+                onClick={() =>
+                  stores.length > 1
+                    ? setStorePickerOpen(true)
+                    : navigate({
+                        to: "/store-profile/$storeUsername",
+                        params: { storeUsername: store.store_username },
+                      })
+                }
+                aria-label="Switch to store profile"
+                className="transition-transform duration-200 active:scale-90"
+              >
+                <ArrowLeftRight size={20} />
+              </button>
+            )}
           {ownershipKnown && isOwnProfile && (
             <button
               onClick={() => setMenuOpen(true)}
@@ -672,7 +676,9 @@ function ProfilePage() {
             Switch to
           </p>
           <div className="pb-4">
-            {stores.map((s) => (
+            {stores
+              .filter((s) => !s.personal_storefront_only)
+              .map((s) => (
               <button
                 key={s.id}
                 type="button"

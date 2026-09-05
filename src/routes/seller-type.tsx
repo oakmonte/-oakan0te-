@@ -11,7 +11,15 @@ export const Route = createFileRoute("/seller-type")({
   component: SellerTypePage,
 });
 
-const OPTIONS = ["Brand", "Vendor", "Tailor"];
+// Tailor is the one option where "seller" only fits if they made the thing
+// themselves — worth saying explicitly, since Brand/Vendor don't carry that
+// same implication. Artist gets its own hint spelling out the range covered.
+const OPTIONS: { label: string; hint?: string }[] = [
+  { label: "Brand" },
+  { label: "Vendor" },
+  { label: "Tailor", hint: "As long as you personally make it" },
+  { label: "Artist", hint: "From painting to sculpting" },
+];
 
 function SellerTypePage() {
   const navigate = useNavigate();
@@ -45,18 +53,27 @@ function SellerTypePage() {
       <div className="space-y-3 mb-6" role="radiogroup" aria-label="Seller type">
         {OPTIONS.map((option) => (
           <button
-            key={option}
+            key={option.label}
             type="button"
             role="radio"
-            aria-checked={sellerType === option}
-            onClick={() => setSellerType(option)}
-            className={`w-full rounded-full border py-3.5 text-sm font-medium transition-all duration-200 ${
-              sellerType === option
+            aria-checked={sellerType === option.label}
+            onClick={() => setSellerType(option.label)}
+            className={`w-full rounded-2xl border py-3.5 text-sm font-medium transition-all duration-200 ${
+              sellerType === option.label
                 ? "bg-brand-text text-brand-bg border-brand-text"
                 : "border-brand-text/25 hover:border-brand-text/50 hover:bg-brand-text/5"
             }`}
           >
-            {option}
+            {option.label}
+            {option.hint && (
+              <span
+                className={`block text-[11px] font-normal mt-0.5 ${
+                  sellerType === option.label ? "text-brand-bg/70" : "text-brand-text/50"
+                }`}
+              >
+                {option.hint}
+              </span>
+            )}
           </button>
         ))}
       </div>

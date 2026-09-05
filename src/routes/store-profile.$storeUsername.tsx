@@ -31,6 +31,7 @@ type StoreRow = {
   bio: string | null;
   owner_id: string;
   logo_url: string | null;
+  personal_storefront_only: boolean;
 };
 
 function StoreProfilePage() {
@@ -79,7 +80,9 @@ function StoreProfilePage() {
     // dashboard's own reads.
     supabase
       .from("stores")
-      .select("id, store_username, brand_name, bio, owner_id, store_themes(slug)")
+      .select(
+        "id, store_username, brand_name, bio, owner_id, personal_storefront_only, store_themes(slug)",
+      )
       .eq("store_username", storeUsername)
       .maybeSingle()
       .then(({ data, error }) => {
@@ -157,6 +160,17 @@ function StoreProfilePage() {
       cancelled = true;
     };
   }, [store]);
+
+  // A store that opted out of a standalone storefront still has a real
+  // stores row and a real Store tab — it just has no /store-profile
+  // destination of its own to land on. Redirect rather than 404, since a
+  // seller can flip this toggle after old links to this URL are already out
+  // there (shared, bookmarked, indexed).
+  useEffect(() => {
+    if (store?.personal_storefront_only && ownerUsername) {
+      navigate({ to: "/profile/$username", params: { username: ownerUsername }, replace: true });
+    }
+  }, [store, ownerUsername, navigate]);
 
   useEffect(() => {
     if (searchOpen) {
