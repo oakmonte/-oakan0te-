@@ -1010,6 +1010,8 @@ const CSS = `
 .oak .cta-btn.on-black:hover{background:var(--white);color:var(--black);}
 .oak .offer-card.blue .cta-btn.on-black{background:var(--white);color:var(--black);}
 .oak .offer-card.blue .cta-btn.on-black:hover{background:var(--black);color:var(--white);}
+.oak .offer-card.accent-border .cta-btn{background:var(--blue);}
+@media (min-width:768px){.oak .offer-card.accent-border .cta-btn:hover{background:var(--black);color:var(--white);}}
 
 .oak .header-actions{display:flex;align-items:center;gap:30px;}
 .oak .desktop-auth{display:flex;align-items:center;}
