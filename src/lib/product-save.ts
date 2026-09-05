@@ -18,10 +18,7 @@ import type { BarcodeEntry } from "@/lib/barcode-types";
 // save in flight at a time since a seller only has one product form open at
 // once.
 export type ProductSaveState =
-  | { status: "saving" }
-  | { status: "success" }
-  | { status: "error"; message: string }
-  | null;
+  { status: "saving" } | { status: "success" } | { status: "error"; message: string } | null;
 
 export type ProductSavePayload = {
   storeId: string;
