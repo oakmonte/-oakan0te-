@@ -679,25 +679,25 @@ function ProfilePage() {
             {stores
               .filter((s) => !s.personal_storefront_only)
               .map((s) => (
-              <button
-                key={s.id}
-                type="button"
-                onClick={() => {
-                  setStorePickerOpen(false);
-                  navigate({
-                    to: "/store-profile/$storeUsername",
-                    params: { storeUsername: s.store_username },
-                  });
-                }}
-                className="w-full flex items-center justify-between gap-3 px-5 py-3.5 text-left active:bg-white/5 transition-colors duration-150"
-              >
-                <div className="min-w-0">
-                  <p className="text-[15px] font-medium text-white truncate">{s.brand_name}</p>
-                  <p className="text-[12px] text-white/40">@{s.store_username}</p>
-                </div>
-                <ArrowLeftRight size={16} className="text-white/30 shrink-0" />
-              </button>
-            ))}
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => {
+                    setStorePickerOpen(false);
+                    navigate({
+                      to: "/store-profile/$storeUsername",
+                      params: { storeUsername: s.store_username },
+                    });
+                  }}
+                  className="w-full flex items-center justify-between gap-3 px-5 py-3.5 text-left active:bg-white/5 transition-colors duration-150"
+                >
+                  <div className="min-w-0">
+                    <p className="text-[15px] font-medium text-white truncate">{s.brand_name}</p>
+                    <p className="text-[12px] text-white/40">@{s.store_username}</p>
+                  </div>
+                  <ArrowLeftRight size={16} className="text-white/30 shrink-0" />
+                </button>
+              ))}
           </div>
         </div>
       </div>

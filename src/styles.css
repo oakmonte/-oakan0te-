@@ -145,6 +145,18 @@ input:-webkit-autofill:active {
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 }
 
+/* The primary action colour on the dark creation screens — the Next button in
+   the photo editor, the video editor and after-shot.
+
+   Blue, deliberately. Those buttons were TikTok's #fe2c55, which made our
+   editors read as a copy of the app they were designed against. A token
+   rather than three hex literals so the next screen that needs it agrees by
+   default instead of by memory. The like button in the feed stays red: that
+   is a heart, not our branding. */
+:root {
+  --oak-action: #2f6bff;
+}
+
 /* The thinner slider used by the Adjust panel and the video editor's clip
    sheet. It lived inside PhotoAdjustPanel as an inline <style> until a second
    screen needed it — a rule that only exists while one component is mounted is

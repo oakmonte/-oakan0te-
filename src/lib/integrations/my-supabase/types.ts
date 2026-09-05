@@ -901,6 +901,8 @@ export type Database = {
           display_name: string | null
           gender: string | null
           id: string
+          pending_offers_custom_orders: boolean
+          pending_store_type: string | null
           personal_email: string
           personal_phone: string | null
           personal_username: string
@@ -915,6 +917,8 @@ export type Database = {
           display_name?: string | null
           gender?: string | null
           id: string
+          pending_offers_custom_orders?: boolean
+          pending_store_type?: string | null
           personal_email: string
           personal_phone?: string | null
           personal_username: string
@@ -929,6 +933,8 @@ export type Database = {
           display_name?: string | null
           gender?: string | null
           id?: string
+          pending_offers_custom_orders?: boolean
+          pending_store_type?: string | null
           personal_email?: string
           personal_phone?: string | null
           personal_username?: string

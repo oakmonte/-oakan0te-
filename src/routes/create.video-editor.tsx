@@ -47,6 +47,7 @@ import {
   takeVideoEditorSession,
 } from "@/lib/video-editor-session";
 import { setPendingCapture } from "@/lib/capture-handoff";
+import { takePendingDraft } from "@/lib/draft-handoff";
 import VideoTimeline from "@/components/create/VideoTimeline";
 import {
   ClipSheet,
@@ -435,6 +436,28 @@ function VideoEditor() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
+  // A draft tapped on the drafts page. Added through the same path as any
+  // other remote pick, so it arrives with a duration, a poster and a
+  // filmstrip rather than as a special case that has none of them.
+  const draftLoaded = useRef(false);
+  useEffect(() => {
+    if (draftLoaded.current) return;
+    draftLoaded.current = true;
+    const draft = takePendingDraft();
+    if (!draft) return;
+    const clip: Clip = {
+      id: newClipId(),
+      kind: draft.kind,
+      blob: new Blob(),
+      url: draft.url,
+      remote: true,
+      ...blankClipEdits(),
+    };
+    addClips([clip]);
+    if (clip.kind === "video") void measureVideo(clip, draft.thumbnailUrl);
+    else measurePhoto(clip);
+  }, [addClips, measureVideo, measurePhoto]);
+
   /** Clips picked from drafts or published posts. Unlike the product form,
    *  which can only use stills, this screen takes both — an old video is as
    *  valid a piece of a new one as a photo is. */
@@ -817,7 +840,7 @@ function VideoEditor() {
             disabled={empty || !!busy}
             onClick={() => void handleNext()}
             aria-label="Next"
-            className="flex h-11 w-11 items-center justify-center rounded-full bg-[#fe2c55] active:scale-90 disabled:opacity-35"
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--oak-action)] active:scale-90 disabled:opacity-35"
           >
             <ArrowRight size={22} />
           </button>

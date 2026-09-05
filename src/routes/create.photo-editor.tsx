@@ -35,6 +35,7 @@ import { DraftImagePickerSheet } from "@/components/product-form/DraftImagePicke
 import { PostImagePickerSheet } from "@/components/product-form/PostImagePickerSheet";
 import type { PickedMedia } from "@/components/product-form/MediaPickerSheet";
 import { setPendingCapture } from "@/lib/capture-handoff";
+import { takePendingDraft } from "@/lib/draft-handoff";
 
 export const Route = createFileRoute("/create/photo-editor")({
   head: () => ({ meta: [{ title: "Photo editor — Oakmonte" }] }),
@@ -206,6 +207,18 @@ function PhotoEditor() {
     addPhotos(picked);
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
+
+  // A draft tapped on the drafts page, opened here because it's a still.
+  // Added as an ordinary remote photo, so it measures and edits like any other.
+  const draftLoaded = useRef(false);
+  useEffect(() => {
+    if (draftLoaded.current) return;
+    draftLoaded.current = true;
+    const draft = takePendingDraft();
+    if (draft) addPhotos([{ url: draft.url, remote: true }]);
+    // addPhotos is a plain function redeclared each render; depending on it
+    // would re-run this on every keystroke elsewhere in the component.
+  }, []);
 
   function handlePickedUrls(picked: PickedMedia[]) {
     // Photos only here by construction — this editor asks the picker for
@@ -629,7 +642,7 @@ function PhotoEditor() {
               type="button"
               disabled={empty || !!busy}
               onClick={() => void handleNext()}
-              className="w-full rounded-full bg-[#fe2c55] py-3.5 text-[15px] font-semibold text-white active:scale-[0.98] disabled:opacity-40"
+              className="w-full rounded-full bg-[var(--oak-action)] py-3.5 text-[15px] font-semibold text-white active:scale-[0.98] disabled:opacity-40"
             >
               Next
             </button>

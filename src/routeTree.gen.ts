@@ -40,6 +40,7 @@ import { Route as ApiPostsRouteImport } from './routes/api.posts'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as CreateIndexRouteImport } from './routes/create.index'
 import { Route as CreateAfterShotRouteImport } from './routes/create.after-shot'
+import { Route as CreateDraftsRouteImport } from './routes/create.drafts'
 import { Route as CreatePhotoEditorRouteImport } from './routes/create.photo-editor'
 import { Route as CreateVideoEditorRouteImport } from './routes/create.video-editor'
 import { Route as ProfileUsernameRouteImport } from './routes/profile.$username'
@@ -231,6 +232,11 @@ const CreateIndexRoute = CreateIndexRouteImport.update({
 const CreateAfterShotRoute = CreateAfterShotRouteImport.update({
   id: '/after-shot',
   path: '/after-shot',
+  getParentRoute: () => CreateRoute,
+} as any)
+const CreateDraftsRoute = CreateDraftsRouteImport.update({
+  id: '/drafts',
+  path: '/drafts',
   getParentRoute: () => CreateRoute,
 } as any)
 const CreatePhotoEditorRoute = CreatePhotoEditorRouteImport.update({
@@ -452,6 +458,7 @@ export interface FileRoutesByFullPath {
   '/api/posts': typeof ApiPostsRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/create/after-shot': typeof CreateAfterShotRouteWithChildren
+  '/create/drafts': typeof CreateDraftsRoute
   '/create/photo-editor': typeof CreatePhotoEditorRoute
   '/create/video-editor': typeof CreateVideoEditorRoute
   '/profile/$username': typeof ProfileUsernameRoute
@@ -519,6 +526,7 @@ export interface FileRoutesByTo {
   '/where-did-you-hear-about-us': typeof WhereDidYouHearAboutUsRoute
   '/api/posts': typeof ApiPostsRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/create/drafts': typeof CreateDraftsRoute
   '/create/photo-editor': typeof CreatePhotoEditorRoute
   '/create/video-editor': typeof CreateVideoEditorRoute
   '/profile/$username': typeof ProfileUsernameRoute
@@ -590,6 +598,7 @@ export interface FileRoutesById {
   '/api/posts': typeof ApiPostsRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/create/after-shot': typeof CreateAfterShotRouteWithChildren
+  '/create/drafts': typeof CreateDraftsRoute
   '/create/photo-editor': typeof CreatePhotoEditorRoute
   '/create/video-editor': typeof CreateVideoEditorRoute
   '/profile/$username': typeof ProfileUsernameRoute
@@ -662,6 +671,7 @@ export interface FileRouteTypes {
     | '/api/posts'
     | '/auth/callback'
     | '/create/after-shot'
+    | '/create/drafts'
     | '/create/photo-editor'
     | '/create/video-editor'
     | '/profile/$username'
@@ -729,6 +739,7 @@ export interface FileRouteTypes {
     | '/where-did-you-hear-about-us'
     | '/api/posts'
     | '/auth/callback'
+    | '/create/drafts'
     | '/create/photo-editor'
     | '/create/video-editor'
     | '/profile/$username'
@@ -799,6 +810,7 @@ export interface FileRouteTypes {
     | '/api/posts'
     | '/auth/callback'
     | '/create/after-shot'
+    | '/create/drafts'
     | '/create/photo-editor'
     | '/create/video-editor'
     | '/profile/$username'
@@ -1104,6 +1116,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CreateAfterShotRouteImport
       parentRoute: typeof CreateRoute
     }
+    '/create/drafts': {
+      id: '/create/drafts'
+      path: '/drafts'
+      fullPath: '/create/drafts'
+      preLoaderRoute: typeof CreateDraftsRouteImport
+      parentRoute: typeof CreateRoute
+    }
     '/create/photo-editor': {
       id: '/create/photo-editor'
       path: '/photo-editor'
@@ -1386,6 +1405,7 @@ const CreateAfterShotRouteWithChildren = CreateAfterShotRoute._addFileChildren(
 
 interface CreateRouteChildren {
   CreateAfterShotRoute: typeof CreateAfterShotRouteWithChildren
+  CreateDraftsRoute: typeof CreateDraftsRoute
   CreatePhotoEditorRoute: typeof CreatePhotoEditorRoute
   CreateVideoEditorRoute: typeof CreateVideoEditorRoute
   CreateIndexRoute: typeof CreateIndexRoute
@@ -1393,6 +1413,7 @@ interface CreateRouteChildren {
 
 const CreateRouteChildren: CreateRouteChildren = {
   CreateAfterShotRoute: CreateAfterShotRouteWithChildren,
+  CreateDraftsRoute: CreateDraftsRoute,
   CreatePhotoEditorRoute: CreatePhotoEditorRoute,
   CreateVideoEditorRoute: CreateVideoEditorRoute,
   CreateIndexRoute: CreateIndexRoute,

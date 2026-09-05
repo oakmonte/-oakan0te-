@@ -490,7 +490,7 @@ function AfterShotIndexPage() {
               disabled={exporting}
               aria-label="Export edited media"
               className="oak-motion-control px-6 py-2.5 rounded-full font-bold text-sm uppercase tracking-wide disabled:opacity-50 active:scale-95"
-              style={{ background: "#fff", color: "#000" }}
+              style={{ background: "var(--oak-action)", color: "#fff" }}
             >
               {exporting ? "Exporting…" : "Next"}
             </button>

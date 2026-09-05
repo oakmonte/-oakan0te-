@@ -32,6 +32,7 @@ import LayoutPanel from "@/components/camera/LayoutPanel";
 import LayoutPreview from "@/components/camera/LayoutPreview";
 import LiquidGlassSegmented from "@/components/camera/LiquidGlassSegmented";
 import CreatePanel from "@/components/create/CreatePanel";
+import { useDraftCount } from "@/hooks/use-draft-count";
 import {
   CAMERA_FILTERS,
   compileGrade,
@@ -206,6 +207,7 @@ function CreatePage() {
   const rootRef = useRef<HTMLDivElement>(null);
   useLockedViewport();
   const navigate = useNavigate();
+  const draftCount = useDraftCount();
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -1427,9 +1429,10 @@ function CreatePage() {
       {section === "create" && (
         <CreatePanel
           onClose={handleBack}
-          draftCount={0}
+          draftCount={draftCount}
           onPhotoEditor={() => navigate({ to: "/create/photo-editor" })}
           onNewVideo={() => navigate({ to: "/create/video-editor" })}
+          onDrafts={() => navigate({ to: "/create/drafts" })}
         />
       )}
 

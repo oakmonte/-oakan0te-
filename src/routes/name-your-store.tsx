@@ -46,10 +46,40 @@ function NameYourStorePage() {
   // Read after mount — reading storage during render made the heading and
   // placeholders differ between the server render and hydration.
   const [draft, setDraft] = useState<StoreDraft | null>(null);
+  // Guards the profiles fallback fetch below to at most one attempt — without
+  // it, a genuine "never answered seller-type" visitor (storeType stays null
+  // even after the fetch resolves) would refetch on every render.
+  const [pendingFetched, setPendingFetched] = useState(false);
 
   useEffect(() => {
     setDraft(readStoreDraft());
   }, []);
+
+  // localStorage is empty exactly when /seller-type was answered on a
+  // different device/browser, or localStorage was cleared in between (Safari
+  // private browsing, etc.) — profiles.pending_store_type is the durable
+  // fallback written there for exactly this case. See the
+  // add_pending_seller_type_to_profiles migration.
+  useEffect(() => {
+    if (!userId || !draft || draft.storeType || pendingFetched) return;
+    setPendingFetched(true);
+    let cancelled = false;
+    supabase
+      .from("profiles")
+      .select("pending_store_type, pending_offers_custom_orders")
+      .eq("id", userId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (cancelled || !data?.pending_store_type) return;
+        setDraft({
+          storeType: data.pending_store_type,
+          customOrders: data.pending_offers_custom_orders,
+        });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, draft, pendingFetched]);
 
   const isBrand = draft?.storeType === "Brand";
   const isArtist = draft?.storeType === "Artist";
@@ -61,6 +91,20 @@ function NameYourStorePage() {
   // The welcome screen clears the onboarding scratch state, not this step —
   // it still needs the local intent as a fallback if the profile read fails.
   const finish = () => {
+    // The real answer now lives on the stores row just written — best-effort,
+    // non-blocking cleanup of the scratch copy on profiles so it doesn't sit
+    // around looking like unresolved data.
+    if (userId) {
+      supabase
+        .from("profiles")
+        .update({ pending_store_type: null, pending_offers_custom_orders: false })
+        .eq("id", userId)
+        .then(({ error: clearError }) => {
+          if (clearError) {
+            console.error("NameYourStorePage: failed to clear pending store type", clearError);
+          }
+        });
+    }
     navigate({ to: nextRoute("seller", "/name-your-store"), replace: true });
   };
 

@@ -134,13 +134,28 @@ export function AuthPanel({ intent, title, subtitle, defaultMode = "code" }: Pro
     else clearIntent();
     setError(null);
     setNotice(null);
+
+    // /sign-in already told them, via the banner above, that this address has
+    // no account — sending would just fail silently server-side (Supabase
+    // refuses an OTP with shouldCreateUser:false for an unregistered address)
+    // and this used to paper over that by showing "Check your email" anyway,
+    // a dead end with no code ever arriving. Now that account existence is
+    // deliberately revealed up front (see checkEmailRegistered / the
+    // is_email_registered migration), there's no reason left to fake a send.
+    if (intent === null && emailStatus === "unregistered") {
+      setError("We couldn't find an account with that email — create one instead, above.");
+      return;
+    }
+
     setBusy("send");
     const { error: sendError } = await sendEmailCode(email.trim(), { createUser: intent !== null });
     setBusy(null);
     if (sendError) {
-      // Deliberately vague on /sign-in: naming the reason would confirm whether
-      // an address is registered. The code screen is shown either way, so a
-      // guesser learns nothing from the response.
+      // Fallback only, for the rare case the check above hasn't resolved yet
+      // or failed silently — the debounced emailStatus check is what actually
+      // decides this now, not this catch. Stays vague rather than surfacing
+      // Supabase's raw error, so a slow/failed check doesn't itself become an
+      // enumeration oracle.
       if (intent === null) {
         setSent(true);
         setCountdown(RESEND_SECONDS);
@@ -156,13 +171,18 @@ export function AuthPanel({ intent, title, subtitle, defaultMode = "code" }: Pro
   const handleResend = async () => {
     setError(null);
     setCode("");
+
+    // Same reasoning as handleSend — see there.
+    if (intent === null && emailStatus === "unregistered") {
+      setError("We couldn't find an account with that email — create one instead, above.");
+      return;
+    }
+
     setBusy("send");
     const { error: sendError } = await sendEmailCode(email.trim(), { createUser: intent !== null });
     setBusy(null);
     if (sendError) {
-      // Same suppression as handleSend: on /sign-in, "Signups not allowed for
-      // otp" would confirm the address is unregistered, which is exactly the
-      // enumeration oracle the send path is careful to avoid.
+      // Fallback only — see handleSend.
       if (intent !== null) setError(sendError.message);
       setCountdown(RESEND_SECONDS);
       return;
@@ -391,17 +411,26 @@ export function AuthPanel({ intent, title, subtitle, defaultMode = "code" }: Pro
                 {busy === "send" ? <Spinner className="align-middle" /> : "Email me a code"}
               </button>
               <FormError>{error}</FormError>
-              <button
-                type="button"
-                onClick={() => {
-                  setMode("password");
-                  setError(null);
-                  setNotice(null);
-                }}
-                className="w-full text-[11px] uppercase tracking-widest text-[#0A0A0A]/60 hover:text-[#0A0A0A] transition-colors pt-2"
-              >
-                Already have a password? Sign in
-              </button>
+              {/* Hidden only on the onboarding pages once the registered-email
+                  banner above is already showing its own "Sign in with your
+                  password" action — no need to offer the same switch twice.
+                  /sign-in never renders that banner for a registered email
+                  (there's nothing to warn about — that's the expected case
+                  there), so this stays the only way there to reach password
+                  mode from the code view and must not be hidden. */}
+              {!(intent !== null && emailStatus === "registered") && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode("password");
+                    setError(null);
+                    setNotice(null);
+                  }}
+                  className="w-full text-[11px] uppercase tracking-widest text-[#0A0A0A]/60 hover:text-[#0A0A0A] transition-colors pt-2"
+                >
+                  Already have a password? Sign in
+                </button>
+              )}
             </form>
           ) : (
             <div className="text-center space-y-4">
