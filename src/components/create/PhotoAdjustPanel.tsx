@@ -79,31 +79,6 @@ export default function PhotoAdjustPanel({
           Done
         </button>
       </div>
-
-      <style>{`
-        .oak-adjust-range {
-          -webkit-appearance: none;
-          appearance: none;
-          height: 2px;
-          border-radius: 2px;
-          background: rgba(255,255,255,0.22);
-          outline: none;
-        }
-        .oak-adjust-range::-webkit-slider-thumb {
-          -webkit-appearance: none;
-          appearance: none;
-          width: 16px; height: 16px;
-          border-radius: 50%;
-          background: #fff;
-          box-shadow: 0 1px 4px rgba(0,0,0,0.4);
-        }
-        .oak-adjust-range::-moz-range-thumb {
-          width: 16px; height: 16px;
-          border: none;
-          border-radius: 50%;
-          background: #fff;
-        }
-      `}</style>
     </div>
   );
 }

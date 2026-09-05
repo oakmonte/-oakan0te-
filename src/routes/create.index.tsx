@@ -1429,6 +1429,7 @@ function CreatePage() {
           onClose={handleBack}
           draftCount={0}
           onPhotoEditor={() => navigate({ to: "/create/photo-editor" })}
+          onNewVideo={() => navigate({ to: "/create/video-editor" })}
         />
       )}
 
