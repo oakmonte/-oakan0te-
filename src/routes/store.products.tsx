@@ -125,9 +125,32 @@ function StoreProducts() {
       {listLoading ? (
         <div className="text-sm text-gray-400 text-center py-12">Loading…</div>
       ) : products.length === 0 ? (
-        <div className="text-sm text-gray-400 text-center py-12 animate-in fade-in duration-300">
-          No products yet.
-        </div>
+        activeTab === "All" && !search.trim() ? (
+          // Genuinely nothing listed yet (not just this tab/search coming up
+          // empty) — the two ways to actually get a product on here shouldn't
+          // require already knowing the header icons exist.
+          <div className="flex flex-col items-center gap-3 py-12 animate-in fade-in duration-300">
+            <p className="text-sm text-gray-400 mb-2">No products yet.</p>
+            <button
+              type="button"
+              onClick={() => setCreateTypeOpen(true)}
+              className="w-full max-w-xs rounded-full bg-black text-white text-sm font-semibold py-3.5 oak-motion-control active:scale-[0.98]"
+            >
+              List a product
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate({ to: "/store/products/upload" })}
+              className="w-full max-w-xs rounded-full border border-gray-200 text-gray-900 text-sm font-medium py-3.5 oak-motion-control active:scale-[0.98]"
+            >
+              Upload products
+            </button>
+          </div>
+        ) : (
+          <div className="text-sm text-gray-400 text-center py-12 animate-in fade-in duration-300">
+            No products match.
+          </div>
+        )
       ) : (
         <div className="flex flex-col gap-3 animate-in fade-in duration-300">
           {products.map((p) => {
