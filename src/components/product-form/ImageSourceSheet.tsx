@@ -1,9 +1,9 @@
-import { UploadCloud, Layers, Image } from "lucide-react";
+import { Images, Layers, Image } from "lucide-react";
 
 export type ImageSource = "device" | "drafts" | "posts";
 
-const OPTIONS: { key: ImageSource; label: string; icon: typeof UploadCloud }[] = [
-  { key: "device", label: "Upload from Device", icon: UploadCloud },
+const OPTIONS: { key: ImageSource; label: string; icon: typeof Images }[] = [
+  { key: "device", label: "Photo Library", icon: Images },
   { key: "drafts", label: "Upload from Drafts", icon: Layers },
   { key: "posts", label: "Upload from Posts", icon: Image },
 ];
