@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import { isInAppBrowser } from "@/lib/in-app-browser";
 import logoAsset from "@/assets/oakmonte-o-mark.png.asset.json";
 import logoO from "@/assets/logo-o.png";
 import heroAsset from "@/assets/hero-editorial.jpg.asset.json";
@@ -309,6 +310,33 @@ function OakmonteLanding() {
   const [scrolled, setScrolled] = useState(false);
   const [activeNav, setActiveNav] = useState("PRODUCT");
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // False on the server and on first client render (matches SSR output, then
+  // corrects itself right after hydration) -- there's no user agent to check
+  // until we're in the browser.
+  const [inAppBrowser, setInAppBrowser] = useState(false);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
+  const showBanner = inAppBrowser && !bannerDismissed;
+  // Measured, not hardcoded -- the copy wraps to 2-3 lines on a narrow phone
+  // (exactly the device this actually shows on, opened from an Instagram/
+  // TikTok bio link), and a fixed height there would clip the text or
+  // overlap the header instead of pushing it down.
+  const bannerRef = useRef<HTMLDivElement>(null);
+  const [bannerHeight, setBannerHeight] = useState(0);
+
+  useEffect(() => {
+    if (isInAppBrowser(navigator.userAgent)) setInAppBrowser(true);
+  }, []);
+
+  useEffect(() => {
+    const el = bannerRef.current;
+    if (!showBanner || !el) {
+      setBannerHeight(0);
+      return;
+    }
+    const ro = new ResizeObserver(([entry]) => setBannerHeight(entry.contentRect.height));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [showBanner]);
 
   const openWithKey = (key: MenuKey) => {
     if (closeTimer.current) {
@@ -338,10 +366,33 @@ function OakmonteLanding() {
   );
 
   return (
-    <div className="oak">
+    <div className="oak" style={{ paddingTop: 76 + bannerHeight }}>
       <style>{CSS}</style>
 
-      <header id="site-header" style={{ boxShadow: scrolled ? "0 1px 0 rgba(0,0,0,.06)" : "none" }}>
+      {showBanner && (
+        <div ref={bannerRef} className="in-app-banner">
+          <span>
+            Some features (camera, uploads) need your real browser — tap{" "}
+            <strong>••• or Share</strong> above and choose <strong>Open in Browser</strong>.
+          </span>
+          <button
+            type="button"
+            aria-label="Dismiss"
+            onClick={() => setBannerDismissed(true)}
+            className="in-app-banner-close"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+      <header
+        id="site-header"
+        style={{
+          boxShadow: scrolled ? "0 1px 0 rgba(0,0,0,.06)" : "none",
+          top: bannerHeight,
+        }}
+      >
         <div className="wrap">
           <div className="header-row">
             {mobileOpen && mobileGroup ? (
@@ -968,7 +1019,11 @@ const CSS = `
 .oak .reveal-delay-2.in-view{transition-delay:.2s;}
 .oak .reveal-delay-3.in-view{transition-delay:.3s;}
 
-.oak header{position:fixed;top:0;left:0;right:0;width:100%;height:76px;z-index:100;background:rgba(255,255,255,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);transition:box-shadow .3s ease;}
+.oak .in-app-banner{position:fixed;top:0;left:0;right:0;width:100%;z-index:110;display:flex;align-items:center;justify-content:center;gap:14px;background:var(--black);color:#fff;padding:10px 16px;font-size:12px;line-height:1.4;text-align:center;}
+.oak .in-app-banner strong{color:#6E8CFF;font-weight:700;}
+.oak .in-app-banner-close{flex:none;font-size:20px;line-height:1;color:rgba(255,255,255,.6);padding:4px;}
+.oak .in-app-banner-close:hover{color:#fff;}
+.oak header{position:fixed;left:0;right:0;width:100%;height:76px;z-index:100;background:rgba(255,255,255,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);transition:box-shadow .3s ease,top .3s ease;}
 .oak .header-row{position:relative;z-index:101;display:flex;align-items:flex-end;justify-content:space-between;height:76px;padding-bottom:10px;}
 .oak .brand{display:flex;align-items:baseline;gap:0;}
 .oak .brand-o{height:44px;width:auto;flex:none;display:inline-block;transform:translateY(4px);}
