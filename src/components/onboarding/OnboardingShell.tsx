@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { motion } from "framer-motion";
 import type { ReactNode } from "react";
 import type { OnboardingStep } from "@/lib/onboarding-flow";
 
