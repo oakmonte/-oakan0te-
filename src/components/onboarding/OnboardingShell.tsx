@@ -88,14 +88,6 @@ export function OnboardingShell({ title, subtitle, backTo, step, onSkip, childre
   );
 }
 
-/** Shown while `useRequireSession` decides whether there is a session. */
-export function OnboardingChecking() {
-  return (
-    <div className="min-h-dvh bg-brand-bg text-brand-text flex items-center justify-center">
-      <span className="text-sm text-brand-text/50">One moment…</span>
-    </div>
-  );
-}
 
 /** Shown while `useRequireSession` decides whether there is a session. */
 export function OnboardingChecking() {
