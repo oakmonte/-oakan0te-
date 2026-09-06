@@ -97,6 +97,30 @@ export function OnboardingChecking() {
   );
 }
 
+/** Shown while `useRequireSession` decides whether there is a session. */
+export function OnboardingChecking() {
+  return (
+    <div className="min-h-dvh bg-brand-bg text-brand-text flex flex-col items-center justify-center px-6 text-center">
+      <motion.p
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        className="font-loading-display text-2xl sm:text-3xl leading-tight text-brand-text/90 max-w-xs"
+      >
+        we take the headaches so you stay creative.
+      </motion.p>
+      <motion.span
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.3, duration: 0.4 }}
+        className="mt-3 text-xs text-brand-text/40 font-normal tracking-wide"
+      >
+        loading…..
+      </motion.span>
+    </div>
+  );
+}
+
 /** Errors were plain <p> tags before, so a screen reader never announced a
  *  failed submit. */
 export function FormError({ children }: { children: ReactNode }) {
