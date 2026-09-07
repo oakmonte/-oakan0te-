@@ -29,7 +29,16 @@ export type SizeChartDefinition = {
     | "denim-jorts"
     | "dolphin-shorts"
     | "bum-shorts"
-    | "denim-bum-shorts";
+    | "denim-bum-shorts"
+    | "activewear-tshirt"
+    | "standard-tshirt"
+    | "polo-alt"
+    | "clothing-corset"
+    | "clothing-bodysuit"
+    | "overshirt"
+    | "sweatshirt"
+    | "lingerie-corset"
+    | "lingerie-bodysuit";
   lines: SizeChartLine[];
 };
 
@@ -140,6 +149,45 @@ const DOLPHIN_SHORTS = bottomsChart("dolphin-shorts", "dolphin-shorts");
 const BUM_SHORTS = bottomsChart("bum-shorts", "bum-shorts");
 const DENIM_BUM_SHORTS = bottomsChart("denim-bum-shorts", "denim-bum-shorts");
 
+const STANDARD_TOP_LINES: SizeChartLine[] = [
+  { key: "shoulder_width", label: "a" },
+  { key: "chest_width", label: "b" },
+  { key: "body_length", label: "c" },
+  { key: "sleeve_length", label: "d" },
+  { key: "neck_width", label: "e" },
+];
+
+function topChart(id: string, guide: SizeChartDefinition["guide"]): SizeChartDefinition {
+  return { id, guide, lines: STANDARD_TOP_LINES };
+}
+
+const ACTIVEWEAR_TSHIRT = topChart("activewear-tshirt", "activewear-tshirt");
+const STANDARD_TSHIRT = topChart("standard-tshirt", "standard-tshirt");
+const POLO_ALT = topChart("polo-alt", "polo-alt");
+const CLOTHING_BODYSUIT = topChart("clothing-bodysuit", "clothing-bodysuit");
+const OVERSHIRT = topChart("overshirt", "overshirt");
+const SWEATSHIRT = topChart("sweatshirt", "sweatshirt");
+const LINGERIE_BODYSUIT = topChart("lingerie-bodysuit", "lingerie-bodysuit");
+
+const CORSET_LINES: SizeChartLine[] = [
+  { key: "bust_width", label: "a" },
+  { key: "waist_width", label: "b" },
+  { key: "body_length", label: "c" },
+  { key: "side_length", label: "d" },
+  { key: "center_front_length", label: "e" },
+];
+
+const CLOTHING_CORSET: SizeChartDefinition = {
+  id: "clothing-corset",
+  guide: "clothing-corset",
+  lines: CORSET_LINES,
+};
+const LINGERIE_CORSET: SizeChartDefinition = {
+  id: "lingerie-corset",
+  guide: "lingerie-corset",
+  lines: CORSET_LINES,
+};
+
 // Every category node id (at any depth in the path) that should get a chart.
 // A guide is reused wherever its illustration fairly represents the garment,
 // not only for the category it was drawn for — e.g. the generic drawstring
@@ -147,20 +195,19 @@ const DENIM_BUM_SHORTS = bottomsChart("denim-bum-shorts", "denim-bum-shorts");
 // covers all five "T-Shirts" leaves in categories.ts.
 const CHARTS_BY_CATEGORY: Record<string, SizeChartDefinition> = {
   // Tops
-  "clothing-tops-t-shirts": TSHIRT_SHORT_SLEEVE,
-  "t-shirts": TSHIRT_SHORT_SLEEVE,
+  "clothing-tops-t-shirts": STANDARD_TSHIRT,
+  "t-shirts": ACTIVEWEAR_TSHIRT,
   "baby-childrens-tops-t-shirts": TSHIRT_SHORT_SLEEVE,
   "maternity-tops-t-shirts": TSHIRT_SHORT_SLEEVE,
   "nursing-t-shirts": TSHIRT_SHORT_SLEEVE,
   polos: POLO_SHIRT,
-  "clothing-tops-polos": POLO_SHIRT,
+  "clothing-tops-polos": POLO_ALT,
   "off-shoulder-tops": OFF_SHOULDER_TOP,
   "nfl-jerseys": NFL_JERSEY,
   "football-jerseys": FOOTBALL_JERSEY,
   "dress-shirts": DRESS_SHIRT,
   "clothing-tops-shirts": DRESS_SHIRT,
   shirts: DRESS_SHIRT,
-  "clothing-tops-overshirts": DRESS_SHIRT,
 
   // Pants & joggers
   "baggy-joggers": BAGGY_JOGGERS,
@@ -197,6 +244,13 @@ const CHARTS_BY_CATEGORY: Record<string, SizeChartDefinition> = {
   "bum-shorts": BUM_SHORTS,
   "jegging-shorts": BUM_SHORTS,
   "denim-bum-shorts": DENIM_BUM_SHORTS,
+  "corset-tops": CLOTHING_CORSET,
+  "clothing-tops-bodysuits": CLOTHING_BODYSUIT,
+  "clothing-tops-overshirts": OVERSHIRT,
+  "clothing-tops-sweatshirts": SWEATSHIRT,
+  "corsets-bustiers": LINGERIE_CORSET,
+  "lingerie-bodysuits": LINGERIE_BODYSUIT,
+  "volleyball-shorts": SHORTS,
 };
 
 // Only categories explicitly mapped above get a guide. Adding a new guide is

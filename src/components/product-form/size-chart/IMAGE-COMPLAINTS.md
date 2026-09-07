@@ -1,0 +1,20 @@
+# Size-chart image audit
+
+The following assets were visually reviewed on 2026-09-07. Opaque filenames are retained so existing user files are not renamed without a confirmed import migration.
+
+| Filename | Visual observation | Likely category | Confidence | Decision |
+| --- | --- | --- | --- | --- |
+| `d14b3ab7-705b-4c48-abc3-6a259805b09d.png` | Quarter-zip pullover with long sleeves and ribbed cuffs | Sweatshirts or track jackets | Medium | Not wired separately; choose the seller's category because the construction overlaps both. |
+| `0244efa2-4c1b-4f4d-a567-5dd73e0da9d0.png` | Long-sleeve button-down shirt; labels include shoulder, body length, chest, hem width, and sleeve rather than the shared chart's neck line | Dress Shirts | High | Not wired; needs a dedicated five-line button-down definition before use. |
+| `1abdc2d5-b4e4-45dd-afa3-7dca971e035e.png` | Bomber jacket; labels include shoulder, chest, body length, hem width, and sleeve | Bomber Jackets | High | Not wired; needs a jacket-specific definition. |
+| `45c51773-30f3-4cd3-9f69-a85551fc973a.png` | Track jacket; labels include shoulder, chest, body length, hem width, and sleeve | Track Jackets | High | Not wired; needs a jacket-specific definition. |
+| `abf40f57-07cd-4cb8-8620-98bfc1b4334b.png` | Sleeveless sweater vest; labels include shoulder, chest, body length, hem width, and armhole | Vests | High | Not wired; needs a sleeveless-top definition. |
+| `image (11).jpg` | Camisole/tank silhouette with a reduced set of body measurements | Camisoles or Tank Tops | High | Not wired; its labels do not match the five-line shared top chart. |
+| `image (12).jpg` | Strapless/tube top with bust, waist, body length, and side/curve measurement | Tube Tops | High | No Tube Tops category exists; needs a category decision and dedicated definition. |
+| `image (13).jpg` | Long-sleeve blouse with bust, waist, body length, sleeve, and neck measurements | Blouses | High | Not wired; needs a blouse-specific definition because its first two lines are not shoulder/chest. |
+| `d29148e4-b788-4519-bf48-a840c56e9586.png` | Corset rear-view guide, matching the front corset artwork | Corsets & Bustiers | High | Near-duplicate rear view; the front guide is the canonical flow image. |
+| `image (8).jpg` | Corset front view with lace panels and tie closure | Corsets & Bustiers | High | Near-duplicate of the registered corset guide; no separate category. |
+| `image (9).jpg` | Corset rear view with lace-up sides | Corsets & Bustiers | High | Near-duplicate rear view; retained as an audit asset. |
+| `image (10).jpg` | Long-sleeve bodysuit | Bodysuits | High | Same measurement contract as the registered bodysuit guide; no separate category. |
+
+Search ambiguity addressed: `Volleyball Shorts` is now a distinct category leaf mapped to the generic shorts guide. `Dolphin Shorts` remains a separate exact category and is not used as a volleyball alias.
