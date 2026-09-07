@@ -42,11 +42,11 @@ export const Route = createFileRoute("/")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [
-      // Hero phone mockup is the LCP image — start its fetch before hydration.
+      // First slideshow frame is the LCP image — start its fetch before hydration.
       {
         rel: "preload",
         as: "image",
-        href: phoneMockupAsset.url,
+        href: slideFirst,
         fetchPriority: "high",
       },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
