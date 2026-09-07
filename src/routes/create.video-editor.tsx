@@ -836,7 +836,7 @@ function VideoEditor() {
               // with it — otherwise the next New video would open onto the
               // timeline you just walked away from.
               discardVideoEditorSession();
-              void navigate({ to: "/create" });
+              void navigate({ to: "/create", search: { tab: "create" } });
             }}
             aria-label="Back"
             className="flex h-11 w-11 items-center justify-center rounded-full bg-white/[0.14] active:scale-90"

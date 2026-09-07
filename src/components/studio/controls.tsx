@@ -14,12 +14,16 @@ export function StudioSheet({
   onReset,
   children,
   footer,
+  doneDisabled = false,
 }: {
   title: string;
   onDone: () => void;
   onReset?: () => void;
   children: ReactNode;
   footer?: ReactNode;
+  /** Holds the sheet open when what's in it isn't allowed out yet — the text
+   *  tool uses it for content that can't go on a post. */
+  doneDisabled?: boolean;
 }) {
   return (
     <div className="border-t border-white/10" style={{ background: "#0B0B0B" }}>
@@ -37,8 +41,9 @@ export function StudioSheet({
           )}
           <button
             onClick={onDone}
+            disabled={doneDisabled}
             aria-label="Done"
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-black active:scale-90"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-black active:scale-90 disabled:opacity-30"
           >
             <Check size={17} />
           </button>

@@ -12,6 +12,125 @@ nobody "fixes" it later.
 
 ---
 
+## 0. Recently landed
+
+### 0.1 Carousel posts · [DONE — 2026-09-06]
+
+`post_media` (one row per item, `position` 0-based) plus `posts.media_bytes` and
+`posts.created_with`. Applied to `lzyflkrqexxuyxyudvbw`; migrations
+`20260906120000` and `20260906120100`.
+
+Expand step only — `posts.media_url` / `media_type` / `thumbnail_url` are still
+written with item 0 as the cover, so every reader that wants one image keeps
+working untouched. **A contract migration dropping them is still owed**, and
+must not run until nothing reads them. RLS on `post_media` mirrors
+`post_product_tags` exactly; none of the twelve tables in 1.1 were touched.
+
+Wired end to end: the photo editor bakes every photo in its carousel, the
+publish screen ships them as repeated `files` + a positional `mediaTypes`
+array, `api.posts.ts` uploads them in order and writes both tables, and the
+feed renders a snap-scrolling carousel with dots.
+
+### 0.2 Sound on a photo post · [DONE — 2026-09-07]
+
+`posts.audio_url` / `posts.audio_name`, migration `20260907090000`, applied to
+`lzyflkrqexxuyxyudvbw`. Additive; every existing row reads as null and behaves
+exactly as before.
+
+The track is **not** mixed into the media — it is uploaded beside it and the
+feed plays it while leaving the media muted. That is what lets a still, or a
+carousel of six stills, carry a song without any of it becoming a video, and it
+keeps the export pipeline (which knows nothing about this) at one generation of
+re-encode. Because a video post's music is baked into its MP4, `audio_url` and
+baked music are mutually exclusive by construction: nothing can play twice.
+
+Chosen in the photo editor (Sound in the tool row → device file picker), shown
+as a chip with play/pause so it can be auditioned before it goes out, carried to
+publish in the capture handoff, and restored when a draft with a sound is
+reopened.
+
+Available on **both** editors. The after-shot screen (the camera's path) had a
+Sound button in its toolbar with nothing behind it — tapping it did nothing at
+all. It now opens the same picker and shows the same chip, so the camera path
+isn't the one that can't add a song.
+
+The other dead button in that toolbar, **Link**, has since been removed — see
+0.4.
+
+Two things deliberately left: there is **no sound library**, only files off the
+device — a licensed catalogue is a business decision, not a build; and the feed
+has **no volume control**, since autoplay is the only sound the app makes and
+the tap surface already stops it. First playback in a session is blocked by
+autoplay policy until a gesture, so the caption line reads "Tap for sound" until
+it isn't.
+
+### 0.3 Live photos · [DONE — 2026-09-07]
+
+A short silent clip that loops — a photo-editor product, not a video-editor
+one. **No schema change**: it stores as `media_type: "video"` with
+`created_with: "photo-editor"`, which is also what routes it back to the right
+editor from Drafts and what suppresses the play badge on its tile.
+
+Two ways to make one, per your call:
+
+- **Camera** — hold the shutter in Photo mode (350ms to trip, auto-stops at
+  `LIVE_MAX_SECONDS`). Photo mode's stream is opened without an audio track, so
+  a live photo is silent by construction. Routes to the photo editor rather
+  than after-shot, via the existing capture handoff.
+- **Photo editor** — pick a clip up to 6s from the device.
+
+A live photo **owns the whole post**: it cannot share a carousel with stills,
+enforced in both directions (the picker refuses the mix, the + button is hidden
+beside one). Mixing them would mean a post that is sometimes swiped and
+sometimes watched, and the feed can only pick one.
+
+Editing goes through `exportComposite`, so the same filter/crop/layers/adjust
+stack applies through the video encoder — and an unedited live photo
+short-circuits to the bytes that came in, spending no second generation of
+compression. Fixed on the way: **`exportVideo` never took `adjustCss`**, so a
+tone adjustment on any clip — including on the after-shot screen, long before
+this — was silently dropped between the preview and the exported file.
+
+`LIVE_MAX_SECONDS = 6` in `src/lib/photo-carousel.ts` is the single knob.
+
+### 0.4 Posts can't point off-platform · [DONE — 2026-09-07]
+
+`src/lib/content-policy.ts` — one module, because the text tool is shared by
+three editors and a rule living in three places means three things within a
+month. Refuses links, email addresses, phone numbers, `@usernames`, and
+Instagram/insta/IG/TikTok/WhatsApp/Snapchat/Telegram. It **refuses, it never strips** — silently deleting
+what someone typed just gets retyped, with nothing on screen saying why.
+
+It **absorbed an earlier version of this file** that only the product
+description sheet used, so its profanity list and its "dm me / call me / text
+me" phrases live on here — profanity keeps its own sentence in the message,
+since "take out the swearing, buying stays on Oakmonte" reads as nonsense.
+
+Enforced at: the shared text tool (after-shot, photo editor, video editor), the
+studio's timed captions, the publish caption, and the product description sheet.
+
+The false-positive guards matter more than the patterns, since this fires on
+sellers writing honest sentences. A run of digits is a phone number only at 9+
+digits **and** with one unbroken group of 4 — which is what lets "sizes 6 8 10
+12 14 16 18 20 22 24" and "₦1,500,000" through while catching 08012345678. Bare
+domains need a real TLD. "ig" is whole-word, so "Big" and "Igbo" are fine. Our
+own `oakmonte.*` links are allowlisted.
+
+**Two deliberate exceptions**, both recorded here because they are the places
+someone will later think the rule is broken:
+
+1. `@name` is allowed **in the post caption only**, where `@` is Oakmonte's own
+   mention affordance (there's a button that types it). `@shop` next to "ig" is
+   still refused — the platform word is caught on its own.
+2. **"snap", "tg" and "wa" are not on the list**, though Snapchat, Telegram and
+   WhatsApp are. This is a clothing marketplace: snap buttons, snap fastenings
+   and snapped photos are ordinary things to write, and two letters is not
+   enough signal to accuse anybody of anything. `wa.me` and `t.me` — how those
+   two actually get shared — are already caught as links.
+
+Also removed: the **Link** button from the after-shot toolbar. Product linking
+lives on the publish screen, and that button had never been wired to anything.
+
 ## 1. Blocks launch
 
 ### 1.1 RLS is off on twelve tables · [BLOCKS LAUNCH — migration drafted, held]

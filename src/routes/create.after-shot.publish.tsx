@@ -1,9 +1,10 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
   ArrowLeft,
   MapPin,
+  Music,
   Hash,
   AtSign,
   Link2,
@@ -21,6 +22,8 @@ import { useActiveStoreId } from "@/hooks/use-own-store";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { startPostUpload } from "@/lib/post-upload";
 import { discardVideoEditorSession } from "@/lib/video-editor-session";
+import { discardPhotoEditorSession } from "@/lib/photo-carousel";
+import { blockedContentMessage, findBlockedContent } from "@/lib/content-policy";
 import CameraPanel from "@/components/camera/CameraPanel";
 
 export const Route = createFileRoute("/create/after-shot/publish")({
@@ -68,6 +71,20 @@ function PublishPage() {
   const [submitting, setSubmitting] = useState(false);
   const captionRef = useRef<HTMLTextAreaElement>(null);
 
+  // The caption is the likeliest place in the whole app for "DM me on IG", so
+  // the same rule the text tool enforces applies here.
+  //
+  // `allowHandles` is the one difference, and it is a real exception rather
+  // than a loophole: `@` is Oakmonte's OWN mention affordance on this screen —
+  // there is a button right under the caption that types one. Blocking a bare
+  // @name here would break a shipped feature in the name of a rule about other
+  // platforms. "@shop" beside "ig" is still refused, because the platform word
+  // is caught on its own.
+  const blockedCaption = useMemo(
+    () => findBlockedContent(caption, { allowHandles: true }),
+    [caption],
+  );
+
   const insertToken = (token: string) => {
     const el = captionRef.current;
     const start = el?.selectionStart ?? caption.length;
@@ -89,11 +106,28 @@ function PublishPage() {
   const publish = useCallback(
     (status: "published" | "draft") => {
       if (!user || submitting) return;
+      // Belt as well as braces. The button is already disabled, but this is
+      // the last point before the caption becomes a row in the database, and
+      // a disabled button is a UI state rather than a guarantee.
+      if (blockedCaption.length > 0) return;
       setSubmitting(true);
 
+      // Every carousel item, cover first. `files` is repeated and `mediaTypes`
+      // is positional, so the two must be appended in lockstep.
+      const items = [{ type: media.type, blob: media.blob }, ...(media.extra ?? [])];
       const fd = new FormData();
-      fd.set("file", media.blob, media.type === "video" ? "media.mp4" : "media.jpg");
-      fd.set("mediaType", media.type);
+      for (const [i, item] of items.entries()) {
+        fd.append("files", item.blob, `media-${i}.${item.type === "video" ? "mp4" : "jpg"}`);
+      }
+      fd.set("mediaTypes", JSON.stringify(items.map((i) => i.type)));
+      if (media.origin) fd.set("createdWith", media.origin);
+      // The post's sound rides alongside the media rather than inside it. Only
+      // the photo editor sets this — the video editor bakes its music into the
+      // MP4, and a post with both would play two things at once.
+      if (media.audio) {
+        fd.set("audio", media.audio.blob, "audio");
+        fd.set("audioName", media.audio.name);
+      }
       if (media.poster) fd.set("thumbnail", media.poster.blob, "thumbnail.jpg");
       if (caption.trim()) fd.set("caption", caption.trim());
       if (location.trim()) fd.set("location", location.trim());
@@ -109,16 +143,34 @@ function PublishPage() {
       // finished with. Left behind, the next "New video" would open onto this
       // edit instead of an empty one.
       discardVideoEditorSession();
+      discardPhotoEditorSession();
 
       // FormData already holds the Blobs themselves (not the object URLs),
       // so it's safe to release ours now instead of waiting for the
       // now-backgrounded upload to finish.
       URL.revokeObjectURL(media.url);
       if (media.poster) URL.revokeObjectURL(media.poster.url);
+      media.extra?.forEach((item) => URL.revokeObjectURL(item.url));
+      // Safe here and only here. The photo editor's copy of this URL is freed
+      // by the session discard just above, at the same moment; the after-shot
+      // path has no session, so without this its track would leak. The back
+      // button deliberately revokes nothing, which is what lets either editor
+      // still play the sound you picked when you return to it.
+      if (media.audio) URL.revokeObjectURL(media.audio.url);
 
       navigate({ to: "/home", replace: true });
     },
-    [user, submitting, media, caption, location, visibility, taggedProducts, navigate],
+    [
+      user,
+      submitting,
+      media,
+      caption,
+      location,
+      visibility,
+      taggedProducts,
+      navigate,
+      blockedCaption,
+    ],
   );
 
   const activeVisibility = VISIBILITY_OPTIONS.find((v) => v.id === visibility)!;
@@ -136,7 +188,12 @@ function PublishPage() {
           // editor holding your finished video.
           onClick={() =>
             navigate({
-              to: media.origin === "video-editor" ? "/create/video-editor" : "/create/after-shot",
+              to:
+                media.origin === "video-editor"
+                  ? "/create/video-editor"
+                  : media.origin === "photo-editor"
+                    ? "/create/photo-editor"
+                    : "/create/after-shot",
             })
           }
           aria-label="Back to editor"
@@ -158,6 +215,14 @@ function PublishPage() {
               <img src={media.poster.url} alt="" className="w-full h-full object-cover" />
             ) : (
               <video src={media.url} muted playsInline className="w-full h-full object-cover" />
+            )}
+            {/* How many items are actually going. Without it a carousel looks
+                identical to a single photo on the one screen where you commit
+                to posting it. */}
+            {media.extra && media.extra.length > 0 && (
+              <span className="absolute right-1.5 top-1.5 rounded-full bg-black/65 px-2 py-0.5 text-[10px] font-semibold text-white">
+                1/{media.extra.length + 1}
+              </span>
             )}
             {/* The cover is the frame the whole feed judges this post by, and
                 until now it was whatever the export happened to leave — with
@@ -205,6 +270,12 @@ function PublishPage() {
           </div>
         </div>
 
+        {blockedCaption.length > 0 && (
+          <p className="oak-motion-fade mt-3 rounded-xl bg-amber-50 px-3.5 py-2.5 text-[12px] leading-snug text-amber-900">
+            {blockedContentMessage(blockedCaption)}
+          </p>
+        )}
+
         {/* Location */}
         <div className="oak-motion-fade flex items-center gap-2.5 mt-5 rounded-xl border border-gray-200 px-3.5 py-3">
           <MapPin size={17} className="text-gray-400 shrink-0" />
@@ -220,6 +291,17 @@ function PublishPage() {
             </button>
           )}
         </div>
+
+        {/* The sound, when there is one. Read-only here — it is chosen and
+            auditioned in the photo editor, and this screen's job is to show
+            what is about to go out, not to become a second place to set it. */}
+        {media.audio && (
+          <div className="oak-motion-fade flex items-center gap-2.5 mt-3 rounded-xl border border-gray-200 px-3.5 py-3">
+            <Music size={17} className="text-gray-400 shrink-0" />
+            <span className="flex-1 truncate text-[14px]">{media.audio.name}</span>
+            <span className="text-[11px] text-gray-400">Sound</span>
+          </div>
+        )}
 
         {/* Linked products. "Link", not "tag": these are what a viewer finds
             in Listed items when they swipe on the post, which is a connection
@@ -290,7 +372,7 @@ function PublishPage() {
         <button
           type="button"
           onClick={() => publish("draft")}
-          disabled={submitting}
+          disabled={submitting || blockedCaption.length > 0}
           className="oak-motion-control flex-1 rounded-full border border-gray-300 py-3.5 text-[14px] font-semibold disabled:opacity-50 active:scale-[0.98]"
         >
           Save to Drafts
@@ -298,7 +380,7 @@ function PublishPage() {
         <button
           type="button"
           onClick={() => publish("published")}
-          disabled={submitting}
+          disabled={submitting || blockedCaption.length > 0}
           className="oak-motion-control flex-[1.3] rounded-full py-3.5 text-[14px] font-bold disabled:opacity-50 active:scale-[0.98]"
           style={{ background: "#000", color: "#fff" }}
         >

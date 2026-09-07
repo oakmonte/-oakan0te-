@@ -46,6 +46,17 @@ function AfterShotLayout() {
       if (prev?.poster && prev.poster.url !== next.poster?.url) {
         URL.revokeObjectURL(prev.poster.url);
       }
+      // Same again for the two fields that arrived with carousels and sound.
+      // Each is another object URL riding on this one value, so a re-export
+      // that keeps them (the common case — they compare equal and nothing is
+      // freed) must not be the only case that behaves correctly.
+      if (prev?.audio && prev.audio.url !== next.audio?.url) {
+        URL.revokeObjectURL(prev.audio.url);
+      }
+      const keptExtras = new Set((next.extra ?? []).map((e) => e.url));
+      prev?.extra?.forEach((item) => {
+        if (!keptExtras.has(item.url)) URL.revokeObjectURL(item.url);
+      });
       return next;
     });
   }, []);
@@ -53,6 +64,11 @@ function AfterShotLayout() {
   const discard = useCallback(() => {
     if (media) URL.revokeObjectURL(media.url);
     if (media?.poster) URL.revokeObjectURL(media.poster.url);
+    // Only the editor screen can reach this, and a photo-editor post goes
+    // straight to publish without ever mounting it — so nothing here can free
+    // a URL that the photo editor's parked session still needs.
+    if (media?.audio) URL.revokeObjectURL(media.audio.url);
+    media?.extra?.forEach((item) => URL.revokeObjectURL(item.url));
     navigate({ to: "/create", replace: true });
   }, [media, navigate]);
 

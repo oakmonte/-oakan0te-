@@ -14,6 +14,7 @@ import {
   ChevronLeft,
   Link2,
   MapPin,
+  Music,
 } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import type { Tables } from "@/lib/integrations/my-supabase/types";
@@ -48,12 +49,23 @@ export type ActivePost = { id: string; tags: TaggedProduct[] };
 
 type FeedPost = Pick<
   Tables<"posts">,
-  "id" | "user_id" | "media_url" | "media_type" | "thumbnail_url" | "caption" | "location"
+  | "id"
+  | "user_id"
+  | "media_url"
+  | "media_type"
+  | "thumbnail_url"
+  | "caption"
+  | "location"
+  | "audio_url"
+  | "audio_name"
 > & {
   authorDisplayName: string | null;
   authorAvatar: string | null;
   authorIsFollowed: boolean;
   tags: TaggedProduct[];
+  /** Every carousel item in order. Always at least one — a single-media post
+   *  is a one-item carousel, so nothing downstream needs a special case. */
+  media: { url: string; type: string; thumbnail: string | null }[];
 };
 
 const FEED_LIMIT = 30;
@@ -73,7 +85,7 @@ async function fetchFeed(scope: FeedScope, viewerId: string | null): Promise<Fee
   let query = supabase
     .from("posts")
     .select(
-      "id, user_id, media_url, media_type, thumbnail_url, caption, location, public_profiles(display_name, personal_username, avatar_url)",
+      "id, user_id, media_url, media_type, thumbnail_url, caption, location, audio_url, audio_name, post_media(position, media_url, media_type, thumbnail_url), public_profiles(display_name, personal_username, avatar_url)",
     )
     .order("created_at", { ascending: false });
 
@@ -149,11 +161,26 @@ async function fetchFeed(scope: FeedScope, viewerId: string | null): Promise<Fee
     thumbnail_url: p.thumbnail_url,
     caption: p.caption,
     location: p.location,
+    audio_url: p.audio_url,
+    audio_name: p.audio_name,
     authorDisplayName:
       p.public_profiles?.display_name ?? p.public_profiles?.personal_username ?? null,
     authorAvatar: p.public_profiles?.avatar_url ?? null,
     authorIsFollowed: followedAuthorIds.has(p.user_id),
     tags: tagsByPost.get(p.id) ?? [],
+    // Sorted here rather than in the query: PostgREST can order an embedded
+    // resource, but the generated types don't carry that through, and the
+    // arrays are single digits.
+    //
+    // The fallback is what makes the expand migration safe — a post written
+    // before post_media existed, or one whose child rows failed to load,
+    // still renders as the one-item carousel its `posts` columns describe.
+    media:
+      (p.post_media ?? []).length > 0
+        ? [...p.post_media]
+            .sort((a, b) => a.position - b.position)
+            .map((m) => ({ url: m.media_url, type: m.media_type, thumbnail: m.thumbnail_url }))
+        : [{ url: p.media_url, type: p.media_type, thumbnail: p.thumbnail_url }],
   }));
 }
 
@@ -268,6 +295,16 @@ export function PostFeed({
 
     const onTouchStart = (e: TouchEvent) => {
       if (e.touches.length !== 1) return;
+      // A carousel that has been swiped past its first item owns the
+      // rightward gesture — that swipe means "back one photo", not "leave the
+      // post". At item 0 there is nothing left to go back to, so the dismiss
+      // takes it, which is the same handover a nested scroller normally gets.
+      const target = e.target as HTMLElement | null;
+      const carousel = target?.closest?.("[data-post-carousel]") as HTMLElement | null;
+      if (carousel && carousel.scrollLeft > 1) {
+        tracking = false;
+        return;
+      }
       startX = lastX = e.touches[0].clientX;
       startY = e.touches[0].clientY;
       lastT = e.timeStamp;
@@ -440,6 +477,84 @@ export function PostFeed({
  *  thinking about it. Nothing here is destructive, so acting on contact is
  *  safe. `touchAction: manipulation` keeps the browser from holding the event
  *  back for a double-tap-to-zoom it will never get. */
+/** A post's carousel: horizontal snap-scroll, with dots.
+ *
+ *  Native scrolling rather than a hand-built pager, for the same reason the
+ *  video editor's timeline scrubs by scrolling — momentum, rubber-banding and
+ *  sub-pixel tracking already exist and are better than a reimplementation.
+ *  `data-post-carousel` is what the swipe-to-dismiss handler looks for when
+ *  deciding whether a rightward swipe belongs to this or to the feed.
+ *
+ *  Items are laid out with `contain`, not `cover`. A carousel is very often a
+ *  mix of shapes, and cropping each one to fill a 9:16 frame is how you lose
+ *  the top of somebody's outfit. */
+function PostCarousel({
+  media,
+}: {
+  media: { url: string; type: string; thumbnail: string | null }[];
+}) {
+  const [index, setIndex] = useState(0);
+  const scrollerRef = useRef<HTMLDivElement>(null);
+
+  const handleScroll = useCallback(() => {
+    const el = scrollerRef.current;
+    if (!el || el.clientWidth === 0) return;
+    setIndex(Math.round(el.scrollLeft / el.clientWidth));
+  }, []);
+
+  return (
+    <div className="absolute inset-0">
+      <div
+        ref={scrollerRef}
+        data-post-carousel
+        onScroll={handleScroll}
+        className="no-scrollbar flex h-full w-full overflow-x-auto overflow-y-hidden"
+        style={{ scrollSnapType: "x mandatory", overscrollBehaviorX: "contain" }}
+      >
+        {media.map((item, i) => (
+          <div
+            key={`${item.url}-${i}`}
+            className="relative h-full w-full shrink-0"
+            style={{ scrollSnapAlign: "start" }}
+          >
+            {item.type === "video" ? (
+              <video
+                src={item.url}
+                poster={item.thumbnail ?? undefined}
+                loop
+                muted
+                playsInline
+                preload="metadata"
+                className="h-full w-full object-contain"
+              />
+            ) : (
+              <img
+                src={item.url}
+                alt=""
+                // Only the first item is worth blocking the post's first paint
+                // on; the rest load as the reader gets to them.
+                loading={i === 0 ? "eager" : "lazy"}
+                className="h-full w-full object-contain"
+              />
+            )}
+          </div>
+        ))}
+      </div>
+
+      <div className="pointer-events-none absolute inset-x-0 top-3 flex items-center justify-center gap-1.5">
+        {media.map((item, i) => (
+          <span
+            key={`${item.url}-dot-${i}`}
+            className={`h-1.5 rounded-full transition-all ${
+              i === index ? "w-4 bg-white" : "w-1.5 bg-white/45"
+            }`}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function RailAction({
   label,
   count,
@@ -497,6 +612,12 @@ function FeedPostCard({
 }) {
   const cardRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
+  // Every video in this feed is muted, so a post's chosen sound is the only
+  // audio the app ever produces — and the first one is therefore the one
+  // autoplay policy blocks. Tracked rather than ignored: a blocked track has
+  // to become something the viewer can tap, not silence with no explanation.
+  const [audioBlocked, setAudioBlocked] = useState(false);
   // Two separate ideas, deliberately not one `playing` flag: `onScreen` is
   // whether this card is the one being looked at, `userPaused` is whether the
   // viewer deliberately stopped it. Only the second should ever show the pause
@@ -518,6 +639,10 @@ function FeedPostCard({
   const [tags, setTags] = useState<TaggedProduct[]>(post.tags);
   const isOwnPost = viewerId === post.user_id;
   const isVideo = post.media_type === "video";
+  // A sound chosen on the publish screen. It plays INSTEAD of the media's own
+  // audio — the media is muted either way — so no post ever plays two things
+  // at once, and a photo carousel can carry a track without being a video.
+  const hasAudio = !!post.audio_url;
   // The owner-only management surface: link products, and the "more" menu.
   const isOwnerView = isOwnPost && isProfileViewer;
 
@@ -542,16 +667,37 @@ function FeedPostCard({
 
   useEffect(() => {
     const v = videoRef.current;
-    if (!v) return;
-    if (onScreen && !userPaused) {
-      // Rejected play() is normal (a still-loading src, a backgrounded tab) —
-      // it must not surface as an unhandled rejection.
-      void v.play().catch(() => {});
-    } else {
-      v.pause();
-      // Scrolling back to a post should start it over, the way both references
-      // do, rather than resuming from wherever it was abandoned.
-      if (!onScreen) v.currentTime = 0;
+    const a = audioRef.current;
+    const shouldPlay = onScreen && !userPaused;
+
+    if (v) {
+      if (shouldPlay) {
+        // Rejected play() is normal (a still-loading src, a backgrounded tab) —
+        // it must not surface as an unhandled rejection.
+        void v.play().catch(() => {});
+      } else {
+        v.pause();
+        // Scrolling back to a post should start it over, the way both references
+        // do, rather than resuming from wherever it was abandoned.
+        if (!onScreen) v.currentTime = 0;
+      }
+    }
+
+    if (a) {
+      if (shouldPlay) {
+        // Unlike the video, this rejection is worth knowing about: it means
+        // the browser refused sound for want of a gesture, and the tap
+        // handler needs to offer one.
+        void a
+          .play()
+          .then(() => setAudioBlocked(false))
+          .catch(() => setAudioBlocked(true));
+      } else {
+        a.pause();
+        // The track belongs to the post, so it restarts with it — coming back
+        // to a post should not drop you into the middle of a chorus.
+        if (!onScreen) a.currentTime = 0;
+      }
     }
   }, [onScreen, userPaused]);
 
@@ -611,7 +757,17 @@ function FeedPostCard({
     }
     tapTimer.current = window.setTimeout(() => {
       tapTimer.current = null;
-      if (isVideo) setUserPaused((p) => !p);
+      // A tap on a post whose sound autoplay refused is the gesture that
+      // refusal was waiting for. It starts the track rather than toggling
+      // pause, which would otherwise "pause" something already silent.
+      if (audioBlocked && audioRef.current) {
+        void audioRef.current
+          .play()
+          .then(() => setAudioBlocked(false))
+          .catch(() => {});
+        return;
+      }
+      if (isVideo || hasAudio) setUserPaused((p) => !p);
     }, 260);
   }
 
@@ -646,7 +802,9 @@ function FeedPostCard({
       className="relative w-full h-full bg-neutral-950 text-white"
       style={{ scrollSnapAlign: "start" }}
     >
-      {isVideo ? (
+      {post.media.length > 1 ? (
+        <PostCarousel media={post.media} />
+      ) : isVideo ? (
         <video
           ref={videoRef}
           src={post.media_url}
@@ -660,6 +818,12 @@ function FeedPostCard({
       ) : (
         <img src={post.media_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
       )}
+
+      {/* The post's sound. Looped, because a track is almost always longer or
+          shorter than the pictures it plays over and neither end should be a
+          silence. No `controls` — the tap surface above already owns
+          play/pause for this card. */}
+      {post.audio_url && <audio ref={audioRef} src={post.audio_url} loop preload="none" />}
 
       {/* The tap surface. Its own layer rather than a handler on the media so
           it can sit under the rail and the caption — those get their own taps
@@ -682,7 +846,7 @@ function FeedPostCard({
           the video wasn't playing, which — now that playback starts on its
           own — would mean a play button flashing over every card you scroll
           past. */}
-      {isVideo && userPaused && (
+      {(isVideo || hasAudio) && userPaused && (
         <motion.div
           className="absolute inset-0 flex items-center justify-center pointer-events-none"
           initial={{ opacity: 0, scale: 1.25 }}
@@ -833,6 +997,18 @@ function FeedPostCard({
         {post.location && (
           <p className="text-[12px] text-white/50 flex items-center gap-1 mt-1">
             <MapPin size={12} /> {post.location}
+          </p>
+        )}
+        {/* What you're hearing — and, while autoplay is still refusing, how to
+            start it. The prompt is part of this line rather than a badge
+            elsewhere so there is exactly one place on the card that talks
+            about sound. */}
+        {hasAudio && (
+          <p className="text-[12px] text-white/60 flex items-center gap-1 mt-1">
+            <Music size={12} className="shrink-0" />
+            <span className="truncate">
+              {audioBlocked ? "Tap for sound" : (post.audio_name ?? "Original sound")}
+            </span>
           </p>
         )}
         {tags.length > 0 && (

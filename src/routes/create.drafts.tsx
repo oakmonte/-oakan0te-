@@ -25,16 +25,25 @@ type Draft = {
   media_url: string;
   thumbnail_url: string | null;
   media_type: string;
+  media_bytes: number | null;
+  created_with: string | null;
+  audio_url: string | null;
+  audio_name: string | null;
   caption: string | null;
   created_at: string;
 };
 
 type SortKey = "recent" | "size";
 
+/** Where a draft reopens.
+ *
+ *  `created_with` is recorded at upload, so for anything posted since that
+ *  column landed this is a lookup rather than a guess. Older rows have no
+ *  value and fall back to the old inference — right for everything the app
+ *  could make at the time, which is exactly the set of rows that can be null. */
 function editorFor(draft: Draft): "/create/video-editor" | "/create/photo-editor" {
-  // A `created_with` column on posts would make this a lookup instead of a
-  // guess, and would matter the day a third editor produces videos too. It
-  // needs a migration, so it isn't here.
+  if (draft.created_with === "video-editor") return "/create/video-editor";
+  if (draft.created_with === "photo-editor") return "/create/photo-editor";
   return draft.media_type === "video" ? "/create/video-editor" : "/create/photo-editor";
 }
 
@@ -67,7 +76,9 @@ function DraftsPage() {
     let cancelled = false;
     supabase
       .from("posts")
-      .select("id, media_url, thumbnail_url, media_type, caption, created_at")
+      .select(
+        "id, media_url, thumbnail_url, media_type, media_bytes, created_with, audio_url, audio_name, caption, created_at",
+      )
       .eq("user_id", user.id)
       .eq("status", "draft")
       .order("created_at", { ascending: false })
@@ -81,15 +92,15 @@ function DraftsPage() {
     };
   }, [user, sessionLoading]);
 
-  // File sizes come from a HEAD request per draft, because `posts` has no
-  // column for them. Cheap individually — headers only, no body — but it is
-  // still one request per row, so they run a few at a time and fill in as they
-  // land rather than gating the grid. A `media_bytes` column written at upload
-  // would make this free; that needs a migration.
+  // Sizes now arrive with the row, in `media_bytes`. The HEAD request below is
+  // only for drafts written before that column existed — one request per such
+  // row, a few at a time, filling in as they land rather than gating the grid.
+  // It costs nothing for anything posted since.
   useEffect(() => {
     if (!drafts || drafts.length === 0) return;
     let cancelled = false;
-    const queue = drafts.slice();
+    const queue = drafts.filter((d) => d.media_bytes == null);
+    if (queue.length === 0) return;
 
     async function worker() {
       while (!cancelled) {
@@ -115,18 +126,27 @@ function DraftsPage() {
     };
   }, [drafts]);
 
+  /** The stored size, or the one fetched by HEAD for a pre-column row. */
+  const sizeOf = useCallback(
+    (draft: Draft) => draft.media_bytes ?? sizes[draft.id] ?? null,
+    [sizes],
+  );
+
   const sorted = useMemo(() => {
     if (!drafts) return null;
     if (sort === "recent") return drafts;
     return drafts.slice().sort((a, b) => {
       // Unknown sizes sink rather than jumping to the top as zero.
-      const sa = sizes[a.id] ?? -1;
-      const sb = sizes[b.id] ?? -1;
+      const sa = a.media_bytes ?? sizes[a.id] ?? -1;
+      const sb = b.media_bytes ?? sizes[b.id] ?? -1;
       return sb - sa;
     });
   }, [drafts, sizes, sort]);
 
-  const totalBytes = useMemo(() => Object.values(sizes).reduce((sum, n) => sum + n, 0), [sizes]);
+  const totalBytes = useMemo(
+    () => (drafts ?? []).reduce((sum, d) => sum + (d.media_bytes ?? sizes[d.id] ?? 0), 0),
+    [drafts, sizes],
+  );
 
   const open = useCallback(
     (draft: Draft) => {
@@ -139,6 +159,11 @@ function DraftsPage() {
         kind: draft.media_type === "video" ? "video" : "photo",
         postId: draft.id,
         thumbnailUrl: draft.thumbnail_url,
+        // A draft that had a sound on it should still have that sound on it.
+        // Handed over as a URL — the editor only fetches the bytes if the
+        // draft actually goes out.
+        audioUrl: draft.audio_url,
+        audioName: draft.audio_name,
       });
       void navigate({ to: editorFor(draft) });
     },
@@ -156,7 +181,7 @@ function DraftsPage() {
       >
         <button
           type="button"
-          onClick={() => navigate({ to: "/create" })}
+          onClick={() => navigate({ to: "/create", search: { tab: "create" } })}
           aria-label="Back"
           className="-ml-1 flex h-9 w-9 items-center justify-center active:scale-90"
         >
@@ -246,7 +271,10 @@ function DraftsPage() {
                   {formatDay(draft.created_at)}
                 </span>
 
-                {draft.media_type === "video" && (
+                {/* A live photo is stored as a video but is not one, and a
+                    play badge on it reads as "this is a clip you'll have to
+                    watch". `created_with` is what tells them apart. */}
+                {draft.media_type === "video" && draft.created_with !== "photo-editor" && (
                   <span className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-black/55">
                     <Play size={10} className="ml-[1px]" fill="white" strokeWidth={0} />
                   </span>
@@ -256,9 +284,9 @@ function DraftsPage() {
                   <span className="truncate text-[10px] text-white/85">
                     {draft.caption?.trim() || "No caption"}
                   </span>
-                  {sizes[draft.id] && (
+                  {sizeOf(draft) !== null && (
                     <span className="shrink-0 text-[10px] tabular-nums text-white/60">
-                      {formatBytes(sizes[draft.id])}
+                      {formatBytes(sizeOf(draft)!)}
                     </span>
                   )}
                 </div>

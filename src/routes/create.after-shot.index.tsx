@@ -8,13 +8,16 @@ import {
   Volume2,
   VolumeX,
   Blend,
-  Link2,
   Crop,
   ChevronDown,
   ChevronUp,
   Clapperboard,
+  Music,
+  Pause,
+  Play,
 } from "lucide-react";
 import { useAfterShotContext } from "@/lib/after-shot-context";
+import { soundLabel } from "@/lib/capture-handoff";
 import TextPanel from "@/components/camera/aftershot/TextPanel";
 import CropPanel from "@/components/camera/aftershot/CropPanel";
 import DrawPanel from "@/components/camera/aftershot/DrawPanel";
@@ -33,7 +36,10 @@ export const Route = createFileRoute("/create/after-shot/")({
   component: AfterShotIndexPage,
 });
 
-type ToolId = "crop" | "text" | "draw" | "filter" | "sound" | "sticker" | "link";
+// No "link" here. Products are linked on the publish screen, which is the one
+// place that knows which of your products exist — this toolbar's Link button
+// was a second entry point that had never been wired to anything.
+type ToolId = "crop" | "text" | "draw" | "filter" | "sound" | "sticker";
 
 const DEFAULT_FILTER_ID = "natural";
 
@@ -41,9 +47,11 @@ const EDIT_TOOLS: { id: ToolId; label: string; icon: typeof Type }[] = [
   { id: "text", label: "Text", icon: Type },
   { id: "draw", label: "Draw", icon: Pencil },
   { id: "sticker", label: "Stickers", icon: Sticker },
-  { id: "sound", label: "Sound", icon: Volume2 },
+  // Music, not a speaker: the speaker right next to it in the top bar is the
+  // preview's mute toggle, and two volume icons on one screen meaning
+  // different things is a coin flip every time.
+  { id: "sound", label: "Sound", icon: Music },
   { id: "filter", label: "Filters", icon: Blend },
-  { id: "link", label: "Link", icon: Link2 },
 ];
 
 const COLLAPSED_TOOLS: { id: ToolId; label: string; icon: typeof Crop }[] = [
@@ -157,6 +165,45 @@ function AfterShotIndexPage() {
   // unmount — the layer stack only stores the URL string, so nothing else owns
   // them and they'd otherwise leak for the life of the tab.
   const stickerInputRef = useRef<HTMLInputElement>(null);
+  const audioInputRef = useRef<HTMLInputElement>(null);
+  const audioElRef = useRef<HTMLAudioElement>(null);
+  const [auditioning, setAuditioning] = useState(false);
+
+  // Sound was in this toolbar with nothing behind it — the button existed and
+  // tapping it did nothing. It carries on the captured media rather than in
+  // local state so the publish screen, which is the thing that uploads it,
+  // reads the same field whichever editor the post came through.
+  const handleAudioFile = useCallback(
+    (files: FileList | null) => {
+      const file = files?.[0];
+      // Cleared even on the early return: leaving the same file selected means
+      // re-picking it after a removal fires no change event at all.
+      if (audioInputRef.current) audioInputRef.current.value = "";
+      if (!file || !file.type.startsWith("audio/")) return;
+      // The old track's URL is freed by setMedia, which owns every object URL
+      // hanging off this value. Doing it here as well would be harmless but
+      // would give it two owners, which is how these turn into bugs.
+      const url = URL.createObjectURL(file);
+      setMedia({ ...media, audio: { blob: file, url, name: soundLabel(file.name) } });
+    },
+    [media, setMedia],
+  );
+
+  const removeSound = useCallback(() => {
+    if (!media.audio) return;
+    audioElRef.current?.pause();
+    const { audio: _dropped, ...rest } = media;
+    setMedia(rest);
+  }, [media, setMedia]);
+
+  /** Hear it before committing to it — nothing is mixed, so this is the only
+   *  chance to find out the track was the wrong one. */
+  const toggleAudition = useCallback(() => {
+    const el = audioElRef.current;
+    if (!el) return;
+    if (el.paused) void el.play().catch(() => setAuditioning(false));
+    else el.pause();
+  }, []);
   const stickerUrlsRef = useRef<string[]>([]);
   useEffect(
     () => () => {
@@ -378,6 +425,25 @@ function AfterShotIndexPage() {
         className="hidden"
         onChange={(e) => handleStickerFiles(e.target.files)}
       />
+      <input
+        ref={audioInputRef}
+        type="file"
+        accept="audio/*"
+        className="hidden"
+        onChange={(e) => handleAudioFile(e.target.files)}
+      />
+      {/* Looped: a track is almost always longer than the post it plays over,
+          and `auditioning` is driven by the element's own events so a blocked
+          play can't leave the chip showing pause over silence. */}
+      {media.audio && (
+        <audio
+          ref={audioElRef}
+          src={media.audio.url}
+          loop
+          onPlay={() => setAuditioning(true)}
+          onPause={() => setAuditioning(false)}
+        />
+      )}
 
       <TextPanel
         open={activeTool === "text"}
@@ -408,6 +474,38 @@ function AfterShotIndexPage() {
               >
                 {videoMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
               </button>
+            )}
+
+            {/* The chosen track. Beside the other media controls rather than in
+                a panel of its own: there is one setting here, and a screen you
+                have to leave to check would be worse than the button that used
+                to do nothing. */}
+            {media.audio && (
+              <div
+                className="oak-motion-pop flex min-w-0 items-center gap-2 rounded-full py-1.5 pl-3 pr-1.5"
+                style={{ background: "rgba(255,255,255,0.10)", backdropFilter: "blur(12px)" }}
+              >
+                <Music size={13} className="shrink-0 opacity-70" />
+                <span className="truncate text-[12px]">{media.audio.name}</span>
+                <button
+                  onClick={toggleAudition}
+                  aria-label={auditioning ? "Pause sound" : "Play sound"}
+                  className="oak-motion-control flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/15 active:scale-90"
+                >
+                  {auditioning ? (
+                    <Pause size={11} fill="currentColor" strokeWidth={0} />
+                  ) : (
+                    <Play size={11} fill="currentColor" strokeWidth={0} className="ml-[1px]" />
+                  )}
+                </button>
+                <button
+                  onClick={removeSound}
+                  aria-label="Remove sound"
+                  className="oak-motion-control flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/15 opacity-70 active:scale-90"
+                >
+                  <X size={11} />
+                </button>
+              </div>
             )}
           </div>
 
@@ -440,6 +538,7 @@ function AfterShotIndexPage() {
                     } else if (tool.id === "draw") setActiveTool(tool.id);
                     else if (tool.id === "filter") setActiveTool("filter");
                     else if (tool.id === "sticker") stickerInputRef.current?.click();
+                    else if (tool.id === "sound") audioInputRef.current?.click();
                   }}
                   aria-label={tool.label}
                   className="oak-motion-control flex items-center gap-2 opacity-90 active:scale-95"

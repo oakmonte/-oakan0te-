@@ -22,6 +22,11 @@ export type PendingDraft = {
   /** The draft's own poster, when it has one — saves the editor grabbing a
    *  frame off a remote file, which CORS may not allow. */
   thumbnailUrl: string | null;
+  /** The sound saved with the draft, so reopening it doesn't silently drop
+   *  the track. Remote — the editor keeps it as a URL and only fetches the
+   *  bytes if the draft is posted. */
+  audioUrl?: string | null;
+  audioName?: string | null;
 };
 
 let pending: PendingDraft | null = null;

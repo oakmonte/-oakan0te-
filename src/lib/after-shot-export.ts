@@ -133,6 +133,7 @@ export async function exportVideo(
   layers: Layer[],
   crop: CropRect | null,
   onProgress?: ExportProgress,
+  adjustCss = "",
 ): Promise<Blob> {
   const input = new Input({ source: new BlobSource(blob), formats: ALL_FORMATS });
   const videoTrack = await input.getPrimaryVideoTrack();
@@ -156,7 +157,11 @@ export async function exportVideo(
   // finished clip, same as the matrix engine did before it — heavier per
   // pixel, but this is an async "Applying…" step with a progress bar, not a
   // live/interactive path, so the extra cost is time, not jank.
-  const compiled = compileGrade(filter, intensity);
+  // Adjustments ride in the same compiled filter as the grade, exactly as they
+  // do on the photo path. They used not to reach here at all: `exportVideo`
+  // took no adjustCss, so a tone tweak on a clip was silently dropped between
+  // the preview and the file. One shared helper, one pass over the pixels.
+  const compiled = compileGradeWithAdjust(filter, intensity, adjustCss);
   const stickers = await preloadStickers(layers);
 
   const target = new BufferTarget();
@@ -302,5 +307,5 @@ export async function exportComposite(
   }
   return media.type === "photo"
     ? await exportPhoto(media.blob, filter, intensity, layers, crop, adjustCss)
-    : await exportVideo(media.blob, filter, intensity, layers, crop, onProgress);
+    : await exportVideo(media.blob, filter, intensity, layers, crop, onProgress, adjustCss);
 }

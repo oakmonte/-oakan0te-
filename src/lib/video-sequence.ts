@@ -424,7 +424,12 @@ export function blankClipEdits() {
     stillDuration: DEFAULT_STILL_DURATION,
     speed: 1,
     muted: false,
-    fit: "cover" as ClipFit,
+    // Fit, not fill. A clip whose shape already matches the project looks
+    // identical either way, so this only decides what happens to one that
+    // doesn't — and silently cropping someone's landscape footage to a
+    // portrait frame throws away picture they never agreed to lose. Fill is
+    // one tap away in the clip sheet when the crop is what they want.
+    fit: "contain" as ClipFit,
     filterId: "natural",
     filterIntensity: 100,
     adjust: NEUTRAL_ADJUST,

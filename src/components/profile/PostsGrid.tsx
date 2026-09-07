@@ -8,7 +8,7 @@ import { PostFeed } from "@/components/feed/PostFeed";
 
 type PostRow = Pick<
   Tables<"posts">,
-  "id" | "media_url" | "media_type" | "thumbnail_url" | "caption" | "location"
+  "id" | "media_url" | "media_type" | "thumbnail_url" | "caption" | "location" | "created_with"
 >;
 
 async function fetchProfilePosts(
@@ -17,7 +17,7 @@ async function fetchProfilePosts(
 ): Promise<PostRow[]> {
   const { data, error } = await supabase
     .from("posts")
-    .select("id, media_url, media_type, thumbnail_url, caption, location")
+    .select("id, media_url, media_type, thumbnail_url, caption, location, created_with")
     .eq("user_id", userId)
     .eq("status", status)
     .order("created_at", { ascending: false });
@@ -95,7 +95,10 @@ export function PostsGrid({
             ) : (
               <img src={p.media_url} alt="" loading="lazy" className="w-full h-full object-cover" />
             )}
-            {p.media_type === "video" && (
+            {/* A live photo is stored as a video but isn't one — a play badge
+                on it reads as "this is a clip you'll have to sit through".
+                `created_with` is what tells the two apart. */}
+            {p.media_type === "video" && p.created_with !== "photo-editor" && (
               <span className="absolute top-1.5 right-1.5 drop-shadow">
                 <Play size={13} className="fill-white text-white" />
               </span>

@@ -3,6 +3,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ChevronLeft,
   Crop,
+  Music,
+  Pause,
+  Pencil,
+  Play,
   Download,
   Plus,
   Settings,
@@ -11,6 +15,7 @@ import {
   Trash2,
   Type,
   Wand2,
+  X,
 } from "lucide-react";
 import {
   AfterShotLayersContext,
@@ -20,6 +25,7 @@ import {
 import type { Layer } from "@/lib/after-shot-layers";
 import TextPanel from "@/components/camera/aftershot/TextPanel";
 import CropPanel from "@/components/camera/aftershot/CropPanel";
+import DrawPanel from "@/components/camera/aftershot/DrawPanel";
 import FilterPanel from "@/components/camera/FilterPanel";
 import PhotoAdjustPanel from "@/components/create/PhotoAdjustPanel";
 import { CAMERA_FILTERS, previewCssAtIntensity } from "@/components/camera/filter-data";
@@ -27,14 +33,26 @@ import LayerOverlay from "@/components/camera/LayerOverlay";
 import { useLayerRenderer } from "@/components/camera/aftershot/use-layer-renderer";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
 import { useFittedSize } from "@/hooks/use-fitted-size";
-import { exportPhoto } from "@/lib/after-shot-export";
+import { exportComposite, exportPhoto } from "@/lib/after-shot-export";
+import { videoDuration, videoThumbnail } from "@/lib/video-sequence";
 import { adjustToCss, NEUTRAL_ADJUST, type PhotoAdjust } from "@/lib/photo-adjust";
 import type { CropRect } from "@/lib/crop-rect";
 import { ImageSourceSheet, type ImageSource } from "@/components/product-form/ImageSourceSheet";
 import { DraftImagePickerSheet } from "@/components/product-form/DraftImagePickerSheet";
 import { PostImagePickerSheet } from "@/components/product-form/PostImagePickerSheet";
 import type { PickedMedia } from "@/components/product-form/MediaPickerSheet";
-import { setPendingCapture } from "@/lib/capture-handoff";
+import { setPendingCapture, soundLabel, takePendingCapture } from "@/lib/capture-handoff";
+import {
+  blankPhotoEdits,
+  discardPhotoEditorSession,
+  newPhotoId,
+  parkPhotoEditorSession,
+  takePhotoEditorSession,
+  LIVE_MAX_SECONDS,
+  type CarouselPhoto,
+  type PhotoKind,
+  type PhotoSound,
+} from "@/lib/photo-carousel";
 import { takePendingDraft } from "@/lib/draft-handoff";
 
 export const Route = createFileRoute("/create/photo-editor")({
@@ -42,8 +60,8 @@ export const Route = createFileRoute("/create/photo-editor")({
   component: PhotoEditorRoute,
 });
 
-// The photo editor. Photos only — one, or several as a carousel — reached from
-// the CREATE tab. It is NOT the after-shot screen: that one edits a single
+// The photo editor. One picture, several as a carousel, or a single live
+// photo — reached from the CREATE tab. It is NOT the after-shot screen: that one edits a single
 // thing you just captured and hands it straight to publish. This one starts
 // empty, takes images from anywhere (device, drafts, existing posts), and the
 // edit stack belongs to whichever photo you have selected.
@@ -54,54 +72,32 @@ export const Route = createFileRoute("/create/photo-editor")({
 // after-shot-context: that context carries exactly one CapturedMedia, and a
 // carousel has many.
 //
-// Deliberately absent, per the brief: photo templates and Enhance. Sound has no
-// place on a still. Stories don't exist in this product.
+// Deliberately absent, per the brief: photo templates and Enhance. Stories
+// don't exist in this product.
+//
+// Sound DOES belong here, though it took a second pass to see why: a track is
+// not mixed into the picture, it is played over the post, so a still can carry
+// one without becoming a video. See PhotoSound in photo-carousel.ts.
 
 const DEFAULT_FILTER_ID = "natural";
 
-type ToolId = "text" | "sticker" | "filter" | "crop" | "adjust";
+type ToolId = "text" | "draw" | "sticker" | "filter" | "crop" | "adjust";
 
 const TOOLS: { id: ToolId; label: string; icon: typeof Type }[] = [
   { id: "text", label: "Text", icon: Type },
+  // Draw arrived when this screen stopped routing through after-shot. It was
+  // the one tool that detour still added, and dropping it silently would have
+  // made "go straight to publish" a downgrade rather than a shortcut.
+  { id: "draw", label: "Draw", icon: Pencil },
   { id: "sticker", label: "Stickers", icon: Sticker },
   { id: "filter", label: "Filters", icon: Wand2 },
   { id: "crop", label: "Crop", icon: Crop },
   { id: "adjust", label: "Adjust", icon: SlidersHorizontal },
 ];
 
-/** One image in the carousel, with the whole edit stack that belongs to it.
- *  Nothing here is baked until export — `blob` stays the untouched original for
- *  the life of the session, exactly as the after-shot screen keeps its capture,
- *  so auditioning six filters costs zero generations of re-encode. */
-type EditPhoto = {
-  id: string;
-  blob: Blob;
-  url: string;
-  /** True when `url` is a remote Supabase URL we haven't fetched into a blob
-   *  yet. Export needs real bytes; browsing doesn't. */
-  remote: boolean;
-  naturalSize: { w: number; h: number } | null;
-  aspect: number;
-  filterId: string;
-  filterIntensity: number;
-  crop: CropRect | null;
-  adjust: PhotoAdjust;
-};
-
-function newPhotoId() {
-  return `p-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-}
-
-function blankEdits() {
-  return {
-    naturalSize: null,
-    aspect: 1,
-    filterId: DEFAULT_FILTER_ID,
-    filterIntensity: 100,
-    crop: null,
-    adjust: NEUTRAL_ADJUST,
-  };
-}
+// The carousel's shape, its blank edits and the session that carries it to
+// publish all live in photo-carousel.ts — see the note there on why.
+type EditPhoto = CarouselPhoto;
 
 function PhotoEditorRoute() {
   const layerState = useAfterShotLayersState();
@@ -122,12 +118,23 @@ function PhotoEditor() {
   const mediaBoxRef = useRef<HTMLDivElement>(null);
   const renderLayerContent = useLayerRenderer(mediaBoxRef);
 
-  const [photos, setPhotos] = useState<EditPhoto[]>([]);
-  const [activeId, setActiveId] = useState<string | null>(null);
+  // Claimed once per mount, BEFORE the state below is initialised, so a
+  // carousel coming back from publish is on screen from the first render
+  // rather than a frame after an empty one.
+  const [session] = useState(takePhotoEditorSession);
+
+  const [photos, setPhotos] = useState<EditPhoto[]>(() => session?.photos ?? []);
+  const [activeId, setActiveId] = useState<string | null>(() => session?.activeId ?? null);
   // One layer stack per photo. The shared layer context only holds one at a
   // time, so switching photos parks the current stack here and hands the
   // incoming one over.
-  const layersByPhoto = useRef<Record<string, Layer[]>>({});
+  const layersByPhoto = useRef<Record<string, Layer[]>>(session?.layersByPhoto ?? {});
+
+  // The post's sound. Lives beside the photos rather than on one of them —
+  // it belongs to the post, and moving it when the selection changes would be
+  // a surprise every time.
+  const [sound, setSound] = useState<PhotoSound | null>(() => session?.sound ?? null);
+  const [auditioning, setAuditioning] = useState(false);
 
   const [activeTool, setActiveTool] = useState<ToolId | null>(null);
   const [editingLayerId, setEditingLayerId] = useState<string | null>(null);
@@ -144,18 +151,41 @@ function PhotoEditor() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const stickerInputRef = useRef<HTMLInputElement>(null);
-  // Object URLs this screen created, revoked together on unmount. The layer
-  // stack and the photo list only hold URL strings; nothing else owns them.
-  const ownedUrls = useRef<string[]>([]);
+  const audioInputRef = useRef<HTMLInputElement>(null);
+  const audioElRef = useRef<HTMLAudioElement>(null);
+  const ownedUrls = useRef<string[]>(session?.ownedUrls ?? []);
+
+  const active = photos.find((p) => p.id === activeId) ?? null;
+  // A live photo owns the whole post, so its presence is a state of the whole
+  // screen rather than a property of the selected item.
+  const hasLive = photos.some((p) => p.kind === "live");
+
+  // Leaving parks the carousel rather than destroying it, so backing out of
+  // publish returns to the edit. Ownership of the object URLs goes with it and
+  // photo-carousel.ts becomes the only place they are freed.
+  //
+  // Revoking here on unmount, which is what this used to do, is wrong in a way
+  // that only shows up when it runs: StrictMode mounts, unmounts and remounts
+  // every component in dev, so the cleanup fired on a screen that was coming
+  // straight back and every photo returned as a dead blob URL. The video
+  // editor carries the same note for the same reason.
+  const latest = useRef({ photos, activeId, layers, sound });
+  latest.current = { photos, activeId, layers, sound };
   useEffect(
     () => () => {
-      ownedUrls.current.forEach((u) => URL.revokeObjectURL(u));
-      ownedUrls.current = [];
+      const { photos: p, activeId: a, layers: l, sound: s } = latest.current;
+      if (p.length === 0) return;
+      if (a) layersByPhoto.current[a] = l;
+      parkPhotoEditorSession({
+        photos: p,
+        layersByPhoto: layersByPhoto.current,
+        activeId: a,
+        sound: s,
+        ownedUrls: ownedUrls.current,
+      });
     },
     [],
   );
-
-  const active = photos.find((p) => p.id === activeId) ?? null;
 
   // Park the outgoing stack, load the incoming one. Keyed on activeId only —
   // running on every `layers` change would fight the panels mid-edit.
@@ -178,44 +208,138 @@ function PhotoEditor() {
     [activeId],
   );
 
-  function addPhotos(items: { blob?: Blob; url: string; remote: boolean }[]) {
+  function addPhotos(items: { blob?: Blob; url: string; remote: boolean; kind?: PhotoKind }[]) {
     if (items.length === 0) return;
     const created: EditPhoto[] = items.map((it) => ({
       id: newPhotoId(),
+      kind: it.kind ?? "photo",
       blob: it.blob ?? new Blob(),
       url: it.url,
       remote: it.remote,
-      ...blankEdits(),
+      ...blankPhotoEdits(),
     }));
     setPhotos((prev) => [...prev, ...created]);
     setActiveId((cur) => cur ?? created[0].id);
   }
 
-  function handleDeviceFiles(files: FileList | null) {
+  async function handleDeviceFiles(files: FileList | null) {
     if (!files) return;
-    const picked: { blob: Blob; url: string; remote: boolean }[] = [];
-    for (const file of Array.from(files)) {
-      // Live Photos arrive from the picker as an image plus a separate movie;
-      // the browser only hands over the still, which is the right half for an
-      // editor that produces stills. HEIC is accepted here and decodes
-      // natively on iOS — the export canvas re-encodes to JPEG anyway.
-      if (!file.type.startsWith("image/")) continue;
+    const picked = Array.from(files);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    setError(null);
+
+    // An iOS Live Photo picked from the library arrives as the still half
+    // only — the movie beside it is not reachable from the web at all, from
+    // any API. So a live photo here means a short clip: one the seller filmed,
+    // or one our own camera recorded on a held shutter.
+    const clips = picked.filter((f) => f.type.startsWith("video/"));
+    const stills = picked.filter((f) => f.type.startsWith("image/"));
+
+    if (clips.length > 0) {
+      if (stills.length > 0 || clips.length > 1 || photos.length > 0) {
+        setError("A live photo goes on its own — it can't share a post with other pictures.");
+        return;
+      }
+      const clip = clips[0];
+      const url = URL.createObjectURL(clip);
+      const seconds = await videoDuration(url);
+      // A quarter-second of slack: a clip trimmed to "6 seconds" on a phone is
+      // rarely 6.000, and refusing 6.02 would read as a bug.
+      if (seconds === 0 || seconds > LIVE_MAX_SECONDS + 0.25) {
+        URL.revokeObjectURL(url);
+        setError(
+          seconds === 0
+            ? "Couldn't read that clip."
+            : `A live photo can be up to ${LIVE_MAX_SECONDS} seconds — that one is ${Math.round(seconds)}. New video handles anything longer.`,
+        );
+        return;
+      }
+      ownedUrls.current.push(url);
+      addPhotos([{ blob: clip, url, remote: false, kind: "live" }]);
+      return;
+    }
+
+    if (hasLive) {
+      setError("Remove the live photo first — a post is one or the other.");
+      return;
+    }
+
+    const added: { blob: Blob; url: string; remote: boolean }[] = [];
+    for (const file of stills) {
+      // HEIC is accepted here and decodes natively on iOS — the export canvas
+      // re-encodes to JPEG anyway.
       const url = URL.createObjectURL(file);
       ownedUrls.current.push(url);
-      picked.push({ blob: file, url, remote: false });
+      added.push({ blob: file, url, remote: false });
     }
-    addPhotos(picked);
-    if (fileInputRef.current) fileInputRef.current.value = "";
+    addPhotos(added);
   }
 
-  // A draft tapped on the drafts page, opened here because it's a still.
-  // Added as an ordinary remote photo, so it measures and edits like any other.
-  const draftLoaded = useRef(false);
+  function handleAudioFile(files: FileList | null) {
+    const file = files?.[0];
+    // Cleared before the early return as well: leaving the same file selected
+    // means picking it again after removing it fires no change event.
+    if (audioInputRef.current) audioInputRef.current.value = "";
+    if (!file || !file.type.startsWith("audio/")) return;
+    const url = URL.createObjectURL(file);
+    ownedUrls.current.push(url);
+    setSound({ blob: file, url, name: soundLabel(file.name) });
+  }
+
+  function removeSound() {
+    audioElRef.current?.pause();
+    // The URL stays in ownedUrls and is freed with the session. Revoking it
+    // here would break a re-pick of the same file, and the session's diff-aware
+    // park is the one place that knows what is still referenced.
+    setSound(null);
+  }
+
+  /** Audition the track in the editor. Nothing is mixed, so this is the only
+   *  way to hear what the post will sound like before it goes out. */
+  function toggleAudition() {
+    const el = audioElRef.current;
+    if (!el) return;
+    if (el.paused) void el.play().catch(() => setAuditioning(false));
+    else el.pause();
+  }
+
+  // Whatever this screen was opened with. Two producers, both handing over an
+  // ordinary item so it measures and edits like any other:
+  //
+  //   - the camera, when the shutter was HELD in Photo mode — that records a
+  //     short silent clip and routes here rather than to the after-shot
+  //     screen, because a live photo is a photo-editor product;
+  //   - a draft tapped on the drafts page.
+  const intakeDone = useRef(false);
   useEffect(() => {
-    if (draftLoaded.current) return;
-    draftLoaded.current = true;
+    if (intakeDone.current) return;
+    intakeDone.current = true;
+
+    const capture = takePendingCapture();
+    if (capture) {
+      // Ownership of the URL moves to the session here, so it survives the
+      // trip to publish and back.
+      ownedUrls.current.push(capture.url);
+      addPhotos([
+        {
+          blob: capture.blob,
+          url: capture.url,
+          remote: false,
+          kind: capture.type === "video" ? "live" : "photo",
+        },
+      ]);
+      return;
+    }
+
     const draft = takePendingDraft();
-    if (draft) addPhotos([{ url: draft.url, remote: true }]);
+    if (!draft) return;
+    addPhotos([{ url: draft.url, remote: true, kind: draft.kind === "video" ? "live" : "photo" }]);
+    // The draft's sound comes back with it. Remote for now — the bytes are
+    // only fetched if this draft is actually posted, so reopening one to fix a
+    // caption doesn't re-download a song.
+    if (draft.audioUrl) {
+      setSound({ blob: null, url: draft.audioUrl, name: draft.audioName || "Sound" });
+    }
     // addPhotos is a plain function redeclared each render; depending on it
     // would re-run this on every keystroke elsewhere in the component.
   }, []);
@@ -254,6 +378,20 @@ function PhotoEditor() {
     (e: React.SyntheticEvent<HTMLImageElement>) => {
       const w = e.currentTarget.naturalWidth;
       const h = e.currentTarget.naturalHeight;
+      patchActive({ naturalSize: { w, h }, aspect: w / h });
+    },
+    [patchActive],
+  );
+
+  /** The same measurement for a live photo. A clip's intrinsic size lives on
+   *  different properties than an image's, and every downstream calculation —
+   *  crop, fitted preview, layer coordinates — reads `naturalSize`, so this
+   *  has to fill in the identical field. */
+  const handleVideoLoad = useCallback(
+    (e: React.SyntheticEvent<HTMLVideoElement>) => {
+      const w = e.currentTarget.videoWidth;
+      const h = e.currentTarget.videoHeight;
+      if (!w || !h) return;
       patchActive({ naturalSize: { w, h }, aspect: w / h });
     },
     [patchActive],
@@ -322,23 +460,42 @@ function PhotoEditor() {
   /** Bakes ONE photo. Same single composite pass the after-shot screen uses —
    *  crop, then grade + adjustments, then layers — so nothing here re-encodes
    *  twice however many tools were touched. */
-  const bake = useCallback(async (photo: EditPhoto, photoLayers: Layer[]): Promise<Blob> => {
-    let blob = photo.blob;
-    if (photo.remote || blob.size === 0) {
-      const res = await fetch(photo.url);
-      if (!res.ok) throw new Error("Couldn't load that image");
-      blob = await res.blob();
-    }
-    const filter = CAMERA_FILTERS.find((f) => f.id === photo.filterId) ?? CAMERA_FILTERS[0];
-    return exportPhoto(
-      blob,
-      filter,
-      photo.filterIntensity,
-      photoLayers,
-      photo.crop,
-      adjustToCss(photo.adjust),
-    );
-  }, []);
+  const bake = useCallback(
+    async (
+      photo: EditPhoto,
+      photoLayers: Layer[],
+      onProgress?: (ratio: number) => void,
+    ): Promise<Blob> => {
+      let blob = photo.blob;
+      if (photo.remote || blob.size === 0) {
+        const res = await fetch(photo.url);
+        if (!res.ok) throw new Error("Couldn't load that image");
+        blob = await res.blob();
+      }
+      const filter = CAMERA_FILTERS.find((f) => f.id === photo.filterId) ?? CAMERA_FILTERS[0];
+      const adjustCss = adjustToCss(photo.adjust);
+
+      // A live photo is a clip, so it composites through the video encoder —
+      // the same filter, layers and crop, one pass, via the shared branch in
+      // after-shot-export. exportComposite rather than exportVideo directly,
+      // for its short-circuit: a live photo nobody edited comes back as the
+      // bytes that went in, with no second generation of compression spent on
+      // applying nothing.
+      if (photo.kind === "live") {
+        return exportComposite(
+          { type: "video", blob, url: photo.url },
+          filter,
+          photo.filterIntensity,
+          photoLayers,
+          photo.crop,
+          onProgress,
+          adjustCss,
+        );
+      }
+      return exportPhoto(blob, filter, photo.filterIntensity, photoLayers, photo.crop, adjustCss);
+    },
+    [],
+  );
 
   /** The current stack for a photo — live state for the selected one, parked
    *  state for the rest. */
@@ -353,11 +510,13 @@ function PhotoEditor() {
     setError(null);
     setBusy("Saving…");
     try {
-      const blob = await bake(active, layersFor(active));
+      const blob = await bake(active, layersFor(active), (r) =>
+        setBusy(`Saving… ${Math.round(r * 100)}%`),
+      );
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `oakmonte-${Date.now()}.jpg`;
+      a.download = `oakmonte-${Date.now()}.${active.kind === "live" ? "mp4" : "jpg"}`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -375,16 +534,77 @@ function PhotoEditor() {
     if (photos.length === 0) return;
     setError(null);
     setBusy("Preparing…");
+    // Nothing about leaving this screen should keep playing on the next one.
+    audioElRef.current?.pause();
     try {
-      // Only the first photo goes forward for now. after-shot's handoff carries
-      // exactly one CapturedMedia, and posts are single-media in the schema —
-      // carousel publishing needs both to change, which is its own piece of
-      // work rather than something to fake here.
-      const first = photos[0];
-      const blob = await bake(first, layersFor(first));
-      const url = URL.createObjectURL(blob);
-      setPendingCapture({ type: "photo", blob, url });
-      await navigate({ to: "/create/after-shot" });
+      // Every photo goes forward, each baked with its own edit stack. The
+      // first is the cover; the rest ride along as `extra` and become the
+      // carousel's remaining items. Baked one at a time rather than in
+      // parallel — each bake is a full-resolution canvas composite, and a
+      // phone doing five at once is a phone that drops the tab.
+      const baked: { type: "photo" | "video"; blob: Blob; url: string }[] = [];
+      for (const [i, photo] of photos.entries()) {
+        const label = photos.length > 1 ? `Preparing ${i + 1} of ${photos.length}` : "Preparing";
+        setBusy(`${label}…`);
+        const blob = await bake(photo, layersFor(photo), (r) =>
+          // Only the live path reports progress, and only it needs to: a clip
+          // takes long enough that a static "Preparing…" reads as a hang.
+          setBusy(`${label}… ${Math.round(r * 100)}%`),
+        );
+        baked.push({
+          // A live photo is a video file. Everything downstream — the upload's
+          // mediaTypes array, post_media.media_type, the feed's <video> — reads
+          // this, and calling it a photo would produce an MP4 named .jpg.
+          type: photo.kind === "live" ? "video" : "photo",
+          blob,
+          url: URL.createObjectURL(blob),
+        });
+      }
+
+      // A live photo needs a still. `media_type` is "video", so the profile
+      // grid, the media pickers and the drafts page all reach for a thumbnail,
+      // and without one they each fall back to decoding the clip themselves.
+      let poster: { blob: Blob; url: string } | undefined;
+      if (photos[0].kind === "live") {
+        try {
+          const shot = await videoThumbnail(baked[0].url, 0.1);
+          const res = await fetch(shot.url);
+          poster = { blob: await res.blob(), url: shot.url };
+        } catch (err) {
+          // Not worth failing the post over — the cover just falls back to
+          // whatever each screen does with a posterless clip today.
+          console.warn("PhotoEditor: couldn't grab a poster for the live photo", err);
+        }
+      }
+
+      // The track goes as bytes, like everything else in the handoff. A sound
+      // restored from a draft is still only a URL at this point, so that is
+      // the one case that has to fetch.
+      let audio: { blob: Blob; url: string; name: string } | undefined;
+      if (sound) {
+        setBusy("Preparing sound…");
+        let blob = sound.blob;
+        if (!blob) {
+          const res = await fetch(sound.url);
+          if (!res.ok) throw new Error("Couldn't load that sound");
+          blob = await res.blob();
+        }
+        audio = { blob, url: sound.url, name: sound.name };
+      }
+
+      setPendingCapture({
+        ...baked[0],
+        origin: "photo-editor",
+        extra: baked.slice(1),
+        audio,
+        poster,
+      });
+      // Straight to publish. This used to detour through the after-shot
+      // editor, which meant a second editing screen for something already
+      // edited; the one tool that detour added — Draw — is in this screen's
+      // own toolbar now. The unmount cleanup parks the carousel, so backing
+      // out of publish returns to it.
+      await navigate({ to: "/create/after-shot/publish" });
     } catch (err) {
       console.error("PhotoEditor: next failed", err);
       setError(err instanceof Error ? err.message : "Couldn't prepare that image");
@@ -409,7 +629,13 @@ function PhotoEditor() {
         >
           <button
             type="button"
-            onClick={() => navigate({ to: "/create" })}
+            onClick={() => {
+              // Leaving on purpose ends the edit, so the parked carousel goes
+              // with it — otherwise the next Photo editor would open onto the
+              // photos you just walked away from.
+              discardPhotoEditorSession();
+              void navigate({ to: "/create", search: { tab: "create" } });
+            }}
             aria-label="Back"
             className="flex h-10 w-10 items-center justify-center active:scale-90"
           >
@@ -445,6 +671,11 @@ function PhotoEditor() {
               <Plus size={34} />
             </span>
             <span className="text-[13px] text-white/50">Add photos</span>
+            {/* The one thing about this screen nobody would guess: it takes a
+                short clip too. */}
+            <span className="max-w-[220px] text-center text-[11px] leading-snug text-white/35">
+              Several make a carousel. A clip up to {LIVE_MAX_SECONDS}s becomes a live photo.
+            </span>
           </button>
         ) : (
           active && (
@@ -457,15 +688,34 @@ function PhotoEditor() {
                 background: "#000",
               }}
             >
-              <img
-                key={active.id}
-                src={active.url}
-                alt=""
-                crossOrigin={active.remote ? "anonymous" : undefined}
-                onLoad={handleLoad}
-                className={active.crop ? "" : "absolute inset-0 h-full w-full object-cover"}
-                style={mediaStyle()}
-              />
+              {active.kind === "live" ? (
+                // Looping, muted, autoplaying: a live photo is judged by how
+                // it moves, so the preview has to move too. Muted because the
+                // capture path records no audio in Photo mode and the feed
+                // mutes media regardless — a sound is a separate track.
+                <video
+                  key={active.id}
+                  src={active.url}
+                  crossOrigin={active.remote ? "anonymous" : undefined}
+                  onLoadedMetadata={handleVideoLoad}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  className={active.crop ? "" : "absolute inset-0 h-full w-full object-cover"}
+                  style={mediaStyle()}
+                />
+              ) : (
+                <img
+                  key={active.id}
+                  src={active.url}
+                  alt=""
+                  crossOrigin={active.remote ? "anonymous" : undefined}
+                  onLoad={handleLoad}
+                  className={active.crop ? "" : "absolute inset-0 h-full w-full object-cover"}
+                  style={mediaStyle()}
+                />
+              )}
 
               {(activeTool === null || activeTool === "text") && (
                 <div
@@ -522,6 +772,8 @@ function PhotoEditor() {
         }}
       />
 
+      <DrawPanel open={activeTool === "draw"} containerRef={mediaBoxRef} onClose={closeTool} />
+
       <FilterPanel
         open={activeTool === "filter"}
         selectedId={active?.filterId ?? DEFAULT_FILTER_ID}
@@ -561,6 +813,38 @@ function PhotoEditor() {
           className="absolute inset-x-0 bottom-0 z-20"
           style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 12px)" }}
         >
+          {/* The chosen track. A chip rather than a panel: there is one
+              setting here — which song — and a whole screen to hold it would
+              be a screen you have to leave to see whether it worked. */}
+          {!empty && sound && (
+            <div className="flex justify-center px-4 pb-2.5">
+              <div className="flex max-w-full items-center gap-2 rounded-full bg-white/[0.14] py-1.5 pl-3 pr-1.5">
+                <Music size={13} className="shrink-0 text-white/70" />
+                <span className="truncate text-[12px]">{sound.name}</span>
+                <button
+                  type="button"
+                  onClick={toggleAudition}
+                  aria-label={auditioning ? "Pause sound" : "Play sound"}
+                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/15 active:scale-90"
+                >
+                  {auditioning ? (
+                    <Pause size={11} fill="currentColor" strokeWidth={0} />
+                  ) : (
+                    <Play size={11} fill="currentColor" strokeWidth={0} className="ml-[1px]" />
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={removeSound}
+                  aria-label="Remove sound"
+                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/15 text-white/70 active:scale-90"
+                >
+                  <X size={11} />
+                </button>
+              </div>
+            </div>
+          )}
+
           {!empty && (
             <div
               className="flex items-center justify-center gap-2 overflow-x-auto px-4 pb-3"
@@ -577,18 +861,33 @@ function PhotoEditor() {
                     p.id === activeId ? "border-white" : "border-transparent opacity-60"
                   }`}
                 >
-                  <img src={p.url} alt="" className="h-full w-full object-cover" />
+                  {p.kind === "live" ? (
+                    <video
+                      src={p.url}
+                      muted
+                      playsInline
+                      preload="metadata"
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <img src={p.url} alt="" className="h-full w-full object-cover" />
+                  )}
                 </button>
               ))}
-              <button
-                type="button"
-                onClick={openSource}
-                aria-label="Add photos"
-                className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-[6px] bg-white/[0.12] active:scale-90"
-              >
-                <Plus size={20} />
-              </button>
-              {photos.length > 1 && (
+              {/* No plus beside a live photo: there is nothing it could add
+                  that the post is allowed to hold. Hiding it beats letting the
+                  tap through to an error message. */}
+              {!hasLive && (
+                <button
+                  type="button"
+                  onClick={openSource}
+                  aria-label="Add photos"
+                  className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-[6px] bg-white/[0.12] active:scale-90"
+                >
+                  <Plus size={20} />
+                </button>
+              )}
+              {(photos.length > 1 || hasLive) && (
                 <button
                   type="button"
                   onClick={removeActive}
@@ -620,6 +919,17 @@ function PhotoEditor() {
                 <span className="text-[11px] leading-tight">{label}</span>
               </button>
             ))}
+            {/* Outside TOOLS, like Save, because it opens the file picker
+                instead of taking over the screen with a panel. */}
+            <button
+              type="button"
+              disabled={empty}
+              onClick={() => audioInputRef.current?.click()}
+              className="flex w-[68px] shrink-0 flex-col items-center gap-1.5 py-1 active:scale-90 disabled:opacity-30"
+            >
+              <Music size={23} strokeWidth={1.6} />
+              <span className="text-[11px] leading-tight">{sound ? "Change" : "Sound"}</span>
+            </button>
             <button
               type="button"
               disabled={empty}
@@ -653,10 +963,10 @@ function PhotoEditor() {
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/*,image/heic,image/heif"
+        accept="image/*,image/heic,image/heif,video/*"
         multiple
         className="hidden"
-        onChange={(e) => handleDeviceFiles(e.target.files)}
+        onChange={(e) => void handleDeviceFiles(e.target.files)}
       />
       <input
         ref={stickerInputRef}
@@ -666,6 +976,28 @@ function PhotoEditor() {
         className="hidden"
         onChange={(e) => handleStickerFiles(e.target.files)}
       />
+      <input
+        ref={audioInputRef}
+        type="file"
+        accept="audio/*"
+        className="hidden"
+        onChange={(e) => handleAudioFile(e.target.files)}
+      />
+
+      {/* The audition player. Looped, because the track is longer than the
+          post and hearing where it restarts is the point. `auditioning` is
+          driven by the element's own events rather than set alongside the
+          play() call, so an autoplay rejection or a track ending can't leave
+          the chip showing a pause button over silence. */}
+      {sound && (
+        <audio
+          ref={audioElRef}
+          src={sound.url}
+          loop
+          onPlay={() => setAuditioning(true)}
+          onPause={() => setAuditioning(false)}
+        />
+      )}
 
       {sourceOpen && (
         <ImageSourceSheet

@@ -13,7 +13,7 @@ import {
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
 import { useVisibleViewport } from "@/hooks/use-visible-viewport";
 import { sanitizeDescriptionHtml } from "@/lib/sanitize-html";
-import { checkTextPolicy, policyViolationMessage } from "@/lib/content-policy";
+import { findBlockedContent, blockedContentMessage } from "@/lib/content-policy";
 
 type FormatState = {
   bold: boolean;
@@ -134,9 +134,9 @@ export function DescriptionSheet({
   function handleSave() {
     const el = editorRef.current;
     const text = el?.textContent ?? "";
-    const violation = checkTextPolicy(text);
-    if (violation) {
-      setPolicyError(policyViolationMessage(violation));
+    const found = findBlockedContent(text);
+    if (found.length > 0) {
+      setPolicyError(blockedContentMessage(found));
       return;
     }
     const html = text.trim() ? (el?.innerHTML ?? "") : "";

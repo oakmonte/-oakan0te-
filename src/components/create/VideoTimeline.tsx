@@ -18,19 +18,43 @@ import {
 // to drag a playhead along a static strip means reimplementing all of that
 // badly, and it puts the frame you're judging under your own thumb.
 //
-// The cost of the trick is the half-screen of padding at each end (so the
-// first and last frames can reach the centre) and a guard against the
-// scroll/state feedback loop: playback writes scrollLeft, scrolling writes
-// time, and without `programmatic` they fight each other every frame.
+// Two consequences worth knowing before editing this file:
+//
+// **The selection frame is an overlay, not part of the tile.** It floats above
+// the strip at the selected clip's coordinates. Drawn inside the tile it would
+// be clipped by the tile's own `overflow-hidden`, and its grab bars could not
+// reach past the clip's edges — which is exactly where a thumb wants them.
+//
+// **Trimming the FRONT grows the strip's left padding.** The right edge of a
+// clip naturally follows your finger, because changing the duration moves it.
+// The left edge does not: it is pinned to the clip's position on the timeline,
+// so dragging it changed the trim while the bar sat still, and the gesture
+// read as broken. Scrolling to compensate cannot work at the head of the
+// timeline — scrollLeft clamps at 0, which is precisely where the first clip's
+// left edge lives — so the row gets temporary extra padding equal to whatever
+// has been trimmed off. That makes room for the edge to travel into, and the
+// padding is handed back on release, when the timeline settles to its real
+// shape with the new in-point under the playhead.
 
 export const PX_PER_SECOND = 62;
 const TRACK_HEIGHT = 62;
 /** The row above the strip holding the selected clip's controls. */
 const GUTTER = 32;
-/** Fingers are wider than a hairline; the grab area is bigger than the paint. */
-const HANDLE_HIT = 22;
+/** Visible width of a trim bar, and the wider invisible area around it. */
+const BAR_WIDTH = 14;
+const BAR_HIT = 34;
 
 type TrimPatch = { trimStart?: number; trimEnd?: number; stillDuration?: number };
+
+type TrimGesture = {
+  clipId: string;
+  side: "start" | "end";
+  originX: number;
+  /** trimStart / trimEnd for a video, stillDuration for a photo. */
+  base: number;
+  /** scrollLeft when the gesture began, for front-trim compensation. */
+  anchorScroll: number;
+};
 
 export default function VideoTimeline({
   clips,
@@ -66,12 +90,15 @@ export default function VideoTimeline({
 }) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [pad, setPad] = useState(0);
-  // True while WE are setting scrollLeft, so the scroll handler doesn't take
-  // its own write as user input and echo it back as a seek.
-  const programmatic = useRef(false);
-  const settle = useRef<number | null>(null);
   const [dragging, setDragging] = useState<string | null>(null);
   const [trimming, setTrimming] = useState<string | null>(null);
+  const [trimPadLeft, setTrimPadLeft] = useState(0);
+  const trimPad = useRef(0);
+
+  // True while the strip's scrollLeft is being written by code rather than by
+  // a finger, so the scroll handler doesn't take our own write as input.
+  const programmatic = useRef(false);
+  const seekFrame = useRef<number | null>(null);
 
   const total = sequenceDuration(clips);
   const starts = clipStarts(clips);
@@ -87,8 +114,7 @@ export default function VideoTimeline({
     return () => ro.disconnect();
   }, []);
 
-  // Drive the strip from the clock. Skipped while the user is dragging
-  // anything — their hand outranks the playhead.
+  // Drive the strip from the clock, but never while a hand is on it.
   useEffect(() => {
     const el = scrollerRef.current;
     if (!el || dragging || trimming) return;
@@ -96,19 +122,35 @@ export default function VideoTimeline({
     if (Math.abs(el.scrollLeft - targetLeft) < 1) return;
     programmatic.current = true;
     el.scrollLeft = targetLeft;
-    if (settle.current) window.clearTimeout(settle.current);
-    // Scroll events land a frame or two after the assignment, so the flag has
-    // to outlive the call that set it.
-    settle.current = window.setTimeout(() => {
+    // Cleared on the next frame rather than after a guessed timeout: the
+    // scroll event from an assignment lands before the next paint, so one
+    // frame is both sufficient and the shortest correct wait.
+    requestAnimationFrame(() => {
       programmatic.current = false;
-    }, 80);
+    });
   }, [time, dragging, trimming]);
 
+  // Scrubbing fires scroll events far faster than React can usefully re-render
+  // the preview, and each one used to cost a full editor render plus a
+  // `video.currentTime` write. Coalescing to one seek per animation frame is
+  // what makes the strip feel like it is moving under your thumb instead of
+  // catching up to it.
   const handleScroll = useCallback(() => {
-    const el = scrollerRef.current;
-    if (!el || programmatic.current) return;
-    onSeek(Math.max(0, Math.min(el.scrollLeft / PX_PER_SECOND, total)));
+    if (programmatic.current || seekFrame.current !== null) return;
+    seekFrame.current = requestAnimationFrame(() => {
+      seekFrame.current = null;
+      const el = scrollerRef.current;
+      if (!el || programmatic.current) return;
+      onSeek(Math.max(0, Math.min(el.scrollLeft / PX_PER_SECOND, total)));
+    });
   }, [onSeek, total]);
+
+  useEffect(
+    () => () => {
+      if (seekFrame.current !== null) cancelAnimationFrame(seekFrame.current);
+    },
+    [],
+  );
 
   const selectedIndex = clips.findIndex((c) => c.id === selectedId);
   const selected = selectedIndex >= 0 ? clips[selectedIndex] : null;
@@ -116,6 +158,131 @@ export default function VideoTimeline({
     !!selected &&
     time > starts[selectedIndex] + MIN_CLIP_DURATION &&
     time < starts[selectedIndex + 1] - MIN_CLIP_DURATION;
+
+  /* ---------------- trimming ---------------- */
+
+  const gesture = useRef<TrimGesture | null>(null);
+
+  const moveTrim = useCallback(
+    (event: PointerEvent) => {
+      const g = gesture.current;
+      const el = scrollerRef.current;
+      if (!g || !el) return;
+      const clip = clips.find((c) => c.id === g.clipId);
+      if (!clip) return;
+
+      const deltaSeconds = (event.clientX - g.originX) / PX_PER_SECOND;
+      // How much timeline time came off the FRONT of the clip. Only this needs
+      // scroll compensation; the back edge moves on its own.
+      let frontDelta = 0;
+
+      if (clip.kind === "photo") {
+        // A photo has no source to trim, so both edges resize its duration —
+        // dragging the left edge outward lengthens it, hence the sign flip.
+        const next = Math.max(
+          MIN_STILL_DURATION,
+          Math.min(
+            g.base + (g.side === "start" ? -deltaSeconds : deltaSeconds),
+            MAX_STILL_DURATION,
+          ),
+        );
+        onTrim(clip.id, { stillDuration: next });
+        if (g.side === "start") frontDelta = g.base - next;
+      } else {
+        const speed = clip.speed || 1;
+        const next = g.base + deltaSeconds * speed;
+        if (g.side === "start") {
+          const trimStart = Math.max(0, Math.min(next, clip.trimEnd - MIN_CLIP_DURATION * speed));
+          onTrim(clip.id, { trimStart });
+          frontDelta = (trimStart - g.base) / speed;
+        } else {
+          onTrim(clip.id, {
+            trimEnd: Math.min(
+              clip.sourceDuration,
+              Math.max(next, clip.trimStart + MIN_CLIP_DURATION * speed),
+            ),
+          });
+        }
+      }
+
+      if (g.side === "start") {
+        // Room for the edge to move into, then the scroll that puts it exactly
+        // under the finger. Trimming inward (frontDelta > 0) is pure padding
+        // and leaves scrollLeft alone; dragging back out is pure scroll.
+        const extra = Math.max(0, frontDelta) * PX_PER_SECOND;
+        trimPad.current = extra;
+        setTrimPadLeft(extra);
+        el.scrollLeft = g.anchorScroll + extra - frontDelta * PX_PER_SECOND;
+      }
+    },
+    [clips, onTrim],
+  );
+
+  const endTrim = useCallback(() => {
+    const el = scrollerRef.current;
+    const extra = trimPad.current;
+    gesture.current = null;
+    trimPad.current = 0;
+    setTrimPadLeft(0);
+    setTrimming(null);
+
+    // Handing the padding back shifts every pixel left by `extra`, so the
+    // scroll has to come down with it or the strip jumps. Clamped at 0, which
+    // is the correct landing spot when the first clip's own head was trimmed:
+    // the new in-point IS time zero.
+    const finalScroll = el ? Math.max(0, el.scrollLeft - extra) : 0;
+    requestAnimationFrame(() => {
+      if (el) el.scrollLeft = finalScroll;
+      programmatic.current = false;
+      onSeek(finalScroll / PX_PER_SECOND);
+    });
+  }, [onSeek]);
+
+  const beginTrim = useCallback((event: React.PointerEvent, clip: Clip, side: "start" | "end") => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    event.stopPropagation();
+    event.preventDefault();
+    gesture.current = {
+      clipId: clip.id,
+      side,
+      originX: event.clientX,
+      base:
+        clip.kind === "photo"
+          ? clip.stillDuration
+          : side === "start"
+            ? clip.trimStart
+            : clip.trimEnd,
+      anchorScroll: el.scrollLeft,
+    };
+    // Held for the whole gesture: front-trimming writes scrollLeft on every
+    // move, and each of those would otherwise echo back as a seek.
+    programmatic.current = true;
+    setTrimming(clip.id);
+  }, []);
+
+  // Window listeners rather than pointer capture. Capture silently refuses in
+  // enough situations (and cannot be driven by synthetic events at all) that a
+  // gesture depending on it is a gesture that sometimes doesn't start.
+  useEffect(() => {
+    if (!trimming) return;
+    window.addEventListener("pointermove", moveTrim);
+    window.addEventListener("pointerup", endTrim);
+    window.addEventListener("pointercancel", endTrim);
+    return () => {
+      window.removeEventListener("pointermove", moveTrim);
+      window.removeEventListener("pointerup", endTrim);
+      window.removeEventListener("pointercancel", endTrim);
+    };
+  }, [trimming, moveTrim, endTrim]);
+
+  // `trimPadLeft` has to be added by hand. An absolutely positioned child is
+  // laid out against its ancestor's PADDING BOX, whose origin sits before the
+  // padding — so the tiles (in normal flow) shift with it and this overlay
+  // would not, leaving the frame and the clip it outlines sliding apart mid
+  // trim.
+  const selectionLeft = selected ? pad + trimPadLeft + starts[selectedIndex] * PX_PER_SECOND : 0;
+  const selectionWidth = selected ? clipDuration(selected) * PX_PER_SECOND : 0;
 
   return (
     <div className="relative select-none" style={{ height: GUTTER + TRACK_HEIGHT + 56 }}>
@@ -154,8 +321,6 @@ export default function VideoTimeline({
         style={{
           height: TRACK_HEIGHT,
           scrollbarWidth: "none",
-          // Momentum scrolling is what makes this read as a scrub rather than
-          // a drag, but it must be off while a trim handle has the pointer.
           overscrollBehaviorX: "contain",
           touchAction: dragging || trimming ? "none" : "pan-x",
         }}
@@ -163,7 +328,10 @@ export default function VideoTimeline({
         {/* h-full, not just items-stretch: the row is the only thing between
             the fixed-height scroller and tiles that carry a width but no
             height, so without it every tile collapses to nothing. */}
-        <div className="flex h-full items-stretch" style={{ paddingLeft: pad, paddingRight: pad }}>
+        <div
+          className="relative flex h-full items-stretch"
+          style={{ paddingLeft: pad + trimPadLeft, paddingRight: pad }}
+        >
           {clips.map((clip, i) => (
             <ClipTile
               key={clip.id}
@@ -172,23 +340,29 @@ export default function VideoTimeline({
               isSelected={clip.id === selectedId}
               isDragging={clip.id === dragging}
               width={clipDuration(clip) * PX_PER_SECOND}
+              // The marker between two clips says "there's a cut here". It
+              // steps aside the moment either neighbour is selected, because
+              // that is when the trim bars need the same few pixels — and a
+              // decoration must never win a fight against the control the user
+              // is reaching for.
+              showTransition={i > 0 && selectedIndex !== i && selectedIndex !== i - 1}
               onSelect={onSelect}
-              onTrim={onTrim}
               onReorder={onReorder}
               onDragStateChange={setDragging}
-              onTrimStateChange={setTrimming}
-              onTransition={i > 0 ? () => onTransition(i) : undefined}
+              onTransition={() => onTransition(i)}
             />
           ))}
-          <button
-            type="button"
-            onClick={onAdd}
-            aria-label="Add clips"
-            className="ml-2 flex shrink-0 items-center justify-center rounded-[7px] bg-white text-black active:scale-90"
-            style={{ width: 46 }}
-          >
-            <Plus size={22} />
-          </button>
+
+          {selected && (
+            <div
+              className="pointer-events-none absolute top-0 z-20 h-full"
+              style={{ left: selectionLeft, width: selectionWidth }}
+            >
+              <div className="absolute inset-0 rounded-[8px] border-[3px] border-white" />
+              <TrimBar side="start" onDown={(e) => beginTrim(e, selected, "start")} />
+              <TrimBar side="end" onDown={(e) => beginTrim(e, selected, "end")} />
+            </div>
+          )}
         </div>
       </div>
 
@@ -197,6 +371,24 @@ export default function VideoTimeline({
         className="pointer-events-none absolute left-1/2 z-10 w-[2px] -translate-x-1/2 rounded-full bg-white"
         style={{ top: GUTTER, height: TRACK_HEIGHT }}
       />
+
+      {/* Add stays put above the strip. As the last tile in the row it drifted
+          off the end of a long edit, so adding a second clip meant scrolling to
+          the end to find the button. A short fade under it keeps the button
+          legible when busy footage runs beneath. */}
+      <div
+        className="pointer-events-none absolute right-0 z-20 bg-gradient-to-l from-black/80 to-transparent"
+        style={{ top: GUTTER, height: TRACK_HEIGHT, width: 92 }}
+      />
+      <button
+        type="button"
+        onClick={onAdd}
+        aria-label="Add clips"
+        className="absolute right-3 z-30 flex items-center justify-center rounded-[9px] bg-white text-black shadow-[0_2px_10px_rgba(0,0,0,0.55)] active:scale-90"
+        style={{ top: GUTTER + (TRACK_HEIGHT - 44) / 2, width: 44, height: 44 }}
+      >
+        <Plus size={22} />
+      </button>
 
       <div className="px-4 pt-3">
         <button
@@ -214,17 +406,50 @@ export default function VideoTimeline({
   );
 }
 
+/** One draggable edge of the selection frame. Visually flush with the clip's
+ *  edge; the touch area is more than twice as wide and reaches outside it. */
+function TrimBar({
+  side,
+  onDown,
+}: {
+  side: "start" | "end";
+  onDown: (e: React.PointerEvent) => void;
+}) {
+  return (
+    <div
+      onPointerDown={onDown}
+      aria-label={side === "start" ? "Trim start" : "Trim end"}
+      role="slider"
+      tabIndex={0}
+      aria-valuenow={0}
+      className="pointer-events-auto absolute top-0 flex h-full items-center justify-center"
+      style={{
+        width: BAR_HIT,
+        [side === "start" ? "left" : "right"]: -(BAR_HIT - BAR_WIDTH) / 2,
+        touchAction: "none",
+        cursor: "ew-resize",
+      }}
+    >
+      <span
+        className="flex h-full items-center justify-center rounded-[6px] bg-white"
+        style={{ width: BAR_WIDTH }}
+      >
+        <span className="h-[20px] w-[2px] rounded-full bg-black/45" />
+      </span>
+    </div>
+  );
+}
+
 function ClipTile({
   clip,
   index,
   isSelected,
   isDragging,
   width,
+  showTransition,
   onSelect,
-  onTrim,
   onReorder,
   onDragStateChange,
-  onTrimStateChange,
   onTransition,
 }: {
   clip: Clip;
@@ -232,12 +457,11 @@ function ClipTile({
   isSelected: boolean;
   isDragging: boolean;
   width: number;
+  showTransition: boolean;
   onSelect: (id: string | null) => void;
-  onTrim: (id: string, patch: TrimPatch) => void;
   onReorder: (from: number, to: number) => void;
   onDragStateChange: (id: string | null) => void;
-  onTrimStateChange: (id: string | null) => void;
-  onTransition?: () => void;
+  onTransition: () => void;
 }) {
   const holdTimer = useRef<number | null>(null);
   const origin = useRef(0);
@@ -289,7 +513,7 @@ function ClipTile({
 
   return (
     <>
-      {onTransition && (
+      {showTransition && (
         <button
           type="button"
           onClick={onTransition}
@@ -318,9 +542,9 @@ function ClipTile({
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") onSelect(isSelected ? null : clip.id);
         }}
-        className={`relative shrink-0 overflow-hidden transition-[border-color,opacity] ${
-          isSelected ? "rounded-[7px] border-2 border-white" : "border-2 border-transparent"
-        } ${isDragging ? "opacity-70" : ""}`}
+        className={`relative shrink-0 overflow-hidden transition-opacity ${
+          isDragging ? "opacity-70" : ""
+        }`}
         style={{ width: Math.max(24, width) }}
       >
         {clip.kind === "video" && clip.frames.length > 0 ? (
@@ -351,13 +575,6 @@ function ClipTile({
           <span className="absolute bottom-1 right-1 rounded-[3px] bg-black/65 px-1 text-[9px] font-semibold">
             {clip.speed}x
           </span>
-        )}
-
-        {isSelected && (
-          <>
-            <TrimHandle side="start" clip={clip} onTrim={onTrim} onActive={onTrimStateChange} />
-            <TrimHandle side="end" clip={clip} onTrim={onTrim} onActive={onTrimStateChange} />
-          </>
         )}
       </div>
     </>
@@ -397,87 +614,6 @@ function Filmstrip({ clip }: { clip: Clip }) {
           />
         );
       })}
-    </div>
-  );
-}
-
-/** One edge of the selected clip. Dragging it changes the trim window for a
- *  video, or the hold duration for a photo — the same gesture on both, because
- *  from the timeline's point of view they are the same thing: where the clip
- *  starts and stops. */
-function TrimHandle({
-  side,
-  clip,
-  onTrim,
-  onActive,
-}: {
-  side: "start" | "end";
-  clip: Clip;
-  onTrim: (id: string, patch: TrimPatch) => void;
-  onActive: (id: string | null) => void;
-}) {
-  const origin = useRef(0);
-  const base = useRef(0);
-
-  function begin(e: React.PointerEvent<HTMLDivElement>) {
-    e.stopPropagation();
-    e.currentTarget.setPointerCapture(e.pointerId);
-    origin.current = e.clientX;
-    base.current =
-      clip.kind === "photo" ? clip.stillDuration : side === "start" ? clip.trimStart : clip.trimEnd;
-    onActive(clip.id);
-  }
-
-  function move(e: React.PointerEvent<HTMLDivElement>) {
-    if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
-    const deltaSeconds = (e.clientX - origin.current) / PX_PER_SECOND;
-
-    if (clip.kind === "photo") {
-      // A photo has no source to trim, so both edges resize its duration —
-      // dragging the left edge outward has to lengthen it, hence the sign flip.
-      const next = base.current + (side === "start" ? -deltaSeconds : deltaSeconds);
-      onTrim(clip.id, {
-        stillDuration: Math.max(MIN_STILL_DURATION, Math.min(next, MAX_STILL_DURATION)),
-      });
-      return;
-    }
-
-    const speed = clip.speed || 1;
-    if (side === "start") {
-      const next = base.current + deltaSeconds * speed;
-      onTrim(clip.id, {
-        trimStart: Math.max(0, Math.min(next, clip.trimEnd - MIN_CLIP_DURATION * speed)),
-      });
-    } else {
-      const next = base.current + deltaSeconds * speed;
-      onTrim(clip.id, {
-        trimEnd: Math.min(
-          clip.sourceDuration,
-          Math.max(next, clip.trimStart + MIN_CLIP_DURATION * speed),
-        ),
-      });
-    }
-  }
-
-  return (
-    <div
-      onPointerDown={begin}
-      onPointerMove={move}
-      onPointerUp={() => onActive(null)}
-      onPointerCancel={() => onActive(null)}
-      aria-label={side === "start" ? "Trim start" : "Trim end"}
-      className={`absolute top-0 z-10 flex h-full items-center justify-center ${
-        side === "start" ? "left-0" : "right-0"
-      }`}
-      style={{ width: HANDLE_HIT, touchAction: "none", cursor: "ew-resize" }}
-    >
-      <span
-        className={`flex h-full w-[11px] items-center justify-center bg-white ${
-          side === "start" ? "rounded-l-[5px]" : "rounded-r-[5px]"
-        }`}
-      >
-        <span className="h-[18px] w-[2px] rounded-full bg-black/45" />
-      </span>
     </div>
   );
 }

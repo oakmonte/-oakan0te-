@@ -84,6 +84,15 @@ const TRIM_MULTIPLIER: Record<SizeChartDefinition["guide"], number> = {
   "dolphin-shorts": 1.115,
   "bum-shorts": 1.115,
   "denim-bum-shorts": 1.115,
+  "activewear-tshirt": 1.065,
+  "standard-tshirt": 1.065,
+  "polo-alt": 1.1,
+  "clothing-corset": 1.16,
+  "clothing-bodysuit": 1.1,
+  overshirt: 1.125,
+  sweatshirt: 1.1,
+  "lingerie-corset": 1.16,
+  "lingerie-bodysuit": 1.1,
 };
 
 // Fabric area formulas per garment shape, in m², from cm measurements --

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { X, Palette, RectangleHorizontal, AlignLeft, AlignCenter, AlignRight } from "lucide-react";
 import {
   useAfterShotLayers,
@@ -13,6 +13,7 @@ import {
   type TextLayer,
 } from "@/lib/after-shot-layers";
 import { useVisibleViewport } from "@/hooks/use-visible-viewport";
+import { blockedContentMessage, findBlockedContent } from "@/lib/content-policy";
 
 // Every entry has to look genuinely different from its neighbours, so each stack
 // leads with a face that actually ships on iOS/Android/Windows and falls back
@@ -103,6 +104,9 @@ export default function TextPanel({ open, containerRef, editingLayerId, onClose 
   const viewport = useVisibleViewport(open);
 
   const [content, setContent] = useState("");
+  // Recomputed as they type so the reason appears with the character that
+  // caused it, not after they've tried to leave.
+  const blocked = useMemo(() => findBlockedContent(content), [content]);
   const [selectedFontId, setSelectedFontId] = useState(FONTS[0].id);
   const [selectedColor, setSelectedColor] = useState(COLORS[0]);
   const [fontSize, setFontSize] = useState(DEFAULT_FONT_SIZE); // raw px while composing
@@ -328,6 +332,12 @@ export default function TextPanel({ open, containerRef, editingLayerId, onClose 
   // once even if two triggers fire back to back.
   const commit = useCallback(() => {
     if (committedRef.current) return;
+    // Refuse rather than strip. commit() fires from the Done button, from
+    // blur, and from a tap on the background — so returning early here is what
+    // makes the rule hold on all three, instead of only on the one with a
+    // button you can grey out. The panel stays open with the reason on screen;
+    // clearing the text is always a way out.
+    if (blocked.length > 0) return;
     committedRef.current = true;
 
     const trimmed = content.trim();
@@ -386,6 +396,7 @@ export default function TextPanel({ open, containerRef, editingLayerId, onClose 
     updateLayer,
     removeLayer,
     onClose,
+    blocked,
   ]);
 
   // Escape backs out leaving the layer exactly as it was — flipping the guard
@@ -492,12 +503,24 @@ export default function TextPanel({ open, containerRef, editingLayerId, onClose 
         </div>
         <button
           onClick={commit}
+          disabled={blocked.length > 0}
           aria-label="Done, place text"
-          className="oak-motion-control flex items-center justify-center w-11 h-11 rounded-full active:scale-90"
+          className="oak-motion-control flex items-center justify-center w-11 h-11 rounded-full active:scale-90 disabled:opacity-30"
         >
           <X size={22} color="#fff" />
         </button>
       </div>
+
+      {/* Why the text won't go on. Sits directly under the toolbar, above the
+          composing area, so it's between the seller's eyes and the Done button
+          they just pressed rather than somewhere they have to go looking. */}
+      {blocked.length > 0 && (
+        <div className="oak-motion-fade shrink-0 px-4 pt-2">
+          <p className="rounded-xl bg-black/75 px-3.5 py-2.5 text-[12px] leading-snug text-amber-200">
+            {blockedContentMessage(blocked)}
+          </p>
+        </div>
+      )}
 
       {/* Tapping this background area (anywhere that isn't the input or the
           toolbar) commits and returns to the after-shot page. Layers already on
