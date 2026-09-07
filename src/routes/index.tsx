@@ -62,9 +62,30 @@ export const Route = createFileRoute("/")({
 
 /* ---------------- Images ---------------- */
 const IMG_LOGO = logoAsset.url;
-const IMG_HERO = phoneMockupAsset.url;
 const IMG_STORY = streetwearAsset.url;
 const IMG_SCALE = femalePov;
+
+// Hero slideshow frames, in play order. All portrait ~1280px tall;
+// the frame is 3:4 (the median aspect across the set) with object-cover.
+const HERO_SLIDES = [
+  slideFirst,
+  slide1,
+  slide2,
+  slide3,
+  slide4,
+  slide5,
+  slide6,
+  slide7,
+  slide8,
+  slide9,
+  slide10,
+  slide11,
+  slide12,
+  slide13,
+  slide14,
+  slide15,
+];
+const SLIDE_INTERVAL_MS = 2500;
 
 /* ---------------- Data ---------------- */
 const FEATURES = [
