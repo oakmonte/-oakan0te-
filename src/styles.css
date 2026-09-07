@@ -288,6 +288,21 @@ input:-webkit-autofill:active {
     box-shadow 180ms ease-out;
 }
 
+/* Barcode-scanner sweep line -- ping-ponged with alternate rather than reset
+   to 0% on loop, so the line never jump-cuts back to the top. */
+@keyframes oak-scan-sweep {
+  from {
+    top: 6%;
+  }
+  to {
+    top: 94%;
+  }
+}
+
+.oak-scan-line {
+  animation: oak-scan-sweep 1.6s ease-in-out infinite alternate;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .oak-motion-enter,
   .oak-motion-pop,
@@ -298,6 +313,11 @@ input:-webkit-autofill:active {
   .oak-motion-control,
   .oak-motion-surface {
     transition-duration: 1ms;
+  }
+
+  .oak-scan-line {
+    animation: none;
+    top: 50%;
   }
 }
 

@@ -62,7 +62,7 @@ export function BarcodesSheet({
         <button
           onClick={handleClose}
           type="button"
-          className="absolute left-4 top-4 p-1.5 rounded-full bg-gray-100"
+          className="absolute left-4 top-4 p-1.5 rounded-full bg-gray-100 transition-transform duration-150 active:scale-90"
         >
           <X size={16} className="text-gray-600" />
         </button>
@@ -72,8 +72,11 @@ export function BarcodesSheet({
 
       <div className="flex-1 overflow-y-auto px-4 py-5 flex flex-col gap-2.5">
         {rows.map((row, i) => (
-          <div key={i} className="flex items-center gap-2">
-            <div className="flex-1 flex items-center gap-2 border border-gray-200 rounded-xl px-4 py-3.5 focus-within:border-gray-400 min-w-0">
+          <div
+            key={i}
+            className="flex items-center gap-2 animate-in fade-in slide-in-from-top-1 duration-200"
+          >
+            <div className="flex-1 flex items-center gap-2 border border-gray-200 rounded-xl px-4 py-3.5 transition-colors duration-150 focus-within:border-gray-400 min-w-0">
               <input
                 value={row.value}
                 onChange={(e) => updateValue(i, e.target.value)}
@@ -84,7 +87,7 @@ export function BarcodesSheet({
                 type="button"
                 onClick={() => setScanIndex(i)}
                 aria-label="Scan barcode"
-                className="shrink-0"
+                className="shrink-0 transition-transform duration-150 active:scale-90"
               >
                 <ScanBarcode size={18} className="text-gray-400" />
               </button>
@@ -94,7 +97,7 @@ export function BarcodesSheet({
               <button
                 type="button"
                 onClick={() => setOpenTypeIndex(openTypeIndex === i ? null : i)}
-                className="flex items-center gap-1 border border-gray-200 rounded-xl pl-3.5 pr-2.5 py-3.5 text-[15px] text-gray-900"
+                className="flex items-center gap-1 border border-gray-200 rounded-xl pl-3.5 pr-2.5 py-3.5 text-[15px] text-gray-900 transition-transform duration-150 active:scale-[0.97]"
               >
                 {BARCODE_TYPE_LABELS[row.type]}
                 <ChevronsUpDown size={14} className="text-gray-400" />
@@ -108,7 +111,7 @@ export function BarcodesSheet({
                     onClick={() => setOpenTypeIndex(null)}
                     className="fixed inset-0 z-10 cursor-default"
                   />
-                  <div className="absolute right-0 top-full mt-1 z-20 w-36 bg-white rounded-2xl shadow-lg border border-gray-100 py-1.5">
+                  <div className="absolute right-0 top-full mt-1 z-20 w-36 bg-white rounded-2xl shadow-lg border border-gray-100 py-1.5 origin-top-right animate-in fade-in zoom-in-95 duration-150">
                     {BARCODE_TYPES.map((t) => (
                       <button
                         key={t}
@@ -117,10 +120,12 @@ export function BarcodesSheet({
                           updateType(i, t);
                           setOpenTypeIndex(null);
                         }}
-                        className="w-full flex items-center gap-2 px-3.5 py-2.5 text-left"
+                        className="w-full flex items-center gap-2 px-3.5 py-2.5 text-left transition-colors duration-150 active:bg-gray-50"
                       >
                         <span className="w-3.5 shrink-0">
-                          {row.type === t && <Check size={14} className="text-gray-900" />}
+                          {row.type === t && (
+                            <Check size={14} className="text-gray-900 oak-motion-pop" />
+                          )}
                         </span>
                         <span
                           className={`text-[14px] ${row.type === t ? "font-semibold text-gray-900" : "text-gray-700"}`}
@@ -139,7 +144,7 @@ export function BarcodesSheet({
                 type="button"
                 onClick={() => deleteRow(i)}
                 aria-label="Delete barcode"
-                className="shrink-0 p-3 rounded-xl bg-gray-100 text-gray-500"
+                className="shrink-0 p-3 rounded-xl bg-gray-100 text-gray-500 transition-transform duration-150 active:scale-90"
               >
                 <Trash2 size={16} />
               </button>
@@ -150,7 +155,7 @@ export function BarcodesSheet({
         <button
           type="button"
           onClick={addRow}
-          className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-gray-100 text-gray-900 text-[15px] font-medium py-3.5"
+          className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-gray-100 text-gray-900 text-[15px] font-medium py-3.5 transition-transform duration-150 active:scale-[0.98]"
         >
           <Plus size={16} />
           Add barcode
@@ -160,7 +165,7 @@ export function BarcodesSheet({
           <button
             type="button"
             onClick={clearAll}
-            className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-gray-100 text-red-600 text-[15px] font-medium py-3.5"
+            className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-gray-100 text-red-600 text-[15px] font-medium py-3.5 transition-transform duration-150 active:scale-[0.98]"
           >
             <Trash2 size={16} />
             Clear all

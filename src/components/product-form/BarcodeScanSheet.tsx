@@ -144,7 +144,7 @@ export function BarcodeScanSheet({
         <button
           onClick={onClose}
           type="button"
-          className="text-white text-[15px] font-medium bg-white/15 rounded-full px-3.5 py-1.5"
+          className="text-white text-[15px] font-medium bg-white/15 rounded-full px-3.5 py-1.5 transition-transform duration-150 active:scale-95"
         >
           Cancel
         </button>
@@ -153,7 +153,7 @@ export function BarcodeScanSheet({
           onClick={() => setFacing((f) => (f === "environment" ? "user" : "environment"))}
           type="button"
           aria-label="Switch camera"
-          className="p-2 rounded-full bg-white/15"
+          className="p-2 rounded-full bg-white/15 transition-transform duration-150 active:scale-90"
         >
           <SwitchCamera size={16} className="text-white" />
         </button>
@@ -166,7 +166,24 @@ export function BarcodeScanSheet({
         muted
         className="flex-1 w-full h-full object-cover"
       />
-      <div className="absolute inset-x-10 top-1/2 -translate-y-1/2 aspect-[16/9] border-2 border-white/70 rounded-2xl pointer-events-none" />
+
+      {/* Corner-bracket frame (not a full outline) -- reads as "a scanner",
+          the same shape convention as a phone's own camera code-scanner,
+          rather than as a generic cropped-video rectangle. The sweeping line
+          is the actual "this is live and looking" cue. */}
+      <div className="absolute inset-x-10 top-1/2 -translate-y-1/2 aspect-[2/1] pointer-events-none">
+        <span className="absolute -top-0.5 -left-0.5 w-8 h-8 border-t-[3px] border-l-[3px] border-white rounded-tl-2xl" />
+        <span className="absolute -top-0.5 -right-0.5 w-8 h-8 border-t-[3px] border-r-[3px] border-white rounded-tr-2xl" />
+        <span className="absolute -bottom-0.5 -left-0.5 w-8 h-8 border-b-[3px] border-l-[3px] border-white rounded-bl-2xl" />
+        <span className="absolute -bottom-0.5 -right-0.5 w-8 h-8 border-b-[3px] border-r-[3px] border-white rounded-br-2xl" />
+        <div
+          className="oak-scan-line absolute inset-x-2 h-[2px] rounded-full"
+          style={{
+            background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.95), transparent)",
+            boxShadow: "0 0 8px 1px rgba(255,255,255,0.55)",
+          }}
+        />
+      </div>
       {error && (
         <p className="absolute bottom-10 inset-x-6 text-center text-sm text-white/90">{error}</p>
       )}

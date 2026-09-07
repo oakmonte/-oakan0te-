@@ -124,7 +124,7 @@ export function InventorySheet({
           // other field, so there's no cost to always committing on close.
           onClick={handleSave}
           type="button"
-          className="absolute left-4 top-4 p-1.5 rounded-full bg-gray-100"
+          className="absolute left-4 top-4 p-1.5 rounded-full bg-gray-100 transition-transform duration-150 active:scale-90"
         >
           <X size={16} className="text-gray-600" />
         </button>
@@ -155,13 +155,13 @@ export function InventorySheet({
                 value={sku}
                 onChange={(e) => setSku(e.target.value)}
                 placeholder="Optional"
-                className="text-base border border-gray-200 rounded-lg px-2 py-2 outline-none"
+                className="text-base border border-gray-200 rounded-lg px-2 py-2 outline-none transition-colors duration-150 focus:border-gray-400"
               />
             </label>
             <button
               type="button"
               onClick={() => setBarcodesSheetOpen(true)}
-              className="flex flex-col gap-1 text-left"
+              className="flex flex-col gap-1 text-left transition-transform duration-150 active:scale-[0.98]"
             >
               <span className="text-xs text-gray-400">Barcode</span>
               <span className="flex items-center justify-between border border-gray-200 rounded-lg px-2 py-2">
@@ -179,7 +179,10 @@ export function InventorySheet({
             </button>
           </div>
           {barcodes[0]?.value.trim() && (
-            <Code128Barcode value={barcodes[0].value.trim()} className="mt-3" />
+            <Code128Barcode
+              value={barcodes[0].value.trim()}
+              className="mt-3 animate-in fade-in slide-in-from-top-1 duration-200"
+            />
           )}
         </div>
 
@@ -191,7 +194,7 @@ export function InventorySheet({
             <button
               type="button"
               onClick={() => setLocationsPickerOpen(true)}
-              className="text-xs font-medium text-gray-600 border border-gray-200 rounded-full px-3 py-1.5"
+              className="text-xs font-medium text-gray-600 border border-gray-200 rounded-full px-3 py-1.5 transition-transform duration-150 active:scale-95"
             >
               Edit locations
             </button>
@@ -214,14 +217,14 @@ export function InventorySheet({
               {selectedLocations.map((loc) => (
                 <div
                   key={loc.id}
-                  className="flex items-center justify-between py-3 border-b border-gray-50"
+                  className="flex items-center justify-between py-3 border-b border-gray-50 animate-in fade-in slide-in-from-top-1 duration-200"
                 >
                   <span className="text-[15px] text-gray-900">{loc.name}</span>
                   <div className="flex items-center gap-3">
                     <button
                       type="button"
                       onClick={() => setQuantity(loc.id, (locationQuantities[loc.id] ?? 0) - 1)}
-                      className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600"
+                      className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 transition-transform duration-150 active:scale-90"
                     >
                       −
                     </button>
@@ -235,12 +238,12 @@ export function InventorySheet({
                       }
                       onFocus={(e) => e.target.select()}
                       aria-label={`${loc.name} quantity`}
-                      className="w-12 text-center text-[15px] font-medium bg-gray-100 rounded-full py-1 outline-none focus:ring-1 focus:ring-gray-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      className="w-12 text-center text-[15px] font-medium bg-gray-100 rounded-full py-1 outline-none transition-shadow duration-150 focus:ring-1 focus:ring-gray-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
                     <button
                       type="button"
                       onClick={() => setQuantity(loc.id, (locationQuantities[loc.id] ?? 0) + 1)}
-                      className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600"
+                      className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 transition-transform duration-150 active:scale-90"
                     >
                       +
                     </button>
@@ -277,7 +280,7 @@ export function InventorySheet({
         <button
           type="button"
           onClick={handleSave}
-          className="w-full bg-black text-white text-sm font-medium rounded-full py-3.5"
+          className="w-full bg-black text-white text-sm font-medium rounded-full py-3.5 transition-transform duration-150 active:scale-[0.98]"
         >
           Save
         </button>
@@ -305,7 +308,11 @@ function InventoryLocationsPicker({
   return (
     <div className="fixed inset-0 z-50 bg-white flex flex-col min-h-dvh animate-in fade-in slide-in-from-bottom-6 duration-300 ease-out">
       <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between shrink-0">
-        <button onClick={onClose} className="p-1 -ml-1" type="button">
+        <button
+          onClick={onClose}
+          className="p-1 -ml-1 transition-transform duration-150 active:scale-90"
+          type="button"
+        >
           <ChevronLeft size={22} />
         </button>
         <span className="font-semibold text-[15px] absolute left-1/2 -translate-x-1/2">
@@ -315,7 +322,7 @@ function InventoryLocationsPicker({
           onClick={onCreateLocation}
           type="button"
           aria-label="Add pickup location"
-          className="p-1 -mr-1"
+          className="p-1 -mr-1 transition-transform duration-150 active:scale-90"
         >
           <Plus size={20} className="text-gray-900" />
         </button>
@@ -328,7 +335,7 @@ function InventoryLocationsPicker({
             <button
               type="button"
               onClick={onCreateLocation}
-              className="bg-black text-white text-sm font-medium rounded-full px-5 py-2.5"
+              className="bg-black text-white text-sm font-medium rounded-full px-5 py-2.5 transition-transform duration-150 active:scale-[0.97]"
             >
               Add pickup location
             </button>
@@ -341,14 +348,14 @@ function InventoryLocationsPicker({
                 key={loc.id}
                 type="button"
                 onClick={() => onToggle(loc.id)}
-                className="w-full flex items-center gap-3 px-4 py-3.5 border-b border-gray-50 text-left"
+                className="w-full flex items-center gap-3 px-4 py-3.5 border-b border-gray-50 text-left transition-colors duration-150 active:bg-gray-50"
               >
                 <span
-                  className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 ${
+                  className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition-colors duration-150 ${
                     checked ? "bg-black border-black" : "border-gray-300 bg-white"
                   }`}
                 >
-                  {checked && <Check size={13} className="text-white" />}
+                  {checked && <Check size={13} className="text-white oak-motion-pop" />}
                 </span>
                 <span className="text-[15px] text-gray-900">{loc.name}</span>
               </button>
@@ -362,7 +369,7 @@ function InventoryLocationsPicker({
           <button
             type="button"
             onClick={onClose}
-            className="w-full bg-black text-white text-sm font-medium rounded-full py-3.5"
+            className="w-full bg-black text-white text-sm font-medium rounded-full py-3.5 transition-transform duration-150 active:scale-[0.98]"
           >
             Save
           </button>
