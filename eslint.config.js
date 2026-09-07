@@ -15,6 +15,7 @@ export default tseslint.config(
       // generator (and, for the two integrations/supabase copies, by Lovable),
       // so formatting them only survives until the next regeneration.
       "src/integrations/supabase/types.ts",
+      "src/integrations/supabase/previewAuthStorage.ts",
       "src/lib/integrations/supabase/types.ts",
       "src/lib/integrations/my-supabase/types.ts",
     ],
