@@ -5,8 +5,23 @@ import logoAsset from "@/assets/oakmonte-o-mark.png.asset.json";
 import logoO from "@/assets/logo-o.png";
 import heroAsset from "@/assets/hero-editorial.jpg.asset.json";
 import streetwearAsset from "@/assets/streetwear-summerstyle.jpeg.asset.json";
-import phoneMockupAsset from "@/assets/oakmonte-phone-mockup.png.asset.json";
 import femalePov from "@/assets/female-first-person-pov.jpg";
+import slideFirst from "@/assets/Index page fastloading slideshow/First image.jpg";
+import slide1 from "@/assets/Index page fastloading slideshow/photo_1_2026-09-07_04-50-03.jpg";
+import slide2 from "@/assets/Index page fastloading slideshow/photo_2_2026-09-07_04-50-03.jpg";
+import slide3 from "@/assets/Index page fastloading slideshow/photo_3_2026-09-07_04-50-03.jpg";
+import slide4 from "@/assets/Index page fastloading slideshow/photo_4_2026-09-07_04-50-03.jpg";
+import slide5 from "@/assets/Index page fastloading slideshow/photo_5_2026-09-07_04-50-03.jpg";
+import slide6 from "@/assets/Index page fastloading slideshow/photo_6_2026-09-07_04-50-03.jpg";
+import slide7 from "@/assets/Index page fastloading slideshow/photo_7_2026-09-07_04-50-03.jpg";
+import slide8 from "@/assets/Index page fastloading slideshow/photo_8_2026-09-07_04-50-03.jpg";
+import slide9 from "@/assets/Index page fastloading slideshow/photo_9_2026-09-07_04-50-03.jpg";
+import slide10 from "@/assets/Index page fastloading slideshow/photo_10_2026-09-07_04-50-03.jpg";
+import slide11 from "@/assets/Index page fastloading slideshow/photo_11_2026-09-07_04-50-03.jpg";
+import slide12 from "@/assets/Index page fastloading slideshow/photo_12_2026-09-07_04-50-03.jpg";
+import slide13 from "@/assets/Index page fastloading slideshow/photo_13_2026-09-07_04-50-03.jpg";
+import slide14 from "@/assets/Index page fastloading slideshow/photo_14_2026-09-07_04-50-03.jpg";
+import slide15 from "@/assets/Index page fastloading slideshow/photo_2026-09-07_04-48-53.jpg";
 
 export const Route = createFileRoute("/")({
   head: () => ({
