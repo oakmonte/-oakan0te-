@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useRef, useState } from "react";
+import { forwardRef, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ImageIcon, Loader2, Plus, X } from "lucide-react";
 
 /** Shared multi-image picker for both the base product page and a variant's
@@ -124,6 +124,43 @@ function ThumbStrip({
   const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const startPos = useRef<{ x: number; y: number } | null>(null);
   const moved = useRef(false);
+  const tileRefs = useRef(new Map<string, HTMLDivElement>());
+  const prevRects = useRef(new Map<string, DOMRect>());
+
+  // FLIP reorder: a swap just teleports these tiles in the DOM, which reads
+  // as a jump-cut rather than a drag. Snapshot every tile's position right
+  // before the array actually changes, then here -- after React has already
+  // repainted them at their new spots -- offset each one back to where it
+  // just was and let it transition to zero, turning the teleport into a
+  // slide. No animation library needed for four flex children.
+  useLayoutEffect(() => {
+    tileRefs.current.forEach((el, url) => {
+      const prev = prevRects.current.get(url);
+      if (!prev) return;
+      const next = el.getBoundingClientRect();
+      const dx = prev.left - next.left;
+      const dy = prev.top - next.top;
+      if (dx || dy) {
+        el.style.transition = "none";
+        el.style.transform = `translate(${dx}px, ${dy}px)`;
+        requestAnimationFrame(() => {
+          el.style.transition = "transform 200ms ease-out";
+          el.style.transform = "";
+          // Otherwise this inline transition sticks around forever, narrowing
+          // the Tailwind transition-transform utility (which also covers
+          // scale) down to just this one property -- the tap/drag scale on
+          // this specific tile would silently stop animating after its first
+          // reorder while every other tile's kept working.
+          el.addEventListener("transitionend", () => (el.style.transition = ""), { once: true });
+        });
+      }
+    });
+    prevRects.current.clear();
+  }, [images]);
+
+  function snapshotRects() {
+    tileRefs.current.forEach((el, url) => prevRects.current.set(url, el.getBoundingClientRect()));
+  }
 
   function clearTimer() {
     if (pressTimer.current) {
@@ -163,6 +200,7 @@ function ThumbStrip({
     const from = images.indexOf(dragUrl);
     const to = images.indexOf(overUrl);
     if (from === -1 || to === -1) return;
+    snapshotRects();
     const next = [...images];
     next.splice(from, 1);
     next.splice(to, 0, dragUrl);
@@ -187,6 +225,10 @@ function ThumbStrip({
       {images.map((url, i) => (
         <div
           key={url}
+          ref={(el) => {
+            if (el) tileRefs.current.set(url, el);
+            else tileRefs.current.delete(url);
+          }}
           data-gallery-url={url}
           onPointerDown={(e) => handlePointerDown(e, url)}
           onPointerMove={handlePointerMove}
@@ -194,7 +236,12 @@ function ThumbStrip({
           onPointerCancel={handlePointerCancel}
           style={{ WebkitTouchCallout: "none" }}
           className={`relative w-14 h-14 shrink-0 rounded-lg bg-gray-100 overflow-hidden touch-none select-none transition-transform duration-150 ${
-            dragUrl === url ? "scale-110 shadow-lg z-10 ring-2 ring-black" : ""
+            // :active has higher specificity than a plain conditional class
+            // regardless of source order, so active:scale-90 would win over
+            // scale-110 for the entire drag (setPointerCapture keeps :active
+            // matched the whole time) -- shrinking the dragged tile instead
+            // of lifting it. Only apply the tap-down shrink when NOT dragging.
+            dragUrl === url ? "scale-110 shadow-lg z-10 ring-2 ring-black" : "active:scale-90"
           }`}
         >
           <img

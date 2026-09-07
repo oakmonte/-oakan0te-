@@ -48,7 +48,11 @@ export function VariantCombinationsSheet({
   const [bulkCompareAtPrice, setBulkCompareAtPrice] = useState("");
   const [bulkStock, setBulkStock] = useState("");
   const [bulkWeight, setBulkWeight] = useState("");
-  const [bulkImageUrl, setBulkImageUrl] = useState("");
+  // images[0] is the main image, the rest are additional -- same shape as a
+  // row's own mainImageUrl/additionalImageUrls, so applying it is a direct
+  // copy rather than a reshape.
+  const [bulkImages, setBulkImages] = useState<string[]>([]);
+  const [bulkImagePickerOpen, setBulkImagePickerOpen] = useState(false);
   const [imagePickerKey, setImagePickerKey] = useState<string | null>(null);
   const [inventoryKey, setInventoryKey] = useState<string | null>(null);
   const [weightKey, setWeightKey] = useState<string | null>(null);
@@ -89,7 +93,11 @@ export function VariantCombinationsSheet({
     const patch: Partial<VariantRow> = {};
     if (bulkPrice.trim()) patch.price = bulkPrice.trim();
     if (bulkCompareAtPrice.trim()) patch.compareAtPrice = bulkCompareAtPrice.trim();
-    if (bulkImageUrl.trim()) patch.mainImageUrl = bulkImageUrl.trim();
+    // Additional images are only overwritten when the seller actually staged
+    // more than one -- a single cover image is a normal "just set the main
+    // photo" bulk-apply, and shouldn't silently wipe extra photos a row
+    // already had (see the comment above re: not clobbering unfilled fields).
+    if (bulkImages.length > 0) patch.mainImageUrl = bulkImages[0];
     if (bulkWeight.trim()) {
       const grams = parseFloat(bulkWeight.trim());
       if (!isNaN(grams)) patch.weightGrams = grams;
@@ -104,6 +112,11 @@ export function VariantCombinationsSheet({
       prev.map((r) => {
         if (!r.selected) return r;
         const next = { ...r, ...patch };
+        // Built per-row rather than sliced once outside the map, so no two
+        // rows ever end up pointing at the exact same array instance -- an
+        // in-place edit to one row's list would otherwise silently rewrite
+        // every other bulk-applied row's list too.
+        if (bulkImages.length > 1) next.additionalImageUrls = bulkImages.slice(1);
         if (stockQty !== null && Object.keys(r.locationQuantities).length > 0) {
           const locationQuantities: Record<string, number> = {};
           for (const locId of Object.keys(r.locationQuantities))
@@ -117,7 +130,7 @@ export function VariantCombinationsSheet({
     setBulkCompareAtPrice("");
     setBulkStock("");
     setBulkWeight("");
-    setBulkImageUrl("");
+    setBulkImages([]);
     setBulkOpen(false);
   }
 
@@ -221,8 +234,7 @@ export function VariantCombinationsSheet({
         {/* Per-variant detail, selected rows only — no point asking for a price
             on a combination the seller just said they don't stock. */}
         <div className="px-4 py-5">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-xs text-gray-400">Pricing &amp; stock</p>
+          <div className="flex justify-end mb-2">
             <button
               type="button"
               onClick={() => setBulkOpen((v) => !v)}
@@ -239,27 +251,41 @@ export function VariantCombinationsSheet({
           )}
 
           {bulkOpen && (
-            <div className="border border-gray-200 rounded-xl p-3 mb-3 bg-gray-50">
-              <p className="text-xs text-gray-500 mb-2">
-                Fills every selected variant at once — you can still edit them individually after.
-                Stock only fills locations a variant already has picked; SKU isn't included since it
-                needs to stay unique per variant.
-              </p>
+            // Same card shape as a variant row below (border/rounding/padding,
+            // same header-plus-image-button, same field grid) so this reads as
+            // "a variant row you fill once", not a different control -- the
+            // grey fill is the only thing marking it as the template rather
+            // than a real one.
+            <div className="border border-gray-200 rounded-xl p-3 mb-3 bg-gray-100">
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <p className="text-sm font-medium text-gray-500">Apply to all</p>
+                <button
+                  type="button"
+                  onClick={() => setBulkImagePickerOpen(true)}
+                  aria-label="Set image for every selected variant"
+                  className="w-10 h-10 rounded-lg bg-gray-200 flex items-center justify-center overflow-hidden shrink-0 transition-transform duration-150 active:scale-90"
+                >
+                  {bulkImages[0] ? (
+                    <img src={bulkImages[0]} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <ImageIcon size={16} className="text-gray-400" />
+                  )}
+                </button>
+              </div>
               <div className="grid grid-cols-2 gap-2">
                 <MiniField label="Price" value={bulkPrice} onChange={setBulkPrice} />
+                {/* Not "Inventory" -- unlike the per-row control below, which
+                    shows one summed total, this sets the SAME number at every
+                    location a row already has picked. Labelling it the same
+                    as the total would read as "set the total to this", which
+                    silently overstates stock on any row with 2+ locations. */}
+                <MiniField label="Stock/location" value={bulkStock} onChange={setBulkStock} />
                 <MiniField
                   label="Compare-at"
                   value={bulkCompareAtPrice}
                   onChange={setBulkCompareAtPrice}
                 />
-                <MiniField label="Stock" value={bulkStock} onChange={setBulkStock} />
                 <MiniField label="Weight (g)" value={bulkWeight} onChange={setBulkWeight} />
-                <MiniField
-                  label="Image URL"
-                  value={bulkImageUrl}
-                  onChange={setBulkImageUrl}
-                  type="text"
-                />
               </div>
               <button
                 type="button"
@@ -269,7 +295,7 @@ export function VariantCombinationsSheet({
                   !bulkCompareAtPrice.trim() &&
                   !bulkStock.trim() &&
                   !bulkWeight.trim() &&
-                  !bulkImageUrl.trim()
+                  bulkImages.length === 0
                 }
                 className="mt-3 w-full bg-black text-white text-sm font-medium rounded-lg py-2.5 disabled:bg-gray-200 disabled:text-gray-400"
               >
@@ -289,7 +315,7 @@ export function VariantCombinationsSheet({
                     type="button"
                     onClick={() => setImagePickerKey(row.key)}
                     aria-label="Set variant image"
-                    className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden shrink-0"
+                    className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden shrink-0 transition-transform duration-150 active:scale-90"
                   >
                     {row.mainImageUrl ? (
                       <img src={row.mainImageUrl} alt="" className="w-full h-full object-cover" />
@@ -359,6 +385,20 @@ export function VariantCombinationsSheet({
         />
       )}
 
+      {bulkImagePickerOpen && (
+        <VariantImagePopover
+          title="Image for all variants"
+          initialValue={bulkImages[0] ?? ""}
+          initialAdditional={bulkImages.slice(1)}
+          baseImages={baseImages}
+          onDone={(url, additional) => {
+            setBulkImages(url ? [url, ...additional] : []);
+            setBulkImagePickerOpen(false);
+          }}
+          onClose={() => setBulkImagePickerOpen(false)}
+        />
+      )}
+
       {inventoryKey &&
         (() => {
           const row = rows.find((r) => r.key === inventoryKey);
@@ -409,12 +449,14 @@ export function VariantCombinationsSheet({
 }
 
 function VariantImagePopover({
+  title = "Variant image",
   initialValue,
   initialAdditional,
   baseImages,
   onDone,
   onClose,
 }: {
+  title?: string;
   initialValue: string;
   initialAdditional: string[];
   // Photos already uploaded on the base product page — shown as a one-tap
@@ -495,11 +537,15 @@ function VariantImagePopover({
       >
         {filePicker.node}
         <div className="flex items-center justify-between mb-3">
-          <p className="text-sm font-semibold text-gray-900">Variant image</p>
+          <p className="text-sm font-semibold text-gray-900">{title}</p>
           <button type="button" onClick={onClose} className="p-1 -mr-1">
             <X size={18} className="text-gray-400" />
           </button>
         </div>
+
+        {baseImages.length > 0 && (
+          <p className="text-xs font-medium text-gray-500 mb-1.5">This image</p>
+        )}
 
         <ImageGallery
           images={images}
@@ -513,8 +559,8 @@ function VariantImagePopover({
         {uploadError && <p className="text-xs text-red-500 text-center mt-2">{uploadError}</p>}
 
         {baseImages.length > 0 && (
-          <div className="mt-3">
-            <p className="text-xs text-gray-500 mb-1.5">From your product photos</p>
+          <div className="mt-4 pt-3 border-t border-gray-100">
+            <p className="text-xs font-medium text-gray-500 mb-1.5">From your product photos</p>
             <div className="flex gap-2 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
               {baseImages.map((url) => {
                 const selected = images.includes(url);
@@ -524,14 +570,16 @@ function VariantImagePopover({
                     type="button"
                     onClick={() => toggleBaseImage(url)}
                     aria-label={selected ? "Remove from variant" : "Add to variant"}
-                    className="relative w-12 h-12 shrink-0 rounded-lg bg-gray-100 overflow-hidden"
+                    className="relative w-12 h-12 shrink-0 rounded-lg bg-gray-100 overflow-hidden transition-transform duration-150 active:scale-90"
                   >
                     <img src={url} alt="" className="w-full h-full object-cover" />
-                    {selected && (
-                      <span className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                        <Check size={16} className="text-white" />
-                      </span>
-                    )}
+                    <span
+                      className={`absolute inset-0 bg-black/40 flex items-center justify-center transition-opacity duration-150 ${
+                        selected ? "opacity-100" : "opacity-0"
+                      }`}
+                    >
+                      <Check size={16} className="text-white" />
+                    </span>
                   </button>
                 );
               })}
