@@ -12,17 +12,14 @@ export const Route = createFileRoute("/welcome")({
   component: WelcomePage,
 });
 
-const HEADLINE = "Your style is proof that you think different.";
-const WORDS = HEADLINE.split(" ");
-// Word-by-word reveal reads far better than a character typewriter for a line
-// this short — it lands as a sentence instead of a stutter.
-const WORD_STAGGER_S = 0.11;
-const WORD_DURATION_S = 0.62;
-const LEAD_IN_S = 0.35;
-const HOLD_AFTER_S = 1.1;
+const HEADLINE = "Your style is proof that you think different";
+const TYPE_SPEED_MS = 55;
+const LEAD_IN_MS = 450;
+const FULL_STOP_DELAY_MS = 650;
+const HOLD_AFTER_MS = 900;
 
-const REVEAL_MS =
-  (LEAD_IN_S + WORD_STAGGER_S * (WORDS.length - 1) + WORD_DURATION_S + HOLD_AFTER_S) * 1000;
+const TOTAL_TYPE_MS = HEADLINE.length * TYPE_SPEED_MS;
+const REVEAL_MS = LEAD_IN_MS + TOTAL_TYPE_MS + FULL_STOP_DELAY_MS + HOLD_AFTER_MS;
 
 function WelcomePage() {
   const { userId, checking } = useRequireSession();
