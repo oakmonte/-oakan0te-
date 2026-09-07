@@ -8,15 +8,16 @@ import streetwearAsset from "@/assets/streetwear-summerstyle.jpeg.asset.json";
 import femalePov from "@/assets/female-first-person-pov.jpg";
 import slideFirst from "@/assets/Index page fastloading slideshow/First image.jpg";
 import slide1 from "@/assets/Index page fastloading slideshow/photo_1_2026-09-07_04-50-03.jpg";
+import slide1b from "@/assets/Index page fastloading slideshow/photo_1_2026-09-07_12-45-02.jpg";
 import slide2 from "@/assets/Index page fastloading slideshow/photo_2_2026-09-07_04-50-03.jpg";
+import slide2b from "@/assets/Index page fastloading slideshow/photo_2_2026-09-07_12-45-02.jpg";
 import slide3 from "@/assets/Index page fastloading slideshow/photo_3_2026-09-07_04-50-03.jpg";
-import slide4 from "@/assets/Index page fastloading slideshow/photo_4_2026-09-07_04-50-03.jpg";
+import slide3b from "@/assets/Index page fastloading slideshow/photo_3_2026-09-07_12-45-02.jpg";
 import slide5 from "@/assets/Index page fastloading slideshow/photo_5_2026-09-07_04-50-03.jpg";
 import slide6 from "@/assets/Index page fastloading slideshow/photo_6_2026-09-07_04-50-03.jpg";
 import slide7 from "@/assets/Index page fastloading slideshow/photo_7_2026-09-07_04-50-03.jpg";
 import slide8 from "@/assets/Index page fastloading slideshow/photo_8_2026-09-07_04-50-03.jpg";
 import slide9 from "@/assets/Index page fastloading slideshow/photo_9_2026-09-07_04-50-03.jpg";
-import slide10 from "@/assets/Index page fastloading slideshow/photo_10_2026-09-07_04-50-03.jpg";
 import slide11 from "@/assets/Index page fastloading slideshow/photo_11_2026-09-07_04-50-03.jpg";
 import slide12 from "@/assets/Index page fastloading slideshow/photo_12_2026-09-07_04-50-03.jpg";
 import slide13 from "@/assets/Index page fastloading slideshow/photo_13_2026-09-07_04-50-03.jpg";
@@ -65,20 +66,22 @@ const IMG_LOGO = logoAsset.url;
 const IMG_STORY = streetwearAsset.url;
 const IMG_SCALE = femalePov;
 
-// Hero slideshow frames, in play order. All portrait ~1280px tall;
-// the frame is 3:4 (the median aspect across the set) with object-cover.
+// Hero slideshow frames, in play order. Typographic quote cards (plus a
+// couple of real photos), all portrait, mixed aspect ratios — the frame
+// crops each one to fill (object-fit:cover, see HeroSlideshow).
 const HERO_SLIDES = [
   slideFirst,
   slide1,
+  slide1b,
   slide2,
+  slide2b,
   slide3,
-  slide4,
+  slide3b,
   slide5,
   slide6,
   slide7,
   slide8,
   slide9,
-  slide10,
   slide11,
   slide12,
   slide13,
@@ -86,48 +89,6 @@ const HERO_SLIDES = [
   slide15,
 ];
 const SLIDE_INTERVAL_MS = 2500;
-
-// Frame fill color per slide, keyed by src. Populated by sampling each
-// image's own edge pixels once it's loaded — a real "smear the edges"
-// fill (same idea as Apple Music/Photos backgrounds), not a blurred
-// rescaled copy of the whole image. A blurred *cover* copy crops a
-// different rectangle than the `contain` foreground shows, so on an
-// off-ratio card it can pull in a strip with different content/color
-// than what's actually visible — reads as a mismatched color bleeding
-// in from nowhere. Sampling the real edge pixels can't do that: the
-// color always comes from the image being shown, at the moment it's
-// shown. Cached at module scope so revisiting a slide is instant.
-const edgeColorCache = new Map<string, string>();
-
-const EDGE_SAMPLE_SIZE = 32;
-
-function sampleEdgeColor(img: HTMLImageElement): string {
-  const canvas = document.createElement("canvas");
-  canvas.width = EDGE_SAMPLE_SIZE;
-  canvas.height = EDGE_SAMPLE_SIZE;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return "#e8e8e8";
-  ctx.drawImage(img, 0, 0, EDGE_SAMPLE_SIZE, EDGE_SAMPLE_SIZE);
-  const { data } = ctx.getImageData(0, 0, EDGE_SAMPLE_SIZE, EDGE_SAMPLE_SIZE);
-  let r = 0;
-  let g = 0;
-  let b = 0;
-  let n = 0;
-  // Only the outer ring — these cards center their text/logo, so the
-  // border pixels are reliably just the card's background color.
-  for (let y = 0; y < EDGE_SAMPLE_SIZE; y++) {
-    for (let x = 0; x < EDGE_SAMPLE_SIZE; x++) {
-      const onEdge = x < 2 || y < 2 || x >= EDGE_SAMPLE_SIZE - 2 || y >= EDGE_SAMPLE_SIZE - 2;
-      if (!onEdge) continue;
-      const i = (y * EDGE_SAMPLE_SIZE + x) * 4;
-      r += data[i];
-      g += data[i + 1];
-      b += data[i + 2];
-      n++;
-    }
-  }
-  return `rgb(${Math.round(r / n)}, ${Math.round(g / n)}, ${Math.round(b / n)})`;
-}
 
 /* ---------------- Data ---------------- */
 const FEATURES = [
@@ -384,7 +345,7 @@ const NAV: { label: string; href: string; key?: MenuKey }[] = [
 // off to the left as the next slides in from the right, always the same
 // direction, looping through all frames forever. Only the active, previous
 // and next frames are mounted, so the upcoming image is always decoded and
-// ready before its turn — no blank flashes, no loading all 16 frames at
+// ready before its turn — no blank flashes, no loading every frame at
 // once. Direction never reverses even across the wrap from last back to
 // first, because the previous/current/next roles (and their -100%/0%/+100%
 // positions) are fixed regardless of where `index` wraps — only which slide
@@ -394,14 +355,6 @@ const NAV: { label: string; href: string; key?: MenuKey }[] = [
 // prefers-reduced-motion.
 function HeroSlideshow() {
   const [index, setIndex] = useState(0);
-  const [edgeColors, setEdgeColors] = useState<Record<string, string>>(() =>
-    Object.fromEntries(
-      HERO_SLIDES.filter((src) => edgeColorCache.has(src)).map((src) => [
-        src,
-        edgeColorCache.get(src)!,
-      ]),
-    ),
-  );
 
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
@@ -412,13 +365,6 @@ function HeroSlideshow() {
     return () => window.clearInterval(id);
   }, []);
 
-  function handleLoad(src: string, el: HTMLImageElement) {
-    if (edgeColorCache.has(src)) return;
-    const color = sampleEdgeColor(el);
-    edgeColorCache.set(src, color);
-    setEdgeColors((prev) => ({ ...prev, [src]: color }));
-  }
-
   const n = HERO_SLIDES.length;
   return (
     <>
@@ -427,27 +373,23 @@ function HeroSlideshow() {
           i === index ? 0 : i === (index + 1) % n ? 1 : i === (index - 1 + n) % n ? -1 : null;
         if (offset === null) return null;
         return (
-          <div
+          // object-fit:cover, centered — the frame is shorter than most of
+          // these cards' natural height, so this trims an even amount off
+          // the top and bottom (and, on a handful of off-ratio cards, a
+          // sliver off the sides) rather than shrinking the whole card down.
+          <img
             key={src}
-            className="hero-slide-wrap"
-            style={{
-              transform: `translateX(${offset * 100}%)`,
-              backgroundColor: edgeColors[src],
-            }}
+            src={src}
+            alt={i === index ? "Oakmonte community style quotes" : ""}
             aria-hidden={i !== index}
-          >
-            <img
-              src={src}
-              alt={i === index ? "Oakmonte community style quotes" : ""}
-              className="hero-slide-fg"
-              width={960}
-              height={1280}
-              fetchPriority={i === 0 ? "high" : "auto"}
-              decoding="async"
-              draggable={false}
-              onLoad={(e) => handleLoad(src, e.currentTarget)}
-            />
-          </div>
+            className="hero-slide"
+            style={{ transform: `translateX(${offset * 100}%)` }}
+            width={960}
+            height={1280}
+            fetchPriority={i === 0 ? "high" : "auto"}
+            decoding="async"
+            draggable={false}
+          />
         );
       })}
       <span className="media-cap">SELL · POST · SHOP — ALL IN ONE PLACE</span>
@@ -1292,13 +1234,12 @@ const CSS = `
 
 .oak .stars{color:var(--blue);letter-spacing:2px;margin-right:6px;}
 
-.oak .hero-media{position:relative;margin-top:72px;margin-inline:auto;width:min(100%,58vh);aspect-ratio:3/4;border-radius:24px;overflow:hidden;opacity:0;animation:oakFadeUp .9s ease forwards;animation-delay:.9s;background:#e8e8e8;isolation:isolate;}
-.oak .hero-slide-wrap{position:absolute;inset:0;background:#e8e8e8;transition:transform .7s ease,background-color .4s ease;will-change:transform;}
-.oak .hero-slide-fg{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block;pointer-events:none;}
+.oak .hero-media{position:relative;margin-top:72px;margin-inline:auto;width:min(100%,58vh);aspect-ratio:4/5;border-radius:24px;overflow:hidden;opacity:0;animation:oakFadeUp .9s ease forwards;animation-delay:.9s;background:#e8e8e8;isolation:isolate;}
+.oak .hero-slide{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;display:block;transition:transform .7s ease;pointer-events:none;will-change:transform;}
 .oak .hero-media::after{content:"";position:absolute;inset:0;z-index:2;border-radius:inherit;box-shadow:inset 0 0 0 1px rgba(0,0,0,.06),inset 0 -80px 90px -50px rgba(0,0,0,.45);pointer-events:none;}
 .oak .media-cap{position:absolute;left:24px;bottom:20px;z-index:3;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.6);}
 @media (max-width:640px){.oak .hero-media{width:100%;margin-top:48px;}}
-@media (prefers-reduced-motion:reduce){.oak .hero-slide-wrap{transition:none;}}
+@media (prefers-reduced-motion:reduce){.oak .hero-slide{transition:none;}}
 
 .oak .trust-marquee{width:100%;overflow:hidden;background:var(--black);padding:16px 0;margin-top:64px;}
 .oak .trust-marquee .track{display:flex;white-space:nowrap;width:max-content;animation:oakScroll 22s linear infinite;}
