@@ -370,19 +370,30 @@ function HeroSlideshow() {
           i === index ? 0 : i === (index + 1) % n ? 1 : i === (index - 1 + n) % n ? -1 : null;
         if (offset === null) return null;
         return (
-          <img
+          // Two layers, not one `object-fit:cover` image: these frames are
+          // typographic quote cards (variable aspect, text right to the
+          // edge), not candid photos. Cover-cropping a fixed 3:4 window
+          // sliced words off. `contain` keeps every card whole; the blurred
+          // cover copy behind it fills the frame so there's no dead gray
+          // margin instead of a crop.
+          <div
             key={src}
-            src={src}
-            alt={i === index ? "Oakmonte community fashion looks" : ""}
-            aria-hidden={i !== index}
-            className="hero-slide"
+            className="hero-slide-wrap"
             style={{ transform: `translateX(${offset * 100}%)` }}
-            width={960}
-            height={1280}
-            fetchPriority={i === 0 ? "high" : "auto"}
-            decoding="async"
-            draggable={false}
-          />
+            aria-hidden={i !== index}
+          >
+            <img src={src} alt="" className="hero-slide-bg" decoding="async" draggable={false} />
+            <img
+              src={src}
+              alt={i === index ? "Oakmonte community style quotes" : ""}
+              className="hero-slide-fg"
+              width={960}
+              height={1280}
+              fetchPriority={i === 0 ? "high" : "auto"}
+              decoding="async"
+              draggable={false}
+            />
+          </div>
         );
       })}
       <span className="media-cap">SELL · POST · SHOP — ALL IN ONE PLACE</span>
@@ -1228,11 +1239,13 @@ const CSS = `
 .oak .stars{color:var(--blue);letter-spacing:2px;margin-right:6px;}
 
 .oak .hero-media{position:relative;margin-top:72px;margin-inline:auto;width:min(100%,58vh);aspect-ratio:3/4;border-radius:24px;overflow:hidden;opacity:0;animation:oakFadeUp .9s ease forwards;animation-delay:.9s;background:#e8e8e8;isolation:isolate;}
-.oak .hero-slide{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 20%;display:block;transition:transform .7s ease;pointer-events:none;will-change:transform;}
+.oak .hero-slide-wrap{position:absolute;inset:0;transition:transform .7s ease;will-change:transform;}
+.oak .hero-slide-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;filter:blur(28px) brightness(.75) saturate(1.1);transform:scale(1.2);pointer-events:none;}
+.oak .hero-slide-fg{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block;pointer-events:none;}
 .oak .hero-media::after{content:"";position:absolute;inset:0;z-index:2;border-radius:inherit;box-shadow:inset 0 0 0 1px rgba(0,0,0,.06),inset 0 -80px 90px -50px rgba(0,0,0,.45);pointer-events:none;}
 .oak .media-cap{position:absolute;left:24px;bottom:20px;z-index:3;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.6);}
 @media (max-width:640px){.oak .hero-media{width:100%;margin-top:48px;}}
-@media (prefers-reduced-motion:reduce){.oak .hero-slide{transition:none;}}
+@media (prefers-reduced-motion:reduce){.oak .hero-slide-wrap{transition:none;}}
 
 .oak .trust-marquee{width:100%;overflow:hidden;background:var(--black);padding:16px 0;margin-top:64px;}
 .oak .trust-marquee .track{display:flex;white-space:nowrap;width:max-content;animation:oakScroll 22s linear infinite;}
