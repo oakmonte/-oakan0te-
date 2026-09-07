@@ -338,10 +338,18 @@ const NAV: { label: string; href: string; key?: MenuKey }[] = [
 ];
 
 /* ---------------- Page ---------------- */
-// Auto-advancing crossfade slideshow for the hero. Only the active,
-// previous and next frames are mounted, so the upcoming image is always
-// decoded and ready before its turn — no blank flashes, no loading all
-// 16 frames at once. Pauses entirely for prefers-reduced-motion.
+// Auto-advancing sideways slideshow for the hero: each frame slides fully
+// off to the left as the next slides in from the right, always the same
+// direction, looping through all frames forever. Only the active, previous
+// and next frames are mounted, so the upcoming image is always decoded and
+// ready before its turn — no blank flashes, no loading all 16 frames at
+// once. Direction never reverses even across the wrap from last back to
+// first, because the previous/current/next roles (and their -100%/0%/+100%
+// positions) are fixed regardless of where `index` wraps — only which slide
+// currently holds each role changes, and each slide keeps the same DOM node
+// (keyed by src) as it moves from one role to the next, so the transform
+// transition carries it smoothly across the handoff. Pauses entirely for
+// prefers-reduced-motion.
 function HeroSlideshow() {
   const [index, setIndex] = useState(0);
 
@@ -358,15 +366,17 @@ function HeroSlideshow() {
   return (
     <>
       {HERO_SLIDES.map((src, i) => {
-        const mounted = i === index || i === (index + 1) % n || i === (index - 1 + n) % n;
-        if (!mounted) return null;
+        const offset =
+          i === index ? 0 : i === (index + 1) % n ? 1 : i === (index - 1 + n) % n ? -1 : null;
+        if (offset === null) return null;
         return (
           <img
             key={src}
             src={src}
             alt={i === index ? "Oakmonte community fashion looks" : ""}
             aria-hidden={i !== index}
-            className={`hero-slide${i === index ? " active" : ""}`}
+            className="hero-slide"
+            style={{ transform: `translateX(${offset * 100}%)` }}
             width={960}
             height={1280}
             fetchPriority={i === 0 ? "high" : "auto"}
@@ -1218,12 +1228,11 @@ const CSS = `
 .oak .stars{color:var(--blue);letter-spacing:2px;margin-right:6px;}
 
 .oak .hero-media{position:relative;margin-top:72px;margin-inline:auto;width:min(100%,58vh);aspect-ratio:3/4;border-radius:24px;overflow:hidden;opacity:0;animation:oakFadeUp .9s ease forwards;animation-delay:.9s;background:#e8e8e8;isolation:isolate;}
-.oak .hero-slide{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 20%;display:block;opacity:0;transform:scale(1.04);transition:opacity .7s ease,transform 2.8s ease;pointer-events:none;}
-.oak .hero-slide.active{opacity:1;transform:scale(1);}
+.oak .hero-slide{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 20%;display:block;transition:transform .7s ease;pointer-events:none;will-change:transform;}
 .oak .hero-media::after{content:"";position:absolute;inset:0;z-index:2;border-radius:inherit;box-shadow:inset 0 0 0 1px rgba(0,0,0,.06),inset 0 -80px 90px -50px rgba(0,0,0,.45);pointer-events:none;}
 .oak .media-cap{position:absolute;left:24px;bottom:20px;z-index:3;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.6);}
 @media (max-width:640px){.oak .hero-media{width:100%;margin-top:48px;}}
-@media (prefers-reduced-motion:reduce){.oak .hero-slide{transition:none;transform:none;}}
+@media (prefers-reduced-motion:reduce){.oak .hero-slide{transition:none;}}
 
 .oak .trust-marquee{width:100%;overflow:hidden;background:var(--black);padding:16px 0;margin-top:64px;}
 .oak .trust-marquee .track{display:flex;white-space:nowrap;width:max-content;animation:oakScroll 22s linear infinite;}
