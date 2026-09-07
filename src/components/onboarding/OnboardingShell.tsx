@@ -88,7 +88,6 @@ export function OnboardingShell({ title, subtitle, backTo, step, onSkip, childre
   );
 }
 
-
 /** Shown while `useRequireSession` decides whether there is a session. */
 export function OnboardingChecking() {
   return (
