@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ChevronLeft,
+  ChevronRight,
   Crop,
   Music,
   Pause,
@@ -153,9 +154,11 @@ function PhotoEditor() {
   const stickerInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
   const audioElRef = useRef<HTMLAudioElement>(null);
+  const stripRef = useRef<HTMLDivElement>(null);
   const ownedUrls = useRef<string[]>(session?.ownedUrls ?? []);
 
   const active = photos.find((p) => p.id === activeId) ?? null;
+  const activeIndex = photos.findIndex((p) => p.id === activeId);
   // A live photo owns the whole post, so its presence is a state of the whole
   // screen rather than a property of the selected item.
   const hasLive = photos.some((p) => p.kind === "live");
@@ -200,6 +203,16 @@ function PhotoEditor() {
     // changes, never when the stack itself does.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeId, replaceLayers]);
+
+  // Keep the selected thumbnail on screen. Without this, moving a photo past
+  // the edge of the visible strip looks like it vanished — the arrows would
+  // appear to delete rather than reorder.
+  useEffect(() => {
+    if (!activeId) return;
+    stripRef.current
+      ?.querySelector<HTMLElement>(`[data-photo-id="${CSS.escape(activeId)}"]`)
+      ?.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "smooth" });
+  }, [activeId, photos]);
 
   const patchActive = useCallback(
     (patch: Partial<EditPhoto>) => {
@@ -362,6 +375,25 @@ function PhotoEditor() {
     if (source === "device") fileInputRef.current?.click();
     else if (source === "drafts") setDraftsOpen(true);
     else setPostsOpen(true);
+  }
+
+  /** Swap the selected photo with its neighbour.
+   *
+   *  Order is the post: `photos[0]` becomes the cover, and `handleNext` bakes
+   *  the array in sequence, so moving a tile here is the only thing that
+   *  decides what the feed shows first. Selection follows the photo rather
+   *  than the slot, because it's keyed by id — tap the arrow three times and
+   *  you're still holding the same picture. */
+  function movePhoto(direction: -1 | 1) {
+    if (!activeId) return;
+    setPhotos((prev) => {
+      const from = prev.findIndex((p) => p.id === activeId);
+      const to = from + direction;
+      if (from < 0 || to < 0 || to >= prev.length) return prev;
+      const next = [...prev];
+      [next[from], next[to]] = [next[to], next[from]];
+      return next;
+    });
   }
 
   function removeActive() {
@@ -845,57 +877,100 @@ function PhotoEditor() {
             </div>
           )}
 
+          {/* The carousel strip, and the controls that act on the selected
+              photo. The thumbnails scroll; the buttons do NOT — they sit
+              outside the scroller so reorder and delete can't slide off the
+              edge of a six-photo carousel, which is exactly when you need
+              them. */}
           {!empty && (
-            <div
-              className="flex items-center justify-center gap-2 overflow-x-auto px-4 pb-3"
-              style={{ scrollbarWidth: "none" }}
-            >
-              {photos.map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => setActiveId(p.id)}
-                  aria-label="Select photo"
-                  aria-pressed={p.id === activeId}
-                  className={`h-[46px] w-[46px] shrink-0 overflow-hidden rounded-[6px] border-2 transition-colors ${
-                    p.id === activeId ? "border-white" : "border-transparent opacity-60"
-                  }`}
-                >
-                  {p.kind === "live" ? (
-                    <video
-                      src={p.url}
-                      muted
-                      playsInline
-                      preload="metadata"
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <img src={p.url} alt="" className="h-full w-full object-cover" />
-                  )}
-                </button>
-              ))}
-              {/* No plus beside a live photo: there is nothing it could add
-                  that the post is allowed to hold. Hiding it beats letting the
-                  tap through to an error message. */}
-              {!hasLive && (
-                <button
-                  type="button"
-                  onClick={openSource}
-                  aria-label="Add photos"
-                  className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-[6px] bg-white/[0.12] active:scale-90"
-                >
-                  <Plus size={20} />
-                </button>
-              )}
+            <div className="flex items-center gap-2 px-4 pb-3">
+              <div
+                ref={stripRef}
+                className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto"
+                style={{ scrollbarWidth: "none" }}
+              >
+                {photos.map((p, i) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    data-photo-id={p.id}
+                    onClick={() => setActiveId(p.id)}
+                    aria-label={i === 0 ? "Select cover photo" : `Select photo ${i + 1}`}
+                    aria-pressed={p.id === activeId}
+                    className={`relative h-[46px] w-[46px] shrink-0 overflow-hidden rounded-[6px] border-2 transition-colors ${
+                      p.id === activeId ? "border-white" : "border-transparent opacity-60"
+                    }`}
+                  >
+                    {p.kind === "live" ? (
+                      <video
+                        src={p.url}
+                        muted
+                        playsInline
+                        preload="metadata"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <img src={p.url} alt="" className="h-full w-full object-cover" />
+                    )}
+                    {/* Order is not decoration: the first photo is the cover,
+                        and the cover is what the whole feed judges the post by.
+                        Saying so on the tile is what makes the arrows worth
+                        reaching for. */}
+                    {i === 0 && photos.length > 1 && (
+                      <span className="absolute inset-x-0 bottom-0 bg-black/65 text-[8px] font-semibold leading-[12px] text-white">
+                        Cover
+                      </span>
+                    )}
+                  </button>
+                ))}
+                {/* No plus beside a live photo: there is nothing it could add
+                    that the post is allowed to hold. Hiding it beats letting the
+                    tap through to an error message. */}
+                {!hasLive && (
+                  <button
+                    type="button"
+                    onClick={openSource}
+                    aria-label="Add photos"
+                    className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-[6px] bg-white/[0.12] active:scale-90"
+                  >
+                    <Plus size={20} />
+                  </button>
+                )}
+              </div>
+
               {(photos.length > 1 || hasLive) && (
-                <button
-                  type="button"
-                  onClick={removeActive}
-                  aria-label="Remove this photo"
-                  className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-[6px] bg-white/[0.12] text-white/70 active:scale-90"
-                >
-                  <Trash2 size={18} />
-                </button>
+                <div className="flex shrink-0 items-center gap-1">
+                  {photos.length > 1 && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => movePhoto(-1)}
+                        disabled={activeIndex <= 0}
+                        aria-label="Move this photo earlier"
+                        className="flex h-[38px] w-[30px] items-center justify-center rounded-[6px] bg-white/[0.12] active:scale-90 disabled:opacity-25"
+                      >
+                        <ChevronLeft size={17} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => movePhoto(1)}
+                        disabled={activeIndex < 0 || activeIndex >= photos.length - 1}
+                        aria-label="Move this photo later"
+                        className="flex h-[38px] w-[30px] items-center justify-center rounded-[6px] bg-white/[0.12] active:scale-90 disabled:opacity-25"
+                      >
+                        <ChevronRight size={17} />
+                      </button>
+                    </>
+                  )}
+                  <button
+                    type="button"
+                    onClick={removeActive}
+                    aria-label="Remove this photo"
+                    className="flex h-[38px] w-[38px] items-center justify-center rounded-[6px] bg-white/[0.12] text-white/70 active:scale-90"
+                  >
+                    <Trash2 size={17} />
+                  </button>
+                </div>
               )}
             </div>
           )}

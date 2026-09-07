@@ -22,8 +22,28 @@ nobody "fixes" it later.
 
 Expand step only — `posts.media_url` / `media_type` / `thumbnail_url` are still
 written with item 0 as the cover, so every reader that wants one image keeps
-working untouched. **A contract migration dropping them is still owed**, and
-must not run until nothing reads them. RLS on `post_media` mirrors
+working untouched.
+
+**On the "contract migration" that was said to be owed: don't do it.** The
+recommendation has changed on inspection. The readers still on those columns —
+the profile grid, the media pickers, the drafts page — each want exactly one
+image to put in a square, which is what those columns hold. Dropping them would
+force all three to join `post_media` and filter `position = 0` to get something
+they already have for free. The honest fix is a rename, not a deletion: treat
+them as a documented **cover cache**, kept deliberately denormalised. The real
+risk is a new screen reading `posts.media_url` and silently showing one photo of
+five — which is a code-review habit, not a schema problem. Decide before
+launch: rename to `cover_*`, or leave the names and rely on the comment.
+
+- **Carousels stay photos-only. [DECIDED — 2026-09-07]** `post_media.media_type`
+  accepts "video" because it was cheaper to allow than forbid, but nothing
+  produces a mixed carousel and nothing should. The video editor exists to weld
+  many clips into one MP4; a second, worse way to put several clips in a post
+  would compete with it, and the feed can't decide whether a mixed post is
+  swiped or watched. Live photos already cover "a moving thing in a photo post",
+  which is why one owns the whole post. Consequence: per-item posters
+  (`post_media.thumbnail_url` is only set for item 0) need no fixing — a photo
+  is its own poster. RLS on `post_media` mirrors
 `post_product_tags` exactly; none of the twelve tables in 1.1 were touched.
 
 Wired end to end: the photo editor bakes every photo in its carousel, the
@@ -57,12 +77,19 @@ isn't the one that can't add a song.
 The other dead button in that toolbar, **Link**, has since been removed — see
 0.4.
 
-Two things deliberately left: there is **no sound library**, only files off the
-device — a licensed catalogue is a business decision, not a build; and the feed
-has **no volume control**, since autoplay is the only sound the app makes and
-the tap surface already stops it. First playback in a session is blocked by
-autoplay policy until a gesture, so the caption line reads "Tap for sound" until
-it isn't.
+**No sound library · [URGENT — licensing in progress, 2026-09-07]** — sellers
+can only attach an audio file off their own device, which in practice means
+"have an mp3 lying around", which most won't. The feature is built and the hole
+is the catalogue. Diadem is sourcing licensed libraries; this is held on that,
+not on engineering. When a catalogue exists it plugs in where the device picker
+is, in the photo editor's and after-shot's Sound buttons — `PhotoSound` /
+`CaptureAudio` already carry `{blob, url, name}`, so a library track only needs
+to produce those three fields.
+
+The feed has **no volume control**, deliberately: autoplay is the only sound the
+app makes and the tap surface already stops it. First playback in a session is
+blocked by autoplay policy until a gesture, so the caption line reads "Tap for
+sound" until it isn't.
 
 ### 0.3 Live photos · [DONE — 2026-09-07]
 
