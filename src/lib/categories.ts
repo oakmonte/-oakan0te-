@@ -535,6 +535,7 @@ const APPAREL_ACCESSORIES: CategoryNode = {
             { id: "jogger-shorts", name: "Jogger Shorts" },
             { id: "legging-shorts", name: "Legging Shorts" },
             { id: "short-trousers", name: "Short Trousers" },
+            { id: "volleyball-shorts", name: "Volleyball Shorts" },
           ],
         },
         { id: "clothing-skirts", name: "Skirts" },

@@ -28,7 +28,7 @@ Steps that get this: choose username, seller type, where did you hear about us, 
 
 ### Find your fit gets extra treatment
 
-That screen carries 19 body-type illustrations plus two large measurement guides — the heaviest onboarding screen by far. On the step *before* it ("where did you hear about us"), we'll also start warming its images in the background, in priority order:
+That screen carries 19 body-type illustrations plus two large measurement guides — the heaviest onboarding screen by far. On the step _before_ it ("where did you hear about us"), we'll also start warming its images in the background, in priority order:
 
 1. The body-type illustrations shown in the first visible row.
 2. The remaining illustrations.

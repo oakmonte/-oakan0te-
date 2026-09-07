@@ -3,20 +3,33 @@ import { SwitchCamera } from "lucide-react";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
 import { type BarcodeType } from "@/lib/barcode-types";
 
-// The Shape Detection API's BarcodeDetector -- shipped in Chrome/Android and
-// in Safari/iOS since 17 -- lets us decode straight from the live <video>
-// element with no scanning library or extra bundle weight. Where it isn't
-// available (older WebKit, most non-Chromium desktop browsers) this sheet
-// falls back to a plain "not supported, type it in" message rather than
-// pretending to scan.
+// The Shape Detection API's native BarcodeDetector -- shipped in Chrome/Edge/
+// Android -- decodes straight off the live <video> element with zero bundle
+// cost. Safari and Firefox have never implemented it (checked against MDN/
+// caniuse directly -- an earlier version of this comment claimed Safari 17
+// shipped it, which is wrong), which used to mean every iPhone seller landed
+// on a plain "not supported" message with no way to scan at all. Where the
+// native constructor is missing, `start()` below dynamically imports the
+// `barcode-detector` package instead -- a same-interface ponyfill backed by
+// ZXing compiled to WebAssembly. That import (and the wasm binary it fetches
+// on first use) only happens inside this effect, so it costs nothing on any
+// other page, and costs nothing at all for the Chrome/Android sellers who
+// already had a working native detector.
 type DetectedBarcode = { rawValue: string; format: string };
 interface BarcodeDetectorLike {
   detect(source: CanvasImageSource): Promise<DetectedBarcode[]>;
 }
+type BarcodeDetectorCtor = new (options?: { formats?: string[] }) => BarcodeDetectorLike;
 declare global {
   interface Window {
-    BarcodeDetector?: new (options?: { formats?: string[] }) => BarcodeDetectorLike;
+    BarcodeDetector?: BarcodeDetectorCtor;
   }
+}
+
+async function getBarcodeDetectorCtor(): Promise<BarcodeDetectorCtor> {
+  if (typeof window !== "undefined" && window.BarcodeDetector) return window.BarcodeDetector;
+  const { BarcodeDetector } = await import("barcode-detector/ponyfill");
+  return BarcodeDetector as unknown as BarcodeDetectorCtor;
 }
 
 const SCAN_FORMATS = [
@@ -53,20 +66,16 @@ export function BarcodeScanSheet({
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [facing, setFacing] = useState<"environment" | "user">("environment");
-  const [supported] = useState(
-    () => typeof window !== "undefined" && typeof window.BarcodeDetector !== "undefined",
-  );
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!supported || !window.BarcodeDetector) return;
     let cancelled = false;
     let rafId = 0;
     let detected = false;
-    const detector = new window.BarcodeDetector({ formats: SCAN_FORMATS });
+    let detector: BarcodeDetectorLike | null = null;
 
     async function loop() {
-      if (cancelled || detected) return;
+      if (cancelled || detected || !detector) return;
       const video = videoRef.current;
       if (video && video.readyState >= 2) {
         try {
@@ -93,19 +102,26 @@ export function BarcodeScanSheet({
     async function start() {
       streamRef.current?.getTracks().forEach((t) => t.stop());
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: facing, width: { ideal: 1280 } },
-        });
+        const [stream, DetectorCtor] = await Promise.all([
+          navigator.mediaDevices.getUserMedia({
+            video: { facingMode: facing, width: { ideal: 1280 } },
+          }),
+          getBarcodeDetectorCtor(),
+        ]);
         if (cancelled) {
           stream.getTracks().forEach((t) => t.stop());
           return;
         }
+        detector = new DetectorCtor({ formats: SCAN_FORMATS });
         streamRef.current = stream;
         if (videoRef.current) videoRef.current.srcObject = stream;
         setError("");
         loop();
       } catch {
-        if (!cancelled) setError("Camera access was denied or isn't available.");
+        if (!cancelled)
+          setError(
+            "Couldn't start the camera or scanner. Try again, or enter the code manually below.",
+          );
       }
     }
 
@@ -118,9 +134,9 @@ export function BarcodeScanSheet({
     // onDetected excluded on purpose -- it's a fresh inline closure on every
     // parent render (BarcodesSheet re-renders on every keystroke in any
     // row), and including it would tear down and restart the camera stream
-    // mid-scan for no reason. Only facing/supported should ever restart it.
+    // mid-scan for no reason. Only facing should ever restart it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [facing, supported]);
+  }, [facing]);
 
   return (
     <div className="fixed inset-0 z-[60] bg-black flex flex-col min-h-dvh animate-in fade-in duration-200">
@@ -143,28 +159,16 @@ export function BarcodeScanSheet({
         </button>
       </div>
 
-      {supported ? (
-        <>
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            muted
-            className="flex-1 w-full h-full object-cover"
-          />
-          <div className="absolute inset-x-10 top-1/2 -translate-y-1/2 aspect-[16/9] border-2 border-white/70 rounded-2xl pointer-events-none" />
-          {error && (
-            <p className="absolute bottom-10 inset-x-6 text-center text-sm text-white/90">
-              {error}
-            </p>
-          )}
-        </>
-      ) : (
-        <div className="flex-1 flex items-center justify-center px-8">
-          <p className="text-center text-sm text-white/80">
-            Barcode scanning isn't supported on this browser — enter the code manually instead.
-          </p>
-        </div>
+      <video
+        ref={videoRef}
+        autoPlay
+        playsInline
+        muted
+        className="flex-1 w-full h-full object-cover"
+      />
+      <div className="absolute inset-x-10 top-1/2 -translate-y-1/2 aspect-[16/9] border-2 border-white/70 rounded-2xl pointer-events-none" />
+      {error && (
+        <p className="absolute bottom-10 inset-x-6 text-center text-sm text-white/90">{error}</p>
       )}
     </div>
   );
