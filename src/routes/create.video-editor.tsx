@@ -100,7 +100,15 @@ export const Route = createFileRoute("/create/video-editor")({
 // whole timeline.
 
 type ToolId =
-  "clip" | "text" | "sticker" | "filter" | "adjust" | "ratio" | "transition" | "sound" | "soon";
+  | "clip"
+  | "text"
+  | "sticker"
+  | "filter"
+  | "adjust"
+  | "ratio"
+  | "transition"
+  | "sound"
+  | "soon";
 
 type SoonInfo = { title: string; body: string };
 

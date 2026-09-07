@@ -12,7 +12,7 @@ const raw = JSON.parse(
 const seed = {};
 for (const [name, countryCode, stateCode] of raw) {
   if (!PRIORITY.includes(countryCode)) continue;
-  (seed[countryCode] ??= {});
+  seed[countryCode] ??= {};
   (seed[countryCode][stateCode] ??= []).push(name);
 }
 for (const country of Object.values(seed))
