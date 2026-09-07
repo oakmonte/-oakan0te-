@@ -28,6 +28,7 @@ function NewCollection() {
   const { storeId } = useActiveStoreId();
 
   const [imageUrl, setImageUrl] = useState("");
+  const [additionalImageUrls, setAdditionalImageUrls] = useState<string[]>([]);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState(""); // HTML
   const [descriptionSheetOpen, setDescriptionSheetOpen] = useState(false);
@@ -70,6 +71,7 @@ function NewCollection() {
         title: title.trim(),
         description: description.trim() || null,
         image_url: imageUrl.trim() || null,
+        additional_image_urls: additionalImageUrls.length > 0 ? additionalImageUrls : null,
       })
       .select("id")
       .single();
@@ -123,7 +125,12 @@ function NewCollection() {
         </p>
       )}
 
-      <MediaSection mainImageUrl={imageUrl} onChange={setImageUrl} />
+      <MediaSection
+        mainImageUrl={imageUrl}
+        onChange={setImageUrl}
+        additionalImageUrls={additionalImageUrls}
+        onAdditionalChange={setAdditionalImageUrls}
+      />
 
       <div className="px-4 py-4 border-b-8 border-gray-50">
         <input

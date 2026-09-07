@@ -74,6 +74,9 @@ function StoreCollections() {
       ) : collections.length === 0 ? (
         <div className="flex flex-col items-center gap-3 py-12 animate-in fade-in duration-300">
           <p className="text-sm text-gray-400 text-center">No collections yet.</p>
+          <p className="text-xs text-gray-400 text-center max-w-[240px]">
+            You can group complimentary products as a collection.
+          </p>
           <button
             type="button"
             onClick={() => navigate({ to: "/store/collections/new" })}

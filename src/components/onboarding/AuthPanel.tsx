@@ -18,7 +18,7 @@ import { supabase } from "@/lib/integrations/my-supabase/client";
 import { GoogleIcon } from "@/components/auth-icons";
 import { Spinner } from "@/components/spinner";
 import { CodeInput } from "@/components/onboarding/CodeInput";
-import { FormError } from "@/components/onboarding/OnboardingShell";
+import { FormError, OnboardingChecking } from "@/components/onboarding/OnboardingShell";
 import logoO from "@/assets/logo-o.png";
 
 const RESEND_SECONDS = 30;
@@ -236,12 +236,12 @@ export function AuthPanel({ intent, title, subtitle, defaultMode = "code" }: Pro
   const mm = String(Math.floor(countdown / 60)).padStart(2, "0");
   const ss = String(countdown % 60).padStart(2, "0");
 
+  // Same screen as every other pre-onboarding session check (brand-bg #fff /
+  // brand-text #0A0A0A are the same values this component used to hardcode
+  // directly) — this is the one visitors actually land on first, from
+  // /sign-in and the three intent pages, so it gets the same copy/font.
   if (checkingSession) {
-    return (
-      <div className="min-h-dvh bg-white text-[#0A0A0A] flex items-center justify-center">
-        <span className="text-sm text-[#0A0A0A]/50">One moment…</span>
-      </div>
-    );
+    return <OnboardingChecking />;
   }
 
   return (

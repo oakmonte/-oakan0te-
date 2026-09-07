@@ -19,9 +19,9 @@ export function MediaSection({
   onAdditionalChange?: (urls: string[]) => void;
 }) {
   // Multi-image support (add/remove/reorder without losing what's already
-  // there) only makes sense where the caller actually tracks a gallery —
-  // store.collections_.new.tsx only wants a single cover image, so it never
-  // passes onAdditionalChange, and the native picker stays single-select.
+  // there) only makes sense where the caller actually tracks a gallery — a
+  // caller that never passes onAdditionalChange keeps the native picker
+  // single-select and only ever has a cover image.
   const supportsGallery = !!onAdditionalChange;
 
   const [sourceSheetOpen, setSourceSheetOpen] = useState(false);

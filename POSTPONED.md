@@ -198,12 +198,20 @@ account-deletion cleanup route). A loose plausibility check (real garment ratio 
 deliberately so no legitimate cut gets rejected) catches typo'd/garbled input without exposing
 any rule text to sellers.
 
-What's left is coverage, not architecture: 18 guide images are wired up (tops: t-shirt, polo,
-dress shirt, off-shoulder, NFL/football jersey; bottoms: joggers x4, trousers, jeans, shorts x5),
-but categories that require Size and have no chart yet — shoes, dresses, costumes &
-accessories — fall back to the old manual-pick-only flow (`ManualSize`) with no measurement
-chart. Add more by extending `CHARTS_BY_CATEGORY` + `GUIDE_IMAGES`, same pattern as the existing
-entries.
+What's left is coverage, not architecture. **27 guide images** are wired across roughly 47
+category leaves (tops: t-shirt x3, polo x2, dress shirt, off-shoulder, NFL/football jersey,
+overshirt, sweatshirt; bottoms: joggers x4, trousers, jeans, shorts x6; plus corsets, bodysuits
+and their lingerie variants). Categories that require Size and still have no chart — shoes,
+dresses, costumes & accessories — fall back to the manual-pick-only flow (`ManualSize`). Add more
+by extending `CHARTS_BY_CATEGORY` + `GUIDE_IMAGES`, same pattern as the existing entries.
+
+`src/components/product-form/size-chart/IMAGE-COMPLAINTS.md` is the audit of the guide artwork
+that is present but deliberately **not** wired, with the reason for each: bomber and track
+jackets, sweater vests, camisoles, blouses and tube tops all need their own measurement
+definitions because their label sets don't match the shared five-line top chart, and several
+corset/bodysuit files are near-duplicate rear views of guides already registered. Tube Tops has
+no category at all yet. Read that file before adding artwork — it will tell you whether the image
+you're about to wire was skipped on purpose.
 
 ### 2.2 `/find-your-fit` collects nothing · [DONE — 2026-08-28]
 
