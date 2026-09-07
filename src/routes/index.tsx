@@ -1217,9 +1217,13 @@ const CSS = `
 
 .oak .stars{color:var(--blue);letter-spacing:2px;margin-right:6px;}
 
-.oak .hero-media{position:relative;margin-top:72px;border-radius:24px;overflow:hidden;opacity:0;animation:oakFadeUp .9s ease forwards;animation-delay:.9s;background:#e8e8e8;}
-.oak .hero-media img{width:100%;height:auto;display:block;object-fit:contain;}
+.oak .hero-media{position:relative;margin-top:72px;margin-inline:auto;width:min(100%,58vh);aspect-ratio:3/4;border-radius:24px;overflow:hidden;opacity:0;animation:oakFadeUp .9s ease forwards;animation-delay:.9s;background:#e8e8e8;isolation:isolate;}
+.oak .hero-slide{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 20%;display:block;opacity:0;transform:scale(1.04);transition:opacity .7s ease,transform 2.8s ease;pointer-events:none;}
+.oak .hero-slide.active{opacity:1;transform:scale(1);}
+.oak .hero-media::after{content:"";position:absolute;inset:0;z-index:2;border-radius:inherit;box-shadow:inset 0 0 0 1px rgba(0,0,0,.06),inset 0 -80px 90px -50px rgba(0,0,0,.45);pointer-events:none;}
 .oak .media-cap{position:absolute;left:24px;bottom:20px;z-index:3;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.6);}
+@media (max-width:640px){.oak .hero-media{width:100%;margin-top:48px;}}
+@media (prefers-reduced-motion:reduce){.oak .hero-slide{transition:none;transform:none;}}
 
 .oak .trust-marquee{width:100%;overflow:hidden;background:var(--black);padding:16px 0;margin-top:64px;}
 .oak .trust-marquee .track{display:flex;white-space:nowrap;width:max-content;animation:oakScroll 22s linear infinite;}
