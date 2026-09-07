@@ -87,6 +87,48 @@ const HERO_SLIDES = [
 ];
 const SLIDE_INTERVAL_MS = 2500;
 
+// Frame fill color per slide, keyed by src. Populated by sampling each
+// image's own edge pixels once it's loaded — a real "smear the edges"
+// fill (same idea as Apple Music/Photos backgrounds), not a blurred
+// rescaled copy of the whole image. A blurred *cover* copy crops a
+// different rectangle than the `contain` foreground shows, so on an
+// off-ratio card it can pull in a strip with different content/color
+// than what's actually visible — reads as a mismatched color bleeding
+// in from nowhere. Sampling the real edge pixels can't do that: the
+// color always comes from the image being shown, at the moment it's
+// shown. Cached at module scope so revisiting a slide is instant.
+const edgeColorCache = new Map<string, string>();
+
+const EDGE_SAMPLE_SIZE = 32;
+
+function sampleEdgeColor(img: HTMLImageElement): string {
+  const canvas = document.createElement("canvas");
+  canvas.width = EDGE_SAMPLE_SIZE;
+  canvas.height = EDGE_SAMPLE_SIZE;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return "#e8e8e8";
+  ctx.drawImage(img, 0, 0, EDGE_SAMPLE_SIZE, EDGE_SAMPLE_SIZE);
+  const { data } = ctx.getImageData(0, 0, EDGE_SAMPLE_SIZE, EDGE_SAMPLE_SIZE);
+  let r = 0;
+  let g = 0;
+  let b = 0;
+  let n = 0;
+  // Only the outer ring — these cards center their text/logo, so the
+  // border pixels are reliably just the card's background color.
+  for (let y = 0; y < EDGE_SAMPLE_SIZE; y++) {
+    for (let x = 0; x < EDGE_SAMPLE_SIZE; x++) {
+      const onEdge = x < 2 || y < 2 || x >= EDGE_SAMPLE_SIZE - 2 || y >= EDGE_SAMPLE_SIZE - 2;
+      if (!onEdge) continue;
+      const i = (y * EDGE_SAMPLE_SIZE + x) * 4;
+      r += data[i];
+      g += data[i + 1];
+      b += data[i + 2];
+      n++;
+    }
+  }
+  return `rgb(${Math.round(r / n)}, ${Math.round(g / n)}, ${Math.round(b / n)})`;
+}
+
 /* ---------------- Data ---------------- */
 const FEATURES = [
   { title: "Sellers", points: ["Logistics handled", "Wider customer base", "Custom stores"] },
@@ -352,6 +394,14 @@ const NAV: { label: string; href: string; key?: MenuKey }[] = [
 // prefers-reduced-motion.
 function HeroSlideshow() {
   const [index, setIndex] = useState(0);
+  const [edgeColors, setEdgeColors] = useState<Record<string, string>>(() =>
+    Object.fromEntries(
+      HERO_SLIDES.filter((src) => edgeColorCache.has(src)).map((src) => [
+        src,
+        edgeColorCache.get(src)!,
+      ]),
+    ),
+  );
 
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
@@ -362,6 +412,13 @@ function HeroSlideshow() {
     return () => window.clearInterval(id);
   }, []);
 
+  function handleLoad(src: string, el: HTMLImageElement) {
+    if (edgeColorCache.has(src)) return;
+    const color = sampleEdgeColor(el);
+    edgeColorCache.set(src, color);
+    setEdgeColors((prev) => ({ ...prev, [src]: color }));
+  }
+
   const n = HERO_SLIDES.length;
   return (
     <>
@@ -370,19 +427,15 @@ function HeroSlideshow() {
           i === index ? 0 : i === (index + 1) % n ? 1 : i === (index - 1 + n) % n ? -1 : null;
         if (offset === null) return null;
         return (
-          // Two layers, not one `object-fit:cover` image: these frames are
-          // typographic quote cards (variable aspect, text right to the
-          // edge), not candid photos. Cover-cropping a fixed 3:4 window
-          // sliced words off. `contain` keeps every card whole; the blurred
-          // cover copy behind it fills the frame so there's no dead gray
-          // margin instead of a crop.
           <div
             key={src}
             className="hero-slide-wrap"
-            style={{ transform: `translateX(${offset * 100}%)` }}
+            style={{
+              transform: `translateX(${offset * 100}%)`,
+              backgroundColor: edgeColors[src],
+            }}
             aria-hidden={i !== index}
           >
-            <img src={src} alt="" className="hero-slide-bg" decoding="async" draggable={false} />
             <img
               src={src}
               alt={i === index ? "Oakmonte community style quotes" : ""}
@@ -392,6 +445,7 @@ function HeroSlideshow() {
               fetchPriority={i === 0 ? "high" : "auto"}
               decoding="async"
               draggable={false}
+              onLoad={(e) => handleLoad(src, e.currentTarget)}
             />
           </div>
         );
@@ -1239,8 +1293,7 @@ const CSS = `
 .oak .stars{color:var(--blue);letter-spacing:2px;margin-right:6px;}
 
 .oak .hero-media{position:relative;margin-top:72px;margin-inline:auto;width:min(100%,58vh);aspect-ratio:3/4;border-radius:24px;overflow:hidden;opacity:0;animation:oakFadeUp .9s ease forwards;animation-delay:.9s;background:#e8e8e8;isolation:isolate;}
-.oak .hero-slide-wrap{position:absolute;inset:0;transition:transform .7s ease;will-change:transform;}
-.oak .hero-slide-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;filter:blur(28px) brightness(.75) saturate(1.1);transform:scale(1.2);pointer-events:none;}
+.oak .hero-slide-wrap{position:absolute;inset:0;background:#e8e8e8;transition:transform .7s ease,background-color .4s ease;will-change:transform;}
 .oak .hero-slide-fg{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block;pointer-events:none;}
 .oak .hero-media::after{content:"";position:absolute;inset:0;z-index:2;border-radius:inherit;box-shadow:inset 0 0 0 1px rgba(0,0,0,.06),inset 0 -80px 90px -50px rgba(0,0,0,.45);pointer-events:none;}
 .oak .media-cap{position:absolute;left:24px;bottom:20px;z-index:3;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.6);}
