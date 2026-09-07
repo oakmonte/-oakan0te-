@@ -5,8 +5,23 @@ import logoAsset from "@/assets/oakmonte-o-mark.png.asset.json";
 import logoO from "@/assets/logo-o.png";
 import heroAsset from "@/assets/hero-editorial.jpg.asset.json";
 import streetwearAsset from "@/assets/streetwear-summerstyle.jpeg.asset.json";
-import phoneMockupAsset from "@/assets/oakmonte-phone-mockup.png.asset.json";
 import femalePov from "@/assets/female-first-person-pov.jpg";
+import slideFirst from "@/assets/Index page fastloading slideshow/First image.jpg";
+import slide1 from "@/assets/Index page fastloading slideshow/photo_1_2026-09-07_04-50-03.jpg";
+import slide2 from "@/assets/Index page fastloading slideshow/photo_2_2026-09-07_04-50-03.jpg";
+import slide3 from "@/assets/Index page fastloading slideshow/photo_3_2026-09-07_04-50-03.jpg";
+import slide4 from "@/assets/Index page fastloading slideshow/photo_4_2026-09-07_04-50-03.jpg";
+import slide5 from "@/assets/Index page fastloading slideshow/photo_5_2026-09-07_04-50-03.jpg";
+import slide6 from "@/assets/Index page fastloading slideshow/photo_6_2026-09-07_04-50-03.jpg";
+import slide7 from "@/assets/Index page fastloading slideshow/photo_7_2026-09-07_04-50-03.jpg";
+import slide8 from "@/assets/Index page fastloading slideshow/photo_8_2026-09-07_04-50-03.jpg";
+import slide9 from "@/assets/Index page fastloading slideshow/photo_9_2026-09-07_04-50-03.jpg";
+import slide10 from "@/assets/Index page fastloading slideshow/photo_10_2026-09-07_04-50-03.jpg";
+import slide11 from "@/assets/Index page fastloading slideshow/photo_11_2026-09-07_04-50-03.jpg";
+import slide12 from "@/assets/Index page fastloading slideshow/photo_12_2026-09-07_04-50-03.jpg";
+import slide13 from "@/assets/Index page fastloading slideshow/photo_13_2026-09-07_04-50-03.jpg";
+import slide14 from "@/assets/Index page fastloading slideshow/photo_14_2026-09-07_04-50-03.jpg";
+import slide15 from "@/assets/Index page fastloading slideshow/photo_2026-09-07_04-48-53.jpg";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -27,11 +42,11 @@ export const Route = createFileRoute("/")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [
-      // Hero phone mockup is the LCP image — start its fetch before hydration.
+      // First slideshow frame is the LCP image — start its fetch before hydration.
       {
         rel: "preload",
         as: "image",
-        href: phoneMockupAsset.url,
+        href: slideFirst,
         fetchPriority: "high",
       },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -47,9 +62,30 @@ export const Route = createFileRoute("/")({
 
 /* ---------------- Images ---------------- */
 const IMG_LOGO = logoAsset.url;
-const IMG_HERO = phoneMockupAsset.url;
 const IMG_STORY = streetwearAsset.url;
 const IMG_SCALE = femalePov;
+
+// Hero slideshow frames, in play order. All portrait ~1280px tall;
+// the frame is 3:4 (the median aspect across the set) with object-cover.
+const HERO_SLIDES = [
+  slideFirst,
+  slide1,
+  slide2,
+  slide3,
+  slide4,
+  slide5,
+  slide6,
+  slide7,
+  slide8,
+  slide9,
+  slide10,
+  slide11,
+  slide12,
+  slide13,
+  slide14,
+  slide15,
+];
+const SLIDE_INTERVAL_MS = 2500;
 
 /* ---------------- Data ---------------- */
 const FEATURES = [
@@ -302,6 +338,48 @@ const NAV: { label: string; href: string; key?: MenuKey }[] = [
 ];
 
 /* ---------------- Page ---------------- */
+// Auto-advancing crossfade slideshow for the hero. Only the active,
+// previous and next frames are mounted, so the upcoming image is always
+// decoded and ready before its turn — no blank flashes, no loading all
+// 16 frames at once. Pauses entirely for prefers-reduced-motion.
+function HeroSlideshow() {
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const id = window.setInterval(
+      () => setIndex((i) => (i + 1) % HERO_SLIDES.length),
+      SLIDE_INTERVAL_MS,
+    );
+    return () => window.clearInterval(id);
+  }, []);
+
+  const n = HERO_SLIDES.length;
+  return (
+    <>
+      {HERO_SLIDES.map((src, i) => {
+        const mounted = i === index || i === (index + 1) % n || i === (index - 1 + n) % n;
+        if (!mounted) return null;
+        return (
+          <img
+            key={src}
+            src={src}
+            alt={i === index ? "Oakmonte community fashion looks" : ""}
+            aria-hidden={i !== index}
+            className={`hero-slide${i === index ? " active" : ""}`}
+            width={960}
+            height={1280}
+            fetchPriority={i === 0 ? "high" : "auto"}
+            decoding="async"
+            draggable={false}
+          />
+        );
+      })}
+      <span className="media-cap">SELL · POST · SHOP — ALL IN ONE PLACE</span>
+    </>
+  );
+}
+
 function OakmonteLanding() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileGroup, setMobileGroup] = useState<MenuKey | null>(null);
@@ -652,15 +730,7 @@ function OakmonteLanding() {
             </div>
 
             <div className="hero-media">
-              <img
-                src={IMG_HERO}
-                alt="Oakmonte app on a phone held toward the viewer"
-                width={1450}
-                height={1085}
-                fetchPriority="high"
-                decoding="async"
-              />
-              <span className="media-cap">SELL · POST · SHOP — ALL IN ONE PLACE</span>
+              <HeroSlideshow />
             </div>
           </div>
 
@@ -1147,9 +1217,13 @@ const CSS = `
 
 .oak .stars{color:var(--blue);letter-spacing:2px;margin-right:6px;}
 
-.oak .hero-media{position:relative;margin-top:72px;border-radius:24px;overflow:hidden;opacity:0;animation:oakFadeUp .9s ease forwards;animation-delay:.9s;background:#e8e8e8;}
-.oak .hero-media img{width:100%;height:auto;display:block;object-fit:contain;}
+.oak .hero-media{position:relative;margin-top:72px;margin-inline:auto;width:min(100%,58vh);aspect-ratio:3/4;border-radius:24px;overflow:hidden;opacity:0;animation:oakFadeUp .9s ease forwards;animation-delay:.9s;background:#e8e8e8;isolation:isolate;}
+.oak .hero-slide{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 20%;display:block;opacity:0;transform:scale(1.04);transition:opacity .7s ease,transform 2.8s ease;pointer-events:none;}
+.oak .hero-slide.active{opacity:1;transform:scale(1);}
+.oak .hero-media::after{content:"";position:absolute;inset:0;z-index:2;border-radius:inherit;box-shadow:inset 0 0 0 1px rgba(0,0,0,.06),inset 0 -80px 90px -50px rgba(0,0,0,.45);pointer-events:none;}
 .oak .media-cap{position:absolute;left:24px;bottom:20px;z-index:3;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.6);}
+@media (max-width:640px){.oak .hero-media{width:100%;margin-top:48px;}}
+@media (prefers-reduced-motion:reduce){.oak .hero-slide{transition:none;transform:none;}}
 
 .oak .trust-marquee{width:100%;overflow:hidden;background:var(--black);padding:16px 0;margin-top:64px;}
 .oak .trust-marquee .track{display:flex;white-space:nowrap;width:max-content;animation:oakScroll 22s linear infinite;}
