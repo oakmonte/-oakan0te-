@@ -326,7 +326,9 @@ export function SizeChartSheet({
   );
 }
 
-function SizePicker({
+// Exported for ManualSizeOnlySheet — same "pick a real size value" step,
+// reused for categories with no illustrated chart yet.
+export function SizePicker({
   system,
   onChangeSystem,
   onPick,

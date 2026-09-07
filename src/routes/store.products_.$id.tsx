@@ -19,6 +19,7 @@ import { DescriptionSheet } from "@/components/product-form/DescriptionSheet";
 import { CollectionsSheet } from "@/components/product-form/CollectionsSheet";
 import { TagsSheet } from "@/components/product-form/TagsSheet";
 import { NecessitiesSheet } from "@/components/product-form/NecessitiesSheet";
+import { allNecessitiesFilled, normalizeOptionName } from "@/lib/necessities";
 import { PricingSheet } from "@/components/product-form/PricingSheet";
 import { InventorySection } from "@/components/product-form/InventorySection";
 import { InventorySheet, type InventoryValues } from "@/components/product-form/InventorySheet";
@@ -114,6 +115,7 @@ type LoadedProduct = {
   }[];
   product_collections: { collection_id: string }[];
   product_tags: { tag_id: string }[];
+  post_product_tags: { post_id: string }[];
   product_size_measurements: { size_value: string; measurement_key: string; value_cm: number }[];
 };
 
@@ -237,8 +239,8 @@ function EditProduct() {
   // since a variant product's rows can each be a different size or fabric.
   function estimateWeightForRow(row: VariantRow): number | null {
     if (!chart) return null;
-    const rowSize = row.options.find((o) => o.name.trim().toLowerCase() === "size")?.value;
-    const rowMaterial = row.options.find((o) => o.name.trim().toLowerCase() === "material")?.value;
+    const rowSize = row.options.find((o) => normalizeOptionName(o.name) === "size")?.value;
+    const rowMaterial = row.options.find((o) => normalizeOptionName(o.name) === "material")?.value;
     const measurements = sizeMeasurements[rowSize ?? manualSize?.value ?? ""] ?? {};
     return estimateWeightGrams(chart.guide, measurements, rowMaterial ?? material);
   }
@@ -257,6 +259,7 @@ function EditProduct() {
   });
   const [tagsSheetOpen, setTagsSheetOpen] = useState(false);
   const [tagIds, setTagIds] = useState<string[]>(initialDraft?.tagIds ?? []);
+  const [linkedPostIds, setLinkedPostIds] = useState<string[]>(initialDraft?.linkedPostIds ?? []);
   const [necessitiesSheetOpen, setNecessitiesSheetOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -294,6 +297,7 @@ function EditProduct() {
            product_options(id, name, position, product_option_values(id, value, position)),
            product_collections(collection_id),
            product_tags(tag_id),
+           post_product_tags(post_id),
            product_size_measurements(size_value, measurement_key, value_cm)`,
         )
         .eq("id", productId)
@@ -466,6 +470,7 @@ function EditProduct() {
             : prev;
       });
       setTagIds(product.product_tags.map((t) => t.tag_id));
+      setLinkedPostIds(product.post_product_tags.map((l) => l.post_id));
 
       setLoading(false);
     })();
@@ -510,6 +515,7 @@ function EditProduct() {
       sizeMeasurements,
       manualSize,
       tagIds,
+      linkedPostIds,
       regularLegacyStockQty,
     };
   }
@@ -608,6 +614,41 @@ function EditProduct() {
       }
     }
 
+    // A category picks which necessities even apply -- without one there's
+    // nothing to check, which would make "clear the category" the easiest
+    // way around every other check below.
+    if (categoryPath.length === 0) {
+      setError("Pick a category before saving");
+      setCategoryPickerOpen(true);
+      return;
+    }
+
+    // Necessities gate Save entirely -- published or draft, not just
+    // published. A seller can still leave necessities half-done and come
+    // back later; they just can't save in that state at all, so a listing
+    // can never go out (or sit as a draft) missing the details a buyer or
+    // Oakmonte's own logistics actually need. Except "Link content" while
+    // saving as a draft: it depends on a post/draft existing at all, which
+    // is outside this form's control (see allNecessitiesFilled).
+    if (
+      !allNecessitiesFilled(
+        categoryPath,
+        kind,
+        options,
+        material,
+        sizeMeasurements,
+        manualSize,
+        rows,
+        regularWeightGrams,
+        linkedPostIds,
+        status,
+      )
+    ) {
+      setError("Fill in every necessity before saving — as a draft or published.");
+      setNecessitiesSheetOpen(true);
+      return;
+    }
+
     setSaving(true);
     setError("");
 
@@ -645,6 +686,7 @@ function EditProduct() {
       sizeMeasurements,
       collectionIds,
       tagIds,
+      linkedPostIds,
     });
     navigate({ to: "/store/products" });
   }
@@ -874,6 +916,7 @@ function EditProduct() {
           kind={kind}
           options={options}
           material={material}
+          onChangeMaterial={setMaterial}
           sizeMeasurements={sizeMeasurements}
           onChangeSizeMeasurements={setSizeMeasurements}
           manualSize={manualSize}
@@ -882,6 +925,8 @@ function EditProduct() {
           regularWeightGrams={regularWeightGrams}
           regularWeightEstimate={regularWeightEstimate}
           onChangeRegularWeightGrams={setRegularWeightGrams}
+          linkedPostIds={linkedPostIds}
+          onChangeLinkedPostIds={setLinkedPostIds}
           onClose={() => setNecessitiesSheetOpen(false)}
         />
       )}

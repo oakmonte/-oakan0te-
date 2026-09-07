@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { X, ChevronDown, XCircle } from "lucide-react";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
+import { cleanPriceDigits, displayPriceWithCommas, padPriceOnBlur } from "@/lib/format-price-input";
 
 const COMMISSION_RATE = 0.045;
 const PAYSTACK_RATE = 0.015;
@@ -18,40 +19,6 @@ function computeFees(price: number) {
   let paystackFee = price * PAYSTACK_RATE + (hasFlatFee ? PAYSTACK_FLAT_FEE : 0);
   paystackFee = Math.min(paystackFee, PAYSTACK_FEE_CAP);
   return { commission, paystackFee, hasFlatFee, total: commission + paystackFee };
-}
-
-// Keeps at most one decimal point and 2 digits after it, stripping everything
-// else — this is the raw value handed to onChange (no commas), so existing
-// parseFloat() consumers elsewhere in the form don't need to change.
-function cleanDigits(raw: string): string {
-  let cleaned = raw.replace(/[^\d.]/g, "");
-  const firstDot = cleaned.indexOf(".");
-  if (firstDot !== -1) {
-    cleaned = cleaned.slice(0, firstDot + 1) + cleaned.slice(firstDot + 1).replace(/\./g, "");
-  }
-  const dotIndex = cleaned.indexOf(".");
-  if (dotIndex !== -1 && cleaned.length - dotIndex - 1 > 2) {
-    cleaned = cleaned.slice(0, dotIndex + 3);
-  }
-  return cleaned;
-}
-
-// Adds thousands separators to the integer part while typing, without
-// touching a decimal portion that's still being typed (so "20000.5" reads as
-// "20,000.5", not forced to "20,000.50" until the field is done with).
-function displayWithCommas(raw: string): string {
-  if (!raw) return "";
-  const [intPart, decPart] = raw.split(".");
-  const commaInt = (intPart ? Number(intPart) : 0).toLocaleString("en-US");
-  if (raw.includes(".")) return `${commaInt}.${decPart ?? ""}`;
-  return commaInt;
-}
-
-// Pads to exactly 2 decimal places once the seller leaves the field.
-function padOnBlur(raw: string): string {
-  if (!raw) return raw;
-  const [intPart, decPart] = raw.split(".");
-  return `${intPart || "0"}.${(decPart ?? "").padEnd(2, "0").slice(0, 2)}`;
 }
 
 export function PricingSheet({
@@ -217,9 +184,9 @@ function PriceBox({
         <input
           type="text"
           inputMode="decimal"
-          value={displayWithCommas(value)}
-          onChange={(e) => onChange(cleanDigits(e.target.value))}
-          onBlur={() => value && onChange(padOnBlur(value))}
+          value={displayPriceWithCommas(value)}
+          onChange={(e) => onChange(cleanPriceDigits(e.target.value))}
+          onBlur={() => value && onChange(padPriceOnBlur(value))}
           autoFocus={autoFocus}
           placeholder="0.00"
           className="text-base flex-1 outline-none min-w-0 bg-transparent"

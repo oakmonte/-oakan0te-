@@ -7,7 +7,16 @@ type ProductRow = {
   id: string;
   title: string | null;
   main_image_url: string | null;
+  status: string;
 };
+
+const STATUS_FILTERS = [
+  { key: "all", label: "All" },
+  { key: "active", label: "Active" },
+  { key: "draft", label: "Draft" },
+] as const;
+
+type StatusFilterKey = (typeof STATUS_FILTERS)[number]["key"];
 
 // Picker for a store's *existing* products, used from inside a collection's
 // detail page (and the new-collection form) — the reverse of
@@ -34,13 +43,14 @@ export function ProductsSheet({
   const [products, setProducts] = useState<ProductRow[] | null>(null); // null = loading
   const [selected, setSelected] = useState<Set<string>>(new Set(selectedIds));
   const [query, setQuery] = useState("");
+  const [status, setStatus] = useState<StatusFilterKey>("all");
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       const { data: rows } = await supabase
         .from("products")
-        .select("id, title, product_variants(main_image_url)")
+        .select("id, title, status, product_variants(main_image_url)")
         .eq("store_id", storeId)
         .order("created_at", { ascending: false });
       if (cancelled) return;
@@ -49,6 +59,7 @@ export function ProductsSheet({
         (rows ?? []).map((r) => ({
           id: r.id,
           title: r.title,
+          status: r.status,
           main_image_url: r.product_variants?.[0]?.main_image_url ?? null,
         })),
       );
@@ -67,8 +78,10 @@ export function ProductsSheet({
     });
   }
 
-  const filtered = (products ?? []).filter((p) =>
-    (p.title ?? "").toLowerCase().includes(query.trim().toLowerCase()),
+  const filtered = (products ?? []).filter(
+    (p) =>
+      (status === "all" || p.status === status) &&
+      (p.title ?? "").toLowerCase().includes(query.trim().toLowerCase()),
   );
 
   return (
@@ -117,10 +130,26 @@ export function ProductsSheet({
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Filter products"
+                placeholder="Search products"
                 className="bg-transparent text-base flex-1 outline-none"
               />
             </div>
+          </div>
+
+          <div className="flex gap-2 overflow-x-auto px-4 pb-3" style={{ scrollbarWidth: "none" }}>
+            {STATUS_FILTERS.map((f) => (
+              <button
+                key={f.key}
+                type="button"
+                onClick={() => setStatus(f.key)}
+                aria-pressed={status === f.key}
+                className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${
+                  status === f.key ? "bg-black text-white" : "bg-gray-100 text-gray-500"
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
           </div>
 
           <div className="flex-1 overflow-y-auto pb-8">

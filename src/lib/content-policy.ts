@@ -15,14 +15,7 @@
 // worst version of this feature — they retype it, it vanishes again, and
 // nothing on screen ever says why. Every caller shows the message.
 
-export type BlockedKind =
-  | "link"
-  | "email"
-  | "phone"
-  | "handle"
-  | "platform"
-  | "contact"
-  | "profanity";
+export type BlockedKind = "link" | "email" | "phone" | "handle" | "platform" | "contact";
 
 export type BlockedFinding = {
   kind: BlockedKind;
@@ -111,13 +104,6 @@ const PLATFORM =
  *  gets written. */
 const CONTACT_INTENT = /\b(?:dm\s?me|call\s?me|text\s?me)\b/gi;
 
-// Kept from the version of this file that shipped before it grew the rest of
-// these rules. Nothing about links and phone numbers makes swearing on a post
-// acceptable, and this is the one list here that isn't about disintermediation
-// at all.
-const PROFANITY =
-  /\b(?:fuck(?:er|ing)?|motherfucker|shit|bitch|asshole|bastard|dick|cunt|nigger|nigga|whore|slut)\b/gi;
-
 /** Anything that looks like it could be dialled. */
 const PHONE_CANDIDATE = /\+?\d[\d\s().-]{6,}\d/g;
 
@@ -180,13 +166,12 @@ export function findBlockedContent(
   rest = sweep(rest, PHONE_CANDIDATE, "phone", found, looksDialable);
   if (!allowHandles) rest = sweep(rest, HANDLE, "handle", found);
   rest = sweep(rest, PLATFORM, "platform", found);
-  rest = sweep(rest, CONTACT_INTENT, "contact", found);
-  sweep(rest, PROFANITY, "profanity", found);
+  sweep(rest, CONTACT_INTENT, "contact", found);
 
   return found;
 }
 
-const LABELS: Record<Exclude<BlockedKind, "profanity">, string> = {
+const LABELS: Record<BlockedKind, string> = {
   link: "links",
   email: "email addresses",
   phone: "phone numbers",
@@ -195,35 +180,15 @@ const LABELS: Record<Exclude<BlockedKind, "profanity">, string> = {
   contact: "ways to be reached elsewhere",
 };
 
-/** What has to come out, and why. The why matters: told only that something is
- *  "not allowed", a seller reads it as the app being broken or petty rather
- *  than as the thing that makes buyers trust them.
- *
- *  Profanity gets its own sentence rather than joining the list, because the
- *  reason is different — swearing isn't a thing that takes the buyer
- *  off-platform, and gluing it onto that explanation makes both halves read as
- *  nonsense. */
+/** One sentence naming what has to come out, and why. The why matters: told
+ *  only that something is "not allowed", a seller reads it as the app being
+ *  broken or petty rather than as the thing that makes buyers trust them. */
 export function blockedContentMessage(found: BlockedFinding[]): string {
   if (found.length === 0) return "";
-  const parts: string[] = [];
-
-  if (found.some((f) => f.kind === "profanity")) {
-    parts.push("Take out the language.");
-  }
-
-  const kinds = [...new Set(found.map((f) => f.kind))]
-    .filter((k): k is Exclude<BlockedKind, "profanity"> => k !== "profanity")
-    .map((k) => LABELS[k]);
-
-  if (kinds.length > 0) {
-    const list =
-      kinds.length === 1
-        ? kinds[0]
-        : `${kinds.slice(0, -1).join(", ")} and ${kinds[kinds.length - 1]}`;
-    parts.push(
-      `Take out the ${list} — buying and selling stays on Oakmonte, where you and the buyer are both covered.`,
-    );
-  }
-
-  return parts.join(" ");
+  const kinds = [...new Set(found.map((f) => f.kind))].map((k) => LABELS[k]);
+  const list =
+    kinds.length === 1
+      ? kinds[0]
+      : `${kinds.slice(0, -1).join(", ")} and ${kinds[kinds.length - 1]}`;
+  return `Take out the ${list} — buying and selling stays on Oakmonte, where you and the buyer are both covered.`;
 }

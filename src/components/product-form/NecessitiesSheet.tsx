@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, ChevronRight, X } from "lucide-react";
+import { Check, ChevronRight, Loader2, X } from "lucide-react";
 import { CategoryNode } from "@/lib/categories";
 import { VariantOption, VariantRow } from "@/components/product-form/VariantMatrixBuilder";
 import {
@@ -7,112 +7,19 @@ import {
   type ManualSize,
   type SizeMeasurements,
 } from "@/lib/size-chart-config";
+import { paramsForCategory, paramFillState, findOption } from "@/lib/necessities";
 import { SizeChartSheet } from "@/components/product-form/size-chart/SizeChartSheet";
+import { ManualSizeOnlySheet } from "@/components/product-form/size-chart/ManualSizeOnlySheet";
 import { WeightSheet } from "@/components/product-form/WeightSheet";
-
-// Which category-specific parameters a category requires before a product in
-// it can be published, keyed by category id anywhere in the chosen path —
-// not just the leaf, since e.g. "Dresses" and "Shorts" both fall under
-// "Clothing" and share the same requirements. Covers every top-level Apparel
-// & Accessories branch, plus the Apparel & Accessories root itself as a
-// fallback for sellers who stop there without drilling into a branch; Size
-// is only included where it's actually standardized (clothing, costumes,
-// shoes) — small-accessory branches don't share a size axis. Beauty &
-// Personal Care / Art & Crafts have no category-specific tracked fields
-// yet — selecting either of those (at any depth) falls through to just the
-// universal params below (Link content).
-const NECESSITY_PARAMS: Record<string, string[]> = {
-  "apparel-accessories": ["Size", "Color", "Material"],
-  clothing: ["Size", "Color", "Material"],
-  "costumes-accessories": ["Size", "Color", "Material"],
-  shoes: ["Size", "Color", "Material"],
-  "clothing-accessories": ["Color", "Material"],
-  "shoe-accessories": ["Color", "Material"],
-  "handbags-wallets-cases": ["Color", "Material"],
-  "handbag-wallet-accessories": ["Material", "Color"],
-  jewelry: ["Material", "Color"],
-};
-
-// Applies to every category, regardless of what else it tracks: "Link
-// content" because a product isn't ready to publish without one, "Weight"
-// because shipping needs it for literally any physical product, not just
-// categories with a Size/Material axis (a lipstick or a craft item still
-// ships in a box).
-const UNIVERSAL_PARAMS = ["Weight", "Link content"];
-
-function paramsForCategory(categoryPath: CategoryNode[]): string[] {
-  if (categoryPath.length === 0) return [];
-  // Walk leaf-to-root so a specific branch (e.g. Jewelry) wins over the
-  // broader Apparel & Accessories root fallback further up the same path.
-  for (let i = categoryPath.length - 1; i >= 0; i--) {
-    const params = NECESSITY_PARAMS[categoryPath[i].id];
-    if (params) return [...params, ...UNIVERSAL_PARAMS];
-  }
-  return UNIVERSAL_PARAMS;
-}
-
-// Read-only by design — a seller can't check these off by hand, only by
-// actually filling in the underlying field. Variant products carry Size/
-// Color/Material as option names; regular products only have a dedicated
-// field for Material today, so Size/Color always read unfilled there until
-// this product type grows fields for them. "Link content" has no tracked
-// field anywhere yet, so it always reads unfilled until that feature exists.
-//
-// "Size" is special-cased further: for categories with a size chart defined
-// (see size-chart-config.ts), Size is driven by the chart instead of the
-// plain option-existence check, for BOTH product kinds — a regular product
-// has no options at all, so without this it could never satisfy Size.
-//   - Variant Size axis exists (options has a "Size" entry): filled once
-//     every one of those values has at least one measurement recorded —
-//     matches the swipe-through-every-size flow in SizeChartSheet.
-//   - No Variant Size axis (regular product, or variant product that only
-//     varies by e.g. Color/Material): filled once a manual size has been
-//     picked, regardless of whether any measurement was added — the pick
-//     itself is the useful bit for a seller who doesn't need a size chart.
-// Everywhere a chart isn't defined yet, Size keeps the old check, unchanged.
-function isFilled(
-  param: string,
-  kind: "regular" | "variant",
-  options: VariantOption[],
-  material: string,
-  hasChart: boolean,
-  variantSizeValues: string[],
-  sizeMeasurements: SizeMeasurements,
-  manualSize: ManualSize | null,
-  rows: VariantRow[],
-  regularWeightGrams: number | null,
-): boolean {
-  if (param === "Link content") return false;
-  if (param === "Size" && hasChart) {
-    if (variantSizeValues.length > 0) {
-      return variantSizeValues.every((sv) => Object.keys(sizeMeasurements[sv] ?? {}).length > 0);
-    }
-    return manualSize !== null;
-  }
-  // Weight isn't a variant option axis the way Color/Size/Material are —
-  // nobody picks "142g" as a buyer-facing choice — so it doesn't go through
-  // the options.some(...) check below even for a variant product. Filled
-  // once every selected row has its own weight set; a regular product has
-  // exactly the one implicit "row".
-  if (param === "Weight") {
-    if (kind === "variant") {
-      return rows.filter((r) => r.selected).every((r) => r.weightGrams != null);
-    }
-    return regularWeightGrams != null;
-  }
-  if (kind === "variant") {
-    return options.some(
-      (o) => o.name.trim().toLowerCase() === param.toLowerCase() && o.values.length > 0,
-    );
-  }
-  return param === "Material" && material.trim().length > 0;
-}
+import { LinkContentSheet } from "@/components/product-form/LinkContentSheet";
+import { MaterialSheet } from "@/components/product-form/MaterialSheet";
 
 export function NecessitiesSheet({
   categoryPath,
   kind,
   options,
   material,
+  onChangeMaterial,
   sizeMeasurements,
   onChangeSizeMeasurements,
   manualSize,
@@ -121,12 +28,18 @@ export function NecessitiesSheet({
   regularWeightGrams,
   regularWeightEstimate,
   onChangeRegularWeightGrams,
+  linkedPostIds,
+  onChangeLinkedPostIds,
   onClose,
 }: {
   categoryPath: CategoryNode[];
   kind: "regular" | "variant";
   options: VariantOption[];
   material: string;
+  // Only meaningful for a regular product -- a variant product's Material
+  // lives as an option axis (checked directly against `options`), same as
+  // Color/Size, and MaterialSheet never opens for it.
+  onChangeMaterial: (m: string) => void;
   sizeMeasurements: SizeMeasurements;
   onChangeSizeMeasurements: (m: SizeMeasurements) => void;
   manualSize: ManualSize | null;
@@ -138,17 +51,20 @@ export function NecessitiesSheet({
   regularWeightGrams: number | null;
   regularWeightEstimate: number | null;
   onChangeRegularWeightGrams: (g: number | null) => void;
+  linkedPostIds: string[];
+  onChangeLinkedPostIds: (ids: string[]) => void;
   onClose: () => void;
 }) {
-  const params = paramsForCategory(categoryPath);
-  const [sizeChartOpen, setSizeChartOpen] = useState(false);
+  const params = paramsForCategory(categoryPath, kind);
+  const [sizeSheetOpen, setSizeSheetOpen] = useState(false);
   const [weightSheetOpen, setWeightSheetOpen] = useState(false);
-  // Chart applies regardless of kind now — a regular product is exactly the
-  // case that has no Variant Size axis to fall back on, so it needs this
-  // just as much as a variant product with only Color/Material options.
+  const [linkContentOpen, setLinkContentOpen] = useState(false);
+  const [materialSheetOpen, setMaterialSheetOpen] = useState(false);
+  // Which sheet Size opens -- the illustrated chart where one is sourced,
+  // the free-form fallback everywhere else. Never gates whether Size CAN be
+  // filled (see paramFillState above), only which input UI collects it.
   const sizeChart = getSizeChartForCategory(categoryPath);
-  const variantSizeValues =
-    options.find((o) => o.name.trim().toLowerCase() === "size")?.values ?? [];
+  const variantSizeValues = findOption(options, "Size")?.values ?? [];
 
   return (
     <div className="fixed inset-0 z-50 bg-white flex flex-col min-h-dvh animate-in fade-in slide-in-from-bottom-6 duration-300 ease-out">
@@ -171,49 +87,75 @@ export function NecessitiesSheet({
           </p>
         ) : (
           params.map((p) => {
-            const filled = isFilled(
+            const state = paramFillState(
               p,
               kind,
               options,
               material,
-              !!sizeChart,
               variantSizeValues,
               sizeMeasurements,
               manualSize,
               rows,
               regularWeightGrams,
+              linkedPostIds,
             );
-            const opensSizeChart = p === "Size" && !!sizeChart;
+            const opensSizeSheet = p === "Size";
             // Weight only opens a real editor for a regular product -- it
             // has exactly one value. A variant product's weight lives per
             // row in the variant matrix (its own Weight button there), so
-            // this stays a status-only checkmark for now, same as Color/
-            // Material below until those get their own fill-in sheets too.
+            // tapping it here just closes this sheet and drops the seller
+            // back on the page where that control actually is, rather than
+            // doing nothing (there's no per-row weight editor to embed here
+            // without duplicating the matrix's own UI).
             const opensWeightSheet = p === "Weight" && kind === "regular";
+            const closesToVariantWeight = p === "Weight" && kind === "variant";
+            const opensLinkContent = p === "Link content";
+            // Material only opens a fill-in sheet for a regular product --
+            // a variant product's Material lives as an option axis, edited
+            // in the variant options UI, same as Color/Size.
+            const opensMaterialSheet = p === "Material" && kind === "regular";
             return (
               <button
                 key={p}
                 type="button"
                 aria-label={p}
                 onClick={
-                  opensSizeChart
-                    ? () => setSizeChartOpen(true)
+                  opensSizeSheet
+                    ? () => setSizeSheetOpen(true)
                     : opensWeightSheet
                       ? () => setWeightSheetOpen(true)
-                      : // TODO: open the per-parameter fill-in sheet once its design is specced, for everything but Size/Weight
-                        () => {}
+                      : closesToVariantWeight
+                        ? onClose
+                        : opensLinkContent
+                          ? () => setLinkContentOpen(true)
+                          : opensMaterialSheet
+                            ? () => setMaterialSheetOpen(true)
+                            : // TODO: open the per-parameter fill-in sheet once its design is specced, for Color
+                              () => {}
                 }
                 className="w-full flex items-center justify-between px-4 py-4 border-b border-gray-50 text-left oak-motion-control"
               >
                 <span className="flex items-center gap-3">
                   <span
                     className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition-colors duration-200 ${
-                      filled ? "bg-black border-black" : "border-gray-300"
+                      state === "filled" ? "bg-black border-black" : "border-gray-300"
                     }`}
                   >
-                    {filled && <Check size={13} className="text-white oak-motion-pop" />}
+                    {state === "filled" && (
+                      <Check size={13} className="text-white oak-motion-pop" />
+                    )}
+                    {state === "partial" && (
+                      <Loader2 size={12} className="text-gray-400 animate-spin" />
+                    )}
                   </span>
-                  <span className="text-[15px] text-gray-900">{p}</span>
+                  <span className="text-[15px] text-gray-900">
+                    {p}
+                    {closesToVariantWeight && (
+                      <span className="block text-xs text-gray-400 font-normal">
+                        Set per variant below
+                      </span>
+                    )}
+                  </span>
                 </span>
                 <ChevronRight size={16} className="text-gray-300 shrink-0" />
               </button>
@@ -222,20 +164,33 @@ export function NecessitiesSheet({
         )}
       </div>
 
-      {sizeChartOpen && sizeChart && (
-        <SizeChartSheet
-          variantSizeValues={variantSizeValues}
-          manualSize={manualSize}
-          chart={sizeChart}
-          initialMeasurements={sizeMeasurements}
-          onSave={(m, picked) => {
-            onChangeSizeMeasurements(m);
-            onChangeManualSize(picked);
-            setSizeChartOpen(false);
-          }}
-          onClose={() => setSizeChartOpen(false)}
-        />
-      )}
+      {sizeSheetOpen &&
+        (sizeChart ? (
+          <SizeChartSheet
+            variantSizeValues={variantSizeValues}
+            manualSize={manualSize}
+            chart={sizeChart}
+            initialMeasurements={sizeMeasurements}
+            onSave={(m, picked) => {
+              onChangeSizeMeasurements(m);
+              onChangeManualSize(picked);
+              setSizeSheetOpen(false);
+            }}
+            onClose={() => setSizeSheetOpen(false)}
+          />
+        ) : (
+          <ManualSizeOnlySheet
+            variantSizeValues={variantSizeValues}
+            manualSize={manualSize}
+            initialMeasurements={sizeMeasurements}
+            onSave={(m, picked) => {
+              onChangeSizeMeasurements(m);
+              onChangeManualSize(picked);
+              setSizeSheetOpen(false);
+            }}
+            onClose={() => setSizeSheetOpen(false)}
+          />
+        ))}
 
       {weightSheetOpen && (
         <WeightSheet
@@ -246,6 +201,25 @@ export function NecessitiesSheet({
             setWeightSheetOpen(false);
           }}
           onClose={() => setWeightSheetOpen(false)}
+        />
+      )}
+
+      {linkContentOpen && (
+        <LinkContentSheet
+          linkedIds={linkedPostIds}
+          onChange={onChangeLinkedPostIds}
+          onClose={() => setLinkContentOpen(false)}
+        />
+      )}
+
+      {materialSheetOpen && (
+        <MaterialSheet
+          initial={material}
+          onSave={(m) => {
+            onChangeMaterial(m);
+            setMaterialSheetOpen(false);
+          }}
+          onClose={() => setMaterialSheetOpen(false)}
         />
       )}
     </div>

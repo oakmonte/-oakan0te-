@@ -11,6 +11,7 @@ import { WeightSheet } from "./WeightSheet";
 import { useMultiFilePicker } from "@/hooks/use-file-picker";
 import { uploadProductImage } from "@/lib/upload-product-image";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
+import { cleanPriceDigits, displayPriceWithCommas, padPriceOnBlur } from "@/lib/format-price-input";
 
 export function VariantCombinationsSheet({
   options,
@@ -273,7 +274,7 @@ export function VariantCombinationsSheet({
                 </button>
               </div>
               <div className="grid grid-cols-2 gap-2">
-                <MiniField label="Price" value={bulkPrice} onChange={setBulkPrice} />
+                <MiniField label="Price" value={bulkPrice} onChange={setBulkPrice} isPrice />
                 {/* Not "Inventory" -- unlike the per-row control below, which
                     shows one summed total, this sets the SAME number at every
                     location a row already has picked. Labelling it the same
@@ -284,6 +285,7 @@ export function VariantCombinationsSheet({
                   label="Compare-at"
                   value={bulkCompareAtPrice}
                   onChange={setBulkCompareAtPrice}
+                  isPrice
                 />
                 <MiniField label="Weight (g)" value={bulkWeight} onChange={setBulkWeight} />
               </div>
@@ -330,6 +332,7 @@ export function VariantCombinationsSheet({
                     value={row.price}
                     onChange={(v) => updateRow(row.key, { price: v })}
                     error={showPriceErrors && !row.price.trim()}
+                    isPrice
                   />
                   <label className="flex flex-col gap-1">
                     <span className="text-xs text-gray-400">Inventory</span>
@@ -345,6 +348,7 @@ export function VariantCombinationsSheet({
                     label="Compare-at"
                     value={row.compareAtPrice}
                     onChange={(v) => updateRow(row.key, { compareAtPrice: v })}
+                    isPrice
                   />
                   <label className="flex flex-col gap-1">
                     <span className="text-xs text-gray-400">Weight</span>
@@ -615,21 +619,28 @@ function MiniField({
   value,
   onChange,
   type = "number",
+  isPrice = false,
   error = false,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   type?: string;
+  /** Comma-grouped, decimal-aware price entry (same behavior as PricingSheet's
+   *  PriceBox) instead of a bare type="number" input — commas typed or shown
+   *  never reach `value` itself, so Number(row.price) downstream still works. */
+  isPrice?: boolean;
   error?: boolean;
 }) {
   return (
     <label className="flex flex-col gap-1">
       <span className={`text-xs ${error ? "text-red-500" : "text-gray-400"}`}>{label}</span>
       <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
+        type={isPrice ? "text" : type}
+        inputMode={isPrice ? "decimal" : undefined}
+        value={isPrice ? displayPriceWithCommas(value) : value}
+        onChange={(e) => onChange(isPrice ? cleanPriceDigits(e.target.value) : e.target.value)}
+        onBlur={isPrice ? () => value && onChange(padPriceOnBlur(value)) : undefined}
         className={`text-base border rounded-lg px-2 py-2 outline-none ${
           error ? "border-red-300" : "border-gray-200"
         }`}

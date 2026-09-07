@@ -59,6 +59,11 @@ export type ProductSavePayload = {
   sizeMeasurements: SizeMeasurements;
   collectionIds: string[];
   tagIds: string[];
+  // Posts/drafts this product is tagged in. Writes to post_product_tags —
+  // the same table LinkProductsSheet.tsx (the post-side "link products"
+  // sheet) reads and writes — so a link made from either side shows up
+  // immediately on the other.
+  linkedPostIds: string[];
 } & ({ mode: "create" } | { mode: "update"; productId: string });
 
 let state: ProductSaveState = null;
@@ -217,6 +222,8 @@ async function runCreate(
       continue_selling_out_of_stock: r.continueSellingOutOfStock,
       weight_grams: r.weightGrams ?? null,
       main_image_url: r.mainImageUrl.trim() || payload.mainImageUrl.trim() || null,
+      material: r.material ?? null,
+      material_feel: r.materialFeel ?? null,
       additional_image_urls: r.additionalImageUrls ?? null,
     }));
 
@@ -297,6 +304,16 @@ async function runCreate(
       })),
     );
     if (tagsErr) throw new Error(`product_tags: ${tagsErr.message}`);
+  }
+
+  if (payload.linkedPostIds.length > 0) {
+    const { error: linksErr } = await supabase.from("post_product_tags").insert(
+      payload.linkedPostIds.map((postId) => ({
+        product_id: product.id,
+        post_id: postId,
+      })),
+    );
+    if (linksErr) throw new Error(`post_product_tags: ${linksErr.message}`);
   }
 }
 
@@ -496,6 +513,15 @@ async function runUpdate(payload: Extract<ProductSavePayload, { mode: "update" }
       .from("product_tags")
       .insert(payload.tagIds.map((tagId) => ({ product_id: productId, tag_id: tagId })));
     if (tagsErr) throw new Error(`product_tags: ${tagsErr.message}`);
+  }
+
+  const linksDel = await supabase.from("post_product_tags").delete().eq("product_id", productId);
+  if (linksDel.error) throw new Error(`post_product_tags: ${linksDel.error.message}`);
+  if (payload.linkedPostIds.length > 0) {
+    const { error: linksErr } = await supabase
+      .from("post_product_tags")
+      .insert(payload.linkedPostIds.map((postId) => ({ product_id: productId, post_id: postId })));
+    if (linksErr) throw new Error(`post_product_tags: ${linksErr.message}`);
   }
 }
 

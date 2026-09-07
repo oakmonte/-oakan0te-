@@ -10,6 +10,7 @@ import { DescriptionSheet } from "@/components/product-form/DescriptionSheet";
 import { CollectionsSheet } from "@/components/product-form/CollectionsSheet";
 import { TagsSheet } from "@/components/product-form/TagsSheet";
 import { NecessitiesSheet } from "@/components/product-form/NecessitiesSheet";
+import { allNecessitiesFilled, normalizeOptionName } from "@/lib/necessities";
 import { PricingSheet } from "@/components/product-form/PricingSheet";
 import { InventorySection } from "@/components/product-form/InventorySection";
 import { InventorySheet, type InventoryValues } from "@/components/product-form/InventorySheet";
@@ -118,9 +119,9 @@ function NewProduct() {
     () => kind === "regular" && !!initialNewLocationId,
   );
   const regularStockQty = Object.values(regularLocationQuantities).reduce((sum, n) => sum + n, 0);
-  // No UI sets this on this page anymore — material is filled in via
-  // Necessities now. Still round-tripped through drafts/save.
-  const material = initialDraft?.material ?? "";
+  // Filled in via Necessities (MaterialSheet) for a regular product; a
+  // variant product's Material lives as an option axis instead.
+  const [material, setMaterial] = useState(initialDraft?.material ?? "");
   const [regularWeightGrams, setRegularWeightGrams] = useState<number | null>(
     initialDraft?.regularWeightGrams ?? null,
   );
@@ -153,8 +154,8 @@ function NewProduct() {
   // since a variant product's rows can each be a different size or fabric.
   function estimateWeightForRow(row: VariantRow): number | null {
     if (!chart) return null;
-    const rowSize = row.options.find((o) => o.name.trim().toLowerCase() === "size")?.value;
-    const rowMaterial = row.options.find((o) => o.name.trim().toLowerCase() === "material")?.value;
+    const rowSize = row.options.find((o) => normalizeOptionName(o.name) === "size")?.value;
+    const rowMaterial = row.options.find((o) => normalizeOptionName(o.name) === "material")?.value;
     const measurements = sizeMeasurements[rowSize ?? manualSize?.value ?? ""] ?? {};
     return estimateWeightGrams(chart.guide, measurements, rowMaterial ?? material);
   }
@@ -172,6 +173,7 @@ function NewProduct() {
   });
   const [tagsSheetOpen, setTagsSheetOpen] = useState(false);
   const [tagIds, setTagIds] = useState<string[]>(initialDraft?.tagIds ?? []);
+  const [linkedPostIds, setLinkedPostIds] = useState<string[]>(initialDraft?.linkedPostIds ?? []);
   const [necessitiesSheetOpen, setNecessitiesSheetOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -209,6 +211,7 @@ function NewProduct() {
       sizeMeasurements,
       manualSize,
       tagIds,
+      linkedPostIds,
     };
   }
 
@@ -277,6 +280,43 @@ function NewProduct() {
       }
     }
 
+    // A category picks which necessities even apply -- without one there's
+    // nothing to check, which would make "don't pick a category" the
+    // easiest way around every other check below. So it's required here
+    // even though nothing enforced it before this necessities gate existed.
+    if (categoryPath.length === 0) {
+      setError("Pick a category before saving");
+      setCategoryPickerOpen(true);
+      return;
+    }
+
+    // Necessities gate Save entirely -- published or draft, not just
+    // published. A seller can still leave necessities half-done and come
+    // back later; they just can't save in that state at all, so a listing
+    // can never go out (or sit as a draft) missing the details a buyer or
+    // Oakmonte's own logistics actually need. Except "Link content" while
+    // saving as a draft: it depends on a post/draft existing at all, which
+    // is outside this form's control, so it can't be a hard blocker before
+    // the seller has ever made one (see allNecessitiesFilled).
+    if (
+      !allNecessitiesFilled(
+        categoryPath,
+        kind,
+        options,
+        material,
+        sizeMeasurements,
+        manualSize,
+        rows,
+        regularWeightGrams,
+        linkedPostIds,
+        status,
+      )
+    ) {
+      setError("Fill in every necessity before saving — as a draft or published.");
+      setNecessitiesSheetOpen(true);
+      return;
+    }
+
     setSaving(true);
     setError("");
 
@@ -311,6 +351,7 @@ function NewProduct() {
       sizeMeasurements,
       collectionIds,
       tagIds,
+      linkedPostIds,
     });
     navigate({ to: "/store/products" });
   }
@@ -394,22 +435,29 @@ function NewProduct() {
         )
       )}
 
-      <button
-        type="button"
-        onClick={() => setCollectionsSheetOpen(true)}
-        className="w-full flex items-center justify-between px-4 py-4 border-b-8 border-gray-50 text-left"
-      >
-        <span className="flex items-center gap-3 text-[15px] text-gray-900">
-          <Tag size={18} className="text-gray-400" />
-          Collections
-        </span>
-        <span className="flex items-center gap-2">
-          {collectionIds.length > 0 && (
-            <span className="text-xs text-gray-400">{collectionIds.length} selected</span>
-          )}
-          <ChevronRight size={16} className="text-gray-300" />
-        </span>
-      </button>
+      {/* Hidden when the product was launched from a specific collection's
+          "Add products" -> create-new flow (initialNewCollectionId set) --
+          it's already scoped to that one collection via the pending-id
+          handoff, so a picker for *other* collections here is redundant and
+          just invites drift from what the seller actually came here to do. */}
+      {!initialNewCollectionId && (
+        <button
+          type="button"
+          onClick={() => setCollectionsSheetOpen(true)}
+          className="w-full flex items-center justify-between px-4 py-4 border-b-8 border-gray-50 text-left"
+        >
+          <span className="flex items-center gap-3 text-[15px] text-gray-900">
+            <Tag size={18} className="text-gray-400" />
+            Collections
+          </span>
+          <span className="flex items-center gap-2">
+            {collectionIds.length > 0 && (
+              <span className="text-xs text-gray-400">{collectionIds.length} selected</span>
+            )}
+            <ChevronRight size={16} className="text-gray-300" />
+          </span>
+        </button>
+      )}
       <StubRow icon={<Hash size={18} />} label="Tags" onClick={() => setTagsSheetOpen(true)} />
       <StubRow
         icon={<ListChecks size={18} />}
@@ -508,6 +556,7 @@ function NewProduct() {
           kind={kind}
           options={options}
           material={material}
+          onChangeMaterial={setMaterial}
           sizeMeasurements={sizeMeasurements}
           onChangeSizeMeasurements={setSizeMeasurements}
           manualSize={manualSize}
@@ -516,6 +565,8 @@ function NewProduct() {
           regularWeightGrams={regularWeightGrams}
           regularWeightEstimate={regularWeightEstimate}
           onChangeRegularWeightGrams={setRegularWeightGrams}
+          linkedPostIds={linkedPostIds}
+          onChangeLinkedPostIds={setLinkedPostIds}
           onClose={() => setNecessitiesSheetOpen(false)}
         />
       )}

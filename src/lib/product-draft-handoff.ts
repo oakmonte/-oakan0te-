@@ -39,6 +39,7 @@ export type ProductDraft = {
   // "clear it". Only the edit page ($id.tsx) tracks regularMaterialFeel; the
   // new-product page has no such field to lose.
   tagIds?: string[];
+  linkedPostIds?: string[];
   regularBarcodes?: BarcodeEntry[];
   regularMaterialFeel?: string | null;
   regularLegacyStockQty?: number;
@@ -120,7 +121,7 @@ const AUTOSAVE_MAX_AGE_MS = 6 * 60 * 60 * 1000;
 // them. A version mismatch is discarded the same way a missing/expired
 // savedAt is -- forces a real DB load instead of trusting a shape this
 // build can no longer interpret correctly.
-const AUTOSAVE_SCHEMA_VERSION = 2;
+const AUTOSAVE_SCHEMA_VERSION = 3;
 
 function autosaveKey(productId: string | undefined) {
   return AUTOSAVE_KEY_PREFIX + (productId ?? "new");

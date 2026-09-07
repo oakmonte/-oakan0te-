@@ -2,24 +2,33 @@ import { useRef, useState } from "react";
 import { Check, ChevronDown, Plus, X } from "lucide-react";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
 import type { VariantOption } from "./VariantMatrixBuilder";
+import { MATERIAL_PRESETS } from "@/lib/material-options";
 
 const PRESETS = ["Size", "Color", "Material", "Weight/Volume"] as const;
 
 // Size and Weight/Volume are the two options where the *same* thing is
 // described by different scales depending on the seller/market — so they get
 // a switchable system rather than one hardcoded list.
+// Every system in a group stays index-independent (no code cross-references
+// them positionally), but they're kept the same *length* here on purpose —
+// XXL/US/UK/EU/Words are the same real-world size ladder in different
+// notations, and a mismatched length would be the first sign one of them
+// drifted. EU follows the standard EU = US + 32 conversion (EU 32 = US 0).
 export const SIZE_SYSTEMS = {
-  XXL: ["XS", "S", "M", "L", "XL", "XXL", "3XL"],
-  US: ["0", "2", "4", "6", "8", "10", "12", "14", "16"],
-  UK: ["4", "6", "8", "10", "12", "14", "16", "18", "20"],
-  Words: ["Small", "Medium", "Large", "Extra Large"],
+  XXL: ["XS", "S", "M", "L", "XL", "XXL", "3XL", "4XL", "5XL"],
+  US: ["0", "2", "4", "6", "8", "10", "12", "14", "16", "18", "20"],
+  UK: ["4", "6", "8", "10", "12", "14", "16", "18", "20", "22", "24"],
+  EU: ["32", "34", "36", "38", "40", "42", "44", "46", "48", "50", "52"],
+  Words: ["Small", "Medium", "Large", "Extra Large", "2X Large", "3X Large"],
 } as const;
 
 export const WEIGHT_VOLUME_SYSTEMS = {
   g: ["25 g", "50 g", "100 g", "250 g", "500 g", "750 g", "1000 g"],
-  kg: ["0.5 kg", "1 kg", "1.5 kg", "2 kg", "3 kg", "5 kg", "10 kg"],
-  lb: ["0.5 lb", "1 lb", "2 lb", "5 lb", "10 lb", "20 lb", "50 lb"],
+  kg: ["0.5 kg", "1 kg", "1.5 kg", "2 kg", "3 kg", "5 kg", "10 kg", "15 kg", "20 kg", "30 kg"],
+  oz: ["1 oz", "2 oz", "4 oz", "8 oz", "16 oz", "32 oz", "64 oz"],
+  lb: ["0.5 lb", "1 lb", "2 lb", "5 lb", "10 lb", "20 lb", "50 lb", "75 lb", "100 lb"],
   mL: ["30 ml", "50 ml", "100 ml", "250 ml", "500 ml", "750 ml", "1000 ml"],
+  "fl oz": ["1 fl oz", "2 fl oz", "4 fl oz", "8 fl oz", "16 fl oz", "32 fl oz", "64 fl oz"],
   L: ["0.5 L", "1 L", "1.5 L", "2 L", "3 L", "5 L", "10 L"],
 } as const;
 
@@ -37,7 +46,11 @@ const DEFAULT_SYSTEM: Record<string, string> = { Size: "XXL", "Weight/Volume": "
 const CUSTOM_SYSTEM = "Custom";
 
 // One-tap values for the non-systemed presets — covers apparel/accessories/
-// cosmetics/art without forcing typing. Free text still works for anything else.
+// cosmetics/art without forcing typing. Free text still works for anything
+// else. Material lives in its own module (material-options.ts): MaterialSheet
+// reuses that exact list for a regular product's material field, and a
+// second export here (alongside this file's component export) breaks Fast
+// Refresh for it.
 const VALUE_PRESETS: Record<string, string[]> = {
   Color: [
     "Black",
@@ -97,7 +110,7 @@ const VALUE_PRESETS: Record<string, string[]> = {
     "Silver",
     "Multicolor",
   ],
-  Material: ["Cotton", "Polyester", "Leather", "Suede", "Silk", "Wool", "Linen", "Denim", "Canvas"],
+  Material: MATERIAL_PRESETS,
 };
 
 // Real swatches for Color — a dot per name reads as "this app understands

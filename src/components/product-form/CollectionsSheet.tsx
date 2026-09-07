@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { X, Search, ImageIcon, Check, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
+import { CollectionProductsViewSheet } from "./CollectionProductsViewSheet";
 
 type CollectionRow = {
   id: string;
@@ -33,6 +34,12 @@ export function CollectionsSheet({
   // Deleting a collection is destructive and cascades, so the trash icon only
   // arms a confirm step -- a single mis-tap can't remove anything.
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  // View-only look inside a collection's products -- separate from `selected`
+  // (this product's own pick), so opening it can never accidentally toggle
+  // membership. There's no add/remove here on purpose: a seller mid-creating
+  // an unrelated product shouldn't be able to change a collection's contents
+  // from this sheet, only see them.
+  const [viewingCollection, setViewingCollection] = useState<CollectionRow | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -152,15 +159,22 @@ export function CollectionsSheet({
                     type="button"
                     onClick={() => toggle(c.id)}
                     aria-label={`${isSelected ? "Deselect" : "Select"} ${c.title}`}
-                    className="flex-1 min-w-0 flex items-center gap-3 px-4 py-3 text-left"
+                    className="p-4 -mr-1 shrink-0"
                   >
                     <span
-                      className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition-colors duration-200 ${
+                      className={`w-5 h-5 rounded-md border flex items-center justify-center transition-colors duration-200 ${
                         isSelected ? "bg-black border-black" : "border-gray-300"
                       }`}
                     >
                       {isSelected && <Check size={13} className="text-white oak-motion-pop" />}
                     </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewingCollection(c)}
+                    aria-label={`View products in ${c.title}`}
+                    className="flex-1 min-w-0 flex items-center gap-3 py-3 pr-2 text-left"
+                  >
                     <span className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
                       {c.image_url ? (
                         <img src={c.image_url} alt="" className="w-full h-full object-cover" />
@@ -221,6 +235,14 @@ export function CollectionsSheet({
             </button>
           </div>
         </>
+      )}
+
+      {viewingCollection && (
+        <CollectionProductsViewSheet
+          collectionId={viewingCollection.id}
+          collectionTitle={viewingCollection.title}
+          onClose={() => setViewingCollection(null)}
+        />
       )}
     </div>
   );
