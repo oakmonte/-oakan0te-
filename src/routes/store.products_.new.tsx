@@ -10,6 +10,7 @@ import { DescriptionSheet } from "@/components/product-form/DescriptionSheet";
 import { CollectionsSheet } from "@/components/product-form/CollectionsSheet";
 import { TagsSheet } from "@/components/product-form/TagsSheet";
 import { NecessitiesSheet } from "@/components/product-form/NecessitiesSheet";
+import { NecessitiesWarningDialog } from "@/components/product-form/NecessitiesWarningDialog";
 import { allNecessitiesFilled, normalizeOptionName } from "@/lib/necessities";
 import { PricingSheet } from "@/components/product-form/PricingSheet";
 import { InventorySection } from "@/components/product-form/InventorySection";
@@ -175,6 +176,7 @@ function NewProduct() {
   const [tagIds, setTagIds] = useState<string[]>(initialDraft?.tagIds ?? []);
   const [linkedPostIds, setLinkedPostIds] = useState<string[]>(initialDraft?.linkedPostIds ?? []);
   const [necessitiesSheetOpen, setNecessitiesSheetOpen] = useState(false);
+  const [necessitiesWarningOpen, setNecessitiesWarningOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [showRestoredBanner, setShowRestoredBanner] = useState(restoredFromAutosave);
@@ -280,26 +282,17 @@ function NewProduct() {
       }
     }
 
-    // A category picks which necessities even apply -- without one there's
-    // nothing to check, which would make "don't pick a category" the
-    // easiest way around every other check below. So it's required here
-    // even though nothing enforced it before this necessities gate existed.
-    if (categoryPath.length === 0) {
-      setError("Pick a category before saving");
-      setCategoryPickerOpen(true);
-      return;
-    }
-
-    // Necessities gate Save entirely -- published or draft, not just
-    // published. A seller can still leave necessities half-done and come
-    // back later; they just can't save in that state at all, so a listing
-    // can never go out (or sit as a draft) missing the details a buyer or
-    // Oakmonte's own logistics actually need. Except "Link content" while
-    // saving as a draft: it depends on a post/draft existing at all, which
-    // is outside this form's control, so it can't be a hard blocker before
-    // the seller has ever made one (see allNecessitiesFilled).
-    if (
-      !allNecessitiesFilled(
+    // Necessities (including having picked a category at all, without
+    // which there's nothing to check) don't block Save -- a seller can
+    // always save, published or as a draft, missing details and all. This
+    // is just a heads-up with a chance to go fix it first; "Link content"
+    // is left out of what counts as missing while saving as a draft, since
+    // it depends on a post/draft existing at all, which is outside this
+    // form's control (see allNecessitiesFilled).
+    const hasCategory = categoryPath.length > 0;
+    const necessitiesOk =
+      hasCategory &&
+      allNecessitiesFilled(
         categoryPath,
         kind,
         options,
@@ -310,13 +303,17 @@ function NewProduct() {
         regularWeightGrams,
         linkedPostIds,
         status,
-      )
-    ) {
-      setError("Fill in every necessity before saving — as a draft or published.");
-      setNecessitiesSheetOpen(true);
+      );
+    if (!necessitiesOk) {
+      setError("");
+      setNecessitiesWarningOpen(true);
       return;
     }
 
+    performSave();
+  }
+
+  function performSave() {
     setSaving(true);
     setError("");
 
@@ -327,7 +324,7 @@ function NewProduct() {
     // ProductSaveToast, so navigating away immediately is safe.
     startProductSave({
       mode: "create",
-      storeId,
+      storeId: storeId!,
       title,
       descriptionShort,
       categoryName: categoryPath.at(-1)?.name || null,
@@ -568,6 +565,22 @@ function NewProduct() {
           linkedPostIds={linkedPostIds}
           onChangeLinkedPostIds={setLinkedPostIds}
           onClose={() => setNecessitiesSheetOpen(false)}
+        />
+      )}
+
+      {necessitiesWarningOpen && (
+        <NecessitiesWarningDialog
+          reviewLabel={categoryPath.length === 0 ? "Pick a category" : "Review necessities"}
+          onReview={() => {
+            setNecessitiesWarningOpen(false);
+            if (categoryPath.length === 0) setCategoryPickerOpen(true);
+            else setNecessitiesSheetOpen(true);
+          }}
+          onSaveAnyway={() => {
+            setNecessitiesWarningOpen(false);
+            performSave();
+          }}
+          onCancel={() => setNecessitiesWarningOpen(false)}
         />
       )}
 
