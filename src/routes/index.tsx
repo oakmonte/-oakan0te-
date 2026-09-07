@@ -338,6 +338,48 @@ const NAV: { label: string; href: string; key?: MenuKey }[] = [
 ];
 
 /* ---------------- Page ---------------- */
+// Auto-advancing crossfade slideshow for the hero. Only the active,
+// previous and next frames are mounted, so the upcoming image is always
+// decoded and ready before its turn — no blank flashes, no loading all
+// 16 frames at once. Pauses entirely for prefers-reduced-motion.
+function HeroSlideshow() {
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const id = window.setInterval(
+      () => setIndex((i) => (i + 1) % HERO_SLIDES.length),
+      SLIDE_INTERVAL_MS,
+    );
+    return () => window.clearInterval(id);
+  }, []);
+
+  const n = HERO_SLIDES.length;
+  return (
+    <>
+      {HERO_SLIDES.map((src, i) => {
+        const mounted = i === index || i === (index + 1) % n || i === (index - 1 + n) % n;
+        if (!mounted) return null;
+        return (
+          <img
+            key={src}
+            src={src}
+            alt={i === index ? "Oakmonte community fashion looks" : ""}
+            aria-hidden={i !== index}
+            className={`hero-slide${i === index ? " active" : ""}`}
+            width={960}
+            height={1280}
+            fetchPriority={i === 0 ? "high" : "auto"}
+            decoding="async"
+            draggable={false}
+          />
+        );
+      })}
+      <span className="media-cap">SELL · POST · SHOP — ALL IN ONE PLACE</span>
+    </>
+  );
+}
+
 function OakmonteLanding() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileGroup, setMobileGroup] = useState<MenuKey | null>(null);
