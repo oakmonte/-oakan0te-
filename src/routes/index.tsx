@@ -730,15 +730,7 @@ function OakmonteLanding() {
             </div>
 
             <div className="hero-media">
-              <img
-                src={IMG_HERO}
-                alt="Oakmonte app on a phone held toward the viewer"
-                width={1450}
-                height={1085}
-                fetchPriority="high"
-                decoding="async"
-              />
-              <span className="media-cap">SELL · POST · SHOP — ALL IN ONE PLACE</span>
+              <HeroSlideshow />
             </div>
           </div>
 
