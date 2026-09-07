@@ -2,7 +2,6 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ChevronLeft,
-  ChevronRight,
   Crop,
   Music,
   Pause,
@@ -82,6 +81,23 @@ export const Route = createFileRoute("/create/photo-editor")({
 
 const DEFAULT_FILTER_ID = "natural";
 
+// Reorder-by-hold, in numbers.
+//
+// 320ms matches the camera's hold-for-a-live-photo, so "hold to do the other
+// thing" means one duration across the app rather than two that feel subtly
+// different. The slop is what a still finger actually produces on a phone —
+// tighter and the gesture never fires for anyone resting their thumb.
+const HOLD_MS = 320;
+const HOLD_SLOP = 8;
+/** Thumbnail width plus the gap between them: one slot. */
+const DRAG_STRIDE = 54;
+const EDGE_ZONE = 44;
+const EDGE_SPEED = 9;
+
+function clampIndex(value: number, length: number): number {
+  return Math.max(0, Math.min(length - 1, value));
+}
+
 type ToolId = "text" | "draw" | "sticker" | "filter" | "crop" | "adjust";
 
 const TOOLS: { id: ToolId; label: string; icon: typeof Type }[] = [
@@ -155,10 +171,38 @@ function PhotoEditor() {
   const audioInputRef = useRef<HTMLInputElement>(null);
   const audioElRef = useRef<HTMLAudioElement>(null);
   const stripRef = useRef<HTMLDivElement>(null);
+  // Drag state is mirrored in refs as well as state: the render needs it, and
+  // the pointer handlers need to read the CURRENT value on pointerup without
+  // closing over a stale one.
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [dragDx, setDragDx] = useState(0);
+  const dragDxRef = useRef(0);
+  const pointerXRef = useRef(0);
+  const autoScrollRef = useRef<number | null>(null);
+
+  // How much room the controls at the bottom actually take. 210 is only the
+  // starting guess for the first paint, before the observer has measured.
+  const bottomStackRef = useRef<HTMLDivElement>(null);
+  const [bottomInset, setBottomInset] = useState(210);
   const ownedUrls = useRef<string[]>(session?.ownedUrls ?? []);
 
   const active = photos.find((p) => p.id === activeId) ?? null;
-  const activeIndex = photos.findIndex((p) => p.id === activeId);
+
+  // Where the dragged tile currently wants to land, and how far every other
+  // tile has to step aside to open that slot. Computed rather than applied to
+  // `photos` as the finger moves: mutating the array live would move the tile
+  // out from under its own transform and fight the gesture.
+  const dragIndex = dragId ? photos.findIndex((p) => p.id === dragId) : -1;
+  const dragTarget =
+    dragIndex >= 0 ? clampIndex(dragIndex + Math.round(dragDx / DRAG_STRIDE), photos.length) : -1;
+
+  function tileShift(i: number): number {
+    if (dragIndex < 0) return 0;
+    if (i === dragIndex) return dragDx;
+    if (dragTarget > dragIndex && i > dragIndex && i <= dragTarget) return -DRAG_STRIDE;
+    if (dragTarget < dragIndex && i < dragIndex && i >= dragTarget) return DRAG_STRIDE;
+    return 0;
+  }
   // A live photo owns the whole post, so its presence is a state of the whole
   // screen rather than a property of the selected item.
   const hasLive = photos.some((p) => p.kind === "live");
@@ -203,6 +247,18 @@ function PhotoEditor() {
     // changes, never when the stack itself does.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeId, replaceLayers]);
+
+  // Re-measured whenever the stack changes shape — a sound chip appearing, the
+  // hint going away mid-drag, a second row of anything added later.
+  useEffect(() => {
+    const el = bottomStackRef.current;
+    if (!el) return;
+    const measure = () => setBottomInset(el.offsetHeight);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [activeTool]);
 
   // Keep the selected thumbnail on screen. Without this, moving a photo past
   // the edge of the visible strip looks like it vanished — the arrows would
@@ -377,23 +433,124 @@ function PhotoEditor() {
     else setPostsOpen(true);
   }
 
-  /** Swap the selected photo with its neighbour.
+  /** Hold a thumbnail, then drag it. Order is the post: `photos[0]` is the
+   *  cover and `handleNext` bakes the array in sequence, so this gesture is
+   *  the only thing that decides what the feed shows first.
    *
-   *  Order is the post: `photos[0]` becomes the cover, and `handleNext` bakes
-   *  the array in sequence, so moving a tile here is the only thing that
-   *  decides what the feed shows first. Selection follows the photo rather
-   *  than the slot, because it's keyed by id — tap the arrow three times and
-   *  you're still holding the same picture. */
-  function movePhoto(direction: -1 | 1) {
-    if (!activeId) return;
-    setPhotos((prev) => {
-      const from = prev.findIndex((p) => p.id === activeId);
-      const to = from + direction;
-      if (from < 0 || to < 0 || to >= prev.length) return prev;
-      const next = [...prev];
-      [next[from], next[to]] = [next[to], next[from]];
-      return next;
-    });
+   *  Three problems have to be solved together, which is why this is hand-
+   *  rolled rather than a swap helper behind two buttons:
+   *
+   *  1. The strip scrolls horizontally, and so does a drag. The hold is what
+   *     separates them — move more than a few pixels before it lands and the
+   *     gesture is a scroll and stays one.
+   *  2. Once the hold HAS landed the browser must be told to stop scrolling,
+   *     and `touch-action` can't do it: browsers commit to a touch action when
+   *     the gesture starts, and ours starts as an ordinary press. A
+   *     non-passive touchmove listener that preventDefaults is the only thing
+   *     that works mid-gesture.
+   *  3. A ten-photo carousel is wider than the strip, so the strip has to
+   *     scroll itself when the finger reaches an edge — otherwise the photos
+   *     you want to reorder past are the ones you can't reach. */
+  function startTileGesture(e: React.PointerEvent<HTMLButtonElement>, id: string) {
+    if (photos.length < 2) return;
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const strip = stripRef.current;
+    const startScroll = strip?.scrollLeft ?? 0;
+    let holdTimer: number | null = window.setTimeout(() => {
+      holdTimer = null;
+      dragging = true;
+      dragDxRef.current = 0;
+      setDragId(id);
+      setDragDx(0);
+      window.addEventListener("touchmove", block, { passive: false });
+    }, HOLD_MS);
+    let dragging = false;
+
+    const block = (ev: TouchEvent) => ev.preventDefault();
+
+    const update = (clientX: number) => {
+      // Scroll delta is added back in: without it, auto-scrolling the strip
+      // would slide the tile out from under the finger holding it.
+      const scrolled = (stripRef.current?.scrollLeft ?? 0) - startScroll;
+      const dx = clientX - startX + scrolled;
+      dragDxRef.current = dx;
+      setDragDx(dx);
+    };
+
+    const onMove = (ev: PointerEvent) => {
+      if (!dragging) {
+        if (
+          Math.abs(ev.clientX - startX) > HOLD_SLOP ||
+          Math.abs(ev.clientY - startY) > HOLD_SLOP
+        ) {
+          cleanup();
+        }
+        return;
+      }
+      pointerXRef.current = ev.clientX;
+      update(ev.clientX);
+      runAutoScroll();
+    };
+
+    const runAutoScroll = () => {
+      if (autoScrollRef.current !== null) return;
+      const step = () => {
+        const el = stripRef.current;
+        if (!el || !dragging) {
+          autoScrollRef.current = null;
+          return;
+        }
+        const box = el.getBoundingClientRect();
+        const x = pointerXRef.current;
+        let delta = 0;
+        if (x < box.left + EDGE_ZONE) delta = -EDGE_SPEED;
+        else if (x > box.right - EDGE_ZONE) delta = EDGE_SPEED;
+        if (delta !== 0) {
+          const before = el.scrollLeft;
+          el.scrollLeft = before + delta;
+          if (el.scrollLeft !== before) update(x);
+        }
+        autoScrollRef.current = requestAnimationFrame(step);
+      };
+      autoScrollRef.current = requestAnimationFrame(step);
+    };
+
+    const onUp = () => {
+      if (dragging) {
+        const from = photos.findIndex((p) => p.id === id);
+        const to = clampIndex(from + Math.round(dragDxRef.current / DRAG_STRIDE), photos.length);
+        if (from >= 0 && to !== from) {
+          setPhotos((prev) => {
+            const next = [...prev];
+            const [moved] = next.splice(from, 1);
+            next.splice(to, 0, moved);
+            return next;
+          });
+        }
+      }
+      cleanup();
+    };
+
+    const cleanup = () => {
+      if (holdTimer !== null) clearTimeout(holdTimer);
+      dragging = false;
+      if (autoScrollRef.current !== null) {
+        cancelAnimationFrame(autoScrollRef.current);
+        autoScrollRef.current = null;
+      }
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+      window.removeEventListener("touchmove", block);
+      dragDxRef.current = 0;
+      setDragId(null);
+      setDragDx(0);
+    };
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
   }
 
   function removeActive() {
@@ -688,7 +845,12 @@ function PhotoEditor() {
       <div
         ref={mediaAreaRef}
         className="absolute left-0 right-0 flex items-center justify-center"
-        style={{ top: "calc(env(safe-area-inset-top) + 64px)", bottom: 210 }}
+        // Measured, not a constant. This used to be a hard 210px, which was
+        // right for the stack it was written against — then the sound chip and
+        // the reorder hint arrived and the stack grew past it, and the bottom
+        // of the photo went under the controls. Measuring means adding another
+        // row can't quietly cost the preview its bottom edge.
+        style={{ top: "calc(env(safe-area-inset-top) + 64px)", bottom: bottomInset }}
       >
         {empty ? (
           // Nothing added yet: the plus IS the screen. Same three sources the
@@ -842,6 +1004,7 @@ function PhotoEditor() {
           tool owns the screen. */}
       {activeTool === null && (
         <div
+          ref={bottomStackRef}
           className="absolute inset-x-0 bottom-0 z-20"
           style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 12px)" }}
         >
@@ -886,7 +1049,7 @@ function PhotoEditor() {
             <div className="flex items-center gap-2 px-4 pb-3">
               <div
                 ref={stripRef}
-                className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto"
+                className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto py-1"
                 style={{ scrollbarWidth: "none" }}
               >
                 {photos.map((p, i) => (
@@ -894,9 +1057,19 @@ function PhotoEditor() {
                     key={p.id}
                     type="button"
                     data-photo-id={p.id}
+                    onPointerDown={(e) => startTileGesture(e, p.id)}
                     onClick={() => setActiveId(p.id)}
                     aria-label={i === 0 ? "Select cover photo" : `Select photo ${i + 1}`}
                     aria-pressed={p.id === activeId}
+                    style={{
+                      transform: `translateX(${tileShift(i)}px)${i === dragIndex ? " scale(1.12)" : ""}`,
+                      // The dragged tile tracks the finger with no easing —
+                      // anything else reads as lag. The tiles moving aside are
+                      // the ones that need the animation.
+                      transition: i === dragIndex ? "none" : "transform 160ms ease",
+                      zIndex: i === dragIndex ? 10 : undefined,
+                      boxShadow: i === dragIndex ? "0 8px 20px rgba(0,0,0,0.55)" : undefined,
+                    }}
                     className={`relative h-[46px] w-[46px] shrink-0 overflow-hidden rounded-[6px] border-2 transition-colors ${
                       p.id === activeId ? "border-white" : "border-transparent opacity-60"
                     }`}
@@ -939,40 +1112,25 @@ function PhotoEditor() {
               </div>
 
               {(photos.length > 1 || hasLive) && (
-                <div className="flex shrink-0 items-center gap-1">
-                  {photos.length > 1 && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => movePhoto(-1)}
-                        disabled={activeIndex <= 0}
-                        aria-label="Move this photo earlier"
-                        className="flex h-[38px] w-[30px] items-center justify-center rounded-[6px] bg-white/[0.12] active:scale-90 disabled:opacity-25"
-                      >
-                        <ChevronLeft size={17} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => movePhoto(1)}
-                        disabled={activeIndex < 0 || activeIndex >= photos.length - 1}
-                        aria-label="Move this photo later"
-                        className="flex h-[38px] w-[30px] items-center justify-center rounded-[6px] bg-white/[0.12] active:scale-90 disabled:opacity-25"
-                      >
-                        <ChevronRight size={17} />
-                      </button>
-                    </>
-                  )}
-                  <button
-                    type="button"
-                    onClick={removeActive}
-                    aria-label="Remove this photo"
-                    className="flex h-[38px] w-[38px] items-center justify-center rounded-[6px] bg-white/[0.12] text-white/70 active:scale-90"
-                  >
-                    <Trash2 size={17} />
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={removeActive}
+                  aria-label="Remove this photo"
+                  className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-[6px] bg-white/[0.12] text-white/70 active:scale-90"
+                >
+                  <Trash2 size={18} />
+                </button>
               )}
             </div>
+          )}
+
+          {/* A hold is invisible until someone tells you it's there. Shown only
+              while it can do something, and it goes quiet during the drag
+              itself — by then you already know. */}
+          {photos.length > 1 && !dragId && (
+            <p className="px-4 pb-2 text-center text-[10px] text-white/35">
+              Hold a photo to reorder. The first one is your cover.
+            </p>
           )}
 
           <div
