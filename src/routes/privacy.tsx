@@ -124,7 +124,7 @@ function PrivacyPage() {
           </aside>
 
           <article className="max-w-2xl text-sm md:text-[15px] leading-relaxed space-y-14">
-            <Section id="introduction" n={1} title="Introduction">
+            <Section id="introduction" title="Introduction">
               <p>
                 This Privacy Policy explains how Oakmonte handles the personal information of
                 everyone who uses the platform — buyers, sellers, and creators. By using Oakmonte,
@@ -136,7 +136,7 @@ function PrivacyPage() {
               </p>
             </Section>
 
-            <Section id="what-we-collect" n={2} title="What We Collect">
+            <Section id="what-we-collect" title="What We Collect">
               <p>We collect the following categories of information:</p>
               <ul className="list-disc pl-5 space-y-2 marker:text-brand-accent">
                 <li>
@@ -177,7 +177,7 @@ function PrivacyPage() {
               </ul>
             </Section>
 
-            <Section id="how-we-use" n={3} title="How We Use It">
+            <Section id="how-we-use" title="How We Use It">
               <ul className="list-disc pl-5 space-y-2 marker:text-brand-accent">
                 <li>
                   To operate the marketplace — processing orders, running escrow, and connecting
@@ -196,7 +196,7 @@ function PrivacyPage() {
               </ul>
             </Section>
 
-            <Section id="sharing" n={4} title="Who We Share Data With">
+            <Section id="sharing" title="Who We Share Data With">
               <ul className="list-disc pl-5 space-y-2 marker:text-brand-accent">
                 <li>
                   <span className="font-medium">Sellers</span> receive your delivery information
@@ -226,7 +226,7 @@ function PrivacyPage() {
               </ul>
             </Section>
 
-            <Section id="cookies" n={5} title="Cookies & Tracking">
+            <Section id="cookies" title="Cookies & Tracking">
               <p>
                 Oakmonte uses cookies and similar technologies to keep you signed in, remember your
                 preferences, and understand how the platform is used.
@@ -249,7 +249,7 @@ function PrivacyPage() {
               </p>
             </Section>
 
-            <Section id="minors" n={6} title="Children & Minors">
+            <Section id="minors" title="Children & Minors">
               <ul className="list-disc pl-5 space-y-2 marker:text-brand-accent">
                 <li>
                   Minimum age to hold an Oakmonte account:{" "}
@@ -274,7 +274,7 @@ function PrivacyPage() {
               </ul>
             </Section>
 
-            <Section id="retention" n={7} title="Data Retention">
+            <Section id="retention" title="Data Retention">
               <ul className="list-disc pl-5 space-y-2 marker:text-brand-accent">
                 <li>
                   Account, order, and content data is retained for
@@ -293,7 +293,7 @@ function PrivacyPage() {
               </ul>
             </Section>
 
-            <Section id="rights" n={8} title="Your Rights">
+            <Section id="rights" title="Your Rights">
               <p>
                 Under the Nigeria Data Protection Act (NDPA) and comparable frameworks, you
                 generally have the right to:
@@ -318,7 +318,7 @@ function PrivacyPage() {
               </p>
             </Section>
 
-            <Section id="security" n={9} title="Data Security">
+            <Section id="security" title="Data Security">
               <p>
                 We protect user data using standard industry practices, including encryption in
                 transit, restricted internal access, and authentication controls on administrative
@@ -331,7 +331,7 @@ function PrivacyPage() {
               </p>
             </Section>
 
-            <Section id="storage" n={10} title="Where Data Is Stored / International Transfer">
+            <Section id="storage" title="Where Data Is Stored / International Transfer">
               <p>
                 User data is hosted on
                 <Placeholder>
@@ -350,7 +350,7 @@ function PrivacyPage() {
               </p>
             </Section>
 
-            <Section id="third-parties" n={11} title="Third-Party Services">
+            <Section id="third-parties" title="Third-Party Services">
               <p>
                 Oakmonte relies on third-party infrastructure providers to host, build, and operate
                 the platform (including hosting, payment processing, analytics, and communications
@@ -363,7 +363,7 @@ function PrivacyPage() {
               </p>
             </Section>
 
-            <Section id="changes" n={12} title="Changes to This Policy">
+            <Section id="changes" title="Changes to This Policy">
               <p>
                 We may update this Privacy Policy from time to time. When we do, the updated version
                 will be posted here with a new "last updated" date. For material changes — anything
@@ -372,7 +372,7 @@ function PrivacyPage() {
               </p>
             </Section>
 
-            <Section id="contact" n={13} title="Contact">
+            <Section id="contact" title="Contact">
               <p>
                 Questions about this policy, or want to exercise your data rights? Reach us at
                 <Placeholder>privacy contact email</Placeholder>.
