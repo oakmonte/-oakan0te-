@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useLayoutEffect } from "react";
 
 // Toggles a body class that locks page scroll for as long as the calling
 // route is mounted, and opts this route's viewport into
@@ -12,19 +12,49 @@ import { useEffect } from "react";
 //
 // This hook does NOT touch element height/transform — that was the
 // regression that broke the aspect-ratio box on the after-shot page.
-export function useLockedViewport() {
-  useEffect(() => {
+
+// Module-level, ref-counted rather than "capture original on mount, restore
+// on unmount" — two sheets that both call this hook (nothing stops that;
+// several product-form sheets can be open at once) used to each capture their
+// own snapshot of the meta tag and stomp each other's restore on teardown if
+// they didn't unmount in the same order they mounted. A shared counter makes
+// the DOM only ever get touched on the 0->1 and 1->0 edges, so nesting order
+// stops mattering.
+let lockCount = 0;
+let originalMetaContent: string | null = null;
+
+function acquireLock() {
+  if (lockCount === 0) {
     document.body.classList.add("oak-locked-viewport");
-
     const meta = document.querySelector('meta[name="viewport"]');
-    const original = meta?.getAttribute("content") ?? null;
-    if (meta && original && !original.includes("interactive-widget")) {
-      meta.setAttribute("content", `${original}, interactive-widget=overlays-content`);
+    originalMetaContent = meta?.getAttribute("content") ?? null;
+    if (meta && originalMetaContent && !originalMetaContent.includes("interactive-widget")) {
+      meta.setAttribute("content", `${originalMetaContent}, interactive-widget=overlays-content`);
     }
+  }
+  lockCount++;
+}
 
-    return () => {
-      document.body.classList.remove("oak-locked-viewport");
-      if (meta && original !== null) meta.setAttribute("content", original);
-    };
+function releaseLock() {
+  lockCount = Math.max(0, lockCount - 1);
+  if (lockCount === 0) {
+    document.body.classList.remove("oak-locked-viewport");
+    const meta = document.querySelector('meta[name="viewport"]');
+    if (meta && originalMetaContent !== null) meta.setAttribute("content", originalMetaContent);
+    originalMetaContent = null;
+  }
+}
+
+export function useLockedViewport() {
+  // useLayoutEffect, not useEffect: an autofocused input in a brand-new sheet
+  // (e.g. OptionEditorSheet's name field) focuses during React's commit,
+  // before any useEffect runs — on iOS that's early enough to trigger the
+  // keyboard under the OLD viewport contract if this hook hasn't rewritten
+  // the meta tag yet, which is exactly what let the keyboard push the sheet
+  // up instead of overlaying it. useLayoutEffect runs synchronously as part
+  // of the same commit, closing that race.
+  useLayoutEffect(() => {
+    acquireLock();
+    return releaseLock;
   }, []);
 }

@@ -32,6 +32,31 @@ export const WEIGHT_VOLUME_SYSTEMS = {
   L: ["0.5 L", "1 L", "1.5 L", "2 L", "3 L", "5 L", "10 L"],
 } as const;
 
+// The unit actually appended to a typed digit ("275" -> "275 g") -- note mL's
+// own preset strings are lowercase "ml" while the system key is "mL", so this
+// can't just reuse the key verbatim or typed values would never dedupe
+// against the presets.
+const UNIT_SUFFIX: Record<string, string> = {
+  g: "g",
+  kg: "kg",
+  oz: "oz",
+  lb: "lb",
+  mL: "ml",
+  "fl oz": "fl oz",
+  L: "L",
+};
+
+// For the "Write in the specific ___" placeholder on the typed-value row.
+const UNIT_LABEL_PLURAL: Record<string, string> = {
+  g: "grams",
+  kg: "kilograms",
+  oz: "ounces",
+  lb: "pounds",
+  mL: "milliliters",
+  "fl oz": "fluid ounces",
+  L: "liters",
+};
+
 // Options whose values are picked via a switchable unit/system, and the
 // system each defaults to when the seller first picks that option name.
 const OPTION_SYSTEMS: Record<string, Record<string, readonly string[]>> = {
@@ -252,6 +277,11 @@ export function OptionEditorSheet({
     ),
   );
   const [valueDraft, setValueDraft] = useState("");
+  // Weight/Volume's own typed-entry row (digits only, unit appended
+  // automatically) -- kept separate from valueDraft since that one still
+  // doubles as a search query for every other option type, and this one
+  // never does.
+  const [numericDraft, setNumericDraft] = useState("");
   const [selectedSystems, setSelectedSystems] = useState<Record<string, string>>(DEFAULT_SYSTEM);
   const [systemMenuOpen, setSystemMenuOpen] = useState(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -266,6 +296,7 @@ export function OptionEditorSheet({
   const confirmed = confirmedByName[name] ?? false;
 
   const isColorOption = name === "Color";
+  const isWeightVolume = name === "Weight/Volume";
   const systems = OPTION_SYSTEMS[name];
   const hasChosen = values.length > 0;
   const systemKeys = systems
@@ -278,8 +309,17 @@ export function OptionEditorSheet({
   const matches = (v: string) => !q || v.toLowerCase().includes(q);
 
   // Browsing stays scoped to the active unit; searching looks across every
-  // unit at once so e.g. a size doesn't hide just because you're on "US".
-  const pool = query ? allValues(name) : systemValues(name, activeSystem);
+  // unit at once so e.g. a size doesn't hide just because you're on "US" --
+  // but only BEFORE anything's picked. Once a value's chosen, the option is
+  // locked to that value's system (see addValue below), and letting search
+  // reach across systems here would be the one remaining way to still slip a
+  // cross-system value in despite the lock.
+  const pool =
+    systems && hasChosen
+      ? systemValues(name, activeSystem)
+      : query
+        ? allValues(name)
+        : systemValues(name, activeSystem);
 
   // Every chosen value pins to the top regardless of which system it came
   // from; the pool below only lists what's left to pick.
@@ -287,7 +327,12 @@ export function OptionEditorSheet({
   const remaining = pool.filter((v) => !values.includes(v) && matches(v));
 
   const exactExists = [...values, ...pool].some((v) => v.toLowerCase() === q);
-  const canCreate = !!query && !exactExists;
+  // Once locked to a system, typing a free-text value is only still allowed
+  // if the lock itself is already "Custom" -- otherwise a typed string would
+  // silently relabel the whole option's system out from under its existing
+  // picks, the same mixing this is meant to prevent.
+  const canCreate =
+    !!query && !exactExists && (!systems || !hasChosen || activeSystem === CUSTOM_SYSTEM);
 
   // Every name that actually holds values — these are the options that will be
   // emitted, not just whichever one happens to be on screen when "Next" is hit.
@@ -304,7 +349,17 @@ export function OptionEditorSheet({
   const customPills = nameOrder.filter(
     (n) => n.trim() && !(PRESETS as readonly string[]).includes(n) && confirmedByName[n],
   );
-  const allPills: string[] = [...PRESETS, ...customPills];
+  // The name being typed right now, if it's a genuinely new custom one, gets
+  // its own live pill immediately -- appended last, blue-outlined via the
+  // existing isActive styling below -- rather than waiting until values are
+  // saved to appear at all.
+  const showLivePill =
+    name.trim().length > 0 &&
+    !(PRESETS as readonly string[]).includes(name) &&
+    !confirmedByName[name];
+  const allPills: string[] = showLivePill
+    ? [...PRESETS, ...customPills, name]
+    : [...PRESETS, ...customPills];
 
   function updateValues(updater: (prev: string[]) => string[]) {
     setValuesByName((prev) => ({ ...prev, [name]: updater(prev[name] ?? []) }));
@@ -312,15 +367,63 @@ export function OptionEditorSheet({
     setNameOrder((prev) => (prev.includes(name) ? prev : [...prev, name]));
   }
 
+  // Which system a preset value actually belongs to -- needed because e.g.
+  // US and UK size numbers overlap, so activeSystem alone isn't reliable if
+  // a value got picked while searching across every system at once.
+  function ownerSystemFor(value: string): string | null {
+    if (!systems) return null;
+    for (const key of Object.keys(systems)) {
+      if ((systems[key] as readonly string[]).includes(value)) return key;
+    }
+    return null;
+  }
+
+  // Single add path for every way a value can be picked (tapping a preset,
+  // typing a free-text one, or the Weight/Volume numeric row) -- so the
+  // "no mixing genres" lock only has to be enforced in one place. On the
+  // FIRST value for a systemed option, pins selectedSystems to whichever
+  // system actually owns it (not just whatever activeSystem happens to say),
+  // so every later pick in this session is confined to that same system.
+  function addValue(
+    v: string,
+    { forceCustomSystem = false }: { forceCustomSystem?: boolean } = {},
+  ) {
+    if (values.includes(v)) return;
+    if (systems && values.length === 0) {
+      if (forceCustomSystem) {
+        setSelectedSystems((prev) => ({ ...prev, [name]: CUSTOM_SYSTEM }));
+      } else {
+        const owner = ownerSystemFor(v);
+        if (owner && owner !== activeSystem) {
+          setSelectedSystems((prev) => ({ ...prev, [name]: owner }));
+        }
+      }
+    }
+    updateValues((prev) => [...prev, v]);
+  }
+
   function toggleValue(v: string) {
-    updateValues((prev) => (prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v]));
+    if (values.includes(v)) {
+      updateValues((prev) => prev.filter((x) => x !== v));
+    } else {
+      addValue(v);
+    }
   }
 
   function createValue() {
     if (!canCreate) return;
-    updateValues((prev) => [...prev, query]);
+    addValue(query, { forceCustomSystem: true });
     setValueDraft("");
-    if (systems) setSelectedSystems((prev) => ({ ...prev, [name]: CUSTOM_SYSTEM }));
+  }
+
+  function commitNumericValue() {
+    const digits = numericDraft.trim();
+    if (!digits) return;
+    // addValue, not createValue -- this is a real value in the CURRENT
+    // system (it carries that system's own unit suffix), not a custom one,
+    // so it shouldn't relabel the option to "Custom".
+    addValue(`${digits} ${UNIT_SUFFIX[activeSystem] ?? activeSystem}`);
+    setNumericDraft("");
   }
 
   function removeValue(v: string) {
@@ -349,6 +452,7 @@ export function OptionEditorSheet({
     // its pill now lives in the row above, already marked done.
     setName("");
     setValueDraft("");
+    setNumericDraft("");
     nameInputRef.current?.focus();
   }
 
@@ -359,6 +463,7 @@ export function OptionEditorSheet({
     setSelectedSystems((prev) => dropKey(prev, name));
     setNameOrder((prev) => prev.filter((n) => n !== name));
     setValueDraft("");
+    setNumericDraft("");
   }
 
   // Tapping a different preset chip *switches* options — each name keeps its
@@ -368,6 +473,7 @@ export function OptionEditorSheet({
     if (nameLocked) return;
     setName(p);
     setValueDraft("");
+    setNumericDraft("");
   }
 
   // Typing in the name field is a *rename*, not a switch, so the values the
@@ -452,58 +558,77 @@ export function OptionEditorSheet({
               )}
             </div>
 
-            <input
-              value={valueDraft}
-              onChange={(e) => setValueDraft(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  createValue();
-                }
-              }}
-              placeholder="Add or search a value"
-              className="w-full text-base border border-gray-200 rounded-xl px-4 py-4 outline-none focus:border-gray-400"
-            />
-
-            {systems && (
-              <div className="relative flex justify-end mt-3">
-                <button
-                  type="button"
-                  onClick={() => setSystemMenuOpen((v) => !v)}
-                  className="flex items-center gap-1 text-xs text-gray-500 border border-gray-200 rounded-full px-3 py-1.5"
-                >
-                  {activeSystem}
-                  <ChevronDown size={13} className="text-gray-400" />
-                </button>
-                {systemMenuOpen && (
-                  <>
-                    <button
-                      type="button"
-                      aria-label="Close unit menu"
-                      onClick={() => setSystemMenuOpen(false)}
-                      className="fixed inset-0 z-10 cursor-default"
+            {isWeightVolume ? (
+              <>
+                {systems && (
+                  <div className="mb-3">
+                    <UnitSystemMenu
+                      activeSystem={activeSystem}
+                      systemKeys={systemKeys}
+                      hasChosen={hasChosen}
+                      open={systemMenuOpen}
+                      onToggle={() => setSystemMenuOpen((v) => !v)}
+                      onSelect={(key) => {
+                        setSelectedSystems((prev) => ({ ...prev, [name]: key }));
+                        setSystemMenuOpen(false);
+                      }}
                     />
-                    <div className="absolute right-0 top-9 z-20 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden min-w-28">
-                      {systemKeys.map((key) => (
-                        <button
-                          key={key}
-                          type="button"
-                          onClick={() => {
-                            setSelectedSystems((prev) => ({ ...prev, [name]: key }));
-                            setSystemMenuOpen(false);
-                          }}
-                          className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 text-sm text-left ${
-                            key === activeSystem ? "text-gray-900 font-medium" : "text-gray-600"
-                          }`}
-                        >
-                          {key}
-                          {key === activeSystem && <Check size={14} />}
-                        </button>
-                      ))}
-                    </div>
-                  </>
+                  </div>
                 )}
-              </div>
+                {/* Digits only, unit appended as a fixed suffix rather than
+                    live-mutated inside the input -- avoids cursor-position
+                    fights while still reading as "275 g" as they type. */}
+                <div className="flex items-center border border-gray-200 rounded-xl px-4 py-4 focus-within:border-gray-400">
+                  <input
+                    value={numericDraft}
+                    onChange={(e) => setNumericDraft(e.target.value.replace(/[^0-9.]/g, ""))}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        commitNumericValue();
+                      }
+                    }}
+                    inputMode="decimal"
+                    placeholder={`Write in the specific ${UNIT_LABEL_PLURAL[activeSystem] ?? activeSystem}`}
+                    className="flex-1 min-w-0 text-base outline-none bg-transparent"
+                  />
+                  {numericDraft && (
+                    <span className="text-base text-gray-400 shrink-0 ml-1">
+                      {UNIT_SUFFIX[activeSystem] ?? activeSystem}
+                    </span>
+                  )}
+                </div>
+              </>
+            ) : (
+              <>
+                <input
+                  value={valueDraft}
+                  onChange={(e) => setValueDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      createValue();
+                    }
+                  }}
+                  placeholder="Add or search a value"
+                  className="w-full text-base border border-gray-200 rounded-xl px-4 py-4 outline-none focus:border-gray-400"
+                />
+                {systems && (
+                  <div className="mt-3">
+                    <UnitSystemMenu
+                      activeSystem={activeSystem}
+                      systemKeys={systemKeys}
+                      hasChosen={hasChosen}
+                      open={systemMenuOpen}
+                      onToggle={() => setSystemMenuOpen((v) => !v)}
+                      onSelect={(key) => {
+                        setSelectedSystems((prev) => ({ ...prev, [name]: key }));
+                        setSystemMenuOpen(false);
+                      }}
+                    />
+                  </div>
+                )}
+              </>
             )}
 
             <div className="flex flex-col gap-2 mt-3">
@@ -566,13 +691,83 @@ export function OptionEditorSheet({
                 <p className="text-sm text-gray-400 py-6 text-center">
                   {pool.length === 0
                     ? "Type a value above to add your first one."
-                    : "No values match your search."}
+                    : query
+                      ? "No values match your search."
+                      : "You've added every preset value."}
                 </p>
               )}
             </div>
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+// Extracted so it can render either before or after the value-entry input
+// (Weight/Volume wants it first, everything else wants it last) without
+// duplicating the ~35 lines of dropdown markup for each order.
+function UnitSystemMenu({
+  activeSystem,
+  systemKeys,
+  hasChosen,
+  open,
+  onToggle,
+  onSelect,
+}: {
+  activeSystem: string;
+  systemKeys: string[];
+  // Once true, every system but the active one is disabled rather than
+  // removed -- visibly still there, but blocked, so switching mid-pick can't
+  // silently mix values from two different genres into one option.
+  hasChosen: boolean;
+  open: boolean;
+  onToggle: () => void;
+  onSelect: (key: string) => void;
+}) {
+  return (
+    <div className="relative flex justify-end">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex items-center gap-1 text-xs text-gray-500 border border-gray-200 rounded-full px-3 py-1.5"
+      >
+        {activeSystem}
+        <ChevronDown size={13} className="text-gray-400" />
+      </button>
+      {open && (
+        <>
+          <button
+            type="button"
+            aria-label="Close unit menu"
+            onClick={onToggle}
+            className="fixed inset-0 z-10 cursor-default"
+          />
+          <div className="absolute right-0 top-9 z-20 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden min-w-28">
+            {systemKeys.map((key) => {
+              const disabled = hasChosen && key !== activeSystem;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => onSelect(key)}
+                  className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 text-sm text-left ${
+                    key === activeSystem
+                      ? "text-gray-900 font-medium"
+                      : disabled
+                        ? "text-gray-300"
+                        : "text-gray-600"
+                  }`}
+                >
+                  {key}
+                  {key === activeSystem && <Check size={14} />}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
     </div>
   );
 }

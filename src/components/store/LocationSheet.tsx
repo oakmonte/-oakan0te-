@@ -1,5 +1,15 @@
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { X, MapPin, LocateFixed, ChevronRight, Check } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 // Deep imports on purpose: the package's index also pulls in the ~8 MB world
 // city dataset, which would block this sheet from opening. Cities come from
 // @/lib/city-data instead (NG/US instantly, the rest in the background).
@@ -109,6 +119,7 @@ export function LocationSheet({
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showErrors, setShowErrors] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
   const countryItems: LocationListItem[] = useMemo(
     () =>
@@ -259,6 +270,7 @@ export function LocationSheet({
 
   async function handleDelete() {
     if (!initial?.id || !onDelete) return;
+    setConfirmDeleteOpen(false);
     setDeleting(true);
     try {
       await onDelete(initial.id);
@@ -462,7 +474,7 @@ export function LocationSheet({
         {isEditing && onDelete && (
           <button
             type="button"
-            onClick={handleDelete}
+            onClick={() => setConfirmDeleteOpen(true)}
             disabled={deleting}
             className="text-xs font-medium text-red-500 disabled:opacity-50 self-start"
           >
@@ -481,6 +493,21 @@ export function LocationSheet({
           {saving ? "Saving…" : isEditing ? "Save changes" : "Add location"}
         </button>
       </div>
+
+      <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+        <AlertDialogContent className="max-w-[92vw] rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this location?</AlertDialogTitle>
+            <AlertDialogDescription>This can't be undone.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-full">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-black rounded-full">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

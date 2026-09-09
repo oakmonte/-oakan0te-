@@ -6,6 +6,16 @@ import { useLockedViewport } from "@/hooks/use-locked-viewport";
 import { Code128Barcode } from "./Code128Barcode";
 import { BarcodesSheet } from "./BarcodesSheet";
 import type { BarcodeEntry } from "@/lib/barcode-types";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export type InventoryValues = {
   continueSellingOutOfStock: boolean;
@@ -40,6 +50,7 @@ export function InventorySheet({
   onSave,
   onCreateLocation,
   initialLocationsPickerOpen,
+  hideIdentifiers,
 }: {
   productLabel?: string;
   storeId: string;
@@ -51,6 +62,10 @@ export function InventorySheet({
   // pickup location from within "Edit locations" -- that's exactly where
   // they were, so land back there instead of on this sheet's own base view.
   initialLocationsPickerOpen?: boolean;
+  // Set when this sheet is being used as the "apply to all" bulk editor
+  // (see VariantCombinationsSheet) -- SKU and barcodes must stay unique per
+  // variant, so there's nothing sensible to show or bulk-apply here.
+  hideIdentifiers?: boolean;
 }) {
   useLockedViewport();
 
@@ -67,6 +82,10 @@ export function InventorySheet({
   const [locationsPickerOpen, setLocationsPickerOpen] = useState(
     () => !!initialLocationsPickerOpen,
   );
+  // Gates the actual save behind a confirm when the seller's about to save
+  // something that can't actually fulfil an order yet -- null means neither
+  // condition tripped, save runs immediately.
+  const [guardDialog, setGuardDialog] = useState<"no-locations" | "zero-stock" | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -108,6 +127,19 @@ export function InventorySheet({
   }
 
   function handleSave() {
+    if (selectedLocations.length === 0) {
+      setGuardDialog("no-locations");
+      return;
+    }
+    if (total === 0) {
+      setGuardDialog("zero-stock");
+      return;
+    }
+    onSave({ continueSellingOutOfStock, locationQuantities, sku, barcodes });
+  }
+
+  function confirmSaveAnyway() {
+    setGuardDialog(null);
     onSave({ continueSellingOutOfStock, locationQuantities, sku, barcodes });
   }
 
@@ -141,50 +173,54 @@ export function InventorySheet({
           />
         </div>
 
-        <div className="-mx-4 h-2 bg-gray-50 mt-2" />
+        {!hideIdentifiers && (
+          <>
+            <div className="-mx-4 h-2 bg-gray-50 mt-2" />
 
-        <div className="pt-2">
-          <span className="flex items-baseline gap-1.5">
-            <span className="text-[15px] font-semibold text-gray-900">Identifiers</span>
-            <span className="text-xs text-gray-400 font-normal">Optional</span>
-          </span>
-          <div className="grid grid-cols-2 gap-2 mt-2">
-            <label className="flex flex-col gap-1">
-              <span className="text-xs text-gray-400">SKU</span>
-              <input
-                value={sku}
-                onChange={(e) => setSku(e.target.value)}
-                placeholder="Optional"
-                className="text-base border border-gray-200 rounded-lg px-2 py-2 outline-none transition-colors duration-150 focus:border-gray-400"
-              />
-            </label>
-            <button
-              type="button"
-              onClick={() => setBarcodesSheetOpen(true)}
-              className="flex flex-col gap-1 text-left transition-transform duration-150 active:scale-[0.98]"
-            >
-              <span className="text-xs text-gray-400">Barcode</span>
-              <span className="flex items-center justify-between border border-gray-200 rounded-lg px-2 py-2">
-                <span
-                  className={`text-base truncate ${barcodes.length > 0 ? "text-gray-900" : "text-gray-400"}`}
-                >
-                  {barcodes.length === 0
-                    ? "Add"
-                    : barcodes.length === 1
-                      ? barcodes[0].value
-                      : `${barcodes.length} barcodes`}
-                </span>
-                <ChevronRight size={14} className="text-gray-300 shrink-0" />
+            <div className="pt-2">
+              <span className="flex items-baseline gap-1.5">
+                <span className="text-[15px] font-semibold text-gray-900">Identifiers</span>
+                <span className="text-xs text-gray-400 font-normal">Optional</span>
               </span>
-            </button>
-          </div>
-          {barcodes[0]?.value.trim() && (
-            <Code128Barcode
-              value={barcodes[0].value.trim()}
-              className="mt-3 animate-in fade-in slide-in-from-top-1 duration-200"
-            />
-          )}
-        </div>
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                <label className="flex flex-col gap-1">
+                  <span className="text-xs text-gray-400">SKU</span>
+                  <input
+                    value={sku}
+                    onChange={(e) => setSku(e.target.value)}
+                    placeholder="Optional"
+                    className="text-base border border-gray-200 rounded-lg px-2 py-2 outline-none transition-colors duration-150 focus:border-gray-400"
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setBarcodesSheetOpen(true)}
+                  className="flex flex-col gap-1 text-left transition-transform duration-150 active:scale-[0.98]"
+                >
+                  <span className="text-xs text-gray-400">Barcode</span>
+                  <span className="flex items-center justify-between border border-gray-200 rounded-lg px-2 py-2">
+                    <span
+                      className={`text-base truncate ${barcodes.length > 0 ? "text-gray-900" : "text-gray-400"}`}
+                    >
+                      {barcodes.length === 0
+                        ? "Add"
+                        : barcodes.length === 1
+                          ? barcodes[0].value
+                          : `${barcodes.length} barcodes`}
+                    </span>
+                    <ChevronRight size={14} className="text-gray-300 shrink-0" />
+                  </span>
+                </button>
+              </div>
+              {barcodes[0]?.value.trim() && (
+                <Code128Barcode
+                  value={barcodes[0].value.trim()}
+                  className="mt-3 animate-in fade-in slide-in-from-top-1 duration-200"
+                />
+              )}
+            </div>
+          </>
+        )}
 
         <div className="-mx-4 h-2 bg-gray-50 mt-2" />
 
@@ -285,6 +321,32 @@ export function InventorySheet({
           Save
         </button>
       </div>
+
+      <AlertDialog
+        open={guardDialog !== null}
+        onOpenChange={(open) => !open && setGuardDialog(null)}
+      >
+        <AlertDialogContent className="max-w-[92vw] rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {guardDialog === "no-locations"
+                ? "You can't make sales without adding a store or warehouse location"
+                : "You're saving this with 0 in stock — are you sure?"}
+            </AlertDialogTitle>
+            {guardDialog === "no-locations" && (
+              <AlertDialogDescription>
+                We won't know where the rider should pick the product from.
+              </AlertDialogDescription>
+            )}
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-full">Go back</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmSaveAnyway} className="bg-black rounded-full">
+              Continue anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -47,8 +47,13 @@ export function VariantCombinationsSheet({
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkPrice, setBulkPrice] = useState("");
   const [bulkCompareAtPrice, setBulkCompareAtPrice] = useState("");
-  const [bulkStock, setBulkStock] = useState("");
   const [bulkWeight, setBulkWeight] = useState("");
+  // null = untouched this session (nothing to apply). Holds a real
+  // InventoryValues rather than a bare number -- the seller picks actual
+  // locations via the same InventorySheet a real variant row uses, not a
+  // number typed into a box with no locations attached to it.
+  const [bulkInventory, setBulkInventory] = useState<InventoryValues | null>(null);
+  const [bulkInventoryOpen, setBulkInventoryOpen] = useState(false);
   // images[0] is the main image, the rest are additional -- same shape as a
   // row's own mainImageUrl/additionalImageUrls, so applying it is a direct
   // copy rather than a reshape.
@@ -83,13 +88,15 @@ export function VariantCombinationsSheet({
   // price doesn't silently wipe stock counts they already entered by hand.
   // Untouched rows they've unchecked are left alone entirely.
   //
-  // Stock sets the quantity at every location a row ALREADY has picked, since
-  // it's a sum across pickup locations (see InventorySheet) rather than a
-  // single number — a row with no locations picked yet still needs "Edit
-  // locations" first, bulk-apply can't invent one for it. SKU is deliberately
-  // not here at all: it's supposed to be unique per variant, so bulk-applying
-  // one literal value would hand every selected row the same SKU, which is a
-  // correctness bug, not a convenience.
+  // Inventory is the one exception to "only touch what's filled in": once the
+  // seller has gone into the real Inventory picker and hit Save there, that's
+  // an explicit, complete answer to "where and how much" -- applying it as a
+  // full replacement (including to rows that had no locations picked at all)
+  // is what "apply to all" actually means once the input is a real picker
+  // rather than a single number. SKU is deliberately not here at all: it's
+  // supposed to be unique per variant, so bulk-applying one literal value
+  // would hand every selected row the same SKU, which is a correctness bug,
+  // not a convenience.
   function applyToAll() {
     const patch: Partial<VariantRow> = {};
     if (bulkPrice.trim()) patch.price = bulkPrice.trim();
@@ -103,12 +110,9 @@ export function VariantCombinationsSheet({
       const grams = parseFloat(bulkWeight.trim());
       if (!isNaN(grams)) patch.weightGrams = grams;
     }
-    let stockQty: number | null = null;
-    if (bulkStock.trim()) {
-      const n = parseInt(bulkStock.trim(), 10);
-      if (!isNaN(n)) stockQty = Math.max(0, n);
-    }
-    if (Object.keys(patch).length === 0 && stockQty === null) return;
+    // bulkImages.length >= 1 always means patch already has mainImageUrl, so
+    // checking patch alone (plus bulkInventory) already covers every case.
+    if (Object.keys(patch).length === 0 && !bulkInventory) return;
     setRows((prev) =>
       prev.map((r) => {
         if (!r.selected) return r;
@@ -118,20 +122,18 @@ export function VariantCombinationsSheet({
         // in-place edit to one row's list would otherwise silently rewrite
         // every other bulk-applied row's list too.
         if (bulkImages.length > 1) next.additionalImageUrls = bulkImages.slice(1);
-        if (stockQty !== null && Object.keys(r.locationQuantities).length > 0) {
-          const locationQuantities: Record<string, number> = {};
-          for (const locId of Object.keys(r.locationQuantities))
-            locationQuantities[locId] = stockQty;
-          next.locationQuantities = locationQuantities;
+        if (bulkInventory) {
+          next.locationQuantities = { ...bulkInventory.locationQuantities };
+          next.continueSellingOutOfStock = bulkInventory.continueSellingOutOfStock;
         }
         return next;
       }),
     );
     setBulkPrice("");
     setBulkCompareAtPrice("");
-    setBulkStock("");
     setBulkWeight("");
     setBulkImages([]);
+    setBulkInventory(null);
     setBulkOpen(false);
   }
 
@@ -275,12 +277,16 @@ export function VariantCombinationsSheet({
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <MiniField label="Price" value={bulkPrice} onChange={setBulkPrice} isPrice />
-                {/* Not "Inventory" -- unlike the per-row control below, which
-                    shows one summed total, this sets the SAME number at every
-                    location a row already has picked. Labelling it the same
-                    as the total would read as "set the total to this", which
-                    silently overstates stock on any row with 2+ locations. */}
-                <MiniField label="Stock/location" value={bulkStock} onChange={setBulkStock} />
+                <label className="flex flex-col gap-1">
+                  <span className="text-xs text-gray-400">Inventory</span>
+                  <button
+                    type="button"
+                    onClick={() => setBulkInventoryOpen(true)}
+                    className="text-base border border-gray-200 rounded-lg px-2 py-2 text-left"
+                  >
+                    {bulkInventory ? stockTotal(bulkInventory) : "Not set"}
+                  </button>
+                </label>
                 <MiniField
                   label="Compare-at"
                   value={bulkCompareAtPrice}
@@ -295,9 +301,9 @@ export function VariantCombinationsSheet({
                 disabled={
                   !bulkPrice.trim() &&
                   !bulkCompareAtPrice.trim() &&
-                  !bulkStock.trim() &&
                   !bulkWeight.trim() &&
-                  bulkImages.length === 0
+                  bulkImages.length === 0 &&
+                  !bulkInventory
                 }
                 className="mt-3 w-full bg-black text-white text-sm font-medium rounded-lg py-2.5 disabled:bg-gray-200 disabled:text-gray-400"
               >
@@ -400,6 +406,27 @@ export function VariantCombinationsSheet({
             setBulkImagePickerOpen(false);
           }}
           onClose={() => setBulkImagePickerOpen(false)}
+        />
+      )}
+
+      {bulkInventoryOpen && (
+        <InventorySheet
+          productLabel="All selected variants"
+          storeId={storeId}
+          hideIdentifiers
+          initial={
+            bulkInventory ?? {
+              continueSellingOutOfStock: false,
+              locationQuantities: {},
+              sku: "",
+              barcodes: [],
+            }
+          }
+          onCreateLocation={onCreateLocation}
+          onSave={(values) => {
+            setBulkInventory(values);
+            setBulkInventoryOpen(false);
+          }}
         />
       )}
 
