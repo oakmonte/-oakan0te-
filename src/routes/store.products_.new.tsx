@@ -76,8 +76,22 @@ function NewProduct() {
   const [initialNewLocationId] = useState(() => takePendingNewLocationId());
   // Which variant-wizard Inventory sheet (a specific row, or the bulk "Apply
   // to all" one) sent the seller off to create this location, if any -- see
-  // VariantInventoryContext.
-  const [initialVariantInventoryContext] = useState(() => takePendingVariantInventoryContext());
+  // VariantInventoryContext. Has a real setter (not the usual bare useState)
+  // so it can be cleared once the wizard has consumed it -- otherwise
+  // VariantCombinationsSheet re-reads this same non-null value every time it
+  // remounts later in this same page session (leaving the Variants step and
+  // re-entering it, say) and keeps popping its Inventory sheet back open
+  // forever. Cleared via VariantMatrixBuilder's own
+  // onInventoryContextConsumed callback (fired from ITS mount effect), not a
+  // plain effect here -- VariantMatrixBuilder only renders once storeId
+  // resolves (see useActiveStoreId, an async effect of its own), so a
+  // `useEffect(..., [])` at this level would fire on THIS component's first
+  // commit, well before that child -- and the grandchild that actually reads
+  // this value -- ever mounts, clearing it before anything downstream had a
+  // chance to see it.
+  const [initialVariantInventoryContext, setInitialVariantInventoryContext] = useState(() =>
+    takePendingVariantInventoryContext(),
+  );
 
   const [kind, setKind] = useState<ProductKind>(initialDraft?.kind ?? intentKind ?? "variant");
   const [status, setStatus] = useState<"draft" | "active">(initialDraft?.status ?? "draft");
@@ -249,7 +263,31 @@ function NewProduct() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(currentDraft())]);
 
+  // Backstop for hasPendingUploads() below, same reasoning as product-
+  // save.ts's hasBlobImageUrl: that only reports uploads still IN FLIGHT, so
+  // a photo whose upload already failed (or got dismissed from the toast)
+  // has fallen out of it while its object-URL preview is still sitting in
+  // one of these fields -- stashProductDraft would freeze that dead blob:
+  // url into the draft with no upload left anywhere to ever patch it.
+  function hasBlobImagePending() {
+    if (mainImageUrl.startsWith("blob:")) return true;
+    if (additionalImageUrls.some((u) => u.startsWith("blob:"))) return true;
+    return rows.some(
+      (r) =>
+        r.mainImageUrl.startsWith("blob:") ||
+        (r.additionalImageUrls ?? []).some((u) => u.startsWith("blob:")),
+    );
+  }
+
+  // A page-level error banner would be invisible here -- this is reachable
+  // from inside the (also full-screen) Collections sheet, which is stacked
+  // on top of it. alert() is the one thing guaranteed to surface regardless
+  // of how many sheets deep the tap that triggered it was.
   function handleCreateCollection() {
+    if (hasPendingUploads() || hasBlobImagePending()) {
+      alert("Wait for your photos to finish uploading before doing that");
+      return;
+    }
     stashProductDraft(currentDraft());
     navigate({ to: "/store/collections/new" });
   }
@@ -257,7 +295,13 @@ function NewProduct() {
   // `context` is only passed from inside the variant wizard (a specific
   // row's Inventory sheet, or the bulk "Apply to all" one) -- the regular
   // product's own Inventory sheet calls this with nothing, same as before.
+  // Reachable from as deep as Variants -> Inventory -> Edit locations, so
+  // same alert() reasoning as handleCreateCollection above.
   function handleCreateLocation(context?: VariantInventoryContext) {
+    if (hasPendingUploads() || hasBlobImagePending()) {
+      alert("Wait for your photos to finish uploading before doing that");
+      return;
+    }
     if (context) setPendingVariantInventoryContext(context);
     stashProductDraft(currentDraft());
     navigate({ to: "/store/locations/new" });
@@ -464,33 +508,27 @@ function NewProduct() {
             estimateWeightForRow={estimateWeightForRow}
             initialInventoryContext={initialVariantInventoryContext}
             initialNewLocationId={initialNewLocationId}
+            onInventoryContextConsumed={() => setInitialVariantInventoryContext(null)}
           />
         )
       )}
 
-      {/* Hidden when the product was launched from a specific collection's
-          "Add products" -> create-new flow (initialNewCollectionId set) --
-          it's already scoped to that one collection via the pending-id
-          handoff, so a picker for *other* collections here is redundant and
-          just invites drift from what the seller actually came here to do. */}
-      {!initialNewCollectionId && (
-        <button
-          type="button"
-          onClick={() => setCollectionsSheetOpen(true)}
-          className="w-full flex items-center justify-between px-4 py-4 border-b-8 border-gray-50 text-left"
-        >
-          <span className="flex items-center gap-3 text-[15px] text-gray-900">
-            <Tag size={18} className="text-gray-400" />
-            Collections
-          </span>
-          <span className="flex items-center gap-2">
-            {collectionIds.length > 0 && (
-              <span className="text-xs text-gray-400">{collectionIds.length} selected</span>
-            )}
-            <ChevronRight size={16} className="text-gray-300" />
-          </span>
-        </button>
-      )}
+      <button
+        type="button"
+        onClick={() => setCollectionsSheetOpen(true)}
+        className="w-full flex items-center justify-between px-4 py-4 border-b-8 border-gray-50 text-left"
+      >
+        <span className="flex items-center gap-3 text-[15px] text-gray-900">
+          <Tag size={18} className="text-gray-400" />
+          Collections
+        </span>
+        <span className="flex items-center gap-2">
+          {collectionIds.length > 0 && (
+            <span className="text-xs text-gray-400">{collectionIds.length} selected</span>
+          )}
+          <ChevronRight size={16} className="text-gray-300" />
+        </span>
+      </button>
       <StubRow icon={<Hash size={18} />} label="Tags" onClick={() => setTagsSheetOpen(true)} />
       <StubRow
         icon={<ListChecks size={18} />}

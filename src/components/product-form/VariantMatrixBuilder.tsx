@@ -64,6 +64,7 @@ export function VariantMatrixBuilder({
   estimateWeightForRow,
   initialInventoryContext,
   initialNewLocationId,
+  onInventoryContextConsumed,
 }: {
   options: VariantOption[];
   setOptions: (fn: (prev: VariantOption[]) => VariantOption[]) => void;
@@ -92,11 +93,28 @@ export function VariantMatrixBuilder({
   // on the collapsed product form.
   initialInventoryContext?: VariantInventoryContext | null;
   initialNewLocationId?: string | null;
+  // Fired once, from this component's own mount effect below -- not from a
+  // plain effect at the PAGE level, because this component (gated behind an
+  // async storeId resolving) can mount several renders after the page
+  // itself does. Clearing the page's copy on the page's own mount would run
+  // before this component -- and VariantCombinationsSheet below it, which is
+  // the one that actually reads the value -- ever existed to consume it.
+  onInventoryContextConsumed?: () => void;
 }) {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [wizardStep, setWizardStep] = useState<WizardStep>(() =>
     initialInventoryContext ? "combinations" : null,
   );
+
+  // Runs once, after this component (and VariantCombinationsSheet below it,
+  // mounted in the same initial render whenever initialInventoryContext is
+  // set) have both already captured the value into their own lazy useState
+  // initializers -- effects always fire after the render/commit that set
+  // them up, so this can't race ahead of that.
+  useEffect(() => {
+    if (initialInventoryContext) onInventoryContextConsumed?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // A row's own Weight/Volume option value (if it has one) is the seller
   // directly telling us this SKU's weight, not a guess -- pre-fill from it

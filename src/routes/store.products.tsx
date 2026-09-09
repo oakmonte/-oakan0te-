@@ -49,11 +49,30 @@ type ProductRow = {
 // first or the products delete fails on the FK constraint -- same order as
 // the single-product delete in store.products_.$id.tsx's handleDeleteProduct,
 // just as one .in() each instead of N single-row deletes.
-async function deleteProducts(ids: string[]): Promise<{ error: string | null }> {
+// storeId scopes the actual delete as a defense-in-depth check -- RLS is off
+// on `products` (see root CLAUDE.md), so with a contaminated id list this is
+// the only thing standing between "delete my own products" and deleting
+// someone else's.
+async function deleteProducts(ids: string[], storeId: string): Promise<{ error: string | null }> {
   const { error: tagsErr } = await supabase.from("product_tags").delete().in("product_id", ids);
   if (tagsErr) return { error: tagsErr.message };
-  const { error } = await supabase.from("products").delete().in("id", ids);
-  return { error: error?.message ?? null };
+  // PostgREST returns no error for a delete that matches zero rows -- if the
+  // store_id scope above ever filtered out an id (e.g. the active store
+  // changed underneath an armed selection), a bare unchecked delete would
+  // report success despite having deleted no `products` row at all, after
+  // that id's tags were already gone for good above. Asking for the deleted
+  // rows back and comparing counts is what actually confirms it happened.
+  const { data, error } = await supabase
+    .from("products")
+    .delete()
+    .in("id", ids)
+    .eq("store_id", storeId)
+    .select("id");
+  if (error) return { error: error.message };
+  if ((data?.length ?? 0) !== ids.length) {
+    return { error: "Some of the selected products couldn't be deleted — try again." };
+  }
+  return { error: null };
 }
 
 function StoreProducts() {
@@ -70,6 +89,7 @@ function StoreProducts() {
   const selectMode = selectedIds.size > 0;
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   const fetchProducts = useCallback(async () => {
     if (!storeId) return;
@@ -87,7 +107,21 @@ function StoreProducts() {
     if (search.trim()) query = query.ilike("title", `%${search.trim()}%`);
 
     const { data, error } = await query;
-    if (!error && data) setProducts(data as ProductRow[]);
+    if (!error && data) {
+      const rows = data as ProductRow[];
+      setProducts(rows);
+      // A selection made on one tab/search result set has to be re-checked
+      // against whatever's actually on screen now -- switching tabs or
+      // typing a search while still in select mode must not leave a
+      // "2 selected" bulk-delete armed against rows that scrolled out of
+      // view, whether or not the seller can still see them.
+      setSelectedIds((prev) => {
+        if (prev.size === 0) return prev;
+        const visible = new Set(rows.map((p) => p.id));
+        const next = new Set([...prev].filter((id) => visible.has(id)));
+        return next.size === prev.size ? prev : next;
+      });
+    }
     setListLoading(false);
   }, [storeId, activeTab, search]);
 
@@ -96,6 +130,9 @@ function StoreProducts() {
   }, [fetchProducts]);
 
   function toggleSelected(id: string) {
+    // A stale "Couldn't delete: …" from a previous failed attempt shouldn't
+    // linger and reappear over a totally different selection later.
+    setDeleteError("");
     setSelectedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -105,12 +142,18 @@ function StoreProducts() {
   }
 
   async function handleBulkDelete() {
+    if (!storeId) return;
     setConfirmDeleteOpen(false);
     setDeleting(true);
-    const { error } = await deleteProducts([...selectedIds]);
+    setDeleteError("");
+    const { error } = await deleteProducts([...selectedIds], storeId);
     setDeleting(false);
     if (error) {
-      console.error("Bulk product delete failed", error);
+      // Selection is left intact (not cleared) so retrying doesn't require
+      // re-picking everything -- a silent console.error here previously let
+      // a partial failure (tags deleted, products delete itself then
+      // failing) look to the seller like nothing happened at all.
+      setDeleteError("Couldn't delete: " + error);
       return;
     }
     setProducts((prev) => prev.filter((p) => !selectedIds.has(p.id)));
@@ -246,25 +289,35 @@ function StoreProducts() {
       )}
 
       {selectMode && (
-        <div className="fixed bottom-0 inset-x-0 z-40 bg-white border-t border-gray-100 px-4 py-3 flex items-center justify-between animate-in fade-in slide-in-from-bottom-2 duration-200">
-          <button
-            type="button"
-            onClick={() => setSelectedIds(new Set())}
-            aria-label="Cancel selection"
-            className="p-2 -ml-2 rounded-full oak-motion-control active:scale-90"
-          >
-            <X size={18} className="text-gray-500" />
-          </button>
-          <span className="text-sm font-medium text-gray-900">{selectedIds.size} selected</span>
-          <button
-            type="button"
-            onClick={() => setConfirmDeleteOpen(true)}
-            disabled={deleting}
-            aria-label="Delete selected"
-            className="p-2 -mr-2 rounded-full text-red-500 disabled:opacity-50 oak-motion-control active:scale-90"
-          >
-            <Trash2 size={18} />
-          </button>
+        <div className="fixed bottom-0 inset-x-0 z-40 bg-white border-t border-gray-100 flex flex-col animate-in fade-in slide-in-from-bottom-2 duration-200">
+          {deleteError && (
+            <p className="px-4 pt-2 text-xs text-red-500 animate-in fade-in slide-in-from-top-1 duration-200">
+              {deleteError}
+            </p>
+          )}
+          <div className="px-4 py-3 flex items-center justify-between">
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedIds(new Set());
+                setDeleteError("");
+              }}
+              aria-label="Cancel selection"
+              className="p-2 -ml-2 rounded-full oak-motion-control active:scale-90"
+            >
+              <X size={18} className="text-gray-500" />
+            </button>
+            <span className="text-sm font-medium text-gray-900">{selectedIds.size} selected</span>
+            <button
+              type="button"
+              onClick={() => setConfirmDeleteOpen(true)}
+              disabled={deleting}
+              aria-label="Delete selected"
+              className="p-2 -mr-2 rounded-full text-red-500 disabled:opacity-50 oak-motion-control active:scale-90"
+            >
+              <Trash2 size={18} />
+            </button>
+          </div>
         </div>
       )}
 
@@ -301,15 +354,15 @@ function ProductListRow({
   onLongPress: () => void;
   onTap: () => void;
 }) {
-  const longPress = useLongPress(onLongPress);
+  const longPress = useLongPress(onLongPress, { onTap });
   const v = p.product_variants[0];
   const imported = p.source_platform && p.source_platform !== "manual";
   return (
     <button
       type="button"
-      onClick={onTap}
       {...longPress}
-      className="w-full flex items-center gap-3 border border-gray-100 rounded-xl p-3 text-left oak-motion-control active:scale-[0.99]"
+      style={{ WebkitTouchCallout: "none" }}
+      className="w-full flex items-center gap-3 border border-gray-100 rounded-xl p-3 text-left select-none oak-motion-control active:scale-[0.99]"
     >
       {selectMode && (
         <span

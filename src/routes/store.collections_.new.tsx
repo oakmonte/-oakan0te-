@@ -37,6 +37,10 @@ function NewCollection() {
   const [productsSheetOpen, setProductsSheetOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  // Set once the `collections` row itself is created -- lets a failed
+  // product-attach step be retried on its own (tap Save again) without
+  // re-inserting the collection and creating a duplicate.
+  const [createdCollectionId, setCreatedCollectionId] = useState<string | null>(null);
 
   const hasDescription = stripHtml(description).length > 0;
   // Reached from the new-product OR the edit-product form's Collections
@@ -70,38 +74,98 @@ function NewCollection() {
       setError("Wait for your photos to finish uploading before saving");
       return;
     }
+    // Backstop for hasPendingUploads() above: that only reports uploads
+    // still IN FLIGHT, so a photo whose upload already failed (or that was
+    // dismissed from the toast) has fallen out of it entirely, while its
+    // object-URL preview is still sitting in imageUrl/additionalImageUrls --
+    // saving now would write that dead blob: url straight into the row,
+    // permanently broken for every buyer and every other device.
+    if (imageUrl.startsWith("blob:") || additionalImageUrls.some((u) => u.startsWith("blob:"))) {
+      setError("One of your photos didn't finish uploading — remove and re-add it");
+      return;
+    }
 
     setSaving(true);
     setError("");
 
-    const { data: created, error: insertErr } = await supabase
-      .from("collections")
-      .insert({
-        store_id: storeId,
-        title: title.trim(),
-        description: description.trim() || null,
-        image_url: imageUrl.trim() || null,
-        additional_image_urls: additionalImageUrls.length > 0 ? additionalImageUrls : null,
-      })
-      .select("id")
-      .single();
+    // A retry after the product-attach step below failed skips straight to
+    // that step instead of re-inserting the collection -- same title twice
+    // would otherwise create a duplicate. Still writes an update on a retry
+    // (not a bare skip) so any edit made between the failed attempt and
+    // tapping Save again -- fixing a typo, swapping the cover photo -- isn't
+    // silently dropped just because the row already exists.
+    let collectionId = createdCollectionId;
+    const collectionFields = {
+      title: title.trim(),
+      description: description.trim() || null,
+      image_url: imageUrl.trim() || null,
+      additional_image_urls: additionalImageUrls.length > 0 ? additionalImageUrls : null,
+    };
+    if (!collectionId) {
+      const { data: created, error: insertErr } = await supabase
+        .from("collections")
+        .insert({ store_id: storeId, ...collectionFields })
+        .select("id")
+        .single();
 
-    if (insertErr || !created) {
-      setError(insertErr?.message ?? "Failed to create collection");
+      if (insertErr || !created) {
+        setError(insertErr?.message ?? "Failed to create collection");
+        setSaving(false);
+        return;
+      }
+      collectionId = created.id;
+      setCreatedCollectionId(created.id);
+    } else {
+      // .select() so a zero-row match (same PostgREST "success on zero rows"
+      // trap fixed for deleteProducts) surfaces instead of silently no-op'ing.
+      const { data: updated, error: updateErr } = await supabase
+        .from("collections")
+        .update(collectionFields)
+        .eq("id", collectionId)
+        .select("id");
+      if (updateErr || !updated || updated.length === 0) {
+        setError(updateErr?.message ?? "Couldn't save — the collection may have been deleted");
+        setSaving(false);
+        return;
+      }
+    }
+
+    // Replace (delete-then-insert), not append -- makes this idempotent on a
+    // retry after a dropped connection (re-inserting the same links would
+    // duplicate-key-fail or double them, and the seller could also have
+    // deselected a product since the failed attempt, which an append-only
+    // insert would never detach).
+    const { error: unlinkErr } = await supabase
+      .from("product_collections")
+      .delete()
+      .eq("collection_id", collectionId);
+    if (unlinkErr) {
+      setError(
+        "Collection created, but couldn't update the selected products — tap Save to retry.",
+      );
       setSaving(false);
       return;
     }
-
     if (productIds.length > 0) {
-      await supabase
+      const { error: linkErr } = await supabase
         .from("product_collections")
-        .insert(productIds.map((product_id) => ({ product_id, collection_id: created.id })));
+        .insert(productIds.map((product_id) => ({ product_id, collection_id: collectionId })));
+      if (linkErr) {
+        // The collection itself is real at this point -- surfacing the
+        // error and staying (rather than navigating away as if nothing was
+        // wrong) is what lets the seller retry just this step instead of
+        // walking away thinking their product picks were saved when the
+        // collection is actually still empty.
+        setError("Collection created, but couldn't add the selected products — tap Save to retry.");
+        setSaving(false);
+        return;
+      }
     }
 
     // Both destinations restore collectionIds off the stashed draft, then
     // append this one before rendering — same handoff either way.
     if (hasPendingProductDraft()) {
-      setPendingNewCollectionId(created.id);
+      setPendingNewCollectionId(collectionId);
     }
 
     navigate({ to: returnTo });

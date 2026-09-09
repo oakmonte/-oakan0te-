@@ -46,6 +46,36 @@ export function LocationsListSheet({
   useLockedViewport();
   const [rows, setRows] = useState<Row[] | null>(null);
   const [editing, setEditing] = useState<StoreLocationValues | null | "new">(null);
+  // How many variant-stock rows sit at the location currently being edited --
+  // product_variant_stock.location_id cascades on delete, so removing a
+  // location silently takes every one of these with it. Fetched fresh each
+  // time an existing location opens (null while loading, so the confirm
+  // dialog can tell "still checking" apart from "genuinely zero").
+  const [affectedStockCount, setAffectedStockCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!editing || editing === "new" || !editing.id) {
+      setAffectedStockCount(null);
+      return;
+    }
+    let cancelled = false;
+    setAffectedStockCount(null);
+    supabase
+      .from("product_variant_stock")
+      .select("id", { count: "exact", head: true })
+      .eq("location_id", editing.id)
+      .then(({ count, error }) => {
+        if (cancelled) return;
+        if (error) {
+          console.error("LocationsListSheet: failed to count affected stock rows", error);
+          return;
+        }
+        setAffectedStockCount(count ?? 0);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [editing]);
 
   useEffect(() => {
     let cancelled = false;
@@ -214,6 +244,7 @@ export function LocationsListSheet({
           onSave={handleSave}
           onDelete={handleDelete}
           onClose={() => setEditing(null)}
+          affectedStockCount={affectedStockCount}
         />
       )}
     </div>

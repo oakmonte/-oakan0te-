@@ -70,6 +70,36 @@ const DEFAULT_SYSTEM: Record<string, string> = { Size: "XXL", "Weight/Volume": "
 // presets crowding underneath for no reason.
 const CUSTOM_SYSTEM = "Custom";
 
+// Module-level (not closed over the sheet's current `name`) so it can seed
+// `selectedSystems` for EVERY option being reopened, not just whichever one
+// happens to be open right now -- see the selectedSystems initializer below.
+function ownerSystemForOption(optionName: string, value: string): string | null {
+  const systems = OPTION_SYSTEMS[optionName];
+  if (!systems) return null;
+  for (const key of Object.keys(systems)) {
+    if ((systems[key] as readonly string[]).includes(value)) return key;
+  }
+  return null;
+}
+
+// A Weight/Volume value typed through the numeric row ("275 g") is never a
+// member of WEIGHT_VOLUME_SYSTEMS's own preset lists, so ownerSystemForOption
+// above always returns null for it -- but it's still very much NOT a custom
+// value the way a free-typed Size is: a live pick of it leaves the option's
+// system exactly wherever it already was (see addValue's non-forced branch),
+// which for the numeric row is always the unit whose suffix got appended to
+// the digits. Reopening has to reconstruct that same unit from the value's
+// own trailing suffix, or it wrongly falls back to CUSTOM_SYSTEM -- which
+// then also breaks the numeric row itself (UNIT_SUFFIX has no "Custom" entry,
+// so it appends the literal word "Custom" to whatever's typed next).
+function unitKeyFromTypedValue(value: string): string | null {
+  const match = value.trim().match(/^[\d.]+\s*(.+)$/);
+  if (!match) return null;
+  const unitPart = match[1].trim();
+  const entry = Object.entries(UNIT_SUFFIX).find(([, suffix]) => suffix === unitPart);
+  return entry ? entry[0] : null;
+}
+
 // One-tap values for the non-systemed presets — covers apparel/accessories/
 // cosmetics/art without forcing typing. Free text still works for anything
 // else. Material lives in its own module (material-options.ts): MaterialSheet
@@ -503,7 +533,13 @@ function colorFamilyMembers(q: string): Set<string> | null {
   if (q.length < 3) return null;
   let members: Set<string> | null = null;
   for (const [family, list] of Object.entries(COLOR_FAMILIES)) {
-    if (family.startsWith(q) || q.startsWith(family)) {
+    // family.startsWith(q) is the type-ahead direction ("pur" -> "purple").
+    // The reverse direction is ONLY for a plural ("blues" -> "blue") -- a
+    // bare q.startsWith(family) would also fire on any preset name that
+    // happens to start with a short family key (e.g. "tangerine" contains
+    // "tan" as a prefix), pulling in that whole unrelated family right as
+    // the seller finishes typing an exact match.
+    if (family.startsWith(q) || q === family + "s") {
       members ??= new Set();
       for (const v of list) members.add(v);
     }
@@ -601,7 +637,38 @@ export function OptionEditorSheet({
   // ones (pinned above them), the same as any other unselected preset; the
   // seller still has to tap it to actually choose it.
   const [customPoolByName, setCustomPoolByName] = useState<Record<string, string[]>>({});
-  const [selectedSystems, setSelectedSystems] = useState<Record<string, string>>(DEFAULT_SYSTEM);
+  // Seeded from initialOptions, not just DEFAULT_SYSTEM -- reopening an
+  // option that already has values (editing an existing product, or a
+  // restored draft) has to pin to the system its FIRST value actually
+  // belongs to, exactly like a live pick does via addValue below. Without
+  // this, reopening e.g. an EU-sized Size option opened back on the XXL
+  // ladder while hasChosen's lock disabled every other system -- the seller
+  // could no longer add another EU size at all.
+  const [selectedSystems, setSelectedSystems] = useState<Record<string, string>>(() => {
+    const seeded: Record<string, string> = { ...DEFAULT_SYSTEM };
+    for (const o of initialOptions) {
+      if (o.values.length === 0 || !OPTION_SYSTEMS[o.name]) continue;
+      // Preset value -> its owning system. Typed Weight/Volume value (never
+      // a preset) -> the unit its own suffix names, same as a live pick
+      // would leave it at -- see unitKeyFromTypedValue. That recovered unit
+      // has to actually be a system of THIS option before it's trusted --
+      // UNIT_SUFFIX's keys aren't scoped to Weight/Volume (e.g. "L" is also
+      // a plausible trailing token on a free-typed Size like "20L" or "32 L"
+      // for bag capacity/denim length), and pinning a Size option to a
+      // nonexistent "L" system silently hides the system chip and disables
+      // "Create" entirely -- the exact lockout this seeding exists to avoid.
+      // Any other case (including a genuinely free-typed Size value, which a
+      // live pick DOES force to Custom via createValue's forceCustomSystem)
+      // falls through to CUSTOM_SYSTEM here.
+      {
+        const typedUnit = unitKeyFromTypedValue(o.values[0]);
+        seeded[o.name] =
+          ownerSystemForOption(o.name, o.values[0]) ??
+          (typedUnit && OPTION_SYSTEMS[o.name][typedUnit] ? typedUnit : CUSTOM_SYSTEM);
+      }
+    }
+    return seeded;
+  });
   const [systemMenuOpen, setSystemMenuOpen] = useState(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
 
@@ -701,11 +768,7 @@ export function OptionEditorSheet({
   // US and UK size numbers overlap, so activeSystem alone isn't reliable if
   // a value got picked while searching across every system at once.
   function ownerSystemFor(value: string): string | null {
-    if (!systems) return null;
-    for (const key of Object.keys(systems)) {
-      if ((systems[key] as readonly string[]).includes(value)) return key;
-    }
-    return null;
+    return ownerSystemForOption(name, value);
   }
 
   // Single add path for every way a value can be picked (tapping a preset,
@@ -753,7 +816,14 @@ export function OptionEditorSheet({
   function addNumericPoolValue() {
     const digits = numericDraft.trim();
     if (!digits) return;
-    const v = `${digits} ${UNIT_SUFFIX[activeSystem] ?? activeSystem}`;
+    // Built from the normalized number, not the raw typed string -- a value
+    // like "1.2.3" (an easy fat-finger on a decimal keypad) would otherwise
+    // slip past the onChange filter below (which only excludes non-digit/dot
+    // characters, not a second dot) and create an option whose visible label
+    // and parsed weight_grams silently disagree.
+    const amount = Number(digits);
+    if (!isFinite(amount) || amount <= 0) return;
+    const v = `${amount} ${UNIT_SUFFIX[activeSystem] ?? activeSystem}`;
     if (!values.includes(v) && !systemValues(name, activeSystem).includes(v)) {
       setCustomPoolByName((prev) => {
         const existing = prev[name] ?? [];
@@ -821,6 +891,12 @@ export function OptionEditorSheet({
     setValuesByName((prev) => moveKey(prev, name, next));
     setConfirmedByName((prev) => moveKey(prev, name, next));
     setSelectedSystems((prev) => moveKey(prev, name, next));
+    // Without this, a value typed into the Weight/Volume numeric row (which
+    // lives under the CURRENT name in customPoolByName) orphans the instant
+    // the name field is edited -- the pool entry vanishes on the first
+    // keystroke, unrecoverable unless the name is typed back to exactly
+    // what it was.
+    setCustomPoolByName((prev) => moveKey(prev, name, next));
     setNameOrder((prev) => prev.map((n) => (n === name ? next : n)));
     setName(next);
   }
@@ -925,7 +1001,19 @@ export function OptionEditorSheet({
                 <div className="flex items-center border border-gray-200 rounded-xl px-4 py-4 focus-within:border-gray-400">
                   <input
                     value={numericDraft}
-                    onChange={(e) => setNumericDraft(e.target.value.replace(/[^0-9.]/g, ""))}
+                    onChange={(e) => {
+                      const digitsOnly = e.target.value.replace(/[^0-9.]/g, "");
+                      // Collapse to at most one decimal point -- a stray
+                      // second dot (easy to fat-finger on a decimal keypad)
+                      // would otherwise sit in the field looking normal.
+                      const firstDot = digitsOnly.indexOf(".");
+                      setNumericDraft(
+                        firstDot === -1
+                          ? digitsOnly
+                          : digitsOnly.slice(0, firstDot + 1) +
+                              digitsOnly.slice(firstDot + 1).replace(/\./g, ""),
+                      );
+                    }}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         e.preventDefault();

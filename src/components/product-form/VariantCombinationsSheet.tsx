@@ -117,6 +117,15 @@ export function VariantCombinationsSheet({
   const selected = rows.filter((r) => r.selected);
   const allSelected = rows.length > 0 && selected.length === rows.length;
   const missingPrice = selected.some((r) => !r.price.trim());
+  // An empty locationQuantities isn't "the seller deliberately chose no
+  // locations" -- InventorySheet's only way out when nothing's picked yet
+  // is X -> "Continue anyway" (its no-locations guard), so a seller who just
+  // peeked at the bulk Inventory sheet and backed out of it can leave
+  // bulkInventory non-null with nothing in it. Treating that as a real,
+  // deliberate pick (either to arm Apply or to actually apply it) would
+  // silently wipe every selected row's real stock.
+  const hasBulkInventoryPick =
+    !!bulkInventory && Object.keys(bulkInventory.locationQuantities).length > 0;
 
   function updateRow(key: string, patch: Partial<VariantRow>) {
     setRows((prev) => prev.map((r) => (r.key === key ? { ...r, ...patch } : r)));
@@ -159,8 +168,8 @@ export function VariantCombinationsSheet({
       if (!isNaN(grams)) patch.weightGrams = grams;
     }
     // bulkImages.length >= 1 always means patch already has mainImageUrl, so
-    // checking patch alone (plus bulkInventory) already covers every case.
-    if (Object.keys(patch).length === 0 && !bulkInventory) return;
+    // checking patch alone (plus hasBulkInventoryPick) already covers every case.
+    if (Object.keys(patch).length === 0 && !hasBulkInventoryPick) return;
     setRows((prev) =>
       prev.map((r) => {
         if (!r.selected) return r;
@@ -170,7 +179,7 @@ export function VariantCombinationsSheet({
         // in-place edit to one row's list would otherwise silently rewrite
         // every other bulk-applied row's list too.
         if (bulkImages.length > 1) next.additionalImageUrls = bulkImages.slice(1);
-        if (bulkInventory) {
+        if (hasBulkInventoryPick && bulkInventory) {
           next.locationQuantities = { ...bulkInventory.locationQuantities };
           next.continueSellingOutOfStock = bulkInventory.continueSellingOutOfStock;
         }
@@ -337,7 +346,7 @@ export function VariantCombinationsSheet({
                     onClick={() => setBulkInventoryOpen(true)}
                     className="text-base border border-gray-200 rounded-lg px-2 py-2 text-left"
                   >
-                    {bulkInventory ? stockTotal(bulkInventory) : "Not set"}
+                    {hasBulkInventoryPick ? stockTotal(bulkInventory!) : "Not set"}
                   </button>
                 </label>
                 <PriceMiniButton
@@ -356,7 +365,7 @@ export function VariantCombinationsSheet({
                   !bulkCostPrice.trim() &&
                   !bulkWeight.trim() &&
                   bulkImages.length === 0 &&
-                  !bulkInventory
+                  !hasBulkInventoryPick
                 }
                 className="mt-3 w-full bg-black text-white text-sm font-medium rounded-lg py-2.5 disabled:bg-gray-200 disabled:text-gray-400"
               >

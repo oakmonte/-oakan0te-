@@ -35,6 +35,7 @@ function StoreCollections() {
   const selectMode = selectedIds.size > 0;
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   useEffect(() => {
     if (!storeId) return;
@@ -68,6 +69,9 @@ function StoreCollections() {
   }, [storeId]);
 
   function toggleSelected(id: string) {
+    // A stale "Couldn't delete: …" from a previous failed attempt shouldn't
+    // linger and reappear over a totally different selection later.
+    setDeleteError("");
     setSelectedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -79,10 +83,14 @@ function StoreCollections() {
   async function handleBulkDelete() {
     setConfirmDeleteOpen(false);
     setDeleting(true);
+    setDeleteError("");
     const { error } = await deleteCollection([...selectedIds], false);
     setDeleting(false);
     if (error) {
-      console.error("Bulk collection delete failed", error);
+      // Selection stays intact so retrying doesn't require re-picking
+      // everything -- a silent console.error previously let a failed delete
+      // look to the seller like nothing happened.
+      setDeleteError("Couldn't delete: " + error);
       return;
     }
     setCollections((prev) => (prev ?? []).filter((c) => !selectedIds.has(c.id)));
@@ -148,25 +156,35 @@ function StoreCollections() {
       )}
 
       {selectMode && (
-        <div className="fixed bottom-0 inset-x-0 z-40 bg-white border-t border-gray-100 px-4 py-3 flex items-center justify-between animate-in fade-in slide-in-from-bottom-2 duration-200">
-          <button
-            type="button"
-            onClick={() => setSelectedIds(new Set())}
-            aria-label="Cancel selection"
-            className="p-2 -ml-2 rounded-full oak-motion-control active:scale-90"
-          >
-            <X size={18} className="text-gray-500" />
-          </button>
-          <span className="text-sm font-medium text-gray-900">{selectedIds.size} selected</span>
-          <button
-            type="button"
-            onClick={() => setConfirmDeleteOpen(true)}
-            disabled={deleting}
-            aria-label="Delete selected"
-            className="p-2 -mr-2 rounded-full text-red-500 disabled:opacity-50 oak-motion-control active:scale-90"
-          >
-            <Trash2 size={18} />
-          </button>
+        <div className="fixed bottom-0 inset-x-0 z-40 bg-white border-t border-gray-100 flex flex-col animate-in fade-in slide-in-from-bottom-2 duration-200">
+          {deleteError && (
+            <p className="px-4 pt-2 text-xs text-red-500 animate-in fade-in slide-in-from-top-1 duration-200">
+              {deleteError}
+            </p>
+          )}
+          <div className="px-4 py-3 flex items-center justify-between">
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedIds(new Set());
+                setDeleteError("");
+              }}
+              aria-label="Cancel selection"
+              className="p-2 -ml-2 rounded-full oak-motion-control active:scale-90"
+            >
+              <X size={18} className="text-gray-500" />
+            </button>
+            <span className="text-sm font-medium text-gray-900">{selectedIds.size} selected</span>
+            <button
+              type="button"
+              onClick={() => setConfirmDeleteOpen(true)}
+              disabled={deleting}
+              aria-label="Delete selected"
+              className="p-2 -mr-2 rounded-full text-red-500 disabled:opacity-50 oak-motion-control active:scale-90"
+            >
+              <Trash2 size={18} />
+            </button>
+          </div>
         </div>
       )}
 
@@ -206,13 +224,13 @@ function CollectionListRow({
   onLongPress: () => void;
   onTap: () => void;
 }) {
-  const longPress = useLongPress(onLongPress);
+  const longPress = useLongPress(onLongPress, { onTap });
   return (
     <button
       type="button"
-      onClick={onTap}
       {...longPress}
-      className="w-full flex items-center gap-3 border border-gray-100 rounded-xl p-3 text-left oak-motion-control active:scale-[0.99]"
+      style={{ WebkitTouchCallout: "none" }}
+      className="w-full flex items-center gap-3 border border-gray-100 rounded-xl p-3 text-left select-none oak-motion-control active:scale-[0.99]"
     >
       {selectMode && (
         <span

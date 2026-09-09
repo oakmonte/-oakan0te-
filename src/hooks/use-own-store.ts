@@ -47,7 +47,17 @@ export function useOwnStores() {
       .order("id", { ascending: true })
       .then(({ data, error }) => {
         if (cancelled) return;
-        if (error) console.error("useOwnStores: failed to load stores", error);
+        if (error) {
+          // Keep the last-known-good stores list on a failed refetch (e.g. a
+          // flaky mobile network re-running this off a TOKEN_REFRESHED/user
+          // change) instead of clobbering it to [] -- that emptied list
+          // drives useActiveStore's storeId to null, which unmounts anything
+          // gated on storeId (VariantMatrixBuilder among them) and silently
+          // loses in-progress state like an open Inventory sheet.
+          console.error("useOwnStores: failed to load stores", error);
+          setLoading(false);
+          return;
+        }
         setStores(data ?? []);
         setLoading(false);
       });

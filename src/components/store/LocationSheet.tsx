@@ -76,11 +76,17 @@ export function LocationSheet({
   onSave,
   onDelete,
   onClose,
+  affectedStockCount,
 }: {
   initial: StoreLocationValues | null;
   onSave: (values: StoreLocationValues) => Promise<void>;
   onDelete?: (id: string) => Promise<void>;
   onClose: () => void;
+  // How many product_variant_stock rows cascade-delete along with this
+  // location -- undefined when the caller doesn't track this (this sheet
+  // doubles as the product form's "Add pickup location" side-trip, which
+  // never deletes), null while the caller is still counting.
+  affectedStockCount?: number | null;
 }) {
   useLockedViewport();
   const isEditing = !!initial?.id;
@@ -498,7 +504,17 @@ export function LocationSheet({
         <AlertDialogContent className="max-w-[92vw] rounded-2xl">
           <AlertDialogHeader>
             <AlertDialogTitle>Delete this location?</AlertDialogTitle>
-            <AlertDialogDescription>This can't be undone.</AlertDialogDescription>
+            <AlertDialogDescription>
+              {affectedStockCount
+                ? `Stock counts for ${affectedStockCount} variant${affectedStockCount === 1 ? "" : "s"} at this location will be removed. Products themselves are kept. This can't be undone.`
+                : affectedStockCount === null
+                  ? // Still counting, or the count request itself failed silently
+                    // (see LocationsListSheet) -- either way, a location that turns
+                    // out to hold real stock shouldn't be understated as riskless
+                    // just because this number never arrived.
+                    "Any stock counts saved at this location will be removed too. This can't be undone."
+                  : "This can't be undone."}
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel className="rounded-full">Cancel</AlertDialogCancel>

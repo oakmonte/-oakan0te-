@@ -168,13 +168,36 @@ function EditProduct() {
   // below) so the same id can also decide whether to reopen the Inventory
   // sheet on return -- a seller who just created a location came here
   // specifically to enter its stock count, not to land back on the
-  // collapsed product form.
-  const [initialNewLocationId] = useState(() => takePendingNewLocationId());
+  // collapsed product form. Both takePending* calls below always run (so a
+  // stale pending value can't leak into a THIRD, unrelated navigation), but
+  // the value itself is only trusted when handoffDraft actually matched this
+  // product -- otherwise an abandoned location side-trip started while
+  // editing product A could pre-seed a location, or pop a wizard sheet open,
+  // on an unrelated product B opened later.
+  const [initialNewLocationId] = useState(() => {
+    const id = takePendingNewLocationId();
+    return handoffDraft ? id : null;
+  });
   // Which variant-wizard Inventory sheet (a specific row, or the bulk "Apply
   // to all" one) sent the seller off to create this location, if any -- see
   // VariantInventoryContext. Only ever set on the variant path; stays null
-  // for a regular product's own Inventory sheet.
-  const [initialVariantInventoryContext] = useState(() => takePendingVariantInventoryContext());
+  // for a regular product's own Inventory sheet. Has a real setter (not the
+  // usual bare useState) so it can be cleared once the wizard has consumed
+  // it -- otherwise VariantCombinationsSheet re-reads this same non-null
+  // value every time it remounts later in this same page session (leaving
+  // the Variants step and re-entering it, say) and keeps popping its
+  // Inventory sheet back open forever. Cleared via VariantMatrixBuilder's
+  // own onInventoryContextConsumed callback (fired from ITS mount effect),
+  // not a plain effect here -- VariantMatrixBuilder only renders once
+  // storeId resolves (see useActiveStoreId, an async effect of its own), so
+  // a `useEffect(..., [])` at this level would fire on THIS component's
+  // first commit, well before that child -- and the grandchild that
+  // actually reads this value -- ever mounts, clearing it before anything
+  // downstream had a chance to see it.
+  const [initialVariantInventoryContext, setInitialVariantInventoryContext] = useState(() => {
+    const context = takePendingVariantInventoryContext();
+    return handoffDraft ? context : null;
+  });
 
   const [loading, setLoading] = useState(initialDraft === null);
   const [notFound, setNotFound] = useState(false);
@@ -658,7 +681,39 @@ function EditProduct() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, JSON.stringify(currentDraft())]);
 
+  // Blocked while a photo is still uploading, same reasoning as the Save
+  // gate: stashProductDraft snapshots mainImageUrl/etc as-is, and a still-
+  // uploading field holds an object-URL preview. Unlike Save, there's no
+  // second chance to catch this later -- by the time the seller returns from
+  // the side-trip the upload has long since resolved (or been revoked) off
+  // in the background with nothing left to patch the frozen draft, so the
+  // photo would come back blank and Save would refuse to work at all with no
+  // way to recover except removing and re-adding it.
+  // Backstop for hasPendingUploads() below, same reasoning as product-
+  // save.ts's hasBlobImageUrl: that only reports uploads still IN FLIGHT, so
+  // a photo whose upload already failed (or got dismissed from the toast)
+  // has fallen out of it while its object-URL preview is still sitting in
+  // one of these fields -- stashProductDraft would freeze that dead blob:
+  // url into the draft with no upload left anywhere to ever patch it.
+  function hasBlobImagePending() {
+    if (mainImageUrl.startsWith("blob:")) return true;
+    if ((regularAdditionalImageUrls ?? []).some((u) => u.startsWith("blob:"))) return true;
+    return rows.some(
+      (r) =>
+        r.mainImageUrl.startsWith("blob:") ||
+        (r.additionalImageUrls ?? []).some((u) => u.startsWith("blob:")),
+    );
+  }
+
   function handleCreateCollection() {
+    // A page-level error banner would be invisible here -- this is reachable
+    // from inside the (also full-screen) Collections sheet, which is stacked
+    // on top of it. alert() is the one thing guaranteed to surface regardless
+    // of how many sheets deep the tap that triggered it was.
+    if (hasPendingUploads() || hasBlobImagePending()) {
+      alert("Wait for your photos to finish uploading before doing that");
+      return;
+    }
     stashProductDraft(currentDraft());
     navigate({ to: "/store/collections/new" });
   }
@@ -666,7 +721,13 @@ function EditProduct() {
   // `context` is only passed from inside the variant wizard (a specific
   // row's Inventory sheet, or the bulk "Apply to all" one) -- the regular
   // product's own Inventory sheet calls this with nothing, same as before.
+  // Reachable from as deep as Variants -> Inventory -> Edit locations, so
+  // same alert() reasoning as handleCreateCollection above.
   function handleCreateLocation(context?: VariantInventoryContext) {
+    if (hasPendingUploads() || hasBlobImagePending()) {
+      alert("Wait for your photos to finish uploading before doing that");
+      return;
+    }
     if (context) setPendingVariantInventoryContext(context);
     stashProductDraft(currentDraft());
     navigate({ to: "/store/locations/new" });
@@ -992,6 +1053,7 @@ function EditProduct() {
             estimateWeightForRow={estimateWeightForRow}
             initialInventoryContext={initialVariantInventoryContext}
             initialNewLocationId={initialNewLocationId}
+            onInventoryContextConsumed={() => setInitialVariantInventoryContext(null)}
           />
         )
       )}
