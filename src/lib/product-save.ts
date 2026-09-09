@@ -525,9 +525,33 @@ async function runUpdate(payload: Extract<ProductSavePayload, { mode: "update" }
   }
 }
 
+// Defense in depth: the product-form routes already block Save while
+// background-upload.ts reports any upload still in flight (see
+// hasPendingUploads() in store.products_.new.tsx/$id.tsx), which is what
+// should normally stop this from ever being reachable. This is the backstop
+// in case some future call path skips that check -- a blob: url written here
+// renders fine for the seller in that one tab and is permanently broken
+// everywhere else, forever, the moment the object URL is revoked.
+function hasBlobImageUrl(payload: ProductSavePayload): boolean {
+  const urls: (string | null | undefined)[] = [payload.mainImageUrl];
+  if (payload.kind === "regular") {
+    urls.push(...(payload.regularAdditionalImageUrls ?? []));
+  } else {
+    for (const r of payload.rows) {
+      urls.push(r.mainImageUrl, ...(r.additionalImageUrls ?? []));
+    }
+  }
+  return urls.some((u) => u?.startsWith("blob:"));
+}
+
 async function run(payload: ProductSavePayload) {
   setState({ status: "saving" });
   try {
+    if (hasBlobImageUrl(payload)) {
+      throw new Error(
+        "One or more photos are still uploading — wait for them to finish before saving.",
+      );
+    }
     if (payload.mode === "create") {
       await runCreate(payload, (productId) => {
         // The products row is committed now. A create is many inserts across

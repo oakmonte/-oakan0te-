@@ -17,6 +17,7 @@ import { useSession } from "../hooks/use-session";
 import { useBuildFreshness } from "../hooks/use-build-freshness";
 import { PostUploadToast } from "../components/PostUploadToast";
 import { ProductSaveToast } from "../components/ProductSaveToast";
+import { BackgroundUploadToast } from "../components/BackgroundUploadToast";
 import { setLastNonCreateRoute } from "../lib/last-visited-route";
 
 function NotFoundComponent() {
@@ -233,6 +234,7 @@ function RootComponent() {
       <Outlet />
       <PostUploadToast />
       <ProductSaveToast />
+      <BackgroundUploadToast />
     </QueryClientProvider>
   );
 }

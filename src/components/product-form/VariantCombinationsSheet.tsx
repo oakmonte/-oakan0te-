@@ -9,9 +9,25 @@ import { ImageSourceSheet, type ImageSource } from "./ImageSourceSheet";
 import { InventorySheet, type InventoryValues } from "./InventorySheet";
 import { WeightSheet } from "./WeightSheet";
 import { useMultiFilePicker } from "@/hooks/use-file-picker";
-import { uploadProductImage } from "@/lib/upload-product-image";
+import { startBackgroundUpload, onBackgroundUploadDone } from "@/lib/background-upload";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
 import { cleanPriceDigits, displayPriceWithCommas, padPriceOnBlur } from "@/lib/format-price-input";
+
+// Swaps a background-upload preview url for its real one wherever a row is
+// still holding it -- shared by both the per-row and bulk upload-done
+// callbacks below, since a bulk-applied preview can end up sitting in every
+// selected row (see the bulk callback's own comment for why that path needs
+// this too, not just a bulkImages patch).
+function swapImageInRow(row: VariantRow, previewUrl: string, url: string): VariantRow {
+  if (row.mainImageUrl === previewUrl) return { ...row, mainImageUrl: url };
+  if (row.additionalImageUrls?.includes(previewUrl)) {
+    return {
+      ...row,
+      additionalImageUrls: row.additionalImageUrls.map((u) => (u === previewUrl ? url : u)),
+    };
+  }
+  return row;
+}
 
 export function VariantCombinationsSheet({
   options,
@@ -384,6 +400,20 @@ export function VariantCombinationsSheet({
           initialValue={rows.find((r) => r.key === imagePickerKey)?.mainImageUrl ?? ""}
           initialAdditional={rows.find((r) => r.key === imagePickerKey)?.additionalImageUrls ?? []}
           baseImages={baseImages}
+          // setRows takes a functional updater, so this always reads whatever
+          // the row's images actually are at the moment the upload resolves
+          // -- not a stale snapshot from when the popover was still open.
+          // Only touches the row if the preview is still there, i.e. Done
+          // was actually tapped with it; a row where the seller cancelled
+          // (or picked something else since) never had the preview url
+          // written into it, so this becomes a no-op for that row.
+          onUploadStarted={(id, previewUrl) => {
+            onBackgroundUploadDone(id, (u) => {
+              if (u.status !== "success" || !u.url) return;
+              const url = u.url;
+              setRows((prev) => prev.map((r) => swapImageInRow(r, previewUrl, url)));
+            });
+          }}
           onDone={(url, additional) => {
             updateRow(imagePickerKey, {
               mainImageUrl: url,
@@ -401,6 +431,20 @@ export function VariantCombinationsSheet({
           initialValue={bulkImages[0] ?? ""}
           initialAdditional={bulkImages.slice(1)}
           baseImages={baseImages}
+          onUploadStarted={(id, previewUrl) => {
+            onBackgroundUploadDone(id, (u) => {
+              if (u.status !== "success" || !u.url) return;
+              const url = u.url;
+              // Two places this preview can still be waiting: bulkImages
+              // itself (Apply to all hasn't been tapped yet) AND every row
+              // it was already copied into (applyToAll clears bulkImages
+              // the moment it runs, so patching only bulkImages would
+              // silently strand every row that already got the preview
+              // copied into it before the upload resolved).
+              setBulkImages((prev) => prev.map((img) => (img === previewUrl ? url : img)));
+              setRows((prev) => prev.map((r) => swapImageInRow(r, previewUrl, url)));
+            });
+          }}
           onDone={(url, additional) => {
             setBulkImages(url ? [url, ...additional] : []);
             setBulkImagePickerOpen(false);
@@ -484,6 +528,7 @@ function VariantImagePopover({
   initialValue,
   initialAdditional,
   baseImages,
+  onUploadStarted,
   onDone,
   onClose,
 }: {
@@ -494,6 +539,14 @@ function VariantImagePopover({
   // pool here so a seller assigning a variant image doesn't have to
   // re-upload something that's already sitting on the product.
   baseImages: string[];
+  // Fired the instant a file starts uploading (id + its object-URL preview),
+  // so the CALLER -- which outlives this popover, whether the seller taps
+  // Done before the upload finishes or closes the popover entirely -- can
+  // independently track it and patch its own row/bulk state once it
+  // resolves. This popover also does its own local swap below purely so its
+  // own preview looks right while it's still open; the caller's tracking is
+  // what actually makes the eventual save correct.
+  onUploadStarted?: (id: string, previewUrl: string) => void;
   onDone: (url: string, additional: string[]) => void;
   onClose: () => void;
 }) {
@@ -503,8 +556,6 @@ function VariantImagePopover({
   const [sourceSheetOpen, setSourceSheetOpen] = useState(false);
   const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
   const [draftsOpen, setDraftsOpen] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [uploadError, setUploadError] = useState("");
   const filePicker = useMultiFilePicker("image/*");
   const addButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -518,17 +569,20 @@ function VariantImagePopover({
     setImages((prev) => [...prev, ...urls.filter((u) => !prev.includes(u))]);
   }
 
-  async function uploadFiles(files: File[]) {
-    if (files.length === 0) return;
-    setUploading(true);
-    setUploadError("");
-    try {
-      const urls = await Promise.all(files.map((f) => uploadProductImage(f)));
-      addUrls(urls);
-    } catch (err) {
-      setUploadError(err instanceof Error ? err.message : "Couldn't upload one or more images");
-    } finally {
-      setUploading(false);
+  // Uploads run in the background (background-upload.ts) and survive this
+  // popover closing -- tapping Done while a file is still uploading no
+  // longer risks saving a blob: preview url onto the variant; see
+  // onUploadStarted above for how the eventual real url still lands.
+  function uploadFiles(files: File[]) {
+    for (const file of files) {
+      const { id, previewUrl } = startBackgroundUpload(file, "product-image", "variant photo");
+      addUrls([previewUrl]);
+      onUploadStarted?.(id, previewUrl);
+      onBackgroundUploadDone(id, (u) => {
+        if (u.status !== "success" || !u.url) return;
+        const url = u.url;
+        setImages((prev) => prev.map((img) => (img === previewUrl ? url : img)));
+      });
     }
   }
 
@@ -538,7 +592,7 @@ function VariantImagePopover({
       setDraftsOpen(true);
       return;
     }
-    await uploadFiles(await filePicker.pick());
+    uploadFiles(await filePicker.pick());
   }
 
   function handlePicked(media: PickedMedia[]) {
@@ -583,11 +637,8 @@ function VariantImagePopover({
           onReorder={setImages}
           onRemove={(url) => setImages((prev) => prev.filter((u) => u !== url))}
           onAddTap={openSourceSheet}
-          uploading={uploading}
           addButtonRef={addButtonRef}
         />
-
-        {uploadError && <p className="text-xs text-red-500 text-center mt-2">{uploadError}</p>}
 
         {baseImages.length > 0 && (
           <div className="mt-4 pt-3 border-t border-gray-100">

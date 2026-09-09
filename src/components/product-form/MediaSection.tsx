@@ -1,11 +1,11 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ImageGallery } from "./ImageGallery";
 import { DraftImagePickerSheet } from "./DraftImagePickerSheet";
 import { PostImagePickerSheet } from "./PostImagePickerSheet";
 import type { PickedMedia } from "./MediaPickerSheet";
 import { ImageSourceSheet, type ImageSource } from "./ImageSourceSheet";
 import { useMultiFilePicker } from "@/hooks/use-file-picker";
-import { uploadProductImage } from "@/lib/upload-product-image";
+import { startBackgroundUpload, onBackgroundUploadDone } from "@/lib/background-upload";
 
 export function MediaSection({
   mainImageUrl,
@@ -28,12 +28,18 @@ export function MediaSection({
   const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
   const [draftsOpen, setDraftsOpen] = useState(false);
   const [postsOpen, setPostsOpen] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [uploadError, setUploadError] = useState("");
   const filePicker = useMultiFilePicker("image/*", supportsGallery);
   const addButtonRef = useRef<HTMLButtonElement>(null);
 
   const images = mainImageUrl ? [mainImageUrl, ...additionalImageUrls] : additionalImageUrls;
+  // Read inside the background-upload success callback instead of closing
+  // over `images` directly -- that callback can fire well after this render,
+  // by which point the seller may have added/removed other photos, and a
+  // stale snapshot would silently revert those when the upload's URL swaps in.
+  const imagesRef = useRef(images);
+  useEffect(() => {
+    imagesRef.current = images;
+  });
 
   // The gallery's own array IS the source of truth — first item is always
   // the cover — so add/remove/reorder all funnel through this one setter.
@@ -53,17 +59,30 @@ export function MediaSection({
     applyImages([...images, ...urls.filter((u) => !images.includes(u))]);
   }
 
-  async function uploadFiles(files: File[]) {
-    if (files.length === 0) return;
-    setUploading(true);
-    setUploadError("");
-    try {
-      const urls = await Promise.all(files.map((f) => uploadProductImage(f)));
-      addUrls(urls);
-    } catch (err) {
-      setUploadError(err instanceof Error ? err.message : "Couldn't upload one or more images");
-    } finally {
-      setUploading(false);
+  // Uploads run in the background (background-upload.ts) and survive this
+  // component unmounting -- closing this sheet, or navigating away, no
+  // longer orphans the file on Bunny with no URL ever attached to anything.
+  // Each file's object-URL preview goes into the gallery immediately, and
+  // gets swapped for the real URL (or left as-is, with the shared toast
+  // offering Retry, on failure) whenever that specific upload settles.
+  function uploadFiles(files: File[]) {
+    // Started for every file BEFORE calling addUrls -- calling addUrls once
+    // per file in this loop (the first version of this fix) computed each
+    // call from the same stale `images` closure, so a 3-photo pick silently
+    // kept only the last one: each call overwrote the previous call's
+    // pending update rather than building on it. One batched addUrls call
+    // adds every preview from this pick at once.
+    const started = files.map((file) => ({
+      file,
+      ...startBackgroundUpload(file, "product-image", "product photo"),
+    }));
+    addUrls(started.map((s) => s.previewUrl));
+    for (const { id, previewUrl } of started) {
+      onBackgroundUploadDone(id, (u) => {
+        if (u.status !== "success" || !u.url) return;
+        const url = u.url;
+        applyImages(imagesRef.current.map((img) => (img === previewUrl ? url : img)));
+      });
     }
   }
 
@@ -77,7 +96,7 @@ export function MediaSection({
       setPostsOpen(true);
       return;
     }
-    await uploadFiles(await filePicker.pick());
+    uploadFiles(await filePicker.pick());
   }
 
   function handlePicked(media: PickedMedia[]) {
@@ -99,11 +118,8 @@ export function MediaSection({
         onReorder={applyImages}
         onRemove={(url) => applyImages(images.filter((u) => u !== url))}
         onAddTap={openSourceSheet}
-        uploading={uploading}
         addButtonRef={addButtonRef}
       />
-
-      {uploadError && <p className="text-xs text-red-500 text-center mt-2">{uploadError}</p>}
 
       {sourceSheetOpen && (
         <ImageSourceSheet

@@ -11,6 +11,7 @@ import {
   setPendingNewCollectionId,
 } from "@/lib/product-draft-handoff";
 import { useActiveStoreId } from "@/hooks/use-own-store";
+import { hasPendingUploads } from "@/lib/background-upload";
 
 export const Route = createFileRoute("/store/collections_/new")({
   component: NewCollection,
@@ -58,6 +59,15 @@ function NewCollection() {
     }
     if (!title.trim()) {
       setError("Title is required");
+      return;
+    }
+
+    // Same reasoning as the product form: a still-uploading photo's field
+    // currently holds an object-URL preview (see MediaSection's
+    // background-upload use), and saving now would write that blob: url
+    // straight into the database instead of the real one.
+    if (hasPendingUploads()) {
+      setError("Wait for your photos to finish uploading before saving");
       return;
     }
 

@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { startProductSave } from "@/lib/product-save";
+import { hasPendingUploads } from "@/lib/background-upload";
 import { CategoryNode, ROOT_CATEGORY } from "@/lib/categories";
 import { StubRow } from "@/components/product-form/ui";
 import { MediaSection } from "@/components/product-form/MediaSection";
@@ -591,6 +592,15 @@ function EditProduct() {
     }
     if (!title.trim()) {
       setError("Title is required");
+      return;
+    }
+
+    // A still-uploading photo's field currently holds an object-URL preview
+    // (see MediaSection/VariantCombinationsSheet's background-upload use) --
+    // saving now would write that blob: url straight into the database
+    // instead of the real one, permanently broken the moment this tab closes.
+    if (hasPendingUploads()) {
+      setError("Wait for your photos to finish uploading before saving");
       return;
     }
 

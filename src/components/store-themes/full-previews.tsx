@@ -49,7 +49,7 @@ import { useThemeCustomization } from "./useThemeCustomization";
 import { useStoreTheme } from "./useStoreTheme";
 import { useActiveStore } from "@/hooks/use-own-store";
 import { supabase } from "@/lib/integrations/my-supabase/client";
-import { uploadStoreThemeImage } from "@/lib/upload-store-theme-image";
+import { startBackgroundUpload, onBackgroundUploadDone } from "@/lib/background-upload";
 
 function noop() {}
 
@@ -1161,6 +1161,13 @@ export function ThemePreviewSheet({
   const history = editState.history;
   const future = editState.future;
   const [hint, setHint] = useState<string | null>(null);
+  // Logo/slideshow uploads run in the background (background-upload.ts) and
+  // survive this sheet closing -- but Save still shouldn't fire while one is
+  // still in flight: handleSave reads `state` synchronously, so a save that
+  // ran before the real url landed would persist the theme without that
+  // photo, only to have the eventual upload complete for a sheet that's
+  // already been saved and possibly closed.
+  const [pendingUploadIds, setPendingUploadIds] = useState<Set<string>>(new Set());
 
   const { saved, save: saveCustomization } = useThemeCustomization(theme.id);
   // Applied once, the instant a saved row shows up — but skipped if the
@@ -1200,11 +1207,41 @@ export function ThemePreviewSheet({
     }));
   }
 
+  // Swaps a preview url for the real one once its background upload
+  // resolves, WITHOUT pushing a new undo step -- the upload isn't a second
+  // edit from the seller's point of view, just the first one (adding the
+  // photo) finishing. If the seller has since undone that edit, or removed
+  // the photo entirely, `updater` naturally no-ops (see each call site).
+  //
+  // Applied to EVERY snapshot in history/future too, not just current -- the
+  // preview can have been pushed into history by a later edit (change a
+  // colour while the upload is still running) before it resolves. Left
+  // un-patched there, undo could bring back a snapshot still holding the
+  // blob: url, which the upload's own 2500ms success-cleanup will have
+  // already revoked by the time anyone saves it.
+  function patchSilently(updater: (s: ThemeEditState) => ThemeEditState) {
+    setEditState((es) => ({
+      current: updater(es.current),
+      history: es.history.map(updater),
+      future: es.future.map(updater),
+    }));
+  }
+
+  function markUploadDone(id: string) {
+    setPendingUploadIds((prev) => {
+      if (!prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+  }
+
   function enterEdit() {
     setEditState((es) => ({ ...es, history: [], future: [] }));
     setMode("edit");
   }
   function handleSave() {
+    if (pendingUploadIds.size > 0) return;
     setEditState((es) => ({ ...es, history: [], future: [] }));
     setMode("view");
     void saveCustomization(state);
@@ -1239,32 +1276,39 @@ export function ThemePreviewSheet({
       },
       logoImage: state.logoImage,
       onLogoChange: (file) => {
-        setHint("Uploading photo…");
-        uploadStoreThemeImage(file)
-          .then((url) => {
-            mutate((s) => ({ ...s, logoImage: url }));
-            setHint(null);
-          })
-          .catch((err) => {
-            setHint(err instanceof Error ? err.message : "Couldn't upload that photo");
-            setTimeout(() => setHint(null), 2500);
-          });
+        const { id, previewUrl } = startBackgroundUpload(file, "store-theme-image", "theme logo");
+        mutate((s) => ({ ...s, logoImage: previewUrl }));
+        setPendingUploadIds((prev) => new Set(prev).add(id));
+        onBackgroundUploadDone(id, (u) => {
+          markUploadDone(id);
+          if (u.status !== "success" || !u.url) return; // shared toast offers Retry
+          const url = u.url;
+          patchSilently((s) => (s.logoImage === previewUrl ? { ...s, logoImage: url } : s));
+        });
       },
       slideshowImages: state.slideshowImages,
       onAddSlideshowImages: (files) => {
         const room = MAX_SLIDESHOW_IMAGES - state.slideshowImages.length;
         if (room <= 0) return;
         const picked = Array.from(files).slice(0, room);
-        setHint(picked.length > 1 ? "Uploading photos…" : "Uploading photo…");
-        Promise.all(picked.map((f) => uploadStoreThemeImage(f)))
-          .then((urls) => {
-            mutate((s) => ({ ...s, slideshowImages: [...s.slideshowImages, ...urls] }));
-            setHint(null);
-          })
-          .catch((err) => {
-            setHint(err instanceof Error ? err.message : "Couldn't upload those photos");
-            setTimeout(() => setHint(null), 2500);
+        for (const file of picked) {
+          const { id, previewUrl } = startBackgroundUpload(
+            file,
+            "store-theme-image",
+            "slideshow photo",
+          );
+          mutate((s) => ({ ...s, slideshowImages: [...s.slideshowImages, previewUrl] }));
+          setPendingUploadIds((prev) => new Set(prev).add(id));
+          onBackgroundUploadDone(id, (u) => {
+            markUploadDone(id);
+            if (u.status !== "success" || !u.url) return;
+            const url = u.url;
+            patchSilently((s) => ({
+              ...s,
+              slideshowImages: s.slideshowImages.map((img) => (img === previewUrl ? url : img)),
+            }));
           });
+        }
       },
       onRemoveSlideshowImage: (index) => {
         mutate((s) => ({
@@ -1374,9 +1418,10 @@ export function ThemePreviewSheet({
                 <button
                   type="button"
                   onClick={handleSave}
-                  className="rounded-full bg-white px-3 py-1.5 text-[11px] font-semibold text-neutral-900 hover:bg-white/90"
+                  disabled={pendingUploadIds.size > 0}
+                  className="rounded-full bg-white px-3 py-1.5 text-[11px] font-semibold text-neutral-900 hover:bg-white/90 disabled:opacity-50"
                 >
-                  Save
+                  {pendingUploadIds.size > 0 ? "Uploading…" : "Save"}
                 </button>
                 <button
                   type="button"
