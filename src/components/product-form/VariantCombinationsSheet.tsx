@@ -118,14 +118,22 @@ export function VariantCombinationsSheet({
   const allSelected = rows.length > 0 && selected.length === rows.length;
   const missingPrice = selected.some((r) => !r.price.trim());
   // An empty locationQuantities isn't "the seller deliberately chose no
-  // locations" -- InventorySheet's only way out when nothing's picked yet
-  // is X -> "Continue anyway" (its no-locations guard), so a seller who just
-  // peeked at the bulk Inventory sheet and backed out of it can leave
-  // bulkInventory non-null with nothing in it. Treating that as a real,
-  // deliberate pick (either to arm Apply or to actually apply it) would
-  // silently wipe every selected row's real stock.
-  const hasBulkInventoryPick =
+  // locations" -- InventorySheet's X button commits the same as Save (its
+  // no-locations guard's only way out is "Continue anyway"), so a seller
+  // who just peeked at the bulk Inventory sheet and backed out of it can
+  // leave bulkInventory non-null with nothing in it. Treating that as a
+  // real, deliberate pick to actually apply would silently wipe every
+  // selected row's real stock -- so the location half stays gated on this.
+  const hasBulkLocationPick =
     !!bulkInventory && Object.keys(bulkInventory.locationQuantities).length > 0;
+  // continueSellingOutOfStock, unlike locationQuantities, defaults to false
+  // -- so continueSellingOutOfStock===true is never the "just peeked and
+  // left everything untouched" case above, and IS a reliable signal of a
+  // deliberate choice even with zero locations picked (e.g. explicitly
+  // toggling it on, then "Continue anyway" past the no-locations guard).
+  // continueSellingOutOfStock===false can't be told apart from "untouched"
+  // the same way, so it doesn't widen this on its own.
+  const hasBulkInventoryPick = hasBulkLocationPick || !!bulkInventory?.continueSellingOutOfStock;
 
   function updateRow(key: string, patch: Partial<VariantRow>) {
     setRows((prev) => prev.map((r) => (r.key === key ? { ...r, ...patch } : r)));
