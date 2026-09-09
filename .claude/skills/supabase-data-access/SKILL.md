@@ -133,7 +133,9 @@ swallowing it — see the three-layer explanation in root `CLAUDE.md`, not a bug
 
 Server-only, `process.env` only, never `import.meta.env`:
 `MY_SUPABASE_SERVICE_ROLE_KEY`, `SHOPIFY_API_KEY`, `SHOPIFY_API_SECRET`, `SHOPIFY_SCOPES`,
-`SHOPIFY_REDIRECT_URI`, `SHIPBUBBLE_API_KEY`.
+`SHOPIFY_REDIRECT_URI`, `SHIPBUBBLE_API_KEY`, `SUPPORT_REPLY_SECRET` (gates
+`api.support-messages.reply.ts` — the only caller that may write a `sender: "support"` row; unset means
+that route 401s on every call, see `POSTPONED.md` 0.5).
 
 The URL and publishable key in `my-supabase/config.ts` are checked into the repo on purpose — those are
 meant to be public. The service-role key is not, and must never acquire a `VITE_` prefix, which would

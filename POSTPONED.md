@@ -158,21 +158,28 @@ someone will later think the rule is broken:
 Also removed: the **Link** button from the after-shot toolbar. Product linking
 lives on the publish screen, and that button had never been wired to anything.
 
-### 0.5 Support messaging ("Oakmonte Labs" chat) · [migration drafted, NOT applied — 2026-09-09]
+### 0.5 Support messaging ("Oakmonte Labs" chat) · [migration NOT applied — 2026-09-09]
 
-Built by GitHub Copilot in an editor session, not Claude Code — recorded here so it isn't
-lost between tools. `src/routes/messages.tsx`'s "Oakmonte Labs" chat now loads, sends, and
-live-subscribes against a real table instead of local-only state. Migration
-`20260909100000_add_support_messages.sql` (uncommitted at time of writing) creates
-`public.support_messages` — `user_id` FK to `profiles`, `body` checked 1-4000 chars,
-`sender` `'user'|'support'`, RLS policies scoping select/insert to `user_id = auth.uid()`
-and forcing `sender = 'user'` on insert — plus Realtime via
-`alter publication supabase_realtime add table`. Uses the correct client
-(`my-supabase`, not the Lovable Cloud stub) and a policy shape consistent with the rest of
-the schema.
+Built jointly — GitHub Copilot did the chat UI + migration, Claude Code added the
+support-side reply route after — recorded here so neither tool loses track of the other's
+half. `src/routes/messages.tsx`'s "Oakmonte Labs" chat loads, sends, and live-subscribes
+against a real table instead of local-only state. Migration
+`20260909100000_add_support_messages.sql` (committed) creates `public.support_messages` —
+`user_id` FK to `profiles`, `body` checked 1-4000 chars, `sender` `'user'|'support'`, RLS
+policies scoping select/insert to `user_id = auth.uid()` and forcing `sender = 'user'` on
+insert — plus Realtime via `alter publication supabase_realtime add table`. Uses the
+correct client (`my-supabase`, not the Lovable Cloud stub).
 
-**Not applied to `lzyflkrqexxuyxyudvbw` yet — the one blocking step, and not a Copilot
-task.** Copilot Chat has no live database access, only file edits. Needs either the
+`src/routes/api.support-messages.reply.ts` is the support-side write path the insert policy
+above deliberately doesn't allow browser-side: gated on a shared secret
+(`SUPPORT_REPLY_SECRET`, `X-Oakmonte-Internal-Key` header — see the `supabase-data-access`
+skill's Secrets list) plus a signed-in session, then writes `sender: "support"` via
+`supabaseAdmin`. Known, accepted gap: this authenticates "a trusted caller," not which
+staff member — there's no per-staff identity system yet, and none is planned until this
+actually needs one.
+
+**Still not applied to `lzyflkrqexxuyxyudvbw` — the one remaining blocking step, and not a
+Copilot task.** Copilot Chat has no live database access, only file edits. Needs either the
 Supabase dashboard/CLI, or `mcp__supabase__apply_migration` from a Claude Code session —
 ask before running it, same as 1.1 below; it's a schema change to a live project.
 
@@ -181,18 +188,10 @@ Checked and fine: the migration has no explicit `ENABLE ROW LEVEL SECURITY` line
 new `public` table automatically, so the two policies will actually be enforced once this
 lands — this isn't a gap.
 
-Two real follow-ups once it's applied:
-
-- Regenerate `src/lib/integrations/my-supabase/types.ts`
-  (`mcp__supabase__generate_typescript_types`), then delete `messages.tsx`'s hand-rolled
-  `MessagingDatabase` type and the `messagingClient` cast — a stopgap for a table the
-  generated types don't know about yet, not a pattern to keep around.
-- **No support-side reply path exists.** The insert policy only allows `sender = 'user'`
-  from the browser client (correct — a seller shouldn't be able to forge a support reply),
-  so nothing can currently write a `sender = 'support'` row through the app. Needs a
-  service-role-backed admin route (`api.*.ts`, dynamic `import()` of `client.server.ts`,
-  per the `supabase-data-access` skill) before "incoming support replies appear live" is
-  true end to end rather than just schema-ready.
+One real follow-up once it's applied: regenerate `src/lib/integrations/my-supabase/types.ts`
+(`mcp__supabase__generate_typescript_types`), then delete both `messages.tsx`'s AND
+`api.support-messages.reply.ts`'s hand-rolled `MessagingDatabase` type + cast — a stopgap
+for a table the generated types don't know about yet, not a pattern to keep around.
 
 ## 1. Blocks launch
 
