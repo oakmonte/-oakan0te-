@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Paperclip, Plus, Search, Send, X } from "lucide-react";
+import { ArrowLeft, CircleHelp, Plus, Search, Send, UserRound } from "lucide-react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import type { Database } from "@/lib/integrations/my-supabase/types";
@@ -31,6 +31,55 @@ type SupportMessage = {
   created_at: string;
 };
 
+type ContactId = "support" | "me" | "preview";
+
+type Contact = {
+  id: ContactId;
+  name: string;
+  subtitle: string;
+  preview: string;
+  initials: string;
+  accent: string;
+  icon: "support" | "me" | "person";
+};
+
+const CONTACTS: Contact[] = [
+  {
+    id: "support",
+    name: "Oakmonte Support",
+    subtitle: "Official support",
+    preview: "Make complaints or observations",
+    initials: "O",
+    accent: "bg-[#2f6bff]",
+    icon: "support",
+  },
+  {
+    id: "me",
+    name: "Me",
+    subtitle: "Personal notes",
+    preview: "A quiet place for your thoughts",
+    initials: "M",
+    accent: "bg-[#d6a64f]",
+    icon: "me",
+  },
+  {
+    id: "preview",
+    name: "Nia from Lagos",
+    subtitle: "Preview contact",
+    preview: "That blue jacket is everything",
+    initials: "N",
+    accent: "bg-[#dd6b4d]",
+    icon: "person",
+  },
+];
+
+type LocalMessage = {
+  id: string;
+  body: string;
+  sender: "user" | "contact";
+  created_at: string;
+};
+
 type MessagingDatabase = Database & {
   public: Database["public"] & {
     Tables: Database["public"]["Tables"] & {
@@ -44,14 +93,61 @@ type MessagingDatabase = Database & {
   };
 };
 
-type ChatMessage = SupportMessage;
+type ChatMessage = SupportMessage | LocalMessage;
+
+const LOCAL_MESSAGES: Record<Exclude<ContactId, "support">, LocalMessage[]> = {
+  me: [
+    {
+      id: "me-1",
+      body: "Ideas, saved looks, and little reminders live here.",
+      sender: "contact",
+      created_at: "2026-09-09T08:30:00.000Z",
+    },
+    {
+      id: "me-2",
+      body: "Remember: the best outfits usually start with one good piece.",
+      sender: "user",
+      created_at: "2026-09-09T08:31:00.000Z",
+    },
+  ],
+  preview: [
+    {
+      id: "preview-1",
+      body: "That blue jacket is everything",
+      sender: "contact",
+      created_at: "2026-09-08T18:42:00.000Z",
+    },
+    {
+      id: "preview-2",
+      body: "Right? I found it on Oakmonte yesterday.",
+      sender: "user",
+      created_at: "2026-09-08T18:45:00.000Z",
+    },
+  ],
+};
+
+function ContactAvatar({ contact, large = false }: { contact: Contact; large?: boolean }) {
+  const Icon = contact.icon === "support" ? CircleHelp : contact.icon === "me" ? UserRound : null;
+
+  return (
+    <div
+      className={`relative flex shrink-0 items-center justify-center rounded-full ${contact.accent} text-white ${large ? "h-12 w-12" : "h-11 w-11"}`}
+    >
+      {Icon ? (
+        <Icon size={large ? 21 : 19} strokeWidth={1.8} />
+      ) : (
+        <span className="text-base font-semibold">{contact.initials}</span>
+      )}
+    </div>
+  );
+}
 
 function MessagesPage() {
   const { user } = useSession();
   const [ownUsername, setOwnUsername] = useState<string | undefined>(undefined);
   const [tab, setTab] = useState<Tab>("messages");
   const [storyNotice, setStoryNotice] = useState(false);
-  const [chatOpen, setChatOpen] = useState(false);
+  const [selectedContactId, setSelectedContactId] = useState<ContactId | null>(null);
   const [draft, setDraft] = useState("");
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [messagesLoading, setMessagesLoading] = useState(false);
@@ -75,11 +171,21 @@ function MessagesPage() {
     };
   }, [user]);
 
+  const chatOpen = selectedContactId !== null;
+  const selectedContact = CONTACTS.find((contact) => contact.id === selectedContactId);
+
   useEffect(() => {
-    if (!chatOpen || !user) return;
+    if (!chatOpen || !user || selectedContactId !== "support") {
+      if (selectedContactId && selectedContactId !== "support") {
+        setChatMessages(LOCAL_MESSAGES[selectedContactId]);
+        setMessagesLoading(false);
+      }
+      return;
+    }
     let cancelled = false;
     setMessagesLoading(true);
     setMessageError(null);
+    setChatMessages([]);
 
     messagingClient
       .from("support_messages")
@@ -111,7 +217,7 @@ function MessagesPage() {
           setChatMessages((messages) =>
             messages.some((existing) => existing.id === message.id)
               ? messages
-              : [...messages, message],
+              : [...messages, { ...message, sender: message.sender }],
           );
         },
       )
@@ -121,14 +227,29 @@ function MessagesPage() {
       cancelled = true;
       void messagingClient.removeChannel(channel);
     };
-  }, [chatOpen, user, messagingClient]);
+  }, [chatOpen, selectedContactId, user, messagingClient]);
 
   const sendMessage = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const text = draft.trim();
-    if (!text || !user) return;
+    if (!text) return;
     setDraft("");
     setMessageError(null);
+
+    if (selectedContactId !== "support") {
+      setChatMessages((messages) => [
+        ...messages,
+        {
+          id: `local-${Date.now()}`,
+          body: text,
+          sender: "user",
+          created_at: new Date().toISOString(),
+        },
+      ]);
+      return;
+    }
+
+    if (!user) return;
 
     const { error } = await messagingClient.from("support_messages").insert({
       user_id: user.id,
@@ -142,21 +263,42 @@ function MessagesPage() {
     }
   };
 
+  const openContact = (contactId: ContactId) => {
+    setSelectedContactId(contactId);
+    setDraft("");
+    setMessageError(null);
+  };
+
+  const closeChat = () => {
+    setSelectedContactId(null);
+    setDraft("");
+    setMessageError(null);
+  };
+
   return (
     <div className="min-h-screen bg-black text-white pb-28">
       <div className="pt-4 px-4 flex items-center justify-between">
-        <h1 className="text-[20px] font-bold">Messages</h1>
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.18em] text-white/40">Oakmonte</p>
+          <h1 className="mt-0.5 text-[22px] font-semibold tracking-tight">
+            {chatOpen ? selectedContact?.name : "Messages"}
+          </h1>
+        </div>
         {chatOpen ? (
           <button
             type="button"
-            onClick={() => setChatOpen(false)}
-            aria-label="Close conversation"
-            className="p-1 -mr-1 text-white"
+            onClick={closeChat}
+            aria-label="Back to conversations"
+            className="flex items-center gap-1 rounded-full border border-white/10 px-3 py-2 text-xs text-white/70 transition-colors hover:bg-white/10"
           >
-            <X size={20} />
+            <ArrowLeft size={15} />
+            Inbox
           </button>
         ) : (
-          <button aria-label="Search" className="p-1 -mr-1 text-white">
+          <button
+            aria-label="Search conversations"
+            className="rounded-full border border-white/10 p-2 text-white/70 transition-colors hover:bg-white/10"
+          >
             <Search size={20} />
           </button>
         )}
@@ -210,21 +352,45 @@ function MessagesPage() {
             </div>
           )}
 
-          <div className="mt-4">
+          <div className="mt-6">
             {tab === "messages" ? (
-              <button
-                type="button"
-                onClick={() => setChatOpen(true)}
-                className="w-full flex items-center gap-3 px-4 py-3 text-left active:bg-white/5 transition-colors duration-150"
-              >
-                <div className="w-11 h-11 rounded-full bg-white/10 border border-white/10 shrink-0" />
-                <div className="min-w-0">
-                  <p className="text-[15px] font-medium truncate">Oakmonte Labs</p>
-                  <p className="text-[13px] text-white/50 truncate">
-                    Make complaints or observations
-                  </p>
+              <div className="space-y-1">
+                <div className="mb-3 flex items-center justify-between px-4">
+                  <div>
+                    <p className="text-sm font-medium">Your conversations</p>
+                    <p className="mt-0.5 text-xs text-white/40">
+                      People, notes, and support in one place
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-white/10 px-2 py-1 text-[11px] text-white/50">
+                    {CONTACTS.length}
+                  </span>
                 </div>
-              </button>
+                {CONTACTS.map((contact) => (
+                  <button
+                    key={contact.id}
+                    type="button"
+                    onClick={() => openContact(contact.id)}
+                    className="group flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-white/[0.06] active:bg-white/10"
+                  >
+                    <ContactAvatar contact={contact} />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="truncate text-[15px] font-medium">{contact.name}</p>
+                        {contact.id === "support" && (
+                          <span className="rounded-full bg-[#2f6bff]/20 px-2 py-0.5 text-[10px] text-[#8caaff]">
+                            Support
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-0.5 truncate text-[13px] text-white/45">{contact.preview}</p>
+                    </div>
+                    <div className="text-xs text-white/25">
+                      <span>›</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
             ) : (
               <div className="px-4 pt-10 text-center text-sm text-white/50">
                 This feature will be available in full launch
@@ -236,10 +402,12 @@ function MessagesPage() {
 
       {chatOpen && (
         <div className="mt-4 flex min-h-[calc(100vh-150px)] flex-col px-4">
-          <div className="border-b border-white/10 pb-4 text-center">
-            <div className="mx-auto mb-2 h-12 w-12 rounded-full bg-white/10 border border-white/10" />
-            <h2 className="text-base font-semibold">Oakmonte Labs</h2>
-            <p className="mt-1 text-sm text-white/50">Make complaints or observations</p>
+          <div className="flex items-center gap-3 border-b border-white/10 pb-4">
+            {selectedContact && <ContactAvatar contact={selectedContact} large />}
+            <div className="min-w-0 flex-1">
+              <h2 className="truncate text-base font-semibold">{selectedContact?.name}</h2>
+              <p className="mt-1 truncate text-sm text-white/50">{selectedContact?.subtitle}</p>
+            </div>
           </div>
           <div className="flex-1 space-y-3 py-5">
             {messagesLoading && (
@@ -247,14 +415,14 @@ function MessagesPage() {
             )}
             {!messagesLoading && chatMessages.length === 0 && (
               <p className="pt-10 text-center text-sm text-white/35">
-                Start a conversation with Oakmonte Labs
+                Start a conversation with {selectedContact?.name}
               </p>
             )}
             {messageError && <p className="text-center text-sm text-red-300">{messageError}</p>}
             {chatMessages.map((message) => (
               <div
                 key={message.id}
-                className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"}`}
+                className={`flex items-end gap-2 ${message.sender === "user" ? "justify-end" : "justify-start"}`}
               >
                 <p
                   className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${message.sender === "user" ? "bg-white text-black" : "bg-white/10 text-white"}`}
@@ -268,9 +436,6 @@ function MessagesPage() {
             onSubmit={sendMessage}
             className="flex items-center gap-2 border-t border-white/10 py-3"
           >
-            <button type="button" aria-label="Attach a file" className="p-2 text-white/60">
-              <Paperclip size={19} />
-            </button>
             <input
               value={draft}
               onChange={(event) => setDraft(event.target.value)}

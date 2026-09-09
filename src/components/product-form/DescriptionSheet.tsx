@@ -15,8 +15,13 @@ import { useVisibleViewport } from "@/hooks/use-visible-viewport";
 import { sanitizeDescriptionHtml } from "@/lib/sanitize-html";
 import { findBlockedContent, blockedContentMessage } from "@/lib/content-policy";
 
+// 0 = off, 1 = medium (outlined button, font-weight 600), 2 = heavy (filled
+// black button, font-weight 800) -- see cycleBold. Native execCommand("bold")
+// is only ever on/off, so this isn't tracked through queryCommandState alone.
+type BoldLevel = 0 | 1 | 2;
+
 type FormatState = {
-  bold: boolean;
+  bold: BoldLevel;
   italic: boolean;
   underline: boolean;
   justifyLeft: boolean;
@@ -39,9 +44,23 @@ const LIST_OPTIONS = [
 
 type ToolbarGroup = "align" | "list" | null;
 
+// Which of the two levels applies at the current selection/cursor, if any.
+// queryCommandState only knows "is there a <b>/<strong> ancestor at all" --
+// which level that ancestor is at comes from its own inline font-weight,
+// written by cycleBold below (600 = medium/level 1, anything else once a
+// bold ancestor exists, including the browser's own UA-stylesheet default
+// bold weight, reads as level 1 too -- only an explicit 800 is level 2).
+function currentBoldLevel(): BoldLevel {
+  if (!document.queryCommandState("bold")) return 0;
+  const anchor = window.getSelection()?.anchorNode;
+  const el = anchor instanceof Element ? anchor : anchor?.parentElement;
+  const boldEl = el?.closest("b, strong");
+  return boldEl && window.getComputedStyle(boldEl).fontWeight === "800" ? 2 : 1;
+}
+
 function readFormats(): FormatState {
   return {
-    bold: document.queryCommandState("bold"),
+    bold: currentBoldLevel(),
     italic: document.queryCommandState("italic"),
     underline: document.queryCommandState("underline"),
     justifyLeft: document.queryCommandState("justifyLeft"),
@@ -70,7 +89,7 @@ export function DescriptionSheet({
 }) {
   const editorRef = useRef<HTMLDivElement>(null);
   const [formats, setFormats] = useState<FormatState>({
-    bold: false,
+    bold: 0,
     italic: false,
     underline: false,
     justifyLeft: true,
@@ -133,6 +152,51 @@ export function DescriptionSheet({
   function applyAndCollapse(command: string) {
     exec(command);
     setOpenGroup(null);
+  }
+
+  // Sets font-weight directly on every <b>/<strong> the current selection
+  // touches. Only ever called right after execCommand("bold") guaranteed a
+  // wrapper exists for a real (non-collapsed) selection -- execCommand
+  // reliably creates/removes that wrapper synchronously in that case, which
+  // is what makes walking for it here safe. A collapsed cursor (typing fresh
+  // text with nothing selected yet) is a known gap: execCommand("bold") only
+  // sets the browser's internal "next typed characters are bold" state
+  // without inserting an element yet in most browsers, so there is nothing
+  // here to set a weight on until text actually exists to select and re-tap.
+  function setBoldWeightOnSelection(weight: string) {
+    const sel = window.getSelection();
+    const root = editorRef.current;
+    if (!sel || sel.rangeCount === 0 || !root) return;
+    const range = sel.getRangeAt(0);
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT, {
+      acceptNode: (node) =>
+        (node.nodeName === "B" || node.nodeName === "STRONG") && range.intersectsNode(node)
+          ? NodeFilter.FILTER_ACCEPT
+          : NodeFilter.FILTER_SKIP,
+    });
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      (node as HTMLElement).style.fontWeight = weight;
+    }
+  }
+
+  // Cycles off -> medium -> heavy -> off, rather than execCommand("bold")'s
+  // native plain toggle. 0 -> 1 and 2 -> 0 both go through execCommand
+  // itself, since creating/removing the <b>/<strong> wrapper across an
+  // arbitrary (possibly multi-node) selection is exactly the Range-splitting
+  // work the browser's own editing engine already handles correctly; 1 -> 2
+  // only needs to re-stamp the weight on whatever wrapper already exists.
+  function cycleBold() {
+    editorRef.current?.focus();
+    const level = currentBoldLevel();
+    if (level === 0) {
+      document.execCommand("bold", false);
+      setBoldWeightOnSelection("600");
+    } else if (level === 1) {
+      setBoldWeightOnSelection("800");
+    } else {
+      document.execCommand("bold", false);
+    }
+    setFormats(readFormats());
   }
 
   function handleSave() {
@@ -198,7 +262,7 @@ export function DescriptionSheet({
         />
 
         <div className="shrink-0 bg-white/95 backdrop-blur border-t border-gray-100 px-2 py-1.5 flex items-center gap-0.5 overflow-x-auto">
-          <ToolbarButton label="Bold" active={formats.bold} onClick={() => exec("bold")}>
+          <ToolbarButton label="Bold" level={formats.bold} onClick={cycleBold}>
             <Bold size={18} />
           </ToolbarButton>
           <ToolbarButton label="Italic" active={formats.italic} onClick={() => exec("italic")}>
@@ -269,6 +333,7 @@ export function DescriptionSheet({
 function ToolbarButton({
   label,
   active,
+  level,
   onClick,
   children,
   className = "",
@@ -276,11 +341,25 @@ function ToolbarButton({
 }: {
   label: string;
   active?: boolean;
+  // Bold-only: a third visual state on top of plain on/off. Takes priority
+  // over `active` when passed. 0 looks like inactive, 1 is the new outlined
+  // "medium" look, 2 reuses the existing filled-black "active" look.
+  level?: BoldLevel;
   onClick: () => void;
   children: React.ReactNode;
   className?: string;
   style?: React.CSSProperties;
 }) {
+  const stateClass =
+    level === 2
+      ? "bg-gray-900 text-white border-transparent"
+      : level === 1
+        ? "bg-white text-gray-900 border-gray-900"
+        : level === 0
+          ? "text-gray-700 border-transparent"
+          : active
+            ? "bg-gray-900 text-white border-transparent"
+            : "text-gray-700 border-transparent";
   return (
     <button
       type="button"
@@ -290,11 +369,18 @@ function ToolbarButton({
       onMouseDown={(e) => e.preventDefault()}
       onClick={onClick}
       aria-label={label}
-      aria-pressed={active}
+      aria-pressed={level !== undefined ? level > 0 : active}
       style={style}
-      className={`shrink-0 h-9 px-2.5 rounded-lg flex items-center gap-0.5 transition-colors duration-150 ${
-        active ? "bg-gray-900 text-white" : "text-gray-700"
-      } ${className}`}
+      // `border` is always present (border-box sizing, so it doesn't shift
+      // any button's rendered size) — only its color changes, so level 1's
+      // outline doesn't nudge anything relative to its siblings.
+      // before:-inset-1.5 grows the actual tappable box ~6px past what's
+      // visible on every side (content-less, no background -- invisible)
+      // without changing the toolbar's compact look. Not pushed further:
+      // these buttons sit gap-0.5 (2px) apart, so a much bigger expansion
+      // would have neighboring buttons' hit zones overlap deep into each
+      // other rather than just closing the dead space between them.
+      className={`relative shrink-0 h-9 px-2.5 rounded-lg border flex items-center gap-0.5 transition-colors duration-150 before:content-[''] before:absolute before:-inset-1.5 ${stateClass} ${className}`}
     >
       {children}
     </button>

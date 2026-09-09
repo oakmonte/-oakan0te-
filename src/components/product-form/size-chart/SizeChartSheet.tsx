@@ -69,6 +69,11 @@ export function SizeChartSheet({
   );
   const [confirmEmptySave, setConfirmEmptySave] = useState(false);
   const [confirmImplausible, setConfirmImplausible] = useState(false);
+  // Distinct from confirmEmptySave (manual mode's "nothing filled in at all,
+  // save just the size") -- this is "SOME lines filled, others still blank",
+  // which is the far more common way to under-fill a chart and previously
+  // sailed straight through with no warning in either mode.
+  const [confirmMissing, setConfirmMissing] = useState(false);
 
   const activeSizes = isVariantMode ? variantSizeValues : pickedSize ? [pickedSize.value] : [];
   const currentSize = activeSizes[index];
@@ -76,10 +81,18 @@ export function SizeChartSheet({
   function setCell(sizeValue: string, key: string, raw: string) {
     setConfirmEmptySave(false);
     setConfirmImplausible(false);
+    setConfirmMissing(false);
     setDraft((prev) => ({
       ...prev,
       [sizeValue]: { ...prev[sizeValue], [key]: raw },
     }));
+  }
+
+  // Which of the current size's lines are still blank, by their (single-
+  // letter) label -- same letters the guide image and each row already show,
+  // so naming them here doesn't introduce a label the seller hasn't seen.
+  function missingLineLabels(sizeValue: string): string[] {
+    return chart.lines.filter((l) => !draft[sizeValue]?.[l.key]?.trim()).map((l) => l.label);
   }
 
   // Converts the currently-shown size's draft cells to cm and runs the
@@ -122,6 +135,7 @@ export function SizeChartSheet({
     setDraft(() => seedDraft([value], chart.lines, initialMeasurements));
     setConfirmEmptySave(false);
     setConfirmImplausible(false);
+    setConfirmMissing(false);
   }
 
   function measurementsFor(sizeValues: string[]): SizeMeasurements {
@@ -139,6 +153,11 @@ export function SizeChartSheet({
   }
 
   function handleNext() {
+    const missing = missingLineLabels(currentSize);
+    if (missing.length > 0 && !confirmMissing) {
+      setConfirmMissing(true);
+      return;
+    }
     if (!currentDraftPlausible() && !confirmImplausible) {
       setConfirmImplausible(true);
       return;
@@ -146,15 +165,22 @@ export function SizeChartSheet({
     setIndex((i) => Math.min(i + 1, activeSizes.length - 1));
     setConfirmEmptySave(false);
     setConfirmImplausible(false);
+    setConfirmMissing(false);
   }
 
   function handleBack() {
     setIndex((i) => Math.max(i - 1, 0));
     setConfirmEmptySave(false);
     setConfirmImplausible(false);
+    setConfirmMissing(false);
   }
 
   function handleVariantSave() {
+    const missing = missingLineLabels(currentSize);
+    if (missing.length > 0 && !confirmMissing) {
+      setConfirmMissing(true);
+      return;
+    }
     if (!currentDraftPlausible() && !confirmImplausible) {
       setConfirmImplausible(true);
       return;
@@ -169,6 +195,13 @@ export function SizeChartSheet({
       setConfirmEmptySave(true);
       return;
     }
+    // Only reached once hasAnyValue is true -- a totally blank size is
+    // confirmEmptySave's own, softer message above, not this one.
+    const missing = missingLineLabels(pickedSize.value);
+    if (hasAnyValue && missing.length > 0 && !confirmMissing) {
+      setConfirmMissing(true);
+      return;
+    }
     if (hasAnyValue && !currentDraftPlausible() && !confirmImplausible) {
       setConfirmImplausible(true);
       return;
@@ -177,15 +210,21 @@ export function SizeChartSheet({
   }
 
   const isLastStep = index === activeSizes.length - 1;
+  // Same "anyway" wording regardless of which specific warning is currently
+  // pending confirmation -- there can be a second, different warning right
+  // behind this one (missing lines, then an implausible ratio among the
+  // ones that ARE filled), so the label just signals "a warning is showing,
+  // tap to proceed" rather than naming which one.
+  const anyWarningPending = confirmMissing || confirmImplausible;
   const saveLabel = isVariantMode
-    ? confirmImplausible
+    ? anyWarningPending
       ? isLastStep
         ? "Save anyway"
         : "Continue anyway"
       : isLastStep
         ? "Save size chart"
         : "Next size"
-    : confirmImplausible
+    : anyWarningPending
       ? "Save anyway"
       : confirmEmptySave
         ? "Save without measurements"
@@ -287,6 +326,13 @@ export function SizeChartSheet({
               <p className="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2.5 animate-in fade-in duration-200">
                 No measurements added yet — you can still save just the size, and fill these in
                 later.
+              </p>
+            )}
+
+            {confirmMissing && (
+              <p className="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2.5 animate-in fade-in duration-200">
+                Missing: {missingLineLabels(currentSize).join(", ")}. Buyers won't see a size guide
+                for this measurement — you can still save if you're sure.
               </p>
             )}
 

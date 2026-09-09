@@ -54,6 +54,14 @@ const DROP_ENTIRELY = new Set([
 // the only `style` value the editor's own toolbar can produce.
 const ALIGN_STYLE = /^text-align:\s*(left|center|right)\s*;?$/i;
 
+// The Bold button's two levels (see DescriptionSheet's cycleBold) write this
+// exact inline style on a <b>/<strong> it creates -- 600 for the outlined
+// "medium" level, 800 for the filled-black "heavy" level. Exact values only,
+// same allow-list-not-blocklist reasoning as ALIGN_STYLE: this is not "allow
+// the style attribute," it's "allow these two specific values and nothing
+// else written to it."
+const FONT_WEIGHT_STYLE = /^font-weight:\s*(600|800)\s*;?$/i;
+
 function isSafeHref(href: string): boolean {
   try {
     // Base URL only supplies a scheme for a relative href to inherit when
@@ -68,7 +76,11 @@ function isSafeHref(href: string): boolean {
 function sanitizeAttributes(el: Element) {
   for (const attr of [...el.attributes]) {
     if (el.tagName === "A" && attr.name === "href" && isSafeHref(attr.value)) continue;
-    if (attr.name === "style" && ALIGN_STYLE.test(attr.value)) continue;
+    if (
+      attr.name === "style" &&
+      (ALIGN_STYLE.test(attr.value) || FONT_WEIGHT_STYLE.test(attr.value))
+    )
+      continue;
     el.removeAttribute(attr.name);
   }
 }

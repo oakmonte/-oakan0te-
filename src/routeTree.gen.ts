@@ -66,6 +66,7 @@ import { Route as StoreCollectionsIdRouteImport } from './routes/store.collectio
 import { Route as CreateAfterShotStudioRouteImport } from './routes/create.after-shot.studio'
 import { Route as CreateAfterShotPublishRouteImport } from './routes/create.after-shot.publish'
 import { Route as CreateAfterShotFiltersRouteImport } from './routes/create.after-shot.filters'
+import { Route as ApiSupportMessagesReplyRouteImport } from './routes/api.support-messages.reply'
 import { Route as ApiStorePayoutRouteImport } from './routes/api.store.payout'
 import { Route as ApiStoreThemeUploadImageRouteImport } from './routes/api.store-theme.upload-image'
 import { Route as ApiShopifyInstallRouteImport } from './routes/api.shopify.install'
@@ -365,6 +366,11 @@ const CreateAfterShotFiltersRoute = CreateAfterShotFiltersRouteImport.update({
   path: '/filters',
   getParentRoute: () => CreateAfterShotRoute,
 } as any)
+const ApiSupportMessagesReplyRoute = ApiSupportMessagesReplyRouteImport.update({
+  id: '/api/support-messages/reply',
+  path: '/api/support-messages/reply',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiStorePayoutRoute = ApiStorePayoutRouteImport.update({
   id: '/api/store/payout',
   path: '/api/store/payout',
@@ -486,6 +492,7 @@ export interface FileRoutesByFullPath {
   '/api/shopify/install': typeof ApiShopifyInstallRoute
   '/api/store-theme/upload-image': typeof ApiStoreThemeUploadImageRoute
   '/api/store/payout': typeof ApiStorePayoutRoute
+  '/api/support-messages/reply': typeof ApiSupportMessagesReplyRoute
   '/create/after-shot/filters': typeof CreateAfterShotFiltersRoute
   '/create/after-shot/publish': typeof CreateAfterShotPublishRoute
   '/create/after-shot/studio': typeof CreateAfterShotStudioRoute
@@ -554,6 +561,7 @@ export interface FileRoutesByTo {
   '/api/shopify/install': typeof ApiShopifyInstallRoute
   '/api/store-theme/upload-image': typeof ApiStoreThemeUploadImageRoute
   '/api/store/payout': typeof ApiStorePayoutRoute
+  '/api/support-messages/reply': typeof ApiSupportMessagesReplyRoute
   '/create/after-shot/filters': typeof CreateAfterShotFiltersRoute
   '/create/after-shot/publish': typeof CreateAfterShotPublishRoute
   '/create/after-shot/studio': typeof CreateAfterShotStudioRoute
@@ -626,6 +634,7 @@ export interface FileRoutesById {
   '/api/shopify/install': typeof ApiShopifyInstallRoute
   '/api/store-theme/upload-image': typeof ApiStoreThemeUploadImageRoute
   '/api/store/payout': typeof ApiStorePayoutRoute
+  '/api/support-messages/reply': typeof ApiSupportMessagesReplyRoute
   '/create/after-shot/filters': typeof CreateAfterShotFiltersRoute
   '/create/after-shot/publish': typeof CreateAfterShotPublishRoute
   '/create/after-shot/studio': typeof CreateAfterShotStudioRoute
@@ -699,6 +708,7 @@ export interface FileRouteTypes {
     | '/api/shopify/install'
     | '/api/store-theme/upload-image'
     | '/api/store/payout'
+    | '/api/support-messages/reply'
     | '/create/after-shot/filters'
     | '/create/after-shot/publish'
     | '/create/after-shot/studio'
@@ -767,6 +777,7 @@ export interface FileRouteTypes {
     | '/api/shopify/install'
     | '/api/store-theme/upload-image'
     | '/api/store/payout'
+    | '/api/support-messages/reply'
     | '/create/after-shot/filters'
     | '/create/after-shot/publish'
     | '/create/after-shot/studio'
@@ -838,6 +849,7 @@ export interface FileRouteTypes {
     | '/api/shopify/install'
     | '/api/store-theme/upload-image'
     | '/api/store/payout'
+    | '/api/support-messages/reply'
     | '/create/after-shot/filters'
     | '/create/after-shot/publish'
     | '/create/after-shot/studio'
@@ -895,6 +907,7 @@ export interface RootRouteChildren {
   ApiShopifyInstallRoute: typeof ApiShopifyInstallRoute
   ApiStoreThemeUploadImageRoute: typeof ApiStoreThemeUploadImageRoute
   ApiStorePayoutRoute: typeof ApiStorePayoutRoute
+  ApiSupportMessagesReplyRoute: typeof ApiSupportMessagesReplyRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1298,6 +1311,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CreateAfterShotFiltersRouteImport
       parentRoute: typeof CreateAfterShotRoute
     }
+    '/api/support-messages/reply': {
+      id: '/api/support-messages/reply'
+      path: '/api/support-messages/reply'
+      fullPath: '/api/support-messages/reply'
+      preLoaderRoute: typeof ApiSupportMessagesReplyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/store/payout': {
       id: '/api/store/payout'
       path: '/api/store/payout'
@@ -1508,6 +1528,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiShopifyInstallRoute: ApiShopifyInstallRoute,
   ApiStoreThemeUploadImageRoute: ApiStoreThemeUploadImageRoute,
   ApiStorePayoutRoute: ApiStorePayoutRoute,
+  ApiSupportMessagesReplyRoute: ApiSupportMessagesReplyRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
