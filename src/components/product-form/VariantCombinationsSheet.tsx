@@ -192,8 +192,10 @@ export function VariantCombinationsSheet({
         // force-clearing a row's real locationQuantities to {} -- only a
         // genuine location pick does that.
         if (bulkInventory) {
-          if (hasBulkLocationPick) next.locationQuantities = { ...bulkInventory.locationQuantities };
-          if (hasBulkInventoryPick) next.continueSellingOutOfStock = bulkInventory.continueSellingOutOfStock;
+          if (hasBulkLocationPick)
+            next.locationQuantities = { ...bulkInventory.locationQuantities };
+          if (hasBulkInventoryPick)
+            next.continueSellingOutOfStock = bulkInventory.continueSellingOutOfStock;
         }
         return next;
       }),
