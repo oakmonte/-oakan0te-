@@ -187,9 +187,13 @@ export function VariantCombinationsSheet({
         // in-place edit to one row's list would otherwise silently rewrite
         // every other bulk-applied row's list too.
         if (bulkImages.length > 1) next.additionalImageUrls = bulkImages.slice(1);
-        if (hasBulkInventoryPick && bulkInventory) {
-          next.locationQuantities = { ...bulkInventory.locationQuantities };
-          next.continueSellingOutOfStock = bulkInventory.continueSellingOutOfStock;
+        // Split so a deliberate continueSellingOutOfStock toggle (which
+        // survives with zero locations picked) can apply without ALSO
+        // force-clearing a row's real locationQuantities to {} -- only a
+        // genuine location pick does that.
+        if (bulkInventory) {
+          if (hasBulkLocationPick) next.locationQuantities = { ...bulkInventory.locationQuantities };
+          if (hasBulkInventoryPick) next.continueSellingOutOfStock = bulkInventory.continueSellingOutOfStock;
         }
         return next;
       }),
