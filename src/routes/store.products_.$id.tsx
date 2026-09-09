@@ -26,6 +26,16 @@ import { PricingSheet } from "@/components/product-form/PricingSheet";
 import { InventorySection } from "@/components/product-form/InventorySection";
 import { InventorySheet, type InventoryValues } from "@/components/product-form/InventorySheet";
 import { CategoryPicker } from "@/components/product-form/CategoryPicker";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ProductTypeSwitchSheet } from "@/components/product-form/ProductTypeSwitchSheet";
 import { ProductActionsSheet } from "@/components/product-form/ProductActionsSheet";
 import {
@@ -99,6 +109,15 @@ type LoadedProduct = {
     weight_grams: number | null;
     additional_image_urls: string[] | null;
     continue_selling_out_of_stock: boolean;
+    // The flat columns an importer writes instead of real product_options/
+    // product_variant_options links (see canonical-product-schema) -- a
+    // legacy Bumpa import in particular writes several product_variants rows
+    // this way with zero product_options rows at all, which without reading
+    // these here would look identical to a true single-variant "regular"
+    // product to the existing-variants baseline below.
+    option1_value: string | null;
+    option2_value: string | null;
+    option3_value: string | null;
     product_variant_options: { variant_id: string; option_id: string; value_id: string }[];
     product_variant_stock: { location_id: string; quantity: number }[];
     product_variant_barcodes: { type: string; value: string; position: number }[];
@@ -151,6 +170,32 @@ function EditProduct() {
 
   const [loading, setLoading] = useState(initialDraft === null);
   const [notFound, setNotFound] = useState(false);
+
+  // Snapshot of whatever variants actually exist in the database right now —
+  // NOT the same thing as `rows` below, which is this form's current draft
+  // and can drift from the database the moment a seller unchecks a
+  // combination or removes an option. product-save.ts's runUpdate deletes
+  // and rebuilds every variant from `rows` on every save (see its own
+  // comment for why it doesn't diff by id instead), so this is the baseline
+  // handleSave compares against right before that happens, to warn before a
+  // routine "fix the title" save silently takes a real variant's stock/
+  // price/images down with it. Captured on load regardless of whether a
+  // restored draft skips using that same fetch to populate the form (see
+  // the load effect) — the baseline has to reflect the database, not
+  // whatever the draft says.
+  const existingVariantsRef = useRef<{ key: string; label: string; stock: number }[]>([]);
+  // "pending" until the baseline fetch settles one way or another --
+  // WITHOUT this, a draft-restored form (which paints instantly, before
+  // that fetch can possibly have resolved) would let Save through on an
+  // empty, not-yet-populated baseline during exactly the window a seller
+  // who just unchecked a variant is most likely to hit Save in. "failed"
+  // means the fetch itself came back empty/errored while a draft was still
+  // trusted to show the form -- treated as "can't vouch for this", not as
+  // "nothing to warn about".
+  const [baselineState, setBaselineState] = useState<"pending" | "ready" | "failed">("pending");
+  const [variantLossWarning, setVariantLossWarning] = useState<
+    "unknown" | { key: string; label: string; stock: number }[] | null
+  >(null);
 
   const [kind, setKind] = useState<ProductKind>(initialDraft?.kind ?? "variant");
   const [status, setStatus] = useState<"draft" | "active">(initialDraft?.status ?? "draft");
@@ -283,11 +328,12 @@ function EditProduct() {
     return () => setRightAction(null);
   }, [setRightAction]);
 
-  // Loads the product once, unless a stashed draft already seeded every
-  // field above (the collection side-trip round-trip) — in that case there's
-  // nothing to fetch, the draft IS the current form state.
+  // Loads the product once -- runs even when a stashed draft already seeded
+  // every form field (the collection side-trip round-trip), because the
+  // existing-variants baseline captured below has to reflect the database
+  // regardless of whether the draft goes on to skip using this same fetch
+  // to populate the form.
   useEffect(() => {
-    if (initialDraft) return;
     if (!storeId || !productId) return;
     let cancelled = false;
 
@@ -296,7 +342,7 @@ function EditProduct() {
         .from("products")
         .select(
           `id, title, description_short, product_type, status, manual_size_value, manual_size_system,
-           product_variants(id, sku, price, compare_at_price, cost_price, stock_qty, material, main_image_url, barcode, material_feel, weight_grams, additional_image_urls, continue_selling_out_of_stock, product_variant_options(variant_id, option_id, value_id), product_variant_stock(location_id, quantity), product_variant_barcodes(type, value, position)),
+           product_variants(id, sku, price, compare_at_price, cost_price, stock_qty, material, main_image_url, barcode, material_feel, weight_grams, additional_image_urls, continue_selling_out_of_stock, option1_value, option2_value, option3_value, product_variant_options(variant_id, option_id, value_id), product_variant_stock(location_id, quantity), product_variant_barcodes(type, value, position)),
            product_options(id, name, position, product_option_values(id, value, position)),
            product_collections(collection_id),
            product_tags(tag_id),
@@ -309,8 +355,16 @@ function EditProduct() {
 
       if (cancelled) return;
       if (loadErr || !data) {
-        setNotFound(true);
-        setLoading(false);
+        // A draft already has a full form to show; only a fresh load with
+        // nothing to fall back on needs the not-found state. Either way the
+        // baseline this session could have vouched for never arrived --
+        // saveIfNoVariantLoss treats "failed" as "can't confirm nothing's
+        // being lost", not as "nothing exists to lose".
+        if (!initialDraft) {
+          setNotFound(true);
+          setLoading(false);
+        }
+        setBaselineState("failed");
         return;
       }
 
@@ -347,6 +401,39 @@ function EditProduct() {
       for (const arr of variantOptionValues.values()) {
         arr.sort((a, b) => (optionOrder.get(a.name) ?? 0) - (optionOrder.get(b.name) ?? 0));
       }
+
+      // A genuinely single-variant "regular" product (one product_variants
+      // row, no option links at all) isn't a collection of individually
+      // removable rows the way a variant product's combinations are -- it's
+      // always fully rebuilt from the regular-mode fields on every save,
+      // which isn't the "silently lost a row out of many" risk this baseline
+      // exists to catch. But options.length alone can't tell that apart from
+      // a LEGACY import (Bumpa) that writes several product_variants rows
+      // with real stock/price using only the flat option1_value/etc columns
+      // and zero product_options rows at all -- that shape has multiple real
+      // rows to lose too, so it's judged by variant count, not option count.
+      existingVariantsRef.current =
+        optionsState.length > 0 || product.product_variants.length > 1
+          ? product.product_variants.map((v) => {
+              const optVals = variantOptionValues.get(v.id) ?? [];
+              const stock =
+                v.product_variant_stock.length > 0
+                  ? v.product_variant_stock.reduce((sum, s) => sum + s.quantity, 0)
+                  : (v.stock_qty ?? 0);
+              const label =
+                optVals.map((o) => o.value).join(" / ") ||
+                [v.option1_value, v.option2_value, v.option3_value].filter(Boolean).join(" / ") ||
+                v.sku ||
+                "Variant";
+              return { key: buildKey(optVals), label, stock };
+            })
+          : [];
+      setBaselineState("ready");
+
+      // Everything past this point only populates form fields, which a
+      // restored draft already has -- the baseline above is the only reason
+      // this fetch still needed to run at all in that case.
+      if (initialDraft) return;
 
       // Falls back to the deprecated single-value column when the new table
       // has nothing for this variant -- an importer-written barcode (CSV,
@@ -654,6 +741,50 @@ function EditProduct() {
       return;
     }
 
+    saveIfNoVariantLoss();
+  }
+
+  // Last gate, right before the actual write, reached both from handleSave's
+  // own tail AND from the necessities dialog's "Save anyway" (which used to
+  // call performSave directly, skipping this entirely). performSave's
+  // payload rebuilds every variant from `rows`/`kind` from scratch (see
+  // product-save.ts's runUpdate) -- anything that exists in the database
+  // right now (existingVariantsRef, captured on load) but isn't in the
+  // current selection is about to be permanently deleted. Switching away
+  // from "variant" kind entirely counts too: nothing keyed by row survives
+  // that, so every existing variant shows up as removed.
+  function saveIfNoVariantLoss() {
+    // The fetch this baseline comes from is fired unconditionally on mount,
+    // but a restored draft paints the whole form (Save included) before
+    // that fetch can possibly have resolved -- exactly the window a seller
+    // who just unchecked a variant in a PRIOR session is likely to hit Save
+    // in. A brief, self-resolving "try again" beats either blocking Save
+    // outright until it's ready or silently trusting an empty baseline.
+    if (baselineState === "pending") {
+      setError("Still checking your current variants — try Save again in a moment.");
+      return;
+    }
+    // The fetch came back empty/errored while a draft was still trusted to
+    // show the form -- there's no baseline to diff against, but that means
+    // "unconfirmed", not "nothing exists to lose". Warn unconditionally
+    // rather than let a failed request silently disable the entire safety
+    // net for the rest of this session.
+    if (baselineState === "failed") {
+      setVariantLossWarning("unknown");
+      return;
+    }
+    const currentKeys =
+      kind === "variant" ? new Set(selectedRows.map((r) => r.key)) : new Set<string>();
+    const removedVariants = existingVariantsRef.current.filter((v) => !currentKeys.has(v.key));
+    if (removedVariants.length > 0) {
+      setVariantLossWarning(removedVariants);
+      return;
+    }
+    performSave();
+  }
+
+  function confirmSaveDespiteVariantLoss() {
+    setVariantLossWarning(null);
     performSave();
   }
 
@@ -723,6 +854,40 @@ function EditProduct() {
         </button>
       </div>
     );
+  }
+
+  // Copy for the variant-loss AlertDialog below, branched three ways: the
+  // baseline fetch failed (generic, can't-confirm wording); the seller
+  // switched this product to "regular" kind entirely (every existing
+  // variant is being replaced by one price/stock, which reads very
+  // differently from "you deleted some rows" even though the underlying
+  // risk -- and the dialog it reuses -- is the same); or the ordinary case,
+  // some selected combinations no longer match what's saved.
+  let variantLossDialog: { title: string; description: string } | null = null;
+  if (variantLossWarning === "unknown") {
+    variantLossDialog = {
+      title: "Continue without checking your current variants?",
+      description:
+        "We couldn't confirm what's currently saved for this product. If a variant or option was removed since it loaded, saving now could delete it permanently.",
+    };
+  } else if (variantLossWarning) {
+    const count = variantLossWarning.length;
+    const labels = variantLossWarning
+      .slice(0, 5)
+      .map((v) => v.label)
+      .join(", ");
+    const more = count > 5 ? `, and ${count - 5} more` : "";
+    const totalStock = variantLossWarning.reduce((sum, v) => sum + v.stock, 0);
+    variantLossDialog =
+      kind !== "variant"
+        ? {
+            title: "Convert to a regular product?",
+            description: `Its ${count} variation${count === 1 ? "" : "s"} (${totalStock} units in stock) will be replaced by a single price and stock count. This can't be undone.`,
+          }
+        : {
+            title: `Delete ${count} variant${count === 1 ? "" : "s"}?`,
+            description: `${labels}${more} — ${totalStock} units in stock combined. This can't be undone.`,
+          };
   }
 
   return (
@@ -950,11 +1115,32 @@ function EditProduct() {
           }}
           onSaveAnyway={() => {
             setNecessitiesWarningOpen(false);
-            performSave();
+            saveIfNoVariantLoss();
           }}
           onCancel={() => setNecessitiesWarningOpen(false)}
         />
       )}
+
+      <AlertDialog
+        open={variantLossWarning !== null}
+        onOpenChange={(open) => !open && setVariantLossWarning(null)}
+      >
+        <AlertDialogContent className="max-w-[92vw] rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>{variantLossDialog?.title}</AlertDialogTitle>
+            <AlertDialogDescription>{variantLossDialog?.description}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-full">Go back</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmSaveDespiteVariantLoss}
+              className="bg-black rounded-full"
+            >
+              Delete and save
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <div className="px-4 py-5 border-b-8 border-gray-50">
         <p className="text-[15px] font-semibold text-gray-900 mb-3">Product Status</p>
