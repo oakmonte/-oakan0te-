@@ -595,6 +595,12 @@ export function OptionEditorSheet({
   // doubles as a search query for every other option type, and this one
   // never does.
   const [numericDraft, setNumericDraft] = useState("");
+  // Values typed into the Weight/Volume numeric row, bucketed per option name
+  // like everything else here. These are ADDED TO THE POOL, not selected --
+  // tapping "Enter" below the box offers a new option alongside the existing
+  // ones (pinned above them), the same as any other unselected preset; the
+  // seller still has to tap it to actually choose it.
+  const [customPoolByName, setCustomPoolByName] = useState<Record<string, string[]>>({});
   const [selectedSystems, setSelectedSystems] = useState<Record<string, string>>(DEFAULT_SYSTEM);
   const [systemMenuOpen, setSystemMenuOpen] = useState(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -641,7 +647,14 @@ export function OptionEditorSheet({
   // Every chosen value pins to the top regardless of which system it came
   // from; the pool below only lists what's left to pick.
   const chosen = values.filter(matches);
-  const remaining = pool.filter((v) => !values.includes(v) && matches(v));
+  // Seller-typed values (Weight/Volume's numeric row) pin above the regular
+  // pool, same shelf position a chosen value gets among chosen ones -- newest
+  // typed value first, so "20.56" lands above the default-first "25 g".
+  const customPool = customPoolByName[name] ?? [];
+  const remaining = [
+    ...customPool.filter((v) => !values.includes(v) && matches(v)),
+    ...pool.filter((v) => !values.includes(v) && !customPool.includes(v) && matches(v)),
+  ];
 
   const exactExists = [...values, ...pool].some((v) => v.toLowerCase() === q);
   // Once locked to a system, typing a free-text value is only still allowed
@@ -733,13 +746,21 @@ export function OptionEditorSheet({
     setValueDraft("");
   }
 
-  function commitNumericValue() {
+  // Adds the typed number to the pool as a new, UNSELECTED option -- not to
+  // `values` -- so it shows up alongside "25 g" etc. rather than being
+  // auto-picked. The seller taps it afterward, same as any preset, if they
+  // actually want it.
+  function addNumericPoolValue() {
     const digits = numericDraft.trim();
     if (!digits) return;
-    // addValue, not createValue -- this is a real value in the CURRENT
-    // system (it carries that system's own unit suffix), not a custom one,
-    // so it shouldn't relabel the option to "Custom".
-    addValue(`${digits} ${UNIT_SUFFIX[activeSystem] ?? activeSystem}`);
+    const v = `${digits} ${UNIT_SUFFIX[activeSystem] ?? activeSystem}`;
+    if (!values.includes(v) && !systemValues(name, activeSystem).includes(v)) {
+      setCustomPoolByName((prev) => {
+        const existing = prev[name] ?? [];
+        if (existing.includes(v)) return prev;
+        return { ...prev, [name]: [v, ...existing] };
+      });
+    }
     setNumericDraft("");
   }
 
@@ -778,6 +799,7 @@ export function OptionEditorSheet({
     setValuesByName((prev) => dropKey(prev, name));
     setConfirmedByName((prev) => dropKey(prev, name));
     setSelectedSystems((prev) => dropKey(prev, name));
+    setCustomPoolByName((prev) => dropKey(prev, name));
     setNameOrder((prev) => prev.filter((n) => n !== name));
     setValueDraft("");
     setNumericDraft("");
@@ -894,11 +916,12 @@ export function OptionEditorSheet({
                 )}
                 {/* Digits only, unit appended as a fixed suffix rather than
                     live-mutated inside the input -- avoids cursor-position
-                    fights while still reading as "275 g" as they type. A
-                    decimal-only mobile keyboard often has no working Enter/Go
-                    key at all, so the checkmark button is the real way this
-                    gets confirmed -- Enter is a bonus for desktop/keyboards
-                    that do send it. */}
+                    fights while still reading as "275 g" as they type. The
+                    Enter button below (not an icon inside the box) is how
+                    this gets added -- a decimal-only mobile keyboard often
+                    has no working Enter/Go key at all, so the keydown
+                    handler below is a bonus for keyboards that do send one,
+                    never the only way in. */}
                 <div className="flex items-center border border-gray-200 rounded-xl px-4 py-4 focus-within:border-gray-400">
                   <input
                     value={numericDraft}
@@ -906,7 +929,7 @@ export function OptionEditorSheet({
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         e.preventDefault();
-                        commitNumericValue();
+                        addNumericPoolValue();
                       }
                     }}
                     inputMode="decimal"
@@ -914,21 +937,20 @@ export function OptionEditorSheet({
                     className="flex-1 min-w-0 text-base outline-none bg-transparent"
                   />
                   {numericDraft && (
-                    <>
-                      <span className="text-base text-gray-400 shrink-0 ml-1">
-                        {UNIT_SUFFIX[activeSystem] ?? activeSystem}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={commitNumericValue}
-                        aria-label="Add value"
-                        className="shrink-0 ml-2 w-7 h-7 rounded-full bg-black text-white flex items-center justify-center"
-                      >
-                        <Check size={16} />
-                      </button>
-                    </>
+                    <span className="text-base text-gray-400 shrink-0 ml-1">
+                      {UNIT_SUFFIX[activeSystem] ?? activeSystem}
+                    </span>
                   )}
                 </div>
+                {numericDraft.trim() && (
+                  <button
+                    type="button"
+                    onClick={addNumericPoolValue}
+                    className="mt-2 w-full bg-black text-white text-sm font-medium rounded-xl py-3"
+                  >
+                    Enter
+                  </button>
+                )}
               </>
             ) : (
               <>
