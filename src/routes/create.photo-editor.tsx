@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   ChevronLeft,
   Crop,
@@ -89,8 +89,11 @@ const DEFAULT_FILTER_ID = "natural";
 // tighter and the gesture never fires for anyone resting their thumb.
 const HOLD_MS = 320;
 const HOLD_SLOP = 8;
-/** Thumbnail width plus the gap between them: one slot. */
-const DRAG_STRIDE = 54;
+/** Thumbnail width plus the gap between them: one slot. Only a starting
+ *  guess for the first paint -- measured off the real tiles once at least
+ *  two exist (see the effect near stripRef), so it can't silently drift from
+ *  the actual w-[46px] + gap-2 CSS. */
+const DRAG_STRIDE_FALLBACK = 54;
 const EDGE_ZONE = 44;
 const EDGE_SPEED = 9;
 
@@ -179,6 +182,19 @@ function PhotoEditor() {
   const dragDxRef = useRef(0);
   const pointerXRef = useRef(0);
   const autoScrollRef = useRef<number | null>(null);
+  const dragStrideRef = useRef(DRAG_STRIDE_FALLBACK);
+  // FLIP landing animation: snapshot every tile's position right before the
+  // array actually reorders, then offset each one back to where it just was
+  // and let it transition to zero -- same technique as ImageGallery.tsx's
+  // ThumbStrip, ported here since this gesture is otherwise an instant
+  // teleport on drop (the mid-drag "step aside" preview is the only
+  // animation it had).
+  const tileRefs = useRef(new Map<string, HTMLButtonElement>());
+  const prevTileRects = useRef(new Map<string, DOMRect>());
+  // Lets the unmount-cleanup effect below tear down whichever gesture (if
+  // any) is currently in flight, without that effect needing to know
+  // anything about pointer ids or timers itself.
+  const activeGestureCleanup = useRef<(() => void) | null>(null);
 
   // How much room the controls at the bottom actually take. 210 is only the
   // starting guess for the first paint, before the observer has measured.
@@ -194,15 +210,60 @@ function PhotoEditor() {
   // out from under its own transform and fight the gesture.
   const dragIndex = dragId ? photos.findIndex((p) => p.id === dragId) : -1;
   const dragTarget =
-    dragIndex >= 0 ? clampIndex(dragIndex + Math.round(dragDx / DRAG_STRIDE), photos.length) : -1;
+    dragIndex >= 0
+      ? clampIndex(dragIndex + Math.round(dragDx / dragStrideRef.current), photos.length)
+      : -1;
 
   function tileShift(i: number): number {
     if (dragIndex < 0) return 0;
     if (i === dragIndex) return dragDx;
-    if (dragTarget > dragIndex && i > dragIndex && i <= dragTarget) return -DRAG_STRIDE;
-    if (dragTarget < dragIndex && i < dragIndex && i >= dragTarget) return DRAG_STRIDE;
+    const stride = dragStrideRef.current;
+    if (dragTarget > dragIndex && i > dragIndex && i <= dragTarget) return -stride;
+    if (dragTarget < dragIndex && i < dragIndex && i >= dragTarget) return stride;
     return 0;
   }
+
+  // Measures the real slot width (tile + gap) off two actual tiles rather
+  // than trusting the hardcoded fallback, so a future change to the w-[46px]/
+  // gap-2 classes can't silently desync the drag math from the CSS.
+  useEffect(() => {
+    const strip = stripRef.current;
+    if (!strip || photos.length < 2) return;
+    const tiles = strip.querySelectorAll<HTMLElement>("[data-photo-id]");
+    if (tiles.length < 2) return;
+    const a = tiles[0].getBoundingClientRect();
+    const b = tiles[1].getBoundingClientRect();
+    if (b.left > a.left) dragStrideRef.current = b.left - a.left;
+  }, [photos.length]);
+
+  // FLIP landing animation -- see the refs' own comments above for why.
+  useLayoutEffect(() => {
+    tileRefs.current.forEach((el, id) => {
+      const prev = prevTileRects.current.get(id);
+      if (!prev) return;
+      const next = el.getBoundingClientRect();
+      const dx = prev.left - next.left;
+      if (dx) {
+        el.style.transition = "none";
+        el.style.transform = `translateX(${dx}px)`;
+        requestAnimationFrame(() => {
+          el.style.transition = "transform 200ms ease-out";
+          el.style.transform = "";
+          el.addEventListener("transitionend", () => (el.style.transition = ""), { once: true });
+        });
+      }
+    });
+    prevTileRects.current.clear();
+  }, [photos]);
+
+  function snapshotTileRects() {
+    tileRefs.current.forEach((el, id) => prevTileRects.current.set(id, el.getBoundingClientRect()));
+  }
+
+  // If the editor unmounts mid-gesture (nothing prevents navigating away
+  // during a hold/drag), tear down whatever's still listening on window
+  // rather than leaking it.
+  useEffect(() => () => activeGestureCleanup.current?.(), []);
   // A live photo owns the whole post, so its presence is a state of the whole
   // screen rather than a property of the selected item.
   const hasLive = photos.some((p) => p.kind === "live");
@@ -455,6 +516,8 @@ function PhotoEditor() {
     if (photos.length < 2) return;
     const startX = e.clientX;
     const startY = e.clientY;
+    const pointerId = e.pointerId;
+    const target = e.currentTarget;
     const strip = stripRef.current;
     const startScroll = strip?.scrollLeft ?? 0;
     let holdTimer: number | null = window.setTimeout(() => {
@@ -463,6 +526,20 @@ function PhotoEditor() {
       dragDxRef.current = 0;
       setDragId(id);
       setDragDx(0);
+      // Captured only once the hold has actually landed, not on every tap --
+      // also what makes a single pointer's move/up events keep routing here
+      // even if the finger drifts off the tile itself mid-drag. Guarded: the
+      // browser can have already released this pointer by the time this
+      // 320ms-delayed callback runs (a system gesture, another app taking
+      // focus), and an uncaught exception here would abandon the gesture
+      // mid-setup with `dragging` already true and no cleanup having run.
+      try {
+        target.setPointerCapture(pointerId);
+      } catch {
+        // Not fatal -- move/up are also listened for on window, so the drag
+        // still works without capture, just without the "finger can wander
+        // off the tile" guarantee capture provides.
+      }
       window.addEventListener("touchmove", block, { passive: false });
     }, HOLD_MS);
     let dragging = false;
@@ -479,6 +556,7 @@ function PhotoEditor() {
     };
 
     const onMove = (ev: PointerEvent) => {
+      if (ev.pointerId !== pointerId) return;
       if (!dragging) {
         if (
           Math.abs(ev.clientX - startX) > HOLD_SLOP ||
@@ -516,11 +594,20 @@ function PhotoEditor() {
       autoScrollRef.current = requestAnimationFrame(step);
     };
 
-    const onUp = () => {
+    const onUp = (ev: PointerEvent) => {
+      if (ev.pointerId !== pointerId) return;
       if (dragging) {
-        const from = photos.findIndex((p) => p.id === id);
-        const to = clampIndex(from + Math.round(dragDxRef.current / DRAG_STRIDE), photos.length);
+        // The live `photos` this closure captured at pointerdown time can be
+        // stale by the time the finger lifts; latest.current is kept in sync
+        // every render (see its own comment above), so read from there.
+        const currentPhotos = latest.current.photos;
+        const from = currentPhotos.findIndex((p) => p.id === id);
+        const to = clampIndex(
+          from + Math.round(dragDxRef.current / dragStrideRef.current),
+          currentPhotos.length,
+        );
         if (from >= 0 && to !== from) {
+          snapshotTileRects();
           setPhotos((prev) => {
             const next = [...prev];
             const [moved] = next.splice(from, 1);
@@ -529,6 +616,14 @@ function PhotoEditor() {
           });
         }
       }
+      cleanup();
+    };
+
+    // A cancelled gesture (browser/OS decided this wasn't a hold after all,
+    // or a system gesture interrupted it) is an abort, not a release -- it
+    // must NOT commit whatever reorder was in progress.
+    const onCancel = (ev: PointerEvent) => {
+      if (ev.pointerId !== pointerId) return;
       cleanup();
     };
 
@@ -541,16 +636,18 @@ function PhotoEditor() {
       }
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
-      window.removeEventListener("pointercancel", onUp);
+      window.removeEventListener("pointercancel", onCancel);
       window.removeEventListener("touchmove", block);
       dragDxRef.current = 0;
       setDragId(null);
       setDragDx(0);
+      activeGestureCleanup.current = null;
     };
 
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
-    window.addEventListener("pointercancel", onUp);
+    window.addEventListener("pointercancel", onCancel);
+    activeGestureCleanup.current = cleanup;
   }
 
   function removeActive() {
@@ -1055,6 +1152,10 @@ function PhotoEditor() {
                 {photos.map((p, i) => (
                   <button
                     key={p.id}
+                    ref={(el) => {
+                      if (el) tileRefs.current.set(p.id, el);
+                      else tileRefs.current.delete(p.id);
+                    }}
                     type="button"
                     data-photo-id={p.id}
                     onPointerDown={(e) => startTileGesture(e, p.id)}
@@ -1069,8 +1170,9 @@ function PhotoEditor() {
                       transition: i === dragIndex ? "none" : "transform 160ms ease",
                       zIndex: i === dragIndex ? 10 : undefined,
                       boxShadow: i === dragIndex ? "0 8px 20px rgba(0,0,0,0.55)" : undefined,
+                      WebkitTouchCallout: "none",
                     }}
-                    className={`relative h-[46px] w-[46px] shrink-0 overflow-hidden rounded-[6px] border-2 transition-colors ${
+                    className={`relative h-[46px] w-[46px] shrink-0 touch-none select-none overflow-hidden rounded-[6px] border-2 transition-colors ${
                       p.id === activeId ? "border-white" : "border-transparent opacity-60"
                     }`}
                   >
@@ -1083,7 +1185,12 @@ function PhotoEditor() {
                         className="h-full w-full object-cover"
                       />
                     ) : (
-                      <img src={p.url} alt="" className="h-full w-full object-cover" />
+                      <img
+                        src={p.url}
+                        alt=""
+                        draggable={false}
+                        className="h-full w-full object-cover"
+                      />
                     )}
                     {/* Order is not decoration: the first photo is the cover,
                         and the cover is what the whole feed judges the post by.

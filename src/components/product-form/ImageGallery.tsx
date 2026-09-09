@@ -177,7 +177,15 @@ function ThumbStrip({
     clearTimer();
     pressTimer.current = setTimeout(() => {
       setDragUrl(url);
-      target.setPointerCapture(pointerId);
+      // Guarded: the browser can have already released this pointer by the
+      // time this delayed callback runs, and an uncaught exception here
+      // would abandon the gesture mid-setup -- move/up are also listened for
+      // on window, so the drag still works without capture either way.
+      try {
+        target.setPointerCapture(pointerId);
+      } catch {
+        // See above -- not fatal.
+      }
     }, 300);
   }
 
