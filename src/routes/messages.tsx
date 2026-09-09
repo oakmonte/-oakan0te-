@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ArrowLeft, CircleHelp, Plus, Search, Send, UserRound } from "lucide-react";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import logoAsset from "@/assets/oakmonte-o-mark.png.asset.json";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import type { Database } from "@/lib/integrations/my-supabase/types";
 import { useSession } from "@/hooks/use-session";
@@ -50,7 +51,7 @@ const CONTACTS: Contact[] = [
     subtitle: "Official support",
     preview: "Make complaints or observations",
     initials: "O",
-    accent: "bg-[#2f6bff]",
+    accent: "bg-white",
     icon: "support",
   },
   {
@@ -59,7 +60,7 @@ const CONTACTS: Contact[] = [
     subtitle: "Personal notes",
     preview: "A quiet place for your thoughts",
     initials: "M",
-    accent: "bg-[#d6a64f]",
+    accent: "bg-[#4b4b4b]",
     icon: "me",
   },
   {
@@ -68,7 +69,7 @@ const CONTACTS: Contact[] = [
     subtitle: "Preview contact",
     preview: "That blue jacket is everything",
     initials: "N",
-    accent: "bg-[#dd6b4d]",
+    accent: "bg-[#4b4b4b]",
     icon: "person",
   },
 ];
@@ -127,16 +128,16 @@ const LOCAL_MESSAGES: Record<Exclude<ContactId, "support">, LocalMessage[]> = {
 };
 
 function ContactAvatar({ contact, large = false }: { contact: Contact; large?: boolean }) {
-  const Icon = contact.icon === "support" ? CircleHelp : contact.icon === "me" ? UserRound : null;
+  const Icon = contact.icon === "support" ? CircleHelp : UserRound;
 
   return (
     <div
       className={`relative flex shrink-0 items-center justify-center rounded-full ${contact.accent} text-white ${large ? "h-12 w-12" : "h-11 w-11"}`}
     >
-      {Icon ? (
-        <Icon size={large ? 21 : 19} strokeWidth={1.8} />
+      {contact.id === "support" ? (
+        <img src={logoAsset.url} alt="Oakmonte" className="h-[68%] w-[68%] object-contain" />
       ) : (
-        <span className="text-base font-semibold">{contact.initials}</span>
+        <Icon size={large ? 21 : 19} strokeWidth={1.8} />
       )}
     </div>
   );
@@ -279,8 +280,7 @@ function MessagesPage() {
     <div className="min-h-screen bg-black text-white pb-28">
       <div className="pt-4 px-4 flex items-center justify-between">
         <div>
-          <p className="text-[11px] uppercase tracking-[0.18em] text-white/40">Oakmonte</p>
-          <h1 className="mt-0.5 text-[22px] font-semibold tracking-tight">
+          <h1 className="text-[22px] font-semibold tracking-tight">
             {chatOpen ? selectedContact?.name : "Messages"}
           </h1>
         </div>
@@ -331,12 +331,12 @@ function MessagesPage() {
                 type="button"
                 onClick={() => setStoryNotice(true)}
                 className="flex flex-col items-center gap-1.5 shrink-0"
-                style={{ width: 60 }}
+                style={{ width: 72 }}
               >
                 <div className="relative">
-                  <div className="w-14 h-14 rounded-full bg-white/10 border border-white/15" />
-                  <span className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-white flex items-center justify-center">
-                    <Plus size={12} className="text-black" />
+                  <div className="h-16 w-16 rounded-full bg-white/10 border border-white/15" />
+                  <span className="absolute -bottom-0.5 -right-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-white">
+                    <Plus size={14} className="text-black" />
                   </span>
                 </div>
                 <span className="text-[11px] text-white/60 truncate w-full text-center">
@@ -355,17 +355,6 @@ function MessagesPage() {
           <div className="mt-6">
             {tab === "messages" ? (
               <div className="space-y-1">
-                <div className="mb-3 flex items-center justify-between px-4">
-                  <div>
-                    <p className="text-sm font-medium">Your conversations</p>
-                    <p className="mt-0.5 text-xs text-white/40">
-                      People, notes, and support in one place
-                    </p>
-                  </div>
-                  <span className="rounded-full bg-white/10 px-2 py-1 text-[11px] text-white/50">
-                    {CONTACTS.length}
-                  </span>
-                </div>
                 {CONTACTS.map((contact) => (
                   <button
                     key={contact.id}
