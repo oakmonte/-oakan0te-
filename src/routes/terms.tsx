@@ -132,7 +132,7 @@ function TermsPage() {
 
           {/* Body */}
           <article className="max-w-2xl text-sm md:text-[15px] leading-relaxed space-y-14">
-            <Section id="acceptance" title="Acceptance of Terms">
+            <Section id="acceptance" n={1} title="Acceptance of Terms">
               <p>
                 By creating an account, browsing, or otherwise using Oakmonte, you agree to these
                 Terms of Service and any policies referenced within them. If you do not agree with
@@ -140,7 +140,7 @@ function TermsPage() {
               </p>
             </Section>
 
-            <Section id="what-oakmonte-is" title="What Oakmonte Is">
+            <Section id="what-oakmonte-is" n={2} title="What Oakmonte Is">
               <p>
                 Oakmonte is a content-first fashion marketplace built around three types of users:
               </p>
@@ -166,7 +166,7 @@ function TermsPage() {
               </p>
             </Section>
 
-            <Section id="eligibility" title="Eligibility">
+            <Section id="eligibility" n={3} title="Eligibility">
               <ul className="list-disc pl-5 space-y-2 marker:text-brand-accent">
                 <li>
                   Minimum age to hold an account:{" "}
@@ -184,7 +184,7 @@ function TermsPage() {
               </ul>
             </Section>
 
-            <Section id="verification" title="Account Verification">
+            <Section id="verification" n={4} title="Account Verification">
               <ul className="list-disc pl-5 space-y-2 marker:text-brand-accent">
                 <li>
                   Browsing and light interaction — liking, following, saving — require no
@@ -203,7 +203,7 @@ function TermsPage() {
               </ul>
             </Section>
 
-            <Section id="buyer-terms" title="Buyer Terms">
+            <Section id="buyer-terms" n={5} title="Buyer Terms">
               <ul className="list-disc pl-5 space-y-2 marker:text-brand-accent">
                 <li>
                   Purchases are made directly through content or product listings on the platform.
@@ -227,7 +227,7 @@ function TermsPage() {
               </ul>
             </Section>
 
-            <Section id="seller-terms" title="Seller Terms">
+            <Section id="seller-terms" n={6} title="Seller Terms">
               <ul className="list-disc pl-5 space-y-2 marker:text-brand-accent">
                 <li>Sellers must accurately represent products, pricing, and availability.</li>
                 <li>Sellers are responsible for fulfillment and timely shipping.</li>
@@ -251,7 +251,7 @@ function TermsPage() {
               </ul>
             </Section>
 
-            <Section id="creator-terms" title="Creator Terms">
+            <Section id="creator-terms" n={7} title="Creator Terms">
               <ul className="list-disc pl-5 space-y-2 marker:text-brand-accent">
                 <li>Creators retain ownership of the content they post.</li>
                 <li>
@@ -271,7 +271,7 @@ function TermsPage() {
               </ul>
             </Section>
 
-            <Section id="prohibited" title="Prohibited Conduct">
+            <Section id="prohibited" n={8} title="Prohibited Conduct">
               <p>
                 The following are prohibited on Oakmonte and may result in content removal,
                 suspension, or termination:
@@ -292,7 +292,7 @@ function TermsPage() {
               </ul>
             </Section>
 
-            <Section id="payments-escrow" title="Payments & Escrow">
+            <Section id="payments-escrow" n={9} title="Payments & Escrow">
               <p>
                 Funds are collected at the point of purchase and held by Oakmonte, through its
                 third-party payment processor{" "}
@@ -310,7 +310,7 @@ function TermsPage() {
               </p>
             </Section>
 
-            <Section id="ip" title="Intellectual Property">
+            <Section id="ip" n={10} title="Intellectual Property">
               <ul className="list-disc pl-5 space-y-2 marker:text-brand-accent">
                 <li>The Oakmonte name, logo, and platform design are owned by Oakmonte.</li>
                 <li>
@@ -326,7 +326,7 @@ function TermsPage() {
               </ul>
             </Section>
 
-            <Section id="termination" title="Termination">
+            <Section id="termination" n={11} title="Termination">
               <ul className="list-disc pl-5 space-y-2 marker:text-brand-accent">
                 <li>Oakmonte may suspend or terminate accounts for violations of these terms.</li>
                 <li>
@@ -337,7 +337,7 @@ function TermsPage() {
               </ul>
             </Section>
 
-            <Section id="liability" title="Limitation of Liability">
+            <Section id="liability" n={12} title="Limitation of Liability">
               <p>
                 Oakmonte facilitates transactions between buyers, sellers, and creators. We are not
                 liable for product quality, seller conduct, or delivery delays beyond our stated
@@ -356,7 +356,7 @@ function TermsPage() {
               </p>
             </Section>
 
-            <Section id="disputes" title="Dispute Resolution">
+            <Section id="disputes" n={13} title="Dispute Resolution">
               <p>
                 Buyer/seller disputes are handled through Oakmonte's internal resolution process
                 before escrowed funds are released or refunded. Both parties may be asked to provide
@@ -373,7 +373,7 @@ function TermsPage() {
               </p>
             </Section>
 
-            <Section id="changes" title="Changes to These Terms">
+            <Section id="changes" n={14} title="Changes to These Terms">
               <p>
                 Oakmonte may update these terms from time to time. When we do, we will post the
                 updated version on this page with a new "last updated" date. Continued use of the
@@ -381,7 +381,7 @@ function TermsPage() {
               </p>
             </Section>
 
-            <Section id="contact" title="Contact">
+            <Section id="contact" n={15} title="Contact">
               <p>
                 Questions about these terms? Reach us at
                 <Placeholder>real support email or address</Placeholder>.
