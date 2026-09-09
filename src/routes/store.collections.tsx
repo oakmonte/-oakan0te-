@@ -1,8 +1,20 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Plus, ImageIcon } from "lucide-react";
+import { Plus, ImageIcon, Check, Trash2, X } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useActiveStoreId } from "@/hooks/use-own-store";
+import { useLongPress } from "@/hooks/use-long-press";
+import { deleteCollection } from "@/lib/collections";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/store/collections")({
   component: StoreCollections,
@@ -19,6 +31,10 @@ function StoreCollections() {
   const navigate = useNavigate();
   const { storeId, loading: storeLoading } = useActiveStoreId();
   const [collections, setCollections] = useState<CollectionRow[] | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const selectMode = selectedIds.size > 0;
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (!storeId) return;
@@ -51,12 +67,34 @@ function StoreCollections() {
     };
   }, [storeId]);
 
+  function toggleSelected(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  async function handleBulkDelete() {
+    setConfirmDeleteOpen(false);
+    setDeleting(true);
+    const { error } = await deleteCollection([...selectedIds], false);
+    setDeleting(false);
+    if (error) {
+      console.error("Bulk collection delete failed", error);
+      return;
+    }
+    setCollections((prev) => (prev ?? []).filter((c) => !selectedIds.has(c.id)));
+    setSelectedIds(new Set());
+  }
+
   if (storeLoading) return <div className="px-4 py-8 text-sm text-gray-400">Loading…</div>;
   if (!storeId)
     return <div className="px-4 py-8 text-sm text-gray-400">No store found on this account.</div>;
 
   return (
-    <div className="px-4 py-5">
+    <div className="px-4 py-5 pb-24">
       <div className="flex items-center justify-between mb-4">
         <span className="text-lg font-semibold text-gray-900">Collections</span>
         <button
@@ -93,27 +131,109 @@ function StoreCollections() {
       ) : (
         <div className="flex flex-col gap-3 animate-in fade-in duration-300">
           {collections.map((c) => (
-            <button
+            <CollectionListRow
               key={c.id}
-              type="button"
-              onClick={() => navigate({ to: "/store/collections/$id", params: { id: c.id } })}
-              className="w-full flex items-center gap-3 border border-gray-100 rounded-xl p-3 text-left oak-motion-control active:scale-[0.99]"
-            >
-              <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
-                {c.image_url ? (
-                  <img src={c.image_url} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <ImageIcon size={16} className="text-gray-300" />
-                )}
-              </div>
-              <span className="flex-1 min-w-0 text-sm font-medium truncate">{c.title}</span>
-              <span className="text-xs text-gray-400 shrink-0">
-                {c.count} product{c.count === 1 ? "" : "s"}
-              </span>
-            </button>
+              collection={c}
+              selectMode={selectMode}
+              selected={selectedIds.has(c.id)}
+              onLongPress={() => toggleSelected(c.id)}
+              onTap={() =>
+                selectMode
+                  ? toggleSelected(c.id)
+                  : navigate({ to: "/store/collections/$id", params: { id: c.id } })
+              }
+            />
           ))}
         </div>
       )}
+
+      {selectMode && (
+        <div className="fixed bottom-0 inset-x-0 z-40 bg-white border-t border-gray-100 px-4 py-3 flex items-center justify-between animate-in fade-in slide-in-from-bottom-2 duration-200">
+          <button
+            type="button"
+            onClick={() => setSelectedIds(new Set())}
+            aria-label="Cancel selection"
+            className="p-2 -ml-2 rounded-full oak-motion-control active:scale-90"
+          >
+            <X size={18} className="text-gray-500" />
+          </button>
+          <span className="text-sm font-medium text-gray-900">{selectedIds.size} selected</span>
+          <button
+            type="button"
+            onClick={() => setConfirmDeleteOpen(true)}
+            disabled={deleting}
+            aria-label="Delete selected"
+            className="p-2 -mr-2 rounded-full text-red-500 disabled:opacity-50 oak-motion-control active:scale-90"
+          >
+            <Trash2 size={18} />
+          </button>
+        </div>
+      )}
+
+      <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+        <AlertDialogContent className="max-w-[92vw] rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Delete {selectedIds.size} collection{selectedIds.size === 1 ? "" : "s"}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              The products in them are kept — only the collections themselves are removed. This
+              can't be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-full">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleBulkDelete} className="bg-black rounded-full">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
+  );
+}
+
+function CollectionListRow({
+  collection: c,
+  selectMode,
+  selected,
+  onLongPress,
+  onTap,
+}: {
+  collection: CollectionRow;
+  selectMode: boolean;
+  selected: boolean;
+  onLongPress: () => void;
+  onTap: () => void;
+}) {
+  const longPress = useLongPress(onLongPress);
+  return (
+    <button
+      type="button"
+      onClick={onTap}
+      {...longPress}
+      className="w-full flex items-center gap-3 border border-gray-100 rounded-xl p-3 text-left oak-motion-control active:scale-[0.99]"
+    >
+      {selectMode && (
+        <span
+          className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition-colors duration-150 ${
+            selected ? "bg-black border-black" : "border-gray-300 bg-white"
+          }`}
+        >
+          {selected && <Check size={13} className="text-white oak-motion-pop" />}
+        </span>
+      )}
+      <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
+        {c.image_url ? (
+          <img src={c.image_url} alt="" className="w-full h-full object-cover" />
+        ) : (
+          <ImageIcon size={16} className="text-gray-300" />
+        )}
+      </div>
+      <span className="flex-1 min-w-0 text-sm font-medium truncate">{c.title}</span>
+      <span className="text-xs text-gray-400 shrink-0">
+        {c.count} product{c.count === 1 ? "" : "s"}
+      </span>
+    </button>
   );
 }

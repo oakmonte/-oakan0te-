@@ -1,10 +1,21 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useCallback } from "react";
-import { Search, Plus, Upload } from "lucide-react";
+import { Search, Plus, Upload, Check, Trash2, X } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useNavigate } from "@tanstack/react-router";
 import { CreateProductTypeModal } from "@/components/product-form/CreateProductTypeModal";
 import { useActiveStoreId } from "@/hooks/use-own-store";
+import { useLongPress } from "@/hooks/use-long-press";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/store/products")({
   validateSearch: (search: Record<string, unknown>): { checklist?: boolean } => ({
@@ -32,6 +43,19 @@ type ProductRow = {
   }[];
 };
 
+// product_tags has no ON DELETE CASCADE on product_id (unlike
+// product_variants/product_options/product_collections/
+// product_size_measurements, which all cascade), so it has to be cleared
+// first or the products delete fails on the FK constraint -- same order as
+// the single-product delete in store.products_.$id.tsx's handleDeleteProduct,
+// just as one .in() each instead of N single-row deletes.
+async function deleteProducts(ids: string[]): Promise<{ error: string | null }> {
+  const { error: tagsErr } = await supabase.from("product_tags").delete().in("product_id", ids);
+  if (tagsErr) return { error: tagsErr.message };
+  const { error } = await supabase.from("products").delete().in("id", ids);
+  return { error: error?.message ?? null };
+}
+
 function StoreProducts() {
   const navigate = useNavigate();
   const { checklist } = Route.useSearch();
@@ -42,6 +66,10 @@ function StoreProducts() {
   const [products, setProducts] = useState<ProductRow[]>([]);
   const [listLoading, setListLoading] = useState(true);
   const [createTypeOpen, setCreateTypeOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const selectMode = selectedIds.size > 0;
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchProducts = useCallback(async () => {
     if (!storeId) return;
@@ -67,12 +95,34 @@ function StoreProducts() {
     fetchProducts();
   }, [fetchProducts]);
 
+  function toggleSelected(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  async function handleBulkDelete() {
+    setConfirmDeleteOpen(false);
+    setDeleting(true);
+    const { error } = await deleteProducts([...selectedIds]);
+    setDeleting(false);
+    if (error) {
+      console.error("Bulk product delete failed", error);
+      return;
+    }
+    setProducts((prev) => prev.filter((p) => !selectedIds.has(p.id)));
+    setSelectedIds(new Set());
+  }
+
   if (storeLoading) return <div className="px-4 py-8 text-sm text-gray-400">Loading…</div>;
   if (!storeId)
     return <div className="px-4 py-8 text-sm text-gray-400">No store found on this account.</div>;
 
   return (
-    <div className="px-4 py-5">
+    <div className="px-4 py-5 pb-24">
       <div className="flex items-center gap-2 mb-4">
         <div className="flex-1 min-w-0 flex items-center gap-2 bg-gray-100 rounded-lg px-3 py-2">
           <Search size={16} className="text-gray-400 shrink-0" />
@@ -153,38 +203,20 @@ function StoreProducts() {
         )
       ) : (
         <div className="flex flex-col gap-3 animate-in fade-in duration-300">
-          {products.map((p) => {
-            const v = p.product_variants[0];
-            const imported = p.source_platform && p.source_platform !== "manual";
-            return (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => navigate({ to: "/store/products/$id", params: { id: p.id } })}
-                className="w-full flex items-center gap-3 border border-gray-100 rounded-xl p-3 text-left oak-motion-control active:scale-[0.99]"
-              >
-                <img
-                  src={v?.main_image_url ?? "https://placehold.co/64x64"}
-                  className="w-14 h-14 rounded-lg object-cover bg-gray-100 shrink-0"
-                  alt=""
-                />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{p.title ?? "Untitled"}</p>
-                  <p className="text-xs text-gray-500 truncate">
-                    {v?.price != null ? `₦${v.price.toLocaleString()}` : "No price"} ·{" "}
-                    {v?.stock_qty ?? 0} in stock
-                    {p.product_variants.length > 1
-                      ? ` · ${p.product_variants.length} variants`
-                      : ""}
-                    {imported ? ` · via ${p.source_platform}` : ""}
-                  </p>
-                </div>
-                <span className="text-[11px] px-2 py-1 rounded-full bg-gray-100 text-gray-500 capitalize shrink-0">
-                  {p.status}
-                </span>
-              </button>
-            );
-          })}
+          {products.map((p) => (
+            <ProductListRow
+              key={p.id}
+              product={p}
+              selectMode={selectMode}
+              selected={selectedIds.has(p.id)}
+              onLongPress={() => toggleSelected(p.id)}
+              onTap={() =>
+                selectMode
+                  ? toggleSelected(p.id)
+                  : navigate({ to: "/store/products/$id", params: { id: p.id } })
+              }
+            />
+          ))}
         </div>
       )}
 
@@ -194,7 +226,7 @@ function StoreProducts() {
           option: most sellers arriving from the checklist have more than one
           item to add, so the primary action stays "keep going" and Next is
           the deliberate opt-out. */}
-      {checklist && products.length > 0 && (
+      {checklist && products.length > 0 && !selectMode && (
         <div className="mt-6 flex flex-col gap-2">
           <button
             type="button"
@@ -212,6 +244,101 @@ function StoreProducts() {
           </button>
         </div>
       )}
+
+      {selectMode && (
+        <div className="fixed bottom-0 inset-x-0 z-40 bg-white border-t border-gray-100 px-4 py-3 flex items-center justify-between animate-in fade-in slide-in-from-bottom-2 duration-200">
+          <button
+            type="button"
+            onClick={() => setSelectedIds(new Set())}
+            aria-label="Cancel selection"
+            className="p-2 -ml-2 rounded-full oak-motion-control active:scale-90"
+          >
+            <X size={18} className="text-gray-500" />
+          </button>
+          <span className="text-sm font-medium text-gray-900">{selectedIds.size} selected</span>
+          <button
+            type="button"
+            onClick={() => setConfirmDeleteOpen(true)}
+            disabled={deleting}
+            aria-label="Delete selected"
+            className="p-2 -mr-2 rounded-full text-red-500 disabled:opacity-50 oak-motion-control active:scale-90"
+          >
+            <Trash2 size={18} />
+          </button>
+        </div>
+      )}
+
+      <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+        <AlertDialogContent className="max-w-[92vw] rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Delete {selectedIds.size} product{selectedIds.size === 1 ? "" : "s"}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>This can't be undone.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-full">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleBulkDelete} className="bg-black rounded-full">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
+  );
+}
+
+function ProductListRow({
+  product: p,
+  selectMode,
+  selected,
+  onLongPress,
+  onTap,
+}: {
+  product: ProductRow;
+  selectMode: boolean;
+  selected: boolean;
+  onLongPress: () => void;
+  onTap: () => void;
+}) {
+  const longPress = useLongPress(onLongPress);
+  const v = p.product_variants[0];
+  const imported = p.source_platform && p.source_platform !== "manual";
+  return (
+    <button
+      type="button"
+      onClick={onTap}
+      {...longPress}
+      className="w-full flex items-center gap-3 border border-gray-100 rounded-xl p-3 text-left oak-motion-control active:scale-[0.99]"
+    >
+      {selectMode && (
+        <span
+          className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition-colors duration-150 ${
+            selected ? "bg-black border-black" : "border-gray-300 bg-white"
+          }`}
+        >
+          {selected && <Check size={13} className="text-white oak-motion-pop" />}
+        </span>
+      )}
+      <img
+        src={v?.main_image_url ?? "https://placehold.co/64x64"}
+        className="w-14 h-14 rounded-lg object-cover bg-gray-100 shrink-0"
+        alt=""
+      />
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium truncate">{p.title ?? "Untitled"}</p>
+        <p className="text-xs text-gray-500 truncate">
+          {v?.price != null ? `₦${v.price.toLocaleString()}` : "No price"} · {v?.stock_qty ?? 0} in
+          stock
+          {p.product_variants.length > 1 ? ` · ${p.product_variants.length} variants` : ""}
+          {imported ? ` · via ${p.source_platform}` : ""}
+        </p>
+      </div>
+      {!selectMode && (
+        <span className="text-[11px] px-2 py-1 rounded-full bg-gray-100 text-gray-500 capitalize shrink-0">
+          {p.status}
+        </span>
+      )}
+    </button>
   );
 }
