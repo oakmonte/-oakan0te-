@@ -577,7 +577,11 @@ export function OptionEditorSheet({
                 )}
                 {/* Digits only, unit appended as a fixed suffix rather than
                     live-mutated inside the input -- avoids cursor-position
-                    fights while still reading as "275 g" as they type. */}
+                    fights while still reading as "275 g" as they type. A
+                    decimal-only mobile keyboard often has no working Enter/Go
+                    key at all, so the checkmark button is the real way this
+                    gets confirmed -- Enter is a bonus for desktop/keyboards
+                    that do send it. */}
                 <div className="flex items-center border border-gray-200 rounded-xl px-4 py-4 focus-within:border-gray-400">
                   <input
                     value={numericDraft}
@@ -593,9 +597,19 @@ export function OptionEditorSheet({
                     className="flex-1 min-w-0 text-base outline-none bg-transparent"
                   />
                   {numericDraft && (
-                    <span className="text-base text-gray-400 shrink-0 ml-1">
-                      {UNIT_SUFFIX[activeSystem] ?? activeSystem}
-                    </span>
+                    <>
+                      <span className="text-base text-gray-400 shrink-0 ml-1">
+                        {UNIT_SUFFIX[activeSystem] ?? activeSystem}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={commitNumericValue}
+                        aria-label="Add value"
+                        className="shrink-0 ml-2 w-7 h-7 rounded-full bg-black text-white flex items-center justify-center"
+                      >
+                        <Check size={16} />
+                      </button>
+                    </>
                   )}
                 </div>
               </>

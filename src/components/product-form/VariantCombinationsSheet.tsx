@@ -8,6 +8,7 @@ import type { PickedMedia } from "./MediaPickerSheet";
 import { ImageSourceSheet, type ImageSource } from "./ImageSourceSheet";
 import { InventorySheet, type InventoryValues } from "./InventorySheet";
 import { WeightSheet } from "./WeightSheet";
+import { PricingSheet } from "./PricingSheet";
 import { useMultiFilePicker } from "@/hooks/use-file-picker";
 import { startBackgroundUpload, onBackgroundUploadDone } from "@/lib/background-upload";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
@@ -63,6 +64,8 @@ export function VariantCombinationsSheet({
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkPrice, setBulkPrice] = useState("");
   const [bulkCompareAtPrice, setBulkCompareAtPrice] = useState("");
+  const [bulkCostPrice, setBulkCostPrice] = useState("");
+  const [bulkPriceOpen, setBulkPriceOpen] = useState(false);
   const [bulkWeight, setBulkWeight] = useState("");
   // null = untouched this session (nothing to apply). Holds a real
   // InventoryValues rather than a bare number -- the seller picks actual
@@ -78,6 +81,7 @@ export function VariantCombinationsSheet({
   const [imagePickerKey, setImagePickerKey] = useState<string | null>(null);
   const [inventoryKey, setInventoryKey] = useState<string | null>(null);
   const [weightKey, setWeightKey] = useState<string | null>(null);
+  const [priceKey, setPriceKey] = useState<string | null>(null);
   const [showPriceErrors, setShowPriceErrors] = useState(false);
 
   const optionNames = options
@@ -117,6 +121,7 @@ export function VariantCombinationsSheet({
     const patch: Partial<VariantRow> = {};
     if (bulkPrice.trim()) patch.price = bulkPrice.trim();
     if (bulkCompareAtPrice.trim()) patch.compareAtPrice = bulkCompareAtPrice.trim();
+    if (bulkCostPrice.trim()) patch.costPrice = bulkCostPrice.trim();
     // Additional images are only overwritten when the seller actually staged
     // more than one -- a single cover image is a normal "just set the main
     // photo" bulk-apply, and shouldn't silently wipe extra photos a row
@@ -147,6 +152,7 @@ export function VariantCombinationsSheet({
     );
     setBulkPrice("");
     setBulkCompareAtPrice("");
+    setBulkCostPrice("");
     setBulkWeight("");
     setBulkImages([]);
     setBulkInventory(null);
@@ -292,7 +298,11 @@ export function VariantCombinationsSheet({
                 </button>
               </div>
               <div className="grid grid-cols-2 gap-2">
-                <MiniField label="Price" value={bulkPrice} onChange={setBulkPrice} isPrice />
+                <PriceMiniButton
+                  label="Price"
+                  value={bulkPrice}
+                  onOpen={() => setBulkPriceOpen(true)}
+                />
                 <label className="flex flex-col gap-1">
                   <span className="text-xs text-gray-400">Inventory</span>
                   <button
@@ -303,11 +313,10 @@ export function VariantCombinationsSheet({
                     {bulkInventory ? stockTotal(bulkInventory) : "Not set"}
                   </button>
                 </label>
-                <MiniField
-                  label="Compare-at"
-                  value={bulkCompareAtPrice}
-                  onChange={setBulkCompareAtPrice}
-                  isPrice
+                <PriceMiniButton
+                  label="Cost price"
+                  value={bulkCostPrice}
+                  onOpen={() => setBulkPriceOpen(true)}
                 />
                 <MiniField label="Weight (g)" value={bulkWeight} onChange={setBulkWeight} />
               </div>
@@ -317,6 +326,7 @@ export function VariantCombinationsSheet({
                 disabled={
                   !bulkPrice.trim() &&
                   !bulkCompareAtPrice.trim() &&
+                  !bulkCostPrice.trim() &&
                   !bulkWeight.trim() &&
                   bulkImages.length === 0 &&
                   !bulkInventory
@@ -349,12 +359,11 @@ export function VariantCombinationsSheet({
                   </button>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  <MiniField
+                  <PriceMiniButton
                     label="Price *"
                     value={row.price}
-                    onChange={(v) => updateRow(row.key, { price: v })}
+                    onOpen={() => setPriceKey(row.key)}
                     error={showPriceErrors && !row.price.trim()}
-                    isPrice
                   />
                   <label className="flex flex-col gap-1">
                     <span className="text-xs text-gray-400">Inventory</span>
@@ -366,11 +375,10 @@ export function VariantCombinationsSheet({
                       {stockTotal(row)}
                     </button>
                   </label>
-                  <MiniField
-                    label="Compare-at"
-                    value={row.compareAtPrice}
-                    onChange={(v) => updateRow(row.key, { compareAtPrice: v })}
-                    isPrice
+                  <PriceMiniButton
+                    label="Cost price"
+                    value={row.costPrice}
+                    onOpen={() => setPriceKey(row.key)}
                   />
                   <label className="flex flex-col gap-1">
                     <span className="text-xs text-gray-400">Weight</span>
@@ -519,6 +527,35 @@ export function VariantCombinationsSheet({
             />
           );
         })()}
+
+      {priceKey &&
+        (() => {
+          const row = rows.find((r) => r.key === priceKey);
+          if (!row) return null;
+          return (
+            <PricingSheet
+              price={row.price}
+              compareAtPrice={row.compareAtPrice}
+              costPrice={row.costPrice}
+              onChangePrice={(v) => updateRow(priceKey, { price: v })}
+              onChangeCompareAtPrice={(v) => updateRow(priceKey, { compareAtPrice: v })}
+              onChangeCostPrice={(v) => updateRow(priceKey, { costPrice: v })}
+              onClose={() => setPriceKey(null)}
+            />
+          );
+        })()}
+
+      {bulkPriceOpen && (
+        <PricingSheet
+          price={bulkPrice}
+          compareAtPrice={bulkCompareAtPrice}
+          costPrice={bulkCostPrice}
+          onChangePrice={setBulkPrice}
+          onChangeCompareAtPrice={setBulkCompareAtPrice}
+          onChangeCostPrice={setBulkCostPrice}
+          onClose={() => setBulkPriceOpen(false)}
+        />
+      )}
     </div>
   );
 }
@@ -689,6 +726,37 @@ function VariantImagePopover({
         )}
       </div>
     </div>
+  );
+}
+
+// Same shape as the Inventory/Weight mini-buttons -- tapping opens the real
+// PricingSheet (price, compare-at, cost, fee/profit breakdown) instead of a
+// bare text box, so a seller does the same price math per variant that
+// they'd do for the whole product.
+function PriceMiniButton({
+  label,
+  value,
+  onOpen,
+  error = false,
+}: {
+  label: string;
+  value: string;
+  onOpen: () => void;
+  error?: boolean;
+}) {
+  return (
+    <label className="flex flex-col gap-1">
+      <span className={`text-xs ${error ? "text-red-500" : "text-gray-400"}`}>{label}</span>
+      <button
+        type="button"
+        onClick={onOpen}
+        className={`text-base border rounded-lg px-2 py-2 text-left ${
+          error ? "border-red-300" : "border-gray-200"
+        }`}
+      >
+        {value.trim() ? `₦${displayPriceWithCommas(value)}` : "—"}
+      </button>
+    </label>
   );
 }
 

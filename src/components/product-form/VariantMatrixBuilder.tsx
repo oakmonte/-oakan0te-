@@ -4,6 +4,7 @@ import { OptionEditorSheet } from "./OptionEditorSheet";
 import { VariantListSheet } from "./VariantListSheet";
 import { VariantCombinationsSheet } from "./VariantCombinationsSheet";
 import { cartesian, buildKey } from "./variant-combinations";
+import { parseWeightVolumeValueToGrams } from "@/lib/weight-estimate";
 import type { BarcodeEntry } from "@/lib/barcode-types";
 
 export type VariantOption = { name: string; values: string[] };
@@ -82,6 +83,17 @@ export function VariantMatrixBuilder({
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [wizardStep, setWizardStep] = useState<WizardStep>(null);
 
+  // A row's own Weight/Volume option value (if it has one) is the seller
+  // directly telling us this SKU's weight, not a guess -- pre-fill from it
+  // rather than leaving the last-page Weight box empty. Since the option's
+  // chosen value is itself part of what makes a row's key unique, changing
+  // it (e.g. picking "5 lb" instead of "2 lb") always produces a fresh row
+  // below, so this only ever needs to run on row creation, never re-sync.
+  function weightGramsFromCombo(combo: VariantOptionValue[]): number | null {
+    const wv = combo.find((o) => o.name.trim().toLowerCase() === "weight/volume");
+    return wv ? parseWeightVolumeValueToGrams(wv.value) : null;
+  }
+
   // Regenerate rows whenever options/values change, preserving existing row data by key.
   useEffect(() => {
     const combos = cartesian(options);
@@ -105,6 +117,7 @@ export function VariantMatrixBuilder({
               mainImageUrl: "",
               continueSellingOutOfStock: false,
               locationQuantities: {},
+              weightGrams: weightGramsFromCombo(combo),
             };
       });
     });

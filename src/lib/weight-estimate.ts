@@ -180,6 +180,32 @@ const BOTTOM_GUIDES = new Set<SizeChartDefinition["guide"]>([
   "denim-bum-shorts",
 ]);
 
+// Real weight units only -- a Weight/Volume option value in mL/L/fl oz has no
+// fixed gram equivalent (depends on the product's density), so those are
+// deliberately left out and parseWeightVolumeValueToGrams returns null for
+// them rather than guessing.
+const WEIGHT_UNIT_TO_GRAMS: Record<string, number> = {
+  g: 1,
+  kg: 1000,
+  oz: 28.349523125,
+  lb: 453.59237,
+};
+
+/** Parses a Weight/Volume option value ("2 lb", "500 g", a typed "2588 kg")
+ *  into grams. Unlike estimateWeightGrams below, this isn't a guess -- the
+ *  seller directly told us the weight by picking/typing this value, so it's
+ *  used as a real (if still editable) starting number, not just a suggestion.
+ *  Returns null for volume units and anything unparseable. */
+export function parseWeightVolumeValueToGrams(value: string): number | null {
+  const match = value.trim().match(/^([\d.]+)\s*(.+)$/);
+  if (!match) return null;
+  const amount = parseFloat(match[1]);
+  if (isNaN(amount) || amount <= 0) return null;
+  const perGram = WEIGHT_UNIT_TO_GRAMS[match[2].trim().toLowerCase()];
+  if (perGram == null) return null;
+  return Math.round(amount * perGram);
+}
+
 /** Rough shipping-weight estimate in grams, from a category's chart shape,
  *  one size's cm measurements, and a free-typed material name. Returns null
  *  whenever any required input is missing or unrecognized -- callers should
