@@ -55,6 +55,9 @@ import {
   takeProductDraft,
   takePendingNewCollectionId,
   takePendingNewLocationId,
+  takePendingVariantInventoryContext,
+  setPendingVariantInventoryContext,
+  type VariantInventoryContext,
   readAutosavedDraft,
   writeAutosavedDraft,
   clearAutosavedDraft,
@@ -167,6 +170,11 @@ function EditProduct() {
   // specifically to enter its stock count, not to land back on the
   // collapsed product form.
   const [initialNewLocationId] = useState(() => takePendingNewLocationId());
+  // Which variant-wizard Inventory sheet (a specific row, or the bulk "Apply
+  // to all" one) sent the seller off to create this location, if any -- see
+  // VariantInventoryContext. Only ever set on the variant path; stays null
+  // for a regular product's own Inventory sheet.
+  const [initialVariantInventoryContext] = useState(() => takePendingVariantInventoryContext());
 
   const [loading, setLoading] = useState(initialDraft === null);
   const [notFound, setNotFound] = useState(false);
@@ -269,7 +277,20 @@ function EditProduct() {
 
   // Variant-mode state
   const [options, setOptions] = useState<VariantOption[]>(initialDraft?.options ?? []);
-  const [rows, setRows] = useState<VariantRow[]>(initialDraft?.rows ?? []);
+  // Pre-checks the just-created location (at 0 qty, same as the regular-
+  // product path below) on the one row whose Inventory sheet sent the seller
+  // to create it -- so returning lands with it already picked, not just
+  // present in the list next time Edit Locations happens to be reopened.
+  const [rows, setRows] = useState<VariantRow[]>(() => {
+    const base = initialDraft?.rows ?? [];
+    if (initialVariantInventoryContext?.kind !== "row" || !initialNewLocationId) return base;
+    return base.map((r) =>
+      r.key === initialVariantInventoryContext.rowKey &&
+      !(initialNewLocationId in r.locationQuantities)
+        ? { ...r, locationQuantities: { ...r.locationQuantities, [initialNewLocationId]: 0 } }
+        : r,
+    );
+  });
   const [sizeMeasurements, setSizeMeasurements] = useState<SizeMeasurements>(
     initialDraft?.sizeMeasurements ?? {},
   );
@@ -642,7 +663,11 @@ function EditProduct() {
     navigate({ to: "/store/collections/new" });
   }
 
-  function handleCreateLocation() {
+  // `context` is only passed from inside the variant wizard (a specific
+  // row's Inventory sheet, or the bulk "Apply to all" one) -- the regular
+  // product's own Inventory sheet calls this with nothing, same as before.
+  function handleCreateLocation(context?: VariantInventoryContext) {
+    if (context) setPendingVariantInventoryContext(context);
     stashProductDraft(currentDraft());
     navigate({ to: "/store/locations/new" });
   }
@@ -965,6 +990,8 @@ function EditProduct() {
             storeId={storeId}
             onCreateLocation={handleCreateLocation}
             estimateWeightForRow={estimateWeightForRow}
+            initialInventoryContext={initialVariantInventoryContext}
+            initialNewLocationId={initialNewLocationId}
           />
         )
       )}

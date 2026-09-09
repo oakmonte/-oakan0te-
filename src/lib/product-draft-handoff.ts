@@ -81,11 +81,7 @@ export function takePendingNewCollectionId(): string | null {
 }
 
 // Same side-trip pattern as collections, for the "Add pickup location"
-// entry point inside the Inventory sheet's location picker. Only the
-// regular-product page auto-selects the new location on return (its
-// Inventory state is top-level); a variant row's Inventory sheet is nested
-// several levels deep in the wizard, so for now the new location just shows
-// up next time that row's Edit Locations is opened.
+// entry point inside the Inventory sheet's location picker.
 export function setPendingNewLocationId(id: string) {
   pendingNewLocationId = id;
 }
@@ -94,6 +90,28 @@ export function takePendingNewLocationId(): string | null {
   const id = pendingNewLocationId;
   pendingNewLocationId = null;
   return id;
+}
+
+// Which Inventory sheet to reopen on return, for the variant wizard's
+// "Add pickup location" side-trip -- a variant row's (or the bulk "Apply to
+// all" box's) Inventory sheet is nested several levels deep (Variants ->
+// combinations step -> Inventory sheet -> Edit locations), all of it local
+// component state that a full page remount would otherwise drop, landing
+// the seller back on the collapsed product form instead of where they were.
+// Paired with the new location id above (already captured the same way) to
+// pre-check it and jump straight back to Edit locations.
+export type VariantInventoryContext = { kind: "bulk" } | { kind: "row"; rowKey: string };
+
+let pendingVariantInventoryContext: VariantInventoryContext | null = null;
+
+export function setPendingVariantInventoryContext(context: VariantInventoryContext) {
+  pendingVariantInventoryContext = context;
+}
+
+export function takePendingVariantInventoryContext(): VariantInventoryContext | null {
+  const context = pendingVariantInventoryContext;
+  pendingVariantInventoryContext = null;
+  return context;
 }
 
 // Autosave, separate from the in-memory handoff above: that one only

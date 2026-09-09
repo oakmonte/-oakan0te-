@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import type { OnboardingStep } from "@/lib/onboarding-flow";
 
 type Props = {
@@ -88,17 +88,47 @@ export function OnboardingShell({ title, subtitle, backTo, step, onSkip, childre
   );
 }
 
+const LOADING_LINE = "we take the headaches so you stay creative.";
+
+/** Types the line out a few characters at a time (fast — the whole line
+ *  lands well under a second) instead of a single fade-in, so the loading
+ *  screen reads as "working" rather than static. */
+function useTypewriter(text: string, msPerTick = 18, charsPerTick = 2) {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    setCount(0);
+    if (!text) return;
+    const id = setInterval(() => {
+      setCount((c) => {
+        const next = c + charsPerTick;
+        if (next >= text.length) clearInterval(id);
+        return Math.min(next, text.length);
+      });
+    }, msPerTick);
+    return () => clearInterval(id);
+  }, [text, msPerTick, charsPerTick]);
+
+  return { shown: text.slice(0, count), done: count >= text.length };
+}
+
 /** Shown while `useRequireSession` decides whether there is a session. */
 export function OnboardingChecking() {
+  const { shown, done } = useTypewriter(LOADING_LINE);
+
   return (
     <div className="min-h-dvh bg-brand-bg text-brand-text flex flex-col items-center justify-center px-6 text-center">
       <motion.p
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-        className="font-loading-display text-2xl sm:text-3xl leading-tight text-brand-text/90 max-w-xs"
+        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+        className="font-loading-display font-light text-2xl sm:text-3xl leading-tight text-brand-text/90 max-w-xs"
       >
-        we take the headaches so you stay creative.
+        {shown}
+        <span
+          aria-hidden="true"
+          className={`inline-block w-[2px] h-[0.9em] -mb-[0.1em] ml-0.5 bg-brand-text/50 ${done ? "animate-pulse" : ""}`}
+        />
       </motion.p>
       <motion.span
         initial={{ opacity: 0 }}

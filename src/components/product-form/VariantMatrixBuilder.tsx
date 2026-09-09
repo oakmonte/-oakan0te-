@@ -6,6 +6,7 @@ import { VariantCombinationsSheet } from "./VariantCombinationsSheet";
 import { cartesian, buildKey } from "./variant-combinations";
 import { parseWeightVolumeValueToGrams } from "@/lib/weight-estimate";
 import type { BarcodeEntry } from "@/lib/barcode-types";
+import type { VariantInventoryContext } from "@/lib/product-draft-handoff";
 
 export type VariantOption = { name: string; values: string[] };
 export type VariantOptionValue = { name: string; value: string };
@@ -61,6 +62,8 @@ export function VariantMatrixBuilder({
   storeId,
   onCreateLocation,
   estimateWeightForRow,
+  initialInventoryContext,
+  initialNewLocationId,
 }: {
   options: VariantOption[];
   setOptions: (fn: (prev: VariantOption[]) => VariantOption[]) => void;
@@ -74,14 +77,26 @@ export function VariantMatrixBuilder({
   // For InventorySheet's location list, opened per-variant from the combos
   // sheet.
   storeId: string;
-  onCreateLocation: () => void;
+  // Optional context: set when the seller is mid-"Add pickup location"
+  // side-trip out of one of the combos sheet's Inventory sheets (a specific
+  // row, or the bulk "Apply to all" one) -- forwarded to onCreateLocation so
+  // the page knows which one to reopen on return.
+  onCreateLocation: (context?: VariantInventoryContext) => void;
   // Rough weight suggestion for one row, from its own size/material — see
   // weight-estimate.ts. Computed by the page (it has category/chart context
   // this component doesn't) and only ever pre-fills an empty WeightSheet.
   estimateWeightForRow: (row: VariantRow) => number | null;
+  // Set together, right after returning from that side-trip -- jumps
+  // straight back to the combinations step and the specific Inventory sheet
+  // (with its Edit locations picker already open) instead of landing back
+  // on the collapsed product form.
+  initialInventoryContext?: VariantInventoryContext | null;
+  initialNewLocationId?: string | null;
 }) {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const [wizardStep, setWizardStep] = useState<WizardStep>(null);
+  const [wizardStep, setWizardStep] = useState<WizardStep>(() =>
+    initialInventoryContext ? "combinations" : null,
+  );
 
   // A row's own Weight/Volume option value (if it has one) is the seller
   // directly telling us this SKU's weight, not a guess -- pre-fill from it
@@ -188,6 +203,8 @@ export function VariantMatrixBuilder({
           storeId={storeId}
           onCreateLocation={onCreateLocation}
           estimateWeightForRow={estimateWeightForRow}
+          initialInventoryContext={initialInventoryContext}
+          initialNewLocationId={initialNewLocationId}
           onBack={() => setWizardStep("list")}
           onDone={() => setWizardStep(null)}
         />

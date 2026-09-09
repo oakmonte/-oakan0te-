@@ -13,6 +13,7 @@ import { useMultiFilePicker } from "@/hooks/use-file-picker";
 import { startBackgroundUpload, onBackgroundUploadDone } from "@/lib/background-upload";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
 import { cleanPriceDigits, displayPriceWithCommas, padPriceOnBlur } from "@/lib/format-price-input";
+import type { VariantInventoryContext } from "@/lib/product-draft-handoff";
 
 // Swaps a background-upload preview url for its real one wherever a row is
 // still holding it -- shared by both the per-row and bulk upload-done
@@ -39,6 +40,8 @@ export function VariantCombinationsSheet({
   storeId,
   onCreateLocation,
   estimateWeightForRow,
+  initialInventoryContext,
+  initialNewLocationId,
   onBack,
   onDone,
 }: {
@@ -48,8 +51,16 @@ export function VariantCombinationsSheet({
   mainImageUrl: string;
   additionalImageUrls: string[];
   storeId: string;
-  onCreateLocation: () => void;
+  onCreateLocation: (context?: VariantInventoryContext) => void;
   estimateWeightForRow: (row: VariantRow) => number | null;
+  // Set together, right after returning from the "Add pickup location"
+  // side-trip -- reopens the specific Inventory sheet (row or bulk) with its
+  // Edit locations picker already showing, and the new location pre-checked
+  // at 0 qty (rows: seeded by the page before this mounts; bulk: seeded
+  // below, since bulkInventory has no persisted home to be seeded ahead of
+  // time).
+  initialInventoryContext?: VariantInventoryContext | null;
+  initialNewLocationId?: string | null;
   onBack: () => void;
   onDone: () => void;
 }) {
@@ -70,16 +81,32 @@ export function VariantCombinationsSheet({
   // null = untouched this session (nothing to apply). Holds a real
   // InventoryValues rather than a bare number -- the seller picks actual
   // locations via the same InventorySheet a real variant row uses, not a
-  // number typed into a box with no locations attached to it.
-  const [bulkInventory, setBulkInventory] = useState<InventoryValues | null>(null);
-  const [bulkInventoryOpen, setBulkInventoryOpen] = useState(false);
+  // number typed into a box with no locations attached to it. Pre-seeded
+  // with the just-created location when that's what sent the seller off to
+  // create it -- the bulk box carries no other state across that round trip
+  // (it isn't part of the persisted draft), but this one field can be.
+  const [bulkInventory, setBulkInventory] = useState<InventoryValues | null>(() =>
+    initialInventoryContext?.kind === "bulk" && initialNewLocationId
+      ? {
+          continueSellingOutOfStock: false,
+          locationQuantities: { [initialNewLocationId]: 0 },
+          sku: "",
+          barcodes: [],
+        }
+      : null,
+  );
+  const [bulkInventoryOpen, setBulkInventoryOpen] = useState(
+    () => initialInventoryContext?.kind === "bulk",
+  );
   // images[0] is the main image, the rest are additional -- same shape as a
   // row's own mainImageUrl/additionalImageUrls, so applying it is a direct
   // copy rather than a reshape.
   const [bulkImages, setBulkImages] = useState<string[]>([]);
   const [bulkImagePickerOpen, setBulkImagePickerOpen] = useState(false);
   const [imagePickerKey, setImagePickerKey] = useState<string | null>(null);
-  const [inventoryKey, setInventoryKey] = useState<string | null>(null);
+  const [inventoryKey, setInventoryKey] = useState<string | null>(() =>
+    initialInventoryContext?.kind === "row" ? initialInventoryContext.rowKey : null,
+  );
   const [weightKey, setWeightKey] = useState<string | null>(null);
   const [priceKey, setPriceKey] = useState<string | null>(null);
   const [showPriceErrors, setShowPriceErrors] = useState(false);
@@ -474,7 +501,8 @@ export function VariantCombinationsSheet({
               barcodes: [],
             }
           }
-          onCreateLocation={onCreateLocation}
+          onCreateLocation={() => onCreateLocation({ kind: "bulk" })}
+          initialLocationsPickerOpen={initialInventoryContext?.kind === "bulk"}
           onSave={(values) => {
             setBulkInventory(values);
             setBulkInventoryOpen(false);
@@ -496,7 +524,11 @@ export function VariantCombinationsSheet({
                 sku: row.sku,
                 barcodes: row.barcodes ?? [],
               }}
-              onCreateLocation={onCreateLocation}
+              onCreateLocation={() => onCreateLocation({ kind: "row", rowKey: row.key })}
+              initialLocationsPickerOpen={
+                initialInventoryContext?.kind === "row" &&
+                initialInventoryContext.rowKey === row.key
+              }
               onSave={(values: InventoryValues) => {
                 updateRow(inventoryKey, {
                   continueSellingOutOfStock: values.continueSellingOutOfStock,

@@ -1,5 +1,16 @@
+import { useState } from "react";
 import { ChevronLeft, Pencil, Plus, Trash2 } from "lucide-react";
 import type { VariantOption } from "./VariantMatrixBuilder";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export function VariantListSheet({
   options,
@@ -19,6 +30,8 @@ export function VariantListSheet({
   onBack: () => void;
 }) {
   const canContinue = options.length > 0 && options.every((o) => o.values.length > 0);
+  const [removeIndex, setRemoveIndex] = useState<number | null>(null);
+  const removeTarget = removeIndex !== null ? options[removeIndex] : null;
 
   return (
     <div className="fixed inset-0 z-40 bg-white flex flex-col min-h-dvh">
@@ -60,7 +73,7 @@ export function VariantListSheet({
                 </button>
                 <button
                   type="button"
-                  onClick={() => onRemove(i)}
+                  onClick={() => setRemoveIndex(i)}
                   aria-label={`Remove ${opt.name}`}
                   className="p-2 text-gray-400"
                 >
@@ -97,6 +110,32 @@ export function VariantListSheet({
           Continue
         </button>
       </div>
+
+      <AlertDialog
+        open={removeIndex !== null}
+        onOpenChange={(open) => !open && setRemoveIndex(null)}
+      >
+        <AlertDialogContent className="max-w-[92vw] rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete "{removeTarget?.name || "this variation"}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This removes the option and every value under it. This can't be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-full">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (removeIndex !== null) onRemove(removeIndex);
+                setRemoveIndex(null);
+              }}
+              className="bg-black rounded-full"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
