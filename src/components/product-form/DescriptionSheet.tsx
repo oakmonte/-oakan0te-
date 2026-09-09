@@ -57,10 +57,14 @@ function readFormats(): FormatState {
 // for anything more involved than a single line.
 export function DescriptionSheet({
   value,
+  placeholder = "Describe your product and try to answer questions you know your customers will ask.",
   onSave,
   onClose,
 }: {
   value: string; // HTML
+  // Collections reuse this same sheet -- "product" only makes sense as the
+  // default when nothing more specific is passed in.
+  placeholder?: string;
   onSave: (html: string) => void;
   onClose: () => void;
 }) {
@@ -189,7 +193,7 @@ export function DescriptionSheet({
             setFormats(readFormats());
             setPolicyError(null);
           }}
-          data-placeholder="Describe your product and try to answer questions you know your customers will ask."
+          data-placeholder={placeholder}
           className="oak-description-editor flex-1 min-h-0 overflow-y-auto px-4 py-5 text-base text-gray-900 outline-none"
         />
 

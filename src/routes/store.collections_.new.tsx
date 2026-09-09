@@ -184,6 +184,7 @@ function NewCollection() {
       {descriptionSheetOpen && (
         <DescriptionSheet
           value={description}
+          placeholder="Describe your collection and try to answer questions you know your customers will ask."
           onSave={(html) => {
             setDescription(html);
             setDescriptionSheetOpen(false);

@@ -86,9 +86,10 @@ export function PricingSheet({
         )}
         <div className="mb-5" />
 
-        <PriceBox label="Cost per item" value={costPrice} onChange={onChangeCostPrice} />
+        <PriceBox label="Cost price" value={costPrice} onChange={onChangeCostPrice} />
         <p className="text-xs text-gray-400 mt-1.5 mb-5">
-          Measure how much each item costs you, customers won't see this.
+          Type in how much this product/variant cost you in order to measure your profit, customers
+          won't see this.
         </p>
 
         <div className="border border-gray-300 rounded-xl overflow-hidden grid grid-cols-2 divide-x divide-gray-300">
@@ -104,7 +105,7 @@ export function PricingSheet({
               <p className="text-[15px] font-medium text-gray-900">{formatNaira(profit)}</p>
             ) : (
               <p className="text-xs text-gray-400 leading-snug">
-                Measure your profit by inputting <span className="font-bold">cost per item</span>
+                Measure your profit by inputting <span className="font-bold">cost price</span>
               </p>
             )}
             {margin !== null && (
@@ -142,7 +143,7 @@ export function PricingSheet({
                 </div>
                 {hasCost && (
                   <div className="border-t border-gray-300 pt-2">
-                    <FeeLine label="Cost per item" value={`– ${formatNaira(numCost)}`} />
+                    <FeeLine label="Cost price" value={`– ${formatNaira(numCost)}`} />
                     <FeeLine label="Profit" value={formatNaira(profit ?? 0)} bold />
                   </div>
                 )}
