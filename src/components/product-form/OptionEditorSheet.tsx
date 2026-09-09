@@ -534,12 +534,15 @@ function colorFamilyMembers(q: string): Set<string> | null {
   let members: Set<string> | null = null;
   for (const [family, list] of Object.entries(COLOR_FAMILIES)) {
     // family.startsWith(q) is the type-ahead direction ("pur" -> "purple").
-    // The reverse direction is ONLY for a plural ("blues" -> "blue") -- a
-    // bare q.startsWith(family) would also fire on any preset name that
-    // happens to start with a short family key (e.g. "tangerine" contains
-    // "tan" as a prefix), pulling in that whole unrelated family right as
-    // the seller finishes typing an exact match.
-    if (family.startsWith(q) || q === family + "s") {
+    // q === family + "s" is a plural ("blues" -> "blue"). q's words
+    // including family whole is a multi-word descriptive query ("navy
+    // blue", "light blue" -> "blue") -- checked as a WHOLE word, not
+    // q.startsWith(family)/q.includes(family), because either of those
+    // would also fire on any preset name that happens to start with or
+    // contain a short family key (e.g. "tangerine" contains "tan"),
+    // pulling in that whole unrelated family right as the seller finishes
+    // typing an exact match.
+    if (family.startsWith(q) || q === family + "s" || q.split(/\s+/).includes(family)) {
       members ??= new Set();
       for (const v of list) members.add(v);
     }
