@@ -513,22 +513,37 @@ function NewProduct() {
         )
       )}
 
-      <button
-        type="button"
-        onClick={() => setCollectionsSheetOpen(true)}
-        className="w-full flex items-center justify-between px-4 py-4 border-b-8 border-gray-50 text-left"
-      >
-        <span className="flex items-center gap-3 text-[15px] text-gray-900">
-          <Tag size={18} className="text-gray-400" />
-          Collections
-        </span>
-        <span className="flex items-center gap-2">
-          {collectionIds.length > 0 && (
-            <span className="text-xs text-gray-400">{collectionIds.length} selected</span>
-          )}
-          <ChevronRight size={16} className="text-gray-300" />
-        </span>
-      </button>
+      {/* initialNewCollectionId has two different producers, and only one of
+          them should hide this row. A collection's own "Add products" ->
+          "Create new" (store.collections_.$id.tsx) sends the seller straight
+          here with a pending id and NO stashed draft -- there was nothing to
+          stash yet, this is a brand-new page load -- and the product really
+          is scoped to that one collection, so a picker for every *other*
+          collection here would just invite drift. Using the "create new
+          collection" shortcut FROM INSIDE this page's own Collections sheet
+          (handleCreateCollection, below) sets the exact same pending id, but
+          always stashes a draft first -- handoffDraft is how the two are
+          told apart. Hiding the row in that second case (as an earlier
+          version of this guard did, unconditionally) made the row the seller
+          was just using vanish the moment they came back. */}
+      {!(initialNewCollectionId && !handoffDraft) && (
+        <button
+          type="button"
+          onClick={() => setCollectionsSheetOpen(true)}
+          className="w-full flex items-center justify-between px-4 py-4 border-b-8 border-gray-50 text-left"
+        >
+          <span className="flex items-center gap-3 text-[15px] text-gray-900">
+            <Tag size={18} className="text-gray-400" />
+            Collections
+          </span>
+          <span className="flex items-center gap-2">
+            {collectionIds.length > 0 && (
+              <span className="text-xs text-gray-400">{collectionIds.length} selected</span>
+            )}
+            <ChevronRight size={16} className="text-gray-300" />
+          </span>
+        </button>
+      )}
       <StubRow icon={<Hash size={18} />} label="Tags" onClick={() => setTagsSheetOpen(true)} />
       <StubRow
         icon={<ListChecks size={18} />}

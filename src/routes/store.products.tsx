@@ -53,26 +53,37 @@ type ProductRow = {
 // on `products` (see root CLAUDE.md), so with a contaminated id list this is
 // the only thing standing between "delete my own products" and deleting
 // someone else's.
-async function deleteProducts(ids: string[], storeId: string): Promise<{ error: string | null }> {
+// Returns which ids actually got deleted rather than a bare ok/error --
+// `ids` can legitimately include one that's already gone (deleted from
+// another tab, or the list was just stale), and treating that as a hard
+// failure would leave it stuck on screen forever with no way to clear it
+// (see the caller). deletedIds.length < ids.length without `error` set is
+// exactly that case: the survivors are reported back so the caller can drop
+// only those.
+async function deleteProducts(
+  ids: string[],
+  storeId: string,
+): Promise<{ deletedIds: string[]; error: string | null }> {
   const { error: tagsErr } = await supabase.from("product_tags").delete().in("product_id", ids);
-  if (tagsErr) return { error: tagsErr.message };
+  if (tagsErr) return { deletedIds: [], error: tagsErr.message };
   // PostgREST returns no error for a delete that matches zero rows -- if the
-  // store_id scope above ever filtered out an id (e.g. the active store
+  // store_id scope above ever filtered out every id (e.g. the active store
   // changed underneath an armed selection), a bare unchecked delete would
   // report success despite having deleted no `products` row at all, after
-  // that id's tags were already gone for good above. Asking for the deleted
-  // rows back and comparing counts is what actually confirms it happened.
+  // those ids' tags were already gone for good above. Asking for the
+  // deleted rows back is what actually confirms any of it happened.
   const { data, error } = await supabase
     .from("products")
     .delete()
     .in("id", ids)
     .eq("store_id", storeId)
     .select("id");
-  if (error) return { error: error.message };
-  if ((data?.length ?? 0) !== ids.length) {
-    return { error: "Some of the selected products couldn't be deleted — try again." };
+  if (error) return { deletedIds: [], error: error.message };
+  const deletedIds = (data ?? []).map((r) => r.id);
+  if (deletedIds.length === 0) {
+    return { deletedIds: [], error: "Couldn't delete — try again." };
   }
-  return { error: null };
+  return { deletedIds, error: null };
 }
 
 function StoreProducts() {
@@ -107,21 +118,13 @@ function StoreProducts() {
     if (search.trim()) query = query.ilike("title", `%${search.trim()}%`);
 
     const { data, error } = await query;
-    if (!error && data) {
-      const rows = data as ProductRow[];
-      setProducts(rows);
-      // A selection made on one tab/search result set has to be re-checked
-      // against whatever's actually on screen now -- switching tabs or
-      // typing a search while still in select mode must not leave a
-      // "2 selected" bulk-delete armed against rows that scrolled out of
-      // view, whether or not the seller can still see them.
-      setSelectedIds((prev) => {
-        if (prev.size === 0) return prev;
-        const visible = new Set(rows.map((p) => p.id));
-        const next = new Set([...prev].filter((id) => visible.has(id)));
-        return next.size === prev.size ? prev : next;
-      });
-    }
+    // Selection is intentionally left untouched by a tab switch or a search
+    // keystroke -- both re-run this same fetch (search has no debounce), and
+    // pruning selectedIds down to "whatever's on screen now" here used to
+    // wipe an in-progress cross-tab/cross-search multi-select on literally
+    // every character typed. A selected id that's since gone stale (deleted
+    // elsewhere) is reconciled at delete time instead -- see handleBulkDelete.
+    if (!error && data) setProducts(data as ProductRow[]);
     setListLoading(false);
   }, [storeId, activeTab, search]);
 
@@ -146,7 +149,8 @@ function StoreProducts() {
     setConfirmDeleteOpen(false);
     setDeleting(true);
     setDeleteError("");
-    const { error } = await deleteProducts([...selectedIds], storeId);
+    const ids = [...selectedIds];
+    const { deletedIds, error } = await deleteProducts(ids, storeId);
     setDeleting(false);
     if (error) {
       // Selection is left intact (not cleared) so retrying doesn't require
@@ -156,8 +160,16 @@ function StoreProducts() {
       setDeleteError("Couldn't delete: " + error);
       return;
     }
-    setProducts((prev) => prev.filter((p) => !selectedIds.has(p.id)));
-    setSelectedIds(new Set());
+    const deleted = new Set(deletedIds);
+    setProducts((prev) => prev.filter((p) => !deleted.has(p.id)));
+    // Only the ids that actually got deleted are dropped from the
+    // selection -- if one was already gone (stale list, deleted elsewhere)
+    // the rest of a real Supabase error would still leave the survivors
+    // selected for a retry, same as the error branch above.
+    setSelectedIds((prev) => new Set([...prev].filter((id) => !deleted.has(id))));
+    if (deletedIds.length < ids.length) {
+      setDeleteError("Some of the selected products were already gone — the rest were deleted.");
+    }
   }
 
   if (storeLoading) return <div className="px-4 py-8 text-sm text-gray-400">Loading…</div>;
