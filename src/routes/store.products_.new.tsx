@@ -37,6 +37,7 @@ import {
   type VariantInventoryContext,
   readAutosavedDraft,
   writeAutosavedDraft,
+  clearAutosavedDraft,
 } from "@/lib/product-draft-handoff";
 import { useActiveStoreId } from "@/hooks/use-own-store";
 
@@ -428,6 +429,15 @@ function NewProduct() {
       tagIds,
       linkedPostIds,
     });
+    // Cleared here, synchronously, not left to product-save.ts's own
+    // deferred clearAutosavedDraft (which only runs once the background
+    // create's real DB writes finish -- seconds away for a variant product).
+    // Save is treated as committed the instant we navigate away below, so
+    // the "new" autosave slot has to be wiped in that same instant too --
+    // otherwise tapping + again to start a genuinely new product, before
+    // that background write resolves, restored the JUST-SAVED product's
+    // data into what should have been a blank form.
+    clearAutosavedDraft(undefined);
     navigate({ to: "/store/products" });
   }
 

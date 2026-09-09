@@ -914,6 +914,16 @@ function EditProduct() {
       tagIds,
       linkedPostIds,
     });
+    // Same reasoning as the new-product page's performSave: cleared here,
+    // synchronously, rather than left to product-save.ts's own deferred
+    // clearAutosavedDraft (which only runs once the background update's
+    // real DB writes finish). Save is treated as committed the instant we
+    // navigate away below, so this product's autosave slot has to be wiped
+    // in that same instant -- otherwise quickly reopening this same
+    // product's edit page, before the background write resolves, restores
+    // the stale pre-save draft (with a "Restored your unsaved progress"
+    // banner) over data that was, in fact, already saved.
+    clearAutosavedDraft(productId);
     navigate({ to: "/store/products" });
   }
 

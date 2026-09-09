@@ -49,13 +49,34 @@ type ToolbarGroup = "align" | "list" | null;
 // which level that ancestor is at comes from its own inline font-weight,
 // written by cycleBold below (600 = medium/level 1, anything else once a
 // bold ancestor exists, including the browser's own UA-stylesheet default
-// bold weight, reads as level 1 too -- only an explicit 800 is level 2).
+// bold weight, reads as level 1 too -- only an explicit 900 is level 2).
 function currentBoldLevel(): BoldLevel {
   if (!document.queryCommandState("bold")) return 0;
   const anchor = window.getSelection()?.anchorNode;
   const el = anchor instanceof Element ? anchor : anchor?.parentElement;
   const boldEl = el?.closest("b, strong");
-  return boldEl && window.getComputedStyle(boldEl).fontWeight === "800" ? 2 : 1;
+  return boldEl && window.getComputedStyle(boldEl).fontWeight === "900" ? 2 : 1;
+}
+
+// A collapsed cursor (no selection, just typing position) toggling a format
+// off via execCommand only changes whether FUTURE typed characters get the
+// format -- it leaves text already typed (and already wrapped) completely
+// untouched, even with the cursor sitting right after or inside it. That
+// read as "the button doesn't turn off" for underline, since the ordinary
+// flow is type a word, leave the cursor right after it, tap the button
+// again. Expanding to the whole enclosing element first gives execCommand
+// a real selection to actually strip the format from.
+function selectEnclosingIfCollapsed(tagSelector: string) {
+  const sel = window.getSelection();
+  if (!sel || sel.rangeCount === 0 || !sel.getRangeAt(0).collapsed) return;
+  const anchor = sel.anchorNode;
+  const el = anchor instanceof Element ? anchor : anchor?.parentElement;
+  const wrapper = el?.closest(tagSelector);
+  if (!wrapper) return;
+  const range = document.createRange();
+  range.selectNodeContents(wrapper);
+  sel.removeAllRanges();
+  sel.addRange(range);
 }
 
 function readFormats(): FormatState {
@@ -154,6 +175,16 @@ export function DescriptionSheet({
     setOpenGroup(null);
   }
 
+  function toggleUnderline() {
+    if (document.queryCommandState("underline")) selectEnclosingIfCollapsed("u");
+    exec("underline");
+  }
+
+  function toggleItalic() {
+    if (document.queryCommandState("italic")) selectEnclosingIfCollapsed("i, em");
+    exec("italic");
+  }
+
   // Sets font-weight directly on every <b>/<strong> the current selection
   // touches. Only ever called right after execCommand("bold") guaranteed a
   // wrapper exists for a real (non-collapsed) selection -- execCommand
@@ -192,8 +223,12 @@ export function DescriptionSheet({
       document.execCommand("bold", false);
       setBoldWeightOnSelection("600");
     } else if (level === 1) {
-      setBoldWeightOnSelection("800");
+      setBoldWeightOnSelection("900");
     } else {
+      // Same collapsed-cursor gap as underline/italic -- without this, a
+      // bare cursor sitting right after already-typed heavy-bold text can't
+      // turn it back off, only stop new characters from being bold.
+      selectEnclosingIfCollapsed("b, strong");
       document.execCommand("bold", false);
     }
     setFormats(readFormats());
@@ -261,18 +296,14 @@ export function DescriptionSheet({
           className="oak-description-editor flex-1 min-h-0 overflow-y-auto px-4 py-5 text-base text-gray-900 outline-none"
         />
 
-        <div className="shrink-0 bg-white/95 backdrop-blur border-t border-gray-100 px-2 py-1.5 flex items-center gap-0.5 overflow-x-auto">
+        <div className="shrink-0 bg-white/95 backdrop-blur border-t border-gray-100 px-2 pt-1.5 pb-[30px] flex items-center gap-0.5 overflow-x-auto">
           <ToolbarButton label="Bold" level={formats.bold} onClick={cycleBold}>
             <Bold size={18} />
           </ToolbarButton>
-          <ToolbarButton label="Italic" active={formats.italic} onClick={() => exec("italic")}>
+          <ToolbarButton label="Italic" active={formats.italic} onClick={toggleItalic}>
             <Italic size={18} />
           </ToolbarButton>
-          <ToolbarButton
-            label="Underline"
-            active={formats.underline}
-            onClick={() => exec("underline")}
-          >
+          <ToolbarButton label="Underline" active={formats.underline} onClick={toggleUnderline}>
             <Underline size={18} />
           </ToolbarButton>
 

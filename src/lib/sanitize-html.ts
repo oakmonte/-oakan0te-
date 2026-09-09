@@ -56,11 +56,11 @@ const ALIGN_STYLE = /^text-align:\s*(left|center|right)\s*;?$/i;
 
 // The Bold button's two levels (see DescriptionSheet's cycleBold) write this
 // exact inline style on a <b>/<strong> it creates -- 600 for the outlined
-// "medium" level, 800 for the filled-black "heavy" level. Exact values only,
+// "medium" level, 900 for the filled-black "heavy" level. Exact values only,
 // same allow-list-not-blocklist reasoning as ALIGN_STYLE: this is not "allow
 // the style attribute," it's "allow these two specific values and nothing
 // else written to it."
-const FONT_WEIGHT_STYLE = /^font-weight:\s*(600|800)\s*;?$/i;
+const FONT_WEIGHT_STYLE = /^font-weight:\s*(600|900)\s*;?$/i;
 
 function isSafeHref(href: string): boolean {
   try {

@@ -203,7 +203,13 @@ export function parseWeightVolumeValueToGrams(value: string): number | null {
   if (isNaN(amount) || amount <= 0) return null;
   const perGram = WEIGHT_UNIT_TO_GRAMS[match[2].trim().toLowerCase()];
   if (perGram == null) return null;
-  return Math.round(amount * perGram);
+  // 2 decimal places, not Math.round to the nearest whole gram -- "g" itself
+  // has perGram=1, so rounding to an integer there silently zeroed out any
+  // legitimately sub-gram value (e.g. "0.2 g" -> Math.round(0.2) -> 0, a
+  // real product weight reported as weighing nothing). 2dp still cleans up
+  // oz/lb's messy floating-point conversion noise (1 oz -> 28.349523125 ->
+  // 28.35) without destroying a real fractional gram the seller typed.
+  return Math.round(amount * perGram * 100) / 100;
 }
 
 /** Rough shipping-weight estimate in grams, from a category's chart shape,

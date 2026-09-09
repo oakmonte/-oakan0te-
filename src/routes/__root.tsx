@@ -159,7 +159,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         // Core faces only. The ~35 store-theme families load on demand via
         // ensureThemeFont / ensureThemePickerFonts in store-themes/fonts.ts.
-        href: "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Anton&family=Space+Grotesk:wght@300;400&display=swap",
+        // 900 is DescriptionSheet's "heavy" bold level -- without it loaded,
+        // font-weight:900 silently falls back to the nearest available face
+        // (700, plain bold), making the heavy level visually indistinguishable
+        // from the medium level a tap before it.
+        href: "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Anton&family=Space+Grotesk:wght@300;400&display=swap",
       },
     ],
   }),
