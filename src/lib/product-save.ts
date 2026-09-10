@@ -4,6 +4,7 @@ import { stockTotal } from "@/components/product-form/variant-stock";
 import type { VariantOption, VariantRow } from "@/components/product-form/VariantMatrixBuilder";
 import type { ManualSize, SizeMeasurements } from "@/lib/size-chart-config";
 import type { BarcodeEntry } from "@/lib/barcode-types";
+import { computeIsComplete, type CompletenessInput } from "@/lib/product-completeness";
 
 // Saving a product used to block its form page until every insert/update
 // finished — a variant product alone is 8+ sequential round trips (options,
@@ -101,6 +102,42 @@ async function insertBarcodes(rows: ReturnType<typeof barcodeInsertRows>) {
   if (res.error) throw new Error(`product_variant_barcodes: ${res.error.message}`);
 }
 
+/** Maps a save payload onto the shared completeness rule.
+ *
+ *  Kept next to the writers rather than inside product-completeness.ts so
+ *  that module stays free of this app's payload shape and can be mirrored
+ *  verbatim into the import worker, which has a different one.
+ *
+ *  A variant product is judged on its SELECTED rows only — an unchecked
+ *  combination is never written as a variant, so an unpriced one can't make
+ *  the product unlistable. Regular products fall back to the product-level
+ *  main image, matching what the variant rows themselves do above.
+ */
+function completenessInput(payload: ProductSavePayload): CompletenessInput {
+  if (payload.kind === "regular") {
+    return {
+      title: payload.title,
+      variants: [
+        {
+          price: payload.price.trim() ? Number(payload.price) : null,
+          mainImageUrl: payload.mainImageUrl,
+          weightGrams: payload.regularWeightGrams,
+        },
+      ],
+    };
+  }
+  return {
+    title: payload.title,
+    variants: payload.rows
+      .filter((r) => r.selected)
+      .map((r) => ({
+        price: r.price.trim() ? Number(r.price) : null,
+        mainImageUrl: r.mainImageUrl.trim() || payload.mainImageUrl,
+        weightGrams: r.weightGrams ?? null,
+      })),
+  };
+}
+
 function slugify(title: string) {
   return (
     title
@@ -132,7 +169,7 @@ async function runCreate(
       product_type: payload.categoryName || null,
       status: payload.status,
       source_platform: "manual",
-      is_complete: true,
+      is_complete: computeIsComplete(completenessInput(payload)),
       manual_size_value: payload.manualSize?.value ?? null,
       manual_size_system: payload.manualSize?.system ?? null,
     })
@@ -328,7 +365,7 @@ async function runUpdate(payload: Extract<ProductSavePayload, { mode: "update" }
       description_short: payload.descriptionShort.trim() || null,
       product_type: payload.categoryName || null,
       status: payload.status,
-      is_complete: true,
+      is_complete: computeIsComplete(completenessInput(payload)),
       manual_size_value: payload.manualSize?.value ?? null,
       manual_size_system: payload.manualSize?.system ?? null,
     })

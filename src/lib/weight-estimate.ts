@@ -138,12 +138,24 @@ const TRIM_MULTIPLIER: Record<SizeChartDefinition["guide"], number> = {
   "activewear-tshirt": 1.065,
   "standard-tshirt": 1.065,
   "polo-alt": 1.1,
-  "clothing-corset": 1.16,
-  "clothing-bodysuit": 1.1,
-  overshirt: 1.125,
   sweatshirt: 1.1,
-  "lingerie-corset": 1.16,
-  "lingerie-bodysuit": 1.1,
+  "basketball-jersey": 1.1,
+  cardigan: 1.1,
+  "cargo-pants": 1.16,
+  "crop-top": 1.065,
+  hoodie: 1.1,
+  jumpsuit: 1.125,
+  "mini-dress": 1.125,
+  "mini-skirt": 1.1,
+  "pleated-skirt": 1.1,
+  "puffer-jacket": 1.2,
+  romper: 1.125,
+  "short-sleeve-shirt": 1.065,
+  "sports-shorts": 1.115,
+  "sweater-vest": 1.1,
+  "tank-top": 1.065,
+  "turtle-neck": 1.1,
+  "varsity-jacket": 1.16,
 };
 
 // Fabric area formulas per garment shape, in m², from cm measurements --
@@ -185,10 +197,8 @@ function estimateAreaM2(
     case "polo-alt":
       if (chest_width == null || body_length == null) return null;
       return topArea(chest_width, body_length, sleeve_length) * 1.1;
-    // An overshirt is cut as a looser button-through layer -- same shape as a
-    // dress shirt, and TRIM_MULTIPLIER already gives the two the same 1.125.
-    case "dress-shirt":
-    case "overshirt": {
+    // A dress shirt is cut as a looser button-through layer.
+    case "dress-shirt": {
       if (chest_width == null || body_length == null) return null;
       const body = (2 * (chest_width + 10) * (body_length + 7)) / 10000;
       const sleeves =
@@ -288,7 +298,6 @@ const REQUIRED_MEASUREMENTS: Partial<Record<SizeChartDefinition["guide"], string
   polo: ["chest_width", "body_length"],
   "polo-alt": ["chest_width", "body_length"],
   "dress-shirt": ["chest_width", "body_length"],
-  overshirt: ["chest_width", "body_length"],
   "off-shoulder-top": ["chest_width", "body_length"],
   "nfl-jersey": ["chest_width", "body_length"],
   "football-jersey": ["chest_width", "body_length"],

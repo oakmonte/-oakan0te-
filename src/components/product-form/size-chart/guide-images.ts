@@ -16,13 +16,24 @@ import denimJortsGuide from "./Denim-jorts-guide.webp";
 import dolphinShortsGuide from "./Dolphin-shorts-guide.webp";
 import bumShortsGuide from "./Bum-shorts-or-shorter-shorts-guide.webp";
 import denimBumShortsGuide from "./Denim-bum-shorts-guide.webp";
-import standardTShirtGuide from "./186b0335-a62e-4e2d-bb62-ba57b5e45ca7.png";
-import poloAltGuide from "./379045a5-a44b-4aea-8c16-284db61d1dee.png";
-import clothingCorsetGuide from "./3abee7a8-db1b-4397-acf4-710d50061e18.png";
-import clothingBodysuitGuide from "./af6ef374-9691-4d4c-bc07-7d2b0440eb3a.png";
-import overshirtGuide from "./bfe78330-f0f6-4946-afb6-288072187b84.png";
-import lingerieCorsetGuide from "./d1a615a0-319b-4f99-8bc3-6ad6522eb965.png";
-import lingerieBodysuitGuide from "./df22c1d4-5ebe-4bc3-ab27-be1ec66fb4a0.png";
+import basketballJerseyGuide from "./basketball-jersey guide.png";
+import cardiganGuide from "./Cardigan guide.png";
+import cargoPantsGuide from "./cargo-pants guide.png";
+import cropTopGuide from "./Crop-top guide.png";
+import hoodieGuide from "./hoodie guide.png";
+import jumpsuitGuide from "./Jumpsuit-guide.png";
+import miniDressGuide from "./Mini-dress guide.png";
+import miniSkirtGuide from "./mini-skirt guide.png";
+import pleatedSkirtGuide from "./pleated-skirt guide.png";
+import pufferJacketGuide from "./Puffer-jacket guide.png";
+import romperGuide from "./Romper-guide.png";
+import shortSleeveShirtGuide from "./Short-sleeve-shirt guide.png";
+import sportsShortsGuide from "./sports-shorts guide.png";
+import sweaterVestGuide from "./sweater vest guide.png";
+import sweatshirtGuide from "./sweatshirt guide.png";
+import tankTopGuide from "./Tank-top guide.png";
+import turtleNeckGuide from "./swimsuit guide.jpg";
+import varsityJacketGuide from "./Varsity-jacket guide.png";
 import type { SizeChartDefinition } from "@/lib/size-chart-config";
 
 // Deliberately a total Record, not a Partial one: the letters down the side
@@ -31,13 +42,9 @@ import type { SizeChartDefinition } from "@/lib/size-chart-config";
 // supporting -- it's a broken screen. Keeping it total also makes adding a
 // guide without artwork a compile error rather than a runtime blank.
 //
-// Two entries below therefore share another guide's artwork rather than
-// having their own (their own files were removed on 2026-09-10). Both are
-// safe reuses: activewear-tshirt, sweatshirt, overshirt and tshirt all use
-// STANDARD_TOP_LINES in size-chart-config.ts -- the identical five
-// measurements under the identical five letters -- so the borrowed picture
-// labels exactly the same things. Same reuse principle as CHARTS_BY_CATEGORY,
-// where one illustration already covers several categories.
+// Some category-level chart definitions reuse a generic illustration when the
+// lettered measurement contract is identical. A category must never point at
+// a deleted or visually mismatched asset.
 export const GUIDE_IMAGES: Record<SizeChartDefinition["guide"], string> = {
   tshirt: tShirtGuide,
   polo: poloShirtGuide,
@@ -59,16 +66,26 @@ export const GUIDE_IMAGES: Record<SizeChartDefinition["guide"], string> = {
   "denim-bum-shorts": denimBumShortsGuide,
   // Borrowed, see the note above: same short-sleeve tee shape, same lines.
   "activewear-tshirt": tShirtGuide,
-  "standard-tshirt": standardTShirtGuide,
-  "polo-alt": poloAltGuide,
-  "clothing-corset": clothingCorsetGuide,
-  "clothing-bodysuit": clothingBodysuitGuide,
-  overshirt: overshirtGuide,
-  // Borrowed: the overshirt guide is a long-sleeved top layer, so it reads
-  // closer to a sweatshirt than the short-sleeve tee does.
-  sweatshirt: overshirtGuide,
-  "lingerie-corset": lingerieCorsetGuide,
-  "lingerie-bodysuit": lingerieBodysuitGuide,
+  "standard-tshirt": shortSleeveShirtGuide,
+  "polo-alt": poloShirtGuide,
+  sweatshirt: sweatshirtGuide,
+  "basketball-jersey": basketballJerseyGuide,
+  cardigan: cardiganGuide,
+  "cargo-pants": cargoPantsGuide,
+  "crop-top": cropTopGuide,
+  hoodie: hoodieGuide,
+  jumpsuit: jumpsuitGuide,
+  "mini-dress": miniDressGuide,
+  "mini-skirt": miniSkirtGuide,
+  "pleated-skirt": pleatedSkirtGuide,
+  "puffer-jacket": pufferJacketGuide,
+  romper: romperGuide,
+  "short-sleeve-shirt": shortSleeveShirtGuide,
+  "sports-shorts": sportsShortsGuide,
+  "sweater-vest": sweaterVestGuide,
+  "tank-top": tankTopGuide,
+  "turtle-neck": turtleNeckGuide,
+  "varsity-jacket": varsityJacketGuide,
 };
 
 const preloaded = new Set<string>();
