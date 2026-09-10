@@ -25,7 +25,7 @@ import {
 } from "@/components/product-form/VariantMatrixBuilder";
 import { ManualSize, SizeMeasurements, getSizeChartForCategory } from "@/lib/size-chart-config";
 import type { BarcodeEntry } from "@/lib/barcode-types";
-import { estimateWeightGrams } from "@/lib/weight-estimate";
+import { estimateWeight, type WeightEstimate } from "@/lib/weight-estimate";
 import { preloadGuideImage } from "@/components/product-form/size-chart/guide-images";
 import {
   stashProductDraft,
@@ -182,19 +182,27 @@ function NewProduct() {
 
   // A regular product has no Variant Size axis, so its own measurements (if
   // any were picked via the size chart) live under manualSize's value.
-  const regularWeightEstimate = chart
-    ? estimateWeightGrams(chart.guide, sizeMeasurements[manualSize?.value ?? ""] ?? {}, material)
-    : null;
+  const regularWeightEstimate = estimateWeight(
+    chart,
+    sizeMeasurements[manualSize?.value ?? ""] ?? {},
+    material,
+  );
 
   // Per-row suggestion for the variant matrix: prefer the row's own Size/
   // Material option values over the shared manualSize/material fallback,
   // since a variant product's rows can each be a different size or fabric.
-  function estimateWeightForRow(row: VariantRow): number | null {
-    if (!chart) return null;
+  // Material is checked in three places, most-specific first: a real Material
+  // option axis, then the row's own `material` column -- which is where the
+  // Necessities picker writes for a variant product, since the product-level
+  // `material` below is never persisted for one (see product-form/CLAUDE.md).
+  // Missing that middle case meant the estimate button silently never showed
+  // up for a seller who answered Material on the checklist.
+  function estimateWeightForRow(row: VariantRow): WeightEstimate {
     const rowSize = row.options.find((o) => normalizeOptionName(o.name) === "size")?.value;
-    const rowMaterial = row.options.find((o) => normalizeOptionName(o.name) === "material")?.value;
+    const axisMaterial = row.options.find((o) => normalizeOptionName(o.name) === "material")?.value;
+    const rowMaterial = axisMaterial?.trim() || row.material?.trim() || material;
     const measurements = sizeMeasurements[rowSize ?? manualSize?.value ?? ""] ?? {};
-    return estimateWeightGrams(chart.guide, measurements, rowMaterial ?? material);
+    return estimateWeight(chart, measurements, rowMaterial);
   }
 
   const [categoryPickerOpen, setCategoryPickerOpen] = useState(false);

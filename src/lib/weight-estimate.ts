@@ -1,5 +1,15 @@
 import type { SizeChartDefinition } from "@/lib/size-chart-config";
 
+/** Either a number, or the specific reason there isn't one.
+ *
+ *  This used to just be `number | null`, and the UI only rendered its
+ *  "Estimate weight" button when a number existed -- so every failure looked
+ *  identical to the feature not being there at all. A seller with a suede
+ *  jacket (deliberately unsupported, see NO_GSM_KEYWORDS) and a seller who
+ *  simply hadn't filled in the size chart yet both saw exactly nothing. The
+ *  reason string is written to be shown to a seller verbatim. */
+export type WeightEstimate = { grams: number } | { grams: null; reason: string };
+
 // Fabric weight in grams per square metre, keyed by normalized (lowercase,
 // trimmed) fabric/material name -- sourced from apparel-industry GSM
 // reference ranges, using the midpoint "practical default" for each. Ordered
@@ -118,13 +128,26 @@ function estimateAreaM2(
     cm as Record<string, number | undefined>;
 
   switch (guide) {
+    // standard-tshirt/activewear-tshirt and polo-alt aren't different
+    // garments -- they're the same shapes under a second chart id, drawn for
+    // a different category, with byte-identical measurement lines
+    // (STANDARD_TOP_LINES in size-chart-config.ts) and the same trim
+    // multiplier. Leaving them out of this switch meant the single most
+    // common product in the catalogue -- a plain t-shirt, which maps to
+    // standard-tshirt -- could never be estimated at all.
     case "tshirt":
+    case "standard-tshirt":
+    case "activewear-tshirt":
       if (chest_width == null || body_length == null) return null;
       return topArea(chest_width, body_length, sleeve_length);
     case "polo":
+    case "polo-alt":
       if (chest_width == null || body_length == null) return null;
       return topArea(chest_width, body_length, sleeve_length) * 1.1;
-    case "dress-shirt": {
+    // An overshirt is cut as a looser button-through layer -- same shape as a
+    // dress shirt, and TRIM_MULTIPLIER already gives the two the same 1.125.
+    case "dress-shirt":
+    case "overshirt": {
       if (chest_width == null || body_length == null) return null;
       const body = (2 * (chest_width + 10) * (body_length + 7)) / 10000;
       const sleeves =
@@ -212,20 +235,122 @@ export function parseWeightVolumeValueToGrams(value: string): number | null {
   return Math.round(amount * perGram * 100) / 100;
 }
 
+// Which measurements each supported shape's formula actually reads, so a
+// missing one can be named instead of just producing no estimate. Guides
+// absent from this map have no area formula at all (corsets and bodysuits --
+// boning, panelling and a gusset aren't the flat front/back rectangles the
+// formulas above assume, and there's no sourced figure to model them with).
+const REQUIRED_MEASUREMENTS: Partial<Record<SizeChartDefinition["guide"], string[]>> = {
+  tshirt: ["chest_width", "body_length"],
+  "standard-tshirt": ["chest_width", "body_length"],
+  "activewear-tshirt": ["chest_width", "body_length"],
+  polo: ["chest_width", "body_length"],
+  "polo-alt": ["chest_width", "body_length"],
+  "dress-shirt": ["chest_width", "body_length"],
+  overshirt: ["chest_width", "body_length"],
+  "off-shoulder-top": ["chest_width", "body_length"],
+  "nfl-jersey": ["chest_width", "body_length"],
+  "football-jersey": ["chest_width", "body_length"],
+  "baggy-joggers": ["waist_width", "outseam_length"],
+  "cuffed-joggers": ["waist_width", "outseam_length"],
+  "straight-joggers": ["waist_width", "outseam_length"],
+  "skinny-joggers": ["waist_width", "outseam_length"],
+  "baggy-corporate-trousers": ["waist_width", "outseam_length"],
+  "baggy-jeans": ["waist_width", "outseam_length"],
+  shorts: ["waist_width", "outseam_length"],
+  "jogger-jorts": ["waist_width", "outseam_length"],
+  "denim-jorts": ["waist_width", "outseam_length"],
+  "dolphin-shorts": ["waist_width", "outseam_length"],
+  "bum-shorts": ["waist_width", "outseam_length"],
+  "denim-bum-shorts": ["waist_width", "outseam_length"],
+};
+
+const MEASUREMENT_NAMES: Record<string, string> = {
+  chest_width: "chest width",
+  body_length: "body length",
+  waist_width: "waist width",
+  outseam_length: "outseam length",
+};
+
+// The size chart labels its rows with the bare letter off the guide image
+// ("a", "b", ...), never a name -- so a message that only says "chest width"
+// leaves the seller hunting. Name both.
+function describeMeasurement(chart: SizeChartDefinition, key: string): string {
+  const name = MEASUREMENT_NAMES[key] ?? key.replace(/_/g, " ");
+  const letter = chart.lines.find((l) => l.key === key)?.label;
+  return letter ? `${letter} (${name})` : name;
+}
+
+function joinWithAnd(parts: string[]): string {
+  if (parts.length <= 1) return parts[0] ?? "";
+  return `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
+}
+
 /** Rough shipping-weight estimate in grams, from a category's chart shape,
- *  one size's cm measurements, and a free-typed material name. Returns null
- *  whenever any required input is missing or unrecognized -- callers should
- *  treat that as "no suggestion available", not zero. */
-export function estimateWeightGrams(
-  guide: SizeChartDefinition["guide"],
+ *  one size's cm measurements, and a free-typed material name -- or the
+ *  specific reason there isn't one, phrased for the seller to read.
+ *
+ *  Deliberately never guesses past a missing input: an estimate the seller
+ *  can't trace back to their own numbers is worse than no estimate, because
+ *  it silently becomes the weight a courier quotes against. */
+export function estimateWeight(
+  chart: SizeChartDefinition | null,
   measurementsCm: Partial<Record<string, number>>,
   material: string,
-): number | null {
-  const areaM2 = estimateAreaM2(guide, measurementsCm);
-  if (areaM2 == null) return null;
-  const gsm = guessGsmForMaterial(material, BOTTOM_GUIDES.has(guide));
-  if (gsm == null) return null;
-  const trim = TRIM_MULTIPLIER[guide] ?? 1.1;
-  const grams = areaM2 * gsm * trim;
-  return Math.round(grams / 5) * 5;
+): WeightEstimate {
+  if (!chart) {
+    return {
+      grams: null,
+      reason:
+        "There's no size guide for this category yet, so there are no measurements to work from. Weigh one and type it in.",
+    };
+  }
+
+  const required = REQUIRED_MEASUREMENTS[chart.guide];
+  if (!required) {
+    return {
+      grams: null,
+      reason:
+        "We can't estimate this shape yet — its panels aren't a simple front and back. Weigh one and type it in.",
+    };
+  }
+
+  const missing = required.filter((key) => measurementsCm[key] == null);
+  if (missing.length > 0) {
+    return {
+      grams: null,
+      reason: `Add ${joinWithAnd(missing.map((k) => describeMeasurement(chart, k)))} for this size in the size chart, then try again.`,
+    };
+  }
+
+  const areaM2 = estimateAreaM2(chart.guide, measurementsCm);
+  if (areaM2 == null) {
+    return { grams: null, reason: "We couldn't work out the fabric area from these measurements." };
+  }
+
+  const name = material.trim();
+  if (!name) {
+    return {
+      grams: null,
+      reason: "Add the material first — the estimate works from how heavy that fabric is.",
+    };
+  }
+
+  const gsm = guessGsmForMaterial(name, BOTTOM_GUIDES.has(chart.guide));
+  if (gsm == null) {
+    const lower = name.toLowerCase();
+    if (NO_GSM_KEYWORDS.some((kw) => lower.includes(kw))) {
+      return {
+        grams: null,
+        reason: `${name} is sold by the hide, not by fabric weight, so there's no honest way to estimate it. Weigh one and type it in.`,
+      };
+    }
+    return {
+      grams: null,
+      reason: `We don't know how heavy "${name}" is yet. Weigh one and type it in.`,
+    };
+  }
+
+  const trim = TRIM_MULTIPLIER[chart.guide] ?? 1.1;
+  return { grams: Math.round((areaM2 * gsm * trim) / 5) * 5 };
 }

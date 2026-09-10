@@ -105,6 +105,23 @@ Two traps this cost real bugs to learn:
   calls `onChangeMaterial` on a variant product looks like it worked and silently saves nothing —
   it has to write per-row instead (`saveMaterial`). With no combinations built yet there's no row to
   write to at all, which is why that case shows a note rather than opening the picker.
+- **The auto weight estimate reads material from three places, in order** — a `Material` option axis,
+  then the row's own `material`, then the product-level `material` (`estimateWeightForRow`, in both
+  route files). The middle one is easy to leave out and the omission was invisible: a seller who
+  answered Material on the checklist got no estimate and no explanation. Any new place material can
+  be stored has to be added here too.
+- **`estimateWeight` returns a reason, never a bare `null`** (`WeightEstimate` in `weight-estimate.ts`).
+  The "Estimate weight" button in `WeightSheet` is always rendered; tapping it with no estimate
+  available shows that reason. Hiding the button on `null` — the old behaviour — collapsed five very
+  different situations (no chart for the category, an unmodelled shape, a missing measurement, no
+  material, an unestimable material) into the same blank space. If you add a bail-out branch, give it
+  a reason string written for a seller to read, and add a case to `weight-estimate.test.ts` — the
+  strings tell people which thing to go and fix, so a wrong branch sends them to the wrong screen.
+- **Shapes with no area formula**: corsets and bodysuits. `REQUIRED_MEASUREMENTS` is the source of
+  truth — a guide absent from it reports "we can't estimate this shape yet" rather than guessing.
+  `standard-tshirt`/`activewear-tshirt`/`polo-alt`/`overshirt` are aliases of shapes that already had
+  formulas, not new ones; `standard-tshirt` is what the main T-Shirts category maps to, so leaving it
+  out meant the single most common product in the catalogue could never be estimated.
 - **Color and Material can already be answered as real variant option axes**, and that editor is the
   richer one. Those rows report ("already set from your variant options") instead of opening a second
   screen over the same values — `openedFromVariants` in `NecessitiesSheet.tsx`.

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { WeightEstimate } from "@/lib/weight-estimate";
 import { ChevronRight, X } from "lucide-react";
 import type { VariantRow } from "./VariantMatrixBuilder";
 import { WeightSheet } from "./WeightSheet";
@@ -22,7 +23,7 @@ export function VariantWeightsSheet({
   onClose,
 }: {
   rows: VariantRow[];
-  estimateWeightForRow: (row: VariantRow) => number | null;
+  estimateWeightForRow: (row: VariantRow) => WeightEstimate;
   onChangeRows: (fn: (prev: VariantRow[]) => VariantRow[]) => void;
   onClose: () => void;
 }) {

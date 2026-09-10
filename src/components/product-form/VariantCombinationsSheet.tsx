@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import type { WeightEstimate } from "@/lib/weight-estimate";
 import { Check, ChevronLeft, ImageIcon, X } from "lucide-react";
 import type { VariantOption, VariantRow } from "./VariantMatrixBuilder";
 import { weightVolumeValueOf, hasWeightVolumeAxis } from "./variant-combinations";
@@ -53,7 +54,7 @@ export function VariantCombinationsSheet({
   additionalImageUrls: string[];
   storeId: string;
   onCreateLocation: (context?: VariantInventoryContext) => void;
-  estimateWeightForRow: (row: VariantRow) => number | null;
+  estimateWeightForRow: (row: VariantRow) => WeightEstimate;
   // Set together, right after returning from the "Add pickup location"
   // side-trip -- reopens the specific Inventory sheet (row or bulk) with its
   // Edit locations picker already showing, and the new location pre-checked

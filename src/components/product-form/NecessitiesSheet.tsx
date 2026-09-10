@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import type { WeightEstimate } from "@/lib/weight-estimate";
 import { Check, ChevronRight, Loader2, X } from "lucide-react";
 import { CategoryNode } from "@/lib/categories";
 import { VariantOption, VariantRow } from "@/components/product-form/VariantMatrixBuilder";
@@ -63,9 +64,9 @@ export function NecessitiesSheet({
   // separate regularWeightGrams/-Estimate pair mirroring manualSize's split.
   rows: VariantRow[];
   onChangeRows: (fn: (prev: VariantRow[]) => VariantRow[]) => void;
-  estimateWeightForRow: (row: VariantRow) => number | null;
+  estimateWeightForRow: (row: VariantRow) => WeightEstimate;
   regularWeightGrams: number | null;
-  regularWeightEstimate: number | null;
+  regularWeightEstimate: WeightEstimate;
   onChangeRegularWeightGrams: (g: number | null) => void;
   linkedPostIds: string[];
   onChangeLinkedPostIds: (ids: string[]) => void;

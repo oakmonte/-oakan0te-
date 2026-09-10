@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import type { WeightEstimate } from "@/lib/weight-estimate";
 import { Plus, ChevronRight } from "lucide-react";
 import { OptionEditorSheet } from "./OptionEditorSheet";
 import { VariantListSheet } from "./VariantListSheet";
@@ -85,7 +86,7 @@ export function VariantMatrixBuilder({
   // Rough weight suggestion for one row, from its own size/material — see
   // weight-estimate.ts. Computed by the page (it has category/chart context
   // this component doesn't) and only ever pre-fills an empty WeightSheet.
-  estimateWeightForRow: (row: VariantRow) => number | null;
+  estimateWeightForRow: (row: VariantRow) => WeightEstimate;
   // Set together, right after returning from that side-trip -- jumps
   // straight back to the combinations step and the specific Inventory sheet
   // (with its Edit locations picker already open) instead of landing back

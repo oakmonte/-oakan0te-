@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { X } from "lucide-react";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
+import type { WeightEstimate } from "@/lib/weight-estimate";
 
 /** Per-SKU shipping weight editor -- same split as InventorySheet (a
  *  "regular" product's single implicit variant vs. each row in the variant
@@ -10,10 +11,14 @@ import { useLockedViewport } from "@/hooks/use-locked-viewport";
  *  `estimate` is a rough auto-guess from size measurements + material (see
  *  weight-estimate.ts), computed by the caller since it needs category/chart
  *  context this sheet doesn't have. Filling it in is an explicit tap on
- *  "Estimate weight" -- the button only shows up when there's actually
- *  enough data (category + size + material) to compute one -- rather than
- *  silently pre-filling on open, so a seller always knows where a number in
- *  this field came from. */
+ *  "Estimate weight" rather than a silent pre-fill on open, so a seller
+ *  always knows where a number in this field came from.
+ *
+ *  The button is always offered, even when no estimate can be produced --
+ *  hiding it (the old behaviour) made every failure look identical to the
+ *  feature not existing, with no way for a seller to tell "I haven't filled
+ *  in the size chart yet" apart from "suede can't be estimated at all".
+ *  Tapping it in that state shows the reason instead of a number. */
 export function WeightSheet({
   productLabel,
   initial,
@@ -23,17 +28,22 @@ export function WeightSheet({
 }: {
   productLabel?: string;
   initial: number | null;
-  estimate: number | null;
+  estimate: WeightEstimate;
   onSave: (grams: number | null) => void;
   onClose: () => void;
 }) {
   useLockedViewport();
   const [value, setValue] = useState(initial != null ? String(initial) : "");
-  const isEstimate = estimate != null && value === String(estimate);
+  const [blocked, setBlocked] = useState<string | null>(null);
+  const isEstimate = estimate.grams != null && value === String(estimate.grams);
 
   function applyEstimate() {
-    if (estimate == null) return;
-    setValue(String(estimate));
+    if (estimate.grams == null) {
+      setBlocked(estimate.reason);
+      return;
+    }
+    setBlocked(null);
+    setValue(String(estimate.grams));
   }
 
   function handleSave() {
@@ -71,18 +81,22 @@ export function WeightSheet({
           />
           <span className="text-sm text-gray-400">g</span>
         </div>
-        {estimate != null && (
-          <button
-            type="button"
-            onClick={applyEstimate}
-            className="mt-3 text-xs font-medium text-gray-900 border border-gray-200 rounded-full px-3 py-1.5"
-          >
-            Estimate weight
-          </button>
+        <button
+          type="button"
+          onClick={applyEstimate}
+          className="mt-3 text-xs font-medium text-gray-900 border border-gray-200 rounded-full px-3 py-1.5 oak-motion-control"
+        >
+          Estimate weight
+        </button>
+        {blocked && (
+          <p className="text-xs text-gray-500 mt-2.5 leading-relaxed animate-in fade-in slide-in-from-top-1 duration-200">
+            {blocked}
+          </p>
         )}
         {isEstimate && (
           <p className="text-xs text-gray-400 mt-2">
-            Estimated from this size's measurements and material — edit if it's off.
+            Estimated from this size's measurements and material — a rough starting figure, not a
+            weighed one. Edit if it's off.
           </p>
         )}
       </div>
