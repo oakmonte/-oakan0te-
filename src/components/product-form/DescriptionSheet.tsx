@@ -58,25 +58,89 @@ function currentBoldLevel(): BoldLevel {
   return boldEl && window.getComputedStyle(boldEl).fontWeight === "900" ? 2 : 1;
 }
 
-// A collapsed cursor (no selection, just typing position) toggling a format
-// off via execCommand only changes whether FUTURE typed characters get the
-// format -- it leaves text already typed (and already wrapped) completely
-// untouched, even with the cursor sitting right after or inside it. That
-// read as "the button doesn't turn off" for underline, since the ordinary
-// flow is type a word, leave the cursor right after it, tap the button
-// again. Expanding to the whole enclosing element first gives execCommand
-// a real selection to actually strip the format from.
-function selectEnclosingIfCollapsed(tagSelector: string) {
+// Used only as an invisible spot for the caret to land on outside a format
+// wrapper it's escaping (or inside a brand-new one) -- stripped back out on
+// Save by stripEditorArtifacts, never meant to be real content.
+const ZERO_WIDTH_SPACE = "\u200B";
+const ZERO_WIDTH_SPACE_RE = /\u200B/g;
+
+// Every format button here is a pure "what happens to the NEXT character
+// typed" switch -- never a retroactive edit of text already on the page,
+// even when the cursor sits right next to (or "inside") already-formatted
+// text. That's what these two helpers exist to guarantee.
+//
+// Turning a format OFF from a collapsed cursor: execCommand flips its own
+// internal "next typed chars" flag correctly, but the caret is still
+// physically positioned inside the existing <u>/<i>/<b> element's DOM
+// boundary, and browsers keep extending that same element for whatever
+// gets typed next regardless of the flag -- this is what read as "the
+// button doesn't turn off" / "I can't switch back". A text node inserted
+// via Range.insertNode() at that same point would still land AS A CHILD of
+// that element (inheriting its style), so the only way to genuinely escape
+// is to place a marker as the element's next SIBLING instead -- outside its
+// closing tag. The marker is an invisible zero-width space so the caret has
+// somewhere to sit; it's stripped back out on Save (stripEditorArtifacts).
+function escapeFormatIfCollapsed(tagSelector: string) {
   const sel = window.getSelection();
   if (!sel || sel.rangeCount === 0 || !sel.getRangeAt(0).collapsed) return;
   const anchor = sel.anchorNode;
   const el = anchor instanceof Element ? anchor : anchor?.parentElement;
   const wrapper = el?.closest(tagSelector);
-  if (!wrapper) return;
+  if (!wrapper || !wrapper.parentNode) return;
+  const marker = document.createTextNode(ZERO_WIDTH_SPACE);
+  wrapper.parentNode.insertBefore(marker, wrapper.nextSibling);
   const range = document.createRange();
-  range.selectNodeContents(wrapper);
+  range.setStart(marker, 1);
+  range.collapse(true);
   sel.removeAllRanges();
   sel.addRange(range);
+}
+
+// Starting (or stepping up) a bold run from a collapsed cursor: rather than
+// restyling whatever <b>/<strong> element the caret happens to be inside
+// (which would retroactively change text already typed at the OLD weight),
+// this always creates a brand-new <b> with its own explicit weight and
+// inserts it right at the caret. An inline style always wins over an
+// inherited one, so even if this ends up nested inside an existing bold
+// wrapper, the old text keeps its own weight and only this new node (and
+// whatever gets typed into it next) renders at the new one.
+function insertBoldRunAtCaret(weight: "600" | "900") {
+  const sel = window.getSelection();
+  if (!sel || sel.rangeCount === 0 || !sel.getRangeAt(0).collapsed) return;
+  const range = sel.getRangeAt(0);
+  const marker = document.createTextNode(ZERO_WIDTH_SPACE);
+  const wrap = document.createElement("b");
+  wrap.style.fontWeight = weight;
+  wrap.appendChild(marker);
+  range.insertNode(wrap);
+  const newRange = document.createRange();
+  newRange.setStart(marker, 1);
+  newRange.collapse(true);
+  sel.removeAllRanges();
+  sel.addRange(newRange);
+}
+
+// Strips the zero-width-space caret anchors the two helpers above leave
+// behind, and any wrapper that ended up with nothing typed into it (tapped
+// a format, then saved without adding text) -- neither is real content.
+function stripEditorArtifacts(html: string): string {
+  const tmp = document.createElement("div");
+  tmp.innerHTML = html;
+  const walker = document.createTreeWalker(tmp, NodeFilter.SHOW_TEXT);
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+    n.textContent = (n.textContent ?? "").replace(ZERO_WIDTH_SPACE_RE, "");
+  }
+  let removed = true;
+  while (removed) {
+    removed = false;
+    tmp.querySelectorAll("b, strong, i, em, u").forEach((el) => {
+      if (!el.textContent) {
+        el.remove();
+        removed = true;
+      }
+    });
+  }
+  return tmp.innerHTML;
 }
 
 function readFormats(): FormatState {
@@ -175,25 +239,29 @@ export function DescriptionSheet({
     setOpenGroup(null);
   }
 
+  // Turning OFF from a collapsed cursor needs the escape hatch (see
+  // escapeFormatIfCollapsed above); turning ON never does -- a fresh <u>/<i>
+  // wrapper for a collapsed cursor is exactly what execCommand already
+  // handles correctly on its own, lazily, the moment a character is typed.
   function toggleUnderline() {
-    if (document.queryCommandState("underline")) selectEnclosingIfCollapsed("u");
+    const turningOff = document.queryCommandState("underline");
     exec("underline");
+    if (turningOff) escapeFormatIfCollapsed("u");
   }
 
   function toggleItalic() {
-    if (document.queryCommandState("italic")) selectEnclosingIfCollapsed("i, em");
+    const turningOff = document.queryCommandState("italic");
     exec("italic");
+    if (turningOff) escapeFormatIfCollapsed("i, em");
   }
 
-  // Sets font-weight directly on every <b>/<strong> the current selection
-  // touches. Only ever called right after execCommand("bold") guaranteed a
-  // wrapper exists for a real (non-collapsed) selection -- execCommand
-  // reliably creates/removes that wrapper synchronously in that case, which
-  // is what makes walking for it here safe. A collapsed cursor (typing fresh
-  // text with nothing selected yet) is a known gap: execCommand("bold") only
-  // sets the browser's internal "next typed characters are bold" state
-  // without inserting an element yet in most browsers, so there is nothing
-  // here to set a weight on until text actually exists to select and re-tap.
+  // Restyles font-weight directly on every <b>/<strong> a REAL (non-collapsed)
+  // selection touches -- i.e. the seller explicitly selected existing text and
+  // tapped Bold to act on it, which is the one case where changing already-
+  // typed text on the page is actually the intended behavior. The collapsed-
+  // cursor "carry forward to whatever I type next" case never calls this --
+  // see insertBoldRunAtCaret above, which creates a new element instead of
+  // touching whatever the caret happens to be sitting inside.
   function setBoldWeightOnSelection(weight: string) {
     const sel = window.getSelection();
     const root = editorRef.current;
@@ -210,28 +278,32 @@ export function DescriptionSheet({
     }
   }
 
-  // Cycles off -> medium -> heavy -> off, rather than execCommand("bold")'s
-  // native plain toggle. 0 -> 1 and 2 -> 0 both go through execCommand
-  // itself, since creating/removing the <b>/<strong> wrapper across an
-  // arbitrary (possibly multi-node) selection is exactly the Range-splitting
-  // work the browser's own editing engine already handles correctly; 1 -> 2
-  // only needs to re-stamp the weight on whatever wrapper already exists.
+  // Cycles off -> medium -> heavy -> off, purely off the button's own
+  // last-known state (`formats.bold`) -- never re-derived from the DOM mid-
+  // cycle, which is what makes tapping the button three times in a row work
+  // with no typing in between (there's often no <b> element to inspect yet
+  // at all). A real selection restyles that selection directly
+  // (setBoldWeightOnSelection); a collapsed cursor always starts a brand-new
+  // run instead of mutating whatever it's sitting inside
+  // (insertBoldRunAtCaret / escapeFormatIfCollapsed) so nothing already
+  // typed ever changes weight.
   function cycleBold() {
     editorRef.current?.focus();
-    const level = currentBoldLevel();
-    if (level === 0) {
+    const next: BoldLevel = formats.bold === 2 ? 0 : ((formats.bold + 1) as BoldLevel);
+    const sel = window.getSelection();
+    const collapsed = !sel || sel.rangeCount === 0 || sel.getRangeAt(0).collapsed;
+
+    if (next === 0) {
       document.execCommand("bold", false);
-      setBoldWeightOnSelection("600");
-    } else if (level === 1) {
-      setBoldWeightOnSelection("900");
+      if (collapsed) escapeFormatIfCollapsed("b, strong");
+    } else if (!collapsed) {
+      if (formats.bold === 0) document.execCommand("bold", false);
+      setBoldWeightOnSelection(next === 2 ? "900" : "600");
     } else {
-      // Same collapsed-cursor gap as underline/italic -- without this, a
-      // bare cursor sitting right after already-typed heavy-bold text can't
-      // turn it back off, only stop new characters from being bold.
-      selectEnclosingIfCollapsed("b, strong");
-      document.execCommand("bold", false);
+      if (formats.bold === 0) document.execCommand("bold", false);
+      insertBoldRunAtCaret(next === 2 ? "900" : "600");
     }
-    setFormats(readFormats());
+    setFormats((f) => ({ ...f, bold: next }));
   }
 
   function handleSave() {
@@ -242,7 +314,7 @@ export function DescriptionSheet({
       setPolicyError(blockedContentMessage(found));
       return;
     }
-    const html = text.trim() ? (el?.innerHTML ?? "") : "";
+    const html = text.trim() ? stripEditorArtifacts(el?.innerHTML ?? "") : "";
     onSave(sanitizeDescriptionHtml(html));
   }
 

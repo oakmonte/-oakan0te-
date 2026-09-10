@@ -97,13 +97,39 @@ off. `cycleBold`/`currentBoldLevel` in `DescriptionSheet.tsx`. Inter must have `
 (700) — it fell back invisibly once already. Sanitizer allow-list for this lives in `sanitize-html.ts`'s
 `FONT_WEIGHT_STYLE` (exact `600`/`900` only, not a general "allow style" hole).
 
-**Collapsed-cursor toggle-off gotcha**: toggling a format (bold/italic/underline) via `execCommand` with
-a *collapsed* selection (a bare cursor, not a text selection — the normal state right after typing a
-word) only changes whether *future* typed characters get the format; it does not retroactively strip
-the format from text already typed and already wrapped, even with the cursor sitting right next to it.
-Reads as "the button doesn't turn off." Fixed via `selectEnclosingIfCollapsed`, which expands to the
-enclosing `<b>`/`<i>`/`<u>` element before calling `execCommand` in that case. If you add another
-toggleable format here, route it through the same helper or it'll have the identical bug.
+**Every format button is a pure "what happens to text typed from here on" switch — never a retroactive
+edit of text already on the page.** This was gotten wrong once already: the first fix for the
+collapsed-cursor toggle-off bug below *expanded the selection to the whole enclosing element and
+toggled that off*, which silently reformatted already-typed text and left a non-collapsed selection
+behind that the next keystroke would type over — reported back as "if I type underline, I can't switch
+back." Don't reintroduce that shape of fix. The two helpers that replaced it, both in
+`DescriptionSheet.tsx`, only ever move the *caret*, never touch existing nodes:
+
+- `escapeFormatIfCollapsed(tagSelector)` — for turning a format OFF from a collapsed cursor. A plain
+  `execCommand` toggle-off leaves the caret still physically inside the `<u>`/`<i>`/`<b>` element's DOM
+  boundary, so the browser keeps extending that same element for whatever's typed next regardless of
+  the toggled flag (reads as "the button doesn't turn off"). Inserting a plain text node at the caret
+  doesn't fix it either — `Range.insertNode` at that position still lands the node *inside* the element,
+  which still inherits its style. The only real fix is moving the caret to the element's next **sibling**
+  position, outside its closing tag — via an invisible zero-width-space marker (`ZERO_WIDTH_SPACE`) so
+  the caret has somewhere to land.
+- `insertBoldRunAtCaret(weight)` — for bold specifically, needed because two *on* levels (600/900) exist
+  and stepping between them means changing a weight, not just toggling a class. Never restyle whatever
+  `<b>`/`<strong>` the caret already happens to be inside — that mutates whatever was typed under the
+  previous level. Always create a brand-new `<b>` with its own explicit inline weight at the caret
+  instead; an inline style always wins over an inherited one, so it's harmless if this ends up nested
+  inside the old wrapper.
+
+`cycleBold` drives its 0→1→2→0 sequence off `formats.bold` (the button's own last-known React state),
+never by re-deriving from the DOM mid-cycle — tapping three times with no typing in between often has no
+`<b>` element to inspect yet at all, so a DOM-derived read can't tell level 1 from level 2 in that case.
+A **real** (non-collapsed) selection is the one case where restyling existing text directly
+(`setBoldWeightOnSelection`) is correct — the seller explicitly selected it to act on it.
+
+Both marker helpers leave invisible zero-width-space text nodes behind as caret anchors, cleaned up on
+Save by `stripEditorArtifacts` (strips the character, then removes any b/strong/i/em/u left empty by a
+tapped-but-never-typed-into format). If you add another toggleable format here, route its off-transition
+through `escapeFormatIfCollapsed` or it'll have the identical "can't switch back" bug.
 
 Toolbar buttons use an invisible `before:-inset-1.5` hit-area expansion (`ToolbarButton` in
 `DescriptionSheet.tsx`) — kept modest since the buttons sit only `gap-0.5` (2px) apart; a bigger
