@@ -1,5 +1,10 @@
 import { test, expect, describe } from "bun:test";
-import { parseWeightVolumeValueToGrams, estimateWeight } from "./weight-estimate";
+import {
+  parseWeightVolumeValueToGrams,
+  estimateWeight,
+  guessGsmForMaterial,
+} from "./weight-estimate";
+import { MATERIAL_GROUPS } from "./material-options";
 import type { SizeChartDefinition } from "./size-chart-config";
 
 const TEE: SizeChartDefinition = {
@@ -22,6 +27,42 @@ const TEE_CM = { chest_width: 52, body_length: 70, sleeve_length: 20 };
 // Every branch here produces a string a seller reads and acts on, so each
 // one is pinned to the situation that should produce it -- a wrong branch
 // means telling someone to go fix the wrong thing.
+describe("guessGsmForMaterial", () => {
+  // The picker's spellings and the GSM keywords are matched by substring, so
+  // an accent or a rename breaks the link with no error anywhere -- "Piqué"
+  // contains no "pique". Every fabric a seller can tap must resolve.
+  test("every fabric in the picker is recognised", () => {
+    const fabrics = MATERIAL_GROUPS.find((g) => g.label === "Fabrics")!.materials;
+    const unrecognised = fabrics.filter((m) => guessGsmForMaterial(m, false) === null);
+    expect(unrecognised).toEqual([]);
+  });
+
+  // Regression: NO_GSM_KEYWORDS was tested first, and "faux leather"
+  // contains "leather", so this returned null and both of its 800 gsm
+  // entries were unreachable. Only the bare "pvc" spelling worked.
+  test("coated synthetics beat the bare 'leather' exclusion", () => {
+    expect(guessGsmForMaterial("Faux leather", false)).toBe(800);
+    expect(guessGsmForMaterial("PU leather", false)).toBe(800);
+    expect(guessGsmForMaterial("Leather", false)).toBeNull();
+    expect(guessGsmForMaterial("Patent leather", false)).toBeNull();
+  });
+
+  test("a compound name resolves to the specific fabric, not the bare fibre", () => {
+    expect(guessGsmForMaterial("silk chiffon", false)).toBe(60);
+    expect(guessGsmForMaterial("polyester satin", false)).toBe(90);
+    expect(guessGsmForMaterial("silk", false)).toBe(110);
+  });
+
+  // Printed/dyed cotton gets cotton's weight; handwoven and beaded cloth is
+  // deliberately absent rather than given an invented midpoint.
+  test("West African fabrics: printed cotton yes, handwoven no", () => {
+    expect(guessGsmForMaterial("Ankara", false)).toBe(200);
+    expect(guessGsmForMaterial("Adire", false)).toBe(200);
+    expect(guessGsmForMaterial("Aso oke", false)).toBeNull();
+    expect(guessGsmForMaterial("George", false)).toBeNull();
+  });
+});
+
 describe("estimateWeight", () => {
   test("estimates a plain t-shirt", () => {
     const result = estimateWeight(TEE, TEE_CM, "cotton jersey");

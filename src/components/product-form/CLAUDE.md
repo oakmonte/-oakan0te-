@@ -131,6 +131,24 @@ Colour and material vocabularies live in `lib/color-options.ts` / `lib/material-
 can't move back into that component: a non-component export alongside a component export breaks Fast
 Refresh, and root `CLAUDE.md` caps that warning at exactly 6.
 
+`MATERIAL_GROUPS` is grouped (Fabrics / Nigerian & African / Leather & synthetics / Metals & gemstones
+/ Art, craft & home) rather than category-scoped, so a slightly-wrong category never hides the right
+word and there's no category→group map to keep in step with `categories.ts`. `MATERIAL_PRESETS` is
+derived from it flat, for `OptionEditorSheet`.
+
+Preset search goes through `lib/fuzzy-search.ts` (`fuzzyFilter`), not `includes` — "chifon" and
+"polyster" have to find the real preset, because an empty result pushes a seller into a one-off
+spelling the GSM table won't recognise. Its typo budget is capped at 2 edits and is zero under four
+characters; both limits exist because a looser version matched "vibranium" to "Titanium" and "red" to
+"Bed". Reuse it for any other preset list rather than hand-rolling a filter.
+
+**The picker's spellings are load-bearing.** `guessGsmForMaterial` matches by substring, so a preset
+must literally contain its GSM keyword — "Pique", never "Piqué"; "Cotton rib", not "Rib knit". Get it
+wrong and the material still saves fine, the weight estimate just silently says it doesn't know that
+fabric. A test asserts every fabric-group preset resolves; keep it passing when you add one. Non-
+textiles (metals, clay, hide) resolving to nothing is correct, not a gap — those categories have no
+size chart, so the estimate stops earlier anyway.
+
 ## Adding an option axis must not blank the matrix
 
 A row's key is its option values joined (`buildKey`), so adding an axis rekeys every existing row at

@@ -37,6 +37,38 @@ const GSM_KEYWORDS: { keywords: string[]; gsm: number }[] = [
   { keywords: ["spandex", "elastane", "stretch"], gsm: 230 },
   { keywords: ["cotton jersey", "jersey"], gsm: 180 },
   { keywords: ["faux leather", "pu leather", "pvc"], gsm: 800 },
+  // West African fabrics. Ankara/wax print and batik are printed or dyed
+  // cotton, and adire is a resist-dyeing technique applied to a cotton base,
+  // so all three sit in cotton's range. Aso oke, kente and akwete are
+  // deliberately absent: handwoven strip cloth varies far too much by weaver
+  // and by whether it's beaten, and george varies with its beading and
+  // embroidery -- a made-up midpoint for any of those would be worse than
+  // the honest "we don't know how heavy that is yet".
+  { keywords: ["guinea brocade", "brocade", "damask", "shadda"], gsm: 250 },
+  { keywords: ["ankara", "wax print", "kitenge", "adire", "batik"], gsm: 200 },
+  // Wovens and knits, lightest-first only where a substring would otherwise
+  // shadow another entry.
+  { keywords: ["organza"], gsm: 45 },
+  { keywords: ["tulle", "net fabric"], gsm: 30 },
+  { keywords: ["chiffon"], gsm: 60 },
+  { keywords: ["georgette"], gsm: 80 },
+  { keywords: ["satin", "charmeuse"], gsm: 90 },
+  { keywords: ["crepe"], gsm: 120 },
+  { keywords: ["lace"], gsm: 120 },
+  { keywords: ["chambray"], gsm: 140 },
+  { keywords: ["viscose", "rayon"], gsm: 140 },
+  { keywords: ["modal"], gsm: 160 },
+  { keywords: ["flannel"], gsm: 170 },
+  { keywords: ["bamboo"], gsm: 180 },
+  { keywords: ["acrylic"], gsm: 240 },
+  { keywords: ["cashmere"], gsm: 250 },
+  { keywords: ["velour", "velvet"], gsm: 300 },
+  { keywords: ["corduroy", "cord"], gsm: 330 },
+  { keywords: ["tweed"], gsm: 350 },
+  { keywords: ["neoprene"], gsm: 500 },
+  // Bare fibre names last: they're substrings of the compound names above
+  // ("silk chiffon" is chiffon's 60, not silk's 110), so a generic match must
+  // only be reached once every specific one has failed.
   { keywords: ["canvas"], gsm: 450 },
   { keywords: ["linen"], gsm: 180 },
   { keywords: ["silk"], gsm: 110 },
@@ -52,6 +84,11 @@ const GSM_KEYWORDS: { keywords: string[]; gsm: number }[] = [
 // to an unrelated fabric match.
 const NO_GSM_KEYWORDS = ["suede", "leather"];
 
+// Coated/bonded synthetics that merely have "leather" in the name. Real
+// sheet goods with a real GSM, so they're checked before NO_GSM_KEYWORDS
+// above rather than being caught by its "leather" substring.
+const FAUX_LEATHER_KEYWORDS = ["faux leather", "pu leather", "vegan leather", "pvc", "vinyl"];
+
 /** Guesses a fabric's weight in g/m² from a free-typed material name.
  *  `isBottom` only affects the "cotton blend" bucket, which genuinely
  *  differs by garment (a lighter jersey-weight blend on tops, a heavier
@@ -61,8 +98,12 @@ const NO_GSM_KEYWORDS = ["suede", "leather"];
 export function guessGsmForMaterial(material: string, isBottom: boolean): number | null {
   const name = material.trim().toLowerCase();
   if (!name) return null;
+  // Coated synthetics MUST be tested before NO_GSM_KEYWORDS: "faux leather"
+  // contains "leather", so with the checks the other way round this returned
+  // null and both of its 800 gsm entries (here and in GSM_KEYWORDS) were
+  // unreachable dead code -- only the bare "pvc" spelling ever worked.
+  if (FAUX_LEATHER_KEYWORDS.some((kw) => name.includes(kw))) return 800;
   if (NO_GSM_KEYWORDS.some((kw) => name.includes(kw))) return null;
-  if (name.includes("faux leather") || name.includes("pu leather")) return 800;
   if (name.includes("cotton blend")) return isBottom ? 280 : 180;
   for (const { keywords, gsm } of GSM_KEYWORDS) {
     if (keywords.some((kw) => name.includes(kw))) return gsm;
