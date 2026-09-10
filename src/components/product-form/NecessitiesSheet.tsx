@@ -12,6 +12,7 @@ import {
   paramFillState,
   findOption,
   normalizeOptionName,
+  type NecessityParam,
 } from "@/lib/necessities";
 import { SizeChartSheet } from "@/components/product-form/size-chart/SizeChartSheet";
 import { ManualSizeOnlySheet } from "@/components/product-form/size-chart/ManualSizeOnlySheet";
@@ -132,7 +133,7 @@ export function NecessitiesSheet({
     setNote({ text, at: Date.now() });
   }
 
-  function handleTap(param: string) {
+  function handleTap(param: NecessityParam) {
     if (
       kind === "variant" &&
       (param === "Color" || param === "Material") &&
@@ -148,11 +149,25 @@ export function NecessitiesSheet({
       showNote("Build your variants first — material is saved on each one.");
       return;
     }
-    if (param === "Size") setSizeSheetOpen(true);
-    else if (param === "Weight") setWeightSheetOpen(true);
-    else if (param === "Link content") setLinkContentOpen(true);
-    else if (param === "Material") setMaterialSheetOpen(true);
-    else if (param === "Color") setColorSheetOpen(true);
+    // Exhaustive on purpose: a new NecessityParam that reaches here without a
+    // case fails `tsc`, rather than silently rendering a row that does nothing
+    // when tapped (which is exactly how Color shipped).
+    switch (param) {
+      case "Size":
+        return setSizeSheetOpen(true);
+      case "Weight":
+        return setWeightSheetOpen(true);
+      case "Link content":
+        return setLinkContentOpen(true);
+      case "Material":
+        return setMaterialSheetOpen(true);
+      case "Color":
+        return setColorSheetOpen(true);
+      default: {
+        const unhandled: never = param;
+        throw new Error(`Necessity with no tap handler: ${unhandled}`);
+      }
+    }
   }
 
   return (

@@ -1,5 +1,10 @@
 {
   "include": ["src/**/*.ts", "src/**/*.tsx", "vite.config.ts", "eslint.config.js"],
+  // Tests import from "bun:test", whose types would need @types/bun as a
+  // dependency. They're verified by actually running (`bun run test`), which
+  // catches a renamed field or changed signature the same way tsc would —
+  // just at run time. Add @types/bun and drop this line to typecheck them too.
+  "exclude": ["src/**/*.test.ts"],
   "compilerOptions": {
     "target": "ES2022",
     "jsx": "react-jsx",

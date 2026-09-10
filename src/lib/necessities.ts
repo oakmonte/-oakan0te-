@@ -19,7 +19,16 @@ import type { ManualSize, SizeMeasurements } from "@/lib/size-chart-config";
 // Personal Care / Art & Crafts have no category-specific tracked fields
 // yet — selecting either of those (at any depth) falls through to just the
 // universal params below (Link content).
-const NECESSITY_PARAMS: Record<string, string[]> = {
+// A closed set, not `string`. Every necessity needs BOTH a fill-state rule
+// (paramFillState) and something that happens when its row is tapped
+// (NecessitiesSheet's handleTap) -- and those live in different files, so
+// adding one and forgetting the other is easy and silent. Color shipped in
+// exactly that state: listed, checkable, and wired to `() => {}`. With this
+// union both sites switch exhaustively, so the next addition is a compile
+// error until it's actually finished.
+export type NecessityParam = "Size" | "Color" | "Material" | "Weight" | "Link content";
+
+const NECESSITY_PARAMS: Record<string, NecessityParam[]> = {
   "apparel-accessories": ["Size", "Color", "Material"],
   clothing: ["Size", "Color", "Material"],
   "costumes-accessories": ["Size", "Color", "Material"],
@@ -36,7 +45,7 @@ const NECESSITY_PARAMS: Record<string, string[]> = {
 // because shipping needs it for literally any physical product, not just
 // categories with a Size/Material axis (a lipstick or a craft item still
 // ships in a box).
-const UNIVERSAL_PARAMS = ["Weight", "Link content"];
+const UNIVERSAL_PARAMS: NecessityParam[] = ["Weight", "Link content"];
 
 // Every param this list can return, for a given category + product kind.
 // "Color" is dropped for a regular (non-variant) product: unlike Material,
@@ -48,11 +57,11 @@ const UNIVERSAL_PARAMS = ["Weight", "Link content"];
 export function paramsForCategory(
   categoryPath: CategoryNode[],
   kind: "regular" | "variant",
-): string[] {
+): NecessityParam[] {
   if (categoryPath.length === 0) return [];
   // Walk leaf-to-root so a specific branch (e.g. Jewelry) wins over the
   // broader Apparel & Accessories root fallback further up the same path.
-  let params: string[] | null = null;
+  let params: NecessityParam[] | null = null;
   for (let i = categoryPath.length - 1; i >= 0; i--) {
     const match = NECESSITY_PARAMS[categoryPath[i].id];
     if (match) {
@@ -129,7 +138,7 @@ export function findOption(options: VariantOption[], param: string): VariantOpti
 //     itself is the useful bit for a seller who doesn't need a size chart.
 //     No partial state here: a manual size is a single atomic pick.
 export function paramFillState(
-  param: string,
+  param: NecessityParam,
   kind: "regular" | "variant",
   options: VariantOption[],
   material: string,

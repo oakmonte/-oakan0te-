@@ -12,10 +12,17 @@ working — pushed commits sync into the Lovable editor. (Also in `AGENTS.md`.)
 Package manager is **bun** — `package-lock.json` is stale, ignore it.
 
 - `bun run dev` (vite dev, port 8080) · `bun run build` · `bun run format`
-- Gates before calling work done: `bun run typecheck` (`tsc --noEmit`) then `bun run lint`. Both pass
-  clean — keep them that way. Only accepted lint output: 6 `react-refresh` warnings in
+- Gates before calling work done: `bun run typecheck` (`tsc --noEmit`), `bun run lint`, `bun run test`.
+  All pass clean — keep them that way. Only accepted lint output: 6 `react-refresh` warnings in
   `src/components/ui/*` (shadcn); don't chase those.
-- **No test runner.** Behavioural verification = run the dev server and exercise the flow.
+- **Tests cover pure logic only** (`bun test`, no framework, `src/**/*.test.ts`): the rules whose
+  breakage is silent and expensive — `variant-combinations.ts` (regenerating the variant grid without
+  blanking a seller's prices/stock), `necessities.ts` (what counts as filled, and where each answer is
+  actually persisted), `weight-estimate.ts` (parsing). Add to these when you change a rule that a
+  seller's data depends on. They're excluded from `tsc` (see `tsconfig.json`) because `bun:test` types
+  would need `@types/bun`.
+- **Nothing tests the UI.** Interaction behaviour — sheets, gestures, contentEditable, keyboard/
+  viewport — is only verifiable by running the dev server and exercising the flow on a real device.
 - A `Stop` hook re-runs typecheck on `.ts`/`.tsx` changes. Hooks in `.claude/hooks/` also hard-block
   reads of secret files and hand-edits to generated `types.ts` files.
 

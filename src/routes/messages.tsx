@@ -388,9 +388,6 @@ function MessagesPage() {
                       </div>
                       <p className="mt-1 truncate text-[15px] text-white/55">{contact.preview}</p>
                     </div>
-                    <div className="text-lg text-white/25">
-                      <span>›</span>
-                    </div>
                   </button>
                 ))}
               </div>

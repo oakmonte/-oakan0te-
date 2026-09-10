@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { Check, ChevronLeft, ImageIcon, X } from "lucide-react";
 import type { VariantOption, VariantRow } from "./VariantMatrixBuilder";
+import { weightVolumeValueOf, hasWeightVolumeAxis } from "./variant-combinations";
 import { stockTotal } from "./variant-stock";
 import { ImageGallery } from "./ImageGallery";
 import { DraftImagePickerSheet } from "./DraftImagePickerSheet";
@@ -136,6 +137,12 @@ export function VariantCombinationsSheet({
   // the same way, so it doesn't widen this on its own.
   const hasBulkInventoryPick = hasBulkLocationPick || !!bulkInventory?.continueSellingOutOfStock;
 
+  // A Weight/Volume option value ("250 g") IS this variant's weight -- there's
+  // nothing left to type, and a bulk-applied number would silently overwrite
+  // what the seller already declared per row (rows can each carry a different
+  // one). Both the bulk box and the per-row box show it read-only instead.
+  const weightFromOptions = hasWeightVolumeAxis(options);
+
   function updateRow(key: string, patch: Partial<VariantRow>) {
     setRows((prev) => prev.map((r) => (r.key === key ? { ...r, ...patch } : r)));
   }
@@ -172,7 +179,9 @@ export function VariantCombinationsSheet({
     // photo" bulk-apply, and shouldn't silently wipe extra photos a row
     // already had (see the comment above re: not clobbering unfilled fields).
     if (bulkImages.length > 0) patch.mainImageUrl = bulkImages[0];
-    if (bulkWeight.trim()) {
+    // Skipped entirely when the Weight/Volume axis owns weight -- a stale
+    // number typed before that axis existed must not clobber it now.
+    if (!weightFromOptions && bulkWeight.trim()) {
       const grams = parseFloat(bulkWeight.trim());
       if (!isNaN(grams)) patch.weightGrams = grams;
     }
@@ -369,8 +378,18 @@ export function VariantCombinationsSheet({
                   value={bulkCostPrice}
                   onOpen={() => setBulkPriceOpen(true)}
                 />
-                <MiniField label="Weight (g)" value={bulkWeight} onChange={setBulkWeight} />
+                {weightFromOptions ? (
+                  <LockedField label="Weight" value="From options" />
+                ) : (
+                  <MiniField label="Weight (g)" value={bulkWeight} onChange={setBulkWeight} />
+                )}
               </div>
+              {weightFromOptions && (
+                <p className="mt-2 text-xs text-gray-400">
+                  Weight comes from your Weight/Volume option — each variant already carries its
+                  own.
+                </p>
+              )}
               <button
                 type="button"
                 onClick={applyToAll}
@@ -378,7 +397,7 @@ export function VariantCombinationsSheet({
                   !bulkPrice.trim() &&
                   !bulkCompareAtPrice.trim() &&
                   !bulkCostPrice.trim() &&
-                  !bulkWeight.trim() &&
+                  !(bulkWeight.trim() && !weightFromOptions) &&
                   bulkImages.length === 0 &&
                   !hasBulkInventoryPick
                 }
@@ -431,16 +450,23 @@ export function VariantCombinationsSheet({
                     value={row.costPrice}
                     onOpen={() => setPriceKey(row.key)}
                   />
-                  <label className="flex flex-col gap-1">
-                    <span className="text-xs text-gray-400">Weight</span>
-                    <button
-                      type="button"
-                      onClick={() => setWeightKey(row.key)}
-                      className="text-base border border-gray-200 rounded-lg px-2 py-2 text-left"
-                    >
-                      {row.weightGrams != null ? `${row.weightGrams} g` : "—"}
-                    </button>
-                  </label>
+                  {weightVolumeValueOf(row.options) ? (
+                    <LockedField
+                      label="Weight"
+                      value={row.weightGrams != null ? `${row.weightGrams} g` : "—"}
+                    />
+                  ) : (
+                    <label className="flex flex-col gap-1">
+                      <span className="text-xs text-gray-400">Weight</span>
+                      <button
+                        type="button"
+                        onClick={() => setWeightKey(row.key)}
+                        className="text-base border border-gray-200 rounded-lg px-2 py-2 text-left"
+                      >
+                        {row.weightGrams != null ? `${row.weightGrams} g` : "—"}
+                      </button>
+                    </label>
+                  )}
                 </div>
               </div>
             ))}
@@ -815,6 +841,22 @@ function PriceMiniButton({
         {value.trim() ? `₦${displayPriceWithCommas(value)}` : "—"}
       </button>
     </label>
+  );
+}
+
+/** Same footprint as MiniField, but read-only: a value the seller already
+ *  decided somewhere upstream (today only Weight, owned by the Weight/Volume
+ *  option axis). Deliberately not a disabled <input> — a greyed-out input
+ *  still reads as "broken, should be typeable", where a plain filled box
+ *  reads as "this is already answered". */
+function LockedField({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="text-xs text-gray-400">{label}</span>
+      <div className="text-base border border-gray-100 bg-gray-50 text-gray-500 rounded-lg px-2 py-2 truncate">
+        {value}
+      </div>
+    </div>
   );
 }
 
