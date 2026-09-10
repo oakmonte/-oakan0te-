@@ -170,7 +170,7 @@ function ContactAvatar({ contact, large = false }: { contact: Contact; large?: b
 }
 
 function MessagesPage() {
-  const { user } = useSession();
+  const { user, loading: sessionLoading } = useSession();
   const touchStartX = useRef<number | null>(null);
   const [ownUsername, setOwnUsername] = useState<string | undefined>(undefined);
   const [tab, setTab] = useState<Tab>("messages");
@@ -180,6 +180,7 @@ function MessagesPage() {
   const [draft, setDraft] = useState("");
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [messagesLoading, setMessagesLoading] = useState(false);
+  const [messageSending, setMessageSending] = useState(false);
   const [messageError, setMessageError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -259,11 +260,11 @@ function MessagesPage() {
   const sendMessage = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const text = draft.trim();
-    if (!text) return;
-    setDraft("");
-    setMessageError(null);
+    if (!text || messageSending) return;
 
     if (selectedContactId !== "support") {
+      setDraft("");
+      setMessageError(null);
       setChatMessages((messages) => [
         ...messages,
         {
@@ -276,17 +277,33 @@ function MessagesPage() {
       return;
     }
 
-    if (!user) return;
+    if (sessionLoading) {
+      setMessageError("Still checking your account. Your message is ready to send.");
+      return;
+    }
 
-    const { error } = await messagingClient.from("support_messages").insert({
-      user_id: user.id,
-      body: text,
-      sender: "user",
-    });
+    if (!user) {
+      setMessageError("Sign in to send a message to Oakmonte Support.");
+      return;
+    }
 
-    if (error) {
-      setDraft(text);
-      setMessageError("Your message could not be sent. Please try again.");
+    setDraft("");
+    setMessageError(null);
+    setMessageSending(true);
+
+    try {
+      const { error } = await messagingClient.from("support_messages").insert({
+        user_id: user.id,
+        body: text,
+        sender: "user",
+      });
+
+      if (error) {
+        setDraft(text);
+        setMessageError("Your message could not be sent. Please try again.");
+      }
+    } finally {
+      setMessageSending(false);
     }
   };
 
@@ -445,12 +462,25 @@ function MessagesPage() {
             {messagesLoading && (
               <p className="pt-10 text-center text-sm text-white/35">Loading messages...</p>
             )}
-            {!messagesLoading && chatMessages.length === 0 && (
+            {selectedContactId === "support" && sessionLoading && (
               <p className="pt-10 text-center text-sm text-white/35">
-                Start a conversation with {selectedContact?.name}
+                Checking your account before opening support...
               </p>
             )}
-            {messageError && <p className="text-center text-sm text-red-300">{messageError}</p>}
+            {!messagesLoading &&
+              !(selectedContactId === "support" && sessionLoading) &&
+              chatMessages.length === 0 && (
+                <p className="pt-10 text-center text-sm text-white/35">
+                  {selectedContactId === "support" && !user
+                    ? "Sign in to start a conversation with Oakmonte Support"
+                    : `Start a conversation with ${selectedContact?.name}`}
+                </p>
+              )}
+            {messageError && (
+              <p role="alert" className="text-center text-sm text-red-300">
+                {messageError}
+              </p>
+            )}
             {chatMessages.map((message) => (
               <div
                 key={message.id}
@@ -479,7 +509,7 @@ function MessagesPage() {
               type="submit"
               aria-label="Send message"
               className="rounded-full bg-white p-2 text-black disabled:opacity-40"
-              disabled={!draft.trim()}
+              disabled={!draft.trim() || messageSending}
             >
               <Send size={17} />
             </button>
