@@ -12,21 +12,37 @@ crash — it shows up as a seller's catalogue quietly containing wrong data.
 **Read the `canonical-product-schema` skill alongside this one.** That skill defines the target shape;
 this one defines how foreign data gets there.
 
-## Status: partially built
+## Status: built, with one unconfirmed mapping
 
-What exists today: the `import_jobs` and `ig_posts` / `ig_post_files` tables, `store_credentials`, the
-`api.shopify.install` / `api.shopify.callback` / `api.bumpa.connect` / `api.shipbubble.ping` routes,
-and the newcomer UI at `store.products_.newcomer.tsx` that offers the entry points.
+Five entry points exist and all of them write products:
 
-What doesn't: any importer that actually writes products. The mapping below is therefore the contract
-to build _to_, derived from the destination schema — not a description of running code. Where this
-skill states a rule that no code enforces yet, it's a decision to honour, and if you're about to
-contradict one, that's worth raising rather than quietly diverging.
+| Path          | `import_jobs.platform` | Worker handler            | Source of truth   |
+| ------------- | ---------------------- | ------------------------- | ----------------- |
+| Shopify OAuth | `shopify`              | `shopify-mmu/job.js`      | Admin GraphQL API |
+| Shopify CSV   | `csv` + profile        | `csv/index.js`            | uploaded file     |
+| Bumpa API key | `bumpa-api`            | `bumpa-api/job.js`        | Commerce API      |
+| Bumpa CSV     | `bumpa`                | `bumpa-mmu/legacy-job.js` | uploaded file     |
+| Universal CSV | `csv`                  | `csv/index.js`            | uploaded file     |
 
-The import worker lives in a **separate repo** (`oakmonte-import-worker`), as does the backend
-(`oakmonte-backend`). Neither sees this repo's `CLAUDE.md`. Keep a copy of this skill and
-`canonical-product-schema` in those repos — that's the only mechanism carrying the contract across the
-boundary.
+`bumpa` is a CSV path despite the name — it predates the universal engine and
+its adapter now delegates there. `bumpa-api` is the API pull. Don't merge them:
+an API job has no `file_path`, and routing one into the CSV engine fails.
+
+All five build the **same plan shape** and hand it to `lib/run-plan.js`, which
+owns validate → execute → job status. That is deliberate: the writer is the
+only place that knows about the dual option representation, per-product
+commits and cleanup on partial failure, and a second copy of it per platform
+would be a second place to get that wrong.
+
+**The Bumpa API field mapping is not yet confirmed** against a live account.
+`bumpa-api/map.js` reads every field through a list of candidate spellings, and
+`bumpa-api/job.js` therefore **defaults to a dry run** that reports the
+payload's real key names without writing. Set `metadata.live = true` to import
+for real, and flip `DEFAULT_TO_DRY_RUN` once the mapping is checked.
+
+Credential-based pulls are enqueued by `api.import.start.ts` in the app; CSV
+uploads by `api.import.csv.ts`. Neither ever sends a token to the browser — the
+worker reads `store_credentials` itself with the service-role key.
 
 ## Idempotency
 

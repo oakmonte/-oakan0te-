@@ -1,20 +1,29 @@
 import { useState } from "react";
-import { Check, Plus, X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
 import { COLOR_PRESETS, colorSwatchStyle, colorFamilyMembers } from "@/lib/color-options";
+import { fuzzyScore } from "@/lib/fuzzy-search";
+import { ValueRow } from "./value-picker";
 
 /** Colour fill-in for the Necessities checklist.
  *
- *  Colour has exactly one home in the schema — the Color option axis on a
+ *  Colour has exactly one home in the schema -- the Color option axis on a
  *  variant product (there is no `color` column on products or
- *  product_variants; see necessities.ts). So this writes option VALUES, and
- *  picking more than one genuinely does add a colour axis to the variant
- *  matrix — said plainly in the footer rather than left as a surprise.
+ *  product_variants; see necessities.ts). So this writes option VALUES.
  *
- *  Never opens when the seller already built a Color axis in the variant
- *  editor: that's the richer UI of the two, and a second screen writing the
- *  same values would be a way to silently clobber them. NecessitiesSheet
- *  shows an "already set" note instead. */
+ *  **Exactly one colour.** Reaching this sheet at all means the seller did not
+ *  build a colour axis in the variant editor, and the assumption that follows
+ *  is that every variant is the same colour -- this answers "what colour is
+ *  it", not "which colours do you sell". Letting it pick several quietly
+ *  turned a size-only product into a size x colour matrix from a checklist
+ *  row, which is a far bigger decision than that row looks like. A seller who
+ *  really does sell several colours adds the axis in the variant editor, the
+ *  screen that shows what it costs.
+ *
+ *  A one-value axis is this sheet's own output, so it stays reopenable and
+ *  editable here (see ownedByVariantEditor in NecessitiesSheet). Two or more
+ *  values means a real variant axis the richer editor owns, and then the
+ *  checklist row reports instead of opening. */
 export function ColorSheet({
   initial,
   onSave,
@@ -26,34 +35,30 @@ export function ColorSheet({
 }) {
   useLockedViewport();
 
-  const [selected, setSelected] = useState<string[]>(initial);
+  const [value, setValue] = useState(initial[0] ?? "");
   const [query, setQuery] = useState("");
 
   const q = query.trim().toLowerCase();
-  // Same two-part match as the variant option editor: a plain substring, plus
-  // whole-family expansion so "blue" surfaces Cobalt/Denim/Periwinkle, none of
-  // which contain the word.
+  // Three-part match, same as the variant option editor: plain substring,
+  // whole-family expansion so "blue" surfaces Cobalt/Denim/Periwinkle (none
+  // of which contain the word), then a typo-tolerant pass.
   const family = q ? colorFamilyMembers(q) : null;
   const matches = q
-    ? COLOR_PRESETS.filter((c) => c.toLowerCase().includes(q) || family?.has(c))
+    ? COLOR_PRESETS.filter(
+        (c) => c.toLowerCase().includes(q) || family?.has(c) || fuzzyScore(q, c) !== null,
+      )
     : COLOR_PRESETS;
-  // Anything picked that the current search would hide (a typed-in custom
-  // colour, or a preset filtered out) pins to the top, so searching can never
-  // make an existing pick look like it was dropped.
-  const pinned = selected.filter((c) => !matches.includes(c));
+  // A pick the current search would hide (a typed-in custom colour, or a
+  // preset filtered out) pins to the top, so searching can never make the
+  // seller's own answer look like it was dropped.
+  const pinned = value && !matches.includes(value) ? [value] : [];
   const canCreate =
-    q.length > 0 && ![...COLOR_PRESETS, ...selected].some((c) => c.trim().toLowerCase() === q);
+    q.length > 0 && ![...COLOR_PRESETS, value].some((c) => c.trim().toLowerCase() === q);
 
-  function toggle(color: string) {
-    setSelected((prev) =>
-      prev.includes(color) ? prev.filter((c) => c !== color) : [...prev, color],
-    );
-  }
-
-  function createFromQuery() {
-    const value = query.trim();
-    if (!value) return;
-    setSelected((prev) => (prev.includes(value) ? prev : [...prev, value]));
+  // Tapping the chosen row again clears it -- the only way to undo a colour
+  // without leaving a one-value axis behind on a product that never had one.
+  function pick(color: string) {
+    setValue((prev) => (prev === color ? "" : color));
     setQuery("");
   }
 
@@ -66,7 +71,7 @@ export function ColorSheet({
         <span className="font-semibold text-[15px] absolute left-1/2 -translate-x-1/2">Color</span>
         <button
           type="button"
-          onClick={() => onSave(selected)}
+          onClick={() => onSave(value ? [value] : [])}
           className="text-sm font-medium text-black"
         >
           Save
@@ -80,67 +85,50 @@ export function ColorSheet({
           onKeyDown={(e) => {
             if (e.key === "Enter" && canCreate) {
               e.preventDefault();
-              createFromQuery();
+              pick(query.trim());
             }
           }}
           placeholder="Add or search a colour"
-          className="w-full rounded-xl border border-gray-200 px-4 py-4 text-[15px] outline-none focus:border-gray-400"
+          className="w-full rounded-xl border border-gray-200 px-4 py-4 text-base outline-none focus:border-gray-400"
         />
+
+        <p className="text-xs text-gray-400 mt-2">
+          One colour for the whole product. Selling it in several? Add Color as a variant option
+          instead.
+        </p>
 
         <div className="flex flex-col gap-2 mt-4">
           {canCreate && (
             <button
               type="button"
-              onClick={createFromQuery}
+              onClick={() => pick(query.trim())}
               className="flex items-center gap-3 rounded-xl border border-dashed border-gray-300 px-4 py-3.5 text-left oak-motion-control"
             >
               <Plus size={18} className="text-gray-400 shrink-0" />
-              <span className="text-[15px] text-gray-900 truncate">Use "{query.trim()}"</span>
+              <span className="text-[15px] text-gray-900 truncate">Use “{query.trim()}”</span>
             </button>
           )}
 
-          {[...pinned, ...matches].map((color) => {
-            const isSelected = selected.includes(color);
-            return (
-              <button
-                key={color}
-                type="button"
-                onClick={() => toggle(color)}
-                aria-label={`${isSelected ? "Deselect" : "Select"} ${color}`}
-                className={`flex items-center gap-3 rounded-xl border px-4 py-3.5 text-left oak-motion-control ${
-                  isSelected ? "border-black bg-gray-50" : "border-gray-200 bg-white"
-                }`}
-              >
+          {[...pinned, ...matches].map((color) => (
+            <ValueRow
+              key={color}
+              label={color}
+              selected={color === value}
+              swatch={
                 <span
                   className="w-5 h-5 rounded-full border border-black/10 shrink-0"
                   style={{ background: colorSwatchStyle(color) }}
                 />
-                <span className="text-[15px] text-gray-900 truncate">{color}</span>
-                <span
-                  className={`ml-auto w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
-                    isSelected ? "bg-black border-black" : "border-gray-300"
-                  }`}
-                >
-                  {isSelected && <Check size={13} className="text-white oak-motion-pop" />}
-                </span>
-              </button>
-            );
-          })}
+              }
+              onToggle={() => pick(color)}
+            />
+          ))}
 
           {matches.length === 0 && !canCreate && (
             <p className="py-6 text-sm text-gray-400 text-center">No matches.</p>
           )}
         </div>
       </div>
-
-      {selected.length > 1 && (
-        <div className="shrink-0 px-4 py-3 border-t border-gray-100 bg-white">
-          <p className="text-xs text-gray-400">
-            {selected.length} colours — this becomes a Color option, so your product gets a variant
-            for each one.
-          </p>
-        </div>
-      )}
     </div>
   );
 }

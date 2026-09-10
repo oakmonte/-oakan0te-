@@ -32,3 +32,18 @@ the import resolves to `any` under `vite/client`'s module declaration, so `bun r
 refuses to preview or publish. Run `bun run build` after touching anything in this folder.
 
 Search ambiguity addressed: `Volleyball Shorts` is now a distinct category leaf mapped to the generic shorts guide. `Dolphin Shorts` remains a separate exact category and is not used as a volleyball alias.
+
+## Added 2026-09-10
+
+The following newly added assets were visually checked against their filenames before wiring:
+
+| Filename                  | Visual observation                                                                                                               | Decision                                                                                                                         |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `blouse guide.jpg`        | Camisole/tank silhouette, not a conventional blouse; its letter labels also repeat `a` for two different spans.                  | Not wired. Use the existing Tank Tops or Camisoles category only after confirming the intended garment and measurement contract. |
+| `Bodycon-dress guide.png` | One-piece long-sleeve garment with a possible trouser-leg/inseam construction; it may be a jumpsuit rather than a bodycon dress. | Not wired until the garment identity is confirmed; Bodycon Dresses remains on manual measurements.                               |
+| `Jumpsuit-guide.png`      | One-piece long-sleeve garment with full-body and leg measurements.                                                               | Mapped to Jumpsuits; verify against the Bodycon asset before removing either guide.                                              |
+| `swimsuit guide.jpg`      | Long-sleeve turtleneck top, not a swimsuit.                                                                                      | Used as the turtleneck artwork because the visual garment is clear; filename remains unchanged pending an explicit rename.       |
+| `turtle neck guide.png`   | Sleeveless tank top, not a turtleneck.                                                                                           | Not wired; do not use this image for turtleneck measurements.                                                                    |
+| `Mini-dress guide.png`    | Dress silhouette with long sleeves; the pictured hem may be longer than a typical mini dress.                                    | Mapped provisionally to Mini Dresses from the filename; review if the intended category is a general dress.                      |
+
+The remaining added guides were visually consistent with their names and are wired to matching categories: basketball jersey, cardigan, cargo pants, crop top, hoodie, jumpsuit, mini skirt, pleated skirt, puffer jacket, romper, short-sleeve shirt, sports shorts, sweater vest, sweatshirt, tank top, turtleneck, and varsity jacket. Bodycon Dresses and Swimsuit remain on manual measurements until their artwork is confirmed.

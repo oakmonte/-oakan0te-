@@ -180,6 +180,33 @@ function ProductsUpload() {
     }
   }
 
+  /** Starts a credential-based catalogue pull. Nothing is uploaded — the
+   *  token/key already lives in store_credentials and only the worker reads
+   *  it, so this just enqueues the job and hands the id to the same poller
+   *  the CSV path uses. */
+  async function startImport(platform: "shopify" | "bumpa-api") {
+    if (!storeId) {
+      setError("No store found on this account");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    try {
+      const res = await authedFetch("/api/import/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ storeId, platform }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Could not start the import");
+      setJob({ id: data.jobId, status: data.status ?? "pending", error: null, done: false });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not start the import");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function connectShopify() {
     if (!storeId) {
       setError("No store found on this account");
@@ -313,9 +340,16 @@ function ProductsUpload() {
                   >
                     Connect Shopify
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => startImport("shopify")}
+                    disabled={busy}
+                    className="mt-2 w-full border border-gray-200 rounded-lg py-2.5 text-sm font-medium text-gray-900 disabled:opacity-40 oak-motion-control"
+                  >
+                    Import my Shopify products
+                  </button>
                   <p className="text-[11px] text-gray-400 mt-1.5">
-                    Connecting links your account for later — it doesn't pull products in on its own
-                    yet. Use option 2 to actually bring your catalogue in today.
+                    Already connected? Tap import — no need to connect again.
                   </p>
                 </div>
                 <div className="border-t border-gray-100 pt-4">
@@ -382,9 +416,17 @@ function ProductsUpload() {
                   >
                     Connect Bumpa
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => startImport("bumpa-api")}
+                    disabled={busy}
+                    className="mt-2 w-full border border-gray-200 rounded-lg py-2.5 text-sm font-medium text-gray-900 disabled:opacity-40 oak-motion-control"
+                  >
+                    Import my Bumpa products
+                  </button>
                   {connectedNote === "bumpa" ? (
                     <p className="text-[11px] text-gray-500 mt-1.5 flex items-center gap-1">
-                      <Check size={12} /> Connected. Use option 2 to bring products in.
+                      <Check size={12} /> Connected. Tap import to bring products in.
                     </p>
                   ) : (
                     <p className="text-[11px] text-gray-400 mt-1.5">

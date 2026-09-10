@@ -1,9 +1,11 @@
 import { useRef, useState } from "react";
-import { Check, ChevronDown, Plus, X } from "lucide-react";
+import { Check, Plus } from "lucide-react";
+import { SystemMenu, ValueRow } from "./value-picker";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
 import type { VariantOption } from "./VariantMatrixBuilder";
-import { MATERIAL_PRESETS } from "@/lib/material-options";
+import { MATERIAL_SYSTEMS, DEFAULT_MATERIAL_SYSTEM } from "@/lib/material-options";
 import { COLOR_PRESETS, colorSwatchStyle, colorFamilyMembers } from "@/lib/color-options";
+import { fuzzyScore } from "@/lib/fuzzy-search";
 
 const PRESETS = ["Size", "Color", "Material", "Weight/Volume"] as const;
 
@@ -63,8 +65,25 @@ const UNIT_LABEL_PLURAL: Record<string, string> = {
 const OPTION_SYSTEMS: Record<string, Record<string, readonly string[]>> = {
   Size: SIZE_SYSTEMS,
   "Weight/Volume": WEIGHT_VOLUME_SYSTEMS,
+  Material: MATERIAL_SYSTEMS,
 };
-const DEFAULT_SYSTEM: Record<string, string> = { Size: "XXL", "Weight/Volume": "g" };
+const DEFAULT_SYSTEM: Record<string, string> = {
+  Size: "XXL",
+  "Weight/Volume": "g",
+  Material: DEFAULT_MATERIAL_SYSTEM,
+};
+
+// Options whose systems are mutually EXCLUSIVE: once a value is picked, every
+// other system is locked out, because they are competing notations for one
+// thing and mixing them produces nonsense ("S" alongside "UK 12", "250 g"
+// alongside "8 oz").
+//
+// Material is deliberately absent. Its genres are shelves in a single
+// vocabulary, not rival scales -- a tote really is sold in "Canvas or
+// Leather", and a beaded piece in "Brass or Pearl". Those cross two genres
+// and are ordinary products, so Material gets the switcher purely as a way to
+// browse 87 values without one endless scroll, and none of the locking.
+const EXCLUSIVE_SYSTEM_OPTIONS = new Set(["Size", "Weight/Volume"]);
 
 // Synthetic system a seller lands on the moment they type a free-text value —
 // shows just what they've picked, with none of the current unit's untouched
@@ -106,10 +125,10 @@ function unitKeyFromTypedValue(value: string): string | null {
 // else. Both lists live in their own modules (color-options.ts,
 // material-options.ts) because the Necessities checklist's own ColorSheet/
 // MaterialSheet reuse those exact lists — and a second export here, alongside
-// this file's component export, breaks Fast Refresh for it.
+// this file's component export, breaks Fast Refresh for it. Material is no
+// longer here at all: it went to OPTION_SYSTEMS above once it grew genres.
 const VALUE_PRESETS: Record<string, string[]> = {
   Color: COLOR_PRESETS,
-  Material: MATERIAL_PRESETS,
 };
 
 function ColorSwatch({ name }: { name: string }) {
@@ -224,9 +243,19 @@ export function OptionEditorSheet({
       // falls through to CUSTOM_SYSTEM here.
       {
         const typedUnit = unitKeyFromTypedValue(o.values[0]);
+        // CUSTOM_SYSTEM is only a valid landing spot for an option that can
+        // actually offer it -- systemKeys only includes it while locked, i.e.
+        // for the exclusive options. Seeding a non-exclusive one (Material)
+        // to "Custom" pinned it to a genre absent from its own menu, whose
+        // systemValues() is empty by definition: reopening a Material axis
+        // whose first value was free-typed showed a phantom "Custom" pill
+        // above an empty list, with no way back to any real genre.
+        const fallback = EXCLUSIVE_SYSTEM_OPTIONS.has(o.name)
+          ? CUSTOM_SYSTEM
+          : (DEFAULT_SYSTEM[o.name] ?? Object.keys(OPTION_SYSTEMS[o.name])[0]);
         seeded[o.name] =
           ownerSystemForOption(o.name, o.values[0]) ??
-          (typedUnit && OPTION_SYSTEMS[o.name][typedUnit] ? typedUnit : CUSTOM_SYSTEM);
+          (typedUnit && OPTION_SYSTEMS[o.name][typedUnit] ? typedUnit : fallback);
       }
     }
     return seeded;
@@ -247,8 +276,14 @@ export function OptionEditorSheet({
   const isWeightVolume = name === "Weight/Volume";
   const systems = OPTION_SYSTEMS[name];
   const hasChosen = values.length > 0;
+  // The "one system only" lock, and everything that follows from it. Applies
+  // to Size and Weight/Volume; never to Material, whose genres are browsing
+  // shelves rather than rival scales (see EXCLUSIVE_SYSTEM_OPTIONS).
+  const systemsLocked = hasChosen && EXCLUSIVE_SYSTEM_OPTIONS.has(name);
+  // Custom exists purely as the escape hatch FROM that lock, so an unlocked
+  // option has no use for it -- free text is already always allowed there.
   const systemKeys = systems
-    ? [...Object.keys(systems), ...(hasChosen ? [CUSTOM_SYSTEM] : [])]
+    ? [...Object.keys(systems), ...(systemsLocked ? [CUSTOM_SYSTEM] : [])]
     : [];
   const activeSystem = selectedSystems[name] ?? DEFAULT_SYSTEM[name] ?? systemKeys[0];
 
@@ -258,7 +293,12 @@ export function OptionEditorSheet({
   // "Navy"/"Sky" etc, on top of the plain substring check every other
   // option still uses.
   const colorFamilySet = isColorOption ? colorFamilyMembers(q) : null;
-  const matches = (v: string) => !q || v.toLowerCase().includes(q) || !!colorFamilySet?.has(v);
+  // Substring first (cheap, and the exact behaviour sellers already expect),
+  // then colour families, then a typo-tolerant pass so "chifon"/"polyster"
+  // still find their value here -- the same forgiveness MaterialSheet has, so
+  // the two pickers over the same vocabulary don't answer differently.
+  const matches = (v: string) =>
+    !q || v.toLowerCase().includes(q) || !!colorFamilySet?.has(v) || fuzzyScore(q, v) !== null;
 
   // Browsing stays scoped to the active unit; searching looks across every
   // unit at once so e.g. a size doesn't hide just because you're on "US" --
@@ -267,7 +307,7 @@ export function OptionEditorSheet({
   // reach across systems here would be the one remaining way to still slip a
   // cross-system value in despite the lock.
   const pool =
-    systems && hasChosen
+    systems && systemsLocked
       ? systemValues(name, activeSystem)
       : query
         ? allValues(name)
@@ -291,7 +331,7 @@ export function OptionEditorSheet({
   // silently relabel the whole option's system out from under its existing
   // picks, the same mixing this is meant to prevent.
   const canCreate =
-    !!query && !exactExists && (!systems || !hasChosen || activeSystem === CUSTOM_SYSTEM);
+    !!query && !exactExists && (!systems || !systemsLocked || activeSystem === CUSTOM_SYSTEM);
 
   // Every name that actually holds values — these are the options that will be
   // emitted, not just whichever one happens to be on screen when "Next" is hit.
@@ -344,7 +384,7 @@ export function OptionEditorSheet({
     { forceCustomSystem = false }: { forceCustomSystem?: boolean } = {},
   ) {
     if (values.includes(v)) return;
-    if (systems && values.length === 0) {
+    if (systems && values.length === 0 && EXCLUSIVE_SYSTEM_OPTIONS.has(name)) {
       if (forceCustomSystem) {
         setSelectedSystems((prev) => ({ ...prev, [name]: CUSTOM_SYSTEM }));
       } else {
@@ -539,10 +579,10 @@ export function OptionEditorSheet({
               <>
                 {systems && (
                   <div className="mb-3">
-                    <UnitSystemMenu
+                    <SystemMenu
                       activeSystem={activeSystem}
                       systemKeys={systemKeys}
-                      hasChosen={hasChosen}
+                      locked={systemsLocked}
                       open={systemMenuOpen}
                       onToggle={() => setSystemMenuOpen((v) => !v)}
                       onSelect={(key) => {
@@ -618,10 +658,10 @@ export function OptionEditorSheet({
                 />
                 {systems && (
                   <div className="mt-3">
-                    <UnitSystemMenu
+                    <SystemMenu
                       activeSystem={activeSystem}
                       systemKeys={systemKeys}
-                      hasChosen={hasChosen}
+                      locked={systemsLocked}
                       open={systemMenuOpen}
                       onToggle={() => setSystemMenuOpen((v) => !v)}
                       onSelect={(key) => {
@@ -703,122 +743,6 @@ export function OptionEditorSheet({
           </>
         )}
       </div>
-    </div>
-  );
-}
-
-// Extracted so it can render either before or after the value-entry input
-// (Weight/Volume wants it first, everything else wants it last) without
-// duplicating the ~35 lines of dropdown markup for each order.
-function UnitSystemMenu({
-  activeSystem,
-  systemKeys,
-  hasChosen,
-  open,
-  onToggle,
-  onSelect,
-}: {
-  activeSystem: string;
-  systemKeys: string[];
-  // Once true, every system but the active one is disabled rather than
-  // removed -- visibly still there, but blocked, so switching mid-pick can't
-  // silently mix values from two different genres into one option.
-  hasChosen: boolean;
-  open: boolean;
-  onToggle: () => void;
-  onSelect: (key: string) => void;
-}) {
-  return (
-    <div className="relative flex justify-end">
-      <button
-        type="button"
-        onClick={onToggle}
-        className="flex items-center gap-1 text-xs text-gray-500 border border-gray-200 rounded-full px-3 py-1.5"
-      >
-        {activeSystem}
-        <ChevronDown size={13} className="text-gray-400" />
-      </button>
-      {open && (
-        <>
-          <button
-            type="button"
-            aria-label="Close unit menu"
-            onClick={onToggle}
-            className="fixed inset-0 z-10 cursor-default"
-          />
-          <div className="absolute right-0 top-9 z-20 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden min-w-28">
-            {systemKeys.map((key) => {
-              const disabled = hasChosen && key !== activeSystem;
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  disabled={disabled}
-                  onClick={() => onSelect(key)}
-                  className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 text-sm text-left ${
-                    key === activeSystem
-                      ? "text-gray-900 font-medium"
-                      : disabled
-                        ? "text-gray-300"
-                        : "text-gray-600"
-                  }`}
-                >
-                  {key}
-                  {key === activeSystem && <Check size={14} />}
-                </button>
-              );
-            })}
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-function ValueRow({
-  label,
-  selected,
-  swatch,
-  onToggle,
-  onRemove,
-}: {
-  label: string;
-  selected: boolean;
-  swatch: React.ReactNode;
-  onToggle: () => void;
-  onRemove?: () => void;
-}) {
-  return (
-    <div
-      className={`flex items-center rounded-xl border ${
-        selected ? "border-black bg-gray-50" : "border-gray-200 bg-white"
-      }`}
-    >
-      <button
-        type="button"
-        onClick={onToggle}
-        className="flex-1 flex items-center gap-3 px-4 py-3.5 text-left min-w-0"
-      >
-        {swatch}
-        <span className="text-[15px] text-gray-900 truncate">{label}</span>
-        <span
-          className={`ml-auto w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
-            selected ? "bg-black border-black" : "border-gray-300"
-          }`}
-        >
-          {selected && <Check size={13} className="text-white" />}
-        </span>
-      </button>
-      {onRemove && (
-        <button
-          type="button"
-          onClick={onRemove}
-          aria-label={`Remove ${label}`}
-          className="px-3 py-3.5 text-gray-300"
-        >
-          <X size={16} />
-        </button>
-      )}
     </div>
   );
 }

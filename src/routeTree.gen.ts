@@ -77,6 +77,7 @@ import { Route as ApiProductsUploadImageRouteImport } from './routes/api.product
 import { Route as ApiInstagramConnectRouteImport } from './routes/api.instagram.connect'
 import { Route as ApiInstagramCallbackRouteImport } from './routes/api.instagram.callback'
 import { Route as ApiImportStatusRouteImport } from './routes/api.import.status'
+import { Route as ApiImportStartRouteImport } from './routes/api.import.start'
 import { Route as ApiImportCsvRouteImport } from './routes/api.import.csv'
 import { Route as ApiBumpaConnectRouteImport } from './routes/api.bumpa.connect'
 import { Route as ApiAccountDeleteRouteImport } from './routes/api.account.delete'
@@ -423,6 +424,11 @@ const ApiImportStatusRoute = ApiImportStatusRouteImport.update({
   path: '/api/import/status',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiImportStartRoute = ApiImportStartRouteImport.update({
+  id: '/api/import/start',
+  path: '/api/import/start',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiImportCsvRoute = ApiImportCsvRouteImport.update({
   id: '/api/import/csv',
   path: '/api/import/csv',
@@ -490,6 +496,7 @@ export interface FileRoutesByFullPath {
   '/api/account/delete': typeof ApiAccountDeleteRoute
   '/api/bumpa/connect': typeof ApiBumpaConnectRoute
   '/api/import/csv': typeof ApiImportCsvRoute
+  '/api/import/start': typeof ApiImportStartRoute
   '/api/import/status': typeof ApiImportStatusRoute
   '/api/instagram/callback': typeof ApiInstagramCallbackRoute
   '/api/instagram/connect': typeof ApiInstagramConnectRoute
@@ -560,6 +567,7 @@ export interface FileRoutesByTo {
   '/api/account/delete': typeof ApiAccountDeleteRoute
   '/api/bumpa/connect': typeof ApiBumpaConnectRoute
   '/api/import/csv': typeof ApiImportCsvRoute
+  '/api/import/start': typeof ApiImportStartRoute
   '/api/import/status': typeof ApiImportStatusRoute
   '/api/instagram/callback': typeof ApiInstagramCallbackRoute
   '/api/instagram/connect': typeof ApiInstagramConnectRoute
@@ -634,6 +642,7 @@ export interface FileRoutesById {
   '/api/account/delete': typeof ApiAccountDeleteRoute
   '/api/bumpa/connect': typeof ApiBumpaConnectRoute
   '/api/import/csv': typeof ApiImportCsvRoute
+  '/api/import/start': typeof ApiImportStartRoute
   '/api/import/status': typeof ApiImportStatusRoute
   '/api/instagram/callback': typeof ApiInstagramCallbackRoute
   '/api/instagram/connect': typeof ApiInstagramConnectRoute
@@ -709,6 +718,7 @@ export interface FileRouteTypes {
     | '/api/account/delete'
     | '/api/bumpa/connect'
     | '/api/import/csv'
+    | '/api/import/start'
     | '/api/import/status'
     | '/api/instagram/callback'
     | '/api/instagram/connect'
@@ -779,6 +789,7 @@ export interface FileRouteTypes {
     | '/api/account/delete'
     | '/api/bumpa/connect'
     | '/api/import/csv'
+    | '/api/import/start'
     | '/api/import/status'
     | '/api/instagram/callback'
     | '/api/instagram/connect'
@@ -852,6 +863,7 @@ export interface FileRouteTypes {
     | '/api/account/delete'
     | '/api/bumpa/connect'
     | '/api/import/csv'
+    | '/api/import/start'
     | '/api/import/status'
     | '/api/instagram/callback'
     | '/api/instagram/connect'
@@ -911,6 +923,7 @@ export interface RootRouteChildren {
   ApiAccountDeleteRoute: typeof ApiAccountDeleteRoute
   ApiBumpaConnectRoute: typeof ApiBumpaConnectRoute
   ApiImportCsvRoute: typeof ApiImportCsvRoute
+  ApiImportStartRoute: typeof ApiImportStartRoute
   ApiImportStatusRoute: typeof ApiImportStatusRoute
   ApiInstagramCallbackRoute: typeof ApiInstagramCallbackRoute
   ApiInstagramConnectRoute: typeof ApiInstagramConnectRoute
@@ -1401,6 +1414,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiImportStatusRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/import/start': {
+      id: '/api/import/start'
+      path: '/api/import/start'
+      fullPath: '/api/import/start'
+      preLoaderRoute: typeof ApiImportStartRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/import/csv': {
       id: '/api/import/csv'
       path: '/api/import/csv'
@@ -1540,6 +1560,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAccountDeleteRoute: ApiAccountDeleteRoute,
   ApiBumpaConnectRoute: ApiBumpaConnectRoute,
   ApiImportCsvRoute: ApiImportCsvRoute,
+  ApiImportStartRoute: ApiImportStartRoute,
   ApiImportStatusRoute: ApiImportStatusRoute,
   ApiInstagramCallbackRoute: ApiInstagramCallbackRoute,
   ApiInstagramConnectRoute: ApiInstagramConnectRoute,

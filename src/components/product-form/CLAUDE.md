@@ -117,14 +117,21 @@ Two traps this cost real bugs to learn:
   material, an unestimable material) into the same blank space. If you add a bail-out branch, give it
   a reason string written for a seller to read, and add a case to `weight-estimate.test.ts` — the
   strings tell people which thing to go and fix, so a wrong branch sends them to the wrong screen.
-- **Shapes with no area formula**: corsets and bodysuits. `REQUIRED_MEASUREMENTS` is the source of
-  truth — a guide absent from it reports "we can't estimate this shape yet" rather than guessing.
-  `standard-tshirt`/`activewear-tshirt`/`polo-alt`/`overshirt` are aliases of shapes that already had
-  formulas, not new ones; `standard-tshirt` is what the main T-Shirts category maps to, so leaving it
-  out meant the single most common product in the catalogue could never be estimated.
+- **Shapes with no area formula**: only `turtle-neck`, because its chart measures neck height, cuff
+  and hem but no `body_length`, so there is nothing to size the panels from. `REQUIRED_MEASUREMENTS`
+  in `weight-estimate.ts` is the source of truth, and a test (`weight-estimate.test.ts`) asserts every
+  guide in `ALL_SIZE_CHARTS` either has a formula or is on that documented exception list. That guard
+  exists because the 2026-09-10 artwork batch added 19 guides with trim multipliers and images but no
+  formula — typecheck, lint and build all stayed green while roughly half the catalogue (hoodies, tank
+  tops, cargo pants, skirts) silently told sellers "we can't estimate this shape".
 - **Color and Material can already be answered as real variant option axes**, and that editor is the
   richer one. Those rows report ("already set from your variant options") instead of opening a second
-  screen over the same values — `openedFromVariants` in `NecessitiesSheet.tsx`.
+  screen over the same values — `ownedByVariantEditor` in `NecessitiesSheet.tsx`. Its threshold is
+  **per param, and must stay that way**: Color is owned at 2+ axis values, Material at 1+. `ColorSheet`
+  writes the Color axis itself (exactly one value), so a one-value axis is its own output — gating it
+  at 1 meant a seller who set a colour from the checklist could never change it, and was told to edit
+  it in variant options they had never opened. `MaterialSheet` writes per-row `material` and never the
+  axis, so any Material axis is someone else's data and reopening would leave axis and rows disagreeing.
 
 Colour and material vocabularies live in `lib/color-options.ts` / `lib/material-options.ts`, not in
 `OptionEditorSheet.tsx`, so the Necessities pickers share the exact lists the variant editor uses. They
@@ -141,6 +148,46 @@ Preset search goes through `lib/fuzzy-search.ts` (`fuzzyFilter`), not `includes`
 spelling the GSM table won't recognise. Its typo budget is capped at 2 edits and is zero under four
 characters; both limits exist because a looser version matched "vibranium" to "Titanium" and "red" to
 "Bed". Reuse it for any other preset list rather than hand-rolling a filter.
+
+## One colour, one material — from the checklist
+
+`ColorSheet` and `MaterialSheet` each pick exactly **one** value. Reaching either means the seller did
+not build that axis in the variant editor, so the assumption is that every variant shares the answer:
+these screens ask "what colour/fabric is it", not "which do you sell". `ColorSheet` used to be
+multi-select with a footer warning, which meant a checklist row could silently turn a size-only
+product into a size x colour matrix — a much bigger decision than that row looks like. A seller who
+genuinely sells several adds the axis in the variant editor, the screen that shows what it costs.
+
+Tapping the chosen row again clears it. For Color that is the only way to undo, since `saveColors([])`
+removing the axis is what keeps a one-value Color axis off a product that never wanted one.
+
+## One picker, two screens
+
+`value-picker.tsx` owns the two building blocks every value list in this form is made of: `SystemMenu`
+(the genre/unit pill) and `ValueRow` (the full-width selectable row). `OptionEditorSheet` and the
+Necessities `MaterialSheet` both render them, because they ask the same question over the same
+vocabulary from two entry points. MaterialSheet briefly had its own wrapping-chip layout instead, and
+it read as a different feature over a different list — if you need the picker somewhere else, import
+these rather than restyling a copy.
+
+**Material is a systemed option, but its systems do not lock.** `OPTION_SYSTEMS` now carries
+`Material: MATERIAL_SYSTEMS` (the five genres), so it gets the same switcher Size and Weight/Volume
+have. It is deliberately absent from `EXCLUSIVE_SYSTEM_OPTIONS`, which is what gates the locking —
+once a value is picked, an exclusive option disables every other system, forbids free text outside
+`Custom`, and confines search to the active system. That is right for Size and Weight/Volume, where
+the systems are rival notations for one thing and "S" alongside "UK 12" is nonsense. It is wrong for
+Material, whose genres are shelves in one vocabulary: "Canvas or Leather" and "Brass or Pearl" are
+ordinary products that straddle two genres. So Material's switcher is a browsing aid only — browse
+inside a genre, search across all of them, free-type anything, any time.
+
+Two traps that follow from that split, both already paid for:
+
+- `CUSTOM_SYSTEM` only appears in `systemKeys` while locked, so it is not a valid landing spot for a
+  non-exclusive option. The `selectedSystems` seeding has to fall back to the option's default genre
+  instead — seeding Material to `"Custom"` pins it to a genre missing from its own menu, whose
+  `systemValues()` is empty by definition, and reopening showed a phantom pill above an empty list.
+- Anything new gated on "has the seller picked a value yet" must use `systemsLocked`, not `hasChosen`.
+  They were the same expression until Material arrived and they stopped being.
 
 **The picker's spellings are load-bearing.** `guessGsmForMaterial` matches by substring, so a preset
 must literally contain its GSM keyword — "Pique", never "Piqué"; "Cotton rib", not "Rib knit". Get it

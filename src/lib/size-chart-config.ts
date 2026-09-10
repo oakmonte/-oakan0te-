@@ -33,12 +33,24 @@ export type SizeChartDefinition = {
     | "activewear-tshirt"
     | "standard-tshirt"
     | "polo-alt"
-    | "clothing-corset"
-    | "clothing-bodysuit"
-    | "overshirt"
     | "sweatshirt"
-    | "lingerie-corset"
-    | "lingerie-bodysuit";
+    | "basketball-jersey"
+    | "cardigan"
+    | "cargo-pants"
+    | "crop-top"
+    | "hoodie"
+    | "jumpsuit"
+    | "mini-dress"
+    | "mini-skirt"
+    | "pleated-skirt"
+    | "puffer-jacket"
+    | "romper"
+    | "short-sleeve-shirt"
+    | "sports-shorts"
+    | "sweater-vest"
+    | "tank-top"
+    | "turtle-neck"
+    | "varsity-jacket";
   lines: SizeChartLine[];
 };
 
@@ -164,29 +176,136 @@ function topChart(id: string, guide: SizeChartDefinition["guide"]): SizeChartDef
 const ACTIVEWEAR_TSHIRT = topChart("activewear-tshirt", "activewear-tshirt");
 const STANDARD_TSHIRT = topChart("standard-tshirt", "standard-tshirt");
 const POLO_ALT = topChart("polo-alt", "polo-alt");
-const CLOTHING_BODYSUIT = topChart("clothing-bodysuit", "clothing-bodysuit");
-const OVERSHIRT = topChart("overshirt", "overshirt");
-const SWEATSHIRT = topChart("sweatshirt", "sweatshirt");
-const LINGERIE_BODYSUIT = topChart("lingerie-bodysuit", "lingerie-bodysuit");
 
-const CORSET_LINES: SizeChartLine[] = [
-  { key: "bust_width", label: "a" },
-  { key: "waist_width", label: "b" },
-  { key: "body_length", label: "c" },
-  { key: "side_length", label: "d" },
-  { key: "center_front_length", label: "e" },
-];
+function letteredChart(
+  id: string,
+  guide: SizeChartDefinition["guide"],
+  keys: string[],
+): SizeChartDefinition {
+  return {
+    id,
+    guide,
+    lines: keys.map((key, index) => ({ key, label: String.fromCharCode(97 + index) })),
+  };
+}
 
-const CLOTHING_CORSET: SizeChartDefinition = {
-  id: "clothing-corset",
-  guide: "clothing-corset",
-  lines: CORSET_LINES,
-};
-const LINGERIE_CORSET: SizeChartDefinition = {
-  id: "lingerie-corset",
-  guide: "lingerie-corset",
-  lines: CORSET_LINES,
-};
+const BASKETBALL_JERSEY = letteredChart("basketball-jersey", "basketball-jersey", [
+  "body_length",
+  "chest_width",
+  "shoulder_width",
+  "sleeve_length",
+]);
+const CARDIGAN = letteredChart("cardigan", "cardigan", [
+  "body_length",
+  "chest_width",
+  "shoulder_width",
+  "sleeve_length",
+  "armhole_depth",
+]);
+const CARGO_PANTS = letteredChart("cargo-pants", "cargo-pants", [
+  "waist_width",
+  "hip_width",
+  "inseam_length",
+  "outseam_length",
+  "leg_opening",
+]);
+const CROP_TOP = letteredChart("crop-top", "crop-top", [
+  "body_length",
+  "chest_width",
+  "shoulder_width",
+  "sleeve_length",
+]);
+const HOODIE = letteredChart("hoodie", "hoodie", [
+  "body_length",
+  "chest_width",
+  "shoulder_width",
+  "sleeve_length",
+]);
+const JUMPSUIT = letteredChart("jumpsuit", "jumpsuit", [
+  "body_length",
+  "chest_width",
+  "waist_width",
+  "hip_width",
+  "inseam_length",
+  "sleeve_length",
+]);
+const MINI_DRESS = letteredChart("mini-dress", "mini-dress", [
+  "body_length",
+  "chest_width",
+  "waist_width",
+  "hip_width",
+  "sleeve_length",
+]);
+const MINI_SKIRT = letteredChart("mini-skirt", "mini-skirt", [
+  "waist_width",
+  "hip_width",
+  "length",
+  "hem_width",
+]);
+const PLEATED_SKIRT = letteredChart("pleated-skirt", "pleated-skirt", [
+  "waist_width",
+  "hip_width",
+  "length",
+  "hem_width",
+]);
+const PUFFER_JACKET = letteredChart("puffer-jacket", "puffer-jacket", [
+  "body_length",
+  "chest_width",
+  "shoulder_width",
+  "sleeve_length",
+]);
+const ROMPER = letteredChart("romper", "romper", [
+  "body_length",
+  "chest_width",
+  "waist_width",
+  "hip_width",
+  "inseam_length",
+]);
+const SHORT_SLEEVE_SHIRT = letteredChart("short-sleeve-shirt", "short-sleeve-shirt", [
+  "body_length",
+  "chest_width",
+  "shoulder_width",
+  "sleeve_length",
+]);
+const SPORTS_SHORTS = letteredChart("sports-shorts", "sports-shorts", [
+  "waist_width",
+  "hip_width",
+  "length",
+  "leg_opening",
+]);
+const SWEATER_VEST = letteredChart("sweater-vest", "sweater-vest", [
+  "shoulder_width",
+  "body_length",
+  "chest_width",
+  "hem_width",
+  "armhole_depth",
+]);
+const NEW_SWEATSHIRT = letteredChart("sweatshirt", "sweatshirt", [
+  "body_length",
+  "chest_width",
+  "shoulder_width",
+  "sleeve_length",
+]);
+const TANK_TOP = letteredChart("tank-top", "tank-top", [
+  "body_length",
+  "chest_width",
+  "shoulder_width",
+]);
+const TURTLE_NECK = letteredChart("turtle-neck", "turtle-neck", [
+  "shoulder_width",
+  "chest_width",
+  "neck_height",
+  "sleeve_length",
+  "cuff_width",
+  "hem_width",
+  "body_length",
+]);
+const VARSITY_JACKET = letteredChart("varsity-jacket", "varsity-jacket", [
+  "body_length",
+  "chest_width",
+  "shoulder_width",
+  "sleeve_length",
+]);
 
 // Every category node id (at any depth in the path) that should get a chart.
 // A guide is reused wherever its illustration fairly represents the garment,
@@ -221,7 +340,6 @@ const CHARTS_BY_CATEGORY: Record<string, SizeChartDefinition> = {
   "baggy-corporate-trousers": BAGGY_CORPORATE_TROUSERS,
   "pants-trousers": BAGGY_CORPORATE_TROUSERS,
   "pants-chinos": BAGGY_CORPORATE_TROUSERS,
-  "cargo-pants": BAGGY_CORPORATE_TROUSERS,
   "palazzo-pants": BAGGY_CORPORATE_TROUSERS,
   "harem-pants": BAGGY_CORPORATE_TROUSERS,
   "baggy-jeans": BAGGY_JEANS,
@@ -244,18 +362,40 @@ const CHARTS_BY_CATEGORY: Record<string, SizeChartDefinition> = {
   "bum-shorts": BUM_SHORTS,
   "jegging-shorts": BUM_SHORTS,
   "denim-bum-shorts": DENIM_BUM_SHORTS,
-  "corset-tops": CLOTHING_CORSET,
-  "clothing-tops-bodysuits": CLOTHING_BODYSUIT,
-  "clothing-tops-overshirts": OVERSHIRT,
-  "clothing-tops-sweatshirts": SWEATSHIRT,
-  "corsets-bustiers": LINGERIE_CORSET,
-  "lingerie-bodysuits": LINGERIE_BODYSUIT,
+  "clothing-tops-sweatshirts": NEW_SWEATSHIRT,
   "volleyball-shorts": SHORTS,
+  "basketball-jerseys": BASKETBALL_JERSEY,
+  "clothing-tops-cardigans": CARDIGAN,
+  "cargo-pants": CARGO_PANTS,
+  "crop-tops": CROP_TOP,
+  "clothing-tops-hoodies": HOODIE,
+  jumpsuits: JUMPSUIT,
+  "costume-onesies-jumpsuits": JUMPSUIT,
+  "mini-dresses": MINI_DRESS,
+  "mini-skirts": MINI_SKIRT,
+  "pleated-skirts": PLEATED_SKIRT,
+  "coats-jackets-puffer-jackets": PUFFER_JACKET,
+  rompers: ROMPER,
+  "short-sleeve-shirts": SHORT_SLEEVE_SHIRT,
+  "sports-shorts": SPORTS_SHORTS,
+  "outerwear-vests": SWEATER_VEST,
+  "clothing-tops-tank-tops": TANK_TOP,
+  "turtle-necks": TURTLE_NECK,
+  "varsity-jackets": VARSITY_JACKET,
 };
 
 // Only categories explicitly mapped above get a guide. Adding a new guide is
 // intentionally data-only: add the definition, map its category ids here,
 // and add its image to SizeChartSheet's GUIDE_IMAGES map.
+/** Every chart the app can actually show, deduplicated — several categories
+ *  share one definition. Exported so a test can assert that each shape either
+ *  has a weight formula or is a documented exception; an artwork batch that
+ *  adds a guide without one otherwise passes every gate and silently reports
+ *  "we can't estimate this shape" to sellers. */
+export const ALL_SIZE_CHARTS: SizeChartDefinition[] = [
+  ...new Map(Object.values(CHARTS_BY_CATEGORY).map((c) => [c.guide, c])).values(),
+];
+
 export function getSizeChartForCategory(categoryPath: CategoryNode[]): SizeChartDefinition | null {
   for (const node of categoryPath) {
     const chart = CHARTS_BY_CATEGORY[node.id];

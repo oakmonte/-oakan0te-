@@ -134,3 +134,18 @@ export const MATERIAL_GROUPS: MaterialGroup[] = [
 ];
 
 export const MATERIAL_PRESETS: string[] = MATERIAL_GROUPS.flatMap((g) => g.materials);
+
+// The same groups, shaped like SIZE_SYSTEMS / WEIGHT_VOLUME_SYSTEMS so the
+// variant option editor can browse materials by genre with the switcher it
+// already has, instead of one 87-item scroll.
+//
+// Unlike those two, these genres are NOT mutually exclusive — see
+// EXCLUSIVE_SYSTEM_OPTIONS in OptionEditorSheet.tsx. US and UK sizes are two
+// notations for one ladder, so mixing them in a single axis is meaningless;
+// material genres are just shelves in one vocabulary, and "Canvas or Leather"
+// is an ordinary real product.
+export const MATERIAL_SYSTEMS: Record<string, readonly string[]> = Object.fromEntries(
+  MATERIAL_GROUPS.map((g) => [g.label, g.materials]),
+);
+
+export const DEFAULT_MATERIAL_SYSTEM = MATERIAL_GROUPS[0].label;

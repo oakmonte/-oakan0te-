@@ -24,6 +24,7 @@ const APPAREL_ACCESSORIES: CategoryNode = {
                 { id: "joggers", name: "Joggers" },
                 { id: "leggings", name: "Leggings" },
                 { id: "shorts", name: "Shorts" },
+                { id: "sports-shorts", name: "Sports Shorts" },
                 { id: "sweatpants", name: "Sweatpants" },
                 { id: "tights", name: "Tights" },
                 { id: "track-pants", name: "Track Pants" },
@@ -251,6 +252,7 @@ const APPAREL_ACCESSORIES: CategoryNode = {
               children: [
                 { id: "dress-shirts", name: "Dress Shirts" },
                 { id: "henley-shirts", name: "Henley Shirts" },
+                { id: "short-sleeve-shirts", name: "Short-Sleeve Shirts" },
               ],
             },
             { id: "clothing-tops-sweaters", name: "Sweaters" },
@@ -258,9 +260,19 @@ const APPAREL_ACCESSORIES: CategoryNode = {
             { id: "clothing-tops-t-shirts", name: "T-Shirts" },
             { id: "clothing-tops-tank-tops", name: "Tank Tops" },
             { id: "clothing-tops-tunics", name: "Tunics" },
+            { id: "turtle-necks", name: "Turtlenecks" },
           ],
         },
-        { id: "dresses", name: "Dresses" },
+        {
+          id: "dresses",
+          name: "Dresses",
+          children: [
+            { id: "bodycon-dresses", name: "Bodycon Dresses" },
+            { id: "mini-dresses", name: "Mini Dresses" },
+          ],
+        },
+        { id: "jumpsuits", name: "Jumpsuits" },
+        { id: "rompers", name: "Rompers" },
         {
           id: "lingerie",
           name: "Lingerie",
@@ -538,7 +550,14 @@ const APPAREL_ACCESSORIES: CategoryNode = {
             { id: "volleyball-shorts", name: "Volleyball Shorts" },
           ],
         },
-        { id: "clothing-skirts", name: "Skirts" },
+        {
+          id: "clothing-skirts",
+          name: "Skirts",
+          children: [
+            { id: "mini-skirts", name: "Mini Skirts" },
+            { id: "pleated-skirts", name: "Pleated Skirts" },
+          ],
+        },
         { id: "clothing-skorts", name: "Skorts" },
         {
           id: "sleepwear-loungewear",

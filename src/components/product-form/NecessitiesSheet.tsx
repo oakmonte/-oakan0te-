@@ -79,7 +79,7 @@ export function NecessitiesSheet({
   const [materialSheetOpen, setMaterialSheetOpen] = useState(false);
   const [colorSheetOpen, setColorSheetOpen] = useState(false);
   // Shown instead of opening a picker for a param the variant editor already
-  // answered -- see openedFromVariants below. Carries a timestamp so tapping
+  // answered -- see ownedByVariantEditor below. Carries a timestamp so tapping
   // the same row twice restarts both the auto-dismiss and the slide-in.
   const [note, setNote] = useState<{ text: string; at: number } | null>(null);
   useEffect(() => {
@@ -94,12 +94,26 @@ export function NecessitiesSheet({
   const sizeChart = getSizeChartForCategory(categoryPath);
   const variantSizeValues = findOption(options, "Size")?.values ?? [];
 
-  // A param the seller already answered as a real variant option axis. That
-  // editor is the richer of the two (swatches, systems, per-value ordering),
-  // and a second screen writing the same values is a way to silently clobber
-  // them -- so these rows report rather than reopen.
-  function openedFromVariants(param: string): boolean {
-    return (findOption(options, param)?.values.length ?? 0) > 0;
+  // Whether the variant editor -- the richer of the two screens (swatches,
+  // systems, per-value ordering) -- owns this param's answer, in which case
+  // the checklist row reports instead of opening a second editor that could
+  // silently clobber it.
+  //
+  // The threshold differs by param because they write to different places:
+  //
+  //   Color    ColorSheet writes the axis ITSELF, and writes exactly one
+  //            value. So a 0- or 1-value axis is its own output and must stay
+  //            editable here -- gating on "any axis at all" meant a seller
+  //            who picked a colour from this checklist could never change it
+  //            again, and got told to go edit it in variant options they
+  //            never opened. Two or more values can only have come from the
+  //            variant editor, and that is a real colour axis it owns.
+  //   Material MaterialSheet writes per-row `material`, never the axis. So
+  //            any Material axis at all is someone else's data, and reopening
+  //            over it would leave the axis and the rows disagreeing.
+  function ownedByVariantEditor(param: NecessityParam): boolean {
+    const count = findOption(options, param)?.values.length ?? 0;
+    return param === "Color" ? count > 1 : count > 0;
   }
 
   const variantColors = findOption(options, "Color")?.values ?? [];
@@ -120,7 +134,7 @@ export function NecessitiesSheet({
   // axis, which would relabel every variant and multiply the matrix for what
   // is usually a single answer. A seller who genuinely sells the same piece
   // in two fabrics still adds Material as a real axis in the variant editor,
-  // and that wins (openedFromVariants sends them there instead of here).
+  // and that wins (ownedByVariantEditor sends them there instead of here).
   const rowMaterials = new Set(rows.filter((r) => r.selected).map((r) => r.material?.trim() ?? ""));
   const sharedRowMaterial = rowMaterials.size === 1 ? [...rowMaterials][0] : "";
 
@@ -138,7 +152,7 @@ export function NecessitiesSheet({
     if (
       kind === "variant" &&
       (param === "Color" || param === "Material") &&
-      openedFromVariants(param)
+      ownedByVariantEditor(param)
     ) {
       showNote(`${param} is already set from your variant options — edit it there to change it.`);
       return;
@@ -219,7 +233,7 @@ export function NecessitiesSheet({
             // variant option axis, in which case this row reports that
             // instead of opening a second editor over the same values.
             const fromVariants =
-              kind === "variant" && (p === "Color" || p === "Material") && openedFromVariants(p);
+              kind === "variant" && (p === "Color" || p === "Material") && ownedByVariantEditor(p);
             const subtitle = fromVariants
               ? "Set in your variant options"
               : p === "Weight" && kind === "variant"

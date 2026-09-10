@@ -1,6 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, CircleHelp, Plus, Search, Send, UserRound } from "lucide-react";
+import {
+  ArrowLeft,
+  CalendarDays,
+  CircleHelp,
+  CircleDollarSign,
+  Flag,
+  Inbox,
+  Plus,
+  Search,
+  Send,
+  ShoppingCart,
+  Tag,
+  UserRound,
+} from "lucide-react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import logoAsset from "@/assets/oakmonte-o-mark.png.asset.json";
 import { supabase } from "@/lib/integrations/my-supabase/client";
@@ -20,6 +33,17 @@ const TABS: { key: Tab; label: string }[] = [
   { key: "messages", label: "Messages" },
   { key: "orders", label: "Orders" },
 ];
+
+const MESSAGE_FILTERS = [
+  { label: "Unread", icon: Inbox },
+  { label: "Unanswered", icon: CircleHelp },
+  { label: "Flagged", icon: Flag },
+  { label: "Booked", icon: CalendarDays },
+  { label: "Ordered", icon: ShoppingCart },
+  { label: "Paid", icon: CircleDollarSign },
+  { label: "Dispatched", icon: Inbox },
+  { label: "Lead", icon: Tag },
+] as const;
 
 // Keep this as an array so real stories can be appended without changing the UI shape.
 const STORIES = [{ id: "your-story", name: "Your story" }];
@@ -151,6 +175,7 @@ function MessagesPage() {
   const [ownUsername, setOwnUsername] = useState<string | undefined>(undefined);
   const [tab, setTab] = useState<Tab>("messages");
   const [storyNotice, setStoryNotice] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
   const [selectedContactId, setSelectedContactId] = useState<ContactId | null>(null);
   const [draft, setDraft] = useState("");
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
@@ -278,11 +303,11 @@ function MessagesPage() {
   };
 
   const handleTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
-    if (!chatOpen) touchStartX.current = event.touches[0]?.clientX ?? null;
+    if (!chatOpen && !filterOpen) touchStartX.current = event.touches[0]?.clientX ?? null;
   };
 
   const handleTouchEnd = (event: React.TouchEvent<HTMLDivElement>) => {
-    if (chatOpen || touchStartX.current === null) return;
+    if (chatOpen || filterOpen || touchStartX.current === null) return;
 
     const distance = event.changedTouches[0]?.clientX - touchStartX.current;
     touchStartX.current = null;
@@ -312,12 +337,19 @@ function MessagesPage() {
             Inbox
           </button>
         ) : (
-          <button
-            aria-label="Search conversations"
-            className="rounded-full border border-white/10 p-2 text-white/70 transition-colors hover:bg-white/10"
-          >
-            <Search size={20} />
-          </button>
+          <div className="flex w-full items-center gap-3 pt-1">
+            <div className="flex h-12 min-w-0 flex-1 items-center gap-3 rounded-xl bg-[#25282e] px-4 text-white/65">
+              <Search size={22} strokeWidth={2} />
+              <span className="text-[18px]">Search</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setFilterOpen(true)}
+              className="shrink-0 px-1 text-[17px] font-semibold text-[#7596ff]"
+            >
+              Filter
+            </button>
+          </div>
         )}
       </div>
 
@@ -375,7 +407,7 @@ function MessagesPage() {
                     key={contact.id}
                     type="button"
                     onClick={() => openContact(contact.id)}
-                    className="group flex w-full items-center gap-4 px-6 py-3.5 text-left transition-colors hover:bg-white/[0.04] active:bg-white/[0.08]"
+                    className="group flex w-full items-center gap-4 px-5 py-3.5 text-left transition-colors hover:bg-white/[0.04] active:bg-white/[0.08]"
                   >
                     <div className="scale-[1.08]">
                       <ContactAvatar contact={contact} />
@@ -452,6 +484,51 @@ function MessagesPage() {
               <Send size={17} />
             </button>
           </form>
+        </div>
+      )}
+
+      {filterOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-end bg-black/65"
+          role="presentation"
+          onClick={() => setFilterOpen(false)}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="message-filter-title"
+            className="w-full rounded-t-[34px] border-t border-white/10 bg-[#1a1d22] px-5 pb-10 pt-4 text-white shadow-2xl"
+            style={{ animation: "messages-sheet-rise 280ms ease-out both" }}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="mx-auto mb-3 h-1 w-12 rounded-full bg-white/55" />
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="w-16" />
+              <h2 id="message-filter-title" className="text-[22px] font-bold">
+                Filter
+              </h2>
+              <button
+                type="button"
+                onClick={() => setFilterOpen(false)}
+                className="w-16 text-right text-[18px] font-semibold"
+              >
+                Clear
+              </button>
+            </div>
+            <div className="pt-1">
+              {MESSAGE_FILTERS.map(({ label, icon: Icon }) => (
+                <button
+                  key={label}
+                  type="button"
+                  className="flex w-full items-center gap-4 py-3.5 text-left text-[20px] font-medium"
+                >
+                  <Icon size={27} strokeWidth={1.8} />
+                  <span className="flex-1">{label}</span>
+                  <span className="h-8 w-8 rounded-full border-2 border-white/65" />
+                </button>
+              ))}
+            </div>
+          </section>
         </div>
       )}
 
