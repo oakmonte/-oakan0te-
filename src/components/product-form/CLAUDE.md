@@ -117,11 +117,13 @@ Two traps this cost real bugs to learn:
   material, an unestimable material) into the same blank space. If you add a bail-out branch, give it
   a reason string written for a seller to read, and add a case to `weight-estimate.test.ts` — the
   strings tell people which thing to go and fix, so a wrong branch sends them to the wrong screen.
-- **Shapes with no area formula**: corsets and bodysuits. `REQUIRED_MEASUREMENTS` is the source of
-  truth — a guide absent from it reports "we can't estimate this shape yet" rather than guessing.
-  `standard-tshirt`/`activewear-tshirt`/`polo-alt`/`overshirt` are aliases of shapes that already had
-  formulas, not new ones; `standard-tshirt` is what the main T-Shirts category maps to, so leaving it
-  out meant the single most common product in the catalogue could never be estimated.
+- **Shapes with no area formula**: only `turtle-neck`, because its chart measures neck height, cuff
+  and hem but no `body_length`, so there is nothing to size the panels from. `REQUIRED_MEASUREMENTS`
+  in `weight-estimate.ts` is the source of truth, and a test (`weight-estimate.test.ts`) asserts every
+  guide in `ALL_SIZE_CHARTS` either has a formula or is on that documented exception list. That guard
+  exists because the 2026-09-10 artwork batch added 19 guides with trim multipliers and images but no
+  formula — typecheck, lint and build all stayed green while roughly half the catalogue (hoodies, tank
+  tops, cargo pants, skirts) silently told sellers "we can't estimate this shape".
 - **Color and Material can already be answered as real variant option axes**, and that editor is the
   richer one. Those rows report ("already set from your variant options") instead of opening a second
   screen over the same values — `ownedByVariantEditor` in `NecessitiesSheet.tsx`. Its threshold is

@@ -173,12 +173,49 @@ function bottomArea(waist: number, outseam: number, extra: number): number {
   return (2 * (waist + 8) * (outseam + 8)) / 10000 + extra;
 }
 
+/** A skirt is a single tube, not two legs: front and back panel only, so it
+ *  reuses bottomArea's rectangle without the crotch/inseam allowance. Charts
+ *  for skirts and sports shorts measure `length` rather than `outseam_length`
+ *  (see letteredChart in size-chart-config.ts), which is why they can't share
+ *  the trouser cases below. */
+function skirtArea(waist: number, length: number, hipWidth: number | undefined): number {
+  const widest = Math.max(waist, hipWidth ?? waist);
+  return (2 * (widest + 8) * (length + 6)) / 10000;
+}
+
+/** Jumpsuits, rompers and dresses: one torso plus whatever hangs off it. The
+ *  parts are the existing top and bottom rectangles with the same ease
+ *  allowances -- composed, not re-derived, so a one-piece can never disagree
+ *  with the separates it is made of. `body_length` on these charts is the
+ *  torso to the waist, so it does not double-count the leg. */
+function onePieceArea(
+  chest: number,
+  bodyLength: number,
+  sleeve: number | undefined,
+  hipWidth: number | undefined,
+  inseam: number | undefined,
+): number {
+  const torso = topArea(chest, bodyLength, sleeve);
+  if (inseam == null) return torso;
+  const legs = (2 * ((hipWidth ?? chest) + 8) * (inseam + 8)) / 10000;
+  return torso + legs;
+}
+
 function estimateAreaM2(
   guide: SizeChartDefinition["guide"],
   cm: Partial<Record<string, number>>,
 ): number | null {
-  const { shoulder_width, chest_width, body_length, sleeve_length, waist_width, outseam_length } =
-    cm as Record<string, number | undefined>;
+  const {
+    shoulder_width,
+    chest_width,
+    body_length,
+    sleeve_length,
+    waist_width,
+    outseam_length,
+    hip_width,
+    inseam_length,
+    length,
+  } = cm as Record<string, number | undefined>;
 
   switch (guide) {
     // standard-tshirt/activewear-tshirt and polo-alt aren't different
@@ -234,6 +271,51 @@ function estimateAreaM2(
     case "denim-bum-shorts":
       if (waist_width == null || outseam_length == null) return null;
       return bottomArea(waist_width, outseam_length, 0.085) * 1.175;
+    // Every shape below arrived with the 2026-09-10 artwork batch. They were
+    // given trim multipliers and guide images but no area formula, so the
+    // estimator answered "we can't estimate this shape yet" for roughly half
+    // the catalogue -- hoodies, tank tops, cargo pants and skirts included.
+    //
+    // Each is the generic top or bottom rectangle, not a new derivation:
+    // where a garment's own construction differs (a puffer's loft, a
+    // cardigan's open front) that difference lives in TRIM_MULTIPLIER and in
+    // the fabric's GSM, both of which are already set per guide.
+    case "sweatshirt":
+    case "hoodie":
+    case "cardigan":
+    case "crop-top":
+    case "short-sleeve-shirt":
+    case "tank-top":
+    case "sweater-vest":
+    case "basketball-jersey":
+    case "puffer-jacket":
+    case "varsity-jacket":
+      if (chest_width == null || body_length == null) return null;
+      return topArea(chest_width, body_length, sleeve_length);
+    // Trousers proper: this chart measures a real outseam, so it is the same
+    // rectangle the joggers use.
+    case "cargo-pants":
+      if (waist_width == null || outseam_length == null) return null;
+      return bottomArea(waist_width, outseam_length, 0.2);
+    case "mini-skirt":
+    case "pleated-skirt":
+    case "sports-shorts":
+      if (waist_width == null || length == null) return null;
+      return skirtArea(waist_width, length, hip_width);
+    case "jumpsuit":
+    case "romper":
+      if (chest_width == null || body_length == null) return null;
+      return onePieceArea(chest_width, body_length, sleeve_length, hip_width, inseam_length);
+    // A dress is a long top: body_length runs the full garment, and there is
+    // no inseam to add. (bodycon-dress was dropped from the guide union in the
+    // 2026-09-10 artwork pass -- if it returns, it belongs here.)
+    case "mini-dress":
+      if (chest_width == null || body_length == null) return null;
+      return topArea(chest_width, body_length, sleeve_length);
+    // turtle-neck is deliberately absent. Its chart measures shoulder, chest,
+    // neck height, sleeve, cuff and hem -- but no body length, so there is no
+    // way to size the front and back panels. Add body_length to that chart
+    // and it becomes an ordinary top case.
     default:
       return null;
   }
@@ -313,6 +395,28 @@ const REQUIRED_MEASUREMENTS: Partial<Record<SizeChartDefinition["guide"], string
   "dolphin-shorts": ["waist_width", "outseam_length"],
   "bum-shorts": ["waist_width", "outseam_length"],
   "denim-bum-shorts": ["waist_width", "outseam_length"],
+  // The 2026-09-10 artwork batch. Each entry names only what its own formula
+  // reads, so a seller is told exactly which lettered row to go and fill in
+  // rather than "we can't estimate this shape".
+  sweatshirt: ["chest_width", "body_length"],
+  hoodie: ["chest_width", "body_length"],
+  cardigan: ["chest_width", "body_length"],
+  "crop-top": ["chest_width", "body_length"],
+  "short-sleeve-shirt": ["chest_width", "body_length"],
+  "tank-top": ["chest_width", "body_length"],
+  "sweater-vest": ["chest_width", "body_length"],
+  "basketball-jersey": ["chest_width", "body_length"],
+  "puffer-jacket": ["chest_width", "body_length"],
+  "varsity-jacket": ["chest_width", "body_length"],
+  "mini-dress": ["chest_width", "body_length"],
+  jumpsuit: ["chest_width", "body_length"],
+  romper: ["chest_width", "body_length"],
+  "cargo-pants": ["waist_width", "outseam_length"],
+  "mini-skirt": ["waist_width", "length"],
+  "pleated-skirt": ["waist_width", "length"],
+  "sports-shorts": ["waist_width", "length"],
+  // turtle-neck is deliberately absent: its chart has no body_length, so
+  // there is nothing to size the panels from. See estimateAreaM2.
 };
 
 const MEASUREMENT_NAMES: Record<string, string> = {
@@ -320,6 +424,12 @@ const MEASUREMENT_NAMES: Record<string, string> = {
   body_length: "body length",
   waist_width: "waist width",
   outseam_length: "outseam length",
+  hip_width: "hip width",
+  inseam_length: "inseam length",
+  length: "length",
+  hem_width: "hem width",
+  shoulder_width: "shoulder width",
+  sleeve_length: "sleeve length",
 };
 
 // The size chart labels its rows with the bare letter off the guide image

@@ -5,6 +5,7 @@ import {
   guessGsmForMaterial,
 } from "./weight-estimate";
 import { MATERIAL_GROUPS } from "./material-options";
+import { ALL_SIZE_CHARTS } from "./size-chart-config";
 import type { SizeChartDefinition } from "./size-chart-config";
 
 const TEE: SizeChartDefinition = {
@@ -17,10 +18,16 @@ const TEE: SizeChartDefinition = {
     { key: "sleeve_length", label: "d" },
   ],
 };
-const CORSET: SizeChartDefinition = {
-  id: "clothing-corset",
-  guide: "clothing-corset",
-  lines: [{ key: "bust_width", label: "a" }],
+// A real guide with no area formula: its chart measures neck height, cuff and
+// hem but no body length, so there is nothing to size the panels from.
+const TURTLENECK: SizeChartDefinition = {
+  id: "turtle-neck",
+  guide: "turtle-neck",
+  lines: [
+    { key: "shoulder_width", label: "a" },
+    { key: "chest_width", label: "b" },
+    { key: "neck_height", label: "c" },
+  ],
 };
 const TEE_CM = { chest_width: 52, body_length: 70, sleeve_length: 20 };
 
@@ -108,7 +115,7 @@ describe("estimateWeight", () => {
   });
 
   test("says so for a shape with no formula, and for no chart at all", () => {
-    expect(estimateWeight(CORSET, { bust_width: 40 }, "cotton").grams).toBeNull();
+    expect(estimateWeight(TURTLENECK, { chest_width: 50 }, "cotton").grams).toBeNull();
     expect(estimateWeight(null, {}, "cotton").grams).toBeNull();
   });
 
@@ -149,5 +156,43 @@ describe("parseWeightVolumeValueToGrams", () => {
     expect(parseWeightVolumeValueToGrams("Large")).toBeNull();
     expect(parseWeightVolumeValueToGrams("")).toBeNull();
     expect(parseWeightVolumeValueToGrams("0 g")).toBeNull();
+  });
+});
+
+// Guides that intentionally have no area formula, with the reason. Anything
+// else missing one is a gap, not a decision.
+const NO_FORMULA_BY_DESIGN: Record<string, string> = {
+  "turtle-neck": "its chart has no body_length, so the panels can't be sized",
+};
+
+describe("every size chart can be estimated", () => {
+  // The 2026-09-10 artwork batch added 19 guides with trim multipliers and
+  // images but no area formula, so roughly half the catalogue -- hoodies,
+  // tank tops, cargo pants, skirts -- silently answered "we can't estimate
+  // this shape". Nothing failed; sellers just got no button. This is the
+  // guard so the next batch can't repeat it.
+  test("every guide has a formula, or a documented reason not to", () => {
+    const unsupported: string[] = [];
+
+    for (const chart of ALL_SIZE_CHARTS) {
+      if (NO_FORMULA_BY_DESIGN[chart.guide]) continue;
+      // Feed every measurement its own chart offers, so the only way to fail
+      // is a genuinely missing formula rather than a missing input.
+      const cm = Object.fromEntries(chart.lines.map((l) => [l.key, 50]));
+      const result = estimateWeight(chart, cm, "cotton");
+      if (result.grams == null) unsupported.push(`${chart.guide}: ${result.reason}`);
+    }
+
+    expect(unsupported).toEqual([]);
+  });
+
+  test("a supported shape returns a plausible garment weight", () => {
+    for (const chart of ALL_SIZE_CHARTS) {
+      if (NO_FORMULA_BY_DESIGN[chart.guide]) continue;
+      const cm = Object.fromEntries(chart.lines.map((l) => [l.key, 50]));
+      const grams = estimateWeight(chart, cm, "cotton").grams;
+      expect(grams).toBeGreaterThan(20);
+      expect(grams).toBeLessThan(5000);
+    }
   });
 });

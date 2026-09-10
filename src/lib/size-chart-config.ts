@@ -387,6 +387,15 @@ const CHARTS_BY_CATEGORY: Record<string, SizeChartDefinition> = {
 // Only categories explicitly mapped above get a guide. Adding a new guide is
 // intentionally data-only: add the definition, map its category ids here,
 // and add its image to SizeChartSheet's GUIDE_IMAGES map.
+/** Every chart the app can actually show, deduplicated — several categories
+ *  share one definition. Exported so a test can assert that each shape either
+ *  has a weight formula or is a documented exception; an artwork batch that
+ *  adds a guide without one otherwise passes every gate and silently reports
+ *  "we can't estimate this shape" to sellers. */
+export const ALL_SIZE_CHARTS: SizeChartDefinition[] = [
+  ...new Map(Object.values(CHARTS_BY_CATEGORY).map((c) => [c.guide, c])).values(),
+];
+
 export function getSizeChartForCategory(categoryPath: CategoryNode[]): SizeChartDefinition | null {
   for (const node of categoryPath) {
     const chart = CHARTS_BY_CATEGORY[node.id];
