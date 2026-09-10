@@ -293,13 +293,16 @@ export function SizeChartSheet({
                   </button>
                 )}
               </div>
-              <div className="flex bg-gray-100 rounded-full p-1">
+              {/* Deliberately larger than a normal inline control: it sits beside
+                  the size label with nothing else competing for the row, and it
+                  is a real thumb target a seller taps mid-measurement. */}
+              <div className="flex bg-gray-100 rounded-full p-1 shrink-0">
                 {(["cm", "in"] as const).map((u) => (
                   <button
                     key={u}
                     type="button"
                     onClick={() => switchUnit(u)}
-                    className={`px-3 py-1 rounded-full text-xs font-medium oak-motion-surface ${
+                    className={`px-5 py-2 rounded-full text-sm font-medium oak-motion-surface ${
                       unit === u ? "bg-black text-white" : "text-gray-500"
                     }`}
                   >
