@@ -17,4 +17,18 @@ The following assets were visually reviewed on 2026-09-07. Opaque filenames are 
 | `image (9).jpg`                            | Corset rear view with lace-up sides                                                                                                        | Corsets & Bustiers           | High       | Near-duplicate rear view; retained as an audit asset.                                             |
 | `image (10).jpg`                           | Long-sleeve bodysuit                                                                                                                       | Bodysuits                    | High       | Same measurement contract as the registered bodysuit guide; no separate category.                 |
 
+## Removed 2026-09-10
+
+| Filename                                   | Was wired to        | Now uses                                               |
+| ------------------------------------------ | ------------------- | ------------------------------------------------------ |
+| `053b7d8c-1e27-4fbe-8a98-88532ad416d1.png` | `activewear-tshirt` | `T-shirt-Guide.webp`                                   |
+| `cf79b982-6990-45dd-8732-f0fe2f803ac2.png` | `sweatshirt`        | `bfe78330-f0f6-4946-afb6-288072187b84.png` (overshirt) |
+
+Deleted at the owner's request. Both guides use `STANDARD_TOP_LINES` — the same five measurements
+under the same five letters as the artwork they now borrow — so no chart lost its labelling. Note
+that deleting an image without also updating `guide-images.ts` breaks the **production build only**:
+the import resolves to `any` under `vite/client`'s module declaration, so `bun run typecheck` and
+`bun run lint` both stay green while `bun run build` fails with `UNRESOLVED_IMPORT`, and Lovable then
+refuses to preview or publish. Run `bun run build` after touching anything in this folder.
+
 Search ambiguity addressed: `Volleyball Shorts` is now a distinct category leaf mapped to the generic shorts guide. `Dolphin Shorts` remains a separate exact category and is not used as a volleyball alias.

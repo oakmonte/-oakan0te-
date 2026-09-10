@@ -16,17 +16,28 @@ import denimJortsGuide from "./Denim-jorts-guide.webp";
 import dolphinShortsGuide from "./Dolphin-shorts-guide.webp";
 import bumShortsGuide from "./Bum-shorts-or-shorter-shorts-guide.webp";
 import denimBumShortsGuide from "./Denim-bum-shorts-guide.webp";
-import activewearTShirtGuide from "./053b7d8c-1e27-4fbe-8a98-88532ad416d1.png";
 import standardTShirtGuide from "./186b0335-a62e-4e2d-bb62-ba57b5e45ca7.png";
 import poloAltGuide from "./379045a5-a44b-4aea-8c16-284db61d1dee.png";
 import clothingCorsetGuide from "./3abee7a8-db1b-4397-acf4-710d50061e18.png";
 import clothingBodysuitGuide from "./af6ef374-9691-4d4c-bc07-7d2b0440eb3a.png";
 import overshirtGuide from "./bfe78330-f0f6-4946-afb6-288072187b84.png";
-import sweatshirtGuide from "./cf79b982-6990-45dd-8732-f0fe2f803ac2.png";
 import lingerieCorsetGuide from "./d1a615a0-319b-4f99-8bc3-6ad6522eb965.png";
 import lingerieBodysuitGuide from "./df22c1d4-5ebe-4bc3-ab27-be1ec66fb4a0.png";
 import type { SizeChartDefinition } from "@/lib/size-chart-config";
 
+// Deliberately a total Record, not a Partial one: the letters down the side
+// of the chart ("a", "b", "c"…) are read off the illustration and mean
+// nothing without it, so a guide with no image isn't a degraded state worth
+// supporting -- it's a broken screen. Keeping it total also makes adding a
+// guide without artwork a compile error rather than a runtime blank.
+//
+// Two entries below therefore share another guide's artwork rather than
+// having their own (their own files were removed on 2026-09-10). Both are
+// safe reuses: activewear-tshirt, sweatshirt, overshirt and tshirt all use
+// STANDARD_TOP_LINES in size-chart-config.ts -- the identical five
+// measurements under the identical five letters -- so the borrowed picture
+// labels exactly the same things. Same reuse principle as CHARTS_BY_CATEGORY,
+// where one illustration already covers several categories.
 export const GUIDE_IMAGES: Record<SizeChartDefinition["guide"], string> = {
   tshirt: tShirtGuide,
   polo: poloShirtGuide,
@@ -46,13 +57,16 @@ export const GUIDE_IMAGES: Record<SizeChartDefinition["guide"], string> = {
   "dolphin-shorts": dolphinShortsGuide,
   "bum-shorts": bumShortsGuide,
   "denim-bum-shorts": denimBumShortsGuide,
-  "activewear-tshirt": activewearTShirtGuide,
+  // Borrowed, see the note above: same short-sleeve tee shape, same lines.
+  "activewear-tshirt": tShirtGuide,
   "standard-tshirt": standardTShirtGuide,
   "polo-alt": poloAltGuide,
   "clothing-corset": clothingCorsetGuide,
   "clothing-bodysuit": clothingBodysuitGuide,
   overshirt: overshirtGuide,
-  sweatshirt: sweatshirtGuide,
+  // Borrowed: the overshirt guide is a long-sleeved top layer, so it reads
+  // closer to a sweatshirt than the short-sleeve tee does.
+  sweatshirt: overshirtGuide,
   "lingerie-corset": lingerieCorsetGuide,
   "lingerie-bodysuit": lingerieBodysuitGuide,
 };

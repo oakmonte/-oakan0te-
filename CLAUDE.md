@@ -21,6 +21,11 @@ Package manager is **bun** — `package-lock.json` is stale, ignore it.
   actually persisted), `weight-estimate.ts` (parsing). Add to these when you change a rule that a
   seller's data depends on. They're excluded from `tsc` (see `tsconfig.json`) because `bun:test` types
   would need `@types/bun`.
+- **The three gates do not catch a missing asset.** An `import x from "./y.png"` resolves to `any`
+  through `vite/client`'s module declaration, so deleting or renaming an image leaves typecheck, lint
+  and test all green while `bun run build` fails with `UNRESOLVED_IMPORT` — and Lovable then silently
+  refuses to preview or publish. Run `bun run build` (~5s) after any change that adds, moves or
+  deletes a file under `src/` that something imports by path. Cost us a blocked publish on 2026-09-10.
 - **Nothing tests the UI.** Interaction behaviour — sheets, gestures, contentEditable, keyboard/
   viewport — is only verifiable by running the dev server and exercising the flow on a real device.
 - A `Stop` hook re-runs typecheck on `.ts`/`.tsx` changes. Hooks in `.claude/hooks/` also hard-block
