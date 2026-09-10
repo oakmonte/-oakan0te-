@@ -77,7 +77,7 @@ that sheet's own Save button. Tapping "+" to create a new location from inside "
 snapshot the page's stale pre-edit copy of that row, silently dropping everything the seller had just
 toggled/checked (shipped bug: came back from creating a location with only the brand-new one checked,
 any stock already entered gone). Fixed by having `InventorySheet`'s `onCreateLocation` prop pass its
-*current* uncommitted `InventoryValues` up (`(current: InventoryValues) => void`, not `() => void`),
+_current_ uncommitted `InventoryValues` up (`(current: InventoryValues) => void`, not `() => void`),
 carried on `VariantInventoryContext` as `pending` for the row/bulk case, and folded directly into the
 stashed draft's `rows` in `handleCreateLocation` (a plain `pendingRegular` param for the non-variant
 path). It has to be folded in there, synchronously, rather than via a `setRows`/`setRegular*` call made
@@ -85,6 +85,44 @@ just before — both happen inside the same click handler, and React doesn't app
 render's closure until after the handler returns, so a normal commit-then-stash ordering still stashes
 the old value. If you add another field to `InventoryValues`, or another side-trip out of a sheet with
 uncommitted local state, thread it through the same way rather than assuming "it's already in `rows`."
+
+## Necessities checklist — where each answer actually lives
+
+`NecessitiesSheet.tsx` is a checklist, and every row has to write somewhere the save path really
+persists. The schema decides that, not the UI:
+
+| Param    | Regular product         | Variant product                                                 |
+| -------- | ----------------------- | --------------------------------------------------------------- |
+| Color    | not listed at all       | the `Color` option axis — **no `color` column exists anywhere** |
+| Material | `material` (one column) | each selected row's `material` (`product_variants.material`)    |
+| Weight   | `regularWeightGrams`    | each selected row's `weightGrams`                               |
+| Size     | `manualSize`            | measurements per Size axis value                                |
+
+Two traps this cost real bugs to learn:
+
+- **The product-level `material` field is never persisted for a variant product.** `product-save.ts`
+  only writes `payload.material` inside its `kind === "regular"` branch. So a Material picker that
+  calls `onChangeMaterial` on a variant product looks like it worked and silently saves nothing —
+  it has to write per-row instead (`saveMaterial`). With no combinations built yet there's no row to
+  write to at all, which is why that case shows a note rather than opening the picker.
+- **Color and Material can already be answered as real variant option axes**, and that editor is the
+  richer one. Those rows report ("already set from your variant options") instead of opening a second
+  screen over the same values — `openedFromVariants` in `NecessitiesSheet.tsx`.
+
+Colour and material vocabularies live in `lib/color-options.ts` / `lib/material-options.ts`, not in
+`OptionEditorSheet.tsx`, so the Necessities pickers share the exact lists the variant editor uses. They
+can't move back into that component: a non-component export alongside a component export breaks Fast
+Refresh, and root `CLAUDE.md` caps that warning at exactly 6.
+
+## Adding an option axis must not blank the matrix
+
+A row's key is its option values joined (`buildKey`), so adding an axis rekeys every existing row at
+once — `"Small"` becomes `"Small|Black"`. The regeneration effect in `VariantMatrixBuilder.tsx` used to
+miss all of them on its exact-key lookup and rebuild blank rows, wiping every price, stock count and
+image already entered. It now falls back to inheriting from an old row whose values are all still
+present in the new combo (one old row seeds each of the N rows it split into). `weightGrams` is the one
+field that can't carry over blindly — adding a Weight/Volume axis is precisely the inheritance case, and
+that axis exists to pre-fill Weight — so it's `existing.weightGrams ?? weightGramsFromCombo(combo)`.
 
 ## Delete confirmations
 

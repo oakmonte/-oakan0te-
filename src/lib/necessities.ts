@@ -174,8 +174,23 @@ export function paramFillState(
 
   if (kind === "variant") {
     const opt = findOption(options, param);
-    if (!opt) return "empty";
-    return opt.values.length > 0 ? "filled" : "partial";
+    if (opt) return opt.values.length > 0 ? "filled" : "partial";
+    // No option axis for it. Material still has somewhere real to live --
+    // product_variants.material, a per-row column the form round-trips (see
+    // store.products_.$id.tsx's load and product-save.ts's writes) -- so a
+    // seller who answered "what's it made of" once from the Necessities
+    // checklist satisfies this without being forced to turn Material into a
+    // buyer-facing option axis they never wanted. Color has no equivalent
+    // column anywhere, so for it the axis above is the only answer and
+    // there's nothing to fall through to.
+    if (param === "Material") {
+      const selected = rows.filter((r) => r.selected);
+      if (selected.length === 0) return "empty";
+      const withMaterial = selected.filter((r) => r.material?.trim()).length;
+      if (withMaterial === 0) return "empty";
+      return withMaterial === selected.length ? "filled" : "partial";
+    }
+    return "empty";
   }
   // Color has no regular-product field at all -- paramsForCategory never
   // hands this branch "Color" for kind === "regular", so only Material

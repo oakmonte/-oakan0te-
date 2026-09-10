@@ -132,13 +132,48 @@ export function VariantMatrixBuilder({
     const combos = cartesian(options);
     setRows((prevRows) => {
       const prevByKey = new Map(prevRows.map((r) => [r.key, r]));
+      // A row's key is its values joined, so ADDING an axis rekeys every
+      // existing row at once ("Small" becomes "Small|Black") and an exact
+      // lookup misses all of them -- which used to blank every price, stock
+      // count and image the seller had already entered, with no warning. An
+      // old row whose values are all still present in the new combo is that
+      // same variant with one more axis pinned to it, so its data carries
+      // forward (one old row seeds each of the N new rows it split into).
+      // Only ever consulted on an exact-key miss, so the ordinary "a value
+      // was renamed/removed" path costs nothing extra.
+      const prevSets = prevRows.map((r) => ({
+        row: r,
+        values: new Set(r.options.map((o) => o.value)),
+      }));
+      const inheritFrom = (combo: VariantOptionValue[]): VariantRow | undefined => {
+        const values = new Set(combo.map((o) => o.value));
+        return prevSets.find(
+          (p) =>
+            p.values.size > 0 &&
+            p.values.size < values.size &&
+            [...p.values].every((v) => values.has(v)),
+        )?.row;
+      };
       return combos.map((combo) => {
         const key = buildKey(combo);
-        const existing = prevByKey.get(key);
+        const existing = prevByKey.get(key) ?? inheritFrom(combo);
         // Keep the seller's edits (and their checkbox) across regeneration,
         // but always refresh the option labels in case a name was renamed.
+        // `key` is taken from the combo, never from `existing` -- an
+        // inherited row still has to adopt its new identity.
+        //
+        // weightGrams is the one field an inherited row can't just carry over
+        // untouched: adding a Weight/Volume axis is exactly the case where
+        // inheritance kicks in, and the whole point of that axis is that its
+        // value pre-fills the row's Weight box. `??` so it only ever fills a
+        // blank -- a weight the seller typed by hand still wins.
         return existing
-          ? { ...existing, options: combo }
+          ? {
+              ...existing,
+              key,
+              options: combo,
+              weightGrams: existing.weightGrams ?? weightGramsFromCombo(combo),
+            }
           : {
               key,
               options: combo,

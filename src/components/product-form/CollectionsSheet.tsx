@@ -224,15 +224,23 @@ export function CollectionsSheet({
             )}
           </div>
 
-          <div className="sticky bottom-0 bg-black text-white px-4 h-14 flex items-center justify-between shrink-0">
-            <span className="text-sm">{selected.size} selected</span>
-            <button
-              type="button"
-              onClick={() => onDone([...selected])}
-              className="text-sm font-medium bg-white/15 rounded-full px-4 py-2"
-            >
-              Done
-            </button>
+          {/* Floating pill rather than an edge-to-edge bar: it reads as a
+              control sitting ON the list rather than a second, competing
+              chrome bar welded to the browser's own. The wrapper keeps the
+              gap below it (and fades the list out behind it) while staying
+              sticky, so the pill never sits flush against the phone's
+              bottom edge or the browser toolbar under it. */}
+          <div className="sticky bottom-0 shrink-0 px-3 pt-3 pb-5 bg-gradient-to-t from-white via-white/95 to-transparent">
+            <div className="bg-black text-white rounded-full h-[60px] pl-6 pr-2 flex items-center justify-between shadow-lg shadow-black/20">
+              <span className="text-sm">{selected.size} selected</span>
+              <button
+                type="button"
+                onClick={() => onDone([...selected])}
+                className="text-sm font-medium bg-white/15 rounded-full px-6 py-3 oak-motion-control"
+              >
+                Done
+              </button>
+            </div>
           </div>
         </>
       )}

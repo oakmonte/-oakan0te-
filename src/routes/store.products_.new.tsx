@@ -674,6 +674,7 @@ function NewProduct() {
           categoryPath={categoryPath}
           kind={kind}
           options={options}
+          onChangeOptions={setOptions}
           material={material}
           onChangeMaterial={setMaterial}
           sizeMeasurements={sizeMeasurements}
@@ -681,6 +682,8 @@ function NewProduct() {
           manualSize={manualSize}
           onChangeManualSize={setManualSize}
           rows={rows}
+          onChangeRows={setRows}
+          estimateWeightForRow={estimateWeightForRow}
           regularWeightGrams={regularWeightGrams}
           regularWeightEstimate={regularWeightEstimate}
           onChangeRegularWeightGrams={setRegularWeightGrams}

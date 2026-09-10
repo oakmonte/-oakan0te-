@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Check, ChevronLeft, Plus, Trash2, X } from "lucide-react";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
 import type { ManualSize, SizeMeasurements } from "@/lib/size-chart-config";
@@ -108,6 +108,19 @@ export function ManualSizeOnlySheet({
     onSave(measurements, pickedSize);
   }
 
+  // Same reasoning as SizeChartSheet's copy of this: the warning renders at
+  // the bottom of a scrollable column, so a seller who tapped Save from
+  // higher up sees nothing but the button's own label change.
+  const scrollRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!confirmEmptySave) return;
+    const el = scrollRef.current;
+    if (!el) return;
+    requestAnimationFrame(() => {
+      el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+    });
+  }, [confirmEmptySave]);
+
   const saveLabel = isVariantMode
     ? isLastStep
       ? "Save measurements"
@@ -132,7 +145,7 @@ export function ManualSizeOnlySheet({
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-5 flex flex-col gap-6">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-5 flex flex-col gap-6">
         {!isVariantMode && !pickedSize ? (
           <SizePicker system={pickerSystem} onChangeSystem={setPickerSystem} onPick={pickSize} />
         ) : (

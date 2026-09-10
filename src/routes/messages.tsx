@@ -322,39 +322,23 @@ function MessagesPage() {
       </div>
 
       {!chatOpen && (
-        <div className="mt-4 flex items-center justify-center gap-8 border-b border-white/10 px-4 text-[17px] font-bold">
-          {TABS.map(({ key, label }) => (
-            <button
-              key={key}
-              onClick={() => setTab(key)}
-              className={`pb-2.5 -mb-px border-b-2 transition-colors duration-200 ${
-                tab === key ? "border-white text-white" : "border-transparent text-white/40"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {!chatOpen && (
         <>
-          <div className="mt-4 px-4 flex gap-4 overflow-x-auto no-scrollbar pb-1">
+          <div className="mt-5 flex gap-4 overflow-x-auto px-5 pb-1 no-scrollbar">
             {STORIES.map((story) => (
               <button
                 key={story.id}
                 type="button"
                 onClick={() => setStoryNotice(true)}
-                className="flex flex-col items-center gap-1.5 shrink-0"
-                style={{ width: 72 }}
+                className="flex shrink-0 flex-col items-center gap-1.5"
+                style={{ width: 78 }}
               >
                 <div className="relative">
-                  <div className="h-16 w-16 rounded-full bg-white/10 border border-white/15" />
-                  <span className="absolute -bottom-0.5 -right-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-white">
-                    <Plus size={14} className="text-black" />
+                  <div className="h-[74px] w-[74px] rounded-full border border-white/20 bg-[#1b1d20]" />
+                  <span className="absolute bottom-0 right-0 flex h-6 w-6 items-center justify-center rounded-full bg-white">
+                    <Plus size={15} strokeWidth={2.5} className="text-black" />
                   </span>
                 </div>
-                <span className="text-[11px] text-white/60 truncate w-full text-center">
+                <span className="w-full truncate text-center text-[12px] text-white/60">
                   {story.name}
                 </span>
               </button>
@@ -362,29 +346,49 @@ function MessagesPage() {
           </div>
 
           {storyNotice && (
-            <div className="mx-4 mt-3 rounded-lg bg-white/10 px-4 py-3 text-center text-sm text-white/70">
+            <div
+              className="mx-4 mt-3 rounded-xl border border-white/10 bg-[#24272c] px-4 py-3 text-center text-sm text-white/75 shadow-lg"
+              style={{ animation: "messages-banner-drop 280ms ease-out both" }}
+            >
               Stories will be available soon
             </div>
           )}
 
-          <div className="mt-6">
+          <div className="mt-7">
+            <div className="flex items-center justify-center gap-9 border-b border-white/10 px-4 text-[17px] font-bold">
+              {TABS.map(({ key, label }) => (
+                <button
+                  key={key}
+                  onClick={() => setTab(key)}
+                  className={`pb-3 -mb-px border-b-2 transition-colors duration-200 ${
+                    tab === key ? "border-white text-white" : "border-transparent text-white/45"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
             {tab === "messages" ? (
-              <div className="space-y-1">
+              <div className="pt-3">
                 {CONTACTS.map((contact) => (
                   <button
                     key={contact.id}
                     type="button"
                     onClick={() => openContact(contact.id)}
-                    className="group mx-4 mb-2 flex w-[calc(100%-2rem)] items-center gap-3 rounded-2xl border border-white/10 bg-[#171717] px-4 py-4 text-left transition-colors hover:bg-[#222] active:bg-[#2a2a2a]"
+                    className="group flex w-full items-center gap-4 px-6 py-3.5 text-left transition-colors hover:bg-white/[0.04] active:bg-white/[0.08]"
                   >
-                    <ContactAvatar contact={contact} />
+                    <div className="scale-[1.08]">
+                      <ContactAvatar contact={contact} />
+                    </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <p className="truncate text-[15px] font-medium">{contact.name}</p>
+                        <p className="truncate text-[17px] font-semibold tracking-[-0.01em]">
+                          {contact.name}
+                        </p>
                       </div>
-                      <p className="mt-0.5 truncate text-[13px] text-white/45">{contact.preview}</p>
+                      <p className="mt-1 truncate text-[15px] text-white/55">{contact.preview}</p>
                     </div>
-                    <div className="text-xs text-white/25">
+                    <div className="text-lg text-white/25">
                       <span>›</span>
                     </div>
                   </button>

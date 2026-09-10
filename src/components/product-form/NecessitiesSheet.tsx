@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, ChevronRight, Loader2, X } from "lucide-react";
 import { CategoryNode } from "@/lib/categories";
 import { VariantOption, VariantRow } from "@/components/product-form/VariantMatrixBuilder";
@@ -7,17 +7,25 @@ import {
   type ManualSize,
   type SizeMeasurements,
 } from "@/lib/size-chart-config";
-import { paramsForCategory, paramFillState, findOption } from "@/lib/necessities";
+import {
+  paramsForCategory,
+  paramFillState,
+  findOption,
+  normalizeOptionName,
+} from "@/lib/necessities";
 import { SizeChartSheet } from "@/components/product-form/size-chart/SizeChartSheet";
 import { ManualSizeOnlySheet } from "@/components/product-form/size-chart/ManualSizeOnlySheet";
 import { WeightSheet } from "@/components/product-form/WeightSheet";
+import { VariantWeightsSheet } from "@/components/product-form/VariantWeightsSheet";
 import { LinkContentSheet } from "@/components/product-form/LinkContentSheet";
 import { MaterialSheet } from "@/components/product-form/MaterialSheet";
+import { ColorSheet } from "@/components/product-form/ColorSheet";
 
 export function NecessitiesSheet({
   categoryPath,
   kind,
   options,
+  onChangeOptions,
   material,
   onChangeMaterial,
   sizeMeasurements,
@@ -25,6 +33,8 @@ export function NecessitiesSheet({
   manualSize,
   onChangeManualSize,
   rows,
+  onChangeRows,
+  estimateWeightForRow,
   regularWeightGrams,
   regularWeightEstimate,
   onChangeRegularWeightGrams,
@@ -35,10 +45,13 @@ export function NecessitiesSheet({
   categoryPath: CategoryNode[];
   kind: "regular" | "variant";
   options: VariantOption[];
+  // Color picked here writes an option axis -- that's the only place colour
+  // exists in the schema (no color column on products or product_variants).
+  onChangeOptions: (fn: (prev: VariantOption[]) => VariantOption[]) => void;
   material: string;
-  // Only meaningful for a regular product -- a variant product's Material
-  // lives as an option axis (checked directly against `options`), same as
-  // Color/Size, and MaterialSheet never opens for it.
+  // The regular product's own `material` column. A variant product's material
+  // goes per-row instead (see saveMaterial below), so this setter is only
+  // used on the regular path.
   onChangeMaterial: (m: string) => void;
   sizeMeasurements: SizeMeasurements;
   onChangeSizeMeasurements: (m: SizeMeasurements) => void;
@@ -48,6 +61,8 @@ export function NecessitiesSheet({
   // a variant product; a regular product has no rows at all, hence the
   // separate regularWeightGrams/-Estimate pair mirroring manualSize's split.
   rows: VariantRow[];
+  onChangeRows: (fn: (prev: VariantRow[]) => VariantRow[]) => void;
+  estimateWeightForRow: (row: VariantRow) => number | null;
   regularWeightGrams: number | null;
   regularWeightEstimate: number | null;
   onChangeRegularWeightGrams: (g: number | null) => void;
@@ -60,11 +75,85 @@ export function NecessitiesSheet({
   const [weightSheetOpen, setWeightSheetOpen] = useState(false);
   const [linkContentOpen, setLinkContentOpen] = useState(false);
   const [materialSheetOpen, setMaterialSheetOpen] = useState(false);
+  const [colorSheetOpen, setColorSheetOpen] = useState(false);
+  // Shown instead of opening a picker for a param the variant editor already
+  // answered -- see openedFromVariants below. Carries a timestamp so tapping
+  // the same row twice restarts both the auto-dismiss and the slide-in.
+  const [note, setNote] = useState<{ text: string; at: number } | null>(null);
+  useEffect(() => {
+    if (!note) return;
+    const t = setTimeout(() => setNote(null), 3200);
+    return () => clearTimeout(t);
+  }, [note]);
+
   // Which sheet Size opens -- the illustrated chart where one is sourced,
   // the free-form fallback everywhere else. Never gates whether Size CAN be
   // filled (see paramFillState above), only which input UI collects it.
   const sizeChart = getSizeChartForCategory(categoryPath);
   const variantSizeValues = findOption(options, "Size")?.values ?? [];
+
+  // A param the seller already answered as a real variant option axis. That
+  // editor is the richer of the two (swatches, systems, per-value ordering),
+  // and a second screen writing the same values is a way to silently clobber
+  // them -- so these rows report rather than reopen.
+  function openedFromVariants(param: string): boolean {
+    return (findOption(options, param)?.values.length ?? 0) > 0;
+  }
+
+  const variantColors = findOption(options, "Color")?.values ?? [];
+
+  function saveColors(colors: string[]) {
+    onChangeOptions((prev) => {
+      const idx = prev.findIndex((o) => normalizeOptionName(o.name) === "color");
+      if (colors.length === 0) return idx === -1 ? prev : prev.filter((_, i) => i !== idx);
+      if (idx === -1) return [...prev, { name: "Color", values: colors }];
+      return prev.map((o, i) => (i === idx ? { ...o, values: colors } : o));
+    });
+    setColorSheetOpen(false);
+  }
+
+  // A regular product has one material column; a variant product has one per
+  // row (product_variants.material). Picking here means "this product is made
+  // of X", so every selected row gets it -- deliberately NOT a new option
+  // axis, which would relabel every variant and multiply the matrix for what
+  // is usually a single answer. A seller who genuinely sells the same piece
+  // in two fabrics still adds Material as a real axis in the variant editor,
+  // and that wins (openedFromVariants sends them there instead of here).
+  const rowMaterials = new Set(rows.filter((r) => r.selected).map((r) => r.material?.trim() ?? ""));
+  const sharedRowMaterial = rowMaterials.size === 1 ? [...rowMaterials][0] : "";
+
+  function saveMaterial(m: string) {
+    if (kind === "regular") onChangeMaterial(m);
+    else onChangeRows((prev) => prev.map((r) => (r.selected ? { ...r, material: m } : r)));
+    setMaterialSheetOpen(false);
+  }
+
+  function showNote(text: string) {
+    setNote({ text, at: Date.now() });
+  }
+
+  function handleTap(param: string) {
+    if (
+      kind === "variant" &&
+      (param === "Color" || param === "Material") &&
+      openedFromVariants(param)
+    ) {
+      showNote(`${param} is already set from your variant options — edit it there to change it.`);
+      return;
+    }
+    // A variant product stores material per row, so with no combinations built
+    // yet there is literally nowhere to put the answer -- say so rather than
+    // opening a picker whose Save would quietly do nothing.
+    if (param === "Material" && kind === "variant" && rows.every((r) => !r.selected)) {
+      showNote("Build your variants first — material is saved on each one.");
+      return;
+    }
+    if (param === "Size") setSizeSheetOpen(true);
+    else if (param === "Weight") setWeightSheetOpen(true);
+    else if (param === "Link content") setLinkContentOpen(true);
+    else if (param === "Material") setMaterialSheetOpen(true);
+    else if (param === "Color") setColorSheetOpen(true);
+  }
 
   return (
     <div className="fixed inset-0 z-50 bg-white flex flex-col min-h-dvh animate-in fade-in slide-in-from-bottom-6 duration-300 ease-out">
@@ -77,6 +166,17 @@ export function NecessitiesSheet({
         </span>
         <span className="w-5" />
       </div>
+
+      {/* Comes down from under the header rather than replacing the row's own
+          content, so the checklist never shifts under the seller's thumb. */}
+      {note && (
+        <div
+          key={note.at}
+          className="shrink-0 bg-gray-900 text-white text-xs px-4 py-3 animate-in fade-in slide-in-from-top-2 duration-200"
+        >
+          {note.text}
+        </div>
+      )}
 
       <div className="flex-1 overflow-y-auto pb-8">
         {params.length === 0 ? (
@@ -99,40 +199,23 @@ export function NecessitiesSheet({
               regularWeightGrams,
               linkedPostIds,
             );
-            const opensSizeSheet = p === "Size";
-            // Weight only opens a real editor for a regular product -- it
-            // has exactly one value. A variant product's weight lives per
-            // row in the variant matrix (its own Weight button there), so
-            // tapping it here just closes this sheet and drops the seller
-            // back on the page where that control actually is, rather than
-            // doing nothing (there's no per-row weight editor to embed here
-            // without duplicating the matrix's own UI).
-            const opensWeightSheet = p === "Weight" && kind === "regular";
-            const closesToVariantWeight = p === "Weight" && kind === "variant";
-            const opensLinkContent = p === "Link content";
-            // Material only opens a fill-in sheet for a regular product --
-            // a variant product's Material lives as an option axis, edited
-            // in the variant options UI, same as Color/Size.
-            const opensMaterialSheet = p === "Material" && kind === "regular";
+            // Color and Material can each already be answered as a real
+            // variant option axis, in which case this row reports that
+            // instead of opening a second editor over the same values.
+            const fromVariants =
+              kind === "variant" && (p === "Color" || p === "Material") && openedFromVariants(p);
+            const subtitle = fromVariants
+              ? "Set in your variant options"
+              : p === "Weight" && kind === "variant"
+                ? "One per variant"
+                : null;
+            const onTap = () => handleTap(p);
             return (
               <button
                 key={p}
                 type="button"
                 aria-label={p}
-                onClick={
-                  opensSizeSheet
-                    ? () => setSizeSheetOpen(true)
-                    : opensWeightSheet
-                      ? () => setWeightSheetOpen(true)
-                      : closesToVariantWeight
-                        ? onClose
-                        : opensLinkContent
-                          ? () => setLinkContentOpen(true)
-                          : opensMaterialSheet
-                            ? () => setMaterialSheetOpen(true)
-                            : // TODO: open the per-parameter fill-in sheet once its design is specced, for Color
-                              () => {}
-                }
+                onClick={onTap}
                 className="w-full flex items-center justify-between px-4 py-4 border-b border-gray-50 text-left oak-motion-control"
               >
                 <span className="flex items-center gap-3">
@@ -150,10 +233,8 @@ export function NecessitiesSheet({
                   </span>
                   <span className="text-[15px] text-gray-900">
                     {p}
-                    {closesToVariantWeight && (
-                      <span className="block text-xs text-gray-400 font-normal">
-                        Set per variant below
-                      </span>
+                    {subtitle && (
+                      <span className="block text-xs text-gray-400 font-normal">{subtitle}</span>
                     )}
                   </span>
                 </span>
@@ -192,17 +273,25 @@ export function NecessitiesSheet({
           />
         ))}
 
-      {weightSheetOpen && (
-        <WeightSheet
-          initial={regularWeightGrams}
-          estimate={regularWeightEstimate}
-          onSave={(grams) => {
-            onChangeRegularWeightGrams(grams);
-            setWeightSheetOpen(false);
-          }}
-          onClose={() => setWeightSheetOpen(false)}
-        />
-      )}
+      {weightSheetOpen &&
+        (kind === "variant" ? (
+          <VariantWeightsSheet
+            rows={rows}
+            estimateWeightForRow={estimateWeightForRow}
+            onChangeRows={onChangeRows}
+            onClose={() => setWeightSheetOpen(false)}
+          />
+        ) : (
+          <WeightSheet
+            initial={regularWeightGrams}
+            estimate={regularWeightEstimate}
+            onSave={(grams) => {
+              onChangeRegularWeightGrams(grams);
+              setWeightSheetOpen(false);
+            }}
+            onClose={() => setWeightSheetOpen(false)}
+          />
+        ))}
 
       {linkContentOpen && (
         <LinkContentSheet
@@ -214,12 +303,17 @@ export function NecessitiesSheet({
 
       {materialSheetOpen && (
         <MaterialSheet
-          initial={material}
-          onSave={(m) => {
-            onChangeMaterial(m);
-            setMaterialSheetOpen(false);
-          }}
+          initial={kind === "regular" ? material : sharedRowMaterial}
+          onSave={saveMaterial}
           onClose={() => setMaterialSheetOpen(false)}
+        />
+      )}
+
+      {colorSheetOpen && (
+        <ColorSheet
+          initial={variantColors}
+          onSave={saveColors}
+          onClose={() => setColorSheetOpen(false)}
         />
       )}
     </div>

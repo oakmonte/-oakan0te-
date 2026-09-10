@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Check, ChevronDown, ChevronLeft, X } from "lucide-react";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
 import {
@@ -209,6 +209,25 @@ export function SizeChartSheet({
     onSave(measurementsFor([pickedSize.value]), pickedSize);
   }
 
+  // These warnings render at the BOTTOM of a scrollable column, under the
+  // measurement inputs -- a seller who tapped Save while looking at the guide
+  // image up top sees only the button's label change and nothing else, which
+  // read as "it just didn't save". Scrolling the warning into view is what
+  // makes it land; the button itself is sticky, so the banner ends up right
+  // above the thing they just tapped.
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const warningShowing = confirmMissing || confirmImplausible || confirmEmptySave;
+  useEffect(() => {
+    if (!warningShowing) return;
+    const el = scrollRef.current;
+    if (!el) return;
+    // rAF, not a bare call: the banner is rendered by this same commit, so
+    // scrollHeight is only correct once the browser has laid it out.
+    requestAnimationFrame(() => {
+      el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+    });
+  }, [warningShowing]);
+
   const isLastStep = index === activeSizes.length - 1;
   // Same "anyway" wording regardless of which specific warning is currently
   // pending confirmation -- there can be a second, different warning right
@@ -248,7 +267,7 @@ export function SizeChartSheet({
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-5 flex flex-col gap-6">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-5 flex flex-col gap-6">
         {!isVariantMode && !pickedSize ? (
           <SizePicker system={pickerSystem} onChangeSystem={setPickerSystem} onPick={pickSize} />
         ) : (
