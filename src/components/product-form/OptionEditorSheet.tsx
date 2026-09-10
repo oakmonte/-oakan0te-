@@ -19,7 +19,7 @@ export const SIZE_SYSTEMS = {
   US: ["0", "2", "4", "6", "8", "10", "12", "14", "16", "18", "20"],
   UK: ["4", "6", "8", "10", "12", "14", "16", "18", "20", "22", "24"],
   EU: ["32", "34", "36", "38", "40", "42", "44", "46", "48", "50", "52"],
-  Words: ["Small", "Medium", "Large", "Extra Large", "2X Large", "3X Large"],
+  Words: ["Extra Small", "Small", "Medium", "Large", "Extra Large", "2X Large", "3X Large"],
 } as const;
 
 export const WEIGHT_VOLUME_SYSTEMS = {
@@ -108,6 +108,7 @@ function unitKeyFromTypedValue(value: string): string | null {
 // Refresh for it.
 const VALUE_PRESETS: Record<string, string[]> = {
   Color: [
+    "Multicolor",
     // Black / white / grey
     "Black",
     "Jet Black",
@@ -240,7 +241,6 @@ const VALUE_PRESETS: Record<string, string[]> = {
     // Metallic / other
     "Rose Gold",
     "Champagne",
-    "Multicolor",
   ],
   Material: MATERIAL_PRESETS,
 };

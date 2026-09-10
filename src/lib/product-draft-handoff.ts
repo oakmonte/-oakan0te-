@@ -6,6 +6,7 @@ import { CategoryNode } from "@/lib/categories";
 import { VariantOption, VariantRow } from "@/components/product-form/VariantMatrixBuilder";
 import { ManualSize, SizeMeasurements } from "@/lib/size-chart-config";
 import { BarcodeEntry } from "@/lib/barcode-types";
+import { InventoryValues } from "@/components/product-form/InventorySheet";
 
 export type ProductDraft = {
   // Set only when the draft was stashed from the edit page, not the new-product
@@ -100,7 +101,20 @@ export function takePendingNewLocationId(): string | null {
 // the seller back on the collapsed product form instead of where they were.
 // Paired with the new location id above (already captured the same way) to
 // pre-check it and jump straight back to Edit locations.
-export type VariantInventoryContext = { kind: "bulk" } | { kind: "row"; rowKey: string };
+//
+// `pending` carries whatever the seller had already toggled/checked in that
+// Inventory sheet BEFORE tapping "Add pickup location" -- continueSelling/
+// locationQuantities/sku/barcodes only ever reach the page's own `rows` (and
+// therefore the stashed draft below) via that sheet's own Save button, which
+// hasn't fired yet at this point. Without threading it through here,
+// handleCreateLocation's stashProductDraft(currentDraft()) snapshots the
+// PAGE's still-stale copy of this row and silently drops every edit made in
+// the sheet during this session -- a real, shipped bug (tapping "+" after
+// checking a couple of locations came back with only the brand new one
+// checked, and any stock/toggle changes gone).
+export type VariantInventoryContext =
+  | { kind: "bulk"; pending: InventoryValues }
+  | { kind: "row"; rowKey: string; pending: InventoryValues };
 
 let pendingVariantInventoryContext: VariantInventoryContext | null = null;
 

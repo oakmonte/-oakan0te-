@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, CircleHelp, Plus, Search, Send, UserRound } from "lucide-react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import logoAsset from "@/assets/oakmonte-o-mark.png.asset.json";
@@ -94,6 +94,8 @@ type MessagingDatabase = Database & {
   };
 };
 
+const messagingClient = supabase as unknown as SupabaseClient<MessagingDatabase>;
+
 type ChatMessage = SupportMessage | LocalMessage;
 
 const LOCAL_MESSAGES: Record<Exclude<ContactId, "support">, LocalMessage[]> = {
@@ -145,6 +147,7 @@ function ContactAvatar({ contact, large = false }: { contact: Contact; large?: b
 
 function MessagesPage() {
   const { user } = useSession();
+  const touchStartX = useRef<number | null>(null);
   const [ownUsername, setOwnUsername] = useState<string | undefined>(undefined);
   const [tab, setTab] = useState<Tab>("messages");
   const [storyNotice, setStoryNotice] = useState(false);
@@ -153,8 +156,6 @@ function MessagesPage() {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [messageError, setMessageError] = useState<string | null>(null);
-
-  const messagingClient = supabase as unknown as SupabaseClient<MessagingDatabase>;
 
   useEffect(() => {
     if (!user) return;
@@ -276,14 +277,30 @@ function MessagesPage() {
     setMessageError(null);
   };
 
+  const handleTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
+    if (!chatOpen) touchStartX.current = event.touches[0]?.clientX ?? null;
+  };
+
+  const handleTouchEnd = (event: React.TouchEvent<HTMLDivElement>) => {
+    if (chatOpen || touchStartX.current === null) return;
+
+    const distance = event.changedTouches[0]?.clientX - touchStartX.current;
+    touchStartX.current = null;
+    if (Math.abs(distance) < 50) return;
+
+    const currentIndex = TABS.findIndex(({ key }) => key === tab);
+    const nextIndex = distance < 0 ? currentIndex + 1 : currentIndex - 1;
+    const nextTab = TABS[nextIndex];
+    if (nextTab) setTab(nextTab.key);
+  };
+
   return (
-    <div className="min-h-screen bg-black text-white pb-28">
-      <div className="pt-4 px-4 flex items-center justify-between">
-        <div>
-          <h1 className="text-[22px] font-semibold tracking-tight">
-            {chatOpen ? selectedContact?.name : "Messages"}
-          </h1>
-        </div>
+    <div
+      className="min-h-screen bg-black pb-28 text-white"
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
+      <div className="flex items-center justify-end px-4 pt-4">
         {chatOpen ? (
           <button
             type="button"
@@ -305,15 +322,13 @@ function MessagesPage() {
       </div>
 
       {!chatOpen && (
-        <div className="mt-4 px-4 flex items-center justify-center gap-8 border-b border-white/10 text-[15px]">
+        <div className="mt-4 flex items-center justify-center gap-8 border-b border-white/10 px-4 text-[17px] font-bold">
           {TABS.map(({ key, label }) => (
             <button
               key={key}
               onClick={() => setTab(key)}
               className={`pb-2.5 -mb-px border-b-2 transition-colors duration-200 ${
-                tab === key
-                  ? "border-white font-semibold text-white"
-                  : "border-transparent text-white/40"
+                tab === key ? "border-white text-white" : "border-transparent text-white/40"
               }`}
             >
               {label}
@@ -360,17 +375,12 @@ function MessagesPage() {
                     key={contact.id}
                     type="button"
                     onClick={() => openContact(contact.id)}
-                    className="group flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-white/[0.06] active:bg-white/10"
+                    className="group mx-4 mb-2 flex w-[calc(100%-2rem)] items-center gap-3 rounded-2xl border border-white/10 bg-[#171717] px-4 py-4 text-left transition-colors hover:bg-[#222] active:bg-[#2a2a2a]"
                   >
                     <ContactAvatar contact={contact} />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <p className="truncate text-[15px] font-medium">{contact.name}</p>
-                        {contact.id === "support" && (
-                          <span className="rounded-full bg-[#2f6bff]/20 px-2 py-0.5 text-[10px] text-[#8caaff]">
-                            Support
-                          </span>
-                        )}
                       </div>
                       <p className="mt-0.5 truncate text-[13px] text-white/45">{contact.preview}</p>
                     </div>

@@ -57,7 +57,11 @@ export function InventorySheet({
   initial: InventoryValues;
   onSave: (values: InventoryValues) => void;
   // Side-trips to /store/locations/new -- see store.locations_.new.tsx.
-  onCreateLocation: () => void;
+  // Takes the sheet's CURRENT in-progress values (not yet committed via
+  // Save) so the caller can fold them into what it stashes before
+  // navigating away -- otherwise whatever's been toggled/checked in this
+  // still-open sheet is silently lost the moment "+" is tapped.
+  onCreateLocation: (current: InventoryValues) => void;
   // Set when this sheet is reopening right after the seller created a new
   // pickup location from within "Edit locations" -- that's exactly where
   // they were, so land back there instead of on this sheet's own base view.
@@ -297,7 +301,9 @@ export function InventorySheet({
           selectedIds={new Set(Object.keys(locationQuantities))}
           onToggle={toggleLocation}
           onClose={() => setLocationsPickerOpen(false)}
-          onCreateLocation={onCreateLocation}
+          onCreateLocation={() =>
+            onCreateLocation({ continueSellingOutOfStock, locationQuantities, sku, barcodes })
+          }
         />
       )}
 

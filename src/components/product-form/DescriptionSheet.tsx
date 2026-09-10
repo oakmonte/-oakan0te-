@@ -80,12 +80,26 @@ const ZERO_WIDTH_SPACE_RE = /\u200B/g;
 // is to place a marker as the element's next SIBLING instead -- outside its
 // closing tag. The marker is an invisible zero-width space so the caret has
 // somewhere to sit; it's stripped back out on Save (stripEditorArtifacts).
+//
+// Bold specifically can be MULTIPLE levels deep here (insertBoldRunAtCaret
+// nests a new run inside whatever the caret was already sitting in for the
+// medium -> heavy step), so this has to climb out through every nested
+// matching ancestor, not just the innermost one -- stopping at the first
+// only un-nests one level and leaves the caret still inside the next one
+// out, which read as "off" landing back on medium instead of normal.
 function escapeFormatIfCollapsed(tagSelector: string) {
   const sel = window.getSelection();
   if (!sel || sel.rangeCount === 0 || !sel.getRangeAt(0).collapsed) return;
   const anchor = sel.anchorNode;
   const el = anchor instanceof Element ? anchor : anchor?.parentElement;
-  const wrapper = el?.closest(tagSelector);
+  let wrapper: Element | null = null;
+  for (
+    let cur = el?.closest(tagSelector) ?? null;
+    cur;
+    cur = cur.parentElement?.closest(tagSelector) ?? null
+  ) {
+    wrapper = cur;
+  }
   if (!wrapper || !wrapper.parentNode) return;
   const marker = document.createTextNode(ZERO_WIDTH_SPACE);
   wrapper.parentNode.insertBefore(marker, wrapper.nextSibling);

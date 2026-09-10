@@ -27,7 +27,7 @@ Variants are built and working: `VariantMatrixBuilder.tsx` owns the options list
 (preset names, per-name one-tap values, real color swatches, switchable size systems, search-or-create
 value input, duplicate-name guard, a typed-numeric-entry row for Weight/Volume — see below). The size
 chart (`size-chart/`, `SizeChartSheet.tsx`) is also built and real — see root `CLAUDE.md`'s pre-launch
-note only for chart *image coverage* gaps, not "is this built."
+note only for chart _image coverage_ gaps, not "is this built."
 
 ## Weight/Volume option → final variant page
 
@@ -60,7 +60,7 @@ the wipe bug or drops the deliberate no-location case.
 ## Variant "create a location mid-flow" return navigation
 
 Creating a pickup location from inside the variant wizard's Inventory sheet (Edit locations → new
-location → save) has to land back on the *same* Inventory sheet, not the collapsed product form. The
+location → save) has to land back on the _same_ Inventory sheet, not the collapsed product form. The
 handoff (`product-draft-handoff.ts`'s `VariantInventoryContext`) is consumed via an
 `onInventoryContextConsumed` callback that `VariantMatrixBuilder` fires from **its own mount effect** —
 not a `useEffect(..., [])` at the page level. `VariantMatrixBuilder` only mounts once `storeId` resolves
@@ -69,6 +69,22 @@ the page's own first commit, well before the component that needs the value — 
 actually reads it — exists. Got this wrong once already (shipped a version where the whole feature was
 silently dead); if you add a similar side-trip-and-return flow anywhere else in this form, use the same
 child-owns-its-own-consumption pattern, not a parent-level clearing effect.
+
+**Gotten wrong a second time, differently**: `InventorySheet`'s own in-progress edits (the toggle,
+whichever locations are checked, SKU, barcodes) only ever reach the page's `rows`/`regular*` state via
+that sheet's own Save button. Tapping "+" to create a new location from inside "Edit locations" does
+**not** go through Save — so `handleCreateLocation`'s `stashProductDraft(currentDraft())` used to
+snapshot the page's stale pre-edit copy of that row, silently dropping everything the seller had just
+toggled/checked (shipped bug: came back from creating a location with only the brand-new one checked,
+any stock already entered gone). Fixed by having `InventorySheet`'s `onCreateLocation` prop pass its
+*current* uncommitted `InventoryValues` up (`(current: InventoryValues) => void`, not `() => void`),
+carried on `VariantInventoryContext` as `pending` for the row/bulk case, and folded directly into the
+stashed draft's `rows` in `handleCreateLocation` (a plain `pendingRegular` param for the non-variant
+path). It has to be folded in there, synchronously, rather than via a `setRows`/`setRegular*` call made
+just before — both happen inside the same click handler, and React doesn't apply a state update to that
+render's closure until after the handler returns, so a normal commit-then-stash ordering still stashes
+the old value. If you add another field to `InventoryValues`, or another side-trip out of a sheet with
+uncommitted local state, thread it through the same way rather than assuming "it's already in `rows`."
 
 ## Delete confirmations
 
@@ -84,7 +100,7 @@ end-to-end — verified 2026-09-09 by tracing entry (`BarcodesSheet.tsx`) → sa
 (`product-save.ts`'s `barcodeInsertRows`, shared by create and the delete-and-rebuild update path) →
 load (`toBarcodeType`, `store.products_.$id.tsx`) — no type-specific branching drops or mishandles any
 of them, and the DB column has no constraint that would block one. The one place types are handled
-*unevenly*, deliberately: `BarcodeScanSheet.tsx`'s camera auto-detection only classifies `ean`/`isbn`
+_unevenly_, deliberately: `BarcodeScanSheet.tsx`'s camera auto-detection only classifies `ean`/`isbn`
 (by EAN-13 prefix 978/979) and `upc`, because those are the only types with a real scannable symbology.
 `gtin` and `asin` are never auto-picked — they're manual-only in the type dropdown, by design, not a
 gap.
@@ -99,21 +115,21 @@ off. `cycleBold`/`currentBoldLevel` in `DescriptionSheet.tsx`. Inter must have `
 
 **Every format button is a pure "what happens to text typed from here on" switch — never a retroactive
 edit of text already on the page.** This was gotten wrong once already: the first fix for the
-collapsed-cursor toggle-off bug below *expanded the selection to the whole enclosing element and
-toggled that off*, which silently reformatted already-typed text and left a non-collapsed selection
+collapsed-cursor toggle-off bug below _expanded the selection to the whole enclosing element and
+toggled that off_, which silently reformatted already-typed text and left a non-collapsed selection
 behind that the next keystroke would type over — reported back as "if I type underline, I can't switch
 back." Don't reintroduce that shape of fix. The two helpers that replaced it, both in
-`DescriptionSheet.tsx`, only ever move the *caret*, never touch existing nodes:
+`DescriptionSheet.tsx`, only ever move the _caret_, never touch existing nodes:
 
 - `escapeFormatIfCollapsed(tagSelector)` — for turning a format OFF from a collapsed cursor. A plain
   `execCommand` toggle-off leaves the caret still physically inside the `<u>`/`<i>`/`<b>` element's DOM
   boundary, so the browser keeps extending that same element for whatever's typed next regardless of
   the toggled flag (reads as "the button doesn't turn off"). Inserting a plain text node at the caret
-  doesn't fix it either — `Range.insertNode` at that position still lands the node *inside* the element,
+  doesn't fix it either — `Range.insertNode` at that position still lands the node _inside_ the element,
   which still inherits its style. The only real fix is moving the caret to the element's next **sibling**
   position, outside its closing tag — via an invisible zero-width-space marker (`ZERO_WIDTH_SPACE`) so
   the caret has somewhere to land.
-- `insertBoldRunAtCaret(weight)` — for bold specifically, needed because two *on* levels (600/900) exist
+- `insertBoldRunAtCaret(weight)` — for bold specifically, needed because two _on_ levels (600/900) exist
   and stepping between them means changing a weight, not just toggling a class. Never restyle whatever
   `<b>`/`<strong>` the caret already happens to be inside — that mutates whatever was typed under the
   previous level. Always create a brand-new `<b>` with its own explicit inline weight at the caret

@@ -295,16 +295,39 @@ function NewProduct() {
 
   // `context` is only passed from inside the variant wizard (a specific
   // row's Inventory sheet, or the bulk "Apply to all" one) -- the regular
-  // product's own Inventory sheet calls this with nothing, same as before.
+  // product's own Inventory sheet calls this with `pendingRegular` instead.
   // Reachable from as deep as Variants -> Inventory -> Edit locations, so
   // same alert() reasoning as handleCreateCollection above.
-  function handleCreateLocation(context?: VariantInventoryContext) {
+  //
+  // Both `context.pending` (variant row) and `pendingRegular` (regular
+  // product) exist because whatever the seller already toggled/checked in
+  // that still-open Inventory sheet only reaches this page's own state via
+  // that sheet's OWN Save button -- which hasn't fired yet here. Folding it
+  // into the stashed draft directly (rather than relying on a setRows/
+  // setRegular* call landing before this reads state) is required: both
+  // happen inside the same synchronous click, and React doesn't apply a
+  // state update to this render's closure until after it returns.
+  function handleCreateLocation(
+    context?: VariantInventoryContext,
+    pendingRegular?: InventoryValues,
+  ) {
     if (hasPendingUploads() || hasBlobImagePending()) {
       alert("Wait for your photos to finish uploading before doing that");
       return;
     }
     if (context) setPendingVariantInventoryContext(context);
-    stashProductDraft(currentDraft());
+    const draft = currentDraft();
+    if (context?.kind === "row") {
+      draft.rows = draft.rows.map((r) =>
+        r.key === context.rowKey ? { ...r, ...context.pending } : r,
+      );
+    } else if (pendingRegular) {
+      draft.regularContinueSellingOutOfStock = pendingRegular.continueSellingOutOfStock;
+      draft.regularLocationQuantities = pendingRegular.locationQuantities;
+      draft.regularSku = pendingRegular.sku;
+      draft.regularBarcodes = pendingRegular.barcodes;
+    }
+    stashProductDraft(draft);
     navigate({ to: "/store/locations/new" });
   }
 
@@ -594,7 +617,7 @@ function NewProduct() {
             barcodes: regularBarcodes,
           }}
           initialLocationsPickerOpen={!!initialNewLocationId}
-          onCreateLocation={handleCreateLocation}
+          onCreateLocation={(current) => handleCreateLocation(undefined, current)}
           onSave={(values: InventoryValues) => {
             setRegularContinueSellingOutOfStock(values.continueSellingOutOfStock);
             setRegularLocationQuantities(values.locationQuantities);

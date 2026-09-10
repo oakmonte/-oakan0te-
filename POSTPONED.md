@@ -44,7 +44,7 @@ launch: rename to `cover_*`, or leave the names and rely on the comment.
   which is why one owns the whole post. Consequence: per-item posters
   (`post_media.thumbnail_url` is only set for item 0) need no fixing — a photo
   is its own poster. RLS on `post_media` mirrors
-`post_product_tags` exactly; none of the twelve tables in 1.1 were touched.
+  `post_product_tags` exactly; none of the twelve tables in 1.1 were touched.
 
 Wired end to end: the photo editor bakes every photo in its carousel, the
 publish screen ships them as repeated `files` + a positional `mediaTypes`

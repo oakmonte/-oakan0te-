@@ -81,20 +81,21 @@ export function VariantCombinationsSheet({
   // null = untouched this session (nothing to apply). Holds a real
   // InventoryValues rather than a bare number -- the seller picks actual
   // locations via the same InventorySheet a real variant row uses, not a
-  // number typed into a box with no locations attached to it. Pre-seeded
-  // with the just-created location when that's what sent the seller off to
-  // create it -- the bulk box carries no other state across that round trip
-  // (it isn't part of the persisted draft), but this one field can be.
-  const [bulkInventory, setBulkInventory] = useState<InventoryValues | null>(() =>
-    initialInventoryContext?.kind === "bulk" && initialNewLocationId
-      ? {
-          continueSellingOutOfStock: false,
-          locationQuantities: { [initialNewLocationId]: 0 },
-          sku: "",
-          barcodes: [],
-        }
-      : null,
-  );
+  // number typed into a box with no locations attached to it. Restored from
+  // whatever was already toggled/checked in that sheet before the seller
+  // tapped "Add pickup location" (initialInventoryContext.pending -- this box
+  // itself isn't part of the persisted draft, but the in-progress sheet
+  // values riding along with the location-creation side-trip are), plus the
+  // just-created location pre-checked at 0.
+  const [bulkInventory, setBulkInventory] = useState<InventoryValues | null>(() => {
+    if (initialInventoryContext?.kind !== "bulk") return null;
+    const base = initialInventoryContext.pending;
+    if (!initialNewLocationId || initialNewLocationId in base.locationQuantities) return base;
+    return {
+      ...base,
+      locationQuantities: { ...base.locationQuantities, [initialNewLocationId]: 0 },
+    };
+  });
   const [bulkInventoryOpen, setBulkInventoryOpen] = useState(
     () => initialInventoryContext?.kind === "bulk",
   );
@@ -524,7 +525,7 @@ export function VariantCombinationsSheet({
               barcodes: [],
             }
           }
-          onCreateLocation={() => onCreateLocation({ kind: "bulk" })}
+          onCreateLocation={(current) => onCreateLocation({ kind: "bulk", pending: current })}
           initialLocationsPickerOpen={initialInventoryContext?.kind === "bulk"}
           onSave={(values) => {
             setBulkInventory(values);
@@ -547,7 +548,9 @@ export function VariantCombinationsSheet({
                 sku: row.sku,
                 barcodes: row.barcodes ?? [],
               }}
-              onCreateLocation={() => onCreateLocation({ kind: "row", rowKey: row.key })}
+              onCreateLocation={(current) =>
+                onCreateLocation({ kind: "row", rowKey: row.key, pending: current })
+              }
               initialLocationsPickerOpen={
                 initialInventoryContext?.kind === "row" &&
                 initialInventoryContext.rowKey === row.key
