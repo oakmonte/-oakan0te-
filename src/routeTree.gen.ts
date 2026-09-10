@@ -54,6 +54,7 @@ import { Route as CreatePhotoEditorRouteImport } from './routes/create.photo-edi
 import { Route as CreateDraftsRouteImport } from './routes/create.drafts'
 import { Route as CreateAfterShotRouteImport } from './routes/create.after-shot'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
+import { Route as ApiSoundsRouteImport } from './routes/api.sounds'
 import { Route as ApiPostsRouteImport } from './routes/api.posts'
 import { Route as CreateAfterShotIndexRouteImport } from './routes/create.after-shot.index'
 import { Route as StoreProductsUploadRouteImport } from './routes/store.products_.upload'
@@ -306,6 +307,11 @@ const AuthCallbackRoute = AuthCallbackRouteImport.update({
   path: '/auth/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiSoundsRoute = ApiSoundsRouteImport.update({
+  id: '/api/sounds',
+  path: '/api/sounds',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPostsRoute = ApiPostsRouteImport.update({
   id: '/api/posts',
   path: '/api/posts',
@@ -462,6 +468,7 @@ export interface FileRoutesByFullPath {
   '/whats-your-style': typeof WhatsYourStyleRoute
   '/where-did-you-hear-about-us': typeof WhereDidYouHearAboutUsRoute
   '/api/posts': typeof ApiPostsRoute
+  '/api/sounds': typeof ApiSoundsRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/create/after-shot': typeof CreateAfterShotRouteWithChildren
   '/create/drafts': typeof CreateDraftsRoute
@@ -532,6 +539,7 @@ export interface FileRoutesByTo {
   '/whats-your-style': typeof WhatsYourStyleRoute
   '/where-did-you-hear-about-us': typeof WhereDidYouHearAboutUsRoute
   '/api/posts': typeof ApiPostsRoute
+  '/api/sounds': typeof ApiSoundsRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/create/drafts': typeof CreateDraftsRoute
   '/create/photo-editor': typeof CreatePhotoEditorRoute
@@ -604,6 +612,7 @@ export interface FileRoutesById {
   '/whats-your-style': typeof WhatsYourStyleRoute
   '/where-did-you-hear-about-us': typeof WhereDidYouHearAboutUsRoute
   '/api/posts': typeof ApiPostsRoute
+  '/api/sounds': typeof ApiSoundsRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/create/after-shot': typeof CreateAfterShotRouteWithChildren
   '/create/drafts': typeof CreateDraftsRoute
@@ -678,6 +687,7 @@ export interface FileRouteTypes {
     | '/whats-your-style'
     | '/where-did-you-hear-about-us'
     | '/api/posts'
+    | '/api/sounds'
     | '/auth/callback'
     | '/create/after-shot'
     | '/create/drafts'
@@ -748,6 +758,7 @@ export interface FileRouteTypes {
     | '/whats-your-style'
     | '/where-did-you-hear-about-us'
     | '/api/posts'
+    | '/api/sounds'
     | '/auth/callback'
     | '/create/drafts'
     | '/create/photo-editor'
@@ -819,6 +830,7 @@ export interface FileRouteTypes {
     | '/whats-your-style'
     | '/where-did-you-hear-about-us'
     | '/api/posts'
+    | '/api/sounds'
     | '/auth/callback'
     | '/create/after-shot'
     | '/create/drafts'
@@ -892,6 +904,7 @@ export interface RootRouteChildren {
   WhatsYourStyleRoute: typeof WhatsYourStyleRoute
   WhereDidYouHearAboutUsRoute: typeof WhereDidYouHearAboutUsRoute
   ApiPostsRoute: typeof ApiPostsRoute
+  ApiSoundsRoute: typeof ApiSoundsRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
   ProfileUsernameRoute: typeof ProfileUsernameRoute
   StoreProfileStoreUsernameRoute: typeof StoreProfileStoreUsernameRoute
@@ -1227,6 +1240,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/sounds': {
+      id: '/api/sounds'
+      path: '/api/sounds'
+      fullPath: '/api/sounds'
+      preLoaderRoute: typeof ApiSoundsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/posts': {
       id: '/api/posts'
       path: '/api/posts'
@@ -1513,6 +1533,7 @@ const rootRouteChildren: RootRouteChildren = {
   WhatsYourStyleRoute: WhatsYourStyleRoute,
   WhereDidYouHearAboutUsRoute: WhereDidYouHearAboutUsRoute,
   ApiPostsRoute: ApiPostsRoute,
+  ApiSoundsRoute: ApiSoundsRoute,
   AuthCallbackRoute: AuthCallbackRoute,
   ProfileUsernameRoute: ProfileUsernameRoute,
   StoreProfileStoreUsernameRoute: StoreProfileStoreUsernameRoute,

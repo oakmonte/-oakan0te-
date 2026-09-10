@@ -58,6 +58,7 @@ type FeedPost = Pick<
   | "location"
   | "audio_url"
   | "audio_name"
+  | "audio_attribution"
 > & {
   authorDisplayName: string | null;
   authorAvatar: string | null;
@@ -85,7 +86,7 @@ async function fetchFeed(scope: FeedScope, viewerId: string | null): Promise<Fee
   let query = supabase
     .from("posts")
     .select(
-      "id, user_id, media_url, media_type, thumbnail_url, caption, location, audio_url, audio_name, post_media(position, media_url, media_type, thumbnail_url), public_profiles(display_name, personal_username, avatar_url)",
+      "id, user_id, media_url, media_type, thumbnail_url, caption, location, audio_url, audio_name, audio_attribution, post_media(position, media_url, media_type, thumbnail_url), public_profiles(display_name, personal_username, avatar_url)",
     )
     .order("created_at", { ascending: false });
 
@@ -163,6 +164,7 @@ async function fetchFeed(scope: FeedScope, viewerId: string | null): Promise<Fee
     location: p.location,
     audio_url: p.audio_url,
     audio_name: p.audio_name,
+    audio_attribution: p.audio_attribution,
     authorDisplayName:
       p.public_profiles?.display_name ?? p.public_profiles?.personal_username ?? null,
     authorAvatar: p.public_profiles?.avatar_url ?? null,
@@ -1003,11 +1005,26 @@ function FeedPostCard({
             start it. The prompt is part of this line rather than a badge
             elsewhere so there is exactly one place on the card that talks
             about sound. */}
+        {/* A catalogue track under a licence that requires it shows its full
+            credit here rather than just its title. That line is a condition of
+            being allowed to play the track at all, so unlike the title it is
+            allowed to wrap, and is not clamped either. Commons' artist field
+            sometimes holds the whole required credit rather than a name — one
+            real track carries 'Required credit: "music by audionautix.com"' as
+            its artist — and a clamp would be the app deciding which half of a
+            licence condition to honour.
+            
+            The autoplay prompt is appended to it rather than replacing it.
+            `audioBlocked` is the *default* state on iOS and Android until the
+            viewer makes a gesture, so a prompt that took the line over would
+            hide the credit on almost every mobile view of the post — which is
+            every view that matters. */}
         {hasAudio && (
-          <p className="text-[12px] text-white/60 flex items-center gap-1 mt-1">
-            <Music size={12} className="shrink-0" />
-            <span className="truncate">
-              {audioBlocked ? "Tap for sound" : (post.audio_name ?? "Original sound")}
+          <p className="text-[12px] text-white/60 flex items-start gap-1 mt-1">
+            <Music size={12} className="shrink-0 mt-[3px]" />
+            <span className={post.audio_attribution ? "" : "truncate"}>
+              {post.audio_attribution ?? post.audio_name ?? "Original sound"}
+              {audioBlocked && " · Tap for sound"}
             </span>
           </p>
         )}

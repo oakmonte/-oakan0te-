@@ -32,6 +32,8 @@ import { CAMERA_FILTERS, previewCssAtIntensity } from "@/components/camera/filte
 import LayerOverlay from "@/components/camera/LayerOverlay";
 import { useLayerRenderer } from "@/components/camera/aftershot/use-layer-renderer";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
+import SoundLibrarySheet from "@/components/camera/SoundLibrarySheet";
+import { type LibraryTrack, creditFor } from "@/lib/sound-library";
 import { useFittedSize } from "@/hooks/use-fitted-size";
 import { exportComposite, exportPhoto } from "@/lib/after-shot-export";
 import { videoDuration, videoThumbnail } from "@/lib/video-sequence";
@@ -41,7 +43,12 @@ import { ImageSourceSheet, type ImageSource } from "@/components/product-form/Im
 import { DraftImagePickerSheet } from "@/components/product-form/DraftImagePickerSheet";
 import { PostImagePickerSheet } from "@/components/product-form/PostImagePickerSheet";
 import type { PickedMedia } from "@/components/product-form/MediaPickerSheet";
-import { setPendingCapture, soundLabel, takePendingCapture } from "@/lib/capture-handoff";
+import {
+  type CaptureAudio,
+  setPendingCapture,
+  soundLabel,
+  takePendingCapture,
+} from "@/lib/capture-handoff";
 import {
   blankPhotoEdits,
   discardPhotoEditorSession,
@@ -171,6 +178,7 @@ function PhotoEditor() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const stickerInputRef = useRef<HTMLInputElement>(null);
+  const [soundSheetOpen, setSoundSheetOpen] = useState(false);
   const audioInputRef = useRef<HTMLInputElement>(null);
   const audioElRef = useRef<HTMLAudioElement>(null);
   const stripRef = useRef<HTMLDivElement>(null);
@@ -413,7 +421,24 @@ function PhotoEditor() {
     if (!file || !file.type.startsWith("audio/")) return;
     const url = URL.createObjectURL(file);
     ownedUrls.current.push(url);
-    setSound({ blob: file, url, name: soundLabel(file.name) });
+    setSound({ blob: file, url, name: soundLabel(file.name), credit: null });
+  }
+
+  /** A catalogue track is kept as a URL, not as bytes.
+   *
+   *  Nothing downloads here: the audition below streams straight from the
+   *  provider, and at publish the server copies it into our storage. So
+   *  choosing a song costs the seller's data plan nothing until the post
+   *  actually goes out — and nothing at all if they change their mind. */
+  function handleLibraryTrack(track: LibraryTrack) {
+    audioElRef.current?.pause();
+    setAuditioning(false);
+    setSound({
+      blob: null,
+      url: track.streamUrl,
+      name: track.title,
+      credit: creditFor(track),
+    });
   }
 
   function removeSound() {
@@ -468,7 +493,22 @@ function PhotoEditor() {
     // only fetched if this draft is actually posted, so reopening one to fix a
     // caption doesn't re-download a song.
     if (draft.audioUrl) {
-      setSound({ blob: null, url: draft.audioUrl, name: draft.audioName || "Sound" });
+      setSound({
+        blob: null,
+        url: draft.audioUrl,
+        name: draft.audioName || "Sound",
+        // Restored so republishing a draft credits whoever the first publish
+        // credited. `audio_licence` is the field that says a catalogue track
+        // was involved at all; a sound off the seller's own device stores none
+        // of these and stays null here.
+        credit: draft.audioLicence
+          ? {
+              attribution: draft.audioAttribution ?? null,
+              licence: draft.audioLicence,
+              sourceUrl: draft.audioSourceUrl ?? "",
+            }
+          : null,
+      });
     }
     // addPhotos is a plain function redeclared each render; depending on it
     // would re-run this on every keystroke elsewhere in the component.
@@ -863,20 +903,17 @@ function PhotoEditor() {
         }
       }
 
-      // The track goes as bytes, like everything else in the handoff. A sound
-      // restored from a draft is still only a URL at this point, so that is
-      // the one case that has to fetch.
-      let audio: { blob: Blob; url: string; name: string } | undefined;
-      if (sound) {
-        setBusy("Preparing sound…");
-        let blob = sound.blob;
-        if (!blob) {
-          const res = await fetch(sound.url);
-          if (!res.ok) throw new Error("Couldn't load that sound");
-          blob = await res.blob();
-        }
-        audio = { blob, url: sound.url, name: sound.name };
-      }
+      // The track is handed on as-is, and nothing is downloaded here.
+      //
+      // Only a sound off the seller's own device has bytes; the other two
+      // cases are URLs the server can reach for itself — a catalogue track at
+      // its provider, and a draft's track already sitting in our own storage.
+      // Fetching either one here would mean the phone pulling several
+      // megabytes of MP3 down purely to hand them straight back up again,
+      // which on mobile data is a cost with nothing bought by it.
+      const audio: CaptureAudio | undefined = sound
+        ? { blob: sound.blob, url: sound.url, name: sound.name, credit: sound.credit ?? null }
+        : undefined;
 
       setPendingCapture({
         ...baked[0],
@@ -1064,6 +1101,16 @@ function PhotoEditor() {
       />
 
       <DrawPanel open={activeTool === "draw"} containerRef={mediaBoxRef} onClose={closeTool} />
+
+      <SoundLibrarySheet
+        open={soundSheetOpen}
+        onClose={() => setSoundSheetOpen(false)}
+        onPick={handleLibraryTrack}
+        onUseDevice={() => {
+          setSoundSheetOpen(false);
+          audioInputRef.current?.click();
+        }}
+      />
 
       <FilterPanel
         open={activeTool === "filter"}
@@ -1264,7 +1311,7 @@ function PhotoEditor() {
             <button
               type="button"
               disabled={empty}
-              onClick={() => audioInputRef.current?.click()}
+              onClick={() => setSoundSheetOpen(true)}
               className="flex w-[68px] shrink-0 flex-col items-center gap-1.5 py-1 active:scale-90 disabled:opacity-30"
             >
               <Music size={23} strokeWidth={1.6} />

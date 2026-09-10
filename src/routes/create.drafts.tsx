@@ -29,6 +29,9 @@ type Draft = {
   created_with: string | null;
   audio_url: string | null;
   audio_name: string | null;
+  audio_attribution: string | null;
+  audio_licence: string | null;
+  audio_source_url: string | null;
   caption: string | null;
   created_at: string;
 };
@@ -77,7 +80,7 @@ function DraftsPage() {
     supabase
       .from("posts")
       .select(
-        "id, media_url, thumbnail_url, media_type, media_bytes, created_with, audio_url, audio_name, caption, created_at",
+        "id, media_url, thumbnail_url, media_type, media_bytes, created_with, audio_url, audio_name, audio_attribution, audio_licence, audio_source_url, caption, created_at",
       )
       .eq("user_id", user.id)
       .eq("status", "draft")
@@ -164,6 +167,9 @@ function DraftsPage() {
         // draft actually goes out.
         audioUrl: draft.audio_url,
         audioName: draft.audio_name,
+        audioAttribution: draft.audio_attribution,
+        audioLicence: draft.audio_licence,
+        audioSourceUrl: draft.audio_source_url,
       });
       void navigate({ to: editorFor(draft) });
     },

@@ -1,0 +1,219 @@
+// The sound library: tracks a seller can put on a post without owning them.
+//
+// Sellers can already attach an audio file off their own device, which in
+// practice means "have an mp3 lying around" — most won't. This is the
+// catalogue side of that feature.
+//
+// Everything here is provider-agnostic. Wikimedia Commons is the first source
+// wired up, not the only one intended, and the rules that must NOT be
+// reimplemented per provider are exactly the ones in this file: what counts as
+// a usable track, what a licence obliges us to say, and how a credit is
+// worded. A second provider that gets any of those subtly different is a
+// licensing bug, not a cosmetic one.
+//
+// Nothing here does I/O. Providers fetch and normalise into `LibraryTrack`;
+// this module decides what to do with one.
+
+export type SoundProviderId = "wikimedia";
+
+export type TrackLicence = {
+  /** Short human name as the provider states it: "CC BY 3.0", "CC0", "Public domain". */
+  name: string;
+  /** Deed URL, when the provider gives one. */
+  url: string | null;
+  /** Whether using the track obliges us to name the artist.
+   *
+   *  This is not decoration. CC BY and CC BY-SA are only free to use *if*
+   *  credited; dropping the credit turns a licensed track into an infringing
+   *  one. It is stored on the post and rendered in the feed for that reason,
+   *  not as a nicety. */
+  attributionRequired: boolean;
+};
+
+export type LibraryTrack = {
+  /** Provider-scoped, e.g. "wikimedia:117454024". Unique across providers so a
+   *  second source can't collide with the first. */
+  id: string;
+  provider: SoundProviderId;
+  title: string;
+  /** Plain text, already stripped of the provider's markup. Null when the
+   *  provider names no one — which is normal for public-domain recordings. */
+  artist: string | null;
+  durationSeconds: number;
+  /** An MP3, always — see `MIN_TRACK_SECONDS` note below on why the original
+   *  file is not what we hand to an `<audio>` element. */
+  streamUrl: string;
+  sizeBytes: number | null;
+  licence: TrackLicence;
+  /** The provider's human-readable page for this file. Kept because a credit
+   *  that can't be checked isn't much of a credit, and because CC deeds ask
+   *  for a link to the source where reasonable. */
+  sourceUrl: string;
+};
+
+/** Below this, it isn't a song.
+ *
+ *  This single number does almost all the quality filtering, and it earns its
+ *  place empirically rather than by taste. Free-media archives are dominated
+ *  by dictionary pronunciations, animal noises and instrument samples — a
+ *  search for "afrobeat" on Commons returns five German Wiktionary recordings
+ *  of the *word* "Afrobeat" before it returns any music. Every one of those is
+ *  under three seconds; every actual track is over twenty. */
+export const MIN_TRACK_SECONDS = 20;
+
+/** Above this we don't list it.
+ *
+ *  Not a quality judgement — a 40-minute DJ set is a fine recording and a
+ *  terrible thing to put behind a photo of a dress. It also has to travel:
+ *  the track is copied into our own storage when the post goes out, and an
+ *  hour of audio is tens of megabytes to move for a clip nobody will hear
+ *  past the first verse. */
+export const MAX_TRACK_SECONDS = 12 * 60;
+
+export function isUsableTrack(track: LibraryTrack): boolean {
+  if (!track.streamUrl || !track.title.trim()) return false;
+  if (!Number.isFinite(track.durationSeconds)) return false;
+  return track.durationSeconds >= MIN_TRACK_SECONDS && track.durationSeconds <= MAX_TRACK_SECONDS;
+}
+
+/** Licences we will not put on a post, matched loosely on the stated name.
+ *
+ *  Oakmonte is a shop. A post is an advert for something with a price on it,
+ *  which makes every use here commercial — so a "non-commercial" track is not
+ *  merely discouraged, it is outside its own licence the moment a seller
+ *  attaches it, and the seller is the one who carries that.
+ *
+ *  Wikimedia Commons already refuses NC-only uploads as a matter of policy, so
+ *  on today's only provider this should never fire. It is here anyway, because
+ *  the next provider will not have that policy and this is the check that
+ *  would otherwise be forgotten. */
+const FORBIDDEN_LICENCE = /\bnon-?commercial\b|\bNC\b|\bND\b|\bno-?derivat/i;
+
+export function isLicenceUsable(licence: TrackLicence): boolean {
+  return !FORBIDDEN_LICENCE.test(licence.name);
+}
+
+/** Providers hand back HTML — Commons stores the artist as a wiki link, not a
+ *  name. Strip to text and never render the original.
+ *
+ *  Two reasons, and the second is the one that matters: an artist field is
+ *  arbitrary text uploaded by a stranger, so rendering it as markup is a
+ *  script-injection hole in a field nobody would think to look at. */
+export function plainText(html: string | null | undefined): string | null {
+  if (!html) return null;
+  const text = html
+    .replace(/<br\s*\/?>/gi, " ")
+    .replace(/<[^>]*>/g, "")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#0?39;|&apos;/gi, "'")
+    .replace(/\s+/g, " ")
+    .trim();
+  return text || null;
+}
+
+/** Tracking parameters the provider bolts onto its own URLs.
+ *
+ *  Commons appends `utm_source`/`utm_campaign` to file URLs returned by the
+ *  API. We store this URL on the post and hand it to an `<audio>` element, so
+ *  keeping them would mean quietly reporting our users' listening back to a
+ *  third party's analytics for no benefit to anyone. */
+export function stripTracking(url: string): string {
+  try {
+    const parsed = new URL(url);
+    for (const key of [...parsed.searchParams.keys()]) {
+      if (key.startsWith("utm_")) parsed.searchParams.delete(key);
+    }
+    return parsed.toString();
+  } catch {
+    return url;
+  }
+}
+
+/** How long a track reads as, for a chip that has to fit on a phone. */
+export function formatDuration(seconds: number): string {
+  const total = Math.max(0, Math.round(seconds));
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+/** What has to appear next to the post, in one line.
+ *
+ *  Public-domain and CC0 tracks carry no obligation, so they get the plain
+ *  title — a feed cluttered with "CC0 1.0 Universal" on every post helps
+ *  nobody and trains people to ignore the line that sometimes matters. When
+ *  the licence *does* require attribution, the artist and the licence name are
+ *  both part of the credit and neither is optional. */
+export function creditLine(track: {
+  title: string;
+  artist: string | null;
+  licence: TrackLicence;
+}): string {
+  if (!track.licence.attributionRequired) return track.title;
+  const artist = track.artist?.trim();
+  return artist
+    ? `${track.title} — ${artist} (${track.licence.name})`
+    : `${track.title} (${track.licence.name})`;
+}
+
+// ---------------------------------------------------------------------------
+
+/** Provenance that travels with a chosen track, from the picker to the post.
+ *
+ *  Separate from the track itself because by the time this reaches the feed
+ *  the audio lives in our own storage and the `LibraryTrack` is long gone —
+ *  this is the part that still has to be true. */
+export type SoundCredit = {
+  /** The line to render, or null when the licence asks for nothing. */
+  attribution: string | null;
+  licence: string;
+  sourceUrl: string;
+};
+
+/** Hosts the server will copy a track from.
+ *
+ *  A catalogue track is handed to the upload as a URL rather than as bytes:
+ *  Commons' MP3s run 3-5 MB, and making the phone download one only to
+ *  immediately upload it again costs a seller on mobile data roughly eight
+ *  megabytes to attach a song. The server fetches it instead, over a
+ *  connection nobody is paying by the megabyte for.
+ *
+ *  That means a request field decides what our server fetches, which is the
+ *  shape of every SSRF hole ever written — a crafted `audioUrl` pointing at
+ *  `169.254.169.254` or at something inside the private network would
+ *  otherwise be fetched with our credentials and stored somewhere readable.
+ *  So the allowlist is exact-hostname and HTTPS-only, and adding a provider
+ *  means adding its host here on purpose. */
+const TRUSTED_AUDIO_HOSTS = ["upload.wikimedia.org"];
+
+/** `extraHosts` is for our own storage host, which is configured rather than
+ *  compiled in and so cannot live in the list above. It matters when a draft
+ *  is republished: by then the track has already been copied to our CDN, so
+ *  the URL being re-submitted is ours, and re-fetching it there is both safe
+ *  and the reason reopening a draft doesn't cost the seller another download. */
+export function isTrustedAudioSource(url: string, extraHosts: string[] = []): boolean {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "https:") return false;
+    // `hostname` drops the port, so without this `upload.wikimedia.org:1234`
+    // passes as the real thing. Neither allowed host serves on another port,
+    // so refusing every port but the default costs nothing.
+    if (parsed.port !== "") return false;
+    return [...TRUSTED_AUDIO_HOSTS, ...extraHosts.filter(Boolean)].includes(parsed.hostname);
+  } catch {
+    return false;
+  }
+}
+
+/** The credit a track obliges, ready to store on the post. */
+export function creditFor(track: LibraryTrack): SoundCredit {
+  return {
+    attribution: track.licence.attributionRequired ? creditLine(track) : null,
+    licence: track.licence.name,
+    sourceUrl: track.sourceUrl,
+  };
+}

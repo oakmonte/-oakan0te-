@@ -64,7 +64,7 @@ keeps the export pipeline (which knows nothing about this) at one generation of
 re-encode. Because a video post's music is baked into its MP4, `audio_url` and
 baked music are mutually exclusive by construction: nothing can play twice.
 
-Chosen in the photo editor (Sound in the tool row → device file picker), shown
+Chosen in the photo editor (Sound in the tool row → the catalogue sheet), shown
 as a chip with play/pause so it can be auditioned before it goes out, carried to
 publish in the capture handoff, and restored when a draft with a sound is
 reopened.
@@ -77,14 +77,81 @@ isn't the one that can't add a song.
 The other dead button in that toolbar, **Link**, has since been removed — see
 0.4.
 
-**No sound library · [URGENT — licensing in progress, 2026-09-07]** — sellers
-can only attach an audio file off their own device, which in practice means
-"have an mp3 lying around", which most won't. The feature is built and the hole
-is the catalogue. Diadem is sourcing licensed libraries; this is held on that,
-not on engineering. When a catalogue exists it plugs in where the device picker
-is, in the photo editor's and after-shot's Sound buttons — `PhotoSound` /
-`CaptureAudio` already carry `{blob, url, name}`, so a library track only needs
-to produce those three fields.
+**Sound library · [FIRST PROVIDER LIVE — 2026-09-10]** — Sound now opens a
+catalogue rather than the device file picker, which is still there as
+"Use a sound from your phone" inside the same sheet.
+
+Wikimedia Commons is the first provider (`src/lib/sound-providers/wikimedia.ts`,
+searched through `api.sounds.ts`). It was chosen because it needs no key, no
+contract and no negotiation: Commons' own upload policy already requires that
+everything on it be licensed for commercial reuse, so there is no per-file
+rights question to answer. That made it the right thing to build the plumbing
+against while real libraries are being sourced.
+
+Three things about it are worth knowing before touching this code:
+
+- **Commons is not a music library.** It is mostly dictionary pronunciations,
+  animal noises and instrument samples — a search for "afrobeat" returns five
+  German Wiktionary recordings of the _word_ before it returns any music. What
+  saves it is that Commons absorbed a bulk import of the Free Music Archive,
+  and those files are real music tagged by genre, which is what `SOUND_GENRES`
+  browses. Free-text search across the rest is deliberately the secondary path.
+- **Never serve the original file.** Commons stores audio as Ogg Vorbis, Opus
+  and FLAC, none of which Safari on iOS plays. Every file has an MP3 transcode
+  and `playableUrl` returns only that. Getting this wrong gives a library that
+  works perfectly on a laptop and is silently dead on half the phones.
+- **Duration is the quality filter.** `MIN_TRACK_SECONDS` removes essentially
+  all the noise above, because a pronunciation is two seconds and a song is
+  not. It is doing more work than it looks like it is.
+
+**Still wanted:** a proper licensed catalogue. Commons is legally clean and
+genuinely thin — a few hundred usable tracks per genre, skewed towards
+instrumental and electronic, with nothing anybody will recognise. Diadem is
+still sourcing this. A second provider is meant to slot in beside the first:
+normalise into `LibraryTrack`, add its media host to `TRUSTED_AUDIO_HOSTS`, and
+the picker, the credit and the upload path all work unchanged.
+
+**Attribution is a correctness requirement, not a nicety** (migration
+`20260910120000`). A CC BY track is licensed _only while the artist is
+credited_, so `posts.audio_attribution` / `audio_licence` / `audio_source_url`
+travel with the post, survive a save-to-drafts round trip, and render in the
+feed. When Commons does not state whether a credit is owed, the inference errs
+towards crediting — naming someone who placed their work in the public domain
+costs nothing; failing to name someone who required it is the actual failure.
+
+**A library track never touches the phone.** It is handed to the upload as a
+URL and the server copies it into Bunny (`fetchTrustedAudio`). Commons MP3s run
+3-5 MB, so downloading one to the browser only to upload it again would cost a
+seller on mobile data about eight megabytes to attach a song. That is also why
+`isTrustedAudioSource` is an exact-hostname HTTPS allowlist: a request field
+deciding what our server fetches is the shape of every SSRF hole ever written.
+
+**Not yet done here:** no infinite scroll (the route returns `nextOffset` and
+nothing calls it — one page of ~40 per genre is what a seller sees); no link
+through to the source page from the feed, because the feed card's tap surface
+is already the play/pause control and an anchor inside it would fire by
+accident — `audio_source_url` is stored and waiting for a post detail view.
+
+**Known gap: a video draft loses its track.** Repro — camera in Video mode →
+after-shot → Sound → pick a track → Save as draft → Drafts → tap it. The track
+is gone, silently.
+
+The cause is older and wider than the sound library. After-shot never sets
+`media.origin`, so its posts store `created_with = null`; `editorFor` in
+`create.drafts.tsx` then falls back to `media_type`, which sends the draft to
+the **video editor** — a screen whose audio model is a _mixdown into the MP4_,
+not a detached track, so it has nowhere to put `audio_url` and drops it.
+
+Deliberately not fixed here, and the reason is the shape of the fix rather than
+the size. The two options are to gate Sound to photos in after-shot, which
+removes something that works today (posting a video with a track is fine — only
+the draft round trip loses it), or to give the video editor a detached-audio
+concept it does not have. The second is the right answer and it is a change to
+the video editor's session and publish path, not to this feature.
+
+Worth knowing: the failure is **data loss, not a licence breach** — the
+republished post carries no audio at all rather than an uncredited track, so
+nothing ships without its credit. That is what makes it safe to leave.
 
 The feed has **no volume control**, deliberately: autoplay is the only sound the
 app makes and the tap surface already stops it. First playback in a session is
