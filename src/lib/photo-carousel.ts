@@ -1,3 +1,4 @@
+import type { SoundCredit } from "@/lib/sound-library";
 import type { Layer } from "@/lib/after-shot-layers";
 import type { CropRect } from "@/lib/crop-rect";
 import { NEUTRAL_ADJUST, type PhotoAdjust } from "@/lib/photo-adjust";
@@ -78,6 +79,12 @@ export type PhotoSound = {
   blob: Blob | null;
   url: string;
   name: string;
+  /** Set when the track came from the sound library rather than the seller's
+   *  own device. Two things follow from it: `url` points at the provider
+   *  rather than at us, so the bytes are fetched server-side at publish; and
+   *  the credit has to reach the post, because for a CC BY track the licence
+   *  only holds while the artist is named. */
+  credit?: SoundCredit | null;
 };
 
 export type PhotoEditorSession = {

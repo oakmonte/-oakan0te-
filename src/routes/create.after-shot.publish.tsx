@@ -125,8 +125,19 @@ function PublishPage() {
       // the photo editor sets this — the video editor bakes its music into the
       // MP4, and a post with both would play two things at once.
       if (media.audio) {
-        fd.set("audio", media.audio.blob, "audio");
+        // A track off the seller's device travels as bytes. A library track
+        // travels as a URL and the server fetches it, so a phone on mobile
+        // data never downloads several megabytes only to upload them again.
+        if (media.audio.blob) fd.set("audio", media.audio.blob, "audio");
+        else fd.set("audioSource", media.audio.url);
         fd.set("audioName", media.audio.name);
+
+        const credit = media.audio.credit;
+        if (credit) {
+          if (credit.attribution) fd.set("audioAttribution", credit.attribution);
+          fd.set("audioLicence", credit.licence);
+          fd.set("audioSourceUrl", credit.sourceUrl);
+        }
       }
       if (media.poster) fd.set("thumbnail", media.poster.blob, "thumbnail.jpg");
       if (caption.trim()) fd.set("caption", caption.trim());
@@ -156,7 +167,11 @@ function PublishPage() {
       // path has no session, so without this its track would leak. The back
       // button deliberately revokes nothing, which is what lets either editor
       // still play the sound you picked when you return to it.
-      if (media.audio) URL.revokeObjectURL(media.audio.url);
+      //
+      // Guarded on `blob` because only a track off the seller's own device has
+      // a URL we made. A library track's URL belongs to the provider, and
+      // revoking that is meaningless.
+      if (media.audio?.blob) URL.revokeObjectURL(media.audio.url);
 
       navigate({ to: "/home", replace: true });
     },
@@ -301,6 +316,16 @@ function PublishPage() {
             <span className="flex-1 truncate text-[14px]">{media.audio.name}</span>
             <span className="text-[11px] text-gray-400">Sound</span>
           </div>
+        )}
+
+        {/* What the licence obliges, shown before the post goes out rather
+            than only after. A seller who can see the credit that will appear
+            under their post is a seller who can change their mind about the
+            track while changing it is still free. */}
+        {media.audio?.credit?.attribution && (
+          <p className="mt-1.5 px-1 text-[11px] leading-snug text-gray-400">
+            Credited as “{media.audio.credit.attribution}”
+          </p>
         )}
 
         {/* Linked products. "Link", not "tag": these are what a viewer finds

@@ -27,6 +27,13 @@ export type PendingDraft = {
    *  bytes if the draft is posted. */
   audioUrl?: string | null;
   audioName?: string | null;
+  /** A draft made with a catalogue track still owes that track's credit, so
+   *  it has to survive the round trip. Without this, saving a draft and
+   *  republishing it would quietly strip the artist's name off a post that is
+   *  only licensed while the name is there. */
+  audioAttribution?: string | null;
+  audioLicence?: string | null;
+  audioSourceUrl?: string | null;
 };
 
 let pending: PendingDraft | null = null;

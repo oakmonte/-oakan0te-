@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { isTrustedAudioSource } from "@/lib/sound-library";
 import { getRequestUser } from "@/lib/server-auth";
 
 /**
@@ -10,8 +11,13 @@ import { getRequestUser } from "@/lib/server-auth";
  *   files        one or more media blobs, IN CAROUSEL ORDER   (required)
  *   mediaTypes   JSON array of 'photo' | 'video', one per file (required)
  *   thumbnail    poster frame for item 0, video only           (optional)
- *   audio        a sound to play over the post                 (optional)
+ *   audio        a sound to play over the post, as bytes       (optional)
  *   audioName    display name for that sound                   (optional)
+ *   audioSource  a catalogue track's URL, fetched server-side   (optional)
+ *                — an alternative to `audio`, never both
+ *   audioLicence licence the track is used under                (required with audioSource)
+ *   audioAttribution  credit line to show beside the post       (optional)
+ *   audioSourceUrl    page the track came from                  (optional)
  *   caption      text                                          (optional)
  *   location     freeform text                                 (optional)
  *   visibility   'public' | 'followers' | 'only_me'             (default 'public')
@@ -76,6 +82,60 @@ async function uploadToBunny(
   return remotePath;
 }
 
+/** Pull a catalogue track from its provider, so the phone doesn't have to.
+ *
+ *  The seller's browser sends a URL instead of 3-5 MB of MP3 it would have had
+ *  to download first — see the note on `isTrustedAudioSource`, which is also
+ *  what stops this being a request-controlled fetch of anything on the
+ *  network.
+ *
+ *  Returns null on anything unexpected rather than throwing: a post that goes
+ *  out without its music is a much better failure than a post that doesn't go
+ *  out. */
+async function fetchTrustedAudio(
+  url: string,
+  ownHost: string,
+): Promise<{ blob: Blob; type: string; size: number } | null> {
+  if (!isTrustedAudioSource(url, [ownHost])) {
+    console.error("api/posts: refused audio source", url);
+    return null;
+  }
+  try {
+    const res = await fetch(url, {
+      headers: { "User-Agent": "Oakmonte/1.0 (https://oakmonte.com) sound-library" },
+      signal: AbortSignal.timeout(15_000),
+      // The allowlist above checked the URL we were given. It says nothing
+      // about where a redirect would take us, and `follow` — the default —
+      // would obediently go there, which quietly turns the check into no check
+      // at all. Neither host redirects off-site today; that is a property of
+      // today's two hosts rather than of this code, and it stops being true
+      // the moment a third provider is added.
+      redirect: "manual",
+    });
+    if (!res.ok) return null;
+
+    const type = res.headers.get("content-type")?.split(";")[0]?.trim() ?? "";
+    if (!type.startsWith("audio/")) return null;
+
+    // Required, not merely respected. Absent reads as 0 and malformed reads as
+    // NaN, and the original check waved both through to `.blob()` — which
+    // buffers the whole body into the worker before any size is known. Both
+    // hosts send it on static files, so demanding it costs nothing and closes
+    // the case where a chunked response gets to decide our memory ceiling.
+    const declared = Number(res.headers.get("content-length"));
+    if (!Number.isFinite(declared) || declared <= 0 || declared > MAX_AUDIO_BYTES) return null;
+
+    // Still checked again after reading: the header is a claim, `blob.size` is
+    // the fact, and a response is free to lie about the former.
+    const blob = await res.blob();
+    if (blob.size === 0 || blob.size > MAX_AUDIO_BYTES) return null;
+    return { blob, type, size: blob.size };
+  } catch (error) {
+    console.error("api/posts: could not fetch library track", error);
+    return null;
+  }
+}
+
 export const Route = createFileRoute("/api/posts")({
   server: {
     handlers: {
@@ -106,6 +166,21 @@ export const Route = createFileRoute("/api/posts")({
         const audio = form.get("audio");
         const audioName =
           (form.get("audioName") as string | null)?.trim().slice(0, MAX_AUDIO_NAME_LENGTH) || null;
+        // A library track arrives as a URL rather than bytes — see
+        // `fetchTrustedAudio`. Its credit rides along with it.
+        const audioSource = (form.get("audioSource") as string | null)?.trim() || null;
+        // Roomy on purpose. A credit is a licence condition, and some sources
+        // state it as a sentence rather than a name — one real Commons track
+        // gives its artist as a paragraph ending 'Required credit: "music by
+        // audionautix.com"'. A cap that cuts that in half stores something
+        // that no longer satisfies the licence, so this is set to clear the
+        // realistic worst case rather than the typical one.
+        const audioAttribution =
+          (form.get("audioAttribution") as string | null)?.trim().slice(0, 1000) || null;
+        const audioLicence =
+          (form.get("audioLicence") as string | null)?.trim().slice(0, 120) || null;
+        const audioSourceUrl =
+          (form.get("audioSourceUrl") as string | null)?.trim().slice(0, 500) || null;
         const caption = (form.get("caption") as string | null)?.trim() || null;
         const location = (form.get("location") as string | null)?.trim() || null;
         const visibility = (form.get("visibility") as string) || "public";
@@ -191,6 +266,20 @@ export const Route = createFileRoute("/api/posts")({
           }
         }
 
+        // A catalogue track has to arrive with its licence. The three credit
+        // fields are stored verbatim and nothing here re-derives them from the
+        // file, so without this a request could name a CC BY track as its
+        // `audioSource`, omit the credit, and publish an uncredited track with
+        // nothing in the row to show it happened. The app always sends both
+        // together; anything that doesn't is either broken or trying it on,
+        // and neither should be quietly repaired into a licence breach.
+        if (audioSource && !audioLicence) {
+          return Response.json(
+            { error: "That sound is missing its licence details" },
+            { status: 400 },
+          );
+        }
+
         let productIds: string[] = [];
         if (productIdsRaw) {
           try {
@@ -235,11 +324,31 @@ export const Route = createFileRoute("/api/posts")({
         // outcome than a 502 after a five-photo upload. It just doesn't get a
         // track.
         let audioUrl: string | null = null;
-        if (audio instanceof File && audio.size > 0) {
-          const ext = AUDIO_EXTENSIONS[audio.type] ?? "mp3";
+        let audioBytes = 0;
+        // Two ways in, one way out: whichever the sound came from, it ends up
+        // copied into our own storage. A post must not depend on a third
+        // party's URL still resolving next year.
+        const audioBody =
+          audio instanceof File && audio.size > 0
+            ? { blob: audio, type: audio.type, size: audio.size }
+            : audioSource
+              ? await fetchTrustedAudio(audioSource, pullZone)
+              : null;
+
+        if (audioBody) {
+          const ext = AUDIO_EXTENSIONS[audioBody.type] ?? "mp3";
           const audioPath = `posts/${user.id}/${postId}/audio.${ext}`;
-          const storedAudio = await uploadToBunny(audioPath, audio, endpoint, zone, password);
-          if (storedAudio) audioUrl = `https://${pullZone}/${storedAudio}`;
+          const storedAudio = await uploadToBunny(
+            audioPath,
+            audioBody.blob,
+            endpoint,
+            zone,
+            password,
+          );
+          if (storedAudio) {
+            audioUrl = `https://${pullZone}/${storedAudio}`;
+            audioBytes = audioBody.size;
+          }
         }
 
         const { supabaseAdmin: supabase } =
@@ -258,9 +367,15 @@ export const Route = createFileRoute("/api/posts")({
             thumbnail_url: thumbnailUrl,
             audio_url: audioUrl,
             audio_name: audioUrl ? audioName : null,
+            // Only meaningful next to a stored track. Writing a credit for a
+            // sound that failed to upload would claim we are playing something
+            // we are not.
+            audio_attribution: audioUrl ? audioAttribution : null,
+            audio_licence: audioUrl ? audioLicence : null,
+            audio_source_url: audioUrl ? audioSourceUrl : null,
             // What this post costs in storage, which is what the drafts page
             // reports — so the track counts too.
-            media_bytes: totalBytes + (audioUrl && audio instanceof File ? audio.size : 0),
+            media_bytes: totalBytes + audioBytes,
             created_with: createdWithRaw,
             caption,
             location,

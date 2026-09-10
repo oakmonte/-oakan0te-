@@ -444,7 +444,10 @@ export type Database = {
       };
       posts: {
         Row: {
+          audio_attribution: string | null;
+          audio_licence: string | null;
           audio_name: string | null;
+          audio_source_url: string | null;
           audio_url: string | null;
           caption: string | null;
           created_at: string;
@@ -460,7 +463,10 @@ export type Database = {
           visibility: string;
         };
         Insert: {
+          audio_attribution?: string | null;
+          audio_licence?: string | null;
           audio_name?: string | null;
+          audio_source_url?: string | null;
           audio_url?: string | null;
           caption?: string | null;
           created_at?: string;
@@ -476,7 +482,10 @@ export type Database = {
           visibility?: string;
         };
         Update: {
+          audio_attribution?: string | null;
+          audio_licence?: string | null;
           audio_name?: string | null;
+          audio_source_url?: string | null;
           audio_url?: string | null;
           caption?: string | null;
           created_at?: string;

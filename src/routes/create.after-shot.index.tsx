@@ -18,6 +18,8 @@ import {
 } from "lucide-react";
 import { useAfterShotContext } from "@/lib/after-shot-context";
 import { soundLabel } from "@/lib/capture-handoff";
+import SoundLibrarySheet from "@/components/camera/SoundLibrarySheet";
+import { type LibraryTrack, creditFor } from "@/lib/sound-library";
 import TextPanel from "@/components/camera/aftershot/TextPanel";
 import CropPanel from "@/components/camera/aftershot/CropPanel";
 import DrawPanel from "@/components/camera/aftershot/DrawPanel";
@@ -165,6 +167,7 @@ function AfterShotIndexPage() {
   // unmount — the layer stack only stores the URL string, so nothing else owns
   // them and they'd otherwise leak for the life of the tab.
   const stickerInputRef = useRef<HTMLInputElement>(null);
+  const [soundSheetOpen, setSoundSheetOpen] = useState(false);
   const audioInputRef = useRef<HTMLInputElement>(null);
   const audioElRef = useRef<HTMLAudioElement>(null);
   const [auditioning, setAuditioning] = useState(false);
@@ -184,7 +187,26 @@ function AfterShotIndexPage() {
       // hanging off this value. Doing it here as well would be harmless but
       // would give it two owners, which is how these turn into bugs.
       const url = URL.createObjectURL(file);
-      setMedia({ ...media, audio: { blob: file, url, name: soundLabel(file.name) } });
+      setMedia({ ...media, audio: { blob: file, url, name: soundLabel(file.name), credit: null } });
+    },
+    [media, setMedia],
+  );
+
+  /** A catalogue track stays a URL rather than becoming bytes — see the same
+   *  handler in the photo editor. Nothing is downloaded until the post goes
+   *  out, and then it is the server that does it. */
+  const handleLibraryTrack = useCallback(
+    (track: LibraryTrack) => {
+      audioElRef.current?.pause();
+      setMedia({
+        ...media,
+        audio: {
+          blob: null,
+          url: track.streamUrl,
+          name: track.title,
+          credit: creditFor(track),
+        },
+      });
     },
     [media, setMedia],
   );
@@ -432,6 +454,15 @@ function AfterShotIndexPage() {
         className="hidden"
         onChange={(e) => handleAudioFile(e.target.files)}
       />
+      <SoundLibrarySheet
+        open={soundSheetOpen}
+        onClose={() => setSoundSheetOpen(false)}
+        onPick={handleLibraryTrack}
+        onUseDevice={() => {
+          setSoundSheetOpen(false);
+          audioInputRef.current?.click();
+        }}
+      />
       {/* Looped: a track is almost always longer than the post it plays over,
           and `auditioning` is driven by the element's own events so a blocked
           play can't leave the chip showing pause over silence. */}
@@ -538,7 +569,7 @@ function AfterShotIndexPage() {
                     } else if (tool.id === "draw") setActiveTool(tool.id);
                     else if (tool.id === "filter") setActiveTool("filter");
                     else if (tool.id === "sticker") stickerInputRef.current?.click();
-                    else if (tool.id === "sound") audioInputRef.current?.click();
+                    else if (tool.id === "sound") setSoundSheetOpen(true);
                   }}
                   aria-label={tool.label}
                   className="oak-motion-control flex items-center gap-2 opacity-90 active:scale-95"
