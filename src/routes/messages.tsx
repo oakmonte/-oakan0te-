@@ -229,7 +229,7 @@ function MessagesPage() {
       cancelled = true;
       void messagingClient.removeChannel(channel);
     };
-  }, [chatOpen, selectedContactId, user, messagingClient]);
+  }, [chatOpen, selectedContactId, user]);
 
   const sendMessage = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
