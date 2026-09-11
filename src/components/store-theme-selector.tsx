@@ -7,18 +7,7 @@ import { useSession } from "@/hooks/use-session";
 import { THEMES, type Theme, type ThemeId } from "./store-themes/types";
 import { ThemePreviewSheet } from "./store-themes/full-previews";
 import { useStoreTheme } from "./store-themes/useStoreTheme";
-
-// Picks readable text for a swatch of the theme's own background colour —
-// most of these themes are near-black, a couple (banner, monochrome) are
-// near-white, so a fixed text colour would go invisible on half the grid.
-function readableTextColor(hex: string): string {
-  const n = hex.replace("#", "");
-  const r = parseInt(n.substring(0, 2), 16);
-  const g = parseInt(n.substring(2, 4), 16);
-  const b = parseInt(n.substring(4, 6), 16);
-  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return luminance > 0.6 ? "#1c1b19" : "#ffffff";
-}
+import { readableTextColor } from "./store-themes/colors";
 
 // Just the theme's real background + accent — a full storefront mockup here
 // duplicated what Preview/Edit already show, and made every card ~400px
