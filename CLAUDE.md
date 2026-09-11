@@ -88,6 +88,22 @@ get a now-playing card, and no web API removes them. `src/lib/media-session.ts` 
 what it says, and declining the skip buttons by never registering a handler for them. Read it before
 assuming a lock-screen control is a bug.
 
+### Installable web app
+
+`public/manifest.webmanifest` plus the `apple-mobile-web-app-*` meta tags in `__root.tsx`. iOS reads
+none of the manifest's display fields, so both halves are load-bearing — drop the meta tags and "Add
+to Home Screen" produces a bookmark that opens in Safari.
+
+The install is not cosmetic. **A standalone iOS web app has its own permission store**, so the camera
+grant survives between launches instead of being re-asked every visit — which is the only real fix
+for that, since Safari grants camera per page load and no API overrides it. It also gets its own
+cookie and localStorage jar, separate from Safari's: **a user who installs is signed out on first
+launch and has to sign in again.** That is expected, not a bug.
+
+Regenerate icons from `public/favicon.png` with the `canvas` package already in node_modules: `any`
+icons at 62% inset, `maskable` at 46% (Android crops to a squircle and will shave the ends off
+anything larger), `apple-touch-icon` at 180px.
+
 ## Performance — keep it fast
 
 Every page is mobile-first and often on slow networks. Treat load speed as a first-class feature.

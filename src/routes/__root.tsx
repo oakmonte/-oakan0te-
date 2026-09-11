@@ -115,6 +115,22 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       // file. Must stay a plain meta tag (not injected via JS) since the
       // freshness check reads it out of a freshly-fetched page's raw HTML.
       { name: "build-id", content: __BUILD_ID__ },
+      // Installed-to-Home-Screen behaviour on iOS, which reads none of the
+      // manifest's display fields. Without these, "Add to Home Screen" makes a
+      // bookmark that opens in Safari — same chrome, same per-visit camera
+      // prompt, none of the point.
+      //
+      // The install matters for more than looks: a standalone iOS web app has
+      // its own permission store, so the camera grant survives between
+      // launches instead of being asked for on every visit.
+      { name: "mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      // black-translucent, so the page runs under the status bar — the app is
+      // already black-chromed and every screen here is edge to edge. Paired
+      // with the viewport's `viewport-fit=cover` above, which is what makes
+      // the safe-area insets the layouts already use resolve to real numbers.
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
+      { name: "apple-mobile-web-app-title", content: "Oakmonte" },
       { title: "Oakmonte — Share your style" },
       {
         name: "description",
@@ -153,6 +169,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: appCss,
       },
       { rel: "icon", type: "image/png", href: "/favicon.png" },
+      { rel: "manifest", href: "/manifest.webmanifest" },
+      // iOS ignores the manifest's icons entirely and reads this instead.
+      { rel: "apple-touch-icon", href: "/icons/apple-touch-icon.png" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
