@@ -186,7 +186,7 @@ function CarouselDots({ total, index }: { total: number; index: number }) {
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none absolute bottom-2 left-2.5 flex items-center gap-[3px]"
+      className="pointer-events-none absolute bottom-2 left-2.5 flex items-center gap-[4px]"
       // A scrim pill behind these would box in the same corner the glass
       // button already occupies; a drop shadow keeps them legible over a pale
       // photo without adding a second surface.
@@ -197,7 +197,7 @@ function CarouselDots({ total, index }: { total: number; index: number }) {
         // moves and the opacity transition actually runs.
         <span
           key={slot}
-          className="h-[5px] w-[5px] rounded-full bg-white transition-opacity duration-200"
+          className="h-[6px] w-[6px] rounded-full bg-white transition-opacity duration-200"
           style={{ opacity: slot === activeSlot ? 1 : 0.45 }}
         />
       ))}
@@ -321,7 +321,7 @@ function CatalogTile({
   const variantNumber = (photos[index]?.variant ?? 0) + 1;
 
   return (
-    <div className="rounded-xl p-2.5 text-left" style={{ background: tileBg }}>
+    <div className="rounded-xl p-1.5 text-left" style={{ background: tileBg }}>
       <div
         className="relative mb-2 aspect-[4/5] w-full overflow-hidden rounded-lg"
         style={{ background: `${accent}22` }}
@@ -365,21 +365,21 @@ function CatalogTile({
             type="button"
             aria-label={`More about ${tile.title}`}
             onClick={(e) => e.stopPropagation()}
-            className="absolute bottom-2 right-2 flex h-[22px] w-[22px] items-center justify-center rounded-full text-white"
+            className="absolute bottom-2 right-2 flex h-[30px] w-[30px] items-center justify-center rounded-full text-white"
             style={GLASS}
           >
-            <MoreHorizontal size={12} strokeWidth={2.5} />
+            <MoreHorizontal size={16} strokeWidth={2.5} />
           </button>
         )}
       </div>
 
       <div className="flex items-end justify-between gap-1.5">
         <button type="button" onClick={onTap} className="min-w-0 flex-1 text-left">
-          <p className="truncate text-[10px] font-medium" style={{ color: textColor }}>
+          <p className="truncate text-[13px] font-medium" style={{ color: textColor }}>
             {tile.title}
           </p>
           {mode === "products" && tile.price != null && (
-            <p className="text-[8px]" style={{ color: mutedColor }}>
+            <p className="text-[11px]" style={{ color: mutedColor }}>
               ₦{tile.price.toLocaleString()}
             </p>
           )}
@@ -390,7 +390,7 @@ function CatalogTile({
         {mode === "products" && tile.variantCount > 1 && (
           <span
             aria-label={`Variant ${variantNumber} of ${tile.variantCount}`}
-            className="-me-1 flex h-[17px] w-[17px] shrink-0 items-center justify-center rounded-full text-[9px] font-semibold tabular-nums"
+            className="-me-0.5 flex h-[21px] w-[21px] shrink-0 items-center justify-center rounded-full text-[11px] font-semibold tabular-nums"
             style={{ background: accent, color: readableTextColor(accent) }}
           >
             {variantNumber}
@@ -473,7 +473,7 @@ export function PhoneHeader({
         field="logoText"
         defaultValue={defaultLogoText}
         as="span"
-        className="truncate text-[13px] font-bold text-white"
+        className="truncate text-[16px] font-bold text-white"
       />
     </div>
   );
@@ -483,7 +483,7 @@ export function PhoneHeader({
       {logo ? (
         <img src={logo} alt="" className="h-7 w-7 rounded-md object-cover" />
       ) : (
-        <span className="text-[13px] font-bold text-white">{brandInitial}</span>
+        <span className="text-[16px] font-bold text-white">{brandInitial}</span>
       )}
       {editing?.isEditing && (
         <span className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-white text-black">
@@ -511,9 +511,9 @@ export function PhoneHeader({
         )}
       </div>
       <div className="flex shrink-0 items-center gap-5 pt-1.5" style={{ color: mutedColor }}>
-        <Search size={18} strokeWidth={1.8} />
-        <ShoppingBag size={18} strokeWidth={1.8} />
-        <Share2 size={18} strokeWidth={1.8} />
+        <Search size={20} strokeWidth={1.8} />
+        <ShoppingBag size={20} strokeWidth={1.8} />
+        <Share2 size={20} strokeWidth={1.8} />
       </div>
     </div>
   );
@@ -582,7 +582,7 @@ export function HeroSlideshow({
       <div className="mx-4 mt-3">
         <label className="flex aspect-[4/5] w-full cursor-pointer flex-col items-center justify-center gap-1.5 rounded-2xl border border-dashed border-white/30 px-6 text-center text-white/60">
           <Plus size={18} />
-          <span className="text-[11px] font-medium leading-snug">
+          <span className="text-[13px] font-medium leading-snug">
             Add photos of your models wearing your best pieces
           </span>
           <input type="file" accept="image/*" multiple className="hidden" onChange={handleFiles} />
@@ -687,7 +687,7 @@ export function HeroSlideshow({
               field="overlayLine1"
               placeholder={isEditing ? "Add a headline" : undefined}
               as="p"
-              className="text-[26px] font-display uppercase leading-[0.9] text-white"
+              className="text-[30px] font-display uppercase leading-[0.9] text-white"
             />
           </div>
           <div className="pointer-events-auto w-full">
@@ -696,7 +696,7 @@ export function HeroSlideshow({
               field="overlayLine2"
               placeholder={isEditing ? "Add a tagline" : undefined}
               as="p"
-              className="text-[11px] font-medium text-white/85"
+              className="text-[13px] font-medium text-white/85"
             />
           </div>
         </div>
@@ -809,7 +809,7 @@ export function StatsRow({
         {clusterColors.map((c, i) => (
           <div
             key={i}
-            className="h-6 w-6 rounded-full border-2"
+            className="h-7 w-7 rounded-full border-2"
             style={{ background: c, borderColor: cardBg }}
           />
         ))}
@@ -819,7 +819,7 @@ export function StatsRow({
         field="statsFollowersText"
         defaultValue={followersText}
         as="p"
-        className="max-w-[200px] text-[9px] leading-tight"
+        className="max-w-[240px] text-[12px] leading-tight"
         style={{ color: mutedColor }}
       />
     </div>
@@ -843,7 +843,7 @@ function CollectionsModeTab({
     <button
       type="button"
       onClick={onClick}
-      className="flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-semibold"
+      className="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[12px] font-semibold"
       style={{
         background: active ? `${accent}26` : "transparent",
         color: active ? accent : textColor,
@@ -908,15 +908,15 @@ export function CollectionsGrid({
             />
           </div>
         ) : (
-          <span className="text-[11px] font-semibold" style={{ color: textColor }}>
+          <span className="text-[15px] font-semibold" style={{ color: textColor }}>
             {heading}
           </span>
         )}
         <span
-          className="flex items-center gap-0.5 text-[9px] font-medium"
+          className="flex items-center gap-0.5 text-[12px] font-medium"
           style={{ color: accent }}
         >
-          View all <ChevronRight size={11} />
+          View all <ChevronRight size={14} />
         </span>
       </div>
       <div className="mt-2.5 grid grid-cols-2 gap-2">
@@ -941,7 +941,7 @@ export function CollectionsGrid({
               // upload would be judging a product tile that is missing a
               // piece of its real design.
               fallbackProducts.map((p, i) => (
-                <div key={i} className="rounded-xl p-2.5 text-left" style={{ background: tileBg }}>
+                <div key={i} className="rounded-xl p-1.5 text-left" style={{ background: tileBg }}>
                   <div
                     className="relative mb-2 aspect-[4/5] w-full overflow-hidden rounded-lg"
                     style={{ background: `${accent}22` }}
@@ -950,18 +950,18 @@ export function CollectionsGrid({
                     {!editing?.isEditing && (
                       <span
                         aria-hidden="true"
-                        className="absolute bottom-2 right-2 flex h-[22px] w-[22px] items-center justify-center rounded-full text-white"
+                        className="absolute bottom-2 right-2 flex h-[30px] w-[30px] items-center justify-center rounded-full text-white"
                         style={GLASS}
                       >
-                        <MoreHorizontal size={12} strokeWidth={2.5} />
+                        <MoreHorizontal size={16} strokeWidth={2.5} />
                       </span>
                     )}
                   </div>
                   <button type="button" onClick={handleTileTap} className="block w-full text-left">
-                    <p className="truncate text-[10px] font-medium" style={{ color: textColor }}>
+                    <p className="truncate text-[13px] font-medium" style={{ color: textColor }}>
                       {p.name}
                     </p>
-                    <p className="text-[8px]" style={{ color: mutedColor }}>
+                    <p className="text-[11px]" style={{ color: mutedColor }}>
                       ₦{p.price.toLocaleString()}
                     </p>
                   </button>
@@ -972,7 +972,7 @@ export function CollectionsGrid({
                   type="button"
                   key={i}
                   onClick={handleTileTap}
-                  className="rounded-xl p-2.5 text-left"
+                  className="rounded-xl p-1.5 text-left"
                   style={{ background: tileBg }}
                 >
                   <div
@@ -981,10 +981,10 @@ export function CollectionsGrid({
                   >
                     <img src={productPlaceholder} alt="" className="h-full w-full object-cover" />
                   </div>
-                  <p className="text-[10px] font-medium" style={{ color: textColor }}>
+                  <p className="text-[13px] font-medium" style={{ color: textColor }}>
                     {it.label}
                   </p>
-                  <p className="text-[8px]" style={{ color: mutedColor }}>
+                  <p className="text-[11px]" style={{ color: mutedColor }}>
                     {it.count} items
                   </p>
                 </button>
@@ -1045,7 +1045,7 @@ export function PromoBanner({
             field="promoEyebrow"
             defaultValue={eyebrow}
             as="p"
-            className="text-[8px] font-semibold uppercase tracking-[0.14em]"
+            className="text-[11px] font-semibold uppercase tracking-[0.14em]"
             style={{ color: accent }}
           />
           <ThemeText
@@ -1054,7 +1054,7 @@ export function PromoBanner({
             defaultValue={title}
             multiline
             as="p"
-            className="mt-1 text-[11.5px] font-semibold leading-tight"
+            className="mt-1 text-[14px] font-semibold leading-tight"
             style={{ color: textColor }}
           />
         </div>
@@ -1062,14 +1062,14 @@ export function PromoBanner({
           <button
             type="button"
             onClick={handleCountdownTap}
-            className="shrink-0 text-[11px] font-semibold tabular-nums"
+            className="shrink-0 text-[13px] font-semibold tabular-nums"
             style={{ color: accent }}
           >
             {countdown}
           </button>
         ) : (
           <span
-            className="shrink-0 rounded-full px-2.5 py-1.5 text-[8.5px] font-semibold whitespace-nowrap"
+            className="shrink-0 rounded-full px-3 py-2 text-[11px] font-semibold whitespace-nowrap"
             style={{ background: accent, color: accentTextColor }}
           >
             {cta}
@@ -1078,7 +1078,7 @@ export function PromoBanner({
       </div>
 
       {showCountdownHint && (
-        <div className="absolute right-2 top-full z-20 mt-2 w-44 rounded-lg bg-black/90 px-2.5 py-2 text-[10px] leading-4 text-white shadow-lg">
+        <div className="absolute right-2 top-full z-20 mt-2 w-44 rounded-lg bg-black/90 px-2.5 py-2 text-[12px] leading-5 text-white shadow-lg">
           A live drop timer will be available at full launch.
         </div>
       )}
@@ -1127,7 +1127,7 @@ export function FooterTeaser({
           field="footerLabel"
           defaultValue={label}
           as="p"
-          className="text-[10px] font-semibold"
+          className="text-[13px] font-semibold"
           style={{ color: textColor }}
         />
         <ThemeText
@@ -1135,7 +1135,7 @@ export function FooterTeaser({
           field="footerSub"
           defaultValue={sub}
           as="p"
-          className="text-[9px] truncate"
+          className="text-[11px] truncate"
           style={{ color: mutedColor }}
         />
       </div>
@@ -1144,12 +1144,12 @@ export function FooterTeaser({
           {clusterColors.map((c, i) => (
             <div
               key={i}
-              className="h-4 w-4 rounded-full border"
+              className="h-5 w-5 rounded-full border"
               style={{ background: c, borderColor: cardBg }}
             />
           ))}
         </div>
-        <ChevronRight size={12} style={{ color: accent }} />
+        <ChevronRight size={14} style={{ color: accent }} />
       </div>
     </div>
   );

@@ -173,7 +173,7 @@ function MotionGridFull({
             field="hero1"
             defaultValue="Welcome to"
             as="p"
-            className="text-[9px] font-semibold uppercase tracking-[0.25em] text-[#c9a3ff]"
+            className="text-[11px] font-semibold uppercase tracking-[0.25em] text-[#c9a3ff]"
           />
           <ThemeText
             editing={editing}
@@ -187,7 +187,7 @@ function MotionGridFull({
             field="hero3"
             defaultValue="Street culture. No filter."
             as="p"
-            className="mt-2 text-[11px] font-medium uppercase tracking-[0.08em] text-white/60"
+            className="mt-2 text-[13px] font-medium uppercase tracking-[0.08em] text-white/60"
           />
         </div>
 
@@ -287,7 +287,7 @@ function ImmersiveBannerFull({
             field="hero1"
             defaultValue="Essentials for a calm life"
             as="p"
-            className="text-[9px] font-semibold uppercase tracking-[0.25em] text-[#695947]"
+            className="text-[11px] font-semibold uppercase tracking-[0.25em] text-[#695947]"
           />
           <ThemeText
             editing={editing}
@@ -302,7 +302,7 @@ function ImmersiveBannerFull({
             field="hero3"
             defaultValue="Made to last, made for every day."
             as="p"
-            className="mx-auto mt-2.5 max-w-[200px] text-[11px] leading-4 text-[#655747]"
+            className="mx-auto mt-2.5 max-w-[240px] text-[13px] leading-4 text-[#655747]"
           />
         </div>
 
@@ -403,7 +403,7 @@ function GalleryEditFull({
             field="hero1"
             defaultValue="Autumn selects, in full"
             as="p"
-            className="text-[9px] font-semibold uppercase tracking-[0.3em] text-[#c9a227]"
+            className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[#c9a227]"
           />
           <ThemeText
             editing={editing}
@@ -418,7 +418,7 @@ function GalleryEditFull({
             field="hero3"
             defaultValue="Fewer pieces. Finer edit."
             as="p"
-            className="mx-auto mt-3 max-w-[190px] text-[10.5px] leading-4 text-[#c9bea6]"
+            className="mx-auto mt-3 max-w-[230px] text-[13px] leading-4 text-[#c9bea6]"
           />
         </div>
 
@@ -516,7 +516,7 @@ function NeonTerminalFull({
         />
 
         <div className="px-4 pt-6 text-center">
-          <p className="flex items-center justify-center gap-1.5 text-[9px] font-semibold uppercase tracking-[0.25em] text-[#2dd4ff]">
+          <p className="flex items-center justify-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.25em] text-[#2dd4ff]">
             <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-[#2dd4ff]" />
             <ThemeText editing={editing} field="hero1" defaultValue="System online" as="span" />
           </p>
@@ -533,7 +533,7 @@ function NeonTerminalFull({
             field="hero3"
             defaultValue="Style, compiled."
             as="p"
-            className="mx-auto mt-2.5 max-w-[190px] text-[10.5px] leading-4 text-[#8fd9e8]"
+            className="mx-auto mt-2.5 max-w-[230px] text-[13px] leading-4 text-[#8fd9e8]"
           />
         </div>
 
@@ -633,7 +633,7 @@ function VerdantNoirFull({
             field="hero1"
             defaultValue="Grown, not manufactured"
             as="p"
-            className="text-[9px] font-semibold uppercase tracking-[0.25em] text-[#7fcf9a]"
+            className="text-[11px] font-semibold uppercase tracking-[0.25em] text-[#7fcf9a]"
           />
           <ThemeText
             editing={editing}
@@ -647,7 +647,7 @@ function VerdantNoirFull({
             field="hero3"
             defaultValue="Quiet colour for slow living."
             as="p"
-            className="mt-2 text-[11px] leading-4 text-[#c3d6ca]"
+            className="mt-2 text-[13px] leading-4 text-[#c3d6ca]"
           />
         </div>
 
@@ -747,7 +747,7 @@ function MonochromeFull({
             field="hero1"
             defaultValue="No colour to distract you"
             as="p"
-            className="text-[9px] font-semibold uppercase tracking-[0.25em] text-[#5a5a5a]"
+            className="text-[11px] font-semibold uppercase tracking-[0.25em] text-[#5a5a5a]"
           />
           <ThemeText
             editing={editing}
@@ -762,7 +762,7 @@ function MonochromeFull({
             field="hero3"
             defaultValue="Two colours. Every shape."
             as="p"
-            className="mx-auto mt-2.5 max-w-[190px] text-[11px] leading-4 text-[#5a5a5a]"
+            className="mx-auto mt-2.5 max-w-[230px] text-[13px] leading-4 text-[#5a5a5a]"
           />
         </div>
 
@@ -862,7 +862,7 @@ function GildedFull({
             field="hero1"
             defaultValue="Opulence, quietly worn"
             as="p"
-            className="text-[9px] font-semibold uppercase tracking-[0.3em] text-[#d4af37]"
+            className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[#d4af37]"
           />
           <ThemeText
             editing={editing}
@@ -877,7 +877,7 @@ function GildedFull({
             field="hero3"
             defaultValue="Gold is a finish, not a shortcut."
             as="p"
-            className="mx-auto mt-3 max-w-[190px] text-[10.5px] leading-4 text-[#d8cbaa]"
+            className="mx-auto mt-3 max-w-[230px] text-[13px] leading-4 text-[#d8cbaa]"
           />
         </div>
 
@@ -977,7 +977,7 @@ function ObsidianFull({
             field="hero1"
             defaultValue="Nothing extra"
             as="p"
-            className="text-[9px] font-semibold uppercase tracking-[0.3em] text-[#7a7a7a]"
+            className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[#7a7a7a]"
           />
           <ThemeText
             editing={editing}
@@ -991,7 +991,7 @@ function ObsidianFull({
             field="hero3"
             defaultValue="One colour. Every silhouette."
             as="p"
-            className="mt-2 text-[11px] uppercase tracking-[0.08em] text-[#8a8a8a]"
+            className="mt-2 text-[13px] uppercase tracking-[0.08em] text-[#8a8a8a]"
           />
         </div>
 
