@@ -11,7 +11,6 @@ import {
 } from "react";
 import {
   Camera,
-  ChevronLeft,
   ChevronRight,
   GripHorizontal,
   Image as ImageIcon,
@@ -337,7 +336,13 @@ function CatalogTile({
             <div
               key={i}
               onClick={onTap}
-              className="h-full w-full shrink-0 snap-center"
+              // snap-always (scroll-snap-stop: always) is what keeps a hard
+              // fling to a single photo: without it, momentum travels past
+              // several slides before the mandatory snap catches it, so a
+              // flick could jump 2-3 photos and skip the variants between
+              // them. The browser enforces the one-at-a-time rule natively —
+              // no velocity maths, no fighting the scroller.
+              className="h-full w-full shrink-0 snap-center snap-always"
               // Clones duplicate a real slide; only the real one should be
               // announced, or a screen reader hears the first and last photo
               // twice.
@@ -365,10 +370,10 @@ function CatalogTile({
             type="button"
             aria-label={`More about ${tile.title}`}
             onClick={(e) => e.stopPropagation()}
-            className="absolute bottom-2 right-2 flex h-[30px] w-[30px] items-center justify-center rounded-full text-white"
+            className="absolute bottom-2 right-2 flex h-[36px] w-[36px] items-center justify-center rounded-full text-white"
             style={GLASS}
           >
-            <MoreHorizontal size={16} strokeWidth={2.5} />
+            <MoreHorizontal size={18} strokeWidth={2.5} />
           </button>
         )}
       </div>
@@ -950,10 +955,10 @@ export function CollectionsGrid({
                     {!editing?.isEditing && (
                       <span
                         aria-hidden="true"
-                        className="absolute bottom-2 right-2 flex h-[30px] w-[30px] items-center justify-center rounded-full text-white"
+                        className="absolute bottom-2 right-2 flex h-[36px] w-[36px] items-center justify-center rounded-full text-white"
                         style={GLASS}
                       >
-                        <MoreHorizontal size={16} strokeWidth={2.5} />
+                        <MoreHorizontal size={18} strokeWidth={2.5} />
                       </span>
                     )}
                   </div>
