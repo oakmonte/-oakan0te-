@@ -1385,21 +1385,27 @@ function CreatePage() {
          *
          * Sticky, zero-width, and FIRST in flow: a sticky `left` offset can
          * only push a box further right than where it already sits, so it has
-         * to start at the content-box edge — which the strip's 50%-minus-half
-         * padding puts exactly at the centre. Being first also means it would
+         * to start at the content-box edge. Being first also means it would
          * paint under the swatches, hence the z-index.
          *
-         * The offset is `50vw`, not `50%`. A sticky inset percentage resolves
-         * against the containing block — here every swatch laid end to end —
-         * so `50%` would pin the ring halfway along the filter list rather
-         * than halfway across the screen. The strip spans the full width of a
-         * `fixed inset-0` root, so half the viewport is the right number. */}
+         * `left: 0` is the whole offset, and it is not a placeholder. A sticky
+         * inset is measured from the scrollport's CONTENT edge — after
+         * `padding-left` — and this strip's padding-left is already
+         * `50% - half a ring`, which is the centre. So zero means "stay where
+         * the padding put you", which is exactly what is wanted.
+         *
+         * Measured, after getting it wrong twice. On a 375px viewport the
+         * padding is 145.5px; `left: calc(50vw - 42px)` renders the ring at
+         * 291px — the offset added to the padding, then clamped to the content
+         * box — and it stays there at every scroll position, which is the ring
+         * jammed against the right-hand edge. `left: 0` renders it at 145.5px
+         * and holds there at scrollLeft 0, 168 and 504. */}
         {!(mode === "video" && isRecording) && (
           <div
             className="sticky shrink-0 pointer-events-none"
             style={{
               zIndex: 2,
-              left: `calc(50vw - ${CAPTURE_SIZE / 2}px)`,
+              left: 0,
               width: 0,
               height: CAPTURE_SIZE,
             }}

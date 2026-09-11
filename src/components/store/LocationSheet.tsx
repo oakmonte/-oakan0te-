@@ -248,7 +248,8 @@ export function LocationSheet({
     addressLine.trim().length > 0 &&
     city.trim().length > 0 &&
     state.trim().length > 0 &&
-    country.trim().length > 0;
+    country.trim().length > 0 &&
+    postalCode.trim().length > 0;
 
   async function handleSave() {
     if (!valid) {
@@ -421,13 +422,15 @@ export function LocationSheet({
             <input
               value={postalCode}
               onChange={(e) => setPostalCode(e.target.value)}
-              placeholder="ZIP/Postal code (optional)"
-              className="w-full text-base border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-gray-400 transition-colors duration-150"
+              placeholder="ZIP/Postal code"
+              className={`w-full text-base border rounded-xl px-4 py-3 outline-none focus:border-gray-400 transition-colors duration-150 ${
+                showErrors && !postalCode.trim() ? "border-red-300" : "border-gray-200"
+              }`}
             />
           </div>
           {showErrors && !valid && (
             <p className="text-xs text-red-500 mt-2">
-              Location name, address line 1, city, state, and country are required.
+              Location name, address line 1, city, state, country, and ZIP/postal code are required.
             </p>
           )}
         </div>
