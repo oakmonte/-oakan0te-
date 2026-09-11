@@ -38,6 +38,9 @@ import {
 
 export const PX_PER_SECOND = 62;
 const TRACK_HEIGHT = 62;
+/** How far a finger may drift during a press-and-hold before it counts as a
+ *  drag instead. A thumb on a phone moves several pixels without meaning to. */
+const HOLD_SLOP = 12;
 /** The row above the strip holding the selected clip's controls. */
 const GUTTER = 32;
 /** How long after the last scroll event the strip counts as stopped.
@@ -314,6 +317,22 @@ export default function VideoTimeline({
     };
   }, [trimming, moveTrim, endTrim]);
 
+  // Stop the strip scrolling under a clip that has been picked up.
+  //
+  // This is what `touch-action` could not do — see the note on the scroller.
+  // `preventDefault` on a non-passive touchmove DOES stop a native pan, but
+  // only while the browser has not already started one, which is exactly the
+  // situation here: a hold takes 280ms of stillness to fire, so at the moment
+  // this listener attaches the finger has not moved and no scroll is running.
+  // React's own onTouchMove is passive, so it has to be bound by hand.
+  useEffect(() => {
+    const el = scrollerRef.current;
+    if (!el || !dragging) return;
+    const block = (e: TouchEvent) => e.preventDefault();
+    el.addEventListener("touchmove", block, { passive: false });
+    return () => el.removeEventListener("touchmove", block);
+  }, [dragging]);
+
   // `trimPadLeft` has to be added by hand. An absolutely positioned child is
   // laid out against its ancestor's PADDING BOX, whose origin sits before the
   // padding — so the tiles (in normal flow) shift with it and this overlay
@@ -360,7 +379,13 @@ export default function VideoTimeline({
           height: TRACK_HEIGHT,
           scrollbarWidth: "none",
           overscrollBehaviorX: "contain",
-          touchAction: dragging || trimming ? "none" : "pan-x",
+          // `pan-x` always, even while dragging. Flipping this to "none" when
+          // the hold fires reads like it should stop the strip scrolling under
+          // the drag, and it does nothing at all: a browser latches
+          // touch-action when the touch STARTS, so a change 280ms later
+          // applies to the next gesture, never the one in flight. The real
+          // block is the non-passive touchmove listener below.
+          touchAction: trimming ? "none" : "pan-x",
         }}
       >
         {/* h-full, not just items-stretch: the row is the only thing between
@@ -510,6 +535,11 @@ function ClipTile({
   // Press-and-hold to pick a clip up. A plain drag can't mean "reorder" here —
   // horizontal drag already means "scrub", and the strip would have to guess
   // which one the user meant. The hold makes it explicit.
+  //
+  // HOLD_SLOP is 12px, not the 6 it was. A thumb resting on a phone drifts
+  // several pixels over 280ms without its owner intending to move anything,
+  // and every one of those drifts used to cancel the hold before it fired —
+  // which is what made picking a clip up feel like it mostly didn't work.
   function handlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
     origin.current = e.clientX;
     moved.current = false;
@@ -522,18 +552,9 @@ function ClipTile({
   }
 
   function handlePointerMove(e: React.PointerEvent<HTMLDivElement>) {
-    if (Math.abs(e.clientX - origin.current) > 6) {
+    if (Math.abs(e.clientX - origin.current) > HOLD_SLOP) {
       moved.current = true;
       if (!isDragging) clearHold();
-    }
-    if (!isDragging) return;
-    const delta = e.clientX - origin.current;
-    // One whole tile of travel commits one position. Anything finer and the
-    // list churns under the finger.
-    const steps = Math.trunc(delta / Math.max(40, width * 0.6));
-    if (steps !== 0) {
-      onReorder(index, index + steps);
-      origin.current = e.clientX;
     }
   }
 
@@ -545,6 +566,37 @@ function ClipTile({
     }
     if (!moved.current) onSelect(isSelected ? null : clip.id);
   }
+
+  // Once the clip is picked up the gesture belongs to the WINDOW, not to this
+  // tile.
+  //
+  // Dragging a clip left or right means the finger leaves the tile almost
+  // immediately — that is the entire point of the gesture. Pointer events go
+  // to whatever is under the finger, so a tile listening only to itself stops
+  // hearing about the drag one tile in, and the reorder dies halfway. Same
+  // reasoning, and the same fix, as the trim gesture higher up this file.
+  useEffect(() => {
+    if (!isDragging) return;
+    const onMove = (e: PointerEvent) => {
+      const delta = e.clientX - origin.current;
+      // One whole tile of travel commits one position. Anything finer and the
+      // list churns under the finger.
+      const steps = Math.trunc(delta / Math.max(40, width * 0.6));
+      if (steps !== 0) {
+        onReorder(index, index + steps);
+        origin.current = e.clientX;
+      }
+    };
+    const onEnd = () => onDragStateChange(null);
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onEnd);
+    window.addEventListener("pointercancel", onEnd);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onEnd);
+      window.removeEventListener("pointercancel", onEnd);
+    };
+  }, [isDragging, index, width, onReorder, onDragStateChange]);
 
   return (
     <>
