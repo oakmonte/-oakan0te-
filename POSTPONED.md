@@ -142,16 +142,26 @@ the feature (`Promise.allSettled`; only an empty board is an error).
   on it is already music. Its hazard is the mirror of Commons': ccMixter is
   full of `by-nc`, which a shop cannot use, so the query pins `lic=open` and
   the shared licence check runs again on the way out.
-- **Jamendo** — built, **dark until `JAMENDO_CLIENT_ID` is set**, and
-  **unverified**: the other two were written against real responses, this one
-  against the documented v3.0 shape, because there was no key to call it with.
-  Check `parseSearchResponse` against a real payload before trusting it.
+- **Jamendo** — live, **verified against the real API on 2026-09-11**, and
+  needs `JAMENDO_CLIENT_ID` (app "Oakmonte's App" is registered). Without the
+  key the provider skips itself rather than erroring.
 
-**Two things to settle on Jamendo, both licensing rather than code.** Its
-catalogue mixes CC licences and plenty is `by-nc` — handled, same as ccMixter.
-Separately, Jamendo's own API terms distinguish a free tier from commercial use
-of the service, and a marketplace is commercial. That is a question for their
-licensing team, and the reason the provider ships switched off.
+**Jamendo is mostly unusable to us, and the query is what fixes it.** Measured
+live: a lo-fi page without licence filters is 25 `by-nd` and 3 `by-sa` out of
+30, so the shared licence check discarded 28 of every 30 tracks and the genre
+looked empty. With `ccnc=false&ccnd=false` the same page comes back 30 out of
+30 usable. Note `audiodlallowed` is NOT a recognised parameter on `/tracks/` —
+Jamendo warns and ignores it — so the download-permission check has to happen
+in `parseSearchResponse`, where it does.
+
+**Still open on Jamendo: their API terms, not the music.** The tracks are fine —
+we only take CC BY / BY-SA / CC0, granted by the artist directly, so commercial
+use with attribution is exactly what they permit and Jamendo cannot gate it.
+The service is the question: the free tier is **35,000 requests/month** and is
+framed for non-commercial apps, with commercial tiers unpublished and by
+arrangement. The full API Terms of Use page 404s, so this needs asking rather
+than assuming. At our 5-minute cache, 35k/month is comfortable at a few hundred
+active sellers and tight at a few thousand.
 
 **The licence check is an allowlist, not a deny-list, and that was a real
 bug.** It used to pass anything not matching non-commercial or no-derivatives,

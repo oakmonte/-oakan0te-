@@ -75,10 +75,17 @@ export function buildSearchUrl({ genre, text, offset = 0 }: SoundQuery): string 
     // Without this the order is arbitrary; a seller scrolling a genre should
     // meet the tracks people actually use first.
     boost: "popularity_total",
-    // Tracks whose rights holder permits the file to be taken away. We copy
-    // the track into our own storage at publish, so a stream-only track is one
-    // we would be storing without permission.
-    audiodlallowed: "true",
+    // Exclude the non-commercial and no-derivatives clauses upstream. This is
+    // Jamendo's equivalent of ccMixter's `lic=open`, and it is not a nicety:
+    // measured on the live API, a lo-fi page without these is 25 `by-nd` and
+    // 3 `by-sa` out of 30, so `isLicenceUsable` throws away 28 of every 30
+    // tracks and the genre looks empty. With them, the same page comes back
+    // 30 out of 30 usable.
+    //
+    // The shared licence check still runs on the way out. A filter we do not
+    // control is a request, not a guarantee.
+    ccnc: "false",
+    ccnd: "false",
   });
   const tag = genre ? GENRE_TAGS[genre] : undefined;
   if (tag) params.set("fuzzytags", tag);
@@ -142,6 +149,11 @@ export function parseSearchResponse(json: unknown): LibraryTrack[] {
     // publishing the post.
     const streamUrl = safeLink(t.audiodownload) ?? safeLink(t.audio);
     if (!streamUrl || !t.id || !t.name) continue;
+    // We copy the track into our own storage at publish, so a track whose
+    // rights holder withheld download is one we would be storing without
+    // permission. This has to happen here rather than in the query: Jamendo
+    // answers `audiodlallowed` on /tracks/ with "parameter not recognized"
+    // and then ignores it, so asking upstream reads as working and isn't.
     if (t.audiodownload_allowed === false) continue;
 
     const licenceName = licenceFromCcUrl(t.license_ccurl);
