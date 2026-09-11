@@ -62,7 +62,19 @@ export function BottomNav({ active, ownUsername }: BottomNavProps) {
   return (
     <nav
       className="fixed left-1/2 -translate-x-1/2 z-50"
-      style={{ width: 320, height: NAV_HEIGHT, bottom: 12 }}
+      // The inset, not a bare 12px. Safari reports 0 here while its own
+      // toolbar is on screen — the toolbar is chrome, not a safe-area inset —
+      // so a hardcoded 12 looked right in a tab and sat straight on the home
+      // indicator once installed, where there is no toolbar underneath to rest
+      // on. Adding the inset gives 12px above the toolbar in Safari and 12px
+      // above the home indicator in the app, which is the same gap both times.
+      // It also matches the toasts, which already position against
+      // `env(safe-area-inset-bottom) + 76px` and were drifting out of step.
+      style={{
+        width: 320,
+        height: NAV_HEIGHT,
+        bottom: "calc(env(safe-area-inset-bottom) + 12px)",
+      }}
     >
       <div
         ref={trackRef}

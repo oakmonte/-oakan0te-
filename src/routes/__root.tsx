@@ -14,6 +14,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { preloadStoreThemeAssets } from "../lib/preload-store-theme-assets";
 import { useSession } from "../hooks/use-session";
+import { markStandalone } from "@/lib/standalone";
 import { useBuildFreshness } from "../hooks/use-build-freshness";
 import { PostUploadToast } from "../components/PostUploadToast";
 import { ProductSaveToast } from "../components/ProductSaveToast";
@@ -125,11 +126,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       // launches instead of being asked for on every visit.
       { name: "mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
-      // black-translucent, so the page runs under the status bar — the app is
-      // already black-chromed and every screen here is edge to edge. Paired
-      // with the viewport's `viewport-fit=cover` above, which is what makes
-      // the safe-area insets the layouts already use resolve to real numbers.
-      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
+      // NOT black-translucent. That ran the page under the status bar and made
+      // iOS paint white text there always — which put an unexplained black
+      // strip above the white screens and would have hidden the clock on them.
+      // `default` leaves the strip to the page's own theme-color, which is
+      // already set per route (#000000 at the root, #ffffff on /store and the
+      // publish screen), so the status bar matches whatever screen you are on
+      // instead of fighting it.
+      { name: "apple-mobile-web-app-status-bar-style", content: "default" },
       { name: "apple-mobile-web-app-title", content: "Oakmonte" },
       { title: "Oakmonte — Share your style" },
       {
@@ -211,6 +215,11 @@ function RootComponent() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { user } = useSession();
   useBuildFreshness();
+
+  // Publishes "installed app or browser tab" onto <html data-standalone>, for
+  // the CSS that has to tell them apart — see standalone.ts. Runs once here
+  // rather than per-screen so there is one answer for the whole app.
+  useEffect(markStandalone, []);
 
   // Fires the instant a session exists — right after sign-in and equally
   // right after finishing seller account creation, since both land here
