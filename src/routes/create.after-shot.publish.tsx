@@ -27,7 +27,16 @@ import { blockedContentMessage, findBlockedContent } from "@/lib/content-policy"
 import CameraPanel from "@/components/camera/CameraPanel";
 
 export const Route = createFileRoute("/create/after-shot/publish")({
-  head: () => ({ meta: [{ title: "New post — Oakmonte" }] }),
+  // Overrides root's #000000 theme-color, the same way store.tsx does for the
+  // dashboard. Root declares black because nearly every screen in the app is
+  // black — the camera, the editors, the feed, drafts. This one is the sole
+  // white screen in the create flow, and a white page under a theme-color of
+  // black is what put black bands above and below it: Safari paints its own
+  // chrome with that colour, so the page ended up framed in a colour it
+  // doesn't use anywhere.
+  head: () => ({
+    meta: [{ title: "New post — Oakmonte" }, { name: "theme-color", content: "#ffffff" }],
+  }),
   component: PublishPage,
 });
 
