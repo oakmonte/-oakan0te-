@@ -156,6 +156,32 @@ const TRIM_MULTIPLIER: Record<SizeChartDefinition["guide"], number> = {
   "tank-top": 1.065,
   "turtle-neck": 1.1,
   "varsity-jacket": 1.16,
+  "a-line-dress": 1.125,
+  "bermuda-shorts": 1.115,
+  "biker-shorts": 1.1,
+  "compression-shirt": 1.065,
+  "flared-pants": 1.16,
+  gilet: 1.16,
+  "harem-pants": 1.16,
+  henley: 1.1,
+  "leather-jacket": 1.2,
+  "leather-pants": 1.16,
+  leggings: 1.1,
+  "linen-pants": 1.16,
+  "off-shoulder-dress": 1.125,
+  palazzo: 1.16,
+  "parachute-pants": 1.16,
+  parka: 1.2,
+  "senator-wear": 1.125,
+  "shirt-dress": 1.125,
+  "slip-dress": 1.1,
+  "sports-bra": 1.1,
+  "track-jacket": 1.16,
+  "trucker-jacket": 1.16,
+  tunic: 1.1,
+  corset: 1.2,
+  "peplum-top": 1.1,
+  "wrap-dress": 1.125,
 };
 
 // Fabric area formulas per garment shape, in m², from cm measurements --
@@ -312,6 +338,41 @@ function estimateAreaM2(
     case "mini-dress":
       if (chest_width == null || body_length == null) return null;
       return topArea(chest_width, body_length, sleeve_length);
+    case "a-line-dress":
+    case "off-shoulder-dress":
+    case "shirt-dress":
+    case "slip-dress":
+    case "wrap-dress":
+      if (chest_width == null || body_length == null) return null;
+      return topArea(chest_width, body_length, sleeve_length);
+    case "compression-shirt":
+    case "gilet":
+    case "henley":
+    case "leather-jacket":
+    case "parka":
+    case "senator-wear":
+    case "track-jacket":
+    case "trucker-jacket":
+    case "tunic":
+    case "peplum-top":
+      if (chest_width == null || body_length == null) return null;
+      return topArea(chest_width, body_length, sleeve_length);
+    case "bermuda-shorts":
+    case "biker-shorts":
+      if (waist_width == null || outseam_length == null) return null;
+      return bottomArea(waist_width, outseam_length, 0.085);
+    case "flared-pants":
+    case "harem-pants":
+    case "leather-pants":
+    case "leggings":
+    case "linen-pants":
+    case "palazzo":
+    case "parachute-pants":
+      if (waist_width == null || inseam_length == null) return null;
+      return bottomArea(waist_width, inseam_length, 0.2);
+    case "sports-bra":
+      if (chest_width == null || body_length == null) return null;
+      return topArea(chest_width, body_length, undefined) * 0.7;
     // turtle-neck is deliberately absent. Its chart measures shoulder, chest,
     // neck height, sleeve, cuff and hem -- but no body length, so there is no
     // way to size the front and back panels. Add body_length to that chart
@@ -334,6 +395,15 @@ const BOTTOM_GUIDES = new Set<SizeChartDefinition["guide"]>([
   "dolphin-shorts",
   "bum-shorts",
   "denim-bum-shorts",
+  "bermuda-shorts",
+  "biker-shorts",
+  "flared-pants",
+  "harem-pants",
+  "leather-pants",
+  "leggings",
+  "linen-pants",
+  "palazzo",
+  "parachute-pants",
 ]);
 
 // Real weight units only -- a Weight/Volume option value in mL/L/fl oz has no
@@ -409,6 +479,31 @@ const REQUIRED_MEASUREMENTS: Partial<Record<SizeChartDefinition["guide"], string
   "puffer-jacket": ["chest_width", "body_length"],
   "varsity-jacket": ["chest_width", "body_length"],
   "mini-dress": ["chest_width", "body_length"],
+  "a-line-dress": ["chest_width", "body_length"],
+  "off-shoulder-dress": ["chest_width", "body_length"],
+  "shirt-dress": ["chest_width", "body_length"],
+  "slip-dress": ["chest_width", "body_length"],
+  "wrap-dress": ["chest_width", "body_length"],
+  "compression-shirt": ["chest_width", "body_length"],
+  gilet: ["chest_width", "body_length"],
+  henley: ["chest_width", "body_length"],
+  "leather-jacket": ["chest_width", "body_length"],
+  parka: ["chest_width", "body_length"],
+  "senator-wear": ["chest_width", "body_length"],
+  "track-jacket": ["chest_width", "body_length"],
+  "trucker-jacket": ["chest_width", "body_length"],
+  tunic: ["chest_width", "body_length"],
+  "peplum-top": ["chest_width", "body_length"],
+  "bermuda-shorts": ["waist_width", "outseam_length"],
+  "biker-shorts": ["waist_width", "outseam_length"],
+  "flared-pants": ["waist_width", "inseam_length"],
+  "harem-pants": ["waist_width", "inseam_length"],
+  "leather-pants": ["waist_width", "inseam_length"],
+  leggings: ["waist_width", "inseam_length"],
+  "linen-pants": ["waist_width", "inseam_length"],
+  palazzo: ["waist_width", "inseam_length"],
+  "parachute-pants": ["waist_width", "inseam_length"],
+  "sports-bra": ["chest_width", "body_length"],
   jumpsuit: ["chest_width", "body_length"],
   romper: ["chest_width", "body_length"],
   "cargo-pants": ["waist_width", "outseam_length"],

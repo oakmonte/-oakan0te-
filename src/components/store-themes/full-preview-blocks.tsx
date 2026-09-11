@@ -10,6 +10,7 @@ import {
 } from "react";
 import {
   Camera,
+  ChevronLeft,
   ChevronRight,
   GripHorizontal,
   Image as ImageIcon,
@@ -147,6 +148,148 @@ function CroppableImage({
         >
           <Move size={12} />
         </div>
+      )}
+    </div>
+  );
+}
+
+// One collection/product tile's photos, swipeable in place — a shopper can
+// look through everything the seller uploaded without leaving the storefront
+// page. A single photo renders as a single non-scrolling slide, so tiles stay
+// visually identical to before whenever there's nothing to swipe through.
+//
+// The gesture is native CSS scroll-snap on purpose. A JS pointer handler here
+// would have to re-derive horizontal-vs-vertical intent for every touch and
+// would be competing with the phone frame's own vertical scroll underneath;
+// the browser already separates the two axes correctly, gives momentum and
+// rubber-banding for free, and — the part that matters most here — suppresses
+// the click at the end of a scrolling touch, so a swipe never also fires the
+// tile's own onClick and opens the product.
+//
+// Each slide carries its own crop position (keyed by src, since a seller can
+// reorder photos) rather than one position for the whole tile: photo 2 framed
+// by photo 1's focal point is almost always wrong.
+function TileCarousel({
+  images,
+  cropKeyPrefix,
+  label,
+  onPhotoTap,
+  editing,
+}: {
+  images: string[];
+  /** `${mode}:${tile.id}` — the per-slide src is appended to it. */
+  cropKeyPrefix: string;
+  label: string;
+  /** Same destination as the tile's caption button below the photo; this is
+   * the pointer affordance for it, which is why the slide is a plain div —
+   * the caption is the one real control, so the photo doesn't need to be a
+   * second tab stop repeating it. */
+  onPhotoTap: () => void;
+  editing?: ThemeEditingProps;
+}) {
+  const [index, setIndex] = useState(0);
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const isEditing = editing?.isEditing ?? false;
+  const multiple = images.length > 1;
+
+  function handleScroll() {
+    const el = scrollerRef.current;
+    if (!el || el.clientWidth === 0) return;
+    const next = clamp(Math.round(el.scrollLeft / el.clientWidth), 0, images.length - 1);
+    // Functional + equality-guarded: onScroll fires on nearly every frame of
+    // a swipe, but the slide only actually changes a handful of times.
+    setIndex((i) => (i === next ? i : next));
+  }
+
+  function scrollToSlide(next: number) {
+    const el = scrollerRef.current;
+    if (!el) return;
+    el.scrollTo({ left: clamp(next, 0, images.length - 1) * el.clientWidth, behavior: "smooth" });
+  }
+
+  return (
+    <div className="relative h-full w-full">
+      <div
+        ref={scrollerRef}
+        onScroll={handleScroll}
+        role="group"
+        aria-label={multiple ? `${label} — ${images.length} photos, swipe to see more` : label}
+        className="flex h-full w-full snap-x snap-mandatory overflow-x-auto overflow-y-hidden overscroll-x-contain"
+      >
+        {images.map((src, i) => (
+          <div
+            key={`${src}-${i}`}
+            onClick={onPhotoTap}
+            className="h-full w-full shrink-0 snap-center"
+          >
+            <CroppableImage
+              src={src}
+              editable={isEditing}
+              position={editing?.tileCrops[`${cropKeyPrefix}:${src}`]}
+              onPositionChange={(pos) => editing?.onTileCropChange(`${cropKeyPrefix}:${src}`, pos)}
+            />
+          </div>
+        ))}
+      </div>
+
+      {multiple && (
+        <>
+          {/* Dots are an indicator, not a control — at this tile size they'd
+              be a ~4px tap target, well under any usable minimum, so the
+              swipe (and the hover arrows below, on pointer devices) stays the
+              only way to move between slides. */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 bottom-1.5 flex justify-center"
+          >
+            {images.length <= 6 ? (
+              <div className="flex items-center gap-1 rounded-full bg-black/35 px-1.5 py-1 backdrop-blur-sm">
+                {images.map((src, i) => (
+                  <span
+                    key={`${src}-${i}`}
+                    className="h-1 w-1 rounded-full transition-opacity duration-200"
+                    style={{ background: "#fff", opacity: i === index ? 1 : 0.4 }}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-full bg-black/35 px-1.5 py-0.5 text-[7px] font-semibold tabular-nums text-white backdrop-blur-sm">
+                {index + 1}/{images.length}
+              </div>
+            )}
+          </div>
+
+          {/* Touch devices swipe; a pointer device can't drag a native
+              scroller, so the seller previewing their own store on a laptop
+              would otherwise find the tile frozen. Hover-only so these never
+              appear on the phone the storefront is actually designed for. */}
+          {index > 0 && (
+            <button
+              type="button"
+              aria-label="Previous photo"
+              onClick={(e) => {
+                e.stopPropagation();
+                scrollToSlide(index - 1);
+              }}
+              className="absolute left-1 top-1/2 hidden h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white opacity-0 backdrop-blur-sm transition-opacity duration-150 group-hover/tile:opacity-100 group-focus-within/tile:opacity-100 [@media(hover:hover)]:flex"
+            >
+              <ChevronLeft size={11} />
+            </button>
+          )}
+          {index < images.length - 1 && (
+            <button
+              type="button"
+              aria-label="Next photo"
+              onClick={(e) => {
+                e.stopPropagation();
+                scrollToSlide(index + 1);
+              }}
+              className="absolute right-1 top-1/2 hidden h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white opacity-0 backdrop-blur-sm transition-opacity duration-150 group-hover/tile:opacity-100 group-focus-within/tile:opacity-100 [@media(hover:hover)]:flex"
+            >
+              <ChevronRight size={11} />
+            </button>
+          )}
+        </>
       )}
     </div>
   );
@@ -673,35 +816,43 @@ export function CollectionsGrid({
       <div className="mt-2.5 grid grid-cols-2 gap-2">
         {useReal
           ? tiles.map((tile) => {
-              const cropKey = `${mode}:${tile.id}`;
+              // A tile with no photo at all still gets one slide, so the
+              // placeholder is framed and croppable exactly like a real one.
+              const images = tile.images.length > 0 ? tile.images : [productPlaceholder];
+              // Not a <button> wrapping everything, the way the placeholder
+              // tiles below still are: the carousel owns real prev/next
+              // buttons, and a button inside a button is invalid HTML. The
+              // caption is the single real control instead, with the photo
+              // itself tapping through to the same place.
               return (
-                <button
-                  type="button"
+                <div
                   key={tile.id}
-                  onClick={handleTileTap}
-                  className="rounded-xl p-2.5 text-left"
+                  className="group/tile rounded-xl p-2.5 text-left"
                   style={{ background: tileBg }}
                 >
                   <div
                     className="mb-2 aspect-[4/5] w-full overflow-hidden rounded-lg"
                     style={{ background: `${accent}22` }}
                   >
-                    <CroppableImage
-                      src={tile.image_url ?? productPlaceholder}
-                      editable={editing?.isEditing}
-                      position={editing?.tileCrops[cropKey]}
-                      onPositionChange={(pos) => editing?.onTileCropChange(cropKey, pos)}
+                    <TileCarousel
+                      images={images}
+                      cropKeyPrefix={`${mode}:${tile.id}`}
+                      label={tile.title}
+                      onPhotoTap={handleTileTap}
+                      editing={editing}
                     />
                   </div>
-                  <p className="truncate text-[10px] font-medium" style={{ color: textColor }}>
-                    {tile.title}
-                  </p>
-                  {mode === "products" && tile.price != null && (
-                    <p className="text-[8px]" style={{ color: mutedColor }}>
-                      ₦{tile.price.toLocaleString()}
+                  <button type="button" onClick={handleTileTap} className="block w-full text-left">
+                    <p className="truncate text-[10px] font-medium" style={{ color: textColor }}>
+                      {tile.title}
                     </p>
-                  )}
-                </button>
+                    {mode === "products" && tile.price != null && (
+                      <p className="text-[8px]" style={{ color: mutedColor }}>
+                        ₦{tile.price.toLocaleString()}
+                      </p>
+                    )}
+                  </button>
+                </div>
               );
             })
           : mode === "products"

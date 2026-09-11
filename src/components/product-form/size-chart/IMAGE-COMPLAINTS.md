@@ -33,6 +33,34 @@ refuses to preview or publish. Run `bun run build` after touching anything in th
 
 Search ambiguity addressed: `Volleyball Shorts` is now a distinct category leaf mapped to the generic shorts guide. `Dolphin Shorts` remains a separate exact category and is not used as a volleyball alias.
 
+## Added 2026-09-11
+
+The named 2026-09-11 batch was visually inspected. The following assets are wired to
+dedicated guide keys and category leaves where the lettered contract is readable:
+
+| Filename | Observed garment and contract | Guide key / decision |
+| --- | --- | --- |
+| `A-line-dress guide.png` | A-line dress; full length, chest, waist, hem | `a-line-dress`; wired to A-Line Dresses |
+| `Bermuda-shorts guide.png` | Bermuda shorts; waist, hip, outseam, leg opening | `bermuda-shorts`; wired to Bermudas |
+| `Biker-shorts guide.png` | Fitted biker shorts; waist, hip, outseam, leg opening | `biker-shorts`; wired to Biker Shorts |
+| `Compression-shirt guide.png` | Fitted long-sleeve base layer; body, chest, shoulder, sleeve | `compression-shirt`; wired to Compression Shirts |
+| `Flared-pants guide.png`, `Harem-pants guide.png`, `Leather-pants guide.png`, `Linen-pants guide.png`, `Palazzo guide.png`, `Parachute-pants guide.png`, `Leggings guide.png` | Trouser/legging silhouettes; waist, hip, inseam, leg opening | Dedicated keys; wired to their precise pants leaves |
+| `Football-jersey guide.png` | Short-sleeve football jersey; body, chest, shoulder, sleeve | `football-jersey`; wired as the active four-line football contract. The earlier five-line `Football-Jersey-Guide.webp` remains in the folder but is no longer imported because its neck row does not match this batch. |
+| `Gilet guide.png` | Sleeveless padded vest; body, chest, shoulder | `gilet`; wired to Gilets |
+| `Henley guide.png` | Long-sleeve henley; body, chest, shoulder, sleeve | `henley`; wired to Henley Shirts |
+| `Leather-Jacket guide.png`, `Parka guide.png`, `Track-jacket guide.png`, `Trucker-jacket guide.png` | Long-sleeve outerwear; body, chest, shoulder, sleeve | Dedicated keys; wired to precise jacket leaves |
+| `Off-shoulder-dress guide.png`, `Shirt-dress guide.png`, `Slip-dress guide.png`, `wrap-dress guide.png` | Dress silhouettes with distinct body/chest/waist/hip contracts; sleeve where shown | Dedicated keys; wired to precise dress leaves |
+| `Senator-wear guide.png` | Long-sleeve, collared, belted tunic/kurta-style garment; body, chest, shoulder, sleeve | `senator-wear`; wired to a new Senator Wear leaf. The name is regionally ambiguous and should be reviewed if sellers use a different product concept. |
+| `Sports-bra guide.png` | Racerback sports bra; body, chest, hem | `sports-bra`; wired to Sports Bras |
+| `Sweater-vest guide.png` | Sleeveless V-neck sweater vest; body, chest, shoulder | Near-duplicate of the already imported `sweater vest guide.png` with the same readable five-line contract. Existing import is retained; the new duplicate is not separately wired. |
+| `Tunic guide.png` | Long-sleeve tunic; body, chest, shoulder, sleeve | `tunic`; wired to Tunics |
+| `corset guide.png` | Structured corset; body, chest, waist | `corset`; wired to Corsets & Bustiers |
+| `peplum-top guide.png` | Short-sleeve peplum top; body, chest, shoulder, sleeve, hem | `peplum-top`; wired to Peplum Tops |
+
+The earlier `Football-Jersey-Guide.webp` is retained as an unimported comparison asset. Its
+five-line contract is not compatible with the new four-line `Football-jersey guide.png`, so the
+active category map now uses the new PNG and no longer asks sellers for a nonexistent neck row.
+
 ## Added 2026-09-10
 
 The following newly added assets were visually checked against their filenames before wiring:

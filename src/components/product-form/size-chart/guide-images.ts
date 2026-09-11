@@ -3,7 +3,7 @@ import poloShirtGuide from "./Polo-Shirt-Guide.webp";
 import dressShirtGuide from "./Dress-Shirt-Guide.webp";
 import offShoulderTopGuide from "./Off-Shoulder-Top-Guide.webp";
 import nflJerseyGuide from "./NFL-Jersey-Guide.webp";
-import footballJerseyGuide from "./Football-Jersey-Guide.webp";
+import footballJerseyGuide from "./Football-jersey guide.png";
 import baggyJoggersGuide from "./Baggy-Joggers-Guide.webp";
 import cuffedJoggersGuide from "./Cuffed-joggers-guide.webp";
 import straightJoggersGuide from "./Straight-joggers-guide.webp";
@@ -34,6 +34,32 @@ import sweatshirtGuide from "./sweatshirt guide.png";
 import tankTopGuide from "./Tank-top guide.png";
 import turtleNeckGuide from "./swimsuit guide.jpg";
 import varsityJacketGuide from "./Varsity-jacket guide.png";
+import aLineDressGuide from "./A-line-dress guide.png";
+import bermudaShortsGuide from "./Bermuda-shorts guide.png";
+import bikerShortsGuide from "./Biker-shorts guide.png";
+import compressionShirtGuide from "./Compression-shirt guide.png";
+import flaredPantsGuide from "./Flared-pants guide.png";
+import giletGuide from "./Gilet guide.png";
+import haremPantsGuide from "./Harem-pants guide.png";
+import henleyGuide from "./Henley guide.png";
+import leatherJacketGuide from "./Leather-Jacket guide.png";
+import leatherPantsGuide from "./Leather-pants guide.png";
+import leggingsGuide from "./Leggings guide.png";
+import linenPantsGuide from "./Linen-pants guide.png";
+import offShoulderDressGuide from "./Off-shoulder-dress guide.png";
+import palazzoGuide from "./Palazzo guide.png";
+import parachutePantsGuide from "./Parachute-pants guide.png";
+import parkaGuide from "./Parka guide.png";
+import senatorWearGuide from "./Senator-wear guide.png";
+import shirtDressGuide from "./Shirt-dress guide.png";
+import slipDressGuide from "./Slip-dress guide.png";
+import sportsBraGuide from "./Sports-bra guide.png";
+import trackJacketGuide from "./Track-jacket guide.png";
+import truckerJacketGuide from "./Trucker-jacket guide.png";
+import tunicGuide from "./Tunic guide.png";
+import corsetGuide from "./corset guide.png";
+import peplumTopGuide from "./peplum-top guide.png";
+import wrapDressGuide from "./wrap-dress guide.png";
 import type { SizeChartDefinition } from "@/lib/size-chart-config";
 
 // Deliberately a total Record, not a Partial one: the letters down the side
@@ -86,6 +112,32 @@ export const GUIDE_IMAGES: Record<SizeChartDefinition["guide"], string> = {
   "tank-top": tankTopGuide,
   "turtle-neck": turtleNeckGuide,
   "varsity-jacket": varsityJacketGuide,
+  "a-line-dress": aLineDressGuide,
+  "bermuda-shorts": bermudaShortsGuide,
+  "biker-shorts": bikerShortsGuide,
+  "compression-shirt": compressionShirtGuide,
+  "flared-pants": flaredPantsGuide,
+  gilet: giletGuide,
+  "harem-pants": haremPantsGuide,
+  henley: henleyGuide,
+  "leather-jacket": leatherJacketGuide,
+  "leather-pants": leatherPantsGuide,
+  leggings: leggingsGuide,
+  "linen-pants": linenPantsGuide,
+  "off-shoulder-dress": offShoulderDressGuide,
+  palazzo: palazzoGuide,
+  "parachute-pants": parachutePantsGuide,
+  parka: parkaGuide,
+  "senator-wear": senatorWearGuide,
+  "shirt-dress": shirtDressGuide,
+  "slip-dress": slipDressGuide,
+  "sports-bra": sportsBraGuide,
+  "track-jacket": trackJacketGuide,
+  "trucker-jacket": truckerJacketGuide,
+  tunic: tunicGuide,
+  corset: corsetGuide,
+  "peplum-top": peplumTopGuide,
+  "wrap-dress": wrapDressGuide,
 };
 
 const preloaded = new Set<string>();
