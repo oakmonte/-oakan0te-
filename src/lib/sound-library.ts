@@ -78,6 +78,13 @@ export type LibraryTrack = {
    *  that can't be checked isn't much of a credit, and because CC deeds ask
    *  for a link to the source where reasonable. */
   sourceUrl: string;
+  /** Proof that `streamUrl` came out of this catalogue, stamped by
+   *  `/api/sounds` after the usability and licence filters have run. Only
+   *  `/api/sound-file` reads it, and only to refuse URLs it never offered —
+   *  see `sound-url-signature.server.ts`. Absent on a track built anywhere
+   *  other than that route, which is why the proxy treats absent as a refusal
+   *  rather than as "unsigned is fine". */
+  access?: { sig: string; exp: number };
 };
 
 /** Below this, it isn't a song.

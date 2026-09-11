@@ -84,7 +84,19 @@ export const Route = createFileRoute("/api/sounds")({
           return Response.json({ error: "Couldn't reach the sound library" }, { status: 502 });
         }
 
-        const tracks = interleave(lists);
+        const merged = interleave(lists);
+
+        // Stamp each track AFTER the filters above. The stamp is what
+        // `/api/sound-file` checks before it will fetch anything, so it has to
+        // mean "this URL passed `isUsableTrack` and `isLicenceUsable`" — which
+        // it only does if nothing is signed before those have run.
+        const { signTrackUrl } = await import("@/lib/sound-url-signature.server");
+        const tracks = await Promise.all(
+          merged.map(async (track) => {
+            const access = await signTrackUrl(track.streamUrl);
+            return access ? { ...track, access } : track;
+          }),
+        );
 
         // The offset is upstream's, not ours. Most of each page is dropped by
         // the filters, so paging by the number of tracks returned would skip

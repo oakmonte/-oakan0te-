@@ -137,11 +137,17 @@ const SOON: Record<string, SoonInfo> = {
   },
 };
 
-/** Snapshot of everything undo/redo restores. Deliberately just the timeline:
- *  text and sticker layers have their own selection and editing affordances,
- *  and folding them in here would make an undo mid-caption mean two different
- *  things depending on which panel was open. */
-type Snapshot = { clips: Clip[]; ratio: ProjectRatio };
+/** Snapshot of everything undo/redo restores.
+ *
+ *  Text and sticker layers are deliberately NOT in here: they have their own
+ *  selection and editing affordances, and folding them in would make an undo
+ *  mid-caption mean two different things depending on which panel was open.
+ *
+ *  The music track IS, because it is a property of the whole timeline rather
+ *  than of a panel — and because removing one is the one destructive action on
+ *  this screen that undo could not take back. Re-picking costs a second trip
+ *  to the catalogue and several megabytes of somebody's mobile data. */
+type Snapshot = { clips: Clip[]; ratio: ProjectRatio; music: EditorMusic | null };
 
 function VideoEditorRoute() {
   const layerState = useAfterShotLayersState();
@@ -305,9 +311,9 @@ function VideoEditor() {
   /** Snapshot the CURRENT timeline, then apply the next one. Everything that
    *  changes the timeline in one discrete step goes through here. */
   const push = useCallback(() => {
-    setPast((prev) => [...prev, { clips, ratio }].slice(-40));
+    setPast((prev) => [...prev, { clips, ratio, music }].slice(-40));
     setFuture([]);
-  }, [clips, ratio]);
+  }, [clips, ratio, music]);
 
   const commit = useCallback(
     (next: Clip[]) => {
@@ -321,23 +327,25 @@ function VideoEditor() {
     setPast((prev) => {
       if (prev.length === 0) return prev;
       const snap = prev[prev.length - 1];
-      setFuture((f) => [...f, { clips, ratio }]);
+      setFuture((f) => [...f, { clips, ratio, music }]);
       setClips(snap.clips);
       setRatio(snap.ratio);
+      setMusic(snap.music);
       return prev.slice(0, -1);
     });
-  }, [clips, ratio]);
+  }, [clips, ratio, music]);
 
   const redo = useCallback(() => {
     setFuture((prev) => {
       if (prev.length === 0) return prev;
       const snap = prev[prev.length - 1];
-      setPast((p) => [...p, { clips, ratio }]);
+      setPast((p) => [...p, { clips, ratio, music }]);
       setClips(snap.clips);
       setRatio(snap.ratio);
+      setMusic(snap.music);
       return prev.slice(0, -1);
     });
-  }, [clips, ratio]);
+  }, [clips, ratio, music]);
 
   /* ---------------- layer stack per clip ---------------- */
 
@@ -881,36 +889,51 @@ function VideoEditor() {
    *
    *  It is a few megabytes over what may be a mobile connection, which is why
    *  the sheet says it is working and stays open until this resolves. */
-  const chooseTrack = useCallback(async (track: LibraryTrack) => {
-    setSoundLoading(true);
-    setSoundError(null);
-    try {
-      const res = await authedFetch(`/api/sound-file?url=${encodeURIComponent(track.streamUrl)}`);
-      if (!res.ok) {
-        const body = await res.json().catch(() => null);
-        throw new Error(body?.error ?? "Couldn't load that sound");
+  const chooseTrack = useCallback(
+    async (track: LibraryTrack) => {
+      setSoundLoading(true);
+      setSoundError(null);
+      try {
+        // The access stamp travels with the track from `/api/sounds`. Without
+        // it the proxy refuses — it only serves URLs the catalogue issued, so a
+        // track assembled anywhere else cannot be laundered through it.
+        const query = new URLSearchParams({ url: track.streamUrl });
+        if (track.access) {
+          query.set("sig", track.access.sig);
+          query.set("exp", String(track.access.exp));
+        }
+        const res = await authedFetch(`/api/sound-file?${query.toString()}`);
+        if (!res.ok) {
+          const body = await res.json().catch(() => null);
+          throw new Error(body?.error ?? "Couldn't load that sound");
+        }
+        const blob = await res.blob();
+        // A name for the mixer, not for the seller — the credit is what the post
+        // shows. The extension keeps `decodeAudioData` from having to guess.
+        const file = new File([blob], "track.mp3", { type: blob.type || "audio/mpeg" });
+        const next: EditorMusic = {
+          file,
+          name: track.title,
+          // Under the clips rather than over them: this is a backing track for a
+          // garment video, and a seller talking about the fit has to win.
+          volume: 0.7,
+          credit: creditFor(track),
+        };
+        // Snapshot before it changes, so undo takes the pick back rather than
+        // skipping past it to whatever happened before. Volume is left out on
+        // purpose — a slider would push forty snapshots on one drag.
+        push();
+        setMusic((m) => (m ? { ...next, volume: m.volume } : next));
+        setSoundOpen(false);
+      } catch (err) {
+        console.error("VideoEditor: could not fetch track", err);
+        setSoundError("Couldn't load that sound. Check your connection and try another.");
+      } finally {
+        setSoundLoading(false);
       }
-      const blob = await res.blob();
-      // A name for the mixer, not for the seller — the credit is what the post
-      // shows. The extension keeps `decodeAudioData` from having to guess.
-      const file = new File([blob], "track.mp3", { type: blob.type || "audio/mpeg" });
-      const next: EditorMusic = {
-        file,
-        name: track.title,
-        // Under the clips rather than over them: this is a backing track for a
-        // garment video, and a seller talking about the fit has to win.
-        volume: 0.7,
-        credit: creditFor(track),
-      };
-      setMusic((m) => (m ? { ...next, volume: m.volume } : next));
-      setSoundOpen(false);
-    } catch (err) {
-      console.error("VideoEditor: could not fetch track", err);
-      setSoundError("Couldn't load that sound. Check your connection and try another.");
-    } finally {
-      setSoundLoading(false);
-    }
-  }, []);
+    },
+    [push],
+  );
 
   const closeTool = useCallback(() => setActiveTool(null), []);
 
@@ -1227,7 +1250,10 @@ function VideoEditor() {
           loading={soundLoading}
           error={soundError}
           onVolume={(volume) => setMusic((m) => (m ? { ...m, volume } : m))}
-          onRemove={() => setMusic(null)}
+          onRemove={() => {
+            push();
+            setMusic(null);
+          }}
           onClose={closeTool}
         />
       )}

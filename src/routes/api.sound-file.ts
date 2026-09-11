@@ -25,6 +25,36 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { getRequestUser } from "@/lib/server-auth";
 
+/** Tracks one seller may pull per window. Picking a track, changing your mind
+ *  and picking again is normal; twelve in a minute is not a person editing. */
+const RATE_LIMIT = 12;
+const RATE_WINDOW_MS = 60_000;
+
+const recent = new Map<string, number[]>();
+
+/** Per-user rate limit, held in the isolate's memory.
+ *
+ *  Honest about what that is worth: serverless means several isolates, each
+ *  with its own map, and a cold start forgets everything. So this is a brake
+ *  on a loop rather than a guarantee — the real ceiling for a determined
+ *  abuser is however many isolates they can spread across. It costs nothing
+ *  and removes the trivial case; a real limit needs shared state, which is a
+ *  Durable Object or a table, and is worth building when there is traffic to
+ *  justify it rather than now. */
+function allow(userId: string): boolean {
+  const now = Date.now();
+  const hits = (recent.get(userId) ?? []).filter((t) => now - t < RATE_WINDOW_MS);
+  hits.push(now);
+  recent.set(userId, hits);
+  // The map would otherwise grow one entry per user for the isolate's life.
+  if (recent.size > 500) {
+    for (const [key, times] of recent) {
+      if (times.every((t) => now - t >= RATE_WINDOW_MS)) recent.delete(key);
+    }
+  }
+  return hits.length <= RATE_LIMIT;
+}
+
 export const Route = createFileRoute("/api/sound-file")({
   server: {
     handlers: {
@@ -35,8 +65,27 @@ export const Route = createFileRoute("/api/sound-file")({
         const user = await getRequestUser(request);
         if (!user) return Response.json({ error: "Not signed in" }, { status: 401 });
 
-        const source = new URL(request.url).searchParams.get("url");
+        const params = new URL(request.url).searchParams;
+        const source = params.get("url");
+        const sig = params.get("sig") ?? "";
+        const exp = Number(params.get("exp"));
         if (!source) return Response.json({ error: "Missing url" }, { status: 400 });
+
+        // One track is a few megabytes of our egress under a User-Agent that
+        // names us to Wikimedia. Signing up is free, so the auth gate alone
+        // bounds who can spend it but not how much.
+        if (!allow(user.id)) {
+          return Response.json({ error: "Too many sounds, too fast" }, { status: 429 });
+        }
+
+        // The allowlist says the host is one we fetch from; the signature says
+        // this exact URL is one the catalogue offered, having already passed
+        // `isUsableTrack` and `isLicenceUsable`. Without it an allowlisted host
+        // is enough to pull a track the picker filtered out on licence grounds.
+        const { verifyTrackUrl } = await import("@/lib/sound-url-signature.server");
+        if (!(await verifyTrackUrl(source, sig, exp))) {
+          return Response.json({ error: "That sound link has expired" }, { status: 403 });
+        }
 
         const { fetchTrustedAudio } = await import("@/lib/trusted-audio.server");
         // Our own CDN counts as trusted here too, so reopening a draft whose

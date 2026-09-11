@@ -261,14 +261,28 @@ reads `audio_licence` with no `audio_url` as "already welded in" and holds an
 `audioBakedIn=1`. Caught in review, not by a test — nothing tests a draft round
 trip.
 
-**Still open, from the same review:** `/api/sound-file` has no per-user rate
-limit, so a free account can pull 30 MB a request through our egress; and it
-takes a raw URL rather than a track id, so it will proxy a track the picker
-filtered out on licence grounds. Neither lets an uncredited track reach a post
-— publishing still goes through `api.posts`, which demands a licence — but
-passing the id and re-resolving it server-side is the better shape. Undo/redo
-also does not cover the music track: removing one and undoing will not bring
-it back.
+**The rest of that review is closed too** (same day). `/api/sound-file` now
+takes a signed URL: `/api/sounds` stamps each track with an HMAC *after*
+`isUsableTrack` and `isLicenceUsable` have run, and the proxy refuses anything
+unstamped — so an allowlisted host is no longer enough to pull a track the
+picker filtered out. Signing rather than re-resolving the id upstream was
+deliberate: re-resolving costs a provider request per pick against Jamendo's
+35,000-a-month free tier, and proves less ("this id is usable now" rather than
+"this URL is one we offered"). The key derives from a secret the server
+already holds, so there is no new env var to forget; `SOUND_URL_SIGNING_KEY`
+overrides it if the two should rotate separately. `sound-url-signature.test.ts`
+covers it, because a verify that wrongly returned true would break nothing
+visible.
+
+There is also a per-user rate limit, and it is honest about being a brake
+rather than a guarantee: the counter lives in one isolate's memory, so several
+isolates mean several counters and a cold start forgets. A real limit needs
+shared state — a Durable Object or a table — and is worth building when there
+is traffic to justify it.
+
+Undo/redo now covers the music track. Removing one was the only destructive
+action on that screen undo could not take back, and re-picking costs another
+trip to the catalogue and several megabytes of somebody's mobile data.
 
 The feed has **no volume control**, deliberately: autoplay is the only sound the
 app makes and the tap surface already stops it. First playback in a session is
