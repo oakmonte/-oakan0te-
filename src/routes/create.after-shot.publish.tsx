@@ -240,7 +240,14 @@ function PublishPage() {
             ) : media.poster ? (
               <img src={media.poster.url} alt="" className="w-full h-full object-cover" />
             ) : (
-              <video src={media.url} muted playsInline className="w-full h-full object-cover" />
+              <video
+                src={media.url}
+                muted
+                playsInline
+                disablePictureInPicture
+                disableRemotePlayback
+                className="w-full h-full object-cover"
+              />
             )}
             {/* How many items are actually going. Without it a carousel looks
                 identical to a single photo on the one screen where you commit
@@ -526,6 +533,8 @@ function CoverPickerSheet({
           src={url}
           muted
           playsInline
+          disablePictureInPicture
+          disableRemotePlayback
           preload="auto"
           onLoadedMetadata={(e) => setDuration(e.currentTarget.duration || 0)}
           className="max-h-full w-full rounded-xl object-contain"

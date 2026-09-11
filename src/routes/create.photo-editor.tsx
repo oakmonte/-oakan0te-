@@ -1013,6 +1013,8 @@ function PhotoEditor() {
                   loop
                   muted
                   playsInline
+                  disablePictureInPicture
+                  disableRemotePlayback
                   className={active.crop ? "" : "absolute inset-0 h-full w-full object-cover"}
                   style={mediaStyle()}
                 />
@@ -1207,6 +1209,8 @@ function PhotoEditor() {
                         src={p.url}
                         muted
                         playsInline
+                        disablePictureInPicture
+                        disableRemotePlayback
                         preload="metadata"
                         className="h-full w-full object-cover"
                       />

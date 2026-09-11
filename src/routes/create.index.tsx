@@ -1061,6 +1061,8 @@ function CreatePage() {
           ref={videoRef}
           autoPlay
           playsInline
+          disablePictureInPicture
+          disableRemotePlayback
           muted
           className="absolute inset-0 w-full h-full object-cover"
           style={{
@@ -1132,6 +1134,8 @@ function CreatePage() {
                       autoPlay
                       muted
                       playsInline
+                      disablePictureInPicture
+                      disableRemotePlayback
                       style={{
                         width: "100%",
                         height: "100%",

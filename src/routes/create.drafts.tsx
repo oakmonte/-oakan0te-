@@ -261,6 +261,8 @@ function DraftsPage() {
                     src={draft.media_url}
                     muted
                     playsInline
+                    disablePictureInPicture
+                    disableRemotePlayback
                     preload="metadata"
                     className="h-full w-full object-cover"
                   />

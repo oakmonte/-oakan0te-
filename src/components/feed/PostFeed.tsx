@@ -22,6 +22,7 @@ import { useSession } from "@/hooks/use-session";
 import { CommentSheet } from "@/components/feed/CommentSheet";
 import { SaveToast } from "@/components/feed/SaveToast";
 import { LinkProductsSheet } from "@/components/feed/LinkProductsSheet";
+import { claimMediaSession, releaseMediaSession } from "@/lib/media-session";
 
 // Bare icons over the media — no chip behind them and no drop shadow either.
 // The shadow was there so they'd survive a light photo, but it read as grubby
@@ -526,6 +527,8 @@ function PostCarousel({
                 loop
                 muted
                 playsInline
+                disablePictureInPicture
+                disableRemotePlayback
                 preload="metadata"
                 className="h-full w-full object-contain"
               />
@@ -697,16 +700,46 @@ function FeedPostCard({
         // handler needs to offer one.
         void a
           .play()
-          .then(() => setAudioBlocked(false))
+          .then(() => {
+            setAudioBlocked(false);
+            // Sound is out, so the OS is about to draw a now-playing card
+            // whether we like it or not. Claiming it is how it ends up saying
+            // what this post is playing instead of the page title — and how
+            // the skip buttons stay off it. See media-session.ts.
+            claimMediaSession(post.id, {
+              title: post.audio_attribution ?? post.audio_name ?? "Original sound",
+              artist: post.authorDisplayName,
+              artworkUrl: post.thumbnail_url ?? post.media_url,
+            });
+          })
           .catch(() => setAudioBlocked(true));
       } else {
         a.pause();
+        releaseMediaSession(post.id);
         // The track belongs to the post, so it restarts with it — coming back
         // to a post should not drop you into the middle of a chorus.
         if (!onScreen) a.currentTime = 0;
       }
     }
-  }, [onScreen, userPaused]);
+    // The post fields are here to satisfy exhaustive-deps honestly rather than
+    // to trigger anything: a mounted card's post never changes identity, so
+    // they are constants for this effect's whole life. Silencing the rule
+    // instead would hide the next dependency that genuinely does change.
+  }, [
+    onScreen,
+    userPaused,
+    post.id,
+    post.audio_attribution,
+    post.audio_name,
+    post.authorDisplayName,
+    post.thumbnail_url,
+    post.media_url,
+  ]);
+
+  // Leaving the feed entirely — closing the overlay, navigating away — has to
+  // take the card with it, or the lock screen goes on advertising a post that
+  // stopped playing.
+  useEffect(() => () => releaseMediaSession(post.id), [post.id]);
 
   // A deliberate pause belongs to the moment, not to the post: scroll away and
   // back and it plays again.
@@ -819,6 +852,8 @@ function FeedPostCard({
           loop
           muted
           playsInline
+          disablePictureInPicture
+          disableRemotePlayback
           preload="metadata"
           className="absolute inset-0 w-full h-full object-cover"
         />

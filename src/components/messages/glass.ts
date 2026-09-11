@@ -13,8 +13,7 @@ export const glassPanel: CSSProperties = {
 export const glassFloating: CSSProperties = {
   background: "rgba(38,40,45,0.72)",
   border: "1px solid rgba(255,255,255,0.16)",
-  boxShadow:
-    "0 18px 46px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.26)",
+  boxShadow: "0 18px 46px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.26)",
   backdropFilter: "blur(30px) saturate(195%)",
   WebkitBackdropFilter: "blur(30px) saturate(195%)",
 };

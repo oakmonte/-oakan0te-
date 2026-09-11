@@ -163,6 +163,8 @@ export function BarcodeScanSheet({
         ref={videoRef}
         autoPlay
         playsInline
+        disablePictureInPicture
+        disableRemotePlayback
         muted
         className="flex-1 w-full h-full object-cover"
       />

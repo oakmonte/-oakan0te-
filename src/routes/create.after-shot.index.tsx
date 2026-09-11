@@ -343,6 +343,8 @@ function AfterShotIndexPage() {
               loop
               muted={videoMuted}
               playsInline
+              disablePictureInPicture
+              disableRemotePlayback
               onLoadedMetadata={handleVideoLoad}
               className={cropRect ? "" : "absolute inset-0 w-full h-full object-cover"}
               style={mediaStyle(previewFilterCss)}

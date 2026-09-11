@@ -73,6 +73,21 @@ means "has children, not filled in yet". Not interchangeable.
   devtools, `tanstackStart`, viteReact, tailwind, tsConfigPaths, Nitro and the `@` alias. Don't re-add.
 - LF everywhere. On Windows keep `core.autocrlf=false` for this repo.
 
+### Every `<video>` carries four attributes
+
+`playsInline muted disablePictureInPicture disableRemotePlayback`, and **never `controls`**. Not
+style — each one removes a piece of browser UI that would otherwise be painted over our media, which
+is unacceptable on a full-bleed feed people scroll like TikTok. `controls` draws the whole native
+bar; `playsInline` stops iOS playing fullscreen with its own chrome; the other two remove the
+picture-in-picture arrow and the AirPlay/Cast button, including from the right-click menu. Copy all
+four onto any new video element — `muted` is also what lets autoplay work at all.
+
+That covers everything drawn _inside_ the page. It cannot touch what the OS draws **outside** it:
+once audio plays, iOS Control Centre, Android's notification shade and desktop Chrome's toolbar each
+get a now-playing card, and no web API removes them. `src/lib/media-session.ts` shapes that card —
+what it says, and declining the skip buttons by never registering a handler for them. Read it before
+assuming a lock-screen control is a bug.
+
 ## Performance — keep it fast
 
 Every page is mobile-first and often on slow networks. Treat load speed as a first-class feature.

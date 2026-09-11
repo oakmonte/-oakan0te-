@@ -79,8 +79,7 @@ export type Conversation = {
   tags: FilterKey[];
 };
 
-const minutesAgo = (minutes: number) =>
-  new Date(Date.now() - minutes * 60_000).toISOString();
+const minutesAgo = (minutes: number) => new Date(Date.now() - minutes * 60_000).toISOString();
 
 export const SEED_CONVERSATIONS: Conversation[] = [
   {

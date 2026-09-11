@@ -892,7 +892,16 @@ function PhoneMockup({ src }: { src: string }) {
           className="absolute top-2 left-1/2 -translate-x-1/2 z-10 h-[18px] w-[72px] rounded-full bg-brand-text"
           aria-hidden="true"
         />
-        <video src={src} autoPlay muted loop playsInline className="w-full h-full object-cover" />
+        <video
+          src={src}
+          autoPlay
+          muted
+          loop
+          playsInline
+          disablePictureInPicture
+          disableRemotePlayback
+          className="w-full h-full object-cover"
+        />
       </div>
     </div>
   );

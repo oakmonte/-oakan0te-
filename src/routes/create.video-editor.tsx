@@ -1161,6 +1161,8 @@ function VideoEditor() {
               <video
                 ref={videoRef}
                 playsInline
+                disablePictureInPicture
+                disableRemotePlayback
                 preload="auto"
                 className="h-full w-full"
                 style={{ objectFit: current.fit, filter: previewCss }}

@@ -147,6 +147,8 @@ export function MediaPickerSheet({
                       src={row.media_url}
                       muted
                       playsInline
+                      disablePictureInPicture
+                      disableRemotePlayback
                       preload="metadata"
                       className={`h-full w-full object-cover ${isSelected ? "opacity-70" : ""}`}
                     />

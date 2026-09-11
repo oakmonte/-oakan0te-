@@ -5,7 +5,9 @@ export function TypingDots({ className = "" }: { className?: string }) {
         <span
           key={index}
           className="block h-[6px] w-[6px] rounded-full bg-current motion-reduce:animate-none"
-          style={{ animation: `messages-typing-bounce 1.05s ${index * 0.14}s infinite ease-in-out` }}
+          style={{
+            animation: `messages-typing-bounce 1.05s ${index * 0.14}s infinite ease-in-out`,
+          }}
         />
       ))}
     </span>
