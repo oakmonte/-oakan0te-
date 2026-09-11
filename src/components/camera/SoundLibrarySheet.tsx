@@ -115,17 +115,17 @@ export default function SoundLibrarySheet({ open, onClose, onPick }: Props) {
   }
 
   return (
-    <CameraPanel open={open} title="Sound" onClose={onClose} height={520}>
+    <CameraPanel open={open} title="Sound" onClose={onClose} height={600}>
       <div className="relative mb-3">
         <Search
-          size={15}
-          className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/35"
+          size={17}
+          className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-white/35"
         />
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="Search for a sound"
-          className="w-full rounded-xl bg-white/[0.08] py-2.5 pl-9 pr-3 text-[14px] text-white outline-none placeholder:text-white/35 focus:bg-white/[0.12]"
+          className="w-full rounded-xl bg-white/[0.08] py-3 pl-11 pr-3.5 text-[15px] text-white outline-none placeholder:text-white/35 focus:bg-white/[0.12]"
         />
       </div>
 
@@ -139,7 +139,7 @@ export default function SoundLibrarySheet({ open, onClose, onPick }: Props) {
             type="button"
             onClick={() => setGenre(g.id)}
             aria-pressed={genre === g.id}
-            className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-medium transition-colors active:scale-95 ${
+            className={`shrink-0 rounded-full px-4 py-2 text-[13px] font-medium transition-colors active:scale-95 ${
               genre === g.id ? "bg-white text-black" : "bg-white/[0.10] text-white/75"
             }`}
           >
@@ -148,14 +148,14 @@ export default function SoundLibrarySheet({ open, onClose, onPick }: Props) {
         ))}
       </div>
 
-      {error && <p className="px-1 pb-2 text-[12px] leading-snug text-red-300">{error}</p>}
+      {error && <p className="px-1 pb-2 text-[13px] leading-snug text-red-300">{error}</p>}
 
       {loading && tracks.length === 0 ? (
         <div className="flex justify-center py-10">
-          <Loader2 size={20} className="animate-spin text-white/40" />
+          <Loader2 size={24} className="animate-spin text-white/40" />
         </div>
       ) : tracks.length === 0 ? (
-        <p className="px-2 py-10 text-center text-[13px] leading-snug text-white/40">
+        <p className="px-2 py-10 text-center text-[14px] leading-snug text-white/40">
           {text.trim() ? `Nothing here for "${text.trim()}".` : "No sounds in this one yet."}
         </p>
       ) : (
@@ -163,27 +163,27 @@ export default function SoundLibrarySheet({ open, onClose, onPick }: Props) {
           {tracks.map((track) => {
             const playing = playingId === track.id;
             return (
-              <li key={track.id} className="flex items-center gap-3 py-2">
+              <li key={track.id} className="flex items-center gap-3.5 py-3">
                 <button
                   type="button"
                   onClick={() => togglePreview(track)}
                   aria-label={playing ? `Pause ${track.title}` : `Play ${track.title}`}
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/[0.12] active:scale-90"
+                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/[0.12] active:scale-90"
                 >
                   {playing ? (
-                    <Pause size={14} fill="white" strokeWidth={0} />
+                    <Pause size={18} fill="white" strokeWidth={0} />
                   ) : (
-                    <Play size={14} className="ml-[2px]" fill="white" strokeWidth={0} />
+                    <Play size={18} className="ml-[3px]" fill="white" strokeWidth={0} />
                   )}
                 </button>
 
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-[13px] leading-tight text-white">{track.title}</p>
+                  <p className="truncate text-[15px] leading-snug text-white">{track.title}</p>
                   {/* Artist and licence are shown before the track is picked,
                       not after. For a CC BY track the credit is a condition of
                       using it at all, so a seller is entitled to see whose name
                       is about to go under their post. */}
-                  <p className="truncate text-[11px] leading-tight text-white/40">
+                  <p className="truncate pt-0.5 text-[12.5px] leading-snug text-white/45">
                     {[track.artist, formatDuration(track.durationSeconds), track.licence.name]
                       .filter(Boolean)
                       .join(" · ")}
@@ -193,7 +193,7 @@ export default function SoundLibrarySheet({ open, onClose, onPick }: Props) {
                 <button
                   type="button"
                   onClick={() => choose(track)}
-                  className="shrink-0 rounded-full bg-white px-3.5 py-1.5 text-[12px] font-semibold text-black active:scale-95"
+                  className="shrink-0 rounded-full bg-white px-5 py-2.5 text-[14px] font-semibold text-black active:scale-95"
                 >
                   Use
                 </button>
