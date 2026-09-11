@@ -17,7 +17,6 @@ import {
   Play,
 } from "lucide-react";
 import { useAfterShotContext } from "@/lib/after-shot-context";
-import { soundLabel } from "@/lib/capture-handoff";
 import SoundLibrarySheet from "@/components/camera/SoundLibrarySheet";
 import { type LibraryTrack, creditFor } from "@/lib/sound-library";
 import TextPanel from "@/components/camera/aftershot/TextPanel";
@@ -168,7 +167,6 @@ function AfterShotIndexPage() {
   // them and they'd otherwise leak for the life of the tab.
   const stickerInputRef = useRef<HTMLInputElement>(null);
   const [soundSheetOpen, setSoundSheetOpen] = useState(false);
-  const audioInputRef = useRef<HTMLInputElement>(null);
   const audioElRef = useRef<HTMLAudioElement>(null);
   const [auditioning, setAuditioning] = useState(false);
 
@@ -176,21 +174,6 @@ function AfterShotIndexPage() {
   // tapping it did nothing. It carries on the captured media rather than in
   // local state so the publish screen, which is the thing that uploads it,
   // reads the same field whichever editor the post came through.
-  const handleAudioFile = useCallback(
-    (files: FileList | null) => {
-      const file = files?.[0];
-      // Cleared even on the early return: leaving the same file selected means
-      // re-picking it after a removal fires no change event at all.
-      if (audioInputRef.current) audioInputRef.current.value = "";
-      if (!file || !file.type.startsWith("audio/")) return;
-      // The old track's URL is freed by setMedia, which owns every object URL
-      // hanging off this value. Doing it here as well would be harmless but
-      // would give it two owners, which is how these turn into bugs.
-      const url = URL.createObjectURL(file);
-      setMedia({ ...media, audio: { blob: file, url, name: soundLabel(file.name), credit: null } });
-    },
-    [media, setMedia],
-  );
 
   /** A catalogue track stays a URL rather than becoming bytes — see the same
    *  handler in the photo editor. Nothing is downloaded until the post goes
@@ -447,21 +430,10 @@ function AfterShotIndexPage() {
         className="hidden"
         onChange={(e) => handleStickerFiles(e.target.files)}
       />
-      <input
-        ref={audioInputRef}
-        type="file"
-        accept="audio/*"
-        className="hidden"
-        onChange={(e) => handleAudioFile(e.target.files)}
-      />
       <SoundLibrarySheet
         open={soundSheetOpen}
         onClose={() => setSoundSheetOpen(false)}
         onPick={handleLibraryTrack}
-        onUseDevice={() => {
-          setSoundSheetOpen(false);
-          audioInputRef.current?.click();
-        }}
       />
       {/* Looped: a track is almost always longer than the post it plays over,
           and `auditioning` is driven by the element's own events so a blocked

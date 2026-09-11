@@ -73,17 +73,16 @@ export function blankPhotoEdits() {
  *  carousel of six photos still exports exactly six times. That is also why
  *  nothing in the export pipeline knows this type exists. */
 export type PhotoSound = {
-  /** Real bytes when the track came off the device. Null while it is still
-   *  only a remote URL — a draft reopened with a sound already on it — in
-   *  which case Next fetches it before handing it to publish. */
+  /** Always null now that the catalogue is the only source — a track travels
+   *  as a URL the server fetches at publish. See the note on
+   *  `CaptureAudio.blob` for why the field is kept rather than deleted. */
   blob: Blob | null;
   url: string;
   name: string;
-  /** Set when the track came from the sound library rather than the seller's
-   *  own device. Two things follow from it: `url` points at the provider
-   *  rather than at us, so the bytes are fetched server-side at publish; and
-   *  the credit has to reach the post, because for a CC BY track the licence
-   *  only holds while the artist is named. */
+  /** Where the track came from. `url` points at the provider rather than at
+   *  us, so the bytes are fetched server-side at publish, and the credit has
+   *  to reach the post because for a CC BY track the licence only holds while
+   *  the artist is named. Null only when the licence asks for no credit. */
   credit?: SoundCredit | null;
 };
 

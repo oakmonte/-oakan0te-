@@ -125,9 +125,11 @@ function PublishPage() {
       // the photo editor sets this — the video editor bakes its music into the
       // MP4, and a post with both would play two things at once.
       if (media.audio) {
-        // A track off the seller's device travels as bytes. A library track
-        // travels as a URL and the server fetches it, so a phone on mobile
-        // data never downloads several megabytes only to upload them again.
+        // A catalogue track travels as a URL and the server fetches it, so a
+        // phone on mobile data never downloads several megabytes only to
+        // upload them straight back. That is every track today — the bytes
+        // branch is what a recorded voiceover would use and currently never
+        // runs, since nothing sets `blob` any more.
         if (media.audio.blob) fd.set("audio", media.audio.blob, "audio");
         else fd.set("audioSource", media.audio.url);
         fd.set("audioName", media.audio.name);
@@ -168,9 +170,11 @@ function PublishPage() {
       // button deliberately revokes nothing, which is what lets either editor
       // still play the sound you picked when you return to it.
       //
-      // Guarded on `blob` because only a track off the seller's own device has
-      // a URL we made. A library track's URL belongs to the provider, and
-      // revoking that is meaningless.
+      // Guarded on `blob` because only a track we hold bytes for has a URL we
+      // made. A catalogue track's URL belongs to the provider, and revoking
+      // that is meaningless. Nothing sets `blob` today, so this never fires —
+      // it stays correct for the voiceover path rather than being a no-op
+      // someone has to re-derive later.
       if (media.audio?.blob) URL.revokeObjectURL(media.audio.url);
 
       navigate({ to: "/home", replace: true });

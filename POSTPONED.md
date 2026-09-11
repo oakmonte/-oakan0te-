@@ -77,9 +77,36 @@ isn't the one that can't add a song.
 The other dead button in that toolbar, **Link**, has since been removed — see
 0.4.
 
-**Sound library · [FIRST PROVIDER LIVE — 2026-09-10]** — Sound now opens a
-catalogue rather than the device file picker, which is still there as
-"Use a sound from your phone" inside the same sheet.
+**Sound library · [FIRST PROVIDER LIVE — 2026-09-10]** — Sound opens a
+catalogue. It is the **only** way to put a sound on a post.
+
+**Uploading your own audio file was removed on 2026-09-11 · [DELIBERATE — do
+not restore]**. It was shipped on 2026-09-07 and taken out four days later, so
+the reasoning matters more than usual:
+
+- Oakmonte does not link to the file, it **hosts** it — on our own CDN under
+  `posts/<user>/<post>/audio.<ext>`, served publicly to every viewer, beneath a
+  post advertising an item for sale. That is Oakmonte distributing the track
+  commercially, not a user sharing one.
+- We hold no music licences and run nothing like Content ID. Instagram and
+  TikTok allow this because they bought the right to; we have not.
+- The takedown posture it would depend on does not exist yet. `terms.tsx`
+  promises an IP contact address that is still a literal `<Placeholder>`, and
+  there is no report flow anywhere in the app.
+- Its realistic user was the harmful case. The whole reason the catalogue was
+  built is that "has an mp3 lying around" describes almost nobody — so the
+  seller reaching for that button had gone and _got_ a commercial track.
+- It cost nothing to remove: the posts table held **0 rows**. In six months it
+  would have meant pulling music off live posts.
+
+What was genuinely lost is voiceover and brand-owned audio. The right shape for
+those is **recording a voiceover in-app**, not a file picker — clean by
+construction, and more use to a seller than a stranger's mp3. The upload path
+is deliberately still there underneath (`CaptureAudio.blob`, the `audio` field
+in `api.posts.ts`) with nothing setting it, so that feature does not have to be
+rebuilt from both ends. Note this also means an authenticated seller could
+still POST audio bytes directly, bypassing the UI — a narrower problem than a
+button inviting it, and Diadem has not asked for it to be closed.
 
 Wikimedia Commons is the first provider (`src/lib/sound-providers/wikimedia.ts`,
 searched through `api.sounds.ts`). It was chosen because it needs no key, no

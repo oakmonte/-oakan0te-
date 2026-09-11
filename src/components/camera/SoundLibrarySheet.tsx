@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Loader2, Pause, Play, Search, Upload } from "lucide-react";
+import { Loader2, Pause, Play, Search } from "lucide-react";
 import CameraPanel from "@/components/camera/CameraPanel";
 import { authedFetch } from "@/lib/authed-fetch";
 import { type LibraryTrack, formatDuration } from "@/lib/sound-library";
@@ -8,12 +8,19 @@ import { SOUND_GENRES } from "@/lib/sound-providers/wikimedia";
 // Pick a track from the catalogue.
 //
 // Shared by the photo editor and the after-shot editor so a sound is chosen
-// the same way whichever screen the seller arrived from — the same reasoning
-// that puts `soundLabel` in capture-handoff rather than in either route.
+// the same way whichever screen the seller arrived from.
 //
 // It hands back a `LibraryTrack` rather than a ready-made sound. The caller
 // owns the shape it keeps (`PhotoSound` on one screen, `CaptureAudio` on the
 // other) and this component has no business knowing about either.
+//
+// This catalogue is the ONLY way to put a sound on a post. There used to be a
+// "use a sound from your phone" row here as well, and it was removed on
+// purpose — see the note in POSTPONED 0.2. The short version: Oakmonte stores
+// the file on its own CDN and serves it publicly under a post selling
+// something, so an uploaded track is Oakmonte distributing it commercially,
+// and we hold no licences for that. Every track reachable from this sheet is
+// one we can prove we were allowed to use.
 
 const SEARCH_DEBOUNCE_MS = 350;
 
@@ -21,14 +28,9 @@ type Props = {
   open: boolean;
   onClose: () => void;
   onPick: (track: LibraryTrack) => void;
-  /** Fall back to the seller's own file. Kept inside this sheet rather than as
-   *  a second button in the toolbar so that "Sound" stays one door — a seller
-   *  who already has the track they want shouldn't have to guess which of two
-   *  similar buttons leads to it. */
-  onUseDevice: () => void;
 };
 
-export default function SoundLibrarySheet({ open, onClose, onPick, onUseDevice }: Props) {
+export default function SoundLibrarySheet({ open, onClose, onPick }: Props) {
   const [genre, setGenre] = useState<string>(SOUND_GENRES[0].id);
   const [text, setText] = useState("");
   const [tracks, setTracks] = useState<LibraryTrack[]>([]);
@@ -146,17 +148,6 @@ export default function SoundLibrarySheet({ open, onClose, onPick, onUseDevice }
           </button>
         ))}
       </div>
-
-      <button
-        type="button"
-        onClick={onUseDevice}
-        className="mb-1 flex w-full items-center gap-3 rounded-xl py-2 text-left active:scale-[0.99]"
-      >
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/[0.12]">
-          <Upload size={14} className="text-white" />
-        </span>
-        <span className="text-[13px] text-white/75">Use a sound from your phone</span>
-      </button>
 
       {error && <p className="px-1 pb-2 text-[12px] leading-snug text-red-300">{error}</p>}
 
