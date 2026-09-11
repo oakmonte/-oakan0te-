@@ -1,7 +1,7 @@
 // Search the sound library.
 //
 //   GET /api/sounds?genre=lofi&q=piano&offset=0
-//   → { tracks: LibraryTrack[], nextOffset: number | null }
+//   → { tracks: LibraryTrack[], nextOffset: number | null, sources: string[] }
 //
 // It searches every configured catalogue at once and returns one merged list —
 // a seller wants a song, not a source, so which archive a track came from is
@@ -66,13 +66,13 @@ export const Route = createFileRoute("/api/sounds")({
         );
 
         const lists: LibraryTrack[][] = [];
-        let reached = 0;
+        const reachedIds: string[] = [];
         settled.forEach((result, i) => {
           if (result.status === "rejected") {
             console.error("api/sounds:", providers[i].id, "failed", result.reason);
             return;
           }
-          reached += 1;
+          reachedIds.push(providers[i].id);
           lists.push(
             result.value.filter((track) => isUsableTrack(track) && isLicenceUsable(track.licence)),
           );
@@ -80,7 +80,7 @@ export const Route = createFileRoute("/api/sounds")({
 
         // Only an error when *nothing* answered. One source being down should
         // cost the seller some choices, not the feature.
-        if (reached === 0) {
+        if (reachedIds.length === 0) {
           return Response.json({ error: "Couldn't reach the sound library" }, { status: 502 });
         }
 
@@ -96,7 +96,15 @@ export const Route = createFileRoute("/api/sounds")({
         const nextOffset = tracks.length > 0 ? offset + step : null;
 
         return Response.json(
-          { tracks, nextOffset },
+          // `sources` is diagnostic. A provider that needs a key drops out of
+          // `activeProviders()` when the key is missing, and the only symptom
+          // is a slightly thinner list — indistinguishable from a quiet day
+          // upstream. Naming the catalogues that answered turns "is Jamendo
+          // configured on this deployment?" into something readable off the
+          // response. Absent still means either unconfigured or failing; the
+          // server log above tells those two apart. It exposes nothing — these
+          // are the names of public archives, not the key.
+          { tracks, nextOffset, sources: reachedIds },
           {
             headers: {
               // The catalogue is the same for everyone and barely changes.
