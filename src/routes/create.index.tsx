@@ -1505,7 +1505,7 @@ function CreatePage() {
           border: "1px solid rgba(255,255,255,0.15)",
         }}
       >
-        <ImageIcon size={16} className="opacity-80" />
+        <ImageIcon size={16} />
       </button>
 
       <input
