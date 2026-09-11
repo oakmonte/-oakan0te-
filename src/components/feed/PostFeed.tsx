@@ -645,6 +645,11 @@ function FeedPostCard({
   // audio — the media is muted either way — so no post ever plays two things
   // at once, and a photo carousel can carry a track without being a video.
   const hasAudio = !!post.audio_url;
+  // A post from the video editor carries its track INSIDE the MP4, so it has a
+  // credit and no `audio_url`. The credit line is a licence condition and does
+  // not care which of the two the post is — only the autoplay prompt does,
+  // because there is no second source to unblock.
+  const showsSoundLine = hasAudio || !!post.audio_attribution || !!post.audio_name;
   // The owner-only management surface: link products, and the "more" menu.
   const isOwnerView = isOwnPost && isProfileViewer;
 
@@ -1019,12 +1024,12 @@ function FeedPostCard({
             viewer makes a gesture, so a prompt that took the line over would
             hide the credit on almost every mobile view of the post — which is
             every view that matters. */}
-        {hasAudio && (
+        {showsSoundLine && (
           <p className="text-[12px] text-white/60 flex items-start gap-1 mt-1">
             <Music size={12} className="shrink-0 mt-[3px]" />
             <span className={post.audio_attribution ? "" : "truncate"}>
               {post.audio_attribution ?? post.audio_name ?? "Original sound"}
-              {audioBlocked && " · Tap for sound"}
+              {hasAudio && audioBlocked && " · Tap for sound"}
             </span>
           </p>
         )}

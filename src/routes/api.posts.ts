@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { isTrustedAudioSource } from "@/lib/sound-library";
 import { getRequestUser } from "@/lib/server-auth";
 
 /**
@@ -15,9 +14,12 @@ import { getRequestUser } from "@/lib/server-auth";
  *   audioName    display name for that sound                   (optional)
  *   audioSource  a catalogue track's URL, fetched server-side   (optional)
  *                — an alternative to `audio`, never both
- *   audioLicence licence the track is used under                (required with audioSource)
+ *   audioLicence licence the track is used under                (required with
+ *                audioSource or audioBakedIn)
  *   audioAttribution  credit line to show beside the post       (optional)
  *   audioSourceUrl    page the track came from                  (optional)
+ *   audioBakedIn '1' when the track is already inside the media  (optional)
+ *                — video editor only; no bytes stored, credit still written
  *   caption      text                                          (optional)
  *   location     freeform text                                 (optional)
  *   visibility   'public' | 'followers' | 'only_me'             (default 'public')
@@ -36,8 +38,6 @@ const MAX_MEDIA_BYTES = 200 * 1024 * 1024;
 const MAX_TOTAL_BYTES = 500 * 1024 * 1024;
 const MAX_ITEMS = 10;
 const MAX_THUMBNAIL_BYTES = 10 * 1024 * 1024;
-/** A song, not an album. Anything over this is a mistake, not a track. */
-const MAX_AUDIO_BYTES = 30 * 1024 * 1024;
 const MAX_AUDIO_NAME_LENGTH = 120;
 
 /** Bunny serves what it is given, so the stored extension is what decides
@@ -82,61 +82,10 @@ async function uploadToBunny(
   return remotePath;
 }
 
-/** Pull a catalogue track from its provider, so the phone doesn't have to.
- *
- *  The seller's browser sends a URL instead of 3-5 MB of MP3 it would have had
- *  to download first — see the note on `isTrustedAudioSource`, which is also
- *  what stops this being a request-controlled fetch of anything on the
- *  network.
- *
- *  Returns null on anything unexpected rather than throwing: a post that goes
- *  out without its music is a much better failure than a post that doesn't go
- *  out. */
-async function fetchTrustedAudio(
-  url: string,
-  ownHost: string,
-): Promise<{ blob: Blob; type: string; size: number } | null> {
-  if (!isTrustedAudioSource(url, [ownHost])) {
-    console.error("api/posts: refused audio source", url);
-    return null;
-  }
-  try {
-    const res = await fetch(url, {
-      headers: {
-        "User-Agent": "Oakmonte/1.0 (https://oakmonte.com; oakmonte.store@gmail.com) sound-library",
-      },
-      signal: AbortSignal.timeout(15_000),
-      // The allowlist above checked the URL we were given. It says nothing
-      // about where a redirect would take us, and `follow` — the default —
-      // would obediently go there, which quietly turns the check into no check
-      // at all. Neither host redirects off-site today; that is a property of
-      // today's two hosts rather than of this code, and it stops being true
-      // the moment a third provider is added.
-      redirect: "manual",
-    });
-    if (!res.ok) return null;
-
-    const type = res.headers.get("content-type")?.split(";")[0]?.trim() ?? "";
-    if (!type.startsWith("audio/")) return null;
-
-    // Required, not merely respected. Absent reads as 0 and malformed reads as
-    // NaN, and the original check waved both through to `.blob()` — which
-    // buffers the whole body into the worker before any size is known. Both
-    // hosts send it on static files, so demanding it costs nothing and closes
-    // the case where a chunked response gets to decide our memory ceiling.
-    const declared = Number(res.headers.get("content-length"));
-    if (!Number.isFinite(declared) || declared <= 0 || declared > MAX_AUDIO_BYTES) return null;
-
-    // Still checked again after reading: the header is a claim, `blob.size` is
-    // the fact, and a response is free to lie about the former.
-    const blob = await res.blob();
-    if (blob.size === 0 || blob.size > MAX_AUDIO_BYTES) return null;
-    return { blob, type, size: blob.size };
-  } catch (error) {
-    console.error("api/posts: could not fetch library track", error);
-    return null;
-  }
-}
+// `fetchTrustedAudio` used to live here. It moved to
+// `@/lib/trusted-audio.server` when the video editor needed the same fetch,
+// with the same allowlist, to stream a track to the phone — two copies of a
+// check like that means the weaker copy is the one that decides.
 
 export const Route = createFileRoute("/api/posts")({
   server: {
@@ -171,6 +120,11 @@ export const Route = createFileRoute("/api/posts")({
         // A library track arrives as a URL rather than bytes — see
         // `fetchTrustedAudio`. Its credit rides along with it.
         const audioSource = (form.get("audioSource") as string | null)?.trim() || null;
+        // The video editor mixes its music into the MP4, so there are no
+        // separate bytes to store and nothing for the feed to play. The credit
+        // still has to be written: the post IS playing that track, and a row
+        // that doesn't say so is the licence breach, not the missing file.
+        const audioBakedIn = (form.get("audioBakedIn") as string | null) === "1";
         // Roomy on purpose. A credit is a licence condition, and some sources
         // state it as a sentence rather than a name — one real Commons track
         // gives its artist as a paragraph ending 'Required credit: "music by
@@ -256,6 +210,10 @@ export const Route = createFileRoute("/api/posts")({
         if (thumbnail instanceof File && thumbnail.size > MAX_THUMBNAIL_BYTES) {
           return Response.json({ error: "Thumbnail is too large" }, { status: 413 });
         }
+        // Server-only, so it comes in through the handler rather than at the
+        // top of a route file — same rule as the admin Supabase client.
+        const { fetchTrustedAudio, MAX_AUDIO_BYTES } = await import("@/lib/trusted-audio.server");
+
         if (audio instanceof File && audio.size > 0) {
           if (audio.size > MAX_AUDIO_BYTES) {
             return Response.json(
@@ -275,9 +233,19 @@ export const Route = createFileRoute("/api/posts")({
         // nothing in the row to show it happened. The app always sends both
         // together; anything that doesn't is either broken or trying it on,
         // and neither should be quietly repaired into a licence breach.
-        if (audioSource && !audioLicence) {
+        if ((audioSource || audioBakedIn) && !audioLicence) {
           return Response.json(
             { error: "That sound is missing its licence details" },
+            { status: 400 },
+          );
+        }
+        // Baked in means "already inside the media". Sending bytes as well
+        // would publish a post playing two tracks at once, so this is a
+        // disagreement about what is being published rather than a field to
+        // reconcile.
+        if (audioBakedIn && (audioSource || (audio instanceof File && audio.size > 0))) {
+          return Response.json(
+            { error: "A baked-in sound cannot also be uploaded" },
             { status: 400 },
           );
         }
@@ -334,7 +302,7 @@ export const Route = createFileRoute("/api/posts")({
           audio instanceof File && audio.size > 0
             ? { blob: audio, type: audio.type, size: audio.size }
             : audioSource
-              ? await fetchTrustedAudio(audioSource, pullZone)
+              ? await fetchTrustedAudio(audioSource, [pullZone])
               : null;
 
         if (audioBody) {
@@ -368,13 +336,15 @@ export const Route = createFileRoute("/api/posts")({
             media_type: cover.mediaType,
             thumbnail_url: thumbnailUrl,
             audio_url: audioUrl,
-            audio_name: audioUrl ? audioName : null,
-            // Only meaningful next to a stored track. Writing a credit for a
-            // sound that failed to upload would claim we are playing something
-            // we are not.
-            audio_attribution: audioUrl ? audioAttribution : null,
-            audio_licence: audioUrl ? audioLicence : null,
-            audio_source_url: audioUrl ? audioSourceUrl : null,
+            audio_name: audioUrl || audioBakedIn ? audioName : null,
+            // A credit is written when the post actually carries the track:
+            // either as a stored file, or mixed into the media itself. Writing
+            // one for a sound that failed to upload would claim we are playing
+            // something we are not; withholding one from a baked-in track
+            // would hide a credit the licence requires.
+            audio_attribution: audioUrl || audioBakedIn ? audioAttribution : null,
+            audio_licence: audioUrl || audioBakedIn ? audioLicence : null,
+            audio_source_url: audioUrl || audioBakedIn ? audioSourceUrl : null,
             // What this post costs in storage, which is what the drafts page
             // reports — so the track counts too.
             media_bytes: totalBytes + audioBytes,

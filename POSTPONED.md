@@ -51,7 +51,7 @@ publish screen ships them as repeated `files` + a positional `mediaTypes`
 array, `api.posts.ts` uploads them in order and writes both tables, and the
 feed renders a snap-scrolling carousel with dots.
 
-### 0.2 Sound on a photo post · [DONE — 2026-09-07]
+### 0.2 Sound on a post · [DONE — 2026-09-07, video editor 2026-09-11]
 
 `posts.audio_url` / `posts.audio_name`, migration `20260907090000`, applied to
 `lzyflkrqexxuyxyudvbw`. Additive; every existing row reads as null and behaves
@@ -172,6 +172,15 @@ included. Now a licence must be affirmatively recognised. Wrongly hiding a
 usable song is a missing row in a picker; wrongly publishing an NC one is a
 seller's problem with a rights holder.
 
+**Device audio is gone from all three create flows.** The camera's "use a sound
+from your phone" row went on 2026-09-10; the video editor's "Choose an audio
+file" went on 2026-09-11 and was the last one. The reasoning is the same in
+both places and it is worth restating because the video editor looked like the
+exception: mixing a track into an MP4 that Oakmonte then serves publicly under
+a post selling something is Oakmonte distributing it commercially, which is
+exactly what we hold no licence for. That the file never sits in storage on its
+own changes nothing about who is publishing it.
+
 **Still wanted:** a catalogue anybody would recognise. All three sources are
 legally clean and none of them is famous. Adding a fourth is one module in
 `sound-providers/` plus a line in its registry: normalise into `LibraryTrack`,
@@ -186,12 +195,28 @@ feed. When Commons does not state whether a credit is owed, the inference errs
 towards crediting — naming someone who placed their work in the public domain
 costs nothing; failing to name someone who required it is the actual failure.
 
-**A library track never touches the phone.** It is handed to the upload as a
-URL and the server copies it into Bunny (`fetchTrustedAudio`). Commons MP3s run
-3-5 MB, so downloading one to the browser only to upload it again would cost a
-seller on mobile data about eight megabytes to attach a song. That is also why
-`isTrustedAudioSource` is an exact-hostname HTTPS allowlist: a request field
-deciding what our server fetches is the shape of every SSRF hole ever written.
+**A library track never touches the phone — except in the video editor.** On
+every other screen it is handed to the upload as a URL and the server copies it
+into Bunny (`fetchTrustedAudio`, now in `src/lib/trusted-audio.server.ts`).
+Commons MP3s run 3-5 MB, so downloading one to the browser only to upload it
+again would cost a seller on mobile data about eight megabytes to attach a
+song. That is also why `isTrustedAudioSource` is an exact-hostname HTTPS
+allowlist: a request field deciding what our server fetches is the shape of
+every SSRF hole ever written.
+
+The video editor cannot work that way, because it welds the music into the MP4
+rather than uploading it beside the media — `OfflineAudioContext` needs the
+actual bytes. `/api/sound-file` streams one track to the browser through the
+same allowlisted server-side fetch, auth-gated for the same reason
+`/api/sounds` is: an open relay costs us the bandwidth. It is deliberately not
+a general proxy.
+
+That baked-in track still has to be credited, and there is no `audio_url` to
+hang the credit on. `audioBakedIn=1` on the publish request is what says "the
+media already contains this" — no bytes stored, the three credit columns
+written anyway. `PostFeed` shows the credit line on attribution alone rather
+than on `audio_url`, and appends the autoplay prompt only when there is a
+second source to unblock.
 
 **Not yet done here:** no infinite scroll (the route returns `nextOffset` and
 nothing calls it — one page of ~40 per genre is what a seller sees); no link
@@ -219,6 +244,31 @@ the video editor's session and publish path, not to this feature.
 Worth knowing: the failure is **data loss, not a licence breach** — the
 republished post carries no audio at all rather than an uncredited track, so
 nothing ships without its credit. That is what makes it safe to leave.
+
+Half of that fix now exists (2026-09-11): the video editor takes catalogue
+tracks and carries their credit, and `/api/sound-file` already accepts our own
+pull zone as a trusted host — so a draft's stored `audio_url` can be fetched
+back into the timeline by the same path a fresh pick takes. What is still
+missing is the restore itself: `create.drafts.tsx` hands the video editor
+media and never looks at `audio_url`.
+
+The *baked-in* case is fixed, and it had to be: a video-editor draft has its
+music inside the MP4, so reopening and republishing one carried the track into
+the new post while the credit columns came back null — music published without
+its attribution, which is the breach rather than the data loss. The editor now
+reads `audio_licence` with no `audio_url` as "already welded in" and holds an
+`inheritedCredit` that survives session parking and is re-sent as
+`audioBakedIn=1`. Caught in review, not by a test — nothing tests a draft round
+trip.
+
+**Still open, from the same review:** `/api/sound-file` has no per-user rate
+limit, so a free account can pull 30 MB a request through our egress; and it
+takes a raw URL rather than a track id, so it will proxy a track the picker
+filtered out on licence grounds. Neither lets an uncredited track reach a post
+— publishing still goes through `api.posts`, which demands a licence — but
+passing the id and re-resolving it server-side is the better shape. Undo/redo
+also does not cover the music track: removing one and undoing will not bring
+it back.
 
 The feed has **no volume control**, deliberately: autoplay is the only sound the
 app makes and the tap surface already stops it. First playback in a session is

@@ -173,18 +173,31 @@ export function RatioSheet({
   );
 }
 
-/** The music laid over the whole timeline. One track, from the user's own
- *  files — a licensed library is its own problem, and needing one shouldn't
- *  stop someone scoring a post with audio they already have. */
+/** The music laid over the whole timeline. One track, from the catalogue.
+ *
+ *  It used to be one track from the user's own files. That was removed for the
+ *  same reason the camera's device row was: the export bakes the music into
+ *  the MP4 and Oakmonte then serves that file publicly under a post selling
+ *  something, which is Oakmonte distributing the track commercially. The
+ *  catalogue is the only source we can prove we were allowed to use. */
 export function SoundSheet({
   music,
   onPick,
+  loading = false,
+  error = null,
   onVolume,
   onRemove,
   onClose,
 }: {
-  music: { name: string; volume: number } | null;
+  music: { name: string; volume: number; credit?: { attribution: string | null } | null } | null;
+  /** Opens the catalogue. The sheet does not own the picker — the editor does,
+   *  because it is the editor that has to fetch the track and re-export. */
   onPick: () => void;
+  /** True while the chosen track is being fetched. Picking one is not instant
+   *  here (unlike every other screen, this one needs the actual bytes), and a
+   *  sheet that looks unchanged for three seconds reads as a dead button. */
+  loading?: boolean;
+  error?: string | null;
   onVolume: (v: number) => void;
   onRemove: () => void;
   onClose: () => void;
@@ -233,20 +246,32 @@ export function SoundSheet({
           <button
             type="button"
             onClick={onPick}
-            className="mt-4 w-full rounded-full bg-white/[0.12] py-2.5 text-[13px] font-medium text-white active:scale-[0.98]"
+            disabled={loading}
+            className="mt-4 w-full rounded-full bg-white/[0.12] py-2.5 text-[13px] font-medium text-white active:scale-[0.98] disabled:active:scale-100"
           >
-            Replace track
+            {loading ? "Getting the track…" : "Replace track"}
           </button>
+          {/* The licence condition, shown where the track is chosen rather
+              than only on the publish screen. This music is baked into the
+              MP4, so by the time a seller sees the credit anywhere else it is
+              already inside the file. */}
+          {music.credit?.attribution && (
+            <p className="pt-2.5 text-[11px] leading-snug text-white/45">
+              Will be credited as “{music.credit.attribution}”
+            </p>
+          )}
         </>
       ) : (
         <button
           type="button"
           onClick={onPick}
-          className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-white/20 py-6 text-[13px] text-white/60 active:scale-[0.99]"
+          disabled={loading}
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-white/20 py-6 text-[13px] text-white/60 active:scale-[0.99] disabled:active:scale-100"
         >
-          Choose an audio file
+          {loading ? "Getting the track…" : "Browse sounds"}
         </button>
       )}
+      {error && <p className="pt-3 text-[12px] leading-snug text-red-300">{error}</p>}
     </OptionSheet>
   );
 }

@@ -438,7 +438,11 @@ function AfterShotIndexPage() {
       {/* Looped: a track is almost always longer than the post it plays over,
           and `auditioning` is driven by the element's own events so a blocked
           play can't leave the chip showing pause over silence. */}
-      {media.audio && (
+      {/* `bakedIn` has no separate file — the track is inside the media
+          already. Nothing from the video editor reaches this screen today, but
+          an `<audio src="">` is a broken element rather than a silent one, so
+          the guard is worth more than the line it costs. */}
+      {media.audio && !media.audio.bakedIn && (
         <audio
           ref={audioElRef}
           src={media.audio.url}

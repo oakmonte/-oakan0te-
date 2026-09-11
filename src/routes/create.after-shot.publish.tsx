@@ -121,17 +121,24 @@ function PublishPage() {
       }
       fd.set("mediaTypes", JSON.stringify(items.map((i) => i.type)));
       if (media.origin) fd.set("createdWith", media.origin);
-      // The post's sound rides alongside the media rather than inside it. Only
-      // the photo editor sets this — the video editor bakes its music into the
-      // MP4, and a post with both would play two things at once.
+      // The post's sound. Usually it rides alongside the media rather than
+      // inside it, and the feed plays it over muted media. The video editor is
+      // the exception: it mixed the track into the MP4 during export, so it
+      // sends no bytes at all and only the credit — a post with both would
+      // play two things at once.
       if (media.audio) {
-        // A catalogue track travels as a URL and the server fetches it, so a
-        // phone on mobile data never downloads several megabytes only to
-        // upload them straight back. That is every track today — the bytes
-        // branch is what a recorded voiceover would use and currently never
-        // runs, since nothing sets `blob` any more.
-        if (media.audio.blob) fd.set("audio", media.audio.blob, "audio");
-        else fd.set("audioSource", media.audio.url);
+        if (media.audio.bakedIn) {
+          fd.set("audioBakedIn", "1");
+        } else if (media.audio.blob) {
+          // The bytes branch is what a recorded voiceover would use. It
+          // currently never runs, since nothing sets `blob` any more.
+          fd.set("audio", media.audio.blob, "audio");
+        } else {
+          // A catalogue track travels as a URL and the server fetches it, so a
+          // phone on mobile data never downloads several megabytes only to
+          // upload them straight back.
+          fd.set("audioSource", media.audio.url);
+        }
         fd.set("audioName", media.audio.name);
 
         const credit = media.audio.credit;

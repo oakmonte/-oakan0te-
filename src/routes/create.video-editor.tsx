@@ -42,6 +42,7 @@ import { DraftImagePickerSheet } from "@/components/product-form/DraftImagePicke
 import { PostImagePickerSheet } from "@/components/product-form/PostImagePickerSheet";
 import type { PickedMedia } from "@/components/product-form/MediaPickerSheet";
 import {
+  type EditorMusic,
   discardVideoEditorSession,
   parkVideoEditorSession,
   takeVideoEditorSession,
@@ -57,6 +58,9 @@ import {
   SoundSheet,
 } from "@/components/create/ClipOptionSheets";
 import { exportSequence } from "@/lib/video-sequence-export";
+import SoundLibrarySheet from "@/components/camera/SoundLibrarySheet";
+import { authedFetch } from "@/lib/authed-fetch";
+import { type LibraryTrack, type SoundCredit, creditFor } from "@/lib/sound-library";
 import {
   blankClipEdits,
   clipDuration,
@@ -96,8 +100,10 @@ export const Route = createFileRoute("/create/video-editor")({
 // Honest about what's decoration: Effects, Magic, Captions, Overlay and
 // transitions are drawn and open a sheet that says they aren't wired yet.
 // Everything else on this screen does what it looks like it does — Sound
-// included, which takes an audio file off the device and mixes it under the
-// whole timeline.
+// included, which picks a track from the catalogue and mixes it under the
+// whole timeline. It is the only screen that needs the track's actual bytes in
+// the browser, because it welds the music into the MP4 instead of uploading it
+// beside the media; see `chooseTrack`.
 
 type ToolId =
   | "clip"
@@ -177,9 +183,24 @@ function VideoEditor() {
   const [postsOpen, setPostsOpen] = useState(false);
   // Music laid over the whole timeline. Session-lived like the clips are, and
   // parked with them so it survives the trip to publish.
-  const [music, setMusic] = useState<{ file: File; name: string; volume: number } | null>(
-    () => session?.music ?? null,
+  //
+  // The credit travels with the file. This screen mixes the track INTO the
+  // MP4, so once the export runs there is no way to recover what was in it —
+  // the credit has to be carried from the moment the track is picked, or the
+  // post goes out with music and no attribution.
+  const [music, setMusic] = useState<EditorMusic | null>(() => session?.music ?? null);
+  // A credit carried in from a reopened draft, for music already welded into
+  // one of the clips. Separate from `music` because there is no file to go with
+  // it and nothing to re-mix — only an obligation to keep crediting it.
+  const [inheritedCredit, setInheritedCredit] = useState<SoundCredit | null>(
+    () => session?.inheritedCredit ?? null,
   );
+  const [inheritedName, setInheritedName] = useState<string | null>(
+    () => session?.inheritedName ?? null,
+  );
+  const [soundOpen, setSoundOpen] = useState(false);
+  const [soundLoading, setSoundLoading] = useState(false);
+  const [soundError, setSoundError] = useState<string | null>(null);
   const [progress, setProgress] = useState<number | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -189,7 +210,6 @@ function VideoEditor() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const stickerInputRef = useRef<HTMLInputElement>(null);
-  const audioInputRef = useRef<HTMLInputElement>(null);
   const renderLayerContent = useLayerRenderer(frameRef);
 
   // One layer stack per clip. The shared layer context holds one at a time, so
@@ -213,21 +233,48 @@ function VideoEditor() {
   // A ref, because a cleanup with an empty dep list closes over the state as
   // it was on first render — which for a restored session is right, and for a
   // fresh one is an empty timeline.
-  const latest = useRef({ clips, ratio, time, layers, music, currentId: null as string | null });
+  const latest = useRef({
+    clips,
+    ratio,
+    time,
+    layers,
+    music,
+    inheritedCredit,
+    inheritedName,
+    currentId: null as string | null,
+  });
 
   const total = sequenceDuration(clips);
   const head = locate(clips, time);
   const current = head ? clips[head.index] : null;
   const selected = clips.find((c) => c.id === selectedId) ?? null;
 
-  latest.current = { clips, ratio, time, layers, music, currentId: current?.id ?? null };
+  latest.current = {
+    clips,
+    ratio,
+    time,
+    layers,
+    music,
+    inheritedCredit,
+    inheritedName,
+    currentId: current?.id ?? null,
+  };
   // Read by the filmstrip queue to know whether a clip it is still decoding
   // for is one the user has since deleted.
   const liveClipIds = useRef(new Set<string>());
   liveClipIds.current = new Set(clips.map((c) => c.id));
   useEffect(
     () => () => {
-      const { clips: c, ratio: r, time: t, layers: l, music: m, currentId } = latest.current;
+      const {
+        clips: c,
+        ratio: r,
+        time: t,
+        layers: l,
+        music: m,
+        inheritedCredit: ic,
+        inheritedName: iname,
+        currentId,
+      } = latest.current;
       if (c.length === 0) return;
       // The live stack belongs to whichever clip was on screen; park it or the
       // caption you could see would not come back with it.
@@ -238,6 +285,8 @@ function VideoEditor() {
         ratio: r,
         time: t,
         music: m,
+        inheritedCredit: ic,
+        inheritedName: iname,
         ownedUrls: ownedUrls.current,
       });
     },
@@ -464,6 +513,26 @@ function VideoEditor() {
     addClips([clip]);
     if (clip.kind === "video") void measureVideo(clip, draft.thumbnailUrl);
     else measurePhoto(clip);
+
+    // A draft made on this screen has its music INSIDE the MP4, which is what
+    // `audio_licence` with no `audio_url` means. Re-exporting that clip carries
+    // the track into the new file, so the credit has to come with it — nothing
+    // about the timeline can recover it afterwards, and a republished post
+    // playing a CC BY track with an empty attribution column is the precise
+    // failure this catalogue exists to prevent.
+    //
+    // A draft WITH an `audio_url` is a detached track this screen cannot play.
+    // That one is still lost, deliberately — it is the older gap written up in
+    // POSTPONED 0.2, and inheriting a credit for music the export will not
+    // contain would trade a silent bug for a false claim.
+    if (draft.audioLicence && !draft.audioUrl) {
+      setInheritedCredit({
+        attribution: draft.audioAttribution ?? null,
+        licence: draft.audioLicence,
+        sourceUrl: draft.audioSourceUrl ?? "",
+      });
+      setInheritedName(draft.audioName ?? null);
+    }
   }, [addClips, measureVideo, measurePhoto]);
 
   /** Clips picked from drafts or published posts. Unlike the product form,
@@ -726,8 +795,28 @@ function VideoEditor() {
       // Park the live stack first, or the clip currently on screen would
       // export without the caption you can see on it.
       if (current) layersByClip.current[current.id] = layers;
-      const blob = await exportSequence(clips, layersByClip.current, ratio, music, setProgress);
+      const { blob, musicIncluded } = await exportSequence(
+        clips,
+        layersByClip.current,
+        ratio,
+        music,
+        setProgress,
+      );
+      // A track was chosen and the mixer could not decode it. Going on would
+      // hand the seller a silent video they believe has music, and they would
+      // find out in the feed. Stopping here costs a re-export if they try
+      // again, which is the cheaper of the two surprises.
+      if (music && !musicIncluded) {
+        setError("That track couldn't be added to the video. Try another one.");
+        return;
+      }
+
       const url = URL.createObjectURL(blob);
+
+      // What the finished file is actually playing. `music` is past the decode
+      // check by this point; `inheritedCredit` is a track welded into a clip by
+      // an earlier session, which is inside the file either way.
+      const bakedCredit = music?.credit ?? inheritedCredit;
 
       // A cover for the publish screen. Without one it falls back to rendering
       // frame zero of the video element, which on a cut that opens dark is a
@@ -741,7 +830,32 @@ function VideoEditor() {
         poster = undefined;
       }
 
-      setPendingCapture({ type: "video", blob, url, poster, origin: "video-editor" });
+      setPendingCapture({
+        type: "video",
+        blob,
+        url,
+        poster,
+        origin: "video-editor",
+        // The track is inside `blob` now. `bakedIn` is what tells publish to
+        // send the credit and no bytes — the post plays that music, so the row
+        // has to say so even though there is no separate file to store.
+        //
+        // Two sources, and both have to be honoured. `music` is a track picked
+        // on this visit, and it only counts if the mixer actually decoded it —
+        // crediting a track the file does not contain is as wrong as omitting
+        // one it does. `inheritedCredit` is a track welded into a clip by an
+        // earlier session, which no amount of inspecting the timeline can
+        // recover; see the draft-restore effect.
+        audio: bakedCredit
+          ? {
+              blob: null,
+              url: "",
+              name: music ? music.name : (inheritedName ?? "Sound"),
+              credit: bakedCredit,
+              bakedIn: true,
+            }
+          : undefined,
+      });
 
       // The unmount cleanup parks the timeline on its own, so backing out of
       // publish returns to the edit rather than an empty screen.
@@ -754,6 +868,49 @@ function VideoEditor() {
       setProgress(null);
     }
   }
+
+  /** Take a track from the catalogue and put it on the timeline.
+   *
+   *  Unlike every other screen that picks a sound, this one needs the actual
+   *  bytes: the export mixes the music into the MP4 rather than uploading it
+   *  beside the media, and `OfflineAudioContext` cannot decode a URL it is not
+   *  allowed to read. So the file comes down through `/api/sound-file`, which
+   *  is the same allowlisted server-side fetch the publish path uses — the
+   *  browser is not permitted to reach these hosts directly, and that is on
+   *  purpose rather than an obstacle to route around.
+   *
+   *  It is a few megabytes over what may be a mobile connection, which is why
+   *  the sheet says it is working and stays open until this resolves. */
+  const chooseTrack = useCallback(async (track: LibraryTrack) => {
+    setSoundLoading(true);
+    setSoundError(null);
+    try {
+      const res = await authedFetch(`/api/sound-file?url=${encodeURIComponent(track.streamUrl)}`);
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error ?? "Couldn't load that sound");
+      }
+      const blob = await res.blob();
+      // A name for the mixer, not for the seller — the credit is what the post
+      // shows. The extension keeps `decodeAudioData` from having to guess.
+      const file = new File([blob], "track.mp3", { type: blob.type || "audio/mpeg" });
+      const next: EditorMusic = {
+        file,
+        name: track.title,
+        // Under the clips rather than over them: this is a backing track for a
+        // garment video, and a seller talking about the fit has to win.
+        volume: 0.7,
+        credit: creditFor(track),
+      };
+      setMusic((m) => (m ? { ...next, volume: m.volume } : next));
+      setSoundOpen(false);
+    } catch (err) {
+      console.error("VideoEditor: could not fetch track", err);
+      setSoundError("Couldn't load that sound. Check your connection and try another.");
+    } finally {
+      setSoundLoading(false);
+    }
+  }, []);
 
   const closeTool = useCallback(() => setActiveTool(null), []);
 
@@ -1063,7 +1220,12 @@ function VideoEditor() {
       {activeTool === "sound" && (
         <SoundSheet
           music={music}
-          onPick={() => audioInputRef.current?.click()}
+          onPick={() => {
+            setSoundError(null);
+            setSoundOpen(true);
+          }}
+          loading={soundLoading}
+          error={soundError}
           onVolume={(volume) => setMusic((m) => (m ? { ...m, volume } : m))}
           onRemove={() => setMusic(null)}
           onClose={closeTool}
@@ -1210,18 +1372,13 @@ function VideoEditor() {
         className="hidden"
         onChange={(e) => handleStickerFiles(e.target.files)}
       />
-      <input
-        ref={audioInputRef}
-        type="file"
-        accept="audio/*"
-        className="hidden"
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          // No object URL: the file itself goes to the mixdown, and nothing on
-          // this screen plays it back yet.
-          if (file) setMusic({ file, name: file.name, volume: 0.7 });
-          if (audioInputRef.current) audioInputRef.current.value = "";
-        }}
+      {/* The device audio picker that used to be here is gone. See the note on
+          `SoundSheet` — this screen bakes the track into the MP4 we then serve
+          publicly, so the catalogue is the only source we can stand behind. */}
+      <SoundLibrarySheet
+        open={soundOpen}
+        onClose={() => setSoundOpen(false)}
+        onPick={chooseTrack}
       />
 
       {sourceOpen && (

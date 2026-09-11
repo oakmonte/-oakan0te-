@@ -1,5 +1,6 @@
 import type { Layer } from "@/lib/after-shot-layers";
 import type { Clip, ProjectRatio } from "@/lib/video-sequence";
+import type { SoundCredit } from "@/lib/sound-library";
 
 // The video editor's timeline, parked in memory while the user is on the
 // publish screen.
@@ -15,13 +16,33 @@ import type { Clip, ProjectRatio } from "@/lib/video-sequence";
 // which would leave a parked session pointing at dead blobs, so ownership
 // transfers here instead and only `discardVideoEditorSession` frees them.
 
+/** One music track on the timeline, with the provenance it has to keep. */
+export type EditorMusic = {
+  file: File;
+  name: string;
+  volume: number;
+  credit: SoundCredit;
+};
+
 export type VideoEditorSession = {
   clips: Clip[];
   layersByClip: Record<string, Layer[]>;
   ratio: ProjectRatio;
   time: number;
-  /** The added music track, if any. A File, so it needs no URL of its own. */
-  music: { file: File; name: string; volume: number } | null;
+  /** The added music track, if any. A File, so it needs no URL of its own.
+   *
+   *  `credit` rides with it because the export mixes the track into the MP4:
+   *  after that there is nothing in the file to recover the attribution from,
+   *  so parking the music without its credit would lose a licence condition
+   *  every time someone backed out of the editor and came back. */
+  music: EditorMusic | null;
+  /** A credit for music already welded into one of the clips, carried in from
+   *  a reopened draft. There is no file to go with it — the track cannot be
+   *  removed, re-mixed or even heard separately, only credited. Parked with
+   *  the rest so backing out of publish doesn't quietly drop a licence
+   *  condition. */
+  inheritedCredit: SoundCredit | null;
+  inheritedName: string | null;
   /** Object URLs the editor created. Held so they outlive the unmount. */
   ownedUrls: string[];
 };

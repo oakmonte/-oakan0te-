@@ -82,7 +82,13 @@ async function readClipAudio(
   return joined;
 }
 
-/** The whole timeline's audio, or null when there is nothing to hear.
+/** The whole timeline's audio — `buffer` null when there is nothing to hear.
+ *
+ *  `musicIncluded` says whether the music track actually made it into the mix.
+ *  A clip whose audio fails to decode is tolerated silently on purpose, but the
+ *  music is different: the post records that track's licence and credit, and a
+ *  credit for music the file does not contain is a false claim about the file.
+ *  So the caller is told, rather than left to assume it worked.
  *
  *  `blobFor` is injected rather than imported so this file never has to know
  *  how a clip's bytes are fetched — the export module already owns that. */
@@ -90,11 +96,11 @@ export async function buildSequenceAudio(
   clips: Clip[],
   music: MusicTrack | null,
   blobFor: (clip: Clip) => Promise<Blob>,
-): Promise<AudioBuffer | null> {
+): Promise<{ buffer: AudioBuffer | null; musicIncluded: boolean }> {
   const total = clips.reduce((sum, clip) => sum + clipDuration(clip), 0);
-  if (total <= 0) return null;
+  if (total <= 0) return { buffer: null, musicIncluded: false };
   const audible = clips.filter(clipCarriesAudio);
-  if (audible.length === 0 && !music) return null;
+  if (audible.length === 0 && !music) return { buffer: null, musicIncluded: false };
 
   const ctx = new OfflineAudioContext(
     CHANNELS,
@@ -134,6 +140,7 @@ export async function buildSequenceAudio(
     offset += duration;
   }
 
+  let musicIncluded = false;
   if (music) {
     try {
       const decoded = await ctx.decodeAudioData(await music.file.arrayBuffer());
@@ -149,11 +156,18 @@ export async function buildSequenceAudio(
       node.connect(gain);
       node.start(0);
       scheduled++;
-    } catch {
-      // An audio file the browser can't decode. Same reasoning as above.
+      musicIncluded = true;
+    } catch (error) {
+      // An audio file the browser can't decode. The export still goes ahead —
+      // same reasoning as above — but this one has to be REPORTED rather than
+      // only tolerated. The caller marks the post as carrying this track and
+      // writes its licence and credit into the row, and a credit for music
+      // that is not in the file is a claim about a file that isn't true.
+      console.error("buildSequenceAudio: could not decode the music track", error);
+      musicIncluded = false;
     }
   }
 
-  if (scheduled === 0) return null;
-  return ctx.startRendering();
+  if (scheduled === 0) return { buffer: null, musicIncluded: false };
+  return { buffer: await ctx.startRendering(), musicIncluded };
 }
