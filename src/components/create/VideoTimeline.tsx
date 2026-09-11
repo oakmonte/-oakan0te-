@@ -77,7 +77,6 @@ export default function VideoTimeline({
   onAdd,
   onSplit,
   onToggleMute,
-  onTransition,
   onSound,
   musicName,
 }: {
@@ -92,7 +91,6 @@ export default function VideoTimeline({
   onAdd: (e: React.MouseEvent<HTMLElement>) => void;
   onSplit: () => void;
   onToggleMute: (id: string) => void;
-  onTransition: (index: number) => void;
   onSound: () => void;
   /** Name of the added music track, shown in place of "Add sound". */
   musicName?: string | null;
@@ -385,11 +383,10 @@ export default function VideoTimeline({
               // that is when the trim bars need the same few pixels — and a
               // decoration must never win a fight against the control the user
               // is reaching for.
-              showTransition={i > 0 && selectedIndex !== i && selectedIndex !== i - 1}
+              showBoundary={i > 0 && selectedIndex !== i && selectedIndex !== i - 1}
               onSelect={onSelect}
               onReorder={onReorder}
               onDragStateChange={setDragging}
-              onTransition={() => onTransition(i)}
             />
           ))}
 
@@ -486,22 +483,20 @@ function ClipTile({
   isSelected,
   isDragging,
   width,
-  showTransition,
+  showBoundary,
   onSelect,
   onReorder,
   onDragStateChange,
-  onTransition,
 }: {
   clip: Clip;
   index: number;
   isSelected: boolean;
   isDragging: boolean;
   width: number;
-  showTransition: boolean;
+  showBoundary: boolean;
   onSelect: (id: string | null) => void;
   onReorder: (from: number, to: number) => void;
   onDragStateChange: (id: string | null) => void;
-  onTransition: () => void;
 }) {
   const holdTimer = useRef<number | null>(null);
   const origin = useRef(0);
@@ -553,19 +548,23 @@ function ClipTile({
 
   return (
     <>
-      {showTransition && (
-        <button
-          type="button"
-          onClick={onTransition}
-          aria-label={`Transition before clip ${index + 1}`}
-          className="relative z-10 -mx-[9px] flex h-full w-[18px] shrink-0 items-center justify-center"
+      {showBoundary && (
+        // A marker, not a control. It used to open a transitions sheet that
+        // admitted transitions were not implemented; the sheet is gone and the
+        // marker stayed, because saying "there is a cut here" is the job it was
+        // actually doing. `aria-hidden` because the clip tiles either side
+        // already announce themselves — a screen reader does not need a third
+        // voice for the seam between them.
+        <span
+          aria-hidden
+          className="pointer-events-none relative z-10 -mx-[9px] flex h-full w-[18px] shrink-0 items-center justify-center"
         >
           <span className="flex h-[18px] w-[18px] items-center justify-center rounded-[4px] bg-white text-black">
             <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" aria-hidden>
               <path d="M2 4v16l8-8-8-8Zm20 0-8 8 8 8V4Z" />
             </svg>
           </span>
-        </button>
+        </span>
       )}
       <div
         role="button"
@@ -592,14 +591,7 @@ function ClipTile({
         ) : clip.thumbUrl || clip.kind === "photo" ? (
           // A photo has one frame by definition, and a video falls back to its
           // poster repeated while the filmstrip is still decoding.
-          <div
-            className="h-full w-full"
-            style={{
-              backgroundImage: `url(${clip.thumbUrl ?? clip.url})`,
-              backgroundSize: "auto 100%",
-              backgroundRepeat: "repeat-x",
-            }}
-          />
+          <StillStrip url={clip.thumbUrl ?? clip.url} width={Math.max(24, width)} />
         ) : (
           <div className="flex h-full w-full items-center justify-center bg-white/10">
             <ImageIcon size={16} className="text-white/40" />
@@ -618,6 +610,37 @@ function ClipTile({
         )}
       </div>
     </>
+  );
+}
+
+/** A still, repeated along the clip's length.
+ *
+ *  Square tiles, each cropped to fill — NOT the whole image scaled to the
+ *  track's height. A phone photo is portrait, so fitting one into a 62px strip
+ *  squeezes it to about 35px wide and then tiles that, which is how a
+ *  recognisable picture turns into a row of thumbnails too small to read. A
+ *  centre crop at the track's own height shows the middle of the photo at a
+ *  size that is actually legible, and matches how the video filmstrip beside
+ *  it already looks.
+ *
+ *  Tiles rather than one stretched copy because a clip's width is its
+ *  duration: a five-second still stretched once would be a smear, where
+ *  repeats read as "this is one picture, held". */
+function StillStrip({ url, width }: { url: string; width: number }) {
+  const count = Math.max(1, Math.ceil(width / TRACK_HEIGHT));
+  return (
+    <div className="h-full w-full bg-white/5">
+      {Array.from({ length: count }, (_, i) => (
+        <img
+          key={i}
+          src={url}
+          alt=""
+          draggable={false}
+          className="absolute top-0 h-full max-w-none object-cover"
+          style={{ left: i * TRACK_HEIGHT, width: TRACK_HEIGHT }}
+        />
+      ))}
+    </div>
   );
 }
 

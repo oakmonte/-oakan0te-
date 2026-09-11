@@ -77,7 +77,7 @@ function Pill({
 
 /** Speed, hold duration and fit for one clip — everything about how it
  *  occupies the frame and the clock, in one place. */
-export function ClipSheet({
+export function SpeedSheet({
   clip,
   onPatch,
   onClose,
@@ -89,7 +89,7 @@ export function ClipSheet({
   const isPhoto = clip.kind === "photo";
   return (
     <OptionSheet
-      title={isPhoto ? "Photo" : "Clip"}
+      title={isPhoto ? "Duration" : "Speed"}
       note={
         !isPhoto && clip.speed !== 1
           ? clip.speed > 1
@@ -130,17 +130,6 @@ export function ClipSheet({
           </div>
         </div>
       )}
-
-      <div className="pt-3">
-        <span className="text-[12px] text-white/60">Fill the frame</span>
-        <div className="flex gap-2 pt-2">
-          {(["cover", "contain"] as ClipFit[]).map((fit) => (
-            <Pill key={fit} active={clip.fit === fit} onClick={() => onPatch({ fit })}>
-              {fit === "cover" ? "Fill" : "Fit"}
-            </Pill>
-          ))}
-        </div>
-      </div>
     </OptionSheet>
   );
 }
@@ -272,51 +261,6 @@ export function SoundSheet({
         </button>
       )}
       {error && <p className="pt-3 text-[12px] leading-snug text-red-300">{error}</p>}
-    </OptionSheet>
-  );
-}
-
-/** Transitions are drawn but not yet applied — the encoder writes clips
- *  end-to-end, and cross-fading means compositing two decoders at once. The
- *  sheet says so rather than letting someone pick a dissolve and find a hard
- *  cut in the finished file. */
-const TRANSITIONS = ["None", "Dissolve", "Whip", "Flash", "Slide", "Zoom"];
-
-export function TransitionSheet({ onClose }: { onClose: () => void }) {
-  return (
-    <OptionSheet
-      title="Transition"
-      note="Not wired up yet — clips still join on a hard cut. Pick one and it will apply once transitions land."
-      onClose={onClose}
-    >
-      <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
-        {TRANSITIONS.map((t, i) => (
-          <Pill key={t} active={i === 0} onClick={() => {}}>
-            {t}
-          </Pill>
-        ))}
-      </div>
-    </OptionSheet>
-  );
-}
-
-/** Shared shell for the tools that exist as icons but have nothing behind them
- *  yet. Saying which is which beats a button that silently does nothing. */
-export function ComingSoonSheet({
-  title,
-  body,
-  onClose,
-}: {
-  title: string;
-  body: string;
-  onClose: () => void;
-}) {
-  return (
-    <OptionSheet title={title} onClose={onClose}>
-      <div className="flex items-start gap-3 rounded-xl bg-white/[0.07] px-4 py-3.5">
-        <Check size={16} className="mt-[2px] shrink-0 text-white/40" />
-        <p className="text-[12px] leading-relaxed text-white/65">{body}</p>
-      </div>
     </OptionSheet>
   );
 }

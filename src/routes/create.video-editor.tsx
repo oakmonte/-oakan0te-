@@ -2,10 +2,11 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowRight,
-  Captions as CaptionsIcon,
+  ChevronDown,
   ChevronLeft,
   Copy,
-  Layers2,
+  Crop,
+  Gauge,
   Maximize2,
   Minimize2,
   Music,
@@ -13,13 +14,16 @@ import {
   Play,
   Ratio,
   Redo2,
+  RefreshCw,
   Scissors,
   SlidersHorizontal,
-  Sparkles,
+  Split,
   Sticker,
   Trash2,
   Type,
   Undo2,
+  Volume2,
+  VolumeX,
   Wand2,
 } from "lucide-react";
 import {
@@ -50,13 +54,7 @@ import {
 import { setPendingCapture } from "@/lib/capture-handoff";
 import { takePendingDraft } from "@/lib/draft-handoff";
 import VideoTimeline from "@/components/create/VideoTimeline";
-import {
-  ClipSheet,
-  ComingSoonSheet,
-  RatioSheet,
-  TransitionSheet,
-  SoundSheet,
-} from "@/components/create/ClipOptionSheets";
+import { SpeedSheet, RatioSheet, SoundSheet } from "@/components/create/ClipOptionSheets";
 import { exportSequence } from "@/lib/video-sequence-export";
 import SoundLibrarySheet from "@/components/camera/SoundLibrarySheet";
 import { authedFetch } from "@/lib/authed-fetch";
@@ -65,6 +63,7 @@ import {
   blankClipEdits,
   clipDuration,
   clipStarts,
+  MIN_CLIP_DURATION,
   extractFilmstrip,
   formatTime,
   locate,
@@ -97,45 +96,17 @@ export const Route = createFileRoute("/create/video-editor")({
 // not have three implementations that drift apart. What is NOT reused is
 // after-shot-context, which carries exactly one CapturedMedia.
 //
-// Honest about what's decoration: Effects, Magic, Captions, Overlay and
-// transitions are drawn and open a sheet that says they aren't wired yet.
-// Everything else on this screen does what it looks like it does — Sound
+// Nothing on this screen is decoration. Effects, Magic, Captions, Overlay and
+// transitions used to be drawn here and open a sheet admitting they weren't
+// wired up; they are gone rather than greyed, because a tool you cannot use is
+// worse than a tool that isn't there — it reads as broken rather than absent.
+// Everything here does what it looks like it does — Sound
 // included, which picks a track from the catalogue and mixes it under the
 // whole timeline. It is the only screen that needs the track's actual bytes in
 // the browser, because it welds the music into the MP4 instead of uploading it
 // beside the media; see `chooseTrack`.
 
-type ToolId =
-  | "clip"
-  | "text"
-  | "sticker"
-  | "filter"
-  | "adjust"
-  | "ratio"
-  | "transition"
-  | "sound"
-  | "soon";
-
-type SoonInfo = { title: string; body: string };
-
-const SOON: Record<string, SoonInfo> = {
-  effects: {
-    title: "Effects",
-    body: "Timed visual effects sit on the timeline like clips do. The filter and tone tools next to this one are live today and apply per clip.",
-  },
-  magic: {
-    title: "Magic",
-    body: "Auto-cut to the beat, auto-framing and background removal. Each needs analysis passes that don't exist yet.",
-  },
-  captions: {
-    title: "Captions",
-    body: "Automatic captions need speech recognition on the audio track. Text added by hand works today — it's the Text tool.",
-  },
-  overlay: {
-    title: "Overlay",
-    body: "A second layer of video on top of the timeline. The exporter composites one clip at a time right now; overlays mean two decoders at once.",
-  },
-};
+type ToolId = "speed" | "text" | "sticker" | "filter" | "adjust" | "ratio" | "sound";
 
 /** Snapshot of everything undo/redo restores.
  *
@@ -177,7 +148,6 @@ function VideoEditor() {
   const [expanded, setExpanded] = useState(false);
 
   const [activeTool, setActiveTool] = useState<ToolId | null>(null);
-  const [soon, setSoon] = useState<SoonInfo | null>(null);
   const [editingLayerId, setEditingLayerId] = useState<string | null>(null);
   const [previewFilterId, setPreviewFilterId] = useState<string | null>(null);
   const [previewFilterIntensity, setPreviewFilterIntensity] = useState<number | null>(null);
@@ -204,6 +174,15 @@ function VideoEditor() {
   const [inheritedName, setInheritedName] = useState<string | null>(
     () => session?.inheritedName ?? null,
   );
+  // Edit mode. Tapping Edit does not open anything over the timeline — it
+  // selects the clip under the playhead and swaps the toolbar underneath for
+  // that clip's own actions. A sheet was the wrong shape for this: the thing
+  // being edited is the clip on the timeline, and a panel covering the
+  // timeline hides it at exactly the moment it matters.
+  const [clipEditing, setClipEditing] = useState(false);
+  // Set while the media picker is being used to REPLACE a clip rather than add
+  // one. The picker is the same; where its result goes is not.
+  const [replaceTargetId, setReplaceTargetId] = useState<string | null>(null);
   const [soundOpen, setSoundOpen] = useState(false);
   const [soundLoading, setSoundLoading] = useState(false);
   const [soundError, setSoundError] = useState<string | null>(null);
@@ -478,6 +457,27 @@ function VideoEditor() {
 
   function handleDeviceFiles(files: FileList | null) {
     if (!files) return;
+    // Replacing takes the first file and ignores the rest: one clip is being
+    // swapped for one other, and quietly appending the extras would be a
+    // different edit from the one that was asked for.
+    const target = replaceTargetId ? clips.find((c) => c.id === replaceTargetId) : null;
+    if (target) {
+      const file = Array.from(files).find(
+        (f) => f.type.startsWith("video/") || f.type.startsWith("image/"),
+      );
+      if (file) {
+        const url = URL.createObjectURL(file);
+        ownedUrls.current.push(url);
+        replaceClip(target, {
+          kind: file.type.startsWith("video/") ? "video" : "photo",
+          blob: file,
+          url,
+          remote: false,
+        });
+      }
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
     const created: Clip[] = [];
     for (const file of Array.from(files)) {
       const isVideo = file.type.startsWith("video/");
@@ -547,6 +547,18 @@ function VideoEditor() {
    *  which can only use stills, this screen takes both — an old video is as
    *  valid a piece of a new one as a photo is. */
   function handlePicked(picked: PickedMedia[]) {
+    const target = replaceTargetId ? clips.find((c) => c.id === replaceTargetId) : null;
+    if (target && picked[0]) {
+      const item = picked[0];
+      replaceClip(
+        target,
+        { kind: item.kind, blob: new Blob(), url: item.url, remote: true },
+        item.thumbnailUrl,
+      );
+      setDraftsOpen(false);
+      setPostsOpen(false);
+      return;
+    }
     const created: Clip[] = picked.map((item) => ({
       id: newClipId(),
       kind: item.kind,
@@ -561,6 +573,33 @@ function VideoEditor() {
     );
     setDraftsOpen(false);
     setPostsOpen(false);
+  }
+
+  /** Swap a clip's source, keeping the look the seller gave it.
+   *
+   *  Filter, tone, fit and mute survive; trim, filmstrip and duration cannot,
+   *  because they describe the old file. A photo keeps how long it holds, which
+   *  is the one duration that belongs to the edit rather than to the source. */
+  function replaceClip(
+    target: Clip,
+    next: Pick<Clip, "kind" | "blob" | "url" | "remote">,
+    poster?: string | null,
+  ) {
+    push();
+    const replaced: Clip = {
+      ...target,
+      ...next,
+      naturalSize: null,
+      sourceDuration: 0,
+      trimStart: 0,
+      trimEnd: 0,
+      thumbUrl: null,
+      frames: [],
+    };
+    setClips((prev) => prev.map((c) => (c.id === target.id ? replaced : c)));
+    setReplaceTargetId(null);
+    if (replaced.kind === "video") void measureVideo(replaced, poster ?? null);
+    else measurePhoto(replaced);
   }
 
   function openSource(e: React.MouseEvent<HTMLElement>) {
@@ -672,6 +711,10 @@ function VideoEditor() {
     const next = clips.filter((c) => c.id !== selected.id);
     commit(next);
     setSelectedId(null);
+    // The clip the toolbar was about is gone, so the toolbar goes too. Falling
+    // through to whatever the playhead lands on next would leave Delete under
+    // the same thumb that just pressed it, aimed at a different clip.
+    setClipEditing(false);
     setTime((t) => Math.min(t, sequenceDuration(next)));
   }
 
@@ -944,8 +987,9 @@ function VideoEditor() {
         label: "Edit",
         icon: Scissors,
         run: () => {
-          if (!selectedId && current) setSelectedId(current.id);
-          setActiveTool("clip");
+          // Whatever the playhead is standing on is what you meant to edit.
+          if (current) setSelectedId(current.id);
+          setClipEditing(true);
         },
       },
       { id: "text", label: "Text", icon: Type, run: () => setActiveTool("text") },
@@ -964,36 +1008,85 @@ function VideoEditor() {
       },
       { id: "canvas", label: "Canvas", icon: Ratio, run: () => setActiveTool("ratio") },
       { id: "sound", label: "Sound", icon: Music, run: () => setActiveTool("sound") },
-      {
-        id: "effects",
-        label: "Effects",
-        icon: Sparkles,
-        run: () => openSoon(SOON.effects),
-        off: true,
-      },
-      { id: "magic", label: "Magic", icon: Wand2, run: () => openSoon(SOON.magic), off: true },
-      {
-        id: "captions",
-        label: "Captions",
-        icon: CaptionsIcon,
-        run: () => openSoon(SOON.captions),
-        off: true,
-      },
-      {
-        id: "overlay",
-        label: "Overlay",
-        icon: Layers2,
-        run: () => openSoon(SOON.overlay),
-        off: true,
-      },
       { id: "duplicate", label: "Duplicate", icon: Copy, run: handleDuplicate },
       { id: "delete", label: "Delete", icon: Trash2, run: handleDelete },
     ];
 
-  function openSoon(info: SoonInfo) {
-    setSoon(info);
-    setActiveTool("soon");
-  }
+  /** The toolbar while a clip is selected for editing.
+   *
+   *  Built per clip rather than fixed, because a photo has no audio to mute
+   *  and holds for a duration where a video runs at a speed. An action that
+   *  cannot apply is left OUT rather than greyed: a disabled button invites a
+   *  tap and then explains itself, which is a worse answer than not being
+   *  there. */
+  const editTarget = selected ?? current;
+  // Splitting needs the playhead strictly inside the clip being edited, with
+  // room for a clip on each side — the same rule the timeline's own Split
+  // button uses, so the two never disagree about whether a cut is possible.
+  const editStarts = clipStarts(clips);
+  const editIndex = editTarget ? clips.findIndex((c) => c.id === editTarget.id) : -1;
+  const canSplitHere =
+    editIndex >= 0 &&
+    time > editStarts[editIndex] + MIN_CLIP_DURATION &&
+    time < editStarts[editIndex + 1] - MIN_CLIP_DURATION;
+  const CLIP_TOOLS: { id: string; label: string; icon: typeof Type; run: () => void }[] = editTarget
+    ? [
+        { id: "split", label: "Split", icon: Split, run: handleSplit },
+        {
+          id: "replace",
+          label: "Replace",
+          icon: RefreshCw,
+          run: () => {
+            setReplaceTargetId(editTarget.id);
+            setSourceAnchor(null);
+            setSourceOpen(true);
+          },
+        },
+        {
+          id: "speed",
+          label: editTarget.kind === "photo" ? "Duration" : "Speed",
+          icon: Gauge,
+          run: () => setActiveTool("speed"),
+        },
+        {
+          id: "fit",
+          label: editTarget.fit === "cover" ? "Fit" : "Fill",
+          icon: Crop,
+          run: () => {
+            beginGesture();
+            patchClip(editTarget.id, { fit: editTarget.fit === "cover" ? "contain" : "cover" });
+          },
+        },
+        ...(editTarget.kind === "video"
+          ? [
+              {
+                id: "volume",
+                label: editTarget.muted ? "Unmute" : "Mute",
+                icon: editTarget.muted ? VolumeX : Volume2,
+                run: () => {
+                  beginGesture();
+                  patchClip(editTarget.id, { muted: !editTarget.muted });
+                },
+              },
+            ]
+          : []),
+        { id: "filters", label: "Filters", icon: Wand2, run: () => setActiveTool("filter") },
+        {
+          id: "adjust",
+          label: "Adjust",
+          icon: SlidersHorizontal,
+          run: () => setActiveTool("adjust"),
+        },
+        { id: "duplicate", label: "Duplicate", icon: Copy, run: handleDuplicate },
+        { id: "delete", label: "Delete", icon: Trash2, run: handleDelete },
+      ]
+    : [];
+
+  // Nothing to edit means nothing to be in edit mode about — an emptied
+  // timeline must not leave the clip toolbar on screen.
+  useEffect(() => {
+    if (empty) setClipEditing(false);
+  }, [empty]);
 
   const chromeHidden = activeTool !== null || expanded;
 
@@ -1216,14 +1309,12 @@ function VideoEditor() {
         onClose={closeTool}
       />
 
-      {activeTool === "clip" && (selected ?? current) && (
-        <ClipSheet
-          clip={(selected ?? current)!}
+      {activeTool === "speed" && editTarget && (
+        <SpeedSheet
+          clip={editTarget}
           onPatch={(patch) => {
-            const target = selected ?? current;
-            if (!target) return;
             beginGesture();
-            patchClip(target.id, patch);
+            patchClip(editTarget.id, patch);
           }}
           onClose={closeTool}
         />
@@ -1256,12 +1347,6 @@ function VideoEditor() {
           }}
           onClose={closeTool}
         />
-      )}
-
-      {activeTool === "transition" && <TransitionSheet onClose={closeTool} />}
-
-      {activeTool === "soon" && soon && (
-        <ComingSoonSheet title={soon.title} body={soon.body} onClose={closeTool} />
       )}
 
       {/* Transport, timeline and tools */}
@@ -1345,7 +1430,6 @@ function VideoEditor() {
                 if (!clip) return;
                 commit(clips.map((c) => (c.id === id ? { ...c, muted: !c.muted } : c)));
               }}
-              onTransition={() => setActiveTool("transition")}
               onSound={() => setActiveTool("sound")}
               musicName={music?.name ?? null}
             />
@@ -1361,23 +1445,53 @@ function VideoEditor() {
             className="mt-2 flex items-start gap-1 overflow-x-auto px-3"
             style={{ scrollbarWidth: "none" }}
           >
-            {TOOLS.map(({ id, label, icon: Icon, run, off }) => {
-              const needsSelection = id === "duplicate" || id === "delete";
-              return (
+            {clipEditing && editTarget ? (
+              <>
+                {/* Out of edit mode, back to the whole-video tools. First on
+                    the left and pinned there: it is the one button in this bar
+                    that is not about the clip, and the way back has to be
+                    somewhere the thumb can find without reading. */}
                 <button
-                  key={id}
                   type="button"
-                  disabled={empty || (needsSelection && !selected)}
-                  onClick={run}
-                  className="flex w-[70px] shrink-0 flex-col items-center gap-1.5 rounded-[10px] bg-white/[0.07] py-2.5 active:scale-95 disabled:opacity-30"
+                  onClick={() => {
+                    setClipEditing(false);
+                    setSelectedId(null);
+                  }}
+                  aria-label="Done editing this clip"
+                  className="sticky left-0 z-10 flex w-[52px] shrink-0 flex-col items-center justify-center self-stretch rounded-[10px] bg-white/[0.14] py-2.5 backdrop-blur active:scale-95"
                 >
-                  <Icon size={21} strokeWidth={1.7} className={off ? "text-white/55" : ""} />
-                  <span className={`text-[11px] leading-tight ${off ? "text-white/55" : ""}`}>
-                    {label}
-                  </span>
+                  <ChevronDown size={21} strokeWidth={1.7} />
                 </button>
-              );
-            })}
+                {CLIP_TOOLS.map(({ id, label, icon: Icon, run }) => (
+                  <button
+                    key={id}
+                    type="button"
+                    disabled={id === "split" && !canSplitHere}
+                    onClick={run}
+                    className="flex w-[70px] shrink-0 flex-col items-center gap-1.5 rounded-[10px] bg-white/[0.07] py-2.5 active:scale-95 disabled:opacity-30"
+                  >
+                    <Icon size={21} strokeWidth={1.7} />
+                    <span className="text-[11px] leading-tight">{label}</span>
+                  </button>
+                ))}
+              </>
+            ) : (
+              TOOLS.map(({ id, label, icon: Icon, run }) => {
+                const needsSelection = id === "duplicate" || id === "delete";
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    disabled={empty || (needsSelection && !selected)}
+                    onClick={run}
+                    className="flex w-[70px] shrink-0 flex-col items-center gap-1.5 rounded-[10px] bg-white/[0.07] py-2.5 active:scale-95 disabled:opacity-30"
+                  >
+                    <Icon size={21} strokeWidth={1.7} />
+                    <span className="text-[11px] leading-tight">{label}</span>
+                  </button>
+                );
+              })
+            )}
           </div>
         </div>
       )}
