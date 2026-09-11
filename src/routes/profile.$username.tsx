@@ -1,7 +1,13 @@
 import { createFileRoute, useNavigate, useParams, useRouter } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useRef, useEffect, type ReactElement } from "react";
-import { motion, AnimatePresence, useMotionValue, useTransform } from "framer-motion";
+import {
+  motion,
+  AnimatePresence,
+  useDragControls,
+  useMotionValue,
+  useTransform,
+} from "framer-motion";
 import type { MotionValue } from "framer-motion";
 import {
   ArrowLeft,
@@ -140,10 +146,15 @@ function ProfilePage() {
   // case layout shifts, e.g. once the avatar image finishes loading.
   const avatarRef = useRef<HTMLImageElement>(null);
   const [sheetTop, setSheetTop] = useState(0);
-  // Which tab was active right before Store was opened — tapping above the
-  // sheet, or swiping out of it, restores this instead of always landing on
+  // Which tab was active right before Store was opened — tapping outside the
+  // sheet, or dragging it down, restores this instead of always landing on
   // Posts.
   const previousTabRef = useRef<TabKey>("posts");
+  // Drag-to-dismiss is started by hand from the sheet's grab strip rather
+  // than by a dragListener on the sheet itself: the sheet's body is a
+  // scrolling storefront whose product tiles are horizontal carousels, and a
+  // listener spanning all of it would swallow both of those gestures.
+  const storeSheetDrag = useDragControls();
   const { data: isFollowing = false, isPending: followPending } = useQuery(
     followStatusQueryOptions(user?.id, baseProfile?.id),
   );
@@ -308,6 +319,7 @@ function ProfilePage() {
   );
 
   const storeSheetOpen = activeTab === "store" && !!store && storeIsSetUp;
+  const closeStoreSheet = () => setActiveTab(previousTabRef.current);
 
   return (
     <div
@@ -560,12 +572,13 @@ function ProfilePage() {
 
       {/* Store sheet — Store is the one tab that rises up over the rest of
           the page instead of sitting flat under the tab row like every other
-          tab. No tab row of its own inside it: swiping left/right moves to
-          the adjacent tab (same drag gesture as the flat content grid),
-          closing the sheet since that tab isn't "store" anymore. Tapping
-          anywhere above it (the header/top of the avatar, still visible
-          above the sheet, dimmed by the backdrop) restores whichever tab was
-          active before Store was opened. No explicit close button by design. */}
+          tab. Swiping INTO it from an adjacent tab still works — that is the
+          pager behind it — but once it is up, horizontal gestures stay
+          inside: the storefront's tiles are photo carousels, and paging a tab
+          out from under someone mid-swipe was the wrong trade. Leaving is a
+          tap on the blurred backdrop or a drag down on the grab strip, both
+          restoring whichever tab was active before Store was opened. No
+          explicit close button by design. */}
       <AnimatePresence>
         {storeSheetOpen && (
           <motion.div
@@ -574,8 +587,16 @@ function ProfilePage() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-40 bg-black/55"
-            onClick={() => setActiveTab(previousTabRef.current)}
+            className="fixed inset-0 z-40 bg-black/45"
+            // Blurs what is painted beneath it rather than filtering the
+            // profile page itself. A CSS filter on an ancestor makes that
+            // ancestor the containing block for every fixed-position child,
+            // which would drop this very sheet out of viewport positioning —
+            // and it repaints the whole profile instead of compositing one
+            // layer. The black is lighter than it was because the blur is
+            // now doing most of the separating.
+            style={{ backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)" }}
+            onClick={closeStoreSheet}
           />
         )}
         {storeSheetOpen && (
@@ -585,6 +606,21 @@ function ProfilePage() {
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ duration: 0.32, ease: [0.32, 0.72, 0, 1] }}
+            drag="y"
+            dragControls={storeSheetDrag}
+            dragListener={false}
+            dragConstraints={{ top: 0, bottom: 0 }}
+            // Elastic stays high, and only downward. Pinned constraints with
+            // a near-zero elastic clamp the visible travel to a few px, so
+            // the sheet reads as unresponsive even while the drag is being
+            // tracked; 0 at the top stops it lifting off the screen edge.
+            // Constraints alone spring it back on release, so no
+            // dragSnapToOrigin — that would fight the exit animation on the
+            // release that actually dismisses.
+            dragElastic={{ top: 0, bottom: 0.9 }}
+            onDragEnd={(_, info) => {
+              if (info.offset.y > 90 || info.velocity.y > 600) closeStoreSheet();
+            }}
             style={{ top: sheetTop }}
             className="fixed inset-x-0 bottom-0 z-50 flex flex-col overflow-hidden rounded-t-[28px] shadow-[0_-12px_40px_rgba(0,0,0,0.6)]"
           >
@@ -593,27 +629,26 @@ function ProfilePage() {
                 runs all the way up into the rounded corners. The grabber
                 floats over it instead of owning its own row: mix-blend-
                 difference gives it contrast against ANY theme color without
-                per-theme casing, and pointer-events-none lets the drag
-                gesture below still start from underneath it. */}
-            <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex justify-center pt-2.5">
-              <div className="h-1 w-9 rounded-full bg-white mix-blend-difference" />
-            </div>
-            {/* dragElastic stays high: pinned constraints with a near-zero
-                elastic (what this was) clamp the visible travel to a few px,
-                so the sheet read as unresponsive even though onDragEnd fired. */}
-            <motion.div
-              drag="x"
-              dragConstraints={{ left: 0, right: 0 }}
-              dragElastic={0.7}
-              dragSnapToOrigin
-              onDragEnd={(_, info) => {
-                if (info.offset.x < -60) goToTab(tabIndex + 1);
-                else if (info.offset.x > 60) goToTab(tabIndex - 1);
-              }}
-              className="flex-1 overflow-y-auto pb-24"
+                per-theme casing. This strip is also the sheet's drag handle —
+                the one place a downward drag dismisses it — so unlike before
+                it takes pointer events; the pill inside stays inert so the
+                whole 36px strip is grabbable, not just the 4px pill. */}
+            <div
+              onPointerDown={(e) => storeSheetDrag.start(e)}
+              style={{ touchAction: "none" }}
+              className="absolute inset-x-0 top-0 z-20 flex h-9 cursor-grab justify-center pt-2.5 active:cursor-grabbing"
             >
+              <div className="pointer-events-none h-1 w-9 rounded-full bg-white mix-blend-difference" />
+            </div>
+            {/* Deliberately not a drag target any more. A horizontal drag
+                here used to page to the adjacent tab, which made the
+                storefront the one place a sideways swipe threw you out of
+                what you were looking at — and it competed for the very same
+                gesture as the product tiles own photo carousels. Inside the
+                sheet, left/right belongs to those carousels alone. */}
+            <div className="flex-1 overflow-y-auto pb-24">
               {store && <PublicStorefront storeId={store.id} />}
-            </motion.div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
