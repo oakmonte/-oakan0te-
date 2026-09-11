@@ -47,34 +47,31 @@ export const OVERFETCH = 50;
  *  Counts were measured on 2026-09-10 and are here to justify the shortlist,
  *  not to be displayed — a genre with forty tracks is worth offering, one with
  *  one is not. */
-export const SOUND_GENRES: { id: string; label: string; category: string }[] = [
-  { id: "lofi", label: "Lo-fi", category: "Lo-fi music from Free Music Archive" }, // 197
-  { id: "chill", label: "Chill-out", category: "Chill-out music from Free Music Archive" }, // 88
-  { id: "downtempo", label: "Downtempo", category: "Downtempo music from Free Music Archive" }, // 107
-  { id: "ambient", label: "Ambient", category: "Ambient music from Free Music Archive" }, // 933
-  { id: "electronic", label: "Electronic", category: "Electronic music from Free Music Archive" }, // 1752
-  { id: "hiphop", label: "Hip hop", category: "Hip hop music from Free Music Archive" }, // 233
-  { id: "dance", label: "Dance", category: "Dance music from Free Music Archive" }, // 119
-  { id: "techno", label: "Techno", category: "Techno music from Free Music Archive" }, // 127
-  { id: "synthpop", label: "Synth-pop", category: "Synth-pop music from Free Music Archive" }, // 148
-  { id: "funk", label: "Funk", category: "Funk music from Free Music Archive" }, // 43
-  { id: "jazz", label: "Jazz", category: "Jazz music from Free Music Archive" }, // 89
-  { id: "blues", label: "Blues", category: "Blues music from Free Music Archive" }, // 54
-  { id: "piano", label: "Piano", category: "Piano music from Free Music Archive" }, // 58
-  {
-    id: "instrumental",
-    label: "Instrumental",
-    category: "Instrumental music from Free Music Archive",
-  }, // 1161
-  { id: "rock", label: "Rock", category: "Rock music from Free Music Archive" }, // 453
-  { id: "pop", label: "Pop", category: "Pop music from Free Music Archive" }, // 125
-  { id: "chiptune", label: "Chiptune", category: "Chiptune music from Free Music Archive" }, // 196
-  {
-    id: "international",
-    label: "International",
-    category: "International music from Free Music Archive",
-  }, // 35
-];
+const FMA = (genre: string) => `${genre} music from Free Music Archive`;
+
+/** Our genre vocabulary mapped onto Commons categories. Track counts were
+ *  measured on 2026-09-10 and are here to justify the shortlist, not to be
+ *  shown — a genre with forty tracks is worth offering, one with one is not. */
+const GENRE_CATEGORY: Record<string, string> = {
+  lofi: FMA("Lo-fi"), // 197
+  chill: FMA("Chill-out"), // 88
+  downtempo: FMA("Downtempo"), // 107
+  ambient: FMA("Ambient"), // 933
+  electronic: FMA("Electronic"), // 1752
+  hiphop: FMA("Hip hop"), // 233
+  dance: FMA("Dance"), // 119
+  techno: FMA("Techno"), // 127
+  synthpop: FMA("Synth-pop"), // 148
+  funk: FMA("Funk"), // 43
+  jazz: FMA("Jazz"), // 89
+  blues: FMA("Blues"), // 54
+  piano: FMA("Piano"), // 58
+  instrumental: FMA("Instrumental"), // 1161
+  rock: FMA("Rock"), // 453
+  pop: FMA("Pop"), // 125
+  chiptune: FMA("Chiptune"), // 196
+  international: FMA("International"), // 35
+};
 
 export type SoundQuery = { genre?: string; text?: string; offset?: number };
 
@@ -108,8 +105,8 @@ function quoteSafe(value: string): string {
  *  should obviously do. */
 export function buildSearchExpression({ genre, text }: SoundQuery): string {
   const parts = ["filetype:audio"];
-  const known = SOUND_GENRES.find((g) => g.id === genre);
-  if (known) parts.push(`incategory:"${known.category}"`);
+  const category = genre ? GENRE_CATEGORY[genre] : undefined;
+  if (category) parts.push(`incategory:"${category}"`);
   const typed = quoteSafe(text ?? "");
   if (typed) parts.push(typed);
   return parts.join(" ");

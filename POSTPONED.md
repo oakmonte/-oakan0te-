@@ -131,12 +131,42 @@ Three things about it are worth knowing before touching this code:
   all the noise above, because a pronunciation is two seconds and a song is
   not. It is doing more work than it looks like it is.
 
-**Still wanted:** a proper licensed catalogue. Commons is legally clean and
-genuinely thin — a few hundred usable tracks per genre, skewed towards
-instrumental and electronic, with nothing anybody will recognise. Diadem is
-still sourcing this. A second provider is meant to slot in beside the first:
-normalise into `LibraryTrack`, add its media host to `TRUSTED_AUDIO_HOSTS`, and
-the picker, the credit and the upload path all work unchanged.
+**Three providers now, searched together · [2026-09-11]** — `api.sounds.ts`
+queries every configured catalogue at once and interleaves the results, a track
+at a time from each. A seller wants a song, not a source, so the picker never
+asks which archive to look in. One source being down costs some choices, not
+the feature (`Promise.allSettled`; only an empty board is an error).
+
+- **Wikimedia Commons** — live, no key.
+- **ccMixter** — live, no key. A remix community, so unlike Commons everything
+  on it is already music. Its hazard is the mirror of Commons': ccMixter is
+  full of `by-nc`, which a shop cannot use, so the query pins `lic=open` and
+  the shared licence check runs again on the way out.
+- **Jamendo** — built, **dark until `JAMENDO_CLIENT_ID` is set**, and
+  **unverified**: the other two were written against real responses, this one
+  against the documented v3.0 shape, because there was no key to call it with.
+  Check `parseSearchResponse` against a real payload before trusting it.
+
+**Two things to settle on Jamendo, both licensing rather than code.** Its
+catalogue mixes CC licences and plenty is `by-nc` — handled, same as ccMixter.
+Separately, Jamendo's own API terms distinguish a free tier from commercial use
+of the service, and a marketplace is commercial. That is a question for their
+licensing team, and the reason the provider ships switched off.
+
+**The licence check is an allowlist, not a deny-list, and that was a real
+bug.** It used to pass anything not matching non-commercial or no-derivatives,
+so a licence we could not name read as usable. Asking ccMixter for a reduced
+field set silently drops `license_name` and turns a whole page into "Unknown
+licence" — under the old rule every one of those published, NC tracks
+included. Now a licence must be affirmatively recognised. Wrongly hiding a
+usable song is a missing row in a picker; wrongly publishing an NC one is a
+seller's problem with a rights holder.
+
+**Still wanted:** a catalogue anybody would recognise. All three sources are
+legally clean and none of them is famous. Adding a fourth is one module in
+`sound-providers/` plus a line in its registry: normalise into `LibraryTrack`,
+map the shared `SOUND_GENRES` onto its own taxonomy, add its media host to
+`TRUSTED_AUDIO_HOSTS`, and the picker, credit and upload path work unchanged.
 
 **Attribution is a correctness requirement, not a nicety** (migration
 `20260910120000`). A CC BY track is licensed _only while the artist is

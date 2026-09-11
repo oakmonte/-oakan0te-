@@ -102,7 +102,9 @@ async function fetchTrustedAudio(
   }
   try {
     const res = await fetch(url, {
-      headers: { "User-Agent": "Oakmonte/1.0 (https://oakmonte.com) sound-library" },
+      headers: {
+        "User-Agent": "Oakmonte/1.0 (https://oakmonte.com; oakmonte.store@gmail.com) sound-library",
+      },
       signal: AbortSignal.timeout(15_000),
       // The allowlist above checked the URL we were given. It says nothing
       // about where a redirect would take us, and `follow` — the default —

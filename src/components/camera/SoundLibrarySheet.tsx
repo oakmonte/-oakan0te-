@@ -2,8 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2, Pause, Play, Search } from "lucide-react";
 import CameraPanel from "@/components/camera/CameraPanel";
 import { authedFetch } from "@/lib/authed-fetch";
-import { type LibraryTrack, formatDuration } from "@/lib/sound-library";
-import { SOUND_GENRES } from "@/lib/sound-providers/wikimedia";
+import { type LibraryTrack, SOUND_GENRES, formatDuration } from "@/lib/sound-library";
 
 // Pick a track from the catalogue.
 //

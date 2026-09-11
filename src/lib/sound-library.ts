@@ -14,7 +14,36 @@
 // Nothing here does I/O. Providers fetch and normalise into `LibraryTrack`;
 // this module decides what to do with one.
 
-export type SoundProviderId = "wikimedia";
+export type SoundProviderId = "wikimedia" | "ccmixter" | "jamendo";
+
+/** The genres the picker offers, and the only vocabulary the UI knows.
+ *
+ *  Canonical here rather than in any one provider because each source names
+ *  its own music differently — Commons browses Free Music Archive categories,
+ *  ccMixter matches uploader tags, Jamendo has its own taxonomy. A seller taps
+ *  "Lo-fi"; translating that into whatever a given catalogue calls lo-fi is
+ *  each provider's problem, and keeping the list here is what stops the chip
+ *  row changing shape depending on which sources happen to be configured. */
+export const SOUND_GENRES: { id: string; label: string }[] = [
+  { id: "lofi", label: "Lo-fi" },
+  { id: "chill", label: "Chill-out" },
+  { id: "downtempo", label: "Downtempo" },
+  { id: "ambient", label: "Ambient" },
+  { id: "electronic", label: "Electronic" },
+  { id: "hiphop", label: "Hip hop" },
+  { id: "dance", label: "Dance" },
+  { id: "techno", label: "Techno" },
+  { id: "synthpop", label: "Synth-pop" },
+  { id: "funk", label: "Funk" },
+  { id: "jazz", label: "Jazz" },
+  { id: "blues", label: "Blues" },
+  { id: "piano", label: "Piano" },
+  { id: "instrumental", label: "Instrumental" },
+  { id: "rock", label: "Rock" },
+  { id: "pop", label: "Pop" },
+  { id: "chiptune", label: "Chiptune" },
+  { id: "international", label: "International" },
+];
 
 export type TrackLicence = {
   /** Short human name as the provider states it: "CC BY 3.0", "CC0", "Public domain". */
@@ -89,8 +118,29 @@ export function isUsableTrack(track: LibraryTrack): boolean {
  *  would otherwise be forgotten. */
 const FORBIDDEN_LICENCE = /\bnon-?commercial\b|\bNC\b|\bND\b|\bno-?derivat/i;
 
+/** Licences we affirmatively know we may use: public dedication, or Creative
+ *  Commons Attribution with or without ShareAlike.
+ *
+ *  A licence has to match this to pass — being merely *not* on the forbidden
+ *  list is not enough, and that distinction is the whole point. Providers fall
+ *  back to "Unknown licence" whenever a response omits the field, which is
+ *  easy to cause by accident: asking ccMixter for a reduced set of fields
+ *  silently drops `license_name` and turns every track in the page into an
+ *  unknown. Under a deny-list those all sail through as usable, and the
+ *  non-commercial tracks the deny-list exists to catch go with them.
+ *
+ *  So the rule is inverted: if we cannot name the licence, we cannot publish
+ *  the track. Wrongly hiding a usable song is a missing row in a picker;
+ *  wrongly publishing an NC one is the seller's problem with a rights
+ *  holder. */
+const PERMITTED_LICENCE =
+  /^(cc0|public domain|creative commons zero|attribution(?!\s+(non|no))|cc[-\s]?by(?![-\s]?(nc|nd)))/i;
+
 export function isLicenceUsable(licence: TrackLicence): boolean {
-  return !FORBIDDEN_LICENCE.test(licence.name);
+  const name = licence.name.trim();
+  if (!name) return false;
+  if (FORBIDDEN_LICENCE.test(name)) return false;
+  return PERMITTED_LICENCE.test(name);
 }
 
 /** Providers hand back HTML — Commons stores the artist as a wiki link, not a
@@ -188,7 +238,22 @@ export type SoundCredit = {
  *  otherwise be fetched with our credentials and stored somewhere readable.
  *  So the allowlist is exact-hostname and HTTPS-only, and adding a provider
  *  means adding its host here on purpose. */
-const TRUSTED_AUDIO_HOSTS = ["upload.wikimedia.org"];
+/** Hosts the server will fetch a track from at publish.
+ *
+ *  One entry per provider, and deliberately exact hostnames rather than
+ *  suffixes: a suffix match on `.jamendo.com` would trust anything anyone can
+ *  get a subdomain of, which is the usual way an allowlist quietly stops being
+ *  one. If a provider serves audio from a host that isn't here, its tracks
+ *  fail to publish — a loud failure, and the correct one. */
+const TRUSTED_AUDIO_HOSTS = [
+  "upload.wikimedia.org",
+  "ccmixter.org",
+  // Jamendo serves audio off numbered storage nodes; these are the ones it
+  // currently hands out. See the note in jamendo.ts about pinning them.
+  "prod-1.storage.jamendo.com",
+  "prod-2.storage.jamendo.com",
+  "storage-new.jamendo.com",
+];
 
 /** `extraHosts` is for our own storage host, which is configured rather than
  *  compiled in and so cannot live in the list above. It matters when a draft

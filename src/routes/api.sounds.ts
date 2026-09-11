@@ -3,32 +3,30 @@
 //   GET /api/sounds?genre=lofi&q=piano&offset=0
 //   → { tracks: LibraryTrack[], nextOffset: number | null }
 //
-// Why this is a server route at all, when the Commons API sends
-// `Access-Control-Allow-Origin: *` and the browser could call it directly:
+// It searches every configured catalogue at once and returns one merged list —
+// a seller wants a song, not a source, so which archive a track came from is
+// our problem rather than a choice to put in front of them.
+//
+// Why this is a server route at all, when Commons would let the browser call
+// it directly:
 //
 //  1. Wikimedia asks every automated client to identify itself in a
 //     User-Agent, and a browser will not let a page set that header. Being
 //     polite to a free service we depend on is worth one hop.
-//  2. We ask upstream for fifty results to show ten (see OVERFETCH) — that is
-//     a lot of JSON to push down a Nigerian mobile connection so the phone can
-//     throw most of it away. Filtering here means the phone receives only what
-//     it will draw.
-//  3. One place decides what a usable track is. A second provider added later
-//     lands beside this and inherits the same rules.
+//  2. Jamendo needs a key, and a key in the browser is a public key.
+//  3. Each source is over-fetched and then mostly discarded — that is a lot of
+//     JSON to push down a Nigerian mobile connection so the phone can throw it
+//     away. Filtering here means the phone receives only what it will draw.
+//  4. One place decides what a usable track is, so a second source cannot
+//     answer that differently from the first.
 //
-// No credentials are involved, and the upstream URL is built entirely from an
-// allowlisted genre id plus escaped text — there is no request field that can
-// steer where this fetches from.
+// The upstream URLs are built entirely from an allowlisted genre id plus
+// escaped text — no request field can steer where this fetches from.
 
 import { createFileRoute } from "@tanstack/react-router";
 import { getRequestUser } from "@/lib/server-auth";
-import { isLicenceUsable, isUsableTrack } from "@/lib/sound-library";
-import { OVERFETCH, buildSearchUrl, parseSearchResponse } from "@/lib/sound-providers/wikimedia";
-
-/** Wikimedia's User-Agent policy asks for a descriptive string with a way to
- *  make contact, so they can reach whoever is responsible before they resort
- *  to blocking. A generic agent is what gets rate-limited first. */
-const USER_AGENT = "Oakmonte/1.0 (https://oakmonte.com; support@oakmonte.com) sound-library";
+import { type LibraryTrack, isLicenceUsable, isUsableTrack } from "@/lib/sound-library";
+import { activeProviders, interleave } from "@/lib/sound-providers";
 
 /** Upstream is a third party we don't control; a slow day there must not
  *  become a hung worker here. */
@@ -51,35 +49,54 @@ export const Route = createFileRoute("/api/sounds")({
         const text = (url.searchParams.get("q") ?? "").slice(0, MAX_TEXT_LENGTH);
         const offset = Math.max(0, Number(url.searchParams.get("offset") ?? 0) || 0);
 
-        let payload: unknown;
-        try {
-          const res = await fetch(buildSearchUrl({ genre, text, offset }), {
-            headers: { "User-Agent": USER_AGENT, Accept: "application/json" },
-            signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
-          });
-          if (!res.ok) {
-            console.error("api/sounds: Commons returned", res.status);
-            return Response.json({ error: "Couldn't reach the sound library" }, { status: 502 });
+        const providers = activeProviders();
+
+        // All sources at once, and one slow or broken source must not take the
+        // others down with it — hence allSettled and a per-request timeout
+        // rather than a single await chain.
+        const settled = await Promise.allSettled(
+          providers.map(async (provider) => {
+            const res = await fetch(provider.buildSearchUrl({ genre, text, offset }), {
+              headers: { "User-Agent": provider.userAgent, Accept: "application/json" },
+              signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
+            });
+            if (!res.ok) throw new Error(`${provider.id} returned ${res.status}`);
+            return provider.parseSearchResponse(await res.json());
+          }),
+        );
+
+        const lists: LibraryTrack[][] = [];
+        let reached = 0;
+        settled.forEach((result, i) => {
+          if (result.status === "rejected") {
+            console.error("api/sounds:", providers[i].id, "failed", result.reason);
+            return;
           }
-          payload = await res.json();
-        } catch (error) {
-          console.error("api/sounds: Commons request failed", error);
+          reached += 1;
+          lists.push(
+            result.value.filter((track) => isUsableTrack(track) && isLicenceUsable(track.licence)),
+          );
+        });
+
+        // Only an error when *nothing* answered. One source being down should
+        // cost the seller some choices, not the feature.
+        if (reached === 0) {
           return Response.json({ error: "Couldn't reach the sound library" }, { status: 502 });
         }
 
-        const tracks = parseSearchResponse(payload).filter(
-          (track) => isUsableTrack(track) && isLicenceUsable(track.licence),
-        );
+        const tracks = interleave(lists);
 
-        // The offset is upstream's, not ours. We dropped most of that page on
-        // the floor, so paging by the number of tracks we returned would skip
-        // everything filtered out and show the same few results forever.
-        const hasMore = Boolean(
-          (payload as { continue?: { gsroffset?: number } })?.continue?.gsroffset,
-        );
+        // The offset is upstream's, not ours. Most of each page is dropped by
+        // the filters, so paging by the number of tracks returned would skip
+        // everything filtered out and show the same few results forever. One
+        // offset drives every source: they page at different rates, so this is
+        // approximate by construction, and "roughly a page further into each
+        // catalogue" is exactly what the seller means by scrolling.
+        const step = Math.min(...providers.map((p) => p.pageSize));
+        const nextOffset = tracks.length > 0 ? offset + step : null;
 
         return Response.json(
-          { tracks, nextOffset: hasMore ? offset + OVERFETCH : null },
+          { tracks, nextOffset },
           {
             headers: {
               // The catalogue is the same for everyone and barely changes.
