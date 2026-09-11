@@ -63,7 +63,16 @@ export type ClipFrame = {
 };
 
 export const MIN_CLIP_DURATION = 0.3;
-export const DEFAULT_STILL_DURATION = 3;
+
+/** How long a photo dropped on the timeline holds the frame.
+ *
+ *  A still is not a clip with a length of its own, so something has to choose
+ *  one, and this is a garment being looked at rather than a cut in a montage:
+ *  five seconds is long enough to read a neckline or a hem, where three is
+ *  over before the eye has finished arriving. Anyone who wants a quicker cut
+ *  drags the handle — the slider runs from MIN_STILL_DURATION to
+ *  MAX_STILL_DURATION and this is only where it starts. */
+export const DEFAULT_STILL_DURATION = 5;
 export const MIN_STILL_DURATION = 0.5;
 export const MAX_STILL_DURATION = 15;
 export const SPEED_OPTIONS = [0.25, 0.5, 1, 2, 3, 4] as const;
