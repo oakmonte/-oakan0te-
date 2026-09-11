@@ -40,6 +40,15 @@ export const PX_PER_SECOND = 62;
 const TRACK_HEIGHT = 62;
 /** The row above the strip holding the selected clip's controls. */
 const GUTTER = 32;
+/** How long after the last scroll event the strip counts as stopped.
+ *
+ *  Refreshed on every scroll event, so it never cuts a glide short — it only
+ *  has to outlast the gap between the final few events as momentum dies out,
+ *  which is a frame or three. Too low and the clock starts writing scrollLeft
+ *  while the strip is still coasting, which is the bug this exists for; too
+ *  high and the playhead takes a visible beat to pick the strip back up after
+ *  a scrub. */
+const SCROLL_SETTLE_MS = 140;
 /** Visible width of a trim bar, and the wider invisible area around it. */
 const BAR_WIDTH = 14;
 const BAR_HIT = 34;
@@ -100,6 +109,22 @@ export default function VideoTimeline({
   const programmatic = useRef(false);
   const seekFrame = useRef<number | null>(null);
 
+  // True from the moment a finger scrolls the strip until the scroll has
+  // actually come to rest — momentum included.
+  //
+  // This exists because a flick is not over when the finger leaves. The clock
+  // effect below writes `scrollLeft`, and assigning `scrollLeft` mid-momentum
+  // cancels the momentum outright on both iOS and Android. Without this guard
+  // the two fight every frame: the flick scrolls, the scroll seeks, the seek
+  // moves the clock, the clock writes the position back a frame late, and the
+  // glide dies about a fifth of a second after the thumb lifts. The strip
+  // could be dragged but never thrown.
+  //
+  // `dragging`/`trimming` don't cover it — those are for a tile being dragged,
+  // and during momentum there is no finger on the screen at all.
+  const userScrolling = useRef(false);
+  const settleTimer = useRef<number | null>(null);
+
   const total = sequenceDuration(clips);
   const starts = clipStarts(clips);
 
@@ -114,10 +139,11 @@ export default function VideoTimeline({
     return () => ro.disconnect();
   }, []);
 
-  // Drive the strip from the clock, but never while a hand is on it.
+  // Drive the strip from the clock, but never while a hand is on it — or while
+  // a throw it already let go of is still travelling.
   useEffect(() => {
     const el = scrollerRef.current;
-    if (!el || dragging || trimming) return;
+    if (!el || dragging || trimming || userScrolling.current) return;
     const targetLeft = time * PX_PER_SECOND;
     if (Math.abs(el.scrollLeft - targetLeft) < 1) return;
     programmatic.current = true;
@@ -136,7 +162,20 @@ export default function VideoTimeline({
   // what makes the strip feel like it is moving under your thumb instead of
   // catching up to it.
   const handleScroll = useCallback(() => {
-    if (programmatic.current || seekFrame.current !== null) return;
+    if (programmatic.current) return;
+
+    // Every scroll event pushes the settle deadline out, so the flag stays up
+    // for as long as the strip keeps moving and drops shortly after it stops.
+    // There is a `scrollend` event that would say this exactly, but Safari
+    // only grew it recently and this has to work on the phones people have.
+    userScrolling.current = true;
+    if (settleTimer.current !== null) clearTimeout(settleTimer.current);
+    settleTimer.current = window.setTimeout(() => {
+      settleTimer.current = null;
+      userScrolling.current = false;
+    }, SCROLL_SETTLE_MS);
+
+    if (seekFrame.current !== null) return;
     seekFrame.current = requestAnimationFrame(() => {
       seekFrame.current = null;
       const el = scrollerRef.current;
@@ -148,6 +187,7 @@ export default function VideoTimeline({
   useEffect(
     () => () => {
       if (seekFrame.current !== null) cancelAnimationFrame(seekFrame.current);
+      if (settleTimer.current !== null) clearTimeout(settleTimer.current);
     },
     [],
   );
