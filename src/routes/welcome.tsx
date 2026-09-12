@@ -4,11 +4,12 @@ import { motion } from "framer-motion";
 import logoO from "@/assets/logo-o.png";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { clearOnboardingState } from "@/lib/onboarding-state";
-import { OnboardingChecking } from "@/components/onboarding/OnboardingShell";
 import { useRequireSession } from "@/components/onboarding/use-require-session";
 
 export const Route = createFileRoute("/welcome")({
-  head: () => ({ meta: [{ title: "Welcome to Oakmonte" }] }),
+  head: () => ({
+    meta: [{ title: "Oakmonte" }, { name: "theme-color", content: "#ffffff" }],
+  }),
   component: WelcomePage,
 });
 
@@ -16,20 +17,17 @@ const HEADLINE = "Your style is proof that you think different";
 const TYPE_SPEED_MS = 55;
 const LEAD_IN_MS = 450;
 const FULL_STOP_DELAY_MS = 650;
-const HOLD_AFTER_MS = 900;
-
 const TOTAL_TYPE_MS = HEADLINE.length * TYPE_SPEED_MS;
-const REVEAL_MS = LEAD_IN_MS + TOTAL_TYPE_MS + FULL_STOP_DELAY_MS + HOLD_AFTER_MS;
 
 function WelcomePage() {
-  const { userId, checking } = useRequireSession();
+  const { userId } = useRequireSession();
   const navigate = useNavigate();
   const [username, setUsername] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const hasNavigated = useRef(false);
 
-  // The installed app starts here. Once the session and profile are known,
-  // this screen is only the loading handoff to the user's own profile.
+  // Paint the launch screen immediately while the session and profile load
+  // underneath it. Anonymous users are redirected by useRequireSession.
   useEffect(() => {
     if (!userId) return;
     let cancelled = false;
@@ -57,17 +55,12 @@ function WelcomePage() {
   useEffect(() => {
     if (!loaded || hasNavigated.current) return;
     hasNavigated.current = true;
-    const timeout = setTimeout(() => {
-      if (username) {
-        navigate({ to: "/profile/$username", params: { username }, replace: true });
-      } else {
-        navigate({ to: "/choose-username", replace: true });
-      }
-    }, REVEAL_MS);
-    return () => clearTimeout(timeout);
+    if (username) {
+      navigate({ to: "/profile/$username", params: { username }, replace: true });
+    } else {
+      navigate({ to: "/choose-username", replace: true });
+    }
   }, [loaded, username, navigate]);
-
-  if (checking || !loaded) return <OnboardingChecking />;
 
   return (
     <div className="min-h-dvh bg-brand-bg text-brand-text flex flex-col items-center justify-center px-6">
