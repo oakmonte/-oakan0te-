@@ -121,18 +121,34 @@ export function EditableText({
   // transform is laid out inside a wrapper of the exact visual height and
   // taken out of flow, since a transform does not shrink the layout box it
   // came from and a 145%-wide box left in flow would push the page sideways.
+  // The size this field is meant to render at, from whichever place its theme
+  // set it: the component themes use a Tailwind arbitrary class, the spec
+  // themes pass a number through `style` (hero headlines run 30-48px).
+  // Reading only the class would miss every spec theme and silently drop its
+  // headline to the 16px floor below.
   const sizeMatch = className?.match(/text-\[(\d+(?:\.\d+)?)px\]/);
-  const intendedPx = sizeMatch ? parseFloat(sizeMatch[1]) : null;
-  // At or above the threshold there is nothing to defeat, and with no size
-  // class at all the styles.css floor already applies.
-  const scale = intendedPx !== null && intendedPx < ZOOM_FLOOR_PX ? intendedPx / ZOOM_FLOOR_PX : 1;
+  const stylePx =
+    typeof style?.fontSize === "number"
+      ? style.fontSize
+      : typeof style?.fontSize === "string" && style.fontSize.endsWith("px")
+        ? parseFloat(style.fontSize)
+        : null;
+  const intendedPx = sizeMatch ? parseFloat(sizeMatch[1]) : stylePx;
+
+  // Only copy set BELOW the floor needs the trick. A 46px headline already
+  // computes well above it, so it renders at its real size unscaled; with no
+  // size anywhere, the styles.css floor applies and there is nothing to do.
+  const needsZoomGuard = intendedPx !== null && intendedPx < ZOOM_FLOOR_PX;
+  const scale = needsZoomGuard ? intendedPx / ZOOM_FLOOR_PX : 1;
+  const fieldPx = needsZoomGuard ? ZOOM_FLOOR_PX : (intendedPx ?? ZOOM_FLOOR_PX);
+
   // Every term is pinned rather than measured, so the wrapper's height is
   // known on the first paint and nothing reflows once the field mounts.
   const rows = multiline ? 2 : 1;
-  const fieldHeight = ZOOM_FLOOR_PX * FIELD_LINE_HEIGHT * rows + 2 * FIELD_PAD_Y + 2 * FIELD_BORDER;
+  const fieldHeight = fieldPx * FIELD_LINE_HEIGHT * rows + 2 * FIELD_PAD_Y + 2 * FIELD_BORDER;
   const editStyle: CSSProperties = {
     ...style,
-    fontSize: `${ZOOM_FLOOR_PX}px`,
+    fontSize: `${fieldPx}px`,
     lineHeight: FIELD_LINE_HEIGHT,
     height: fieldHeight,
   };

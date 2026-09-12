@@ -1,3 +1,5 @@
+import { THEME_SPECS } from "./theme-specs";
+
 export type ThemeId =
   | "motion"
   | "banner"
@@ -6,7 +8,45 @@ export type ThemeId =
   | "verdant"
   | "monochrome"
   | "gilded"
-  | "obsidian";
+  | "obsidian"
+  // The spec-driven catalogue (theme-specs.ts). Listed here rather than
+  // derived from THEME_SPECS so ThemeId stays a plain literal union with
+  // no import cycle back into the specs, which import this type.
+  | "lilac-hour"
+  | "orchid"
+  | "wisteria"
+  | "amethyst"
+  | "periwinkle"
+  | "mauve-studio"
+  | "blush"
+  | "rosewater"
+  | "fuchsia-night"
+  | "peony"
+  | "bubblegum"
+  | "dusty-rose"
+  | "black-gold"
+  | "black-red"
+  | "terracotta"
+  | "saffron"
+  | "clay"
+  | "amber-dusk"
+  | "copper"
+  | "sage"
+  | "eucalyptus"
+  | "deep-teal"
+  | "mint"
+  | "forest-ink"
+  | "cobalt"
+  | "midnight"
+  | "ice"
+  | "navy-linen"
+  | "bone"
+  | "graphite"
+  | "oat"
+  | "porcelain"
+  | "charcoal-rose"
+  | "electric-lime"
+  | "tangerine-pop";
 
 export type Theme = {
   id: ThemeId;
@@ -22,7 +62,7 @@ export type Theme = {
   demoBrand: string;
 };
 
-export const THEMES: Theme[] = [
+const BASE_THEMES: Theme[] = [
   {
     id: "motion",
     name: "Motion Grid",
@@ -95,4 +135,21 @@ export const THEMES: Theme[] = [
     background: "#030303",
     demoBrand: "VOID",
   },
+];
+
+// Every theme the picker offers: the eight hand-written ones above, then the
+// spec catalogue. Spec entries are derived from the specs themselves rather
+// than re-typed here, so a theme's card and its storefront can never disagree
+// about its own accent or name.
+export const THEMES: Theme[] = [
+  ...BASE_THEMES,
+  ...THEME_SPECS.map((spec) => ({
+    id: spec.id,
+    name: spec.name,
+    eyebrow: spec.eyebrow,
+    description: spec.description,
+    accent: spec.accent,
+    background: spec.bg,
+    demoBrand: spec.demoBrand,
+  })),
 ];

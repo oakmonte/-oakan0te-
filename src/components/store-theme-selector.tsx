@@ -1,5 +1,5 @@
-import { Check, ChevronRight, Pencil, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Check, ChevronRight, Pencil, Search, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useActiveStoreId } from "@/hooks/use-own-store";
@@ -8,6 +8,70 @@ import { THEMES, type Theme, type ThemeId } from "./store-themes/types";
 import { ThemePreviewSheet } from "./store-themes/full-previews";
 import { useStoreTheme } from "./store-themes/useStoreTheme";
 import { readableTextColor } from "./store-themes/colors";
+
+// Colour families are DERIVED from each theme's own accent rather than
+// tagged by hand. With 43 themes a hand-kept tag is one more thing to forget
+// when a palette changes, and the accent already is the theme's colour — so
+// the filter can never disagree with the swatch beside it.
+const FAMILIES = ["Lavender", "Pink", "Warm", "Green", "Blue", "Neutral"] as const;
+type Family = (typeof FAMILIES)[number];
+
+function familyOf(accentHex: string): Family {
+  const n = accentHex.replace("#", "");
+  const r = parseInt(n.substring(0, 2), 16) / 255;
+  const g = parseInt(n.substring(2, 4), 16) / 255;
+  const b = parseInt(n.substring(4, 6), 16) / 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const delta = max - min;
+  // Greys and near-greys are their own bucket — running them through the hue
+  // maths below would scatter them across whichever channel won by a hair.
+  if (delta < 0.12) return "Neutral";
+  let hue: number;
+  if (max === r) hue = ((g - b) / delta) % 6;
+  else if (max === g) hue = (b - r) / delta + 2;
+  else hue = (r - g) / delta + 4;
+  hue = (hue * 60 + 360) % 360;
+  if (hue < 20 || hue >= 330) return "Pink";
+  if (hue < 75) return "Warm";
+  if (hue < 170) return "Green";
+  if (hue < 255) return "Blue";
+  if (hue < 290) return "Lavender";
+  return "Pink";
+}
+
+function isDarkTheme(bgHex: string): boolean {
+  const n = bgHex.replace("#", "");
+  const r = parseInt(n.substring(0, 2), 16);
+  const g = parseInt(n.substring(2, 4), 16);
+  const b = parseInt(n.substring(4, 6), 16);
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255 < 0.5;
+}
+
+function FilterChip({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`shrink-0 rounded-full border px-3.5 py-2 text-[13px] font-medium transition-colors duration-200 ${
+        active
+          ? "border-[#1d1c1a] bg-[#1d1c1a] text-white"
+          : "border-[#e1ddd6] bg-white text-[#4a4741] hover:bg-[#f5f3ef]"
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
 
 // Just the theme's real background + accent — a full storefront mockup here
 // duplicated what Preview/Edit already show, and made every card ~400px
@@ -49,6 +113,26 @@ export function StoreThemeSelector() {
   // picked yet.
   const [themeIdSet, setThemeIdSet] = useState(false);
   const [ownUsername, setOwnUsername] = useState<string | undefined>(undefined);
+  const [query, setQuery] = useState("");
+  const [family, setFamily] = useState<Family | null>(null);
+  const [tone, setTone] = useState<"light" | "dark" | null>(null);
+
+  // 43 themes in one flat grid is a wall to scroll, not a catalogue to
+  // browse, so the grid is filtered rather than paginated — a seller looking
+  // for "something pink and dark" gets there in two taps.
+  const visibleThemes = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return THEMES.filter((theme) => {
+      if (family && familyOf(theme.accent) !== family) return false;
+      if (tone && (tone === "dark") !== isDarkTheme(theme.background)) return false;
+      if (!q) return true;
+      return (
+        theme.name.toLowerCase().includes(q) ||
+        theme.eyebrow.toLowerCase().includes(q) ||
+        theme.description.toLowerCase().includes(q)
+      );
+    });
+  }, [query, family, tone]);
 
   useEffect(() => {
     if (!storeId) return;
@@ -145,8 +229,60 @@ export function StoreThemeSelector() {
           </div>
         </div>
 
+        <div className="mb-6 space-y-3">
+          <div className="flex items-center gap-2.5 rounded-xl border border-[#dfdcd5] bg-white px-4 py-3">
+            <Search size={18} className="shrink-0 text-[#8d8981]" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search themes"
+              aria-label="Search themes"
+              className="w-full bg-transparent text-[15px] text-[#1c1b19] placeholder:text-[#a5a199] focus:outline-none"
+            />
+            {query && (
+              <button type="button" onClick={() => setQuery("")} aria-label="Clear search">
+                <X size={16} className="text-[#8d8981]" />
+              </button>
+            )}
+          </div>
+          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+            <FilterChip
+              label="All"
+              active={!family && !tone}
+              onClick={() => {
+                setFamily(null);
+                setTone(null);
+              }}
+            />
+            {FAMILIES.map((f) => (
+              <FilterChip
+                key={f}
+                label={f}
+                active={family === f}
+                onClick={() => setFamily((cur) => (cur === f ? null : f))}
+              />
+            ))}
+            <FilterChip
+              label="Light"
+              active={tone === "light"}
+              onClick={() => setTone((t) => (t === "light" ? null : "light"))}
+            />
+            <FilterChip
+              label="Dark"
+              active={tone === "dark"}
+              onClick={() => setTone((t) => (t === "dark" ? null : "dark"))}
+            />
+          </div>
+        </div>
+
+        {visibleThemes.length === 0 && (
+          <p className="py-16 text-center text-sm text-[#8c8881]">
+            No theme matches that. Try a different colour or clear the filters.
+          </p>
+        )}
+
         <div className="grid gap-5 lg:grid-cols-3">
-          {THEMES.map((theme) => {
+          {visibleThemes.map((theme) => {
             const isSelected = selected === theme.id;
             return (
               <article

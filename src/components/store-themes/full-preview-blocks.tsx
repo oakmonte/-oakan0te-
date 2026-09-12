@@ -25,6 +25,7 @@ import {
 import productPlaceholder from "@/assets/Store theme placeholder images/Products and collection image placeholder.jpg";
 import { ThemeText } from "./EditableText";
 import { MAX_SLIDESHOW_IMAGES, type CropPosition, type ThemeEditingProps } from "./edit-types";
+import { formatCommunityCount, useStoreCommunityCounts } from "./useStoreCommunityCounts";
 import { useThemePreviewCatalog, type PreviewTile, type TilePhoto } from "./useThemePreviewCatalog";
 import { readableTextColor } from "./colors";
 
@@ -783,19 +784,28 @@ export function HeroSlideshow({
   );
 }
 
+// The number is the store's real follower count and is NOT editable — a
+// hardcoded "2.7K+" on a store with no followers is a fabricated credential,
+// the same objection that took the star rating out of this block. The words
+// around it stay the seller's, and stay per-theme: one storefront says
+// "followers love this store", another "in the atelier".
 export function StatsRow({
   clusterColors,
-  followersText,
+  followersLabel,
   cardBg,
   mutedColor,
+  storeId,
   editing,
 }: {
   clusterColors: [string, string, string];
-  followersText: string;
+  /** Wording only, no number — see the note above. */
+  followersLabel: string;
   cardBg: string;
   mutedColor: string;
+  storeId: string | null;
   editing?: ThemeEditingProps;
 }) {
+  const { followers } = useStoreCommunityCounts(storeId);
   return (
     <div className="relative mt-4 flex items-center gap-2 px-4">
       {editing?.isEditing && (
@@ -818,14 +828,24 @@ export function StatsRow({
           />
         ))}
       </div>
-      <ThemeText
-        editing={editing}
-        field="statsFollowersText"
-        defaultValue={followersText}
-        as="p"
-        className="max-w-[240px] text-[12px] leading-tight"
+      {/* A div, not a p: in edit mode ThemeText renders an input plus the
+          fixed-position font picker, and a div inside a p is invalid. */}
+      <div
+        className="flex min-w-0 max-w-[260px] items-baseline gap-1 text-[12px] leading-tight"
         style={{ color: mutedColor }}
-      />
+      >
+        <span className="shrink-0 font-semibold tabular-nums">
+          {formatCommunityCount(followers)}
+        </span>
+        <ThemeText
+          editing={editing}
+          field="statsFollowersText"
+          defaultValue={followersLabel}
+          as="span"
+          className="min-w-0 text-[12px] leading-tight"
+          style={{ color: mutedColor }}
+        />
+      </div>
     </div>
   );
 }
@@ -1090,25 +1110,31 @@ export function PromoBanner({
   );
 }
 
+// Second half of the same rule as StatsRow: the block's title is the
+// seller's to word (every theme names its community differently — "Community
+// fits", "From the atelier"), but the line under it is now a real count of
+// people wearing this store's pieces, not a hardcoded "142 people wearing it
+// today" or a placeholder note about fabric.
 export function FooterTeaser({
   label,
-  sub,
   clusterColors,
   cardBg,
   textColor,
   mutedColor,
   accent,
+  storeId,
   editing,
 }: {
   label: string;
-  sub: string;
   clusterColors: string[];
   cardBg: string;
   textColor: string;
   mutedColor: string;
   accent: string;
+  storeId: string | null;
   editing?: ThemeEditingProps;
 }) {
+  const { wearing } = useStoreCommunityCounts(storeId);
   return (
     <div
       className="relative mx-4 my-5 flex items-center justify-between rounded-xl px-3.5 py-3"
@@ -1134,14 +1160,10 @@ export function FooterTeaser({
           className="text-[13px] font-semibold"
           style={{ color: textColor }}
         />
-        <ThemeText
-          editing={editing}
-          field="footerSub"
-          defaultValue={sub}
-          as="p"
-          className="text-[11px] truncate"
-          style={{ color: mutedColor }}
-        />
+        <p className="truncate text-[11px]" style={{ color: mutedColor }}>
+          <span className="font-semibold tabular-nums">{formatCommunityCount(wearing)}</span>{" "}
+          wearing it
+        </p>
       </div>
       <div className="flex shrink-0 items-center gap-1.5">
         <div className="flex -space-x-1.5">

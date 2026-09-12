@@ -17,9 +17,19 @@ export function OrderCard({ message }: { message: SeedMessage }) {
       <div className="mt-4 grid grid-cols-3">
         {STEPS.map((step, index) => (
           <div key={step} className="relative text-center">
-            {index > 0 && <span className={`absolute right-1/2 top-[5px] h-px w-full ${index <= order.step ? "bg-chat-text" : "bg-chat-border"}`} />}
-            <span className={`relative z-10 mx-auto block h-[11px] w-[11px] rounded-full border ${index <= order.step ? "border-chat-text bg-chat-text" : "border-chat-muted bg-chat-elevated"}`} />
-            <span className={`mt-2 block text-[9px] ${index <= order.step ? "text-chat-text" : "text-chat-muted"}`}>{step}</span>
+            {index > 0 && (
+              <span
+                className={`absolute right-1/2 top-[5px] h-px w-full ${index <= order.step ? "bg-chat-text" : "bg-chat-border"}`}
+              />
+            )}
+            <span
+              className={`relative z-10 mx-auto block h-[11px] w-[11px] rounded-full border ${index <= order.step ? "border-chat-text bg-chat-text" : "border-chat-muted bg-chat-elevated"}`}
+            />
+            <span
+              className={`mt-2 block text-[9px] ${index <= order.step ? "text-chat-text" : "text-chat-muted"}`}
+            >
+              {step}
+            </span>
           </div>
         ))}
       </div>
