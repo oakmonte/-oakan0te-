@@ -7,7 +7,6 @@ import {
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
-  type SyntheticEvent,
 } from "react";
 import {
   Camera,
@@ -52,18 +51,16 @@ function CroppableImage({
   position,
   onPositionChange,
   editable,
-  onLoad,
 }: {
   src: string;
   alt?: string;
   position?: CropPosition;
   onPositionChange?: (position: CropPosition) => void;
   editable?: boolean;
-  onLoad?: (e: SyntheticEvent<HTMLImageElement>) => void;
 }) {
   const savedPos = position ?? { x: 50, y: 50 };
-  const [livePos, setLivePos] = useState(savedPos);
   const containerRef = useRef<HTMLDivElement>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
   const dragRef = useRef<{
     startX: number;
     startY: number;
@@ -73,11 +70,6 @@ function CroppableImage({
   } | null>(null);
   const suppressClickRef = useRef(false);
 
-  useEffect(() => {
-    if (!dragRef.current) setLivePos(savedPos);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [savedPos.x, savedPos.y]);
-
   function handlePointerDown(e: ReactPointerEvent<HTMLDivElement>) {
     if (!editable || !onPositionChange) return;
     e.stopPropagation();
@@ -85,8 +77,8 @@ function CroppableImage({
     dragRef.current = {
       startX: e.clientX,
       startY: e.clientY,
-      origin: livePos,
-      current: livePos,
+      origin: savedPos,
+      current: savedPos,
       moved: false,
     };
   }
@@ -104,19 +96,29 @@ function CroppableImage({
       x: clamp(drag.origin.x - (dx / rect.width) * 100, 0, 100),
       y: clamp(drag.origin.y - (dy / rect.height) * 100, 0, 100),
     };
-    // Committed from this ref, not the `livePos` state, below — pointerup can
-    // land in the same batched update flush as the preceding pointermove(s),
-    // in which case a state read there would still see the pre-drag value.
+    // Committed from this ref, not from state — pointerup can land in the
+    // same batched update flush as the preceding pointermove(s), in which
+    // case a state read there would still see the pre-drag value.
     drag.current = next;
-    setLivePos(next);
+    // Written straight to the node rather than through setState. A state
+    // update per pointermove re-rendered this image's whole subtree on every
+    // frame of the drag, and inside the slideshow that meant every slide and
+    // every handle with it — which is what made repositioning feel steppy
+    // instead of stuck to the finger. React's own style prop reasserts the
+    // same value on the commit below, so the two never disagree.
+    if (imgRef.current) imgRef.current.style.objectPosition = `${next.x}% ${next.y}%`;
   }
 
-  function handlePointerUp() {
+  function endDrag(commit: boolean) {
     const drag = dragRef.current;
     dragRef.current = null;
-    if (drag?.moved) {
+    if (!drag) return;
+    if (commit && drag.moved) {
       suppressClickRef.current = true;
       onPositionChange?.(drag.current);
+    } else if (imgRef.current) {
+      // Nothing committed, so put the node back where React thinks it is.
+      imgRef.current.style.objectPosition = `${savedPos.x}% ${savedPos.y}%`;
     }
   }
 
@@ -131,24 +133,24 @@ function CroppableImage({
   return (
     <div ref={containerRef} className="relative h-full w-full">
       <img
+        ref={imgRef}
         src={src}
         alt={alt}
         draggable={false}
-        onLoad={onLoad}
         className="h-full w-full object-cover"
-        style={{ objectPosition: `${livePos.x}% ${livePos.y}%` }}
+        style={{ objectPosition: `${savedPos.x}% ${savedPos.y}%` }}
       />
       {editable && onPositionChange && (
         <div
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerCancel={handlePointerUp}
+          onPointerUp={() => endDrag(true)}
+          onPointerCancel={() => endDrag(false)}
           onClick={handleHandleClick}
           style={{ touchAction: "none" }}
-          className="absolute bottom-0.5 right-0.5 flex h-7 w-7 cursor-move items-center justify-center rounded-full bg-black/50 text-white/80 active:bg-black/70"
+          className="absolute bottom-1 right-1 flex h-9 w-9 cursor-move items-center justify-center rounded-full bg-black/55 text-white active:bg-black/75"
         >
-          <Move size={12} />
+          <Move size={16} />
         </div>
       )}
     </div>
@@ -524,9 +526,17 @@ export function PhoneHeader({
   );
 }
 
-// Tall portrait default (4:5) used only until a slide's real dimensions are
-// known — sellers' storefront photos read as tall/editorial far more often
-// than wide, and this avoids an initial-load flash of a squat box.
+// The frame every slide crops into until the seller resizes it. Tall
+// portrait (4:5) because sellers' storefront photos read as tall/editorial
+// far more often than wide.
+//
+// It is deliberately a CONSTANT and not each slide's own natural ratio. The
+// frame used to size itself to whichever photo was showing, so the whole
+// storefront grew and shrank as the slideshow advanced and every block below
+// the hero shifted with it. A slideshow is one window onto a set of photos,
+// not a box that remeasures itself per photo: the frame holds still and the
+// photos crop into it (object-cover in CroppableImage), which is also what
+// makes per-slide repositioning mean anything.
 const DEFAULT_ASPECT_RATIO = 4 / 5;
 
 // How far the resize handle can push the crop frame: from a tall 1:2 banner
@@ -545,8 +555,6 @@ export function HeroSlideshow({
   editing?: ThemeEditingProps;
 }) {
   const [index, setIndex] = useState(0);
-  const [ratios, setRatios] = useState<Record<string, number>>({});
-  const [liveAspectRatio, setLiveAspectRatio] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cropBoxRef = useRef<HTMLDivElement>(null);
   const resizeDragRef = useRef<{
@@ -575,12 +583,6 @@ export function HeroSlideshow({
     e.target.value = "";
   }
 
-  function handleLoad(src: string, e: SyntheticEvent<HTMLImageElement>) {
-    const img = e.currentTarget;
-    if (!img.naturalWidth || !img.naturalHeight) return;
-    setRatios((r) => (r[src] ? r : { ...r, [src]: img.naturalWidth / img.naturalHeight }));
-  }
-
   if (images.length === 0) {
     if (!isEditing) return null;
     return (
@@ -596,13 +598,9 @@ export function HeroSlideshow({
     );
   }
 
-  // Auto-sized to the ACTIVE slide's own aspect ratio (zero cropping) until
-  // the seller drags the resize handle below the frame — once they do, every
-  // slide shares that one fixed frame instead of each reflowing to its own
-  // shape, same as any real crop tool.
-  const baseAspectRatio =
-    editing?.slideshowAspectRatio ?? ratios[images[index]] ?? DEFAULT_ASPECT_RATIO;
-  const activeRatio = liveAspectRatio ?? baseAspectRatio;
+  // One frame for every slide, whatever shape the photos are: the seller's
+  // own if they have dragged the handle, otherwise the constant above.
+  const activeRatio = editing?.slideshowAspectRatio ?? DEFAULT_ASPECT_RATIO;
 
   // Drag the handle below the frame to resize it, Instagram-crop-style — the
   // frame's own ratio changes (not the photo), so this stacks with per-slide
@@ -619,10 +617,9 @@ export function HeroSlideshow({
       startY: e.clientY,
       startHeight: rect.height,
       width: rect.width,
-      current: baseAspectRatio,
+      current: activeRatio,
       moved: false,
     };
-    setLiveAspectRatio(baseAspectRatio);
   }
 
   function handleResizeMove(e: ReactPointerEvent<HTMLDivElement>) {
@@ -632,19 +629,22 @@ export function HeroSlideshow({
     if (Math.abs(dy) > 3) drag.moved = true;
     const newHeight = Math.max(40, drag.startHeight + dy);
     const next = clamp(drag.width / newHeight, MIN_SLIDESHOW_ASPECT, MAX_SLIDESHOW_ASPECT);
-    // Committed from this ref, not the `liveAspectRatio` state, below — see
-    // the matching comment in CroppableImage's handlePointerMove.
     drag.current = next;
-    setLiveAspectRatio(next);
+    // Same reason as CroppableImage's drag: written to the node directly so a
+    // resize is one DOM write per frame instead of a re-render of every slide
+    // per frame. The commit on release is the only render.
+    if (cropBoxRef.current) cropBoxRef.current.style.aspectRatio = String(next);
   }
 
-  function handleResizeEnd() {
+  function endResize(commit: boolean) {
     const drag = resizeDragRef.current;
-    if (drag?.moved) {
-      editing?.onSlideshowAspectRatioChange(drag.current);
-    }
     resizeDragRef.current = null;
-    setLiveAspectRatio(null);
+    if (!drag) return;
+    if (commit && drag.moved) {
+      editing?.onSlideshowAspectRatioChange(drag.current);
+    } else if (cropBoxRef.current) {
+      cropBoxRef.current.style.aspectRatio = String(activeRatio);
+    }
   }
 
   return (
@@ -668,7 +668,6 @@ export function HeroSlideshow({
                 editable={isEditing}
                 position={editing?.slideshowCrops[src]}
                 onPositionChange={(pos) => editing?.onSlideshowCropChange(src, pos)}
-                onLoad={(e) => handleLoad(src, e)}
               />
             </div>
           ))}
@@ -769,14 +768,14 @@ export function HeroSlideshow({
           aria-valuemin={Math.round(MIN_SLIDESHOW_ASPECT * 100)}
           aria-valuemax={Math.round(MAX_SLIDESHOW_ASPECT * 100)}
           tabIndex={0}
-          className="relative z-20 -mt-2.5 flex h-5 cursor-ns-resize touch-none items-center justify-center"
+          className="relative z-20 -mt-4 flex h-11 cursor-ns-resize touch-none items-center justify-center"
           onPointerDown={handleResizeStart}
           onPointerMove={handleResizeMove}
-          onPointerUp={handleResizeEnd}
-          onPointerCancel={handleResizeEnd}
+          onPointerUp={() => endResize(true)}
+          onPointerCancel={() => endResize(false)}
         >
-          <span className="flex h-5 w-9 items-center justify-center rounded-full bg-neutral-900 text-white/80 shadow-lg">
-            <GripHorizontal size={13} />
+          <span className="flex h-8 w-16 items-center justify-center rounded-full bg-neutral-900 text-white shadow-lg ring-1 ring-white/15">
+            <GripHorizontal size={22} />
           </span>
         </div>
       )}

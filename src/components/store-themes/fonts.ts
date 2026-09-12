@@ -43,7 +43,37 @@ export type FontId =
   | "vollkorn"
   | "tenorSans"
   | "yeseva"
-  | "cardo";
+  | "cardo"
+  | "cormorant"
+  | "lora"
+  | "merriweather"
+  | "libreBodoni"
+  | "sourceSerif"
+  | "playfairSc"
+  | "cormorantInfant"
+  | "calistoga"
+  | "righteous"
+  | "lexendMega"
+  | "syncopate"
+  | "poiretOne"
+  | "russoOne"
+  | "jost"
+  | "montserrat"
+  | "raleway"
+  | "workSans"
+  | "plusJakarta"
+  | "archivo"
+  | "publicSans"
+  | "rubik"
+  | "lexend"
+  | "figtree"
+  | "karla"
+  | "barlowCondensed"
+  | "quicksand"
+  | "varelaRound"
+  | "nunito"
+  | "greatVibes"
+  | "caveat";
 
 export const FONT_OPTIONS: { id: FontId; label: string; fontFamily: string }[] = [
   { id: "sans", label: "Sans", fontFamily: "var(--font-sans)" },
@@ -90,6 +120,41 @@ export const FONT_OPTIONS: { id: FontId; label: string; fontFamily: string }[] =
   { id: "tenorSans", label: "Tenor Sans", fontFamily: "'Tenor Sans', sans-serif" },
   { id: "yeseva", label: "Yeseva One", fontFamily: "'Yeseva One', serif" },
   { id: "cardo", label: "Cardo", fontFamily: "'Cardo', serif" },
+  // Added from the ui-ux-pro-max typography set — see fonts note in CLAUDE.md.
+  { id: "cormorant", label: "Cormorant", fontFamily: "'Cormorant', serif" },
+  { id: "lora", label: "Lora", fontFamily: "'Lora', serif" },
+  { id: "merriweather", label: "Merriweather", fontFamily: "'Merriweather', serif" },
+  { id: "libreBodoni", label: "Libre Bodoni", fontFamily: "'Libre Bodoni', serif" },
+  { id: "sourceSerif", label: "Source Serif", fontFamily: "'Source Serif 4', serif" },
+  { id: "playfairSc", label: "Playfair SC", fontFamily: "'Playfair Display SC', serif" },
+  { id: "cormorantInfant", label: "Cormorant Infant", fontFamily: "'Cormorant Infant', serif" },
+  { id: "calistoga", label: "Calistoga", fontFamily: "'Calistoga', serif" },
+  { id: "righteous", label: "Righteous", fontFamily: "'Righteous', sans-serif" },
+  { id: "lexendMega", label: "Lexend Mega", fontFamily: "'Lexend Mega', sans-serif" },
+  { id: "syncopate", label: "Syncopate", fontFamily: "'Syncopate', sans-serif" },
+  { id: "poiretOne", label: "Poiret One", fontFamily: "'Poiret One', sans-serif" },
+  { id: "russoOne", label: "Russo One", fontFamily: "'Russo One', sans-serif" },
+  { id: "jost", label: "Jost", fontFamily: "'Jost', sans-serif" },
+  { id: "montserrat", label: "Montserrat", fontFamily: "'Montserrat', sans-serif" },
+  { id: "raleway", label: "Raleway", fontFamily: "'Raleway', sans-serif" },
+  { id: "workSans", label: "Work Sans", fontFamily: "'Work Sans', sans-serif" },
+  { id: "plusJakarta", label: "Plus Jakarta", fontFamily: "'Plus Jakarta Sans', sans-serif" },
+  { id: "archivo", label: "Archivo", fontFamily: "'Archivo', sans-serif" },
+  { id: "publicSans", label: "Public Sans", fontFamily: "'Public Sans', sans-serif" },
+  { id: "rubik", label: "Rubik", fontFamily: "'Rubik', sans-serif" },
+  { id: "lexend", label: "Lexend", fontFamily: "'Lexend', sans-serif" },
+  { id: "figtree", label: "Figtree", fontFamily: "'Figtree', sans-serif" },
+  { id: "karla", label: "Karla", fontFamily: "'Karla', sans-serif" },
+  {
+    id: "barlowCondensed",
+    label: "Barlow Condensed",
+    fontFamily: "'Barlow Condensed', sans-serif",
+  },
+  { id: "quicksand", label: "Quicksand", fontFamily: "'Quicksand', sans-serif" },
+  { id: "varelaRound", label: "Varela Round", fontFamily: "'Varela Round', sans-serif" },
+  { id: "nunito", label: "Nunito", fontFamily: "'Nunito', sans-serif" },
+  { id: "greatVibes", label: "Great Vibes", fontFamily: "'Great Vibes', cursive" },
+  { id: "caveat", label: "Caveat", fontFamily: "'Caveat', cursive" },
 ];
 
 // ── On-demand font loading ────────────────────────────────────────────────
@@ -135,6 +200,36 @@ const GOOGLE_FAMILY_PARAMS: Partial<Record<FontId, string>> = {
   tenorSans: "Tenor+Sans",
   yeseva: "Yeseva+One",
   cardo: "Cardo:wght@400;700",
+  cormorant: "Cormorant:ital,wght@0,400;0,600;1,400",
+  lora: "Lora:ital,wght@0,400;0,600;1,400",
+  merriweather: "Merriweather:wght@400;700",
+  libreBodoni: "Libre+Bodoni:ital,wght@0,400;0,600;1,400",
+  sourceSerif: "Source+Serif+4:ital,wght@0,400;0,600;1,400",
+  playfairSc: "Playfair+Display+SC:wght@400;700",
+  cormorantInfant: "Cormorant+Infant:ital,wght@0,400;0,600;1,400",
+  calistoga: "Calistoga",
+  righteous: "Righteous",
+  lexendMega: "Lexend+Mega:wght@400;700",
+  syncopate: "Syncopate:wght@400;700",
+  poiretOne: "Poiret+One",
+  russoOne: "Russo+One",
+  jost: "Jost:ital,wght@0,400;0,500;0,700;1,400",
+  montserrat: "Montserrat:wght@300;400;600;700",
+  raleway: "Raleway:wght@300;400;600;700",
+  workSans: "Work+Sans:wght@400;500;700",
+  plusJakarta: "Plus+Jakarta+Sans:wght@400;500;700",
+  archivo: "Archivo:wght@400;600;800",
+  publicSans: "Public+Sans:wght@400;600;800",
+  rubik: "Rubik:wght@400;500;700",
+  lexend: "Lexend:wght@400;500;700",
+  figtree: "Figtree:wght@400;500;700",
+  karla: "Karla:wght@400;600;700",
+  barlowCondensed: "Barlow+Condensed:wght@400;600;700",
+  quicksand: "Quicksand:wght@400;500;700",
+  varelaRound: "Varela+Round",
+  nunito: "Nunito:wght@400;600;700",
+  greatVibes: "Great+Vibes",
+  caveat: "Caveat:wght@400;600",
 };
 
 const injectedHrefs = new Set<string>();
@@ -156,11 +251,25 @@ export function ensureThemeFont(fontId: FontId | undefined) {
   injectStylesheet(`https://fonts.googleapis.com/css2?family=${family}&display=swap`);
 }
 
-/** Loads every option at once — only used when the seller opens the picker,
- *  where every label is rendered in its own face. */
+/** Loads every option — only used when the seller opens the picker, where
+ *  every label is rendered in its own face.
+ *
+ *  Split across several stylesheet requests rather than one. With ~67
+ *  non-core families a single css2 URL runs past 2.5KB, and a request that
+ *  long is at the mercy of whatever proxy or CDN sits in front of it: one
+ *  that truncates or rejects it drops every font at once, and silently,
+ *  since a stylesheet that fails to load just leaves the fallback face in
+ *  place. Chunking also lets the first faces paint while the rest are still
+ *  in flight, which is what the seller actually sees scrolling the list. */
+const PICKER_FONTS_PER_REQUEST = 12;
+
 export function ensureThemePickerFonts() {
-  const families = Object.values(GOOGLE_FAMILY_PARAMS)
-    .map((f) => `family=${f}`)
-    .join("&");
-  injectStylesheet(`https://fonts.googleapis.com/css2?${families}&display=swap`);
+  const families = Object.values(GOOGLE_FAMILY_PARAMS);
+  for (let i = 0; i < families.length; i += PICKER_FONTS_PER_REQUEST) {
+    const query = families
+      .slice(i, i + PICKER_FONTS_PER_REQUEST)
+      .map((f) => `family=${f}`)
+      .join("&");
+    injectStylesheet(`https://fonts.googleapis.com/css2?${query}&display=swap`);
+  }
 }

@@ -108,7 +108,7 @@ anything larger), `apple-touch-icon` at 180px.
 
 Every page is mobile-first and often on slow networks. Treat load speed as a first-class feature.
 
-**Fonts.** Only the core app fonts belong in `src/routes/__root.tsx`'s Google Fonts link. Theme-picker fonts (the ~38-family list) must load on demand inside the theme editor, not on every route. Always preconnect `https://fonts.gstatic.com`.
+**Fonts.** Only the core app fonts belong in `src/routes/__root.tsx`'s Google Fonts link. Theme-picker fonts (the ~66-family list) must load on demand inside the theme editor, not on every route, and `ensureThemePickerFonts` splits them across several css2 requests rather than one over-long URL. Always preconnect `https://fonts.gstatic.com`.
 
 **Images.** Prefer WebP. Preload the LCP image via the leaf route's `head().links` with `rel: "preload"`, `as: "image"`, `fetchpriority: "high"`. Keep `loading="lazy"` for below-the-fold images. Convert oversized PNGs/JPEGs; downscale charts and illustrations that are larger than their rendered size.
 
