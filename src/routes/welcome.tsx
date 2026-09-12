@@ -28,7 +28,8 @@ function WelcomePage() {
   const [loaded, setLoaded] = useState(false);
   const hasNavigated = useRef(false);
 
-  // Resolve who we're sending them to once the line has played.
+  // The installed app starts here. Once the session and profile are known,
+  // this screen is only the loading handoff to the user's own profile.
   useEffect(() => {
     if (!userId) return;
     let cancelled = false;
