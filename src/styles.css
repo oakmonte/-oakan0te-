@@ -553,3 +553,22 @@ input:-webkit-autofill:active {
     color: var(--color-foreground);
   }
 }
+
+/* Messages skeletons. The shimmer lives here rather than inline because three
+   different skeleton shapes (bubbles, conversation rows, tab cards) share it. */
+@utility messages-skeleton {
+  background: linear-gradient(
+    100deg,
+    rgba(255, 255, 255, 0.05) 20%,
+    rgba(255, 255, 255, 0.14) 42%,
+    rgba(255, 255, 255, 0.05) 62%
+  );
+  background-size: 220% 100%;
+  animation: messages-shimmer 1.5s infinite linear;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .messages-skeleton {
+    animation: none;
+  }
+}
