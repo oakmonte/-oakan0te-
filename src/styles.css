@@ -1,3 +1,27 @@
+@keyframes messages-shimmer {
+  from {
+    background-position: -180% 0;
+  }
+
+  to {
+    background-position: 180% 0;
+  }
+}
+
+@keyframes messages-typing-bounce {
+  0%,
+  70%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.45;
+  }
+
+  35% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+
 @keyframes messages-banner-drop {
   from {
     opacity: 0;
