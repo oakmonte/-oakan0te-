@@ -42,6 +42,23 @@
   --color-brand-text: #0a0a0a;
   --color-brand-accent: #2151f5;
   --color-brand-muted: #f4f5f7;
+  /* Messages surface. The /messages inbox and thread are the only fully dark
+     screens in the app, so they get their own token set instead of dozens of
+     one-off white/xx opacities. Values are the ones the BottomNav glass sits
+     on, so the composer and the nav read as the same material. */
+  --color-chat-bg: #000000;
+  --color-chat-surface: #101215;
+  --color-chat-elevated: #1c1e22;
+  --color-chat-soft: #2a2d33;
+  --color-chat-border: rgba(255, 255, 255, 0.12);
+  --color-chat-text: #ffffff;
+  --color-chat-inverse: #000000;
+  --color-chat-muted: rgba(255, 255, 255, 0.5);
+  --color-chat-faint: rgba(255, 255, 255, 0.32);
+  --color-chat-accent: #7596ff;
+  --color-chat-online: #2ee36a;
+  --color-chat-danger: #ff6b6b;
+  --color-chat-overlay: rgba(0, 0, 0, 0.66);
 }
 
 @layer base {
