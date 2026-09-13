@@ -68,11 +68,11 @@ export function MessageBubble({
               haptic();
               onReply();
             }
-            void controls.start({ x: 0, transition: { type: "spring", stiffness: 500, damping: 40 } });
+            void controls.start({
+              x: 0,
+              transition: { type: "spring", stiffness: 500, damping: 40 },
+            });
           }}
-          initial={{ opacity: 0, y: 12, scale: 0.96 }}
-          animate-presence-safe=""
-          whileTap={{ scale: 0.985 }}
           className="relative touch-pan-y"
         >
           <motion.div
