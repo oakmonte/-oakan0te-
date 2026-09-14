@@ -1,3 +1,7 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
 @keyframes messages-shimmer {
   from {
     background-position: -180% 0;
@@ -45,9 +49,7 @@
     transform: translateY(0);
   }
 }
-@import "tailwindcss" source(none);
-@source "../src";
-@import "tw-animate-css";
+
 
 @custom-variant dark (&:is(.dark *));
 
