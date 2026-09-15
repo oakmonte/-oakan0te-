@@ -162,6 +162,8 @@ export default function StudioPreview({
                   ref={playback.clipRef(clip.id)}
                   src={source.url}
                   playsInline
+                  disablePictureInPicture
+                  disableRemotePlayback
                   preload="auto"
                   className="absolute inset-0 w-full h-full"
                   style={{ objectFit, filter: combinedFilterCss(filterId, clip.adjustments) }}

@@ -110,6 +110,8 @@ function FiltersPage() {
               loop
               muted
               playsInline
+              disablePictureInPicture
+              disableRemotePlayback
               className="absolute inset-0 w-full h-full object-cover"
               style={{ filter: activeFilter.previewCss }}
             />

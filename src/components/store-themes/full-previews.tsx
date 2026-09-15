@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -14,6 +14,7 @@ import {
   Leaf,
   Moon,
   Pencil,
+  Plus,
   Check as CheckIcon,
   ShieldCheck,
   Sparkles,
@@ -22,10 +23,6 @@ import {
   Zap,
   Cpu,
 } from "lucide-react";
-import placeholderPhoto1 from "@/assets/Store theme placeholder images/photo_1_2026-08-22_00-20-52.jpg";
-import placeholderPhoto2 from "@/assets/Store theme placeholder images/photo_2_2026-08-22_00-20-52.jpg";
-import placeholderPhoto3 from "@/assets/Store theme placeholder images/photo_3_2026-08-22_00-20-52.jpg";
-import placeholderPhoto4 from "@/assets/Store theme placeholder images/photo_4_2026-08-22_00-20-52.jpg";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { Theme, ThemeId } from "./types";
 import {
@@ -37,9 +34,13 @@ import {
   StatsRow,
 } from "./full-preview-blocks";
 import { ThemeText } from "./EditableText";
+import { HERO_SLIDESHOW_IMAGES } from "./hero-placeholders";
+import { ThemeSpecFull } from "./ThemeSpecFull";
+import { specForTheme } from "./theme-specs";
 import {
   createInitialEditState,
   MAX_SLIDESHOW_IMAGES,
+  REMOVABLE_BLOCK_LABELS,
   type RemovableBlockId,
   type ThemeEditingProps,
   type ThemeEditState,
@@ -52,13 +53,6 @@ import { supabase } from "@/lib/integrations/my-supabase/client";
 import { startBackgroundUpload, onBackgroundUploadDone } from "@/lib/background-upload";
 
 function noop() {}
-
-const HERO_SLIDESHOW_IMAGES = [
-  placeholderPhoto1,
-  placeholderPhoto2,
-  placeholderPhoto3,
-  placeholderPhoto4,
-];
 
 // One bespoke "full preview" per theme: shared blocks (header, stats,
 // features, collections, promo, footer) handle the repeated storefront
@@ -97,7 +91,8 @@ function MotionGridFull({
     stats: !hidden.includes("stats") && (
       <StatsRow
         clusterColors={["#b673ff", "#722ee8", "#3a1a63"]}
-        followersText={text.statsFollowersText ?? "2.7K+ followers love this store"}
+        followersLabel={text.statsFollowersText ?? "followers love this store"}
+        storeId={storeId}
         cardBg="#09070d"
         mutedColor="rgba(255,255,255,0.55)"
         editing={editing}
@@ -139,7 +134,7 @@ function MotionGridFull({
     footer: !hidden.includes("footer") && (
       <FooterTeaser
         label={text.footerLabel ?? "Community fits"}
-        sub={text.footerSub ?? "142 people wearing it today"}
+        storeId={storeId}
         clusterColors={["#b673ff", "#ec4b9a", "#3a1a63"]}
         cardBg="rgba(255,255,255,0.04)"
         textColor="#fff"
@@ -173,7 +168,7 @@ function MotionGridFull({
             field="hero1"
             defaultValue="Welcome to"
             as="p"
-            className="text-[9px] font-semibold uppercase tracking-[0.25em] text-[#c9a3ff]"
+            className="text-[11px] font-semibold uppercase tracking-[0.25em] text-[#c9a3ff]"
           />
           <ThemeText
             editing={editing}
@@ -187,7 +182,7 @@ function MotionGridFull({
             field="hero3"
             defaultValue="Street culture. No filter."
             as="p"
-            className="mt-2 text-[11px] font-medium uppercase tracking-[0.08em] text-white/60"
+            className="mt-2 text-[13px] font-medium uppercase tracking-[0.08em] text-white/60"
           />
         </div>
 
@@ -213,7 +208,8 @@ function ImmersiveBannerFull({
     stats: !hidden.includes("stats") && (
       <StatsRow
         clusterColors={["#c2aa8c", "#8b735b", "#e5d9c4"]}
-        followersText={text.statsFollowersText ?? "1.3K+ shop here"}
+        followersLabel={text.statsFollowersText ?? "shop here"}
+        storeId={storeId}
         cardBg="#f6f2e9"
         mutedColor="rgba(41,34,25,0.55)"
         editing={editing}
@@ -224,7 +220,12 @@ function ImmersiveBannerFull({
         textColor="#292219"
         mutedColor="rgba(41,34,25,0.5)"
         tileBg="rgba(166,124,82,0.08)"
-        accent="#a67c52"
+        // Deeper than the theme's headline tan (#a67c52). This value renders
+        // as text here — the "View all" link and the active tab — and the
+        // lighter tan sat at 3.3:1 on this cream ground. Matches what the
+        // promo and footer blocks below already use. The tile tint above,
+        // being a fill, keeps the original.
+        accent="#7a6450"
         editing={editing}
         storeId={storeId}
         fallbackItems={[
@@ -246,7 +247,7 @@ function ImmersiveBannerFull({
         eyebrow={text.promoEyebrow ?? "New collection"}
         title={text.promoTitle ?? "Soft layers — for every season, every day"}
         cta="Explore"
-        accent="#8b735b"
+        accent="#7a6450"
         cardBg="rgba(166,124,82,0.08)"
         textColor="#292219"
         editing={editing}
@@ -255,12 +256,12 @@ function ImmersiveBannerFull({
     footer: !hidden.includes("footer") && (
       <FooterTeaser
         label={text.footerLabel ?? "Updates from terra"}
-        sub={text.footerSub ?? "A short note on this season's fabric"}
+        storeId={storeId}
         clusterColors={["#c2aa8c", "#8b735b", "#e5d9c4"]}
         cardBg="rgba(166,124,82,0.08)"
         textColor="#292219"
         mutedColor="rgba(41,34,25,0.5)"
-        accent="#8b735b"
+        accent="#7a6450"
         editing={editing}
       />
     ),
@@ -287,7 +288,7 @@ function ImmersiveBannerFull({
             field="hero1"
             defaultValue="Essentials for a calm life"
             as="p"
-            className="text-[9px] font-semibold uppercase tracking-[0.25em] text-[#695947]"
+            className="text-[11px] font-semibold uppercase tracking-[0.25em] text-[#695947]"
           />
           <ThemeText
             editing={editing}
@@ -302,7 +303,7 @@ function ImmersiveBannerFull({
             field="hero3"
             defaultValue="Made to last, made for every day."
             as="p"
-            className="mx-auto mt-2.5 max-w-[200px] text-[11px] leading-4 text-[#655747]"
+            className="mx-auto mt-2.5 max-w-[240px] text-[13px] leading-4 text-[#655747]"
           />
         </div>
 
@@ -328,7 +329,8 @@ function GalleryEditFull({
     stats: !hidden.includes("stats") && (
       <StatsRow
         clusterColors={["#c9a227", "#6b5a1f", "#e9d98f"]}
-        followersText={text.statsFollowersText ?? "890 in the atelier"}
+        followersLabel={text.statsFollowersText ?? "in the atelier"}
+        storeId={storeId}
         cardBg="#0c0b0a"
         mutedColor="rgba(243,237,226,0.55)"
         editing={editing}
@@ -371,7 +373,7 @@ function GalleryEditFull({
     footer: !hidden.includes("footer") && (
       <FooterTeaser
         label={text.footerLabel ?? "From the atelier"}
-        sub={text.footerSub ?? "A short note on this season's fabric"}
+        storeId={storeId}
         clusterColors={["#c9a227", "#6b5a1f", "#e9d98f"]}
         cardBg="rgba(201,162,39,0.06)"
         textColor="#f3ede2"
@@ -403,7 +405,7 @@ function GalleryEditFull({
             field="hero1"
             defaultValue="Autumn selects, in full"
             as="p"
-            className="text-[9px] font-semibold uppercase tracking-[0.3em] text-[#c9a227]"
+            className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[#c9a227]"
           />
           <ThemeText
             editing={editing}
@@ -418,7 +420,7 @@ function GalleryEditFull({
             field="hero3"
             defaultValue="Fewer pieces. Finer edit."
             as="p"
-            className="mx-auto mt-3 max-w-[190px] text-[10.5px] leading-4 text-[#c9bea6]"
+            className="mx-auto mt-3 max-w-[230px] text-[13px] leading-4 text-[#c9bea6]"
           />
         </div>
 
@@ -444,7 +446,8 @@ function NeonTerminalFull({
     stats: !hidden.includes("stats") && (
       <StatsRow
         clusterColors={["#2dd4ff", "#0a5a6e", "#9be9f7"]}
-        followersText={text.statsFollowersText ?? "4.1K+ nodes connected"}
+        followersLabel={text.statsFollowersText ?? "nodes connected"}
+        storeId={storeId}
         cardBg="#05070a"
         mutedColor="rgba(234,252,255,0.55)"
         editing={editing}
@@ -487,7 +490,7 @@ function NeonTerminalFull({
     footer: !hidden.includes("footer") && (
       <FooterTeaser
         label={text.footerLabel ?? "Live activity"}
-        sub={text.footerSub ?? "23 people viewing right now"}
+        storeId={storeId}
         clusterColors={["#2dd4ff", "#0a5a6e", "#9be9f7"]}
         cardBg="rgba(45,212,255,0.06)"
         textColor="#eafcff"
@@ -516,7 +519,7 @@ function NeonTerminalFull({
         />
 
         <div className="px-4 pt-6 text-center">
-          <p className="flex items-center justify-center gap-1.5 text-[9px] font-semibold uppercase tracking-[0.25em] text-[#2dd4ff]">
+          <p className="flex items-center justify-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.25em] text-[#2dd4ff]">
             <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-[#2dd4ff]" />
             <ThemeText editing={editing} field="hero1" defaultValue="System online" as="span" />
           </p>
@@ -533,7 +536,7 @@ function NeonTerminalFull({
             field="hero3"
             defaultValue="Style, compiled."
             as="p"
-            className="mx-auto mt-2.5 max-w-[190px] text-[10.5px] leading-4 text-[#8fd9e8]"
+            className="mx-auto mt-2.5 max-w-[230px] text-[13px] leading-4 text-[#8fd9e8]"
           />
         </div>
 
@@ -559,7 +562,8 @@ function VerdantNoirFull({
     stats: !hidden.includes("stats") && (
       <StatsRow
         clusterColors={["#3fae63", "#1d5c34", "#153c22"]}
-        followersText={text.statsFollowersText ?? "1.8K+ growing this store"}
+        followersLabel={text.statsFollowersText ?? "growing this store"}
+        storeId={storeId}
         cardBg="#0a0f0b"
         mutedColor="rgba(232,242,235,0.55)"
         editing={editing}
@@ -601,7 +605,7 @@ function VerdantNoirFull({
     footer: !hidden.includes("footer") && (
       <FooterTeaser
         label={text.footerLabel ?? "From the grove"}
-        sub={text.footerSub ?? "A short note on this season's materials"}
+        storeId={storeId}
         clusterColors={["#3fae63", "#1d5c34", "#153c22"]}
         cardBg="rgba(63,174,99,0.07)"
         textColor="#eaf2ec"
@@ -633,7 +637,7 @@ function VerdantNoirFull({
             field="hero1"
             defaultValue="Grown, not manufactured"
             as="p"
-            className="text-[9px] font-semibold uppercase tracking-[0.25em] text-[#7fcf9a]"
+            className="text-[11px] font-semibold uppercase tracking-[0.25em] text-[#7fcf9a]"
           />
           <ThemeText
             editing={editing}
@@ -647,7 +651,7 @@ function VerdantNoirFull({
             field="hero3"
             defaultValue="Quiet colour for slow living."
             as="p"
-            className="mt-2 text-[11px] leading-4 text-[#c3d6ca]"
+            className="mt-2 text-[13px] leading-4 text-[#c3d6ca]"
           />
         </div>
 
@@ -673,7 +677,8 @@ function MonochromeFull({
     stats: !hidden.includes("stats") && (
       <StatsRow
         clusterColors={["#111111", "#4a4a4a", "#c9c9c9"]}
-        followersText={text.statsFollowersText ?? "2.1K+ shop the edit"}
+        followersLabel={text.statsFollowersText ?? "shop the edit"}
+        storeId={storeId}
         cardBg="#fafafa"
         mutedColor="rgba(17,17,17,0.55)"
         editing={editing}
@@ -715,7 +720,7 @@ function MonochromeFull({
     footer: !hidden.includes("footer") && (
       <FooterTeaser
         label={text.footerLabel ?? "Worn by the community"}
-        sub={text.footerSub ?? "118 people wearing it today"}
+        storeId={storeId}
         clusterColors={["#111111", "#4a4a4a", "#c9c9c9"]}
         cardBg="rgba(17,17,17,0.05)"
         textColor="#111111"
@@ -747,7 +752,7 @@ function MonochromeFull({
             field="hero1"
             defaultValue="No colour to distract you"
             as="p"
-            className="text-[9px] font-semibold uppercase tracking-[0.25em] text-[#5a5a5a]"
+            className="text-[11px] font-semibold uppercase tracking-[0.25em] text-[#5a5a5a]"
           />
           <ThemeText
             editing={editing}
@@ -762,7 +767,7 @@ function MonochromeFull({
             field="hero3"
             defaultValue="Two colours. Every shape."
             as="p"
-            className="mx-auto mt-2.5 max-w-[190px] text-[11px] leading-4 text-[#5a5a5a]"
+            className="mx-auto mt-2.5 max-w-[230px] text-[13px] leading-4 text-[#5a5a5a]"
           />
         </div>
 
@@ -788,7 +793,8 @@ function GildedFull({
     stats: !hidden.includes("stats") && (
       <StatsRow
         clusterColors={["#d4af37", "#8a6d1f", "#f3e2a6"]}
-        followersText={text.statsFollowersText ?? "3.2K+ in the house"}
+        followersLabel={text.statsFollowersText ?? "in the house"}
+        storeId={storeId}
         cardBg="#0d0904"
         mutedColor="rgba(243,236,220,0.55)"
         editing={editing}
@@ -830,7 +836,7 @@ function GildedFull({
     footer: !hidden.includes("footer") && (
       <FooterTeaser
         label={text.footerLabel ?? "From the house"}
-        sub={text.footerSub ?? `A note from ${brandName}`}
+        storeId={storeId}
         clusterColors={["#d4af37", "#8a6d1f", "#f3e2a6"]}
         cardBg="rgba(212,175,55,0.07)"
         textColor="#f3ecdc"
@@ -862,7 +868,7 @@ function GildedFull({
             field="hero1"
             defaultValue="Opulence, quietly worn"
             as="p"
-            className="text-[9px] font-semibold uppercase tracking-[0.3em] text-[#d4af37]"
+            className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[#d4af37]"
           />
           <ThemeText
             editing={editing}
@@ -877,7 +883,7 @@ function GildedFull({
             field="hero3"
             defaultValue="Gold is a finish, not a shortcut."
             as="p"
-            className="mx-auto mt-3 max-w-[190px] text-[10.5px] leading-4 text-[#d8cbaa]"
+            className="mx-auto mt-3 max-w-[230px] text-[13px] leading-4 text-[#d8cbaa]"
           />
         </div>
 
@@ -903,7 +909,8 @@ function ObsidianFull({
     stats: !hidden.includes("stats") && (
       <StatsRow
         clusterColors={["#3a3a3a", "#1a1a1a", "#5c5c5c"]}
-        followersText={text.statsFollowersText ?? "980+ watching this space"}
+        followersLabel={text.statsFollowersText ?? "watching this space"}
+        storeId={storeId}
         cardBg="#030303"
         mutedColor="rgba(230,230,230,0.5)"
         editing={editing}
@@ -945,7 +952,7 @@ function ObsidianFull({
     footer: !hidden.includes("footer") && (
       <FooterTeaser
         label={text.footerLabel ?? "Still here"}
-        sub={text.footerSub ?? "9 people looking right now"}
+        storeId={storeId}
         clusterColors={["#3a3a3a", "#1a1a1a", "#5c5c5c"]}
         cardBg="rgba(255,255,255,0.03)"
         textColor="#e6e6e6"
@@ -977,7 +984,7 @@ function ObsidianFull({
             field="hero1"
             defaultValue="Nothing extra"
             as="p"
-            className="text-[9px] font-semibold uppercase tracking-[0.3em] text-[#7a7a7a]"
+            className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[#7a7a7a]"
           />
           <ThemeText
             editing={editing}
@@ -991,7 +998,7 @@ function ObsidianFull({
             field="hero3"
             defaultValue="One colour. Every silhouette."
             as="p"
-            className="mt-2 text-[11px] uppercase tracking-[0.08em] text-[#8a8a8a]"
+            className="mt-2 text-[13px] uppercase tracking-[0.08em] text-[#8a8a8a]"
           />
         </div>
 
@@ -1029,6 +1036,23 @@ export function FullPreview({
       return <GildedFull editing={editing} storeId={storeId} brandName={brandName} />;
     case "obsidian":
       return <ObsidianFull editing={editing} storeId={storeId} brandName={brandName} />;
+    default:
+      // Every spec-driven theme lands here, and so does anything unknown.
+      // The unknown case is not hypothetical despite ThemeId being a closed
+      // union: useStoreTheme casts whatever slug the database returns, so a
+      // store_themes row with no theme behind it arrives as a ThemeId that
+      // matches nothing. Falling out of the switch returned undefined, which
+      // React throws on — a white screen on a public storefront instead of a
+      // storefront in the wrong theme. specForTheme falls back to a real
+      // spec, so there is always something to render.
+      return (
+        <ThemeSpecFull
+          spec={specForTheme(themeId)}
+          editing={editing}
+          storeId={storeId}
+          brandName={brandName}
+        />
+      );
   }
 }
 
@@ -1103,6 +1127,7 @@ export function PublicStorefront({ storeId }: { storeId: string }) {
     onTextFontChange: noop,
     hiddenBlocks: state.hiddenBlocks,
     onRemoveBlock: noop,
+    onRestoreBlock: noop,
     layoutId: state.layoutId,
     onLayoutChange: noop,
     collectionsMode: state.collectionsMode,
@@ -1161,6 +1186,23 @@ export function ThemePreviewSheet({
   const history = editState.history;
   const future = editState.future;
   const [hint, setHint] = useState<string | null>(null);
+  // One timer, cleared on unmount and before each new hint. These were bare
+  // setTimeouts, so closing the sheet mid-hint left a setState aimed at a
+  // component that no longer existed, and two hints in quick succession let
+  // the first one's timer wipe the second one's message early.
+  const hintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const flashHint = useCallback((message: string | null, clearAfterMs?: number) => {
+    if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
+    setHint(message);
+    if (message && clearAfterMs) {
+      hintTimerRef.current = setTimeout(() => setHint(null), clearAfterMs);
+    }
+  }, []);
+  useEffect(() => {
+    return () => {
+      if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
+    };
+  }, []);
   // Logo/slideshow uploads run in the background (background-upload.ts) and
   // survive this sheet closing -- but Save still shouldn't fire while one is
   // still in flight: handleSave reads `state` synchronously, so a save that
@@ -1242,9 +1284,20 @@ export function ThemePreviewSheet({
   }
   function handleSave() {
     if (pendingUploadIds.size > 0) return;
-    setEditState((es) => ({ ...es, history: [], future: [] }));
-    setMode("view");
-    void saveCustomization(state);
+    const snapshot = state;
+    flashHint("Saving…");
+    void saveCustomization(snapshot).then((error) => {
+      if (error) {
+        // Stay in edit mode on failure: dropping to view made a failed save
+        // look exactly like a successful one, and the seller walked away
+        // from work that was never written.
+        flashHint(error, 3000);
+        return;
+      }
+      setEditState((es) => ({ ...es, history: [], future: [] }));
+      setMode("view");
+      flashHint(null);
+    });
   }
   function handleUndo() {
     setEditState((es) => {
@@ -1341,7 +1394,14 @@ export function ThemePreviewSheet({
       },
       hiddenBlocks: state.hiddenBlocks,
       onRemoveBlock: (block: RemovableBlockId) => {
-        mutate((s) => ({ ...s, hiddenBlocks: [...s.hiddenBlocks, block] }));
+        // Guarded against a double-add: hiddenBlocks is drawn as a list of
+        // restore buttons now, and a duplicate would render two of the same.
+        mutate((s) =>
+          s.hiddenBlocks.includes(block) ? s : { ...s, hiddenBlocks: [...s.hiddenBlocks, block] },
+        );
+      },
+      onRestoreBlock: (block: RemovableBlockId) => {
+        mutate((s) => ({ ...s, hiddenBlocks: s.hiddenBlocks.filter((b) => b !== block) }));
       },
       layoutId: state.layoutId,
       onLayoutChange: (id) => {
@@ -1352,15 +1412,15 @@ export function ThemePreviewSheet({
         mutate((s) => ({ ...s, collectionsMode }));
       },
       onTileTapBlocked: () => {
-        setHint(
+        flashHint(
           state.collectionsMode === "products"
             ? "Edit products from the Products page"
             : "Edit collections from the Collections page",
+          2500,
         );
-        setTimeout(() => setHint(null), 2500);
       },
     }),
-    [mode, state],
+    [mode, state, flashHint],
   );
 
   return (
@@ -1370,18 +1430,18 @@ export function ThemePreviewSheet({
           type="button"
           onClick={onClose}
           aria-label="Close preview"
-          className="flex h-8 w-8 items-center justify-center rounded-full text-white/60 hover:bg-white/10 hover:text-white"
+          className="flex h-10 w-10 items-center justify-center rounded-full text-white/60 hover:bg-white/10 hover:text-white"
         >
-          <X size={18} />
+          <X size={22} />
         </button>
         <div className="text-center">
-          <p className="text-[15px] font-semibold text-white">{theme.name}</p>
-          <p className="text-[9px] uppercase tracking-[0.14em] text-white/40">{theme.eyebrow}</p>
+          <p className="text-[19px] font-semibold text-white">{theme.name}</p>
+          <p className="text-[11px] uppercase tracking-[0.14em] text-white/40">{theme.eyebrow}</p>
         </div>
         <button
           type="button"
           onClick={onSelect}
-          className="rounded-full px-3.5 py-1.5 text-xs font-semibold whitespace-nowrap"
+          className="rounded-full px-4 py-2.5 text-[14px] font-semibold whitespace-nowrap"
           style={{
             background: isSelected ? "rgba(255,255,255,0.12)" : theme.accent,
             color: isSelected ? "#fff" : "#0a0a0a",
@@ -1399,16 +1459,16 @@ export function ThemePreviewSheet({
                 type="button"
                 onClick={onClose}
                 aria-label="Close preview"
-                className="flex h-8 w-8 items-center justify-center rounded-full text-white/60 hover:bg-white/10 hover:text-white"
+                className="flex h-11 w-11 items-center justify-center rounded-full text-white/60 hover:bg-white/10 hover:text-white"
               >
-                <ArrowLeft size={16} strokeWidth={1.8} />
+                <ArrowLeft size={20} strokeWidth={1.8} />
               </button>
               <button
                 type="button"
                 onClick={enterEdit}
-                className="flex items-center gap-1.5 rounded-full bg-white/10 px-4 py-2.5 text-[13px] font-semibold text-white/80 hover:bg-white/15 hover:text-white"
+                className="flex items-center gap-2 rounded-full bg-white/10 px-5 py-3 text-[16px] font-semibold text-white/80 hover:bg-white/15 hover:text-white"
               >
-                <Pencil size={15} />
+                <Pencil size={18} />
                 Edit
               </button>
             </>
@@ -1419,7 +1479,7 @@ export function ThemePreviewSheet({
                   type="button"
                   onClick={handleSave}
                   disabled={pendingUploadIds.size > 0}
-                  className="rounded-full bg-white px-3 py-1.5 text-[11px] font-semibold text-neutral-900 hover:bg-white/90 disabled:opacity-50"
+                  className="rounded-full bg-white px-5 py-2.5 text-[15px] font-semibold text-neutral-900 hover:bg-white/90 disabled:opacity-50"
                 >
                   {pendingUploadIds.size > 0 ? "Uploading…" : "Save"}
                 </button>
@@ -1428,49 +1488,69 @@ export function ThemePreviewSheet({
                   onClick={handleUndo}
                   disabled={history.length === 0}
                   aria-label="Undo last edit"
-                  className="flex h-8 w-8 items-center justify-center rounded-full text-white/60 hover:bg-white/10 hover:text-white disabled:pointer-events-none disabled:opacity-30"
+                  className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white/70 hover:bg-white/15 hover:text-white disabled:pointer-events-none disabled:opacity-30"
                 >
-                  <ArrowLeft size={16} strokeWidth={1.8} />
+                  <ArrowLeft size={20} strokeWidth={1.8} />
                 </button>
                 <button
                   type="button"
                   onClick={handleRedo}
                   disabled={future.length === 0}
                   aria-label="Redo last undone edit"
-                  className="flex h-8 w-8 items-center justify-center rounded-full text-white/60 hover:bg-white/10 hover:text-white disabled:pointer-events-none disabled:opacity-30"
+                  className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white/70 hover:bg-white/15 hover:text-white disabled:pointer-events-none disabled:opacity-30"
                 >
-                  <ArrowRight size={16} strokeWidth={1.8} />
+                  <ArrowRight size={20} strokeWidth={1.8} />
                 </button>
               </div>
               <Popover>
                 <PopoverTrigger asChild>
                   <button
                     type="button"
-                    className="flex items-center gap-1.5 rounded-full bg-white/10 px-4 py-2.5 text-[13px] font-semibold text-white/80 hover:bg-white/15 hover:text-white"
+                    className="flex items-center gap-2 rounded-full bg-white/10 px-5 py-3 text-[16px] font-semibold text-white/80 hover:bg-white/15 hover:text-white"
                   >
-                    <LayoutGrid size={15} />
+                    <LayoutGrid size={18} />
                     Layout
                   </button>
                 </PopoverTrigger>
                 <PopoverContent
                   align="end"
-                  className="w-56 border-white/10 bg-neutral-900 p-1.5 text-white"
+                  className="w-64 border-white/10 bg-neutral-900 p-2 text-white"
                 >
+                  {state.hiddenBlocks.length > 0 && (
+                    <div className="mb-1 border-b border-white/10 pb-1.5">
+                      <p className="px-3 pb-1 pt-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/40">
+                        Hidden sections
+                      </p>
+                      {state.hiddenBlocks.map((block) => (
+                        <button
+                          key={block}
+                          type="button"
+                          onClick={() => editingProps.onRestoreBlock(block)}
+                          className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left hover:bg-white/10"
+                        >
+                          <span className="text-[14px] font-medium text-white">
+                            {REMOVABLE_BLOCK_LABELS[block]}
+                          </span>
+                          <Plus size={16} className="shrink-0 text-white/60" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
                   {LAYOUT_PRESETS.map((preset) => (
                     <button
                       key={preset.id}
                       type="button"
                       onClick={() => editingProps.onLayoutChange(preset.id)}
-                      className="flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left hover:bg-white/10"
+                      className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left hover:bg-white/10"
                     >
                       <span>
-                        <span className="block text-[12px] font-medium text-white">
+                        <span className="block text-[14px] font-medium text-white">
                           {preset.name}
                         </span>
-                        <span className="block text-[10px] text-white/50">{preset.hint}</span>
+                        <span className="block text-[12px] text-white/50">{preset.hint}</span>
                       </span>
                       {state.layoutId === preset.id && (
-                        <CheckIcon size={13} className="shrink-0 text-white/80" />
+                        <CheckIcon size={16} className="shrink-0 text-white/80" />
                       )}
                     </button>
                   ))}
@@ -1489,7 +1569,7 @@ export function ThemePreviewSheet({
             />
           </div>
           {hint && (
-            <div className="pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-black/80 px-3 py-1.5 text-[11px] text-white backdrop-blur">
+            <div className="pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-black/80 px-4 py-2 text-[13px] text-white backdrop-blur">
               {hint}
             </div>
           )}

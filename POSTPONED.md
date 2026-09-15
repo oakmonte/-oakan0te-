@@ -51,7 +51,7 @@ publish screen ships them as repeated `files` + a positional `mediaTypes`
 array, `api.posts.ts` uploads them in order and writes both tables, and the
 feed renders a snap-scrolling carousel with dots.
 
-### 0.2 Sound on a photo post · [DONE — 2026-09-07]
+### 0.2 Sound on a post · [DONE — 2026-09-07, video editor 2026-09-11]
 
 `posts.audio_url` / `posts.audio_name`, migration `20260907090000`, applied to
 `lzyflkrqexxuyxyudvbw`. Additive; every existing row reads as null and behaves
@@ -77,9 +77,36 @@ isn't the one that can't add a song.
 The other dead button in that toolbar, **Link**, has since been removed — see
 0.4.
 
-**Sound library · [FIRST PROVIDER LIVE — 2026-09-10]** — Sound now opens a
-catalogue rather than the device file picker, which is still there as
-"Use a sound from your phone" inside the same sheet.
+**Sound library · [FIRST PROVIDER LIVE — 2026-09-10]** — Sound opens a
+catalogue. It is the **only** way to put a sound on a post.
+
+**Uploading your own audio file was removed on 2026-09-11 · [DELIBERATE — do
+not restore]**. It was shipped on 2026-09-07 and taken out four days later, so
+the reasoning matters more than usual:
+
+- Oakmonte does not link to the file, it **hosts** it — on our own CDN under
+  `posts/<user>/<post>/audio.<ext>`, served publicly to every viewer, beneath a
+  post advertising an item for sale. That is Oakmonte distributing the track
+  commercially, not a user sharing one.
+- We hold no music licences and run nothing like Content ID. Instagram and
+  TikTok allow this because they bought the right to; we have not.
+- The takedown posture it would depend on does not exist yet. `terms.tsx`
+  promises an IP contact address that is still a literal `<Placeholder>`, and
+  there is no report flow anywhere in the app.
+- Its realistic user was the harmful case. The whole reason the catalogue was
+  built is that "has an mp3 lying around" describes almost nobody — so the
+  seller reaching for that button had gone and _got_ a commercial track.
+- It cost nothing to remove: the posts table held **0 rows**. In six months it
+  would have meant pulling music off live posts.
+
+What was genuinely lost is voiceover and brand-owned audio. The right shape for
+those is **recording a voiceover in-app**, not a file picker — clean by
+construction, and more use to a seller than a stranger's mp3. The upload path
+is deliberately still there underneath (`CaptureAudio.blob`, the `audio` field
+in `api.posts.ts`) with nothing setting it, so that feature does not have to be
+rebuilt from both ends. Note this also means an authenticated seller could
+still POST audio bytes directly, bypassing the UI — a narrower problem than a
+button inviting it, and Diadem has not asked for it to be closed.
 
 Wikimedia Commons is the first provider (`src/lib/sound-providers/wikimedia.ts`,
 searched through `api.sounds.ts`). It was chosen because it needs no key, no
@@ -104,12 +131,61 @@ Three things about it are worth knowing before touching this code:
   all the noise above, because a pronunciation is two seconds and a song is
   not. It is doing more work than it looks like it is.
 
-**Still wanted:** a proper licensed catalogue. Commons is legally clean and
-genuinely thin — a few hundred usable tracks per genre, skewed towards
-instrumental and electronic, with nothing anybody will recognise. Diadem is
-still sourcing this. A second provider is meant to slot in beside the first:
-normalise into `LibraryTrack`, add its media host to `TRUSTED_AUDIO_HOSTS`, and
-the picker, the credit and the upload path all work unchanged.
+**Three providers now, searched together · [2026-09-11]** — `api.sounds.ts`
+queries every configured catalogue at once and interleaves the results, a track
+at a time from each. A seller wants a song, not a source, so the picker never
+asks which archive to look in. One source being down costs some choices, not
+the feature (`Promise.allSettled`; only an empty board is an error).
+
+- **Wikimedia Commons** — live, no key.
+- **ccMixter** — live, no key. A remix community, so unlike Commons everything
+  on it is already music. Its hazard is the mirror of Commons': ccMixter is
+  full of `by-nc`, which a shop cannot use, so the query pins `lic=open` and
+  the shared licence check runs again on the way out.
+- **Jamendo** — live, **verified against the real API on 2026-09-11**, and
+  needs `JAMENDO_CLIENT_ID` (app "Oakmonte's App" is registered). Without the
+  key the provider skips itself rather than erroring.
+
+**Jamendo is mostly unusable to us, and the query is what fixes it.** Measured
+live: a lo-fi page without licence filters is 25 `by-nd` and 3 `by-sa` out of
+30, so the shared licence check discarded 28 of every 30 tracks and the genre
+looked empty. With `ccnc=false&ccnd=false` the same page comes back 30 out of
+30 usable. Note `audiodlallowed` is NOT a recognised parameter on `/tracks/` —
+Jamendo warns and ignores it — so the download-permission check has to happen
+in `parseSearchResponse`, where it does.
+
+**Still open on Jamendo: their API terms, not the music.** The tracks are fine —
+we only take CC BY / BY-SA / CC0, granted by the artist directly, so commercial
+use with attribution is exactly what they permit and Jamendo cannot gate it.
+The service is the question: the free tier is **35,000 requests/month** and is
+framed for non-commercial apps, with commercial tiers unpublished and by
+arrangement. The full API Terms of Use page 404s, so this needs asking rather
+than assuming. At our 5-minute cache, 35k/month is comfortable at a few hundred
+active sellers and tight at a few thousand.
+
+**The licence check is an allowlist, not a deny-list, and that was a real
+bug.** It used to pass anything not matching non-commercial or no-derivatives,
+so a licence we could not name read as usable. Asking ccMixter for a reduced
+field set silently drops `license_name` and turns a whole page into "Unknown
+licence" — under the old rule every one of those published, NC tracks
+included. Now a licence must be affirmatively recognised. Wrongly hiding a
+usable song is a missing row in a picker; wrongly publishing an NC one is a
+seller's problem with a rights holder.
+
+**Device audio is gone from all three create flows.** The camera's "use a sound
+from your phone" row went on 2026-09-10; the video editor's "Choose an audio
+file" went on 2026-09-11 and was the last one. The reasoning is the same in
+both places and it is worth restating because the video editor looked like the
+exception: mixing a track into an MP4 that Oakmonte then serves publicly under
+a post selling something is Oakmonte distributing it commercially, which is
+exactly what we hold no licence for. That the file never sits in storage on its
+own changes nothing about who is publishing it.
+
+**Still wanted:** a catalogue anybody would recognise. All three sources are
+legally clean and none of them is famous. Adding a fourth is one module in
+`sound-providers/` plus a line in its registry: normalise into `LibraryTrack`,
+map the shared `SOUND_GENRES` onto its own taxonomy, add its media host to
+`TRUSTED_AUDIO_HOSTS`, and the picker, credit and upload path work unchanged.
 
 **Attribution is a correctness requirement, not a nicety** (migration
 `20260910120000`). A CC BY track is licensed _only while the artist is
@@ -119,12 +195,28 @@ feed. When Commons does not state whether a credit is owed, the inference errs
 towards crediting — naming someone who placed their work in the public domain
 costs nothing; failing to name someone who required it is the actual failure.
 
-**A library track never touches the phone.** It is handed to the upload as a
-URL and the server copies it into Bunny (`fetchTrustedAudio`). Commons MP3s run
-3-5 MB, so downloading one to the browser only to upload it again would cost a
-seller on mobile data about eight megabytes to attach a song. That is also why
-`isTrustedAudioSource` is an exact-hostname HTTPS allowlist: a request field
-deciding what our server fetches is the shape of every SSRF hole ever written.
+**A library track never touches the phone — except in the video editor.** On
+every other screen it is handed to the upload as a URL and the server copies it
+into Bunny (`fetchTrustedAudio`, now in `src/lib/trusted-audio.server.ts`).
+Commons MP3s run 3-5 MB, so downloading one to the browser only to upload it
+again would cost a seller on mobile data about eight megabytes to attach a
+song. That is also why `isTrustedAudioSource` is an exact-hostname HTTPS
+allowlist: a request field deciding what our server fetches is the shape of
+every SSRF hole ever written.
+
+The video editor cannot work that way, because it welds the music into the MP4
+rather than uploading it beside the media — `OfflineAudioContext` needs the
+actual bytes. `/api/sound-file` streams one track to the browser through the
+same allowlisted server-side fetch, auth-gated for the same reason
+`/api/sounds` is: an open relay costs us the bandwidth. It is deliberately not
+a general proxy.
+
+That baked-in track still has to be credited, and there is no `audio_url` to
+hang the credit on. `audioBakedIn=1` on the publish request is what says "the
+media already contains this" — no bytes stored, the three credit columns
+written anyway. `PostFeed` shows the credit line on attribution alone rather
+than on `audio_url`, and appends the autoplay prompt only when there is a
+second source to unblock.
 
 **Not yet done here:** no infinite scroll (the route returns `nextOffset` and
 nothing calls it — one page of ~40 per genre is what a seller sees); no link
@@ -152,6 +244,45 @@ the video editor's session and publish path, not to this feature.
 Worth knowing: the failure is **data loss, not a licence breach** — the
 republished post carries no audio at all rather than an uncredited track, so
 nothing ships without its credit. That is what makes it safe to leave.
+
+Half of that fix now exists (2026-09-11): the video editor takes catalogue
+tracks and carries their credit, and `/api/sound-file` already accepts our own
+pull zone as a trusted host — so a draft's stored `audio_url` can be fetched
+back into the timeline by the same path a fresh pick takes. What is still
+missing is the restore itself: `create.drafts.tsx` hands the video editor
+media and never looks at `audio_url`.
+
+The *baked-in* case is fixed, and it had to be: a video-editor draft has its
+music inside the MP4, so reopening and republishing one carried the track into
+the new post while the credit columns came back null — music published without
+its attribution, which is the breach rather than the data loss. The editor now
+reads `audio_licence` with no `audio_url` as "already welded in" and holds an
+`inheritedCredit` that survives session parking and is re-sent as
+`audioBakedIn=1`. Caught in review, not by a test — nothing tests a draft round
+trip.
+
+**The rest of that review is closed too** (same day). `/api/sound-file` now
+takes a signed URL: `/api/sounds` stamps each track with an HMAC *after*
+`isUsableTrack` and `isLicenceUsable` have run, and the proxy refuses anything
+unstamped — so an allowlisted host is no longer enough to pull a track the
+picker filtered out. Signing rather than re-resolving the id upstream was
+deliberate: re-resolving costs a provider request per pick against Jamendo's
+35,000-a-month free tier, and proves less ("this id is usable now" rather than
+"this URL is one we offered"). The key derives from a secret the server
+already holds, so there is no new env var to forget; `SOUND_URL_SIGNING_KEY`
+overrides it if the two should rotate separately. `sound-url-signature.test.ts`
+covers it, because a verify that wrongly returned true would break nothing
+visible.
+
+There is also a per-user rate limit, and it is honest about being a brake
+rather than a guarantee: the counter lives in one isolate's memory, so several
+isolates mean several counters and a cold start forgets. A real limit needs
+shared state — a Durable Object or a table — and is worth building when there
+is traffic to justify it.
+
+Undo/redo now covers the music track. Removing one was the only destructive
+action on that screen undo could not take back, and re-picking costs another
+trip to the catalogue and several megabytes of somebody's mobile data.
 
 The feed has **no volume control**, deliberately: autoplay is the only sound the
 app makes and the tap surface already stops it. First playback in a session is

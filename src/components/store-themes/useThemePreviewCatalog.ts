@@ -1,12 +1,36 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 
+export type TilePhoto = {
+  url: string;
+  /** Which variant this photo belongs to, 0-based and gap-free: variants
+   * that uploaded no photo at all are skipped entirely rather than leaving a
+   * number the shopper can never swipe to. Always 0 for collections, which
+   * have no variants. */
+  variant: number;
+};
+
 export type PreviewTile = {
   id: string;
   title: string;
-  image_url: string | null;
+  /** Every photo the seller uploaded for this tile, in variant order, cover
+   * first within each variant. More than one turns the tile into a swipeable
+   * carousel (see CatalogTile in full-preview-blocks.tsx). Empty means "no
+   * photo at all" — the caller substitutes its placeholder. */
+  photos: TilePhoto[];
+  /** How many variants actually contributed a photo. 1 (or 0) means there is
+   * nothing for the tile's variant counter to track, so it isn't drawn. */
+  variantCount: number;
   price: number | null;
 };
+
+// A cover photo plus its extras, in upload order, with the nulls and the
+// blank strings a half-filled form can leave behind dropped.
+function gallery(main: string | null, extra: string[] | null): string[] {
+  return [main, ...(extra ?? [])].filter(
+    (url): url is string => typeof url === "string" && url.trim() !== "",
+  );
+}
 
 // Real, read-only preview of a store's collections/products — the seller's
 // own store while editing, or any store's when rendered publicly (see
@@ -30,31 +54,65 @@ export function useThemePreviewCatalog(mode: "collections" | "products", storeId
       if (mode === "collections") {
         const { data, error } = await supabase
           .from("collections")
-          .select("id, title, image_url")
+          .select("id, title, image_url, additional_image_urls")
           .eq("store_id", storeId)
           .limit(4);
         if (cancelled) return;
         setTiles(
           error || !data
             ? []
-            : data.map((c) => ({ id: c.id, title: c.title, image_url: c.image_url, price: null })),
+            : data.map((c) => ({
+                id: c.id,
+                title: c.title,
+                photos: gallery(c.image_url, c.additional_image_urls).map((url) => ({
+                  url,
+                  variant: 0,
+                })),
+                variantCount: 1,
+                price: null,
+              })),
         );
       } else {
         const { data, error } = await supabase
           .from("products")
-          .select("id, title, product_variants(main_image_url, price)")
+          .select("id, title, product_variants(main_image_url, additional_image_urls, price)")
           .eq("store_id", storeId)
+          // Embedded rows come back in no guaranteed order otherwise, which
+          // would let the tile's photo order — and the price below, taken
+          // from the first variant — change between two loads of the same
+          // product.
+          .order("created_at", { referencedTable: "product_variants", ascending: true })
           .limit(4);
         if (cancelled) return;
         setTiles(
           error || !data
             ? []
-            : data.map((p) => ({
-                id: p.id,
-                title: p.title ?? "Untitled",
-                image_url: p.product_variants?.[0]?.main_image_url ?? null,
-                price: p.product_variants?.[0]?.price ?? null,
-              })),
+            : data.map((p) => {
+                const variants = p.product_variants ?? [];
+                // Deliberately NOT de-duplicated across variants. A size run
+                // repeats one photo across every row, so this does produce
+                // stretches where swiping advances the tile's variant counter
+                // without the picture changing — that is the intended read:
+                // the counter tracks variants, and collapsing identical
+                // photo sets would make it skip variants that genuinely
+                // exist. A colourway run, where each variant carries its own
+                // photo, is the case this shape is really for.
+                const photos: TilePhoto[] = [];
+                let variant = 0;
+                for (const v of variants) {
+                  const urls = gallery(v.main_image_url, v.additional_image_urls);
+                  if (urls.length === 0) continue;
+                  for (const url of urls) photos.push({ url, variant });
+                  variant += 1;
+                }
+                return {
+                  id: p.id,
+                  title: p.title ?? "Untitled",
+                  photos,
+                  variantCount: variant,
+                  price: variants[0]?.price ?? null,
+                };
+              }),
         );
       }
       if (!cancelled) setLoading(false);

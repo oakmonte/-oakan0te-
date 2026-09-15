@@ -72,10 +72,15 @@ export default function CameraPanel({
         className="fixed left-0 right-0 z-50 transition-transform duration-300 ease-out"
         style={{
           bottom: 0,
-          height,
+          // Clamped, not trusted. `height` is what the panel WANTS; a tall one
+          // asked for on a short phone would reach past the top of the screen
+          // and take its own close affordance with it. `dvh` rather than `vh`
+          // so the browser chrome that slides in and out on mobile Safari is
+          // already accounted for.
+          height: `min(${height}px, 78dvh)`,
           transform: open
             ? "translateY(0)"
-            : `translateY(calc(${height}px + env(safe-area-inset-bottom)))`,
+            : `translateY(calc(min(${height}px, 78dvh) + env(safe-area-inset-bottom)))`,
           pointerEvents: open ? "auto" : "none",
           borderTopLeftRadius: 28,
           borderTopRightRadius: 28,
@@ -116,7 +121,9 @@ export default function CameraPanel({
         <div
           className="px-6 overflow-y-auto"
           style={{
-            height: height - 76,
+            // 76px is the handle plus the header above it; the content takes
+            // whatever the clamped panel has left.
+            height: `calc(min(${height}px, 78dvh) - 76px)`,
           }}
         >
           {children}

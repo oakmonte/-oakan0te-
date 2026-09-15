@@ -2,10 +2,11 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowRight,
-  Captions as CaptionsIcon,
+  ChevronDown,
   ChevronLeft,
   Copy,
-  Layers2,
+  Crop,
+  Gauge,
   Maximize2,
   Minimize2,
   Music,
@@ -13,13 +14,16 @@ import {
   Play,
   Ratio,
   Redo2,
+  RefreshCw,
   Scissors,
   SlidersHorizontal,
-  Sparkles,
+  Split,
   Sticker,
   Trash2,
   Type,
   Undo2,
+  Volume2,
+  VolumeX,
   Wand2,
 } from "lucide-react";
 import {
@@ -42,6 +46,7 @@ import { DraftImagePickerSheet } from "@/components/product-form/DraftImagePicke
 import { PostImagePickerSheet } from "@/components/product-form/PostImagePickerSheet";
 import type { PickedMedia } from "@/components/product-form/MediaPickerSheet";
 import {
+  type EditorMusic,
   discardVideoEditorSession,
   parkVideoEditorSession,
   takeVideoEditorSession,
@@ -49,18 +54,16 @@ import {
 import { setPendingCapture } from "@/lib/capture-handoff";
 import { takePendingDraft } from "@/lib/draft-handoff";
 import VideoTimeline from "@/components/create/VideoTimeline";
-import {
-  ClipSheet,
-  ComingSoonSheet,
-  RatioSheet,
-  TransitionSheet,
-  SoundSheet,
-} from "@/components/create/ClipOptionSheets";
+import { SpeedSheet, RatioSheet, SoundSheet } from "@/components/create/ClipOptionSheets";
 import { exportSequence } from "@/lib/video-sequence-export";
+import SoundLibrarySheet from "@/components/camera/SoundLibrarySheet";
+import { authedFetch } from "@/lib/authed-fetch";
+import { type LibraryTrack, type SoundCredit, creditFor } from "@/lib/sound-library";
 import {
   blankClipEdits,
   clipDuration,
   clipStarts,
+  MIN_CLIP_DURATION,
   extractFilmstrip,
   formatTime,
   locate,
@@ -93,49 +96,29 @@ export const Route = createFileRoute("/create/video-editor")({
 // not have three implementations that drift apart. What is NOT reused is
 // after-shot-context, which carries exactly one CapturedMedia.
 //
-// Honest about what's decoration: Effects, Magic, Captions, Overlay and
-// transitions are drawn and open a sheet that says they aren't wired yet.
-// Everything else on this screen does what it looks like it does — Sound
-// included, which takes an audio file off the device and mixes it under the
-// whole timeline.
+// Nothing on this screen is decoration. Effects, Magic, Captions, Overlay and
+// transitions used to be drawn here and open a sheet admitting they weren't
+// wired up; they are gone rather than greyed, because a tool you cannot use is
+// worse than a tool that isn't there — it reads as broken rather than absent.
+// Everything here does what it looks like it does — Sound
+// included, which picks a track from the catalogue and mixes it under the
+// whole timeline. It is the only screen that needs the track's actual bytes in
+// the browser, because it welds the music into the MP4 instead of uploading it
+// beside the media; see `chooseTrack`.
 
-type ToolId =
-  | "clip"
-  | "text"
-  | "sticker"
-  | "filter"
-  | "adjust"
-  | "ratio"
-  | "transition"
-  | "sound"
-  | "soon";
+type ToolId = "speed" | "text" | "sticker" | "filter" | "adjust" | "ratio" | "sound";
 
-type SoonInfo = { title: string; body: string };
-
-const SOON: Record<string, SoonInfo> = {
-  effects: {
-    title: "Effects",
-    body: "Timed visual effects sit on the timeline like clips do. The filter and tone tools next to this one are live today and apply per clip.",
-  },
-  magic: {
-    title: "Magic",
-    body: "Auto-cut to the beat, auto-framing and background removal. Each needs analysis passes that don't exist yet.",
-  },
-  captions: {
-    title: "Captions",
-    body: "Automatic captions need speech recognition on the audio track. Text added by hand works today — it's the Text tool.",
-  },
-  overlay: {
-    title: "Overlay",
-    body: "A second layer of video on top of the timeline. The exporter composites one clip at a time right now; overlays mean two decoders at once.",
-  },
-};
-
-/** Snapshot of everything undo/redo restores. Deliberately just the timeline:
- *  text and sticker layers have their own selection and editing affordances,
- *  and folding them in here would make an undo mid-caption mean two different
- *  things depending on which panel was open. */
-type Snapshot = { clips: Clip[]; ratio: ProjectRatio };
+/** Snapshot of everything undo/redo restores.
+ *
+ *  Text and sticker layers are deliberately NOT in here: they have their own
+ *  selection and editing affordances, and folding them in would make an undo
+ *  mid-caption mean two different things depending on which panel was open.
+ *
+ *  The music track IS, because it is a property of the whole timeline rather
+ *  than of a panel — and because removing one is the one destructive action on
+ *  this screen that undo could not take back. Re-picking costs a second trip
+ *  to the catalogue and several megabytes of somebody's mobile data. */
+type Snapshot = { clips: Clip[]; ratio: ProjectRatio; music: EditorMusic | null };
 
 function VideoEditorRoute() {
   const layerState = useAfterShotLayersState();
@@ -165,7 +148,6 @@ function VideoEditor() {
   const [expanded, setExpanded] = useState(false);
 
   const [activeTool, setActiveTool] = useState<ToolId | null>(null);
-  const [soon, setSoon] = useState<SoonInfo | null>(null);
   const [editingLayerId, setEditingLayerId] = useState<string | null>(null);
   const [previewFilterId, setPreviewFilterId] = useState<string | null>(null);
   const [previewFilterIntensity, setPreviewFilterIntensity] = useState<number | null>(null);
@@ -177,9 +159,33 @@ function VideoEditor() {
   const [postsOpen, setPostsOpen] = useState(false);
   // Music laid over the whole timeline. Session-lived like the clips are, and
   // parked with them so it survives the trip to publish.
-  const [music, setMusic] = useState<{ file: File; name: string; volume: number } | null>(
-    () => session?.music ?? null,
+  //
+  // The credit travels with the file. This screen mixes the track INTO the
+  // MP4, so once the export runs there is no way to recover what was in it —
+  // the credit has to be carried from the moment the track is picked, or the
+  // post goes out with music and no attribution.
+  const [music, setMusic] = useState<EditorMusic | null>(() => session?.music ?? null);
+  // A credit carried in from a reopened draft, for music already welded into
+  // one of the clips. Separate from `music` because there is no file to go with
+  // it and nothing to re-mix — only an obligation to keep crediting it.
+  const [inheritedCredit, setInheritedCredit] = useState<SoundCredit | null>(
+    () => session?.inheritedCredit ?? null,
   );
+  const [inheritedName, setInheritedName] = useState<string | null>(
+    () => session?.inheritedName ?? null,
+  );
+  // Edit mode. Tapping Edit does not open anything over the timeline — it
+  // selects the clip under the playhead and swaps the toolbar underneath for
+  // that clip's own actions. A sheet was the wrong shape for this: the thing
+  // being edited is the clip on the timeline, and a panel covering the
+  // timeline hides it at exactly the moment it matters.
+  const [clipEditing, setClipEditing] = useState(false);
+  // Set while the media picker is being used to REPLACE a clip rather than add
+  // one. The picker is the same; where its result goes is not.
+  const [replaceTargetId, setReplaceTargetId] = useState<string | null>(null);
+  const [soundOpen, setSoundOpen] = useState(false);
+  const [soundLoading, setSoundLoading] = useState(false);
+  const [soundError, setSoundError] = useState<string | null>(null);
   const [progress, setProgress] = useState<number | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -189,7 +195,6 @@ function VideoEditor() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const stickerInputRef = useRef<HTMLInputElement>(null);
-  const audioInputRef = useRef<HTMLInputElement>(null);
   const renderLayerContent = useLayerRenderer(frameRef);
 
   // One layer stack per clip. The shared layer context holds one at a time, so
@@ -213,21 +218,48 @@ function VideoEditor() {
   // A ref, because a cleanup with an empty dep list closes over the state as
   // it was on first render — which for a restored session is right, and for a
   // fresh one is an empty timeline.
-  const latest = useRef({ clips, ratio, time, layers, music, currentId: null as string | null });
+  const latest = useRef({
+    clips,
+    ratio,
+    time,
+    layers,
+    music,
+    inheritedCredit,
+    inheritedName,
+    currentId: null as string | null,
+  });
 
   const total = sequenceDuration(clips);
   const head = locate(clips, time);
   const current = head ? clips[head.index] : null;
   const selected = clips.find((c) => c.id === selectedId) ?? null;
 
-  latest.current = { clips, ratio, time, layers, music, currentId: current?.id ?? null };
+  latest.current = {
+    clips,
+    ratio,
+    time,
+    layers,
+    music,
+    inheritedCredit,
+    inheritedName,
+    currentId: current?.id ?? null,
+  };
   // Read by the filmstrip queue to know whether a clip it is still decoding
   // for is one the user has since deleted.
   const liveClipIds = useRef(new Set<string>());
   liveClipIds.current = new Set(clips.map((c) => c.id));
   useEffect(
     () => () => {
-      const { clips: c, ratio: r, time: t, layers: l, music: m, currentId } = latest.current;
+      const {
+        clips: c,
+        ratio: r,
+        time: t,
+        layers: l,
+        music: m,
+        inheritedCredit: ic,
+        inheritedName: iname,
+        currentId,
+      } = latest.current;
       if (c.length === 0) return;
       // The live stack belongs to whichever clip was on screen; park it or the
       // caption you could see would not come back with it.
@@ -238,6 +270,8 @@ function VideoEditor() {
         ratio: r,
         time: t,
         music: m,
+        inheritedCredit: ic,
+        inheritedName: iname,
         ownedUrls: ownedUrls.current,
       });
     },
@@ -256,9 +290,9 @@ function VideoEditor() {
   /** Snapshot the CURRENT timeline, then apply the next one. Everything that
    *  changes the timeline in one discrete step goes through here. */
   const push = useCallback(() => {
-    setPast((prev) => [...prev, { clips, ratio }].slice(-40));
+    setPast((prev) => [...prev, { clips, ratio, music }].slice(-40));
     setFuture([]);
-  }, [clips, ratio]);
+  }, [clips, ratio, music]);
 
   const commit = useCallback(
     (next: Clip[]) => {
@@ -272,23 +306,25 @@ function VideoEditor() {
     setPast((prev) => {
       if (prev.length === 0) return prev;
       const snap = prev[prev.length - 1];
-      setFuture((f) => [...f, { clips, ratio }]);
+      setFuture((f) => [...f, { clips, ratio, music }]);
       setClips(snap.clips);
       setRatio(snap.ratio);
+      setMusic(snap.music);
       return prev.slice(0, -1);
     });
-  }, [clips, ratio]);
+  }, [clips, ratio, music]);
 
   const redo = useCallback(() => {
     setFuture((prev) => {
       if (prev.length === 0) return prev;
       const snap = prev[prev.length - 1];
-      setPast((p) => [...p, { clips, ratio }]);
+      setPast((p) => [...p, { clips, ratio, music }]);
       setClips(snap.clips);
       setRatio(snap.ratio);
+      setMusic(snap.music);
       return prev.slice(0, -1);
     });
-  }, [clips, ratio]);
+  }, [clips, ratio, music]);
 
   /* ---------------- layer stack per clip ---------------- */
 
@@ -421,6 +457,27 @@ function VideoEditor() {
 
   function handleDeviceFiles(files: FileList | null) {
     if (!files) return;
+    // Replacing takes the first file and ignores the rest: one clip is being
+    // swapped for one other, and quietly appending the extras would be a
+    // different edit from the one that was asked for.
+    const target = replaceTargetId ? clips.find((c) => c.id === replaceTargetId) : null;
+    if (target) {
+      const file = Array.from(files).find(
+        (f) => f.type.startsWith("video/") || f.type.startsWith("image/"),
+      );
+      if (file) {
+        const url = URL.createObjectURL(file);
+        ownedUrls.current.push(url);
+        replaceClip(target, {
+          kind: file.type.startsWith("video/") ? "video" : "photo",
+          blob: file,
+          url,
+          remote: false,
+        });
+      }
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
     const created: Clip[] = [];
     for (const file of Array.from(files)) {
       const isVideo = file.type.startsWith("video/");
@@ -464,12 +521,44 @@ function VideoEditor() {
     addClips([clip]);
     if (clip.kind === "video") void measureVideo(clip, draft.thumbnailUrl);
     else measurePhoto(clip);
+
+    // A draft made on this screen has its music INSIDE the MP4, which is what
+    // `audio_licence` with no `audio_url` means. Re-exporting that clip carries
+    // the track into the new file, so the credit has to come with it — nothing
+    // about the timeline can recover it afterwards, and a republished post
+    // playing a CC BY track with an empty attribution column is the precise
+    // failure this catalogue exists to prevent.
+    //
+    // A draft WITH an `audio_url` is a detached track this screen cannot play.
+    // That one is still lost, deliberately — it is the older gap written up in
+    // POSTPONED 0.2, and inheriting a credit for music the export will not
+    // contain would trade a silent bug for a false claim.
+    if (draft.audioLicence && !draft.audioUrl) {
+      setInheritedCredit({
+        attribution: draft.audioAttribution ?? null,
+        licence: draft.audioLicence,
+        sourceUrl: draft.audioSourceUrl ?? "",
+      });
+      setInheritedName(draft.audioName ?? null);
+    }
   }, [addClips, measureVideo, measurePhoto]);
 
   /** Clips picked from drafts or published posts. Unlike the product form,
    *  which can only use stills, this screen takes both — an old video is as
    *  valid a piece of a new one as a photo is. */
   function handlePicked(picked: PickedMedia[]) {
+    const target = replaceTargetId ? clips.find((c) => c.id === replaceTargetId) : null;
+    if (target && picked[0]) {
+      const item = picked[0];
+      replaceClip(
+        target,
+        { kind: item.kind, blob: new Blob(), url: item.url, remote: true },
+        item.thumbnailUrl,
+      );
+      setDraftsOpen(false);
+      setPostsOpen(false);
+      return;
+    }
     const created: Clip[] = picked.map((item) => ({
       id: newClipId(),
       kind: item.kind,
@@ -484,6 +573,33 @@ function VideoEditor() {
     );
     setDraftsOpen(false);
     setPostsOpen(false);
+  }
+
+  /** Swap a clip's source, keeping the look the seller gave it.
+   *
+   *  Filter, tone, fit and mute survive; trim, filmstrip and duration cannot,
+   *  because they describe the old file. A photo keeps how long it holds, which
+   *  is the one duration that belongs to the edit rather than to the source. */
+  function replaceClip(
+    target: Clip,
+    next: Pick<Clip, "kind" | "blob" | "url" | "remote">,
+    poster?: string | null,
+  ) {
+    push();
+    const replaced: Clip = {
+      ...target,
+      ...next,
+      naturalSize: null,
+      sourceDuration: 0,
+      trimStart: 0,
+      trimEnd: 0,
+      thumbUrl: null,
+      frames: [],
+    };
+    setClips((prev) => prev.map((c) => (c.id === target.id ? replaced : c)));
+    setReplaceTargetId(null);
+    if (replaced.kind === "video") void measureVideo(replaced, poster ?? null);
+    else measurePhoto(replaced);
   }
 
   function openSource(e: React.MouseEvent<HTMLElement>) {
@@ -595,6 +711,10 @@ function VideoEditor() {
     const next = clips.filter((c) => c.id !== selected.id);
     commit(next);
     setSelectedId(null);
+    // The clip the toolbar was about is gone, so the toolbar goes too. Falling
+    // through to whatever the playhead lands on next would leave Delete under
+    // the same thumb that just pressed it, aimed at a different clip.
+    setClipEditing(false);
     setTime((t) => Math.min(t, sequenceDuration(next)));
   }
 
@@ -726,8 +846,28 @@ function VideoEditor() {
       // Park the live stack first, or the clip currently on screen would
       // export without the caption you can see on it.
       if (current) layersByClip.current[current.id] = layers;
-      const blob = await exportSequence(clips, layersByClip.current, ratio, music, setProgress);
+      const { blob, musicIncluded } = await exportSequence(
+        clips,
+        layersByClip.current,
+        ratio,
+        music,
+        setProgress,
+      );
+      // A track was chosen and the mixer could not decode it. Going on would
+      // hand the seller a silent video they believe has music, and they would
+      // find out in the feed. Stopping here costs a re-export if they try
+      // again, which is the cheaper of the two surprises.
+      if (music && !musicIncluded) {
+        setError("That track couldn't be added to the video. Try another one.");
+        return;
+      }
+
       const url = URL.createObjectURL(blob);
+
+      // What the finished file is actually playing. `music` is past the decode
+      // check by this point; `inheritedCredit` is a track welded into a clip by
+      // an earlier session, which is inside the file either way.
+      const bakedCredit = music?.credit ?? inheritedCredit;
 
       // A cover for the publish screen. Without one it falls back to rendering
       // frame zero of the video element, which on a cut that opens dark is a
@@ -741,7 +881,32 @@ function VideoEditor() {
         poster = undefined;
       }
 
-      setPendingCapture({ type: "video", blob, url, poster, origin: "video-editor" });
+      setPendingCapture({
+        type: "video",
+        blob,
+        url,
+        poster,
+        origin: "video-editor",
+        // The track is inside `blob` now. `bakedIn` is what tells publish to
+        // send the credit and no bytes — the post plays that music, so the row
+        // has to say so even though there is no separate file to store.
+        //
+        // Two sources, and both have to be honoured. `music` is a track picked
+        // on this visit, and it only counts if the mixer actually decoded it —
+        // crediting a track the file does not contain is as wrong as omitting
+        // one it does. `inheritedCredit` is a track welded into a clip by an
+        // earlier session, which no amount of inspecting the timeline can
+        // recover; see the draft-restore effect.
+        audio: bakedCredit
+          ? {
+              blob: null,
+              url: "",
+              name: music ? music.name : (inheritedName ?? "Sound"),
+              credit: bakedCredit,
+              bakedIn: true,
+            }
+          : undefined,
+      });
 
       // The unmount cleanup parks the timeline on its own, so backing out of
       // publish returns to the edit rather than an empty screen.
@@ -755,6 +920,64 @@ function VideoEditor() {
     }
   }
 
+  /** Take a track from the catalogue and put it on the timeline.
+   *
+   *  Unlike every other screen that picks a sound, this one needs the actual
+   *  bytes: the export mixes the music into the MP4 rather than uploading it
+   *  beside the media, and `OfflineAudioContext` cannot decode a URL it is not
+   *  allowed to read. So the file comes down through `/api/sound-file`, which
+   *  is the same allowlisted server-side fetch the publish path uses — the
+   *  browser is not permitted to reach these hosts directly, and that is on
+   *  purpose rather than an obstacle to route around.
+   *
+   *  It is a few megabytes over what may be a mobile connection, which is why
+   *  the sheet says it is working and stays open until this resolves. */
+  const chooseTrack = useCallback(
+    async (track: LibraryTrack) => {
+      setSoundLoading(true);
+      setSoundError(null);
+      try {
+        // The access stamp travels with the track from `/api/sounds`. Without
+        // it the proxy refuses — it only serves URLs the catalogue issued, so a
+        // track assembled anywhere else cannot be laundered through it.
+        const query = new URLSearchParams({ url: track.streamUrl });
+        if (track.access) {
+          query.set("sig", track.access.sig);
+          query.set("exp", String(track.access.exp));
+        }
+        const res = await authedFetch(`/api/sound-file?${query.toString()}`);
+        if (!res.ok) {
+          const body = await res.json().catch(() => null);
+          throw new Error(body?.error ?? "Couldn't load that sound");
+        }
+        const blob = await res.blob();
+        // A name for the mixer, not for the seller — the credit is what the post
+        // shows. The extension keeps `decodeAudioData` from having to guess.
+        const file = new File([blob], "track.mp3", { type: blob.type || "audio/mpeg" });
+        const next: EditorMusic = {
+          file,
+          name: track.title,
+          // Under the clips rather than over them: this is a backing track for a
+          // garment video, and a seller talking about the fit has to win.
+          volume: 0.7,
+          credit: creditFor(track),
+        };
+        // Snapshot before it changes, so undo takes the pick back rather than
+        // skipping past it to whatever happened before. Volume is left out on
+        // purpose — a slider would push forty snapshots on one drag.
+        push();
+        setMusic((m) => (m ? { ...next, volume: m.volume } : next));
+        setSoundOpen(false);
+      } catch (err) {
+        console.error("VideoEditor: could not fetch track", err);
+        setSoundError("Couldn't load that sound. Check your connection and try another.");
+      } finally {
+        setSoundLoading(false);
+      }
+    },
+    [push],
+  );
+
   const closeTool = useCallback(() => setActiveTool(null), []);
 
   const TOOLS: { id: string; label: string; icon: typeof Type; run: () => void; off?: boolean }[] =
@@ -764,8 +987,9 @@ function VideoEditor() {
         label: "Edit",
         icon: Scissors,
         run: () => {
-          if (!selectedId && current) setSelectedId(current.id);
-          setActiveTool("clip");
+          // Whatever the playhead is standing on is what you meant to edit.
+          if (current) setSelectedId(current.id);
+          setClipEditing(true);
         },
       },
       { id: "text", label: "Text", icon: Type, run: () => setActiveTool("text") },
@@ -784,36 +1008,85 @@ function VideoEditor() {
       },
       { id: "canvas", label: "Canvas", icon: Ratio, run: () => setActiveTool("ratio") },
       { id: "sound", label: "Sound", icon: Music, run: () => setActiveTool("sound") },
-      {
-        id: "effects",
-        label: "Effects",
-        icon: Sparkles,
-        run: () => openSoon(SOON.effects),
-        off: true,
-      },
-      { id: "magic", label: "Magic", icon: Wand2, run: () => openSoon(SOON.magic), off: true },
-      {
-        id: "captions",
-        label: "Captions",
-        icon: CaptionsIcon,
-        run: () => openSoon(SOON.captions),
-        off: true,
-      },
-      {
-        id: "overlay",
-        label: "Overlay",
-        icon: Layers2,
-        run: () => openSoon(SOON.overlay),
-        off: true,
-      },
       { id: "duplicate", label: "Duplicate", icon: Copy, run: handleDuplicate },
       { id: "delete", label: "Delete", icon: Trash2, run: handleDelete },
     ];
 
-  function openSoon(info: SoonInfo) {
-    setSoon(info);
-    setActiveTool("soon");
-  }
+  /** The toolbar while a clip is selected for editing.
+   *
+   *  Built per clip rather than fixed, because a photo has no audio to mute
+   *  and holds for a duration where a video runs at a speed. An action that
+   *  cannot apply is left OUT rather than greyed: a disabled button invites a
+   *  tap and then explains itself, which is a worse answer than not being
+   *  there. */
+  const editTarget = selected ?? current;
+  // Splitting needs the playhead strictly inside the clip being edited, with
+  // room for a clip on each side — the same rule the timeline's own Split
+  // button uses, so the two never disagree about whether a cut is possible.
+  const editStarts = clipStarts(clips);
+  const editIndex = editTarget ? clips.findIndex((c) => c.id === editTarget.id) : -1;
+  const canSplitHere =
+    editIndex >= 0 &&
+    time > editStarts[editIndex] + MIN_CLIP_DURATION &&
+    time < editStarts[editIndex + 1] - MIN_CLIP_DURATION;
+  const CLIP_TOOLS: { id: string; label: string; icon: typeof Type; run: () => void }[] = editTarget
+    ? [
+        { id: "split", label: "Split", icon: Split, run: handleSplit },
+        {
+          id: "replace",
+          label: "Replace",
+          icon: RefreshCw,
+          run: () => {
+            setReplaceTargetId(editTarget.id);
+            setSourceAnchor(null);
+            setSourceOpen(true);
+          },
+        },
+        {
+          id: "speed",
+          label: editTarget.kind === "photo" ? "Duration" : "Speed",
+          icon: Gauge,
+          run: () => setActiveTool("speed"),
+        },
+        {
+          id: "fit",
+          label: editTarget.fit === "cover" ? "Fit" : "Fill",
+          icon: Crop,
+          run: () => {
+            beginGesture();
+            patchClip(editTarget.id, { fit: editTarget.fit === "cover" ? "contain" : "cover" });
+          },
+        },
+        ...(editTarget.kind === "video"
+          ? [
+              {
+                id: "volume",
+                label: editTarget.muted ? "Unmute" : "Mute",
+                icon: editTarget.muted ? VolumeX : Volume2,
+                run: () => {
+                  beginGesture();
+                  patchClip(editTarget.id, { muted: !editTarget.muted });
+                },
+              },
+            ]
+          : []),
+        { id: "filters", label: "Filters", icon: Wand2, run: () => setActiveTool("filter") },
+        {
+          id: "adjust",
+          label: "Adjust",
+          icon: SlidersHorizontal,
+          run: () => setActiveTool("adjust"),
+        },
+        { id: "duplicate", label: "Duplicate", icon: Copy, run: handleDuplicate },
+        { id: "delete", label: "Delete", icon: Trash2, run: handleDelete },
+      ]
+    : [];
+
+  // Nothing to edit means nothing to be in edit mode about — an emptied
+  // timeline must not leave the clip toolbar on screen.
+  useEffect(() => {
+    if (empty) setClipEditing(false);
+  }, [empty]);
 
   const chromeHidden = activeTool !== null || expanded;
 
@@ -888,6 +1161,8 @@ function VideoEditor() {
               <video
                 ref={videoRef}
                 playsInline
+                disablePictureInPicture
+                disableRemotePlayback
                 preload="auto"
                 className="h-full w-full"
                 style={{ objectFit: current.fit, filter: previewCss }}
@@ -1036,14 +1311,12 @@ function VideoEditor() {
         onClose={closeTool}
       />
 
-      {activeTool === "clip" && (selected ?? current) && (
-        <ClipSheet
-          clip={(selected ?? current)!}
+      {activeTool === "speed" && editTarget && (
+        <SpeedSheet
+          clip={editTarget}
           onPatch={(patch) => {
-            const target = selected ?? current;
-            if (!target) return;
             beginGesture();
-            patchClip(target.id, patch);
+            patchClip(editTarget.id, patch);
           }}
           onClose={closeTool}
         />
@@ -1063,17 +1336,19 @@ function VideoEditor() {
       {activeTool === "sound" && (
         <SoundSheet
           music={music}
-          onPick={() => audioInputRef.current?.click()}
+          onPick={() => {
+            setSoundError(null);
+            setSoundOpen(true);
+          }}
+          loading={soundLoading}
+          error={soundError}
           onVolume={(volume) => setMusic((m) => (m ? { ...m, volume } : m))}
-          onRemove={() => setMusic(null)}
+          onRemove={() => {
+            push();
+            setMusic(null);
+          }}
           onClose={closeTool}
         />
-      )}
-
-      {activeTool === "transition" && <TransitionSheet onClose={closeTool} />}
-
-      {activeTool === "soon" && soon && (
-        <ComingSoonSheet title={soon.title} body={soon.body} onClose={closeTool} />
       )}
 
       {/* Transport, timeline and tools */}
@@ -1157,7 +1432,6 @@ function VideoEditor() {
                 if (!clip) return;
                 commit(clips.map((c) => (c.id === id ? { ...c, muted: !c.muted } : c)));
               }}
-              onTransition={() => setActiveTool("transition")}
               onSound={() => setActiveTool("sound")}
               musicName={music?.name ?? null}
             />
@@ -1173,23 +1447,53 @@ function VideoEditor() {
             className="mt-2 flex items-start gap-1 overflow-x-auto px-3"
             style={{ scrollbarWidth: "none" }}
           >
-            {TOOLS.map(({ id, label, icon: Icon, run, off }) => {
-              const needsSelection = id === "duplicate" || id === "delete";
-              return (
+            {clipEditing && editTarget ? (
+              <>
+                {/* Out of edit mode, back to the whole-video tools. First on
+                    the left and pinned there: it is the one button in this bar
+                    that is not about the clip, and the way back has to be
+                    somewhere the thumb can find without reading. */}
                 <button
-                  key={id}
                   type="button"
-                  disabled={empty || (needsSelection && !selected)}
-                  onClick={run}
-                  className="flex w-[70px] shrink-0 flex-col items-center gap-1.5 rounded-[10px] bg-white/[0.07] py-2.5 active:scale-95 disabled:opacity-30"
+                  onClick={() => {
+                    setClipEditing(false);
+                    setSelectedId(null);
+                  }}
+                  aria-label="Done editing this clip"
+                  className="sticky left-0 z-10 flex w-[52px] shrink-0 flex-col items-center justify-center self-stretch rounded-[10px] bg-white/[0.14] py-2.5 backdrop-blur active:scale-95"
                 >
-                  <Icon size={21} strokeWidth={1.7} className={off ? "text-white/55" : ""} />
-                  <span className={`text-[11px] leading-tight ${off ? "text-white/55" : ""}`}>
-                    {label}
-                  </span>
+                  <ChevronDown size={21} strokeWidth={1.7} />
                 </button>
-              );
-            })}
+                {CLIP_TOOLS.map(({ id, label, icon: Icon, run }) => (
+                  <button
+                    key={id}
+                    type="button"
+                    disabled={id === "split" && !canSplitHere}
+                    onClick={run}
+                    className="flex w-[70px] shrink-0 flex-col items-center gap-1.5 rounded-[10px] bg-white/[0.07] py-2.5 active:scale-95 disabled:opacity-30"
+                  >
+                    <Icon size={21} strokeWidth={1.7} />
+                    <span className="text-[11px] leading-tight">{label}</span>
+                  </button>
+                ))}
+              </>
+            ) : (
+              TOOLS.map(({ id, label, icon: Icon, run }) => {
+                const needsSelection = id === "duplicate" || id === "delete";
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    disabled={empty || (needsSelection && !selected)}
+                    onClick={run}
+                    className="flex w-[70px] shrink-0 flex-col items-center gap-1.5 rounded-[10px] bg-white/[0.07] py-2.5 active:scale-95 disabled:opacity-30"
+                  >
+                    <Icon size={21} strokeWidth={1.7} />
+                    <span className="text-[11px] leading-tight">{label}</span>
+                  </button>
+                );
+              })
+            )}
           </div>
         </div>
       )}
@@ -1210,18 +1514,13 @@ function VideoEditor() {
         className="hidden"
         onChange={(e) => handleStickerFiles(e.target.files)}
       />
-      <input
-        ref={audioInputRef}
-        type="file"
-        accept="audio/*"
-        className="hidden"
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          // No object URL: the file itself goes to the mixdown, and nothing on
-          // this screen plays it back yet.
-          if (file) setMusic({ file, name: file.name, volume: 0.7 });
-          if (audioInputRef.current) audioInputRef.current.value = "";
-        }}
+      {/* The device audio picker that used to be here is gone. See the note on
+          `SoundSheet` — this screen bakes the track into the MP4 we then serve
+          publicly, so the catalogue is the only source we can stand behind. */}
+      <SoundLibrarySheet
+        open={soundOpen}
+        onClose={() => setSoundOpen(false)}
+        onPick={chooseTrack}
       />
 
       {sourceOpen && (

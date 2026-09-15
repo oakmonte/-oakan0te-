@@ -73,11 +73,42 @@ means "has children, not filled in yet". Not interchangeable.
   devtools, `tanstackStart`, viteReact, tailwind, tsConfigPaths, Nitro and the `@` alias. Don't re-add.
 - LF everywhere. On Windows keep `core.autocrlf=false` for this repo.
 
+### Every `<video>` carries four attributes
+
+`playsInline muted disablePictureInPicture disableRemotePlayback`, and **never `controls`**. Not
+style — each one removes a piece of browser UI that would otherwise be painted over our media, which
+is unacceptable on a full-bleed feed people scroll like TikTok. `controls` draws the whole native
+bar; `playsInline` stops iOS playing fullscreen with its own chrome; the other two remove the
+picture-in-picture arrow and the AirPlay/Cast button, including from the right-click menu. Copy all
+four onto any new video element — `muted` is also what lets autoplay work at all.
+
+That covers everything drawn _inside_ the page. It cannot touch what the OS draws **outside** it:
+once audio plays, iOS Control Centre, Android's notification shade and desktop Chrome's toolbar each
+get a now-playing card, and no web API removes them. `src/lib/media-session.ts` shapes that card —
+what it says, and declining the skip buttons by never registering a handler for them. Read it before
+assuming a lock-screen control is a bug.
+
+### Installable web app
+
+`public/manifest.webmanifest` plus the `apple-mobile-web-app-*` meta tags in `__root.tsx`. iOS reads
+none of the manifest's display fields, so both halves are load-bearing — drop the meta tags and "Add
+to Home Screen" produces a bookmark that opens in Safari.
+
+The install is not cosmetic. **A standalone iOS web app has its own permission store**, so the camera
+grant survives between launches instead of being re-asked every visit — which is the only real fix
+for that, since Safari grants camera per page load and no API overrides it. It also gets its own
+cookie and localStorage jar, separate from Safari's: **a user who installs is signed out on first
+launch and has to sign in again.** That is expected, not a bug.
+
+Regenerate icons from `public/favicon.png` with the `canvas` package already in node_modules: `any`
+icons at 62% inset, `maskable` at 46% (Android crops to a squircle and will shave the ends off
+anything larger), `apple-touch-icon` at 180px.
+
 ## Performance — keep it fast
 
 Every page is mobile-first and often on slow networks. Treat load speed as a first-class feature.
 
-**Fonts.** Only the core app fonts belong in `src/routes/__root.tsx`'s Google Fonts link. Theme-picker fonts (the ~38-family list) must load on demand inside the theme editor, not on every route. Always preconnect `https://fonts.gstatic.com`.
+**Fonts.** Only the core app fonts belong in `src/routes/__root.tsx`'s Google Fonts link. Theme-picker fonts (the ~66-family list) must load on demand inside the theme editor, not on every route, and `ensureThemePickerFonts` splits them across several css2 requests rather than one over-long URL. Always preconnect `https://fonts.gstatic.com`.
 
 **Images.** Prefer WebP. Preload the LCP image via the leaf route's `head().links` with `rel: "preload"`, `as: "image"`, `fetchpriority: "high"`. Keep `loading="lazy"` for below-the-fold images. Convert oversized PNGs/JPEGs; downscale charts and illustrations that are larger than their rendered size.
 

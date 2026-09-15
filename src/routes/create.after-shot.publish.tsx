@@ -27,7 +27,16 @@ import { blockedContentMessage, findBlockedContent } from "@/lib/content-policy"
 import CameraPanel from "@/components/camera/CameraPanel";
 
 export const Route = createFileRoute("/create/after-shot/publish")({
-  head: () => ({ meta: [{ title: "New post — Oakmonte" }] }),
+  // Overrides root's #000000 theme-color, the same way store.tsx does for the
+  // dashboard. Root declares black because nearly every screen in the app is
+  // black — the camera, the editors, the feed, drafts. This one is the sole
+  // white screen in the create flow, and a white page under a theme-color of
+  // black is what put black bands above and below it: Safari paints its own
+  // chrome with that colour, so the page ended up framed in a colour it
+  // doesn't use anywhere.
+  head: () => ({
+    meta: [{ title: "New post — Oakmonte" }, { name: "theme-color", content: "#ffffff" }],
+  }),
   component: PublishPage,
 });
 
@@ -121,15 +130,24 @@ function PublishPage() {
       }
       fd.set("mediaTypes", JSON.stringify(items.map((i) => i.type)));
       if (media.origin) fd.set("createdWith", media.origin);
-      // The post's sound rides alongside the media rather than inside it. Only
-      // the photo editor sets this — the video editor bakes its music into the
-      // MP4, and a post with both would play two things at once.
+      // The post's sound. Usually it rides alongside the media rather than
+      // inside it, and the feed plays it over muted media. The video editor is
+      // the exception: it mixed the track into the MP4 during export, so it
+      // sends no bytes at all and only the credit — a post with both would
+      // play two things at once.
       if (media.audio) {
-        // A track off the seller's device travels as bytes. A library track
-        // travels as a URL and the server fetches it, so a phone on mobile
-        // data never downloads several megabytes only to upload them again.
-        if (media.audio.blob) fd.set("audio", media.audio.blob, "audio");
-        else fd.set("audioSource", media.audio.url);
+        if (media.audio.bakedIn) {
+          fd.set("audioBakedIn", "1");
+        } else if (media.audio.blob) {
+          // The bytes branch is what a recorded voiceover would use. It
+          // currently never runs, since nothing sets `blob` any more.
+          fd.set("audio", media.audio.blob, "audio");
+        } else {
+          // A catalogue track travels as a URL and the server fetches it, so a
+          // phone on mobile data never downloads several megabytes only to
+          // upload them straight back.
+          fd.set("audioSource", media.audio.url);
+        }
         fd.set("audioName", media.audio.name);
 
         const credit = media.audio.credit;
@@ -168,9 +186,11 @@ function PublishPage() {
       // button deliberately revokes nothing, which is what lets either editor
       // still play the sound you picked when you return to it.
       //
-      // Guarded on `blob` because only a track off the seller's own device has
-      // a URL we made. A library track's URL belongs to the provider, and
-      // revoking that is meaningless.
+      // Guarded on `blob` because only a track we hold bytes for has a URL we
+      // made. A catalogue track's URL belongs to the provider, and revoking
+      // that is meaningless. Nothing sets `blob` today, so this never fires —
+      // it stays correct for the voiceover path rather than being a no-op
+      // someone has to re-derive later.
       if (media.audio?.blob) URL.revokeObjectURL(media.audio.url);
 
       navigate({ to: "/home", replace: true });
@@ -229,7 +249,14 @@ function PublishPage() {
             ) : media.poster ? (
               <img src={media.poster.url} alt="" className="w-full h-full object-cover" />
             ) : (
-              <video src={media.url} muted playsInline className="w-full h-full object-cover" />
+              <video
+                src={media.url}
+                muted
+                playsInline
+                disablePictureInPicture
+                disableRemotePlayback
+                className="w-full h-full object-cover"
+              />
             )}
             {/* How many items are actually going. Without it a carousel looks
                 identical to a single photo on the one screen where you commit
@@ -515,6 +542,8 @@ function CoverPickerSheet({
           src={url}
           muted
           playsInline
+          disablePictureInPicture
+          disableRemotePlayback
           preload="auto"
           onLoadedMetadata={(e) => setDuration(e.currentTarget.duration || 0)}
           className="max-h-full w-full rounded-xl object-contain"

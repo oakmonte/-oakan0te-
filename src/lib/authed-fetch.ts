@@ -6,8 +6,8 @@ import { supabase } from "@/lib/integrations/my-supabase/client";
  *  automatically — a server handler running on the service-role key has no way
  *  to know who is asking unless the token is attached here. */
 export async function authedFetch(input: string, init: RequestInit = {}) {
-  // Never attach the session token to a cross-origin URL. Both callers pass a
-  // literal /api/... path today, so this is a guard against the next caller
+  // Never attach the session token to a cross-origin URL. Every caller passes
+  // a literal /api/... path today, so this is a guard against the next caller
   // that builds a URL from config or from a server-supplied value.
   const target = new URL(input, window.location.origin);
   if (target.origin !== window.location.origin) {

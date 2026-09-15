@@ -163,6 +163,7 @@ describe("parseWeightVolumeValueToGrams", () => {
 // else missing one is a gap, not a decision.
 const NO_FORMULA_BY_DESIGN: Record<string, string> = {
   "turtle-neck": "its chart has no body_length, so the panels can't be sized",
+  corset: "boning and structured panels are not a simple front/back fabric rectangle",
 };
 
 describe("every size chart can be estimated", () => {

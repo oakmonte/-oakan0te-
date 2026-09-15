@@ -38,8 +38,20 @@ import {
 
 export const PX_PER_SECOND = 62;
 const TRACK_HEIGHT = 62;
+/** How far a finger may drift during a press-and-hold before it counts as a
+ *  drag instead. A thumb on a phone moves several pixels without meaning to. */
+const HOLD_SLOP = 12;
 /** The row above the strip holding the selected clip's controls. */
 const GUTTER = 32;
+/** How long after the last scroll event the strip counts as stopped.
+ *
+ *  Refreshed on every scroll event, so it never cuts a glide short — it only
+ *  has to outlast the gap between the final few events as momentum dies out,
+ *  which is a frame or three. Too low and the clock starts writing scrollLeft
+ *  while the strip is still coasting, which is the bug this exists for; too
+ *  high and the playhead takes a visible beat to pick the strip back up after
+ *  a scrub. */
+const SCROLL_SETTLE_MS = 140;
 /** Visible width of a trim bar, and the wider invisible area around it. */
 const BAR_WIDTH = 14;
 const BAR_HIT = 34;
@@ -68,7 +80,6 @@ export default function VideoTimeline({
   onAdd,
   onSplit,
   onToggleMute,
-  onTransition,
   onSound,
   musicName,
 }: {
@@ -83,7 +94,6 @@ export default function VideoTimeline({
   onAdd: (e: React.MouseEvent<HTMLElement>) => void;
   onSplit: () => void;
   onToggleMute: (id: string) => void;
-  onTransition: (index: number) => void;
   onSound: () => void;
   /** Name of the added music track, shown in place of "Add sound". */
   musicName?: string | null;
@@ -100,6 +110,22 @@ export default function VideoTimeline({
   const programmatic = useRef(false);
   const seekFrame = useRef<number | null>(null);
 
+  // True from the moment a finger scrolls the strip until the scroll has
+  // actually come to rest — momentum included.
+  //
+  // This exists because a flick is not over when the finger leaves. The clock
+  // effect below writes `scrollLeft`, and assigning `scrollLeft` mid-momentum
+  // cancels the momentum outright on both iOS and Android. Without this guard
+  // the two fight every frame: the flick scrolls, the scroll seeks, the seek
+  // moves the clock, the clock writes the position back a frame late, and the
+  // glide dies about a fifth of a second after the thumb lifts. The strip
+  // could be dragged but never thrown.
+  //
+  // `dragging`/`trimming` don't cover it — those are for a tile being dragged,
+  // and during momentum there is no finger on the screen at all.
+  const userScrolling = useRef(false);
+  const settleTimer = useRef<number | null>(null);
+
   const total = sequenceDuration(clips);
   const starts = clipStarts(clips);
 
@@ -114,10 +140,11 @@ export default function VideoTimeline({
     return () => ro.disconnect();
   }, []);
 
-  // Drive the strip from the clock, but never while a hand is on it.
+  // Drive the strip from the clock, but never while a hand is on it — or while
+  // a throw it already let go of is still travelling.
   useEffect(() => {
     const el = scrollerRef.current;
-    if (!el || dragging || trimming) return;
+    if (!el || dragging || trimming || userScrolling.current) return;
     const targetLeft = time * PX_PER_SECOND;
     if (Math.abs(el.scrollLeft - targetLeft) < 1) return;
     programmatic.current = true;
@@ -136,7 +163,20 @@ export default function VideoTimeline({
   // what makes the strip feel like it is moving under your thumb instead of
   // catching up to it.
   const handleScroll = useCallback(() => {
-    if (programmatic.current || seekFrame.current !== null) return;
+    if (programmatic.current) return;
+
+    // Every scroll event pushes the settle deadline out, so the flag stays up
+    // for as long as the strip keeps moving and drops shortly after it stops.
+    // There is a `scrollend` event that would say this exactly, but Safari
+    // only grew it recently and this has to work on the phones people have.
+    userScrolling.current = true;
+    if (settleTimer.current !== null) clearTimeout(settleTimer.current);
+    settleTimer.current = window.setTimeout(() => {
+      settleTimer.current = null;
+      userScrolling.current = false;
+    }, SCROLL_SETTLE_MS);
+
+    if (seekFrame.current !== null) return;
     seekFrame.current = requestAnimationFrame(() => {
       seekFrame.current = null;
       const el = scrollerRef.current;
@@ -148,6 +188,7 @@ export default function VideoTimeline({
   useEffect(
     () => () => {
       if (seekFrame.current !== null) cancelAnimationFrame(seekFrame.current);
+      if (settleTimer.current !== null) clearTimeout(settleTimer.current);
     },
     [],
   );
@@ -276,6 +317,22 @@ export default function VideoTimeline({
     };
   }, [trimming, moveTrim, endTrim]);
 
+  // Stop the strip scrolling under a clip that has been picked up.
+  //
+  // This is what `touch-action` could not do — see the note on the scroller.
+  // `preventDefault` on a non-passive touchmove DOES stop a native pan, but
+  // only while the browser has not already started one, which is exactly the
+  // situation here: a hold takes 280ms of stillness to fire, so at the moment
+  // this listener attaches the finger has not moved and no scroll is running.
+  // React's own onTouchMove is passive, so it has to be bound by hand.
+  useEffect(() => {
+    const el = scrollerRef.current;
+    if (!el || !dragging) return;
+    const block = (e: TouchEvent) => e.preventDefault();
+    el.addEventListener("touchmove", block, { passive: false });
+    return () => el.removeEventListener("touchmove", block);
+  }, [dragging]);
+
   // `trimPadLeft` has to be added by hand. An absolutely positioned child is
   // laid out against its ancestor's PADDING BOX, whose origin sits before the
   // padding — so the tiles (in normal flow) shift with it and this overlay
@@ -322,7 +379,13 @@ export default function VideoTimeline({
           height: TRACK_HEIGHT,
           scrollbarWidth: "none",
           overscrollBehaviorX: "contain",
-          touchAction: dragging || trimming ? "none" : "pan-x",
+          // `pan-x` always, even while dragging. Flipping this to "none" when
+          // the hold fires reads like it should stop the strip scrolling under
+          // the drag, and it does nothing at all: a browser latches
+          // touch-action when the touch STARTS, so a change 280ms later
+          // applies to the next gesture, never the one in flight. The real
+          // block is the non-passive touchmove listener below.
+          touchAction: trimming ? "none" : "pan-x",
         }}
       >
         {/* h-full, not just items-stretch: the row is the only thing between
@@ -345,11 +408,10 @@ export default function VideoTimeline({
               // that is when the trim bars need the same few pixels — and a
               // decoration must never win a fight against the control the user
               // is reaching for.
-              showTransition={i > 0 && selectedIndex !== i && selectedIndex !== i - 1}
+              showBoundary={i > 0 && selectedIndex !== i && selectedIndex !== i - 1}
               onSelect={onSelect}
               onReorder={onReorder}
               onDragStateChange={setDragging}
-              onTransition={() => onTransition(i)}
             />
           ))}
 
@@ -446,22 +508,20 @@ function ClipTile({
   isSelected,
   isDragging,
   width,
-  showTransition,
+  showBoundary,
   onSelect,
   onReorder,
   onDragStateChange,
-  onTransition,
 }: {
   clip: Clip;
   index: number;
   isSelected: boolean;
   isDragging: boolean;
   width: number;
-  showTransition: boolean;
+  showBoundary: boolean;
   onSelect: (id: string | null) => void;
   onReorder: (from: number, to: number) => void;
   onDragStateChange: (id: string | null) => void;
-  onTransition: () => void;
 }) {
   const holdTimer = useRef<number | null>(null);
   const origin = useRef(0);
@@ -475,6 +535,11 @@ function ClipTile({
   // Press-and-hold to pick a clip up. A plain drag can't mean "reorder" here —
   // horizontal drag already means "scrub", and the strip would have to guess
   // which one the user meant. The hold makes it explicit.
+  //
+  // HOLD_SLOP is 12px, not the 6 it was. A thumb resting on a phone drifts
+  // several pixels over 280ms without its owner intending to move anything,
+  // and every one of those drifts used to cancel the hold before it fired —
+  // which is what made picking a clip up feel like it mostly didn't work.
   function handlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
     origin.current = e.clientX;
     moved.current = false;
@@ -487,18 +552,9 @@ function ClipTile({
   }
 
   function handlePointerMove(e: React.PointerEvent<HTMLDivElement>) {
-    if (Math.abs(e.clientX - origin.current) > 6) {
+    if (Math.abs(e.clientX - origin.current) > HOLD_SLOP) {
       moved.current = true;
       if (!isDragging) clearHold();
-    }
-    if (!isDragging) return;
-    const delta = e.clientX - origin.current;
-    // One whole tile of travel commits one position. Anything finer and the
-    // list churns under the finger.
-    const steps = Math.trunc(delta / Math.max(40, width * 0.6));
-    if (steps !== 0) {
-      onReorder(index, index + steps);
-      origin.current = e.clientX;
     }
   }
 
@@ -511,21 +567,56 @@ function ClipTile({
     if (!moved.current) onSelect(isSelected ? null : clip.id);
   }
 
+  // Once the clip is picked up the gesture belongs to the WINDOW, not to this
+  // tile.
+  //
+  // Dragging a clip left or right means the finger leaves the tile almost
+  // immediately — that is the entire point of the gesture. Pointer events go
+  // to whatever is under the finger, so a tile listening only to itself stops
+  // hearing about the drag one tile in, and the reorder dies halfway. Same
+  // reasoning, and the same fix, as the trim gesture higher up this file.
+  useEffect(() => {
+    if (!isDragging) return;
+    const onMove = (e: PointerEvent) => {
+      const delta = e.clientX - origin.current;
+      // One whole tile of travel commits one position. Anything finer and the
+      // list churns under the finger.
+      const steps = Math.trunc(delta / Math.max(40, width * 0.6));
+      if (steps !== 0) {
+        onReorder(index, index + steps);
+        origin.current = e.clientX;
+      }
+    };
+    const onEnd = () => onDragStateChange(null);
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onEnd);
+    window.addEventListener("pointercancel", onEnd);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onEnd);
+      window.removeEventListener("pointercancel", onEnd);
+    };
+  }, [isDragging, index, width, onReorder, onDragStateChange]);
+
   return (
     <>
-      {showTransition && (
-        <button
-          type="button"
-          onClick={onTransition}
-          aria-label={`Transition before clip ${index + 1}`}
-          className="relative z-10 -mx-[9px] flex h-full w-[18px] shrink-0 items-center justify-center"
+      {showBoundary && (
+        // A marker, not a control. It used to open a transitions sheet that
+        // admitted transitions were not implemented; the sheet is gone and the
+        // marker stayed, because saying "there is a cut here" is the job it was
+        // actually doing. `aria-hidden` because the clip tiles either side
+        // already announce themselves — a screen reader does not need a third
+        // voice for the seam between them.
+        <span
+          aria-hidden
+          className="pointer-events-none relative z-10 -mx-[9px] flex h-full w-[18px] shrink-0 items-center justify-center"
         >
           <span className="flex h-[18px] w-[18px] items-center justify-center rounded-[4px] bg-white text-black">
             <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" aria-hidden>
               <path d="M2 4v16l8-8-8-8Zm20 0-8 8 8 8V4Z" />
             </svg>
           </span>
-        </button>
+        </span>
       )}
       <div
         role="button"
@@ -552,14 +643,7 @@ function ClipTile({
         ) : clip.thumbUrl || clip.kind === "photo" ? (
           // A photo has one frame by definition, and a video falls back to its
           // poster repeated while the filmstrip is still decoding.
-          <div
-            className="h-full w-full"
-            style={{
-              backgroundImage: `url(${clip.thumbUrl ?? clip.url})`,
-              backgroundSize: "auto 100%",
-              backgroundRepeat: "repeat-x",
-            }}
-          />
+          <StillStrip url={clip.thumbUrl ?? clip.url} width={Math.max(24, width)} />
         ) : (
           <div className="flex h-full w-full items-center justify-center bg-white/10">
             <ImageIcon size={16} className="text-white/40" />
@@ -578,6 +662,37 @@ function ClipTile({
         )}
       </div>
     </>
+  );
+}
+
+/** A still, repeated along the clip's length.
+ *
+ *  Square tiles, each cropped to fill — NOT the whole image scaled to the
+ *  track's height. A phone photo is portrait, so fitting one into a 62px strip
+ *  squeezes it to about 35px wide and then tiles that, which is how a
+ *  recognisable picture turns into a row of thumbnails too small to read. A
+ *  centre crop at the track's own height shows the middle of the photo at a
+ *  size that is actually legible, and matches how the video filmstrip beside
+ *  it already looks.
+ *
+ *  Tiles rather than one stretched copy because a clip's width is its
+ *  duration: a five-second still stretched once would be a smear, where
+ *  repeats read as "this is one picture, held". */
+function StillStrip({ url, width }: { url: string; width: number }) {
+  const count = Math.max(1, Math.ceil(width / TRACK_HEIGHT));
+  return (
+    <div className="h-full w-full bg-white/5">
+      {Array.from({ length: count }, (_, i) => (
+        <img
+          key={i}
+          src={url}
+          alt=""
+          draggable={false}
+          className="absolute top-0 h-full max-w-none object-cover"
+          style={{ left: i * TRACK_HEIGHT, width: TRACK_HEIGHT }}
+        />
+      ))}
+    </div>
   );
 }
 

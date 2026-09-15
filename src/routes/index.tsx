@@ -1,6 +1,7 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { isInAppBrowser } from "@/lib/in-app-browser";
+import { isStandalone } from "@/lib/standalone";
 import logoAsset from "@/assets/oakmonte-o-mark.png.asset.json";
 import logoO from "@/assets/logo-o.png";
 import heroAsset from "@/assets/hero-editorial.jpg.asset.json";
@@ -398,6 +399,19 @@ function HeroSlideshow() {
 }
 
 function OakmonteLanding() {
+  const navigate = useNavigate();
+  // The installed app never shows the marketing page. Someone who put the
+  // icon on their Home Screen has already been sold to; landing them here is
+  // asking them to decide something they decided at install time.
+  //
+  // `start_url` in the manifest already points at /welcome, so this is the
+  // safety net rather than the mechanism: a link, a share, or an old icon
+  // pinned before the manifest existed can still arrive at "/" inside the app.
+  // `replace`, so the back gesture does not bounce them straight back here.
+  useEffect(() => {
+    if (isStandalone()) void navigate({ to: "/welcome", replace: true });
+  }, [navigate]);
+
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileGroup, setMobileGroup] = useState<MenuKey | null>(null);
   const [openMenu, setOpenMenu] = useState<MenuKey | null>(null);

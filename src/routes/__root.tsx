@@ -14,6 +14,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { preloadStoreThemeAssets } from "../lib/preload-store-theme-assets";
 import { useSession } from "../hooks/use-session";
+import { markStandalone } from "@/lib/standalone";
 import { useBuildFreshness } from "../hooks/use-build-freshness";
 import { PostUploadToast } from "../components/PostUploadToast";
 import { ProductSaveToast } from "../components/ProductSaveToast";
@@ -115,6 +116,25 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       // file. Must stay a plain meta tag (not injected via JS) since the
       // freshness check reads it out of a freshly-fetched page's raw HTML.
       { name: "build-id", content: __BUILD_ID__ },
+      // Installed-to-Home-Screen behaviour on iOS, which reads none of the
+      // manifest's display fields. Without these, "Add to Home Screen" makes a
+      // bookmark that opens in Safari — same chrome, same per-visit camera
+      // prompt, none of the point.
+      //
+      // The install matters for more than looks: a standalone iOS web app has
+      // its own permission store, so the camera grant survives between
+      // launches instead of being asked for on every visit.
+      { name: "mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      // NOT black-translucent. That ran the page under the status bar and made
+      // iOS paint white text there always — which put an unexplained black
+      // strip above the white screens and would have hidden the clock on them.
+      // `default` leaves the strip to the page's own theme-color, which is
+      // already set per route (#000000 at the root, #ffffff on /store and the
+      // publish screen), so the status bar matches whatever screen you are on
+      // instead of fighting it.
+      { name: "apple-mobile-web-app-status-bar-style", content: "default" },
+      { name: "apple-mobile-web-app-title", content: "Oakmonte" },
       { title: "Oakmonte — Share your style" },
       {
         name: "description",
@@ -153,6 +173,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: appCss,
       },
       { rel: "icon", type: "image/png", href: "/favicon.png" },
+      { rel: "manifest", href: "/manifest.webmanifest" },
+      // iOS ignores the manifest's icons entirely and reads this instead.
+      { rel: "apple-touch-icon", href: "/icons/apple-touch-icon.png" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
@@ -192,6 +215,11 @@ function RootComponent() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { user } = useSession();
   useBuildFreshness();
+
+  // Publishes "installed app or browser tab" onto <html data-standalone>, for
+  // the CSS that has to tell them apart — see standalone.ts. Runs once here
+  // rather than per-screen so there is one answer for the whole app.
+  useEffect(markStandalone, []);
 
   // Fires the instant a session exists — right after sign-in and equally
   // right after finishing seller account creation, since both land here

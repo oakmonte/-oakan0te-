@@ -77,7 +77,7 @@ function Pill({
 
 /** Speed, hold duration and fit for one clip — everything about how it
  *  occupies the frame and the clock, in one place. */
-export function ClipSheet({
+export function SpeedSheet({
   clip,
   onPatch,
   onClose,
@@ -89,7 +89,7 @@ export function ClipSheet({
   const isPhoto = clip.kind === "photo";
   return (
     <OptionSheet
-      title={isPhoto ? "Photo" : "Clip"}
+      title={isPhoto ? "Duration" : "Speed"}
       note={
         !isPhoto && clip.speed !== 1
           ? clip.speed > 1
@@ -130,17 +130,6 @@ export function ClipSheet({
           </div>
         </div>
       )}
-
-      <div className="pt-3">
-        <span className="text-[12px] text-white/60">Fill the frame</span>
-        <div className="flex gap-2 pt-2">
-          {(["cover", "contain"] as ClipFit[]).map((fit) => (
-            <Pill key={fit} active={clip.fit === fit} onClick={() => onPatch({ fit })}>
-              {fit === "cover" ? "Fill" : "Fit"}
-            </Pill>
-          ))}
-        </div>
-      </div>
     </OptionSheet>
   );
 }
@@ -173,18 +162,31 @@ export function RatioSheet({
   );
 }
 
-/** The music laid over the whole timeline. One track, from the user's own
- *  files — a licensed library is its own problem, and needing one shouldn't
- *  stop someone scoring a post with audio they already have. */
+/** The music laid over the whole timeline. One track, from the catalogue.
+ *
+ *  It used to be one track from the user's own files. That was removed for the
+ *  same reason the camera's device row was: the export bakes the music into
+ *  the MP4 and Oakmonte then serves that file publicly under a post selling
+ *  something, which is Oakmonte distributing the track commercially. The
+ *  catalogue is the only source we can prove we were allowed to use. */
 export function SoundSheet({
   music,
   onPick,
+  loading = false,
+  error = null,
   onVolume,
   onRemove,
   onClose,
 }: {
-  music: { name: string; volume: number } | null;
+  music: { name: string; volume: number; credit?: { attribution: string | null } | null } | null;
+  /** Opens the catalogue. The sheet does not own the picker — the editor does,
+   *  because it is the editor that has to fetch the track and re-export. */
   onPick: () => void;
+  /** True while the chosen track is being fetched. Picking one is not instant
+   *  here (unlike every other screen, this one needs the actual bytes), and a
+   *  sheet that looks unchanged for three seconds reads as a dead button. */
+  loading?: boolean;
+  error?: string | null;
   onVolume: (v: number) => void;
   onRemove: () => void;
   onClose: () => void;
@@ -233,65 +235,32 @@ export function SoundSheet({
           <button
             type="button"
             onClick={onPick}
-            className="mt-4 w-full rounded-full bg-white/[0.12] py-2.5 text-[13px] font-medium text-white active:scale-[0.98]"
+            disabled={loading}
+            className="mt-4 w-full rounded-full bg-white/[0.12] py-2.5 text-[13px] font-medium text-white active:scale-[0.98] disabled:active:scale-100"
           >
-            Replace track
+            {loading ? "Getting the track…" : "Replace track"}
           </button>
+          {/* The licence condition, shown where the track is chosen rather
+              than only on the publish screen. This music is baked into the
+              MP4, so by the time a seller sees the credit anywhere else it is
+              already inside the file. */}
+          {music.credit?.attribution && (
+            <p className="pt-2.5 text-[11px] leading-snug text-white/45">
+              Will be credited as “{music.credit.attribution}”
+            </p>
+          )}
         </>
       ) : (
         <button
           type="button"
           onClick={onPick}
-          className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-white/20 py-6 text-[13px] text-white/60 active:scale-[0.99]"
+          disabled={loading}
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-white/20 py-6 text-[13px] text-white/60 active:scale-[0.99] disabled:active:scale-100"
         >
-          Choose an audio file
+          {loading ? "Getting the track…" : "Browse sounds"}
         </button>
       )}
-    </OptionSheet>
-  );
-}
-
-/** Transitions are drawn but not yet applied — the encoder writes clips
- *  end-to-end, and cross-fading means compositing two decoders at once. The
- *  sheet says so rather than letting someone pick a dissolve and find a hard
- *  cut in the finished file. */
-const TRANSITIONS = ["None", "Dissolve", "Whip", "Flash", "Slide", "Zoom"];
-
-export function TransitionSheet({ onClose }: { onClose: () => void }) {
-  return (
-    <OptionSheet
-      title="Transition"
-      note="Not wired up yet — clips still join on a hard cut. Pick one and it will apply once transitions land."
-      onClose={onClose}
-    >
-      <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
-        {TRANSITIONS.map((t, i) => (
-          <Pill key={t} active={i === 0} onClick={() => {}}>
-            {t}
-          </Pill>
-        ))}
-      </div>
-    </OptionSheet>
-  );
-}
-
-/** Shared shell for the tools that exist as icons but have nothing behind them
- *  yet. Saying which is which beats a button that silently does nothing. */
-export function ComingSoonSheet({
-  title,
-  body,
-  onClose,
-}: {
-  title: string;
-  body: string;
-  onClose: () => void;
-}) {
-  return (
-    <OptionSheet title={title} onClose={onClose}>
-      <div className="flex items-start gap-3 rounded-xl bg-white/[0.07] px-4 py-3.5">
-        <Check size={16} className="mt-[2px] shrink-0 text-white/40" />
-        <p className="text-[12px] leading-relaxed text-white/65">{body}</p>
-      </div>
+      {error && <p className="pt-3 text-[12px] leading-snug text-red-300">{error}</p>}
     </OptionSheet>
   );
 }

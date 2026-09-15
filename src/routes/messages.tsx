@@ -1,28 +1,45 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
-import {
-  ArrowLeft,
-  CalendarDays,
-  CircleHelp,
-  CircleDollarSign,
-  Flag,
-  Inbox,
-  Plus,
-  Search,
-  Send,
-  ShoppingCart,
-  Tag,
-  UserRound,
-} from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Search, SlidersHorizontal, X } from "lucide-react";
+import { motion } from "framer-motion";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import logoAsset from "@/assets/oakmonte-o-mark.png.asset.json";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import type { Database } from "@/lib/integrations/my-supabase/types";
 import { useSession } from "@/hooks/use-session";
 import { BottomNav } from "@/components/BottomNav";
+import { ConversationRow } from "@/components/messages/ConversationRow";
+import { ConversationSkeleton } from "@/components/messages/Skeletons";
+import { StoryRail } from "@/components/messages/StoryRail";
+import { FilterSheet } from "@/components/messages/FilterSheet";
+import { FILTERS } from "@/lib/messages-filters";
+import { TabPreview } from "@/components/messages/TabPreview";
+import { ChatThread } from "@/components/messages/ChatThread";
+import {
+  SEED_CONVERSATIONS,
+  SEED_MESSAGES,
+  type Conversation,
+  type FilterKey,
+  type SeedMessage,
+} from "@/lib/messages-seed";
 
 export const Route = createFileRoute("/messages")({
-  head: () => ({ meta: [{ title: "Messages — Oakmonte" }] }),
+  head: () => ({
+    meta: [
+      { title: "Messages — Oakmonte" },
+      {
+        name: "description",
+        content:
+          "Chat with Oakmonte sellers and buyers: negotiate offers, follow orders and keep every conversation in one inbox.",
+      },
+      { property: "og:title", content: "Messages — Oakmonte" },
+      {
+        property: "og:description",
+        content: "Offers, orders and conversations with Oakmonte sellers, all in one inbox.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+  }),
   component: MessagesPage,
 });
 
@@ -34,74 +51,13 @@ const TABS: { key: Tab; label: string }[] = [
   { key: "orders", label: "Orders" },
 ];
 
-const MESSAGE_FILTERS = [
-  { label: "Unread", icon: Inbox },
-  { label: "Unanswered", icon: CircleHelp },
-  { label: "Flagged", icon: Flag },
-  { label: "Booked", icon: CalendarDays },
-  { label: "Ordered", icon: ShoppingCart },
-  { label: "Paid", icon: CircleDollarSign },
-  { label: "Dispatched", icon: Inbox },
-  { label: "Lead", icon: Tag },
-] as const;
-
-// Keep this as an array so real stories can be appended without changing the UI shape.
-const STORIES = [{ id: "your-story", name: "Your story" }];
+/* ---------- support_messages: the only real table on this page ---------- */
 
 type SupportMessage = {
   id: string;
   user_id: string;
   body: string;
   sender: "user" | "support";
-  created_at: string;
-};
-
-type ContactId = "support" | "me" | "preview";
-
-type Contact = {
-  id: ContactId;
-  name: string;
-  subtitle: string;
-  preview: string;
-  initials: string;
-  accent: string;
-  icon: "support" | "me" | "person";
-};
-
-const CONTACTS: Contact[] = [
-  {
-    id: "support",
-    name: "Oakmonte Support",
-    subtitle: "Official support",
-    preview: "Make complaints or observations",
-    initials: "O",
-    accent: "bg-white",
-    icon: "support",
-  },
-  {
-    id: "me",
-    name: "Me",
-    subtitle: "Personal notes",
-    preview: "A quiet place for your thoughts",
-    initials: "M",
-    accent: "bg-[#4b4b4b]",
-    icon: "me",
-  },
-  {
-    id: "preview",
-    name: "Nia from Lagos",
-    subtitle: "Preview contact",
-    preview: "That blue jacket is everything",
-    initials: "N",
-    accent: "bg-[#4b4b4b]",
-    icon: "person",
-  },
-];
-
-type LocalMessage = {
-  id: string;
-  body: string;
-  sender: "user" | "contact";
   created_at: string;
 };
 
@@ -120,68 +76,52 @@ type MessagingDatabase = Database & {
 
 const messagingClient = supabase as unknown as SupabaseClient<MessagingDatabase>;
 
-type ChatMessage = SupportMessage | LocalMessage;
+const toSeed = (row: SupportMessage): SeedMessage => ({
+  id: row.id,
+  thread_id: "support",
+  sender: row.sender === "user" ? "user" : "contact",
+  created_at: row.created_at,
+  kind: "text",
+  body: row.body,
+});
 
-const LOCAL_MESSAGES: Record<Exclude<ContactId, "support">, LocalMessage[]> = {
-  me: [
-    {
-      id: "me-1",
-      body: "Ideas, saved looks, and little reminders live here.",
-      sender: "contact",
-      created_at: "2026-09-09T08:30:00.000Z",
-    },
-    {
-      id: "me-2",
-      body: "Remember: the best outfits usually start with one good piece.",
-      sender: "user",
-      created_at: "2026-09-09T08:31:00.000Z",
-    },
-  ],
-  preview: [
-    {
-      id: "preview-1",
-      body: "That blue jacket is everything",
-      sender: "contact",
-      created_at: "2026-09-08T18:42:00.000Z",
-    },
-    {
-      id: "preview-2",
-      body: "Right? I found it on Oakmonte yesterday.",
-      sender: "user",
-      created_at: "2026-09-08T18:45:00.000Z",
-    },
-  ],
+const QUICK_REPLIES: Record<string, string[]> = {
+  support: ["I need help with an order", "Report a seller", "Payout question"],
+  me: ["Save this look", "Remind me tomorrow"],
 };
 
-function ContactAvatar({ contact, large = false }: { contact: Contact; large?: boolean }) {
-  const Icon = contact.icon === "support" ? CircleHelp : UserRound;
-
-  return (
-    <div
-      className={`relative flex shrink-0 items-center justify-center rounded-full ${contact.accent} text-white ${large ? "h-12 w-12" : "h-11 w-11"}`}
-    >
-      {contact.id === "support" ? (
-        <img src={logoAsset.url} alt="Oakmonte" className="h-[68%] w-[68%] object-contain" />
-      ) : (
-        <Icon size={large ? 21 : 19} strokeWidth={1.8} />
-      )}
-    </div>
-  );
-}
+const DEFAULT_QUICK_REPLIES = ["Is this still available?", "Can you do a better price?", "Thanks!"];
 
 function MessagesPage() {
-  const { user } = useSession();
-  const touchStartX = useRef<number | null>(null);
+  const { user, loading: sessionLoading } = useSession();
   const [ownUsername, setOwnUsername] = useState<string | undefined>(undefined);
-  const [tab, setTab] = useState<Tab>("messages");
-  const [storyNotice, setStoryNotice] = useState(false);
-  const [filterOpen, setFilterOpen] = useState(false);
-  const [selectedContactId, setSelectedContactId] = useState<ContactId | null>(null);
-  const [draft, setDraft] = useState("");
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const [messagesLoading, setMessagesLoading] = useState(false);
-  const [messageError, setMessageError] = useState<string | null>(null);
 
+  const [tab, setTab] = useState<Tab>("messages");
+  const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [searching, setSearching] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [draftFilters, setDraftFilters] = useState<FilterKey[]>([]);
+  const [activeFilters, setActiveFilters] = useState<FilterKey[]>([]);
+  const [storyNotice, setStoryNotice] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+  const [inboxLoading, setInboxLoading] = useState(true);
+
+  const [conversations, setConversations] = useState<Conversation[]>(SEED_CONVERSATIONS);
+  const [muted, setMuted] = useState<Record<string, boolean>>({});
+  const [openId, setOpenId] = useState<string | null>(null);
+
+  const [draft, setDraft] = useState("");
+  const [localThreads, setLocalThreads] = useState<Record<string, SeedMessage[]>>(SEED_MESSAGES);
+  const [supportMessages, setSupportMessages] = useState<SeedMessage[]>([]);
+  const [threadLoading, setThreadLoading] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [threadError, setThreadError] = useState<string | null>(null);
+
+  const touchStartX = useRef<number | null>(null);
+  const inboxScroll = useRef(0);
+
+  /* ---------- own username for the bottom nav ---------- */
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
@@ -198,21 +138,44 @@ function MessagesPage() {
     };
   }, [user]);
 
-  const chatOpen = selectedContactId !== null;
-  const selectedContact = CONTACTS.find((contact) => contact.id === selectedContactId);
+  /* ---------- inbox skeleton, one short beat ---------- */
+  useEffect(() => {
+    const timer = setTimeout(() => setInboxLoading(false), 420);
+    return () => clearTimeout(timer);
+  }, []);
+
+  /* ---------- debounced search ---------- */
+  useEffect(() => {
+    if (query !== debouncedQuery) setSearching(true);
+    const timer = setTimeout(() => {
+      setDebouncedQuery(query);
+      setSearching(false);
+    }, 180);
+    return () => clearTimeout(timer);
+  }, [query, debouncedQuery]);
+
+  /* ---------- auto-dismissing notices ---------- */
+  useEffect(() => {
+    if (!storyNotice) return;
+    const timer = setTimeout(() => setStoryNotice(false), 2600);
+    return () => clearTimeout(timer);
+  }, [storyNotice]);
 
   useEffect(() => {
-    if (!chatOpen || !user || selectedContactId !== "support") {
-      if (selectedContactId && selectedContactId !== "support") {
-        setChatMessages(LOCAL_MESSAGES[selectedContactId]);
-        setMessagesLoading(false);
-      }
-      return;
-    }
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(null), 1800);
+    return () => clearTimeout(timer);
+  }, [toast]);
+
+  const openConversation = conversations.find((item) => item.id === openId) ?? null;
+
+  /* ---------- support thread: real read + realtime ---------- */
+  useEffect(() => {
+    if (openId !== "support" || !user) return;
     let cancelled = false;
-    setMessagesLoading(true);
-    setMessageError(null);
-    setChatMessages([]);
+    setThreadLoading(true);
+    setThreadError(null);
+    setSupportMessages([]);
 
     messagingClient
       .from("support_messages")
@@ -222,11 +185,11 @@ function MessagesPage() {
       .then(({ data, error }) => {
         if (cancelled) return;
         if (error) {
-          setMessageError("Messages are temporarily unavailable.");
+          setThreadError("Messages are temporarily unavailable.");
         } else {
-          setChatMessages(data ?? []);
+          setSupportMessages((data ?? []).map(toSeed));
         }
-        setMessagesLoading(false);
+        setThreadLoading(false);
       });
 
     const channel = messagingClient
@@ -240,11 +203,11 @@ function MessagesPage() {
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
-          const message = payload.new as SupportMessage;
-          setChatMessages((messages) =>
+          const message = toSeed(payload.new as SupportMessage);
+          setSupportMessages((messages) =>
             messages.some((existing) => existing.id === message.id)
               ? messages
-              : [...messages, { ...message, sender: message.sender }],
+              : [...messages, message],
           );
         },
       )
@@ -254,285 +217,388 @@ function MessagesPage() {
       cancelled = true;
       void messagingClient.removeChannel(channel);
     };
-  }, [chatOpen, selectedContactId, user]);
+  }, [openId, user]);
 
-  const sendMessage = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const text = draft.trim();
-    if (!text) return;
+  /* ---------- thread open / close, with phone-back support ---------- */
+  const closeThread = useCallback(() => {
+    setOpenId(null);
     setDraft("");
-    setMessageError(null);
+    setThreadError(null);
+    requestAnimationFrame(() => window.scrollTo(0, inboxScroll.current));
+  }, []);
 
-    if (selectedContactId !== "support") {
-      setChatMessages((messages) => [
-        ...messages,
-        {
-          id: `local-${Date.now()}`,
-          body: text,
-          sender: "user",
-          created_at: new Date().toISOString(),
-        },
-      ]);
+  useEffect(() => {
+    if (!openId) return;
+    inboxScroll.current = window.scrollY;
+    window.history.pushState({ oakThread: openId }, "");
+    const onPop = () => closeThread();
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, [openId, closeThread]);
+
+  const backFromThread = () => {
+    // Unwinds the entry pushed above; the popstate handler closes the thread.
+    window.history.back();
+  };
+
+  const openThread = (id: string) => {
+    setOpenId(id);
+    setDraft("");
+    setThreadError(null);
+    setConversations((current) =>
+      current.map((item) => (item.id === id ? { ...item, unread: 0 } : item)),
+    );
+    if (id !== "support") {
+      setThreadLoading(true);
+      setTimeout(() => setThreadLoading(false), 260);
+    }
+  };
+
+  /* ---------- sending ---------- */
+  const sendMessage = async (replyTo: string | null) => {
+    const text = draft.trim();
+    if (!text || sending || !openId) return;
+
+    if (openId !== "support") {
+      setDraft("");
+      setThreadError(null);
+      setLocalThreads((threads) => ({
+        ...threads,
+        [openId]: [
+          ...(threads[openId] ?? []),
+          {
+            id: `local-${Date.now()}`,
+            thread_id: openId,
+            sender: "user",
+            created_at: new Date().toISOString(),
+            kind: "text",
+            body: text,
+            reply_to_body: replyTo ?? undefined,
+          },
+        ],
+      }));
       return;
     }
 
-    if (!user) return;
+    if (sessionLoading) {
+      setThreadError("Still checking your account. Your message is ready to send.");
+      return;
+    }
 
-    const { error } = await messagingClient.from("support_messages").insert({
-      user_id: user.id,
-      body: text,
-      sender: "user",
-    });
+    if (!user) {
+      setThreadError("Sign in to send a message to Oakmonte Support.");
+      return;
+    }
 
-    if (error) {
-      setDraft(text);
-      setMessageError("Your message could not be sent. Please try again.");
+    setDraft("");
+    setThreadError(null);
+    setSending(true);
+
+    try {
+      const { error } = await messagingClient.from("support_messages").insert({
+        user_id: user.id,
+        body: text,
+        sender: "user",
+      });
+
+      if (error) {
+        setDraft(text);
+        setThreadError("Your message could not be sent. Please try again.");
+      }
+    } finally {
+      setSending(false);
     }
   };
 
-  const openContact = (contactId: ContactId) => {
-    setSelectedContactId(contactId);
-    setDraft("");
-    setMessageError(null);
-  };
+  /* ---------- filtering + search ---------- */
+  const visible = useMemo(() => {
+    const needle = debouncedQuery.trim().toLowerCase();
+    return conversations
+      .filter((item) => {
+        if (activeFilters.length > 0) {
+          if (activeFilters.includes("unread") && item.unread > 0) return true;
+          if (!activeFilters.some((key) => item.tags.includes(key))) return false;
+        }
+        if (!needle) return true;
+        return (
+          item.name.toLowerCase().includes(needle) ||
+          item.preview.toLowerCase().includes(needle) ||
+          (item.handle ?? "").toLowerCase().includes(needle)
+        );
+      })
+      .sort(
+        (a, b) => new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime(),
+      );
+  }, [conversations, debouncedQuery, activeFilters]);
 
-  const closeChat = () => {
-    setSelectedContactId(null);
-    setDraft("");
-    setMessageError(null);
-  };
-
+  /* ---------- tab swipe ---------- */
   const handleTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
-    if (!chatOpen && !filterOpen) touchStartX.current = event.touches[0]?.clientX ?? null;
+    if (!openId && !filterOpen) touchStartX.current = event.touches[0]?.clientX ?? null;
   };
 
   const handleTouchEnd = (event: React.TouchEvent<HTMLDivElement>) => {
-    if (chatOpen || filterOpen || touchStartX.current === null) return;
-
-    const distance = event.changedTouches[0]?.clientX - touchStartX.current;
+    if (openId || filterOpen || touchStartX.current === null) return;
+    const distance = (event.changedTouches[0]?.clientX ?? 0) - touchStartX.current;
     touchStartX.current = null;
     if (Math.abs(distance) < 50) return;
-
     const currentIndex = TABS.findIndex(({ key }) => key === tab);
-    const nextIndex = distance < 0 ? currentIndex + 1 : currentIndex - 1;
-    const nextTab = TABS[nextIndex];
+    const nextTab = TABS[distance < 0 ? currentIndex + 1 : currentIndex - 1];
     if (nextTab) setTab(nextTab.key);
   };
 
+  const threadMessages =
+    openId === "support" ? supportMessages : openId ? (localThreads[openId] ?? []) : [];
+
+  const tabIndex = TABS.findIndex(({ key }) => key === tab);
+
   return (
     <div
-      className="min-h-screen bg-black pb-28 text-white"
+      className="min-h-screen bg-chat-bg pb-28 text-chat-text"
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
-      <div className="flex items-center justify-end px-4 pt-4">
-        {chatOpen ? (
+      {/* Centered column so wide desktop screens keep phone-like density */}
+      <div className="mx-auto w-full max-w-[560px] md:border-x md:border-chat-border">
+        {/* ---------- search + filter ---------- */}
+        <div className="flex items-center gap-3 px-4 pt-5">
+          <div className="flex h-12 min-w-0 flex-1 items-center gap-2.5 rounded-[14px] bg-chat-soft px-3.5 text-chat-muted">
+            <Search size={20} strokeWidth={2.2} />
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search"
+              aria-label="Search conversations"
+              className="min-w-0 flex-1 bg-transparent text-[16px] text-chat-text outline-none placeholder:text-chat-muted"
+            />
+            {query && (
+              <button
+                type="button"
+                aria-label="Clear search"
+                onClick={() => setQuery("")}
+                className="flex h-8 w-8 items-center justify-center rounded-full text-chat-muted active:bg-white/10"
+              >
+                <X size={17} />
+              </button>
+            )}
+          </div>
           <button
             type="button"
-            onClick={closeChat}
-            aria-label="Back to conversations"
-            className="flex items-center gap-1 rounded-full border border-white/10 px-3 py-2 text-xs text-white/70 transition-colors hover:bg-white/10"
+            onClick={() => {
+              setDraftFilters(activeFilters);
+              setFilterOpen(true);
+            }}
+            aria-label="Filter conversations"
+            className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-chat-soft text-chat-text active:scale-95"
           >
-            <ArrowLeft size={15} />
-            Inbox
+            <SlidersHorizontal size={20} />
+            {activeFilters.length > 0 && (
+              <span className="absolute -right-1 -top-1 flex h-[19px] min-w-[19px] items-center justify-center rounded-full bg-chat-accent px-1 text-[11px] font-bold text-black">
+                {activeFilters.length}
+              </span>
+            )}
           </button>
-        ) : (
-          <div className="flex w-full items-center gap-3 pt-1">
-            <div className="flex h-12 min-w-0 flex-1 items-center gap-3 rounded-xl bg-[#25282e] px-4 text-white/65">
-              <Search size={22} strokeWidth={2} />
-              <span className="text-[18px]">Search</span>
-            </div>
+        </div>
+
+        {/* ---------- active filter chips ---------- */}
+        {activeFilters.length > 0 && (
+          <div className="mt-3 flex gap-2 overflow-x-auto px-4 no-scrollbar">
+            {activeFilters.map((key) => {
+              const filter = FILTERS.find((item) => item.key === key);
+              if (!filter) return null;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  aria-label={`Remove ${filter.label} filter`}
+                  onClick={() => setActiveFilters((current) => current.filter((k) => k !== key))}
+                  className="flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-chat-border bg-white/[0.07] px-3 text-[13px] font-medium text-chat-text active:scale-95"
+                >
+                  <filter.icon size={14} />
+                  {filter.label}
+                  <X size={14} className="text-chat-muted" />
+                </button>
+              );
+            })}
             <button
               type="button"
-              onClick={() => setFilterOpen(true)}
-              className="shrink-0 px-1 text-[17px] font-semibold text-[#7596ff]"
+              onClick={() => setActiveFilters([])}
+              className="h-9 shrink-0 px-2 text-[13px] font-semibold text-chat-accent active:opacity-60"
             >
-              Filter
+              Clear all
             </button>
           </div>
         )}
-      </div>
 
-      {!chatOpen && (
-        <>
-          <div className="mt-5 flex gap-4 overflow-x-auto px-5 pb-1 no-scrollbar">
-            {STORIES.map((story) => (
-              <button
-                key={story.id}
-                type="button"
-                onClick={() => setStoryNotice(true)}
-                className="flex shrink-0 flex-col items-center gap-1.5"
-                style={{ width: 78 }}
-              >
-                <div className="relative">
-                  <div className="h-[74px] w-[74px] rounded-full border border-white/20 bg-[#1b1d20]" />
-                  <span className="absolute bottom-0 right-0 flex h-6 w-6 items-center justify-center rounded-full bg-white">
-                    <Plus size={15} strokeWidth={2.5} className="text-black" />
-                  </span>
-                </div>
-                <span className="w-full truncate text-center text-[12px] text-white/60">
-                  {story.name}
-                </span>
-              </button>
-            ))}
+        <StoryRail onAdd={() => setStoryNotice(true)} />
+
+        {storyNotice && (
+          <div
+            className="mx-4 mt-3 rounded-[16px] border border-chat-border bg-chat-elevated px-4 py-3 text-center text-[14px] text-chat-muted"
+            style={{ animation: "messages-banner-drop 280ms ease-out both" }}
+          >
+            Stories arrive at full launch
           </div>
+        )}
 
-          {storyNotice && (
-            <div
-              className="mx-4 mt-3 rounded-xl border border-white/10 bg-[#24272c] px-4 py-3 text-center text-sm text-white/75 shadow-lg"
-              style={{ animation: "messages-banner-drop 280ms ease-out both" }}
-            >
-              Stories will be available soon
-            </div>
-          )}
-
-          <div className="mt-7">
-            <div className="flex items-center justify-center gap-9 border-b border-white/10 px-4 text-[17px] font-bold">
+        {/* ---------- tabs ---------- */}
+        <div className="mt-6">
+          <div className="relative border-b border-chat-border">
+            <div className="flex items-center px-2 text-[16px] font-bold">
               {TABS.map(({ key, label }) => (
                 <button
                   key={key}
+                  type="button"
                   onClick={() => setTab(key)}
-                  className={`pb-3 -mb-px border-b-2 transition-colors duration-200 ${
-                    tab === key ? "border-white text-white" : "border-transparent text-white/45"
+                  aria-current={tab === key}
+                  className={`flex-1 pb-3 pt-1 transition-colors ${
+                    tab === key ? "text-chat-text" : "text-chat-muted"
                   }`}
                 >
                   {label}
                 </button>
               ))}
             </div>
-            {tab === "messages" ? (
-              <div className="pt-3">
-                {CONTACTS.map((contact) => (
-                  <button
-                    key={contact.id}
-                    type="button"
-                    onClick={() => openContact(contact.id)}
-                    className="group flex w-full items-center gap-4 px-5 py-3.5 text-left transition-colors hover:bg-white/[0.04] active:bg-white/[0.08]"
-                  >
-                    <div className="scale-[1.08]">
-                      <ContactAvatar contact={contact} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="truncate text-[17px] font-semibold tracking-[-0.01em]">
-                          {contact.name}
-                        </p>
-                      </div>
-                      <p className="mt-1 truncate text-[15px] text-white/55">{contact.preview}</p>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <div className="px-4 pt-10 text-center text-sm text-white/50">
-                This feature will be available in full launch
-              </div>
-            )}
+            <motion.span
+              className="absolute bottom-0 h-[2px] rounded-full bg-chat-text"
+              style={{ width: `${100 / TABS.length}%` }}
+              animate={{ left: `${(tabIndex * 100) / TABS.length}%` }}
+              transition={{ type: "spring", stiffness: 420, damping: 36 }}
+            />
           </div>
-        </>
-      )}
 
-      {chatOpen && (
-        <div className="mt-4 flex min-h-[calc(100vh-150px)] flex-col px-4">
-          <div className="flex items-center gap-3 border-b border-white/10 pb-4">
-            {selectedContact && <ContactAvatar contact={selectedContact} large />}
-            <div className="min-w-0 flex-1">
-              <h2 className="truncate text-base font-semibold">{selectedContact?.name}</h2>
-              <p className="mt-1 truncate text-sm text-white/50">{selectedContact?.subtitle}</p>
-            </div>
-          </div>
-          <div className="flex-1 space-y-3 py-5">
-            {messagesLoading && (
-              <p className="pt-10 text-center text-sm text-white/35">Loading messages...</p>
-            )}
-            {!messagesLoading && chatMessages.length === 0 && (
-              <p className="pt-10 text-center text-sm text-white/35">
-                Start a conversation with {selectedContact?.name}
-              </p>
-            )}
-            {messageError && <p className="text-center text-sm text-red-300">{messageError}</p>}
-            {chatMessages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex items-end gap-2 ${message.sender === "user" ? "justify-end" : "justify-start"}`}
-              >
-                <p
-                  className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${message.sender === "user" ? "bg-white text-black" : "bg-white/10 text-white"}`}
-                >
-                  {message.body}
+          {tab === "messages" ? (
+            inboxLoading ? (
+              <ConversationSkeleton />
+            ) : visible.length === 0 ? (
+              <div className="px-8 pt-14 text-center">
+                <p className="text-[16px] font-semibold text-chat-text">No conversations found</p>
+                <p className="mt-1.5 text-[13px] text-chat-muted">
+                  {debouncedQuery
+                    ? `Nothing matches “${debouncedQuery}”.`
+                    : "Try clearing your filters."}
                 </p>
               </div>
-            ))}
-          </div>
-          <form
-            onSubmit={sendMessage}
-            className="flex items-center gap-2 border-t border-white/10 py-3"
-          >
-            <input
-              value={draft}
-              onChange={(event) => setDraft(event.target.value)}
-              placeholder="Write a message..."
-              aria-label="Write a message"
-              className="min-w-0 flex-1 bg-transparent px-2 py-2 text-sm text-white outline-none placeholder:text-white/35"
-            />
-            <button
-              type="submit"
-              aria-label="Send message"
-              className="rounded-full bg-white p-2 text-black disabled:opacity-40"
-              disabled={!draft.trim()}
-            >
-              <Send size={17} />
-            </button>
-          </form>
+            ) : (
+              <div className="pt-1.5">
+                {searching && (
+                  <p className="px-5 pb-1 pt-2 text-[12px] text-chat-faint">Searching…</p>
+                )}
+                {visible.map((conversation) => (
+                  <ConversationRow
+                    key={conversation.id}
+                    conversation={conversation}
+                    query={debouncedQuery}
+                    muted={Boolean(muted[conversation.id])}
+                    onOpen={() => openThread(conversation.id)}
+                    onToggleRead={() =>
+                      setConversations((current) =>
+                        current.map((item) =>
+                          item.id === conversation.id
+                            ? { ...item, unread: item.unread > 0 ? 0 : 1 }
+                            : item,
+                        ),
+                      )
+                    }
+                    onToggleMute={() => {
+                      setMuted((current) => ({
+                        ...current,
+                        [conversation.id]: !current[conversation.id],
+                      }));
+                      setToast(
+                        muted[conversation.id]
+                          ? `${conversation.name} unmuted`
+                          : `${conversation.name} muted`,
+                      );
+                    }}
+                    onArchive={() => {
+                      setConversations((current) =>
+                        current.filter((item) => item.id !== conversation.id),
+                      );
+                      setToast(`${conversation.name} archived`);
+                    }}
+                  />
+                ))}
+              </div>
+            )
+          ) : (
+            <TabPreview tab={tab} />
+          )}
         </div>
-      )}
+      </div>
 
       {filterOpen && (
+        <FilterSheet
+          selected={draftFilters}
+          onToggle={(key) =>
+            setDraftFilters((current) =>
+              current.includes(key) ? current.filter((k) => k !== key) : [...current, key],
+            )
+          }
+          onClear={() => setDraftFilters([])}
+          onApply={() => {
+            setActiveFilters(draftFilters);
+            setFilterOpen(false);
+          }}
+          onDismiss={() => setFilterOpen(false)}
+        />
+      )}
+
+      {openConversation && (
+        <ChatThread
+          conversation={openConversation}
+          messages={threadMessages}
+          loading={threadLoading || (openId === "support" && sessionLoading)}
+          error={threadError}
+          emptyHint={
+            openId === "support"
+              ? user
+                ? "Tell us what happened and we'll pick it up from here."
+                : "Sign in to start a conversation with Oakmonte Support."
+              : openId === "me"
+                ? "Your own quiet corner. Notes, links, saved looks."
+                : `Say hello to ${openConversation.name}.`
+          }
+          quickReplies={QUICK_REPLIES[openConversation.id] ?? DEFAULT_QUICK_REPLIES}
+          typing={openConversation.typing}
+          draft={draft}
+          sending={sending}
+          composerDisabled={openId === "support" && !user && !sessionLoading}
+          muted={Boolean(muted[openConversation.id])}
+          onDraftChange={setDraft}
+          onSend={(replyTo) => void sendMessage(replyTo)}
+          onBack={backFromThread}
+          onToggleMute={() => {
+            setMuted((current) => ({
+              ...current,
+              [openConversation.id]: !current[openConversation.id],
+            }));
+            setToast(muted[openConversation.id] ? "Unmuted" : "Muted");
+          }}
+          onMarkUnread={() => {
+            setConversations((current) =>
+              current.map((item) =>
+                item.id === openConversation.id ? { ...item, unread: 1 } : item,
+              ),
+            );
+            backFromThread();
+          }}
+          onToast={setToast}
+        />
+      )}
+
+      {toast && (
         <div
-          className="fixed inset-0 z-50 flex items-end bg-black/65"
-          role="presentation"
-          onClick={() => setFilterOpen(false)}
+          role="status"
+          className="fixed inset-x-0 bottom-28 z-[80] flex justify-center px-6"
+          style={{ animation: "messages-banner-drop 220ms ease-out both" }}
         >
-          <section
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="message-filter-title"
-            className="w-full rounded-t-[34px] border-t border-white/10 bg-[#1a1d22] px-5 pb-10 pt-4 text-white shadow-2xl"
-            style={{ animation: "messages-sheet-rise 280ms ease-out both" }}
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="mx-auto mb-3 h-1 w-12 rounded-full bg-white/55" />
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <div className="w-16" />
-              <h2 id="message-filter-title" className="text-[22px] font-bold">
-                Filter
-              </h2>
-              <button
-                type="button"
-                onClick={() => setFilterOpen(false)}
-                className="w-16 text-right text-[18px] font-semibold"
-              >
-                Clear
-              </button>
-            </div>
-            <div className="pt-1">
-              {MESSAGE_FILTERS.map(({ label, icon: Icon }) => (
-                <button
-                  key={label}
-                  type="button"
-                  className="flex w-full items-center gap-4 py-3.5 text-left text-[20px] font-medium"
-                >
-                  <Icon size={27} strokeWidth={1.8} />
-                  <span className="flex-1">{label}</span>
-                  <span className="h-8 w-8 rounded-full border-2 border-white/65" />
-                </button>
-              ))}
-            </div>
-          </section>
+          <span className="rounded-full bg-chat-elevated px-4 py-2.5 text-[13px] font-medium text-chat-text shadow-xl">
+            {toast}
+          </span>
         </div>
       )}
 
-      <BottomNav active="messages" ownUsername={ownUsername} />
+      {!openId && <BottomNav active="messages" ownUsername={ownUsername} />}
     </div>
   );
 }

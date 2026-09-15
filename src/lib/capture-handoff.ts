@@ -19,31 +19,36 @@ export type ExtraMedia = { type: "photo" | "video"; blob: Blob; url: string };
 
 /** A sound to play over the finished post.
  *
- *  Uploaded beside the media, not mixed into it: the feed plays this and
- *  leaves the media muted, which is what lets a photo carousel carry a song
- *  without any of it becoming a video. Posts from the video editor leave this
- *  unset — that screen bakes its music into the MP4 itself. */
+ *  Normally uploaded beside the media, not mixed into it: the feed plays this
+ *  and leaves the media muted, which is what lets a photo carousel carry a
+ *  song without any of it becoming a video.
+ *
+ *  The video editor is the exception. It mixes the track into the MP4 during
+ *  export, so it sets `bakedIn` and carries nothing but the credit — see the
+ *  field's own note for why the credit still has to travel. */
 export type CaptureAudio = {
-  /** Bytes when the seller supplied the track. Null for a library track,
-   *  whose `url` the server fetches instead — see `isTrustedAudioSource`. */
+  /** Always null today: every track comes from the catalogue, and a catalogue
+   *  track travels as a `url` the server fetches — see `isTrustedAudioSource`.
+   *
+   *  The field stays because the *upload* path is what a recorded voiceover
+   *  would use, and that is the one form of seller-supplied audio that can't
+   *  infringe anything. Removing the type would mean rebuilding that path from
+   *  both ends the day it's wanted. Nothing currently sets it. */
   blob: Blob | null;
+  /** Empty string when `bakedIn`: there is no separate file to play, so there
+   *  is nothing to point an `<audio>` at. */
   url: string;
   name: string;
-  /** Provenance, for a library track. Null for one off the device, which owes
-   *  nobody a credit. */
+  /** Provenance. Null only when the licence asks for no credit — a CC0 or
+   *  public-domain track. */
   credit?: SoundCredit | null;
+  /** The track is already inside the media (the video editor mixed it into the
+   *  MP4). Nothing extra is uploaded and the feed plays no second source — but
+   *  the post is still playing that track, so the credit travels anyway. A row
+   *  that carries the music and not the attribution is the licence breach; the
+   *  missing file is not. */
+  bakedIn?: boolean;
 };
-
-/** "my-song (1).mp3" → "my-song (1)".
- *
- *  Lives here rather than in either editor because both of them produce a
- *  `CaptureAudio` and a track should not be named one way depending on which
- *  screen you picked it from. */
-export function soundLabel(filename: string): string {
-  const base = filename.replace(/\.[^.]+$/, "").trim();
-  if (!base) return "Sound";
-  return base.length > 28 ? `${base.slice(0, 27)}…` : base;
-}
 
 export type CapturedMedia = {
   type: "photo" | "video";

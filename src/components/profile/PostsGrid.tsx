@@ -89,6 +89,8 @@ export function PostsGrid({
                 poster={p.thumbnail_url ?? undefined}
                 muted
                 playsInline
+                disablePictureInPicture
+                disableRemotePlayback
                 preload="metadata"
                 className="w-full h-full object-cover"
               />

@@ -1,5 +1,6 @@
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/integrations/my-supabase/client";
+import { isStandalone } from "@/lib/standalone";
 import { isPasswordResetPending, readIntent, setIntent, type Intent } from "@/lib/onboarding-state";
 
 function callbackUrl() {
@@ -272,7 +273,41 @@ export function needsPassword(user: User | null): boolean {
   return providers.filter(Boolean).includes("email");
 }
 
+/** Google OAuth.
+ *
+ *  In a browser tab this is the ordinary redirect and it works.
+ *
+ *  In the INSTALLED app it does not, and the reason is worth writing down
+ *  because the symptom looks like a Google bug. A standalone web app opens a
+ *  cross-origin navigation in a modal browser sheet, and Google treats that
+ *  sheet as an embedded webview: no password box, and an account with a
+ *  passkey is offered a QR code or a security key, neither of which the sheet
+ *  can complete. A dead end, reached by the only route out of the screen.
+ *
+ *  So here the sign-in is handed to the real browser, where Google behaves.
+ *  `skipBrowserRedirect` gives us the URL instead of navigating to it, and
+ *  `window.open` takes it out of the app.
+ *
+ *  KNOWN LIMITATION, and the reason this is worth testing before trusting:
+ *  Supabase's PKCE flow keeps its code verifier in the storage of whichever
+ *  client STARTED the exchange. That client is the installed app, which has
+ *  its own storage jar; the browser that finishes the round trip has a
+ *  different one. So the browser can end up holding a code it cannot exchange
+ *  while the app never sees it — signed in on the website, still signed out in
+ *  the app. If that is what happens, the answer is to stop offering Google
+ *  inside the app and lead with email, which is where these accounts were
+ *  created anyway. */
 export async function signInWithGoogle() {
+  if (isStandalone()) {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: callbackUrl(), skipBrowserRedirect: true },
+    });
+    if (error) return { data, error };
+    if (data?.url) window.open(data.url, "_blank", "noopener,noreferrer");
+    return { data, error: null };
+  }
+
   return supabase.auth.signInWithOAuth({
     provider: "google",
     options: { redirectTo: callbackUrl() },

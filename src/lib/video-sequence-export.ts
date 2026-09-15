@@ -94,13 +94,21 @@ function loadImage(url: string): Promise<HTMLImageElement> {
   });
 }
 
+/** The finished file, plus whether the music track actually reached it.
+ *
+ *  `musicIncluded` exists because the post records the track's licence and
+ *  credit. If the browser could not decode the music, the export still goes
+ *  ahead — a silent post beats a failed render — but the caller must not then
+ *  claim the file contains a track it does not. */
+export type SequenceExport = { blob: Blob; musicIncluded: boolean };
+
 export async function exportSequence(
   clips: Clip[],
   layersByClip: Record<string, Layer[]>,
   ratio: ProjectRatio,
   music: MusicTrack | null,
   onProgress?: SequenceProgress,
-): Promise<Blob> {
+): Promise<SequenceExport> {
   if (clips.length === 0) throw new Error("Nothing on the timeline yet");
 
   const { width, height } = outputSize(ratio);
@@ -134,7 +142,7 @@ export async function exportSequence(
   //
   // It has to happen BEFORE output.start(), because a track cannot be added to
   // an output that has already begun.
-  const mixed = await buildSequenceAudio(clips, music, clipBlob);
+  const { buffer: mixed, musicIncluded } = await buildSequenceAudio(clips, music, clipBlob);
   let audioSource: AudioBufferSource | null = null;
   if (mixed) {
     const audioCodec = await getFirstEncodableAudioCodec(format.getSupportedAudioCodecs(), {
@@ -196,7 +204,7 @@ export async function exportSequence(
     onProgress?.(1);
 
     if (!target.buffer) throw new Error("Export produced no output buffer");
-    return new Blob([target.buffer], { type: "video/mp4" });
+    return { blob: new Blob([target.buffer], { type: "video/mp4" }), musicIncluded };
   } catch (err) {
     await output.cancel().catch(() => {});
     throw err;

@@ -1,5 +1,6 @@
 import { test, expect, describe } from "bun:test";
-import { SOUND_GENRES, buildSearchExpression, parseSearchResponse } from "./wikimedia";
+import { buildSearchExpression, parseSearchResponse } from "./wikimedia";
+import { SOUND_GENRES } from "@/lib/sound-library";
 
 // Shapes below are trimmed copies of real Commons responses.
 
@@ -289,16 +290,19 @@ describe("buildSearchExpression", () => {
   });
 });
 
-describe("SOUND_GENRES", () => {
+describe("genre coverage", () => {
   test("ids are unique, since one is the selected key", () => {
     expect(new Set(SOUND_GENRES.map((g) => g.id)).size).toBe(SOUND_GENRES.length);
   });
 
-  test("every genre points at a Free Music Archive category", () => {
+  test("every genre resolves to a Free Music Archive category", () => {
     // The rest of Commons audio is pronunciations and animal noises; the FMA
-    // import is the part that is actually music.
+    // import is the part that is actually music. A genre chip that fell
+    // through to an untagged Commons search would quietly serve those.
     for (const g of SOUND_GENRES) {
-      expect(g.category.endsWith("from Free Music Archive")).toBe(true);
+      const expression = buildSearchExpression({ genre: g.id });
+      expect(expression).toContain('incategory:"');
+      expect(expression).toContain("from Free Music Archive");
     }
   });
 });

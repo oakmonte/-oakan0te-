@@ -83,6 +83,25 @@ describe("isLicenceUsable", () => {
   test("refuses no-derivatives", () => {
     expect(isLicenceUsable(licence("CC BY-ND 4.0"))).toBe(false);
   });
+
+  test("allows the wordier names providers actually return", () => {
+    // ccMixter says "Attribution (3.0)", not "CC BY 3.0".
+    expect(isLicenceUsable(licence("Attribution (3.0)"))).toBe(true);
+    expect(isLicenceUsable(licence("Attribution"))).toBe(true);
+    expect(isLicenceUsable(licence("Creative Commons Zero, Public Domain Dedication"))).toBe(true);
+  });
+
+  test("refuses a licence it cannot name", () => {
+    // This is the case that matters, and it is not hypothetical: asking
+    // ccMixter for a reduced field set silently drops `license_name`, so every
+    // track in the page parses as "Unknown licence". Under a deny-list those
+    // all read as usable and the non-commercial ones ship with them.
+    expect(isLicenceUsable(licence("Unknown licence"))).toBe(false);
+    expect(isLicenceUsable(licence(""))).toBe(false);
+    expect(isLicenceUsable(licence("   "))).toBe(false);
+    expect(isLicenceUsable(licence("All rights reserved"))).toBe(false);
+    expect(isLicenceUsable(licence("Attribution Noncommercial (4.0)"))).toBe(false);
+  });
 });
 
 describe("plainText", () => {

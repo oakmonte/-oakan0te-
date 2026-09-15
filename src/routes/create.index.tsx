@@ -1,5 +1,13 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState, useRef, useEffect, useCallback, type ReactNode, type TouchEvent } from "react";
+import {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  type ReactNode,
+  type TouchEvent,
+  type PointerEvent,
+} from "react";
 import {
   X,
   RefreshCw,
@@ -945,19 +953,44 @@ function CreatePage() {
 
   useEffect(() => clearHoldTimer, [clearHoldTimer]);
 
-  const handleShutterDown = useCallback(() => {
-    if (!canHoldForLive) return;
-    // 350ms: long enough that a normal shutter tap never trips it, short
-    // enough that holding feels like it started recording immediately.
-    holdTimerRef.current = window.setTimeout(() => {
-      holdTimerRef.current = null;
-      liveRecordingRef.current = true;
-      suppressClickRef.current = true;
-      startRecording(true);
-    }, 350);
-  }, [canHoldForLive, startRecording]);
+  // Where the finger landed on the shutter, so a swipe can be told from a hold.
+  const shutterOriginRef = useRef<{ x: number; y: number } | null>(null);
+  // Past this many pixels the gesture is a filter swipe, not a press.
+  const HOLD_SLOP_PX = 10;
+
+  const handleShutterDown = useCallback(
+    (e: PointerEvent) => {
+      shutterOriginRef.current = { x: e.clientX, y: e.clientY };
+      if (!canHoldForLive) return;
+      // 350ms: long enough that a normal shutter tap never trips it, short
+      // enough that holding feels like it started recording immediately.
+      holdTimerRef.current = window.setTimeout(() => {
+        holdTimerRef.current = null;
+        liveRecordingRef.current = true;
+        suppressClickRef.current = true;
+        startRecording(true);
+      }, 350);
+    },
+    [canHoldForLive, startRecording],
+  );
+
+  // The strip scrolls under the finger by itself, but `pointercancel` only
+  // arrives once the browser has committed to the scroll — which can be after
+  // 350ms, by which time a hold would already be recording. Watching the
+  // movement ourselves cancels the hold at the moment the swipe becomes one.
+  const handleShutterMove = useCallback(
+    (e: PointerEvent) => {
+      const origin = shutterOriginRef.current;
+      if (!origin || holdTimerRef.current === null) return;
+      if (Math.hypot(e.clientX - origin.x, e.clientY - origin.y) > HOLD_SLOP_PX) {
+        clearHoldTimer();
+      }
+    },
+    [clearHoldTimer],
+  );
 
   const handleShutterUp = useCallback(() => {
+    shutterOriginRef.current = null;
     clearHoldTimer();
     if (!liveRecordingRef.current) return;
     liveRecordingRef.current = false;
@@ -1028,6 +1061,8 @@ function CreatePage() {
           ref={videoRef}
           autoPlay
           playsInline
+          disablePictureInPicture
+          disableRemotePlayback
           muted
           className="absolute inset-0 w-full h-full object-cover"
           style={{
@@ -1099,6 +1134,8 @@ function CreatePage() {
                       autoPlay
                       muted
                       playsInline
+                      disablePictureInPicture
+                      disableRemotePlayback
                       style={{
                         width: "100%",
                         height: "100%",
@@ -1341,6 +1378,80 @@ function CreatePage() {
           paddingRight: `calc(50% - ${CAPTURE_SIZE / 2}px)`,
         }}
       >
+        {/* The shutter ring lives INSIDE the scroller, not on top of it.
+         *
+         * A browser only pans a scroll container when the touch starts on that
+         * container or one of its descendants. While the shutter was a sibling
+         * sitting over the middle of the strip, a swipe that began on the big
+         * centre circle — the natural place to put your thumb — hit the button
+         * instead and the filters did not move at all. Swipes that started off
+         * to either side worked, which is what made it feel arbitrary.
+         *
+         * Sticky, zero-width, and FIRST in flow: a sticky `left` offset can
+         * only push a box further right than where it already sits, so it has
+         * to start at the content-box edge. Being first also means it would
+         * paint under the swatches, hence the z-index.
+         *
+         * `left: 0` is the whole offset, and it is not a placeholder. A sticky
+         * inset is measured from the scrollport's CONTENT edge — after
+         * `padding-left` — and this strip's padding-left is already
+         * `50% - half a ring`, which is the centre. So zero means "stay where
+         * the padding put you", which is exactly what is wanted.
+         *
+         * Measured, after getting it wrong twice. On a 375px viewport the
+         * padding is 145.5px; `left: calc(50vw - 42px)` renders the ring at
+         * 291px — the offset added to the padding, then clamped to the content
+         * box — and it stays there at every scroll position, which is the ring
+         * jammed against the right-hand edge. `left: 0` renders it at 145.5px
+         * and holds there at scrollLeft 0, 168 and 504. */}
+        {!(mode === "video" && isRecording) && (
+          <div
+            className="sticky shrink-0 pointer-events-none"
+            style={{
+              zIndex: 2,
+              left: 0,
+              width: 0,
+              height: CAPTURE_SIZE,
+            }}
+          >
+            <div
+              className="absolute rounded-full transition-colors duration-200"
+              style={{
+                top: 0,
+                left: 0,
+                width: CAPTURE_SIZE,
+                height: CAPTURE_SIZE,
+                // Red while a held shutter is recording a live photo. The ring
+                // is the only chrome that changes: everything else on the screen
+                // stays put, because the hold lasts a couple of seconds and a
+                // full recording UI arriving and leaving in that time is worse
+                // than no feedback at all.
+                border: `4px solid ${
+                  mode === "photo" && isRecording ? "#ef4444" : "rgba(255,255,255,0.9)"
+                }`,
+              }}
+            />
+            <button
+              onClick={handleCaptureTap}
+              onPointerDown={handleShutterDown}
+              onPointerMove={handleShutterMove}
+              onPointerUp={handleShutterUp}
+              onPointerCancel={handleShutterUp}
+              onPointerLeave={handleShutterUp}
+              aria-label={
+                mode === "photo" ? "Take photo, or hold for a live photo" : "Start recording"
+              }
+              className="absolute rounded-full pointer-events-auto"
+              style={{
+                top: 0,
+                left: 0,
+                width: CAPTURE_SIZE,
+                height: CAPTURE_SIZE,
+                background: "transparent",
+              }}
+            />
+          </div>
+        )}
         {quickStripFilters.map((f, i) => (
           <button
             key={f.id}
@@ -1404,7 +1515,7 @@ function CreatePage() {
           border: "1px solid rgba(255,255,255,0.15)",
         }}
       >
-        <ImageIcon size={16} className="opacity-80" />
+        <ImageIcon size={16} />
       </button>
 
       <input
@@ -1467,60 +1578,24 @@ function CreatePage() {
           </button>
         </div>
       ) : (
-        <>
-          <div
-            className="absolute pointer-events-none rounded-full transition-colors duration-200"
+        /* The ring and the shutter button itself are rendered inside the filter
+         * strip above, so a swipe that starts on them scrolls it. Only the LIVE
+         * badge stays out here: `overflow-x: auto` clips the other axis too, and
+         * the badge sits above the strip's box. */
+        mode === "photo" &&
+        isRecording && (
+          <span
+            className="absolute pointer-events-none rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold tracking-wide text-white"
             style={{
-              zIndex: 2,
+              zIndex: 5,
               left: "50%",
               transform: "translateX(-50%)",
-              bottom: `calc(env(safe-area-inset-bottom) + ${CAPTURE_ROW_BOTTOM}px)`,
-              width: CAPTURE_SIZE,
-              height: CAPTURE_SIZE,
-              // Red while a held shutter is recording a live photo. The ring
-              // is the only chrome that changes: everything else on the screen
-              // stays put, because the hold lasts a couple of seconds and a
-              // full recording UI arriving and leaving in that time is worse
-              // than no feedback at all.
-              border: `4px solid ${
-                mode === "photo" && isRecording ? "#ef4444" : "rgba(255,255,255,0.9)"
-              }`,
+              bottom: `calc(env(safe-area-inset-bottom) + ${CAPTURE_ROW_BOTTOM + CAPTURE_SIZE + 10}px)`,
             }}
-          />
-          {mode === "photo" && isRecording && (
-            <span
-              className="absolute pointer-events-none rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold tracking-wide text-white"
-              style={{
-                zIndex: 5,
-                left: "50%",
-                transform: "translateX(-50%)",
-                bottom: `calc(env(safe-area-inset-bottom) + ${CAPTURE_ROW_BOTTOM + CAPTURE_SIZE + 10}px)`,
-              }}
-            >
-              LIVE
-            </span>
-          )}
-          <button
-            onClick={handleCaptureTap}
-            onPointerDown={handleShutterDown}
-            onPointerUp={handleShutterUp}
-            onPointerCancel={handleShutterUp}
-            onPointerLeave={handleShutterUp}
-            aria-label={
-              mode === "photo" ? "Take photo, or hold for a live photo" : "Start recording"
-            }
-            className="absolute rounded-full"
-            style={{
-              zIndex: 4,
-              left: "50%",
-              transform: "translateX(-50%)",
-              bottom: `calc(env(safe-area-inset-bottom) + ${CAPTURE_ROW_BOTTOM}px)`,
-              width: CAPTURE_SIZE,
-              height: CAPTURE_SIZE,
-              background: "transparent",
-            }}
-          />
-        </>
+          >
+            LIVE
+          </span>
+        )
       )}
 
       {section === "create" && (

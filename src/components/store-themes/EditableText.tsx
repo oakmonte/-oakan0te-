@@ -9,6 +9,16 @@ import { Minus } from "lucide-react";
 import { FONT_OPTIONS, ensureThemeFont, ensureThemePickerFonts, type FontId } from "./fonts";
 import type { TextFieldId, ThemeEditingProps } from "./edit-types";
 
+// iOS Safari force-zooms on focus below this computed font size; styles.css
+// holds every input in the app at it. See the long note in EditableText.
+const ZOOM_FLOOR_PX = 16;
+// Pinned so the counter-scaled wrapper's height is arithmetic, not a
+// measurement — these mirror the field's own py-1 / 1px border in
+// editClassName. Change one and change the other.
+const FIELD_LINE_HEIGHT = 1.3;
+const FIELD_PAD_Y = 4;
+const FIELD_BORDER = 1;
+
 // Shared view/edit toggle for every piece of copy in the preview. In view
 // mode it's pixel-identical to a plain static element — same tag, same
 // classes, same style — and renders nothing at all once emptied (an empty
@@ -61,18 +71,25 @@ export function EditableText({
     setLocal(value);
   }, [value]);
 
-  // Safety net for the viewport-meta swap below: if this field unmounts
-  // (e.g. the sheet closes) while still focused, blur never fires to put
-  // the meta tag back.
+  // How much of the layout viewport the on-screen keyboard is covering, so
+  // the font control can sit just above it. visualViewport is the only thing
+  // that reports this: window.innerHeight does not change when the keyboard
+  // opens, and position:fixed still resolves against the layout viewport.
+  const [keyboardInset, setKeyboardInset] = useState(0);
   useEffect(() => {
+    if (!focused) return;
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () =>
+      setKeyboardInset(Math.max(0, window.innerHeight - vv.height - vv.offsetTop));
+    update();
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
     return () => {
-      const meta = document.querySelector<HTMLMetaElement>('meta[name="viewport"]');
-      if (meta && meta.dataset.oakPrevContent !== undefined) {
-        meta.setAttribute("content", meta.dataset.oakPrevContent);
-        delete meta.dataset.oakPrevContent;
-      }
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
     };
-  }, []);
+  }, [focused]);
 
   if (!isEditing) {
     if (!value) return null;
@@ -85,19 +102,56 @@ export function EditableText({
   }
 
   const editClassName = `${className ?? ""} w-full resize-none rounded-md border border-white/25 bg-white/5 px-2 py-1 outline-none focus:border-white/60 focus:bg-white/10`;
-  // styles.css forces every input/select/textarea to 16px under 639px width,
-  // app-wide, so iOS Safari doesn't auto-zoom on focus. Theme copy is sized
-  // as small as 8px to fit a phone-mockup scale, and letting that rule win
-  // here blows a field past the tight max-w/flex box it was designed for —
-  // a single-line input can't wrap, so the overflow reads as chopped-off
-  // text. This field suppresses the zoom itself instead (the viewport-meta
-  // swap in handleFocus/restoreViewport below, same technique TextPanel.tsx
-  // uses for the after-shot text tool), so it doesn't need the 16px floor —
-  // restore the real design size via inline style, which beats that class
-  // rule on specificity.
+
+  // iOS Safari force-zooms the viewport when it focuses a text control whose
+  // COMPUTED font size is under 16px, and styles.css keeps every input at
+  // that floor app-wide precisely so nobody has to disable pinch-zoom.
+  //
+  // Theme copy goes down to 11px, so this field is caught between the two:
+  // let the 16px floor win and the text outgrows the tight max-w/flex box it
+  // was designed for (a single-line input cannot wrap, so the overflow reads
+  // as chopped-off text); override it down to the design size and the forced
+  // zoom comes back. Swapping the viewport meta on focus — what this used to
+  // do — does not settle it either: iOS ignores user-scalable=no, and it
+  // takes pinch-zoom away from the seller while they type.
+  //
+  // So: keep the real font-size at 16px, which is the property iOS actually
+  // measures, and counter-scale the field with a CSS transform, which it does
+  // not. The field computes as 16px and renders at its design size. The
+  // transform is laid out inside a wrapper of the exact visual height and
+  // taken out of flow, since a transform does not shrink the layout box it
+  // came from and a 145%-wide box left in flow would push the page sideways.
+  // The size this field is meant to render at, from whichever place its theme
+  // set it: the component themes use a Tailwind arbitrary class, the spec
+  // themes pass a number through `style` (hero headlines run 30-48px).
+  // Reading only the class would miss every spec theme and silently drop its
+  // headline to the 16px floor below.
   const sizeMatch = className?.match(/text-\[(\d+(?:\.\d+)?)px\]/);
-  const intendedPx = sizeMatch ? parseFloat(sizeMatch[1]) : null;
-  const editStyle = intendedPx !== null ? { ...style, fontSize: `${intendedPx}px` } : style;
+  const stylePx =
+    typeof style?.fontSize === "number"
+      ? style.fontSize
+      : typeof style?.fontSize === "string" && style.fontSize.endsWith("px")
+        ? parseFloat(style.fontSize)
+        : null;
+  const intendedPx = sizeMatch ? parseFloat(sizeMatch[1]) : stylePx;
+
+  // Only copy set BELOW the floor needs the trick. A 46px headline already
+  // computes well above it, so it renders at its real size unscaled; with no
+  // size anywhere, the styles.css floor applies and there is nothing to do.
+  const needsZoomGuard = intendedPx !== null && intendedPx < ZOOM_FLOOR_PX;
+  const scale = needsZoomGuard ? intendedPx / ZOOM_FLOOR_PX : 1;
+  const fieldPx = needsZoomGuard ? ZOOM_FLOOR_PX : (intendedPx ?? ZOOM_FLOOR_PX);
+
+  // Every term is pinned rather than measured, so the wrapper's height is
+  // known on the first paint and nothing reflows once the field mounts.
+  const rows = multiline ? 2 : 1;
+  const fieldHeight = fieldPx * FIELD_LINE_HEIGHT * rows + 2 * FIELD_PAD_Y + 2 * FIELD_BORDER;
+  const editStyle: CSSProperties = {
+    ...style,
+    fontSize: `${fieldPx}px`,
+    lineHeight: FIELD_LINE_HEIGHT,
+    height: fieldHeight,
+  };
 
   function commit() {
     if (local !== value) onChange(local);
@@ -106,42 +160,59 @@ export function EditableText({
   function handleFocus() {
     setFocused(true);
     setPickerOpen(false);
-    const meta = document.querySelector<HTMLMetaElement>('meta[name="viewport"]');
-    if (meta) {
-      meta.dataset.oakPrevContent = meta.getAttribute("content") ?? "";
-      meta.setAttribute(
-        "content",
-        "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no",
-      );
-    }
-  }
-
-  function restoreViewport() {
-    const meta = document.querySelector<HTMLMetaElement>('meta[name="viewport"]');
-    if (meta && meta.dataset.oakPrevContent !== undefined) {
-      meta.setAttribute("content", meta.dataset.oakPrevContent);
-      delete meta.dataset.oakPrevContent;
-    }
   }
 
   function handleBlur() {
     commit();
     setFocused(false);
     setPickerOpen(false);
-    restoreViewport();
   }
 
   function handleKeyDown(e: KeyboardEvent<HTMLInputElement>) {
     if (e.key === "Enter") e.currentTarget.blur();
   }
 
+  const visualHeight = fieldHeight * scale;
+  const field = multiline ? (
+    <textarea
+      rows={2}
+      value={local}
+      placeholder={placeholder}
+      onChange={(e) => setLocal(e.target.value)}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
+      className={editClassName}
+      style={editStyle}
+    />
+  ) : (
+    <input
+      type="text"
+      value={local}
+      placeholder={placeholder}
+      onChange={(e) => setLocal(e.target.value)}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
+      onKeyDown={handleKeyDown}
+      className={editClassName}
+      style={editStyle}
+    />
+  );
+
   return (
     <span className="relative block w-full">
       {focused && onFontChange && (
-        <div className="fixed right-3 top-1/2 z-30 -translate-y-1/2">
+        // Docked just above the keyboard rather than centred on the screen:
+        // the field being edited is pushed up against the keyboard too, so a
+        // control halfway up the page meant looking in one place and reaching
+        // in another. Bottom-anchored also lets the list grow upward, away
+        // from the thumb. keyboardInset comes from visualViewport above.
+        <div
+          className="fixed right-3 z-30 flex justify-end duration-200 ease-out animate-in fade-in slide-in-from-bottom-2"
+          style={{ bottom: keyboardInset + 12 }}
+        >
           {pickerOpen ? (
             <div
-              className="max-h-[65vh] w-fit overflow-y-auto rounded-2xl bg-neutral-900 p-1.5 shadow-xl"
+              className="max-h-[260px] w-fit overflow-y-auto overscroll-contain rounded-2xl bg-neutral-900 p-1.5 shadow-xl duration-200 ease-out animate-in fade-in zoom-in-95 slide-in-from-bottom-4"
               style={{ minWidth: "10.5rem" }}
             >
               {FONT_OPTIONS.map((f) => {
@@ -193,29 +264,25 @@ export function EditableText({
           <Minus size={8} />
         </button>
       )}
-      {multiline ? (
-        <textarea
-          rows={2}
-          value={local}
-          placeholder={placeholder}
-          onChange={(e) => setLocal(e.target.value)}
-          onFocus={handleFocus}
-          onBlur={handleBlur}
-          className={editClassName}
-          style={editStyle}
-        />
+      {scale === 1 ? (
+        field
       ) : (
-        <input
-          type="text"
-          value={local}
-          placeholder={placeholder}
-          onChange={(e) => setLocal(e.target.value)}
-          onFocus={handleFocus}
-          onBlur={handleBlur}
-          onKeyDown={handleKeyDown}
-          className={editClassName}
-          style={editStyle}
-        />
+        <span
+          style={{ position: "relative", display: "block", width: "100%", height: visualHeight }}
+        >
+          <span
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: `${100 / scale}%`,
+              transform: `scale(${scale})`,
+              transformOrigin: "top left",
+            }}
+          >
+            {field}
+          </span>
+        </span>
       )}
     </span>
   );

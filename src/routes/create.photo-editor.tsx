@@ -43,12 +43,7 @@ import { ImageSourceSheet, type ImageSource } from "@/components/product-form/Im
 import { DraftImagePickerSheet } from "@/components/product-form/DraftImagePickerSheet";
 import { PostImagePickerSheet } from "@/components/product-form/PostImagePickerSheet";
 import type { PickedMedia } from "@/components/product-form/MediaPickerSheet";
-import {
-  type CaptureAudio,
-  setPendingCapture,
-  soundLabel,
-  takePendingCapture,
-} from "@/lib/capture-handoff";
+import { type CaptureAudio, setPendingCapture, takePendingCapture } from "@/lib/capture-handoff";
 import {
   blankPhotoEdits,
   discardPhotoEditorSession,
@@ -179,7 +174,6 @@ function PhotoEditor() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const stickerInputRef = useRef<HTMLInputElement>(null);
   const [soundSheetOpen, setSoundSheetOpen] = useState(false);
-  const audioInputRef = useRef<HTMLInputElement>(null);
   const audioElRef = useRef<HTMLAudioElement>(null);
   const stripRef = useRef<HTMLDivElement>(null);
   // Drag state is mirrored in refs as well as state: the render needs it, and
@@ -411,17 +405,6 @@ function PhotoEditor() {
       added.push({ blob: file, url, remote: false });
     }
     addPhotos(added);
-  }
-
-  function handleAudioFile(files: FileList | null) {
-    const file = files?.[0];
-    // Cleared before the early return as well: leaving the same file selected
-    // means picking it again after removing it fires no change event.
-    if (audioInputRef.current) audioInputRef.current.value = "";
-    if (!file || !file.type.startsWith("audio/")) return;
-    const url = URL.createObjectURL(file);
-    ownedUrls.current.push(url);
-    setSound({ blob: file, url, name: soundLabel(file.name), credit: null });
   }
 
   /** A catalogue track is kept as a URL, not as bytes.
@@ -1030,6 +1013,8 @@ function PhotoEditor() {
                   loop
                   muted
                   playsInline
+                  disablePictureInPicture
+                  disableRemotePlayback
                   className={active.crop ? "" : "absolute inset-0 h-full w-full object-cover"}
                   style={mediaStyle()}
                 />
@@ -1106,10 +1091,6 @@ function PhotoEditor() {
         open={soundSheetOpen}
         onClose={() => setSoundSheetOpen(false)}
         onPick={handleLibraryTrack}
-        onUseDevice={() => {
-          setSoundSheetOpen(false);
-          audioInputRef.current?.click();
-        }}
       />
 
       <FilterPanel
@@ -1228,6 +1209,8 @@ function PhotoEditor() {
                         src={p.url}
                         muted
                         playsInline
+                        disablePictureInPicture
+                        disableRemotePlayback
                         preload="metadata"
                         className="h-full w-full object-cover"
                       />
@@ -1362,13 +1345,6 @@ function PhotoEditor() {
         multiple
         className="hidden"
         onChange={(e) => handleStickerFiles(e.target.files)}
-      />
-      <input
-        ref={audioInputRef}
-        type="file"
-        accept="audio/*"
-        className="hidden"
-        onChange={(e) => handleAudioFile(e.target.files)}
       />
 
       {/* The audition player. Looped, because the track is longer than the

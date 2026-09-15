@@ -3,6 +3,14 @@ import type { LayoutId } from "./layout-presets";
 
 export type RemovableBlockId = "stats" | "promo" | "footer";
 
+// Shown in the Layout menu's "Hidden sections" list, which is the only way
+// back once a block is removed.
+export const REMOVABLE_BLOCK_LABELS: Record<RemovableBlockId, string> = {
+  stats: "Follower count",
+  promo: "Promo banner",
+  footer: "Community",
+};
+
 export const MAX_SLIDESHOW_IMAGES = 10;
 
 export type TextFieldId =
@@ -13,7 +21,6 @@ export type TextFieldId =
   | "promoEyebrow"
   | "promoTitle"
   | "footerLabel"
-  | "footerSub"
   | "overlayLine1"
   | "overlayLine2"
   | "logoText";
@@ -99,6 +106,7 @@ export type ThemeEditingProps = {
   onTextFontChange: (field: TextFieldId, font: FontId) => void;
   hiddenBlocks: RemovableBlockId[];
   onRemoveBlock: (block: RemovableBlockId) => void;
+  onRestoreBlock: (block: RemovableBlockId) => void;
   layoutId: LayoutId;
   onLayoutChange: (id: LayoutId) => void;
   collectionsMode: "collections" | "products";

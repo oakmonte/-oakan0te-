@@ -50,7 +50,33 @@ export type SizeChartDefinition = {
     | "sweater-vest"
     | "tank-top"
     | "turtle-neck"
-    | "varsity-jacket";
+    | "varsity-jacket"
+    | "a-line-dress"
+    | "bermuda-shorts"
+    | "biker-shorts"
+    | "compression-shirt"
+    | "flared-pants"
+    | "gilet"
+    | "harem-pants"
+    | "henley"
+    | "leather-jacket"
+    | "leather-pants"
+    | "leggings"
+    | "linen-pants"
+    | "off-shoulder-dress"
+    | "palazzo"
+    | "parachute-pants"
+    | "parka"
+    | "senator-wear"
+    | "shirt-dress"
+    | "slip-dress"
+    | "sports-bra"
+    | "track-jacket"
+    | "trucker-jacket"
+    | "tunic"
+    | "corset"
+    | "peplum-top"
+    | "wrap-dress";
   lines: SizeChartLine[];
 };
 
@@ -108,11 +134,10 @@ const FOOTBALL_JERSEY: SizeChartDefinition = {
   id: "football-jersey",
   guide: "football-jersey",
   lines: [
-    { key: "shoulder_width", label: "a" },
+    { key: "body_length", label: "a" },
     { key: "chest_width", label: "b" },
-    { key: "body_length", label: "c" },
+    { key: "shoulder_width", label: "c" },
     { key: "sleeve_length", label: "d" },
-    { key: "neck_width", label: "e" },
   ],
 };
 
@@ -307,6 +332,115 @@ const VARSITY_JACKET = letteredChart("varsity-jacket", "varsity-jacket", [
   "sleeve_length",
 ]);
 
+const FOUR_LINE_BOTTOM = (id: string, guide: SizeChartDefinition["guide"]) =>
+  letteredChart(id, guide, ["waist_width", "hip_width", "inseam_length", "leg_opening"]);
+const FOUR_LINE_SHORTS = (id: string, guide: SizeChartDefinition["guide"]) =>
+  letteredChart(id, guide, ["waist_width", "hip_width", "outseam_length", "leg_opening"]);
+const A_LINE_DRESS = letteredChart("a-line-dress", "a-line-dress", [
+  "body_length",
+  "chest_width",
+  "waist_width",
+  "hem_width",
+]);
+const BERMUDA_SHORTS = FOUR_LINE_SHORTS("bermuda-shorts", "bermuda-shorts");
+const BIKER_SHORTS = FOUR_LINE_SHORTS("biker-shorts", "biker-shorts");
+const COMPRESSION_SHIRT = letteredChart("compression-shirt", "compression-shirt", [
+  "body_length",
+  "chest_width",
+  "shoulder_width",
+  "sleeve_length",
+]);
+const FLARED_PANTS = FOUR_LINE_BOTTOM("flared-pants", "flared-pants");
+const GILET = letteredChart("gilet", "gilet", ["body_length", "chest_width", "shoulder_width"]);
+const HAREM_PANTS = FOUR_LINE_BOTTOM("harem-pants", "harem-pants");
+const HENLEY = letteredChart("henley", "henley", [
+  "body_length",
+  "chest_width",
+  "shoulder_width",
+  "sleeve_length",
+]);
+const LEATHER_JACKET = letteredChart("leather-jacket", "leather-jacket", [
+  "body_length",
+  "chest_width",
+  "shoulder_width",
+  "sleeve_length",
+]);
+const LEATHER_PANTS = FOUR_LINE_BOTTOM("leather-pants", "leather-pants");
+const LEGGINGS = FOUR_LINE_BOTTOM("leggings", "leggings");
+const LINEN_PANTS = FOUR_LINE_BOTTOM("linen-pants", "linen-pants");
+const OFF_SHOULDER_DRESS = letteredChart("off-shoulder-dress", "off-shoulder-dress", [
+  "body_length",
+  "chest_width",
+  "waist_width",
+  "hip_width",
+  "sleeve_length",
+]);
+const PALAZZO = FOUR_LINE_BOTTOM("palazzo", "palazzo");
+const PARACHUTE_PANTS = FOUR_LINE_BOTTOM("parachute-pants", "parachute-pants");
+const PARKA = letteredChart("parka", "parka", [
+  "body_length",
+  "chest_width",
+  "shoulder_width",
+  "sleeve_length",
+]);
+const SENATOR_WEAR = letteredChart("senator-wear", "senator-wear", [
+  "body_length",
+  "chest_width",
+  "shoulder_width",
+  "sleeve_length",
+]);
+const SHIRT_DRESS = letteredChart("shirt-dress", "shirt-dress", [
+  "body_length",
+  "chest_width",
+  "waist_width",
+  "hip_width",
+  "sleeve_length",
+]);
+const SLIP_DRESS = letteredChart("slip-dress", "slip-dress", [
+  "body_length",
+  "chest_width",
+  "waist_width",
+  "hip_width",
+]);
+const SPORTS_BRA = letteredChart("sports-bra", "sports-bra", [
+  "body_length",
+  "chest_width",
+  "hem_width",
+]);
+const TRACK_JACKET = letteredChart("track-jacket", "track-jacket", [
+  "body_length",
+  "chest_width",
+  "shoulder_width",
+  "sleeve_length",
+]);
+const TRUCKER_JACKET = letteredChart("trucker-jacket", "trucker-jacket", [
+  "body_length",
+  "chest_width",
+  "shoulder_width",
+  "sleeve_length",
+]);
+const TUNIC = letteredChart("tunic", "tunic", [
+  "body_length",
+  "chest_width",
+  "shoulder_width",
+  "sleeve_length",
+]);
+const CORSET = letteredChart("corset", "corset", ["body_length", "chest_width", "waist_width"]);
+const PEPLUM_TOP = letteredChart("peplum-top", "peplum-top", [
+  "body_length",
+  "chest_width",
+  "shoulder_width",
+  "sleeve_length",
+  "hem_width",
+]);
+const WRAP_DRESS = letteredChart("wrap-dress", "wrap-dress", [
+  "body_length",
+  "chest_width",
+  "waist_width",
+  "hip_width",
+  "sleeve_length",
+]);
+
 // Every category node id (at any depth in the path) that should get a chart.
 // A guide is reused wherever its illustration fairly represents the garment,
 // not only for the category it was drawn for — e.g. the generic drawstring
@@ -340,18 +474,19 @@ const CHARTS_BY_CATEGORY: Record<string, SizeChartDefinition> = {
   "baggy-corporate-trousers": BAGGY_CORPORATE_TROUSERS,
   "pants-trousers": BAGGY_CORPORATE_TROUSERS,
   "pants-chinos": BAGGY_CORPORATE_TROUSERS,
-  "palazzo-pants": BAGGY_CORPORATE_TROUSERS,
-  "harem-pants": BAGGY_CORPORATE_TROUSERS,
+  "palazzo-pants": PALAZZO,
+  "harem-pants": HAREM_PANTS,
   "baggy-jeans": BAGGY_JEANS,
   "pants-jeans": BAGGY_JEANS,
   "pants-jeggings": BAGGY_JEANS,
+  "pants-leggings": LEGGINGS,
 
   // Shorts & jorts
   shorts: SHORTS,
   "jogger-shorts": SHORTS,
   "chino-shorts": SHORTS,
   "cargo-shorts": SHORTS,
-  bermudas: SHORTS,
+  bermudas: BERMUDA_SHORTS,
   "short-trousers": SHORTS,
   "legging-shorts": SHORTS,
   "loungewear-bottoms-shorts": SHORTS,
@@ -382,6 +517,33 @@ const CHARTS_BY_CATEGORY: Record<string, SizeChartDefinition> = {
   "clothing-tops-tank-tops": TANK_TOP,
   "turtle-necks": TURTLE_NECK,
   "varsity-jackets": VARSITY_JACKET,
+  "a-line-dresses": A_LINE_DRESS,
+  "biker-shorts": BIKER_SHORTS,
+  "compression-shirts": COMPRESSION_SHIRT,
+  "flared-pants": FLARED_PANTS,
+  gilet: GILET,
+  "henley-shirts": HENLEY,
+  "leather-jackets": LEATHER_JACKET,
+  "leather-pants": LEATHER_PANTS,
+  leggings: LEGGINGS,
+  "linen-pants": LINEN_PANTS,
+  "off-shoulder-dresses": OFF_SHOULDER_DRESS,
+  "parachute-pants": PARACHUTE_PANTS,
+  "coats-jackets-parkas": PARKA,
+  "senator-wear": SENATOR_WEAR,
+  "shirt-dresses": SHIRT_DRESS,
+  "slip-dresses": SLIP_DRESS,
+  "sports-bras": SPORTS_BRA,
+  "track-jackets": TRACK_JACKET,
+  "coats-jackets-track-jackets": TRACK_JACKET,
+  "trucker-jackets": TRUCKER_JACKET,
+  "coats-jackets-trucker-jackets": TRUCKER_JACKET,
+  tunics: TUNIC,
+  "clothing-tops-tunics": TUNIC,
+  "corset-tops": CORSET,
+  "corsets-bustiers": CORSET,
+  "peplum-tops": PEPLUM_TOP,
+  "wrap-dresses": WRAP_DRESS,
 };
 
 // Only categories explicitly mapped above get a guide. Adding a new guide is

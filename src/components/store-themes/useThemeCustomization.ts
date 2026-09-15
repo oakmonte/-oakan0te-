@@ -75,10 +75,14 @@ export function useThemeCustomization(themeId: ThemeId, storeIdOverride?: string
     };
   }, [themeId, storeId, storeLoading]);
 
+  // Returns an error message, or null on success. It used to await the
+  // upsert and discard the result, so a failed save looked exactly like a
+  // successful one — the sheet closed, the seller walked away, and the work
+  // was gone.
   const save = useCallback(
-    async (state: ThemeEditState) => {
-      if (!storeId) return;
-      await supabase.from("store_theme_customizations").upsert(
+    async (state: ThemeEditState): Promise<string | null> => {
+      if (!storeId) return "No store to save to";
+      const { error } = await supabase.from("store_theme_customizations").upsert(
         {
           store_id: storeId,
           theme_slug: themeId,
@@ -93,6 +97,11 @@ export function useThemeCustomization(themeId: ThemeId, storeIdOverride?: string
         },
         { onConflict: "store_id,theme_slug" },
       );
+      if (error) {
+        console.error("useThemeCustomization: save failed", error);
+        return "Couldn't save those changes";
+      }
+      return null;
     },
     [themeId, storeId],
   );
