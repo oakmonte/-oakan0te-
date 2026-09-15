@@ -177,6 +177,9 @@ export function ChatThread({
         onCancelReply={() => setReplyTo(null)}
         placeholder={conversation.kind === "self" ? "Message yourself..." : "Message..."}
       />
+      </div>
+
+
 
       {actionsFor && (
         <ReactionBar
