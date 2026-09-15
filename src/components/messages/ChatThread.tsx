@@ -153,7 +153,7 @@ export function ChatThread({
         )}
       </div>
 
-      {!loading && draft.trim().length === 0 && (
+      {!loading && !lastMine && draft.trim().length === 0 && (
         <QuickReplies
           replies={quickReplies}
           onPick={(reply) => {
