@@ -83,7 +83,9 @@ export function ChatThread({
   const showEmpty = !loading && messages.length === 0;
 
   return (
-    <div className="fixed inset-0 z-40 flex flex-col bg-chat-bg">
+    <div className="fixed inset-0 z-40 flex justify-center bg-chat-bg">
+      <div className="flex w-full max-w-[560px] flex-col md:border-x md:border-chat-border">
+
       <ChatHeader
         conversation={conversation}
         scrolled={scrolled}
