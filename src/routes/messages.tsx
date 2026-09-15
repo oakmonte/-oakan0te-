@@ -525,6 +525,8 @@ function MessagesPage() {
           <TabPreview tab={tab} />
         )}
       </div>
+      </div>
+
 
       {filterOpen && (
         <FilterSheet
