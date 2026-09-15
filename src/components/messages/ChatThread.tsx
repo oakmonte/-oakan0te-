@@ -173,7 +173,7 @@ export function ChatThread({
         sending={sending}
         replyTo={replyTo}
         onCancelReply={() => setReplyTo(null)}
-        placeholder={`Message ${conversation.kind === "self" ? "yourself" : conversation.name}...`}
+        placeholder={conversation.kind === "self" ? "Message yourself..." : "Message..."}
       />
 
       {actionsFor && (
