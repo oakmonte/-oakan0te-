@@ -357,8 +357,11 @@ function MessagesPage() {
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
+      {/* Centered column so wide desktop screens keep phone-like density */}
+      <div className="mx-auto w-full max-w-[560px] md:border-x md:border-chat-border">
       {/* ---------- search + filter ---------- */}
       <div className="flex items-center gap-3 px-4 pt-5">
+
         <div className="flex h-12 min-w-0 flex-1 items-center gap-2.5 rounded-[14px] bg-chat-soft px-3.5 text-chat-muted">
           <Search size={20} strokeWidth={2.2} />
           <input
