@@ -10,7 +10,8 @@ import { BottomNav } from "@/components/BottomNav";
 import { ConversationRow } from "@/components/messages/ConversationRow";
 import { ConversationSkeleton } from "@/components/messages/Skeletons";
 import { StoryRail } from "@/components/messages/StoryRail";
-import { FilterSheet, FILTERS } from "@/components/messages/FilterSheet";
+import { FilterSheet } from "@/components/messages/FilterSheet";
+import { FILTERS } from "@/lib/messages-filters";
 import { TabPreview } from "@/components/messages/TabPreview";
 import { ChatThread } from "@/components/messages/ChatThread";
 import {
