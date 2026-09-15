@@ -83,98 +83,100 @@ export function ChatThread({
   const showEmpty = !loading && messages.length === 0;
 
   return (
-    <div className="fixed inset-0 z-40 flex flex-col bg-chat-bg">
-      <ChatHeader
-        conversation={conversation}
-        scrolled={scrolled}
-        muted={muted}
-        onBack={onBack}
-        onToggleMute={onToggleMute}
-        onMarkUnread={onMarkUnread}
-      />
+    <div className="fixed inset-0 z-40 flex justify-center bg-chat-bg">
+      <div className="flex w-full max-w-[560px] flex-col md:border-x md:border-chat-border">
+        <ChatHeader
+          conversation={conversation}
+          scrolled={scrolled}
+          muted={muted}
+          onBack={onBack}
+          onToggleMute={onToggleMute}
+          onMarkUnread={onMarkUnread}
+        />
 
-      <div
-        ref={scroller}
-        onScroll={(event) => {
-          const node = event.currentTarget;
-          setScrolled(node.scrollTop > 6);
-          nearBottom.current = node.scrollHeight - node.scrollTop - node.clientHeight < 120;
-        }}
-        className="flex-1 overflow-y-auto overscroll-contain px-4 pb-3"
-      >
-        {loading && <ThreadSkeleton />}
+        <div
+          ref={scroller}
+          onScroll={(event) => {
+            const node = event.currentTarget;
+            setScrolled(node.scrollTop > 6);
+            nearBottom.current = node.scrollHeight - node.scrollTop - node.clientHeight < 120;
+          }}
+          className="flex-1 overflow-y-auto overscroll-contain px-4 pb-3"
+        >
+          {loading && <ThreadSkeleton />}
 
-        {showEmpty && (
-          <div className="flex flex-col items-center gap-3 px-8 pb-6 pt-16 text-center">
-            <ConversationAvatar conversation={conversation} size={72} />
-            <p className="text-[17px] font-semibold text-chat-text">{conversation.name}</p>
-            <p className="text-[13px] text-chat-muted">{emptyHint}</p>
-          </div>
-        )}
-
-        {error && (
-          <p role="alert" className="py-4 text-center text-[13px] text-chat-danger">
-            {error}
-          </p>
-        )}
-
-        <div className="space-y-1.5 pt-1">
-          {rows.map(({ message, showDivider, lastOfGroup }) => (
-            <div key={message.id}>
-              {showDivider && <DateDivider label={dayDividerLabel(message.created_at)} />}
-              <MessageBubble
-                message={message}
-                mine={message.sender === "user"}
-                lastOfGroup={lastOfGroup}
-                reaction={reactions[message.id]}
-                seenLabel={
-                  message.id === lastMine?.id && conversation.kind !== "self" ? "Seen" : null
-                }
-                onLongPress={() => setActionsFor(message)}
-                onReply={() => {
-                  setReplyTo(message.body ?? message.product?.name ?? "Attachment");
-                }}
-                onAddToCart={() => {
-                  haptic();
-                  onToast("Added to your cart");
-                }}
-              />
+          {showEmpty && (
+            <div className="flex flex-col items-center gap-3 px-8 pb-6 pt-16 text-center">
+              <ConversationAvatar conversation={conversation} size={72} />
+              <p className="text-[17px] font-semibold text-chat-text">{conversation.name}</p>
+              <p className="text-[13px] text-chat-muted">{emptyHint}</p>
             </div>
-          ))}
+          )}
+
+          {error && (
+            <p role="alert" className="py-4 text-center text-[13px] text-chat-danger">
+              {error}
+            </p>
+          )}
+
+          <div className="space-y-1.5 pt-1">
+            {rows.map(({ message, showDivider, lastOfGroup }) => (
+              <div key={message.id}>
+                {showDivider && <DateDivider label={dayDividerLabel(message.created_at)} />}
+                <MessageBubble
+                  message={message}
+                  mine={message.sender === "user"}
+                  lastOfGroup={lastOfGroup}
+                  reaction={reactions[message.id]}
+                  seenLabel={
+                    message.id === lastMine?.id && conversation.kind !== "self" ? "Seen" : null
+                  }
+                  onLongPress={() => setActionsFor(message)}
+                  onReply={() => {
+                    setReplyTo(message.body ?? message.product?.name ?? "Attachment");
+                  }}
+                  onAddToCart={() => {
+                    haptic();
+                    onToast("Added to your cart");
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+
+          {typing && (
+            <div className="flex items-center gap-2 pt-3">
+              <ConversationAvatar conversation={conversation} size={26} />
+              <span className="rounded-[18px] bg-white/10 px-3.5 py-3 text-chat-muted">
+                <TypingDots />
+              </span>
+            </div>
+          )}
         </div>
 
-        {typing && (
-          <div className="flex items-center gap-2 pt-3">
-            <ConversationAvatar conversation={conversation} size={26} />
-            <span className="rounded-[18px] bg-white/10 px-3.5 py-3 text-chat-muted">
-              <TypingDots />
-            </span>
-          </div>
+        {!loading && !lastMine && draft.trim().length === 0 && (
+          <QuickReplies
+            replies={quickReplies}
+            onPick={(reply) => {
+              onDraftChange(reply);
+            }}
+          />
         )}
-      </div>
 
-      {!loading && draft.trim().length === 0 && (
-        <QuickReplies
-          replies={quickReplies}
-          onPick={(reply) => {
-            onDraftChange(reply);
+        <Composer
+          value={draft}
+          onChange={onDraftChange}
+          onSend={() => {
+            onSend(replyTo);
+            setReplyTo(null);
           }}
+          disabled={composerDisabled}
+          sending={sending}
+          replyTo={replyTo}
+          onCancelReply={() => setReplyTo(null)}
+          placeholder={conversation.kind === "self" ? "Message yourself..." : "Message..."}
         />
-      )}
-
-      <Composer
-        value={draft}
-        onChange={onDraftChange}
-        onSend={() => {
-          onSend(replyTo);
-          setReplyTo(null);
-        }}
-        disabled={composerDisabled}
-        sending={sending}
-        replyTo={replyTo}
-        onCancelReply={() => setReplyTo(null)}
-        placeholder={`Message ${conversation.kind === "self" ? "yourself" : conversation.name}...`}
-      />
+      </div>
 
       {actionsFor && (
         <ReactionBar

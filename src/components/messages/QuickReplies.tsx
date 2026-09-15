@@ -9,7 +9,10 @@ export function QuickReplies({
   if (replies.length === 0) return null;
 
   return (
-    <div className="flex gap-2 overflow-x-auto px-4 pb-1 pt-1 no-scrollbar" aria-label="Quick replies">
+    <div
+      className="flex gap-2 overflow-x-auto px-4 pb-1 pt-1 no-scrollbar"
+      aria-label="Quick replies"
+    >
       {replies.map((reply) => (
         <button
           key={reply}

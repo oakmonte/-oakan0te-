@@ -20,9 +20,7 @@ export function TabPreview({ tab }: { tab: "offers" | "orders" }) {
             >
               <img src={SAMPLE_OFFER.image} alt="" className="h-16 w-16 rounded-lg object-cover" />
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[13px] text-chat-muted">
-                  {SAMPLE_OFFER.buyer} offered
-                </p>
+                <p className="truncate text-[13px] text-chat-muted">{SAMPLE_OFFER.buyer} offered</p>
                 <p className="text-[17px] font-bold text-chat-text">{SAMPLE_OFFER.offered}</p>
                 <p className="text-[11px] text-chat-muted line-through">{SAMPLE_OFFER.listed}</p>
               </div>

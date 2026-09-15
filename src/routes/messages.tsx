@@ -10,7 +10,8 @@ import { BottomNav } from "@/components/BottomNav";
 import { ConversationRow } from "@/components/messages/ConversationRow";
 import { ConversationSkeleton } from "@/components/messages/Skeletons";
 import { StoryRail } from "@/components/messages/StoryRail";
-import { FilterSheet, FILTERS } from "@/components/messages/FilterSheet";
+import { FilterSheet } from "@/components/messages/FilterSheet";
+import { FILTERS } from "@/lib/messages-filters";
 import { TabPreview } from "@/components/messages/TabPreview";
 import { ChatThread } from "@/components/messages/ChatThread";
 import {
@@ -356,170 +357,173 @@ function MessagesPage() {
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
-      {/* ---------- search + filter ---------- */}
-      <div className="flex items-center gap-3 px-4 pt-5">
-        <div className="flex h-12 min-w-0 flex-1 items-center gap-2.5 rounded-[14px] bg-chat-soft px-3.5 text-chat-muted">
-          <Search size={20} strokeWidth={2.2} />
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search"
-            aria-label="Search conversations"
-            className="min-w-0 flex-1 bg-transparent text-[16px] text-chat-text outline-none placeholder:text-chat-muted"
-          />
-          {query && (
-            <button
-              type="button"
-              aria-label="Clear search"
-              onClick={() => setQuery("")}
-              className="flex h-8 w-8 items-center justify-center rounded-full text-chat-muted active:bg-white/10"
-            >
-              <X size={17} />
-            </button>
-          )}
-        </div>
-        <button
-          type="button"
-          onClick={() => {
-            setDraftFilters(activeFilters);
-            setFilterOpen(true);
-          }}
-          aria-label="Filter conversations"
-          className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-chat-soft text-chat-text active:scale-95"
-        >
-          <SlidersHorizontal size={20} />
-          {activeFilters.length > 0 && (
-            <span className="absolute -right-1 -top-1 flex h-[19px] min-w-[19px] items-center justify-center rounded-full bg-chat-accent px-1 text-[11px] font-bold text-black">
-              {activeFilters.length}
-            </span>
-          )}
-        </button>
-      </div>
-
-      {/* ---------- active filter chips ---------- */}
-      {activeFilters.length > 0 && (
-        <div className="mt-3 flex gap-2 overflow-x-auto px-4 no-scrollbar">
-          {activeFilters.map((key) => {
-            const filter = FILTERS.find((item) => item.key === key);
-            if (!filter) return null;
-            return (
+      {/* Centered column so wide desktop screens keep phone-like density */}
+      <div className="mx-auto w-full max-w-[560px] md:border-x md:border-chat-border">
+        {/* ---------- search + filter ---------- */}
+        <div className="flex items-center gap-3 px-4 pt-5">
+          <div className="flex h-12 min-w-0 flex-1 items-center gap-2.5 rounded-[14px] bg-chat-soft px-3.5 text-chat-muted">
+            <Search size={20} strokeWidth={2.2} />
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search"
+              aria-label="Search conversations"
+              className="min-w-0 flex-1 bg-transparent text-[16px] text-chat-text outline-none placeholder:text-chat-muted"
+            />
+            {query && (
               <button
-                key={key}
                 type="button"
-                aria-label={`Remove ${filter.label} filter`}
-                onClick={() => setActiveFilters((current) => current.filter((k) => k !== key))}
-                className="flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-chat-border bg-white/[0.07] px-3 text-[13px] font-medium text-chat-text active:scale-95"
+                aria-label="Clear search"
+                onClick={() => setQuery("")}
+                className="flex h-8 w-8 items-center justify-center rounded-full text-chat-muted active:bg-white/10"
               >
-                <filter.icon size={14} />
-                {filter.label}
-                <X size={14} className="text-chat-muted" />
+                <X size={17} />
               </button>
-            );
-          })}
+            )}
+          </div>
           <button
             type="button"
-            onClick={() => setActiveFilters([])}
-            className="h-9 shrink-0 px-2 text-[13px] font-semibold text-chat-accent active:opacity-60"
+            onClick={() => {
+              setDraftFilters(activeFilters);
+              setFilterOpen(true);
+            }}
+            aria-label="Filter conversations"
+            className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-chat-soft text-chat-text active:scale-95"
           >
-            Clear all
+            <SlidersHorizontal size={20} />
+            {activeFilters.length > 0 && (
+              <span className="absolute -right-1 -top-1 flex h-[19px] min-w-[19px] items-center justify-center rounded-full bg-chat-accent px-1 text-[11px] font-bold text-black">
+                {activeFilters.length}
+              </span>
+            )}
           </button>
         </div>
-      )}
 
-      <StoryRail onAdd={() => setStoryNotice(true)} />
-
-      {storyNotice && (
-        <div
-          className="mx-4 mt-3 rounded-[16px] border border-chat-border bg-chat-elevated px-4 py-3 text-center text-[14px] text-chat-muted"
-          style={{ animation: "messages-banner-drop 280ms ease-out both" }}
-        >
-          Stories arrive at full launch
-        </div>
-      )}
-
-      {/* ---------- tabs ---------- */}
-      <div className="mt-6">
-        <div className="relative border-b border-chat-border">
-          <div className="flex items-center px-2 text-[16px] font-bold">
-            {TABS.map(({ key, label }) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setTab(key)}
-                aria-current={tab === key}
-                className={`flex-1 pb-3 pt-1 transition-colors ${
-                  tab === key ? "text-chat-text" : "text-chat-muted"
-                }`}
-              >
-                {label}
-              </button>
-            ))}
+        {/* ---------- active filter chips ---------- */}
+        {activeFilters.length > 0 && (
+          <div className="mt-3 flex gap-2 overflow-x-auto px-4 no-scrollbar">
+            {activeFilters.map((key) => {
+              const filter = FILTERS.find((item) => item.key === key);
+              if (!filter) return null;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  aria-label={`Remove ${filter.label} filter`}
+                  onClick={() => setActiveFilters((current) => current.filter((k) => k !== key))}
+                  className="flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-chat-border bg-white/[0.07] px-3 text-[13px] font-medium text-chat-text active:scale-95"
+                >
+                  <filter.icon size={14} />
+                  {filter.label}
+                  <X size={14} className="text-chat-muted" />
+                </button>
+              );
+            })}
+            <button
+              type="button"
+              onClick={() => setActiveFilters([])}
+              className="h-9 shrink-0 px-2 text-[13px] font-semibold text-chat-accent active:opacity-60"
+            >
+              Clear all
+            </button>
           </div>
-          <motion.span
-            className="absolute bottom-0 h-[2px] rounded-full bg-chat-text"
-            style={{ width: `${100 / TABS.length}%` }}
-            animate={{ left: `${(tabIndex * 100) / TABS.length}%` }}
-            transition={{ type: "spring", stiffness: 420, damping: 36 }}
-          />
-        </div>
+        )}
 
-        {tab === "messages" ? (
-          inboxLoading ? (
-            <ConversationSkeleton />
-          ) : visible.length === 0 ? (
-            <div className="px-8 pt-14 text-center">
-              <p className="text-[16px] font-semibold text-chat-text">No conversations found</p>
-              <p className="mt-1.5 text-[13px] text-chat-muted">
-                {debouncedQuery
-                  ? `Nothing matches “${debouncedQuery}”.`
-                  : "Try clearing your filters."}
-              </p>
-            </div>
-          ) : (
-            <div className="pt-1.5">
-              {searching && (
-                <p className="px-5 pb-1 pt-2 text-[12px] text-chat-faint">Searching…</p>
-              )}
-              {visible.map((conversation) => (
-                <ConversationRow
-                  key={conversation.id}
-                  conversation={conversation}
-                  query={debouncedQuery}
-                  muted={Boolean(muted[conversation.id])}
-                  onOpen={() => openThread(conversation.id)}
-                  onToggleRead={() =>
-                    setConversations((current) =>
-                      current.map((item) =>
-                        item.id === conversation.id
-                          ? { ...item, unread: item.unread > 0 ? 0 : 1 }
-                          : item,
-                      ),
-                    )
-                  }
-                  onToggleMute={() => {
-                    setMuted((current) => ({
-                      ...current,
-                      [conversation.id]: !current[conversation.id],
-                    }));
-                    setToast(
-                      muted[conversation.id]
-                        ? `${conversation.name} unmuted`
-                        : `${conversation.name} muted`,
-                    );
-                  }}
-                  onArchive={() => {
-                    setConversations((current) =>
-                      current.filter((item) => item.id !== conversation.id),
-                    );
-                    setToast(`${conversation.name} archived`);
-                  }}
-                />
+        <StoryRail onAdd={() => setStoryNotice(true)} />
+
+        {storyNotice && (
+          <div
+            className="mx-4 mt-3 rounded-[16px] border border-chat-border bg-chat-elevated px-4 py-3 text-center text-[14px] text-chat-muted"
+            style={{ animation: "messages-banner-drop 280ms ease-out both" }}
+          >
+            Stories arrive at full launch
+          </div>
+        )}
+
+        {/* ---------- tabs ---------- */}
+        <div className="mt-6">
+          <div className="relative border-b border-chat-border">
+            <div className="flex items-center px-2 text-[16px] font-bold">
+              {TABS.map(({ key, label }) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setTab(key)}
+                  aria-current={tab === key}
+                  className={`flex-1 pb-3 pt-1 transition-colors ${
+                    tab === key ? "text-chat-text" : "text-chat-muted"
+                  }`}
+                >
+                  {label}
+                </button>
               ))}
             </div>
-          )
-        ) : (
-          <TabPreview tab={tab} />
-        )}
+            <motion.span
+              className="absolute bottom-0 h-[2px] rounded-full bg-chat-text"
+              style={{ width: `${100 / TABS.length}%` }}
+              animate={{ left: `${(tabIndex * 100) / TABS.length}%` }}
+              transition={{ type: "spring", stiffness: 420, damping: 36 }}
+            />
+          </div>
+
+          {tab === "messages" ? (
+            inboxLoading ? (
+              <ConversationSkeleton />
+            ) : visible.length === 0 ? (
+              <div className="px-8 pt-14 text-center">
+                <p className="text-[16px] font-semibold text-chat-text">No conversations found</p>
+                <p className="mt-1.5 text-[13px] text-chat-muted">
+                  {debouncedQuery
+                    ? `Nothing matches “${debouncedQuery}”.`
+                    : "Try clearing your filters."}
+                </p>
+              </div>
+            ) : (
+              <div className="pt-1.5">
+                {searching && (
+                  <p className="px-5 pb-1 pt-2 text-[12px] text-chat-faint">Searching…</p>
+                )}
+                {visible.map((conversation) => (
+                  <ConversationRow
+                    key={conversation.id}
+                    conversation={conversation}
+                    query={debouncedQuery}
+                    muted={Boolean(muted[conversation.id])}
+                    onOpen={() => openThread(conversation.id)}
+                    onToggleRead={() =>
+                      setConversations((current) =>
+                        current.map((item) =>
+                          item.id === conversation.id
+                            ? { ...item, unread: item.unread > 0 ? 0 : 1 }
+                            : item,
+                        ),
+                      )
+                    }
+                    onToggleMute={() => {
+                      setMuted((current) => ({
+                        ...current,
+                        [conversation.id]: !current[conversation.id],
+                      }));
+                      setToast(
+                        muted[conversation.id]
+                          ? `${conversation.name} unmuted`
+                          : `${conversation.name} muted`,
+                      );
+                    }}
+                    onArchive={() => {
+                      setConversations((current) =>
+                        current.filter((item) => item.id !== conversation.id),
+                      );
+                      setToast(`${conversation.name} archived`);
+                    }}
+                  />
+                ))}
+              </div>
+            )
+          ) : (
+            <TabPreview tab={tab} />
+          )}
+        </div>
       </div>
 
       {filterOpen && (
