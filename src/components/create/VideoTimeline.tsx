@@ -502,6 +502,49 @@ function TrimBar({
   );
 }
 
+const SNAP_THRESHOLD_PX = 10;
+
+// This function calculates snap positions for the clip, start/end and the playhead. This is to avoid gaps and so on
+export function getSnapPosition(
+  targetTime: number,
+  clips: Clip[],
+  starts: number[],
+  pxPerSecond: number,
+  ignoreClipId?: string,
+): { snappedTime: number; isSnapped: boolean } {
+  const thresholdTime = SNAP_THRESHOLD_PX / pxPerSecond;
+  let minDiff = Infinity;
+  let closestTime = targetTime;
+
+  starts.forEach((start, idx) => {
+    if (clips[idx].id === ignoreClipId) return;
+
+    // Check start boundary
+    const startDiff = Math.abs(targetTime - start);
+    if (startDiff < thresholdTime && startDiff < minDiff) {
+      minDiff = startDiff;
+      closestTime = start;
+    }
+
+    // Check end boundary
+    const clipDuration =
+      clips[idx].kind === "photo"
+        ? clips[idx].stillDuration
+        : (clips[idx].trimEnd - clips[idx].trimStart) / (clips[idx].speed || 1);
+    const end = start + clipDuration;
+    const endDiff = Math.abs(targetTime - end);
+    if (endDiff < thresholdTime && endDiff < minDiff) {
+      minDiff = endDiff;
+      closestTime = end;
+    }
+  });
+
+  return {
+    snappedTime: closestTime,
+    isSnapped: minDiff !== Infinity,
+  };
+}
+
 function ClipTile({
   clip,
   index,
