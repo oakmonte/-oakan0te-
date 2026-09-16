@@ -277,26 +277,32 @@ export function needsPassword(user: User | null): boolean {
  *
  *  In a browser tab this is the ordinary redirect and it works.
  *
- *  In the INSTALLED app it does not, and the reason is worth writing down
- *  because the symptom looks like a Google bug. A standalone web app opens a
- *  cross-origin navigation in a modal browser sheet, and Google treats that
- *  sheet as an embedded webview: no password box, and an account with a
- *  passkey is offered a QR code or a security key, neither of which the sheet
- *  can complete. A dead end, reached by the only route out of the screen.
+ *  The INSTALLED app is the hard case, and the history matters because each
+ *  approach fails in a way that looks like the other one's bug.
  *
- *  So here the sign-in is handed to the real browser, where Google behaves.
- *  `skipBrowserRedirect` gives us the URL instead of navigating to it, and
- *  `window.open` takes it out of the app.
+ *  This used to hand the sign-in to the real browser with `window.open`, to
+ *  dodge iOS presenting a cross-origin navigation as a modal browser sheet —
+ *  Google treats that sheet as an embedded webview, so there is no password
+ *  box, and a passkey account is offered a QR code the sheet cannot complete.
  *
- *  KNOWN LIMITATION, and the reason this is worth testing before trusting:
- *  Supabase's PKCE flow keeps its code verifier in the storage of whichever
- *  client STARTED the exchange. That client is the installed app, which has
- *  its own storage jar; the browser that finishes the round trip has a
- *  different one. So the browser can end up holding a code it cannot exchange
- *  while the app never sees it — signed in on the website, still signed out in
- *  the app. If that is what happens, the answer is to stop offering Google
- *  inside the app and lead with email, which is where these accounts were
- *  created anyway. */
+ *  That dodge was worse. Confirmed in production 2026-09-16: PKCE keeps its
+ *  code verifier in the storage of whichever client STARTED the exchange. The
+ *  installed app has its own storage jar, so Safari finished the round trip
+ *  holding a code nobody could exchange while the app never saw it — users
+ *  signed in on the website and still signed out in the app.
+ *
+ *  So the round trip now stays inside the app: one client starts and finishes
+ *  it, one jar holds the verifier, and the callback lands where the session is
+ *  needed. `skipBrowserRedirect` gives us the URL rather than navigating to
+ *  it, and we navigate ourselves — which is the seam the fallback needs.
+ *
+ *  IF IOS STILL POPS A SHEET: the first hop is the only navigation it can
+ *  intercept, and Supabase's authorize URL is already cross-origin. The fix is
+ *  to make that first hop same-origin — a `/auth/start` route that 302s out to
+ *  `data.url` — because iOS follows redirects inside the same webview instead
+ *  of punting them. Point the assign() below at that route. It needs a strict
+ *  allowlist on the target; an open redirect on an auth domain is a real
+ *  vulnerability, not a nitpick. */
 export async function signInWithGoogle() {
   if (isStandalone()) {
     const { data, error } = await supabase.auth.signInWithOAuth({
@@ -304,7 +310,8 @@ export async function signInWithGoogle() {
       options: { redirectTo: callbackUrl(), skipBrowserRedirect: true },
     });
     if (error) return { data, error };
-    if (data?.url) window.open(data.url, "_blank", "noopener,noreferrer");
+    // Same tab, same storage jar. Not window.open -- see above.
+    if (data?.url) window.location.assign(data.url);
     return { data, error: null };
   }
 
