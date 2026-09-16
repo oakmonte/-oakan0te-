@@ -9,9 +9,9 @@ export function GoogleIcon() {
   );
 }
 
-// Currently unused: the Apple button was removed from the auth panel until an
-
-// Apple Developer account exists. Kept so re-adding it is a one-line import.
+// Apple's official mark. Its HIG does not allow a substitute glyph, which is
+// also why lucide has no equivalent to fall back on. Rendered by AuthPanel
+// behind APPLE_SIGN_IN_ENABLED in src/lib/auth.ts.
 export function AppleIcon() {
   return (
     <svg width="17" height="20" viewBox="0 0 19 23" fill="none" aria-hidden="true">

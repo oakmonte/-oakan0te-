@@ -1,10 +1,12 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
+  APPLE_SIGN_IN_ENABLED,
   checkEmailRegistered,
   resolvePostAuthRedirect,
   sendEmailCode,
   isPasskeySupported,
+  signInWithApple,
   signInWithGoogle,
   signInWithPasskey,
   signInWithPassword,
@@ -19,7 +21,7 @@ import {
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { isStandalone } from "@/lib/standalone";
 import { isIOS } from "@/lib/platform";
-import { GoogleIcon } from "@/components/auth-icons";
+import { AppleIcon, GoogleIcon } from "@/components/auth-icons";
 import { Spinner } from "@/components/spinner";
 import { CodeInput } from "@/components/onboarding/CodeInput";
 import { FormError, OnboardingChecking } from "@/components/onboarding/OnboardingShell";
@@ -29,7 +31,7 @@ const RESEND_SECONDS = 30;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type Mode = "code" | "password";
-type Busy = "google" | "send" | "verify" | "password" | "passkey" | null;
+type Busy = "google" | "apple" | "send" | "verify" | "password" | "passkey" | null;
 type EmailStatus = "idle" | "checking" | "registered" | "unregistered";
 
 type Props = {
@@ -126,6 +128,16 @@ export function AuthPanel({ intent, title, subtitle, defaultMode = "code" }: Pro
     setEmailFirst(isStandalone());
   }, []);
 
+  // Apple leads on iPhone, Google everywhere else. On iOS Apple is genuinely
+  // the better option -- one Face ID tap, and the only provider that survives
+  // installing the app -- while on Android it is a button most people can't
+  // use. Effect, not a lazy initialiser: isIOS() reads `navigator`, same
+  // hydration trap as emailFirst above.
+  const [appleFirst, setAppleFirst] = useState(false);
+  useEffect(() => {
+    setAppleFirst(isIOS());
+  }, []);
+
   // Only offered to returning users (/sign-in, intent === null): a passkey has
   // to be created before it can be used, so on a signup page the button would
   // only ever open a sheet saying there is nothing to sign in with.
@@ -150,6 +162,19 @@ export function AuthPanel({ intent, title, subtitle, defaultMode = "code" }: Pro
     setError(null);
     setBusy("google");
     const { error: oauthError } = await signInWithGoogle();
+    if (oauthError) {
+      setError(oauthError.message);
+      setBusy(null);
+    }
+  };
+
+  const handleApple = async () => {
+    // Same intent handling as Google -- see the comment there.
+    if (intent) setIntent(intent);
+    else clearIntent();
+    setError(null);
+    setBusy("apple");
+    const { error: oauthError } = await signInWithApple();
     if (oauthError) {
       setError(oauthError.message);
       setBusy(null);
@@ -192,6 +217,46 @@ export function AuthPanel({ intent, title, subtitle, defaultMode = "code" }: Pro
         </>
       )}
     </button>
+  );
+
+  // "Continue with Apple" and the official mark are both required by Apple's
+  // Human Interface Guidelines -- the wording is not free text and the glyph
+  // may not be substituted. Matches the Google button's shape on purpose so
+  // the two read as siblings.
+  const appleButton = (
+    <button
+      type="button"
+      onClick={handleApple}
+      disabled={busy === "apple"}
+      className="w-full flex items-center justify-center gap-3 bg-[#0A0A0A] text-white rounded-full py-3.5 text-sm font-medium hover:bg-[#0A0A0A]/85 hover:scale-[1.01] transition-all duration-300 disabled:opacity-60"
+    >
+      {busy === "apple" ? (
+        <Spinner />
+      ) : (
+        <>
+          <AppleIcon />
+          Continue with Apple
+        </>
+      )}
+    </button>
+  );
+
+  const providerButtons = APPLE_SIGN_IN_ENABLED ? (
+    <div className="flex flex-col gap-3">
+      {appleFirst ? (
+        <>
+          {appleButton}
+          {googleButton}
+        </>
+      ) : (
+        <>
+          {googleButton}
+          {appleButton}
+        </>
+      )}
+    </div>
+  ) : (
+    googleButton
   );
 
   // Named after the gesture rather than the technology, because "passkey"
@@ -372,7 +437,7 @@ export function AuthPanel({ intent, title, subtitle, defaultMode = "code" }: Pro
 
           {!emailFirst && (
             <>
-              {googleButton}
+              {providerButtons}
               {dividerWith(
                 mode === "password" ? "or sign in with email" : "or continue with email",
               )}
@@ -589,8 +654,8 @@ export function AuthPanel({ intent, title, subtitle, defaultMode = "code" }: Pro
 
           {emailFirst && (
             <>
-              {dividerWith("or continue with Google")}
-              {googleButton}
+              {dividerWith(APPLE_SIGN_IN_ENABLED ? "or" : "or continue with Google")}
+              {providerButtons}
             </>
           )}
 

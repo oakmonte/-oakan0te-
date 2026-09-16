@@ -330,6 +330,50 @@ export async function signInWithGoogle() {
   });
 }
 
+/** Apple sign-in ships dark until the Apple Developer Program account exists
+ *  and the provider is switched on in Supabase. Flip this to true then --
+ *  nothing else needs changing.
+ *
+ *  Hidden rather than merely broken: with the provider disabled, Supabase
+ *  answers signInWithOAuth with a raw "Unsupported provider" error, and a
+ *  button that shows that to a seller is worse than no button. */
+export const APPLE_SIGN_IN_ENABLED = false;
+
+/** Sign in with Apple.
+ *
+ *  Deliberately the same shape as signInWithGoogle, standalone branch and all
+ *  -- read that function's comment before touching this one, because the
+ *  reasoning transfers exactly and was expensive to learn.
+ *
+ *  Apple is the reason needsPasskeyForInstall exists in the form it does: it
+ *  is the one provider whose sheet re-authenticates against the device's own
+ *  Apple ID with Face ID and no password, so those users survive installing
+ *  the app to the home screen without a passkey.
+ *
+ *  One Apple-specific quirk, already handled elsewhere: the identity token
+ *  carries NO full name. Apple sends a name exactly once, on first
+ *  authorization, in a form POST rather than the token, so user_metadata is
+ *  empty for these accounts on every subsequent sign-in. choose-username.tsx
+ *  already falls back to the chosen username, so nothing downstream breaks --
+ *  don't "fix" it by reaching for user_metadata.full_name here. */
+export async function signInWithApple() {
+  if (isStandalone()) {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: "apple",
+      options: { redirectTo: callbackUrl(), skipBrowserRedirect: true },
+    });
+    if (error) return { data, error };
+    // Same tab, same storage jar. Not window.open -- see signInWithGoogle.
+    if (data?.url) window.location.assign(data.url);
+    return { data, error: null };
+  }
+
+  return supabase.auth.signInWithOAuth({
+    provider: "apple",
+    options: { redirectTo: callbackUrl() },
+  });
+}
+
 /** Emails a 6-digit code. Deliberately no `emailRedirectTo`: the Supabase and
  *  Resend templates send `{{ .Token }}`, not a magic link, so there is no link
  *  for the user to click and no second tab for them to get stranded in. */

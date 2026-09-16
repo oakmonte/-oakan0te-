@@ -534,10 +534,84 @@ passed through unchanged.
 Supabase supports TOTP; 0 factors are enrolled and there is no enrolment UI or recovery
 codes. Fair to defer, but it should be a launch gate for sellers holding bank details.
 
-### 2.7 Apple sign-in · [NEEDS A DECISION]
+### 2.7 Apple sign-in · [CODE DONE, DARK — waiting on the Apple account, 2026-09-16]
 
-Button removed entirely — it was dead. Costs $99/yr for an Apple developer account. Re-add
-when that is worth paying for.
+Fully wired and merged, hidden behind `APPLE_SIGN_IN_ENABLED` in `src/lib/auth.ts`. Flip that
+one const to `true` once the Apple Developer Program account is live and the provider is
+enabled in Supabase. Hidden rather than merely broken because a disabled provider makes
+Supabase return a raw "Unsupported provider" error straight into the UI.
+
+Costs **₦43,900/yr on the Nigerian storefront** — about $32 at Sept 2026 rates, not the $99 US
+price, because Apple sets regional tiers and hasn't repriced Nigeria as the naira moved. Assume it
+climbs at some renewal. It only benefits iOS users, since Google-on-Android and email already work. Enrollment has to be done by an adult (the account holder accepts the
+licence agreement in their own name), and Individual → Organization later is an Apple support
+request, not a setting.
+
+Console setup, in order: Team ID → register `oakmonte.store` as an email source → App ID with
+the Sign In with Apple capability (leave the server-to-server endpoint blank, Supabase Auth
+doesn't support it) → Services ID, description **`Oakmonte`**, which is what users read on the
+consent sheet → Website URLs on that Services ID, which are
+`lzyflkrqexxuyxyudvbw.supabase.co` and
+`https://lzyflkrqexxuyxyudvbw.supabase.co/auth/v1/callback` — **not** `oakmonte.store`, which
+is why no `.well-known` file is needed here → signing key, `.p8` downloadable once.
+
+**Blocked on ID verification, 2026-09-16.** Apple's individual enrollment requires a valid photo
+ID and rejects the **Nigerian NIMC national identity card** outright — "document type isn't
+supported", not a scan failure, so retrying is pointless. Accepted: passport, driver's licence.
+Whoever enrolls needs one of those, in date. This is the only thing standing between the repo and
+working Apple sign-in; everything else is built.
+
+**Never start a second Apple team.** Apple's user identifier is scoped to the developer *team*,
+not the client, so moving to a different team changes `sub` for every user and Supabase sees them
+as new people — everyone loses their account. The account is enrolled as an Individual under a
+parent's Apple ID, and the migration path is **Individual → Organization conversion**, which
+preserves the Apple ID, Team ID, certificates and keys (only the seller name changes). It is a
+support request from Membership Details needing a company name, legal address and D-U-N-S number
+— gated on the LLC existing, **not** on anyone's age, so it can happen as soon as the entity does.
+Converting is also what makes team members possible at all; Individual accounts cannot have them.
+
+That Apple ID is therefore a single point of failure for every Apple login on Oakmonte. Two-factor
+on it, a trusted number both parties can reach, and the `.p8` + Team ID + Key ID stored somewhere
+the project controls rather than only on one person's device.
+
+**No domain verification, and no Supabase Pro.** Apple's Services ID panel offers a
+`.well-known/apple-developer-domain-association.txt` download, and you obviously cannot host a
+file on `lzyflkrqexxuyxyudvbw.supabase.co`. That file is for Sign in with Apple **JS** and for
+email-relay domains; the server-side OAuth redirect flow Supabase uses only needs the Return URL
+registered. Supabase hosts no such file on any project host (404, checked 2026-09-16) and its own
+documented setup names `<ref>.supabase.co` as the domain, so this is the normal path for every
+project on every plan. Pro buys a nicer hostname, nothing more.
+
+The two fields are separate values in different formats, and registering one does not imply the
+other:
+
+```
+Domains and Subdomains:  lzyflkrqexxuyxyudvbw.supabase.co      <- no https://, no trailing slash
+Return URLs:             https://lzyflkrqexxuyxyudvbw.supabase.co/auth/v1/callback
+```
+
+A protocol or trailing slash in the domain field gives "Invalid domain".
+
+Register **only** the callback URL that exists today. If the Supabase domain ever changes — a
+vanity subdomain or a custom domain — Supabase Auth starts advertising the new callback the
+instant it is activated, and Apple rejects any `redirect_uri` it doesn't know, so Apple sign-in
+breaks on activation. The fix is additive and takes two minutes: add the new callback URL to the
+same Services ID **alongside** the old one, then activate. Same for Google's authorized redirect
+URIs. Don't pre-register domains you don't own yet — Apple wants to verify them and they won't
+resolve.
+
+Both branded options need Pro ($25/mo), not the $10 the add-on page shows: a custom domain is
+Pro + $10, and a vanity subdomain is free but still Pro-only. Note `oakmonte.supabase.co` is
+first-come-first-served across all Supabase users and cannot be reserved without claiming it.
+
+**The client secret expires after at most 6 months and Apple sign-in then fails silently for
+everyone**, with no warning from Apple or Supabase. Record the real expiry date here the day
+it is generated and set a calendar reminder a fortnight before. Rotating needs the `.p8`, the
+Team ID and the Key ID, which is the whole reason to keep that file.
+
+Once live, verify the assumption `needsPasskeyForInstall` rests on: an Apple account should
+sign in on the installed iOS app with Face ID and no password, and should never see
+`/passkey`.
 
 ### 2.8 Where "How did you hear about us?" sits in the flow · [NEEDS A DECISION]
 
