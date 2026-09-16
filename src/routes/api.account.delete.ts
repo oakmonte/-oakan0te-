@@ -5,9 +5,16 @@ import { getRequestUser } from "@/lib/server-auth";
 // profiles.id cascades to stores/creators/curators/follows/posts (verified via
 // information_schema against the live project — no migration file defines
 // these, they predate migration tracking). Everything under a store ALSO
-// cascades from stores.id except products, import_jobs and tags, which are
-// NO ACTION — deleting a store that still has any of those left in it fails
-// with a foreign key violation instead of silently cascading. product_tags is
+// cascades from stores.id except products, import_jobs, tags and
+// store_locations, which are NO ACTION — deleting a store that still has any
+// of those left in it fails with a foreign key violation instead of silently
+// cascading.
+//
+// store_locations was missed when this was written, so deleting the account of
+// any seller who had added a location failed outright with a 500 (found
+// 2026-09-16 deleting a real account). The list above is now the full result
+// of the information_schema query, not a remembered subset — re-run it if a
+// new child table lands under stores. product_tags is
 // NO ACTION on both sides, so it has to go before either products or tags.
 // Deleting products first (which cascades product_variants, product_options,
 // product_collections, product_size_measurements, post_product_tags) then
@@ -73,6 +80,15 @@ export const Route = createFileRoute("/api/account/delete")({
               console.error("account delete: failed to clear product_tags", productTagsError);
               return Response.json({ error: "Could not delete account" }, { status: 500 });
             }
+          }
+
+          const { error: locationsError } = await supabaseAdmin
+            .from("store_locations")
+            .delete()
+            .in("store_id", storeIds);
+          if (locationsError) {
+            console.error("account delete: failed to clear store_locations", locationsError);
+            return Response.json({ error: "Could not delete account" }, { status: 500 });
           }
 
           const { error: importJobsError } = await supabaseAdmin

@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
+import { isStandalone } from "@/lib/standalone";
 import homeIcon from "@/assets/Home.svg";
 import messagesIcon from "@/assets/messages.svg";
 import createIcon from "@/assets/create.svg";
@@ -16,6 +17,9 @@ type BottomNavProps = {
 
 const PADDING = 5;
 const NAV_HEIGHT = 60;
+// Gap above the safe-area inset. Two values on purpose — see the nav's style.
+const GAP_BROWSER = 12;
+const GAP_INSTALLED = 4;
 
 export function BottomNav({ active, ownUsername }: BottomNavProps) {
   const items: {
@@ -54,6 +58,14 @@ export function BottomNav({ active, ownUsername }: BottomNavProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Set from an effect, not a lazy initial value: isStandalone() reads
+  // `window`, so seeding state with it would render differently on the server
+  // than on the client's first pass and trip hydration.
+  const [installed, setInstalled] = useState(false);
+  useEffect(() => {
+    setInstalled(isStandalone());
+  }, []);
+
   const activeIndex = Math.max(
     0,
     items.findIndex((item) => item.key === active),
@@ -66,14 +78,18 @@ export function BottomNav({ active, ownUsername }: BottomNavProps) {
       // toolbar is on screen — the toolbar is chrome, not a safe-area inset —
       // so a hardcoded 12 looked right in a tab and sat straight on the home
       // indicator once installed, where there is no toolbar underneath to rest
-      // on. Adding the inset gives 12px above the toolbar in Safari and 12px
-      // above the home indicator in the app, which is the same gap both times.
-      // It also matches the toasts, which already position against
+      // on. It also matches the toasts, which already position against
       // `env(safe-area-inset-bottom) + 76px` and were drifting out of step.
+      //
+      // The gap is NOT the same number in both, though it used to be. An equal
+      // 12px is not an equal-looking gap: in Safari it rests on a solid
+      // toolbar, while installed it floats above ~34px of largely empty inset,
+      // which reads as too high. The installed app takes a smaller gap so the
+      // pill sits where the toolbar version appears to.
       style={{
         width: 320,
         height: NAV_HEIGHT,
-        bottom: "calc(env(safe-area-inset-bottom) + 12px)",
+        bottom: `calc(env(safe-area-inset-bottom) + ${installed ? GAP_INSTALLED : GAP_BROWSER}px)`,
       }}
     >
       <div
