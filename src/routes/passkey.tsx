@@ -4,6 +4,7 @@ import { ShieldCheck } from "lucide-react";
 import {
   isPasskeySupported,
   markPasskeyPrompted,
+  needsPasskeyOffer,
   registerPasskey,
   resolvePostAuthRedirect,
 } from "@/lib/auth";
@@ -45,9 +46,13 @@ function PasskeyStep() {
         navigate({ to: "/sign-in", replace: true });
         return;
       }
-      // Unsupported: leave the flag unset so a later, capable device still
-      // gets the offer, and move on quietly.
-      if (!supported) void leave(data.session.user.id, { mark: false });
+      // Unsupported, or already answered once: leave the flag as it is and
+      // move on quietly. Reached directly now that /welcome routes here, so
+      // it cannot assume the caller already checked.
+      const { data: userData } = await supabase.auth.getUser();
+      if (!supported || !needsPasskeyOffer(userData.user)) {
+        void leave(data.session.user.id, { mark: false });
+      }
     })();
     return () => {
       cancelled = true;

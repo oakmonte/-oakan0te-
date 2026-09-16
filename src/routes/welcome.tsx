@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import logoO from "@/assets/logo-o.png";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { clearOnboardingState } from "@/lib/onboarding-state";
+import { isPasskeySupported, needsPasskeyOffer } from "@/lib/auth";
 import { useRequireSession } from "@/components/onboarding/use-require-session";
 
 export const Route = createFileRoute("/welcome")({
@@ -55,11 +56,26 @@ function WelcomePage() {
   useEffect(() => {
     if (!loaded || hasNavigated.current) return;
     hasNavigated.current = true;
-    if (username) {
-      navigate({ to: "/profile/$username", params: { username }, replace: true });
-    } else {
+    if (!username) {
       navigate({ to: "/choose-username", replace: true });
+      return;
     }
+
+    // Finishing onboarding does NOT go through resolvePostAuthRedirect -- each
+    // step calls nextRoute(), which walks the static FLOWS table and lands
+    // here. So the passkey gate in the resolver only ever fired on a later
+    // sign-in, never at the end of a signup. This is the one place every
+    // flow's last step converges (COMPLETION_STEP), so the offer belongs here
+    // too. /passkey resolves onward by itself, and skips itself when the
+    // device can't make one.
+    void (async () => {
+      const { data } = await supabase.auth.getUser();
+      if (needsPasskeyOffer(data.user) && (await isPasskeySupported())) {
+        navigate({ to: "/passkey", replace: true });
+        return;
+      }
+      navigate({ to: "/profile/$username", params: { username }, replace: true });
+    })();
   }, [loaded, username, navigate]);
 
   return (
