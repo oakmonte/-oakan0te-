@@ -296,12 +296,16 @@ export function needsPassword(user: User | null): boolean {
  *  needed. `skipBrowserRedirect` gives us the URL rather than navigating to
  *  it, and we navigate ourselves — which is the seam the fallback needs.
  *
- *  It popped a sheet anyway, and the sheet turned out to share the app's jar,
- *  so sign-in completed — but a sheet cannot reach the platform authenticator,
- *  so a passkey-first account got a QR code and no way forward. Hence the
- *  same-origin first hop through `/auth/start`, which iOS has no reason to
- *  intercept; the 302 out of it is a redirect, and redirects stay in the
- *  webview. See that route for why its target is pinned. */
+ *  iOS pops a sheet anyway, and routing the first hop through a same-origin
+ *  redirect did NOT avoid it — tested on device 2026-09-16, out-of-scope is
+ *  out-of-scope whether you arrive by navigation or redirect. Don't rebuild
+ *  that shim.
+ *
+ *  The sheet does share the app's jar, so sign-in completes and the session
+ *  lands here. What the sheet cannot do is reach the platform authenticator,
+ *  so a passkey-first Google account is offered a QR code and nothing usable.
+ *  That is Apple's boundary, not ours. The answer is a passkey on our own
+ *  origin, where WebAuthn works — see registerPasskey/signInWithPasskey. */
 export async function signInWithGoogle() {
   if (isStandalone()) {
     const { data, error } = await supabase.auth.signInWithOAuth({
@@ -309,11 +313,8 @@ export async function signInWithGoogle() {
       options: { redirectTo: callbackUrl(), skipBrowserRedirect: true },
     });
     if (error) return { data, error };
-    // Same-origin first hop, so iOS has no navigation to intercept and the
-    // flow stays in this webview -- where WebAuthn works. /auth/start pins the
-    // target and 302s out. Not window.open, and not a direct cross-origin
-    // assign: see above.
-    if (data?.url) window.location.assign(`/auth/start?to=${encodeURIComponent(data.url)}`);
+    // Same tab, same storage jar. Not window.open -- see above.
+    if (data?.url) window.location.assign(data.url);
     return { data, error: null };
   }
 
