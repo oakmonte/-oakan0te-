@@ -91,10 +91,14 @@ const RATIO_ASPECT: Record<CameraRatio, number> = {
 // composite instead of guessing at a size.
 const COMPOSITE_WIDTH = 1080;
 
-// `zoom` is a real MediaTrack constraint on Android/Chrome but isn't in
-// TypeScript's DOM lib yet — extend the standard set rather than casting
-// applyConstraints itself to `any`, which would also drop its Promise type.
-type ZoomConstraintSet = MediaTrackConstraintSet & { zoom?: number };
+ // `zoom` is a real MediaTrack constraint on Android/Chrome but isn't in
+ // TypeScript's DOM lib yet — extend the standard set rather than casting
+ // applyConstraints itself to `any`, which would also drop its Promise type.
+ type ZoomConstraintSet = MediaTrackConstraintSet & { zoom?: number };
+ // Torch constraint is not in the standard MediaTrackConstraintSet but is implemented by some browsers.
+ interface TorchConstraintSet extends MediaTrackConstraintSet {
+   torch?: boolean;
+ };
 
 // Centered crop rect (in source pixel coords) that matches what object-cover
 // would render inside a box of targetAspect — used identically for the live
@@ -348,19 +352,29 @@ function CreatePage() {
     });
   }, [streamVersion]);
 
-  // Rear-camera torch, driven by the simple flashOn toggle.
+  // Rear-camera torch
+  // the delay should fix it not working on certain phones
   useEffect(() => {
-    if (facing !== "environment") return;
-    const track = streamRef.current?.getVideoTracks()[0];
-    if (!track) return;
-    const capabilities = track.getCapabilities?.() as MediaTrackCapabilities & { torch?: boolean };
-    if (capabilities && "torch" in capabilities) {
-      const constraints = {
-        advanced: [{ torch: flashOn }],
-      } as unknown as MediaTrackConstraints;
-      track.applyConstraints(constraints).catch(() => {});
-    }
-  }, [flashOn, facing]);
+    if (facing !== "environment" || !streamRef.current) return;
+
+    // Wait for hardware track initialization
+    const timer = setTimeout(() => {
+      const track = streamRef.current?.getVideoTracks()[0];
+      if (!track) return;
+
+      const capabilities = track.getCapabilities?.() as MediaTrackCapabilities & {
+        torch?: boolean;
+      };
+
+      if (capabilities && capabilities.torch) {
+         track
+            .applyConstraints({ advanced: [{ torch: flashOn } as TorchConstraintSet] })
+            .catch((err) => console.error("Torch constraint failed:", err));
+      }
+    }, 250); // 250ms delay gives the sensor time to mount
+
+    return () => clearTimeout(timer);
+  }, [flashOn, facing, streamVersion]); // Added streamVersion dependency
 
   // A direct navigate to wherever the seller actually came from (tracked in
   // last-visited-route.ts), not window.history.back() — this is opened from

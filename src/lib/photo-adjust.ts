@@ -43,3 +43,19 @@ export function extendedAdjustToCss(adj: ExtendedPhotoAdjust): string {
   if (adj.vibrance !== 0) filters.push(`saturate(${1 + adj.vibrance / 100})`);
   return filters.length ? filters.join(" ") : "none";
 }
+export type PhotoAdjust = ExtendedPhotoAdjust;
+export const NEUTRAL_ADJUST: PhotoAdjust = EXTENDED_NEUTRAL_ADJUST;
+export const ADJUST_CONTROLS: { key: keyof PhotoAdjust; label: string }[] =
+  EXTENDED_ADJUST_CONTROLS;
+export const adjustToCss = extendedAdjustToCss;
+export function isNeutralAdjust(adj: PhotoAdjust): boolean {
+  return (
+    adj.exposure === 0 &&
+    adj.contrast === 0 &&
+    adj.highlights === 0 &&
+    adj.shadows === 0 &&
+    adj.temperature === 0 &&
+    adj.vibrance === 0 &&
+    adj.vignette === 0
+  );
+}
