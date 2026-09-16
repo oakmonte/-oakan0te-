@@ -22,6 +22,7 @@ import { Route as SetUpStoreRouteImport } from './routes/set-up-store'
 import { Route as SellerTypeRouteImport } from './routes/seller-type'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PreviousIndexRouteImport } from './routes/previous-index'
+import { Route as PasskeyRouteImport } from './routes/passkey'
 import { Route as OfflineVideosRouteImport } from './routes/offline-videos'
 import { Route as NoAccountRouteImport } from './routes/no-account'
 import { Route as NameYourStoreRouteImport } from './routes/name-your-store'
@@ -146,6 +147,11 @@ const PrivacyRoute = PrivacyRouteImport.update({
 const PreviousIndexRoute = PreviousIndexRouteImport.update({
   id: '/previous-index',
   path: '/previous-index',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PasskeyRoute = PasskeyRouteImport.update({
+  id: '/passkey',
+  path: '/passkey',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OfflineVideosRoute = OfflineVideosRouteImport.update({
@@ -466,6 +472,7 @@ export interface FileRoutesByFullPath {
   '/name-your-store': typeof NameYourStoreRoute
   '/no-account': typeof NoAccountRoute
   '/offline-videos': typeof OfflineVideosRoute
+  '/passkey': typeof PasskeyRoute
   '/previous-index': typeof PreviousIndexRoute
   '/privacy': typeof PrivacyRoute
   '/seller-type': typeof SellerTypeRoute
@@ -540,6 +547,7 @@ export interface FileRoutesByTo {
   '/name-your-store': typeof NameYourStoreRoute
   '/no-account': typeof NoAccountRoute
   '/offline-videos': typeof OfflineVideosRoute
+  '/passkey': typeof PasskeyRoute
   '/previous-index': typeof PreviousIndexRoute
   '/privacy': typeof PrivacyRoute
   '/seller-type': typeof SellerTypeRoute
@@ -614,6 +622,7 @@ export interface FileRoutesById {
   '/name-your-store': typeof NameYourStoreRoute
   '/no-account': typeof NoAccountRoute
   '/offline-videos': typeof OfflineVideosRoute
+  '/passkey': typeof PasskeyRoute
   '/previous-index': typeof PreviousIndexRoute
   '/privacy': typeof PrivacyRoute
   '/seller-type': typeof SellerTypeRoute
@@ -691,6 +700,7 @@ export interface FileRouteTypes {
     | '/name-your-store'
     | '/no-account'
     | '/offline-videos'
+    | '/passkey'
     | '/previous-index'
     | '/privacy'
     | '/seller-type'
@@ -765,6 +775,7 @@ export interface FileRouteTypes {
     | '/name-your-store'
     | '/no-account'
     | '/offline-videos'
+    | '/passkey'
     | '/previous-index'
     | '/privacy'
     | '/seller-type'
@@ -838,6 +849,7 @@ export interface FileRouteTypes {
     | '/name-your-store'
     | '/no-account'
     | '/offline-videos'
+    | '/passkey'
     | '/previous-index'
     | '/privacy'
     | '/seller-type'
@@ -914,6 +926,7 @@ export interface RootRouteChildren {
   NameYourStoreRoute: typeof NameYourStoreRoute
   NoAccountRoute: typeof NoAccountRoute
   OfflineVideosRoute: typeof OfflineVideosRoute
+  PasskeyRoute: typeof PasskeyRoute
   PreviousIndexRoute: typeof PreviousIndexRoute
   PrivacyRoute: typeof PrivacyRoute
   SellerTypeRoute: typeof SellerTypeRoute
@@ -1040,6 +1053,13 @@ declare module '@tanstack/react-router' {
       path: '/previous-index'
       fullPath: '/previous-index'
       preLoaderRoute: typeof PreviousIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/passkey': {
+      id: '/passkey'
+      path: '/passkey'
+      fullPath: '/passkey'
+      preLoaderRoute: typeof PasskeyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/offline-videos': {
@@ -1559,6 +1579,7 @@ const rootRouteChildren: RootRouteChildren = {
   NameYourStoreRoute: NameYourStoreRoute,
   NoAccountRoute: NoAccountRoute,
   OfflineVideosRoute: OfflineVideosRoute,
+  PasskeyRoute: PasskeyRoute,
   PreviousIndexRoute: PreviousIndexRoute,
   PrivacyRoute: PrivacyRoute,
   SellerTypeRoute: SellerTypeRoute,

@@ -58,6 +58,7 @@ export type PostAuthRedirect =
   | { to: "/find-your-fit" }
   | { to: "/whats-your-style" }
   | { to: "/switching-roles" }
+  | { to: "/passkey" }
   | { to: "/create-password" }
   | { to: "/no-account" };
 
@@ -258,6 +259,14 @@ export async function resolvePostAuthRedirect(
     }
   }
 
+  // Offer a passkey once onboarding is actually finished, so it lands after
+  // the last question rather than interrupting the middle of a signup. Fires
+  // for sign-IN too -- otherwise every account that already exists would
+  // never be offered one.
+  if (needsPasskeyOffer(userData.user) && (await isPasskeySupported())) {
+    return { to: "/passkey" } as const;
+  }
+
   return { to: "/profile/$username", params: { username: profile.personal_username } } as const;
 }
 
@@ -357,4 +366,58 @@ export async function setAccountPassword(password: string) {
 
 export async function signOut() {
   return supabase.auth.signOut();
+}
+
+/** Whether this device can actually make a passkey.
+ *
+ *  Not decoration: Instagram's and Facebook's in-app browsers have no WebAuthn
+ *  at all, and sellers reach a link like this one from Instagram constantly.
+ *  iOS below 16 and older Android are the other misses. Offering a switch that
+ *  cannot work is worse than not offering one, so every passkey surface is
+ *  gated on this. */
+export async function isPasskeySupported(): Promise<boolean> {
+  if (typeof window === "undefined") return false;
+  const available = window.PublicKeyCredential?.isUserVerifyingPlatformAuthenticatorAvailable;
+  if (typeof available !== "function") return false;
+  try {
+    return await window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+  } catch {
+    return false;
+  }
+}
+
+/** Whether to show the passkey step. Tracked in user_metadata rather than
+ *  localStorage -- deliberately, and for the same reason passkeys are worth
+ *  having at all: the installed app and the website keep separate storage
+ *  jars, so a localStorage flag would re-ask the same person on the other
+ *  side of that boundary. Metadata follows the account. */
+export function needsPasskeyOffer(user: User | null): boolean {
+  if (!user) return false;
+  return user.user_metadata?.passkey_prompted !== true;
+}
+
+/** Records that the step has been shown, whichever way it was answered.
+ *
+ *  Never throws and never reports failure, because no caller should be able to
+ *  make navigation depend on it. A failed write means we ask again next time,
+ *  which is a small annoyance; a step that cannot be left because a write
+ *  failed is a locked door. */
+export async function markPasskeyPrompted(): Promise<void> {
+  try {
+    const { error } = await supabase.auth.updateUser({ data: { passkey_prompted: true } });
+    if (error) console.error("markPasskeyPrompted failed", error);
+  } catch (err) {
+    console.error("markPasskeyPrompted threw", err);
+  }
+}
+
+/** Creates a passkey for the signed-in user. Requires an active session. */
+export async function registerPasskey() {
+  return supabase.auth.registerPasskey();
+}
+
+/** One tap, no email typed: a discoverable passkey identifies the account and
+ *  authenticates it in the same gesture. */
+export async function signInWithPasskey() {
+  return supabase.auth.signInWithPasskey();
 }

@@ -4,7 +4,9 @@ import {
   checkEmailRegistered,
   resolvePostAuthRedirect,
   sendEmailCode,
+  isPasskeySupported,
   signInWithGoogle,
+  signInWithPasskey,
   signInWithPassword,
   verifyEmailCode,
 } from "@/lib/auth";
@@ -26,7 +28,7 @@ const RESEND_SECONDS = 30;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type Mode = "code" | "password";
-type Busy = "google" | "send" | "verify" | "password" | null;
+type Busy = "google" | "send" | "verify" | "password" | "passkey" | null;
 type EmailStatus = "idle" | "checking" | "registered" | "unregistered";
 
 type Props = {
@@ -123,6 +125,15 @@ export function AuthPanel({ intent, title, subtitle, defaultMode = "code" }: Pro
     setEmailFirst(isStandalone());
   }, []);
 
+  // Only offered to returning users (/sign-in, intent === null): a passkey has
+  // to be created before it can be used, so on a signup page the button would
+  // only ever open a sheet saying there is nothing to sign in with.
+  const [passkeyReady, setPasskeyReady] = useState(false);
+  useEffect(() => {
+    if (intent !== null) return;
+    void isPasskeySupported().then(setPasskeyReady);
+  }, [intent]);
+
   const finish = async (userId: string) => {
     const redirect = await resolvePostAuthRedirect(userId, intent);
     navigate({ ...redirect, replace: true });
@@ -144,6 +155,26 @@ export function AuthPanel({ intent, title, subtitle, defaultMode = "code" }: Pro
     }
   };
 
+  const handlePasskey = async () => {
+    setError(null);
+    setBusy("passkey");
+    try {
+      const { data, error: passkeyError } = await signInWithPasskey();
+      if (passkeyError || !data?.session) {
+        // Covers a cancelled sheet and "no passkey on this device" alike --
+        // neither is worth a scary message, and both leave the email form
+        // sitting right there.
+        setError("No passkey found on this device. Use your email instead.");
+        setBusy(null);
+        return;
+      }
+      await finish(data.session.user.id);
+    } catch {
+      setError("That didn't work. Use your email instead.");
+      setBusy(null);
+    }
+  };
+
   const googleButton = (
     <button
       type="button"
@@ -161,6 +192,14 @@ export function AuthPanel({ intent, title, subtitle, defaultMode = "code" }: Pro
       )}
     </button>
   );
+
+  const passkeyLabel = () => {
+    if (typeof navigator === "undefined") return "a passkey";
+    const ua = navigator.userAgent;
+    if (/iPhone|iPad|iPod/.test(ua)) return "Face ID";
+    if (/Android/.test(ua)) return "your fingerprint";
+    return "a passkey";
+  };
 
   const dividerWith = (label: string) => (
     <div className="flex items-center gap-4 my-8">
@@ -308,6 +347,20 @@ export function AuthPanel({ intent, title, subtitle, defaultMode = "code" }: Pro
             <h1 className="font-serif text-4xl sm:text-5xl leading-tight">{title}</h1>
             <p className="mt-3 text-sm text-[#0A0A0A]/70">{subtitle}</p>
           </div>
+
+          {passkeyReady && (
+            <>
+              <button
+                type="button"
+                onClick={handlePasskey}
+                disabled={busy === "passkey"}
+                className="w-full flex items-center justify-center gap-3 border border-[#0A0A0A]/15 rounded-full py-3.5 text-sm font-medium hover:border-[#0A0A0A]/40 hover:scale-[1.01] transition-all duration-300 disabled:opacity-60"
+              >
+                {busy === "passkey" ? <Spinner /> : `Sign in with ${passkeyLabel()}`}
+              </button>
+              {dividerWith("or")}
+            </>
+          )}
 
           {!emailFirst && (
             <>
