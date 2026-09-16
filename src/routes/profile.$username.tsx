@@ -669,13 +669,13 @@ function ProfilePage() {
             <ArrowLeft size={20} />
           </button>
 
-          <div className="text-[11px] uppercase tracking-wide text-white/40 mb-2">
+          <div className="text-[12px] uppercase tracking-wide text-white/40 mb-2">
             Creation &amp; business
           </div>
           <MenuRow label="Oakmonte Studio" onClick={() => navigate({ to: "/studio" })} />
           <MenuRow label="Oakmonte Store" onClick={() => navigate({ to: "/store" })} />
 
-          <div className="text-[11px] uppercase tracking-wide text-white/40 mt-6 mb-2">
+          <div className="text-[12px] uppercase tracking-wide text-white/40 mt-6 mb-2">
             Personal
           </div>
           <MenuRow label="Activity centre" onClick={() => navigate({ to: "/activity" })} />

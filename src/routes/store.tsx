@@ -121,25 +121,25 @@ function StoreLayoutInner() {
                   key={to}
                   to={to}
                   onClick={() => setDrawerOpen(false)}
-                  className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-white/10 text-sm transition-colors duration-150"
+                  className="flex items-center gap-3.5 px-3 py-4 rounded-xl hover:bg-white/10 text-base transition-colors duration-150"
                   activeProps={{ className: "bg-white/10" }}
                   activeOptions={{ exact: true }}
                 >
-                  <Icon size={18} />
+                  <Icon size={20} />
                   {label}
                 </Link>
               ))}
             </nav>
 
-            <div className="mt-auto pt-3 border-t border-white/10">
+            <div className="mt-3 pt-3 border-t border-white/10">
               {username && (
                 <Link
                   to="/profile/$username"
                   params={{ username }}
                   onClick={() => setDrawerOpen(false)}
-                  className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-white/10 text-sm text-gray-300 transition-colors duration-150"
+                  className="flex items-center gap-3.5 px-3 py-4 rounded-xl hover:bg-white/10 text-base text-gray-300 transition-colors duration-150"
                 >
-                  <ArrowLeftCircle size={18} />
+                  <ArrowLeftCircle size={20} />
                   Return to profile
                 </Link>
               )}
