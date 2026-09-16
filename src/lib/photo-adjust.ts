@@ -1,61 +1,45 @@
-/** Manual tone controls for the photo editor — the "Adjust" tool.
- *
- *  Every control here compiles to a CSS filter function that
- *  `canvas-filter.ts#compileFilter` already understands (brightness, contrast,
- *  saturate, sepia, hue-rotate, grayscale). That is the whole point of the
- *  design: the same string drives the live preview as an element `filter`, and
- *  the export compiles it into the SAME single composite pass the grade and
- *  the layers go through. No second decode, no second encode, no
- *  `applyAdjustToBlob` — see the media-export-pipeline notes on why that
- *  matters.
- *
- *  Values are stored the way the slider reads them: 0 is neutral, ±100 is the
- *  extreme. Converting to CSS is the only place the actual multipliers live. */
-export type PhotoAdjust = {
-  brightness: number;
-  contrast: number;
-  saturation: number;
-  /** Toward warm (sepia) at positive values, toward cool (hue-rotate) at
-   *  negative ones. Two different functions because CSS has no single
-   *  temperature primitive and these are the two compileFilter supports that
-   *  read as warm/cool to the eye. */
-  warmth: number;
-  fade: number;
+export type ExtendedPhotoAdjust = {
+  exposure: number; // -100 to 100
+  contrast: number; // -100 to 100
+  highlights: number; // -100 to 100
+  shadows: number; // -100 to 100
+  temperature: number; // -100 to 100
+  vibrance: number; // -100 to 100
+  vignette: number; // 0 to 100
 };
 
-export const NEUTRAL_ADJUST: PhotoAdjust = {
-  brightness: 0,
+export const EXTENDED_NEUTRAL_ADJUST: ExtendedPhotoAdjust = {
+  exposure: 0,
   contrast: 0,
-  saturation: 0,
-  warmth: 0,
-  fade: 0,
+  highlights: 0,
+  shadows: 0,
+  temperature: 0,
+  vibrance: 0,
+  vignette: 0,
 };
 
-export const ADJUST_CONTROLS: { key: keyof PhotoAdjust; label: string }[] = [
-  { key: "brightness", label: "Brightness" },
+export const EXTENDED_ADJUST_CONTROLS: { key: keyof ExtendedPhotoAdjust; label: string }[] = [
+  { key: "exposure", label: "Exposure" },
   { key: "contrast", label: "Contrast" },
-  { key: "saturation", label: "Saturation" },
-  { key: "warmth", label: "Warmth" },
-  { key: "fade", label: "Fade" },
+  { key: "highlights", label: "Highlights" },
+  { key: "shadows", label: "Shadows" },
+  { key: "temperature", label: "Warmth" },
+  { key: "vibrance", label: "Vibrance" },
+  { key: "vignette", label: "Vignette" },
 ];
 
-export function isNeutralAdjust(a: PhotoAdjust): boolean {
-  return ADJUST_CONTROLS.every(({ key }) => a[key] === 0);
-}
-
-/** The CSS filter string for these adjustments, or "" when nothing is set.
- *
- *  Ranges are deliberately conservative — a slider that can destroy the frame
- *  at 100% is a slider people stop trusting. Brightness and contrast move ±40%,
- *  saturation ±80%, and fade only ever removes saturation (it never adds). */
-export function adjustToCss(a: PhotoAdjust): string {
-  if (isNeutralAdjust(a)) return "";
-  const parts: string[] = [];
-  if (a.brightness !== 0) parts.push(`brightness(${(1 + a.brightness / 250).toFixed(4)})`);
-  if (a.contrast !== 0) parts.push(`contrast(${(1 + a.contrast / 250).toFixed(4)})`);
-  if (a.saturation !== 0) parts.push(`saturate(${(1 + a.saturation / 125).toFixed(4)})`);
-  if (a.warmth > 0) parts.push(`sepia(${(a.warmth / 300).toFixed(4)})`);
-  if (a.warmth < 0) parts.push(`hue-rotate(${(a.warmth / 8).toFixed(2)}deg)`);
-  if (a.fade !== 0) parts.push(`saturate(${(1 - Math.abs(a.fade) / 200).toFixed(4)})`);
-  return parts.join(" ");
+export function extendedAdjustToCss(adj: ExtendedPhotoAdjust): string {
+  const filters: string[] = [];
+  if (adj.exposure !== 0) filters.push(`brightness(${1 + adj.exposure / 100})`);
+  if (adj.contrast !== 0) filters.push(`contrast(${1 + adj.contrast / 100})`);
+  if (adj.temperature !== 0) {
+    // Warmth simulation via sepia and hue-rotate
+    filters.push(
+      adj.temperature > 0
+        ? `sepia(${adj.temperature / 200}) hue-rotate(-${adj.temperature / 10}deg)`
+        : `hue-rotate(${Math.abs(adj.temperature) / 5}deg)`,
+    );
+  }
+  if (adj.vibrance !== 0) filters.push(`saturate(${1 + adj.vibrance / 100})`);
+  return filters.length ? filters.join(" ") : "none";
 }
