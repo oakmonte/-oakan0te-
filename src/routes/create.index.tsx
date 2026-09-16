@@ -67,6 +67,21 @@ type Section = "shoot" | "create";
 type CapturePhase = "live" | "counting";
 type PanelType = "ratio" | "timer" | "layout" | "filters";
 
+const [focusPoint, setFocusPoint] = useState<{ x: number; y: number } | null>(null);
+
+const handlePreviewTap = (e: React.MouseEvent<HTMLDivElement>) => {
+  const rect = e.currentTarget.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  setFocusPoint({ x, y });
+
+  // Optional: Trigger device haptics
+  if (navigator.vibrate) navigator.vibrate(10);
+
+  // Clear reticle after 2 seconds
+  setTimeout(() => setFocusPoint(null), 2000);
+};
+
 // A single captured, already-cropped/filtered/mirrored frame for one layout
 // cell. Kept as a canvas (not a blob) since it still needs to be drawn onto
 // the final composite canvas — converting to a blob is the very last step.
@@ -95,6 +110,10 @@ const COMPOSITE_WIDTH = 1080;
 // TypeScript's DOM lib yet — extend the standard set rather than casting
 // applyConstraints itself to `any`, which would also drop its Promise type.
 type ZoomConstraintSet = MediaTrackConstraintSet & { zoom?: number };
+// Torch constraint is not in the standard MediaTrackConstraintSet but is implemented by some browsers.
+interface TorchConstraintSet extends MediaTrackConstraintSet {
+  torch?: boolean;
+}
 
 // Centered crop rect (in source pixel coords) that matches what object-cover
 // would render inside a box of targetAspect — used identically for the live
@@ -348,19 +367,29 @@ function CreatePage() {
     });
   }, [streamVersion]);
 
-  // Rear-camera torch, driven by the simple flashOn toggle.
+  // Rear-camera torch
+  // the delay should fix it not working on certain phones
   useEffect(() => {
-    if (facing !== "environment") return;
-    const track = streamRef.current?.getVideoTracks()[0];
-    if (!track) return;
-    const capabilities = track.getCapabilities?.() as MediaTrackCapabilities & { torch?: boolean };
-    if (capabilities && "torch" in capabilities) {
-      const constraints = {
-        advanced: [{ torch: flashOn }],
-      } as unknown as MediaTrackConstraints;
-      track.applyConstraints(constraints).catch(() => {});
-    }
-  }, [flashOn, facing]);
+    if (facing !== "environment" || !streamRef.current) return;
+
+    // Wait for hardware track initialization
+    const timer = setTimeout(() => {
+      const track = streamRef.current?.getVideoTracks()[0];
+      if (!track) return;
+
+      const capabilities = track.getCapabilities?.() as MediaTrackCapabilities & {
+        torch?: boolean;
+      };
+
+      if (capabilities && capabilities.torch) {
+        track
+          .applyConstraints({ advanced: [{ torch: flashOn } as TorchConstraintSet] })
+          .catch((err) => console.error("Torch constraint failed:", err));
+      }
+    }, 250); // 250ms delay gives the sensor time to mount
+
+    return () => clearTimeout(timer);
+  }, [flashOn, facing, streamVersion]); // Added streamVersion dependency
 
   // A direct navigate to wherever the seller actually came from (tracked in
   // last-visited-route.ts), not window.history.back() — this is opened from
@@ -561,6 +590,22 @@ function CreatePage() {
   const handlePinchEnd = useCallback(() => {
     pinchStateRef.current = null;
   }, []);
+
+  const [focusPoint, setFocusPoint] = useState<{ x: number; y: number } | null>(null);
+
+  const handlePreviewTap = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    setFocusPoint({ x, y });
+
+    // Optional haptic tap response
+    if (navigator.vibrate) navigator.vibrate(8);
+
+    // Auto-hide the ring after 1.8 seconds
+    setTimeout(() => setFocusPoint(null), 1800);
+  };
 
   const capturePhoto = useCallback(() => {
     const video = videoRef.current;
@@ -1034,6 +1079,21 @@ function CreatePage() {
           -webkit-mask-image: linear-gradient(to right, transparent ${BARRIER_EDGE}px, black ${BARRIER_EDGE}px);
           mask-image: linear-gradient(to right, transparent ${BARRIER_EDGE}px, black ${BARRIER_EDGE}px);
         }
+        #focus-reticle {
+          transition: all 0.15s ease-out;
+          animation: oak-reticle-pulse 2s ease-in-out infinite;
+        }
+        @keyframes oak-reticle-pulse {
+          0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+          50% { transform: translate(-50%, -50%) scale(0.75); opacity: 0.5; }
+        }
+
+        @keyframes oak-focus-pulse { 
+          0% { transform: scale(1.4); opacity: 1; } 
+          20% { transform: scale(1); opacity: 1; } 
+          80% { opacity: 1; } 
+          100% { opacity: 0; transform: scale(0.9); } 
+}
       `}</style>
 
       <canvas ref={canvasRef} className="hidden" />
@@ -1042,6 +1102,7 @@ function CreatePage() {
         onTouchStart={handlePinchStart}
         onTouchMove={handlePinchMove}
         onTouchEnd={handlePinchEnd}
+        onClick={handlePreviewTap} // <--- ADD CLICK HANDLER HERE
         className="absolute overflow-hidden"
         style={{
           left: 0,
@@ -1054,7 +1115,7 @@ function CreatePage() {
           boxShadow: isFullBleedRatio ? "none" : "0 12px 40px rgba(0,0,0,0.55)",
           border: isFullBleedRatio ? "none" : "1px solid rgba(255,255,255,0.08)",
           transition: "border-radius 250ms ease-out, box-shadow 250ms ease-out",
-          touchAction: "none", // prevents the browser's own pinch-to-zoom/pan from firing here
+          touchAction: "none",
         }}
       >
         <video
@@ -1072,9 +1133,22 @@ function CreatePage() {
             transition: pinchStateRef.current ? "none" : "transform 100ms ease-out",
           }}
         />
+
+        {focusPoint && (
+          <div
+            className="pointer-events-none absolute h-14 w-14 rounded-full border-[1.5px] border-yellow-400"
+            style={{
+              left: focusPoint.x - 28,
+              top: focusPoint.y - 28,
+              animation: "oak-focus-pulse 1.8s ease-out forwards",
+              zIndex: 10,
+            }}
+          />
+        )}
+
         {gridVisible && (
           <div
-            className="oak-motion-fade absolute inset-0 pointer-events-none"
+            className="oak-motion-fade pointer-events-none absolute inset-0"
             style={{ opacity: 0.35 }}
           >
             <div className="absolute left-1/3 top-0 bottom-0 w-px bg-white" />

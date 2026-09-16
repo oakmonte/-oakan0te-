@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { takePendingCapture, type CapturedMedia } from "@/lib/capture-handoff";
 import { AfterShotContext } from "@/lib/after-shot-context";
 import { AfterShotLayersContext, useAfterShotLayersState } from "@/lib/after-shot-layers";
+import { BlobManager } from "@/lib/blob-manager";
 
 export const Route = createFileRoute("/create/after-shot")({
   component: AfterShotLayout,
@@ -64,11 +65,11 @@ function AfterShotLayout() {
   const discard = useCallback(() => {
     if (media) URL.revokeObjectURL(media.url);
     if (media?.poster) URL.revokeObjectURL(media.poster.url);
-    // Only the editor screen can reach this, and a photo-editor post goes
-    // straight to publish without ever mounting it — so nothing here can free
-    // a URL that the photo editor's parked session still needs.
     if (media?.audio) URL.revokeObjectURL(media.audio.url);
     media?.extra?.forEach((item) => URL.revokeObjectURL(item.url));
+
+    BlobManager.revokeAll();
+
     navigate({ to: "/create", replace: true });
   }, [media, navigate]);
 

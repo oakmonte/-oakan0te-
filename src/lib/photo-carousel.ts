@@ -2,6 +2,7 @@ import type { SoundCredit } from "@/lib/sound-library";
 import type { Layer } from "@/lib/after-shot-layers";
 import type { CropRect } from "@/lib/crop-rect";
 import { NEUTRAL_ADJUST, type PhotoAdjust } from "@/lib/photo-adjust";
+import { BlobManager } from "./blob-manager";
 
 // The photo editor's carousel, and how it survives a trip to the publish
 // screen.
@@ -125,4 +126,7 @@ export function discardPhotoEditorSession() {
   if (!parked) return;
   parked.ownedUrls.forEach((url) => URL.revokeObjectURL(url));
   parked = null;
+
+  // Clear memory
+  BlobManager.revokeAll();
 }
