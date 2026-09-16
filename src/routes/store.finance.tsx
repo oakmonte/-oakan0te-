@@ -43,6 +43,13 @@ function FinancePage() {
       .then((res) => res.json())
       .then((body) => {
         if (!cancelled) setAccount(body.account ?? null);
+      })
+      // Without this, a handler that 500s (or a proxy that returns an HTML
+      // error page, so .json() throws) leaves `account` as undefined forever
+      // and the page sits on its loading state with nothing to explain why.
+      .catch((err) => {
+        console.error("payout load failed", err);
+        if (!cancelled) setAccount(null);
       });
     return () => {
       cancelled = true;
@@ -66,11 +73,29 @@ function FinancePage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(values),
     });
-    const body = await res.json();
-    if (res.ok) {
-      setAccount(body.account);
-      setSheetOpen(false);
+    // A non-JSON body means the request never reached the handler at all --
+    // most often a missing server env var turning into an error page. Read it
+    // as text in that case so the seller gets a status code rather than a
+    // parser exception swallowed by the caller.
+    const raw = await res.text();
+    let body: { account?: PayoutAccount; error?: string } = {};
+    try {
+      body = JSON.parse(raw);
+    } catch {
+      throw new Error(`The server didn't respond properly (${res.status}). Please try again.`);
     }
+
+    if (!res.ok) {
+      // 401 is its own message: the fix is to sign in again, not to retry.
+      throw new Error(
+        res.status === 401
+          ? "Your session has expired — sign in again and retry."
+          : (body.error ?? `Could not save your payout account (${res.status}).`),
+      );
+    }
+
+    setAccount(body.account ?? null);
+    setSheetOpen(false);
   }
 
   return (

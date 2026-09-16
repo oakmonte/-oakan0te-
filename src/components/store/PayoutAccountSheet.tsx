@@ -306,6 +306,10 @@ export function PayoutAccountSheet({
   const [accountNumber, setAccountNumber] = useState(initial?.accountNumber ?? "");
   const [saving, setSaving] = useState(false);
   const [showErrors, setShowErrors] = useState(false);
+  // A failed save used to do nothing at all -- the spinner stopped, the sheet
+  // stayed open, and the seller was left to guess whether their bank details
+  // had been stored. Silence is the worst possible answer for this screen.
+  const [saveError, setSaveError] = useState<string | null>(null);
   // Once a bank is picked the list collapses to just that row — tapping the
   // search bar again is the only way back into the full list, so re-picking
   // doesn't mean scrolling past every bank a second time.
@@ -338,8 +342,11 @@ export function PayoutAccountSheet({
       return;
     }
     setSaving(true);
+    setSaveError(null);
     try {
       await onSave({ bankName: bankName.trim(), accountNumber: accountNumber.trim() });
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : "Could not save your payout account.");
     } finally {
       setSaving(false);
     }
@@ -441,6 +448,7 @@ export function PayoutAccountSheet({
       </div>
 
       <div className="sticky bottom-0 px-4 py-3 border-t border-gray-100 bg-white shrink-0">
+        {saveError && <p className="text-xs text-red-500 mb-2 text-center">{saveError}</p>}
         <button
           type="button"
           onClick={handleSave}
