@@ -1,6 +1,7 @@
 import type { Layer } from "@/lib/after-shot-layers";
 import type { Clip, ProjectRatio } from "@/lib/video-sequence";
 import type { SoundCredit } from "@/lib/sound-library";
+import { BlobManager } from "./blob-manager";
 
 // The video editor's timeline, parked in memory while the user is on the
 // publish screen.
@@ -83,4 +84,7 @@ export function discardVideoEditorSession() {
   if (!parked) return;
   parked.ownedUrls.forEach((url) => URL.revokeObjectURL(url));
   parked = null;
+
+  // Clear memory
+  BlobManager.revokeAll();
 }
