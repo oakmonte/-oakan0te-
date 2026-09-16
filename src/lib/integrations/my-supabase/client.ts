@@ -35,6 +35,12 @@ function createMySupabaseClient() {
       // them off the URL. PKCE returns a single-use code in the query string
       // instead and exchanges it with a verifier this client never exposes.
       flowType: "pkce",
+      // signInWithPasskey/registerPasskey throw a descriptive error at call
+      // time unless this is on. Passkeys are how the installed app gets a
+      // one-tap sign-in at all: they live in the platform keychain rather
+      // than in localStorage, so unlike a session they are not trapped on one
+      // side of the website/installed-app storage boundary.
+      experimental: { passkey: true },
     },
   });
 }

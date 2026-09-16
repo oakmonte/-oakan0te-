@@ -34,3 +34,9 @@ dist-ssr
 .env
 
 supabase/.temp
+
+# Vercel build output and local project link
+.vercel/
+
+.vercel
+.env*

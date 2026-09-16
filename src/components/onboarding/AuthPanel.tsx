@@ -4,7 +4,9 @@ import {
   checkEmailRegistered,
   resolvePostAuthRedirect,
   sendEmailCode,
+  isPasskeySupported,
   signInWithGoogle,
+  signInWithPasskey,
   signInWithPassword,
   verifyEmailCode,
 } from "@/lib/auth";
@@ -15,6 +17,7 @@ import {
   type Intent,
 } from "@/lib/onboarding-state";
 import { supabase } from "@/lib/integrations/my-supabase/client";
+import { isStandalone } from "@/lib/standalone";
 import { GoogleIcon } from "@/components/auth-icons";
 import { Spinner } from "@/components/spinner";
 import { CodeInput } from "@/components/onboarding/CodeInput";
@@ -25,7 +28,7 @@ const RESEND_SECONDS = 30;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type Mode = "code" | "password";
-type Busy = "google" | "send" | "verify" | "password" | null;
+type Busy = "google" | "send" | "verify" | "password" | "passkey" | null;
 type EmailStatus = "idle" | "checking" | "registered" | "unregistered";
 
 type Props = {
@@ -106,6 +109,31 @@ export function AuthPanel({ intent, title, subtitle, defaultMode = "code" }: Pro
     };
   }, [email, sent]);
 
+  // In the installed app, Google is the weaker option and leads with a trap:
+  // iOS renders its sign-in in a sheet that cannot reach the platform
+  // authenticator, so anyone whose Google account is passkey-first gets a QR
+  // code and no way through (see signInWithGoogle). The email code always
+  // works there. So the installed app puts email first and demotes Google
+  // below it, rather than labelling the button with which app you are in --
+  // nobody reads that, and the order itself is the instruction.
+  //
+  // Set from an effect, not a lazy initial value: isStandalone() reads
+  // `window`, so seeding state with it would render differently on the server
+  // than on the client's first pass and trip hydration.
+  const [emailFirst, setEmailFirst] = useState(false);
+  useEffect(() => {
+    setEmailFirst(isStandalone());
+  }, []);
+
+  // Only offered to returning users (/sign-in, intent === null): a passkey has
+  // to be created before it can be used, so on a signup page the button would
+  // only ever open a sheet saying there is nothing to sign in with.
+  const [passkeyReady, setPasskeyReady] = useState(false);
+  useEffect(() => {
+    if (intent !== null) return;
+    void isPasskeySupported().then(setPasskeyReady);
+  }, [intent]);
+
   const finish = async (userId: string) => {
     const redirect = await resolvePostAuthRedirect(userId, intent);
     navigate({ ...redirect, replace: true });
@@ -126,6 +154,68 @@ export function AuthPanel({ intent, title, subtitle, defaultMode = "code" }: Pro
       setBusy(null);
     }
   };
+
+  const handlePasskey = async () => {
+    setError(null);
+    setBusy("passkey");
+    try {
+      const { data, error: passkeyError } = await signInWithPasskey();
+      if (passkeyError || !data?.session) {
+        // Covers a cancelled sheet and "no passkey on this device" alike --
+        // neither is worth a scary message, and both leave the email form
+        // sitting right there.
+        setError("No passkey found on this device. Use your email instead.");
+        setBusy(null);
+        return;
+      }
+      await finish(data.session.user.id);
+    } catch {
+      setError("That didn't work. Use your email instead.");
+      setBusy(null);
+    }
+  };
+
+  const googleButton = (
+    <button
+      type="button"
+      onClick={handleGoogle}
+      disabled={busy === "google"}
+      className="w-full flex items-center justify-center gap-3 bg-[#0A0A0A] text-white rounded-full py-3.5 text-sm font-medium hover:bg-[#0A0A0A]/85 hover:scale-[1.01] transition-all duration-300 disabled:opacity-60"
+    >
+      {busy === "google" ? (
+        <Spinner />
+      ) : (
+        <>
+          <GoogleIcon />
+          Continue with Google
+        </>
+      )}
+    </button>
+  );
+
+  // Named after the gesture rather than the technology, because "passkey"
+  // means nothing to a seller. The platform check is the best available and
+  // still approximate: iOS tells us it is an iPhone but not whether that
+  // iPhone has Face ID or Touch ID, so the handful still on Touch ID models
+  // read "Face ID" and get asked for a finger. Android gets both named -- it
+  // has no single brand for this, face unlock is common and is frequently the
+  // default where both are enrolled, so picking one would be wrong for a lot
+  // of people.
+  const passkeyLabel = () => {
+    if (typeof navigator === "undefined") return "a passkey";
+    const ua = navigator.userAgent;
+    if (/iPhone|iPad|iPod/.test(ua)) return "Face ID";
+    if (/Android/.test(ua)) return "face or fingerprint";
+    return "a passkey";
+  };
+
+  const dividerWith = (label: string) => (
+    <div className="flex items-center gap-4 my-8">
+      <div className="flex-1 h-px bg-[#0A0A0A]/15" />
+      <span className="text-[11px] uppercase tracking-widest text-[#0A0A0A]/50">{label}</span>
+      <div className="flex-1 h-px bg-[#0A0A0A]/15" />
+    </div>
+  );
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -266,29 +356,28 @@ export function AuthPanel({ intent, title, subtitle, defaultMode = "code" }: Pro
             <p className="mt-3 text-sm text-[#0A0A0A]/70">{subtitle}</p>
           </div>
 
-          <button
-            type="button"
-            onClick={handleGoogle}
-            disabled={busy === "google"}
-            className="w-full flex items-center justify-center gap-3 bg-[#0A0A0A] text-white rounded-full py-3.5 text-sm font-medium hover:bg-[#0A0A0A]/85 hover:scale-[1.01] transition-all duration-300 disabled:opacity-60"
-          >
-            {busy === "google" ? (
-              <Spinner />
-            ) : (
-              <>
-                <GoogleIcon />
-                Continue with Google
-              </>
-            )}
-          </button>
+          {passkeyReady && (
+            <>
+              <button
+                type="button"
+                onClick={handlePasskey}
+                disabled={busy === "passkey"}
+                className="w-full flex items-center justify-center gap-3 border border-[#0A0A0A]/15 rounded-full py-3.5 text-sm font-medium hover:border-[#0A0A0A]/40 hover:scale-[1.01] transition-all duration-300 disabled:opacity-60"
+              >
+                {busy === "passkey" ? <Spinner /> : `Sign in with ${passkeyLabel()}`}
+              </button>
+              {dividerWith("or")}
+            </>
+          )}
 
-          <div className="flex items-center gap-4 my-8">
-            <div className="flex-1 h-px bg-[#0A0A0A]/15" />
-            <span className="text-[11px] uppercase tracking-widest text-[#0A0A0A]/50">
-              {mode === "password" ? "or sign in with email" : "or continue with email"}
-            </span>
-            <div className="flex-1 h-px bg-[#0A0A0A]/15" />
-          </div>
+          {!emailFirst && (
+            <>
+              {googleButton}
+              {dividerWith(
+                mode === "password" ? "or sign in with email" : "or continue with email",
+              )}
+            </>
+          )}
 
           {notice && <p className="mb-4 text-xs text-[#0A0A0A]/60 text-center">{notice}</p>}
 
@@ -496,6 +585,13 @@ export function AuthPanel({ intent, title, subtitle, defaultMode = "code" }: Pro
             >
               Create a new account
             </Link>
+          )}
+
+          {emailFirst && (
+            <>
+              {dividerWith("or continue with Google")}
+              {googleButton}
+            </>
           )}
 
           <p className="mt-6 text-center text-[11px] text-[#0A0A0A]/50 leading-relaxed">

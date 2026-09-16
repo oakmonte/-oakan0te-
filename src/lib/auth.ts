@@ -58,6 +58,7 @@ export type PostAuthRedirect =
   | { to: "/find-your-fit" }
   | { to: "/whats-your-style" }
   | { to: "/switching-roles" }
+  | { to: "/passkey" }
   | { to: "/create-password" }
   | { to: "/no-account" };
 
@@ -258,6 +259,14 @@ export async function resolvePostAuthRedirect(
     }
   }
 
+  // Offer a passkey once onboarding is actually finished, so it lands after
+  // the last question rather than interrupting the middle of a signup. Fires
+  // for sign-IN too -- otherwise every account that already exists would
+  // never be offered one.
+  if (needsPasskeyOffer(userData.user) && (await isPasskeySupported())) {
+    return { to: "/passkey" } as const;
+  }
+
   return { to: "/profile/$username", params: { username: profile.personal_username } } as const;
 }
 
@@ -277,26 +286,35 @@ export function needsPassword(user: User | null): boolean {
  *
  *  In a browser tab this is the ordinary redirect and it works.
  *
- *  In the INSTALLED app it does not, and the reason is worth writing down
- *  because the symptom looks like a Google bug. A standalone web app opens a
- *  cross-origin navigation in a modal browser sheet, and Google treats that
- *  sheet as an embedded webview: no password box, and an account with a
- *  passkey is offered a QR code or a security key, neither of which the sheet
- *  can complete. A dead end, reached by the only route out of the screen.
+ *  The INSTALLED app is the hard case, and the history matters because each
+ *  approach fails in a way that looks like the other one's bug.
  *
- *  So here the sign-in is handed to the real browser, where Google behaves.
- *  `skipBrowserRedirect` gives us the URL instead of navigating to it, and
- *  `window.open` takes it out of the app.
+ *  This used to hand the sign-in to the real browser with `window.open`, to
+ *  dodge iOS presenting a cross-origin navigation as a modal browser sheet —
+ *  Google treats that sheet as an embedded webview, so there is no password
+ *  box, and a passkey account is offered a QR code the sheet cannot complete.
  *
- *  KNOWN LIMITATION, and the reason this is worth testing before trusting:
- *  Supabase's PKCE flow keeps its code verifier in the storage of whichever
- *  client STARTED the exchange. That client is the installed app, which has
- *  its own storage jar; the browser that finishes the round trip has a
- *  different one. So the browser can end up holding a code it cannot exchange
- *  while the app never sees it — signed in on the website, still signed out in
- *  the app. If that is what happens, the answer is to stop offering Google
- *  inside the app and lead with email, which is where these accounts were
- *  created anyway. */
+ *  That dodge was worse. Confirmed in production 2026-09-16: PKCE keeps its
+ *  code verifier in the storage of whichever client STARTED the exchange. The
+ *  installed app has its own storage jar, so Safari finished the round trip
+ *  holding a code nobody could exchange while the app never saw it — users
+ *  signed in on the website and still signed out in the app.
+ *
+ *  So the round trip now stays inside the app: one client starts and finishes
+ *  it, one jar holds the verifier, and the callback lands where the session is
+ *  needed. `skipBrowserRedirect` gives us the URL rather than navigating to
+ *  it, and we navigate ourselves — which is the seam the fallback needs.
+ *
+ *  iOS pops a sheet anyway, and routing the first hop through a same-origin
+ *  redirect did NOT avoid it — tested on device 2026-09-16, out-of-scope is
+ *  out-of-scope whether you arrive by navigation or redirect. Don't rebuild
+ *  that shim.
+ *
+ *  The sheet does share the app's jar, so sign-in completes and the session
+ *  lands here. What the sheet cannot do is reach the platform authenticator,
+ *  so a passkey-first Google account is offered a QR code and nothing usable.
+ *  That is Apple's boundary, not ours. The answer is a passkey on our own
+ *  origin, where WebAuthn works — see registerPasskey/signInWithPasskey. */
 export async function signInWithGoogle() {
   if (isStandalone()) {
     const { data, error } = await supabase.auth.signInWithOAuth({
@@ -304,7 +322,8 @@ export async function signInWithGoogle() {
       options: { redirectTo: callbackUrl(), skipBrowserRedirect: true },
     });
     if (error) return { data, error };
-    if (data?.url) window.open(data.url, "_blank", "noopener,noreferrer");
+    // Same tab, same storage jar. Not window.open -- see above.
+    if (data?.url) window.location.assign(data.url);
     return { data, error: null };
   }
 
@@ -347,4 +366,58 @@ export async function setAccountPassword(password: string) {
 
 export async function signOut() {
   return supabase.auth.signOut();
+}
+
+/** Whether this device can actually make a passkey.
+ *
+ *  Not decoration: Instagram's and Facebook's in-app browsers have no WebAuthn
+ *  at all, and sellers reach a link like this one from Instagram constantly.
+ *  iOS below 16 and older Android are the other misses. Offering a switch that
+ *  cannot work is worse than not offering one, so every passkey surface is
+ *  gated on this. */
+export async function isPasskeySupported(): Promise<boolean> {
+  if (typeof window === "undefined") return false;
+  const available = window.PublicKeyCredential?.isUserVerifyingPlatformAuthenticatorAvailable;
+  if (typeof available !== "function") return false;
+  try {
+    return await window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+  } catch {
+    return false;
+  }
+}
+
+/** Whether to show the passkey step. Tracked in user_metadata rather than
+ *  localStorage -- deliberately, and for the same reason passkeys are worth
+ *  having at all: the installed app and the website keep separate storage
+ *  jars, so a localStorage flag would re-ask the same person on the other
+ *  side of that boundary. Metadata follows the account. */
+export function needsPasskeyOffer(user: User | null): boolean {
+  if (!user) return false;
+  return user.user_metadata?.passkey_prompted !== true;
+}
+
+/** Records that the step has been shown, whichever way it was answered.
+ *
+ *  Never throws and never reports failure, because no caller should be able to
+ *  make navigation depend on it. A failed write means we ask again next time,
+ *  which is a small annoyance; a step that cannot be left because a write
+ *  failed is a locked door. */
+export async function markPasskeyPrompted(): Promise<void> {
+  try {
+    const { error } = await supabase.auth.updateUser({ data: { passkey_prompted: true } });
+    if (error) console.error("markPasskeyPrompted failed", error);
+  } catch (err) {
+    console.error("markPasskeyPrompted threw", err);
+  }
+}
+
+/** Creates a passkey for the signed-in user. Requires an active session. */
+export async function registerPasskey() {
+  return supabase.auth.registerPasskey();
+}
+
+/** One tap, no email typed: a discoverable passkey identifies the account and
+ *  authenticates it in the same gesture. */
+export async function signInWithPasskey() {
+  return supabase.auth.signInWithPasskey();
 }
