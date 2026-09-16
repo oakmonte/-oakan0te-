@@ -193,11 +193,19 @@ export function AuthPanel({ intent, title, subtitle, defaultMode = "code" }: Pro
     </button>
   );
 
+  // Named after the gesture rather than the technology, because "passkey"
+  // means nothing to a seller. The platform check is the best available and
+  // still approximate: iOS tells us it is an iPhone but not whether that
+  // iPhone has Face ID or Touch ID, so the handful still on Touch ID models
+  // read "Face ID" and get asked for a finger. Android gets both named -- it
+  // has no single brand for this, face unlock is common and is frequently the
+  // default where both are enrolled, so picking one would be wrong for a lot
+  // of people.
   const passkeyLabel = () => {
     if (typeof navigator === "undefined") return "a passkey";
     const ua = navigator.userAgent;
     if (/iPhone|iPad|iPod/.test(ua)) return "Face ID";
-    if (/Android/.test(ua)) return "your fingerprint";
+    if (/Android/.test(ua)) return "face or fingerprint";
     return "a passkey";
   };
 
