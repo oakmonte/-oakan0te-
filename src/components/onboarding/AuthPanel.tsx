@@ -15,6 +15,7 @@ import {
   type Intent,
 } from "@/lib/onboarding-state";
 import { supabase } from "@/lib/integrations/my-supabase/client";
+import { isStandalone } from "@/lib/standalone";
 import { GoogleIcon } from "@/components/auth-icons";
 import { Spinner } from "@/components/spinner";
 import { CodeInput } from "@/components/onboarding/CodeInput";
@@ -106,6 +107,22 @@ export function AuthPanel({ intent, title, subtitle, defaultMode = "code" }: Pro
     };
   }, [email, sent]);
 
+  // In the installed app, Google is the weaker option and leads with a trap:
+  // iOS renders its sign-in in a sheet that cannot reach the platform
+  // authenticator, so anyone whose Google account is passkey-first gets a QR
+  // code and no way through (see signInWithGoogle). The email code always
+  // works there. So the installed app puts email first and demotes Google
+  // below it, rather than labelling the button with which app you are in --
+  // nobody reads that, and the order itself is the instruction.
+  //
+  // Set from an effect, not a lazy initial value: isStandalone() reads
+  // `window`, so seeding state with it would render differently on the server
+  // than on the client's first pass and trip hydration.
+  const [emailFirst, setEmailFirst] = useState(false);
+  useEffect(() => {
+    setEmailFirst(isStandalone());
+  }, []);
+
   const finish = async (userId: string) => {
     const redirect = await resolvePostAuthRedirect(userId, intent);
     navigate({ ...redirect, replace: true });
@@ -126,6 +143,32 @@ export function AuthPanel({ intent, title, subtitle, defaultMode = "code" }: Pro
       setBusy(null);
     }
   };
+
+  const googleButton = (
+    <button
+      type="button"
+      onClick={handleGoogle}
+      disabled={busy === "google"}
+      className="w-full flex items-center justify-center gap-3 bg-[#0A0A0A] text-white rounded-full py-3.5 text-sm font-medium hover:bg-[#0A0A0A]/85 hover:scale-[1.01] transition-all duration-300 disabled:opacity-60"
+    >
+      {busy === "google" ? (
+        <Spinner />
+      ) : (
+        <>
+          <GoogleIcon />
+          Continue with Google
+        </>
+      )}
+    </button>
+  );
+
+  const dividerWith = (label: string) => (
+    <div className="flex items-center gap-4 my-8">
+      <div className="flex-1 h-px bg-[#0A0A0A]/15" />
+      <span className="text-[11px] uppercase tracking-widest text-[#0A0A0A]/50">{label}</span>
+      <div className="flex-1 h-px bg-[#0A0A0A]/15" />
+    </div>
+  );
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -266,29 +309,14 @@ export function AuthPanel({ intent, title, subtitle, defaultMode = "code" }: Pro
             <p className="mt-3 text-sm text-[#0A0A0A]/70">{subtitle}</p>
           </div>
 
-          <button
-            type="button"
-            onClick={handleGoogle}
-            disabled={busy === "google"}
-            className="w-full flex items-center justify-center gap-3 bg-[#0A0A0A] text-white rounded-full py-3.5 text-sm font-medium hover:bg-[#0A0A0A]/85 hover:scale-[1.01] transition-all duration-300 disabled:opacity-60"
-          >
-            {busy === "google" ? (
-              <Spinner />
-            ) : (
-              <>
-                <GoogleIcon />
-                Continue with Google
-              </>
-            )}
-          </button>
-
-          <div className="flex items-center gap-4 my-8">
-            <div className="flex-1 h-px bg-[#0A0A0A]/15" />
-            <span className="text-[11px] uppercase tracking-widest text-[#0A0A0A]/50">
-              {mode === "password" ? "or sign in with email" : "or continue with email"}
-            </span>
-            <div className="flex-1 h-px bg-[#0A0A0A]/15" />
-          </div>
+          {!emailFirst && (
+            <>
+              {googleButton}
+              {dividerWith(
+                mode === "password" ? "or sign in with email" : "or continue with email",
+              )}
+            </>
+          )}
 
           {notice && <p className="mb-4 text-xs text-[#0A0A0A]/60 text-center">{notice}</p>}
 
@@ -496,6 +524,13 @@ export function AuthPanel({ intent, title, subtitle, defaultMode = "code" }: Pro
             >
               Create a new account
             </Link>
+          )}
+
+          {emailFirst && (
+            <>
+              {dividerWith("or continue with Google")}
+              {googleButton}
+            </>
           )}
 
           <p className="mt-6 text-center text-[11px] text-[#0A0A0A]/50 leading-relaxed">
