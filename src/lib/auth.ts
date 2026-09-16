@@ -296,13 +296,12 @@ export function needsPassword(user: User | null): boolean {
  *  needed. `skipBrowserRedirect` gives us the URL rather than navigating to
  *  it, and we navigate ourselves — which is the seam the fallback needs.
  *
- *  IF IOS STILL POPS A SHEET: the first hop is the only navigation it can
- *  intercept, and Supabase's authorize URL is already cross-origin. The fix is
- *  to make that first hop same-origin — a `/auth/start` route that 302s out to
- *  `data.url` — because iOS follows redirects inside the same webview instead
- *  of punting them. Point the assign() below at that route. It needs a strict
- *  allowlist on the target; an open redirect on an auth domain is a real
- *  vulnerability, not a nitpick. */
+ *  It popped a sheet anyway, and the sheet turned out to share the app's jar,
+ *  so sign-in completed — but a sheet cannot reach the platform authenticator,
+ *  so a passkey-first account got a QR code and no way forward. Hence the
+ *  same-origin first hop through `/auth/start`, which iOS has no reason to
+ *  intercept; the 302 out of it is a redirect, and redirects stay in the
+ *  webview. See that route for why its target is pinned. */
 export async function signInWithGoogle() {
   if (isStandalone()) {
     const { data, error } = await supabase.auth.signInWithOAuth({
@@ -310,8 +309,11 @@ export async function signInWithGoogle() {
       options: { redirectTo: callbackUrl(), skipBrowserRedirect: true },
     });
     if (error) return { data, error };
-    // Same tab, same storage jar. Not window.open -- see above.
-    if (data?.url) window.location.assign(data.url);
+    // Same-origin first hop, so iOS has no navigation to intercept and the
+    // flow stays in this webview -- where WebAuthn works. /auth/start pins the
+    // target and 302s out. Not window.open, and not a direct cross-origin
+    // assign: see above.
+    if (data?.url) window.location.assign(`/auth/start?to=${encodeURIComponent(data.url)}`);
     return { data, error: null };
   }
 

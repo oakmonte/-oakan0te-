@@ -53,6 +53,7 @@ import { Route as CreateVideoEditorRouteImport } from './routes/create.video-edi
 import { Route as CreatePhotoEditorRouteImport } from './routes/create.photo-editor'
 import { Route as CreateDraftsRouteImport } from './routes/create.drafts'
 import { Route as CreateAfterShotRouteImport } from './routes/create.after-shot'
+import { Route as AuthStartRouteImport } from './routes/auth.start'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as ApiSoundsRouteImport } from './routes/api.sounds'
 import { Route as ApiSoundFileRouteImport } from './routes/api.sound-file'
@@ -304,6 +305,11 @@ const CreateAfterShotRoute = CreateAfterShotRouteImport.update({
   path: '/after-shot',
   getParentRoute: () => CreateRoute,
 } as any)
+const AuthStartRoute = AuthStartRouteImport.update({
+  id: '/auth/start',
+  path: '/auth/start',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthCallbackRoute = AuthCallbackRouteImport.update({
   id: '/auth/callback',
   path: '/auth/callback',
@@ -483,6 +489,7 @@ export interface FileRoutesByFullPath {
   '/api/sound-file': typeof ApiSoundFileRoute
   '/api/sounds': typeof ApiSoundsRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/auth/start': typeof AuthStartRoute
   '/create/after-shot': typeof CreateAfterShotRouteWithChildren
   '/create/drafts': typeof CreateDraftsRoute
   '/create/photo-editor': typeof CreatePhotoEditorRoute
@@ -556,6 +563,7 @@ export interface FileRoutesByTo {
   '/api/sound-file': typeof ApiSoundFileRoute
   '/api/sounds': typeof ApiSoundsRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/auth/start': typeof AuthStartRoute
   '/create/drafts': typeof CreateDraftsRoute
   '/create/photo-editor': typeof CreatePhotoEditorRoute
   '/create/video-editor': typeof CreateVideoEditorRoute
@@ -631,6 +639,7 @@ export interface FileRoutesById {
   '/api/sound-file': typeof ApiSoundFileRoute
   '/api/sounds': typeof ApiSoundsRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/auth/start': typeof AuthStartRoute
   '/create/after-shot': typeof CreateAfterShotRouteWithChildren
   '/create/drafts': typeof CreateDraftsRoute
   '/create/photo-editor': typeof CreatePhotoEditorRoute
@@ -708,6 +717,7 @@ export interface FileRouteTypes {
     | '/api/sound-file'
     | '/api/sounds'
     | '/auth/callback'
+    | '/auth/start'
     | '/create/after-shot'
     | '/create/drafts'
     | '/create/photo-editor'
@@ -781,6 +791,7 @@ export interface FileRouteTypes {
     | '/api/sound-file'
     | '/api/sounds'
     | '/auth/callback'
+    | '/auth/start'
     | '/create/drafts'
     | '/create/photo-editor'
     | '/create/video-editor'
@@ -855,6 +866,7 @@ export interface FileRouteTypes {
     | '/api/sound-file'
     | '/api/sounds'
     | '/auth/callback'
+    | '/auth/start'
     | '/create/after-shot'
     | '/create/drafts'
     | '/create/photo-editor'
@@ -931,6 +943,7 @@ export interface RootRouteChildren {
   ApiSoundFileRoute: typeof ApiSoundFileRoute
   ApiSoundsRoute: typeof ApiSoundsRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
+  AuthStartRoute: typeof AuthStartRoute
   ProfileUsernameRoute: typeof ProfileUsernameRoute
   StoreProfileStoreUsernameRoute: typeof StoreProfileStoreUsernameRoute
   ApiAccountDeleteRoute: typeof ApiAccountDeleteRoute
@@ -1259,6 +1272,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CreateAfterShotRouteImport
       parentRoute: typeof CreateRoute
     }
+    '/auth/start': {
+      id: '/auth/start'
+      path: '/auth/start'
+      fullPath: '/auth/start'
+      preLoaderRoute: typeof AuthStartRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth/callback': {
       id: '/auth/callback'
       path: '/auth/callback'
@@ -1576,6 +1596,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiSoundFileRoute: ApiSoundFileRoute,
   ApiSoundsRoute: ApiSoundsRoute,
   AuthCallbackRoute: AuthCallbackRoute,
+  AuthStartRoute: AuthStartRoute,
   ProfileUsernameRoute: ProfileUsernameRoute,
   StoreProfileStoreUsernameRoute: StoreProfileStoreUsernameRoute,
   ApiAccountDeleteRoute: ApiAccountDeleteRoute,
