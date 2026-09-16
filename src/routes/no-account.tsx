@@ -1,7 +1,11 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/no-account")({
-  head: () => ({ meta: [{ title: "Welcome to Oakmonte" }] }),
+  head: () => ({
+    // White page, so the iOS status strip must be white too — the root
+    // default is #000000 and would otherwise paint a black band above it.
+    meta: [{ title: "Welcome to Oakmonte" }, { name: "theme-color", content: "#ffffff" }],
+  }),
   component: NoAccountPage,
 });
 

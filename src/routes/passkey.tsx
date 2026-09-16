@@ -12,7 +12,14 @@ import { supabase } from "@/lib/integrations/my-supabase/client";
 import { Switch } from "@/components/ui/switch";
 import { Spinner } from "@/components/spinner";
 
-export const Route = createFileRoute("/passkey")({ component: PasskeyStep });
+export const Route = createFileRoute("/passkey")({
+  head: () => ({
+    // White page, so the iOS status strip must be white too — the root
+    // default is #000000 and would otherwise paint a black band above it.
+    meta: [{ name: "theme-color", content: "#ffffff" }],
+  }),
+  component: PasskeyStep,
+});
 
 // Offered once per account, after onboarding finishes, to everyone whose
 // device can actually make one (resolvePostAuthRedirect gates both).

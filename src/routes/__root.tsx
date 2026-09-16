@@ -97,9 +97,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         name: "viewport",
         content: "width=device-width, initial-scale=1, viewport-fit=cover",
       },
-      // Every route is black; this tells the browser to color its own chrome
-      // (iOS Safari's status bar and bottom toolbar, Android's address bar)
-      // to match instead of defaulting to white at the page's edges.
+      // Tells the browser to color its own chrome (iOS Safari's status bar and
+      // bottom toolbar, Android's address bar) to match the page instead of
+      // defaulting to white at its edges.
+      //
+      // This said "every route is black" and that stopped being true: auth,
+      // the whole onboarding flow and /store are white now, and each was
+      // inheriting a black status strip above a white screen (reported on
+      // device 2026-09-16). Those routes set #ffffff in their own head(). This
+      // root value is the default for the dark screens -- the feed, camera and
+      // studio -- so a NEW white route must declare its own, or it inherits a
+      // black band. If white ever becomes the majority, flip this and let the
+      // dark routes override instead.
       { name: "theme-color", content: "#000000" },
       // Without this, Android Chrome's "force dark" / "auto dark theme for
       // web contents" setting (on by default on plenty of Android devices)

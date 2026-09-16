@@ -8,7 +8,11 @@ import { OnboardingChecking, OnboardingShell } from "@/components/onboarding/Onb
 import { useRequireSession } from "@/components/onboarding/use-require-session";
 
 export const Route = createFileRoute("/switching-roles")({
-  head: () => ({ meta: [{ title: "Welcome back — Oakmonte" }] }),
+  head: () => ({
+    // White page, so the iOS status strip must be white too — the root
+    // default is #000000 and would otherwise paint a black band above it.
+    meta: [{ title: "Welcome back — Oakmonte" }, { name: "theme-color", content: "#ffffff" }],
+  }),
   component: SwitchingRolesPage,
 });
 

@@ -12,7 +12,14 @@ import { useRequireSession } from "@/components/onboarding/use-require-session";
 import { usePrefetchNextStep } from "@/hooks/use-prefetch-next-step";
 
 export const Route = createFileRoute("/where-did-you-hear-about-us")({
-  head: () => ({ meta: [{ title: "Where did you hear about us — Oakmonte" }] }),
+  head: () => ({
+    // White page, so the iOS status strip must be white too — the root
+    // default is #000000 and would otherwise paint a black band above it.
+    meta: [
+      { title: "Where did you hear about us — Oakmonte" },
+      { name: "theme-color", content: "#ffffff" },
+    ],
+  }),
   component: WhereDidYouHearPage,
 });
 
