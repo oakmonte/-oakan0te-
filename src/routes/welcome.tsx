@@ -4,7 +4,6 @@ import { motion } from "framer-motion";
 import logoO from "@/assets/logo-o.png";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { clearOnboardingState } from "@/lib/onboarding-state";
-import { isPasskeySupported, needsPasskeyOffer } from "@/lib/auth";
 import { useRequireSession } from "@/components/onboarding/use-require-session";
 
 export const Route = createFileRoute("/welcome")({
@@ -61,21 +60,14 @@ function WelcomePage() {
       return;
     }
 
-    // Finishing onboarding does NOT go through resolvePostAuthRedirect -- each
-    // step calls nextRoute(), which walks the static FLOWS table and lands
-    // here. So the passkey gate in the resolver only ever fired on a later
-    // sign-in, never at the end of a signup. This is the one place every
-    // flow's last step converges (COMPLETION_STEP), so the offer belongs here
-    // too. /passkey resolves onward by itself, and skips itself when the
-    // device can't make one.
-    void (async () => {
-      const { data } = await supabase.auth.getUser();
-      if (needsPasskeyOffer(data.user) && (await isPasskeySupported())) {
-        navigate({ to: "/passkey", replace: true });
-        return;
-      }
-      navigate({ to: "/profile/$username", params: { username }, replace: true });
-    })();
+    // The passkey offer was here briefly, because this is where all three
+    // onboarding flows converge (COMPLETION_STEP). Don't put it back. The
+    // problem was never reach, it was timing: this screen sits between signing
+    // up and finally seeing the app, so the prompt reads as one more thing in
+    // the way and gets skipped on reflex. It now runs once, from the seller
+    // checklist right after the payout step, where it reads as part of setting
+    // up a business -- see needsPasskeyForInstall in src/lib/auth.ts.
+    navigate({ to: "/profile/$username", params: { username }, replace: true });
   }, [loaded, username, navigate]);
 
   return (

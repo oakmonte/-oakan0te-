@@ -1,6 +1,7 @@
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { isStandalone } from "@/lib/standalone";
+import { isIOS } from "@/lib/platform";
 import { isPasswordResetPending, readIntent, setIntent, type Intent } from "@/lib/onboarding-state";
 
 function callbackUrl() {
@@ -58,7 +59,6 @@ export type PostAuthRedirect =
   | { to: "/find-your-fit" }
   | { to: "/whats-your-style" }
   | { to: "/switching-roles" }
-  | { to: "/passkey" }
   | { to: "/create-password" }
   | { to: "/no-account" };
 
@@ -259,14 +259,11 @@ export async function resolvePostAuthRedirect(
     }
   }
 
-  // Offer a passkey once onboarding is actually finished, so it lands after
-  // the last question rather than interrupting the middle of a signup. Fires
-  // for sign-IN too -- otherwise every account that already exists would
-  // never be offered one.
-  if (needsPasskeyOffer(userData.user) && (await isPasskeySupported())) {
-    return { to: "/passkey" } as const;
-  }
-
+  // The passkey offer used to live here, and at /welcome. It now runs once,
+  // from the seller checklist right after the payout step -- see
+  // needsPasskeyForInstall. Putting it back in the auth path would re-ask at
+  // the worst moment: between signing up and finally seeing the app, where it
+  // reads as a nag and gets skipped on reflex.
   return { to: "/profile/$username", params: { username: profile.personal_username } } as const;
 }
 
@@ -394,6 +391,38 @@ export async function isPasskeySupported(): Promise<boolean> {
 export function needsPasskeyOffer(user: User | null): boolean {
   if (!user) return false;
   return user.user_metadata?.passkey_prompted !== true;
+}
+
+/** Whether a passkey would actually rescue this user, as opposed to merely
+ *  being possible on their device.
+ *
+ *  The passkey exists to survive installing the app to the home screen. On iOS
+ *  the installed app gets its own storage jar, so the session does not come
+ *  with it and the user has to sign in again -- and a passkey lives in the
+ *  platform keychain instead, scoped to the domain, so it crosses that
+ *  boundary when a session cannot.
+ *
+ *  Two populations need nothing, and asking them adds a screen that buys them
+ *  nothing:
+ *
+ *  - Android. An installed WebAPK shares the installing browser's jar, so
+ *    nobody there is signed out in the first place.
+ *  - Sign in with Apple on iOS. That flow re-authenticates against the device's
+ *    own Apple ID with Face ID and no password, which is already the thing a
+ *    passkey would give them.
+ *
+ *  Gate on this TOGETHER with needsPasskeyOffer (have we asked before) and
+ *  isPasskeySupported (can the device do it at all) -- they answer three
+ *  different questions. */
+export function needsPasskeyForInstall(user: User | null): boolean {
+  if (!user) return false;
+  if (!isIOS()) return false;
+  // Same shape as needsPassword: `providers` lists every linked identity,
+  // `provider` is the single primary on older accounts.
+  const providers = (user.app_metadata?.providers as string[] | undefined) ?? [
+    user.app_metadata?.provider,
+  ];
+  return !providers.filter(Boolean).includes("apple");
 }
 
 /** Records that the step has been shown, whichever way it was answered.

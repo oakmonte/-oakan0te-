@@ -18,6 +18,7 @@ import {
 } from "@/lib/onboarding-state";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { isStandalone } from "@/lib/standalone";
+import { isIOS } from "@/lib/platform";
 import { GoogleIcon } from "@/components/auth-icons";
 import { Spinner } from "@/components/spinner";
 import { CodeInput } from "@/components/onboarding/CodeInput";
@@ -203,9 +204,8 @@ export function AuthPanel({ intent, title, subtitle, defaultMode = "code" }: Pro
   // of people.
   const passkeyLabel = () => {
     if (typeof navigator === "undefined") return "a passkey";
-    const ua = navigator.userAgent;
-    if (/iPhone|iPad|iPod/.test(ua)) return "Face ID";
-    if (/Android/.test(ua)) return "face or fingerprint";
+    if (isIOS()) return "Face ID";
+    if (/Android/.test(navigator.userAgent)) return "face or fingerprint";
     return "a passkey";
   };
 

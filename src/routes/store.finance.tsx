@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { Landmark, Clock } from "lucide-react";
 import { PayoutAccountSheet } from "@/components/store/PayoutAccountSheet";
 import { authedFetch } from "@/lib/authed-fetch";
+import { isPasskeySupported, needsPasskeyForInstall, needsPasskeyOffer } from "@/lib/auth";
+import { supabase } from "@/lib/integrations/my-supabase/client";
 import {
   Dialog,
   DialogContent,
@@ -36,6 +38,7 @@ function FinancePage() {
   const [account, setAccount] = useState<PayoutAccount | null | undefined>(undefined);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [skipPromptOpen, setSkipPromptOpen] = useState(false);
+  const [nextBusy, setNextBusy] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -63,6 +66,36 @@ function FinancePage() {
     if (!account) {
       setSkipPromptOpen(true);
       return;
+    }
+    void continueToStore();
+  }
+
+  // The passkey offer lives here, and only here, on purpose. Someone who has
+  // just typed their bank account number is in the middle of setting up a
+  // business and reads a security prompt as part of that; the same screen
+  // during signup reads as an obstacle and gets skipped. See
+  // needsPasskeyForInstall for who is asked (iOS, non-Apple) and why nobody
+  // else is.
+  //
+  // Deliberately NOT on the "Continue anyway" path below: that seller just
+  // declined to enter their details, and asking them for a fingerprint in the
+  // same breath throws away the one thing that makes this placement work.
+  async function continueToStore() {
+    setNextBusy(true);
+    try {
+      const { data } = await supabase.auth.getUser();
+      if (
+        needsPasskeyOffer(data.user) &&
+        needsPasskeyForInstall(data.user) &&
+        (await isPasskeySupported())
+      ) {
+        navigate({ to: "/passkey", search: { next: "/store" } });
+        return;
+      }
+    } catch (err) {
+      // An offer is optional; finishing the checklist step is not. Never let a
+      // failed lookup strand someone on a page whose only button did nothing.
+      console.error("passkey gate failed", err);
     }
     navigate({ to: "/store" });
   }
@@ -171,7 +204,8 @@ function FinancePage() {
           <button
             type="button"
             onClick={handleNext}
-            className="w-full bg-black text-white text-sm font-semibold rounded-full py-4 oak-motion-control active:scale-[0.98]"
+            disabled={nextBusy}
+            className="w-full bg-black text-white text-sm font-semibold rounded-full py-4 oak-motion-control active:scale-[0.98] disabled:opacity-60"
           >
             Next
           </button>
