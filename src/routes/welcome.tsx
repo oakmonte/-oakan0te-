@@ -1,5 +1,5 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import logoO from "@/assets/logo-o.png";
 import { supabase } from "@/lib/integrations/my-supabase/client";
@@ -18,13 +18,20 @@ const TYPE_SPEED_MS = 55;
 const LEAD_IN_MS = 450;
 const FULL_STOP_DELAY_MS = 650;
 const TOTAL_TYPE_MS = HEADLINE.length * TYPE_SPEED_MS;
+/** Matches the full stop's own scale-in below, so leaving doesn't clip it. */
+const PERIOD_FADE_MS = 250;
+const ANIMATION_MS = LEAD_IN_MS + TOTAL_TYPE_MS + FULL_STOP_DELAY_MS + PERIOD_FADE_MS;
 
 function WelcomePage() {
   const { userId } = useRequireSession();
   const navigate = useNavigate();
+  const router = useRouter();
   const [username, setUsername] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [typedOut, setTypedOut] = useState(false);
   const hasNavigated = useRef(false);
+
+  const handleTypedOut = useCallback(() => setTypedOut(true), []);
 
   // Paint the launch screen immediately while the session and profile load
   // underneath it. Anonymous users are redirected by useRequireSession.
@@ -52,13 +59,36 @@ function WelcomePage() {
     };
   }, [userId]);
 
+  // Start pulling the profile down the moment we know whose it is, rather
+  // than when we navigate. The route's loader warms its own query (see
+  // profile.$username.tsx), so this buys the whole typing animation as fetch
+  // time and the page arrives populated instead of empty-then-filling.
+  useEffect(() => {
+    if (!username) return;
+    const id = window.setTimeout(() => {
+      void router.preloadRoute({ to: "/profile/$username", params: { username } }).catch(() => {});
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, [router, username]);
+
   useEffect(() => {
     if (!loaded || hasNavigated.current) return;
-    hasNavigated.current = true;
+
+    // No username here means onboarding didn't finish, so there is no profile
+    // to wait for and nothing to show off -- send them back to fix it rather
+    // than holding them through an animation.
     if (!username) {
+      hasNavigated.current = true;
       navigate({ to: "/choose-username", replace: true });
       return;
     }
+
+    // Leave on whichever finishes LAST. This screen is both a loading screen
+    // and a piece of writing: cutting it off the instant the profile resolves
+    // truncated the sentence mid-word, and leaving before the profile is ready
+    // would defeat the point of having it at all.
+    if (!typedOut) return;
+    hasNavigated.current = true;
 
     // The passkey offer was here briefly, because this is where all three
     // onboarding flows converge (COMPLETION_STEP). Don't put it back. The
@@ -68,7 +98,7 @@ function WelcomePage() {
     // checklist right after the payout step, where it reads as part of setting
     // up a business -- see needsPasskeyForInstall in src/lib/auth.ts.
     navigate({ to: "/profile/$username", params: { username }, replace: true });
-  }, [loaded, username, navigate]);
+  }, [loaded, typedOut, username, navigate]);
 
   return (
     <div className="min-h-dvh bg-brand-bg text-brand-text flex flex-col items-center justify-center px-6">
@@ -82,15 +112,20 @@ function WelcomePage() {
         <span className="text-[36px] font-normal tracking-tight leading-none">akmonte</span>
       </motion.div>
 
-      <TypingHeadline />
+      <TypingHeadline onDone={handleTypedOut} />
     </div>
   );
 }
 
-function TypingHeadline() {
+function TypingHeadline({ onDone }: { onDone: () => void }) {
   const [chars, setChars] = useState(0);
   const [periodVisible, setPeriodVisible] = useState(false);
   const [cursorVisible, setCursorVisible] = useState(true);
+
+  // Held in a ref so the animation can't be restarted by a caller that
+  // re-creates the callback on a render.
+  const onDoneRef = useRef(onDone);
+  onDoneRef.current = onDone;
 
   useEffect(() => {
     let cancelled = false;
@@ -121,6 +156,10 @@ function TypingHeadline() {
 
     // Pause before the full stop.
     schedule(() => setPeriodVisible(true), LEAD_IN_MS + TOTAL_TYPE_MS + FULL_STOP_DELAY_MS);
+
+    // Sentence finished, full stop settled. The page may still be waiting on
+    // the profile after this; that wait is the whole job of the screen.
+    schedule(() => onDoneRef.current(), ANIMATION_MS);
 
     // Cursor blinks until navigation; cancel it right before the page leaves.
     const cursorInterval = setInterval(() => {
