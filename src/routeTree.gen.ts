@@ -43,6 +43,7 @@ import { Route as StoreThemeRouteImport } from './routes/store.theme'
 import { Route as StoreProductsRouteImport } from './routes/store.products'
 import { Route as StoreOrdersRouteImport } from './routes/store.orders'
 import { Route as StoreGrowthRouteImport } from './routes/store.growth'
+import { Route as StoreGetTheWebappRouteImport } from './routes/store.get-the-webapp'
 import { Route as StoreFinanceRouteImport } from './routes/store.finance'
 import { Route as StoreDiscountsRouteImport } from './routes/store.discounts'
 import { Route as StoreCustomersRouteImport } from './routes/store.customers'
@@ -252,6 +253,11 @@ const StoreOrdersRoute = StoreOrdersRouteImport.update({
 const StoreGrowthRoute = StoreGrowthRouteImport.update({
   id: '/growth',
   path: '/growth',
+  getParentRoute: () => StoreRoute,
+} as any)
+const StoreGetTheWebappRoute = StoreGetTheWebappRouteImport.update({
+  id: '/get-the-webapp',
+  path: '/get-the-webapp',
   getParentRoute: () => StoreRoute,
 } as any)
 const StoreFinanceRoute = StoreFinanceRouteImport.update({
@@ -501,6 +507,7 @@ export interface FileRoutesByFullPath {
   '/store/customers': typeof StoreCustomersRoute
   '/store/discounts': typeof StoreDiscountsRoute
   '/store/finance': typeof StoreFinanceRoute
+  '/store/get-the-webapp': typeof StoreGetTheWebappRoute
   '/store/growth': typeof StoreGrowthRoute
   '/store/orders': typeof StoreOrdersRoute
   '/store/products': typeof StoreProductsRoute
@@ -574,6 +581,7 @@ export interface FileRoutesByTo {
   '/store/customers': typeof StoreCustomersRoute
   '/store/discounts': typeof StoreDiscountsRoute
   '/store/finance': typeof StoreFinanceRoute
+  '/store/get-the-webapp': typeof StoreGetTheWebappRoute
   '/store/growth': typeof StoreGrowthRoute
   '/store/orders': typeof StoreOrdersRoute
   '/store/products': typeof StoreProductsRoute
@@ -651,6 +659,7 @@ export interface FileRoutesById {
   '/store/customers': typeof StoreCustomersRoute
   '/store/discounts': typeof StoreDiscountsRoute
   '/store/finance': typeof StoreFinanceRoute
+  '/store/get-the-webapp': typeof StoreGetTheWebappRoute
   '/store/growth': typeof StoreGrowthRoute
   '/store/orders': typeof StoreOrdersRoute
   '/store/products': typeof StoreProductsRoute
@@ -729,6 +738,7 @@ export interface FileRouteTypes {
     | '/store/customers'
     | '/store/discounts'
     | '/store/finance'
+    | '/store/get-the-webapp'
     | '/store/growth'
     | '/store/orders'
     | '/store/products'
@@ -802,6 +812,7 @@ export interface FileRouteTypes {
     | '/store/customers'
     | '/store/discounts'
     | '/store/finance'
+    | '/store/get-the-webapp'
     | '/store/growth'
     | '/store/orders'
     | '/store/products'
@@ -878,6 +889,7 @@ export interface FileRouteTypes {
     | '/store/customers'
     | '/store/discounts'
     | '/store/finance'
+    | '/store/get-the-webapp'
     | '/store/growth'
     | '/store/orders'
     | '/store/products'
@@ -1200,6 +1212,13 @@ declare module '@tanstack/react-router' {
       path: '/growth'
       fullPath: '/store/growth'
       preLoaderRoute: typeof StoreGrowthRouteImport
+      parentRoute: typeof StoreRoute
+    }
+    '/store/get-the-webapp': {
+      id: '/store/get-the-webapp'
+      path: '/get-the-webapp'
+      fullPath: '/store/get-the-webapp'
+      preLoaderRoute: typeof StoreGetTheWebappRouteImport
       parentRoute: typeof StoreRoute
     }
     '/store/finance': {
@@ -1528,6 +1547,7 @@ interface StoreRouteChildren {
   StoreCustomersRoute: typeof StoreCustomersRoute
   StoreDiscountsRoute: typeof StoreDiscountsRoute
   StoreFinanceRoute: typeof StoreFinanceRoute
+  StoreGetTheWebappRoute: typeof StoreGetTheWebappRoute
   StoreGrowthRoute: typeof StoreGrowthRoute
   StoreOrdersRoute: typeof StoreOrdersRoute
   StoreProductsRoute: typeof StoreProductsRoute
@@ -1548,6 +1568,7 @@ const StoreRouteChildren: StoreRouteChildren = {
   StoreCustomersRoute: StoreCustomersRoute,
   StoreDiscountsRoute: StoreDiscountsRoute,
   StoreFinanceRoute: StoreFinanceRoute,
+  StoreGetTheWebappRoute: StoreGetTheWebappRoute,
   StoreGrowthRoute: StoreGrowthRoute,
   StoreOrdersRoute: StoreOrdersRoute,
   StoreProductsRoute: StoreProductsRoute,

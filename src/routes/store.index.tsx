@@ -1,9 +1,11 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Palette, Wallet, Package, MapPin, X } from "lucide-react";
-import { useState } from "react";
+import { Palette, Wallet, Package, MapPin, Smartphone, X } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useActiveStoreId } from "@/hooks/use-own-store";
 import { useStoreSetupStatus } from "@/hooks/use-store-setup-status";
 import { LocationsListSheet } from "@/components/store/LocationsListSheet";
+import { isInstallablePhone } from "@/lib/platform";
+import { isStandalone } from "@/lib/standalone";
 
 export const Route = createFileRoute("/store/")({
   component: StoreHome,
@@ -24,15 +26,42 @@ function StoreHome() {
   // that hook defaults an unset theme_id to "motion" client-side (see
   // store-profile page's own comment on this), so it's never null and can't
   // tell us whether the seller has actually picked one yet.
-  const { payoutSet, locationCount, productCount, themeIdSet, setLocationCount } =
-    useStoreSetupStatus(storeId ?? null);
+  const {
+    loading: statusLoading,
+    payoutSet,
+    locationCount,
+    productCount,
+    themeIdSet,
+    installedApp,
+    setLocationCount,
+  } = useStoreSetupStatus(storeId ?? null);
   const [locationsSheetOpen, setLocationsSheetOpen] = useState(false);
+  // Both read `navigator` / a media query, so both are set from an effect and
+  // never a useState initialiser -- the hydration rule in platform.ts. Until
+  // the effect runs this renders the desktop checklist, which is the safe
+  // default: a card that appears a frame late beats one that vanishes.
+  const [canInstallHere, setCanInstallHere] = useState(false);
+  const [inApp, setInApp] = useState(false);
+
+  useEffect(() => {
+    setCanInstallHere(isInstallablePhone());
+    setInApp(isStandalone());
+  }, []);
   // Set when a step is tapped before every step before it is done — holds
   // which step to actually run if the seller taps through anyway.
-  const [orderWarningIndex, setOrderWarningIndex] = useState<number | null>(null);
+  //
+  // Keyed rather than indexed, because the array below is conditionally sized:
+  // the install card is only present on a phone. An index captured against one
+  // length and read back against another points at the wrong step, or past the
+  // end. That cannot happen today — `canInstallHere` settles in the mount
+  // effect, before any tap — but it is true by accident, and the obvious next
+  // edit (dropping the card once installed) would make the array shrink while
+  // a warning is open.
+  const [orderWarningKey, setOrderWarningKey] = useState<string | null>(null);
 
   const steps = [
     {
+      key: "payout",
       label: "Get paid",
       description: payoutSet
         ? "Payout account added — pending verification."
@@ -42,6 +71,7 @@ function StoreHome() {
       go: () => navigate({ to: "/store/finance", search: { checklist: true } }),
     },
     {
+      key: "locations",
       label: "Pickup locations",
       description: locationCount
         ? `${locationCount} location${locationCount === 1 ? "" : "s"} saved — tap to manage.`
@@ -50,7 +80,26 @@ function StoreHome() {
       done: !!locationCount,
       go: () => setLocationsSheetOpen(true),
     },
+    // Hidden entirely on desktop rather than shown as an impossible step: a
+    // laptop cannot put anything on a home screen, so the card would be a
+    // permanent blocker with no way through. Sellers on a laptop get four
+    // steps; sellers on a phone get five.
+    ...(canInstallHere
+      ? [
+          {
+            key: "webapp",
+            label: "Get the webapp",
+            description: installedApp
+              ? "Installed — carry on from the app."
+              : "Put Oakmonte on your home screen. The rest of setup lives there.",
+            icon: Smartphone,
+            done: installedApp,
+            go: () => navigate({ to: "/store/get-the-webapp", search: { checklist: true } }),
+          },
+        ]
+      : []),
     {
+      key: "products",
       label: "List products",
       description: productCount
         ? `${productCount} product${productCount === 1 ? "" : "s"} listed.`
@@ -60,6 +109,7 @@ function StoreHome() {
       go: () => navigate({ to: "/store/products", search: { checklist: true } }),
     },
     {
+      key: "theme",
       label: "Customise your store front",
       description: "Choose how your store should look like.",
       icon: Palette,
@@ -68,10 +118,34 @@ function StoreHome() {
     },
   ];
 
+  // Whether the step being warned about sits past the install step, and the
+  // install still hasn't happened, and we're reading this in a browser tab
+  // rather than the app. That combination gets its own copy: "you're about to
+  // do the rest of this in the wrong place" is a different message from "these
+  // steps have a recommended order", and the generic one doesn't explain why
+  // it matters. Still only a nudge -- the skip-ahead button below works either
+  // way, because a seller who insists is better served than blocked.
+  const webappIndex = steps.findIndex((s) => s.key === "webapp");
+  // -1 when no warning is open, and also when the warned-about step has since
+  // disappeared from the list — both mean "render nothing", which is why every
+  // read below goes through this rather than through the key.
+  const warnIndex = orderWarningKey ? steps.findIndex((s) => s.key === orderWarningKey) : -1;
+  const blockedByInstall =
+    warnIndex !== -1 &&
+    webappIndex !== -1 &&
+    warnIndex > webappIndex &&
+    // Never accuse someone of not having the app while we are still finding
+    // out. `installedApp` is false both for "hasn't installed" and for "the
+    // session hasn't resolved yet", and only `statusLoading` tells them apart.
+    !statusLoading &&
+    !installedApp &&
+    !inApp;
+  const firstIncomplete = steps.findIndex((s) => !s.done);
+
   function handleStepTap(index: number) {
     const priorIncomplete = steps.slice(0, index).some((s) => !s.done);
     if (priorIncomplete) {
-      setOrderWarningIndex(index);
+      setOrderWarningKey(steps[index].key);
       return;
     }
     steps[index].go();
@@ -114,16 +188,16 @@ function StoreHome() {
         />
       )}
 
-      {orderWarningIndex !== null && (
+      {warnIndex !== -1 && (
         <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/40 px-4 pb-8 sm:items-center">
           <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-[0_30px_80px_rgba(0,0,0,0.25)]">
             <div className="flex items-start justify-between gap-3">
               <p className="text-base font-semibold tracking-[-0.02em] text-gray-900">
-                Follow the order?
+                {blockedByInstall ? "Finish this from the app" : "Follow the order?"}
               </p>
               <button
                 type="button"
-                onClick={() => setOrderWarningIndex(null)}
+                onClick={() => setOrderWarningKey(null)}
                 aria-label="Cancel"
                 className="shrink-0 rounded-full p-1 text-gray-400 hover:bg-gray-50"
               >
@@ -131,22 +205,32 @@ function StoreHome() {
               </button>
             </div>
             <p className="mt-1.5 text-sm leading-5 text-gray-500">
-              We recommend completing these steps in order to avoid confusion. You can still skip
-              ahead if you'd rather.
+              {blockedByInstall
+                ? "Add Oakmonte to your home screen first, then do the rest from there. It keeps your camera permission and stops you signing in over and over."
+                : "We recommend completing these steps in order to avoid confusion. You can still skip ahead if you'd rather."}
             </p>
             <div className="mt-4 flex flex-col gap-2">
               <button
                 type="button"
-                onClick={() => setOrderWarningIndex(null)}
+                onClick={() => {
+                  // The primary button has to actually take them somewhere.
+                  // Dismissing back to the same list they just tapped from is
+                  // what makes a dialog feel broken — it agreed with them and
+                  // then did nothing. "Go in order" means: go to the first
+                  // thing that isn't done.
+                  const target = blockedByInstall ? webappIndex : firstIncomplete;
+                  setOrderWarningKey(null);
+                  if (target !== -1) steps[target].go();
+                }}
                 className="rounded-xl bg-black py-2.5 text-sm font-semibold text-white"
               >
-                Go in order
+                {blockedByInstall ? "Get the webapp" : "Go in order"}
               </button>
               <button
                 type="button"
                 onClick={() => {
-                  const index = orderWarningIndex;
-                  setOrderWarningIndex(null);
+                  const index = warnIndex;
+                  setOrderWarningKey(null);
                   steps[index].go();
                 }}
                 className="rounded-xl border border-gray-200 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"

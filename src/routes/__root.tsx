@@ -15,6 +15,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { preloadStoreThemeAssets } from "../lib/preload-store-theme-assets";
 import { useSession } from "../hooks/use-session";
 import { markStandalone } from "@/lib/standalone";
+import { captureInstallPrompt, stampInstalledApp } from "@/lib/installed-app";
 import { useBuildFreshness } from "../hooks/use-build-freshness";
 import { PostUploadToast } from "../components/PostUploadToast";
 import { ProductSaveToast } from "../components/ProductSaveToast";
@@ -229,6 +230,19 @@ function RootComponent() {
   // the CSS that has to tell them apart — see standalone.ts. Runs once here
   // rather than per-screen so there is one answer for the whole app.
   useEffect(markStandalone, []);
+
+  // Has to be here rather than on the screen that offers the install:
+  // `beforeinstallprompt` fires during page load, so a listener added when
+  // /store/get-the-webapp mounts has already missed it. See installed-app.ts.
+  useEffect(captureInstallPrompt, []);
+
+  // Records the install against the account the first time the app is opened
+  // standalone. Runs on every session change rather than once, because on iOS
+  // the installed app starts signed out -- the launch that can finally write
+  // this is the one *after* they sign in, not the first one.
+  useEffect(() => {
+    void stampInstalledApp(user);
+  }, [user]);
 
   // Fires the instant a session exists — right after sign-in and equally
   // right after finishing seller account creation, since both land here
