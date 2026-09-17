@@ -77,6 +77,13 @@ function FinancePage() {
   // needsPasskeyForInstall for who is asked (iOS, non-Apple) and why nobody
   // else is.
   //
+  // It is also load-bearing for the step three cards further down the
+  // checklist. "Get the webapp" asks them to install the app and carry on from
+  // inside it, and on iOS the installed app starts signed out -- so the passkey
+  // made here is what turns that second sign-in into Face ID instead of a
+  // retyped password. Move this earlier or later and that still works; remove
+  // it and the install step quietly gets much harder to finish.
+  //
   // Deliberately NOT on the "Continue anyway" path below: that seller just
   // declined to enter their details, and asking them for a fingerprint in the
   // same breath throws away the one thing that makes this placement work.
@@ -213,22 +220,22 @@ function FinancePage() {
       )}
 
       <Dialog open={skipPromptOpen} onOpenChange={setSkipPromptOpen}>
-        <DialogContent className="w-[calc(100%-32px)] max-w-sm rounded-xl border-gray-200 bg-white p-5 text-gray-900">
+        <DialogContent className="w-[calc(100%-32px)] max-w-sm gap-7 rounded-[28px] border-gray-200 bg-white px-6 pb-7 pt-8 text-gray-900">
           <DialogHeader className="text-left">
-            <DialogTitle className="text-[18px]">Add a payout account?</DialogTitle>
-            <DialogDescription className="pt-1 text-sm text-gray-500">
+            <DialogTitle className="text-[22px] leading-tight">Add a payout account?</DialogTitle>
+            <DialogDescription className="pt-2 text-[15px] leading-relaxed text-gray-500">
               You won&apos;t be able to receive payouts until you add one. You can always come back
               to this later.
             </DialogDescription>
           </DialogHeader>
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-3">
             <button
               type="button"
               onClick={() => {
                 setSkipPromptOpen(false);
                 setSheetOpen(true);
               }}
-              className="w-full rounded-xl bg-black py-3 text-[15px] font-semibold text-white"
+              className="w-full rounded-2xl bg-black py-[18px] text-[17px] font-semibold text-white oak-motion-control active:scale-[0.98]"
             >
               Add payout account
             </button>
@@ -238,7 +245,7 @@ function FinancePage() {
                 setSkipPromptOpen(false);
                 navigate({ to: "/store" });
               }}
-              className="w-full rounded-xl border border-gray-200 py-3 text-[15px] font-medium text-gray-900"
+              className="w-full rounded-2xl border border-gray-200 py-[18px] text-[17px] font-medium text-gray-900 oak-motion-control active:scale-[0.98]"
             >
               Continue anyway
             </button>
