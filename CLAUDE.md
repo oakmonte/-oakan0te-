@@ -29,23 +29,45 @@ below). Removing them is a real migration, not a cleanup.
 Package manager is **bun** — `package-lock.json` is stale, ignore it.
 
 - `bun run dev` (vite dev, port 8080) · `bun run build` · `bun run format`
+- `bun run e2e` (Playwright) · `bun run shots` (screenshot sweep) · `bun run e2e:ui`. Config and the
+  full "what this cannot test" list are in `playwright.config.ts` and `e2e/README.md`.
 - Gates before calling work done: `bun run typecheck` (`tsc --noEmit`), `bun run lint`, `bun run test`.
   All pass clean — keep them that way. Only accepted lint output: 6 `react-refresh` warnings in
   `src/components/ui/*` (shadcn); don't chase those.
-- **Tests cover pure logic only** (`bun test`, no framework, `src/**/*.test.ts`): the rules whose
+- **`bun run test` covers pure logic only** (`bun test`, no framework, `src/**/*.test.ts` — browser
+  tests live in `e2e/` and run under Playwright instead, see below): the rules whose
   breakage is silent and expensive — `variant-combinations.ts` (regenerating the variant grid without
   blanking a seller's prices/stock), `necessities.ts` (what counts as filled, and where each answer is
   actually persisted), `weight-estimate.ts` (parsing). Add to these when you change a rule that a
   seller's data depends on. They're excluded from `tsc` (see `tsconfig.json`) because `bun:test` types
-  would need `@types/bun`.
+  would need `@types/bun`. The script is `bun test src`, not bare `bun test`, because Bun's runner
+  also globs `*.spec.ts` and would try to execute the Playwright specs in `e2e/` — which fails with
+  "Playwright Test did not expect test() to be called here". Keep the `src` argument.
 - **The three gates do not catch a missing asset.** An `import x from "./y.png"` resolves to `any`
   through `vite/client`'s module declaration, so deleting or renaming an image leaves typecheck, lint
   and test all green while `bun run build` fails with `UNRESOLVED_IMPORT` — which on Vercel is a
   failed deploy, not a warning. Run `bun run build` after any change that adds, moves or deletes a
   file under `src/` that something imports by path. Cost us a blocked publish on 2026-09-10, back
   when Lovable silently refused to publish instead of failing loudly.
-- **Nothing tests the UI.** Interaction behaviour — sheets, gestures, contentEditable, keyboard/
-  viewport — is only verifiable by running the dev server and exercising the flow on a real device.
+- **Playwright covers the UI as far as a browser can, which is not as far as you want.** Projects are
+  phone-only on purpose — iPhone 13 (WebKit) and Pixel 7 (Chromium); there is no desktop project
+  because no screen here is designed for one. Good for layout, copy, routing, ordinary interaction,
+  and for catching a route that _throws while rendering_ — the `/create` module-scope hook crash
+  passed typecheck, lint and build and would have been caught by a `pageerror` listener.
+  **Playwright's WebKit is not iOS Safari**, so everything that actually makes this app hard is
+  invisible to it: the standalone storage jar (`isStandalone()` always reports a browser tab), Add to
+  Home Screen and the `installed_app` stamp, camera permission surviving a relaunch, `getUserMedia`,
+  passkeys, Face ID, `beforeinstallprompt`. Those still need a real phone. Gestures, contentEditable
+  and keyboard/viewport behaviour are technically drivable but rarely worth the effort versus a
+  device.
+- **Assert, don't look — this is a real cost, not a style preference.** A phone-sized screenshot costs
+  roughly 1,500 tokens every time an agent reads one, and a judgement call on top; the same check as
+  `expect(...)` is a one-line pass/fail. Same rule for the browser tools: `get_page_text` / `read_page`
+  return text and should be the default, with screenshots reserved for genuinely visual questions
+  (spacing, overlap, a theme). Generating screenshots for an agent to then examine saves nothing.
+- `fullPage: true` caps at 32,767 **device** pixels, and the iPhone project emulates 3×, so the real
+  ceiling is ~10,922 CSS px. The landing page is ~11,700 and overflows it. Use a viewport screenshot,
+  or drop `deviceScaleFactor` to 2 for that run.
 - A `Stop` hook re-runs typecheck on `.ts`/`.tsx` changes. Hooks in `.claude/hooks/` also hard-block
   reads of secret files and hand-edits to generated `types.ts` files.
 
