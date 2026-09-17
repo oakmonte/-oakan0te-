@@ -8,6 +8,12 @@ export type ExtendedPhotoAdjust = {
   vignette: number; // 0 to 100
 };
 
+/**
+ * Every control must compile to something that `compileFilter` understands,
+ * because the same string drives the preview and the export pass. If a
+ * control only works in the preview, the export will quietly mismatch what
+ * the seller saw.
+ */
 export const EXTENDED_NEUTRAL_ADJUST: ExtendedPhotoAdjust = {
   exposure: 0,
   contrast: 0,
@@ -30,7 +36,7 @@ export const EXTENDED_ADJUST_CONTROLS: { key: keyof ExtendedPhotoAdjust; label: 
 
 export function extendedAdjustToCss(adj: ExtendedPhotoAdjust): string {
   const filters: string[] = [];
-  if (adj.exposure !== 0) filters.push(`brightness(${1 + adj.exposure / 100})`);
+  if (adj.exposure !== 0) filters.push(`brightness(${1 + adj.exposure / 250})`);
   if (adj.contrast !== 0) filters.push(`contrast(${1 + adj.contrast / 100})`);
   if (adj.temperature !== 0) {
     // Warmth simulation via sepia and hue-rotate
@@ -40,7 +46,12 @@ export function extendedAdjustToCss(adj: ExtendedPhotoAdjust): string {
         : `hue-rotate(${Math.abs(adj.temperature) / 5}deg)`,
     );
   }
-  if (adj.vibrance !== 0) filters.push(`saturate(${1 + adj.vibrance / 100})`);
+  if (adj.vibrance !== 0) filters.push(`saturate(${1 + adj.vibrance / 125})`);
+  // TODO: Implement proper vignette handling in the bake pipeline
+  // Highlights and shadows are now handled via CSS functions in canvas-filter.ts
+  if (adj.highlights !== 0) filters.push(`highlight(${adj.highlights})`);
+  if (adj.shadows !== 0) filters.push(`shadow(${adj.shadows})`);
+  // Vignette is positional and requires a separate step in the bake; see canvas-filter.ts.
   return filters.length ? filters.join(" ") : "none";
 }
 export type PhotoAdjust = ExtendedPhotoAdjust;
@@ -49,13 +60,5 @@ export const ADJUST_CONTROLS: { key: keyof PhotoAdjust; label: string }[] =
   EXTENDED_ADJUST_CONTROLS;
 export const adjustToCss = extendedAdjustToCss;
 export function isNeutralAdjust(adj: PhotoAdjust): boolean {
-  return (
-    adj.exposure === 0 &&
-    adj.contrast === 0 &&
-    adj.highlights === 0 &&
-    adj.shadows === 0 &&
-    adj.temperature === 0 &&
-    adj.vibrance === 0 &&
-    adj.vignette === 0
-  );
+  return ADJUST_CONTROLS.every(({ key }) => adj[key] === 0);
 }

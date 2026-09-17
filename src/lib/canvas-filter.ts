@@ -174,6 +174,14 @@ export function compileFilter(css: string): CompiledFilter {
       case "saturate":
         m = saturateMat(value);
         break;
+      case "highlight":
+        // Highlights adjustment: brightness adjustment with custom scaling
+        m = brightnessMat(1 + value / 150);
+        break;
+      case "shadow":
+        // Shadows adjustment: brightness adjustment with custom scaling
+        m = brightnessMat(1 + value / 250);
+        break;
       case "grayscale":
         m = grayscaleMat(value);
         break;
@@ -243,4 +251,48 @@ export function applyCompiledFilter(imageData: ImageData, compiled: CompiledFilt
 
 function clamp(v: number): number {
   return v < 0 ? 0 : v > 255 ? 255 : v;
+}
+
+// Vignette effect: darkens corners based on distance from center
+// value: 0-100 (0 = no vignette, 100 = strong vignette)
+export function applyVignette(imageData: ImageData, value: number): void {
+  if (value === 0) return;
+  
+  const data = imageData.data;
+  const width = imageData.width;
+  const height = imageData.height;
+  
+  // Convert vignette value (0-100) to strength (0-1)
+  const strength = value / 100;
+  
+  // Calculate center and max distance
+  const centerX = width / 2;
+  const centerY = height / 2;
+  const maxDistance = Math.sqrt(centerX * centerX + centerY * centerY);
+  
+  // Apply vignette per pixel
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = (y * width + x) * 4;
+      
+      // Calculate distance from center
+      const dx = x - centerX;
+      const dy = y - centerY;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      
+      // Calculate vignette factor (0 at corners, 1 at center)
+      let factor = 1 - (distance / maxDistance);
+      // Apply some curve to make it more natural - quadratic falloff
+      factor = factor * factor;
+      
+      // Calculate final multiplier: 1 at center, (1 - strength) at corners
+      const multiplier = 1 - strength * (1 - factor);
+      
+      // Apply to RGB channels
+      data[i]     = Math.round(data[i]     * multiplier);     // R
+      data[i + 1] = Math.round(data[i + 1] * multiplier);     // G
+      data[i + 2] = Math.round(data[i + 2] * multiplier);     // B
+      // alpha channel unchanged
+    }
+  }
 }

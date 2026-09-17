@@ -67,24 +67,10 @@ type Section = "shoot" | "create";
 type CapturePhase = "live" | "counting";
 type PanelType = "ratio" | "timer" | "layout" | "filters";
 
-const [focusPoint, setFocusPoint] = useState<{ x: number; y: number } | null>(null);
 
-const handlePreviewTap = (e: React.MouseEvent<HTMLDivElement>) => {
-  const rect = e.currentTarget.getBoundingClientRect();
-  const x = e.clientX - rect.left;
-  const y = e.clientY - rect.top;
-  setFocusPoint({ x, y });
-
-  // Optional: Trigger device haptics
-  if (navigator.vibrate) navigator.vibrate(10);
-
-  // Clear reticle after 2 seconds
-  setTimeout(() => setFocusPoint(null), 2000);
-};
-
-// A single captured, already-cropped/filtered/mirrored frame for one layout
-// cell. Kept as a canvas (not a blob) since it still needs to be drawn onto
-// the final composite canvas — converting to a blob is the very last step.
+ // A single captured, already-cropped/filtered/mirrored frame for one layout
+ // cell. Kept as a canvas (not a blob) since it still needs to be drawn onto
+ // the final composite canvas — converting to a blob is the very last step.
 type CellCapture = { canvas: HTMLCanvasElement };
 
 const DEFAULT_FILTER_ID = "natural";

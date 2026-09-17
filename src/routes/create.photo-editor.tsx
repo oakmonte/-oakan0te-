@@ -798,10 +798,10 @@ function PhotoEditor() {
           photoLayers,
           photo.crop,
           onProgress,
-          adjustCss,
+          photo.adjust,
         );
       }
-      return exportPhoto(blob, filter, photo.filterIntensity, photoLayers, photo.crop, adjustCss);
+      return exportPhoto(blob, filter, photo.filterIntensity, photoLayers, photo.crop, photo.adjust);
     },
     [],
   );
