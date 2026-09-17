@@ -492,7 +492,7 @@ export function LocationSheet({
         )}
       </div>
 
-      <div className="sticky bottom-0 px-4 py-3 border-t border-gray-100 bg-white shrink-0">
+      <div className="sticky bottom-0 px-4 pt-3 oak-safe-bottom border-t border-gray-100 bg-white shrink-0">
         <button
           type="button"
           onClick={handleSave}

@@ -160,7 +160,7 @@ export function TagsSheet({
         )}
       </div>
 
-      <div className="sticky bottom-0 px-3 pb-3 pt-2 shrink-0">
+      <div className="sticky bottom-0 px-3 pt-2 oak-safe-bottom shrink-0">
         <div className="bg-black text-white rounded-full px-4 h-12 flex items-center justify-between shadow-lg">
           <span className="text-sm text-gray-300">{selectedIds.length} selected</span>
           <div className="flex items-center gap-2">

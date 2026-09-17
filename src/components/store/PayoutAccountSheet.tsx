@@ -447,7 +447,7 @@ export function PayoutAccountSheet({
         </p>
       </div>
 
-      <div className="sticky bottom-0 px-4 py-3 border-t border-gray-100 bg-white shrink-0">
+      <div className="sticky bottom-0 px-4 pt-3 oak-safe-bottom border-t border-gray-100 bg-white shrink-0">
         {saveError && <p className="text-xs text-red-500 mb-2 text-center">{saveError}</p>}
         <button
           type="button"

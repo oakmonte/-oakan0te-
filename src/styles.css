@@ -50,7 +50,6 @@
   }
 }
 
-
 @custom-variant dark (&:is(.dark *));
 
 @theme {
@@ -573,4 +572,16 @@ input:-webkit-autofill:active {
   .messages-skeleton {
     animation: none;
   }
+}
+
+/* Bottom action bars ("Next", "Save", select-mode toolbars) sit flush against
+   the bottom of the viewport. That reads fine in a browser tab, where Safari's
+   own toolbar sits below them, and badly in the installed web app, where the
+   only thing below is the home indicator — the button ends up inside it.
+   `viewport-fit=cover` is already set in __root.tsx, so this is the whole fix:
+   env(safe-area-inset-bottom) is 0 in a browser tab with the toolbar showing
+   and ~34px in standalone, which makes ONE class correct on both surfaces with
+   no platform detection, no JS, and nothing to keep in step per screen. */
+@utility oak-safe-bottom {
+  padding-bottom: calc(env(safe-area-inset-bottom) + 0.75rem);
 }
