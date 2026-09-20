@@ -174,14 +174,11 @@ export default function FilterPanel({
               type="button"
               onClick={() => {
                 setCategory(cat);
-                // Reset to first filter in category when switching
-                const visibleFilters = getVisibleFilters(cat);
-                const firstFilter = visibleFilters[0];
-                if (firstFilter) {
-                  setActiveFilterId(firstFilter.id);
-                  setPreview({ id: firstFilter.id, intensity: firstFilter.intensity });
-                  onPreview(firstFilter.id, firstFilter.intensity);
-                }
+                // Only change which filters are displayed — do NOT auto-select
+                // the first filter in the category. Auto-selecting called
+                // onPreview which replaced whatever the user had already picked,
+                // so merely browsing categories looked like filters weren't
+                // sticking or were being overridden.
               }}
               className="shrink-0 rounded-full transition-all duration-200"
               style={{

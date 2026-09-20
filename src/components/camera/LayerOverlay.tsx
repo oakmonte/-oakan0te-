@@ -1,4 +1,5 @@
 import { useCallback, useRef } from "react";
+import { X } from "lucide-react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import type { Layer } from "@/lib/after-shot-layers";
 
@@ -24,6 +25,7 @@ type LayerOverlayProps = {
   setSelectedLayerId: (id: string | null) => void;
   renderLayerContent: (layer: Layer) => React.ReactNode;
   onLayerTap?: (layer: Layer) => void; // fires only for text layers — tap-to-edit
+  onRemoveLayer?: (id: string) => void;
 };
 
 const HANDLE_SIZE = 22;
@@ -78,6 +80,8 @@ function pinchGeometry(a: PointerSample, b: PointerSample) {
   };
 }
 
+const DELETE_HANDLE_SIZE = 24;
+
 export default function LayerOverlay({
   containerRef,
   layers,
@@ -86,6 +90,7 @@ export default function LayerOverlay({
   setSelectedLayerId,
   renderLayerContent,
   onLayerTap,
+  onRemoveLayer,
 }: LayerOverlayProps) {
   const dragRef = useRef<DragState | null>(null);
   const hasMovedRef = useRef(false);
@@ -276,20 +281,50 @@ export default function LayerOverlay({
               {renderLayerContent(layer)}
 
               {isSelected && (
-                <div
-                  onPointerDown={startTransform(layer)}
-                  className="absolute rounded-full"
-                  style={{
-                    width: HANDLE_SIZE,
-                    height: HANDLE_SIZE,
-                    right: -HANDLE_SIZE / 2,
-                    bottom: -HANDLE_SIZE / 2,
-                    background: "#fff",
-                    border: "2px solid #000",
-                    cursor: "nwse-resize",
-                    touchAction: "none",
-                  }}
-                />
+                <>
+                  {/* Scale / rotate handle — bottom-right corner */}
+                  <div
+                    onPointerDown={startTransform(layer)}
+                    className="absolute rounded-full"
+                    style={{
+                      width: HANDLE_SIZE,
+                      height: HANDLE_SIZE,
+                      right: -HANDLE_SIZE / 2,
+                      bottom: -HANDLE_SIZE / 2,
+                      background: "#fff",
+                      border: "2px solid #000",
+                      cursor: "nwse-resize",
+                      touchAction: "none",
+                    }}
+                  />
+                  {/* Delete handle — top-left corner. Stops propagation so the
+                      tap doesn't also re-drag or deselect before the layer is
+                      gone. */}
+                  {onRemoveLayer && (
+                    <button
+                      type="button"
+                      aria-label="Delete layer"
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onRemoveLayer(layer.id);
+                      }}
+                      className="absolute flex items-center justify-center rounded-full"
+                      style={{
+                        width: DELETE_HANDLE_SIZE,
+                        height: DELETE_HANDLE_SIZE,
+                        left: -DELETE_HANDLE_SIZE / 2,
+                        top: -DELETE_HANDLE_SIZE / 2,
+                        background: "#ff3b30",
+                        border: "2px solid #fff",
+                        touchAction: "none",
+                        zIndex: 2,
+                      }}
+                    >
+                      <X size={12} strokeWidth={3} color="#fff" />
+                    </button>
+                  )}
+                </>
               )}
             </div>
           );

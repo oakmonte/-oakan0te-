@@ -47,11 +47,17 @@ export function extendedAdjustToCss(adj: ExtendedPhotoAdjust): string {
     );
   }
   if (adj.vibrance !== 0) filters.push(`saturate(${1 + adj.vibrance / 125})`);
-  // TODO: Implement proper vignette handling in the bake pipeline
-  // Highlights and shadows are now handled via CSS functions in canvas-filter.ts
-  if (adj.highlights !== 0) filters.push(`highlight(${adj.highlights})`);
-  if (adj.shadows !== 0) filters.push(`shadow(${adj.shadows})`);
-  // Vignette is positional and requires a separate step in the bake; see canvas-filter.ts.
+  // highlights / shadows: map to brightness so the preview matches the bake.
+  // `highlight()` and `shadow()` are NOT valid CSS filter functions — browsers
+  // silently skip unknown functions, so they never appeared in the live preview
+  // even though the canvas bake (canvas-filter.ts) handled them correctly.
+  // The scaling here mirrors compileFilter's `highlight` and `shadow` cases so
+  // preview and export always agree.
+  if (adj.highlights !== 0) filters.push(`brightness(${1 + adj.highlights / 150})`);
+  if (adj.shadows !== 0) filters.push(`brightness(${1 + adj.shadows / 250})`);
+  // Vignette is positional (radial darkening) and cannot be expressed as a CSS
+  // filter on the media element. Callers render a separate gradient overlay for
+  // the live preview — see the vignette overlay divs in the editor routes.
   return filters.length ? filters.join(" ") : "none";
 }
 export type PhotoAdjust = ExtendedPhotoAdjust;

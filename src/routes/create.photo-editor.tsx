@@ -133,7 +133,7 @@ function PhotoEditorRoute() {
 function PhotoEditor() {
   useLockedViewport();
   const navigate = useNavigate();
-  const { layers, addLayer, updateLayer, replaceLayers, selectedLayerId, setSelectedLayerId } =
+  const { layers, addLayer, updateLayer, removeLayer, replaceLayers, selectedLayerId, setSelectedLayerId } =
     useAfterShotLayers();
 
   const mediaAreaRef = useRef<HTMLDivElement>(null);
@@ -965,16 +965,21 @@ function PhotoEditor() {
         </div>
       )}
 
-      {/* Media area */}
+      {/* Media area.
+          When a filter or adjust panel is open, clamp the bottom so the preview
+          stays clearly visible above the sheet rather than nearly fully hidden.
+          Other tools (crop, text, draw) take over the whole screen so they set
+          their own layout and don't need this treatment. */}
       <div
         ref={mediaAreaRef}
         className="absolute left-0 right-0 flex items-center justify-center"
-        // Measured, not a constant. This used to be a hard 210px, which was
-        // right for the stack it was written against — then the sound chip and
-        // the reorder hint arrived and the stack grew past it, and the bottom
-        // of the photo went under the controls. Measuring means adding another
-        // row can't quietly cost the preview its bottom edge.
-        style={{ top: "calc(env(safe-area-inset-top) + 64px)", bottom: bottomInset }}
+        style={{
+          top: "calc(env(safe-area-inset-top) + 64px)",
+          bottom:
+            activeTool === "filter" ? 380
+            : activeTool === "adjust" ? 340
+            : bottomInset,
+        }}
       >
         {empty ? (
           // Nothing added yet: the plus IS the screen. Same three sources the
@@ -1052,12 +1057,25 @@ function PhotoEditor() {
                     selectedLayerId={activeTool === null ? selectedLayerId : null}
                     setSelectedLayerId={setSelectedLayerId}
                     renderLayerContent={renderLayerContent}
+                    onRemoveLayer={removeLayer}
                     onLayerTap={(layer) => {
                       setEditingLayerId(layer.id);
                       setActiveTool("text");
                     }}
                   />
                 </div>
+              )}
+
+              {/* Vignette overlay — CSS radial-gradient approximation so the
+                  preview matches the positional darkening the bake applies.
+                  Clipped to the media box so it never bleeds outside the photo. */}
+              {(active?.adjust?.vignette ?? 0) > 0 && (
+                <div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{
+                    background: `radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,${((active?.adjust?.vignette ?? 0) / 100) * 0.85}) 100%)`,
+                  }}
+                />
               )}
 
               {busy && (
