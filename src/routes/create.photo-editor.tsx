@@ -801,7 +801,14 @@ function PhotoEditor() {
           photo.adjust,
         );
       }
-      return exportPhoto(blob, filter, photo.filterIntensity, photoLayers, photo.crop, photo.adjust);
+      return exportPhoto(
+        blob,
+        filter,
+        photo.filterIntensity,
+        photoLayers,
+        photo.crop,
+        photo.adjust,
+      );
     },
     [],
   );
@@ -947,7 +954,7 @@ function PhotoEditor() {
           >
             <ChevronLeft size={24} />
           </button>
-          <span className="text-[15px] font-semibold">Photo editor</span>
+          <h1 className="text-[15px] font-semibold">Photo post</h1>
           <button
             type="button"
             aria-label="Settings"
@@ -977,15 +984,16 @@ function PhotoEditor() {
             type="button"
             onClick={openSource}
             className="flex flex-col items-center gap-3 active:scale-95"
+            aria-label="Add photos to begin"
           >
             <span className="flex h-[72px] w-[72px] items-center justify-center rounded-full border border-white/25 bg-white/[0.06]">
               <Plus size={34} />
             </span>
-            <span className="text-[13px] text-white/50">Add photos</span>
+            <span className="text-base font-semibold text-white">Start with a photo</span>
             {/* The one thing about this screen nobody would guess: it takes a
                 short clip too. */}
-            <span className="max-w-[220px] text-center text-[11px] leading-snug text-white/35">
-              Several make a carousel. A clip up to {LIVE_MAX_SECONDS}s becomes a live photo.
+            <span className="max-w-[260px] text-center text-[13px] leading-relaxed text-white/55">
+              Choose pictures from your device, drafts, or posts. Add several to make a carousel.
             </span>
           </button>
         ) : (
@@ -1283,7 +1291,9 @@ function PhotoEditor() {
                   if (id === "sticker") stickerInputRef.current?.click();
                   else setActiveTool(id);
                 }}
-                className="flex w-[68px] shrink-0 flex-col items-center gap-1.5 py-1 active:scale-90 disabled:opacity-30"
+                aria-label={`${label}${empty ? ", add a photo first" : ""}`}
+                aria-pressed={activeTool === id}
+                className={`flex min-h-[58px] w-[68px] shrink-0 flex-col items-center justify-center gap-1.5 rounded-[10px] py-1 active:scale-90 disabled:opacity-30 ${activeTool === id ? "ring-2 ring-white/30" : ""}`}
               >
                 <Icon size={23} strokeWidth={1.6} />
                 <span className="text-[11px] leading-tight">{label}</span>
@@ -1295,7 +1305,8 @@ function PhotoEditor() {
               type="button"
               disabled={empty}
               onClick={() => setSoundSheetOpen(true)}
-              className="flex w-[68px] shrink-0 flex-col items-center gap-1.5 py-1 active:scale-90 disabled:opacity-30"
+              aria-label={`${sound ? "Change" : "Add"} sound${empty ? ", add a photo first" : ""}`}
+              className="flex min-h-[58px] w-[68px] shrink-0 flex-col items-center justify-center gap-1.5 rounded-[10px] py-1 active:scale-90 disabled:opacity-30"
             >
               <Music size={23} strokeWidth={1.6} />
               <span className="text-[11px] leading-tight">{sound ? "Change" : "Sound"}</span>
@@ -1304,7 +1315,8 @@ function PhotoEditor() {
               type="button"
               disabled={empty}
               onClick={() => void handleSave()}
-              className="flex w-[68px] shrink-0 flex-col items-center gap-1.5 py-1 active:scale-90 disabled:opacity-30"
+              aria-label={`Save photo${empty ? ", add a photo first" : ""}`}
+              className="flex min-h-[58px] w-[68px] shrink-0 flex-col items-center justify-center gap-1.5 rounded-[10px] py-1 active:scale-90 disabled:opacity-30"
             >
               <Download size={23} strokeWidth={1.6} />
               <span className="text-[11px] leading-tight">Save</span>
@@ -1324,7 +1336,7 @@ function PhotoEditor() {
               onClick={() => void handleNext()}
               className="w-full rounded-full bg-[var(--oak-action)] py-3.5 text-[15px] font-semibold text-white active:scale-[0.98] disabled:opacity-40"
             >
-              Next
+              Continue to publish
             </button>
           </div>
         </div>

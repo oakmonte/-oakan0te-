@@ -93,7 +93,7 @@ export default function FilterPanel({
   onToggleFavorite,
 }: FilterPanelProps) {
   const [category, setCategory] = useState<FilterCategory>("favorites");
-  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const [scrollRef, setScrollRef] = useState<HTMLDivElement | null>(null);
   const [activeFilterId, setActiveFilterId] = useState<string>(selectedId);
   
   // null means "no local override" — activeId/activeIntensity fall back to
@@ -127,11 +127,10 @@ export default function FilterPanel({
   const activeIntensity = preview?.intensity ?? intensity;
   const activeFilter = CAMERA_FILTERS.find((f) => f.id === activeId);
 
-  const getVisibleFilters = (cat: FilterCategory) => {
-    return cat === "favorites"
+  const visibleFilters =
+    category === "favorites"
       ? CAMERA_FILTERS.filter((f) => favoriteIds.has(f.id))
-      : CAMERA_FILTERS.filter((f) => f.category === cat);
-  };
+      : CAMERA_FILTERS.filter((f) => f.category === category);
 
   const handleFilterSelect = (filter: CameraFilter) => {
     setActiveFilterId(filter.id);
@@ -175,7 +174,6 @@ export default function FilterPanel({
               onClick={() => {
                 setCategory(cat);
                 // Reset to first filter in category when switching
-                const visibleFilters = getVisibleFilters(cat);
                 const firstFilter = visibleFilters[0];
                 if (firstFilter) {
                   setActiveFilterId(firstFilter.id);
@@ -202,19 +200,19 @@ export default function FilterPanel({
       {/* Horizontal Filter Carousel */}
       <div
         className="relative"
-        ref={scrollRef}
+        ref={setScrollRef}
         style={{
           padding: "0 16px",
           overflowX: "hidden",
           touchAction: "pan-y",
-          ["-webkit-overflow-scrolling"]: "touch",
+          "-webkit-overflow-scrolling": "touch",
         }}
       >
         <div
           className="flex gap-4 overflow-x-auto pb-6"
           style={{ scrollbarWidth: "none", margin: "-8px 0" }}
         >
-          {getVisibleFilters(category).length === 0 ? (
+          {visibleFilters.length === 0 ? (
             <div className="flex items-center justify-center py-12 text-sm opacity-50 text-center">
               {category === "favorites"
                 ? "Tap the heart on any filter to pin it here."
@@ -222,7 +220,7 @@ export default function FilterPanel({
             </div>
           ) : (
             <>
-              {getVisibleFilters(category).map((f) => {
+              {visibleFilters.map((f) => {
                 const selected = f.id === activeId;
                 const favorited = favoriteIds.has(f.id);
                 return (

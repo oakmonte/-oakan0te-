@@ -67,10 +67,9 @@ type Section = "shoot" | "create";
 type CapturePhase = "live" | "counting";
 type PanelType = "ratio" | "timer" | "layout" | "filters";
 
-
- // A single captured, already-cropped/filtered/mirrored frame for one layout
- // cell. Kept as a canvas (not a blob) since it still needs to be drawn onto
- // the final composite canvas — converting to a blob is the very last step.
+// A single captured, already-cropped/filtered/mirrored frame for one layout
+// cell. Kept as a canvas (not a blob) since it still needs to be drawn onto
+// the final composite canvas — converting to a blob is the very last step.
 type CellCapture = { canvas: HTMLCanvasElement };
 
 const DEFAULT_FILTER_ID = "natural";
@@ -1674,6 +1673,7 @@ function CreatePage() {
       >
         <button
           onClick={() => setSection("shoot")}
+          aria-pressed={section === "shoot"}
           className="uppercase text-sm font-bold tracking-wide"
           style={{ opacity: section === "shoot" ? 1 : 0.5 }}
         >
@@ -1681,6 +1681,7 @@ function CreatePage() {
         </button>
         <button
           onClick={() => setSection("create")}
+          aria-pressed={section === "create"}
           className="uppercase text-sm font-bold tracking-wide"
           style={{ opacity: section === "create" ? 1 : 0.5 }}
         >
