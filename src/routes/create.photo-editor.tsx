@@ -39,6 +39,7 @@ import { useFittedSize } from "@/hooks/use-fitted-size";
 import { exportComposite, exportPhoto } from "@/lib/after-shot-export";
 import { videoDuration, videoThumbnail } from "@/lib/video-sequence";
 import { adjustToCss, NEUTRAL_ADJUST, type PhotoAdjust } from "@/lib/photo-adjust";
+import { vignetteCss } from "@/lib/vignette";
 import type { CropRect } from "@/lib/crop-rect";
 import { ImageSourceSheet, type ImageSource } from "@/components/product-form/ImageSourceSheet";
 import { DraftImagePickerSheet } from "@/components/product-form/DraftImagePickerSheet";
@@ -1095,6 +1096,19 @@ function PhotoEditor() {
                 </div>
               )}
 
+<<<<<<< HEAD
+=======
+              {/* Vignette overlay — same vignetteCss the studio video editor
+                  uses, so preview and bake (drawVignette) never diverge.
+                  Clipped to the media box so it never bleeds outside the photo. */}
+              {(active?.adjust?.vignette ?? 0) > 0 && (
+                <div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{ background: vignetteCss(active?.adjust?.vignette ?? 0) }}
+                />
+              )}
+
+>>>>>>> 425644e (create-vingette is pickable (will make it darker), intensity scale fixed)
               {busy && (
                 <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/70">
                   <span className="text-[12px] uppercase tracking-widest">{busy}</span>

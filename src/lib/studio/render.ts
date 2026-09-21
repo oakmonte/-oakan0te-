@@ -184,9 +184,16 @@ export function drawFitted(
 // Vignette
 // ---------------------------------------------------------------------------
 
+<<<<<<< HEAD
 // The vignette pair moved to src/lib/vignette.ts so the after-shot screens read
 // the same definition instead of hard-coding a second one. Re-exported here
 // because this module is where the studio already imports it from.
+=======
+// Lives in src/lib/vignette.ts, not here — the after-shot photo/video bake and
+// the photo-editor route share this same look, so it can't be Studio-only.
+// Re-exported so existing `from "./render"` / "@/lib/studio/render" imports
+// keep working.
+>>>>>>> 425644e (create-vingette is pickable (will make it darker), intensity scale fixed)
 export { vignetteCss, drawVignette } from "@/lib/vignette";
 
 // ---------------------------------------------------------------------------

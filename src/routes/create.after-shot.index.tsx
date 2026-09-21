@@ -27,6 +27,7 @@ import FilterPanel, { PANEL_HEIGHT as FILTER_PANEL_HEIGHT } from "@/components/c
 import PhotoAdjustPanel from "@/components/create/PhotoAdjustPanel";
 import { CAMERA_FILTERS, previewCssAtIntensity } from "@/components/camera/filter-data";
 import { adjustToCss, NEUTRAL_ADJUST, type PhotoAdjust } from "@/lib/photo-adjust";
+import { vignetteCss } from "@/lib/vignette";
 import { exportComposite } from "@/lib/after-shot-export";
 import type { CropRect } from "@/lib/crop-rect";
 import LayerOverlay from "@/components/camera/LayerOverlay";
@@ -464,6 +465,19 @@ function AfterShotIndexPage() {
             </div>
           )}
 
+<<<<<<< HEAD
+=======
+          {/* Vignette overlay — same vignetteCss the studio video editor uses,
+              so preview and bake (drawVignette) never diverge. Positioned
+              inside the media box so it crops to the same bounds as the photo. */}
+          {vignetteValue > 0 && (
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{ background: vignetteCss(vignetteValue) }}
+            />
+          )}
+
+>>>>>>> 425644e (create-vingette is pickable (will make it darker), intensity scale fixed)
           <DrawPanel open={activeTool === "draw"} containerRef={mediaBoxRef} onClose={closeTool} />
         </div>
       </div>
