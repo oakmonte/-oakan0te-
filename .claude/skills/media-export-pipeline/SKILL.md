@@ -67,6 +67,40 @@ is a bug that ships. Route new filter work through `compileFilter` / `applyCompi
 `IDENTITY_FILTER` — both the photo and video paths skip the pixel loop entirely when the compiled
 filter is identity, which is worth preserving for performance.
 
+## Vignette is the one effect written twice
+
+`src/lib/vignette.ts` holds the only vignette in the app: `VIGNETTE_INNER`,
+`VIGNETTE_MAX_ALPHA`, `vignetteCss()` for the preview and `drawVignette()` for the
+bake, side by side reading the same two constants. `studio/render.ts` re-exports them.
+
+It needs its own file because a vignette is **positional** — it darkens by distance
+from the centre — so unlike every other adjustment it is not a CSS filter function
+and not a colour matrix. It cannot ride `adjustToCss`, and it cannot ride
+`compileFilter`. It has to be implemented once for the browser and once for canvas,
+and those two must agree.
+
+Three rules, each of which was broken at once before this file existed:
+
+- **Never write a vignette gradient at a call site.** Preview overlays read
+  `vignetteCss()`. A hard-coded `radial-gradient(...)` in a route is how the CSS and
+  the canvas drift into different shapes and strengths.
+- **It is an ellipse, not a circle.** `drawVignette` squashes the canvas by
+  `height / width` to match what CSS `ellipse at center` paints. Normalising by the
+  half-diagonal with circular distance instead leaves a portrait frame's side edges
+  at ~26% brightness while crushing top and bottom to ~2%, which the preview never
+  showed.
+- **It goes under the layers, in both.** The bake calls `drawVignette` between the
+  filter and `drawLayers`; the preview's overlay div must therefore be an _earlier_
+  sibling than `LayerOverlay`. Put it after and it paints over captions and stickers
+  on screen while the exported file leaves them bright — you tune against a dimmed
+  caption and publish a bright one. `StudioPreview.tsx` documents paying for this
+  once already.
+
+A filter preset cannot carry one. `vignette()` is not a CSS filter function, and one
+invalid function invalidates the _entire_ `filter` declaration — a preset shipping it
+previews as completely unfiltered and then exports its full grade. Vignette reaches
+the picture only through `adjust.vignette`.
+
 ## Video specifics (mediabunny)
 
 Encode/decode goes through **`mediabunny`** — a client-side media library. Unrelated to Bunny.net

@@ -29,6 +29,11 @@ below). Removing them is a real migration, not a cleanup.
 Package manager is **bun** — `package-lock.json` is stale, ignore it.
 
 - `bun run dev` (vite dev, port 8080) · `bun run build` · `bun run format`
+- **`bun run format` is repo-wide, and that is not what you want mid-change.** It
+  reformats every file Prettier can reach, including generated ones — a single run
+  rewrote `src/integrations/supabase/types.ts`, `POSTPONED.md` and four other files
+  nobody had touched, which then rode along in a `git add -A` and had to be reverted
+  out of the commit. Format only what you changed: `bunx prettier --write <files>`.
 - `bun run e2e` (Playwright) · `bun run shots` (screenshot sweep) · `bun run e2e:ui`. Config and the
   full "what this cannot test" list are in `playwright.config.ts` and `e2e/README.md`.
 - Gates before calling work done: `bun run typecheck` (`tsc --noEmit`), `bun run lint`, `bun run test`.
