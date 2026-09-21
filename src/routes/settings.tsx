@@ -1,12 +1,13 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
-import { ArrowLeft, ChevronRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { setAccountPassword, signInWithPassword, signOut } from "@/lib/auth";
 import { authedFetch } from "@/lib/authed-fetch";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { checkPassword, MIN_PASSWORD_LENGTH } from "@/lib/password-policy";
 import { useRequireSession } from "@/components/onboarding/use-require-session";
 import { useActiveStore } from "@/hooks/use-own-store";
+import { BackButton } from "@/components/BackButton";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({ meta: [{ title: "Settings & Privacy — Oakmonte" }] }),
@@ -50,13 +51,9 @@ function SettingsPage() {
   return (
     <div className="min-h-screen bg-black text-white" style={{ fontFamily: SF_PRO }}>
       <div className="flex items-center justify-center relative px-6 pt-4 pb-4">
-        <button
-          onClick={() => navigate({ to: ".." })}
-          aria-label="Back"
-          className="absolute left-6"
-        >
-          <ArrowLeft size={22} />
-        </button>
+        {/* `to: ".."` used to resolve to `/` — the marketing landing page —
+            because these are flat top-level routes, not nested ones. */}
+        <BackButton className="absolute left-6" />
         <h1 className="text-[16px] font-bold">Settings &amp; Privacy</h1>
       </div>
 

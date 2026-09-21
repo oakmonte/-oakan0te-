@@ -1,6 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { ChevronLeft, ChevronRight, Check, Plus } from "lucide-react";
+import { BackButton } from "@/components/BackButton";
+import { pathTarget } from "@/lib/nav-hierarchy";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { MediaSection } from "@/components/product-form/MediaSection";
 import { DescriptionSheet } from "@/components/product-form/DescriptionSheet";
@@ -174,14 +176,16 @@ function NewCollection() {
   return (
     <div className="min-h-dvh bg-white pb-10">
       <div className="sticky top-14 z-20 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
-        <button
-          onClick={() => navigate({ to: returnTo })}
+        {/* returnTo, not the hierarchy: this form is opened both from the
+            collections list and from inside a product form. */}
+        <BackButton
+          icon="chevron"
+          size={18}
+          label="Cancel"
+          ariaLabel="Cancel"
+          to={pathTarget(returnTo)}
           className="text-sm text-gray-500 flex items-center gap-0.5 -ml-1"
-          type="button"
-        >
-          <ChevronLeft size={18} />
-          Cancel
-        </button>
+        />
         <span className="font-semibold text-[15px]">New Collection</span>
         <button
           onClick={handleSave}

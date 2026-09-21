@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { ChevronLeft, ImageIcon, MoreHorizontal, Plus } from "lucide-react";
+import { BackButton } from "@/components/BackButton";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useActiveStoreId } from "@/hooks/use-own-store";
 import { useStoreHeader } from "@/hooks/use-store-header";
@@ -128,14 +129,12 @@ function CollectionDetail() {
   return (
     <div className="min-h-dvh bg-white pb-10">
       <div className="sticky top-14 z-20 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
-        <button
-          onClick={() => navigate({ to: "/store/collections" })}
+        <BackButton
+          icon="chevron"
+          size={18}
+          label="Collections"
           className="text-sm text-gray-500 flex items-center gap-0.5 -ml-1"
-          type="button"
-        >
-          <ChevronLeft size={18} />
-          Collections
-        </button>
+        />
         <span className="font-semibold text-[15px] truncate max-w-[45%]">{collection.title}</span>
         <span className="w-6" />
       </div>

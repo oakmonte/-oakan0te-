@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronDown, ChevronRight, Tag, Hash, ListChecks } from "lucide-react";
+import { BackButton } from "@/components/BackButton";
 import { startProductSave } from "@/lib/product-save";
 import { hasPendingUploads } from "@/lib/background-upload";
 import { CategoryNode } from "@/lib/categories";
@@ -475,13 +476,13 @@ function NewProduct() {
   return (
     <div className="min-h-dvh bg-white pb-10">
       <div className="sticky top-14 z-20 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
-        <button
-          onClick={() => navigate({ to: "/store/products" })}
+        <BackButton
+          icon="chevron"
+          size={18}
+          label="Cancel"
+          ariaLabel="Cancel"
           className="text-sm text-gray-500 flex items-center gap-0.5 -ml-1"
-        >
-          <ChevronLeft size={18} />
-          Cancel
-        </button>
+        />
         <button
           onClick={() => setTypeSwitchOpen(true)}
           type="button"

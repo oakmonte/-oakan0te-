@@ -1,5 +1,6 @@
 import { createFileRoute, Outlet, Link } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useOverlayHistory } from "@/hooks/use-overlay-history";
+import { useCallback, useState, useEffect } from "react";
 import {
   Menu,
   X,
@@ -42,6 +43,8 @@ const NAV_ITEMS = [
 
 function StoreLayoutInner() {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const closeDrawer = useCallback(() => setDrawerOpen(false), []);
+  useOverlayHistory(drawerOpen, closeDrawer);
   const { user } = useSession();
   const [username, setUsername] = useState<string | null>(null);
   const { store, stores, setActiveId } = useActiveStore();
