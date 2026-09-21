@@ -6,6 +6,7 @@ import { useStoreSetupStatus } from "@/hooks/use-store-setup-status";
 import { LocationsListSheet } from "@/components/store/LocationsListSheet";
 import { isInstallablePhone } from "@/lib/platform";
 import { isStandalone } from "@/lib/standalone";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export const Route = createFileRoute("/store/")({
   component: StoreHome,
@@ -42,10 +43,15 @@ function StoreHome() {
   // default: a card that appears a frame late beats one that vanishes.
   const [canInstallHere, setCanInstallHere] = useState(false);
   const [inApp, setInApp] = useState(false);
+  // Whether the two reads above have actually run. Needed as its own flag
+  // because `false` is both their initial value and a real answer, and the
+  // checklist below must not paint until it knows which it is holding.
+  const [platformReady, setPlatformReady] = useState(false);
 
   useEffect(() => {
     setCanInstallHere(isInstallablePhone());
     setInApp(isStandalone());
+    setPlatformReady(true);
   }, []);
   // Set when a step is tapped before every step before it is done — holds
   // which step to actually run if the seller taps through anyway.
@@ -142,6 +148,14 @@ function StoreHome() {
     !inApp;
   const firstIncomplete = steps.findIndex((s) => !s.done);
 
+  // The checklist waits for BOTH of these before it paints anything real.
+  // Rendering early meant the cards arrived first, every step looking
+  // undone, and the amber done-dots then popped in one network round-trip
+  // later — so a seller watched their finished work appear to be unfinished.
+  // The install card has the same problem a frame earlier: it is absent until
+  // the platform check runs, so the list grew from four rows to five.
+  const checklistLoading = statusLoading || !platformReady;
+
   function handleStepTap(index: number) {
     const priorIncomplete = steps.slice(0, index).some((s) => !s.done);
     if (priorIncomplete) {
@@ -155,28 +169,50 @@ function StoreHome() {
     <div className="px-4 py-6">
       <h1 className="text-lg font-semibold mb-1">Your online store is starting to take shape</h1>
       <p className="text-sm text-gray-500 mb-6">We recommend this order for simplicity.</p>
+      {checklistLoading && (
+        <span className="sr-only" role="status">
+          Loading your setup checklist
+        </span>
+      )}
 
       <div className="flex flex-col gap-3">
-        {steps.map((step, i) => (
-          <button
-            key={step.label}
-            type="button"
-            onClick={() => handleStepTap(i)}
-            className="flex items-start gap-3 border border-gray-200 rounded-2xl p-4 hover:bg-gray-50 oak-motion-control text-left"
-          >
-            <StepNumber n={i + 1} />
-            <div className="p-2 rounded-full bg-gray-100 relative">
-              <step.icon size={18} />
-              {step.done && (
-                <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-amber-400 border-2 border-white oak-motion-pop" />
-              )}
-            </div>
-            <div>
-              <p className="text-sm font-medium">{step.label}</p>
-              <p className="text-xs text-gray-500 mt-0.5">{step.description}</p>
-            </div>
-          </button>
-        ))}
+        {checklistLoading
+          ? // Same box as a real row, so nothing moves when the real ones
+            // replace it — only the contents resolve.
+            Array.from({ length: steps.length }).map((_, i) => (
+              <div
+                key={i}
+                aria-hidden="true"
+                className="flex items-start gap-3 border border-gray-200 rounded-2xl p-4"
+              >
+                <Skeleton className="w-5 h-5 rounded-full shrink-0 mt-0.5" />
+                <Skeleton className="w-[34px] h-[34px] rounded-full shrink-0" />
+                <div className="flex-1 pt-1">
+                  <Skeleton className="h-3 w-28 rounded" />
+                  <Skeleton className="mt-2 h-2.5 w-44 rounded" />
+                </div>
+              </div>
+            ))
+          : steps.map((step, i) => (
+              <button
+                key={step.label}
+                type="button"
+                onClick={() => handleStepTap(i)}
+                className="flex items-start gap-3 border border-gray-200 rounded-2xl p-4 hover:bg-gray-50 oak-motion-control text-left"
+              >
+                <StepNumber n={i + 1} />
+                <div className="p-2 rounded-full bg-gray-100 relative">
+                  <step.icon size={18} />
+                  {step.done && (
+                    <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-amber-400 border-2 border-white oak-motion-pop" />
+                  )}
+                </div>
+                <div>
+                  <p className="text-sm font-medium">{step.label}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">{step.description}</p>
+                </div>
+              </button>
+            ))}
       </div>
 
       {locationsSheetOpen && storeId && (
