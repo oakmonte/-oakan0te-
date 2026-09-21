@@ -6,7 +6,7 @@ import {
   ADJUST_CONTROLS,
   type PhotoAdjust,
 } from "./photo-adjust";
-import { compileFilter, withAmount, IDENTITY_FILTER } from "./canvas-filter";
+import { compileFilter, withAmount, applyCompiledFilter, IDENTITY_FILTER } from "./canvas-filter";
 
 const adj = (over: Partial<PhotoAdjust> = {}): PhotoAdjust => ({ ...NEUTRAL_ADJUST, ...over });
 
@@ -92,5 +92,49 @@ describe("withAmount", () => {
 
   test("leaves the identity filter alone", () => {
     expect(withAmount(IDENTITY_FILTER, 0.5)).toBe(IDENTITY_FILTER);
+  });
+});
+
+describe("grade intensity vs manual adjustments", () => {
+  // A filter's intensity slider scales the GRADE. It must not also drag the
+  // manual tone sliders back toward the original — dialling a filter to 20%
+  // used to deliver 20% of the seller's exposure change with it.
+  const mid = () => {
+    const d = new Uint8ClampedArray([128, 128, 128, 255]);
+    return { data: d, width: 1, height: 1 } as unknown as ImageData;
+  };
+  const px = (img: ImageData) => img.data[0];
+
+  test("blendOriginal scales only the ops before it", () => {
+    const brighten = compileFilter("brightness(2)").ops;
+    const adjust = compileFilter("brightness(1.5)").ops;
+
+    const full = mid();
+    applyCompiledFilter(full, { ops: [...brighten, ...adjust] });
+
+    const halfGrade = mid();
+    applyCompiledFilter(halfGrade, {
+      ops: [...brighten, { kind: "blendOriginal", amount: 0.5 }, ...adjust],
+    } as Parameters<typeof applyCompiledFilter>[1]);
+
+    // Grade at half: 128 -> 256 clamped 255, lerped halfway back to 128 -> ~191.
+    // The adjustment then still applies at FULL strength on top.
+    expect(px(full)).toBe(255);
+    expect(px(halfGrade)).toBeGreaterThan(255 * 0.5);
+    // End-of-pass `amount` would have pulled the adjustment back too; this
+    // must be strictly brighter than that.
+    const endLerped = mid();
+    applyCompiledFilter(endLerped, { ops: [...brighten, ...adjust], amount: 0.5 });
+    expect(px(halfGrade)).toBeGreaterThan(px(endLerped));
+  });
+
+  test("a full-strength grade needs no blend op at all", () => {
+    const withOp = mid();
+    applyCompiledFilter(withOp, {
+      ops: [...compileFilter("saturate(1.4)").ops, { kind: "blendOriginal", amount: 1 }],
+    } as Parameters<typeof applyCompiledFilter>[1]);
+    const without = mid();
+    applyCompiledFilter(without, { ops: compileFilter("saturate(1.4)").ops });
+    expect(px(withOp)).toBe(px(without));
   });
 });

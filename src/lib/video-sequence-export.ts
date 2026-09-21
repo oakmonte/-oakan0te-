@@ -68,7 +68,16 @@ function compileClipFilter(clip: Clip): CompiledFilter {
   const grade = compileGrade(filter, clip.filterIntensity);
   const adjustCss = adjustToCss(clip.adjust);
   if (!adjustCss) return grade;
-  return { ops: [...grade.ops, ...compileFilter(adjustCss).ops], amount: grade.amount };
+  // Grade intensity scaled mid-chain so it does not also weaken the manual
+  // tone adjustments — see the note in after-shot-export.ts.
+  const gradeAmount = grade.amount ?? 1;
+  const adjustOps = compileFilter(adjustCss).ops;
+  return {
+    ops:
+      gradeAmount < 1
+        ? [...grade.ops, { kind: "blendOriginal" as const, amount: gradeAmount }, ...adjustOps]
+        : [...grade.ops, ...adjustOps],
+  };
 }
 
 /** Real bytes for a clip. Remote clips (drafts, existing posts) are URLs until

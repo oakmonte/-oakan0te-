@@ -288,7 +288,7 @@ export default function FilterPanel({
         <div className="flex justify-between items-center">
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleDiscardAndClose}
             className="text-xs font-medium text-white/60 hover:text-white/80 transition-colors"
           >
             Cancel

@@ -118,7 +118,16 @@ function hueRotateMat(deg: number): Mat3 {
   ];
 }
 
-type FilterOp = { kind: "matrix"; matrix: Mat3; offset: Vec3 } | { kind: "lut"; table: LutTable };
+type FilterOp =
+  | { kind: "matrix"; matrix: Mat3; offset: Vec3 }
+  | { kind: "lut"; table: LutTable }
+  /** Lerp what has been computed so far back toward the untouched original,
+   *  mid-chain. `amount` on the whole CompiledFilter can only do this at the
+   *  very end, which is wrong as soon as ops after it must NOT be scaled:
+   *  a filter's intensity slider applies to the grade, not to the manual
+   *  tone adjustments appended behind it. Costs the same snapshot the
+   *  end-of-pass lerp already takes, so the single pass survives. */
+  | { kind: "blendOriginal"; amount: number };
 
 export interface CompiledFilter {
   ops: FilterOp[];
@@ -218,14 +227,24 @@ export function applyCompiledFilter(imageData: ImageData, compiled: CompiledFilt
 
   const amount = compiled.amount ?? 1;
   const data = imageData.data;
-  // Only needed to lerp back toward the original at the end — skipped
-  // entirely at full strength, which is every filter before intensity
-  // existed and most uses of it today.
-  const original = amount < 1 ? data.slice() : null;
+  // Only needed to lerp back toward the original — at the end for `amount`,
+  // or mid-chain for a blendOriginal op. Skipped entirely at full strength
+  // with no such op, which is most uses.
+  const needsOriginal = amount < 1 || compiled.ops.some((op) => op.kind === "blendOriginal");
+  const original = needsOriginal ? data.slice() : null;
 
   for (const op of compiled.ops) {
     if (op.kind === "lut") {
       applyLutToImageData(imageData, op.table);
+      continue;
+    }
+    if (op.kind === "blendOriginal") {
+      if (!original || op.amount >= 1) continue;
+      for (let i = 0; i < data.length; i += 4) {
+        data[i] = original[i] + (data[i] - original[i]) * op.amount;
+        data[i + 1] = original[i + 1] + (data[i + 1] - original[i + 1]) * op.amount;
+        data[i + 2] = original[i + 2] + (data[i + 2] - original[i + 2]) * op.amount;
+      }
       continue;
     }
     const { matrix: m, offset: o } = op;

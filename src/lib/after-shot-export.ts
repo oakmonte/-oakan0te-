@@ -282,10 +282,11 @@ function isUnedited(
     isNoopFilter(filter, intensity) &&
     layers.length === 0 &&
     isCropNoop(crop) &&
-    // adjustToCss returns the literal string "none" for a neutral adjust,
-    // never "" — this compared against the wrong sentinel, so the fast
-    // no-op path below never actually fired for an untouched Adjust panel.
-    (adjustCss === "" || adjustCss === "none")
+    // Tested on the adjust itself, not on adjustToCss's output. Vignette is
+    // positional and contributes nothing to that string, so a string test
+    // calls a vignette-only edit "unedited" and hands back the original
+    // bytes — dropping it from the exported file.
+    isNeutralAdjust(adjust)
   );
 }
 
@@ -304,7 +305,17 @@ function compileGradeWithAdjust(
   const grade = compileGrade(filter, intensity);
   if (!adjustCss) return grade;
   const adjust = compileFilter(adjustCss);
-  return { ops: [...grade.ops, ...adjust.ops], amount: grade.amount };
+  // The grade's intensity is scaled mid-chain, NOT via `amount` on the
+  // result: `amount` lerps at the very end, which would drag the manual
+  // tone adjustments back toward the original too — a seller dialling a
+  // filter to 20% would get 20% of their exposure change with it.
+  const gradeAmount = grade.amount ?? 1;
+  return {
+    ops:
+      gradeAmount < 1
+        ? [...grade.ops, { kind: "blendOriginal" as const, amount: gradeAmount }, ...adjust.ops]
+        : [...grade.ops, ...adjust.ops],
+  };
 }
 
 // What the Next button calls. Keeps the photo/video branch in one place so the
