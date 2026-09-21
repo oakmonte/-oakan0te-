@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { sellerEntryFromCharged } from "@/lib/pricing-fees";
 import { useEffect, useRef, useState } from "react";
 import {
   ChevronLeft,
@@ -251,6 +252,9 @@ function EditProduct() {
 
   // Regular-mode state
   const [price, setPrice] = useState(initialDraft?.price ?? "");
+  // Product-level pricing policy: when true the price fields above mean "what
+  // I want to receive" and product-save grosses them up before writing.
+  const [passFeesToBuyer, setPassFeesToBuyer] = useState(initialDraft?.passFeesToBuyer ?? false);
   const [compareAtPrice, setCompareAtPrice] = useState(initialDraft?.compareAtPrice ?? "");
   const [costPrice, setCostPrice] = useState(initialDraft?.costPrice ?? "");
   const [material, setMaterial] = useState(initialDraft?.material ?? "");
@@ -394,7 +398,7 @@ function EditProduct() {
       const { data, error: loadErr } = await supabase
         .from("products")
         .select(
-          `id, title, description_short, product_type, status, manual_size_value, manual_size_system,
+          `id, title, description_short, product_type, status, manual_size_value, manual_size_system, pass_fees_to_buyer,
            product_variants(id, sku, price, compare_at_price, cost_price, stock_qty, material, main_image_url, barcode, material_feel, weight_grams, additional_image_urls, continue_selling_out_of_stock, option1_value, option2_value, option3_value, product_variant_options(variant_id, option_id, value_id), product_variant_stock(location_id, quantity), product_variant_barcodes(type, value, position)),
            product_options(id, name, position, product_option_values(id, value, position)),
            product_collections(collection_id),
@@ -434,6 +438,16 @@ function EditProduct() {
       // value_id -> which option (by name) and which value it names, so a
       // variant's links can be turned into the {name, value} pairs the rest
       // of this form works with instead of raw ids.
+      // product_variants.price always stores what the CUSTOMER pays. If the
+      // seller chose to pass the fees on, the form has to show them their own
+      // asking price again, not the grossed-up one.
+      // Cast: the generated types predate the column — regenerate after
+      // applying 20260921140000_add_pass_fees_to_buyer.sql.
+      const passesFees = (product as { pass_fees_to_buyer?: boolean }).pass_fees_to_buyer === true;
+      setPassFeesToBuyer(passesFees);
+      const shownPrice = (stored: number | null) =>
+        stored == null ? "" : String(passesFees ? sellerEntryFromCharged(stored) : stored);
+
       const valueLookup = new Map<string, VariantOptionValue>();
       for (const o of sortedOptions) {
         for (const v of o.product_option_values)
@@ -541,7 +555,7 @@ function EditProduct() {
             key,
             options: combo,
             selected: true,
-            price: v.price != null ? String(v.price) : "",
+            price: shownPrice(v.price),
             compareAtPrice: v.compare_at_price != null ? String(v.compare_at_price) : "",
             costPrice: v.cost_price != null ? String(v.cost_price) : "",
             sku: v.sku ?? "",
@@ -564,7 +578,7 @@ function EditProduct() {
         setMainImageUrl(product.product_variants[0]?.main_image_url ?? "");
       } else {
         const v = product.product_variants[0];
-        setPrice(v?.price != null ? String(v.price) : "");
+        setPrice(shownPrice(v?.price ?? null));
         setCompareAtPrice(v?.compare_at_price != null ? String(v.compare_at_price) : "");
         setCostPrice(v?.cost_price != null ? String(v.cost_price) : "");
         setMaterial(v?.material ?? "");
@@ -926,6 +940,7 @@ function EditProduct() {
       status,
       manualSize,
       kind,
+      passFeesToBuyer,
       price,
       compareAtPrice,
       costPrice,
@@ -1090,6 +1105,8 @@ function EditProduct() {
             setRows={setRows}
             mainImageUrl={mainImageUrl}
             additionalImageUrls={regularAdditionalImageUrls ?? []}
+            passFeesToBuyer={passFeesToBuyer}
+            onChangePassFeesToBuyer={setPassFeesToBuyer}
             storeId={storeId}
             onCreateLocation={handleCreateLocation}
             estimateWeightForRow={estimateWeightForRow}
@@ -1142,6 +1159,8 @@ function EditProduct() {
           onChangePrice={setPrice}
           onChangeCompareAtPrice={setCompareAtPrice}
           onChangeCostPrice={setCostPrice}
+          passFeesToBuyer={passFeesToBuyer}
+          onChangePassFeesToBuyer={setPassFeesToBuyer}
           onClose={() => setPriceSheetOpen(false)}
         />
       )}

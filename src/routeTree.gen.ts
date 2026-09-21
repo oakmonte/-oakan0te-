@@ -33,6 +33,7 @@ import { Route as EditProfileRouteImport } from './routes/edit-profile'
 import { Route as CreatePasswordRouteImport } from './routes/create-password'
 import { Route as CreateRouteImport } from './routes/create'
 import { Route as ChooseUsernameRouteImport } from './routes/choose-username'
+import { Route as CartRouteImport } from './routes/cart'
 import { Route as BecomeACuratorRouteImport } from './routes/become-a-curator'
 import { Route as BecomeACreatorRouteImport } from './routes/become-a-creator'
 import { Route as ActivityRouteImport } from './routes/activity'
@@ -202,6 +203,11 @@ const CreateRoute = CreateRouteImport.update({
 const ChooseUsernameRoute = ChooseUsernameRouteImport.update({
   id: '/choose-username',
   path: '/choose-username',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CartRoute = CartRouteImport.update({
+  id: '/cart',
+  path: '/cart',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BecomeACuratorRoute = BecomeACuratorRouteImport.update({
@@ -462,6 +468,7 @@ export interface FileRoutesByFullPath {
   '/activity': typeof ActivityRoute
   '/become-a-creator': typeof BecomeACreatorRoute
   '/become-a-curator': typeof BecomeACuratorRoute
+  '/cart': typeof CartRoute
   '/choose-username': typeof ChooseUsernameRoute
   '/create': typeof CreateRouteWithChildren
   '/create-password': typeof CreatePasswordRoute
@@ -538,6 +545,7 @@ export interface FileRoutesByTo {
   '/activity': typeof ActivityRoute
   '/become-a-creator': typeof BecomeACreatorRoute
   '/become-a-curator': typeof BecomeACuratorRoute
+  '/cart': typeof CartRoute
   '/choose-username': typeof ChooseUsernameRoute
   '/create-password': typeof CreatePasswordRoute
   '/edit-profile': typeof EditProfileRoute
@@ -612,6 +620,7 @@ export interface FileRoutesById {
   '/activity': typeof ActivityRoute
   '/become-a-creator': typeof BecomeACreatorRoute
   '/become-a-curator': typeof BecomeACuratorRoute
+  '/cart': typeof CartRoute
   '/choose-username': typeof ChooseUsernameRoute
   '/create': typeof CreateRouteWithChildren
   '/create-password': typeof CreatePasswordRoute
@@ -690,6 +699,7 @@ export interface FileRouteTypes {
     | '/activity'
     | '/become-a-creator'
     | '/become-a-curator'
+    | '/cart'
     | '/choose-username'
     | '/create'
     | '/create-password'
@@ -766,6 +776,7 @@ export interface FileRouteTypes {
     | '/activity'
     | '/become-a-creator'
     | '/become-a-curator'
+    | '/cart'
     | '/choose-username'
     | '/create-password'
     | '/edit-profile'
@@ -839,6 +850,7 @@ export interface FileRouteTypes {
     | '/activity'
     | '/become-a-creator'
     | '/become-a-curator'
+    | '/cart'
     | '/choose-username'
     | '/create'
     | '/create-password'
@@ -916,6 +928,7 @@ export interface RootRouteChildren {
   ActivityRoute: typeof ActivityRoute
   BecomeACreatorRoute: typeof BecomeACreatorRoute
   BecomeACuratorRoute: typeof BecomeACuratorRoute
+  CartRoute: typeof CartRoute
   ChooseUsernameRoute: typeof ChooseUsernameRoute
   CreateRoute: typeof CreateRouteWithChildren
   CreatePasswordRoute: typeof CreatePasswordRoute
@@ -1130,6 +1143,13 @@ declare module '@tanstack/react-router' {
       path: '/choose-username'
       fullPath: '/choose-username'
       preLoaderRoute: typeof ChooseUsernameRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cart': {
+      id: '/cart'
+      path: '/cart'
+      fullPath: '/cart'
+      preLoaderRoute: typeof CartRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/become-a-curator': {
@@ -1569,6 +1589,7 @@ const rootRouteChildren: RootRouteChildren = {
   ActivityRoute: ActivityRoute,
   BecomeACreatorRoute: BecomeACreatorRoute,
   BecomeACuratorRoute: BecomeACuratorRoute,
+  CartRoute: CartRoute,
   ChooseUsernameRoute: ChooseUsernameRoute,
   CreateRoute: CreateRouteWithChildren,
   CreatePasswordRoute: CreatePasswordRoute,

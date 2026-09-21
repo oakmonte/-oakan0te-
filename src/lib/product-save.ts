@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/integrations/my-supabase/client";
+import { grossUpForNet } from "@/lib/pricing-fees";
 import { clearAutosavedDraft } from "@/lib/product-draft-handoff";
 import { stockTotal } from "@/components/product-form/variant-stock";
 import type { VariantOption, VariantRow } from "@/components/product-form/VariantMatrixBuilder";
@@ -34,6 +35,11 @@ export type ProductSavePayload = {
   status: "draft" | "active";
   manualSize: ManualSize | null;
   kind: "regular" | "variant";
+  // Whether the seller passes the transaction fees on to the customer. When
+  // true, the price strings in this payload are what the seller wants to
+  // RECEIVE, and the grossed-up charge is what gets written — see
+  // chargedPrice below.
+  passFeesToBuyer: boolean;
   // Regular-mode fields
   price: string;
   compareAtPrice: string;
@@ -100,6 +106,19 @@ async function insertBarcodes(rows: ReturnType<typeof barcodeInsertRows>) {
   if (rows.length === 0) return;
   const res = await supabase.from("product_variant_barcodes").insert(rows);
   if (res.error) throw new Error(`product_variant_barcodes: ${res.error.message}`);
+}
+
+/** What the customer is charged, which is what product_variants.price holds.
+ *
+ *  The column always means "what the buyer pays", so every consumer — feed,
+ *  storefront, cart, exports — reads one number and needs to know nothing
+ *  about fee policy. The conversion therefore happens here, at the single
+ *  write boundary, rather than being repeated at each of the four insert
+ *  sites or pushed onto readers.
+ */
+function chargedPrice(entered: string, passFeesToBuyer: boolean): number {
+  const value = Number(entered);
+  return passFeesToBuyer ? grossUpForNet(value) : value;
 }
 
 /** Maps a save payload onto the shared completeness rule.
@@ -170,6 +189,11 @@ async function runCreate(
       status: payload.status,
       source_platform: "manual",
       is_complete: computeIsComplete(completenessInput(payload)),
+      // Cast because the generated types predate this column. Regenerate them
+      // after applying 20260921140000_add_pass_fees_to_buyer.sql and this goes
+      // away. THE MIGRATION MUST BE APPLIED BEFORE THIS CODE DEPLOYS — without
+      // the column, every product save fails.
+      ...({ pass_fees_to_buyer: payload.passFeesToBuyer } as object),
       manual_size_value: payload.manualSize?.value ?? null,
       manual_size_system: payload.manualSize?.system ?? null,
     })
@@ -189,7 +213,7 @@ async function runCreate(
       .from("product_variants")
       .insert({
         product_id: product.id,
-        price: Number(payload.price),
+        price: chargedPrice(payload.price, payload.passFeesToBuyer),
         compare_at_price: payload.compareAtPrice ? Number(payload.compareAtPrice) : null,
         cost_price: payload.costPrice ? Number(payload.costPrice) : null,
         stock_qty: regularStockQty,
@@ -251,7 +275,7 @@ async function runCreate(
       option2_value: r.options[1]?.value ?? null,
       option3_name: r.options[2]?.name ?? null,
       option3_value: r.options[2]?.value ?? null,
-      price: Number(r.price),
+      price: chargedPrice(r.price, payload.passFeesToBuyer),
       compare_at_price: r.compareAtPrice ? Number(r.compareAtPrice) : null,
       cost_price: r.costPrice ? Number(r.costPrice) : null,
       stock_qty: stockTotal(r),
@@ -366,6 +390,11 @@ async function runUpdate(payload: Extract<ProductSavePayload, { mode: "update" }
       product_type: payload.categoryName || null,
       status: payload.status,
       is_complete: computeIsComplete(completenessInput(payload)),
+      // Cast because the generated types predate this column. Regenerate them
+      // after applying 20260921140000_add_pass_fees_to_buyer.sql and this goes
+      // away. THE MIGRATION MUST BE APPLIED BEFORE THIS CODE DEPLOYS — without
+      // the column, every product save fails.
+      ...({ pass_fees_to_buyer: payload.passFeesToBuyer } as object),
       manual_size_value: payload.manualSize?.value ?? null,
       manual_size_system: payload.manualSize?.system ?? null,
     })
@@ -395,7 +424,7 @@ async function runUpdate(payload: Extract<ProductSavePayload, { mode: "update" }
       .from("product_variants")
       .insert({
         product_id: productId,
-        price: Number(payload.price),
+        price: chargedPrice(payload.price, payload.passFeesToBuyer),
         compare_at_price: payload.compareAtPrice ? Number(payload.compareAtPrice) : null,
         cost_price: payload.costPrice ? Number(payload.costPrice) : null,
         stock_qty: regularStockQty,
@@ -451,7 +480,7 @@ async function runUpdate(payload: Extract<ProductSavePayload, { mode: "update" }
       option2_value: r.options[1]?.value ?? null,
       option3_name: r.options[2]?.name ?? null,
       option3_value: r.options[2]?.value ?? null,
-      price: Number(r.price),
+      price: chargedPrice(r.price, payload.passFeesToBuyer),
       compare_at_price: r.compareAtPrice ? Number(r.compareAtPrice) : null,
       cost_price: r.costPrice ? Number(r.costPrice) : null,
       stock_qty: stockTotal(r),
