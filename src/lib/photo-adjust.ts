@@ -58,7 +58,11 @@ export function extendedAdjustToCss(adj: ExtendedPhotoAdjust): string {
   // Vignette is positional (radial darkening) and cannot be expressed as a CSS
   // filter on the media element. Callers render a separate gradient overlay for
   // the live preview — see the vignette overlay divs in the editor routes.
-  return filters.length ? filters.join(" ") : "none";
+  // "" — not "none". Callers concatenate this onto a grade string and test it
+  // with .filter(Boolean) / `if (!adjustCss)`; "none" is truthy, and as one
+  // term inside a longer filter list it is invalid CSS that voids the whole
+  // declaration. Callers that need a standalone value apply `|| "none"`.
+  return filters.length ? filters.join(" ") : "";
 }
 export type PhotoAdjust = ExtendedPhotoAdjust;
 export const NEUTRAL_ADJUST: PhotoAdjust = EXTENDED_NEUTRAL_ADJUST;

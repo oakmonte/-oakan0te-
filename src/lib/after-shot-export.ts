@@ -12,12 +12,7 @@ import {
   QUALITY_HIGH,
   getFirstEncodableVideoCodec,
 } from "mediabunny";
-import {
-  applyCompiledFilter,
-  compileFilter,
-  IDENTITY_FILTER,
-  type CompiledFilter,
-} from "@/lib/canvas-filter";
+import { applyCompiledFilter, compileFilter, type CompiledFilter } from "@/lib/canvas-filter";
 import { applyVignette } from "@/lib/canvas-filter";
 import { compileGrade, isNoopFilter, type CameraFilter } from "@/components/camera/filter-data";
 import { drawLayers, preloadStickers } from "@/lib/layer-bake";
@@ -69,7 +64,7 @@ function drawFilteredFrame(
   width: number,
   height: number,
 ) {
-  if (compiled === IDENTITY_FILTER) return;
+  if (compiled.ops.length === 0) return;
   const frame = ctx.getImageData(0, 0, width, height);
   applyCompiledFilter(frame, compiled);
   ctx.putImageData(frame, 0, 0);
@@ -281,10 +276,13 @@ function isUnedited(
   intensity: number,
   layers: Layer[],
   crop: CropRect | null,
-  adjustCss: string,
+  adjust: ExtendedPhotoAdjust,
 ): boolean {
   return (
-    isNoopFilter(filter, intensity) && layers.length === 0 && isCropNoop(crop) && adjustCss === ""
+    isNoopFilter(filter, intensity) &&
+    layers.length === 0 &&
+    isCropNoop(crop) &&
+    isNeutralAdjust(adjust)
   );
 }
 
@@ -303,7 +301,7 @@ function compileGradeWithAdjust(
   const grade = compileGrade(filter, intensity);
   if (!adjustCss) return grade;
   const adjust = compileFilter(adjustCss);
-  return { ops: [...grade.ops, ...adjust.ops] };
+  return { ops: [...grade.ops, ...adjust.ops], amount: grade.amount };
 }
 
 // What the Next button calls. Keeps the photo/video branch in one place so the
@@ -324,8 +322,7 @@ export async function exportComposite(
   onProgress?: ExportProgress,
   adjust: ExtendedPhotoAdjust = EXTENDED_NEUTRAL_ADJUST,
 ): Promise<Blob> {
-  const adjustCss = adjustToCss(adjust);
-  if (isUnedited(filter, intensity, layers, crop, adjustCss)) {
+  if (isUnedited(filter, intensity, layers, crop, adjust)) {
     onProgress?.(1);
     return media.blob;
   }
