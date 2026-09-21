@@ -64,6 +64,12 @@ export type ThemeEditState = {
   textFonts: ThemeTextFonts;
   hiddenBlocks: RemovableBlockId[];
   collectionsMode: "collections" | "products";
+  // How many products/collections CollectionsGrid shows per row. Independent
+  // of layoutId (which only reorders blocks) — its own dedicated toggle sits
+  // next to the Collections/Products tabs. Session-only for now, same as
+  // tileCrops above — see useThemeCustomization.ts's SavedThemeCustomization
+  // comment for why persisting it is a follow-up, not wired here yet.
+  columns: 1 | 2;
 };
 
 export function createInitialEditState(): ThemeEditState {
@@ -79,6 +85,7 @@ export function createInitialEditState(): ThemeEditState {
     textFonts: {},
     hiddenBlocks: [],
     collectionsMode: "collections",
+    columns: 2,
   };
 }
 
@@ -111,5 +118,7 @@ export type ThemeEditingProps = {
   onLayoutChange: (id: LayoutId) => void;
   collectionsMode: "collections" | "products";
   onCollectionsModeChange: (mode: "collections" | "products") => void;
+  columns: 1 | 2;
+  onColumnsChange: (columns: 1 | 2) => void;
   onTileTapBlocked: () => void;
 };

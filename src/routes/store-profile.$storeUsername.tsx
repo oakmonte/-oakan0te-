@@ -6,6 +6,7 @@ import { ArrowLeft, ArrowLeftRight, Share2, Search, Menu, Star, X } from "lucide
 import { BackButton } from "@/components/BackButton";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useSession } from "@/hooks/use-session";
+import { useBodyScrollLock } from "@/hooks/use-body-scroll-lock";
 import { BottomNav } from "@/components/BottomNav";
 import { ProfileTabEmptyState } from "@/components/ProfileTabEmptyState";
 import { PublicStorefront } from "@/components/store-themes/full-previews";
@@ -209,14 +210,7 @@ function StoreProfilePage() {
 
   // Body scroll lock while the Store sheet is up, same as any bottom sheet —
   // also keeps sheetTop from drifting out from under the sheet mid-view.
-  useEffect(() => {
-    if (activeTab === "store" && store) {
-      document.body.style.overflow = "hidden";
-      return () => {
-        document.body.style.overflow = "";
-      };
-    }
-  }, [activeTab, store]);
+  useBodyScrollLock(activeTab === "store" && !!store);
 
   const tabRow = (
     <ProfileTabStrip
@@ -239,142 +233,157 @@ function StoreProfilePage() {
       className="min-h-screen bg-black text-white"
       style={{ fontFamily: "'SF Pro', system-ui, sans-serif" }}
     >
-      {/* Top bar */}
-      <div className="flex items-center justify-between px-6 pt-4 pb-2">
-        <div className="w-[22px]">
-          <BackButton />
-        </div>
-        <div className="flex items-center gap-5">
-          <button aria-label="Share">
-            <Share2 size={20} />
-          </button>
-          <button
-            onClick={() => setSearchOpen((v) => !v)}
-            aria-label="Search"
-            className="transition-transform duration-200 active:scale-90"
-          >
-            <Search size={22} className={searchOpen ? "text-[#FF7300]" : "text-white"} />
-          </button>
-          {ownerUsername && (
+      <motion.div
+        // Pushes back slightly while the Store sheet is up, timed to the
+        // sheet's own rise/fall — a small Apple-style depth cue so the sheet
+        // reads as being on top of something, not just painted over it.
+        // Scoped to just this content wrapper, not the page root: framer
+        // motion keeps a `transform` inline on whatever it's animating even
+        // at rest, and any non-none `transform` on an ancestor becomes the
+        // containing block for that ancestor's `position: fixed`
+        // descendants — which would silently detach BottomNav, the
+        // hamburger panel, and the Store sheet itself from the real
+        // viewport if this scale lived on the page root.
+        animate={{ scale: storeSheetOpen ? 0.97 : 1 }}
+        transition={{ duration: 0.32, ease: [0.32, 0.72, 0, 1] }}
+      >
+        {/* Top bar */}
+        <div className="flex items-center justify-between px-6 pt-4 pb-2">
+          <div className="w-[22px]">
+            <BackButton />
+          </div>
+          <div className="flex items-center gap-5">
+            <button aria-label="Share">
+              <Share2 size={20} />
+            </button>
             <button
-              onClick={() =>
-                navigate({ to: "/profile/$username", params: { username: ownerUsername } })
-              }
-              aria-label="Switch to personal profile"
+              onClick={() => setSearchOpen((v) => !v)}
+              aria-label="Search"
               className="transition-transform duration-200 active:scale-90"
             >
-              <ArrowLeftRight size={20} />
+              <Search size={22} className={searchOpen ? "text-[#FF7300]" : "text-white"} />
             </button>
-          )}
-          {isOwnStoreProfile && (
-            <button
-              onClick={() => setMenuOpen(true)}
-              aria-label="Menu"
-              className="transition-transform duration-200 active:scale-90"
-            >
-              <Menu size={22} />
-            </button>
-          )}
+            {ownerUsername && (
+              <button
+                onClick={() =>
+                  navigate({ to: "/profile/$username", params: { username: ownerUsername } })
+                }
+                aria-label="Switch to personal profile"
+                className="transition-transform duration-200 active:scale-90"
+              >
+                <ArrowLeftRight size={20} />
+              </button>
+            )}
+            {isOwnStoreProfile && (
+              <button
+                onClick={() => setMenuOpen(true)}
+                aria-label="Menu"
+                className="transition-transform duration-200 active:scale-90"
+              >
+                <Menu size={22} />
+              </button>
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* Store info */}
-      <div className="flex flex-col items-center gap-4 px-6 mt-2">
-        <img
-          ref={avatarRef}
-          src={store?.logo_url || "https://placehold.co/135x139"}
-          alt={storeUsername}
-          loading="eager"
-          className="w-[110px] h-[110px] rounded-full border-[3px] border-white object-cover"
-        />
-        <div className="text-center">
-          <div className="text-[15px] font-bold">
-            {storeLoading ? "…" : store?.brand_name || storeUsername}
-          </div>
-          <div className="text-[11px] font-bold text-[#B0ADAD] mt-0.5">
-            @{store?.store_username || storeUsername}
-          </div>
-          <div className="flex items-center justify-center gap-1.5 mt-1.5">
-            <div className="flex items-center gap-[2px]">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Star key={i} size={13} className="fill-[#FF7300] text-[#FF7300]" />
-              ))}
+        {/* Store info */}
+        <div className="flex flex-col items-center gap-4 px-6 mt-2">
+          <img
+            ref={avatarRef}
+            src={store?.logo_url || "https://placehold.co/135x139"}
+            alt={storeUsername}
+            loading="eager"
+            className="w-[110px] h-[110px] rounded-full border-[3px] border-white object-cover"
+          />
+          <div className="text-center">
+            <div className="text-[15px] font-bold">
+              {storeLoading ? "…" : store?.brand_name || storeUsername}
             </div>
-            <span className="text-[11px] font-medium">(0)</span>
+            <div className="text-[11px] font-bold text-[#B0ADAD] mt-0.5">
+              @{store?.store_username || storeUsername}
+            </div>
+            <div className="flex items-center justify-center gap-1.5 mt-1.5">
+              <div className="flex items-center gap-[2px]">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Star key={i} size={13} className="fill-[#FF7300] text-[#FF7300]" />
+                ))}
+              </div>
+              <span className="text-[11px] font-medium">(0)</span>
+            </div>
           </div>
-        </div>
 
-        <div className="flex items-center gap-8">
-          {/* A store follow relationship doesn't exist in the schema yet
+          <div className="flex items-center gap-8">
+            {/* A store follow relationship doesn't exist in the schema yet
               (`follows` only links profile to profile) — these sit at 0 as
               placeholders, same as sold_items_count/rating on profile_stats
               until that's wired up. */}
-          <Stat value="0" label="Following" />
-          <Stat value="0" label="Followers" />
-          <Stat value="0" label="Sold Items" />
+            <Stat value="0" label="Following" />
+            <Stat value="0" label="Followers" />
+            <Stat value="0" label="Sold Items" />
+          </div>
+
+          {store?.bio && <p className="text-[14px] font-bold text-center">{store.bio}</p>}
         </div>
 
-        {store?.bio && <p className="text-[14px] font-bold text-center">{store.bio}</p>}
-      </div>
+        {!storeSheetOpen && (
+          <>
+            {/* Tab row */}
+            <div className="mt-6 border-b border-[#474747]">{tabRow}</div>
 
-      {!storeSheetOpen && (
-        <>
-          {/* Tab row */}
-          <div className="mt-6 border-b border-[#474747]">{tabRow}</div>
-
-          {/* Inline search */}
-          <div
-            className={`grid transition-[grid-template-rows] duration-300 ease-out ${
-              searchOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
-            }`}
-          >
-            <div className="overflow-hidden">
-              <div
-                className={`px-6 pt-3 pb-1 transition-opacity duration-300 ${
-                  searchOpen ? "opacity-100 delay-100" : "opacity-0"
-                }`}
-              >
-                <div className="flex items-center gap-2.5 rounded-xl border border-[#FFFBFB] px-4 py-2.5">
-                  <Search size={18} className="text-white shrink-0" />
-                  <input
-                    ref={searchInputRef}
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search"
-                    className="w-full bg-transparent text-[16px] placeholder:text-white/50 focus:outline-none"
-                  />
-                  {searchQuery && (
-                    <button onClick={() => setSearchQuery("")} aria-label="Clear search">
-                      <X size={16} className="text-white/60" />
-                    </button>
-                  )}
+            {/* Inline search */}
+            <div
+              className={`grid transition-[grid-template-rows] duration-300 ease-out ${
+                searchOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+              }`}
+            >
+              <div className="overflow-hidden">
+                <div
+                  className={`px-6 pt-3 pb-1 transition-opacity duration-300 ${
+                    searchOpen ? "opacity-100 delay-100" : "opacity-0"
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 rounded-xl border border-[#FFFBFB] px-4 py-2.5">
+                    <Search size={18} className="text-white shrink-0" />
+                    <input
+                      ref={searchInputRef}
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search"
+                      className="w-full bg-transparent text-[16px] placeholder:text-white/50 focus:outline-none"
+                    />
+                    {searchQuery && (
+                      <button onClick={() => setSearchQuery("")} aria-label="Clear search">
+                        <X size={16} className="text-white/60" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Content pager — the same component the personal profile uses, so
+            {/* Content pager — the same component the personal profile uses, so
               swiping behaves identically on both. This used to be its own
               third variant: an AnimatePresence crossfade with drag pinned to
               zero constraints at 0.15 elastic, i.e. a swipe that moved the
               content a finger's width and sprang back. */}
-          <div className="pb-24">
-            <TabPager
-              index={tabIndex}
-              count={STORE_TABS.length}
-              onIndexChange={goToTab}
-              x={pagerX}
-              onPageWidth={setPageWidth}
-            >
-              {STORE_TABS.map(({ key }) => (
-                <div key={key} className="px-1 pt-4">
-                  <ProfileTabEmptyState tab={key} isOwnProfile={isOwnStoreProfile} />
-                </div>
-              ))}
-            </TabPager>
-          </div>
-        </>
-      )}
+            <div className="pb-24">
+              <TabPager
+                index={tabIndex}
+                count={STORE_TABS.length}
+                onIndexChange={goToTab}
+                x={pagerX}
+                onPageWidth={setPageWidth}
+              >
+                {STORE_TABS.map(({ key }) => (
+                  <div key={key} className="px-1 pt-4">
+                    <ProfileTabEmptyState tab={key} isOwnProfile={isOwnStoreProfile} />
+                  </div>
+                ))}
+              </TabPager>
+            </div>
+          </>
+        )}
+      </motion.div>
 
       {/* Store sheet — Store is the one tab that rises up over the rest of
           the page instead of sitting flat under the tab row like every other
@@ -438,7 +447,7 @@ function StoreProfilePage() {
                 what you were looking at — and it competed for the very same
                 gesture as the product tiles own photo carousels. Inside the
                 sheet, left/right belongs to those carousels alone. */}
-            <div className="flex-1 overflow-y-auto pb-24">
+            <div className="flex-1 overflow-y-auto overscroll-contain">
               {store && <PublicStorefront storeId={store.id} />}
             </div>
           </motion.div>

@@ -112,6 +112,11 @@ was just undone in this session, it doesn't survive a fresh edit.
 
 ## Everything else
 
-Backend wiring (per-store-per-theme persistence) is session-only today — see `POSTPONED.md` and the
-`supabase-data-access` skill for the `store_theme_customizations` table. Don't wire a new theme's save
-path differently from the others; it goes through the same `ThemeEditState`.
+Backend wiring (per-store-per-theme persistence) has been real since the `20260821193100` migration —
+`useThemeCustomization.ts` saves/loads most of `ThemeEditState` to `store_theme_customizations`, keyed
+by `(store_id, theme_slug)`. Don't wire a new theme's save path differently from the others; it goes
+through the same `ThemeEditState`. What's still genuinely session-only, and documented as such right on
+the field: crop positions (`tileCrops`/`slideshowCrops`/`slideshowAspectRatio`) and any field added
+without also updating `SavedThemeCustomization`'s `Omit<...>` in `useThemeCustomization.ts` plus the
+column, select, and upsert there — adding a persisted field needs a migration, and that migration needs
+the generated Supabase types regenerated (hook-protected; not something to hand-edit).
