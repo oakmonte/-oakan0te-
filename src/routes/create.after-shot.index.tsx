@@ -31,7 +31,6 @@ import { vignetteCss } from "@/lib/vignette";
 import { exportComposite } from "@/lib/after-shot-export";
 import type { CropRect } from "@/lib/crop-rect";
 import LayerOverlay from "@/components/camera/LayerOverlay";
-import { vignetteCss } from "@/lib/vignette";
 import { useAfterShotLayers } from "@/lib/after-shot-layers";
 import { useLayerRenderer } from "@/components/camera/aftershot/use-layer-renderer";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
@@ -465,19 +464,6 @@ function AfterShotIndexPage() {
             </div>
           )}
 
-<<<<<<< HEAD
-=======
-          {/* Vignette overlay — same vignetteCss the studio video editor uses,
-              so preview and bake (drawVignette) never diverge. Positioned
-              inside the media box so it crops to the same bounds as the photo. */}
-          {vignetteValue > 0 && (
-            <div
-              className="absolute inset-0 pointer-events-none"
-              style={{ background: vignetteCss(vignetteValue) }}
-            />
-          )}
-
->>>>>>> 425644e (create-vingette is pickable (will make it darker), intensity scale fixed)
           <DrawPanel open={activeTool === "draw"} containerRef={mediaBoxRef} onClose={closeTool} />
         </div>
       </div>
