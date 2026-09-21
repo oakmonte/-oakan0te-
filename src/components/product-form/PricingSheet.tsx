@@ -1,41 +1,39 @@
 import { useState } from "react";
 import { X, ChevronDown, XCircle } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
 import { cleanPriceDigits, displayPriceWithCommas, padPriceOnBlur } from "@/lib/format-price-input";
+import {
+  computeFees,
+  formatNaira,
+  grossUpForNet,
+  COMMISSION_RATE,
+  PAYSTACK_RATE,
+} from "@/lib/pricing-fees";
 
-const COMMISSION_RATE = 0.045;
-const PAYSTACK_RATE = 0.015;
-const PAYSTACK_FLAT_FEE = 100;
-const PAYSTACK_FLAT_FEE_THRESHOLD = 2500;
-const PAYSTACK_FEE_CAP = 2000;
-
-function formatNaira(n: number) {
-  return `₦${n.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
-}
-
-function computeFees(price: number) {
-  const commission = price * COMMISSION_RATE;
-  const hasFlatFee = price >= PAYSTACK_FLAT_FEE_THRESHOLD;
-  let paystackFee = price * PAYSTACK_RATE + (hasFlatFee ? PAYSTACK_FLAT_FEE : 0);
-  paystackFee = Math.min(paystackFee, PAYSTACK_FEE_CAP);
-  return { commission, paystackFee, hasFlatFee, total: commission + paystackFee };
-}
+const COMMISSION_PCT = `${(COMMISSION_RATE * 100).toFixed(1)}%`;
+const PAYSTACK_PCT = `${(PAYSTACK_RATE * 100).toFixed(1)}%`;
 
 export function PricingSheet({
   price,
   compareAtPrice,
   costPrice,
+  passFeesToBuyer,
   onChangePrice,
   onChangeCompareAtPrice,
   onChangeCostPrice,
+  onChangePassFeesToBuyer,
   onClose,
 }: {
   price: string;
   compareAtPrice: string;
   costPrice: string;
+  /** Product-level pricing policy — see the note on the toggle below. */
+  passFeesToBuyer: boolean;
   onChangePrice: (v: string) => void;
   onChangeCompareAtPrice: (v: string) => void;
   onChangeCostPrice: (v: string) => void;
+  onChangePassFeesToBuyer: (v: boolean) => void;
   onClose: () => void;
 }) {
   useLockedViewport();
@@ -47,12 +45,21 @@ export function PricingSheet({
   const numCost = parseFloat(costPrice);
   const hasPrice = !isNaN(numPrice) && numPrice > 0;
   const hasCost = !isNaN(numCost) && numCost >= 0;
-  const compareAtTooLow = hasPrice && !isNaN(numCompareAt) && numCompareAt < numPrice;
 
-  const fees = hasPrice ? computeFees(numPrice) : null;
-  const youReceive = hasPrice && fees ? numPrice - fees.total : null;
-  const profit = hasPrice && hasCost && fees ? numPrice - numCost - fees.total : null;
-  const margin = profit !== null && hasPrice ? (profit / numPrice) * 100 : null;
+  // What the seller typed means one of two things, so everything downstream
+  // has to be derived rather than read straight off the field.
+  const charged = hasPrice ? (passFeesToBuyer ? grossUpForNet(numPrice) : numPrice) : null;
+  const fees = charged !== null ? computeFees(charged) : null;
+  const youReceive = charged !== null && fees ? charged - fees.total : null;
+  const profit = youReceive !== null && hasCost ? youReceive - numCost : null;
+  // Margin is against what the customer actually pays, which is the number the
+  // seller is setting either way.
+  const margin = profit !== null && charged ? (profit / charged) * 100 : null;
+
+  // Compared against the CHARGED price, not the entered one: a compare-at is a
+  // customer-facing number, so measuring it against the seller's take would
+  // call a real discount fake whenever fees are passed on.
+  const compareAtTooLow = charged !== null && !isNaN(numCompareAt) && numCompareAt < charged;
 
   return (
     <div className="fixed inset-0 z-50 bg-white flex flex-col min-h-dvh animate-in fade-in slide-in-from-bottom-6 duration-300 ease-out">
@@ -65,9 +72,19 @@ export function PricingSheet({
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-5">
-        <PriceBox label="Price" value={price} onChange={onChangePrice} autoFocus />
+        {/* The field's label changes with the policy, because its meaning does.
+            Leaving it as "Price" while it quietly means "your take" is how a
+            seller ends up listing at a number they never intended. */}
+        <PriceBox
+          label={passFeesToBuyer ? "You receive" : "Price"}
+          value={price}
+          onChange={onChangePrice}
+          autoFocus
+        />
         <p className="text-xs text-gray-400 mt-1.5 mb-5">
-          That's all you need — everything below is optional.
+          {passFeesToBuyer
+            ? "What lands in your account. The customer is charged this plus the fees."
+            : "That's all you need — everything below is optional."}
         </p>
 
         <PriceBox
@@ -92,17 +109,62 @@ export function PricingSheet({
           won't see this.
         </p>
 
+        {/* Its own block, like the inventory sheet's toggle — this is a policy
+            decision, not another amount to type. */}
+        <div className="-mx-4 h-2 bg-gray-50" />
+        <div className="py-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-[15px] text-gray-900">Customer covers the fees</p>
+              <p className="text-xs text-gray-500 mt-1">
+                Your price stays whole. Oakmonte's {COMMISSION_PCT} and Paystack's {PAYSTACK_PCT}{" "}
+                are added on top instead of coming out of it.
+              </p>
+            </div>
+            <div className="pt-0.5 shrink-0">
+              <Switch
+                checked={passFeesToBuyer}
+                onCheckedChange={onChangePassFeesToBuyer}
+                aria-label="Customer covers the fees"
+              />
+            </div>
+          </div>
+          <p className="text-[11px] text-gray-400 mt-2">
+            Applies to every variant of this product.
+          </p>
+        </div>
+        <div className="-mx-4 h-2 bg-gray-50 mb-4" />
+
+        {/* When fees are passed on, what the customer pays is the number that
+            moved and the one worth checking, so it leads. */}
+        {passFeesToBuyer && (
+          <div className="border border-gray-900 rounded-xl p-3 mb-3">
+            <p className="text-xs text-gray-500 mb-1">Customer pays</p>
+            <p className="text-[22px] font-semibold text-gray-900 leading-tight tabular-nums">
+              {charged !== null ? formatNaira(charged) : "–"}
+            </p>
+            {charged !== null && fees && (
+              <p className="text-[11px] text-gray-500 mt-1">
+                {formatNaira(charged - (youReceive ?? 0))} of fees added to your{" "}
+                {formatNaira(numPrice)}
+              </p>
+            )}
+          </div>
+        )}
+
         <div className="border border-gray-300 rounded-xl overflow-hidden grid grid-cols-2 divide-x divide-gray-300">
           <div className="p-3">
             <p className="text-xs text-gray-500 mb-1">You'll receive</p>
-            <p className="text-[15px] font-medium text-gray-900">
+            <p className="text-[15px] font-medium text-gray-900 tabular-nums">
               {youReceive !== null ? formatNaira(youReceive) : "–"}
             </p>
           </div>
           <div className="p-3">
             <p className="text-xs text-gray-500 mb-1">Profit</p>
             {profit !== null ? (
-              <p className="text-[15px] font-medium text-gray-900">{formatNaira(profit)}</p>
+              <p className="text-[15px] font-medium text-gray-900 tabular-nums">
+                {formatNaira(profit)}
+              </p>
             ) : (
               <p className="text-xs text-gray-400 leading-snug">
                 Measure your profit by inputting <span className="font-bold">cost price</span>
@@ -114,7 +176,7 @@ export function PricingSheet({
           </div>
         </div>
 
-        {hasPrice && fees && (
+        {charged !== null && fees && (
           <div className="mt-3">
             <button
               type="button"
@@ -129,13 +191,20 @@ export function PricingSheet({
             </button>
             {breakdownOpen && (
               <div className="mt-2 border border-gray-300 rounded-lg p-3 flex flex-col gap-2 animate-in fade-in slide-in-from-top-2 duration-200 ease-out">
-                <FeeLine label="Price" value={formatNaira(numPrice)} />
+                {/* Always starts from what the customer is charged — that is
+                    what both fees are actually taken from. */}
                 <FeeLine
-                  label="Oakmonte commission (4.5%)"
+                  label={passFeesToBuyer ? "Customer pays" : "Price"}
+                  value={formatNaira(charged)}
+                />
+                <FeeLine
+                  label={`Oakmonte commission (${COMMISSION_PCT})`}
                   value={`– ${formatNaira(fees.commission)}`}
                 />
                 <FeeLine
-                  label={`Paystack Payment Processing (1.5%${fees.hasFlatFee ? "+₦100" : ""})`}
+                  label={`Paystack Payment Processing (${PAYSTACK_PCT}${
+                    fees.hasFlatFee ? "+₦100" : ""
+                  }${fees.isCapped ? ", capped" : ""})`}
                   value={`– ${formatNaira(fees.paystackFee)}`}
                 />
                 <div className="border-t border-gray-300 pt-2">
@@ -211,7 +280,11 @@ function FeeLine({ label, value, bold }: { label: string; value: string; bold?: 
   return (
     <div className="flex items-center justify-between text-xs">
       <span className={bold ? "font-medium text-gray-900" : "text-gray-500"}>{label}</span>
-      <span className={bold ? "font-medium text-gray-900" : "text-gray-700"}>{value}</span>
+      <span
+        className={bold ? "font-medium text-gray-900 tabular-nums" : "text-gray-700 tabular-nums"}
+      >
+        {value}
+      </span>
     </div>
   );
 }

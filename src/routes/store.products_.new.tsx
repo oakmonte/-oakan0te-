@@ -122,6 +122,9 @@ function NewProduct() {
 
   // Regular-mode state
   const [price, setPrice] = useState(initialDraft?.price ?? "");
+  // Product-level pricing policy: when true the price fields above mean "what
+  // I want to receive" and product-save grosses them up before writing.
+  const [passFeesToBuyer, setPassFeesToBuyer] = useState(initialDraft?.passFeesToBuyer ?? false);
   const [compareAtPrice, setCompareAtPrice] = useState(initialDraft?.compareAtPrice ?? "");
   const [costPrice, setCostPrice] = useState(initialDraft?.costPrice ?? "");
   const [regularContinueSellingOutOfStock, setRegularContinueSellingOutOfStock] = useState(
@@ -442,6 +445,7 @@ function NewProduct() {
       status,
       manualSize,
       kind,
+      passFeesToBuyer,
       price,
       compareAtPrice,
       costPrice,
@@ -545,6 +549,8 @@ function NewProduct() {
             setRows={setRows}
             mainImageUrl={mainImageUrl}
             additionalImageUrls={additionalImageUrls}
+            passFeesToBuyer={passFeesToBuyer}
+            onChangePassFeesToBuyer={setPassFeesToBuyer}
             storeId={storeId}
             onCreateLocation={handleCreateLocation}
             estimateWeightForRow={estimateWeightForRow}
@@ -612,6 +618,8 @@ function NewProduct() {
           onChangePrice={setPrice}
           onChangeCompareAtPrice={setCompareAtPrice}
           onChangeCostPrice={setCostPrice}
+          passFeesToBuyer={passFeesToBuyer}
+          onChangePassFeesToBuyer={setPassFeesToBuyer}
           onClose={() => setPriceSheetOpen(false)}
         />
       )}

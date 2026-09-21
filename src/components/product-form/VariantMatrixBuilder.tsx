@@ -59,6 +59,8 @@ export function VariantMatrixBuilder({
   setRows,
   mainImageUrl,
   additionalImageUrls,
+  passFeesToBuyer,
+  onChangePassFeesToBuyer,
   storeId,
   onCreateLocation,
   estimateWeightForRow,
@@ -75,6 +77,9 @@ export function VariantMatrixBuilder({
   // re-upload of something the seller already has.
   mainImageUrl: string;
   additionalImageUrls: string[];
+  // Product-level pricing policy, forwarded to the per-variant price sheets.
+  passFeesToBuyer: boolean;
+  onChangePassFeesToBuyer: (v: boolean) => void;
   // For InventorySheet's location list, opened per-variant from the combos
   // sheet.
   storeId: string;
@@ -183,6 +188,8 @@ export function VariantMatrixBuilder({
 
       {wizardStep === "combinations" && (
         <VariantCombinationsSheet
+          passFeesToBuyer={passFeesToBuyer}
+          onChangePassFeesToBuyer={onChangePassFeesToBuyer}
           options={options}
           rows={rows}
           setRows={setRows}

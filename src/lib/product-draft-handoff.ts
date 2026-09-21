@@ -9,6 +9,8 @@ import { BarcodeEntry } from "@/lib/barcode-types";
 import { InventoryValues } from "@/components/product-form/InventorySheet";
 
 export type ProductDraft = {
+  /** Pricing policy, so an autosaved draft restores the seller's choice. */
+  passFeesToBuyer?: boolean;
   // Set only when the draft was stashed from the edit page, not the new-product
   // page — the collection side-trip needs to know which screen to return to,
   // and whether to UPDATE that product's row instead of creating one.

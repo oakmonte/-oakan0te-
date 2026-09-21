@@ -39,6 +39,8 @@ export function VariantCombinationsSheet({
   setRows,
   mainImageUrl,
   additionalImageUrls,
+  passFeesToBuyer,
+  onChangePassFeesToBuyer,
   storeId,
   onCreateLocation,
   estimateWeightForRow,
@@ -52,6 +54,10 @@ export function VariantCombinationsSheet({
   setRows: (fn: (prev: VariantRow[]) => VariantRow[]) => void;
   mainImageUrl: string;
   additionalImageUrls: string[];
+  // Product-level pricing policy. Drilled through rather than read per row:
+  // one product cannot have variants that disagree about who pays the fee.
+  passFeesToBuyer: boolean;
+  onChangePassFeesToBuyer: (v: boolean) => void;
   storeId: string;
   onCreateLocation: (context?: VariantInventoryContext) => void;
   estimateWeightForRow: (row: VariantRow) => WeightEstimate;
@@ -625,6 +631,8 @@ export function VariantCombinationsSheet({
               onChangePrice={(v) => updateRow(priceKey, { price: v })}
               onChangeCompareAtPrice={(v) => updateRow(priceKey, { compareAtPrice: v })}
               onChangeCostPrice={(v) => updateRow(priceKey, { costPrice: v })}
+              passFeesToBuyer={passFeesToBuyer}
+              onChangePassFeesToBuyer={onChangePassFeesToBuyer}
               onClose={() => setPriceKey(null)}
             />
           );
@@ -638,6 +646,8 @@ export function VariantCombinationsSheet({
           onChangePrice={setBulkPrice}
           onChangeCompareAtPrice={setBulkCompareAtPrice}
           onChangeCostPrice={setBulkCostPrice}
+          passFeesToBuyer={passFeesToBuyer}
+          onChangePassFeesToBuyer={onChangePassFeesToBuyer}
           onClose={() => setBulkPriceOpen(false)}
         />
       )}
