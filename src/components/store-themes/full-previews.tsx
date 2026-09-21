@@ -24,7 +24,7 @@ import {
   Cpu,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import type { Theme, ThemeId } from "./types";
+import { THEMES, type Theme, type ThemeId } from "./types";
 import {
   CollectionsGrid,
   FooterTeaser,
@@ -1092,7 +1092,12 @@ export function PublicStorefront({ storeId }: { storeId: string }) {
   }, [storeId]);
 
   if (themeLoading || savedLoading || brandName === null) {
-    return <div className="py-12 text-center text-[13px] text-white/40">Loading…</div>;
+    // min-h-full so the sheet holds a consistent shape while data is still
+    // in flight, same as the loaded return below -- there's no real
+    // background color to paint yet (that's the theme still loading), so
+    // this is a brief, unavoidable neutral flash before the theme's own
+    // colors land, not the persistent black bleed the loaded path fixes.
+    return <div className="min-h-full py-12 text-center text-[13px] text-white/40">Loading…</div>;
   }
 
   const state: ThemeEditState = {
@@ -1132,11 +1137,28 @@ export function PublicStorefront({ storeId }: { storeId: string }) {
     onLayoutChange: noop,
     collectionsMode: state.collectionsMode,
     onCollectionsModeChange: noop,
+    columns: state.columns,
+    onColumnsChange: noop,
     onTileTapBlocked: noop,
   };
 
+  // The theme's own background, not a color invented for this wrapper — same
+  // lookup store-theme-selector.tsx's card swatch uses. min-h-full plus
+  // pb-24 (moved here from the route files' scroll container) means this div
+  // — not just FullPreview's content — fills the sheet all the way to its
+  // rounded bottom corners, so short content or the bottom padding never
+  // falls through to the app's hardcoded black (see styles.css).
+  // Falls back through specForTheme, the exact same fallback FullPreview's
+  // own `default:` case uses for a slug that matches no THEMES entry (a
+  // store_themes row with nothing behind it -- see that case's comment) --
+  // without this, the wrapper would go transparent (back to the black it's
+  // fixing) while the content it wraps still renders a real fallback spec.
+  const background = THEMES.find((t) => t.id === themeId)?.background ?? specForTheme(themeId).bg;
+
   return (
-    <FullPreview themeId={themeId} editing={editing} storeId={storeId} brandName={brandName} />
+    <div className="min-h-full pb-24" style={{ background }}>
+      <FullPreview themeId={themeId} editing={editing} storeId={storeId} brandName={brandName} />
+    </div>
   );
 }
 
@@ -1410,6 +1432,10 @@ export function ThemePreviewSheet({
       collectionsMode: state.collectionsMode,
       onCollectionsModeChange: (collectionsMode) => {
         mutate((s) => ({ ...s, collectionsMode }));
+      },
+      columns: state.columns,
+      onColumnsChange: (columns) => {
+        mutate((s) => ({ ...s, columns }));
       },
       onTileTapBlocked: () => {
         flashHint(

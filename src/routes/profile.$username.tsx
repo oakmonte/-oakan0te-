@@ -28,6 +28,7 @@ import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useSession } from "@/hooks/use-session";
 import { useOwnStores } from "@/hooks/use-own-store";
 import { useStoreSetupStatus } from "@/hooks/use-store-setup-status";
+import { useBodyScrollLock } from "@/hooks/use-body-scroll-lock";
 import { BottomNav } from "@/components/BottomNav";
 import { ProfileTabEmptyState } from "@/components/ProfileTabEmptyState";
 import { PostsGrid } from "@/components/profile/PostsGrid";
@@ -312,14 +313,7 @@ function ProfilePage() {
 
   // Body scroll lock while the Store sheet is up, same as any bottom sheet —
   // also keeps sheetTop from drifting out from under the sheet mid-view.
-  useEffect(() => {
-    if (activeTab === "store" && store && storeIsSetUp) {
-      document.body.style.overflow = "hidden";
-      return () => {
-        document.body.style.overflow = "";
-      };
-    }
-  }, [activeTab, store, storeIsSetUp]);
+  useBodyScrollLock(activeTab === "store" && !!store && storeIsSetUp);
 
   const tabRow = (
     <ProfileTabStrip
@@ -341,249 +335,266 @@ function ProfilePage() {
       className="min-h-screen bg-black text-white"
       style={{ fontFamily: "'SF Pro', system-ui, sans-serif" }}
     >
-      {/* Top bar */}
-      <div className="flex items-center justify-between px-6 pt-4 pb-2">
-        <div className="w-[22px]">
-          <BackButton />
-        </div>
-        <div className="flex items-center gap-5">
-          {ownershipKnown && !isOwnProfile && isFollowing && (
-            <button
-              onClick={() => setNotifyEnabled((v) => !v)}
-              aria-label={notifyEnabled ? "Turn off notifications" : "Turn on notifications"}
-              className="transition-transform duration-200 active:scale-90"
-            >
-              {notifyEnabled ? (
-                <BellRing size={20} className="text-[#FF7300]" />
-              ) : (
-                <Bell size={20} />
-              )}
-            </button>
-          )}
-          <button onClick={() => setShareOpen(true)} aria-label="Share profile">
-            <Share2 size={20} />
-          </button>
-          <button
-            onClick={() => setSearchOpen((v) => !v)}
-            aria-label="Search"
-            className="transition-transform duration-200 active:scale-90"
-          >
-            <Search size={22} className={searchOpen ? "text-[#FF7300]" : "text-white"} />
-          </button>
-          {ownershipKnown &&
-            isOwnProfile &&
-            store &&
-            storeIsSetUp &&
-            !store.personal_storefront_only && (
+      <motion.div
+        // Pushes back slightly while the Store sheet is up, timed to the
+        // sheet's own rise/fall — a small Apple-style depth cue so the sheet
+        // reads as being on top of something, not just painted over it.
+        // Scoped to just this content wrapper, not the page root: framer
+        // motion keeps a `transform` inline on whatever it's animating even
+        // at rest, and any non-none `transform` on an ancestor becomes the
+        // containing block for that ancestor's `position: fixed`
+        // descendants — which would silently detach BottomNav, the
+        // hamburger panel, ShareProfileOverlay, and the Store sheet itself
+        // from the real viewport if this scale lived on the page root.
+        animate={{ scale: storeSheetOpen ? 0.97 : 1 }}
+        transition={{ duration: 0.32, ease: [0.32, 0.72, 0, 1] }}
+      >
+        {/* Top bar */}
+        <div className="flex items-center justify-between px-6 pt-4 pb-2">
+          <div className="w-[22px]">
+            <BackButton />
+          </div>
+          <div className="flex items-center gap-5">
+            {ownershipKnown && !isOwnProfile && isFollowing && (
               <button
-                onClick={() =>
-                  stores.length > 1
-                    ? setStorePickerOpen(true)
-                    : navigate({
-                        to: "/store-profile/$storeUsername",
-                        params: { storeUsername: store.store_username },
-                      })
-                }
-                aria-label="Switch to store profile"
+                onClick={() => setNotifyEnabled((v) => !v)}
+                aria-label={notifyEnabled ? "Turn off notifications" : "Turn on notifications"}
                 className="transition-transform duration-200 active:scale-90"
               >
-                <ArrowLeftRight size={20} />
+                {notifyEnabled ? (
+                  <BellRing size={20} className="text-[#FF7300]" />
+                ) : (
+                  <Bell size={20} />
+                )}
               </button>
             )}
-          {ownershipKnown && isOwnProfile && (
+            <button onClick={() => setShareOpen(true)} aria-label="Share profile">
+              <Share2 size={20} />
+            </button>
             <button
-              onClick={() => setMenuOpen(true)}
-              aria-label="Menu"
+              onClick={() => setSearchOpen((v) => !v)}
+              aria-label="Search"
               className="transition-transform duration-200 active:scale-90"
             >
-              <Menu size={22} />
+              <Search size={22} className={searchOpen ? "text-[#FF7300]" : "text-white"} />
             </button>
-          )}
+            {ownershipKnown &&
+              isOwnProfile &&
+              store &&
+              storeIsSetUp &&
+              !store.personal_storefront_only && (
+                <button
+                  onClick={() =>
+                    stores.length > 1
+                      ? setStorePickerOpen(true)
+                      : navigate({
+                          to: "/store-profile/$storeUsername",
+                          params: { storeUsername: store.store_username },
+                        })
+                  }
+                  aria-label="Switch to store profile"
+                  className="transition-transform duration-200 active:scale-90"
+                >
+                  <ArrowLeftRight size={20} />
+                </button>
+              )}
+            {ownershipKnown && isOwnProfile && (
+              <button
+                onClick={() => setMenuOpen(true)}
+                aria-label="Menu"
+                className="transition-transform duration-200 active:scale-90"
+              >
+                <Menu size={22} />
+              </button>
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* Profile info */}
-      <div className="flex flex-col items-center gap-4 px-6 mt-2">
-        {/* The photo is the share affordance — tapping it opens the full-screen
+        {/* Profile info */}
+        <div className="flex flex-col items-center gap-4 px-6 mt-2">
+          {/* The photo is the share affordance — tapping it opens the full-screen
             share view, same as both references. */}
-        <button
-          type="button"
-          onClick={() => setShareOpen(true)}
-          aria-label="Share profile"
-          className="transition-transform duration-150 active:scale-95"
-        >
-          <img
-            ref={avatarRef}
-            src={profile?.avatar_url || "https://placehold.co/135x139"}
-            alt={username}
-            loading="eager"
-            className="w-[110px] h-[110px] rounded-full border-[3px] border-white object-cover"
-          />
-        </button>
-        <div className="text-center">
-          <div className="flex items-center justify-center gap-1.5">
-            {/* The username from the URL is already the right width and
+          <button
+            type="button"
+            onClick={() => setShareOpen(true)}
+            aria-label="Share profile"
+            className="transition-transform duration-150 active:scale-95"
+          >
+            <img
+              ref={avatarRef}
+              src={profile?.avatar_url || "https://placehold.co/135x139"}
+              alt={username}
+              loading="eager"
+              className="w-[110px] h-[110px] rounded-full border-[3px] border-white object-cover"
+            />
+          </button>
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-1.5">
+              {/* The username from the URL is already the right width and
                 almost always the right text, so it stands in while the row
                 loads instead of an ellipsis that then jumps to a longer
                 name. */}
-            <div className={`text-[15px] font-bold ${profileLoading ? "opacity-40" : ""}`}>
-              {profile?.display_name || profile?.personal_username || username}
+              <div className={`text-[15px] font-bold ${profileLoading ? "opacity-40" : ""}`}>
+                {profile?.display_name || profile?.personal_username || username}
+              </div>
+              {isOwnProfile && (
+                <button
+                  onClick={() => navigate({ to: "/edit-profile" })}
+                  aria-label="Edit profile"
+                  className="text-white/50 hover:text-white transition-colors"
+                >
+                  <Pencil size={13} />
+                </button>
+              )}
             </div>
-            {isOwnProfile && (
+            <div className="text-[11px] font-bold text-[#B0ADAD] mt-0.5">
+              @{profile?.personal_username || username}
+            </div>
+            <div className="flex items-center justify-center gap-1.5 mt-1.5">
+              <div className="flex items-center gap-[2px]">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Star key={i} size={13} className="fill-[#FF7300] text-[#FF7300]" />
+                ))}
+              </div>
+              <span className="text-[11px] font-medium">({profile?.rating_count ?? 0})</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-8">
+            <Stat value={String(profile?.following_count ?? 0)} label="Following" />
+            <Stat value={String(profile?.followers_count ?? 0)} label="Followers" />
+          </div>
+
+          {ownershipKnown && !isOwnProfile && (
+            <div className="flex items-center gap-2.5">
               <button
-                onClick={() => navigate({ to: "/edit-profile" })}
-                aria-label="Edit profile"
-                className="text-white/50 hover:text-white transition-colors"
+                onClick={toggleFollow}
+                // Disabled until the follow query resolves: tapping while it
+                // defaulted to "Follow" fired an insert on a row that might
+                // already exist, and the optimistic flip bounced back.
+                //
+                // Signed OUT is the exception, and it has to be. With no viewer
+                // the query is `enabled: false`, so isPending never stops being
+                // true — which left a visitor staring at a permanently greyed
+                // Follow button with no way to reach sign-in from it. There's no
+                // status to wait on when nobody's signed in; the tap should just
+                // take them to sign-in, which toggleFollow already does.
+                disabled={followBusy || (!!user && followPending)}
+                className={`min-w-[110px] rounded-full px-6 py-2 text-[13px] font-bold transition-colors active:scale-95 disabled:opacity-60 ${
+                  isFollowing ? "bg-white/10 text-white" : "bg-white text-black"
+                }`}
               >
-                <Pencil size={13} />
+                {isFollowing ? "Following" : "Follow"}
               </button>
-            )}
-          </div>
-          <div className="text-[11px] font-bold text-[#B0ADAD] mt-0.5">
-            @{profile?.personal_username || username}
-          </div>
-          <div className="flex items-center justify-center gap-1.5 mt-1.5">
-            <div className="flex items-center gap-[2px]">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Star key={i} size={13} className="fill-[#FF7300] text-[#FF7300]" />
-              ))}
+              <button
+                onClick={() => {
+                  setMessageHint("Messaging is coming soon");
+                  setTimeout(() => setMessageHint(null), 2500);
+                }}
+                aria-label="Message"
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-black transition-transform active:scale-90"
+              >
+                <Send size={15} />
+              </button>
             </div>
-            <span className="text-[11px] font-medium">({profile?.rating_count ?? 0})</span>
-          </div>
+          )}
+          {messageHint && <p className="text-[11px] text-white/50">{messageHint}</p>}
+
+          {profile?.bio && <p className="text-[14px] font-bold text-center">{profile.bio}</p>}
         </div>
 
-        <div className="flex items-center gap-8">
-          <Stat value={String(profile?.following_count ?? 0)} label="Following" />
-          <Stat value={String(profile?.followers_count ?? 0)} label="Followers" />
-        </div>
-
-        {ownershipKnown && !isOwnProfile && (
-          <div className="flex items-center gap-2.5">
-            <button
-              onClick={toggleFollow}
-              // Disabled until the follow query resolves: tapping while it
-              // defaulted to "Follow" fired an insert on a row that might
-              // already exist, and the optimistic flip bounced back.
-              //
-              // Signed OUT is the exception, and it has to be. With no viewer
-              // the query is `enabled: false`, so isPending never stops being
-              // true — which left a visitor staring at a permanently greyed
-              // Follow button with no way to reach sign-in from it. There's no
-              // status to wait on when nobody's signed in; the tap should just
-              // take them to sign-in, which toggleFollow already does.
-              disabled={followBusy || (!!user && followPending)}
-              className={`min-w-[110px] rounded-full px-6 py-2 text-[13px] font-bold transition-colors active:scale-95 disabled:opacity-60 ${
-                isFollowing ? "bg-white/10 text-white" : "bg-white text-black"
-              }`}
-            >
-              {isFollowing ? "Following" : "Follow"}
-            </button>
-            <button
-              onClick={() => {
-                setMessageHint("Messaging is coming soon");
-                setTimeout(() => setMessageHint(null), 2500);
-              }}
-              aria-label="Message"
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-black transition-transform active:scale-90"
-            >
-              <Send size={15} />
-            </button>
-          </div>
-        )}
-        {messageHint && <p className="text-[11px] text-white/50">{messageHint}</p>}
-
-        {profile?.bio && <p className="text-[14px] font-bold text-center">{profile.bio}</p>}
-      </div>
-
-      {/* Kept mounted even while the Store sheet is up. Unmounting it there
+        {/* Kept mounted even while the Store sheet is up. Unmounting it there
           hard-cut the pager mid-swipe: releasing a drag onto Store flipped
           storeSheetOpen in the same commit, so the settle spring never drew
           a frame and the content just vanished. The sheet is fixed z-50 over
           this anyway, so it simply settles behind the rising sheet. */}
-      {
-        <>
-          {/* Tab row */}
-          <div className="mt-6 border-b border-[#474747]">{tabRow}</div>
+        {
+          <>
+            {/* Tab row */}
+            <div className="mt-6 border-b border-[#474747]">{tabRow}</div>
 
-          {/* Inline search */}
-          <div
-            className={`grid transition-[grid-template-rows] duration-300 ease-out ${
-              searchOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
-            }`}
-          >
-            <div className="overflow-hidden">
-              <div
-                className={`px-6 pt-3 pb-1 transition-opacity duration-300 ${
-                  searchOpen ? "opacity-100 delay-100" : "opacity-0"
-                }`}
-              >
-                <div className="flex items-center gap-2.5 rounded-xl border border-[#FFFBFB] px-4 py-2.5">
-                  <Search size={18} className="text-white shrink-0" />
-                  <input
-                    ref={searchInputRef}
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search"
-                    className="w-full bg-transparent text-[16px] placeholder:text-white/50 focus:outline-none"
-                  />
-                  {searchQuery && (
-                    <button onClick={() => setSearchQuery("")} aria-label="Clear search">
-                      <X size={16} className="text-white/60" />
-                    </button>
-                  )}
+            {/* Inline search */}
+            <div
+              className={`grid transition-[grid-template-rows] duration-300 ease-out ${
+                searchOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+              }`}
+            >
+              <div className="overflow-hidden">
+                <div
+                  className={`px-6 pt-3 pb-1 transition-opacity duration-300 ${
+                    searchOpen ? "opacity-100 delay-100" : "opacity-0"
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 rounded-xl border border-[#FFFBFB] px-4 py-2.5">
+                    <Search size={18} className="text-white shrink-0" />
+                    <input
+                      ref={searchInputRef}
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search"
+                      className="w-full bg-transparent text-[16px] placeholder:text-white/50 focus:outline-none"
+                    />
+                    {searchQuery && (
+                      <button onClick={() => setSearchQuery("")} aria-label="Clear search">
+                        <X size={16} className="text-white/60" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Content pager. Every tab is a real page in one horizontal
+            {/* Content pager. Every tab is a real page in one horizontal
               track that follows the finger 1:1 — see TabPager for what this
               replaces and why. Pages stay mounted, so paging back is
               instant and nothing refetches. */}
-          <div className="pb-24">
-            <TabPager
-              index={tabIndex}
-              count={TABS.length}
-              onIndexChange={goToTab}
-              x={pagerX}
-              onPageWidth={setPageWidth}
-            >
-              {TABS.map(({ key }) => (
-                <div key={key} className="px-1 pt-4">
-                  {profile && key === "posts" ? (
-                    <PostsGrid
-                      userId={profile.id}
-                      status="published"
-                      emptyState={<ProfileTabEmptyState tab="posts" isOwnProfile={isOwnProfile} />}
-                    />
-                  ) : profile && key === "drafts" && isOwnProfile ? (
-                    <PostsGrid
-                      userId={profile.id}
-                      status="draft"
-                      emptyState={<ProfileTabEmptyState tab="drafts" />}
-                    />
-                  ) : key === "store" && isOwnProfile && !storeIsSetUp ? (
-                    <div className="flex flex-col items-center text-center px-8 pt-16 gap-3">
-                      <h3 className="text-[16px] font-bold">Set up your store</h3>
-                      <p className="text-[13px] text-white/50 max-w-[220px]">
-                        Add your products, pickup locations, and storefront look to start selling.
-                      </p>
-                      <button
-                        onClick={() => navigate({ to: "/store" })}
-                        className="mt-1 rounded-full bg-white text-black px-6 py-2.5 text-[14px] font-semibold"
-                      >
-                        Set up store
-                      </button>
-                    </div>
-                  ) : (
-                    <ProfileTabEmptyState tab={key} isOwnProfile={isOwnProfile} />
-                  )}
-                </div>
-              ))}
-            </TabPager>
-          </div>
-        </>
-      }
+            <div className="pb-24">
+              <TabPager
+                index={tabIndex}
+                count={TABS.length}
+                onIndexChange={goToTab}
+                x={pagerX}
+                onPageWidth={setPageWidth}
+              >
+                {TABS.map(({ key }) => (
+                  <div key={key} className="px-1 pt-4">
+                    {profile && key === "posts" ? (
+                      <PostsGrid
+                        userId={profile.id}
+                        status="published"
+                        emptyState={
+                          <ProfileTabEmptyState tab="posts" isOwnProfile={isOwnProfile} />
+                        }
+                      />
+                    ) : profile && key === "drafts" && isOwnProfile ? (
+                      <PostsGrid
+                        userId={profile.id}
+                        status="draft"
+                        emptyState={<ProfileTabEmptyState tab="drafts" />}
+                      />
+                    ) : key === "store" && isOwnProfile && !storeIsSetUp ? (
+                      <div className="flex flex-col items-center text-center px-8 pt-16 gap-3">
+                        <h3 className="text-[16px] font-bold">Set up your store</h3>
+                        <p className="text-[13px] text-white/50 max-w-[220px]">
+                          Add your products, pickup locations, and storefront look to start selling.
+                        </p>
+                        <button
+                          onClick={() => navigate({ to: "/store" })}
+                          className="mt-1 rounded-full bg-white text-black px-6 py-2.5 text-[14px] font-semibold"
+                        >
+                          Set up store
+                        </button>
+                      </div>
+                    ) : (
+                      <ProfileTabEmptyState tab={key} isOwnProfile={isOwnProfile} />
+                    )}
+                  </div>
+                ))}
+              </TabPager>
+            </div>
+          </>
+        }
+      </motion.div>
 
       {/* Store sheet — Store is the one tab that rises up over the rest of
           the page instead of sitting flat under the tab row like every other
@@ -661,7 +672,7 @@ function ProfilePage() {
                 what you were looking at — and it competed for the very same
                 gesture as the product tiles own photo carousels. Inside the
                 sheet, left/right belongs to those carousels alone. */}
-            <div className="flex-1 overflow-y-auto pb-24">
+            <div className="flex-1 overflow-y-auto overscroll-contain">
               {store && <PublicStorefront storeId={store.id} />}
             </div>
           </motion.div>

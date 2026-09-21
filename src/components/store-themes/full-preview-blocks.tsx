@@ -13,10 +13,12 @@ import {
   ChevronRight,
   GripHorizontal,
   Image as ImageIcon,
+  LayoutGrid,
   Minus,
   MoreHorizontal,
   Move,
   Plus,
+  Rows2,
   Search,
   Share2,
   ShoppingBag,
@@ -323,7 +325,7 @@ function CatalogTile({
   const variantNumber = (photos[index]?.variant ?? 0) + 1;
 
   return (
-    <div className="rounded-xl p-1.5 text-left" style={{ background: tileBg }}>
+    <div className="rounded-xl p-1 text-left" style={{ background: tileBg }}>
       <div
         className="relative mb-2 aspect-[4/5] w-full overflow-hidden rounded-lg"
         style={{ background: `${accent}22` }}
@@ -387,8 +389,13 @@ function CatalogTile({
             {tile.title}
           </p>
           {mode === "products" && tile.price != null && (
-            <p className="text-[11px]" style={{ color: mutedColor }}>
-              ₦{tile.price.toLocaleString()}
+            <p className="flex items-baseline gap-1 text-[11px]" style={{ color: mutedColor }}>
+              <span>₦{tile.price.toLocaleString()}</span>
+              {tile.compareAtPrice != null && tile.compareAtPrice > tile.price && (
+                <span className="text-[10px] line-through opacity-70">
+                  ₦{tile.compareAtPrice.toLocaleString()}
+                </span>
+              )}
             </p>
           )}
         </button>
@@ -722,9 +729,21 @@ export function HeroSlideshow({
         )}
 
         {isEditing && (
-          <div className="absolute inset-x-0 bottom-0 flex items-center gap-1.5 overflow-x-auto bg-gradient-to-t from-black/70 to-transparent px-2 pb-2 pt-6">
+          // pointer-events-none on the wrapper, re-enabled on each real
+          // target: this strip's own empty gradient background used to sit
+          // on top of (and swallow every pointerdown aimed at) the crop
+          // handle in the corner below it, since it paints after the slide
+          // layer and spans full width right down to the bottom edge. Any
+          // new interactive child added to this strip needs its own
+          // pointer-events-auto, or it silently receives no clicks/taps.
+          // pr-14 reserves space the scrollable thumbnails/add-button can
+          // never reach, clear of the handle's own bottom-1 right-1 36px
+          // box — without it, scrolling to the last photo (once there are
+          // enough to need scrolling) parks a real, pointer-events-auto
+          // thumbnail directly on top of the handle again.
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center gap-1.5 overflow-x-auto bg-gradient-to-t from-black/70 to-transparent pl-2 pr-14 pb-2 pt-6">
             {images.map((src, i) => (
-              <div key={src} className="relative shrink-0">
+              <div key={src} className="pointer-events-auto relative shrink-0">
                 <img
                   src={src}
                   alt=""
@@ -744,7 +763,7 @@ export function HeroSlideshow({
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-dashed border-white/40 text-white/70"
+                className="pointer-events-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-dashed border-white/40 text-white/70"
               >
                 <Plus size={14} />
               </button>
@@ -880,6 +899,66 @@ function CollectionsModeTab({
   );
 }
 
+// Fixed pixel sizing rather than percentages -- with exactly two segments the
+// sliding-highlight math (transitions-dev's "tabs sliding" pattern) is exact
+// and doesn't fight the container's own padding/gap.
+const COLUMNS_TOGGLE_SEGMENT = 40;
+const COLUMNS_TOGGLE_GAP = 4;
+
+function ColumnsToggle({
+  columns,
+  accent,
+  textColor,
+  onChange,
+}: {
+  columns: 1 | 2;
+  accent: string;
+  textColor: string;
+  onChange: (columns: 1 | 2) => void;
+}) {
+  const options: { value: 1 | 2; label: string; icon: typeof LayoutGrid }[] = [
+    { value: 2, label: "Two per row", icon: LayoutGrid },
+    { value: 1, label: "One per row", icon: Rows2 },
+  ];
+  const activeIndex = columns === 2 ? 0 : 1;
+
+  return (
+    <div
+      className="relative inline-flex items-center gap-1 rounded-full p-1"
+      style={{ background: `${textColor}14` }}
+    >
+      <span
+        aria-hidden="true"
+        className="absolute top-1 left-1 rounded-full transition-transform duration-200 ease-out"
+        style={{
+          width: COLUMNS_TOGGLE_SEGMENT,
+          height: COLUMNS_TOGGLE_SEGMENT,
+          background: `${accent}26`,
+          transform: `translateX(${activeIndex * (COLUMNS_TOGGLE_SEGMENT + COLUMNS_TOGGLE_GAP)}px)`,
+        }}
+      />
+      {options.map(({ value, label, icon: Icon }) => (
+        <button
+          key={value}
+          type="button"
+          onClick={() => onChange(value)}
+          aria-label={label}
+          aria-pressed={columns === value}
+          className="relative z-10 flex items-center justify-center rounded-full"
+          style={{
+            width: COLUMNS_TOGGLE_SEGMENT,
+            height: COLUMNS_TOGGLE_SEGMENT,
+            color: columns === value ? accent : textColor,
+            opacity: columns === value ? 1 : 0.55,
+          }}
+        >
+          <Icon size={18} />
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function CollectionsGrid({
   fallbackItems,
   fallbackProducts,
@@ -906,6 +985,7 @@ export function CollectionsGrid({
   const { tiles } = useThemePreviewCatalog(mode, storeId);
   const useReal = tiles.length > 0;
   const heading = mode === "products" ? "Products" : "Collections";
+  const columns = editing?.columns ?? 2;
 
   function handleTileTap() {
     if (editing?.isEditing) editing.onTileTapBlocked();
@@ -913,22 +993,30 @@ export function CollectionsGrid({
 
   return (
     <div className="mt-5 px-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-y-2">
         {editing?.isEditing ? (
-          <div className="flex items-center gap-1">
-            <CollectionsModeTab
-              label="Collections"
-              active={mode === "collections"}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-1">
+              <CollectionsModeTab
+                label="Collections"
+                active={mode === "collections"}
+                accent={accent}
+                textColor={textColor}
+                onClick={() => editing.onCollectionsModeChange("collections")}
+              />
+              <CollectionsModeTab
+                label="Products"
+                active={mode === "products"}
+                accent={accent}
+                textColor={textColor}
+                onClick={() => editing.onCollectionsModeChange("products")}
+              />
+            </div>
+            <ColumnsToggle
+              columns={columns}
               accent={accent}
               textColor={textColor}
-              onClick={() => editing.onCollectionsModeChange("collections")}
-            />
-            <CollectionsModeTab
-              label="Products"
-              active={mode === "products"}
-              accent={accent}
-              textColor={textColor}
-              onClick={() => editing.onCollectionsModeChange("products")}
+              onChange={editing.onColumnsChange}
             />
           </div>
         ) : (
@@ -943,7 +1031,7 @@ export function CollectionsGrid({
           View all <ChevronRight size={14} />
         </span>
       </div>
-      <div className="mt-2.5 grid grid-cols-2 gap-2">
+      <div className={`mt-2.5 grid gap-1.5 ${columns === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
         {useReal
           ? tiles.map((tile) => (
               <CatalogTile
@@ -965,7 +1053,7 @@ export function CollectionsGrid({
               // upload would be judging a product tile that is missing a
               // piece of its real design.
               fallbackProducts.map((p, i) => (
-                <div key={i} className="rounded-xl p-1.5 text-left" style={{ background: tileBg }}>
+                <div key={i} className="rounded-xl p-1 text-left" style={{ background: tileBg }}>
                   <div
                     className="relative mb-2 aspect-[4/5] w-full overflow-hidden rounded-lg"
                     style={{ background: `${accent}22` }}
@@ -996,7 +1084,7 @@ export function CollectionsGrid({
                   type="button"
                   key={i}
                   onClick={handleTileTap}
-                  className="rounded-xl p-1.5 text-left"
+                  className="rounded-xl p-1 text-left"
                   style={{ background: tileBg }}
                 >
                   <div

@@ -10,9 +10,16 @@ import type {
 } from "./edit-types";
 import type { ThemeId } from "./types";
 
+// columns is also excluded here, session-only for now like the crop fields:
+// persisting it needs a new `columns` column on store_theme_customizations,
+// which needs the generated Supabase types regenerated to type the
+// select/upsert calls below -- that file is hook-protected
+// (block-generated-edits.mjs) and the Supabase MCP that regenerates it is
+// disconnected in this session. Wiring it up is a follow-up, not a blocker
+// for the toggle itself (see full-preview-blocks.tsx's ColumnsToggle).
 export type SavedThemeCustomization = Omit<
   ThemeEditState,
-  "slideshowCrops" | "slideshowAspectRatio" | "tileCrops"
+  "slideshowCrops" | "slideshowAspectRatio" | "tileCrops" | "columns"
 >;
 
 // Persists everything in ThemeEditState EXCEPT crop positions. logoImage and

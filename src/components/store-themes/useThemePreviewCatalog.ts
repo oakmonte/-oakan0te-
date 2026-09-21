@@ -22,6 +22,7 @@ export type PreviewTile = {
    * nothing for the tile's variant counter to track, so it isn't drawn. */
   variantCount: number;
   price: number | null;
+  compareAtPrice: number | null;
 };
 
 // A cover photo plus its extras, in upload order, with the nulls and the
@@ -70,12 +71,15 @@ export function useThemePreviewCatalog(mode: "collections" | "products", storeId
                 })),
                 variantCount: 1,
                 price: null,
+                compareAtPrice: null,
               })),
         );
       } else {
         const { data, error } = await supabase
           .from("products")
-          .select("id, title, product_variants(main_image_url, additional_image_urls, price)")
+          .select(
+            "id, title, product_variants(main_image_url, additional_image_urls, price, compare_at_price)",
+          )
           .eq("store_id", storeId)
           // Embedded rows come back in no guaranteed order otherwise, which
           // would let the tile's photo order — and the price below, taken
@@ -111,6 +115,7 @@ export function useThemePreviewCatalog(mode: "collections" | "products", storeId
                   photos,
                   variantCount: variant,
                   price: variants[0]?.price ?? null,
+                  compareAtPrice: variants[0]?.compare_at_price ?? null,
                 };
               }),
         );
