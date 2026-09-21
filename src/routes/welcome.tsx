@@ -20,7 +20,13 @@ const FULL_STOP_DELAY_MS = 650;
 const TOTAL_TYPE_MS = HEADLINE.length * TYPE_SPEED_MS;
 /** Matches the full stop's own scale-in below, so leaving doesn't clip it. */
 const PERIOD_FADE_MS = 250;
-const ANIMATION_MS = LEAD_IN_MS + TOTAL_TYPE_MS + FULL_STOP_DELAY_MS + PERIOD_FADE_MS;
+/** When the sentence is finished and the full stop has landed. */
+const SENTENCE_END_MS = LEAD_IN_MS + TOTAL_TYPE_MS + FULL_STOP_DELAY_MS;
+/** A beat of stillness before the page changes. The cursor stops blinking and
+ *  simply rests, which reads as "finished" — leaving mid-blink reads as
+ *  "interrupted", and the sentence is the whole point of this screen. */
+const CURSOR_SETTLE_MS = 520;
+const ANIMATION_MS = SENTENCE_END_MS + PERIOD_FADE_MS + CURSOR_SETTLE_MS;
 
 function WelcomePage() {
   const { userId } = useRequireSession();
@@ -155,17 +161,23 @@ function TypingHeadline({ onDone }: { onDone: () => void }) {
     }, LEAD_IN_MS);
 
     // Pause before the full stop.
-    schedule(() => setPeriodVisible(true), LEAD_IN_MS + TOTAL_TYPE_MS + FULL_STOP_DELAY_MS);
+    schedule(() => setPeriodVisible(true), SENTENCE_END_MS);
 
     // Sentence finished, full stop settled. The page may still be waiting on
     // the profile after this; that wait is the whole job of the screen.
     schedule(() => onDoneRef.current(), ANIMATION_MS);
 
-    // Cursor blinks until navigation; cancel it right before the page leaves.
+    // The cursor blinks while there is still typing to do, then holds steady
+    // from the full stop onward -- see CURSOR_SETTLE_MS.
     const cursorInterval = setInterval(() => {
       if (!cancelled) setCursorVisible((v) => !v);
     }, 530);
     timers.push(cursorInterval);
+
+    schedule(() => {
+      clearInterval(cursorInterval);
+      setCursorVisible(true);
+    }, SENTENCE_END_MS);
 
     return () => {
       cancelled = true;
@@ -174,22 +186,37 @@ function TypingHeadline({ onDone }: { onDone: () => void }) {
   }, []);
 
   return (
-    <p className="font-serif text-xl sm:text-2xl text-center leading-snug tracking-tight max-w-sm text-brand-text/85 min-h-[2.5rem]">
-      <span className="whitespace-pre-wrap">{HEADLINE.slice(0, chars)}</span>
-      <motion.span
-        initial={{ opacity: 0, scale: 0.85 }}
-        animate={periodVisible ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.85 }}
-        transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-        aria-hidden={!periodVisible}
-      >
-        .
-      </motion.span>
-      <span
-        aria-hidden="true"
-        className={`inline-block w-[2px] h-[1em] -mb-[0.15em] ml-[1px] align-middle bg-current transition-opacity duration-100 ${
-          cursorVisible ? "opacity-100" : "opacity-0"
-        }`}
-      />
+    // Left-set, not centred. Centred text re-centres on every character, so
+    // the sentence appeared to grow out of the middle and shove itself
+    // backwards rather than being typed.
+    <p className="relative font-serif text-xl sm:text-2xl text-left leading-snug tracking-tight w-full max-w-sm text-brand-text/85">
+      {/* Reserves the finished sentence's exact box, including the second line
+          it wraps onto. Without it the paragraph grows a line mid-type and,
+          because the page is vertically centred, shunts the logo upward. */}
+      <span aria-hidden="true" className="invisible whitespace-pre-wrap">
+        {HEADLINE}.
+        {/* The cursor's own width, so a sentence that exactly fills the last
+            line cannot push it onto a line the reserved box does not cover. */}
+        <span className="inline-block w-[3px]" />
+      </span>
+      <span className="absolute inset-0 whitespace-pre-wrap">
+        {HEADLINE.slice(0, chars)}
+        <motion.span
+          initial={{ opacity: 0, scale: 0.85 }}
+          animate={periodVisible ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.85 }}
+          transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+          aria-hidden={!periodVisible}
+          className="inline-block"
+        >
+          .
+        </motion.span>
+        <span
+          aria-hidden="true"
+          className={`inline-block w-[2px] h-[1em] -mb-[0.15em] ml-[1px] align-middle bg-current transition-opacity duration-100 ${
+            cursorVisible ? "opacity-100" : "opacity-0"
+          }`}
+        />
+      </span>
     </p>
   );
 }
