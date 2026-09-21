@@ -133,8 +133,15 @@ function PhotoEditorRoute() {
 function PhotoEditor() {
   useLockedViewport();
   const navigate = useNavigate();
-  const { layers, addLayer, updateLayer, removeLayer, replaceLayers, selectedLayerId, setSelectedLayerId } =
-    useAfterShotLayers();
+  const {
+    layers,
+    addLayer,
+    updateLayer,
+    removeLayer,
+    replaceLayers,
+    selectedLayerId,
+    setSelectedLayerId,
+  } = useAfterShotLayers();
 
   const mediaAreaRef = useRef<HTMLDivElement>(null);
   const mediaBoxRef = useRef<HTMLDivElement>(null);
@@ -975,10 +982,7 @@ function PhotoEditor() {
         className="absolute left-0 right-0 flex items-center justify-center"
         style={{
           top: "calc(env(safe-area-inset-top) + 64px)",
-          bottom:
-            activeTool === "filter" ? 380
-            : activeTool === "adjust" ? 340
-            : bottomInset,
+          bottom: activeTool === "filter" ? 380 : activeTool === "adjust" ? 340 : bottomInset,
         }}
       >
         {empty ? (

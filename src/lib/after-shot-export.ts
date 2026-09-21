@@ -23,7 +23,12 @@ import { compileGrade, isNoopFilter, type CameraFilter } from "@/components/came
 import { drawLayers, preloadStickers } from "@/lib/layer-bake";
 import type { Layer } from "@/lib/after-shot-layers";
 import type { CapturedMedia } from "@/lib/capture-handoff";
-import { ExtendedPhotoAdjust, EXTENDED_NEUTRAL_ADJUST, adjustToCss, isNeutralAdjust } from "@/lib/photo-adjust";
+import {
+  ExtendedPhotoAdjust,
+  EXTENDED_NEUTRAL_ADJUST,
+  adjustToCss,
+  isNeutralAdjust,
+} from "@/lib/photo-adjust";
 import { type CropRect, isCropNoop } from "@/lib/crop-rect";
 
 // The single place a finished post is produced. Everything the after-shot screen
@@ -69,7 +74,7 @@ function drawFilteredFrame(
   applyCompiledFilter(frame, compiled);
   ctx.putImageData(frame, 0, 0);
 }
-  
+
 export async function exportPhoto(
   blob: Blob,
   filter: CameraFilter,
@@ -239,7 +244,7 @@ export async function exportVideo(
           sample.draw(ctx, 0, 0, width, height);
         }
         drawFilteredFrame(ctx, compiled, width, height);
-        
+
         // Apply vignette after filter but before layers
         if (vignetteValue > 0) {
           const vignetteData = ctx.getImageData(0, 0, width, height);

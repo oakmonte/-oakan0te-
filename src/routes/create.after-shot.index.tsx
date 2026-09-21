@@ -262,12 +262,10 @@ function AfterShotIndexPage() {
     previewFilterIntensity ?? selectedFilterIntensity,
   );
   const adjustCss = adjustToCss(adjust);
-  const previewFilterCss = [
-    filterCss !== "none" ? filterCss : "",
-    adjustCss !== "none" ? adjustCss : "",
-  ]
-    .filter(Boolean)
-    .join(" ") || "none";
+  const previewFilterCss =
+    [filterCss !== "none" ? filterCss : "", adjustCss !== "none" ? adjustCss : ""]
+      .filter(Boolean)
+      .join(" ") || "none";
   const selectedFilter = CAMERA_FILTERS.find((f) => f.id === selectedFilterId) ?? CAMERA_FILTERS[0];
 
   // Vignette can't be a CSS filter (it's positional). Expose the value so the
@@ -316,7 +314,16 @@ function AfterShotIndexPage() {
     } finally {
       setExporting(false);
     }
-  }, [media, selectedFilter, selectedFilterIntensity, layers, cropRect, adjust, setMedia, navigate]);
+  }, [
+    media,
+    selectedFilter,
+    selectedFilterIntensity,
+    layers,
+    cropRect,
+    adjust,
+    setMedia,
+    navigate,
+  ]);
 
   return (
     <div
@@ -341,10 +348,7 @@ function AfterShotIndexPage() {
         ref={mediaAreaRef}
         className="absolute inset-x-0 top-0 flex items-center justify-center"
         style={{
-          bottom:
-            activeTool === "filter" ? 380
-            : activeTool === "adjust" ? 340
-            : 0,
+          bottom: activeTool === "filter" ? 380 : activeTool === "adjust" ? 340 : 0,
         }}
       >
         <div
