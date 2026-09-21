@@ -24,14 +24,23 @@ export const EXTENDED_NEUTRAL_ADJUST: ExtendedPhotoAdjust = {
   vignette: 0,
 };
 
-export const EXTENDED_ADJUST_CONTROLS: { key: keyof ExtendedPhotoAdjust; label: string }[] = [
+/** `min` defaults to -100. Vignette states 0 because a negative vignette has no
+ *  meaning — every renderer guards `> 0` — and a slider that travels into dead
+ *  range still leaves isNeutralAdjust false, which blocks the "nothing was
+ *  edited" fast path for an edit the seller cannot see. Mirrors the range
+ *  studio/adjustments.ts already declares for the same control. */
+export const EXTENDED_ADJUST_CONTROLS: {
+  key: keyof ExtendedPhotoAdjust;
+  label: string;
+  min?: number;
+}[] = [
   { key: "exposure", label: "Exposure" },
   { key: "contrast", label: "Contrast" },
   { key: "highlights", label: "Highlights" },
   { key: "shadows", label: "Shadows" },
   { key: "temperature", label: "Warmth" },
   { key: "vibrance", label: "Vibrance" },
-  { key: "vignette", label: "Vignette" },
+  { key: "vignette", label: "Vignette", min: 0 },
 ];
 
 export function extendedAdjustToCss(adj: ExtendedPhotoAdjust): string {
@@ -66,7 +75,7 @@ export function extendedAdjustToCss(adj: ExtendedPhotoAdjust): string {
 }
 export type PhotoAdjust = ExtendedPhotoAdjust;
 export const NEUTRAL_ADJUST: PhotoAdjust = EXTENDED_NEUTRAL_ADJUST;
-export const ADJUST_CONTROLS: { key: keyof PhotoAdjust; label: string }[] =
+export const ADJUST_CONTROLS: { key: keyof PhotoAdjust; label: string; min?: number }[] =
   EXTENDED_ADJUST_CONTROLS;
 export const adjustToCss = extendedAdjustToCss;
 export function isNeutralAdjust(adj: PhotoAdjust): boolean {

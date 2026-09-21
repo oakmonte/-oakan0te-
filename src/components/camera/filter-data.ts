@@ -1180,7 +1180,7 @@ export const CAMERA_FILTERS: CameraFilter[] = [
     id: "creative-lomo",
     name: "Lomo",
     category: "creative",
-    previewCss: "contrast(1.1) saturate(1.3) vignette(0.3)",
+    previewCss: "contrast(1.1) saturate(1.3)",
     grade: recipe({
       shadows: 0.02,
       midtones: 0.04,
@@ -1593,17 +1593,6 @@ export const CAMERA_FILTERS: CameraFilter[] = [
     }),
     intensity: 100,
     thumbnailColor: "#FFEB3B",
-    isBuiltIn: true,
-    premium: false,
-  },
-
-  {
-    id: "creative-vignette",
-    name: "Vignette",
-    category: "creative",
-    previewCss: "vignette(0.4)",
-    intensity: 100,
-    thumbnailColor: "#000000",
     isBuiltIn: true,
     premium: false,
   },
@@ -2379,8 +2368,6 @@ export function previewCssAtIntensity(filter: CameraFilter, intensity: number): 
       case "sepia":
       case "grayscale":
         return `${name}(${(value * amount).toFixed(4)})`;
-      case "vignette":
-        return `vignette(${(value * amount).toFixed(4)})`;
       case "hue-rotate":
         return `hue-rotate(${(value * amount).toFixed(2)}deg)`;
       default:

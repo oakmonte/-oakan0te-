@@ -30,6 +30,7 @@ import FilterPanel, { PANEL_HEIGHT as FILTER_PANEL_HEIGHT } from "@/components/c
 import PhotoAdjustPanel from "@/components/create/PhotoAdjustPanel";
 import { CAMERA_FILTERS, previewCssAtIntensity } from "@/components/camera/filter-data";
 import LayerOverlay from "@/components/camera/LayerOverlay";
+import { vignetteCss } from "@/lib/vignette";
 import { useLayerRenderer } from "@/components/camera/aftershot/use-layer-renderer";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
 import SoundLibrarySheet from "@/components/camera/SoundLibrarySheet";
@@ -1061,6 +1062,16 @@ function PhotoEditor() {
                 />
               )}
 
+              {/* Below the layers, matching the bake's drawVignette-then-drawLayers
+                  order. Gradient comes from vignetteCss() so preview and export
+                  read one definition — see src/lib/vignette.ts. */}
+              {(active?.adjust?.vignette ?? 0) > 0 && (
+                <div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{ background: vignetteCss(active?.adjust?.vignette ?? 0) }}
+                />
+              )}
+
               {(activeTool === null || activeTool === "text") && (
                 <div
                   className="absolute inset-0"
@@ -1082,18 +1093,6 @@ function PhotoEditor() {
                     }}
                   />
                 </div>
-              )}
-
-              {/* Vignette overlay — CSS radial-gradient approximation so the
-                  preview matches the positional darkening the bake applies.
-                  Clipped to the media box so it never bleeds outside the photo. */}
-              {(active?.adjust?.vignette ?? 0) > 0 && (
-                <div
-                  className="absolute inset-0 pointer-events-none"
-                  style={{
-                    background: `radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,${((active?.adjust?.vignette ?? 0) / 100) * 0.85}) 100%)`,
-                  }}
-                />
               )}
 
               {busy && (

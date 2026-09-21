@@ -30,6 +30,7 @@ import { adjustToCss, NEUTRAL_ADJUST, type PhotoAdjust } from "@/lib/photo-adjus
 import { exportComposite } from "@/lib/after-shot-export";
 import type { CropRect } from "@/lib/crop-rect";
 import LayerOverlay from "@/components/camera/LayerOverlay";
+import { vignetteCss } from "@/lib/vignette";
 import { useAfterShotLayers } from "@/lib/after-shot-layers";
 import { useLayerRenderer } from "@/components/camera/aftershot/use-layer-renderer";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
@@ -421,6 +422,18 @@ function AfterShotIndexPage() {
             </div>
           )}
 
+          {/* Vignette sits BELOW the layers, because the bake draws it before
+              drawLayers — it is part of the picture, not something that dims a
+              caption laid on top. Rendered from vignetteCss() rather than a
+              gradient written here, so the preview and the export cannot drift
+              apart; see src/lib/vignette.ts. */}
+          {vignetteValue > 0 && (
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{ background: vignetteCss(vignetteValue) }}
+            />
+          )}
+
           {/* Confirmed layers (text/draw/sticker) always render here, on the
             base page — not just while a panel is open — same as how a
             caption sits on a photo permanently once added.
@@ -449,18 +462,6 @@ function AfterShotIndexPage() {
                 }}
               />
             </div>
-          )}
-
-          {/* Vignette overlay — CSS radial-gradient approximation so the preview
-              reflects the positional darkening the bake applies. Positioned
-              inside the media box so it crops to the same bounds as the photo. */}
-          {vignetteValue > 0 && (
-            <div
-              className="absolute inset-0 pointer-events-none"
-              style={{
-                background: `radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,${(vignetteValue / 100) * 0.85}) 100%)`,
-              }}
-            />
           )}
 
           <DrawPanel open={activeTool === "draw"} containerRef={mediaBoxRef} onClose={closeTool} />

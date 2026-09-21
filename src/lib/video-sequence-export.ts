@@ -16,6 +16,7 @@ import {
 import { applyCompiledFilter, compileFilter, type CompiledFilter } from "@/lib/canvas-filter";
 import { compileGrade, CAMERA_FILTERS } from "@/components/camera/filter-data";
 import { drawLayers, preloadStickers } from "@/lib/layer-bake";
+import { drawVignette } from "@/lib/vignette";
 import type { Layer } from "@/lib/after-shot-layers";
 import { adjustToCss } from "@/lib/photo-adjust";
 import {
@@ -247,6 +248,9 @@ async function writeStill(
     ctx.fillRect(0, 0, width, height);
     ctx.drawImage(img, rect.sx, rect.sy, rect.sw, rect.sh, rect.dx, rect.dy, rect.dw, rect.dh);
     drawFilteredFrame(ctx, compiled, width, height);
+    // Vignette is positional, so it never reaches adjustToCss and has to be
+    // drawn here. Between the filter and the layers, same as every other path.
+    drawVignette(ctx, width, height, clip.adjust.vignette);
     drawLayers(ctx, layers, width, height, stickers);
 
     const step = 1 / STILL_FPS;
@@ -301,6 +305,7 @@ async function writeVideo(
         videoTrack.displayHeight * scaleY,
       );
       drawFilteredFrame(ctx, compiled, width, height);
+      drawVignette(ctx, width, height, clip.adjust.vignette);
       drawLayers(ctx, layers, width, height, stickers);
 
       // Timestamps come from the source frame, re-based onto the sequence and

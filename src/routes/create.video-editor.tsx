@@ -36,6 +36,7 @@ import TextPanel from "@/components/camera/aftershot/TextPanel";
 import FilterPanel from "@/components/camera/FilterPanel";
 import PhotoAdjustPanel from "@/components/create/PhotoAdjustPanel";
 import LayerOverlay from "@/components/camera/LayerOverlay";
+import { vignetteCss } from "@/lib/vignette";
 import { useLayerRenderer } from "@/components/camera/aftershot/use-layer-renderer";
 import { CAMERA_FILTERS, previewCssAtIntensity } from "@/components/camera/filter-data";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
@@ -1185,6 +1186,17 @@ function VideoEditor() {
                   style={{ objectFit: current.fit, filter: previewCss }}
                 />
               )
+            )}
+
+            {/* This route rendered the Vignette slider without ever showing or
+                baking its value — the control moved and nothing happened. Below
+                the layers, from the shared vignetteCss(), matching what
+                video-sequence-export now draws per frame. */}
+            {(current?.adjust?.vignette ?? 0) > 0 && (
+              <div
+                className="absolute inset-0 pointer-events-none"
+                style={{ background: vignetteCss(current?.adjust?.vignette ?? 0) }}
+              />
             )}
 
             {(activeTool === null || activeTool === "text") && !expanded && (

@@ -72,7 +72,7 @@ export default function PhotoAdjustPanel({
           </button>
         </div>
 
-        {ADJUST_CONTROLS.map(({ key, label }) => (
+        {ADJUST_CONTROLS.map(({ key, label, min }) => (
           <div key={key} className="py-1.5">
             <div className="flex items-center justify-between pb-1">
               <span className="text-[12px] text-white/60">{label}</span>
@@ -82,7 +82,7 @@ export default function PhotoAdjustPanel({
             </div>
             <input
               type="range"
-              min={-100}
+              min={min ?? -100}
               max={100}
               step={1}
               value={value[key]}
