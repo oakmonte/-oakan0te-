@@ -16,10 +16,10 @@ export function MenuRow({ label, onClick }: { label: string; onClick: () => void
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center justify-between py-3 text-[14px] hover:text-white/80 transition-colors"
+      className="w-full flex items-center justify-between py-4 text-[16px] hover:text-white/80 transition-colors"
     >
       <span>{label}</span>
-      <ChevronRight size={16} className="text-white/40" />
+      <ChevronRight size={18} className="text-white/40" />
     </button>
   );
 }

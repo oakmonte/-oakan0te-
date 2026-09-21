@@ -13,7 +13,11 @@ import { useRequireSession } from "@/components/onboarding/use-require-session";
 import { usePrefetchNextStep } from "@/hooks/use-prefetch-next-step";
 
 export const Route = createFileRoute("/choose-username")({
-  head: () => ({ meta: [{ title: "Choose a username — Oakmonte" }] }),
+  head: () => ({
+    // White page, so the iOS status strip must be white too — the root
+    // default is #000000 and would otherwise paint a black band above it.
+    meta: [{ title: "Choose a username — Oakmonte" }, { name: "theme-color", content: "#ffffff" }],
+  }),
   component: ChooseUsernamePage,
 });
 

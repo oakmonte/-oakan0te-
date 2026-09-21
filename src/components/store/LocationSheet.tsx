@@ -300,7 +300,7 @@ export function LocationSheet({
 
       <div className="flex-1 overflow-y-auto px-4 py-5 flex flex-col gap-6">
         <div>
-          <p className="text-[15px] font-semibold text-gray-900 mb-1">Location name</p>
+          <p className="text-[17px] font-semibold text-gray-900 mb-1">Location name</p>
           <p className="text-xs text-gray-500 mb-3">
             So you can tell it apart from your other locations — e.g. "Lekki warehouse" or "Main
             store".
@@ -328,23 +328,23 @@ export function LocationSheet({
         </div>
 
         {promptVisible && (
-          <div className="border border-gray-200 rounded-2xl p-4 flex items-start gap-3 bg-gray-50 animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="border border-gray-200 rounded-3xl p-5 flex items-start gap-3.5 bg-gray-50 animate-in fade-in slide-in-from-top-2 duration-300">
             <div className="p-2 rounded-full bg-white border border-gray-200 shrink-0">
               <LocateFixed size={16} className="text-gray-700" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900">Use my current location</p>
+              <p className="text-[15px] font-semibold text-gray-900">Use my current location</p>
               <p className="text-xs text-gray-500 mt-0.5">
                 Fills in city, state and country, and saves the exact pin riders use to find you —
                 you'll still enter the street address yourself.
               </p>
               {locateError && <p className="text-xs text-red-500 mt-1.5">{locateError}</p>}
-              <div className="flex items-center gap-3 mt-2.5">
+              <div className="flex items-center gap-3 mt-3.5">
                 <button
                   type="button"
                   onClick={useCurrentLocation}
                   disabled={locating}
-                  className="flex items-center gap-1.5 text-sm font-medium text-white bg-black rounded-full px-5 py-2.5 disabled:opacity-50"
+                  className="flex items-center gap-1.5 text-[15px] font-medium text-white bg-black rounded-full px-6 py-3.5 oak-motion-control active:scale-[0.98] disabled:opacity-50"
                 >
                   {locating ? (
                     "Locating…"
@@ -363,7 +363,7 @@ export function LocationSheet({
         )}
 
         <div>
-          <p className="text-[15px] font-semibold text-gray-900 mb-3">Address</p>
+          <p className="text-[17px] font-semibold text-gray-900 mb-3">Address</p>
           <div className="flex flex-col gap-3">
             <input
               value={addressLine}
@@ -492,7 +492,7 @@ export function LocationSheet({
         )}
       </div>
 
-      <div className="sticky bottom-0 px-4 py-3 border-t border-gray-100 bg-white shrink-0">
+      <div className="sticky bottom-0 px-4 pt-3 oak-safe-bottom border-t border-gray-100 bg-white shrink-0">
         <button
           type="button"
           onClick={handleSave}

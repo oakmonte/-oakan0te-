@@ -14,7 +14,11 @@ import { usePrefetchNextStep } from "@/hooks/use-prefetch-next-step";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 
 export const Route = createFileRoute("/whats-your-style")({
-  head: () => ({ meta: [{ title: "What's your style — Oakmonte" }] }),
+  head: () => ({
+    // White page, so the iOS status strip must be white too — the root
+    // default is #000000 and would otherwise paint a black band above it.
+    meta: [{ title: "What's your style — Oakmonte" }, { name: "theme-color", content: "#ffffff" }],
+  }),
   component: WhatsYourStylePage,
 });
 

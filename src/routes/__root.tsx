@@ -15,6 +15,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { preloadStoreThemeAssets } from "../lib/preload-store-theme-assets";
 import { useSession } from "../hooks/use-session";
 import { markStandalone } from "@/lib/standalone";
+import { captureInstallPrompt, stampInstalledApp } from "@/lib/installed-app";
 import { useBuildFreshness } from "../hooks/use-build-freshness";
 import { PostUploadToast } from "../components/PostUploadToast";
 import { ProductSaveToast } from "../components/ProductSaveToast";
@@ -97,9 +98,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         name: "viewport",
         content: "width=device-width, initial-scale=1, viewport-fit=cover",
       },
-      // Every route is black; this tells the browser to color its own chrome
-      // (iOS Safari's status bar and bottom toolbar, Android's address bar)
-      // to match instead of defaulting to white at the page's edges.
+      // Tells the browser to color its own chrome (iOS Safari's status bar and
+      // bottom toolbar, Android's address bar) to match the page instead of
+      // defaulting to white at its edges.
+      //
+      // This said "every route is black" and that stopped being true: auth,
+      // the whole onboarding flow and /store are white now, and each was
+      // inheriting a black status strip above a white screen (reported on
+      // device 2026-09-16). Those routes set #ffffff in their own head(). This
+      // root value is the default for the dark screens -- the feed, camera and
+      // studio -- so a NEW white route must declare its own, or it inherits a
+      // black band. If white ever becomes the majority, flip this and let the
+      // dark routes override instead.
       { name: "theme-color", content: "#000000" },
       // Without this, Android Chrome's "force dark" / "auto dark theme for
       // web contents" setting (on by default on plenty of Android devices)
@@ -220,6 +230,19 @@ function RootComponent() {
   // the CSS that has to tell them apart — see standalone.ts. Runs once here
   // rather than per-screen so there is one answer for the whole app.
   useEffect(markStandalone, []);
+
+  // Has to be here rather than on the screen that offers the install:
+  // `beforeinstallprompt` fires during page load, so a listener added when
+  // /store/get-the-webapp mounts has already missed it. See installed-app.ts.
+  useEffect(captureInstallPrompt, []);
+
+  // Records the install against the account the first time the app is opened
+  // standalone. Runs on every session change rather than once, because on iOS
+  // the installed app starts signed out -- the launch that can finally write
+  // this is the one *after* they sign in, not the first one.
+  useEffect(() => {
+    void stampInstalledApp(user);
+  }, [user]);
 
   // Fires the instant a session exists — right after sign-in and equally
   // right after finishing seller account creation, since both land here

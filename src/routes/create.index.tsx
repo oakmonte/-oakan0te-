@@ -1125,7 +1125,7 @@ function CreatePage() {
         onTouchStart={handlePinchStart}
         onTouchMove={handlePinchMove}
         onTouchEnd={handlePinchEnd}
-        onClick={handlePreviewTap} // <--- ADD CLICK HANDLER HERE
+        onClick={handlePreviewTap}
         className="absolute overflow-hidden"
         style={{
           left: 0,

@@ -130,13 +130,21 @@ function ProfilePage() {
   // well before there's anything real to preview, so this is the signal for
   // "actually set up" rather than just "a stores row exists".
   const storeIsSetUp = !!store?.theme_id;
+  const isOwnProfile = !!user && !!profile && user.id === profile.id;
   // Full four-step checklist (payout, pickup location, a product listed, a
   // theme picked) — the same "done" store.index.tsx's own cards use, and a
   // stricter bar than storeIsSetUp above (which only checks the theme, for
   // the narrower "is there enough to preview a storefront" question). This
   // one gates the seller prompt below: a store row existing, or even having
   // a theme, isn't "already set up my store" the way a seller means it.
-  const storeSetupStatus = useStoreSetupStatus(store?.id ?? null);
+  //
+  // Null for anyone else's profile, which is most views of this page. `store`
+  // above belongs to the profile being *viewed*, so passing it unconditionally
+  // fired four round trips — three Supabase counts plus an authed payout
+  // fetch — against a stranger's store on every visit, and RLS is off on
+  // `stores`/`products`, so they succeeded rather than coming back empty.
+  // Every value it returns is read behind `isOwnProfile` anyway.
+  const storeSetupStatus = useStoreSetupStatus(isOwnProfile ? (store?.id ?? null) : null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   // Where the Store sheet's top edge should sit — the vertical MIDDLE of the
   // avatar circle, so the sheet rises high enough to cover the bottom half of
@@ -165,7 +173,6 @@ function ProfilePage() {
   const [messageHint, setMessageHint] = useState<string | null>(null);
   const [sellerPromptOpen, setSellerPromptOpen] = useState(false);
 
-  const isOwnProfile = !!user && !!profile && user.id === profile.id;
   // Until the session resolves we don't know whose profile this is, and
   // guessing "not yours" meant your own profile briefly rendered a Follow
   // button and a Message button, with no menu and no bottom nav, before
@@ -669,13 +676,13 @@ function ProfilePage() {
             <ArrowLeft size={20} />
           </button>
 
-          <div className="text-[11px] uppercase tracking-wide text-white/40 mb-2">
+          <div className="text-[12px] uppercase tracking-wide text-white/40 mb-2">
             Creation &amp; business
           </div>
           <MenuRow label="Oakmonte Studio" onClick={() => navigate({ to: "/studio" })} />
           <MenuRow label="Oakmonte Store" onClick={() => navigate({ to: "/store" })} />
 
-          <div className="text-[11px] uppercase tracking-wide text-white/40 mt-6 mb-2">
+          <div className="text-[12px] uppercase tracking-wide text-white/40 mt-6 mb-2">
             Personal
           </div>
           <MenuRow label="Activity centre" onClick={() => navigate({ to: "/activity" })} />
@@ -755,31 +762,46 @@ function ProfilePage() {
         }
       />
 
+      {/* One action, on purpose. This used to offer a second button, "Upload or
+          create content", which navigated nowhere and only closed the dialog --
+          so it was a choice between doing something and doing nothing, dressed
+          as a real fork. It names the next outstanding step rather than saying
+          "set up my store", so the seller doesn't have to work out where they
+          got to either.
+
+          Still a Radix Dialog rather than one of the hand-rolled sheets: this
+          opens by itself, without being asked for, so focus trapping and
+          escape-to-close are not optional. The classes below only move it to
+          the bottom of the screen in the house sheet shape. */}
       <Dialog open={sellerPromptOpen} onOpenChange={setSellerPromptOpen}>
-        <DialogContent className="w-[calc(100%-32px)] max-w-sm rounded-xl border-gray-200 bg-white p-5 text-gray-900">
+        <DialogContent className="left-0 top-auto bottom-0 w-full max-w-none translate-x-0 translate-y-0 gap-0 rounded-t-[28px] rounded-b-none border-0 bg-white p-6 pb-[calc(env(safe-area-inset-bottom)+24px)] text-gray-900 shadow-[0_-20px_60px_rgba(0,0,0,0.18)] duration-300 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom data-[state=closed]:zoom-out-100 data-[state=open]:zoom-in-100 sm:left-[50%] sm:max-w-sm sm:translate-x-[-50%] sm:rounded-t-[28px] sm:rounded-b-none">
           <DialogHeader className="text-left">
-            <DialogTitle className="text-[18px]">Which would you like to do now?</DialogTitle>
-            <DialogDescription className="pt-1 text-sm text-gray-500">
-              You can do the other one later.
+            <DialogTitle className="text-[20px] tracking-[-0.02em]">
+              Your store isn&rsquo;t live yet
+            </DialogTitle>
+            <DialogDescription className="pt-1.5 text-sm leading-5 text-gray-500">
+              {storeSetupStatus.nextStepLabel
+                ? `Next up: ${storeSetupStatus.nextStepLabel.toLowerCase()}. It takes a minute.`
+                : "A few steps left before people can buy from you."}
             </DialogDescription>
           </DialogHeader>
-          <div className="flex flex-col gap-2">
+          <div className="mt-5 flex flex-col gap-2">
             <button
               type="button"
               onClick={() => {
                 setSellerPromptOpen(false);
                 navigate({ to: "/store" });
               }}
-              className="w-full rounded-xl bg-black py-3 text-[15px] font-semibold text-white"
+              className="oak-motion-control w-full rounded-full bg-black py-4 text-[15px] font-semibold text-white active:scale-[0.98]"
             >
-              Set up my store
+              {storeSetupStatus.nextStepLabel ?? "Finish setting up"}
             </button>
             <button
               type="button"
               onClick={() => setSellerPromptOpen(false)}
-              className="w-full rounded-xl border border-gray-200 py-3 text-[15px] font-medium text-gray-900"
+              className="oak-motion-control w-full rounded-full py-3 text-[15px] font-medium text-gray-500"
             >
-              Upload or create content
+              Later
             </button>
           </div>
         </DialogContent>

@@ -2,7 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import { AuthPanel } from "@/components/onboarding/AuthPanel";
 
 export const Route = createFileRoute("/sign-in")({
-  head: () => ({ meta: [{ title: "Sign in — Oakmonte" }] }),
+  head: () => ({
+    // White page, so the iOS status strip must be white too — the root
+    // default is #000000 and would otherwise paint a black band above it.
+    meta: [{ title: "Sign in — Oakmonte" }, { name: "theme-color", content: "#ffffff" }],
+  }),
   component: SignInPage,
 });
 

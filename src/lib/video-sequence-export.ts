@@ -13,12 +13,7 @@ import {
   getFirstEncodableVideoCodec,
   getFirstEncodableAudioCodec,
 } from "mediabunny";
-import {
-  applyCompiledFilter,
-  compileFilter,
-  IDENTITY_FILTER,
-  type CompiledFilter,
-} from "@/lib/canvas-filter";
+import { applyCompiledFilter, compileFilter, type CompiledFilter } from "@/lib/canvas-filter";
 import { compileGrade, CAMERA_FILTERS } from "@/components/camera/filter-data";
 import { drawLayers, preloadStickers } from "@/lib/layer-bake";
 import type { Layer } from "@/lib/after-shot-layers";
@@ -60,7 +55,7 @@ function drawFilteredFrame(
   width: number,
   height: number,
 ) {
-  if (compiled === IDENTITY_FILTER) return;
+  if (compiled.ops.length === 0) return;
   const frame = ctx.getImageData(0, 0, width, height);
   applyCompiledFilter(frame, compiled);
   ctx.putImageData(frame, 0, 0);
@@ -73,7 +68,7 @@ function compileClipFilter(clip: Clip): CompiledFilter {
   const grade = compileGrade(filter, clip.filterIntensity);
   const adjustCss = adjustToCss(clip.adjust);
   if (!adjustCss) return grade;
-  return { ops: [...grade.ops, ...compileFilter(adjustCss).ops] };
+  return { ops: [...grade.ops, ...compileFilter(adjustCss).ops], amount: grade.amount };
 }
 
 /** Real bytes for a clip. Remote clips (drafts, existing posts) are URLs until

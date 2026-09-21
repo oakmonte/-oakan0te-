@@ -100,7 +100,7 @@ export function VariantListSheet({
         </div>
       </div>
 
-      <div className="sticky bottom-0 bg-white/95 backdrop-blur border-t border-gray-100 px-4 py-3">
+      <div className="sticky bottom-0 bg-white/95 backdrop-blur border-t border-gray-100 px-4 pt-3 oak-safe-bottom">
         <button
           type="button"
           onClick={onContinue}

@@ -34,7 +34,11 @@ import femaleMeasurementGuide from "@/assets/body-types/female/Body-type-measure
 import maleMeasurementGuide from "@/assets/body-types/male/Body-type-measurement-male.webp";
 
 export const Route = createFileRoute("/find-your-fit")({
-  head: () => ({ meta: [{ title: "Find your fit — Oakmonte" }] }),
+  head: () => ({
+    // White page, so the iOS status strip must be white too — the root
+    // default is #000000 and would otherwise paint a black band above it.
+    meta: [{ title: "Find your fit — Oakmonte" }, { name: "theme-color", content: "#ffffff" }],
+  }),
   component: FindYourFitPage,
 });
 

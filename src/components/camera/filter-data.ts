@@ -2379,9 +2379,9 @@ export function previewCssAtIntensity(filter: CameraFilter, intensity: number): 
       case "sepia":
       case "grayscale":
         return `${name}(${(value * amount).toFixed(4)})`;
-      case "hue-rotate":
       case "vignette":
         return `vignette(${(value * amount).toFixed(4)})`;
+      case "hue-rotate":
         return `hue-rotate(${(value * amount).toFixed(2)}deg)`;
       default:
         return whole;

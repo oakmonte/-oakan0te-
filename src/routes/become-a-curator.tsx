@@ -4,6 +4,9 @@ import { AuthPanel } from "@/components/onboarding/AuthPanel";
 export const Route = createFileRoute("/become-a-curator")({
   head: () => ({
     meta: [
+      // White page, so the iOS status strip must be white too — the root
+      // default is #000000 and would otherwise paint a black band above it.
+      { name: "theme-color", content: "#ffffff" },
       { title: "Become a Curator — Oakmonte" },
       { name: "description", content: "Join Oakmonte as a curator and define your wardrobe." },
       { property: "og:title", content: "Become a Curator — Oakmonte" },

@@ -188,7 +188,7 @@ export function ProductsSheet({
             )}
           </div>
 
-          <div className="sticky bottom-0 bg-black text-white px-4 h-14 flex items-center justify-between shrink-0">
+          <div className="sticky bottom-0 bg-black text-white px-4 min-h-14 pb-[env(safe-area-inset-bottom)] flex items-center justify-between shrink-0">
             <span className="text-sm">{selected.size} selected</span>
             <button
               type="button"

@@ -1,40 +1,83 @@
 # CLAUDE.md
 
 Oakmonte — content-driven fashion marketplace. TanStack Start (React 19, file-based routing),
-Tailwind v4, deployed to Cloudflare (Nitro `cloudflare` preset), built/maintained through Lovable.
-Product is a mobile-first **webapp** — never suggest React Native or native-only APIs.
+Tailwind v4, **deployed to Vercel**. Product is a mobile-first **webapp** — never suggest React
+Native or native-only APIs.
 
-Lovable sync: don't rewrite pushed history (force push / rebase / amend / squash). Keep the branch
-working — pushed commits sync into the Lovable editor. (Also in `AGENTS.md`.)
+Don't rewrite pushed history (force push / rebase / amend / squash). The remote is shared — more
+than one agent works this repo — and `AGENTS.md` still carries Lovable's own copy of this rule
+inside `LOVABLE:BEGIN/END` markers, which is generated; leave it alone.
+
+## Deployment (Vercel)
+
+`vercel.json` is the whole config: `bun install`, then `bun run build`. Vercel builds from the repo,
+so a red gate is a failed deploy.
+
+**A local `bun run build` writes Cloudflare artifacts (`wrangler.json`, `.wrangler/`) and that is
+not a bug.** `@lovable.dev/vite-tanstack-config` still defaults Nitro to the Cloudflare preset, but
+Nitro picks its preset from the environment: on Vercel, `VERCEL=1` is set and it emits
+`.vercel/output/` in Build Output API format instead. Verified 2026-09-16 — `VERCEL=1 bun run build`
+locally produces `.vercel/output/functions/__server.func/` and no wrangler config. So **don't "fix"
+the preset**; pinning it to `vercel` would break local builds and buy nothing.
+
+Lovable is no longer the deploy or edit surface, but its packages are still in the dependency tree
+(`@lovable.dev/vite-tanstack-config` builds the app; see `bunfig.toml` and the `vite.config.ts` note
+below). Removing them is a real migration, not a cleanup.
 
 ## Commands
 
 Package manager is **bun** — `package-lock.json` is stale, ignore it.
 
 - `bun run dev` (vite dev, port 8080) · `bun run build` · `bun run format`
+- `bun run e2e` (Playwright) · `bun run shots` (screenshot sweep) · `bun run e2e:ui`. Config and the
+  full "what this cannot test" list are in `playwright.config.ts` and `e2e/README.md`.
 - Gates before calling work done: `bun run typecheck` (`tsc --noEmit`), `bun run lint`, `bun run test`.
   All pass clean — keep them that way. Only accepted lint output: 6 `react-refresh` warnings in
   `src/components/ui/*` (shadcn); don't chase those.
-- **Tests cover pure logic only** (`bun test`, no framework, `src/**/*.test.ts`): the rules whose
+- **`bun run test` covers pure logic only** (`bun test`, no framework, `src/**/*.test.ts` — browser
+  tests live in `e2e/` and run under Playwright instead, see below): the rules whose
   breakage is silent and expensive — `variant-combinations.ts` (regenerating the variant grid without
   blanking a seller's prices/stock), `necessities.ts` (what counts as filled, and where each answer is
   actually persisted), `weight-estimate.ts` (parsing). Add to these when you change a rule that a
   seller's data depends on. They're excluded from `tsc` (see `tsconfig.json`) because `bun:test` types
-  would need `@types/bun`.
+  would need `@types/bun`. The script is `bun test src`, not bare `bun test`, because Bun's runner
+  also globs `*.spec.ts` and would try to execute the Playwright specs in `e2e/` — which fails with
+  "Playwright Test did not expect test() to be called here". Keep the `src` argument.
 - **The three gates do not catch a missing asset.** An `import x from "./y.png"` resolves to `any`
   through `vite/client`'s module declaration, so deleting or renaming an image leaves typecheck, lint
-  and test all green while `bun run build` fails with `UNRESOLVED_IMPORT` — and Lovable then silently
-  refuses to preview or publish. Run `bun run build` (~5s) after any change that adds, moves or
-  deletes a file under `src/` that something imports by path. Cost us a blocked publish on 2026-09-10.
-- **Nothing tests the UI.** Interaction behaviour — sheets, gestures, contentEditable, keyboard/
-  viewport — is only verifiable by running the dev server and exercising the flow on a real device.
+  and test all green while `bun run build` fails with `UNRESOLVED_IMPORT` — which on Vercel is a
+  failed deploy, not a warning. Run `bun run build` after any change that adds, moves or deletes a
+  file under `src/` that something imports by path. Cost us a blocked publish on 2026-09-10, back
+  when Lovable silently refused to publish instead of failing loudly.
+- **Playwright covers the UI as far as a browser can, which is not as far as you want.** Projects are
+  phone-only on purpose — iPhone 13 (WebKit) and Pixel 7 (Chromium); there is no desktop project
+  because no screen here is designed for one. Good for layout, copy, routing, ordinary interaction,
+  and for catching a route that _throws while rendering_ — the `/create` module-scope hook crash
+  passed typecheck, lint and build and would have been caught by a `pageerror` listener.
+  **Playwright's WebKit is not iOS Safari**, so everything that actually makes this app hard is
+  invisible to it: the standalone storage jar (`isStandalone()` always reports a browser tab), Add to
+  Home Screen and the `installed_app` stamp, camera permission surviving a relaunch, `getUserMedia`,
+  passkeys, Face ID, `beforeinstallprompt`. Those still need a real phone. Gestures, contentEditable
+  and keyboard/viewport behaviour are technically drivable but rarely worth the effort versus a
+  device.
+- **Assert, don't look — this is a real cost, not a style preference.** A phone-sized screenshot costs
+  roughly 1,500 tokens every time an agent reads one, and a judgement call on top; the same check as
+  `expect(...)` is a one-line pass/fail. Same rule for the browser tools: `get_page_text` / `read_page`
+  return text and should be the default, with screenshots reserved for genuinely visual questions
+  (spacing, overlap, a theme). Generating screenshots for an agent to then examine saves nothing.
+- `fullPage: true` caps at 32,767 **device** pixels, and the iPhone project emulates 3×, so the real
+  ceiling is ~10,922 CSS px. The landing page is ~11,700 and overflows it. Use a viewport screenshot,
+  or drop `deviceScaleFactor` to 2 for that run.
 - A `Stop` hook re-runs typecheck on `.ts`/`.tsx` changes. Hooks in `.claude/hooks/` also hard-block
   reads of secret files and hand-edits to generated `types.ts` files.
 
 ## Two Supabase clients — do not conflate
 
-1. `src/integrations/supabase/*` + its duplicate `src/lib/integrations/supabase/*` — Lovable Cloud's
-   auto-managed integration. Generated, don't edit.
+1. `src/integrations/supabase/*` + its duplicate `src/lib/integrations/supabase/*` — generated by
+   Lovable Cloud's integration and left in place after the move off Lovable. **Not dead code:**
+   `src/start.ts` attaches `attachSupabaseAuth` from the `lib/` copy on every request, alongside
+   `attachMySupabaseAuth`. Nothing regenerates them now. Don't edit them, don't delete them without
+   tracing that middleware first, and don't import from them for new work.
 2. `src/lib/integrations/my-supabase/*` — the app's own external project. **This is the one app code
    actually uses** (auth, sessions, every `store.*` route, all `api.*` routes).
 
@@ -70,7 +113,9 @@ means "has children, not filled in yet". Not interchangeable.
 - `bunfig.toml` enforces a 24h `minimumReleaseAge` supply-chain guard (only `@lovable.dev/*` excluded).
   Ask before adding excludes.
 - `vite.config.ts` is thin on purpose — `@lovable.dev/vite-tanstack-config` already wires TanStack
-  devtools, `tanstackStart`, viteReact, tailwind, tsConfigPaths, Nitro and the `@` alias. Don't re-add.
+  devtools, `tanstackStart`, viteReact, tailwind, tsConfigPaths, Nitro and the `@` alias. Don't
+  re-add. It still ships despite the move off Lovable; see the Deployment section for why its
+  Cloudflare default is harmless on Vercel.
 - LF everywhere. On Windows keep `core.autocrlf=false` for this repo.
 
 ### Every `<video>` carries four attributes

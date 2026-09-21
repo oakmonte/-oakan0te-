@@ -4,7 +4,7 @@ Everything deliberately deferred, plus the things that turned out to be deferred
 accident. Nothing here is a bug report you need to triage — it is the list you asked for
 so the pile stops living in chat history.
 
-Ordered by what stops a launch, not by when it came up. Last updated 2026-09-09.
+Ordered by what stops a launch, not by when it came up. Last updated 2026-09-17.
 
 Legend: **[BLOCKS LAUNCH]** · **[NEEDS A DECISION]** — I cannot pick for you, it changes
 the schema or costs money · **[SMALL]** — do it any afternoon · **[BY DESIGN]** — noted so
@@ -252,7 +252,7 @@ back into the timeline by the same path a fresh pick takes. What is still
 missing is the restore itself: `create.drafts.tsx` hands the video editor
 media and never looks at `audio_url`.
 
-The *baked-in* case is fixed, and it had to be: a video-editor draft has its
+The _baked-in_ case is fixed, and it had to be: a video-editor draft has its
 music inside the MP4, so reopening and republishing one carried the track into
 the new post while the credit columns came back null — music published without
 its attribution, which is the breach rather than the data loss. The editor now
@@ -262,7 +262,7 @@ reads `audio_licence` with no `audio_url` as "already welded in" and holds an
 trip.
 
 **The rest of that review is closed too** (same day). `/api/sound-file` now
-takes a signed URL: `/api/sounds` stamps each track with an HMAC *after*
+takes a signed URL: `/api/sounds` stamps each track with an HMAC _after_
 `isUsableTrack` and `isLicenceUsable` have run, and the proxy refuses anything
 unstamped — so an allowlisted host is no longer enough to pull a track the
 picker filtered out. Signing rather than re-resolving the id upstream was
@@ -390,6 +390,53 @@ One real follow-up once it's applied: regenerate `src/lib/integrations/my-supaba
 (`mcp__supabase__generate_typescript_types`), then delete both `messages.tsx`'s AND
 `api.support-messages.reply.ts`'s hand-rolled `MessagingDatabase` type + cast — a stopgap
 for a table the generated types don't know about yet, not a pattern to keep around.
+
+### 0.6 "Get the webapp" is a store-setup step · [DONE — 2026-09-17]
+
+The install is no longer left to chance. It is card 3 of the seller checklist
+(`src/routes/store.index.tsx`), sitting immediately after "Pickup locations", with its own
+page at `/store/get-the-webapp` (`src/routes/store.get-the-webapp.tsx`). Android gets a
+real one-tap install button; iOS gets Share -> Add to Home Screen instructions, because
+there is no programmatic install on iOS and no API that changes that.
+
+**Completion is auto-stamped only — there is deliberately no "I've installed it" button.**
+`stampInstalledApp` (`src/lib/installed-app.ts`) writes `installed_app: true` to Supabase
+`user_metadata` from `__root.tsx`, and only when actually running standalone. Metadata
+rather than localStorage for the reason that is this whole feature's subject: the installed
+iOS app has its own storage jar, so a flag written in Safari is invisible to the app and
+vice versa. Metadata follows the account across that boundary. Same reasoning, same shape
+as `passkey_prompted`.
+
+Consequences worth knowing before anyone "fixes" them:
+
+- **On iPhone the tick lands late, on purpose.** The installed app starts signed out, so the
+  stamp cannot happen until they sign in inside it. That delay is exactly what the passkey
+  offer two steps earlier is for — see `store.finance.tsx`'s comment, which now records the
+  dependency. The explainer video on the step page tells them to carry on from the app.
+- **The card is hidden entirely on desktop** (`isInstallablePhone` in `src/lib/platform.ts`,
+  which is now the file's second OS branch). A laptop cannot install anything, so the card
+  would be a permanent blocker with no way through. Four steps on a laptop, five on a phone.
+- **`installedApp` is deliberately NOT part of `complete`** in `use-store-setup-status.ts`.
+  `complete` gates the profile page's seller prompt; if the install counted, a desktop-only
+  seller could never satisfy it and would be re-nagged every session with no card on screen
+  to explain why. `complete` means "this store can sell", not "this person has the app".
+- Tapping a later step from a browser tab raises a "Finish this from the app" prompt rather
+  than the generic order warning. Still a nudge with a tap-through, never a block.
+
+`beforeinstallprompt` is captured at the root into a module variable, not in the step
+page's own effect — it fires during page load, so a route-level listener has already missed
+it and the button silently degrades to instructions, which looks like it works.
+
+**Owed: the explainer clip.** The page points at `/get-the-webapp.mp4` in `public/` as a
+plain string path — deliberately not an `import`, since an unresolved asset import fails
+`bun run build` (a failed Vercel deploy) while passing the other three gates. Until the file
+is dropped in, `onError` hides the player and the page still reads correctly.
+
+Same commit: the auto-opening seller prompt on the profile page dropped its second button,
+"Upload or create content", which navigated nowhere and only closed the dialog — a choice
+between doing something and doing nothing wearing the costume of a real fork. It now names
+the next outstanding step (`nextStepLabel`, derived in the hook so it cannot drift from the
+checklist) and offers one action.
 
 ## 1. Blocks launch
 
@@ -534,10 +581,84 @@ passed through unchanged.
 Supabase supports TOTP; 0 factors are enrolled and there is no enrolment UI or recovery
 codes. Fair to defer, but it should be a launch gate for sellers holding bank details.
 
-### 2.7 Apple sign-in · [NEEDS A DECISION]
+### 2.7 Apple sign-in · [CODE DONE, DARK — waiting on the Apple account, 2026-09-16]
 
-Button removed entirely — it was dead. Costs $99/yr for an Apple developer account. Re-add
-when that is worth paying for.
+Fully wired and merged, hidden behind `APPLE_SIGN_IN_ENABLED` in `src/lib/auth.ts`. Flip that
+one const to `true` once the Apple Developer Program account is live and the provider is
+enabled in Supabase. Hidden rather than merely broken because a disabled provider makes
+Supabase return a raw "Unsupported provider" error straight into the UI.
+
+Costs **₦43,900/yr on the Nigerian storefront** — about $32 at Sept 2026 rates, not the $99 US
+price, because Apple sets regional tiers and hasn't repriced Nigeria as the naira moved. Assume it
+climbs at some renewal. It only benefits iOS users, since Google-on-Android and email already work. Enrollment has to be done by an adult (the account holder accepts the
+licence agreement in their own name), and Individual → Organization later is an Apple support
+request, not a setting.
+
+Console setup, in order: Team ID → register `oakmonte.store` as an email source → App ID with
+the Sign In with Apple capability (leave the server-to-server endpoint blank, Supabase Auth
+doesn't support it) → Services ID, description **`Oakmonte`**, which is what users read on the
+consent sheet → Website URLs on that Services ID, which are
+`lzyflkrqexxuyxyudvbw.supabase.co` and
+`https://lzyflkrqexxuyxyudvbw.supabase.co/auth/v1/callback` — **not** `oakmonte.store`, which
+is why no `.well-known` file is needed here → signing key, `.p8` downloadable once.
+
+**Blocked on ID verification, 2026-09-16.** Apple's individual enrollment requires a valid photo
+ID and rejects the **Nigerian NIMC national identity card** outright — "document type isn't
+supported", not a scan failure, so retrying is pointless. Accepted: passport, driver's licence.
+Whoever enrolls needs one of those, in date. This is the only thing standing between the repo and
+working Apple sign-in; everything else is built.
+
+**Never start a second Apple team.** Apple's user identifier is scoped to the developer _team_,
+not the client, so moving to a different team changes `sub` for every user and Supabase sees them
+as new people — everyone loses their account. The account is enrolled as an Individual under a
+parent's Apple ID, and the migration path is **Individual → Organization conversion**, which
+preserves the Apple ID, Team ID, certificates and keys (only the seller name changes). It is a
+support request from Membership Details needing a company name, legal address and D-U-N-S number
+— gated on the LLC existing, **not** on anyone's age, so it can happen as soon as the entity does.
+Converting is also what makes team members possible at all; Individual accounts cannot have them.
+
+That Apple ID is therefore a single point of failure for every Apple login on Oakmonte. Two-factor
+on it, a trusted number both parties can reach, and the `.p8` + Team ID + Key ID stored somewhere
+the project controls rather than only on one person's device.
+
+**No domain verification, and no Supabase Pro.** Apple's Services ID panel offers a
+`.well-known/apple-developer-domain-association.txt` download, and you obviously cannot host a
+file on `lzyflkrqexxuyxyudvbw.supabase.co`. That file is for Sign in with Apple **JS** and for
+email-relay domains; the server-side OAuth redirect flow Supabase uses only needs the Return URL
+registered. Supabase hosts no such file on any project host (404, checked 2026-09-16) and its own
+documented setup names `<ref>.supabase.co` as the domain, so this is the normal path for every
+project on every plan. Pro buys a nicer hostname, nothing more.
+
+The two fields are separate values in different formats, and registering one does not imply the
+other:
+
+```
+Domains and Subdomains:  lzyflkrqexxuyxyudvbw.supabase.co      <- no https://, no trailing slash
+Return URLs:             https://lzyflkrqexxuyxyudvbw.supabase.co/auth/v1/callback
+```
+
+A protocol or trailing slash in the domain field gives "Invalid domain".
+
+Register **only** the callback URL that exists today. If the Supabase domain ever changes — a
+vanity subdomain or a custom domain — Supabase Auth starts advertising the new callback the
+instant it is activated, and Apple rejects any `redirect_uri` it doesn't know, so Apple sign-in
+breaks on activation. The fix is additive and takes two minutes: add the new callback URL to the
+same Services ID **alongside** the old one, then activate. Same for Google's authorized redirect
+URIs. Don't pre-register domains you don't own yet — Apple wants to verify them and they won't
+resolve.
+
+Both branded options need Pro ($25/mo), not the $10 the add-on page shows: a custom domain is
+Pro + $10, and a vanity subdomain is free but still Pro-only. Note `oakmonte.supabase.co` is
+first-come-first-served across all Supabase users and cannot be reserved without claiming it.
+
+**The client secret expires after at most 6 months and Apple sign-in then fails silently for
+everyone**, with no warning from Apple or Supabase. Record the real expiry date here the day
+it is generated and set a calendar reminder a fortnight before. Rotating needs the `.p8`, the
+Team ID and the Key ID, which is the whole reason to keep that file.
+
+Once live, verify the assumption `needsPasskeyForInstall` rests on: an Apple account should
+sign in on the installed iOS app with Face ID and no password, and should never see
+`/passkey`.
 
 ### 2.8 Where "How did you hear about us?" sits in the flow · [NEEDS A DECISION]
 
@@ -603,6 +724,28 @@ all three (`owns_product`/`owns_option`/`owns_variant` helpers), so there's noth
 left to do here.
 
 ---
+
+### 3.8 `payoutSet` answers for the wrong store when a seller has two · [SMALL]
+
+Found reviewing the install-step work on 2026-09-17, deliberately not fixed in that commit —
+it predates it and the fix is an API change, not a UI one.
+
+In `src/hooks/use-store-setup-status.ts` the payout signal comes from
+`authedFetch("/api/store/payout")`, which carries no store id. That endpoint uses
+`requireOwnStore` (`src/lib/server-auth.ts`), which resolves to the seller's **oldest**
+store. The hook's other three signals are all scoped to the `storeId` argument — the
+_active_ store on `store.index.tsx`. So for a seller who owns two stores, the checklist
+shows store A's payout account as store B's.
+
+Consequence: B's card reads "Payout account added — pending verification" for an account B
+does not have, `handleStepTap` treats step 1 as done so no order warning fires, and the
+profile prompt's `nextStepLabel` names the wrong next step for a store that cannot be paid
+at all. Harmless for single-store sellers, which is everyone today — `stores` still has no
+unique constraint on `owner_id` (see 1.3), so two-store sellers are possible but rare.
+
+Fix: pass the active `storeId` on the request and switch the handler to `requireStoreAccess`
+instead of `requireOwnStore`. Touches an `api.*` route and server auth, so it wants the
+`supabase-data-access` skill and a review, not a drive-by.
 
 ## 4. Waiting on the landing page
 

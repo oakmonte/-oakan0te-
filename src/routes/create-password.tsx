@@ -7,7 +7,11 @@ import { checkPassword, MIN_PASSWORD_LENGTH } from "@/lib/password-policy";
 import { FormError, OnboardingChecking } from "@/components/onboarding/OnboardingShell";
 
 export const Route = createFileRoute("/create-password")({
-  head: () => ({ meta: [{ title: "Create a password — Oakmonte" }] }),
+  head: () => ({
+    // White page, so the iOS status strip must be white too — the root
+    // default is #000000 and would otherwise paint a black band above it.
+    meta: [{ title: "Create a password — Oakmonte" }, { name: "theme-color", content: "#ffffff" }],
+  }),
   component: CreatePasswordPage,
 });
 

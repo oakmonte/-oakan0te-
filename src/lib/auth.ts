@@ -1,6 +1,7 @@
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { isStandalone } from "@/lib/standalone";
+import { isIOS } from "@/lib/platform";
 import { isPasswordResetPending, readIntent, setIntent, type Intent } from "@/lib/onboarding-state";
 
 function callbackUrl() {
@@ -58,7 +59,6 @@ export type PostAuthRedirect =
   | { to: "/find-your-fit" }
   | { to: "/whats-your-style" }
   | { to: "/switching-roles" }
-  | { to: "/passkey" }
   | { to: "/create-password" }
   | { to: "/no-account" };
 
@@ -259,14 +259,11 @@ export async function resolvePostAuthRedirect(
     }
   }
 
-  // Offer a passkey once onboarding is actually finished, so it lands after
-  // the last question rather than interrupting the middle of a signup. Fires
-  // for sign-IN too -- otherwise every account that already exists would
-  // never be offered one.
-  if (needsPasskeyOffer(userData.user) && (await isPasskeySupported())) {
-    return { to: "/passkey" } as const;
-  }
-
+  // The passkey offer used to live here, and at /welcome. It now runs once,
+  // from the seller checklist right after the payout step -- see
+  // needsPasskeyForInstall. Putting it back in the auth path would re-ask at
+  // the worst moment: between signing up and finally seeing the app, where it
+  // reads as a nag and gets skipped on reflex.
   return { to: "/profile/$username", params: { username: profile.personal_username } } as const;
 }
 
@@ -333,6 +330,50 @@ export async function signInWithGoogle() {
   });
 }
 
+/** Apple sign-in ships dark until the Apple Developer Program account exists
+ *  and the provider is switched on in Supabase. Flip this to true then --
+ *  nothing else needs changing.
+ *
+ *  Hidden rather than merely broken: with the provider disabled, Supabase
+ *  answers signInWithOAuth with a raw "Unsupported provider" error, and a
+ *  button that shows that to a seller is worse than no button. */
+export const APPLE_SIGN_IN_ENABLED = false;
+
+/** Sign in with Apple.
+ *
+ *  Deliberately the same shape as signInWithGoogle, standalone branch and all
+ *  -- read that function's comment before touching this one, because the
+ *  reasoning transfers exactly and was expensive to learn.
+ *
+ *  Apple is the reason needsPasskeyForInstall exists in the form it does: it
+ *  is the one provider whose sheet re-authenticates against the device's own
+ *  Apple ID with Face ID and no password, so those users survive installing
+ *  the app to the home screen without a passkey.
+ *
+ *  One Apple-specific quirk, already handled elsewhere: the identity token
+ *  carries NO full name. Apple sends a name exactly once, on first
+ *  authorization, in a form POST rather than the token, so user_metadata is
+ *  empty for these accounts on every subsequent sign-in. choose-username.tsx
+ *  already falls back to the chosen username, so nothing downstream breaks --
+ *  don't "fix" it by reaching for user_metadata.full_name here. */
+export async function signInWithApple() {
+  if (isStandalone()) {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: "apple",
+      options: { redirectTo: callbackUrl(), skipBrowserRedirect: true },
+    });
+    if (error) return { data, error };
+    // Same tab, same storage jar. Not window.open -- see signInWithGoogle.
+    if (data?.url) window.location.assign(data.url);
+    return { data, error: null };
+  }
+
+  return supabase.auth.signInWithOAuth({
+    provider: "apple",
+    options: { redirectTo: callbackUrl() },
+  });
+}
+
 /** Emails a 6-digit code. Deliberately no `emailRedirectTo`: the Supabase and
  *  Resend templates send `{{ .Token }}`, not a magic link, so there is no link
  *  for the user to click and no second tab for them to get stranded in. */
@@ -394,6 +435,38 @@ export async function isPasskeySupported(): Promise<boolean> {
 export function needsPasskeyOffer(user: User | null): boolean {
   if (!user) return false;
   return user.user_metadata?.passkey_prompted !== true;
+}
+
+/** Whether a passkey would actually rescue this user, as opposed to merely
+ *  being possible on their device.
+ *
+ *  The passkey exists to survive installing the app to the home screen. On iOS
+ *  the installed app gets its own storage jar, so the session does not come
+ *  with it and the user has to sign in again -- and a passkey lives in the
+ *  platform keychain instead, scoped to the domain, so it crosses that
+ *  boundary when a session cannot.
+ *
+ *  Two populations need nothing, and asking them adds a screen that buys them
+ *  nothing:
+ *
+ *  - Android. An installed WebAPK shares the installing browser's jar, so
+ *    nobody there is signed out in the first place.
+ *  - Sign in with Apple on iOS. That flow re-authenticates against the device's
+ *    own Apple ID with Face ID and no password, which is already the thing a
+ *    passkey would give them.
+ *
+ *  Gate on this TOGETHER with needsPasskeyOffer (have we asked before) and
+ *  isPasskeySupported (can the device do it at all) -- they answer three
+ *  different questions. */
+export function needsPasskeyForInstall(user: User | null): boolean {
+  if (!user) return false;
+  if (!isIOS()) return false;
+  // Same shape as needsPassword: `providers` lists every linked identity,
+  // `provider` is the single primary on older accounts.
+  const providers = (user.app_metadata?.providers as string[] | undefined) ?? [
+    user.app_metadata?.provider,
+  ];
+  return !providers.filter(Boolean).includes("apple");
 }
 
 /** Records that the step has been shown, whichever way it was answered.

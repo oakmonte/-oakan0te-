@@ -301,7 +301,7 @@ function StoreProducts() {
       )}
 
       {selectMode && (
-        <div className="fixed bottom-0 inset-x-0 z-40 bg-white border-t border-gray-100 flex flex-col animate-in fade-in slide-in-from-bottom-2 duration-200">
+        <div className="fixed bottom-0 inset-x-0 z-40 bg-white border-t border-gray-100 pb-[env(safe-area-inset-bottom)] flex flex-col animate-in fade-in slide-in-from-bottom-2 duration-200">
           {deleteError && (
             <p className="px-4 pt-2 text-xs text-red-500 animate-in fade-in slide-in-from-top-1 duration-200">
               {deleteError}
