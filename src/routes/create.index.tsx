@@ -1673,6 +1673,7 @@ function CreatePage() {
       >
         <button
           onClick={() => setSection("shoot")}
+          aria-pressed={section === "shoot"}
           className="uppercase text-sm font-bold tracking-wide"
           style={{ opacity: section === "shoot" ? 1 : 0.5 }}
         >
@@ -1680,6 +1681,7 @@ function CreatePage() {
         </button>
         <button
           onClick={() => setSection("create")}
+          aria-pressed={section === "create"}
           className="uppercase text-sm font-bold tracking-wide"
           style={{ opacity: section === "create" ? 1 : 0.5 }}
         >

@@ -133,8 +133,15 @@ function PhotoEditorRoute() {
 function PhotoEditor() {
   useLockedViewport();
   const navigate = useNavigate();
-  const { layers, addLayer, updateLayer, replaceLayers, selectedLayerId, setSelectedLayerId } =
-    useAfterShotLayers();
+  const {
+    layers,
+    addLayer,
+    updateLayer,
+    removeLayer,
+    replaceLayers,
+    selectedLayerId,
+    setSelectedLayerId,
+  } = useAfterShotLayers();
 
   const mediaAreaRef = useRef<HTMLDivElement>(null);
   const mediaBoxRef = useRef<HTMLDivElement>(null);
@@ -798,10 +805,17 @@ function PhotoEditor() {
           photoLayers,
           photo.crop,
           onProgress,
-          adjustCss,
+          photo.adjust,
         );
       }
-      return exportPhoto(blob, filter, photo.filterIntensity, photoLayers, photo.crop, adjustCss);
+      return exportPhoto(
+        blob,
+        filter,
+        photo.filterIntensity,
+        photoLayers,
+        photo.crop,
+        photo.adjust,
+      );
     },
     [],
   );
@@ -947,7 +961,7 @@ function PhotoEditor() {
           >
             <ChevronLeft size={24} />
           </button>
-          <span className="text-[15px] font-semibold">Photo editor</span>
+          <h1 className="text-[15px] font-semibold">Photo post</h1>
           <button
             type="button"
             aria-label="Settings"
@@ -958,16 +972,18 @@ function PhotoEditor() {
         </div>
       )}
 
-      {/* Media area */}
+      {/* Media area.
+          When a filter or adjust panel is open, clamp the bottom so the preview
+          stays clearly visible above the sheet rather than nearly fully hidden.
+          Other tools (crop, text, draw) take over the whole screen so they set
+          their own layout and don't need this treatment. */}
       <div
         ref={mediaAreaRef}
         className="absolute left-0 right-0 flex items-center justify-center"
-        // Measured, not a constant. This used to be a hard 210px, which was
-        // right for the stack it was written against — then the sound chip and
-        // the reorder hint arrived and the stack grew past it, and the bottom
-        // of the photo went under the controls. Measuring means adding another
-        // row can't quietly cost the preview its bottom edge.
-        style={{ top: "calc(env(safe-area-inset-top) + 64px)", bottom: bottomInset }}
+        style={{
+          top: "calc(env(safe-area-inset-top) + 64px)",
+          bottom: activeTool === "filter" ? 380 : activeTool === "adjust" ? 340 : bottomInset,
+        }}
       >
         {empty ? (
           // Nothing added yet: the plus IS the screen. Same three sources the
@@ -977,15 +993,16 @@ function PhotoEditor() {
             type="button"
             onClick={openSource}
             className="flex flex-col items-center gap-3 active:scale-95"
+            aria-label="Add photos to begin"
           >
             <span className="flex h-[72px] w-[72px] items-center justify-center rounded-full border border-white/25 bg-white/[0.06]">
               <Plus size={34} />
             </span>
-            <span className="text-[13px] text-white/50">Add photos</span>
+            <span className="text-base font-semibold text-white">Start with a photo</span>
             {/* The one thing about this screen nobody would guess: it takes a
                 short clip too. */}
-            <span className="max-w-[220px] text-center text-[11px] leading-snug text-white/35">
-              Several make a carousel. A clip up to {LIVE_MAX_SECONDS}s becomes a live photo.
+            <span className="max-w-[260px] text-center text-[13px] leading-relaxed text-white/55">
+              Choose pictures from your device, drafts, or posts. Add several to make a carousel.
             </span>
           </button>
         ) : (
@@ -1044,12 +1061,25 @@ function PhotoEditor() {
                     selectedLayerId={activeTool === null ? selectedLayerId : null}
                     setSelectedLayerId={setSelectedLayerId}
                     renderLayerContent={renderLayerContent}
+                    onRemoveLayer={removeLayer}
                     onLayerTap={(layer) => {
                       setEditingLayerId(layer.id);
                       setActiveTool("text");
                     }}
                   />
                 </div>
+              )}
+
+              {/* Vignette overlay — CSS radial-gradient approximation so the
+                  preview matches the positional darkening the bake applies.
+                  Clipped to the media box so it never bleeds outside the photo. */}
+              {(active?.adjust?.vignette ?? 0) > 0 && (
+                <div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{
+                    background: `radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,${((active?.adjust?.vignette ?? 0) / 100) * 0.85}) 100%)`,
+                  }}
+                />
               )}
 
               {busy && (
@@ -1283,7 +1313,9 @@ function PhotoEditor() {
                   if (id === "sticker") stickerInputRef.current?.click();
                   else setActiveTool(id);
                 }}
-                className="flex w-[68px] shrink-0 flex-col items-center gap-1.5 py-1 active:scale-90 disabled:opacity-30"
+                aria-label={`${label}${empty ? ", add a photo first" : ""}`}
+                aria-pressed={activeTool === id}
+                className={`flex min-h-[58px] w-[68px] shrink-0 flex-col items-center justify-center gap-1.5 rounded-[10px] py-1 active:scale-90 disabled:opacity-30 ${activeTool === id ? "ring-2 ring-white/30" : ""}`}
               >
                 <Icon size={23} strokeWidth={1.6} />
                 <span className="text-[11px] leading-tight">{label}</span>
@@ -1295,7 +1327,8 @@ function PhotoEditor() {
               type="button"
               disabled={empty}
               onClick={() => setSoundSheetOpen(true)}
-              className="flex w-[68px] shrink-0 flex-col items-center gap-1.5 py-1 active:scale-90 disabled:opacity-30"
+              aria-label={`${sound ? "Change" : "Add"} sound${empty ? ", add a photo first" : ""}`}
+              className="flex min-h-[58px] w-[68px] shrink-0 flex-col items-center justify-center gap-1.5 rounded-[10px] py-1 active:scale-90 disabled:opacity-30"
             >
               <Music size={23} strokeWidth={1.6} />
               <span className="text-[11px] leading-tight">{sound ? "Change" : "Sound"}</span>
@@ -1304,7 +1337,8 @@ function PhotoEditor() {
               type="button"
               disabled={empty}
               onClick={() => void handleSave()}
-              className="flex w-[68px] shrink-0 flex-col items-center gap-1.5 py-1 active:scale-90 disabled:opacity-30"
+              aria-label={`Save photo${empty ? ", add a photo first" : ""}`}
+              className="flex min-h-[58px] w-[68px] shrink-0 flex-col items-center justify-center gap-1.5 rounded-[10px] py-1 active:scale-90 disabled:opacity-30"
             >
               <Download size={23} strokeWidth={1.6} />
               <span className="text-[11px] leading-tight">Save</span>
@@ -1324,7 +1358,7 @@ function PhotoEditor() {
               onClick={() => void handleNext()}
               className="w-full rounded-full bg-[var(--oak-action)] py-3.5 text-[15px] font-semibold text-white active:scale-[0.98] disabled:opacity-40"
             >
-              Next
+              Continue to publish
             </button>
           </div>
         </div>

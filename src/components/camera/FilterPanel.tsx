@@ -25,8 +25,13 @@ type FilterPanelProps = {
 
 const CATEGORY_LABELS: Record<FilterCategory, string> = {
   favorites: "★ Favorites",
+  style: "Style",
   portrait: "Portrait",
-  fashion: "Fashion",
+  mood: "Mood",
+  night: "Night",
+  food: "Food",
+  pet: "Pet",
+  pro: "Pro",
   film: "Film",
   vintage: "Vintage",
   bw: "B&W",
@@ -41,16 +46,37 @@ const PANEL_HEIGHT = 640;
  *  skeleton until the bake resolves. Always shown at the filter's own
  *  default intensity — this is for browsing/picking, not a live readout of
  *  the intensity slider below. */
-function FilterThumb({ filter }: { filter: CameraFilter }) {
+function FilterThumb({ filter, active }: { filter: CameraFilter; active?: boolean }) {
   const thumb = useFilterThumbnail(filter);
+  const size = active ? 72 : 56;
+  const margin = active ? 16 : 8;
+  const scale = active ? 1.1 : 1;
+
   return (
-    <div
-      className="w-full aspect-square overflow-hidden bg-cover bg-center transition-opacity duration-200"
-      style={{
-        backgroundColor: filter.thumbnailColor,
-        backgroundImage: thumb ? `url(${thumb})` : undefined,
-      }}
-    />
+    <div className="relative flex-shrink-0" style={{ margin: `${margin}px` }}>
+      <div
+        className="w-[56px] h-[56px] overflow-hidden bg-cover bg-center transition-all duration-200"
+        style={{
+          backgroundColor: filter.thumbnailColor,
+          backgroundImage: thumb ? `url(${thumb})` : undefined,
+          transform: `scale(${scale})`,
+          opacity: active ? 1 : 0.8,
+          border: active ? "2px solid #fff" : "1px solid rgba(255,255,255,0.2)",
+          borderRadius: "14px",
+          boxShadow: active ? "0 4px 12px rgba(0,0,0,0.3)" : "0 2px 8px rgba(0,0,0,0.2)",
+        }}
+      >
+        {active && (
+          <div
+            className="absolute top-2 right-2 flex items-center justify-center"
+            style={{ width: 24, height: 24, background: "rgba(0,0,0,0.5)", borderRadius: "50%" }}
+          >
+            <Check size={16} strokeWidth={2} color="#fff" />
+          </div>
+        )}
+      </div>
+      <div className="mt-1 text-xs text-center text-white/80">{filter.name}</div>
+    </div>
   );
 }
 
@@ -65,6 +91,9 @@ export default function FilterPanel({
   onToggleFavorite,
 }: FilterPanelProps) {
   const [category, setCategory] = useState<FilterCategory>("favorites");
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const [activeFilterId, setActiveFilterId] = useState<string>(selectedId);
+
   // null means "no local override" — activeId/activeIntensity fall back to
   // the committed props, exactly like previewId already did before
   // intensity existed.
@@ -78,21 +107,33 @@ export default function FilterPanel({
     if (!open) return;
     committedOnOpenRef.current = { id: selectedId, intensity };
     setPreview(null);
-    setCategory(favoriteIds.size > 0 ? "favorites" : "portrait");
+    setActiveFilterId(selectedId);
+    setCategory(favoriteIds.size > 0 ? "favorites" : "style");
+    // Scroll to active filter
+    if (scrollRef.current) {
+      const activeElement = scrollRef.current.querySelector(
+        `[data-filter-id="${selectedId}"]`,
+      ) as HTMLElement;
+      if (activeElement) {
+        activeElement.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+      }
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, [open, selectedId]);
 
-  const activeId = preview?.id ?? selectedId;
+  const activeId = preview?.id ?? activeFilterId;
   const activeIntensity = preview?.intensity ?? intensity;
   const activeFilter = CAMERA_FILTERS.find((f) => f.id === activeId);
 
-  const visibleFilters =
-    category === "favorites"
+  const getVisibleFilters = (cat: FilterCategory) => {
+    return cat === "favorites"
       ? CAMERA_FILTERS.filter((f) => favoriteIds.has(f.id))
-      : CAMERA_FILTERS.filter((f) => f.category === category);
+      : CAMERA_FILTERS.filter((f) => f.category === cat);
+  };
 
-  const handlePick = (f: CameraFilter) => {
-    const next = { id: f.id, intensity: f.intensity };
+  const handleFilterSelect = (filter: CameraFilter) => {
+    setActiveFilterId(filter.id);
+    const next = { id: filter.id, intensity: filter.intensity };
     setPreview(next);
     onPreview(next.id, next.intensity);
   };
@@ -118,8 +159,9 @@ export default function FilterPanel({
 
   return (
     <CameraPanel open={open} onClose={handleDiscardAndClose} title="Filters" height={PANEL_HEIGHT}>
+      {/* Category Tabs */}
       <div
-        className="flex gap-2 overflow-x-auto pb-4 -mx-6 px-6"
+        className="flex gap-2 overflow-x-auto pb-4 -mx-4 px-4"
         style={{ scrollbarWidth: "none" }}
       >
         {FILTER_CATEGORIES.map((cat) => {
@@ -128,15 +170,22 @@ export default function FilterPanel({
             <button
               key={cat}
               type="button"
-              onClick={() => setCategory(cat)}
+              onClick={() => {
+                setCategory(cat);
+                // Only change which filters are displayed — do NOT auto-select
+                // the first filter in the category. Auto-selecting called
+                // onPreview which replaced whatever the user had already picked,
+                // so merely browsing categories looked like filters weren't
+                // sticking or were being overridden.
+              }}
               className="shrink-0 rounded-full transition-all duration-200"
               style={{
-                padding: "8px 16px",
-                fontSize: 13,
+                padding: "6px 12px",
+                fontSize: 12,
                 fontWeight: 600,
-                background: selected ? "#fff" : "rgba(255,255,255,0.08)",
-                color: selected ? "#000" : "#fff",
-                border: selected ? "1px solid transparent" : "1px solid rgba(255,255,255,0.1)",
+                background: selected ? "rgba(255,255,255,0.2)" : "transparent",
+                color: selected ? "#fff" : "#fff8",
+                border: selected ? "1px solid rgba(255,255,255,0.3)" : "1px solid transparent",
               }}
             >
               {CATEGORY_LABELS[cat]}
@@ -145,67 +194,73 @@ export default function FilterPanel({
         })}
       </div>
 
-      {visibleFilters.length === 0 ? (
-        <div className="flex items-center justify-center py-16 text-sm opacity-50 text-center px-6">
-          {category === "favorites"
-            ? "Tap the heart on any filter to pin it here."
-            : "No filters in this category yet."}
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 gap-3 pb-4">
-          {visibleFilters.map((f) => {
-            const selected = f.id === activeId;
-            const favorited = favoriteIds.has(f.id);
-            return (
-              <button
-                key={f.id}
-                type="button"
-                onClick={() => handlePick(f)}
-                className="oak-motion-control relative rounded-2xl overflow-hidden text-left"
-                style={{
-                  border: selected ? "2px solid #fff" : "1px solid rgba(255,255,255,0.08)",
-                }}
-              >
-                <FilterThumb filter={f} />
-
-                {selected && (
-                  <span
-                    className="oak-motion-pop absolute top-2 right-2 flex items-center justify-center rounded-full"
-                    style={{ width: 22, height: 22, background: "#fff", color: "#000" }}
-                  >
-                    <Check size={14} strokeWidth={3} />
-                  </span>
-                )}
-
-                <div
-                  className="flex items-center justify-between px-3 py-2.5"
-                  style={{ background: "rgba(0,0,0,0.55)" }}
-                >
-                  <span className="text-sm font-medium truncate pr-2">{f.name}</span>
-                  <span
-                    role="button"
-                    aria-label={favorited ? "Remove from favorites" : "Add to favorites"}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onToggleFavorite(f.id);
-                    }}
-                  >
-                    <Heart size={16} fill={favorited ? "currentColor" : "none"} />
-                  </span>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      )}
-
+      {/* Horizontal Filter Carousel */}
       <div
-        className="sticky bottom-0 left-0 right-0 -mx-6 px-6 pt-3 pb-2"
-        style={{ background: "linear-gradient(to top, #111 65%, rgba(17,17,17,0))" }}
+        className="relative"
+        ref={scrollRef}
+        style={{
+          padding: "0 16px",
+          overflowX: "hidden",
+          touchAction: "pan-y",
+          WebkitOverflowScrolling: "touch",
+        }}
+      >
+        <div
+          className="flex gap-4 overflow-x-auto pb-6"
+          style={{ scrollbarWidth: "none", margin: "-8px 0" }}
+        >
+          {getVisibleFilters(category).length === 0 ? (
+            <div className="flex items-center justify-center py-12 text-sm opacity-50 text-center">
+              {category === "favorites"
+                ? "Tap the heart on any filter to pin it here."
+                : "No filters in this category yet."}
+            </div>
+          ) : (
+            <>
+              {getVisibleFilters(category).map((f) => {
+                const selected = f.id === activeId;
+                const favorited = favoriteIds.has(f.id);
+                return (
+                  <button
+                    key={f.id}
+                    type="button"
+                    data-filter-id={f.id}
+                    onClick={() => handleFilterSelect(f)}
+                    className="relative"
+                  >
+                    <FilterThumb filter={f} active={selected} />
+
+                    {/* Favorite heart badge */}
+                    {favorited && (
+                      <div
+                        className="absolute top-2 right-2 flex items-center justify-center"
+                        style={{
+                          width: 20,
+                          height: 20,
+                          background: "#ff3b30",
+                          borderRadius: "50%",
+                        }}
+                      >
+                        <Heart size={12} strokeWidth={1.5} color="#fff" />
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+              <div className="w-16" /> {/* Spacer for end */}
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Bottom Controls */}
+      <div
+        className="sticky bottom-0 left-0 right-0 -mx-4 px-4 pt-2 pb-4"
+        style={{ background: "linear-gradient(to top, #111 60%, rgba(17,17,17,0))" }}
       >
         {activeId !== "natural" && (
-          <div className="pb-3">
-            <div className="flex items-center justify-between pb-1.5">
+          <div className="mb-3">
+            <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-medium text-white/60 uppercase tracking-wide">
                 Intensity
               </span>
@@ -221,19 +276,29 @@ export default function FilterPanel({
               value={activeIntensity}
               onChange={(e) => handleIntensityDrag(Number(e.target.value))}
               aria-label={`${activeFilter?.name ?? "Filter"} intensity`}
-              className="oak-intensity-slider w-full"
+              className="w-full"
             />
           </div>
         )}
 
-        <button
-          type="button"
-          onClick={handleApply}
-          className="oak-motion-control w-full rounded-full font-bold text-sm uppercase tracking-wide py-3.5 active:scale-[0.98]"
-          style={{ background: "#fff", color: "#000" }}
-        >
-          Apply Filter
-        </button>
+        <div className="flex justify-between items-center">
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-xs font-medium text-white/60 hover:text-white/80 transition-colors"
+          >
+            Cancel
+          </button>
+
+          <button
+            type="button"
+            onClick={handleApply}
+            className="flex items-center justify-center gap-2 rounded-full font-bold text-sm uppercase tracking-wide py-2 px-4 active:scale-[0.98]"
+            style={{ background: "#fff", color: "#000" }}
+          >
+            Apply
+          </button>
+        </div>
       </div>
     </CameraPanel>
   );

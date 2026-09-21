@@ -12,17 +12,19 @@ import {
   QUALITY_HIGH,
   getFirstEncodableVideoCodec,
 } from "mediabunny";
-import {
-  applyCompiledFilter,
-  compileFilter,
-  IDENTITY_FILTER,
-  type CompiledFilter,
-} from "@/lib/canvas-filter";
+import { applyCompiledFilter, compileFilter, type CompiledFilter } from "@/lib/canvas-filter";
+import { applyVignette } from "@/lib/canvas-filter";
 import { compileGrade, isNoopFilter, type CameraFilter } from "@/components/camera/filter-data";
 import { drawLayers, preloadStickers } from "@/lib/layer-bake";
 import type { Layer } from "@/lib/after-shot-layers";
 import type { CapturedMedia } from "@/lib/capture-handoff";
-import { isCropNoop, type CropRect } from "@/lib/crop-rect";
+import {
+  ExtendedPhotoAdjust,
+  EXTENDED_NEUTRAL_ADJUST,
+  adjustToCss,
+  isNeutralAdjust,
+} from "@/lib/photo-adjust";
+import { type CropRect, isCropNoop } from "@/lib/crop-rect";
 
 // The single place a finished post is produced. Everything the after-shot screen
 // lets you do — crop, filter, text, drawings, stickers — lands on the frame in
@@ -62,7 +64,7 @@ function drawFilteredFrame(
   width: number,
   height: number,
 ) {
-  if (compiled === IDENTITY_FILTER) return;
+  if (compiled.ops.length === 0) return;
   const frame = ctx.getImageData(0, 0, width, height);
   applyCompiledFilter(frame, compiled);
   ctx.putImageData(frame, 0, 0);
@@ -74,7 +76,7 @@ export async function exportPhoto(
   intensity: number,
   layers: Layer[],
   crop: CropRect | null,
-  adjustCss = "",
+  adjust: ExtendedPhotoAdjust = EXTENDED_NEUTRAL_ADJUST,
 ): Promise<Blob> {
   const img = new Image();
   const url = URL.createObjectURL(blob);
@@ -106,12 +108,20 @@ export async function exportPhoto(
     // filter is on the media element, not the layer overlay). Uses the real
     // grade (compileGrade), not the preview's CSS approximation — a one-shot
     // bake like this one can afford the true LUT.
+    const adjustCss = adjustToCss(adjust);
+    const vignetteValue = adjust.vignette;
     drawFilteredFrame(
       ctx,
       compileGradeWithAdjust(filter, intensity, adjustCss),
       canvas.width,
       canvas.height,
     );
+    // Apply vignette after filter but before layers
+    if (vignetteValue > 0) {
+      const vignetteData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      applyVignette(vignetteData, vignetteValue);
+      ctx.putImageData(vignetteData, 0, 0);
+    }
     drawLayers(ctx, layers, canvas.width, canvas.height, await preloadStickers(layers));
 
     return await new Promise<Blob>((resolve, reject) => {
@@ -133,8 +143,10 @@ export async function exportVideo(
   layers: Layer[],
   crop: CropRect | null,
   onProgress?: ExportProgress,
-  adjustCss = "",
+  adjust: ExtendedPhotoAdjust = EXTENDED_NEUTRAL_ADJUST,
 ): Promise<Blob> {
+  const adjustCss = adjustToCss(adjust);
+  const vignetteValue = adjust.vignette;
   const input = new Input({ source: new BlobSource(blob), formats: ALL_FORMATS });
   const videoTrack = await input.getPrimaryVideoTrack();
   if (!videoTrack) throw new Error("No video track to export");
@@ -227,8 +239,14 @@ export async function exportVideo(
           sample.draw(ctx, 0, 0, width, height);
         }
         drawFilteredFrame(ctx, compiled, width, height);
+
+        // Apply vignette after filter but before layers
+        if (vignetteValue > 0) {
+          const vignetteData = ctx.getImageData(0, 0, width, height);
+          applyVignette(vignetteData, vignetteValue);
+          ctx.putImageData(vignetteData, 0, 0);
+        }
         drawLayers(ctx, layers, width, height, stickers);
-        // Encode against the source frame's real presentation timestamp rather
         // than index/FPS, so a variable-frame-rate capture (which is what phone
         // cameras and MediaRecorder actually produce) keeps its original timing
         // instead of drifting out of sync with the audio.
@@ -258,10 +276,13 @@ function isUnedited(
   intensity: number,
   layers: Layer[],
   crop: CropRect | null,
-  adjustCss: string,
+  adjust: ExtendedPhotoAdjust,
 ): boolean {
   return (
-    isNoopFilter(filter, intensity) && layers.length === 0 && isCropNoop(crop) && adjustCss === ""
+    isNoopFilter(filter, intensity) &&
+    layers.length === 0 &&
+    isCropNoop(crop) &&
+    isNeutralAdjust(adjust)
   );
 }
 
@@ -280,7 +301,7 @@ function compileGradeWithAdjust(
   const grade = compileGrade(filter, intensity);
   if (!adjustCss) return grade;
   const adjust = compileFilter(adjustCss);
-  return { ops: [...grade.ops, ...adjust.ops] };
+  return { ops: [...grade.ops, ...adjust.ops], amount: grade.amount };
 }
 
 // What the Next button calls. Keeps the photo/video branch in one place so the
@@ -299,13 +320,13 @@ export async function exportComposite(
   layers: Layer[],
   crop: CropRect | null,
   onProgress?: ExportProgress,
-  adjustCss = "",
+  adjust: ExtendedPhotoAdjust = EXTENDED_NEUTRAL_ADJUST,
 ): Promise<Blob> {
-  if (isUnedited(filter, intensity, layers, crop, adjustCss)) {
+  if (isUnedited(filter, intensity, layers, crop, adjust)) {
     onProgress?.(1);
     return media.blob;
   }
   return media.type === "photo"
-    ? await exportPhoto(media.blob, filter, intensity, layers, crop, adjustCss)
-    : await exportVideo(media.blob, filter, intensity, layers, crop, onProgress, adjustCss);
+    ? await exportPhoto(media.blob, filter, intensity, layers, crop, adjust)
+    : await exportVideo(media.blob, filter, intensity, layers, crop, onProgress, adjust);
 }

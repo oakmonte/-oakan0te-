@@ -1116,13 +1116,15 @@ function VideoEditor() {
           >
             <ChevronLeft size={22} />
           </button>
+          <h1 className="text-[15px] font-semibold">Video post</h1>
           <button
             type="button"
             disabled={empty || !!busy}
             onClick={() => void handleNext()}
-            aria-label="Next"
-            className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--oak-action)] active:scale-90 disabled:opacity-35"
+            aria-label="Continue to publish"
+            className="flex h-11 items-center justify-center gap-1.5 rounded-full bg-[var(--oak-action)] px-4 text-[13px] font-semibold active:scale-90 disabled:opacity-35"
           >
+            <span>Next</span>
             <ArrowRight size={22} />
           </button>
         </div>
@@ -1142,13 +1144,15 @@ function VideoEditor() {
             type="button"
             onClick={openSource}
             className="flex flex-col items-center gap-3 active:scale-95"
+            aria-label="Start with photos or videos"
           >
             <span className="flex h-[76px] w-[76px] items-center justify-center rounded-full border border-white/25 bg-white/[0.06]">
               <Play size={30} className="ml-1" />
             </span>
-            <span className="text-[13px] text-white/55">Add photos and videos</span>
-            <span className="max-w-[220px] text-center text-[11px] leading-snug text-white/35">
-              Everything you add becomes one video, in the order you put it.
+            <span className="text-base font-semibold text-white">Start with photos or videos</span>
+            <span className="max-w-[260px] text-center text-[13px] leading-relaxed text-white/55">
+              Choose media from your device, drafts, or posts. Everything becomes one video in
+              order.
             </span>
           </button>
         ) : (
@@ -1409,7 +1413,7 @@ function VideoEditor() {
                 onClick={openSource}
                 className="flex h-[62px] w-full items-center justify-center gap-2 rounded-[10px] border border-dashed border-white/20 text-[13px] text-white/45 active:scale-[0.99]"
               >
-                Your timeline is empty
+                Add media to start your video
               </button>
             </div>
           ) : (
@@ -1470,6 +1474,7 @@ function VideoEditor() {
                     type="button"
                     disabled={id === "split" && !canSplitHere}
                     onClick={run}
+                    aria-label={label}
                     className="flex w-[70px] shrink-0 flex-col items-center gap-1.5 rounded-[10px] bg-white/[0.07] py-2.5 active:scale-95 disabled:opacity-30"
                   >
                     <Icon size={21} strokeWidth={1.7} />
@@ -1486,7 +1491,8 @@ function VideoEditor() {
                     type="button"
                     disabled={empty || (needsSelection && !selected)}
                     onClick={run}
-                    className="flex w-[70px] shrink-0 flex-col items-center gap-1.5 rounded-[10px] bg-white/[0.07] py-2.5 active:scale-95 disabled:opacity-30"
+                    aria-label={label}
+                    className={`flex w-[70px] shrink-0 flex-col items-center gap-1.5 rounded-[10px] bg-white/[0.07] py-2.5 active:scale-95 disabled:opacity-30 ${activeTool === id ? "ring-2 ring-white/30" : ""}`}
                   >
                     <Icon size={21} strokeWidth={1.7} />
                     <span className="text-[11px] leading-tight">{label}</span>

@@ -8,6 +8,12 @@ export type ExtendedPhotoAdjust = {
   vignette: number; // 0 to 100
 };
 
+/**
+ * Every control must compile to something that `compileFilter` understands,
+ * because the same string drives the preview and the export pass. If a
+ * control only works in the preview, the export will quietly mismatch what
+ * the seller saw.
+ */
 export const EXTENDED_NEUTRAL_ADJUST: ExtendedPhotoAdjust = {
   exposure: 0,
   contrast: 0,
@@ -30,7 +36,7 @@ export const EXTENDED_ADJUST_CONTROLS: { key: keyof ExtendedPhotoAdjust; label: 
 
 export function extendedAdjustToCss(adj: ExtendedPhotoAdjust): string {
   const filters: string[] = [];
-  if (adj.exposure !== 0) filters.push(`brightness(${1 + adj.exposure / 100})`);
+  if (adj.exposure !== 0) filters.push(`brightness(${1 + adj.exposure / 250})`);
   if (adj.contrast !== 0) filters.push(`contrast(${1 + adj.contrast / 100})`);
   if (adj.temperature !== 0) {
     // Warmth simulation via sepia and hue-rotate
@@ -40,8 +46,23 @@ export function extendedAdjustToCss(adj: ExtendedPhotoAdjust): string {
         : `hue-rotate(${Math.abs(adj.temperature) / 5}deg)`,
     );
   }
-  if (adj.vibrance !== 0) filters.push(`saturate(${1 + adj.vibrance / 100})`);
-  return filters.length ? filters.join(" ") : "none";
+  if (adj.vibrance !== 0) filters.push(`saturate(${1 + adj.vibrance / 125})`);
+  // highlights / shadows: map to brightness so the preview matches the bake.
+  // `highlight()` and `shadow()` are NOT valid CSS filter functions — browsers
+  // silently skip unknown functions, so they never appeared in the live preview
+  // even though the canvas bake (canvas-filter.ts) handled them correctly.
+  // The scaling here mirrors compileFilter's `highlight` and `shadow` cases so
+  // preview and export always agree.
+  if (adj.highlights !== 0) filters.push(`brightness(${1 + adj.highlights / 150})`);
+  if (adj.shadows !== 0) filters.push(`brightness(${1 + adj.shadows / 250})`);
+  // Vignette is positional (radial darkening) and cannot be expressed as a CSS
+  // filter on the media element. Callers render a separate gradient overlay for
+  // the live preview — see the vignette overlay divs in the editor routes.
+  // "" — not "none". Callers concatenate this onto a grade string and test it
+  // with .filter(Boolean) / `if (!adjustCss)`; "none" is truthy, and as one
+  // term inside a longer filter list it is invalid CSS that voids the whole
+  // declaration. Callers that need a standalone value apply `|| "none"`.
+  return filters.length ? filters.join(" ") : "";
 }
 export type PhotoAdjust = ExtendedPhotoAdjust;
 export const NEUTRAL_ADJUST: PhotoAdjust = EXTENDED_NEUTRAL_ADJUST;
@@ -49,13 +70,5 @@ export const ADJUST_CONTROLS: { key: keyof PhotoAdjust; label: string }[] =
   EXTENDED_ADJUST_CONTROLS;
 export const adjustToCss = extendedAdjustToCss;
 export function isNeutralAdjust(adj: PhotoAdjust): boolean {
-  return (
-    adj.exposure === 0 &&
-    adj.contrast === 0 &&
-    adj.highlights === 0 &&
-    adj.shadows === 0 &&
-    adj.temperature === 0 &&
-    adj.vibrance === 0 &&
-    adj.vignette === 0
-  );
+  return ADJUST_CONTROLS.every(({ key }) => adj[key] === 0);
 }

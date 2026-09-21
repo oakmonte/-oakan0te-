@@ -15,6 +15,7 @@ import {
   Music,
   Pause,
   Play,
+  SlidersHorizontal,
 } from "lucide-react";
 import { useAfterShotContext } from "@/lib/after-shot-context";
 import SoundLibrarySheet from "@/components/camera/SoundLibrarySheet";
@@ -23,7 +24,9 @@ import TextPanel from "@/components/camera/aftershot/TextPanel";
 import CropPanel from "@/components/camera/aftershot/CropPanel";
 import DrawPanel from "@/components/camera/aftershot/DrawPanel";
 import FilterPanel from "@/components/camera/FilterPanel";
+import PhotoAdjustPanel from "@/components/create/PhotoAdjustPanel";
 import { CAMERA_FILTERS, previewCssAtIntensity } from "@/components/camera/filter-data";
+import { adjustToCss, NEUTRAL_ADJUST, type PhotoAdjust } from "@/lib/photo-adjust";
 import { exportComposite } from "@/lib/after-shot-export";
 import type { CropRect } from "@/lib/crop-rect";
 import LayerOverlay from "@/components/camera/LayerOverlay";
@@ -40,7 +43,7 @@ export const Route = createFileRoute("/create/after-shot/")({
 // No "link" here. Products are linked on the publish screen, which is the one
 // place that knows which of your products exist — this toolbar's Link button
 // was a second entry point that had never been wired to anything.
-type ToolId = "crop" | "text" | "draw" | "filter" | "sound" | "sticker";
+type ToolId = "crop" | "text" | "draw" | "filter" | "sound" | "sticker" | "adjust";
 
 const DEFAULT_FILTER_ID = "natural";
 
@@ -53,6 +56,7 @@ const EDIT_TOOLS: { id: ToolId; label: string; icon: typeof Type }[] = [
   // different things is a coin flip every time.
   { id: "sound", label: "Sound", icon: Music },
   { id: "filter", label: "Filters", icon: Blend },
+  { id: "adjust", label: "Adjust", icon: SlidersHorizontal },
 ];
 
 const COLLAPSED_TOOLS: { id: ToolId; label: string; icon: typeof Crop }[] = [
@@ -66,7 +70,7 @@ function AfterShotIndexPage() {
 
   const mediaBoxRef = useRef<HTMLDivElement>(null);
   const mediaAreaRef = useRef<HTMLDivElement>(null);
-  const { layers, addLayer, updateLayer, selectedLayerId, setSelectedLayerId } =
+  const { layers, addLayer, updateLayer, removeLayer, selectedLayerId, setSelectedLayerId } =
     useAfterShotLayers();
   const renderLayerContent = useLayerRenderer(mediaBoxRef);
 
@@ -101,6 +105,10 @@ function AfterShotIndexPage() {
   const [previewFilterIntensity, setPreviewFilterIntensity] = useState<number | null>(null);
   const [favoritedFilterIds, setFavoritedFilterIds] = useState<Set<string>>(new Set());
   const [editingLayerId, setEditingLayerId] = useState<string | null>(null);
+
+  // Manual tone adjustments. Neutral (all zeroes) on first open, committed on
+  // export alongside the filter so both travel in one canvas pass.
+  const [adjust, setAdjust] = useState<PhotoAdjust>(NEUTRAL_ADJUST);
 
   // Export state — the one place the whole edit stack turns into a file.
   const [exporting, setExporting] = useState(false);
@@ -244,18 +252,25 @@ function AfterShotIndexPage() {
     [addLayer],
   );
 
-  // Filters are a CSS property on the preview element and a value handed to the
-  // exporter — never a re-encode of media.blob. Baking on every tap meant each
-  // pick re-filtered the ALREADY filtered pixels, so choosing Vivid then Noir
-  // gave you Noir stacked on Vivid, plus a fresh generation of compression loss
-  // for every filter you merely auditioned.
+  // The filter CSS covers colour grade + adjustments. The two are composed here
+  // rather than in the media element's style so both appear in one pass and the
+  // preview matches the single-pass bake.
   const previewingFilter =
     CAMERA_FILTERS.find((f) => f.id === (previewFilterId ?? selectedFilterId)) ?? CAMERA_FILTERS[0];
-  const previewFilterCss = previewCssAtIntensity(
+  const filterCss = previewCssAtIntensity(
     previewingFilter,
     previewFilterIntensity ?? selectedFilterIntensity,
   );
+  const adjustCss = adjustToCss(adjust);
+  const previewFilterCss =
+    [filterCss !== "none" ? filterCss : "", adjustCss !== "none" ? adjustCss : ""]
+      .filter(Boolean)
+      .join(" ") || "none";
   const selectedFilter = CAMERA_FILTERS.find((f) => f.id === selectedFilterId) ?? CAMERA_FILTERS[0];
+
+  // Vignette can't be a CSS filter (it's positional). Expose the value so the
+  // overlay div below can render a radial-gradient approximation.
+  const vignetteValue = adjust.vignette;
 
   const toggleFilterFavorite = useCallback((id: string) => {
     setFavoritedFilterIds((prev) => {
@@ -278,6 +293,7 @@ function AfterShotIndexPage() {
         layers,
         cropRect,
         setExportProgress,
+        adjust,
       );
       // Same blob back means exportComposite took its no-op fast path; replacing
       // the media (and revoking the old URL) would only churn for nothing.
@@ -298,7 +314,16 @@ function AfterShotIndexPage() {
     } finally {
       setExporting(false);
     }
-  }, [media, selectedFilter, selectedFilterIntensity, layers, cropRect, setMedia, navigate]);
+  }, [
+    media,
+    selectedFilter,
+    selectedFilterIntensity,
+    layers,
+    cropRect,
+    adjust,
+    setMedia,
+    navigate,
+  ]);
 
   return (
     <div
@@ -314,8 +339,18 @@ function AfterShotIndexPage() {
           the screen); width:100% alone let tall media overflow the viewport and
           get clipped, so the top and bottom of your own frame were unreachable;
           and the trim screen already fits-to-view, so the same clip used to look
-          different on the two screens. This is now "contain" on both. */}
-      <div ref={mediaAreaRef} className="absolute inset-0 flex items-center justify-center">
+          different on the two screens. This is now "contain" on both.
+
+          When a filter or adjust panel is open the bottom is clamped so the
+          preview stays clearly visible above the sheet rather than being
+          swallowed by it. */}
+      <div
+        ref={mediaAreaRef}
+        className="absolute inset-x-0 top-0 flex items-center justify-center"
+        style={{
+          bottom: activeTool === "filter" ? 380 : activeTool === "adjust" ? 340 : 0,
+        }}
+      >
         <div
           ref={mediaBoxRef}
           className="oak-motion-fade relative overflow-hidden"
@@ -396,12 +431,25 @@ function AfterShotIndexPage() {
                 selectedLayerId={activeTool === null ? selectedLayerId : null}
                 setSelectedLayerId={setSelectedLayerId}
                 renderLayerContent={renderLayerContent}
+                onRemoveLayer={removeLayer}
                 onLayerTap={(layer) => {
                   setEditingLayerId(layer.id);
                   setActiveTool("text");
                 }}
               />
             </div>
+          )}
+
+          {/* Vignette overlay — CSS radial-gradient approximation so the preview
+              reflects the positional darkening the bake applies. Positioned
+              inside the media box so it crops to the same bounds as the photo. */}
+          {vignetteValue > 0 && (
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                background: `radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,${(vignetteValue / 100) * 0.85}) 100%)`,
+              }}
+            />
           )}
 
           <DrawPanel open={activeTool === "draw"} containerRef={mediaBoxRef} onClose={closeTool} />
@@ -546,6 +594,7 @@ function AfterShotIndexPage() {
                       setActiveTool("text");
                     } else if (tool.id === "draw") setActiveTool(tool.id);
                     else if (tool.id === "filter") setActiveTool("filter");
+                    else if (tool.id === "adjust") setActiveTool("adjust");
                     else if (tool.id === "sticker") stickerInputRef.current?.click();
                     else if (tool.id === "sound") setSoundSheetOpen(true);
                   }}
@@ -626,6 +675,13 @@ function AfterShotIndexPage() {
           setPreviewFilterIntensity(null);
         }}
         onToggleFavorite={toggleFilterFavorite}
+      />
+
+      <PhotoAdjustPanel
+        open={activeTool === "adjust"}
+        value={adjust}
+        onChange={setAdjust}
+        onClose={closeTool}
       />
     </div>
   );
