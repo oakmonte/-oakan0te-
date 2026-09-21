@@ -1,7 +1,9 @@
 import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
-import { useState, useRef, useEffect } from "react";
+import { useOverlayHistory } from "@/hooks/use-overlay-history";
+import { useCallback, useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence, useDragControls, useMotionValue } from "framer-motion";
 import { ArrowLeft, ArrowLeftRight, Share2, Search, Menu, Star, X } from "lucide-react";
+import { BackButton } from "@/components/BackButton";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useSession } from "@/hooks/use-session";
 import { BottomNav } from "@/components/BottomNav";
@@ -45,6 +47,8 @@ function StoreProfilePage() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
+  const closeMenu = useCallback(() => setMenuOpen(false), []);
+  useOverlayHistory(menuOpen, closeMenu);
   const searchInputRef = useRef<HTMLInputElement>(null);
   // See profile.$username.tsx for why this is tracked continuously rather
   // than only captured on the tap that opens the sheet — and why it targets
@@ -237,9 +241,9 @@ function StoreProfilePage() {
     >
       {/* Top bar */}
       <div className="flex items-center justify-between px-6 pt-4 pb-2">
-        <button onClick={() => navigate({ to: "/" })} aria-label="Back">
-          <ArrowLeft size={22} />
-        </button>
+        <div className="w-[22px]">
+          <BackButton />
+        </div>
         <div className="flex items-center gap-5">
           <button aria-label="Share">
             <Share2 size={20} />

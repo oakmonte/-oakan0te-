@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useOverlayHistory } from "@/hooks/use-overlay-history";
+import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import { BottomNav } from "@/components/BottomNav";
 import { TopToggleNav } from "@/components/TopToggleNav";
@@ -52,6 +53,11 @@ function HomePage() {
   const { user } = useSession();
   const [ownUsername, setOwnUsername] = useState<string | undefined>(undefined);
   const [feedOpen, setFeedOpen] = useState(false);
+
+  // The Explore feed covers the whole screen and reads as a page, so the back
+  // gesture should close it rather than leave /home entirely.
+  const closeFeed = useCallback(() => setFeedOpen(false), []);
+  useOverlayHistory(feedOpen, closeFeed);
 
   useEffect(() => {
     if (!user) return;

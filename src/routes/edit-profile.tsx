@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
-import { ArrowLeft, ChevronRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
+import { BackButton } from "@/components/BackButton";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 
 export const Route = createFileRoute("/edit-profile")({
@@ -173,13 +174,10 @@ function EditProfilePage() {
       style={{ fontFamily: "'SF Pro', system-ui, sans-serif" }}
     >
       <div className="flex items-center justify-center relative px-6 pt-4 pb-4">
-        <button
-          onClick={() => goToProfile(originalUsername)}
-          aria-label="Back"
-          className="absolute left-6"
-        >
-          <ArrowLeft size={22} />
-        </button>
+        {/* Reachable from Settings AND straight from the profile header, so
+            the right parent is whichever is actually behind us — useBack
+            resolves that from the stack rather than guessing. */}
+        <BackButton className="absolute left-6" />
         <h1 className="text-[16px] font-bold">Edit profile</h1>
       </div>
 

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
+import { useOverlayHistory } from "@/hooks/use-overlay-history";
 import type { ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Play } from "lucide-react";
@@ -51,6 +52,9 @@ export function PostsGrid({
   emptyState: ReactNode;
 }) {
   const [activeId, setActiveId] = useState<string | null>(null);
+  // The post viewer is a full-screen page in everything but the URL.
+  const closeViewer = useCallback(() => setActiveId(null), []);
+  useOverlayHistory(activeId !== null, closeViewer);
   const { data: posts, isPending } = useQuery({
     queryKey: ["profile-posts", userId, status] as const,
     queryFn: () => fetchProfilePosts(userId, status),

@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate, useParams, useRouter } from "@tanstack/react-router";
+import { useOverlayHistory } from "@/hooks/use-overlay-history";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState, useRef, useEffect, type ReactElement } from "react";
+import { useCallback, useState, useRef, useEffect, type ReactElement } from "react";
 import {
   motion,
   AnimatePresence,
@@ -22,6 +23,7 @@ import {
   BellRing,
   Send,
 } from "lucide-react";
+import { BackButton } from "@/components/BackButton";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useSession } from "@/hooks/use-session";
 import { useOwnStores } from "@/hooks/use-own-store";
@@ -119,8 +121,14 @@ function ProfilePage() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
+  // Drawers and sheets each take a history entry, so one back press closes
+  // the thing on top rather than leaving the profile.
+  const closeMenu = useCallback(() => setMenuOpen(false), []);
+  useOverlayHistory(menuOpen, closeMenu);
   const { data: stores = [] } = useQuery(profileStoresQueryOptions(baseProfile?.id));
   const [storePickerOpen, setStorePickerOpen] = useState(false);
+  const closeStorePicker = useCallback(() => setStorePickerOpen(false), []);
+  useOverlayHistory(storePickerOpen, closeStorePicker);
   const [shareOpen, setShareOpen] = useState(false);
   // Oldest-first, same tie-break as useOwnStores — "the" store for anything
   // on this page that isn't multi-store aware yet (the Store tab preview).
@@ -335,9 +343,9 @@ function ProfilePage() {
     >
       {/* Top bar */}
       <div className="flex items-center justify-between px-6 pt-4 pb-2">
-        <button onClick={() => navigate({ to: "/" })} aria-label="Back">
-          <ArrowLeft size={22} />
-        </button>
+        <div className="w-[22px]">
+          <BackButton />
+        </div>
         <div className="flex items-center gap-5">
           {ownershipKnown && !isOwnProfile && isFollowing && (
             <button

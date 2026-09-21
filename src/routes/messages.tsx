@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useOverlayHistory } from "@/hooks/use-overlay-history";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Search, SlidersHorizontal, X } from "lucide-react";
 import { motion } from "framer-motion";
@@ -228,13 +229,14 @@ function MessagesPage() {
   }, []);
 
   useEffect(() => {
-    if (!openId) return;
-    inboxScroll.current = window.scrollY;
-    window.history.pushState({ oakThread: openId }, "");
-    const onPop = () => closeThread();
-    window.addEventListener("popstate", onPop);
-    return () => window.removeEventListener("popstate", onPop);
-  }, [openId, closeThread]);
+    if (openId) inboxScroll.current = window.scrollY;
+  }, [openId]);
+
+  // This screen was the only one in the app wired to the phone's back button.
+  // It is now the shared hook, which also stamps __TSR_index on the entry it
+  // pushes (so the stack mirror stays honest) and takes the entry back off
+  // when the thread is closed by anything other than the gesture.
+  useOverlayHistory(openId !== null, closeThread);
 
   const backFromThread = () => {
     // Unwinds the entry pushed above; the popstate handler closes the thread.

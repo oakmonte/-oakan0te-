@@ -1,7 +1,8 @@
-import { Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { isStandalone } from "@/lib/standalone";
+import { useGoRoot } from "@/hooks/use-back";
+import type { NavTarget } from "@/lib/nav-hierarchy";
 import homeIcon from "@/assets/Home.svg";
 import messagesIcon from "@/assets/messages.svg";
 import createIcon from "@/assets/create.svg";
@@ -22,6 +23,12 @@ const GAP_BROWSER = 12;
 const GAP_INSTALLED = 4;
 
 export function BottomNav({ active, ownUsername }: BottomNavProps) {
+  // Tabs REPLACE rather than push, and unwind the stack on the way, so a root
+  // always ends up at history index 0. Without this, five taps around the tab
+  // bar is five entries deep and the back gesture can never leave the app —
+  // which is what every native tab bar does at its root.
+  const goRoot = useGoRoot();
+
   const items: {
     key: NavKey;
     label: string;
@@ -187,13 +194,21 @@ export function BottomNav({ active, ownUsername }: BottomNavProps) {
         {items.map(({ key, label, icon, to, params }) => {
           const isActive = key === active;
           return (
-            <Link
+            <button
               key={key}
-              to={to}
-              params={params}
+              type="button"
+              onClick={() => goRoot({ to, params } as NavTarget)}
               aria-label={label}
+              aria-current={isActive ? "page" : undefined}
               className="relative flex-1 flex items-center justify-center"
-              style={{ zIndex: 1, height: "100%" }}
+              style={{
+                zIndex: 1,
+                height: "100%",
+                background: "none",
+                border: "none",
+                padding: 0,
+                WebkitTapHighlightColor: "transparent",
+              }}
             >
               <motion.img
                 src={icon}
@@ -217,7 +232,7 @@ export function BottomNav({ active, ownUsername }: BottomNavProps) {
                   willChange: "transform, opacity",
                 }}
               />
-            </Link>
+            </button>
           );
         })}
       </div>

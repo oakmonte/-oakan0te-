@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronDown, ShoppingBag, Store, Upload, Check, X } from "lucide-react";
+import { BackButton } from "@/components/BackButton";
 import { authedFetch } from "@/lib/authed-fetch";
 import { useActiveStoreId } from "@/hooks/use-own-store";
 import { Spinner } from "@/components/spinner";
@@ -272,14 +273,12 @@ function ProductsUpload() {
   return (
     <div className="min-h-dvh bg-white pb-10">
       <div className="sticky top-14 z-20 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center">
-        <button
-          onClick={() => navigate({ to: "/store/products" })}
+        <BackButton
+          icon="chevron"
+          size={18}
+          label="Products"
           className="text-sm text-gray-500 flex items-center gap-0.5 -ml-1"
-          type="button"
-        >
-          <ChevronLeft size={18} />
-          Products
-        </button>
+        />
         <span className="font-semibold text-[15px] absolute left-1/2 -translate-x-1/2">
           Upload products
         </span>
