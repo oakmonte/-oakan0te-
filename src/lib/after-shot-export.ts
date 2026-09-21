@@ -18,7 +18,7 @@ import {
   IDENTITY_FILTER,
   type CompiledFilter,
 } from "@/lib/canvas-filter";
-import { applyVignette } from "@/lib/canvas-filter";
+import { drawVignette } from "@/lib/vignette";
 import { compileGrade, isNoopFilter, type CameraFilter } from "@/components/camera/filter-data";
 import { drawLayers, preloadStickers } from "@/lib/layer-bake";
 import type { Layer } from "@/lib/after-shot-layers";
@@ -122,11 +122,7 @@ export async function exportPhoto(
       canvas.height,
     );
     // Apply vignette after filter but before layers
-    if (vignetteValue > 0) {
-      const vignetteData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      applyVignette(vignetteData, vignetteValue);
-      ctx.putImageData(vignetteData, 0, 0);
-    }
+    drawVignette(ctx, canvas.width, canvas.height, vignetteValue);
     drawLayers(ctx, layers, canvas.width, canvas.height, await preloadStickers(layers));
 
     return await new Promise<Blob>((resolve, reject) => {
@@ -246,11 +242,7 @@ export async function exportVideo(
         drawFilteredFrame(ctx, compiled, width, height);
 
         // Apply vignette after filter but before layers
-        if (vignetteValue > 0) {
-          const vignetteData = ctx.getImageData(0, 0, width, height);
-          applyVignette(vignetteData, vignetteValue);
-          ctx.putImageData(vignetteData, 0, 0);
-        }
+        drawVignette(ctx, width, height, vignetteValue);
         drawLayers(ctx, layers, width, height, stickers);
         // than index/FPS, so a variable-frame-rate capture (which is what phone
         // cameras and MediaRecorder actually produce) keeps its original timing

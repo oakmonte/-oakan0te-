@@ -38,6 +38,7 @@ import { useFittedSize } from "@/hooks/use-fitted-size";
 import { exportComposite, exportPhoto } from "@/lib/after-shot-export";
 import { videoDuration, videoThumbnail } from "@/lib/video-sequence";
 import { adjustToCss, NEUTRAL_ADJUST, type PhotoAdjust } from "@/lib/photo-adjust";
+import { vignetteCss } from "@/lib/vignette";
 import type { CropRect } from "@/lib/crop-rect";
 import { ImageSourceSheet, type ImageSource } from "@/components/product-form/ImageSourceSheet";
 import { DraftImagePickerSheet } from "@/components/product-form/DraftImagePickerSheet";
@@ -1084,15 +1085,13 @@ function PhotoEditor() {
                 </div>
               )}
 
-              {/* Vignette overlay — CSS radial-gradient approximation so the
-                  preview matches the positional darkening the bake applies.
+              {/* Vignette overlay — same vignetteCss the studio video editor
+                  uses, so preview and bake (drawVignette) never diverge.
                   Clipped to the media box so it never bleeds outside the photo. */}
               {(active?.adjust?.vignette ?? 0) > 0 && (
                 <div
                   className="absolute inset-0 pointer-events-none"
-                  style={{
-                    background: `radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,${((active?.adjust?.vignette ?? 0) / 100) * 0.85}) 100%)`,
-                  }}
+                  style={{ background: vignetteCss(active?.adjust?.vignette ?? 0) }}
                 />
               )}
 

@@ -1601,7 +1601,17 @@ export const CAMERA_FILTERS: CameraFilter[] = [
     id: "creative-vignette",
     name: "Vignette",
     category: "creative",
-    previewCss: "vignette(0.4)",
+    // `vignette()` isn't a real CSS filter function, so this used to render as
+    // a no-op — a darkened, slightly desaturated mood tone is the closest a
+    // single color matrix / grade recipe can get to a vignette's look. The
+    // actual radial edge-darkening lives in PhotoAdjustPanel's vignette
+    // slider (src/lib/vignette.ts), applied on top of whatever filter is active.
+    previewCss: "brightness(0.88) contrast(1.12) saturate(0.92)",
+    grade: recipe({
+      shadows: -0.06,
+      contrast: 0.08,
+      saturation: -0.06,
+    }),
     intensity: 100,
     thumbnailColor: "#000000",
     isBuiltIn: true,
@@ -2380,8 +2390,6 @@ export function previewCssAtIntensity(filter: CameraFilter, intensity: number): 
       case "grayscale":
         return `${name}(${(value * amount).toFixed(4)})`;
       case "hue-rotate":
-      case "vignette":
-        return `vignette(${(value * amount).toFixed(4)})`;
         return `hue-rotate(${(value * amount).toFixed(2)}deg)`;
       default:
         return whole;
