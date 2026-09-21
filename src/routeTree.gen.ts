@@ -68,7 +68,6 @@ import { Route as StoreCollectionsNewRouteImport } from './routes/store.collecti
 import { Route as StoreCollectionsIdRouteImport } from './routes/store.collections_.$id'
 import { Route as CreateAfterShotStudioRouteImport } from './routes/create.after-shot.studio'
 import { Route as CreateAfterShotPublishRouteImport } from './routes/create.after-shot.publish'
-import { Route as CreateAfterShotFiltersRouteImport } from './routes/create.after-shot.filters'
 import { Route as ApiSupportMessagesReplyRouteImport } from './routes/api.support-messages.reply'
 import { Route as ApiStorePayoutRouteImport } from './routes/api.store.payout'
 import { Route as ApiStoreThemeUploadImageRouteImport } from './routes/api.store-theme.upload-image'
@@ -380,11 +379,6 @@ const CreateAfterShotPublishRoute = CreateAfterShotPublishRouteImport.update({
   path: '/publish',
   getParentRoute: () => CreateAfterShotRoute,
 } as any)
-const CreateAfterShotFiltersRoute = CreateAfterShotFiltersRouteImport.update({
-  id: '/filters',
-  path: '/filters',
-  getParentRoute: () => CreateAfterShotRoute,
-} as any)
 const ApiSupportMessagesReplyRoute = ApiSupportMessagesReplyRouteImport.update({
   id: '/api/support-messages/reply',
   path: '/api/support-messages/reply',
@@ -521,7 +515,6 @@ export interface FileRoutesByFullPath {
   '/api/store-theme/upload-image': typeof ApiStoreThemeUploadImageRoute
   '/api/store/payout': typeof ApiStorePayoutRoute
   '/api/support-messages/reply': typeof ApiSupportMessagesReplyRoute
-  '/create/after-shot/filters': typeof CreateAfterShotFiltersRoute
   '/create/after-shot/publish': typeof CreateAfterShotPublishRoute
   '/create/after-shot/studio': typeof CreateAfterShotStudioRoute
   '/store/collections/$id': typeof StoreCollectionsIdRoute
@@ -594,7 +587,6 @@ export interface FileRoutesByTo {
   '/api/store-theme/upload-image': typeof ApiStoreThemeUploadImageRoute
   '/api/store/payout': typeof ApiStorePayoutRoute
   '/api/support-messages/reply': typeof ApiSupportMessagesReplyRoute
-  '/create/after-shot/filters': typeof CreateAfterShotFiltersRoute
   '/create/after-shot/publish': typeof CreateAfterShotPublishRoute
   '/create/after-shot/studio': typeof CreateAfterShotStudioRoute
   '/store/collections/$id': typeof StoreCollectionsIdRoute
@@ -671,7 +663,6 @@ export interface FileRoutesById {
   '/api/store-theme/upload-image': typeof ApiStoreThemeUploadImageRoute
   '/api/store/payout': typeof ApiStorePayoutRoute
   '/api/support-messages/reply': typeof ApiSupportMessagesReplyRoute
-  '/create/after-shot/filters': typeof CreateAfterShotFiltersRoute
   '/create/after-shot/publish': typeof CreateAfterShotPublishRoute
   '/create/after-shot/studio': typeof CreateAfterShotStudioRoute
   '/store/collections_/$id': typeof StoreCollectionsIdRoute
@@ -749,7 +740,6 @@ export interface FileRouteTypes {
     | '/api/store-theme/upload-image'
     | '/api/store/payout'
     | '/api/support-messages/reply'
-    | '/create/after-shot/filters'
     | '/create/after-shot/publish'
     | '/create/after-shot/studio'
     | '/store/collections/$id'
@@ -822,7 +812,6 @@ export interface FileRouteTypes {
     | '/api/store-theme/upload-image'
     | '/api/store/payout'
     | '/api/support-messages/reply'
-    | '/create/after-shot/filters'
     | '/create/after-shot/publish'
     | '/create/after-shot/studio'
     | '/store/collections/$id'
@@ -898,7 +887,6 @@ export interface FileRouteTypes {
     | '/api/store-theme/upload-image'
     | '/api/store/payout'
     | '/api/support-messages/reply'
-    | '/create/after-shot/filters'
     | '/create/after-shot/publish'
     | '/create/after-shot/studio'
     | '/store/collections_/$id'
@@ -1377,13 +1365,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CreateAfterShotPublishRouteImport
       parentRoute: typeof CreateAfterShotRoute
     }
-    '/create/after-shot/filters': {
-      id: '/create/after-shot/filters'
-      path: '/filters'
-      fullPath: '/create/after-shot/filters'
-      preLoaderRoute: typeof CreateAfterShotFiltersRouteImport
-      parentRoute: typeof CreateAfterShotRoute
-    }
     '/api/support-messages/reply': {
       id: '/api/support-messages/reply'
       path: '/api/support-messages/reply'
@@ -1486,14 +1467,12 @@ declare module '@tanstack/react-router' {
 }
 
 interface CreateAfterShotRouteChildren {
-  CreateAfterShotFiltersRoute: typeof CreateAfterShotFiltersRoute
   CreateAfterShotPublishRoute: typeof CreateAfterShotPublishRoute
   CreateAfterShotStudioRoute: typeof CreateAfterShotStudioRoute
   CreateAfterShotIndexRoute: typeof CreateAfterShotIndexRoute
 }
 
 const CreateAfterShotRouteChildren: CreateAfterShotRouteChildren = {
-  CreateAfterShotFiltersRoute: CreateAfterShotFiltersRoute,
   CreateAfterShotPublishRoute: CreateAfterShotPublishRoute,
   CreateAfterShotStudioRoute: CreateAfterShotStudioRoute,
   CreateAfterShotIndexRoute: CreateAfterShotIndexRoute,
