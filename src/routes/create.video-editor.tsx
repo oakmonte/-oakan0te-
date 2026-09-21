@@ -33,7 +33,7 @@ import {
 } from "@/lib/after-shot-layers";
 import type { Layer } from "@/lib/after-shot-layers";
 import TextPanel from "@/components/camera/aftershot/TextPanel";
-import FilterPanel from "@/components/camera/FilterPanel";
+import FilterPanel, { PANEL_HEIGHT as FILTER_PANEL_HEIGHT } from "@/components/camera/FilterPanel";
 import PhotoAdjustPanel from "@/components/create/PhotoAdjustPanel";
 import LayerOverlay from "@/components/camera/LayerOverlay";
 import { vignetteCss } from "@/lib/vignette";
@@ -147,6 +147,10 @@ function VideoEditor() {
   const [time, setTime] = useState(() => session?.time ?? 0);
   const [playing, setPlaying] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  // Measured height of the Adjust sheet. 480 is only the first-paint estimate;
+  // PhotoAdjustPanel reports its real height because it is content-sized, so a
+  // static reservation drifts the moment a control is added or removed.
+  const [adjustPanelHeight, setAdjustPanelHeight] = useState(480);
 
   const [activeTool, setActiveTool] = useState<ToolId | null>(null);
   const [editingLayerId, setEditingLayerId] = useState<string | null>(null);
@@ -1141,7 +1145,18 @@ function VideoEditor() {
         className="absolute left-0 right-0 flex items-center justify-center px-4"
         style={{
           top: expanded ? 0 : "calc(env(safe-area-inset-top) + 68px)",
-          bottom: expanded ? 90 : 292,
+          // A panel that is open gets its own room, exactly as in
+          // create.after-shot.index.tsx and create.photo-editor.tsx. Without
+          // this the sheet simply painted over the bottom of the frame — you
+          // were dragging sliders against a picture you could not fully see.
+          bottom:
+            activeTool === "filter"
+              ? FILTER_PANEL_HEIGHT
+              : activeTool === "adjust"
+                ? adjustPanelHeight
+                : expanded
+                  ? 90
+                  : 292,
         }}
       >
         {empty ? (
@@ -1322,6 +1337,7 @@ function VideoEditor() {
 
       <PhotoAdjustPanel
         open={activeTool === "adjust"}
+        onHeightChange={setAdjustPanelHeight}
         value={current?.adjust ?? NEUTRAL_ADJUST}
         onChange={(adjust) => {
           if (!current) return;
