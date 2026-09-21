@@ -236,6 +236,13 @@ function CreatePage() {
   const recordedChunksRef = useRef<Blob[]>([]);
   const mirrorDrawLoopRef = useRef<number | null>(null);
   const mirrorCanvasStreamRef = useRef<MediaStream | null>(null);
+  // `applyConstraints` replaces the whole `advanced` set rather than merging
+  // it, so the torch effect and applyZoom's hardware-zoom branch — two
+  // independent call sites on the same track — would silently clobber each
+  // other's setting (e.g. pinch-zooming turned the torch back off with no
+  // explicit torch-off call). This tracks the last-known value of every key
+  // we control so every applyConstraints call re-asserts all of them together.
+  const advancedConstraintsRef = useRef<{ zoom?: number; torch?: boolean }>({});
   // One live-preview <video> per empty layout cell during multi-cell
   // capture, all bound to the same MediaStream — see the streamVersion
   // effect below for why they need explicit rebinding on camera switch.
@@ -319,6 +326,11 @@ function CreatePage() {
           return;
         }
         streamRef.current = stream;
+        // A new track means the old advanced-constraint values (zoom/torch)
+        // are stale for it — the torch effect re-pushes flashOn's current
+        // value itself once this new track is ready, so it doesn't need a
+        // carried-over value here.
+        advancedConstraintsRef.current = {};
         if (videoRef.current) videoRef.current.srcObject = stream;
         setStreamVersion((v) => v + 1);
 
@@ -353,12 +365,20 @@ function CreatePage() {
   }, [streamVersion]);
 
   // Rear-camera torch
-  // the delay should fix it not working on certain phones
+  // getCapabilities() doesn't reliably reflect torch support the instant the
+  // track exists — how long it takes to settle varies by device, so a single
+  // fixed delay was still missing it on some phones. Retry a few times with
+  // backoff instead of gambling on one timeout, and stop as soon as the
+  // capability check succeeds (or we run out of attempts).
   useEffect(() => {
     if (facing !== "environment" || !streamRef.current) return;
 
-    // Wait for hardware track initialization
-    const timer = setTimeout(() => {
+    let cancelled = false;
+    let attempt = 0;
+    const maxAttempts = 6;
+
+    const tryApply = () => {
+      if (cancelled) return;
       const track = streamRef.current?.getVideoTracks()[0];
       if (!track) return;
 
@@ -367,14 +387,30 @@ function CreatePage() {
       };
 
       if (capabilities && capabilities.torch) {
+        // Re-assert zoom alongside torch — applyConstraints replaces the
+        // whole `advanced` set, so writing torch alone would silently drop
+        // whatever zoom value the hardware-zoom branch last set.
+        advancedConstraintsRef.current = { ...advancedConstraintsRef.current, torch: flashOn };
         track
-          .applyConstraints({ advanced: [{ torch: flashOn } as TorchConstraintSet] })
+          .applyConstraints({ advanced: [advancedConstraintsRef.current as TorchConstraintSet] })
           .catch((err) => console.error("Torch constraint failed:", err));
+        return;
       }
-    }, 250); // 250ms delay gives the sensor time to mount
 
-    return () => clearTimeout(timer);
-  }, [flashOn, facing, streamVersion]); // Added streamVersion dependency
+      attempt += 1;
+      if (attempt < maxAttempts) {
+        timer = setTimeout(tryApply, 150 * attempt);
+      }
+    };
+
+    // Give the sensor a beat to mount before the first check.
+    let timer = setTimeout(tryApply, 250);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [flashOn, facing, streamVersion]);
 
   // A direct navigate to wherever the seller actually came from (tracked in
   // last-visited-route.ts), not window.history.back() — this is opened from
@@ -532,8 +568,10 @@ function CreatePage() {
         // scale on top of it, or it gets applied twice (this was the back-
         // camera "whole frame drags with it" bug).
         const clamped = Math.min(caps.max, Math.max(caps.min, level));
+        // Re-assert torch alongside zoom — see advancedConstraintsRef's doc.
+        advancedConstraintsRef.current = { ...advancedConstraintsRef.current, zoom: clamped };
         track
-          .applyConstraints({ advanced: [{ zoom: clamped }] as ZoomConstraintSet[] })
+          .applyConstraints({ advanced: [advancedConstraintsRef.current] as ZoomConstraintSet[] })
           .catch(() => {});
         setZoomLevel(clamped);
         setCssZoomScale(1);

@@ -828,7 +828,11 @@ function VideoEditor() {
   const previewCss = useMemo(() => {
     const base = previewCssAtIntensity(shownFilter, shownIntensity);
     const adj = adjustToCss(current?.adjust ?? NEUTRAL_ADJUST);
-    const parts = [base === "none" ? "" : base, adj].filter(Boolean);
+    // Same "none" guard as create.photo-editor.tsx's previewCss — adjustToCss
+    // returns the literal string "none" rather than "" when untouched, and
+    // without this guard it gets appended onto a real filter as invalid CSS
+    // (e.g. "contrast(1.2) ... none"), which drops the whole declaration.
+    const parts = [base === "none" ? "" : base, adj === "none" ? "" : adj].filter(Boolean);
     return parts.length ? parts.join(" ") : "none";
   }, [shownFilter, shownIntensity, current?.adjust]);
 

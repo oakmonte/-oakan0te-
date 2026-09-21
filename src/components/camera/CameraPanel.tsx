@@ -52,17 +52,20 @@ export default function CameraPanel({
 
   return (
     <>
-      {/* Backdrop */}
+      {/* Backdrop. Dim only — no blur. This covers the full viewport
+          (it's also the tap-outside-to-close target), which includes
+          whatever slice of the live camera/media preview is still visible
+          above the sheet; blurring it there made the very thing panels like
+          Filters and Adjust exist to let you judge (the live preview)
+          unreadable while you're using them. */}
       <div
         onClick={onClose}
         className="fixed inset-0 z-40 transition-opacity duration-300"
         style={{
           opacity: open ? 1 : 0,
           pointerEvents: open ? "auto" : "none",
-          background: "rgba(0,0,0,.45)",
-          backdropFilter: open ? "blur(10px)" : "blur(0px)",
-          transition: "opacity 280ms ease-out, backdrop-filter 280ms ease-out",
-          willChange: "opacity, backdrop-filter",
+          transition: "opacity 280ms ease-out",
+          willChange: "opacity",
         }}
       />
 

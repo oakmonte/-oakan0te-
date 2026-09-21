@@ -39,7 +39,11 @@ const CATEGORY_LABELS: Record<FilterCategory, string> = {
   creative: "Creative",
 };
 
-const PANEL_HEIGHT = 640;
+// Exported so callers that need to reserve preview space above this sheet
+// (create.after-shot.index.tsx) size against the same number instead of
+// guessing their own — CameraPanel clamps its rendered height to
+// `min(PANEL_HEIGHT, 78dvh)`, so reserving PANEL_HEIGHT is always enough.
+export const PANEL_HEIGHT = 350;
 
 /** A real baked preview of the filter's actual grade, not a CSS-filtered
  *  static image — see filter-thumbnail.ts. Shows the swatch color as a
@@ -51,7 +55,7 @@ function FilterThumb({ filter, active }: { filter: CameraFilter; active?: boolea
   const size = active ? 72 : 56;
   const margin = active ? 16 : 8;
   const scale = active ? 1.1 : 1;
-  
+
   return (
     <div className="relative flex-shrink-0" style={{ margin: `${margin}px` }}>
       <div
@@ -63,9 +67,7 @@ function FilterThumb({ filter, active }: { filter: CameraFilter; active?: boolea
           opacity: active ? 1 : 0.8,
           border: active ? "2px solid #fff" : "1px solid rgba(255,255,255,0.2)",
           borderRadius: "14px",
-          boxShadow: active
-            ? "0 4px 12px rgba(0,0,0,0.3)"
-            : "0 2px 8px rgba(0,0,0,0.2)",
+          boxShadow: active ? "0 4px 12px rgba(0,0,0,0.3)" : "0 2px 8px rgba(0,0,0,0.2)",
         }}
       >
         {active && (
@@ -95,7 +97,7 @@ export default function FilterPanel({
   const [category, setCategory] = useState<FilterCategory>("favorites");
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const [activeFilterId, setActiveFilterId] = useState<string>(selectedId);
-  
+
   // null means "no local override" — activeId/activeIntensity fall back to
   // the committed props, exactly like previewId already did before
   // intensity existed.
@@ -114,7 +116,7 @@ export default function FilterPanel({
     // Scroll to active filter
     if (scrollRef.current) {
       const activeElement = scrollRef.current.querySelector(
-        `[data-filter-id="${selectedId}"]`
+        `[data-filter-id="${selectedId}"]`,
       ) as HTMLElement;
       if (activeElement) {
         activeElement.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
@@ -204,7 +206,7 @@ export default function FilterPanel({
           padding: "0 16px",
           overflowX: "hidden",
           touchAction: "pan-y",
-          ["-webkit-overflow-scrolling"]: "touch",
+          WebkitOverflowScrolling: "touch",
         }}
       >
         <div
@@ -231,12 +233,17 @@ export default function FilterPanel({
                     className="relative"
                   >
                     <FilterThumb filter={f} active={selected} />
-                    
+
                     {/* Favorite heart badge */}
                     {favorited && (
                       <div
                         className="absolute top-2 right-2 flex items-center justify-center"
-                        style={{ width: 20, height: 20, background: "#ff3b30", borderRadius: "50%" }}
+                        style={{
+                          width: 20,
+                          height: 20,
+                          background: "#ff3b30",
+                          borderRadius: "50%",
+                        }}
                       >
                         <Heart size={12} strokeWidth={1.5} color="#fff" />
                       </div>
@@ -286,7 +293,7 @@ export default function FilterPanel({
           >
             Cancel
           </button>
-          
+
           <button
             type="button"
             onClick={handleApply}

@@ -23,7 +23,7 @@ import { type LibraryTrack, creditFor } from "@/lib/sound-library";
 import TextPanel from "@/components/camera/aftershot/TextPanel";
 import CropPanel from "@/components/camera/aftershot/CropPanel";
 import DrawPanel from "@/components/camera/aftershot/DrawPanel";
-import FilterPanel from "@/components/camera/FilterPanel";
+import FilterPanel, { PANEL_HEIGHT as FILTER_PANEL_HEIGHT } from "@/components/camera/FilterPanel";
 import PhotoAdjustPanel from "@/components/create/PhotoAdjustPanel";
 import { CAMERA_FILTERS, previewCssAtIntensity } from "@/components/camera/filter-data";
 import { adjustToCss, NEUTRAL_ADJUST, type PhotoAdjust } from "@/lib/photo-adjust";
@@ -77,6 +77,12 @@ function AfterShotIndexPage() {
   const [toolsExpanded, setToolsExpanded] = useState(false);
   const [mediaAspect, setMediaAspect] = useState(9 / 16);
   const [activeTool, setActiveTool] = useState<ToolId | null>(null);
+  // Measured from PhotoAdjustPanel's actual rendered height (it's
+  // deliberately content-sized, not fixed — see its own doc) so the reserved
+  // preview space always matches reality instead of a static guess drifting
+  // out of sync with it. Starts at a safe upper-bound estimate for the first
+  // paint, before the panel has mounted and reported its real height.
+  const [adjustPanelHeight, setAdjustPanelHeight] = useState(480);
   // Captured video autoplays muted because that's the only way a browser will
   // autoplay it at all — the toggle is what gets the sound back.
   const [videoMuted, setVideoMuted] = useState(true);
@@ -262,12 +268,10 @@ function AfterShotIndexPage() {
     previewFilterIntensity ?? selectedFilterIntensity,
   );
   const adjustCss = adjustToCss(adjust);
-  const previewFilterCss = [
-    filterCss !== "none" ? filterCss : "",
-    adjustCss !== "none" ? adjustCss : "",
-  ]
-    .filter(Boolean)
-    .join(" ") || "none";
+  const previewFilterCss =
+    [filterCss !== "none" ? filterCss : "", adjustCss !== "none" ? adjustCss : ""]
+      .filter(Boolean)
+      .join(" ") || "none";
   const selectedFilter = CAMERA_FILTERS.find((f) => f.id === selectedFilterId) ?? CAMERA_FILTERS[0];
 
   // Vignette can't be a CSS filter (it's positional). Expose the value so the
@@ -316,7 +320,16 @@ function AfterShotIndexPage() {
     } finally {
       setExporting(false);
     }
-  }, [media, selectedFilter, selectedFilterIntensity, layers, cropRect, adjust, setMedia, navigate]);
+  }, [
+    media,
+    selectedFilter,
+    selectedFilterIntensity,
+    layers,
+    cropRect,
+    adjust,
+    setMedia,
+    navigate,
+  ]);
 
   return (
     <div
@@ -342,9 +355,11 @@ function AfterShotIndexPage() {
         className="absolute inset-x-0 top-0 flex items-center justify-center"
         style={{
           bottom:
-            activeTool === "filter" ? 380
-            : activeTool === "adjust" ? 340
-            : 0,
+            activeTool === "filter"
+              ? FILTER_PANEL_HEIGHT
+              : activeTool === "adjust"
+                ? adjustPanelHeight
+                : 0,
         }}
       >
         <div
@@ -678,6 +693,7 @@ function AfterShotIndexPage() {
         value={adjust}
         onChange={setAdjust}
         onClose={closeTool}
+        onHeightChange={setAdjustPanelHeight}
       />
     </div>
   );
