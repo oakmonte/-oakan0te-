@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { RotateCcw } from "lucide-react";
 import {
   ADJUST_CONTROLS,
@@ -19,18 +20,39 @@ export default function PhotoAdjustPanel({
   value,
   onChange,
   onClose,
+  onHeightChange,
 }: {
   open: boolean;
   value: PhotoAdjust;
   onChange: (next: PhotoAdjust) => void;
   onClose: () => void;
+  /** Reports the sheet's actual rendered height so the caller can reserve
+   *  exactly that much space above it instead of guessing — this panel is
+   *  deliberately content-sized (see doc above), not a fixed height, so a
+   *  static reservation drifts out of sync whenever a control is added or
+   *  removed. */
+  onHeightChange?: (height: number) => void;
 }) {
+  const sheetRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open || !onHeightChange) return;
+    const el = sheetRef.current;
+    if (!el) return;
+    const report = () => onHeightChange(el.getBoundingClientRect().height);
+    report();
+    const observer = new ResizeObserver(report);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [open, onHeightChange]);
+
   if (!open) return null;
 
   return (
     <div className="absolute inset-x-0 bottom-0 z-40">
       <div className="absolute inset-0 -top-[100vh]" onClick={onClose} />
       <div
+        ref={sheetRef}
         className="oak-motion-enter relative rounded-t-[14px] px-5 pt-3"
         style={{
           background: "rgba(28,28,30,0.94)",

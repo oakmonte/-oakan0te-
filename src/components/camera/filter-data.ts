@@ -1427,6 +1427,7 @@ export const CAMERA_FILTERS: CameraFilter[] = [
     previewCss: "contrast(1.1) brightness(1.02)",
     grade: recipe({
       contrast: 0.1,
+      midtones: 0.02,
       splitShadow: [0.3, 0.3, 0.8],
       splitHighlight: [0.8, 0.3, 0.3],
       splitStrength: 0.6,
@@ -1513,6 +1514,7 @@ export const CAMERA_FILTERS: CameraFilter[] = [
     previewCss: "contrast(1.1) brightness(0.98) saturate(1.05)",
     grade: recipe({
       contrast: 0.1,
+      midtones: -0.02,
       saturation: 0.03,
       splitHighlight: [0.55, 0.5, 0.43],
       splitStrength: 0.2,
@@ -1530,6 +1532,7 @@ export const CAMERA_FILTERS: CameraFilter[] = [
     category: "creative",
     previewCss: "brightness(1.02) contrast(.98)",
     grade: recipe({
+      midtones: 0.02,
       contrast: -0.02,
       splitShadow: [0.4, 0.5, 0.6],
       splitHighlight: [0.6, 0.5, 0.4],
@@ -1571,6 +1574,7 @@ export const CAMERA_FILTERS: CameraFilter[] = [
     previewCss: "contrast(1.05) brightness(0.98)",
     grade: recipe({
       contrast: 0.05,
+      midtones: -0.02,
     }),
     intensity: 100,
     thumbnailColor: "#E0E0E0",
@@ -1584,6 +1588,7 @@ export const CAMERA_FILTERS: CameraFilter[] = [
     category: "creative",
     previewCss: "brightness(1.15) contrast(1.05)",
     grade: recipe({
+      midtones: 0.1,
       contrast: 0.03,
     }),
     intensity: 100,

@@ -39,7 +39,11 @@ const CATEGORY_LABELS: Record<FilterCategory, string> = {
   creative: "Creative",
 };
 
-const PANEL_HEIGHT = 640;
+// Exported so callers that need to reserve preview space above this sheet
+// (create.after-shot.index.tsx) size against the same number instead of
+// guessing their own — CameraPanel clamps its rendered height to
+// `min(PANEL_HEIGHT, 78dvh)`, so reserving PANEL_HEIGHT is always enough.
+export const PANEL_HEIGHT = 350;
 
 /** A real baked preview of the filter's actual grade, not a CSS-filtered
  *  static image — see filter-thumbnail.ts. Shows the swatch color as a

@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useState } from "react";
 import { X, Check } from "lucide-react";
 import { useAfterShotContext } from "@/lib/after-shot-context";
-import FilterPanel from "@/components/camera/FilterPanel";
+import FilterPanel, { PANEL_HEIGHT as FILTER_PANEL_HEIGHT } from "@/components/camera/FilterPanel";
 import { CAMERA_FILTERS } from "@/components/camera/filter-data";
 import { applyFilterToPhotoBlob, applyFilterToVideoBlob } from "@/lib/filter-media";
 
@@ -91,7 +91,15 @@ function FiltersPage() {
         </button>
       </div>
 
-      <div className="relative flex-1 min-h-0 flex items-center justify-center px-5">
+      {/* FilterPanel below is a fixed-position overlay (via CameraPanel), so
+          it takes no space in this flex column on its own — without this
+          padding it simply covers the bottom of the preview with zero
+          layout accounting. Reserving its known max height keeps the whole
+          photo/video visible above the sheet instead of cut off under it. */}
+      <div
+        className="relative flex-1 min-h-0 flex items-center justify-center px-5"
+        style={{ paddingBottom: FILTER_PANEL_HEIGHT }}
+      >
         <div
           className="relative overflow-hidden rounded-2xl"
           style={{ maxHeight: "100%", aspectRatio: "9/16", width: "auto", height: "100%" }}

@@ -282,7 +282,10 @@ function isUnedited(
     isNoopFilter(filter, intensity) &&
     layers.length === 0 &&
     isCropNoop(crop) &&
-    isNeutralAdjust(adjust)
+    // adjustToCss returns the literal string "none" for a neutral adjust,
+    // never "" — this compared against the wrong sentinel, so the fast
+    // no-op path below never actually fired for an untouched Adjust panel.
+    (adjustCss === "" || adjustCss === "none")
   );
 }
 

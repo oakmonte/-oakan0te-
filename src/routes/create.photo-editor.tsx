@@ -26,7 +26,7 @@ import type { Layer } from "@/lib/after-shot-layers";
 import TextPanel from "@/components/camera/aftershot/TextPanel";
 import CropPanel from "@/components/camera/aftershot/CropPanel";
 import DrawPanel from "@/components/camera/aftershot/DrawPanel";
-import FilterPanel from "@/components/camera/FilterPanel";
+import FilterPanel, { PANEL_HEIGHT as FILTER_PANEL_HEIGHT } from "@/components/camera/FilterPanel";
 import PhotoAdjustPanel from "@/components/create/PhotoAdjustPanel";
 import { CAMERA_FILTERS, previewCssAtIntensity } from "@/components/camera/filter-data";
 import LayerOverlay from "@/components/camera/LayerOverlay";
@@ -166,6 +166,10 @@ function PhotoEditor() {
   const [auditioning, setAuditioning] = useState(false);
 
   const [activeTool, setActiveTool] = useState<ToolId | null>(null);
+  // Measured from PhotoAdjustPanel's actual rendered height — see the same
+  // fix's doc in create.after-shot.index.tsx. Starts at a safe upper-bound
+  // estimate for the first paint, before the panel reports its real height.
+  const [adjustPanelHeight, setAdjustPanelHeight] = useState(480);
   const [editingLayerId, setEditingLayerId] = useState<string | null>(null);
   const [previewFilterId, setPreviewFilterId] = useState<string | null>(null);
   const [previewFilterIntensity, setPreviewFilterIntensity] = useState<number | null>(null);
@@ -751,7 +755,12 @@ function PhotoEditor() {
   const previewCss = useMemo(() => {
     const base = previewCssAtIntensity(shownFilter, shownIntensity);
     const adj = adjustToCss(active?.adjust ?? NEUTRAL_ADJUST);
-    const parts = [base === "none" ? "" : base, adj].filter(Boolean);
+    // adjustToCss (like previewCssAtIntensity) returns the literal string
+    // "none" rather than "" when there's nothing to apply — both need the
+    // same guard, or an untouched Adjust panel appends a bare "none" onto a
+    // real filter (e.g. "contrast(1.2) brightness(1.04) saturate(1.0) none"),
+    // which is invalid CSS and gets the whole filter declaration dropped.
+    const parts = [base === "none" ? "" : base, adj === "none" ? "" : adj].filter(Boolean);
     return parts.length ? parts.join(" ") : "none";
   }, [shownFilter, shownIntensity, active?.adjust]);
 
@@ -982,7 +991,12 @@ function PhotoEditor() {
         className="absolute left-0 right-0 flex items-center justify-center"
         style={{
           top: "calc(env(safe-area-inset-top) + 64px)",
-          bottom: activeTool === "filter" ? 380 : activeTool === "adjust" ? 340 : bottomInset,
+          bottom:
+            activeTool === "filter"
+              ? FILTER_PANEL_HEIGHT
+              : activeTool === "adjust"
+                ? adjustPanelHeight
+                : bottomInset,
         }}
       >
         {empty ? (
@@ -1153,6 +1167,7 @@ function PhotoEditor() {
         value={active?.adjust ?? NEUTRAL_ADJUST}
         onChange={(adjust) => patchActive({ adjust })}
         onClose={closeTool}
+        onHeightChange={setAdjustPanelHeight}
       />
 
       {/* Bottom stack: carousel strip, tool row, actions. Hidden whenever a
