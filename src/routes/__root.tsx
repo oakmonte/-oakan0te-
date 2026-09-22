@@ -22,8 +22,6 @@ import { ProductSaveToast } from "../components/ProductSaveToast";
 import { BackgroundUploadToast } from "../components/BackgroundUploadToast";
 import { setLastNonCreateRoute } from "../lib/last-visited-route";
 import { attachNavStack } from "@/lib/nav-stack";
-import { isUnmanaged } from "@/lib/nav-hierarchy";
-import { setNavDirection } from "@/lib/nav-direction";
 
 function NotFoundComponent() {
   return (
@@ -266,28 +264,10 @@ function RootComponent() {
     if (!pathname.startsWith("/create")) setLastNonCreateRoute(pathname);
   }, [pathname]);
 
-  // Page transitions are opt-in per tree. The camera/after-shot flow manages
-  // its own screens (and is full-bleed video), so it keeps the instant swap it
-  // has always had rather than inheriting a slide.
-  useEffect(() => {
-    document.documentElement.dataset.navManaged = isUnmanaged(pathname) ? "no" : "yes";
-  }, [pathname]);
-
   // Mirrors the history stack so back navigation can pop to an ancestor
-  // rather than push on top of it, and flags the direction so view
-  // transitions slide the right way. Mounted at the root because the mirror
-  // has to see every navigation, including ones no screen is listening for.
-  useEffect(() => {
-    const detach = attachNavStack(router.history);
-    const unsubscribe = router.history.subscribe(({ action }: { action: { type: string } }) => {
-      if (action.type === "BACK" || action.type === "GO") setNavDirection("back");
-      else if (action.type === "PUSH") setNavDirection("forward");
-    });
-    return () => {
-      detach();
-      unsubscribe();
-    };
-  }, [router]);
+  // rather than push on top of it. Mounted at the root because the mirror has
+  // to see every navigation, including ones no screen is listening for.
+  useEffect(() => attachNavStack(router.history), [router]);
 
   // The seller dashboard (/store, /store/*) is white — everywhere else on
   // the site (profile, the public storefront at /store-profile/*, etc.) is

@@ -6,7 +6,6 @@ import { useCallback } from "react";
 import { useNavigate, useRouter, useRouterState } from "@tanstack/react-router";
 import { parentOf, targetPathname, type NavTarget } from "@/lib/nav-hierarchy";
 import { currentIndex, findAncestor, readIndex } from "@/lib/nav-stack";
-import { setNavDirection } from "@/lib/nav-direction";
 import { useOwnUsername } from "@/hooks/use-own-username";
 
 /** How long we wait for a history.go() to take effect before giving up on it.
@@ -36,8 +35,6 @@ export function useNavigateUp() {
 
   return useCallback(
     (target: NavTarget) => {
-      setNavDirection("back");
-
       // Prefer a real pop. It shrinks the stack, hands us the browser's own
       // back animation and restores scroll position for free. Searching
       // backwards means the nearest ancestor wins, which is what resolves
@@ -84,13 +81,11 @@ export function useGoRoot() {
 
       const idx = readIndex(router.history.location.state);
       if (idx === 0) {
-        setNavDirection("forward");
         land();
         return;
       }
 
       // Unwind to the bottom of the stack first, then replace what is there.
-      setNavDirection("back");
       let settled = false;
       const finish = () => {
         if (settled) return;
