@@ -198,7 +198,7 @@ function NewCollection() {
       </div>
 
       {error && (
-        <p className="px-4 pt-3 text-sm text-red-500 animate-in fade-in slide-in-from-top-1 duration-200">
+        <p className="px-4 pt-3 text-sm text-sd-danger-ink animate-in fade-in slide-in-from-top-1 duration-200">
           {error}
         </p>
       )}

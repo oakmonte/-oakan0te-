@@ -370,7 +370,7 @@ export function PayoutAccountSheet({
           <p className="text-[14px] text-sd-ink-muted mb-3">Pick one or type your own.</p>
           <div
             className={`flex items-center gap-2.5 bg-sd-soft rounded-2xl px-4 py-3.5 border transition-colors duration-150 ${
-              showErrors && !bankName.trim() ? "border-red-300" : "border-transparent"
+              showErrors && !bankName.trim() ? "border-sd-danger-mark/50" : "border-transparent"
             }`}
           >
             <Search size={19} className="text-sd-ink-faint shrink-0" />
@@ -427,14 +427,14 @@ export function PayoutAccountSheet({
             placeholder="0123456789"
             inputMode="numeric"
             className={`w-full text-[17px] border rounded-2xl px-4 py-3.5 outline-none focus:border-sd-ink-faint transition-colors duration-150 ${
-              showErrors && !validAccountNumber ? "border-red-300" : "border-sd-line"
+              showErrors && !validAccountNumber ? "border-sd-danger-mark/50" : "border-sd-line"
             }`}
           />
           {showErrors && !validAccountNumber && (
-            <p className="text-xs text-red-500 mt-1">Enter a 10-digit account number.</p>
+            <p className="text-xs text-sd-danger-ink mt-1">Enter a 10-digit account number.</p>
           )}
           {validAccountNumber && nubanCheck === "invalid" && (
-            <p className="text-xs text-amber-600 mt-1">
+            <p className="text-xs text-sd-attention-ink mt-1">
               This doesn't look like a valid account number for {bankName.trim()} — double-check it
               before saving.
             </p>
@@ -448,7 +448,7 @@ export function PayoutAccountSheet({
       </div>
 
       <div className="sticky bottom-0 px-4 pt-3 oak-safe-bottom border-t border-sd-line bg-sd-surface shrink-0">
-        {saveError && <p className="text-xs text-red-500 mb-2 text-center">{saveError}</p>}
+        {saveError && <p className="text-xs text-sd-danger-ink mb-2 text-center">{saveError}</p>}
         <button
           type="button"
           onClick={handleSave}

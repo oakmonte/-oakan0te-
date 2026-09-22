@@ -305,7 +305,7 @@ function StoreProducts() {
       {selectMode && (
         <div className="fixed bottom-0 inset-x-0 z-40 bg-sd-surface border-t border-sd-line pb-[env(safe-area-inset-bottom)] flex flex-col animate-in fade-in slide-in-from-bottom-2 duration-200">
           {deleteError && (
-            <p className="px-4 pt-2 text-xs text-red-500 animate-in fade-in slide-in-from-top-1 duration-200">
+            <p className="px-4 pt-2 text-xs text-sd-danger-ink animate-in fade-in slide-in-from-top-1 duration-200">
               {deleteError}
             </p>
           )}
@@ -327,7 +327,7 @@ function StoreProducts() {
               onClick={() => setConfirmDeleteOpen(true)}
               disabled={deleting}
               aria-label="Delete selected"
-              className="p-2 -mr-2 rounded-full text-red-500 disabled:opacity-50 oak-motion-control active:scale-90"
+              className="p-2 -mr-2 rounded-full text-sd-danger-ink disabled:opacity-50 oak-motion-control active:scale-90"
             >
               <Trash2 size={18} />
             </button>

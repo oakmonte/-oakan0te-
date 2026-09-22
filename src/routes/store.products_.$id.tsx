@@ -1067,7 +1067,7 @@ function EditProduct() {
         </div>
       )}
 
-      {error && <p className="px-4 pt-3 text-sm text-red-500">{error}</p>}
+      {error && <p className="px-4 pt-3 text-sm text-sd-danger-ink">{error}</p>}
 
       <MediaSection
         mainImageUrl={mainImageUrl}

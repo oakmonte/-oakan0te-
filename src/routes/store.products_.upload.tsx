@@ -36,7 +36,7 @@ function JobBanner({ job, onDismiss }: { job: JobStatus; onDismiss: () => void }
           ? "border-sd-line bg-sd-elevated"
           : ok
             ? "border-sd-line bg-sd-elevated"
-            : "border-red-100 bg-red-50"
+            : "border-sd-danger-mark/20 bg-sd-danger-mark/10"
       }`}
     >
       <div className="mt-0.5 shrink-0">
@@ -45,7 +45,7 @@ function JobBanner({ job, onDismiss }: { job: JobStatus; onDismiss: () => void }
         ) : ok || partial ? (
           <Check size={18} className="text-sd-ink" />
         ) : (
-          <X size={18} className="text-red-500" />
+          <X size={18} className="text-sd-danger-ink" />
         )}
       </div>
       <div className="flex-1 min-w-0">
@@ -288,7 +288,7 @@ function ProductsUpload() {
 
       {job && <JobBanner job={job} onDismiss={() => setJob(null)} />}
       {error && (
-        <p className="px-4 pt-3 text-sm text-red-500 animate-in fade-in slide-in-from-top-1 duration-200">
+        <p className="px-4 pt-3 text-sm text-sd-danger-ink animate-in fade-in slide-in-from-top-1 duration-200">
           {error}
         </p>
       )}

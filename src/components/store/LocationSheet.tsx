@@ -312,7 +312,7 @@ export function LocationSheet({
               onChange={(e) => setName(e.target.value)}
               placeholder=" "
               className={`w-full text-base border rounded-xl px-4 py-3 outline-none focus:border-sd-ink-faint transition-colors duration-150 ${
-                showErrors && !name.trim() ? "border-red-300" : "border-sd-line"
+                showErrors && !name.trim() ? "border-sd-danger-mark/50" : "border-sd-line"
               }`}
             />
             {!name.trim() && (
@@ -338,7 +338,7 @@ export function LocationSheet({
                 Fills in city, state and country, and saves the exact pin riders use to find you —
                 you'll still enter the street address yourself.
               </p>
-              {locateError && <p className="text-xs text-red-500 mt-1.5">{locateError}</p>}
+              {locateError && <p className="text-xs text-sd-danger-ink mt-1.5">{locateError}</p>}
               <div className="flex items-center gap-3 mt-3.5">
                 <button
                   type="button"
@@ -370,7 +370,7 @@ export function LocationSheet({
               onChange={(e) => setAddressLine(e.target.value)}
               placeholder="Address line 1"
               className={`w-full text-base border rounded-xl px-4 py-3 outline-none focus:border-sd-ink-faint transition-colors duration-150 ${
-                showErrors && !addressLine.trim() ? "border-red-300" : "border-sd-line"
+                showErrors && !addressLine.trim() ? "border-sd-danger-mark/50" : "border-sd-line"
               }`}
             />
             <input
@@ -384,7 +384,7 @@ export function LocationSheet({
               type="button"
               onClick={() => setPickerOpen("country")}
               className={`w-full flex items-center justify-between text-base border rounded-xl px-4 py-3 transition-colors duration-150 ${
-                showErrors && !country.trim() ? "border-red-300" : "border-sd-line"
+                showErrors && !country.trim() ? "border-sd-danger-mark/50" : "border-sd-line"
               }`}
             >
               <span className={country ? "text-sd-ink" : "text-sd-ink-faint"}>
@@ -398,7 +398,7 @@ export function LocationSheet({
               onClick={() => countryCode && setPickerOpen("state")}
               disabled={!countryCode}
               className={`w-full flex items-center justify-between text-base border rounded-xl px-4 py-3 transition-colors duration-150 disabled:opacity-50 ${
-                showErrors && !state.trim() ? "border-red-300" : "border-sd-line"
+                showErrors && !state.trim() ? "border-sd-danger-mark/50" : "border-sd-line"
               }`}
             >
               <span className={state ? "text-sd-ink" : "text-sd-ink-faint"}>
@@ -412,7 +412,7 @@ export function LocationSheet({
               onClick={() => countryCode && setPickerOpen("city")}
               disabled={!countryCode}
               className={`w-full flex items-center justify-between text-base border rounded-xl px-4 py-3 transition-colors duration-150 disabled:opacity-50 ${
-                showErrors && !city.trim() ? "border-red-300" : "border-sd-line"
+                showErrors && !city.trim() ? "border-sd-danger-mark/50" : "border-sd-line"
               }`}
             >
               <span className={city ? "text-sd-ink" : "text-sd-ink-faint"}>{city || "City"}</span>
@@ -424,12 +424,12 @@ export function LocationSheet({
               onChange={(e) => setPostalCode(e.target.value)}
               placeholder="ZIP/Postal code"
               className={`w-full text-base border rounded-xl px-4 py-3 outline-none focus:border-sd-ink-faint transition-colors duration-150 ${
-                showErrors && !postalCode.trim() ? "border-red-300" : "border-sd-line"
+                showErrors && !postalCode.trim() ? "border-sd-danger-mark/50" : "border-sd-line"
               }`}
             />
           </div>
           {showErrors && !valid && (
-            <p className="text-xs text-red-500 mt-2">
+            <p className="text-xs text-sd-danger-ink mt-2">
               Location name, address line 1, city, state, country, and ZIP/postal code are required.
             </p>
           )}
@@ -485,7 +485,7 @@ export function LocationSheet({
             type="button"
             onClick={() => setConfirmDeleteOpen(true)}
             disabled={deleting}
-            className="text-xs font-medium text-red-500 disabled:opacity-50 self-start"
+            className="text-xs font-medium text-sd-danger-ink disabled:opacity-50 self-start"
           >
             {deleting ? "Deleting…" : "Delete this location"}
           </button>
