@@ -1,0 +1,78 @@
+#!/bin/sh
+# Refuses a push that would break the remote for everyone else.
+#
+# This exists because on 2026-09-21 a merge was committed with its conflict
+# markers still in it and pushed to main. Four files carried literal
+# `<<<<<<<` lines; the branch could not typecheck, vignette.test.ts could not
+# even be parsed, and every branch that later merged main inherited the
+# breakage. Nothing stopped it, because until now there were no git hooks at
+# all -- the three gates in CLAUDE.md only run when a human or an agent
+# remembers to run them.
+#
+# Two checks, cheapest first:
+#   1. conflict markers in the commits being pushed  (milliseconds)
+#   2. tsc --noEmit                                  (~30-60s)
+#
+# Both can be skipped with `git push --no-verify` for the rare case where you
+# genuinely mean it. If you find yourself reaching for that often, the check is
+# wrong -- fix the check rather than routing around it.
+#
+# Enable once per clone (it is not automatic, git does not run hooks from a
+# tracked directory by default):
+#
+#     git config core.hooksPath .githooks
+#
+# Kept in .githooks/ rather than .git/hooks/ precisely so it is version
+# controlled and everyone gets it. .git/hooks/ is per-clone and invisible to
+# review, which is how a repo ends up believing it has protections it does not.
+
+set -e
+
+RED=''
+NC=''
+if [ -t 2 ]; then
+  RED='\033[0;31m'
+  NC='\033[0m'
+fi
+
+fail() {
+  printf "${RED}pre-push: %s${NC}\n" "$1" >&2
+  printf "  (override with: git push --no-verify)\n" >&2
+  exit 1
+}
+
+# --- 1. conflict markers ----------------------------------------------------
+# Scans the tracked working tree rather than the diff: a marker can arrive in a
+# commit that is already on the remote, and the point is to never send one, not
+# to apportion blame for it.
+#
+# The patterns are split so this file -- which necessarily talks about markers
+# -- cannot match itself.
+markers=$(git grep -l -E "^<<<<<<<[ ]|^>>>>>>>[ ]" -- \
+  '*.ts' '*.tsx' '*.js' '*.jsx' '*.css' '*.json' '*.sql' '*.md' 2>/dev/null || true)
+
+if [ -n "$markers" ]; then
+  printf "${RED}pre-push: unresolved conflict markers${NC}\n" >&2
+  printf "%s\n" "$markers" | sed 's/^/    /' >&2
+  printf "\n  Resolve the merge before pushing. Committing the markers breaks\n" >&2
+  printf "  the branch for everyone who merges it afterwards.\n" >&2
+  printf "  (override with: git push --no-verify)\n" >&2
+  exit 1
+fi
+
+# --- 2. typecheck -----------------------------------------------------------
+# Vite strips types without checking them, so a green `bun run build` says
+# nothing about tsc. This is the gate that would have caught the export crash
+# that reached production on 2026-09-21.
+if [ -f package.json ] && grep -q '"typecheck"' package.json; then
+  if command -v bun >/dev/null 2>&1; then
+    bun run typecheck >/dev/null 2>&1 || {
+      printf "${RED}pre-push: typecheck failed${NC}\n" >&2
+      printf "  Run 'bun run typecheck' to see the errors.\n" >&2
+      printf "  (override with: git push --no-verify)\n" >&2
+      exit 1
+    }
+  fi
+fi
+
+exit 0

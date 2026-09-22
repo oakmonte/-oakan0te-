@@ -8,6 +8,52 @@ Don't rewrite pushed history (force push / rebase / amend / squash). The remote 
 than one agent works this repo — and `AGENTS.md` still carries Lovable's own copy of this rule
 inside `LOVABLE:BEGIN/END` markers, which is generated; leave it alone.
 
+## More than one agent works this repo at once
+
+Two agents sharing **one working tree** is the cause of most of the merge and push trouble here.
+Git's unit of isolation is the working tree — one checkout, one HEAD, one index — so two writers
+in one directory are standing on the same floor. On 2026-09-22 the branch changed underneath a
+running task twice, and one agent's uncommitted files kept surfacing in the other's `git status`.
+
+**Give each agent its own worktree.** Same repository and history, separate directory and branch:
+
+```
+git worktree add "../oakmonte-<who>" -b <their-branch>
+```
+
+Node modules are not shared automatically — junction them rather than reinstalling, or the
+worktree cannot typecheck. On Windows, from inside the new worktree:
+
+```
+cmd //c mklink //J node_modules "..\..\Oakmonte\node_modules"
+```
+
+A junction needs no admin rights, unlike a symlink.
+Remove a worktree with `git worktree remove <path>` when the work lands.
+
+If you must touch a file another agent is mid-edit on, do it from a worktree rather than
+switching the shared checkout — switching yanks the tree out from under them.
+
+**A `pre-push` hook guards the remote** (`.githooks/pre-push`). It refuses a push carrying
+unresolved conflict markers, then runs `tsc --noEmit`. It is **not automatic** — enable it once
+per clone, including in every new worktree:
+
+```
+git config core.hooksPath .githooks
+```
+
+It lives in a tracked directory on purpose. `.git/hooks/` is per-clone and invisible to review,
+which is how a repo comes to believe it has protections it does not have. Before this existed
+there were no git hooks at all, and a merge was committed with its conflict markers still in it
+and pushed to `main` — four files with literal `<<<<<<<` lines, a branch that could not typecheck,
+a test file that could not be parsed, and the breakage inherited by every branch that merged
+`main` afterwards. `git push --no-verify` skips both checks; needing it often means the check is
+wrong, so fix the check rather than routing around it.
+
+**Merge `main` into a long-lived branch often**, and land feature branches quickly. Merge surface
+grows every day a branch stays open, and a clean `git merge` is not evidence that two changes are
+compatible — see the export crash in the `media-export-pipeline` skill.
+
 ## Deployment (Vercel)
 
 `vercel.json` is the whole config: `bun install`, then `bun run build`. Vercel builds from the repo,
