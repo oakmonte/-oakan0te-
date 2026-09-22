@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet, Link } from "@tanstack/react-router";
+import { createFileRoute, Outlet, Link, useRouterState } from "@tanstack/react-router";
 import { useOverlayHistory } from "@/hooks/use-overlay-history";
 import { useCallback, useState, useEffect } from "react";
 import {
@@ -45,6 +45,27 @@ function StoreLayoutInner() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const closeDrawer = useCallback(() => setDrawerOpen(false), []);
   useOverlayHistory(drawerOpen, closeDrawer);
+
+  // Close the drawer when the route has actually changed, NOT in the click that
+  // starts the navigation.
+  //
+  // Every link in here used to carry onClick={() => setDrawerOpen(false)}, which
+  // tore the drawer down in the middle of the same click that was supposed to
+  // navigate — and the navigation then never happened at all. Watching
+  // history.pushState from the page confirmed it: clicking "Return to profile"
+  // produced no push, and history.length never grew.
+  //
+  // It is also what made the overlay's history entry impossible to clean up
+  // correctly, since at cleanup time the router had not committed anywhere yet
+  // and the sheet looked like it had been dismissed in place.
+  //
+  // Driving it off the committed pathname instead means the close always
+  // happens after the navigation, so neither problem can arise. The backdrop
+  // and the X still close it directly — those really are dismissals in place.
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  useEffect(() => {
+    setDrawerOpen(false);
+  }, [pathname]);
   const { user } = useSession();
   const [username, setUsername] = useState<string | null>(null);
   const { store, stores, setActiveId } = useActiveStore();
@@ -118,13 +139,20 @@ function StoreLayoutInner() {
               </button>
             </div>
 
-            <nav className="flex flex-col gap-1">
+            {/* The scrolling region. `flex-1` takes the space the header and the
+                footer below do not, and `min-h-0` is what actually lets it
+                scroll — without it a flex child refuses to shrink past its
+                content and the list just overflows the panel silently, which is
+                what it was doing with nine items on a short screen.
+                `overscroll-contain` stops a flick at the end of the list
+                scrolling the page underneath. The native scrollbar track is
+                already hidden globally, see styles.css. */}
+            <nav className="flex flex-1 min-h-0 flex-col gap-1 overflow-y-auto overscroll-contain">
               {NAV_ITEMS.map(({ label, to, icon: Icon }) => (
                 <Link
                   key={to}
                   to={to}
-                  onClick={() => setDrawerOpen(false)}
-                  className="flex items-center gap-3.5 px-3 py-4 rounded-xl hover:bg-white/10 text-base transition-colors duration-150"
+                  className="flex shrink-0 items-center gap-3.5 px-3 py-4 rounded-xl hover:bg-white/10 text-base transition-colors duration-150"
                   activeProps={{ className: "bg-white/10" }}
                   activeOptions={{ exact: true }}
                 >
@@ -134,12 +162,14 @@ function StoreLayoutInner() {
               ))}
             </nav>
 
-            <div className="mt-3 pt-3 border-t border-white/10">
+            {/* Stays pinned below the scrolling list rather than scrolling away
+                with it. oak-safe-bottom keeps it clear of the home indicator in
+                the installed app, where this panel runs to the physical edge. */}
+            <div className="shrink-0 mt-3 pt-3 border-t border-white/10 oak-safe-bottom">
               {username && (
                 <Link
                   to="/profile/$username"
                   params={{ username }}
-                  onClick={() => setDrawerOpen(false)}
                   className="flex items-center gap-3.5 px-3 py-4 rounded-xl hover:bg-white/10 text-base text-gray-300 transition-colors duration-150"
                 >
                   <ArrowLeftCircle size={20} />
