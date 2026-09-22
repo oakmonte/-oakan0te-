@@ -7,15 +7,83 @@ import { LocationsListSheet } from "@/components/store/LocationsListSheet";
 import { isInstallablePhone } from "@/lib/platform";
 import { isStandalone } from "@/lib/standalone";
 import { Skeleton } from "@/components/ui/skeleton";
+import { payoutStepState, plainStepState, type StepState } from "@/lib/setup-step-state";
 
 export const Route = createFileRoute("/store/")({
   component: StoreHome,
 });
 
 function StepNumber({ n }: { n: number }) {
+  // Deliberately quiet. These are ordinals, not emphasis -- five solid black
+  // circles down the left edge competed with the status marks, which are the
+  // thing on this screen actually carrying information.
   return (
-    <span className="w-5 h-5 rounded-full bg-gray-900 text-white text-[11px] font-medium flex items-center justify-center shrink-0 mt-0.5">
+    <span className="w-5 h-5 rounded-full bg-sd-soft text-sd-ink-muted text-[11px] font-medium flex items-center justify-center shrink-0 mt-0.5">
       {n}
+    </span>
+  );
+}
+
+/** The dot on a step's icon.
+ *
+ *  All three states occupy the same 14px box, so a step changing state never
+ *  shifts the row. `ring-sd-surface` rather than a white border: the halo has to
+ *  be cut out of whatever the card behind it is, which is not white in dark
+ *  mode. */
+function StatusMark({ state }: { state: StepState }) {
+  if (state === "todo") {
+    return (
+      <span
+        aria-hidden
+        // A border, not an inset box-shadow. `ring-2` also compiles to
+        // box-shadow, so the two composed into Tailwind's shadow variable chain
+        // and the hollow ring silently never painted -- the "not started" mark
+        // was an invisible transparent circle. Caught by reading computed
+        // styles; it looks identical to a missing element in a screenshot.
+        // box-sizing is border-box here, so this stays exactly 14px.
+        className="absolute -top-0.5 -right-0.5 h-[14px] w-[14px] rounded-full border-[1.5px] border-sd-line ring-2 ring-sd-surface"
+      />
+    );
+  }
+  const done = state === "done";
+  return (
+    <span
+      aria-hidden
+      className={`absolute -top-0.5 -right-0.5 grid h-[14px] w-[14px] place-items-center rounded-full ring-2 ring-sd-surface oak-motion-pop ${
+        done ? "bg-sd-success-mark" : "bg-sd-attention-mark"
+      }`}
+    >
+      {done && (
+        <svg viewBox="0 0 10 10" className="h-[8px] w-[8px]" fill="none" aria-hidden>
+          <path
+            d="M2 5.2 4 7.2 8 3"
+            stroke="var(--sd-surface)"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      )}
+    </span>
+  );
+}
+
+/** The word next to the dot.
+ *
+ *  A 10px dot is a hint, not a label -- on its own it asks the seller to
+ *  remember a colour code, and it is invisible to anyone who cannot separate
+ *  amber from green. The text is the actual status; the dot is the glanceable
+ *  shorthand for it. */
+function StatusLabel({ state }: { state: StepState }) {
+  if (state === "todo") return null;
+  const done = state === "done";
+  return (
+    <span
+      className={`mt-1.5 inline-block text-[11px] font-bold uppercase tracking-[0.06em] ${
+        done ? "text-sd-success-ink" : "text-sd-attention-ink"
+      }`}
+    >
+      {done ? "Done" : "Pending verification"}
     </span>
   );
 }
@@ -30,6 +98,7 @@ function StoreHome() {
   const {
     loading: statusLoading,
     payoutSet,
+    payoutStatus,
     locationCount,
     productCount,
     themeIdSet,
@@ -69,11 +138,19 @@ function StoreHome() {
     {
       key: "payout",
       label: "Get paid",
+      // No longer repeats "pending verification" -- StatusLabel below now says
+      // that, and saying it twice in one row read as an error rather than a
+      // state.
       description: payoutSet
-        ? "Payout account added — pending verification."
+        ? "Bank account saved. Nothing else needed from you."
         : "Add your bank account details so you can get paid.",
       icon: Wallet,
       done: payoutSet,
+      // done vs state are NOT the same question here, and this is the only
+      // step where they diverge. `done` gates the checklist order and
+      // `complete`; keying it on verification would block every seller
+      // forever, because nothing writes "verified". `state` is display only.
+      state: payoutStepState(payoutSet, payoutStatus),
       go: () => navigate({ to: "/store/finance", search: { checklist: true } }),
     },
     {
@@ -84,6 +161,7 @@ function StoreHome() {
         : "Add every store or warehouse riders can collect orders from.",
       icon: MapPin,
       done: !!locationCount,
+      state: plainStepState(!!locationCount),
       go: () => setLocationsSheetOpen(true),
     },
     // Hidden entirely on desktop rather than shown as an impossible step: a
@@ -100,6 +178,7 @@ function StoreHome() {
               : "Put Oakmonte on your home screen. The rest of setup lives there.",
             icon: Smartphone,
             done: installedApp,
+            state: plainStepState(installedApp),
             go: () => navigate({ to: "/store/get-the-webapp", search: { checklist: true } }),
           },
         ]
@@ -112,6 +191,7 @@ function StoreHome() {
         : "Add items or import your existing catalog.",
       icon: Package,
       done: !!productCount,
+      state: plainStepState(!!productCount),
       go: () => navigate({ to: "/store/products", search: { checklist: true } }),
     },
     {
@@ -120,6 +200,7 @@ function StoreHome() {
       description: "Choose how your store should look like.",
       icon: Palette,
       done: themeIdSet,
+      state: plainStepState(themeIdSet),
       go: () => navigate({ to: "/store/theme", search: { checklist: true } }),
     },
   ];
@@ -168,7 +249,7 @@ function StoreHome() {
   return (
     <div className="px-4 py-6">
       <h1 className="text-lg font-semibold mb-1">Your online store is starting to take shape</h1>
-      <p className="text-sm text-gray-500 mb-6">We recommend this order for simplicity.</p>
+      <p className="text-sm text-sd-ink-muted mb-6">We recommend this order for simplicity.</p>
       {checklistLoading && (
         <span className="sr-only" role="status">
           Loading your setup checklist
@@ -183,7 +264,7 @@ function StoreHome() {
               <div
                 key={i}
                 aria-hidden="true"
-                className="flex items-start gap-3 border border-gray-200 rounded-2xl p-4"
+                className="flex items-start gap-3 border border-sd-line rounded-2xl p-4"
               >
                 <Skeleton className="w-5 h-5 rounded-full shrink-0 mt-0.5" />
                 <Skeleton className="w-[34px] h-[34px] rounded-full shrink-0" />
@@ -198,18 +279,17 @@ function StoreHome() {
                 key={step.label}
                 type="button"
                 onClick={() => handleStepTap(i)}
-                className="flex items-start gap-3 border border-gray-200 rounded-2xl p-4 hover:bg-gray-50 oak-motion-control text-left"
+                className="flex items-start gap-3 border border-sd-line rounded-2xl p-4 hover:bg-sd-elevated oak-motion-control text-left"
               >
                 <StepNumber n={i + 1} />
-                <div className="p-2 rounded-full bg-gray-100 relative">
+                <div className="p-2 rounded-full bg-sd-soft relative">
                   <step.icon size={18} />
-                  {step.done && (
-                    <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-amber-400 border-2 border-white oak-motion-pop" />
-                  )}
+                  <StatusMark state={step.state} />
                 </div>
                 <div>
                   <p className="text-sm font-medium">{step.label}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">{step.description}</p>
+                  <p className="text-xs text-sd-ink-muted mt-0.5">{step.description}</p>
+                  <StatusLabel state={step.state} />
                 </div>
               </button>
             ))}

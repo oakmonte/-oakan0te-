@@ -10,6 +10,21 @@ export type StoreSetupStatus = {
   // `complete` need this so "still loading" is never mistaken for "done".
   loading: boolean;
   payoutSet: boolean;
+  // The payout account's verification state, straight from /api/store/payout,
+  // or null when there is no account (or the request failed).
+  //
+  // Deliberately separate from `payoutSet`, because the two answer different
+  // questions and conflating them breaks the app in opposite directions.
+  // `payoutSet` is "can this store be paid out to" -- it gates the checklist's
+  // order and `complete` below. `payoutStatus` is "has anyone checked the
+  // details yet", and is only ever used to colour a status mark.
+  //
+  // Nothing in the app currently writes anything but "pending":
+  // api.store.payout.ts hardcodes it on insert and Paystack is not connected.
+  // So this stays "pending" indefinitely, which is the truth, not a bug. Gate
+  // anything structural on it -- `complete`, or a step's `done` -- and no
+  // seller ever finishes setup.
+  payoutStatus: string | null;
   locationCount: number | null;
   productCount: number | null;
   themeIdSet: boolean;
@@ -51,6 +66,7 @@ export type StoreSetupStatus = {
 export function useStoreSetupStatus(storeId: string | null): StoreSetupStatus {
   const { user, loading: sessionLoading } = useSession();
   const [payoutSet, setPayoutSet] = useState(false);
+  const [payoutStatus, setPayoutStatus] = useState<string | null>(null);
   const [payoutLoaded, setPayoutLoaded] = useState(false);
   const [locationCount, setLocationCount] = useState<number | null>(null);
   const [productCount, setProductCount] = useState<number | null>(null);
@@ -67,6 +83,10 @@ export function useStoreSetupStatus(storeId: string | null): StoreSetupStatus {
       .then((body) => {
         if (cancelled) return;
         setPayoutSet(!!body.account);
+        // The API has always returned this; the hook used to drop it on the
+        // floor, which is why every completed checklist step rendered the same
+        // amber dot and "done" was indistinguishable from "pending".
+        setPayoutStatus(body.account?.status ?? null);
         setPayoutLoaded(true);
       })
       // An unknown payout state has to resolve to "not set", never to "still
@@ -175,6 +195,7 @@ export function useStoreSetupStatus(storeId: string | null): StoreSetupStatus {
   return {
     loading,
     payoutSet,
+    payoutStatus,
     locationCount,
     productCount,
     themeIdSet,

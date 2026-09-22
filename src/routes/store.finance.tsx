@@ -1,10 +1,11 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Landmark, Clock } from "lucide-react";
+import { Landmark, Clock, Check } from "lucide-react";
 import { PayoutAccountSheet } from "@/components/store/PayoutAccountSheet";
 import { authedFetch } from "@/lib/authed-fetch";
 import { isPasskeySupported, needsPasskeyForInstall, needsPasskeyOffer } from "@/lib/auth";
 import { supabase } from "@/lib/integrations/my-supabase/client";
+import { payoutStepState } from "@/lib/setup-step-state";
 import {
   Dialog,
   DialogContent,
@@ -175,10 +176,23 @@ function FinancePage() {
             <div className="p-2 rounded-full bg-white/10">
               <Landmark size={18} />
             </div>
-            <span className="flex items-center gap-1.5 text-[11px] font-medium bg-amber-400/15 text-amber-300 rounded-full px-2.5 py-1">
-              <Clock size={11} />
-              Pending verification
-            </span>
+            {/* Derived, not hardcoded. This badge used to say "Pending
+                verification" unconditionally while the copy below promised it
+                would "flip to Verified automatically" -- a promise nothing in
+                the component could have kept. It now reads the same rule the
+                setup checklist's status mark does, so the two screens cannot
+                disagree about the same account. */}
+            {payoutStepState(true, account.status) === "done" ? (
+              <span className="flex items-center gap-1.5 text-[11px] font-medium bg-emerald-400/15 text-emerald-300 rounded-full px-2.5 py-1">
+                <Check size={11} />
+                Verified
+              </span>
+            ) : (
+              <span className="flex items-center gap-1.5 text-[11px] font-medium bg-amber-400/15 text-amber-300 rounded-full px-2.5 py-1">
+                <Clock size={11} />
+                Pending verification
+              </span>
+            )}
           </div>
           <div>
             <p className="text-lg font-mono tracking-wider">
@@ -189,7 +203,7 @@ function FinancePage() {
         </button>
       )}
 
-      {account !== undefined && (
+      {account && payoutStepState(true, account.status) !== "done" && (
         <p className="text-xs text-gray-400 mt-4 animate-in fade-in duration-300">
           Actively verifying your account. If it is verified, this card flips to
           &quot;Verified&quot; automatically, no re-entry needed.
