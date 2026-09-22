@@ -1598,8 +1598,6 @@ export const CAMERA_FILTERS: CameraFilter[] = [
   },
 
   {
-<<<<<<< HEAD
-=======
     id: "creative-vignette",
     name: "Vignette",
     category: "creative",
@@ -1621,7 +1619,6 @@ export const CAMERA_FILTERS: CameraFilter[] = [
   },
 
   {
->>>>>>> 425644e (create-vingette is pickable (will make it darker), intensity scale fixed)
     id: "creative-glow",
     name: "Glow",
     category: "creative",
