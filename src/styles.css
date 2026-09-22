@@ -86,6 +86,128 @@
   --color-chat-overlay: rgba(0, 0, 0, 0.66);
 }
 
+/* ---------------------------------------------------------------------------
+ * Seller dashboard tokens (--sd-*)
+ *
+ * The dashboard (/store, /store/*) is the one area of the app with BOTH a light
+ * and a dark appearance, chosen from the OS via prefers-color-scheme. There is
+ * no toggle and no stored preference, so there is no JS in this at all.
+ *
+ * Why custom properties redefined under a media query, rather than Tailwind's
+ * `dark:` variant:
+ *
+ *   - `@custom-variant dark` above is bound to a `.dark` CLASS that nothing in
+ *     this app ever adds. Rebinding it to a media query would need a `dark:`
+ *     twin written for roughly 1,250 colour utilities across the dashboard, and
+ *     could not be scoped -- it would fire on the feed and the camera too.
+ *   - Redefining the variables means every `bg-sd-surface` written once is
+ *     correct in both schemes forever.
+ *
+ * Why scoped to [data-surface="store"] rather than set on :root: several
+ * components are SHARED with the create flow -- ImageSourceSheet,
+ * DraftImagePickerSheet and PostImagePickerSheet render on the black camera
+ * screens AND inside the white product form. Scoping by the attribute means one
+ * component written in --sd-* tokens renders light inside /create and dark
+ * inside /store/products/new, with no prop, no context and no branching.
+ *
+ * Two things this depends on, both of which must survive any refactor:
+ *   1. `html[data-surface="store"]` is specificity (0,1,1); plain `html` is
+ *      (0,0,1). The scoped block therefore wins.
+ *   2. The dark block comes LATER in source order than the light one.
+ * ------------------------------------------------------------------------- */
+
+@layer base {
+  html {
+    /* Surfaces */
+    --sd-bg: #ffffff;
+    --sd-surface: #ffffff;
+    --sd-elevated: #f7f8fa;
+    --sd-soft: #f4f5f7;
+    --sd-line: rgba(10, 10, 10, 0.1);
+    /* The landing page's 2px black card border. Reserved for ONE surface (the
+       Total sales hero) -- see the note in the dashboard components. */
+    --sd-line-strong: #0a0a0a;
+
+    /* Ink */
+    --sd-ink: #0a0a0a;
+    --sd-ink-muted: #6b6b6b;
+    --sd-ink-faint: rgba(10, 10, 10, 0.38);
+
+    /* Accent. Three tokens, three jobs -- do not collapse them. --sd-accent is
+       a FILL and carries white text; --sd-accent-ink is accent-coloured TEXT
+       sitting on a page/card background, which needs a lighter value on black
+       to stay legible. */
+    --sd-accent: #2151f5;
+    --sd-accent-ink: #2151f5;
+    --sd-on-accent: #ffffff;
+    --sd-accent-pressed: #1a45d8;
+    --sd-accent-tint: rgba(33, 81, 245, 0.08);
+    --sd-accent-tint-hover: rgba(33, 81, 245, 0.14);
+
+    /* Status. Split mark/ink on purpose: one value cannot be both a legible
+       10px dot and legible 12px text. */
+    --sd-success-mark: #12a150;
+    --sd-success-ink: #0e7a3e;
+    --sd-attention-mark: #f59e0b;
+    --sd-attention-ink: #b45309;
+    --sd-danger-mark: #d92d20;
+    --sd-danger-ink: #b42318;
+
+    /* Decoration and chart */
+    --sd-bloom: rgba(33, 81, 245, 0.1);
+    --sd-chart-line: #2151f5;
+    --sd-chart-grid: rgba(10, 10, 10, 0.06);
+    --sd-chart-cursor: rgba(10, 10, 10, 0.14);
+    --sd-scrim: rgba(10, 10, 10, 0.4);
+    --sd-shadow-float: 0 20px 48px rgba(10, 10, 10, 0.14);
+    --sd-shadow-lift: 0 10px 24px rgba(33, 81, 245, 0.12);
+    --sd-focus: #2151f5;
+  }
+
+  /* STAGE 2: every value below is deliberately IDENTICAL to its light
+     counterpart. The scaffolding ships first so each screen can be converted to
+     --sd-* tokens in its own reviewable commit with zero visual change -- if a
+     conversion commit changes how anything looks, that is a bug, not progress.
+     Turning dark on is then one small diff that edits only this block. */
+  @media (prefers-color-scheme: dark) {
+    html[data-surface="store"] {
+      --sd-bg: #ffffff;
+      --sd-surface: #ffffff;
+      --sd-elevated: #f7f8fa;
+      --sd-soft: #f4f5f7;
+      --sd-line: rgba(10, 10, 10, 0.1);
+      --sd-line-strong: #0a0a0a;
+
+      --sd-ink: #0a0a0a;
+      --sd-ink-muted: #6b6b6b;
+      --sd-ink-faint: rgba(10, 10, 10, 0.38);
+
+      --sd-accent: #2151f5;
+      --sd-accent-ink: #2151f5;
+      --sd-on-accent: #ffffff;
+      --sd-accent-pressed: #1a45d8;
+      --sd-accent-tint: rgba(33, 81, 245, 0.08);
+      --sd-accent-tint-hover: rgba(33, 81, 245, 0.14);
+
+      --sd-success-mark: #12a150;
+      --sd-success-ink: #0e7a3e;
+      --sd-attention-mark: #f59e0b;
+      --sd-attention-ink: #b45309;
+      --sd-danger-mark: #d92d20;
+      --sd-danger-ink: #b42318;
+
+      --sd-bloom: rgba(33, 81, 245, 0.1);
+      --sd-chart-line: #2151f5;
+      --sd-chart-grid: rgba(10, 10, 10, 0.06);
+      --sd-chart-cursor: rgba(10, 10, 10, 0.14);
+      --sd-scrim: rgba(10, 10, 10, 0.4);
+      --sd-shadow-float: 0 20px 48px rgba(10, 10, 10, 0.14);
+      --sd-shadow-lift: 0 10px 24px rgba(33, 81, 245, 0.12);
+      --sd-focus: #2151f5;
+    }
+  }
+}
+
 @layer base {
   html {
     scroll-behavior: smooth;
@@ -93,6 +215,49 @@
        color-scheme meta tag in __root.tsx for the full reasoning. This is the
        CSS half of that same declaration. */
     color-scheme: light;
+
+    /* The grey box that flashes over anything tapped on a touch device. It is a
+       browser affordance for documents; this is an app, every interactive
+       surface here draws its own press state (oak-motion-control + active:
+       scale), and the flash lands ON TOP of that. Absent from this codebase
+       until now, which is why taps have never felt quite right. */
+    -webkit-tap-highlight-color: transparent;
+
+    /* Stops iOS inflating body text when a phone is turned landscape. Without
+       it the "text autosizing" heuristic rescales font sizes inside wide
+       blocks, so a layout tuned at 375px silently reflows on rotation. */
+    -webkit-text-size-adjust: 100%;
+  }
+
+  /* Removes the residual ~300ms tap delay browsers keep for double-tap-to-zoom
+     detection, and stops a long press selecting a button's label instead of
+     registering as a press. Scoped to things that are actually pressed --
+     plain `a` is left selectable, because a link inside running copy is text
+     the reader may well want to copy.
+
+     NOT paired with `overscroll-behavior: none` on the page. That would
+     disable pull-to-refresh app-wide, which is a product decision nobody has
+     asked for; the existing `overscroll-behavior-x: none` below stays as it
+     is, and individual scrollers opt into containment themselves. */
+  button,
+  [role="button"],
+  summary {
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  /* The seller dashboard is the one area that genuinely has both schemes, so
+     it is the one area that tells the browser so. This is what makes the
+     native bits follow the system there — the store switcher's <select>, form
+     inputs, the scrollbar gutter, the overscroll glow — and it is also what
+     stops Chrome's force-dark heuristic touching the dashboard, because a page
+     declaring `light dark` is claiming to handle dark itself.
+
+     Everywhere else stays `light`, so the auto-invert opt-out above still
+     holds for the rest of the app exactly as it did. See lib/surface.ts for
+     who sets the attribute. */
+  html[data-surface="store"] {
+    color-scheme: light dark;
   }
   html,
   body {
@@ -401,6 +566,37 @@ input:-webkit-autofill:active {
  */
 
 @theme inline {
+  /* Seller dashboard (--sd-*). `inline` matters: it keeps the var() reference
+     live rather than baking the value in, which is what lets these flip under
+     prefers-color-scheme at runtime. Generates bg-sd-*, text-sd-*, border-sd-*,
+     ring-sd-*, fill-sd-* and friends, so no `dark:` variant is ever written on
+     a dashboard screen. */
+  --color-sd-bg: var(--sd-bg);
+  --color-sd-surface: var(--sd-surface);
+  --color-sd-elevated: var(--sd-elevated);
+  --color-sd-soft: var(--sd-soft);
+  --color-sd-line: var(--sd-line);
+  --color-sd-line-strong: var(--sd-line-strong);
+  --color-sd-ink: var(--sd-ink);
+  --color-sd-ink-muted: var(--sd-ink-muted);
+  --color-sd-ink-faint: var(--sd-ink-faint);
+  --color-sd-accent: var(--sd-accent);
+  --color-sd-accent-ink: var(--sd-accent-ink);
+  --color-sd-on-accent: var(--sd-on-accent);
+  --color-sd-accent-pressed: var(--sd-accent-pressed);
+  --color-sd-accent-tint: var(--sd-accent-tint);
+  --color-sd-accent-tint-hover: var(--sd-accent-tint-hover);
+  --color-sd-success-mark: var(--sd-success-mark);
+  --color-sd-success-ink: var(--sd-success-ink);
+  --color-sd-attention-mark: var(--sd-attention-mark);
+  --color-sd-attention-ink: var(--sd-attention-ink);
+  --color-sd-danger-mark: var(--sd-danger-mark);
+  --color-sd-danger-ink: var(--sd-danger-ink);
+  --color-sd-chart-line: var(--sd-chart-line);
+  --color-sd-chart-grid: var(--sd-chart-grid);
+  --color-sd-scrim: var(--sd-scrim);
+  --color-sd-focus: var(--sd-focus);
+
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -526,10 +722,27 @@ input:-webkit-autofill:active {
      bottom toolbar to match the page's true background, not the app div
      drawn on top of it. Hardcoded, not var-driven: the 404/error boundary
      pages deliberately keep the light bg-background look on their own
-     wrapper, and that's unaffected since it paints over this. */
+     wrapper, and that's unaffected since it paints over this.
+
+     Now driven by --oak-edge rather than a literal, because two surfaces are
+     white and one of them (the dashboard) also has a dark scheme. This used to
+     be corrected by an effect in __root.tsx writing an INLINE style, which
+     outranks every rule here and so made a themeable dashboard impossible —
+     and, because it only ran after hydration, made every cold load of the
+     white dashboard paint black first. The attribute comes from RootShell and
+     is in the SSR'd HTML, so the first paint is already right. */
+  html {
+    --oak-edge: #000;
+  }
+  html[data-surface="store"],
+  html[data-surface="publish"] {
+    --oak-edge: #fff;
+  }
   html,
   body {
-    background-color: #000;
+    /* body inherits the custom property from html, so one variable drives both
+       and they cannot disagree. */
+    background-color: var(--oak-edge);
   }
 
   /* Mobile-first app, not a document — no scroll container here (page,

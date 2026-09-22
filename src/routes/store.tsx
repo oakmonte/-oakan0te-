@@ -22,10 +22,31 @@ import { StoreHeaderProvider } from "@/context/store-header-provider";
 import { useStoreHeader } from "@/hooks/use-store-header";
 
 export const Route = createFileRoute("/store")({
-  // Overrides root's #000000 theme-color for the whole dashboard (this
-  // covers the trailing-underscore routes too — see __root.tsx's comment on
-  // why the scroll-edge background itself has to be set there instead).
-  head: () => ({ meta: [{ name: "theme-color", content: "#ffffff" }] }),
+  // theme-color is NOT declared here any more. The dashboard needs a different
+  // value per colour scheme, which takes two <meta> tags distinguished by their
+  // `media` attribute — and TanStack dedupes meta by `name` alone, so a pair
+  // declared here would collapse into whichever was listed last. RootShell in
+  // __root.tsx renders the pair directly instead; see the comment there.
+  //
+  // This one stays, and still works the old way: a leaf route's head() wins a
+  // `name` collision against the root's, so this overrides the root's "light".
+  // It is the meta half of the `color-scheme` CSS declaration in styles.css —
+  // some engines honour the tag more reliably than the declaration for native
+  // form-control theming, which is why both exist.
+  head: () => ({
+    meta: [
+      { name: "color-scheme", content: "light dark" },
+      // Belt and braces, and it costs one line. RootShell's media pair is
+      // emitted ahead of <HeadContent />, so by the spec's "first tag whose
+      // media matches" rule it always wins here and this is never consulted.
+      // But without it the root's #000000 is what HeadContent would emit for
+      // the dashboard, and a black theme-color reachable on a white screen is
+      // the precise bug that shipped twice already. Overriding it to white
+      // means the dashboard renders correctly even under a browser that
+      // resolved these in the opposite order.
+      { name: "theme-color", content: "#ffffff" },
+    ],
+  }),
   component: StoreLayout,
 });
 
