@@ -35,6 +35,12 @@ function clamp(v: number, min: number, max: number) {
   return Math.min(max, Math.max(min, v));
 }
 
+// A photo bound by a fixed crop frame needs a narrower zoom range than a
+// free-floating sticker/text layer (see LayerOverlay.tsx's 0.15-8, for
+// content that can be arbitrarily tiny or huge on an open canvas).
+const CROP_MIN_SCALE = 0.5;
+const CROP_MAX_SCALE = 3;
+
 // Drag-to-reposition image, used anywhere a fixed-aspect container crops a
 // seller's photo (slideshow slide, collection/product tile). Not editable:
 // a plain <img> with the stored (or centered) object-position. Editable: a
@@ -62,6 +68,7 @@ function CroppableImage({
   editable?: boolean;
 }) {
   const savedPos = position ?? { x: 50, y: 50 };
+  const savedScale = savedPos.scale ?? 1;
   const containerRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
   const dragRef = useRef<{
@@ -72,6 +79,19 @@ function CroppableImage({
     moved: boolean;
   } | null>(null);
   const suppressClickRef = useRef(false);
+  // Live pointers on the image itself (not the reposition handle) — a lone
+  // first finger is just recorded here and otherwise ignored, so single-
+  // finger taps/swipes (the tile's own onTap, a carousel's snap-scroll) are
+  // untouched; only a second finger landing turns this into a pinch. See
+  // LayerOverlay.tsx for the same "upgrade on second pointer" shape.
+  const pointersRef = useRef<Map<number, { x: number; y: number }>>(new Map());
+  const pinchRef = useRef<{ startDistance: number; startScale: number; current: number } | null>(
+    null,
+  );
+
+  function pinchDistance(pts: { x: number; y: number }[]) {
+    return Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y);
+  }
 
   function handlePointerDown(e: ReactPointerEvent<HTMLDivElement>) {
     if (!editable || !onPositionChange) return;
@@ -125,7 +145,7 @@ function CroppableImage({
     }
   }
 
-  function handleHandleClick(e: ReactMouseEvent) {
+  function handleSuppressibleClick(e: ReactMouseEvent) {
     if (suppressClickRef.current) {
       e.stopPropagation();
       e.preventDefault();
@@ -133,15 +153,73 @@ function CroppableImage({
     }
   }
 
+  // Pinch-to-zoom, edit mode only — on the image itself, not the reposition
+  // handle, since a two-finger gesture never competes with the single-finger
+  // taps/swipes the container already needs to keep working.
+  function handleContainerPointerDown(e: ReactPointerEvent<HTMLDivElement>) {
+    if (!editable || !onPositionChange) return;
+    pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointersRef.current.size !== 2 || !containerRef.current) return;
+    // Second finger just landed — anchor the pinch on the current scale so
+    // the image doesn't jump at the moment the gesture starts.
+    const startDistance = pinchDistance([...pointersRef.current.values()]);
+    pinchRef.current = { startDistance, startScale: savedScale, current: savedScale };
+    // Scoped to exactly the two-finger window, not the whole edit session —
+    // same reasoning as the handle's own touch-action:none, just toggled at
+    // runtime instead of always-on, so single-finger swipe between a tile's
+    // photos still works the rest of the time.
+    containerRef.current.style.touchAction = "none";
+  }
+
+  function handleContainerPointerMove(e: ReactPointerEvent<HTMLDivElement>) {
+    if (!pointersRef.current.has(e.pointerId)) return;
+    pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const pinch = pinchRef.current;
+    if (!pinch || pointersRef.current.size !== 2) return;
+    const distance = pinchDistance([...pointersRef.current.values()]);
+    const nextScale = clamp(
+      pinch.startScale * (distance / pinch.startDistance),
+      CROP_MIN_SCALE,
+      CROP_MAX_SCALE,
+    );
+    pinch.current = nextScale;
+    if (imgRef.current) imgRef.current.style.transform = `scale(${nextScale})`;
+  }
+
+  function endPinch(pointerId: number, commit: boolean) {
+    pointersRef.current.delete(pointerId);
+    const pinch = pinchRef.current;
+    if (!pinch || pointersRef.current.size >= 2) return;
+    pinchRef.current = null;
+    if (containerRef.current) containerRef.current.style.touchAction = "";
+    if (commit && pinch.current !== pinch.startScale) {
+      suppressClickRef.current = true;
+      onPositionChange?.({ ...savedPos, scale: pinch.current });
+    } else if (imgRef.current) {
+      imgRef.current.style.transform = `scale(${savedScale})`;
+    }
+  }
+
   return (
-    <div ref={containerRef} className="relative h-full w-full">
+    <div
+      ref={containerRef}
+      className="relative h-full w-full"
+      onPointerDown={handleContainerPointerDown}
+      onPointerMove={handleContainerPointerMove}
+      onPointerUp={(e) => endPinch(e.pointerId, true)}
+      onPointerCancel={(e) => endPinch(e.pointerId, false)}
+      onClick={handleSuppressibleClick}
+    >
       <img
         ref={imgRef}
         src={src}
         alt={alt}
         draggable={false}
         className="h-full w-full object-cover"
-        style={{ objectPosition: `${savedPos.x}% ${savedPos.y}%` }}
+        style={{
+          objectPosition: `${savedPos.x}% ${savedPos.y}%`,
+          transform: `scale(${savedScale})`,
+        }}
       />
       {editable && onPositionChange && (
         <div
@@ -149,7 +227,7 @@ function CroppableImage({
           onPointerMove={handlePointerMove}
           onPointerUp={() => endDrag(true)}
           onPointerCancel={() => endDrag(false)}
-          onClick={handleHandleClick}
+          onClick={handleSuppressibleClick}
           style={{ touchAction: "none" }}
           className="absolute bottom-1 right-1 flex h-9 w-9 cursor-move items-center justify-center rounded-full bg-black/55 text-white active:bg-black/75"
         >
@@ -476,13 +554,16 @@ export function PhoneHeader({
     e.target.value = "";
   }
 
-  // Grows with the text (no fixed max-width) so a short brand name doesn't
-  // sit in an oversized box and a long one isn't clipped sooner than it has
-  // to be — the header row's own layout (flex-1 + min-w-0 on this side,
-  // shrink-0 on the icon row) is what stops it from reaching the icons,
-  // truncating with an ellipsis if it still would.
+  // Shrink-to-fit with a cap, same shape as imageChip's own min-w-10 below —
+  // not a stretch-to-fill box. A short brand name doesn't sit in an oversized
+  // pill, and a long one truncates with an ellipsis instead of pushing the
+  // pill toward the icon row. overflow-hidden is a height ceiling imageChip
+  // gets for free from its fixed h-7 w-7 image, which this branch doesn't
+  // have on its own — EditableText's edit-mode <input> computes its own
+  // height in JS rather than being pinned by a class, so nothing stopped it
+  // from rendering taller than this pill.
   const textLogo = (
-    <div className="flex h-10 max-w-full items-center rounded-xl border border-white/15 bg-black/25 px-3 backdrop-blur-md">
+    <div className="flex h-10 w-fit max-w-[220px] items-center overflow-hidden rounded-xl border border-white/15 bg-black/25 px-3 backdrop-blur-md">
       <ThemeText
         editing={editing}
         field="logoText"
