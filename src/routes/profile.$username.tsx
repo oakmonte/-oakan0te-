@@ -330,6 +330,12 @@ function ProfilePage() {
   const storeSheetOpen = activeTab === "store" && !!store && storeIsSetUp;
   const closeStoreSheet = () => setActiveTab(previousTabRef.current);
 
+  // The last sheet on this page that the back gesture could not see. It has a
+  // scrim, drag-to-dismiss, a scroll lock and a depth cue on the page behind
+  // it -- it is an overlay by every other measure -- so swiping back while it
+  // was open left the profile entirely instead of closing it.
+  useOverlayHistory(storeSheetOpen, closeStoreSheet);
+
   return (
     <div
       className="min-h-screen bg-black text-white"
