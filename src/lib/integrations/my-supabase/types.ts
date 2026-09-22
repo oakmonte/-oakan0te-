@@ -896,6 +896,7 @@ export type Database = {
           is_complete: boolean;
           manual_size_system: string | null;
           manual_size_value: string | null;
+          pass_fees_to_buyer: boolean;
           product_type: string | null;
           source_platform: string | null;
           status: string;
@@ -914,6 +915,7 @@ export type Database = {
           is_complete?: boolean;
           manual_size_system?: string | null;
           manual_size_value?: string | null;
+          pass_fees_to_buyer?: boolean;
           product_type?: string | null;
           source_platform?: string | null;
           status?: string;
@@ -932,6 +934,7 @@ export type Database = {
           is_complete?: boolean;
           manual_size_system?: string | null;
           manual_size_value?: string | null;
+          pass_fees_to_buyer?: boolean;
           product_type?: string | null;
           source_platform?: string | null;
           status?: string;

@@ -62,7 +62,7 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "mcp__supabase__generate_typescript_types",
+        "matcher": "mcp__.*__generate_typescript_types",
         "hooks": [
           {
             "type": "command",
