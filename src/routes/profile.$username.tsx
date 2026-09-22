@@ -749,13 +749,21 @@ function ProfilePage() {
                 <button
                   key={s.id}
                   type="button"
-                  onClick={() => {
-                    setStorePickerOpen(false);
+                  // Deliberately does NOT close the picker here. Closing it in
+                  // the same click that navigates tears this button out of the
+                  // DOM mid-click and the navigation never fires at all — the
+                  // store drawer had the identical bug, and watching
+                  // history.pushState from the page showed no push and no
+                  // growth in history.length. Leaving the sheet up lets the
+                  // route change unmount it a moment later, which also means
+                  // useOverlayHistory sees the router has already moved and
+                  // correctly leaves its history entry alone.
+                  onClick={() =>
                     navigate({
                       to: "/store-profile/$storeUsername",
                       params: { storeUsername: s.store_username },
-                    });
-                  }}
+                    })
+                  }
                   className="w-full flex items-center justify-between gap-3 px-5 py-3.5 text-left active:bg-white/5 transition-colors duration-150"
                 >
                   <div className="min-w-0">
