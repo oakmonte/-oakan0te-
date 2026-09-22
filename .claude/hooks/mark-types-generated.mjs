@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// PostToolUse/mcp__supabase__generate_typescript_types hook: drops a short-lived
+// PostToolUse/mcp__.*__generate_typescript_types hook: drops a short-lived
 // sentinel that block-generated-edits.mjs will accept as proof the very next
 // write to src/lib/integrations/my-supabase/types.ts is a real regeneration,
 // not a hand-edit. Single-use and time-boxed — see block-generated-edits.mjs

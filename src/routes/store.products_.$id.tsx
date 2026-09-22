@@ -101,6 +101,7 @@ type LoadedProduct = {
   status: string;
   manual_size_value: string | null;
   manual_size_system: string | null;
+  pass_fees_to_buyer: boolean;
   product_variants: {
     id: string;
     sku: string | null;
@@ -441,9 +442,7 @@ function EditProduct() {
       // product_variants.price always stores what the CUSTOMER pays. If the
       // seller chose to pass the fees on, the form has to show them their own
       // asking price again, not the grossed-up one.
-      // Cast: the generated types predate the column — regenerate after
-      // applying 20260921140000_add_pass_fees_to_buyer.sql.
-      const passesFees = (product as { pass_fees_to_buyer?: boolean }).pass_fees_to_buyer === true;
+      const passesFees = product.pass_fees_to_buyer;
       setPassFeesToBuyer(passesFees);
       const shownPrice = (stored: number | null) =>
         stored == null ? "" : String(passesFees ? sellerEntryFromCharged(stored) : stored);

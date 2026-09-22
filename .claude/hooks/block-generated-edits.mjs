@@ -7,8 +7,12 @@
 // CLAUDE.md says "generated, don't edit"; this makes that non-negotiable.
 //
 // One exception: src/lib/integrations/my-supabase/types.ts is the one path
-// that's actually regenerable in this session, via
-// mcp__supabase__generate_typescript_types against the real project. That MCP
+// that's actually regenerable in this session, via the Supabase connector's
+// generate_typescript_types against the real project. The PostToolUse matcher
+// keys on the operation (mcp__.*__generate_typescript_types) rather than one
+// server name, because the same tool is exposed under a different prefix
+// depending on how Supabase is connected -- it was pinned to
+// mcp__supabase__ and silently stopped firing when the connection moved. That MCP
 // call's PostToolUse hook (mark-types-generated.mjs) drops a short-lived
 // sentinel; a write to just that path is allowed through if the sentinel is
 // present and fresh, and the sentinel is consumed (deleted) either way so it

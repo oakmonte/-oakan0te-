@@ -189,11 +189,7 @@ async function runCreate(
       status: payload.status,
       source_platform: "manual",
       is_complete: computeIsComplete(completenessInput(payload)),
-      // Cast because the generated types predate this column. Regenerate them
-      // after applying 20260921140000_add_pass_fees_to_buyer.sql and this goes
-      // away. THE MIGRATION MUST BE APPLIED BEFORE THIS CODE DEPLOYS — without
-      // the column, every product save fails.
-      ...({ pass_fees_to_buyer: payload.passFeesToBuyer } as object),
+      pass_fees_to_buyer: payload.passFeesToBuyer,
       manual_size_value: payload.manualSize?.value ?? null,
       manual_size_system: payload.manualSize?.system ?? null,
     })
@@ -390,11 +386,7 @@ async function runUpdate(payload: Extract<ProductSavePayload, { mode: "update" }
       product_type: payload.categoryName || null,
       status: payload.status,
       is_complete: computeIsComplete(completenessInput(payload)),
-      // Cast because the generated types predate this column. Regenerate them
-      // after applying 20260921140000_add_pass_fees_to_buyer.sql and this goes
-      // away. THE MIGRATION MUST BE APPLIED BEFORE THIS CODE DEPLOYS — without
-      // the column, every product save fails.
-      ...({ pass_fees_to_buyer: payload.passFeesToBuyer } as object),
+      pass_fees_to_buyer: payload.passFeesToBuyer,
       manual_size_value: payload.manualSize?.value ?? null,
       manual_size_system: payload.manualSize?.system ?? null,
     })
