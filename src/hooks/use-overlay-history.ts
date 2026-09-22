@@ -13,7 +13,7 @@
 // node_modules/@tanstack/history/dist/esm/index.js:54), so stamping the next
 // index ourselves keeps it and the stack mirror consistent.
 import { useEffect, useRef } from "react";
-import { noteExternalPush, readIndex } from "@/lib/nav-stack";
+import { noteExternalPush, readIndex, shouldRemoveOverlayEntry } from "@/lib/nav-stack";
 
 export function useOverlayHistory(open: boolean, onClose: () => void) {
   // Held in a ref so the effect does not re-run — and re-push — every time the
@@ -24,27 +24,39 @@ export function useOverlayHistory(open: boolean, onClose: () => void) {
   useEffect(() => {
     if (!open) return;
 
+    const ourIndex = readIndex(window.history.state) + 1;
     const state = {
       ...(window.history.state ?? {}),
-      __TSR_index: readIndex(window.history.state) + 1,
+      __TSR_index: ourIndex,
       __oakOverlay: true,
     };
     window.history.pushState(state, "");
     noteExternalPush(window.location.pathname);
 
-    let ours = true;
+    let poppedByGesture = false;
     const onPop = () => {
-      ours = false;
+      poppedByGesture = true;
       onCloseRef.current();
     };
     window.addEventListener("popstate", onPop);
 
     return () => {
       window.removeEventListener("popstate", onPop);
-      // Closed by a tap-outside, a confirm, or an unmount rather than by the
-      // gesture. Our entry is still on the stack, so take it back off —
-      // otherwise the next back press would be swallowed doing nothing.
-      if (ours) window.history.back();
+
+      // See shouldRemoveOverlayEntry for why this is a condition and not just
+      // history.back(). The short version: if the overlay is closing because a
+      // menu row navigated somewhere, our entry is buried rather than on top,
+      // and popping would undo that navigation.
+      //
+      // A buried entry is harmless — it carries the same pathname as the page
+      // that opened it, so backing onto it renders that page with the overlay
+      // shut, which is where back should land anyway.
+      const remove = shouldRemoveOverlayEntry({
+        poppedByGesture,
+        ourIndex,
+        currentIndex: readIndex(window.history.state),
+      });
+      if (remove) window.history.back();
     };
   }, [open]);
 }

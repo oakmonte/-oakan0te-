@@ -5,6 +5,7 @@ import {
   noteExternalPush,
   readIndex,
   reset,
+  shouldRemoveOverlayEntry,
   __setStateForTest,
 } from "./nav-stack";
 
@@ -83,5 +84,47 @@ describe("noteExternalPush", () => {
     noteExternalPush("/home");
     expect(findAncestor("/terms")).toBe(-1);
     expect(currentIndex()).toBe(1);
+  });
+});
+
+describe("shouldRemoveOverlayEntry", () => {
+  test("does nothing when the back gesture already popped the entry", () => {
+    expect(shouldRemoveOverlayEntry({ poppedByGesture: true, ourIndex: 3, currentIndex: 2 })).toBe(
+      false,
+    );
+  });
+
+  test("removes the entry when the overlay is dismissed in place", () => {
+    // Tap-outside, a close button, a confirm: nothing navigated, so our entry
+    // is still the one on top. Leaving it would swallow the next back press.
+    expect(shouldRemoveOverlayEntry({ poppedByGesture: false, ourIndex: 3, currentIndex: 3 })).toBe(
+      true,
+    );
+  });
+
+  test("leaves the entry alone when a menu row navigated away", () => {
+    // The regression of 2026-09-22. Tapping "Oakmonte Store" in the profile
+    // menu pushed /store over our entry, the profile route unmounted, and the
+    // cleanup called history.back() unconditionally -- which popped the
+    // navigation straight back off. The store flashed up and vanished, and
+    // every row in that menu (Studio, Store, Activity, Offline videos,
+    // Settings) was dead the same way.
+    expect(shouldRemoveOverlayEntry({ poppedByGesture: false, ourIndex: 3, currentIndex: 4 })).toBe(
+      false,
+    );
+  });
+
+  test("leaves the entry alone after a multi-step navigation", () => {
+    expect(shouldRemoveOverlayEntry({ poppedByGesture: false, ourIndex: 3, currentIndex: 7 })).toBe(
+      false,
+    );
+  });
+
+  test("does not pop when the stack is somehow already below us", () => {
+    // Defensive: a go(-n) we did not observe. Popping again would take a real
+    // page off the stack.
+    expect(shouldRemoveOverlayEntry({ poppedByGesture: false, ourIndex: 3, currentIndex: 1 })).toBe(
+      false,
+    );
   });
 });

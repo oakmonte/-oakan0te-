@@ -46,6 +46,29 @@ export function reset() {
   currentIdx = 0;
 }
 
+/**
+ * Whether an overlay that is closing should take its own history entry back
+ * off the stack. Pure, and separated from useOverlayHistory so the three cases
+ * can be tested without a DOM — the middle one shipped broken on 2026-09-22 and
+ * killed every menu in the app.
+ *
+ * - `poppedByGesture`: the back gesture already removed it. Nothing to do.
+ * - `currentIndex > ourIndex`: something was pushed OVER our entry, so the
+ *   overlay is closing because the user navigated away. Popping here would
+ *   undo that navigation and bounce them back to where they started.
+ * - `currentIndex === ourIndex`: our entry is still on top, so the overlay was
+ *   dismissed in place (tap-outside, a close button, a confirm). Take it off,
+ *   or the next back press is swallowed doing nothing.
+ */
+export function shouldRemoveOverlayEntry(args: {
+  poppedByGesture: boolean;
+  ourIndex: number;
+  currentIndex: number;
+}): boolean {
+  if (args.poppedByGesture) return false;
+  return args.currentIndex === args.ourIndex;
+}
+
 /** Subscribe the mirror to the router's history. Returns an unsubscribe. */
 export function attachNavStack(history: RouterHistory): () => void {
   const record = () => {
