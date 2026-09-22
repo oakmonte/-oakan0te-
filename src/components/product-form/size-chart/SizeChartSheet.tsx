@@ -15,7 +15,6 @@ import { GUIDE_IMAGES } from "./guide-images";
 type Unit = "cm" | "in";
 // sizeValue -> measurementKey -> raw typed string, in whatever `unit` currently is
 type Draft = Record<string, Record<string, string>>;
-const SYSTEM_KEYS = Object.keys(SIZE_SYSTEMS) as (keyof typeof SIZE_SYSTEMS)[];
 
 function formatNum(n: number): string {
   return (Math.round(n * 100) / 100).toString();
@@ -64,9 +63,7 @@ export function SizeChartSheet({
   );
 
   const [pickedSize, setPickedSize] = useState<ManualSize | null>(manualSize);
-  const [pickerSystem, setPickerSystem] = useState<keyof typeof SIZE_SYSTEMS>(
-    (manualSize?.system as keyof typeof SIZE_SYSTEMS) ?? "XXL",
-  );
+  const [pickerSystem, setPickerSystem] = useState<string>(manualSize?.system ?? "XXL");
   const [confirmEmptySave, setConfirmEmptySave] = useState(false);
   const [confirmImplausible, setConfirmImplausible] = useState(false);
   // Distinct from confirmEmptySave (manual mode's "nothing filled in at all,
@@ -395,14 +392,19 @@ export function SizeChartSheet({
 }
 
 // Exported for ManualSizeOnlySheet — same "pick a real size value" step,
-// reused for categories with no illustrated chart yet.
+// reused for categories with no illustrated chart yet. `systems` is a prop
+// rather than the hardcoded SIZE_SYSTEMS because footwear picks from a
+// different ladder (SHOE_SIZE_SYSTEMS); every chart category still gets the
+// clothing default.
 export function SizePicker({
   system,
+  systems = SIZE_SYSTEMS,
   onChangeSystem,
   onPick,
 }: {
-  system: keyof typeof SIZE_SYSTEMS;
-  onChangeSystem: (s: keyof typeof SIZE_SYSTEMS) => void;
+  system: string;
+  systems?: Record<string, readonly string[]>;
+  onChangeSystem: (s: string) => void;
   onPick: (value: string) => void;
 }) {
   const [systemMenuOpen, setSystemMenuOpen] = useState(false);
@@ -434,7 +436,7 @@ export function SizePicker({
               className="fixed inset-0 z-10 cursor-default"
             />
             <div className="absolute right-0 top-9 z-20 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden min-w-28">
-              {SYSTEM_KEYS.map((key) => (
+              {Object.keys(systems).map((key) => (
                 <button
                   key={key}
                   type="button"
@@ -456,7 +458,7 @@ export function SizePicker({
       </div>
 
       <div className="flex flex-col gap-2">
-        {SIZE_SYSTEMS[system].map((v) => (
+        {systems[system].map((v) => (
           <button
             key={v}
             type="button"

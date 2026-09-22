@@ -505,12 +505,28 @@ account-deletion cleanup route). A loose plausibility check (real garment ratio 
 deliberately so no legitimate cut gets rejected) catches typo'd/garbled input without exposing
 any rule text to sellers.
 
-What's left is coverage, not architecture. **27 guide images** are wired across roughly 47
-category leaves (tops: t-shirt x3, polo x2, dress shirt, off-shoulder, NFL/football jersey,
-overshirt, sweatshirt; bottoms: joggers x4, trousers, jeans, shorts x6; plus corsets, bodysuits
-and their lingerie variants). Categories that require Size and still have no chart — shoes,
-dresses, costumes & accessories — fall back to the manual-pick-only flow (`ManualSize`). Add more
-by extending `CHARTS_BY_CATEGORY` + `GUIDE_IMAGES`, same pattern as the existing entries.
+What's left is coverage, not architecture. **50 guide images** are wired across 94 category
+mappings (tops, jerseys, joggers, trousers, jeans, shorts, jackets, skirts, jumpsuits, corsets
+and bodysuits). Dresses are now largely covered too — A-line, mini, off-shoulder, shirt, slip
+and wrap dresses each have their own guide. Add more by extending `CHARTS_BY_CATEGORY` +
+`GUIDE_IMAGES`, same pattern as the existing entries.
+
+Three known holes remain, each for its own reason (audited 2026-09-22):
+
+- **Footwear will never get a chart of this kind** — a shoe isn't measured by lettered spans
+  across a flat-laid garment. What it needed was the right ladder in the manual picker, and it
+  now has one: `SHOE_SIZE_SYSTEMS` (US/UK/EU shoe numbers) replaces the clothing S/M/L + dress-size
+  ladder for `shoes` and `costume-shoes`, selected via `isFootwearCategory`. Free-form cm
+  measurements ("Foot length") still come from `ManualSizeOnlySheet` as before.
+- **Costumes** are now wired where a costume garment measures like its everyday counterpart:
+  `costume-tops` borrows the generic top guide, `costume-dresses` the A-line dress guide, joining
+  `costume-onesies-jumpsuits` which already borrowed the jumpsuit guide. Still unmapped on purpose:
+  `costume-sets` (a top-plus-bottom bundle has no single chart), `costume-cloaks-capes` (a drape
+  has no chest/shoulder span), and `costume-accessories` / `costume-wigs` (not sized garments).
+- **Bodycon dresses** stay on manual pick. `Bodycon-dress guide.png` is a genuine bodycon dress
+  (the older "might be a jumpsuit" note was wrong), but the artwork labels two different spans
+  **both as `B`**, so a seller cannot tell which box is which. It needs relabelled artwork, not a
+  chart definition. See `IMAGE-COMPLAINTS.md`.
 
 `src/components/product-form/size-chart/IMAGE-COMPLAINTS.md` is the audit of the guide artwork
 that is present but deliberately **not** wired, with the reason for each: bomber and track
