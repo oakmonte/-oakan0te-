@@ -2,7 +2,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { Palette, Wallet, Package, MapPin, Smartphone, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useActiveStoreId } from "@/hooks/use-own-store";
-import { useStoreSetupStatus } from "@/hooks/use-store-setup-status";
+import type { StoreSetupStatus } from "@/hooks/use-store-setup-status";
 import { LocationsListSheet } from "@/components/store/LocationsListSheet";
 import { isInstallablePhone } from "@/lib/platform";
 import { isStandalone } from "@/lib/standalone";
@@ -37,7 +37,7 @@ function StatusMark({ state }: { state: StepState }) {
         // was an invisible transparent circle. Caught by reading computed
         // styles; it looks identical to a missing element in a screenshot.
         // box-sizing is border-box here, so this stays exactly 14px.
-        className="absolute -top-0.5 -right-0.5 h-[14px] w-[14px] rounded-full border-[1.5px] border-sd-line ring-2 ring-sd-surface"
+        className="absolute -top-0.5 -right-0.5 h-[14px] w-[14px] rounded-full border-[1.5px] border-sd-ink-faint ring-2 ring-sd-surface"
       />
     );
   }
@@ -84,7 +84,12 @@ function StatusLabel({ state }: { state: StepState }) {
   );
 }
 
-export function SetupChecklist() {
+/** Takes the setup status from the route rather than fetching it itself. The
+ *  route has to know it anyway to decide between this and the dashboard, and a
+ *  second useStoreSetupStatus() here started a fresh instance at loading:true
+ *  -- repeating all four requests and showing the seller a second skeleton
+ *  after the first had already resolved. */
+export function SetupChecklist({ status }: { status: StoreSetupStatus }) {
   const navigate = useNavigate();
   const { storeId } = useActiveStoreId();
   // Raw stores.theme_id (via themeIdSet below), not useStoreTheme()'s value —
@@ -100,7 +105,7 @@ export function SetupChecklist() {
     themeIdSet,
     installedApp,
     setLocationCount,
-  } = useStoreSetupStatus(storeId ?? null);
+  } = status;
   const [locationsSheetOpen, setLocationsSheetOpen] = useState(false);
   // Both read `navigator` / a media query, so both are set from an effect and
   // never a useState initialiser -- the hydration rule in platform.ts. Until
@@ -129,6 +134,17 @@ export function SetupChecklist() {
   // edit (dropping the card once installed) would make the array shrink while
   // a warning is open.
   const [orderWarningKey, setOrderWarningKey] = useState<string | null>(null);
+
+  // Escape closes the order warning. A dialog that can only be dismissed by
+  // its X is a trap for anyone on a keyboard or switch control.
+  useEffect(() => {
+    if (!orderWarningKey) return;
+    const onEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOrderWarningKey(null);
+    };
+    document.addEventListener("keydown", onEsc);
+    return () => document.removeEventListener("keydown", onEsc);
+  }, [orderWarningKey]);
 
   const steps = [
     {
@@ -184,7 +200,7 @@ export function SetupChecklist() {
       label: "List products",
       description: productCount
         ? `${productCount} product${productCount === 1 ? "" : "s"} listed.`
-        : "Add items or import your existing catalog.",
+        : "Add items or import your existing catalogue.",
       icon: Package,
       done: !!productCount,
       state: plainStepState(!!productCount),
@@ -193,7 +209,7 @@ export function SetupChecklist() {
     {
       key: "theme",
       label: "Customise your store front",
-      description: "Choose how your store should look like.",
+      description: "Choose how your store looks.",
       icon: Palette,
       done: themeIdSet,
       state: plainStepState(themeIdSet),
@@ -243,7 +259,7 @@ export function SetupChecklist() {
   }
 
   return (
-    <div className="px-4 py-6">
+    <div className="px-4 py-6 font-normal">
       <h1 className="text-lg font-semibold mb-1">Your online store is starting to take shape</h1>
       <p className="text-sm text-sd-ink-muted mb-6">We recommend this order for simplicity.</p>
       {checklistLoading && (
@@ -275,7 +291,7 @@ export function SetupChecklist() {
                 key={step.label}
                 type="button"
                 onClick={() => handleStepTap(i)}
-                className="flex items-start gap-3 border border-sd-line rounded-2xl p-4 hover:bg-sd-elevated oak-motion-control text-left"
+                className="flex items-start gap-3 border border-sd-line rounded-2xl p-4 hover:bg-sd-elevated active:scale-[0.99] active:bg-sd-elevated oak-motion-control text-left"
               >
                 <StepNumber n={i + 1} />
                 <div className="p-2 rounded-full bg-sd-soft relative">
@@ -301,22 +317,30 @@ export function SetupChecklist() {
       )}
 
       {warnIndex !== -1 && (
-        <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/40 px-4 pb-8 sm:items-center">
-          <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-[0_30px_80px_rgba(0,0,0,0.25)]">
+        <div className="fixed inset-0 z-[60] flex items-end justify-center bg-sd-scrim px-4 pb-8 sm:items-center">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="setup-order-title"
+            className="w-full max-w-sm rounded-2xl bg-sd-surface p-5 shadow-[var(--sd-shadow-float)] oak-motion-enter"
+          >
             <div className="flex items-start justify-between gap-3">
-              <p className="text-base font-semibold tracking-[-0.02em] text-gray-900">
+              <p
+                id="setup-order-title"
+                className="text-base font-semibold tracking-[-0.02em] text-sd-ink"
+              >
                 {blockedByInstall ? "Finish this from the app" : "Follow the order?"}
               </p>
               <button
                 type="button"
                 onClick={() => setOrderWarningKey(null)}
                 aria-label="Cancel"
-                className="shrink-0 rounded-full p-1 text-gray-400 hover:bg-gray-50"
+                className="-m-2.5 grid h-11 w-11 shrink-0 place-items-center rounded-full text-sd-ink-muted hover:bg-sd-elevated"
               >
                 <X size={16} />
               </button>
             </div>
-            <p className="mt-1.5 text-sm leading-5 text-gray-500">
+            <p className="mt-1.5 text-sm leading-5 text-sd-ink-muted">
               {blockedByInstall
                 ? "Add Oakmonte to your home screen first, then do the rest from there. It keeps your camera permission and stops you signing in over and over."
                 : "We recommend completing these steps in order to avoid confusion. You can still skip ahead if you'd rather."}
@@ -334,7 +358,7 @@ export function SetupChecklist() {
                   setOrderWarningKey(null);
                   if (target !== -1) steps[target].go();
                 }}
-                className="rounded-xl bg-black py-2.5 text-sm font-semibold text-white"
+                className="rounded-xl bg-sd-ink py-2.5 text-sm font-semibold text-sd-bg"
               >
                 {blockedByInstall ? "Get the webapp" : "Go in order"}
               </button>
@@ -345,7 +369,7 @@ export function SetupChecklist() {
                   setOrderWarningKey(null);
                   steps[index].go();
                 }}
-                className="rounded-xl border border-gray-200 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                className="rounded-xl border border-sd-line py-2.5 text-sm font-medium text-sd-ink hover:bg-sd-elevated"
               >
                 Skip ahead anyway
               </button>

@@ -5,6 +5,7 @@ import { motion, AnimatePresence, useDragControls, useMotionValue } from "framer
 import { ArrowLeft, ArrowLeftRight, Share2, Search, Menu, Star, X } from "lucide-react";
 import { BackButton } from "@/components/BackButton";
 import { supabase } from "@/lib/integrations/my-supabase/client";
+import { fetchStoreLogoUrl } from "@/lib/store-logo";
 import { useSession } from "@/hooks/use-session";
 import { useBodyScrollLock } from "@/hooks/use-body-scroll-lock";
 import { BottomNav } from "@/components/BottomNav";
@@ -90,9 +91,7 @@ function StoreProfilePage() {
     // dashboard's own reads.
     supabase
       .from("stores")
-      .select(
-        "id, store_username, brand_name, bio, owner_id, personal_storefront_only, store_themes(slug)",
-      )
+      .select("id, store_username, brand_name, bio, owner_id, personal_storefront_only")
       .eq("store_username", storeUsername)
       .maybeSingle()
       .then(({ data, error }) => {
@@ -103,7 +102,7 @@ function StoreProfilePage() {
           return;
         }
 
-        const { store_themes, ...storeRow } = data;
+        const storeRow = data;
 
         // Paint the header the instant the store row resolves, with the logo
         // null until the customizations read below fills it in — this also
@@ -114,32 +113,18 @@ function StoreProfilePage() {
         setStore({ ...storeRow, logo_url: null });
         setStoreLoading(false);
 
-        // store_theme_customizations is keyed by (store_id, theme_slug), so a
-        // store that has customised more than one theme has several rows —
-        // scope the read to the theme the store actually has selected instead
-        // of asking for "the" row (which errored out and dropped the logo).
-        // A null theme_id does NOT mean "no theme" — useStoreTheme.ts defaults
-        // an unset theme_id to "motion" client-side without ever writing that
-        // back, so a store that never explicitly picked a theme still has its
-        // real customizations saved under theme_slug "motion". Falling back to
-        // null here (instead of mirroring that same default) would skip the
-        // lookup entirely and drop the logo for exactly that — the most
-        // common — case.
-        const themeSlug = store_themes?.slug ?? "motion";
-        supabase
-          .from("store_theme_customizations")
-          .select("logo_image_url")
-          .eq("store_id", storeRow.id)
-          .eq("theme_slug", themeSlug)
-          .maybeSingle()
-          .then(({ data: theme }) => {
-            if (cancelled) return;
-            setStore((prev) =>
-              prev && prev.id === storeRow.id
-                ? { ...prev, logo_url: theme?.logo_image_url ?? null }
-                : prev,
-            );
-          });
+        // Resolved through lib/store-logo.ts, the same function the seller's
+        // dashboard uses, so the two can never disagree about one store's
+        // picture: the store's own logo first (stores.logo_url, set from the
+        // dashboard's + button), then the logo saved on its storefront theme --
+        // including the "motion" slug a store that never picked a theme is
+        // silently on. That fallback's full reasoning lives there now.
+        void fetchStoreLogoUrl(storeRow.id).then((logoUrl) => {
+          if (cancelled) return;
+          setStore((prev) =>
+            prev && prev.id === storeRow.id ? { ...prev, logo_url: logoUrl } : prev,
+          );
+        });
       });
     return () => {
       cancelled = true;

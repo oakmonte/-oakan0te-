@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { authedFetch } from "@/lib/authed-fetch";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { hasInstalledApp } from "@/lib/installed-app";
@@ -58,6 +58,15 @@ export type StoreSetupStatus = {
   // pickup-locations sheet reporting its own list length) and wants to
   // reflect that immediately rather than wait on a refetch.
   setLocationCount: (count: number) => void;
+  // True when any of the signals could not be loaded. `loading` stays true in
+  // that case -- the answer is genuinely unknown -- so a caller gating a
+  // one-off action on `!loading && !complete` (the profile page's "your store
+  // isn't live" prompt) does not fire it at a seller who is in fact finished.
+  // A caller that renders the store itself should check this first and offer
+  // `retry`, because otherwise it sits on a skeleton indefinitely.
+  failed: boolean;
+  // Re-fetches every signal. Clears `failed` immediately.
+  retry: () => void;
 };
 
 /** Fetches the same four onboarding signals store.index.tsx's checklist is
@@ -72,6 +81,9 @@ export function useStoreSetupStatus(storeId: string | null): StoreSetupStatus {
   const [productCount, setProductCount] = useState<number | null>(null);
   const [themeIdSet, setThemeIdSet] = useState(false);
   const [themeLoaded, setThemeLoaded] = useState(false);
+  const [failed, setFailed] = useState(false);
+  // Bumped by retry(); every fetch below depends on it.
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     // Guarded on storeId like the other three, so a caller that passes null to
@@ -79,7 +91,15 @@ export function useStoreSetupStatus(storeId: string | null): StoreSetupStatus {
     if (!storeId) return;
     let cancelled = false;
     authedFetch("/api/store/payout")
-      .then((res) => res.json())
+      .then((res) => {
+        // A 401 or 500 carries a JSON body with no `account` in it, which read
+        // straight through as "no payout account" -- dropping a finished
+        // seller back to the setup checklist because of a server hiccup. The
+        // handler returns 200 with account:null for a store that genuinely
+        // has none, so a non-2xx here is always a failure, never an answer.
+        if (!res.ok) throw new Error(`payout status request failed (${res.status})`);
+        return res.json();
+      })
       .then((body) => {
         if (cancelled) return;
         setPayoutSet(!!body.account);
@@ -89,21 +109,22 @@ export function useStoreSetupStatus(storeId: string | null): StoreSetupStatus {
         setPayoutStatus(body.account?.status ?? null);
         setPayoutLoaded(true);
       })
-      // An unknown payout state has to resolve to "not set", never to "still
-      // loading". Without this a single dropped request pins `loading` true
-      // for the rest of the session -- which silently disables the profile
-      // prompt, makes nextStepLabel permanently null, and would strand
-      // outright any future caller that disables a button on `loading`. There
-      // is no retry path here. Same failure shape as the /passkey strand.
+      // An unknown payout state used to resolve to "not set", because there
+      // was no retry path and a stuck `loading` stranded callers (the same
+      // shape as the /passkey strand). But "not set" is a false answer: it
+      // made `complete` false, so one dropped request sent a finished seller
+      // back into the onboarding checklist. It now reports `failed`, which
+      // the store home turns into a retry, and `loading` stays true so the
+      // profile prompt cannot fire on a guess.
       .catch((err) => {
         if (cancelled) return;
         console.error("useStoreSetupStatus: failed to load payout status", err);
-        setPayoutLoaded(true);
+        setFailed(true);
       });
     return () => {
       cancelled = true;
     };
-  }, [storeId]);
+  }, [storeId, attempt]);
 
   useEffect(() => {
     if (!storeId) return;
@@ -116,6 +137,7 @@ export function useStoreSetupStatus(storeId: string | null): StoreSetupStatus {
         if (cancelled) return;
         if (error) {
           console.error("useStoreSetupStatus: failed to load pickup location count", error);
+          setFailed(true);
           return;
         }
         setLocationCount(count ?? 0);
@@ -123,7 +145,7 @@ export function useStoreSetupStatus(storeId: string | null): StoreSetupStatus {
     return () => {
       cancelled = true;
     };
-  }, [storeId]);
+  }, [storeId, attempt]);
 
   useEffect(() => {
     if (!storeId) return;
@@ -136,6 +158,7 @@ export function useStoreSetupStatus(storeId: string | null): StoreSetupStatus {
         if (cancelled) return;
         if (error) {
           console.error("useStoreSetupStatus: failed to load product count", error);
+          setFailed(true);
           return;
         }
         setProductCount(count ?? 0);
@@ -143,7 +166,7 @@ export function useStoreSetupStatus(storeId: string | null): StoreSetupStatus {
     return () => {
       cancelled = true;
     };
-  }, [storeId]);
+  }, [storeId, attempt]);
 
   useEffect(() => {
     if (!storeId) return;
@@ -157,6 +180,7 @@ export function useStoreSetupStatus(storeId: string | null): StoreSetupStatus {
         if (cancelled) return;
         if (error) {
           console.error("useStoreSetupStatus: failed to load theme status", error);
+          setFailed(true);
           return;
         }
         setThemeIdSet(!!data?.theme_id);
@@ -165,7 +189,7 @@ export function useStoreSetupStatus(storeId: string | null): StoreSetupStatus {
     return () => {
       cancelled = true;
     };
-  }, [storeId]);
+  }, [storeId, attempt]);
 
   // `sessionLoading` is in here because `installedApp` reads the session user,
   // and `hasInstalledApp(null)` is indistinguishable from a real "no". Without
@@ -179,6 +203,11 @@ export function useStoreSetupStatus(storeId: string | null): StoreSetupStatus {
     locationCount === null ||
     productCount === null ||
     !themeLoaded;
+
+  const retry = useCallback(() => {
+    setFailed(false);
+    setAttempt((a) => a + 1);
+  }, []);
 
   const nextStepLabel = loading
     ? null
@@ -203,5 +232,7 @@ export function useStoreSetupStatus(storeId: string | null): StoreSetupStatus {
     complete: !loading && payoutSet && !!locationCount && !!productCount && themeIdSet,
     nextStepLabel,
     setLocationCount,
+    failed,
+    retry,
   };
 }

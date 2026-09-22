@@ -9,6 +9,14 @@ import { supabase } from "@/lib/integrations/my-supabase/client";
  *  not an edge one. */
 const DEFAULT_THEME_SLUG = "motion";
 
+export type StoreLogo = {
+  url: string | null;
+  /** Whether stores.logo_url exists yet. The migration adding it is applied by
+   *  hand; until it runs there is nowhere to save a store's own picture, and
+   *  the dashboard says so instead of uploading a file it cannot keep. */
+  canSaveOwnLogo: boolean;
+};
+
 /** Resolves the picture that represents a store.
  *
  *      stores.logo_url                              the store's own identity
@@ -22,31 +30,45 @@ const DEFAULT_THEME_SLUG = "motion";
  *  what stops every existing seller losing the picture they already uploaded.
  *  There is deliberately no backfill (see the migration's comment).
  *
- *  One place rather than two because the dashboard and the public storefront
- *  both need this answer and must not disagree about the same store.
+ *  One place, because the dashboard and the public storefront both need this
+ *  answer and must not disagree about the same store.
  *
- *  TOLERATES THE COLUMN NOT EXISTING YET. The migration adding logo_url is
- *  applied by hand, so until it runs a select naming that column errors. Rather
- *  than gate this on a flag someone has to remember to flip, the first query is
- *  allowed to fail and we fall through to the theme logo -- which is exactly the
- *  behaviour the app has today. Once the column lands, the same code starts
- *  preferring it with no edit. */
-export async function fetchStoreLogoUrl(storeId: string): Promise<string | null> {
-  const themeSlug = await fetchStoreThemeSlug(storeId);
-
-  const { data, error } = await supabase
+ *  Tolerates the column not existing yet: the first query is allowed to fail on
+ *  an unknown column and the theme logo is used instead, which is exactly the
+ *  behaviour before the column existed. Once the migration lands the same code
+ *  prefers stores.logo_url with no edit and no flag to flip. */
+export async function fetchStoreLogo(storeId: string): Promise<StoreLogo> {
+  // One round trip in the normal case: the store's own logo and its theme slug
+  // together. The theme logo is only fetched if there is no own logo.
+  const withColumn = await supabase
     .from("stores")
-    .select("logo_url")
+    .select("logo_url, store_themes(slug)")
     .eq("id", storeId)
     .maybeSingle();
 
-  if (!error) {
-    const ownLogo = (data as { logo_url?: string | null } | null)?.logo_url;
-    if (ownLogo) return ownLogo;
-  } else if (!isMissingColumnError(error)) {
-    // A real failure (network, RLS) is worth knowing about. A missing column is
-    // expected until the migration is applied and would be pure noise.
-    console.error("fetchStoreLogoUrl: failed to read stores.logo_url", error);
+  let canSaveOwnLogo = true;
+  let themeSlug = DEFAULT_THEME_SLUG;
+
+  if (withColumn.error) {
+    if (!isMissingColumnError(withColumn.error)) {
+      console.error("fetchStoreLogo: failed to read the store", withColumn.error);
+      return { url: null, canSaveOwnLogo: false };
+    }
+    // Before the migration: no own logo is possible, so ask for the slug alone.
+    canSaveOwnLogo = false;
+    const { data } = await supabase
+      .from("stores")
+      .select("store_themes(slug)")
+      .eq("id", storeId)
+      .maybeSingle();
+    themeSlug = data?.store_themes?.slug ?? DEFAULT_THEME_SLUG;
+  } else {
+    const row = withColumn.data as {
+      logo_url?: string | null;
+      store_themes?: { slug?: string | null } | null;
+    } | null;
+    if (row?.logo_url) return { url: row.logo_url, canSaveOwnLogo };
+    themeSlug = row?.store_themes?.slug ?? DEFAULT_THEME_SLUG;
   }
 
   const { data: custom, error: customError } = await supabase
@@ -57,25 +79,22 @@ export async function fetchStoreLogoUrl(storeId: string): Promise<string | null>
     .maybeSingle();
 
   if (customError) {
-    console.error("fetchStoreLogoUrl: failed to read the theme logo", customError);
-    return null;
+    console.error("fetchStoreLogo: failed to read the theme logo", customError);
+    return { url: null, canSaveOwnLogo };
   }
-  return custom?.logo_image_url ?? null;
+  return { url: custom?.logo_image_url ?? null, canSaveOwnLogo };
 }
 
-async function fetchStoreThemeSlug(storeId: string): Promise<string> {
-  const { data } = await supabase
-    .from("stores")
-    .select("store_themes(slug)")
-    .eq("id", storeId)
-    .maybeSingle();
-  return data?.store_themes?.slug ?? DEFAULT_THEME_SLUG;
+/** Convenience for callers that only need the picture (the public storefront). */
+export async function fetchStoreLogoUrl(storeId: string): Promise<string | null> {
+  return (await fetchStoreLogo(storeId)).url;
 }
 
-/** PostgREST reports an unknown column as 42703 (undefined_column). Matched on
- *  the code rather than the message, which is not stable across versions. */
+/** PostgREST reports an unknown column as 42703 (undefined_column) on a select,
+ *  and PGRST204 on a write. Matched on codes rather than message text, which is
+ *  not stable across versions. */
 function isMissingColumnError(error: { code?: string } | null): boolean {
-  return error?.code === "42703";
+  return error?.code === "42703" || error?.code === "PGRST204";
 }
 
 /** Persists a newly uploaded picture as the store's own logo.
@@ -93,9 +112,9 @@ function isMissingColumnError(error: { code?: string } | null): boolean {
 export async function saveStoreLogoUrl(storeId: string, url: string): Promise<void> {
   // `as never` only because src/lib/integrations/my-supabase/types.ts is a
   // generated snapshot of the LIVE schema, and the migration adding this column
-  // is applied by hand -- so the column is real in the file but absent from the
-  // snapshot until someone regenerates it. Delete the cast the moment types.ts
-  // is regenerated; typecheck will then verify this payload properly again.
+  // is applied by hand -- so the column is real in the migration but absent from
+  // the snapshot until someone regenerates it. Delete the cast once types.ts is
+  // regenerated; typecheck will then verify this payload properly again.
   const { error } = await supabase
     .from("stores")
     .update({ logo_url: url } as never)

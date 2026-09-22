@@ -22,10 +22,10 @@ export const Route = createFileRoute("/store/get-the-webapp")({
 function Step({ n, children }: { n: number; children: React.ReactNode }) {
   return (
     <li className="flex items-start gap-3">
-      <span className="w-5 h-5 rounded-full bg-gray-900 text-white text-[11px] font-medium flex items-center justify-center shrink-0 mt-0.5">
+      <span className="w-5 h-5 rounded-full bg-sd-ink text-sd-bg text-[11px] font-medium flex items-center justify-center shrink-0 mt-0.5">
         {n}
       </span>
-      <span className="text-sm text-gray-700 leading-relaxed">{children}</span>
+      <span className="text-sm text-sd-ink leading-relaxed">{children}</span>
     </li>
   );
 }
@@ -67,13 +67,13 @@ function GetTheWebappPage() {
   if (installed) {
     return (
       <div className="px-4 py-6">
-        <div className="flex flex-col items-center text-center gap-3 border border-gray-200 rounded-2xl p-8 animate-in fade-in duration-300">
-          <div className="p-3 rounded-full bg-gray-900">
-            <Check size={20} className="text-white" />
+        <div className="flex flex-col items-center text-center gap-3 border border-sd-line rounded-2xl p-8 animate-in fade-in duration-300">
+          <div className="p-3 rounded-full bg-sd-ink">
+            <Check size={20} className="text-sd-bg" />
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-900">You&rsquo;re in the app</p>
-            <p className="text-xs text-gray-500 mt-0.5">
+            <p className="text-sm font-medium text-sd-ink">You&rsquo;re in the app</p>
+            <p className="text-xs text-sd-ink-muted mt-0.5">
               This is where the rest of your Oakmonte runs. Carry on with the next step.
             </p>
           </div>
@@ -81,7 +81,7 @@ function GetTheWebappPage() {
         <button
           type="button"
           onClick={() => navigate({ to: "/store" })}
-          className="mt-8 w-full bg-black text-white text-sm font-semibold rounded-full py-4 oak-motion-control active:scale-[0.98]"
+          className="mt-8 w-full bg-sd-ink text-sd-bg text-sm font-semibold rounded-full py-4 oak-motion-control active:scale-[0.98]"
         >
           Back to setup
         </button>
@@ -92,13 +92,13 @@ function GetTheWebappPage() {
   return (
     <div className="px-4 py-6">
       <h1 className="text-lg font-semibold mb-1">Get the webapp</h1>
-      <p className="text-sm text-gray-500 mb-6">
+      <p className="text-sm text-sd-ink-muted mb-6">
         Put Oakmonte on your home screen. Everything after this — your orders, your camera, your
         payouts — is faster from there, and the camera stops asking permission every single time.
       </p>
 
       {!videoFailed && (
-        <div className="mb-6 overflow-hidden rounded-2xl bg-gray-100">
+        <div className="mb-6 overflow-hidden rounded-2xl bg-sd-soft">
           <video
             src={EXPLAINER_SRC}
             className="w-full"
@@ -118,7 +118,7 @@ function GetTheWebappPage() {
           type="button"
           onClick={handleInstall}
           disabled={installing}
-          className="w-full flex items-center justify-center gap-2 bg-black text-white text-sm font-semibold rounded-full py-4 oak-motion-control active:scale-[0.98] disabled:opacity-60"
+          className="w-full flex items-center justify-center gap-2 bg-sd-ink text-sd-bg text-sm font-semibold rounded-full py-4 oak-motion-control active:scale-[0.98] disabled:opacity-60"
         >
           <Download size={16} />
           {installing ? "Opening…" : "Add Oakmonte to my home screen"}
@@ -126,10 +126,10 @@ function GetTheWebappPage() {
       )}
 
       {!canInstall && (
-        <div className="border border-gray-200 rounded-2xl p-5">
+        <div className="border border-sd-line rounded-2xl p-5">
           <div className="flex items-center gap-2 mb-4">
-            <Smartphone size={16} className="text-gray-500" />
-            <p className="text-sm font-medium text-gray-900">
+            <Smartphone size={16} className="text-sd-ink-muted" />
+            <p className="text-sm font-medium text-sd-ink">
               {ios ? "On iPhone, in Safari" : "In your browser menu"}
             </p>
           </div>
@@ -165,8 +165,8 @@ function GetTheWebappPage() {
         </div>
       )}
 
-      <p className="text-xs text-gray-500 mt-5 leading-relaxed">
-        <span className="font-medium text-gray-700">Then carry on from the app.</span>{" "}
+      <p className="text-xs text-sd-ink-muted mt-5 leading-relaxed">
+        <span className="font-medium text-sd-ink">Then carry on from the app.</span>{" "}
         {ios
           ? "It starts you signed out the first time — that's normal. Sign in with Face ID and this step ticks itself."
           : "You'll already be signed in, and this step ticks itself."}
@@ -176,7 +176,7 @@ function GetTheWebappPage() {
         <button
           type="button"
           onClick={() => navigate({ to: "/store" })}
-          className="mt-8 w-full border border-gray-200 text-gray-900 text-sm font-medium rounded-full py-4 oak-motion-control active:scale-[0.98]"
+          className="mt-8 w-full border border-sd-line text-sd-ink text-sm font-medium rounded-full py-4 oak-motion-control active:scale-[0.98]"
         >
           Back to setup
         </button>

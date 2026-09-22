@@ -478,39 +478,41 @@ function NewProduct() {
   }
 
   return (
-    <div className="min-h-dvh bg-white pb-10">
-      <div className="sticky top-14 z-20 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
+    <div className="min-h-dvh bg-sd-surface pb-10">
+      <div className="sticky top-14 z-20 bg-sd-surface/95 backdrop-blur border-b border-sd-line px-4 h-14 flex items-center justify-between">
         <BackButton
           icon="chevron"
           size={18}
           label="Cancel"
           ariaLabel="Cancel"
-          className="text-sm text-gray-500 flex items-center gap-0.5 -ml-1"
+          className="text-sm text-sd-ink-muted flex items-center gap-0.5 -ml-1"
         />
         <button
           onClick={() => setTypeSwitchOpen(true)}
           type="button"
-          className="text-sm font-medium text-gray-900 flex items-center gap-1"
+          className="text-sm font-medium text-sd-ink flex items-center gap-1"
         >
           {kind === "regular" ? "Regular product" : "Product with variations"}
-          <ChevronDown size={14} className="text-gray-400" />
+          <ChevronDown size={14} className="text-sd-ink-faint" />
         </button>
       </div>
 
       {showRestoredBanner && (
-        <div className="mx-4 mt-3 flex items-center justify-between gap-3 rounded-xl bg-gray-50 px-3 py-2.5">
-          <p className="text-xs text-gray-500">Restored your unsaved progress from last time.</p>
+        <div className="mx-4 mt-3 flex items-center justify-between gap-3 rounded-xl bg-sd-elevated px-3 py-2.5">
+          <p className="text-xs text-sd-ink-muted">
+            Restored your unsaved progress from last time.
+          </p>
           <button
             type="button"
             onClick={() => setShowRestoredBanner(false)}
-            className="text-xs font-medium text-gray-900 shrink-0"
+            className="text-xs font-medium text-sd-ink shrink-0"
           >
             Dismiss
           </button>
         </div>
       )}
 
-      {error && <p className="px-4 pt-3 text-sm text-red-500">{error}</p>}
+      {error && <p className="px-4 pt-3 text-sm text-sd-danger-ink">{error}</p>}
 
       <MediaSection
         mainImageUrl={mainImageUrl}
@@ -578,17 +580,17 @@ function NewProduct() {
         <button
           type="button"
           onClick={() => setCollectionsSheetOpen(true)}
-          className="w-full flex items-center justify-between px-4 py-4 border-b-8 border-gray-50 text-left"
+          className="w-full flex items-center justify-between px-4 py-4 border-b-8 border-sd-line/50 text-left"
         >
-          <span className="flex items-center gap-3 text-[15px] text-gray-900">
-            <Tag size={18} className="text-gray-400" />
+          <span className="flex items-center gap-3 text-[15px] text-sd-ink">
+            <Tag size={18} className="text-sd-ink-faint" />
             Collections
           </span>
           <span className="flex items-center gap-2">
             {collectionIds.length > 0 && (
-              <span className="text-xs text-gray-400">{collectionIds.length} selected</span>
+              <span className="text-xs text-sd-ink-faint">{collectionIds.length} selected</span>
             )}
-            <ChevronRight size={16} className="text-gray-300" />
+            <ChevronRight size={16} className="text-sd-ink-faint" />
           </span>
         </button>
       )}
@@ -726,16 +728,16 @@ function NewProduct() {
         />
       )}
 
-      <div className="px-4 py-5 border-b-8 border-gray-50">
-        <p className="text-[15px] font-semibold text-gray-900 mb-3">Product Status</p>
+      <div className="px-4 py-5 border-b-8 border-sd-line/50">
+        <p className="text-[15px] font-semibold text-sd-ink mb-3">Product Status</p>
         <div className="flex gap-3">
           <button
             type="button"
             onClick={() => setStatus("active")}
             className={`flex-1 text-center rounded-xl py-3.5 text-sm font-medium border oak-motion-surface ${
               status === "active"
-                ? "border-black bg-gray-50 text-gray-900"
-                : "border-gray-200 text-gray-500"
+                ? "border-sd-ink bg-sd-elevated text-sd-ink"
+                : "border-sd-line text-sd-ink-muted"
             }`}
           >
             Published
@@ -745,8 +747,8 @@ function NewProduct() {
             onClick={() => setStatus("draft")}
             className={`flex-1 text-center rounded-xl py-3.5 text-sm font-medium border oak-motion-surface ${
               status === "draft"
-                ? "border-black bg-gray-50 text-gray-900"
-                : "border-gray-200 text-gray-500"
+                ? "border-sd-ink bg-sd-elevated text-sd-ink"
+                : "border-sd-line text-sd-ink-muted"
             }`}
           >
             Unpublished
@@ -759,7 +761,7 @@ function NewProduct() {
           type="button"
           onClick={handleSave}
           disabled={saving || !storeId}
-          className="w-full bg-black text-white text-sm font-semibold rounded-full py-4 disabled:opacity-50 oak-motion-control active:scale-[0.98]"
+          className="w-full bg-sd-ink text-sd-bg text-sm font-semibold rounded-full py-4 disabled:opacity-50 oak-motion-control active:scale-[0.98]"
         >
           {saving ? "Saving…" : "Save Product"}
         </button>

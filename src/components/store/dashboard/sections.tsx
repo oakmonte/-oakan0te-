@@ -1,46 +1,65 @@
 import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { CheckCircle2, ChevronRight, TrendingUp, Wallet } from "lucide-react";
+import { Bell, ChevronRight, Megaphone, TrendingUp, Wallet } from "lucide-react";
 
-/** The landing page's micro-label, blue dot and all. Reused rather than
- *  re-derived so the dashboard's section headings and the marketing site speak
- *  in the same voice. */
+/** The landing page's blue-dot micro-label. Used ONCE on the page, inside the
+ *  sales hero. It used to head every section, which made seven sections read as
+ *  seven equal things and gave the page no top -- the landing uses it above a
+ *  big headline, never as the headline. */
 export function Eyebrow({ children }: { children: ReactNode }) {
   return <p className="oak-eyebrow">{children}</p>;
 }
 
-/** A horizontally scrolling row of cards.
+/** A real heading, so the page has an outline a screen reader can jump
+ *  through, and a size step above body copy that a sighted reader can scan. */
+export function SectionTitle({ id, children }: { id: string; children: ReactNode }) {
+  return (
+    <h2 id={id} className="text-[17px] font-semibold tracking-[-0.02em] text-sd-ink">
+      {children}
+    </h2>
+  );
+}
+
+/** A horizontally scrolling row of cards, for when a section has more than one.
  *
- *  Native scroll snap rather than a hand-rolled gesture: the browser's own
- *  physics beat anything spring-driven here, and it stays interruptible for
- *  free. The negative margin plus matching padding lets cards bleed to the
- *  screen edge while still snapping back to the page gutter, and
- *  `touch-action: pan-y` stops the page juddering vertically while a thumb
- *  moves sideways. */
+ *  Native scroll snap rather than a hand-rolled gesture: the browser's physics
+ *  beat anything written here, and it stays interruptible for free. No
+ *  `touch-action` on it -- `pan-y` there tells the browser the element may only
+ *  pan vertically, which is right for a JS-driven carousel and silently kills
+ *  the sideways swipe of a native one. `py-1` keeps focus rings from being
+ *  clipped by the scroll container. */
 export function SnapRow({ children }: { children: ReactNode }) {
   return (
-    <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain scroll-px-4 px-4 [touch-action:pan-y]">
+    <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain scroll-px-4 px-4 py-1">
       {children}
+    </div>
+  );
+}
+
+/** The quiet surface every empty section uses: one icon, one sentence.
+ *
+ *  Solid, not dashed. Everywhere else in this app a dashed box means "tap to add
+ *  something" -- the payout sheet, pickup locations, the image gallery -- and
+ *  sellers learned that during setup. A dashed box that does nothing when
+ *  tapped teaches them the wrong thing. */
+function QuietNote({ icon: Icon, children }: { icon: typeof Bell; children: ReactNode }) {
+  return (
+    <div className="mt-3 flex items-start gap-3 rounded-2xl border border-sd-line bg-sd-elevated p-4">
+      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-sd-surface">
+        <Icon size={17} className="text-sd-ink-muted" />
+      </span>
+      <p className="pt-1.5 text-[14px] leading-relaxed text-sd-ink-muted">{children}</p>
     </div>
   );
 }
 
 export function WhatsNew() {
   return (
-    <section>
-      <Eyebrow>What&apos;s new</Eyebrow>
-      <div className="mt-3">
-        <SnapRow>
-          {/* Fixed height in the empty state too, so adding real content later
-              does not reflow everything below it. */}
-          <article className="flex h-[148px] w-[calc(100%-1.5rem)] shrink-0 snap-start flex-col justify-center rounded-2xl border border-dashed border-sd-line px-5">
-            <p className="sd-editorial text-[18px] leading-snug text-sd-ink">Nothing new yet</p>
-            <p className="mt-1.5 text-[13px] leading-relaxed text-sd-ink-muted">
-              Product drops, payout changes and platform news will land here.
-            </p>
-          </article>
-        </SnapRow>
-      </div>
+    <section aria-labelledby="sd-whats-new">
+      <SectionTitle id="sd-whats-new">What&apos;s new</SectionTitle>
+      <QuietNote icon={Megaphone}>
+        New features, payout changes and tips for sellers will show up here.
+      </QuietNote>
     </section>
   );
 }
@@ -56,30 +75,28 @@ export type AttentionItem = {
 
 export function NeedsAttention({ items }: { items: AttentionItem[] }) {
   return (
-    <section>
-      <Eyebrow>Needs attention</Eyebrow>
-      <div className="mt-3">
-        {items.length === 0 ? (
-          // The section does NOT collapse when it is empty. A section that only
-          // appears when something is wrong is one the seller never learns
-          // exists, and cannot learn to trust. Saying "all clear" is a real
-          // answer; showing nothing is an absence they have to interpret.
-          <div className="flex items-center gap-3 rounded-2xl bg-sd-accent-tint px-4 py-3.5">
-            <CheckCircle2 size={18} className="shrink-0 text-sd-success-mark" />
-            <p className="text-[13px] font-medium text-sd-ink">
-              All clear — nothing needs you right now.
-            </p>
-          </div>
-        ) : (
+    <section aria-labelledby="sd-attention">
+      <SectionTitle id="sd-attention">Needs attention</SectionTitle>
+      {items.length === 0 ? (
+        // Says what the section is FOR rather than claiming the store is fine.
+        // It used to read "All clear", but nothing feeds this section yet, so
+        // that was an assurance the page had not earned -- the same kind of
+        // unearned claim as printing a zero for sales it cannot count.
+        <QuietNote icon={Bell}>
+          Anything that needs you — an order to ship, low stock, a payout problem — will show up
+          here first.
+        </QuietNote>
+      ) : (
+        <div className="mt-3">
           <SnapRow>
             {items.map((item) => (
               <Link
                 key={item.id}
                 to={item.to}
-                className="relative w-[248px] shrink-0 snap-start rounded-2xl border border-sd-line bg-sd-surface p-4 pl-5 text-left oak-motion-control active:scale-[0.98]"
+                className="oak-tap relative w-[248px] shrink-0 snap-start rounded-2xl border border-sd-line bg-sd-surface p-4 pl-5 text-left oak-motion-control active:scale-[0.98]"
               >
                 {/* Severity rides a solid mark, never the card's border or
-                    fill -- colour on a large surface reads as decoration and
+                    fill: colour across a large surface reads as decoration and
                     stops meaning anything. */}
                 <span
                   aria-hidden
@@ -97,93 +114,119 @@ export function NeedsAttention({ items }: { items: AttentionItem[] }) {
               </Link>
             ))}
           </SnapRow>
-        )}
-      </div>
+        </div>
+      )}
     </section>
   );
 }
 
-/** The hero. The one surface on this page wearing the landing page's 2px black
- *  border -- reserved rather than adopted as the house card style, because
- *  fourteen high-contrast rectangles at 12px gaps is a wireframe, not a
- *  hierarchy, and a 2px #0A0A0A border is invisible on a black page. */
+/** The hero, and for a seller with no orders yet, the whole point of the page.
+ *
+ *  The one surface wearing the landing page's 2px black border -- reserved
+ *  rather than adopted as the house card style, because fourteen high-contrast
+ *  rectangles at a 12px gap is a wireframe rather than a hierarchy, and a 2px
+ *  #0A0A0A border vanishes on a black page.
+ *
+ *  With no sales it is the first-run screen: one job, one full-width button. It
+ *  used to frame the words "No sales yet" with the heaviest border on the page
+ *  and hand over a 36px button, so the thing a new seller most needed to do was
+ *  the least prominent control on screen. Still no NGN 0 and no trend pill --
+ *  there is no orders table, and a zero beside a trend measuring nothing is a
+ *  lie that looks like data. */
 export function TotalSales({ onShare }: { onShare: () => void }) {
   return (
-    <section className="sd-hero relative min-h-[172px] overflow-hidden rounded-3xl border-2 border-sd-line-strong bg-sd-surface p-5">
+    <section
+      aria-labelledby="sd-sales"
+      className="sd-hero relative overflow-hidden rounded-3xl border-2 border-sd-line-strong bg-sd-surface p-5"
+    >
       <Eyebrow>Total sales</Eyebrow>
-      {/* No ₦0, and no +0.0% trend pill. There is no orders table yet, so a
-          confident zero next to a trend measuring nothing is a lie that looks
-          like data. min-h matches the populated state so the page does not
-          reflow on the day the first sale lands. */}
-      <p className="sd-editorial mt-3 text-[18px] leading-snug text-sd-ink">No sales yet.</p>
-      <p className="mt-1.5 max-w-[34ch] text-[13px] leading-relaxed text-sd-ink-muted">
-        Your first order will show here. Nothing is hidden — there is simply nothing to count.
+      <h2
+        id="sd-sales"
+        className="sd-editorial mt-3 text-[28px] leading-[1.1] tracking-[-0.02em] text-sd-ink"
+      >
+        Now get your first order.
+      </h2>
+      <p className="mt-2 text-[14px] leading-relaxed text-sd-ink-muted">
+        Send your store link to your WhatsApp contacts and post it on your status.
       </p>
       <button
         type="button"
         onClick={onShare}
-        className="mt-4 h-9 rounded-full bg-sd-accent px-4 text-[13px] font-bold text-sd-on-accent oak-motion-control active:scale-[0.97]"
+        className="mt-5 h-12 w-full rounded-full bg-sd-accent text-[15px] font-semibold text-sd-on-accent oak-motion-control active:scale-[0.98]"
       >
         Share your store link
       </button>
+      <p className="mt-3 text-center text-[13px] text-sd-ink-muted">
+        Your sales total appears here after your first order.
+      </p>
     </section>
   );
 }
 
 export function SalesAnalytics() {
   return (
-    <section>
-      {/* The period selector is hidden until there is something to select a
-          period of. A disabled 7D/30D/90D control over an empty chart is three
-          more things that do nothing. */}
-      <Eyebrow>Sales analytics</Eyebrow>
-      <div className="mt-3 grid h-[180px] place-items-center rounded-2xl border border-dashed border-sd-line px-6 text-center">
-        <div>
-          <TrendingUp size={20} className="mx-auto text-sd-ink-faint" />
-          {/* Deliberately not an empty chart frame. Axes and a flat line at zero
-              read as a chart that failed to load, which is worse than honestly
-              having nothing. */}
-          <p className="sd-editorial mt-2.5 text-[18px] text-sd-ink">Nothing to chart yet</p>
-          <p className="mt-1 text-[13px] text-sd-ink-muted">This fills in from your first sale.</p>
-        </div>
-      </div>
+    <section aria-labelledby="sd-analytics">
+      {/* The period selector (7D / 30D / 90D) is hidden until there is
+          something to select a period of: a control over an empty chart is
+          three more things that do nothing. And no empty chart frame -- axes
+          and a flat line at zero read as a chart that failed to load. */}
+      <SectionTitle id="sd-analytics">Sales analytics</SectionTitle>
+      <QuietNote icon={TrendingUp}>Your sales chart starts with your first order.</QuietNote>
     </section>
   );
 }
 
-function Tile({ label, value, hint }: { label: string; value: ReactNode; hint?: string }) {
-  return (
-    <div className="rounded-2xl border border-sd-line bg-sd-surface p-4">
-      <p className="text-[12px] font-bold uppercase tracking-[0.08em] text-sd-ink-muted">{label}</p>
+function Tile({ label, value, to }: { label: string; value: ReactNode; to?: "/store/products" }) {
+  const body = (
+    <>
+      <p className="text-[13px] font-medium text-sd-ink-muted">{label}</p>
       <p className="mt-2 text-[22px] font-bold leading-none tracking-[-0.02em] tabular-nums text-sd-ink">
         {value}
       </p>
-      {hint && <p className="mt-1.5 text-[11px] leading-snug text-sd-ink-faint">{hint}</p>}
-    </div>
+    </>
+  );
+  const cls = "block rounded-2xl border border-sd-line bg-sd-surface p-4";
+  return to ? (
+    // The only real number on the screen should go somewhere when tapped.
+    <Link to={to} className={`oak-tap ${cls} oak-motion-control active:scale-[0.98]`}>
+      {body}
+    </Link>
+  ) : (
+    <div className={cls}>{body}</div>
   );
 }
 
-export function StatTiles({ productCount }: { productCount: number | null }) {
-  // Products listed leads because it is the only true number on this screen,
-  // and leading with it sets the honesty contract for the three below it. The
-  // rest show an em-dash, which cannot be misread as zero, plus the reason --
-  // a blank with an explanation is information; a bare blank is a shrug.
-  const dash = <span className="text-sd-ink-faint">—</span>;
+export function StatTiles({
+  productCount,
+  payoutVerified,
+}: {
+  productCount: number | null;
+  payoutVerified: boolean;
+}) {
+  // Products listed leads because it is the only true number here, which sets
+  // the honesty contract for the three beside it. They show an em-dash, which
+  // cannot be misread as zero. One shared line explains all three rather than
+  // repeating "your first sale" under each tile.
+  const dash = <span className="text-sd-ink-muted">—</span>;
   return (
-    <section>
-      <Eyebrow>At a glance</Eyebrow>
+    <section aria-labelledby="sd-glance">
+      <SectionTitle id="sd-glance">At a glance</SectionTitle>
       <div className="mt-3 grid grid-cols-2 gap-3">
-        <Tile label="Products listed" value={productCount ?? dash} />
-        <Tile label="Orders" value={dash} hint="Once your first order lands." />
-        <Tile label="Net revenue" value={dash} hint="Counts from your first sale." />
-        <Tile label="Customers" value={dash} hint="People who have bought from you." />
+        <Tile label="Products listed" value={productCount ?? dash} to="/store/products" />
+        <Tile label="Orders" value={dash} />
+        <Tile label="Net revenue" value={dash} />
+        <Tile label="Customers" value={dash} />
       </div>
-      {/* A date plus an amount is a different shape from a single number, so it
-          is a row rather than a fifth tile. It is also the most useful of the
-          empty states, because it is the only one the seller can act on. */}
+      <p className="mt-2 text-[12px] leading-snug text-sd-ink-muted">
+        Orders, revenue and customers fill in as you start selling.
+      </p>
+      {/* A date plus an amount is a different shape from a single number, so
+          this is a row rather than a fifth tile. It also carries the payout
+          account's state onto the dashboard: the checklist showed it as
+          pending, and that must not simply vanish once the seller graduates. */}
       <Link
         to="/store/finance"
-        className="mt-3 flex items-center gap-3 rounded-2xl border border-sd-line bg-sd-surface p-4 oak-motion-control active:scale-[0.99]"
+        className="oak-tap mt-3 flex items-center gap-3 rounded-2xl border border-sd-line bg-sd-surface p-4 oak-motion-control active:scale-[0.99]"
       >
         <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-sd-soft">
           <Wallet size={17} className="text-sd-ink-muted" />
@@ -193,10 +236,12 @@ export function StatTiles({ productCount }: { productCount: number | null }) {
             Next eligible payout
           </span>
           <span className="mt-0.5 block text-[13px] text-sd-ink-muted">
-            Nothing scheduled — payouts start after your first order.
+            {payoutVerified
+              ? "Payouts start after your first order."
+              : "Bank account saved. We’ll confirm it before your first payout."}
           </span>
         </span>
-        <ChevronRight size={16} className="shrink-0 text-sd-ink-faint" />
+        <ChevronRight size={16} className="shrink-0 text-sd-ink-muted" />
       </Link>
     </section>
   );

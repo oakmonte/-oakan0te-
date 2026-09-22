@@ -172,15 +172,17 @@ function StoreProducts() {
     }
   }
 
-  if (storeLoading) return <div className="px-4 py-8 text-sm text-gray-400">Loading…</div>;
+  if (storeLoading) return <div className="px-4 py-8 text-sm text-sd-ink-faint">Loading…</div>;
   if (!storeId)
-    return <div className="px-4 py-8 text-sm text-gray-400">No store found on this account.</div>;
+    return (
+      <div className="px-4 py-8 text-sm text-sd-ink-faint">No store found on this account.</div>
+    );
 
   return (
     <div className="px-4 py-5 pb-24">
       <div className="flex items-center gap-2 mb-4">
-        <div className="flex-1 min-w-0 flex items-center gap-2 bg-gray-100 rounded-lg px-3 py-2">
-          <Search size={16} className="text-gray-400 shrink-0" />
+        <div className="flex-1 min-w-0 flex items-center gap-2 bg-sd-soft rounded-lg px-3 py-2">
+          <Search size={16} className="text-sd-ink-faint shrink-0" />
           <input
             type="text"
             value={search}
@@ -192,14 +194,14 @@ function StoreProducts() {
         <button
           onClick={() => navigate({ to: "/store/products/upload" })}
           aria-label="Upload products"
-          className="p-2 rounded-lg bg-gray-100 text-gray-700 oak-motion-control active:scale-90"
+          className="p-2 rounded-lg bg-sd-soft text-sd-ink oak-motion-control active:scale-90"
         >
           <Upload size={16} />
         </button>
         <button
           onClick={() => setCreateTypeOpen(true)}
           aria-label="Add product"
-          className="p-2 rounded-lg bg-black text-white oak-motion-control active:scale-90"
+          className="p-2 rounded-lg bg-sd-ink text-sd-bg oak-motion-control active:scale-90"
         >
           <Plus size={16} />
         </button>
@@ -215,12 +217,12 @@ function StoreProducts() {
         />
       )}
 
-      <div className="flex items-center gap-4 mb-6 border-b border-gray-100 text-sm overflow-x-auto">
+      <div className="flex items-center gap-4 mb-6 border-b border-sd-line text-sm overflow-x-auto">
         {TABS.map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`shrink-0 pb-2 -mb-px border-b-2 transition-colors duration-200 ${activeTab === tab ? "border-black font-medium text-black" : "border-transparent text-gray-400"}`}
+            className={`shrink-0 pb-2 -mb-px border-b-2 transition-colors duration-200 ${activeTab === tab ? "border-sd-ink font-medium text-sd-ink" : "border-transparent text-sd-ink-faint"}`}
           >
             {tab}
           </button>
@@ -228,31 +230,31 @@ function StoreProducts() {
       </div>
 
       {listLoading ? (
-        <div className="text-sm text-gray-400 text-center py-12">Loading…</div>
+        <div className="text-sm text-sd-ink-faint text-center py-12">Loading…</div>
       ) : products.length === 0 ? (
         activeTab === "All" && !search.trim() ? (
           // Genuinely nothing listed yet (not just this tab/search coming up
           // empty) — the two ways to actually get a product on here shouldn't
           // require already knowing the header icons exist.
           <div className="flex flex-col items-center gap-3 py-12 animate-in fade-in duration-300">
-            <p className="text-sm text-gray-400 mb-2">No products yet.</p>
+            <p className="text-sm text-sd-ink-faint mb-2">No products yet.</p>
             <button
               type="button"
               onClick={() => setCreateTypeOpen(true)}
-              className="w-full max-w-xs rounded-full bg-black text-white text-sm font-semibold py-3.5 oak-motion-control active:scale-[0.98]"
+              className="w-full max-w-xs rounded-full bg-sd-ink text-sd-bg text-sm font-semibold py-3.5 oak-motion-control active:scale-[0.98]"
             >
               List a product
             </button>
             <button
               type="button"
               onClick={() => navigate({ to: "/store/products/upload" })}
-              className="w-full max-w-xs rounded-full border border-gray-200 text-gray-900 text-sm font-medium py-3.5 oak-motion-control active:scale-[0.98]"
+              className="w-full max-w-xs rounded-full border border-sd-line text-sd-ink text-sm font-medium py-3.5 oak-motion-control active:scale-[0.98]"
             >
               Upload products
             </button>
           </div>
         ) : (
-          <div className="text-sm text-gray-400 text-center py-12 animate-in fade-in duration-300">
+          <div className="text-sm text-sd-ink-faint text-center py-12 animate-in fade-in duration-300">
             No products match.
           </div>
         )
@@ -286,14 +288,14 @@ function StoreProducts() {
           <button
             type="button"
             onClick={() => setCreateTypeOpen(true)}
-            className="w-full bg-black text-white text-sm font-semibold rounded-full py-4 oak-motion-control active:scale-[0.98]"
+            className="w-full bg-sd-ink text-sd-bg text-sm font-semibold rounded-full py-4 oak-motion-control active:scale-[0.98]"
           >
             Keep listing
           </button>
           <button
             type="button"
             onClick={() => navigate({ to: "/store" })}
-            className="w-full border border-gray-200 text-gray-900 text-sm font-medium rounded-full py-4 oak-motion-control active:scale-[0.98]"
+            className="w-full border border-sd-line text-sd-ink text-sm font-medium rounded-full py-4 oak-motion-control active:scale-[0.98]"
           >
             Next
           </button>
@@ -301,9 +303,9 @@ function StoreProducts() {
       )}
 
       {selectMode && (
-        <div className="fixed bottom-0 inset-x-0 z-40 bg-white border-t border-gray-100 pb-[env(safe-area-inset-bottom)] flex flex-col animate-in fade-in slide-in-from-bottom-2 duration-200">
+        <div className="fixed bottom-0 inset-x-0 z-40 bg-sd-surface border-t border-sd-line pb-[env(safe-area-inset-bottom)] flex flex-col animate-in fade-in slide-in-from-bottom-2 duration-200">
           {deleteError && (
-            <p className="px-4 pt-2 text-xs text-red-500 animate-in fade-in slide-in-from-top-1 duration-200">
+            <p className="px-4 pt-2 text-xs text-sd-danger-ink animate-in fade-in slide-in-from-top-1 duration-200">
               {deleteError}
             </p>
           )}
@@ -317,15 +319,15 @@ function StoreProducts() {
               aria-label="Cancel selection"
               className="p-2 -ml-2 rounded-full oak-motion-control active:scale-90"
             >
-              <X size={18} className="text-gray-500" />
+              <X size={18} className="text-sd-ink-muted" />
             </button>
-            <span className="text-sm font-medium text-gray-900">{selectedIds.size} selected</span>
+            <span className="text-sm font-medium text-sd-ink">{selectedIds.size} selected</span>
             <button
               type="button"
               onClick={() => setConfirmDeleteOpen(true)}
               disabled={deleting}
               aria-label="Delete selected"
-              className="p-2 -mr-2 rounded-full text-red-500 disabled:opacity-50 oak-motion-control active:scale-90"
+              className="p-2 -mr-2 rounded-full text-sd-danger-ink disabled:opacity-50 oak-motion-control active:scale-90"
             >
               <Trash2 size={18} />
             </button>
@@ -343,7 +345,10 @@ function StoreProducts() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel className="rounded-full">Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleBulkDelete} className="bg-black rounded-full">
+            <AlertDialogAction
+              onClick={handleBulkDelete}
+              className="bg-sd-ink text-sd-bg rounded-full"
+            >
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -374,25 +379,25 @@ function ProductListRow({
       type="button"
       {...longPress}
       style={{ WebkitTouchCallout: "none" }}
-      className="w-full flex items-center gap-3 border border-gray-100 rounded-xl p-3 text-left select-none oak-motion-control active:scale-[0.99]"
+      className="w-full flex items-center gap-3 border border-sd-line rounded-xl p-3 text-left select-none oak-motion-control active:scale-[0.99]"
     >
       {selectMode && (
         <span
           className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition-colors duration-150 ${
-            selected ? "bg-black border-black" : "border-gray-300 bg-white"
+            selected ? "bg-sd-ink border-sd-ink" : "border-sd-line bg-sd-surface"
           }`}
         >
-          {selected && <Check size={13} className="text-white oak-motion-pop" />}
+          {selected && <Check size={13} className="text-sd-bg oak-motion-pop" />}
         </span>
       )}
       <img
         src={v?.main_image_url ?? "https://placehold.co/64x64"}
-        className="w-14 h-14 rounded-lg object-cover bg-gray-100 shrink-0"
+        className="w-14 h-14 rounded-lg object-cover bg-sd-soft shrink-0"
         alt=""
       />
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium truncate">{p.title ?? "Untitled"}</p>
-        <p className="text-xs text-gray-500 truncate">
+        <p className="text-xs text-sd-ink-muted truncate">
           {v?.price != null ? `₦${v.price.toLocaleString()}` : "No price"} · {v?.stock_qty ?? 0} in
           stock
           {p.product_variants.length > 1 ? ` · ${p.product_variants.length} variants` : ""}
@@ -400,7 +405,7 @@ function ProductListRow({
         </p>
       </div>
       {!selectMode && (
-        <span className="text-[11px] px-2 py-1 rounded-full bg-gray-100 text-gray-500 capitalize shrink-0">
+        <span className="text-[11px] px-2 py-1 rounded-full bg-sd-soft text-sd-ink-muted capitalize shrink-0">
           {p.status}
         </span>
       )}

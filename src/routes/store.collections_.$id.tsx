@@ -83,7 +83,7 @@ function CollectionDetail() {
         type="button"
         onClick={() => setActionsSheetOpen(true)}
         aria-label="Collection actions"
-        className="p-1 -mr-1 text-gray-900"
+        className="p-1 -mr-1 text-sd-ink"
       >
         <MoreHorizontal size={20} />
       </button>,
@@ -122,34 +122,34 @@ function CollectionDetail() {
   }
 
   if (collection === undefined)
-    return <div className="px-4 py-8 text-sm text-gray-400">Loading…</div>;
+    return <div className="px-4 py-8 text-sm text-sd-ink-faint">Loading…</div>;
   if (collection === null)
-    return <div className="px-4 py-8 text-sm text-gray-400">Collection not found.</div>;
+    return <div className="px-4 py-8 text-sm text-sd-ink-faint">Collection not found.</div>;
 
   return (
-    <div className="min-h-dvh bg-white pb-10">
-      <div className="sticky top-14 z-20 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
+    <div className="min-h-dvh bg-sd-surface pb-10">
+      <div className="sticky top-14 z-20 bg-sd-surface/95 backdrop-blur border-b border-sd-line px-4 h-14 flex items-center justify-between">
         <BackButton
           icon="chevron"
           size={18}
           label="Collections"
-          className="text-sm text-gray-500 flex items-center gap-0.5 -ml-1"
+          className="text-sm text-sd-ink-muted flex items-center gap-0.5 -ml-1"
         />
         <span className="font-semibold text-[15px] truncate max-w-[45%]">{collection.title}</span>
         <span className="w-6" />
       </div>
 
-      <div className="px-4 py-4 flex items-center gap-3 border-b-8 border-gray-50">
-        <div className="w-14 h-14 rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
+      <div className="px-4 py-4 flex items-center gap-3 border-b-8 border-sd-line/50">
+        <div className="w-14 h-14 rounded-xl bg-sd-soft flex items-center justify-center overflow-hidden shrink-0">
           {collection.image_url ? (
             <img src={collection.image_url} alt="" className="w-full h-full object-cover" />
           ) : (
-            <ImageIcon size={20} className="text-gray-300" />
+            <ImageIcon size={20} className="text-sd-ink-faint" />
           )}
         </div>
         <div className="min-w-0">
-          <p className="text-lg font-semibold text-gray-900 truncate">{collection.title}</p>
-          <p className="text-xs text-gray-500">
+          <p className="text-lg font-semibold text-sd-ink truncate">{collection.title}</p>
+          <p className="text-xs text-sd-ink-muted">
             {products?.length ?? 0} product{(products?.length ?? 0) === 1 ? "" : "s"}
           </p>
         </div>
@@ -159,7 +159,7 @@ function CollectionDetail() {
         <button
           type="button"
           onClick={() => setProductsSheetOpen(true)}
-          className="w-full flex items-center justify-center gap-2 border border-gray-200 rounded-xl py-3 text-sm font-medium text-gray-900 oak-motion-control active:scale-[0.99]"
+          className="w-full flex items-center justify-center gap-2 border border-sd-line rounded-xl py-3 text-sm font-medium text-sd-ink oak-motion-control active:scale-[0.99]"
         >
           <Plus size={16} />
           Add products
@@ -167,9 +167,9 @@ function CollectionDetail() {
       </div>
 
       {products === null ? (
-        <div className="text-sm text-gray-400 text-center py-12">Loading…</div>
+        <div className="text-sm text-sd-ink-faint text-center py-12">Loading…</div>
       ) : products.length === 0 ? (
-        <div className="text-sm text-gray-400 text-center py-12 animate-in fade-in duration-300">
+        <div className="text-sm text-sd-ink-faint text-center py-12 animate-in fade-in duration-300">
           No products in this collection yet.
         </div>
       ) : (
@@ -179,13 +179,13 @@ function CollectionDetail() {
               key={p.id}
               type="button"
               onClick={() => navigate({ to: "/store/products/$id", params: { id: p.id } })}
-              className="w-full flex items-center gap-3 border border-gray-100 rounded-xl p-3 text-left oak-motion-control active:scale-[0.99]"
+              className="w-full flex items-center gap-3 border border-sd-line rounded-xl p-3 text-left oak-motion-control active:scale-[0.99]"
             >
-              <span className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
+              <span className="w-12 h-12 rounded-lg bg-sd-soft flex items-center justify-center overflow-hidden shrink-0">
                 {p.main_image_url ? (
                   <img src={p.main_image_url} alt="" className="w-full h-full object-cover" />
                 ) : (
-                  <ImageIcon size={16} className="text-gray-300" />
+                  <ImageIcon size={16} className="text-sd-ink-faint" />
                 )}
               </span>
               <span className="text-sm font-medium truncate">{p.title ?? "Untitled"}</span>

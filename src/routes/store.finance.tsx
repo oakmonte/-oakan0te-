@@ -142,26 +142,26 @@ function FinancePage() {
   return (
     <div className="px-4 py-6">
       <h1 className="text-lg font-semibold mb-1">Finance</h1>
-      <p className="text-sm text-gray-500 mb-6">
+      <p className="text-sm text-sd-ink-muted mb-6">
         Where your payouts go once your store starts selling.
       </p>
 
       {account === undefined && (
-        <div className="border border-gray-100 rounded-2xl h-32 bg-gray-50 animate-pulse" />
+        <div className="border border-sd-line rounded-2xl h-32 bg-sd-elevated animate-pulse" />
       )}
 
       {account === null && (
         <button
           type="button"
           onClick={() => setSheetOpen(true)}
-          className="w-full flex flex-col items-center gap-3 border border-dashed border-gray-200 rounded-2xl p-8 text-center oak-motion-control animate-in fade-in duration-300"
+          className="w-full flex flex-col items-center gap-3 border border-dashed border-sd-line rounded-2xl p-8 text-center oak-motion-control animate-in fade-in duration-300"
         >
-          <div className="p-3 rounded-full bg-gray-100">
-            <Landmark size={20} className="text-gray-500" />
+          <div className="p-3 rounded-full bg-sd-soft">
+            <Landmark size={20} className="text-sd-ink-muted" />
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-900">Add your payout account</p>
-            <p className="text-xs text-gray-500 mt-0.5">So we know where to send your money.</p>
+            <p className="text-sm font-medium text-sd-ink">Add your payout account</p>
+            <p className="text-xs text-sd-ink-muted mt-0.5">So we know where to send your money.</p>
           </div>
         </button>
       )}
@@ -170,10 +170,10 @@ function FinancePage() {
         <button
           type="button"
           onClick={() => setSheetOpen(true)}
-          className="w-full text-left bg-black text-white rounded-2xl p-5 flex flex-col gap-5 oak-motion-control animate-in fade-in duration-300"
+          className="w-full text-left bg-sd-ink text-sd-bg rounded-2xl p-5 flex flex-col gap-5 oak-motion-control animate-in fade-in duration-300"
         >
           <div className="flex items-center justify-between">
-            <div className="p-2 rounded-full bg-white/10">
+            <div className="p-2 rounded-full bg-sd-bg/10">
               <Landmark size={18} />
             </div>
             {/* Derived, not hardcoded. This badge used to say "Pending
@@ -198,13 +198,13 @@ function FinancePage() {
             <p className="text-lg font-mono tracking-wider">
               {maskAccountNumber(account.account_number)}
             </p>
-            <p className="text-sm text-white/70 mt-1">{account.bank_name}</p>
+            <p className="text-sm text-sd-bg/70 mt-1">{account.bank_name}</p>
           </div>
         </button>
       )}
 
       {account && payoutStepState(true, account.status) !== "done" && (
-        <p className="text-xs text-gray-400 mt-4 animate-in fade-in duration-300">
+        <p className="text-xs text-sd-ink-faint mt-4 animate-in fade-in duration-300">
           Actively verifying your account. If it is verified, this card flips to
           &quot;Verified&quot; automatically, no re-entry needed.
         </p>
@@ -226,7 +226,7 @@ function FinancePage() {
             type="button"
             onClick={handleNext}
             disabled={nextBusy}
-            className="w-full bg-black text-white text-sm font-semibold rounded-full py-4 oak-motion-control active:scale-[0.98] disabled:opacity-60"
+            className="w-full bg-sd-ink text-sd-bg text-sm font-semibold rounded-full py-4 oak-motion-control active:scale-[0.98] disabled:opacity-60"
           >
             Next
           </button>
@@ -234,10 +234,10 @@ function FinancePage() {
       )}
 
       <Dialog open={skipPromptOpen} onOpenChange={setSkipPromptOpen}>
-        <DialogContent className="w-[calc(100%-32px)] max-w-sm gap-7 rounded-[28px] border-gray-200 bg-white px-6 pb-7 pt-8 text-gray-900">
+        <DialogContent className="w-[calc(100%-32px)] max-w-sm gap-7 rounded-[28px] border-sd-line bg-sd-surface px-6 pb-7 pt-8 text-sd-ink">
           <DialogHeader className="text-left">
             <DialogTitle className="text-[22px] leading-tight">Add a payout account?</DialogTitle>
-            <DialogDescription className="pt-2 text-[15px] leading-relaxed text-gray-500">
+            <DialogDescription className="pt-2 text-[15px] leading-relaxed text-sd-ink-muted">
               You won&apos;t be able to receive payouts until you add one. You can always come back
               to this later.
             </DialogDescription>
@@ -249,7 +249,7 @@ function FinancePage() {
                 setSkipPromptOpen(false);
                 setSheetOpen(true);
               }}
-              className="w-full rounded-2xl bg-black py-[18px] text-[17px] font-semibold text-white oak-motion-control active:scale-[0.98]"
+              className="w-full rounded-2xl bg-sd-ink py-[18px] text-[17px] font-semibold text-sd-bg oak-motion-control active:scale-[0.98]"
             >
               Add payout account
             </button>
@@ -259,7 +259,7 @@ function FinancePage() {
                 setSkipPromptOpen(false);
                 navigate({ to: "/store" });
               }}
-              className="w-full rounded-2xl border border-gray-200 py-[18px] text-[17px] font-medium text-gray-900 oak-motion-control active:scale-[0.98]"
+              className="w-full rounded-2xl border border-sd-line py-[18px] text-[17px] font-medium text-sd-ink oak-motion-control active:scale-[0.98]"
             >
               Continue anyway
             </button>
