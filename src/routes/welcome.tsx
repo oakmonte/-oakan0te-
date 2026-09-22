@@ -26,9 +26,9 @@ const TOTAL_TYPE_MS = HEADLINE.length * TYPE_SPEED_MS;
 const PERIOD_FADE_MS = 250;
 /** When the sentence is finished and the full stop has landed. */
 const SENTENCE_END_MS = LEAD_IN_MS + TOTAL_TYPE_MS + FULL_STOP_DELAY_MS;
-/** A beat of stillness before the page changes. The cursor stops blinking and
- *  simply rests, which reads as "finished" — leaving mid-blink reads as
- *  "interrupted", and the sentence is the whole point of this screen. */
+/** A beat of stillness before the page changes, so the reader actually sees
+ *  the finished sentence rather than being swept away the instant it lands —
+ *  the sentence is the whole point of this screen. */
 const CURSOR_SETTLE_MS = 520;
 const ANIMATION_MS = SENTENCE_END_MS + PERIOD_FADE_MS + CURSOR_SETTLE_MS;
 
@@ -184,17 +184,12 @@ function TypingHeadline({ onDone }: { onDone: () => void }) {
     // the profile after this; that wait is the whole job of the screen.
     schedule(() => onDoneRef.current(), ANIMATION_MS);
 
-    // The cursor blinks while there is still typing to do, then holds steady
-    // from the full stop onward -- see CURSOR_SETTLE_MS.
-    const cursorInterval = setInterval(() => {
-      if (!cancelled) setCursorVisible((v) => !v);
-    }, 530);
-    timers.push(cursorInterval);
-
-    schedule(() => {
-      clearInterval(cursorInterval);
-      setCursorVisible(true);
-    }, SENTENCE_END_MS);
+    // cursorVisible stays true the whole time (see its useState default) --
+    // it used to blink while typing was still in progress, which read as
+    // the cursor vanishing mid-word rather than a normal typing caret. A
+    // real cursor sits solid next to whatever's actively being typed and
+    // only blinks once idle; since this screen never goes idle before it
+    // navigates away, there's no moment left where blinking would be right.
 
     return () => {
       cancelled = true;
