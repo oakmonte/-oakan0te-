@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import logoO from "@/assets/logo-o.png";
 import oakmonteO from "@/assets/logo-o.png";
+import contentToCartVideo from "@/assets/content-to-cart.mp4";
 import { useSession } from "@/hooks/use-session";
 import { getProfileUsernameFromUser, signInWithGoogle, signOut } from "@/lib/auth";
 
@@ -718,12 +719,9 @@ function Index() {
                 collaboration with creators.
               </p>
             </div>
-            {/* The content-to-cart demo video is gone. It was a Lovable asset
-                pointer (`/__l5e/...`) and the file itself was never committed
-                here, so there is nothing to restore -- and this is the archived
-                landing page, not the live one. Rather than render a phone frame
-                around a permanent 404, the mockup is dropped until someone
-                supplies the clip again. */}
+            <div className="order-2 justify-self-center md:justify-self-end">
+              <PhoneMockup src={contentToCartVideo} />
+            </div>
           </FeatureBox>
 
           {/* 2-column bento grid */}

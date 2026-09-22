@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { isInAppBrowser } from "@/lib/in-app-browser";
 import { isStandalone } from "@/lib/standalone";
 import logoO from "@/assets/logo-o.png";
-import heroEditorial from "@/assets/hero-editorial.jpg";
+import streetwear from "@/assets/streetwear-summerstyle.jpeg";
 import femalePov from "@/assets/female-first-person-pov.jpg";
 import slideFirst from "@/assets/Index page fastloading slideshow/First image.jpg";
 import slide1 from "@/assets/Index page fastloading slideshow/photo_1_2026-09-07_04-50-03.jpg";
@@ -68,11 +68,7 @@ export const Route = createFileRoute("/")({
    image silently 404s -- which is exactly how the footer mark and the story
    photo ended up broken in production. */
 const IMG_LOGO = logoO;
-// Was streetwear-summerstyle.jpeg, whose bytes only ever existed in Lovable's
-// bucket -- it was never committed here, so there is nothing to restore. This
-// is the stand-in: a real file, already in the repo, unused until now, and 4:5
-// like the 736x920 slot it fills.
-const IMG_STORY = heroEditorial;
+const IMG_STORY = streetwear;
 const IMG_SCALE = femalePov;
 
 // Hero slideshow frames, in play order. Typographic quote cards (plus a
@@ -829,7 +825,7 @@ function OakmonteLanding() {
               <Reveal delay={2} className="story-media">
                 <img
                   src={IMG_STORY}
-                  alt="Model in a cream double-breasted coat, shot in warm daylight"
+                  alt="Streetwear summer style"
                   loading="lazy"
                   width={736}
                   height={920}

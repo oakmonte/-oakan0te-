@@ -70,13 +70,23 @@ Lovable is no longer the deploy or edit surface, but its packages are still in t
 (`@lovable.dev/vite-tanstack-config` builds the app; see `bunfig.toml` and the `vite.config.ts` note
 below). Removing them is a real migration, not a cleanup.
 
-**Import images by path. Never through a `*.asset.json` sidecar.** Lovable stored media in its own
+**Import media by path. Never through a `*.asset.json` sidecar.** Lovable stored media in its own
 R2 bucket and committed only a JSON pointer whose `url` is `/__l5e/assets-v1/<uuid>/<name>`. Vercel
-does not serve that path, so every one of those images 404s in production — silently, because the
-three gates all pass: the JSON imports fine, it typechecks, and `<img src>` takes any string. On
-2026-09-22 this was the footer logo and the story photo on the live landing page. All twelve
-sidecars are deleted; some had no file behind them at all (`streetwear-summerstyle.jpeg`,
-`content-to-cart.mp4`), because the bytes only ever existed in Lovable's bucket and are gone.
+does not serve that path, so everything behind a sidecar 404s in production — silently, because all
+three gates pass: the JSON imports fine, it typechecks, and `<img src>` takes any string. Even
+`bun run build` stays green, since there is no file for it to fail to resolve. On 2026-09-22 this
+was the footer mark and the story photo on the live landing page.
+
+All twelve sidecars are gone and the real bytes are committed in `src/assets/`. They were recovered
+from the old Lovable project host, which was still serving every one of them:
+
+```
+https://20ab012d-c075-4dc0-92ec-39b0c7e4fbaa.lovableproject.com/__l5e/assets-v1/<uuid>/<name>
+```
+
+Do not rely on that host — it belongs to a platform we have left and can disappear without notice.
+It is recorded only so a missing asset can be traced, and `fashion-scale.jpg.asset.json` was a
+0-byte sidecar that never had a file behind it at all.
 
 ## Commands
 

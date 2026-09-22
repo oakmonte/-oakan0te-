@@ -10,11 +10,10 @@
  */
 // Real files, imported by path so Vite bundles them. These used to be
 // `*.asset.json` sidecars holding a Lovable `/__l5e/...` URL, which 404s now
-// that we are on Vercel. streetwear-summerstyle.jpeg had no file behind it at
-// all -- it only ever lived in Lovable's bucket -- so it is gone for good and
-// the two seeds that used it fall back to fabricDetail.
+// that we are on Vercel.
 import fabricDetail from "@/assets/fabric-detail.jpg";
 import editorial from "@/assets/hero-editorial.jpg";
+import streetwear from "@/assets/streetwear-summerstyle.jpeg";
 
 export type FilterKey =
   | "unread"
@@ -261,7 +260,7 @@ export const SEED_MESSAGES: Record<string, SeedMessage[]> = {
         name: "Washed Denim Jacket",
         price: "₦25,000",
         store: "@thriftwithgabriel",
-        image: fabricDetail,
+        image: streetwear,
       },
     },
     {
@@ -274,7 +273,7 @@ export const SEED_MESSAGES: Record<string, SeedMessage[]> = {
         amount: "₦18,000",
         listPrice: "₦25,000",
         expiresIn: "Expires in 6h",
-        image: fabricDetail,
+        image: streetwear,
         title: "Washed Denim Jacket",
       },
     },
@@ -409,7 +408,7 @@ export const SAMPLE_OFFER = {
   buyer: "Nia from Lagos",
   offered: "₦18,000",
   listed: "₦25,000",
-  image: fabricDetail,
+  image: streetwear,
   title: "Washed Denim Jacket",
 };
 
