@@ -88,43 +88,54 @@ describe("noteExternalPush", () => {
 });
 
 describe("shouldRemoveOverlayEntry", () => {
+  const PAGE = "/profile/diadem";
+  const ELSEWHERE = "/store";
+
   test("does nothing when the back gesture already popped the entry", () => {
-    expect(shouldRemoveOverlayEntry({ poppedByGesture: true, ourIndex: 3, currentIndex: 2 })).toBe(
-      false,
-    );
+    expect(
+      shouldRemoveOverlayEntry({ poppedByGesture: true, hrefAtOpen: PAGE, hrefNow: PAGE }),
+    ).toBe(false);
   });
 
   test("removes the entry when the overlay is dismissed in place", () => {
     // Tap-outside, a close button, a confirm: nothing navigated, so our entry
     // is still the one on top. Leaving it would swallow the next back press.
-    expect(shouldRemoveOverlayEntry({ poppedByGesture: false, ourIndex: 3, currentIndex: 3 })).toBe(
-      true,
-    );
+    expect(
+      shouldRemoveOverlayEntry({ poppedByGesture: false, hrefAtOpen: PAGE, hrefNow: PAGE }),
+    ).toBe(true);
   });
 
   test("leaves the entry alone when a menu row navigated away", () => {
-    // The regression of 2026-09-22. Tapping "Oakmonte Store" in the profile
-    // menu pushed /store over our entry, the profile route unmounted, and the
-    // cleanup called history.back() unconditionally -- which popped the
-    // navigation straight back off. The store flashed up and vanished, and
-    // every row in that menu (Studio, Store, Activity, Offline videos,
-    // Settings) was dead the same way.
-    expect(shouldRemoveOverlayEntry({ poppedByGesture: false, ourIndex: 3, currentIndex: 4 })).toBe(
-      false,
-    );
+    // Tapping "Oakmonte Store" in the profile menu: the route committed, the
+    // profile unmounted, and an unconditional history.back() in the cleanup
+    // popped that navigation straight back off. The store flashed up and
+    // vanished, and every row in that menu was dead the same way.
+    expect(
+      shouldRemoveOverlayEntry({ poppedByGesture: false, hrefAtOpen: PAGE, hrefNow: ELSEWHERE }),
+    ).toBe(false);
   });
 
-  test("leaves the entry alone after a multi-step navigation", () => {
-    expect(shouldRemoveOverlayEntry({ poppedByGesture: false, ourIndex: 3, currentIndex: 7 })).toBe(
-      false,
-    );
+  test("compares the ROUTER href, which moves before window.history does", () => {
+    // The second bug, and the reason this takes hrefs rather than indexes.
+    // "Return to profile" in the store drawer closes the sheet and navigates in
+    // ONE click. @tanstack/history defers the real window.history.pushState to
+    // a microtask, so at cleanup time window.history.state still described the
+    // sentinel and an index comparison saw no navigation at all -- it popped,
+    // the push then landed, and the queued pop undid it. The router's own
+    // location is updated synchronously, so it already reads as the new href
+    // here and the entry is correctly left alone.
+    expect(
+      shouldRemoveOverlayEntry({ poppedByGesture: false, hrefAtOpen: PAGE, hrefNow: ELSEWHERE }),
+    ).toBe(false);
   });
 
-  test("does not pop when the stack is somehow already below us", () => {
-    // Defensive: a go(-n) we did not observe. Popping again would take a real
-    // page off the stack.
-    expect(shouldRemoveOverlayEntry({ poppedByGesture: false, ourIndex: 3, currentIndex: 1 })).toBe(
-      false,
-    );
+  test("treats a search-only change as having navigated", () => {
+    expect(
+      shouldRemoveOverlayEntry({
+        poppedByGesture: false,
+        hrefAtOpen: "/store/finance",
+        hrefNow: "/store/finance?checklist=true",
+      }),
+    ).toBe(false);
   });
 });

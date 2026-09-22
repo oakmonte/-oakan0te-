@@ -13,9 +13,12 @@
 // node_modules/@tanstack/history/dist/esm/index.js:54), so stamping the next
 // index ourselves keeps it and the stack mirror consistent.
 import { useEffect, useRef } from "react";
+import { useRouter } from "@tanstack/react-router";
 import { noteExternalPush, readIndex, shouldRemoveOverlayEntry } from "@/lib/nav-stack";
 
 export function useOverlayHistory(open: boolean, onClose: () => void) {
+  const router = useRouter();
+
   // Held in a ref so the effect does not re-run — and re-push — every time the
   // caller passes a fresh closure, which inline arrow props do on every render.
   const onCloseRef = useRef(onClose);
@@ -24,14 +27,22 @@ export function useOverlayHistory(open: boolean, onClose: () => void) {
   useEffect(() => {
     if (!open) return;
 
-    const ourIndex = readIndex(window.history.state) + 1;
     const state = {
       ...(window.history.state ?? {}),
-      __TSR_index: ourIndex,
+      __TSR_index: readIndex(window.history.state) + 1,
       __oakOverlay: true,
     };
     window.history.pushState(state, "");
     noteExternalPush(window.location.pathname);
+
+    // The router's own href, read AFTER our sentinel goes on — the sentinel
+    // deliberately does not change the URL, so this is still the page's href.
+    // At cleanup we compare against this to tell "dismissed in place" from
+    // "closed because we navigated". It must come from router.history and not
+    // from window: @tanstack/history defers the real pushState to a microtask,
+    // so window.history is still reporting the old entry while the router has
+    // already committed the new one. See shouldRemoveOverlayEntry.
+    const hrefAtOpen = router.history.location.href;
 
     let poppedByGesture = false;
     const onPop = () => {
@@ -43,20 +54,15 @@ export function useOverlayHistory(open: boolean, onClose: () => void) {
     return () => {
       window.removeEventListener("popstate", onPop);
 
-      // See shouldRemoveOverlayEntry for why this is a condition and not just
-      // history.back(). The short version: if the overlay is closing because a
-      // menu row navigated somewhere, our entry is buried rather than on top,
-      // and popping would undo that navigation.
-      //
       // A buried entry is harmless — it carries the same pathname as the page
       // that opened it, so backing onto it renders that page with the overlay
       // shut, which is where back should land anyway.
       const remove = shouldRemoveOverlayEntry({
         poppedByGesture,
-        ourIndex,
-        currentIndex: readIndex(window.history.state),
+        hrefAtOpen,
+        hrefNow: router.history.location.href,
       });
       if (remove) window.history.back();
     };
-  }, [open]);
+  }, [open, router]);
 }

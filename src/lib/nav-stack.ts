@@ -48,25 +48,33 @@ export function reset() {
 
 /**
  * Whether an overlay that is closing should take its own history entry back
- * off the stack. Pure, and separated from useOverlayHistory so the three cases
- * can be tested without a DOM — the middle one shipped broken on 2026-09-22 and
- * killed every menu in the app.
+ * off the stack. Pure, and separated from useOverlayHistory so the cases can be
+ * tested without a DOM — two of them shipped broken on 2026-09-22 and between
+ * them killed every menu in the app.
  *
  * - `poppedByGesture`: the back gesture already removed it. Nothing to do.
- * - `currentIndex > ourIndex`: something was pushed OVER our entry, so the
- *   overlay is closing because the user navigated away. Popping here would
- *   undo that navigation and bounce them back to where they started.
- * - `currentIndex === ourIndex`: our entry is still on top, so the overlay was
- *   dismissed in place (tap-outside, a close button, a confirm). Take it off,
- *   or the next back press is swallowed doing nothing.
+ * - the href moved: the overlay is closing because the user navigated away, so
+ *   our entry is no longer the top one. Popping would undo that navigation and
+ *   bounce them back to where they started.
+ * - the href is unchanged: the overlay was dismissed in place (tap-outside, a
+ *   close button, a confirm). Take the entry off, or the next back press is
+ *   swallowed doing nothing.
+ *
+ * Both hrefs MUST come from the router's own history (`router.history.location`)
+ * and never from `window.location` or `window.history.state`. @tanstack/history
+ * defers the real `window.history.pushState` to a microtask — see `flush` and
+ * `queueHistoryAction` in node_modules/@tanstack/history/dist/esm/index.js — so
+ * during the click that closes a sheet AND navigates, the window still reports
+ * the old entry while the router has already committed the new one. Comparing
+ * window state is what made "Return to profile" in the store drawer bounce.
  */
 export function shouldRemoveOverlayEntry(args: {
   poppedByGesture: boolean;
-  ourIndex: number;
-  currentIndex: number;
+  hrefAtOpen: string;
+  hrefNow: string;
 }): boolean {
   if (args.poppedByGesture) return false;
-  return args.currentIndex === args.ourIndex;
+  return args.hrefNow === args.hrefAtOpen;
 }
 
 /** Subscribe the mirror to the router's history. Returns an unsubscribe. */
