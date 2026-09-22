@@ -14,28 +14,23 @@ export const Route = createFileRoute("/welcome")({
 });
 
 const HEADLINE = "Your style is proof that you think different";
-const WORDS = HEADLINE.split(" ");
-// Word-by-word resolve, not a character typewriter — see TypingHeadline for
-// why. Values extend transitions-dev's streaming-text token set
-// (--stream-gap/--stream-fade/--stream-blur/--stream-ease) rather than
-// inventing a parallel one; blur/duration are pushed up from that skill's
-// chat-message defaults (60ms/350ms/1px) because this is large serif display
-// type in a rare, first-time "delight tier" moment, not a fast-moving chat
-// line — a 1px blur doesn't read at this size.
-const WORD_GAP_MS = 90;
-const WORD_FADE_MS = 380;
-const WORD_BLUR_PX = 6;
-const STREAM_EASE = [0.22, 1, 0.36, 1] as const;
-const LEAD_IN_MS = 350;
-const PERIOD_DELAY_MS = 120;
-/** When every word (not yet the full stop) has started resolving. */
-const WORDS_DONE_MS = LEAD_IN_MS + (WORDS.length - 1) * WORD_GAP_MS + WORD_FADE_MS;
-/** When the full stop has landed. */
-const SENTENCE_END_MS = WORDS_DONE_MS + PERIOD_DELAY_MS + WORD_FADE_MS;
-/** A beat of stillness before the page changes, so leaving doesn't read as
- *  cutting the sentence off mid-resolve. */
-const SETTLE_MS = 450;
-const ANIMATION_MS = SENTENCE_END_MS + SETTLE_MS;
+// A character typewriter, same as before — the request was to make the
+// typing animation better, not replace it with a different kind of
+// animation. Normal typing pace, a delay before it starts, a delay before
+// the full stop lands, and a delay after that before the page moves on.
+const TYPE_SPEED_MS = 50;
+const LEAD_IN_MS = 450;
+const FULL_STOP_DELAY_MS = 650;
+const TOTAL_TYPE_MS = HEADLINE.length * TYPE_SPEED_MS;
+/** Matches the full stop's own scale-in below, so leaving doesn't clip it. */
+const PERIOD_FADE_MS = 250;
+/** When the sentence is finished and the full stop has landed. */
+const SENTENCE_END_MS = LEAD_IN_MS + TOTAL_TYPE_MS + FULL_STOP_DELAY_MS;
+/** A beat of stillness before the page changes. The cursor stops blinking and
+ *  simply rests, which reads as "finished" — leaving mid-blink reads as
+ *  "interrupted", and the sentence is the whole point of this screen. */
+const CURSOR_SETTLE_MS = 520;
+const ANIMATION_MS = SENTENCE_END_MS + PERIOD_FADE_MS + CURSOR_SETTLE_MS;
 
 function WelcomePage() {
   const { userId } = useRequireSession();
@@ -133,10 +128,9 @@ function WelcomePage() {
 }
 
 function TypingHeadline({ onDone }: { onDone: () => void }) {
-  // How many of WORDS have started resolving in. A word past this index
-  // stays at its `initial` (invisible, blurred) variant.
-  const [visibleWords, setVisibleWords] = useState(0);
+  const [chars, setChars] = useState(0);
   const [periodVisible, setPeriodVisible] = useState(false);
+  const [cursorVisible, setCursorVisible] = useState(true);
 
   // Held in a ref so the animation can't be restarted by a caller that
   // re-creates the callback on a render.
@@ -145,53 +139,68 @@ function TypingHeadline({ onDone }: { onDone: () => void }) {
 
   useEffect(() => {
     let cancelled = false;
-    const timers: ReturnType<typeof setTimeout>[] = [];
+    const timers: (number | ReturnType<typeof setTimeout>)[] = [];
 
     const schedule = (fn: () => void, delay: number) => {
-      timers.push(
-        setTimeout(() => {
-          if (!cancelled) fn();
-        }, delay),
-      );
+      const id = setTimeout(() => {
+        if (!cancelled) fn();
+      }, delay);
+      timers.push(id);
+      return id;
     };
 
     // Same convention as index.tsx's HeroSlideshow: skip the motion outright
-    // rather than just shortening it. The sentence still has to be readable
-    // before onDone fires, so it appears whole after one short, calm beat
-    // instead of resolving word by word.
+    // rather than just shortening it.
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      setVisibleWords(WORDS.length);
+      setChars(HEADLINE.length);
       setPeriodVisible(true);
-      schedule(() => onDoneRef.current(), LEAD_IN_MS + WORD_FADE_MS);
+      setCursorVisible(false);
+      schedule(() => onDoneRef.current(), LEAD_IN_MS);
       return () => {
         cancelled = true;
-        timers.forEach(clearTimeout);
+        timers.forEach((id) => clearTimeout(id as number));
       };
     }
 
-    // Resolve the sentence one word at a time — see the WORD_* constants
-    // above for why this replaced a character-by-character typewriter.
-    WORDS.forEach((_, i) => {
-      schedule(() => setVisibleWords(i + 1), LEAD_IN_MS + i * WORD_GAP_MS);
-    });
+    // Type the main sentence one character at a time.
+    schedule(() => {
+      const interval = setInterval(() => {
+        if (cancelled) return;
+        setChars((prev) => {
+          if (prev >= HEADLINE.length) {
+            clearInterval(interval);
+            return prev;
+          }
+          return prev + 1;
+        });
+      }, TYPE_SPEED_MS);
+      timers.push(interval);
+    }, LEAD_IN_MS);
 
-    schedule(() => setPeriodVisible(true), WORDS_DONE_MS + PERIOD_DELAY_MS);
+    // Pause before the full stop.
+    schedule(() => setPeriodVisible(true), SENTENCE_END_MS);
 
     // Sentence finished, full stop settled. The page may still be waiting on
     // the profile after this; that wait is the whole job of the screen.
     schedule(() => onDoneRef.current(), ANIMATION_MS);
 
+    // The cursor blinks while there is still typing to do, then holds steady
+    // from the full stop onward -- see CURSOR_SETTLE_MS.
+    const cursorInterval = setInterval(() => {
+      if (!cancelled) setCursorVisible((v) => !v);
+    }, 530);
+    timers.push(cursorInterval);
+
+    schedule(() => {
+      clearInterval(cursorInterval);
+      setCursorVisible(true);
+    }, SENTENCE_END_MS);
+
     return () => {
       cancelled = true;
-      timers.forEach(clearTimeout);
+      timers.forEach((id) => clearTimeout(id as number));
     };
   }, []);
-
-  const wordVariant = {
-    hidden: { opacity: 0, filter: `blur(${WORD_BLUR_PX}px)` },
-    shown: { opacity: 1, filter: "blur(0px)" },
-  };
-  const wordTransition = { duration: WORD_FADE_MS / 1000, ease: STREAM_EASE };
 
   return (
     // Shrink-to-fit and centred, not full-width-and-left-set: a box that
@@ -200,43 +209,40 @@ function TypingHeadline({ onDone }: { onDone: () => void }) {
     // wrapped line (capped by max-w so it still wraps on a phone) lets the
     // page's own `items-center` centre the whole block instead — nudged a
     // touch further right on top of that, which is a deliberate optical
-    // correction, not a bug in the centring math.
-    <p className="relative w-fit max-w-[20rem] translate-x-1.5 font-serif text-xl leading-snug tracking-tight text-brand-text/85 sm:text-2xl">
+    // correction, not a bug in the centring math. The typed text, the full
+    // stop and the cursor all live in ONE plain text run (no per-word/
+    // per-character wrapper elements) so the browser's own line-wrapping
+    // handles the sentence exactly the way the invisible reservation below
+    // measured it — that's also what keeps the full stop glued to the last
+    // word instead of wrapping onto a line by itself.
+    <p className="relative w-fit max-w-sm translate-x-1.5 font-serif text-xl leading-snug tracking-tight text-brand-text/85 sm:text-2xl">
       {/* Reserves the finished sentence's exact box, including the second
-          line it wraps onto. Without it the paragraph grows a line mid-reveal
+          line it wraps onto. Without it the paragraph grows a line mid-type
           and, because the page is vertically centred, shunts the logo
           upward. */}
       <span aria-hidden="true" className="invisible whitespace-pre-wrap">
         {HEADLINE}.
+        {/* The cursor's own width, so a sentence that exactly fills the last
+            line cannot push it onto a line the reserved box does not cover. */}
+        <span className="inline-block w-[3px]" />
       </span>
       <span className="absolute inset-0 whitespace-pre-wrap">
-        {WORDS.map((word, i) => (
-          // The space is a plain sibling text node, not inside the
-          // inline-block span: a space swallowed *inside* an inline-block
-          // gives the line-breaking algorithm nowhere to wrap between words,
-          // so the sentence would rather overflow its box than break.
-          <span key={i}>
-            <motion.span
-              initial="hidden"
-              animate={i < visibleWords ? "shown" : "hidden"}
-              variants={wordVariant}
-              transition={wordTransition}
-              className="inline-block"
-            >
-              {word}
-            </motion.span>
-            {i < WORDS.length - 1 ? " " : ""}
-          </span>
-        ))}
+        {HEADLINE.slice(0, chars)}
         <motion.span
-          initial="hidden"
-          animate={periodVisible ? "shown" : "hidden"}
-          variants={wordVariant}
-          transition={wordTransition}
+          initial={{ opacity: 0, scale: 0.85 }}
+          animate={periodVisible ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.85 }}
+          transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+          aria-hidden={!periodVisible}
           className="inline-block"
         >
           .
         </motion.span>
+        <span
+          aria-hidden="true"
+          className={`inline-block w-[2px] h-[1em] -mb-[0.15em] ml-[1px] align-middle bg-current transition-opacity duration-100 ${
+            cursorVisible ? "opacity-100" : "opacity-0"
+          }`}
+        />
       </span>
     </p>
   );
