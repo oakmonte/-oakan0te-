@@ -287,10 +287,10 @@ export function LocationSheet({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-white flex flex-col min-h-dvh animate-in fade-in slide-in-from-bottom-6 duration-300 ease-out">
-      <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between shrink-0">
+    <div className="fixed inset-0 z-50 bg-sd-surface flex flex-col min-h-dvh animate-in fade-in slide-in-from-bottom-6 duration-300 ease-out">
+      <div className="sticky top-0 bg-sd-surface/95 backdrop-blur border-b border-sd-line px-4 h-14 flex items-center justify-between shrink-0">
         <button onClick={onClose} type="button" className="p-1 -ml-1">
-          <X size={20} className="text-gray-500" />
+          <X size={20} className="text-sd-ink-muted" />
         </button>
         <span className="font-semibold text-[15px] absolute left-1/2 -translate-x-1/2">
           {isEditing ? "Edit location" : "New location"}
@@ -300,8 +300,8 @@ export function LocationSheet({
 
       <div className="flex-1 overflow-y-auto px-4 py-5 flex flex-col gap-6">
         <div>
-          <p className="text-[17px] font-semibold text-gray-900 mb-1">Location name</p>
-          <p className="text-xs text-gray-500 mb-3">
+          <p className="text-[17px] font-semibold text-sd-ink mb-1">Location name</p>
+          <p className="text-xs text-sd-ink-muted mb-3">
             So you can tell it apart from your other locations — e.g. "Lekki warehouse" or "Main
             store".
           </p>
@@ -311,14 +311,14 @@ export function LocationSheet({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder=" "
-              className={`w-full text-base border rounded-xl px-4 py-3 outline-none focus:border-gray-400 transition-colors duration-150 ${
-                showErrors && !name.trim() ? "border-red-300" : "border-gray-200"
+              className={`w-full text-base border rounded-xl px-4 py-3 outline-none focus:border-sd-ink-faint transition-colors duration-150 ${
+                showErrors && !name.trim() ? "border-red-300" : "border-sd-line"
               }`}
             />
             {!name.trim() && (
               <label
                 htmlFor="location-name-input"
-                className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-1 text-gray-400 pointer-events-none"
+                className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-1 text-sd-ink-faint pointer-events-none"
               >
                 <span className="text-base">Custom location name</span>
                 <span className="text-xs">e.g main store</span>
@@ -328,13 +328,13 @@ export function LocationSheet({
         </div>
 
         {promptVisible && (
-          <div className="border border-gray-200 rounded-3xl p-5 flex items-start gap-3.5 bg-gray-50 animate-in fade-in slide-in-from-top-2 duration-300">
-            <div className="p-2 rounded-full bg-white border border-gray-200 shrink-0">
-              <LocateFixed size={16} className="text-gray-700" />
+          <div className="border border-sd-line rounded-3xl p-5 flex items-start gap-3.5 bg-sd-elevated animate-in fade-in slide-in-from-top-2 duration-300">
+            <div className="p-2 rounded-full bg-sd-surface border border-sd-line shrink-0">
+              <LocateFixed size={16} className="text-sd-ink" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[15px] font-semibold text-gray-900">Use my current location</p>
-              <p className="text-xs text-gray-500 mt-0.5">
+              <p className="text-[15px] font-semibold text-sd-ink">Use my current location</p>
+              <p className="text-xs text-sd-ink-muted mt-0.5">
                 Fills in city, state and country, and saves the exact pin riders use to find you —
                 you'll still enter the street address yourself.
               </p>
@@ -344,7 +344,7 @@ export function LocationSheet({
                   type="button"
                   onClick={useCurrentLocation}
                   disabled={locating}
-                  className="flex items-center gap-1.5 text-[15px] font-medium text-white bg-black rounded-full px-6 py-3.5 oak-motion-control active:scale-[0.98] disabled:opacity-50"
+                  className="flex items-center gap-1.5 text-[15px] font-medium text-sd-bg bg-sd-ink rounded-full px-6 py-3.5 oak-motion-control active:scale-[0.98] disabled:opacity-50"
                 >
                   {locating ? (
                     "Locating…"
@@ -363,34 +363,34 @@ export function LocationSheet({
         )}
 
         <div>
-          <p className="text-[17px] font-semibold text-gray-900 mb-3">Address</p>
+          <p className="text-[17px] font-semibold text-sd-ink mb-3">Address</p>
           <div className="flex flex-col gap-3">
             <input
               value={addressLine}
               onChange={(e) => setAddressLine(e.target.value)}
               placeholder="Address line 1"
-              className={`w-full text-base border rounded-xl px-4 py-3 outline-none focus:border-gray-400 transition-colors duration-150 ${
-                showErrors && !addressLine.trim() ? "border-red-300" : "border-gray-200"
+              className={`w-full text-base border rounded-xl px-4 py-3 outline-none focus:border-sd-ink-faint transition-colors duration-150 ${
+                showErrors && !addressLine.trim() ? "border-red-300" : "border-sd-line"
               }`}
             />
             <input
               value={addressLine2}
               onChange={(e) => setAddressLine2(e.target.value)}
               placeholder="Address line 2 — apartment, suite, landmark (optional)"
-              className="w-full text-base border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-gray-400 transition-colors duration-150"
+              className="w-full text-base border border-sd-line rounded-xl px-4 py-3 outline-none focus:border-sd-ink-faint transition-colors duration-150"
             />
 
             <button
               type="button"
               onClick={() => setPickerOpen("country")}
               className={`w-full flex items-center justify-between text-base border rounded-xl px-4 py-3 transition-colors duration-150 ${
-                showErrors && !country.trim() ? "border-red-300" : "border-gray-200"
+                showErrors && !country.trim() ? "border-red-300" : "border-sd-line"
               }`}
             >
-              <span className={country ? "text-gray-900" : "text-gray-400"}>
+              <span className={country ? "text-sd-ink" : "text-sd-ink-faint"}>
                 {country || "Country"}
               </span>
-              <ChevronRight size={16} className="text-gray-300 shrink-0" />
+              <ChevronRight size={16} className="text-sd-ink-faint shrink-0" />
             </button>
 
             <button
@@ -398,13 +398,13 @@ export function LocationSheet({
               onClick={() => countryCode && setPickerOpen("state")}
               disabled={!countryCode}
               className={`w-full flex items-center justify-between text-base border rounded-xl px-4 py-3 transition-colors duration-150 disabled:opacity-50 ${
-                showErrors && !state.trim() ? "border-red-300" : "border-gray-200"
+                showErrors && !state.trim() ? "border-red-300" : "border-sd-line"
               }`}
             >
-              <span className={state ? "text-gray-900" : "text-gray-400"}>
+              <span className={state ? "text-sd-ink" : "text-sd-ink-faint"}>
                 {state || "State/Province/Region"}
               </span>
-              <ChevronRight size={16} className="text-gray-300 shrink-0" />
+              <ChevronRight size={16} className="text-sd-ink-faint shrink-0" />
             </button>
 
             <button
@@ -412,19 +412,19 @@ export function LocationSheet({
               onClick={() => countryCode && setPickerOpen("city")}
               disabled={!countryCode}
               className={`w-full flex items-center justify-between text-base border rounded-xl px-4 py-3 transition-colors duration-150 disabled:opacity-50 ${
-                showErrors && !city.trim() ? "border-red-300" : "border-gray-200"
+                showErrors && !city.trim() ? "border-red-300" : "border-sd-line"
               }`}
             >
-              <span className={city ? "text-gray-900" : "text-gray-400"}>{city || "City"}</span>
-              <ChevronRight size={16} className="text-gray-300 shrink-0" />
+              <span className={city ? "text-sd-ink" : "text-sd-ink-faint"}>{city || "City"}</span>
+              <ChevronRight size={16} className="text-sd-ink-faint shrink-0" />
             </button>
 
             <input
               value={postalCode}
               onChange={(e) => setPostalCode(e.target.value)}
               placeholder="ZIP/Postal code"
-              className={`w-full text-base border rounded-xl px-4 py-3 outline-none focus:border-gray-400 transition-colors duration-150 ${
-                showErrors && !postalCode.trim() ? "border-red-300" : "border-gray-200"
+              className={`w-full text-base border rounded-xl px-4 py-3 outline-none focus:border-sd-ink-faint transition-colors duration-150 ${
+                showErrors && !postalCode.trim() ? "border-red-300" : "border-sd-line"
               }`}
             />
           </div>
@@ -468,14 +468,14 @@ export function LocationSheet({
         )}
 
         {lat != null && lng != null && (
-          <div className="flex items-center gap-2 text-xs text-gray-500">
-            <MapPin size={13} className="text-gray-400 shrink-0" />
+          <div className="flex items-center gap-2 text-xs text-sd-ink-muted">
+            <MapPin size={13} className="text-sd-ink-faint shrink-0" />
             Exact pin saved ({lat.toFixed(5)}, {lng.toFixed(5)}) — riders use this to find you.
           </div>
         )}
 
-        <p className="text-xs text-gray-500 flex items-start gap-1.5">
-          <ChevronRight size={13} className="text-gray-300 shrink-0 mt-0.5" />
+        <p className="text-xs text-sd-ink-muted flex items-start gap-1.5">
+          <ChevronRight size={13} className="text-sd-ink-faint shrink-0 mt-0.5" />
           Only riders dispatching your orders (and you, at checkout as a buyer) see this. Curators
           and creators never do.
         </p>
@@ -492,12 +492,12 @@ export function LocationSheet({
         )}
       </div>
 
-      <div className="sticky bottom-0 px-4 pt-3 oak-safe-bottom border-t border-gray-100 bg-white shrink-0">
+      <div className="sticky bottom-0 px-4 pt-3 oak-safe-bottom border-t border-sd-line bg-sd-surface shrink-0">
         <button
           type="button"
           onClick={handleSave}
           disabled={saving}
-          className="w-full bg-black text-white text-sm font-medium rounded-full py-3.5 disabled:opacity-50"
+          className="w-full bg-sd-ink text-sd-bg text-sm font-medium rounded-full py-3.5 disabled:opacity-50"
         >
           {saving ? "Saving…" : isEditing ? "Save changes" : "Add location"}
         </button>
@@ -521,7 +521,7 @@ export function LocationSheet({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel className="rounded-full">Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-black rounded-full">
+            <AlertDialogAction onClick={handleDelete} className="bg-sd-ink text-sd-bg rounded-full">
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>

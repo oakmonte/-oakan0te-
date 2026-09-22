@@ -57,8 +57,8 @@ function NewLocation() {
 
   if (storeLoading) {
     return (
-      <div className="min-h-dvh bg-white flex items-center justify-center">
-        <Spinner className="text-gray-300" />
+      <div className="min-h-dvh bg-sd-surface flex items-center justify-center">
+        <Spinner className="text-sd-ink-faint" />
       </div>
     );
   }

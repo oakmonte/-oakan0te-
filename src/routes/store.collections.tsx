@@ -97,19 +97,21 @@ function StoreCollections() {
     setSelectedIds(new Set());
   }
 
-  if (storeLoading) return <div className="px-4 py-8 text-sm text-gray-400">Loading…</div>;
+  if (storeLoading) return <div className="px-4 py-8 text-sm text-sd-ink-faint">Loading…</div>;
   if (!storeId)
-    return <div className="px-4 py-8 text-sm text-gray-400">No store found on this account.</div>;
+    return (
+      <div className="px-4 py-8 text-sm text-sd-ink-faint">No store found on this account.</div>
+    );
 
   return (
     <div className="px-4 py-5 pb-24">
       <div className="flex items-center justify-between mb-4">
-        <span className="text-lg font-semibold text-gray-900">Collections</span>
+        <span className="text-lg font-semibold text-sd-ink">Collections</span>
         <button
           type="button"
           onClick={() => navigate({ to: "/store/collections/new" })}
           aria-label="Add collection"
-          className="p-2 rounded-lg bg-black text-white oak-motion-control active:scale-90"
+          className="p-2 rounded-lg bg-sd-ink text-sd-bg oak-motion-control active:scale-90"
         >
           <Plus size={16} />
         </button>
@@ -118,20 +120,20 @@ function StoreCollections() {
       {/* Only while the store has zero collections -- once the first one
           exists, the concept doesn't need re-explaining every visit. */}
       {collections !== null && collections.length === 0 && (
-        <p className="text-xs text-gray-400 text-center mb-4 animate-in fade-in duration-300">
+        <p className="text-xs text-sd-ink-faint text-center mb-4 animate-in fade-in duration-300">
           Complimentary pieces can be grouped as collections.
         </p>
       )}
 
       {collections === null ? (
-        <div className="text-sm text-gray-400 text-center py-12">Loading…</div>
+        <div className="text-sm text-sd-ink-faint text-center py-12">Loading…</div>
       ) : collections.length === 0 ? (
         <div className="flex flex-col items-center gap-3 py-12 animate-in fade-in duration-300">
-          <p className="text-sm text-gray-400 text-center">No collections yet.</p>
+          <p className="text-sm text-sd-ink-faint text-center">No collections yet.</p>
           <button
             type="button"
             onClick={() => navigate({ to: "/store/collections/new" })}
-            className="bg-black text-white text-sm font-medium rounded-full px-5 py-2.5"
+            className="bg-sd-ink text-sd-bg text-sm font-medium rounded-full px-5 py-2.5"
           >
             Create collection
           </button>
@@ -156,7 +158,7 @@ function StoreCollections() {
       )}
 
       {selectMode && (
-        <div className="fixed bottom-0 inset-x-0 z-40 bg-white border-t border-gray-100 pb-[env(safe-area-inset-bottom)] flex flex-col animate-in fade-in slide-in-from-bottom-2 duration-200">
+        <div className="fixed bottom-0 inset-x-0 z-40 bg-sd-surface border-t border-sd-line pb-[env(safe-area-inset-bottom)] flex flex-col animate-in fade-in slide-in-from-bottom-2 duration-200">
           {deleteError && (
             <p className="px-4 pt-2 text-xs text-red-500 animate-in fade-in slide-in-from-top-1 duration-200">
               {deleteError}
@@ -172,9 +174,9 @@ function StoreCollections() {
               aria-label="Cancel selection"
               className="p-2 -ml-2 rounded-full oak-motion-control active:scale-90"
             >
-              <X size={18} className="text-gray-500" />
+              <X size={18} className="text-sd-ink-muted" />
             </button>
-            <span className="text-sm font-medium text-gray-900">{selectedIds.size} selected</span>
+            <span className="text-sm font-medium text-sd-ink">{selectedIds.size} selected</span>
             <button
               type="button"
               onClick={() => setConfirmDeleteOpen(true)}
@@ -201,7 +203,10 @@ function StoreCollections() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel className="rounded-full">Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleBulkDelete} className="bg-black rounded-full">
+            <AlertDialogAction
+              onClick={handleBulkDelete}
+              className="bg-sd-ink text-sd-bg rounded-full"
+            >
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -230,26 +235,26 @@ function CollectionListRow({
       type="button"
       {...longPress}
       style={{ WebkitTouchCallout: "none" }}
-      className="w-full flex items-center gap-3 border border-gray-100 rounded-xl p-3 text-left select-none oak-motion-control active:scale-[0.99]"
+      className="w-full flex items-center gap-3 border border-sd-line rounded-xl p-3 text-left select-none oak-motion-control active:scale-[0.99]"
     >
       {selectMode && (
         <span
           className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition-colors duration-150 ${
-            selected ? "bg-black border-black" : "border-gray-300 bg-white"
+            selected ? "bg-sd-ink border-sd-ink" : "border-sd-line bg-sd-surface"
           }`}
         >
-          {selected && <Check size={13} className="text-white oak-motion-pop" />}
+          {selected && <Check size={13} className="text-sd-bg oak-motion-pop" />}
         </span>
       )}
-      <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
+      <div className="w-10 h-10 rounded-lg bg-sd-soft flex items-center justify-center overflow-hidden shrink-0">
         {c.image_url ? (
           <img src={c.image_url} alt="" className="w-full h-full object-cover" />
         ) : (
-          <ImageIcon size={16} className="text-gray-300" />
+          <ImageIcon size={16} className="text-sd-ink-faint" />
         )}
       </div>
       <span className="flex-1 min-w-0 text-sm font-medium truncate">{c.title}</span>
-      <span className="text-xs text-gray-400 shrink-0">
+      <span className="text-xs text-sd-ink-faint shrink-0">
         {c.count} product{c.count === 1 ? "" : "s"}
       </span>
     </button>

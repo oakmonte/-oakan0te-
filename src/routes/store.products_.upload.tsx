@@ -33,23 +33,23 @@ function JobBanner({ job, onDismiss }: { job: JobStatus; onDismiss: () => void }
     <div
       className={`mx-4 mt-4 rounded-xl border p-3 flex items-start gap-3 animate-in fade-in slide-in-from-top-2 duration-200 ${
         inProgress
-          ? "border-gray-200 bg-gray-50"
+          ? "border-sd-line bg-sd-elevated"
           : ok
-            ? "border-gray-200 bg-gray-50"
+            ? "border-sd-line bg-sd-elevated"
             : "border-red-100 bg-red-50"
       }`}
     >
       <div className="mt-0.5 shrink-0">
         {inProgress ? (
-          <Spinner className="text-gray-400" />
+          <Spinner className="text-sd-ink-faint" />
         ) : ok || partial ? (
-          <Check size={18} className="text-gray-900" />
+          <Check size={18} className="text-sd-ink" />
         ) : (
           <X size={18} className="text-red-500" />
         )}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-gray-900">
+        <p className="text-sm font-medium text-sd-ink">
           {inProgress
             ? "Import running…"
             : ok
@@ -58,9 +58,9 @@ function JobBanner({ job, onDismiss }: { job: JobStatus; onDismiss: () => void }
                 ? "Import finished with issues"
                 : "Import failed"}
         </p>
-        {job.error && <p className="text-xs text-gray-500 mt-0.5 break-words">{job.error}</p>}
+        {job.error && <p className="text-xs text-sd-ink-muted mt-0.5 break-words">{job.error}</p>}
         {job.result && (job.result.created || job.result.updated) ? (
-          <p className="text-xs text-gray-400 mt-0.5">
+          <p className="text-xs text-sd-ink-faint mt-0.5">
             {job.result.created ?? 0} created · {job.result.updated ?? 0} updated
             {job.result.failed ? ` · ${job.result.failed} failed` : ""}
           </p>
@@ -68,7 +68,7 @@ function JobBanner({ job, onDismiss }: { job: JobStatus; onDismiss: () => void }
       </div>
       {job.done && (
         <button type="button" onClick={onDismiss} className="shrink-0 p-1 -mr-1 -mt-1">
-          <X size={16} className="text-gray-400" />
+          <X size={16} className="text-sd-ink-faint" />
         </button>
       )}
     </div>
@@ -82,10 +82,12 @@ function JobBanner({ job, onDismiss }: { job: JobStatus; onDismiss: () => void }
 function OptionLabel({ n, children }: { n: number; children: React.ReactNode }) {
   return (
     <div className="flex items-center gap-2 mb-2">
-      <span className="w-5 h-5 rounded-full bg-gray-900 text-white text-[11px] font-medium flex items-center justify-center shrink-0">
+      <span className="w-5 h-5 rounded-full bg-sd-ink text-sd-bg text-[11px] font-medium flex items-center justify-center shrink-0">
         {n}
       </span>
-      <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">{children}</span>
+      <span className="text-xs font-medium text-sd-ink-muted uppercase tracking-wide">
+        {children}
+      </span>
     </div>
   );
 }
@@ -271,13 +273,13 @@ function ProductsUpload() {
   }
 
   return (
-    <div className="min-h-dvh bg-white pb-10">
-      <div className="sticky top-14 z-20 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center">
+    <div className="min-h-dvh bg-sd-surface pb-10">
+      <div className="sticky top-14 z-20 bg-sd-surface/95 backdrop-blur border-b border-sd-line px-4 h-14 flex items-center">
         <BackButton
           icon="chevron"
           size={18}
           label="Products"
-          className="text-sm text-gray-500 flex items-center gap-0.5 -ml-1"
+          className="text-sm text-sd-ink-muted flex items-center gap-0.5 -ml-1"
         />
         <span className="font-semibold text-[15px] absolute left-1/2 -translate-x-1/2">
           Upload products
@@ -292,50 +294,52 @@ function ProductsUpload() {
       )}
 
       <div className="px-4 py-6">
-        <p className="text-sm text-gray-500 mb-6">
+        <p className="text-sm text-sd-ink-muted mb-6">
           Bring in products you already have listed somewhere else.
         </p>
 
         <div className="flex flex-col gap-3">
           {/* Shopify */}
-          <div className="border border-gray-200 rounded-2xl overflow-hidden">
+          <div className="border border-sd-line rounded-2xl overflow-hidden">
             <button
               type="button"
               onClick={() => setOpenSection((v) => (v === "shopify" ? null : "shopify"))}
               className="w-full flex items-center gap-3 p-4 text-left oak-motion-control"
             >
-              <div className="p-2 rounded-full bg-gray-100">
+              <div className="p-2 rounded-full bg-sd-soft">
                 <ShoppingBag size={18} />
               </div>
               <div className="flex-1">
                 <p className="text-sm font-medium">Shopify</p>
-                <p className="text-xs text-gray-500 mt-0.5">Connect your store or upload a CSV.</p>
+                <p className="text-xs text-sd-ink-muted mt-0.5">
+                  Connect your store or upload a CSV.
+                </p>
               </div>
               <ChevronDown
                 size={16}
-                className={`text-gray-400 transition-transform duration-200 ${openSection === "shopify" ? "rotate-180" : ""}`}
+                className={`text-sd-ink-faint transition-transform duration-200 ${openSection === "shopify" ? "rotate-180" : ""}`}
               />
             </button>
             {openSection === "shopify" && (
-              <div className="border-t border-gray-100 px-4 py-4 flex flex-col gap-5 animate-in fade-in slide-in-from-top-2 duration-200 ease-out">
+              <div className="border-t border-sd-line px-4 py-4 flex flex-col gap-5 animate-in fade-in slide-in-from-top-2 duration-200 ease-out">
                 <div>
                   <OptionLabel n={1}>Connect directly</OptionLabel>
                   <label className="flex flex-col gap-1">
-                    <span className="text-xs text-gray-400">Shop domain</span>
+                    <span className="text-xs text-sd-ink-faint">Shop domain</span>
                     <input
                       value={shopDomain}
                       onChange={(e) => setShopDomain(e.target.value)}
                       placeholder="mystore or mystore.myshopify.com"
                       autoCapitalize="none"
                       autoCorrect="off"
-                      className="text-base border border-gray-200 rounded-lg px-3 py-2.5 outline-none focus:border-gray-400"
+                      className="text-base border border-sd-line rounded-lg px-3 py-2.5 outline-none focus:border-sd-ink-faint"
                     />
                   </label>
                   <button
                     type="button"
                     onClick={connectShopify}
                     disabled={busy || !shopDomain.trim()}
-                    className="mt-2 w-full bg-black text-white text-sm font-medium rounded-lg py-2.5 disabled:opacity-40 oak-motion-control active:scale-[0.98]"
+                    className="mt-2 w-full bg-sd-ink text-sd-bg text-sm font-medium rounded-lg py-2.5 disabled:opacity-40 oak-motion-control active:scale-[0.98]"
                   >
                     Connect Shopify
                   </button>
@@ -343,15 +347,15 @@ function ProductsUpload() {
                     type="button"
                     onClick={() => startImport("shopify")}
                     disabled={busy}
-                    className="mt-2 w-full border border-gray-200 rounded-lg py-2.5 text-sm font-medium text-gray-900 disabled:opacity-40 oak-motion-control"
+                    className="mt-2 w-full border border-sd-line rounded-lg py-2.5 text-sm font-medium text-sd-ink disabled:opacity-40 oak-motion-control"
                   >
                     Import my Shopify products
                   </button>
-                  <p className="text-[11px] text-gray-400 mt-1.5">
+                  <p className="text-[11px] text-sd-ink-faint mt-1.5">
                     Already connected? Tap import — no need to connect again.
                   </p>
                 </div>
-                <div className="border-t border-gray-100 pt-4">
+                <div className="border-t border-sd-line pt-4">
                   <OptionLabel n={2}>Upload a CSV</OptionLabel>
                   <button
                     type="button"
@@ -360,11 +364,11 @@ function ProductsUpload() {
                       if (file) uploadCsv(file, "csv", "shopify");
                     }}
                     disabled={busy}
-                    className="w-full text-left border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-900 font-medium oak-motion-control disabled:opacity-40"
+                    className="w-full text-left border border-sd-line rounded-lg px-3 py-2.5 text-sm text-sd-ink font-medium oak-motion-control disabled:opacity-40"
                   >
                     Upload Shopify CSV export
                   </button>
-                  <p className="text-[11px] text-gray-400 mt-1.5">
+                  <p className="text-[11px] text-sd-ink-faint mt-1.5">
                     From Shopify admin: Products → Export.
                   </p>
                 </div>
@@ -373,30 +377,32 @@ function ProductsUpload() {
           </div>
 
           {/* Bumpa */}
-          <div className="border border-gray-200 rounded-2xl overflow-hidden">
+          <div className="border border-sd-line rounded-2xl overflow-hidden">
             <button
               type="button"
               onClick={() => setOpenSection((v) => (v === "bumpa" ? null : "bumpa"))}
               className="w-full flex items-center gap-3 p-4 text-left oak-motion-control"
             >
-              <div className="p-2 rounded-full bg-gray-100">
+              <div className="p-2 rounded-full bg-sd-soft">
                 <Store size={18} />
               </div>
               <div className="flex-1">
                 <p className="text-sm font-medium">Bumpa</p>
-                <p className="text-xs text-gray-500 mt-0.5">Connect your store or upload a CSV.</p>
+                <p className="text-xs text-sd-ink-muted mt-0.5">
+                  Connect your store or upload a CSV.
+                </p>
               </div>
               <ChevronDown
                 size={16}
-                className={`text-gray-400 transition-transform duration-200 ${openSection === "bumpa" ? "rotate-180" : ""}`}
+                className={`text-sd-ink-faint transition-transform duration-200 ${openSection === "bumpa" ? "rotate-180" : ""}`}
               />
             </button>
             {openSection === "bumpa" && (
-              <div className="border-t border-gray-100 px-4 py-4 flex flex-col gap-5 animate-in fade-in slide-in-from-top-2 duration-200 ease-out">
+              <div className="border-t border-sd-line px-4 py-4 flex flex-col gap-5 animate-in fade-in slide-in-from-top-2 duration-200 ease-out">
                 <div>
                   <OptionLabel n={1}>Connect directly</OptionLabel>
                   <label className="flex flex-col gap-1">
-                    <span className="text-xs text-gray-400">Bumpa API key</span>
+                    <span className="text-xs text-sd-ink-faint">Bumpa API key</span>
                     <input
                       value={bumpaKey}
                       onChange={(e) => setBumpaKey(e.target.value)}
@@ -404,14 +410,14 @@ function ProductsUpload() {
                       type="password"
                       autoCapitalize="none"
                       autoCorrect="off"
-                      className="text-base border border-gray-200 rounded-lg px-3 py-2.5 outline-none focus:border-gray-400"
+                      className="text-base border border-sd-line rounded-lg px-3 py-2.5 outline-none focus:border-sd-ink-faint"
                     />
                   </label>
                   <button
                     type="button"
                     onClick={connectBumpa}
                     disabled={busy || !bumpaKey.trim()}
-                    className="mt-2 w-full bg-black text-white text-sm font-medium rounded-lg py-2.5 disabled:opacity-40 oak-motion-control active:scale-[0.98]"
+                    className="mt-2 w-full bg-sd-ink text-sd-bg text-sm font-medium rounded-lg py-2.5 disabled:opacity-40 oak-motion-control active:scale-[0.98]"
                   >
                     Connect Bumpa
                   </button>
@@ -419,21 +425,21 @@ function ProductsUpload() {
                     type="button"
                     onClick={() => startImport("bumpa-api")}
                     disabled={busy}
-                    className="mt-2 w-full border border-gray-200 rounded-lg py-2.5 text-sm font-medium text-gray-900 disabled:opacity-40 oak-motion-control"
+                    className="mt-2 w-full border border-sd-line rounded-lg py-2.5 text-sm font-medium text-sd-ink disabled:opacity-40 oak-motion-control"
                   >
                     Import my Bumpa products
                   </button>
                   {connectedNote === "bumpa" ? (
-                    <p className="text-[11px] text-gray-500 mt-1.5 flex items-center gap-1">
+                    <p className="text-[11px] text-sd-ink-muted mt-1.5 flex items-center gap-1">
                       <Check size={12} /> Connected. Tap import to bring products in.
                     </p>
                   ) : (
-                    <p className="text-[11px] text-gray-400 mt-1.5">
+                    <p className="text-[11px] text-sd-ink-faint mt-1.5">
                       Found in your Bumpa dashboard under API settings.
                     </p>
                   )}
                 </div>
-                <div className="border-t border-gray-100 pt-4">
+                <div className="border-t border-sd-line pt-4">
                   <OptionLabel n={2}>Upload a CSV</OptionLabel>
                   <button
                     type="button"
@@ -442,7 +448,7 @@ function ProductsUpload() {
                       if (file) uploadCsv(file, "bumpa");
                     }}
                     disabled={busy}
-                    className="w-full text-left border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-900 font-medium oak-motion-control disabled:opacity-40"
+                    className="w-full text-left border border-sd-line rounded-lg px-3 py-2.5 text-sm text-sd-ink font-medium oak-motion-control disabled:opacity-40"
                   >
                     Upload Bumpa CSV export
                   </button>
@@ -459,14 +465,14 @@ function ProductsUpload() {
               if (file) uploadCsv(file, "csv");
             }}
             disabled={busy}
-            className="flex items-center gap-3 border border-gray-200 rounded-2xl p-4 text-left oak-motion-control disabled:opacity-40"
+            className="flex items-center gap-3 border border-sd-line rounded-2xl p-4 text-left oak-motion-control disabled:opacity-40"
           >
-            <div className="p-2 rounded-full bg-gray-100">
+            <div className="p-2 rounded-full bg-sd-soft">
               <Upload size={18} />
             </div>
             <div>
               <p className="text-sm font-medium">Upload from anywhere else</p>
-              <p className="text-xs text-gray-500 mt-0.5">
+              <p className="text-xs text-sd-ink-muted mt-0.5">
                 Any CSV — we'll match the columns automatically.
               </p>
             </div>

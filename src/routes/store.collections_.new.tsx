@@ -174,8 +174,8 @@ function NewCollection() {
   }
 
   return (
-    <div className="min-h-dvh bg-white pb-10">
-      <div className="sticky top-14 z-20 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
+    <div className="min-h-dvh bg-sd-surface pb-10">
+      <div className="sticky top-14 z-20 bg-sd-surface/95 backdrop-blur border-b border-sd-line px-4 h-14 flex items-center justify-between">
         {/* returnTo, not the hierarchy: this form is opened both from the
             collections list and from inside a product form. */}
         <BackButton
@@ -184,14 +184,14 @@ function NewCollection() {
           label="Cancel"
           ariaLabel="Cancel"
           to={pathTarget(returnTo)}
-          className="text-sm text-gray-500 flex items-center gap-0.5 -ml-1"
+          className="text-sm text-sd-ink-muted flex items-center gap-0.5 -ml-1"
         />
         <span className="font-semibold text-[15px]">New Collection</span>
         <button
           onClick={handleSave}
           disabled={saving || !storeId}
           type="button"
-          className="text-sm font-medium text-black disabled:text-gray-300"
+          className="text-sm font-medium text-sd-ink disabled:text-sd-ink-faint"
         >
           Save
         </button>
@@ -210,12 +210,12 @@ function NewCollection() {
         onAdditionalChange={setAdditionalImageUrls}
       />
 
-      <div className="px-4 py-4 border-b-8 border-gray-50">
+      <div className="px-4 py-4 border-b-8 border-sd-line/50">
         <input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Collection title"
-          className="w-full text-2xl font-semibold text-gray-900 placeholder:text-gray-600 outline-none pb-3 border-b border-gray-100"
+          className="w-full text-2xl font-semibold text-sd-ink placeholder:text-sd-ink-muted outline-none pb-3 border-b border-sd-line"
         />
 
         <button
@@ -223,29 +223,29 @@ function NewCollection() {
           onClick={() => setDescriptionSheetOpen(true)}
           className="w-full flex items-center justify-between py-4 text-left"
         >
-          <span className="flex items-center gap-3 text-[15px] text-gray-900">
+          <span className="flex items-center gap-3 text-[15px] text-sd-ink">
             {hasDescription ? (
-              <Check size={18} className="text-gray-900" />
+              <Check size={18} className="text-sd-ink" />
             ) : (
-              <Plus size={18} className="text-gray-400" />
+              <Plus size={18} className="text-sd-ink-faint" />
             )}
             {hasDescription ? "Description" : "Add description"}
           </span>
-          <ChevronRight size={16} className="text-gray-300 shrink-0" />
+          <ChevronRight size={16} className="text-sd-ink-faint shrink-0" />
         </button>
       </div>
 
       <button
         type="button"
         onClick={() => setProductsSheetOpen(true)}
-        className="w-full flex items-center justify-between px-4 py-4 border-b-8 border-gray-50 text-left"
+        className="w-full flex items-center justify-between px-4 py-4 border-b-8 border-sd-line/50 text-left"
       >
-        <span className="text-[15px] text-gray-900">Products</span>
+        <span className="text-[15px] text-sd-ink">Products</span>
         <span className="flex items-center gap-1 shrink-0">
           {productIds.length > 0 && (
-            <span className="text-xs text-gray-400">{productIds.length} selected</span>
+            <span className="text-xs text-sd-ink-faint">{productIds.length} selected</span>
           )}
-          <ChevronRight size={16} className="text-gray-300" />
+          <ChevronRight size={16} className="text-sd-ink-faint" />
         </span>
       </button>
 

@@ -166,10 +166,10 @@ export function LocationsListSheet({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-white flex flex-col min-h-dvh animate-in fade-in slide-in-from-bottom-6 duration-300 ease-out">
-      <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between shrink-0">
+    <div className="fixed inset-0 z-50 bg-sd-surface flex flex-col min-h-dvh animate-in fade-in slide-in-from-bottom-6 duration-300 ease-out">
+      <div className="sticky top-0 bg-sd-surface/95 backdrop-blur border-b border-sd-line px-4 h-14 flex items-center justify-between shrink-0">
         <button onClick={onClose} type="button" className="p-1 -ml-1">
-          <X size={20} className="text-gray-500" />
+          <X size={20} className="text-sd-ink-muted" />
         </button>
         <span className="font-semibold text-[15px] absolute left-1/2 -translate-x-1/2">
           Pickup locations
@@ -178,15 +178,15 @@ export function LocationsListSheet({
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-5">
-        <p className="text-xs text-gray-500 mb-5">
+        <p className="text-xs text-sd-ink-muted mb-5">
           Add a location for every store or warehouse you dispatch from. If you have more than one,
           riders can be sent to whichever one has the product.
         </p>
 
         {rows === null ? (
           <div className="flex flex-col gap-3">
-            <div className="h-20 rounded-2xl bg-gray-50 animate-pulse" />
-            <div className="h-20 rounded-2xl bg-gray-50 animate-pulse" />
+            <div className="h-20 rounded-2xl bg-sd-elevated animate-pulse" />
+            <div className="h-20 rounded-2xl bg-sd-elevated animate-pulse" />
           </div>
         ) : (
           <div className="flex flex-col gap-3">
@@ -195,30 +195,30 @@ export function LocationsListSheet({
                 key={row.id}
                 type="button"
                 onClick={() => setEditing(toValues(row))}
-                className="flex items-start gap-3 border border-gray-200 rounded-2xl p-4 text-left hover:bg-gray-50 oak-motion-control"
+                className="flex items-start gap-3 border border-sd-line rounded-2xl p-4 text-left hover:bg-sd-elevated oak-motion-control"
               >
-                <div className="p-2 rounded-full bg-gray-100 shrink-0">
-                  <MapPin size={16} className="text-gray-700" />
+                <div className="p-2 rounded-full bg-sd-soft shrink-0">
+                  <MapPin size={16} className="text-sd-ink" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900">{row.name}</p>
-                  <p className="text-xs text-gray-500 mt-0.5 truncate">
+                  <p className="text-sm font-medium text-sd-ink">{row.name}</p>
+                  <p className="text-xs text-sd-ink-muted mt-0.5 truncate">
                     {[row.addressLine, row.city, row.state].filter(Boolean).join(", ")}
                   </p>
                 </div>
-                <ChevronRight size={16} className="text-gray-300 shrink-0 mt-1.5" />
+                <ChevronRight size={16} className="text-sd-ink-faint shrink-0 mt-1.5" />
               </button>
             ))}
 
             <button
               type="button"
               onClick={() => setEditing("new")}
-              className="flex items-center gap-3 border-2 border-dashed border-gray-300 rounded-2xl p-4 text-left oak-motion-control"
+              className="flex items-center gap-3 border-2 border-dashed border-sd-line rounded-2xl p-4 text-left oak-motion-control"
             >
-              <div className="p-2 rounded-full bg-gray-100 shrink-0">
-                <Plus size={16} className="text-gray-500" />
+              <div className="p-2 rounded-full bg-sd-soft shrink-0">
+                <Plus size={16} className="text-sd-ink-muted" />
               </div>
-              <p className="text-sm font-medium text-gray-700">
+              <p className="text-sm font-medium text-sd-ink">
                 {rows.length === 0 ? "Add your first location" : "Add another location"}
               </p>
             </button>
@@ -227,11 +227,11 @@ export function LocationsListSheet({
       </div>
 
       {fromChecklist && (
-        <div className="sticky bottom-0 px-4 pt-3 oak-safe-bottom border-t border-gray-100 bg-white shrink-0">
+        <div className="sticky bottom-0 px-4 pt-3 oak-safe-bottom border-t border-sd-line bg-sd-surface shrink-0">
           <button
             type="button"
             onClick={onClose}
-            className="w-full bg-black text-white text-sm font-semibold rounded-full py-4 oak-motion-control active:scale-[0.98]"
+            className="w-full bg-sd-ink text-sd-bg text-sm font-semibold rounded-full py-4 oak-motion-control active:scale-[0.98]"
           >
             Next
           </button>

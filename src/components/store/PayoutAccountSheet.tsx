@@ -353,10 +353,10 @@ export function PayoutAccountSheet({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-white flex flex-col min-h-dvh animate-in fade-in slide-in-from-bottom-6 duration-300 ease-out">
-      <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between shrink-0">
+    <div className="fixed inset-0 z-50 bg-sd-surface flex flex-col min-h-dvh animate-in fade-in slide-in-from-bottom-6 duration-300 ease-out">
+      <div className="sticky top-0 bg-sd-surface/95 backdrop-blur border-b border-sd-line px-4 h-14 flex items-center justify-between shrink-0">
         <button onClick={onClose} type="button" className="p-1 -ml-1">
-          <X size={22} className="text-gray-500" />
+          <X size={22} className="text-sd-ink-muted" />
         </button>
         <span className="font-semibold text-[17px] absolute left-1/2 -translate-x-1/2">
           Payout account
@@ -366,14 +366,14 @@ export function PayoutAccountSheet({
 
       <div className="flex-1 overflow-y-auto px-4 py-5 flex flex-col gap-6">
         <div>
-          <p className="text-[19px] font-semibold text-gray-900 mb-1">Bank name</p>
-          <p className="text-[14px] text-gray-500 mb-3">Pick one or type your own.</p>
+          <p className="text-[19px] font-semibold text-sd-ink mb-1">Bank name</p>
+          <p className="text-[14px] text-sd-ink-muted mb-3">Pick one or type your own.</p>
           <div
-            className={`flex items-center gap-2.5 bg-gray-100 rounded-2xl px-4 py-3.5 border transition-colors duration-150 ${
+            className={`flex items-center gap-2.5 bg-sd-soft rounded-2xl px-4 py-3.5 border transition-colors duration-150 ${
               showErrors && !bankName.trim() ? "border-red-300" : "border-transparent"
             }`}
           >
-            <Search size={19} className="text-gray-400 shrink-0" />
+            <Search size={19} className="text-sd-ink-faint shrink-0" />
             <input
               value={bankName}
               onChange={(e) => {
@@ -386,9 +386,9 @@ export function PayoutAccountSheet({
             />
           </div>
 
-          <div className="mt-3 max-h-[min(420px,45dvh)] overflow-y-auto border border-gray-300 rounded-2xl">
+          <div className="mt-3 max-h-[min(420px,45dvh)] overflow-y-auto border border-sd-line rounded-2xl">
             {visibleBanks.length === 0 ? (
-              <p className="px-4 py-8 text-[15px] text-gray-400 text-center">
+              <p className="px-4 py-8 text-[15px] text-sd-ink-faint text-center">
                 {listOpen ? "No matches — you can still use what you typed." : "No bank selected."}
               </p>
             ) : (
@@ -400,17 +400,17 @@ export function PayoutAccountSheet({
                     type="button"
                     onClick={() => selectBank(b)}
                     aria-label={`Select ${b}`}
-                    className="w-full flex items-center justify-between gap-3 px-4 py-4 border-b border-gray-100 last:border-0 text-left oak-motion-control"
+                    className="w-full flex items-center justify-between gap-3 px-4 py-4 border-b border-sd-line last:border-0 text-left oak-motion-control"
                   >
                     <span
-                      className={`text-[17px] leading-snug text-gray-900 ${isSelected ? "font-semibold" : ""}`}
+                      className={`text-[17px] leading-snug text-sd-ink ${isSelected ? "font-semibold" : ""}`}
                     >
                       {b}
                     </span>
                     {isSelected ? (
-                      <Check size={20} className="text-black shrink-0 oak-motion-pop" />
+                      <Check size={20} className="text-sd-ink shrink-0 oak-motion-pop" />
                     ) : (
-                      <Plus size={20} className="text-gray-400 shrink-0" />
+                      <Plus size={20} className="text-sd-ink-faint shrink-0" />
                     )}
                   </button>
                 );
@@ -420,14 +420,14 @@ export function PayoutAccountSheet({
         </div>
 
         <div>
-          <p className="text-[19px] font-semibold text-gray-900 mb-3">Account number</p>
+          <p className="text-[19px] font-semibold text-sd-ink mb-3">Account number</p>
           <input
             value={accountNumber}
             onChange={(e) => setAccountNumber(e.target.value.replace(/\D/g, "").slice(0, 10))}
             placeholder="0123456789"
             inputMode="numeric"
-            className={`w-full text-[17px] border rounded-2xl px-4 py-3.5 outline-none focus:border-gray-400 transition-colors duration-150 ${
-              showErrors && !validAccountNumber ? "border-red-300" : "border-gray-200"
+            className={`w-full text-[17px] border rounded-2xl px-4 py-3.5 outline-none focus:border-sd-ink-faint transition-colors duration-150 ${
+              showErrors && !validAccountNumber ? "border-red-300" : "border-sd-line"
             }`}
           />
           {showErrors && !validAccountNumber && (
@@ -441,19 +441,19 @@ export function PayoutAccountSheet({
           )}
         </div>
 
-        <p className="text-[13px] leading-relaxed text-gray-500">
+        <p className="text-[13px] leading-relaxed text-sd-ink-muted">
           Kept private and encrypted — used only to send your payouts, never shared or shown to
           buyers.
         </p>
       </div>
 
-      <div className="sticky bottom-0 px-4 pt-3 oak-safe-bottom border-t border-gray-100 bg-white shrink-0">
+      <div className="sticky bottom-0 px-4 pt-3 oak-safe-bottom border-t border-sd-line bg-sd-surface shrink-0">
         {saveError && <p className="text-xs text-red-500 mb-2 text-center">{saveError}</p>}
         <button
           type="button"
           onClick={handleSave}
           disabled={saving}
-          className="w-full bg-black text-white text-[17px] font-semibold rounded-full py-4 oak-motion-control active:scale-[0.98] disabled:opacity-50"
+          className="w-full bg-sd-ink text-sd-bg text-[17px] font-semibold rounded-full py-4 oak-motion-control active:scale-[0.98] disabled:opacity-50"
         >
           {saving ? "Saving…" : "Save payout details"}
         </button>
