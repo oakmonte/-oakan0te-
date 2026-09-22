@@ -208,6 +208,90 @@
   }
 }
 
+/* ---------------------------------------------------------------------------
+ * Seller dashboard typography
+ *
+ * Fraunces speaks. Inter reports.
+ *
+ * Inter keeps everything the SYSTEM says -- figures, labels, buttons, body,
+ * every piece of data. Fraunces gets the three places the product has a voice:
+ * the seller's own brand name, editorial headlines, and empty-state headlines.
+ *
+ * The big money figure stays Inter, and that is not a compromise. The naira
+ * sign is U+20A6, in the Currency Symbols block rather than Latin, and display
+ * serifs routinely omit it -- so a missing glyph would fall back per-character
+ * and glue an Inter naira sign onto Fraunces digits in the largest element on
+ * the page. Inter has it, has real tabular figures, and its weight 900 is
+ * already loaded app-wide.
+ *
+ * Cormorant Garamond is the fallback rather than a sans, so the swap while
+ * Fraunces loads is serif-to-serif and barely perceptible. It is already in the
+ * root font request, so it costs nothing.
+ * ------------------------------------------------------------------------- */
+
+/* The seller's own brand name. The one place WONK is dialled up: individuality
+   belongs on their name, at one size, once per screen -- never next to running
+   copy, where the quirk reads as a rendering fault rather than a choice. */
+.sd-brandname {
+  font-family: "Fraunces", "Cormorant Garamond", ui-serif, Georgia, serif;
+  font-variation-settings:
+    "opsz" 36,
+    "SOFT" 30,
+    "WONK" 1;
+  font-weight: 600;
+  font-optical-sizing: auto;
+}
+
+/* Editorial and empty-state headlines. WONK 0 -- these sit directly above body
+   copy, where character has to stay subordinate to legibility. */
+.sd-editorial {
+  font-family: "Fraunces", "Cormorant Garamond", ui-serif, Georgia, serif;
+  font-variation-settings:
+    "opsz" 24,
+    "SOFT" 20,
+    "WONK" 0;
+  font-weight: 500;
+  font-optical-sizing: auto;
+}
+
+/* The landing page's micro-label, carried over verbatim, blue dot and all. It
+   is the strongest piece of brand grammar the marketing site has that survives
+   at dashboard density. */
+.oak-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sd-ink-muted);
+}
+
+.oak-eyebrow::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--sd-accent-ink);
+}
+
+/* The one decorative gradient on the dashboard: a bloom behind the sales hero.
+   Deliberately WITHOUT the landing page's oakPulse animation -- a 6s scale and
+   opacity loop is 0.167Hz, inside the band that reads as a vestibular hazard,
+   and it is a continuous compositor cost on a screen a seller leaves open for
+   minutes rather than scrolls past once. Keep the shape, drop the breath. */
+.sd-hero::before {
+  content: "";
+  position: absolute;
+  top: -96px;
+  right: -96px;
+  width: 280px;
+  height: 280px;
+  background: radial-gradient(circle, var(--sd-bloom) 0%, transparent 70%);
+  pointer-events: none;
+}
+
 @layer base {
   html {
     scroll-behavior: smooth;
