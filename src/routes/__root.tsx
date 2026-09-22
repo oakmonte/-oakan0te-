@@ -22,6 +22,7 @@ import { ProductSaveToast } from "../components/ProductSaveToast";
 import { BackgroundUploadToast } from "../components/BackgroundUploadToast";
 import { setLastNonCreateRoute } from "../lib/last-visited-route";
 import { attachNavStack } from "@/lib/nav-stack";
+import { surfaceForPathname } from "@/lib/surface";
 
 function NotFoundComponent() {
   return (
@@ -208,9 +209,40 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 });
 
 function RootShell({ children }: { children: ReactNode }) {
+  // Rendered inside the router tree (around the root match), so this re-runs on
+  // navigation AND the attribute below is present in the SSR'd HTML -- which is
+  // the point. Deciding the surface in an effect instead, as this used to, meant
+  // every cold load of the white dashboard painted black first and was only
+  // corrected a frame after hydration.
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const surface = surfaceForPathname(pathname);
   return (
-    <html lang="en">
+    // Drives the dashboard's light/dark tokens, the scroll-bounce edge colour
+    // (--oak-edge) and `color-scheme`, all in styles.css. See lib/surface.ts.
+    <html lang="en" data-surface={surface ?? undefined}>
       <head>
+        {/* The dashboard is the only surface with both a light and a dark
+            theme, so it is the only one needing a theme-color per scheme -- and
+            a `media` pair cannot be expressed through head(), because TanStack
+            dedupes <meta> by `name` alone (media is not part of the key) and
+            collapses the two into whichever came last. Hence literal JSX, here,
+            ahead of <HeadContent />.
+
+            Deliberately NOT rendered for other surfaces. A browser uses the
+            FIRST theme-color in tree order whose media matches, so an
+            unconditional pair here would outrank the sixteen auth/onboarding
+            routes that declare their own #ffffff in head() -- handing every one
+            of them back the black status strip above a white screen that was
+            fixed on 2026-09-16. Those routes, and the root's #000000 default
+            for the dark screens, keep working exactly as before. */}
+        {surface === "store" && (
+          <>
+            <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
+            {/* Stage 6 flips this to the dashboard's dark page background. Held
+                equal to the light value for now, so this change is invisible. */}
+            <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#ffffff" />
+          </>
+        )}
         <HeadContent />
       </head>
       <body>
@@ -269,26 +301,21 @@ function RootComponent() {
   // to see every navigation, including ones no screen is listening for.
   useEffect(() => attachNavStack(router.history), [router]);
 
-  // The seller dashboard (/store, /store/*) is white — everywhere else on
-  // the site (profile, the public storefront at /store-profile/*, etc.) is
-  // deliberately black at the scroll-bounce/toolbar edges (see the
-  // html/body rule in styles.css). That rule is global, so it has to be
-  // overridden per-route here rather than in the dashboard's own layout:
-  // several /store/* routes (store.products_.new.tsx and friends) escape
-  // the store layout's <Outlet /> entirely via the trailing-underscore
-  // convention (see routes/README.md) and would never see a layout-scoped
-  // effect. `/store-profile/...` starts with "/store" as a string but isn't
-  // part of the dashboard, hence the explicit second check below.
-  useEffect(() => {
-    const isStoreDashboard = pathname === "/store" || pathname.startsWith("/store/");
-    // The publish/"New post" screen is white too — a deliberate exception to
-    // the rest of the create/after-shot flow (camera, filters, crop, etc.)
-    // which stays black like every other camera-app editor.
-    const isPublishPage = pathname === "/create/after-shot/publish";
-    const bg = isStoreDashboard || isPublishPage ? "#fff" : "";
-    document.documentElement.style.backgroundColor = bg;
-    document.body.style.backgroundColor = bg;
-  }, [pathname]);
+  // The scroll-bounce/toolbar edge colour used to be set from here, by writing
+  // document.documentElement.style.backgroundColor per route. It now lives in
+  // styles.css, keyed off the `data-surface` attribute RootShell renders.
+  //
+  // Deleted rather than adapted, deliberately. An inline style beats every
+  // stylesheet rule at any specificity short of !important, so leaving this in
+  // place would pin the dashboard to #fff and no amount of CSS could give it a
+  // dark scheme -- the same class of bug as the black strip, mirrored. It also
+  // ran only after hydration, so a cold load of the white dashboard painted
+  // black first.
+  //
+  // (The old comment here claimed store.products_.new.tsx and friends "escape
+  // the store layout's <Outlet /> entirely". They do not: routeTree.gen.ts has
+  // them parented to StoreRoute. The trailing underscore opts a route out of an
+  // INTERMEDIATE layout -- store.products.tsx -- not out of store.tsx.)
 
   // Nudge iOS into re-reading theme-color after a client-side navigation.
   //
@@ -311,16 +338,25 @@ function RootComponent() {
   // declared rather than repeating the light/dark list above, which would
   // drift from the head() blocks that own those values.
   //
+  // querySelectorAll, not querySelector: the dashboard renders a PAIR of
+  // theme-color tags (light and dark, see RootShell), and re-inserting only the
+  // first would leave the other stale -- so a seller whose phone is in dark mode
+  // would get a status bar the page had already stopped agreeing with. Each tag
+  // is detached and put back before its own original next-sibling, so relative
+  // order is preserved and the "first matching tag wins" rule still resolves the
+  // way the markup says it should.
+  //
   // If this turns out not to move the status bar on a real device, the cause is
   // a WebKit limitation rather than this code, and the alternatives are a
   // design decision -- see the status-bar-style note in this file's head().
   useEffect(() => {
-    const meta = document.querySelector('meta[name="theme-color"]');
-    const parent = meta?.parentNode;
-    if (!meta || !parent) return;
-    const next = meta.nextSibling;
-    parent.removeChild(meta);
-    parent.insertBefore(meta, next);
+    for (const meta of document.querySelectorAll('meta[name="theme-color"]')) {
+      const parent = meta.parentNode;
+      if (!parent) continue;
+      const next = meta.nextSibling;
+      parent.removeChild(meta);
+      parent.insertBefore(meta, next);
+    }
   }, [pathname]);
 
   return (

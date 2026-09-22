@@ -94,6 +94,19 @@
        CSS half of that same declaration. */
     color-scheme: light;
   }
+  /* The seller dashboard is the one area that genuinely has both schemes, so
+     it is the one area that tells the browser so. This is what makes the
+     native bits follow the system there — the store switcher's <select>, form
+     inputs, the scrollbar gutter, the overscroll glow — and it is also what
+     stops Chrome's force-dark heuristic touching the dashboard, because a page
+     declaring `light dark` is claiming to handle dark itself.
+
+     Everywhere else stays `light`, so the auto-invert opt-out above still
+     holds for the rest of the app exactly as it did. See lib/surface.ts for
+     who sets the attribute. */
+  html[data-surface="store"] {
+    color-scheme: light dark;
+  }
   html,
   body {
     overflow-x: hidden;
@@ -526,10 +539,27 @@ input:-webkit-autofill:active {
      bottom toolbar to match the page's true background, not the app div
      drawn on top of it. Hardcoded, not var-driven: the 404/error boundary
      pages deliberately keep the light bg-background look on their own
-     wrapper, and that's unaffected since it paints over this. */
+     wrapper, and that's unaffected since it paints over this.
+
+     Now driven by --oak-edge rather than a literal, because two surfaces are
+     white and one of them (the dashboard) also has a dark scheme. This used to
+     be corrected by an effect in __root.tsx writing an INLINE style, which
+     outranks every rule here and so made a themeable dashboard impossible —
+     and, because it only ran after hydration, made every cold load of the
+     white dashboard paint black first. The attribute comes from RootShell and
+     is in the SSR'd HTML, so the first paint is already right. */
+  html {
+    --oak-edge: #000;
+  }
+  html[data-surface="store"],
+  html[data-surface="publish"] {
+    --oak-edge: #fff;
+  }
   html,
   body {
-    background-color: #000;
+    /* body inherits the custom property from html, so one variable drives both
+       and they cannot disagree. */
+    background-color: var(--oak-edge);
   }
 
   /* Mobile-first app, not a document — no scroll container here (page,
