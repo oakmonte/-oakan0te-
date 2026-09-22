@@ -127,6 +127,13 @@
     /* The landing page's 2px black card border. Reserved for ONE surface (the
        Total sales hero) -- see the note in the dashboard components. */
     --sd-line-strong: #0a0a0a;
+    /* The sales hero's fill. White in light, lifted above ordinary cards in
+       dark so the page's one emphasised surface stays emphasised. */
+    --sd-hero-bg: #ffffff;
+    /* A surface that is dark in BOTH schemes: the payout card, drawn as a
+       physical bank card. Inverting it made it white in dark mode and put its
+       amber "pending" badge on white at 1.6:1. */
+    --sd-card-dark: #0a0a0a;
 
     /* Ink */
     --sd-ink: #0a0a0a;
@@ -164,46 +171,82 @@
     --sd-focus: #2151f5;
   }
 
-  /* STAGE 2: every value below is deliberately IDENTICAL to its light
-     counterpart. The scaffolding ships first so each screen can be converted to
-     --sd-* tokens in its own reviewable commit with zero visual change -- if a
-     conversion commit changes how anything looks, that is a bug, not progress.
-     Turning dark on is then one small diff that edits only this block. */
+  /* The dark scheme. The surface ramp is the existing --color-chat-* set that
+     /messages already uses, so the app's two dark surfaces read as one product
+     rather than two near-misses.
+
+     Scoped to the dashboard AND to screens not held light (see isHeldLight in
+     lib/surface.ts) -- specificity (0,2,1) against plain html's (0,0,1), and
+     later in source order, both of which must survive any refactor. */
   @media (prefers-color-scheme: dark) {
-    html[data-surface="store"] {
-      --sd-bg: #ffffff;
-      --sd-surface: #ffffff;
-      --sd-elevated: #f7f8fa;
-      --sd-soft: #f4f5f7;
-      --sd-line: rgba(10, 10, 10, 0.1);
-      --sd-line-strong: #0a0a0a;
+    html[data-surface="store"]:not([data-scheme="light"]) {
+      --sd-bg: #000000;
+      --sd-surface: #101215;
+      --sd-elevated: #1c1e22;
+      --sd-soft: #2a2d33;
+      --sd-line: rgba(255, 255, 255, 0.12);
+      /* A 2px #0A0A0A border is invisible on black, so the hero keeps its
+         weight here through a lighter edge AND a lifted surface. */
+      --sd-line-strong: rgba(255, 255, 255, 0.22);
+      --sd-hero-bg: #1c1e22;
+      --sd-card-dark: #1c1e22;
 
-      --sd-ink: #0a0a0a;
-      --sd-ink-muted: #6b6b6b;
-      --sd-ink-faint: rgba(10, 10, 10, 0.38);
+      --sd-ink: #ffffff;
+      --sd-ink-muted: rgba(255, 255, 255, 0.5);
+      --sd-ink-faint: rgba(255, 255, 255, 0.32);
 
+      /* The fill stays brand blue -- white text on it is 5.9:1 either way. The
+         TEXT blue lightens, because #2151F5 on black is too dim to read; #6E8CFF
+         is the landing page's own on-dark blue. */
       --sd-accent: #2151f5;
-      --sd-accent-ink: #2151f5;
+      --sd-accent-ink: #6e8cff;
       --sd-on-accent: #ffffff;
       --sd-accent-pressed: #1a45d8;
-      --sd-accent-tint: rgba(33, 81, 245, 0.08);
-      --sd-accent-tint-hover: rgba(33, 81, 245, 0.14);
+      --sd-accent-tint: rgba(110, 140, 255, 0.12);
+      --sd-accent-tint-hover: rgba(110, 140, 255, 0.2);
 
-      --sd-success-mark: #12a150;
-      --sd-success-ink: #0e7a3e;
-      --sd-attention-mark: #f59e0b;
-      --sd-attention-ink: #b45309;
-      --sd-danger-mark: #d92d20;
-      --sd-danger-ink: #b42318;
+      --sd-success-mark: #2ee36a;
+      --sd-success-ink: #2ee36a;
+      --sd-attention-mark: #fbbf24;
+      --sd-attention-ink: #fbbf24;
+      --sd-danger-mark: #ff6b6b;
+      --sd-danger-ink: #ff6b6b;
 
-      --sd-bloom: rgba(33, 81, 245, 0.1);
-      --sd-chart-line: #2151f5;
-      --sd-chart-grid: rgba(10, 10, 10, 0.06);
-      --sd-chart-cursor: rgba(10, 10, 10, 0.14);
-      --sd-scrim: rgba(10, 10, 10, 0.4);
-      --sd-shadow-float: 0 20px 48px rgba(10, 10, 10, 0.14);
-      --sd-shadow-lift: 0 10px 24px rgba(33, 81, 245, 0.12);
-      --sd-focus: #2151f5;
+      --sd-bloom: rgba(110, 140, 255, 0.14);
+      --sd-chart-line: #6e8cff;
+      --sd-chart-grid: rgba(255, 255, 255, 0.08);
+      --sd-chart-cursor: rgba(255, 255, 255, 0.18);
+      --sd-scrim: rgba(0, 0, 0, 0.66);
+      --sd-shadow-float: 0 20px 48px rgba(0, 0, 0, 0.6);
+      /* A blue-tinted lift shadow is invisible on black; the hover reads as a
+         border change alone, and a shadow nobody can see is paint for nothing. */
+      --sd-shadow-lift: none;
+      --sd-focus: #6e8cff;
+
+      /* shadcn's tokens, remapped to the same ramp so Dialog, AlertDialog,
+         Skeleton and Switch match the rest of the dashboard. NOT the stock
+         .dark block below (generic slate), and scoped here so /messages,
+         /profile and the public storefront keep their shadcn look untouched.
+         oklch per this file's convention for shadcn values. */
+      --background: oklch(0 0 0);
+      --foreground: oklch(1 0 0);
+      --card: oklch(0.17 0.006 265);
+      --card-foreground: oklch(1 0 0);
+      --popover: oklch(0.225 0.007 265);
+      --popover-foreground: oklch(1 0 0);
+      --primary: oklch(1 0 0);
+      --primary-foreground: oklch(0 0 0);
+      --secondary: oklch(0.29 0.01 265);
+      --secondary-foreground: oklch(1 0 0);
+      --muted: oklch(0.29 0.01 265);
+      --muted-foreground: oklch(1 0 0 / 50%);
+      --accent: oklch(0.29 0.01 265);
+      --accent-foreground: oklch(1 0 0);
+      --destructive: oklch(0.7 0.18 22);
+      --destructive-foreground: oklch(1 0 0);
+      --border: oklch(1 0 0 / 12%);
+      --input: oklch(1 0 0 / 18%);
+      --ring: oklch(0.66 0.17 268);
     }
   }
 }
@@ -374,7 +417,9 @@
      Everywhere else stays `light`, so the auto-invert opt-out above still
      holds for the rest of the app exactly as it did. See lib/surface.ts for
      who sets the attribute. */
-  html[data-surface="store"] {
+  /* Not on held-light screens: they must keep light native widgets too, or a
+     dark <select> would open over a white page. */
+  html[data-surface="store"]:not([data-scheme="light"]) {
     color-scheme: light dark;
   }
   html,
@@ -413,6 +458,21 @@ input:-webkit-autofill:active {
   -webkit-box-shadow: 0 0 0 1000px #eaf1ff inset;
   box-shadow: 0 0 0 1000px #eaf1ff inset;
   transition: background-color 9999s ease-in-out 0s;
+}
+/* The pale-blue autofill wash above would flash every autofilled field on a
+   dark dashboard (the payout and location sheets especially). Same idea --
+   a faint blue tint so autofill is visible -- at dark values. */
+@media (prefers-color-scheme: dark) {
+  html[data-surface="store"]:not([data-scheme="light"]) input:-webkit-autofill,
+  html[data-surface="store"]:not([data-scheme="light"]) input:-webkit-autofill:hover,
+  html[data-surface="store"]:not([data-scheme="light"]) input:-webkit-autofill:focus,
+  html[data-surface="store"]:not([data-scheme="light"]) input:-webkit-autofill:active {
+    -webkit-text-fill-color: #ffffff;
+    caret-color: #ffffff;
+    background-image: none;
+    -webkit-box-shadow: 0 0 0 1000px #1a2240 inset;
+    box-shadow: 0 0 0 1000px #1a2240 inset;
+  }
 }
 
 /* iOS Safari (and Chrome on Android) automatically zooms the viewport when it
@@ -695,6 +755,8 @@ input:-webkit-autofill:active {
   --color-sd-soft: var(--sd-soft);
   --color-sd-line: var(--sd-line);
   --color-sd-line-strong: var(--sd-line-strong);
+  --color-sd-hero-bg: var(--sd-hero-bg);
+  --color-sd-card-dark: var(--sd-card-dark);
   --color-sd-ink: var(--sd-ink);
   --color-sd-ink-muted: var(--sd-ink-muted);
   --color-sd-ink-faint: var(--sd-ink-faint);
@@ -861,6 +923,14 @@ input:-webkit-autofill:active {
     /* body inherits the custom property from html, so one variable drives both
        and they cannot disagree. */
     background-color: var(--oak-edge);
+  }
+  /* The dashboard's scroll-bounce edge follows the scheme like its page does.
+     Must match the dark theme-color RootShell renders, or iOS shows a white
+     band above a black page. */
+  @media (prefers-color-scheme: dark) {
+    html[data-surface="store"]:not([data-scheme="light"]) {
+      --oak-edge: #000;
+    }
   }
 
   /* Mobile-first app, not a document — no scroll container here (page,

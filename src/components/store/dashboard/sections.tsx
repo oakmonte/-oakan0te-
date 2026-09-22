@@ -137,7 +137,7 @@ export function TotalSales({ onShare }: { onShare: () => void }) {
   return (
     <section
       aria-labelledby="sd-sales"
-      className="sd-hero relative overflow-hidden rounded-3xl border-2 border-sd-line-strong bg-sd-surface p-5"
+      className="sd-hero relative overflow-hidden rounded-3xl border-2 border-sd-line-strong bg-sd-hero-bg p-5"
     >
       <Eyebrow>Total sales</Eyebrow>
       <h2
