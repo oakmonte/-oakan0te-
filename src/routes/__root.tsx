@@ -290,6 +290,39 @@ function RootComponent() {
     document.body.style.backgroundColor = bg;
   }, [pathname]);
 
+  // Nudge iOS into re-reading theme-color after a client-side navigation.
+  //
+  // In a standalone (Add to Home Screen) web app, WebKit samples theme-color
+  // when the app launches and then stops looking. Each route already declares
+  // the right value -- #ffffff on /store and the publish screen, #000000 at the
+  // root -- and TanStack does swap the tag's `content` on navigation, but
+  // editing the attribute in place is precisely what WebKit ignores. Launch on
+  // the profile, walk into the dashboard, and the white screen keeps the black
+  // status strip it inherited. Reported on device 2026-09-22.
+  //
+  // Detaching and reinserting the ELEMENT is what tends to make WebKit
+  // re-evaluate. The same node goes back in the same position with the same
+  // attributes, so any reference TanStack's head management holds stays valid
+  // and this cannot fight it -- unlike cloning or appending a second tag, which
+  // would either strand that reference or leave two theme-color tags with the
+  // first one winning.
+  //
+  // Deliberately route-agnostic: it re-reads whatever the current route
+  // declared rather than repeating the light/dark list above, which would
+  // drift from the head() blocks that own those values.
+  //
+  // If this turns out not to move the status bar on a real device, the cause is
+  // a WebKit limitation rather than this code, and the alternatives are a
+  // design decision -- see the status-bar-style note in this file's head().
+  useEffect(() => {
+    const meta = document.querySelector('meta[name="theme-color"]');
+    const parent = meta?.parentNode;
+    if (!meta || !parent) return;
+    const next = meta.nextSibling;
+    parent.removeChild(meta);
+    parent.insertBefore(meta, next);
+  }, [pathname]);
+
   return (
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
