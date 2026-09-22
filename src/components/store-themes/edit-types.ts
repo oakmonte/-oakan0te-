@@ -32,7 +32,11 @@ export type ThemeTextFonts = Partial<Record<TextFieldId, FontId>>;
 
 // object-position percentages (0-100, matching CSS), set by dragging a
 // cropped image in edit mode. Absent key means "centered" (50/50), not zero.
-export type CropPosition = { x: number; y: number };
+// scale is set by pinching the same image, edit mode only. Optional so a
+// position saved before this existed still renders identically -- absent
+// reads as 1, today's implicit behavior, not a value every caller must
+// migrate to write.
+export type CropPosition = { x: number; y: number; scale?: number };
 export type ThemeImageCrops = Record<string, CropPosition>;
 
 // The seller's edit-session draft. Every field only stores a DELTA from the
