@@ -1,5 +1,5 @@
 import { UserRound } from "lucide-react";
-import logoAsset from "@/assets/oakmonte-o-mark.png.asset.json";
+import logoO from "@/assets/logo-o.png";
 import type { Conversation } from "@/lib/messages-seed";
 
 type Props = {
@@ -37,7 +37,7 @@ export function ConversationAvatar({ conversation, size = 56 }: Props) {
         }}
       >
         {conversation.kind === "support" ? (
-          <img src={logoAsset.url} alt="" className="h-[64%] w-[64%] object-contain" />
+          <img src={logoO} alt="" className="h-[64%] w-[64%] object-contain" />
         ) : conversation.avatar ? (
           <img src={conversation.avatar} alt="" className="h-full w-full object-cover" />
         ) : conversation.kind === "store" ? (

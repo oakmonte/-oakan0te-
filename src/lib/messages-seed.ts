@@ -8,9 +8,13 @@
  *
  * Deleting this file (plus its imports) removes all of the fake data.
  */
-import fabricAsset from "@/assets/fabric-detail.jpg.asset.json";
-import streetwearAsset from "@/assets/streetwear-summerstyle.jpeg.asset.json";
-import editorialAsset from "@/assets/hero-editorial.jpg.asset.json";
+// Real files, imported by path so Vite bundles them. These used to be
+// `*.asset.json` sidecars holding a Lovable `/__l5e/...` URL, which 404s now
+// that we are on Vercel. streetwear-summerstyle.jpeg had no file behind it at
+// all -- it only ever lived in Lovable's bucket -- so it is gone for good and
+// the two seeds that used it fall back to fabricDetail.
+import fabricDetail from "@/assets/fabric-detail.jpg";
+import editorial from "@/assets/hero-editorial.jpg";
 
 export type FilterKey =
   | "unread"
@@ -257,7 +261,7 @@ export const SEED_MESSAGES: Record<string, SeedMessage[]> = {
         name: "Washed Denim Jacket",
         price: "₦25,000",
         store: "@thriftwithgabriel",
-        image: streetwearAsset.url,
+        image: fabricDetail,
       },
     },
     {
@@ -270,7 +274,7 @@ export const SEED_MESSAGES: Record<string, SeedMessage[]> = {
         amount: "₦18,000",
         listPrice: "₦25,000",
         expiresIn: "Expires in 6h",
-        image: streetwearAsset.url,
+        image: fabricDetail,
         title: "Washed Denim Jacket",
       },
     },
@@ -328,7 +332,7 @@ export const SEED_MESSAGES: Record<string, SeedMessage[]> = {
         name: "Ribbed Skull Cap",
         price: "₦6,500",
         store: "@thriftwithgabriel",
-        image: fabricAsset.url,
+        image: fabricDetail,
       },
     },
     {
@@ -358,7 +362,7 @@ export const SEED_MESSAGES: Record<string, SeedMessage[]> = {
       order: {
         code: "#OK-2841",
         title: "Two-cap bundle",
-        image: editorialAsset.url,
+        image: editorial,
         step: 1,
       },
     },
@@ -405,13 +409,13 @@ export const SAMPLE_OFFER = {
   buyer: "Nia from Lagos",
   offered: "₦18,000",
   listed: "₦25,000",
-  image: streetwearAsset.url,
+  image: fabricDetail,
   title: "Washed Denim Jacket",
 };
 
 export const SAMPLE_ORDER = {
   code: "#OK-2841",
   status: "Dispatched",
-  image: editorialAsset.url,
+  image: editorial,
   title: "Two-cap bundle",
 };

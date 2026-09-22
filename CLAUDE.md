@@ -70,6 +70,14 @@ Lovable is no longer the deploy or edit surface, but its packages are still in t
 (`@lovable.dev/vite-tanstack-config` builds the app; see `bunfig.toml` and the `vite.config.ts` note
 below). Removing them is a real migration, not a cleanup.
 
+**Import images by path. Never through a `*.asset.json` sidecar.** Lovable stored media in its own
+R2 bucket and committed only a JSON pointer whose `url` is `/__l5e/assets-v1/<uuid>/<name>`. Vercel
+does not serve that path, so every one of those images 404s in production — silently, because the
+three gates all pass: the JSON imports fine, it typechecks, and `<img src>` takes any string. On
+2026-09-22 this was the footer logo and the story photo on the live landing page. All twelve
+sidecars are deleted; some had no file behind them at all (`streetwear-summerstyle.jpeg`,
+`content-to-cart.mp4`), because the bytes only ever existed in Lovable's bucket and are gone.
+
 ## Commands
 
 Package manager is **bun** — `package-lock.json` is stale, ignore it.

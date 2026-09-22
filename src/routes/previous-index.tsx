@@ -1,8 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import logoO from "@/assets/logo-o.png";
-import oakmonteO from "@/assets/oakmonte-o-mark.png.asset.json";
-import contentToCartVideo from "@/assets/content-to-cart.mp4.asset.json";
+import oakmonteO from "@/assets/logo-o.png";
 import { useSession } from "@/hooks/use-session";
 import { getProfileUsernameFromUser, signInWithGoogle, signOut } from "@/lib/auth";
 
@@ -375,7 +374,7 @@ function Index() {
           <a href="#top" className="flex items-baseline gap-0 shrink-0 min-w-0">
             {mobileOpen ? (
               <img
-                src={oakmonteO.url}
+                src={oakmonteO}
                 alt="Oakmonte"
                 className="h-14 sm:h-16 w-auto -my-2 inline-block align-middle transition-all duration-300 animate-fade-in"
               />
@@ -719,9 +718,12 @@ function Index() {
                 collaboration with creators.
               </p>
             </div>
-            <div className="order-2 justify-self-center md:justify-self-end">
-              <PhoneMockup src={contentToCartVideo.url} />
-            </div>
+            {/* The content-to-cart demo video is gone. It was a Lovable asset
+                pointer (`/__l5e/...`) and the file itself was never committed
+                here, so there is nothing to restore -- and this is the archived
+                landing page, not the live one. Rather than render a phone frame
+                around a permanent 404, the mockup is dropped until someone
+                supplies the clip again. */}
           </FeatureBox>
 
           {/* 2-column bento grid */}
