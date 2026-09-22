@@ -1477,7 +1477,7 @@ export function ThemePreviewSheet({
         </button>
       </div>
 
-      <div className="flex flex-1 flex-col items-center overflow-y-auto px-4 py-8 sm:py-12">
+      <div className="flex flex-1 flex-col items-center overflow-y-auto px-2 py-8 sm:py-12">
         <div className="flex w-full max-w-[430px] shrink-0 items-center justify-between pb-3">
           {mode === "view" ? (
             <>
@@ -1585,7 +1585,7 @@ export function ThemePreviewSheet({
             </>
           )}
         </div>
-        <div className="relative w-full max-w-[430px] shrink-0 overflow-hidden rounded-[2.5rem] border-[6px] border-neutral-900 bg-neutral-900 shadow-[0_30px_80px_rgba(0,0,0,0.55)]">
+        <div className="relative w-full max-w-[430px] shrink-0 overflow-hidden rounded-[2.5rem] border-[3px] border-neutral-900 bg-neutral-900 shadow-[0_30px_80px_rgba(0,0,0,0.55)]">
           <div className="max-h-[82vh] overflow-y-auto">
             <FullPreview
               themeId={theme.id}
