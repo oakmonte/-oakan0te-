@@ -141,11 +141,11 @@ function StoreLayoutInner() {
   }, [user]);
 
   return (
-    <div className="min-h-screen bg-white">
-      <div className="fixed inset-x-0 top-0 z-30 bg-white border-b border-gray-100 px-4 h-14 flex items-center justify-between">
+    <div className="min-h-dvh bg-sd-bg text-sd-ink">
+      <div className="fixed inset-x-0 top-0 z-30 bg-sd-surface border-b border-sd-line px-4 h-14 flex items-center justify-between">
         <button
           onClick={() => setDrawerOpen(true)}
-          className="p-1 -ml-1 oak-motion-control active:scale-90"
+          className="-ml-2.5 grid h-11 w-11 place-items-center oak-motion-control active:scale-90"
           aria-label="Open menu"
         >
           <Menu size={22} />
@@ -170,12 +170,13 @@ function StoreLayoutInner() {
             className="absolute inset-0 bg-black/50 animate-in fade-in duration-200"
             onClick={() => setDrawerOpen(false)}
           />
-          <div className="absolute left-0 top-0 bottom-0 w-72 bg-black text-white px-2 py-4 flex flex-col animate-in slide-in-from-left duration-300 ease-out">
+          <div className="absolute left-0 top-0 bottom-0 w-72 bg-black text-white border-r border-white/10 px-2 py-4 flex flex-col animate-in slide-in-from-left duration-[400ms] ease-[cubic-bezier(0.22,1,0.36,1)]">
             <div className="flex items-center justify-between px-3 mb-4">
               <span className="text-sm text-gray-400">Menu</span>
               <button
                 onClick={() => setDrawerOpen(false)}
-                className="p-1 oak-motion-control active:scale-90"
+                aria-label="Close menu"
+                className="-mr-2 grid h-11 w-11 place-items-center oak-motion-control active:scale-90"
               >
                 <X size={20} />
               </button>

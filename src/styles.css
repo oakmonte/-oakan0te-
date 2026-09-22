@@ -224,16 +224,16 @@
  * the page. Inter has it, has real tabular figures, and its weight 900 is
  * already loaded app-wide.
  *
- * Cormorant Garamond is the fallback rather than a sans, so the swap while
- * Fraunces loads is serif-to-serif and barely perceptible. It is already in the
- * root font request, so it costs nothing.
+ * The fallback is a generic serif, not Cormorant Garamond: Cormorant runs
+ * noticeably smaller and narrower than Fraunces, so the brand name visibly
+ * jumped when the real face arrived. Georgia's metrics sit much closer.
  * ------------------------------------------------------------------------- */
 
 /* The seller's own brand name. The one place WONK is dialled up: individuality
    belongs on their name, at one size, once per screen -- never next to running
    copy, where the quirk reads as a rendering fault rather than a choice. */
 .sd-brandname {
-  font-family: "Fraunces", "Cormorant Garamond", ui-serif, Georgia, serif;
+  font-family: "Fraunces", ui-serif, Georgia, serif;
   font-variation-settings:
     "opsz" 36,
     "SOFT" 30,
@@ -245,7 +245,7 @@
 /* Editorial and empty-state headlines. WONK 0 -- these sit directly above body
    copy, where character has to stay subordinate to legibility. */
 .sd-editorial {
-  font-family: "Fraunces", "Cormorant Garamond", ui-serif, Georgia, serif;
+  font-family: "Fraunces", ui-serif, Georgia, serif;
   font-variation-settings:
     "opsz" 24,
     "SOFT" 20,
@@ -265,7 +265,7 @@
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--sd-ink-muted);
+  color: var(--sd-accent-ink);
 }
 
 .oak-eyebrow::before {
@@ -290,6 +290,40 @@
   height: 280px;
   background: radial-gradient(circle, var(--sd-bloom) 0%, transparent 70%);
   pointer-events: none;
+}
+
+/* For links styled as buttons. The base rule gives <button> touch-action and
+   user-select, but a Link is an <a>, so a long press on "Visit store" opened
+   the iOS link preview instead of registering as a press. */
+.oak-tap {
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* The store switcher's panel. The transitions scale's dropdown-open token:
+   250ms from scale(0.97) on the smooth-out curve. It used oak-motion-pop, which
+   starts from 0.92 -- a zoom, not a dropdown -- and is left alone because the
+   camera screens share it. */
+@keyframes sd-dropdown-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.sd-dropdown-in {
+  animation: sd-dropdown-in 250ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  /* Gentler, not absent: the fade survives, the scale does not. */
+  .sd-dropdown-in {
+    animation: oak-motion-fade-in 200ms ease-out both;
+  }
 }
 
 @layer base {

@@ -1,7 +1,7 @@
 import type { ComponentType } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { Download, MapPin, Palette, Plus, Share2, Wallet } from "lucide-react";
-import { Eyebrow } from "./sections";
+import { Download, Layers, MapPin, Plus, ShoppingBag, Tag } from "lucide-react";
+import { SectionTitle } from "./sections";
 
 type Action = {
   label: string;
@@ -9,73 +9,52 @@ type Action = {
   run: () => void;
 };
 
-/** Six tiles, three across. At 375px each is about 109px wide, which is
- *  comfortable for a 19px icon over a two-word label at 11px.
+/** Six tiles, three across. At 375px each is about 109px wide.
  *
- *  Store themes and Pickup locations are here on purpose. Both were previously
- *  reachable ONLY through the setup checklist -- neither has ever been in the
- *  drawer's NAV_ITEMS -- so replacing the checklist with this dashboard would
- *  have made two finished features unreachable. They are also added to the
- *  drawer in the same change: Quick Actions is a home-screen convenience, the
- *  drawer is the stable path, and a feature that exists in only the former
- *  disappears the next time the home screen is rearranged. */
-export function QuickActions({
-  onOpenLocations,
-  onShare,
-}: {
-  onOpenLocations: () => void;
-  onShare: () => void;
-}) {
+ *  Every tile goes somewhere nothing else on this page already goes. The first
+ *  version carried Share (already a pill AND the hero's button -- three ways to
+ *  do one thing, two of them opening different sheets), Store themes (the same
+ *  page as the Edit store pill) and Payout account (the same page as the payout
+ *  row). Duplicates make a page longer without making it more capable.
+ *
+ *  Pickup locations stays: it was previously reachable ONLY through the setup
+ *  checklist this dashboard replaces, and it is a sheet with no route, so this
+ *  and the drawer are the only ways in. Store themes lives on through the Edit
+ *  store pill and the drawer. */
+export function QuickActions({ onOpenLocations }: { onOpenLocations: () => void }) {
   const navigate = useNavigate();
 
   const actions: Action[] = [
-    {
-      label: "Add product",
-      icon: Plus,
-      run: () => navigate({ to: "/store/products/new" }),
-    },
+    { label: "Add product", icon: Plus, run: () => navigate({ to: "/store/products/new" }) },
     {
       label: "Import catalogue",
       icon: Download,
       run: () => navigate({ to: "/store/products/upload" }),
     },
-    {
-      label: "Store themes",
-      icon: Palette,
-      run: () => navigate({ to: "/store/theme" }),
-    },
-    {
-      // A sheet, not a route -- there is no /store/locations route, only
-      // /store/locations/new. The list has always lived in a sheet.
-      label: "Pickup locations",
-      icon: MapPin,
-      run: onOpenLocations,
-    },
-    {
-      label: "Payout account",
-      icon: Wallet,
-      run: () => navigate({ to: "/store/finance" }),
-    },
-    {
-      label: "Share link",
-      icon: Share2,
-      run: onShare,
-    },
+    { label: "Pickup locations", icon: MapPin, run: onOpenLocations },
+    { label: "Collections", icon: Layers, run: () => navigate({ to: "/store/collections" }) },
+    { label: "Orders", icon: ShoppingBag, run: () => navigate({ to: "/store/orders" }) },
+    { label: "Discounts", icon: Tag, run: () => navigate({ to: "/store/discounts" }) },
   ];
 
   return (
-    <section>
-      <Eyebrow>Quick actions</Eyebrow>
+    <section aria-labelledby="sd-quick">
+      <SectionTitle id="sd-quick">Quick actions</SectionTitle>
       <div className="mt-3 grid grid-cols-3 gap-2">
         {actions.map(({ label, icon: Icon, run }) => (
           <button
             key={label}
             type="button"
             onClick={run}
-            className="flex aspect-[1/0.92] flex-col items-center justify-center gap-2 rounded-xl border border-sd-line bg-sd-surface px-1 text-center oak-motion-control active:scale-[0.96]"
+            // Top-aligned, with the label given room for two lines. Centred,
+            // "Import catalogue" and "Pickup locations" wrap at 360px and their
+            // icons sat visibly higher than their single-line neighbours.
+            className="flex aspect-[1/0.92] flex-col items-center justify-start gap-2 rounded-xl border border-sd-line bg-sd-surface px-1 pt-4 text-center oak-motion-control active:scale-[0.96]"
           >
-            <Icon size={19} className="text-sd-ink-muted" />
-            <span className="text-[11px] font-semibold leading-tight text-sd-ink">{label}</span>
+            <Icon size={20} className="text-sd-ink" />
+            <span className="min-h-[2.5em] text-[12px] font-semibold leading-tight text-sd-ink">
+              {label}
+            </span>
           </button>
         ))}
       </div>

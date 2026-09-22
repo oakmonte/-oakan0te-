@@ -22,11 +22,15 @@ export function ShareProfileOverlay({
   onClose,
   avatarUrl,
   shareUrl,
+  title = "Share profile",
 }: {
   open: boolean;
   onClose: () => void;
   avatarUrl: string | null;
   shareUrl: string;
+  // The seller dashboard reuses this for a STORE link, where "Share profile"
+  // names the wrong thing. Defaults to the original copy for the profile page.
+  title?: string;
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -89,7 +93,7 @@ export function ShareProfileOverlay({
             className="px-2 pt-2"
             style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 28px)" }}
           >
-            <p className="pb-5 text-center text-[15px] font-semibold">Share profile</p>
+            <p className="pb-5 text-center text-[15px] font-semibold">{title}</p>
             <div
               className="flex gap-1 overflow-x-auto px-2"
               style={{ scrollbarWidth: "none" }}
