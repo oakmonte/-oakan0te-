@@ -1598,6 +1598,7 @@ export const CAMERA_FILTERS: CameraFilter[] = [
   },
 
   {
+<<<<<<< HEAD
     id: "creative-vignette",
     name: "Vignette",
     category: "creative",
@@ -1619,6 +1620,8 @@ export const CAMERA_FILTERS: CameraFilter[] = [
   },
 
   {
+=======
+>>>>>>> e088d9b (feat: add costume categories and footwear handling to size charts)
     id: "creative-glow",
     name: "Glow",
     category: "creative",

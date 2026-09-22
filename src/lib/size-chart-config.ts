@@ -544,6 +544,16 @@ const CHARTS_BY_CATEGORY: Record<string, SizeChartDefinition> = {
   "corsets-bustiers": CORSET,
   "peplum-tops": PEPLUM_TOP,
   "wrap-dresses": WRAP_DRESS,
+
+  // Costumes. A costume top or dress is measured exactly like its everyday
+  // counterpart, so these borrow the generic top and dress guides the same
+  // way costume-onesies-jumpsuits already borrows JUMPSUIT. Deliberately not
+  // mapped: costume-sets (a top-plus-bottom bundle has no single chart),
+  // costume-cloaks-capes (a drape has no chest/shoulder span to measure),
+  // costume-shoes (see isFootwearCategory), and costume-accessories /
+  // costume-wigs (not sized garments at all).
+  "costume-tops": STANDARD_TSHIRT,
+  "costume-dresses": A_LINE_DRESS,
 };
 
 // Only categories explicitly mapped above get a guide. Adding a new guide is
@@ -564,6 +574,17 @@ export function getSizeChartForCategory(categoryPath: CategoryNode[]): SizeChart
     if (chart) return chart;
   }
   return null;
+}
+
+// Footwear has no illustrated chart and never will have one of this kind —
+// shoes aren't measured by lettered spans across a flat-laid garment. What it
+// does need is the right ladder in the manual Size picker: shoe numbers, not
+// S/M/L. `shoes` covers its whole subtree (the path carries every ancestor);
+// `costume-shoes` sits under Costumes instead and has no `shoes` ancestor.
+const FOOTWEAR_CATEGORY_IDS = new Set(["shoes", "costume-shoes"]);
+
+export function isFootwearCategory(categoryPath: CategoryNode[]): boolean {
+  return categoryPath.some((node) => FOOTWEAR_CATEGORY_IDS.has(node.id));
 }
 
 export const CM_PER_INCH = 2.54;

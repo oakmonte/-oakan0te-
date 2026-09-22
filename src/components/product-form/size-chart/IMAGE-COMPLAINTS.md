@@ -1,5 +1,35 @@
 # Size-chart image audit
 
+## Resolved 2026-09-22
+
+**`Bodycon-dress guide.png` — identity confirmed, but the labels are broken.** The 2026-09-10 row
+below guessed this might be a jumpsuit. It is not: the garment is a fitted long-sleeve bodycon dress
+with a square neckline and a plain hem, no inseam and no leg split. Compare `Jumpsuit-guide.png`,
+which has a collar, a zip placket and two trouser legs — they are clearly different garments.
+
+It is still **not wired**, for a defect the old note missed: the artwork stamps the letter **`B`
+twice**, on two different spans — once across the shoulder line at the top, and again across the bust
+below it. The remaining letters (`A` full length, `C` waist, `D` hip, `E` sleeve) are fine. A chart's
+letters are its whole contract with the seller — they read a letter off the picture and type the
+number under the matching row — so two rows labelled `B` is unusable, the same disqualifier already
+recorded for `blouse guide.jpg`. Wiring it would need either relabelled artwork (`B` shoulder, `C`
+bust, shifting the rest) or a four-line definition that drops one of the two `B` spans.
+
+## Costume categories, wired 2026-09-22
+
+`costume-tops` → the generic top guide (`standard-tshirt`), `costume-dresses` → `a-line-dress`. A
+costume top or dress is measured exactly like its everyday counterpart, and this is the same reuse
+`costume-onesies-jumpsuits` → `jumpsuit` already relied on. Left unmapped deliberately:
+`costume-sets` (a top-plus-bottom bundle has no single chart), `costume-cloaks-capes` (a drape has no
+chest/shoulder span to measure), `costume-shoes` (footwear — see below), and `costume-accessories` /
+`costume-wigs` (not sized garments at all).
+
+**Footwear is out of scope for this folder entirely.** Shoes are not measured by lettered spans
+across a flat-laid garment, so no artwork here will ever cover them; `shoes` and `costume-shoes`
+instead get a shoe-number ladder in the manual picker (`SHOE_SIZE_SYSTEMS`, chosen by
+`isFootwearCategory` in `size-chart-config.ts`). Don't add a "shoe guide" image expecting it to wire
+up like the garment ones.
+
 The following assets were visually reviewed on 2026-09-07. Opaque filenames are retained so existing user files are not renamed without a confirmed import migration.
 
 | Filename                                   | Visual observation                                                                                                                         | Likely category              | Confidence | Decision                                                                                          |
@@ -38,24 +68,24 @@ Search ambiguity addressed: `Volleyball Shorts` is now a distinct category leaf 
 The named 2026-09-11 batch was visually inspected. The following assets are wired to
 dedicated guide keys and category leaves where the lettered contract is readable:
 
-| Filename | Observed garment and contract | Guide key / decision |
-| --- | --- | --- |
-| `A-line-dress guide.png` | A-line dress; full length, chest, waist, hem | `a-line-dress`; wired to A-Line Dresses |
-| `Bermuda-shorts guide.png` | Bermuda shorts; waist, hip, outseam, leg opening | `bermuda-shorts`; wired to Bermudas |
-| `Biker-shorts guide.png` | Fitted biker shorts; waist, hip, outseam, leg opening | `biker-shorts`; wired to Biker Shorts |
-| `Compression-shirt guide.png` | Fitted long-sleeve base layer; body, chest, shoulder, sleeve | `compression-shirt`; wired to Compression Shirts |
-| `Flared-pants guide.png`, `Harem-pants guide.png`, `Leather-pants guide.png`, `Linen-pants guide.png`, `Palazzo guide.png`, `Parachute-pants guide.png`, `Leggings guide.png` | Trouser/legging silhouettes; waist, hip, inseam, leg opening | Dedicated keys; wired to their precise pants leaves |
-| `Football-jersey guide.png` | Short-sleeve football jersey; body, chest, shoulder, sleeve | `football-jersey`; wired as the active four-line football contract. The earlier five-line `Football-Jersey-Guide.webp` remains in the folder but is no longer imported because its neck row does not match this batch. |
-| `Gilet guide.png` | Sleeveless padded vest; body, chest, shoulder | `gilet`; wired to Gilets |
-| `Henley guide.png` | Long-sleeve henley; body, chest, shoulder, sleeve | `henley`; wired to Henley Shirts |
-| `Leather-Jacket guide.png`, `Parka guide.png`, `Track-jacket guide.png`, `Trucker-jacket guide.png` | Long-sleeve outerwear; body, chest, shoulder, sleeve | Dedicated keys; wired to precise jacket leaves |
-| `Off-shoulder-dress guide.png`, `Shirt-dress guide.png`, `Slip-dress guide.png`, `wrap-dress guide.png` | Dress silhouettes with distinct body/chest/waist/hip contracts; sleeve where shown | Dedicated keys; wired to precise dress leaves |
-| `Senator-wear guide.png` | Long-sleeve, collared, belted tunic/kurta-style garment; body, chest, shoulder, sleeve | `senator-wear`; wired to a new Senator Wear leaf. The name is regionally ambiguous and should be reviewed if sellers use a different product concept. |
-| `Sports-bra guide.png` | Racerback sports bra; body, chest, hem | `sports-bra`; wired to Sports Bras |
-| `Sweater-vest guide.png` | Sleeveless V-neck sweater vest; body, chest, shoulder | Near-duplicate of the already imported `sweater vest guide.png` with the same readable five-line contract. Existing import is retained; the new duplicate is not separately wired. |
-| `Tunic guide.png` | Long-sleeve tunic; body, chest, shoulder, sleeve | `tunic`; wired to Tunics |
-| `corset guide.png` | Structured corset; body, chest, waist | `corset`; wired to Corsets & Bustiers |
-| `peplum-top guide.png` | Short-sleeve peplum top; body, chest, shoulder, sleeve, hem | `peplum-top`; wired to Peplum Tops |
+| Filename                                                                                                                                                                      | Observed garment and contract                                                          | Guide key / decision                                                                                                                                                                                                   |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `A-line-dress guide.png`                                                                                                                                                      | A-line dress; full length, chest, waist, hem                                           | `a-line-dress`; wired to A-Line Dresses                                                                                                                                                                                |
+| `Bermuda-shorts guide.png`                                                                                                                                                    | Bermuda shorts; waist, hip, outseam, leg opening                                       | `bermuda-shorts`; wired to Bermudas                                                                                                                                                                                    |
+| `Biker-shorts guide.png`                                                                                                                                                      | Fitted biker shorts; waist, hip, outseam, leg opening                                  | `biker-shorts`; wired to Biker Shorts                                                                                                                                                                                  |
+| `Compression-shirt guide.png`                                                                                                                                                 | Fitted long-sleeve base layer; body, chest, shoulder, sleeve                           | `compression-shirt`; wired to Compression Shirts                                                                                                                                                                       |
+| `Flared-pants guide.png`, `Harem-pants guide.png`, `Leather-pants guide.png`, `Linen-pants guide.png`, `Palazzo guide.png`, `Parachute-pants guide.png`, `Leggings guide.png` | Trouser/legging silhouettes; waist, hip, inseam, leg opening                           | Dedicated keys; wired to their precise pants leaves                                                                                                                                                                    |
+| `Football-jersey guide.png`                                                                                                                                                   | Short-sleeve football jersey; body, chest, shoulder, sleeve                            | `football-jersey`; wired as the active four-line football contract. The earlier five-line `Football-Jersey-Guide.webp` remains in the folder but is no longer imported because its neck row does not match this batch. |
+| `Gilet guide.png`                                                                                                                                                             | Sleeveless padded vest; body, chest, shoulder                                          | `gilet`; wired to Gilets                                                                                                                                                                                               |
+| `Henley guide.png`                                                                                                                                                            | Long-sleeve henley; body, chest, shoulder, sleeve                                      | `henley`; wired to Henley Shirts                                                                                                                                                                                       |
+| `Leather-Jacket guide.png`, `Parka guide.png`, `Track-jacket guide.png`, `Trucker-jacket guide.png`                                                                           | Long-sleeve outerwear; body, chest, shoulder, sleeve                                   | Dedicated keys; wired to precise jacket leaves                                                                                                                                                                         |
+| `Off-shoulder-dress guide.png`, `Shirt-dress guide.png`, `Slip-dress guide.png`, `wrap-dress guide.png`                                                                       | Dress silhouettes with distinct body/chest/waist/hip contracts; sleeve where shown     | Dedicated keys; wired to precise dress leaves                                                                                                                                                                          |
+| `Senator-wear guide.png`                                                                                                                                                      | Long-sleeve, collared, belted tunic/kurta-style garment; body, chest, shoulder, sleeve | `senator-wear`; wired to a new Senator Wear leaf. The name is regionally ambiguous and should be reviewed if sellers use a different product concept.                                                                  |
+| `Sports-bra guide.png`                                                                                                                                                        | Racerback sports bra; body, chest, hem                                                 | `sports-bra`; wired to Sports Bras                                                                                                                                                                                     |
+| `Sweater-vest guide.png`                                                                                                                                                      | Sleeveless V-neck sweater vest; body, chest, shoulder                                  | Near-duplicate of the already imported `sweater vest guide.png` with the same readable five-line contract. Existing import is retained; the new duplicate is not separately wired.                                     |
+| `Tunic guide.png`                                                                                                                                                             | Long-sleeve tunic; body, chest, shoulder, sleeve                                       | `tunic`; wired to Tunics                                                                                                                                                                                               |
+| `corset guide.png`                                                                                                                                                            | Structured corset; body, chest, waist                                                  | `corset`; wired to Corsets & Bustiers                                                                                                                                                                                  |
+| `peplum-top guide.png`                                                                                                                                                        | Short-sleeve peplum top; body, chest, shoulder, sleeve, hem                            | `peplum-top`; wired to Peplum Tops                                                                                                                                                                                     |
 
 The earlier `Football-Jersey-Guide.webp` is retained as an unimported comparison asset. Its
 five-line contract is not compatible with the new four-line `Football-jersey guide.png`, so the
@@ -68,7 +98,7 @@ The following newly added assets were visually checked against their filenames b
 | Filename                  | Visual observation                                                                                                               | Decision                                                                                                                         |
 | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | `blouse guide.jpg`        | Camisole/tank silhouette, not a conventional blouse; its letter labels also repeat `a` for two different spans.                  | Not wired. Use the existing Tank Tops or Camisoles category only after confirming the intended garment and measurement contract. |
-| `Bodycon-dress guide.png` | One-piece long-sleeve garment with a possible trouser-leg/inseam construction; it may be a jumpsuit rather than a bodycon dress. | Not wired until the garment identity is confirmed; Bodycon Dresses remains on manual measurements.                               |
+| `Bodycon-dress guide.png` | One-piece long-sleeve garment with a possible trouser-leg/inseam construction; it may be a jumpsuit rather than a bodycon dress. | Superseded 2026-09-22 — see below. Bodycon Dresses remains on manual measurements, for a different reason than this row gives.   |
 | `Jumpsuit-guide.png`      | One-piece long-sleeve garment with full-body and leg measurements.                                                               | Mapped to Jumpsuits; verify against the Bodycon asset before removing either guide.                                              |
 | `swimsuit guide.jpg`      | Long-sleeve turtleneck top, not a swimsuit.                                                                                      | Used as the turtleneck artwork because the visual garment is clear; filename remains unchanged pending an explicit rename.       |
 | `turtle neck guide.png`   | Sleeveless tank top, not a turtleneck.                                                                                           | Not wired; do not use this image for turtleneck measurements.                                                                    |

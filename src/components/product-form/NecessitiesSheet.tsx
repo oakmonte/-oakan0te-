@@ -5,6 +5,7 @@ import { CategoryNode } from "@/lib/categories";
 import { VariantOption, VariantRow } from "@/components/product-form/VariantMatrixBuilder";
 import {
   getSizeChartForCategory,
+  isFootwearCategory,
   type ManualSize,
   type SizeMeasurements,
 } from "@/lib/size-chart-config";
@@ -294,6 +295,7 @@ export function NecessitiesSheet({
             variantSizeValues={variantSizeValues}
             manualSize={manualSize}
             initialMeasurements={sizeMeasurements}
+            isFootwear={isFootwearCategory(categoryPath)}
             onSave={(m, picked) => {
               onChangeSizeMeasurements(m);
               onChangeManualSize(picked);

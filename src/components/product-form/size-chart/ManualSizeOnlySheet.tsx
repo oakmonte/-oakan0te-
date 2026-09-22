@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Check, ChevronLeft, Plus, Trash2, X } from "lucide-react";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
 import type { ManualSize, SizeMeasurements } from "@/lib/size-chart-config";
-import { SIZE_SYSTEMS } from "@/components/product-form/OptionEditorSheet";
+import { SHOE_SIZE_SYSTEMS, SIZE_SYSTEMS } from "@/components/product-form/OptionEditorSheet";
 import { SizePicker } from "./SizeChartSheet";
 
 // Size necessity for categories with no illustrated chart yet (shoes,
@@ -24,25 +24,35 @@ export function ManualSizeOnlySheet({
   variantSizeValues,
   manualSize,
   initialMeasurements,
+  isFootwear = false,
   onSave,
   onClose,
 }: {
   variantSizeValues: string[];
   manualSize: ManualSize | null;
   initialMeasurements: SizeMeasurements;
+  // Shoe categories pick from shoe numbers, not the clothing ladder — a
+  // sneaker seller was previously offered "M" and dress sizes 0-20.
+  isFootwear?: boolean;
   onSave: (measurements: SizeMeasurements, manualSize: ManualSize | null) => void;
   onClose: () => void;
 }) {
   useLockedViewport();
 
   const isVariantMode = variantSizeValues.length > 0;
+  const sizeSystems = isFootwear ? SHOE_SIZE_SYSTEMS : SIZE_SYSTEMS;
 
   const [index, setIndex] = useState(0);
   const [measurements, setMeasurements] = useState<SizeMeasurements>(initialMeasurements);
   const [pickedSize, setPickedSize] = useState<ManualSize | null>(manualSize);
-  const [pickerSystem, setPickerSystem] = useState<keyof typeof SIZE_SYSTEMS>(
-    (manualSize?.system as keyof typeof SIZE_SYSTEMS) ?? "XXL",
-  );
+  // A saved system can be one the active ladder doesn't have — a product
+  // sized as clothing ("XXL") and later refiled under Shoes — which would
+  // index SHOE_SIZE_SYSTEMS to undefined and crash the picker on render.
+  const [pickerSystem, setPickerSystem] = useState<string>(() => {
+    const saved = manualSize?.system;
+    if (saved && saved in sizeSystems) return saved;
+    return isFootwear ? "US" : "XXL";
+  });
   const [labelDraft, setLabelDraft] = useState("");
   const [valueDraft, setValueDraft] = useState("");
   const [confirmEmptySave, setConfirmEmptySave] = useState(false);
@@ -147,7 +157,12 @@ export function ManualSizeOnlySheet({
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-5 flex flex-col gap-6">
         {!isVariantMode && !pickedSize ? (
-          <SizePicker system={pickerSystem} onChangeSystem={setPickerSystem} onPick={pickSize} />
+          <SizePicker
+            system={pickerSystem}
+            systems={sizeSystems}
+            onChangeSystem={setPickerSystem}
+            onPick={pickSize}
+          />
         ) : (
           <>
             <div>

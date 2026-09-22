@@ -25,6 +25,18 @@ export const SIZE_SYSTEMS = {
   Words: ["Extra Small", "Small", "Medium", "Large", "Extra Large", "2X Large", "3X Large"],
 } as const;
 
+// Footwear is numbered, not laddered: "M" is not a shoe size, and US 8 in
+// shoes is not US 8 in dresses. Kept as its own map rather than folded into
+// SIZE_SYSTEMS because that object is also OPTION_SYSTEMS.Size — the Size
+// axis every apparel category shares — so adding shoe numbers to its US/UK/EU
+// keys would offer them when sizing a t-shirt. Only the manual Size necessity
+// (ManualSizeOnlySheet) switches between the two, on category.
+export const SHOE_SIZE_SYSTEMS = {
+  US: ["5", "5.5", "6", "6.5", "7", "7.5", "8", "8.5", "9", "9.5", "10", "11", "12", "13"],
+  UK: ["2.5", "3", "3.5", "4", "4.5", "5", "5.5", "6", "6.5", "7", "8.5", "9.5", "10.5", "11.5"],
+  EU: ["35", "36", "37", "38", "38.5", "39", "40", "41", "42", "43", "44", "45", "46", "47"],
+} as const;
+
 export const WEIGHT_VOLUME_SYSTEMS = {
   g: ["25 g", "50 g", "100 g", "250 g", "500 g", "750 g", "1000 g"],
   kg: ["0.5 kg", "1 kg", "1.5 kg", "2 kg", "3 kg", "5 kg", "10 kg", "15 kg", "20 kg", "30 kg"],
