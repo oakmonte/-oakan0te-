@@ -1,5 +1,5 @@
 import { test, expect, describe } from "bun:test";
-import { surfaceForPathname } from "./surface";
+import { isHeldLight, surfaceForPathname } from "./surface";
 
 describe("surfaceForPathname", () => {
   test("the dashboard root and its children are the store surface", () => {
@@ -49,5 +49,32 @@ describe("surfaceForPathname", () => {
     expect(surfaceForPathname("/home")).toBe(null);
     expect(surfaceForPathname("/messages")).toBe(null);
     expect(surfaceForPathname("/profile/diadem")).toBe(null);
+  });
+});
+
+describe("isHeldLight", () => {
+  test("holds the screens that render product-form inline", () => {
+    expect(isHeldLight("/store/products/new")).toBe(true);
+    expect(isHeldLight("/store/products/7d3f2a90-1c1e-4c1b-9a55-0b1f6d7e2c11")).toBe(true);
+    expect(isHeldLight("/store/collections/new")).toBe(true);
+  });
+
+  // Same prefix, fully converted -- they must follow the phone like the rest.
+  test("does not hold the converted siblings", () => {
+    expect(isHeldLight("/store/products/upload")).toBe(false);
+    expect(isHeldLight("/store/products/newcomer")).toBe(false);
+  });
+
+  // product-form appears here only as a modal over a scrim, which stays legible.
+  test("does not hold screens that only use product-form as a sheet", () => {
+    expect(isHeldLight("/store/products")).toBe(false);
+    expect(isHeldLight("/store/collections")).toBe(false);
+    expect(isHeldLight("/store/collections/abc123")).toBe(false);
+  });
+
+  test("never applies outside the dashboard", () => {
+    expect(isHeldLight("/store")).toBe(false);
+    expect(isHeldLight("/home")).toBe(false);
+    expect(isHeldLight("/store-profile/diadem")).toBe(false);
   });
 });

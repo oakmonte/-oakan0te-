@@ -22,7 +22,7 @@ import { ProductSaveToast } from "../components/ProductSaveToast";
 import { BackgroundUploadToast } from "../components/BackgroundUploadToast";
 import { setLastNonCreateRoute } from "../lib/last-visited-route";
 import { attachNavStack } from "@/lib/nav-stack";
-import { surfaceForPathname } from "@/lib/surface";
+import { isHeldLight, surfaceForPathname } from "@/lib/surface";
 
 function NotFoundComponent() {
   return (
@@ -216,10 +216,17 @@ function RootShell({ children }: { children: ReactNode }) {
   // corrected a frame after hydration.
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const surface = surfaceForPathname(pathname);
+  // A few dashboard screens are held in the light scheme until the shared
+  // product-form components are on the tokens -- see isHeldLight().
+  const heldLight = surface === "store" && isHeldLight(pathname);
   return (
     // Drives the dashboard's light/dark tokens, the scroll-bounce edge colour
     // (--oak-edge) and `color-scheme`, all in styles.css. See lib/surface.ts.
-    <html lang="en" data-surface={surface ?? undefined}>
+    <html
+      lang="en"
+      data-surface={surface ?? undefined}
+      data-scheme={heldLight ? "light" : undefined}
+    >
       <head>
         {/* The dashboard is the only surface with both a light and a dark
             theme, so it is the only one needing a theme-color per scheme -- and
@@ -238,9 +245,15 @@ function RootShell({ children }: { children: ReactNode }) {
         {surface === "store" && (
           <>
             <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
-            {/* Stage 6 flips this to the dashboard's dark page background. Held
-                equal to the light value for now, so this change is invisible. */}
-            <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#ffffff" />
+            {/* The dashboard's dark page background (--sd-bg in the dark
+                block). A held-light screen keeps white, or a phone in dark
+                mode would get a black status strip over a white page -- the
+                exact bug this pair exists to prevent. */}
+            <meta
+              name="theme-color"
+              media="(prefers-color-scheme: dark)"
+              content={heldLight ? "#ffffff" : "#000000"}
+            />
           </>
         )}
         <HeadContent />

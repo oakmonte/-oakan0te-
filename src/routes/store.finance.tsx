@@ -170,10 +170,10 @@ function FinancePage() {
         <button
           type="button"
           onClick={() => setSheetOpen(true)}
-          className="w-full text-left bg-sd-ink text-sd-bg rounded-2xl p-5 flex flex-col gap-5 oak-motion-control animate-in fade-in duration-300"
+          className="w-full text-left bg-sd-card-dark text-white rounded-2xl p-5 flex flex-col gap-5 oak-motion-control animate-in fade-in duration-300"
         >
           <div className="flex items-center justify-between">
-            <div className="p-2 rounded-full bg-sd-bg/10">
+            <div className="p-2 rounded-full bg-white/10">
               <Landmark size={18} />
             </div>
             {/* Derived, not hardcoded. This badge used to say "Pending
@@ -198,7 +198,7 @@ function FinancePage() {
             <p className="text-lg font-mono tracking-wider">
               {maskAccountNumber(account.account_number)}
             </p>
-            <p className="text-sm text-sd-bg/70 mt-1">{account.bank_name}</p>
+            <p className="text-sm text-white/70 mt-1">{account.bank_name}</p>
           </div>
         </button>
       )}

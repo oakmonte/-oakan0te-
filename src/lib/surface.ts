@@ -31,3 +31,27 @@ export function surfaceForPathname(pathname: string): Surface {
   if (pathname === "/create/after-shot/publish") return "publish";
   return null;
 }
+
+/** Dashboard routes held in the LIGHT scheme even when the phone is in dark.
+ *
+ *  Temporary, and deliberately narrow. These three render the shared
+ *  product-form components inline on the page, and product-form (39 files) has
+ *  not been moved onto the --sd-* tokens yet -- it is shared with the create
+ *  flow and under active work by another developer, so converting it is being
+ *  agreed separately rather than done in passing. Left in dark, its hardcoded
+ *  dark text would sit on a dark page and simply disappear.
+ *
+ *  Routes that use product-form only as a modal or sheet over a scrim
+ *  (/store/products, /store/collections/:id) are NOT held: a white sheet over a
+ *  dark page is inconsistent but perfectly legible, and holding the whole
+ *  product list in light to avoid it would cost far more than it saves.
+ *
+ *  Delete this, and its callers, once product-form is on the tokens. */
+export function isHeldLight(pathname: string): boolean {
+  if (pathname === "/store/products/new") return true;
+  if (pathname === "/store/collections/new") return true;
+  // /store/products/:id -- but not the two sibling screens that share the
+  // prefix and are fully converted.
+  const m = /^\/store\/products\/([^/]+)$/.exec(pathname);
+  return !!m && m[1] !== "upload" && m[1] !== "newcomer";
+}
