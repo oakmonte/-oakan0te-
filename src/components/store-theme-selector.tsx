@@ -99,7 +99,7 @@ export function StoreThemeSelector() {
   const { checklist } = useSearch({ from: "/store/theme" });
   const { user } = useSession();
   const { storeId } = useActiveStoreId();
-  const { themeId: selected, selectTheme } = useStoreTheme();
+  const { pickedThemeId, selectTheme } = useStoreTheme();
   const [previewing, setPreviewing] = useState<ThemeId | null>(null);
   const [previewMode, setPreviewMode] = useState<"view" | "edit">("view");
   // Themes this store has an actual store_theme_customizations row for —
@@ -107,10 +107,10 @@ export function StoreThemeSelector() {
   // render anything (see PublicStorefront for the render-time read).
   const [customizedThemes, setCustomizedThemes] = useState<Set<ThemeId>>(new Set());
   const [confirmUse, setConfirmUse] = useState<ThemeId | null>(null);
-  // Raw stores.theme_id, not useStoreTheme()'s `selected` — that hook
-  // defaults an unset theme_id to "motion" client-side, so it's never null
-  // and can't tell the checklist flow below whether a theme has really been
-  // picked yet.
+  // Raw stores.theme_id, kept for the checklist flow below. This predates
+  // useStoreTheme() exposing `pickedThemeId` and now carries the same
+  // information, so the two could be collapsed — left alone here only to keep
+  // this change to the selection bug.
   const [themeIdSet, setThemeIdSet] = useState(false);
   const [ownUsername, setOwnUsername] = useState<string | undefined>(undefined);
   const [query, setQuery] = useState("");
@@ -200,7 +200,7 @@ export function StoreThemeSelector() {
   // otherwise activate it with nothing but placeholder copy and demo photos
   // live on their storefront — ask first instead of assuming that's wanted.
   function handleUseTheme(themeId: ThemeId) {
-    if (selected !== themeId && !customizedThemes.has(themeId)) {
+    if (pickedThemeId !== themeId && !customizedThemes.has(themeId)) {
       setConfirmUse(themeId);
       return;
     }
@@ -283,7 +283,7 @@ export function StoreThemeSelector() {
 
         <div className="grid gap-5 lg:grid-cols-3">
           {visibleThemes.map((theme) => {
-            const isSelected = selected === theme.id;
+            const isSelected = pickedThemeId === theme.id;
             return (
               <article
                 key={theme.id}
@@ -383,7 +383,7 @@ export function StoreThemeSelector() {
       {previewTheme && (
         <ThemePreviewSheet
           theme={previewTheme}
-          isSelected={selected === previewTheme.id}
+          isSelected={pickedThemeId === previewTheme.id}
           initialMode={previewMode}
           onClose={() => setPreviewing(null)}
           onSelect={() => {

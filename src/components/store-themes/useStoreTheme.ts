@@ -16,7 +16,17 @@ export function useStoreTheme(storeIdOverride?: string | null) {
   const { storeId: activeStoreId, loading: activeStoreLoading } = useActiveStoreId();
   const storeId = storeIdOverride ?? activeStoreId;
   const storeLoading = storeIdOverride === undefined && activeStoreLoading;
+  // Two separate things, and conflating them is what made the theme picker
+  // show the first card as already chosen for a seller who had never picked
+  // one:
+  //
+  //   themeId       what to RENDER. A store with no theme_id still has to look
+  //                 like something, so this falls back to DEFAULT_THEME.
+  //   pickedThemeId what the seller actually CHOSE. Null until they have, so
+  //                 the picker can show nothing selected rather than implying
+  //                 a decision they never made.
   const [themeId, setThemeIdState] = useState<ThemeId>(DEFAULT_THEME);
+  const [pickedThemeId, setPickedThemeId] = useState<ThemeId | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -35,7 +45,10 @@ export function useStoreTheme(storeIdOverride?: string | null) {
         .maybeSingle();
       if (cancelled) return;
       const slug = data?.store_themes?.slug;
-      if (slug) setThemeIdState(slug as ThemeId);
+      if (slug) {
+        setThemeIdState(slug as ThemeId);
+        setPickedThemeId(slug as ThemeId);
+      }
       setLoading(false);
     })();
 
@@ -47,6 +60,7 @@ export function useStoreTheme(storeIdOverride?: string | null) {
   const selectTheme = useCallback(
     async (id: ThemeId) => {
       setThemeIdState(id);
+      setPickedThemeId(id);
       if (!storeId) return;
       const { data } = await supabase
         .from("store_themes")
@@ -60,5 +74,5 @@ export function useStoreTheme(storeIdOverride?: string | null) {
     [storeId],
   );
 
-  return { themeId, loading, selectTheme };
+  return { themeId, pickedThemeId, loading, selectTheme };
 }
