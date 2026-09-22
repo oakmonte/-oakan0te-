@@ -12,16 +12,7 @@ import {
   QUALITY_HIGH,
   getFirstEncodableVideoCodec,
 } from "mediabunny";
-<<<<<<< HEAD
 import { applyCompiledFilter, compileFilter, type CompiledFilter } from "@/lib/canvas-filter";
-=======
-import {
-  applyCompiledFilter,
-  compileFilter,
-  IDENTITY_FILTER,
-  type CompiledFilter,
-} from "@/lib/canvas-filter";
->>>>>>> 425644e (create-vingette is pickable (will make it darker), intensity scale fixed)
 import { drawVignette } from "@/lib/vignette";
 import { compileGrade, isNoopFilter, type CameraFilter } from "@/components/camera/filter-data";
 import { drawLayers, preloadStickers } from "@/lib/layer-bake";
@@ -125,13 +116,9 @@ export async function exportPhoto(
       canvas.width,
       canvas.height,
     );
-<<<<<<< HEAD
     // Vignette after the filter, before the layers: it is part of the picture,
     // not something that dims a caption sitting on top of it. The preview
     // stacks the same way.
-=======
-    // Apply vignette after filter but before layers
->>>>>>> 425644e (create-vingette is pickable (will make it darker), intensity scale fixed)
     drawVignette(ctx, canvas.width, canvas.height, vignetteValue);
     drawLayers(ctx, layers, canvas.width, canvas.height, await preloadStickers(layers));
 
@@ -251,11 +238,7 @@ export async function exportVideo(
         }
         drawFilteredFrame(ctx, compiled, width, height);
 
-<<<<<<< HEAD
         // Same order as the photo path and the preview: picture, then layers.
-=======
-        // Apply vignette after filter but before layers
->>>>>>> 425644e (create-vingette is pickable (will make it darker), intensity scale fixed)
         drawVignette(ctx, width, height, vignetteValue);
         drawLayers(ctx, layers, width, height, stickers);
         // than index/FPS, so a variable-frame-rate capture (which is what phone
