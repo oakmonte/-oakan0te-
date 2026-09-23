@@ -17,10 +17,10 @@ type Action = {
  *  page as the Edit store pill) and Payout account (the same page as the payout
  *  row). Duplicates make a page longer without making it more capable.
  *
- *  Pickup locations stays: it was previously reachable ONLY through the setup
- *  checklist this dashboard replaces, and it is a sheet with no route, so this
- *  and the drawer are the only ways in. Store themes lives on through the Edit
- *  store pill and the drawer. */
+ *  Pickup locations lives here and only here once setup is done: it is a sheet
+ *  with no route, and it is deliberately NOT in the drawer (store-home only, by
+ *  Diadem's call). Store themes is reached through the Edit store pill. Remove
+ *  this tile and pickup locations become unreachable after onboarding. */
 export function QuickActions({ onOpenLocations }: { onOpenLocations: () => void }) {
   const navigate = useNavigate();
 
