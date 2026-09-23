@@ -218,6 +218,32 @@ Regenerate icons from `public/favicon.png` with the `canvas` package already in 
 icons at 62% inset, `maskable` at 46% (Android crops to a squircle and will shave the ends off
 anything larger), `apple-touch-icon` at 180px.
 
+### Seller dashboard colours: tokens, surfaces, and dark mode
+
+`/store/*` follows the phone's light/dark setting (`prefers-color-scheme`, no toggle). The rest of the
+app is fixed. Three rules that are not guessable from any one file:
+
+- **Colour dashboard UI with the `--sd-*` tokens** (`bg-sd-surface`, `text-sd-ink`, `border-sd-line`…,
+  defined in `styles.css`). Never `dark:` (it is bound to a `.dark` class nothing adds) and never
+  hardcoded grays or `bg-white` — both render white inside a dark dashboard. Status colours have a
+  `-mark` (dots, rails) and an `-ink` (text) token each; don't use one for the other.
+- **The surface is decided once**, by `src/lib/surface.ts`, rendered as `<html data-surface>` in
+  `RootShell`. It drives the scroll-bounce edge (`--oak-edge`), `color-scheme` and the dashboard's
+  `theme-color` pair. **Don't set page background colours from an effect** — an inline style beats
+  every stylesheet rule, which is how the dashboard was once pinned white. **Don't declare the
+  dashboard's `theme-color` in `head()`**: TanStack dedupes meta by `name` only, so a light/dark pair
+  collapses. Other white routes still declare `#ffffff` in their own `head()` as before.
+- **`isHeldLight()` keeps three screens light** (`/store/products/new`, `/store/products/:id`,
+  `/store/collections/new`) because they render `src/components/product-form/` inline and that
+  folder is not on the tokens yet. Converting it is to be agreed with Kim first. Delete the rule once
+  it's done.
+
+`supabase/migrations/20260922200000_add_store_identity_columns.sql` (`stores.logo_url`,
+`stores.onboarded_at`) is committed but **applied by hand**. Until it runs, the store picture falls
+back to the per-theme logo and the `+` says pictures aren't switched on. Once applied: regenerate
+types, delete the `as never` in `src/lib/store-logo.ts`, and make `/store` fork on
+`complete || onboarded_at` (see `store.index.tsx`) so finishing setup is one-way.
+
 ## Performance — keep it fast
 
 Every page is mobile-first and often on slow networks. Treat load speed as a first-class feature.
