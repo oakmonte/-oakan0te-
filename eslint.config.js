@@ -18,6 +18,12 @@ export default tseslint.config(
       // server code and appeared to hang.
       ".vercel",
       ".wrangler",
+      // Agent tooling. Claude Code creates worktrees at .claude/worktrees/<name>
+      // -- each one a complete second checkout of this repo, often with its own
+      // .vercel build output. `eslint .` in the main checkout linted every one
+      // of them as well as the real source, and appeared to hang. Nothing under
+      // .claude is app code.
+      ".claude",
       // Generated Supabase types. These are replaced wholesale by the type
       // generator (and, for the two integrations/supabase copies, by Lovable),
       // so formatting them only survives until the next regeneration.
