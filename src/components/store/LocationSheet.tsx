@@ -10,11 +10,23 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-// Deep imports on purpose: the package's index also pulls in the ~8 MB world
-// city dataset, which would block this sheet from opening. Cities come from
-// @/lib/city-data instead (NG/US instantly, the rest in the background).
-import Country from "country-state-city/lib/country";
-import State from "country-state-city/lib/state";
+// No country-state-city import here -- not even the deep /lib/country and
+// /lib/state paths this used to use. This sheet sits behind the /store layout,
+// so anything imported at module scope lands in every dashboard screen: those
+// files broke dev SSR on all of /store/* (ESM JSON imports with no import
+// attribute), shipped ~650 KB to every visit, and made each cold server render
+// parse the package's 10 MB lib. Countries and states come from
+// @/lib/region-data and cities from @/lib/city-data -- NG/US instantly, the rest
+// loaded when this sheet mounts.
+import {
+  allStatesReady,
+  countryCodeForName,
+  getCountries,
+  getStates,
+  isSeededStateCountry,
+  loadAllStates,
+  subscribeToStates,
+} from "@/lib/region-data";
 import {
   allCitiesReady,
   getCityNames,
@@ -107,14 +119,14 @@ export function LocationSheet({
   // still shows the right cascade -- falls back to unmatched (no code) for
   // older free-text rows that don't line up with the dataset, which just
   // means re-picking that field replaces it.
-  const [countryCode, setCountryCode] = useState<string>(
-    () => Country.getAllCountries().find((c) => c.name === initial?.country)?.isoCode ?? "",
+  const [countryCode, setCountryCode] = useState<string>(() =>
+    countryCodeForName(initial?.country),
   );
+  // Only resolvable here for seeded countries (NG/US). For anything else the
+  // states haven't loaded yet, so this starts empty and the effect further down
+  // fills it in the moment they land.
   const [stateCode, setStateCode] = useState<string>(
-    () =>
-      (countryCode &&
-        State.getStatesOfCountry(countryCode).find((s) => s.name === initial?.state)?.isoCode) ||
-      "",
+    () => getStates(countryCode).find((s) => s.name === initial?.state)?.code ?? "",
   );
 
   const [pickerOpen, setPickerOpen] = useState<"country" | "state" | "city" | null>(null);
@@ -128,21 +140,34 @@ export function LocationSheet({
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
   const countryItems: LocationListItem[] = useMemo(
-    () =>
-      Country.getAllCountries()
-        .map((c) => ({ code: c.isoCode, name: c.name }))
-        .sort((a, b) => a.name.localeCompare(b.name)),
+    () => [...getCountries()].sort((a, b) => a.name.localeCompare(b.name)),
     [],
   );
-  const stateItems: LocationListItem[] = useMemo(
-    () =>
-      countryCode
-        ? State.getStatesOfCountry(countryCode)
-            .map((s) => ({ code: s.isoCode, name: s.name }))
-            .sort((a, b) => a.name.localeCompare(b.name))
-        : [],
-    [countryCode],
+  // Re-renders once every country's states finish loading in.
+  const statesReady = useSyncExternalStore(
+    subscribeToStates,
+    allStatesReady,
+    () => false, // SSR: only the seed exists on the server
   );
+  const stateItems: LocationListItem[] = useMemo(
+    () => [...getStates(countryCode)].sort((a, b) => a.name.localeCompare(b.name)),
+    // statesReady isn't read above; it's a dep so the list recomputes the
+    // moment the full dataset lands.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [countryCode, statesReady],
+  );
+  const statesStillLoading = !statesReady && !!countryCode && !isSeededStateCountry(countryCode);
+
+  // A state NAME can be known before its list is: editing a saved Ghanaian
+  // location, or the GPS fill below, both set the name while that country's
+  // states are still loading. Once they arrive, recover the code so the city
+  // list narrows to that state again. Never overrides a code that is already
+  // set, and a typed custom state simply won't match -- it stays free text.
+  useEffect(() => {
+    if (stateCode || !state || !countryCode) return;
+    const match = getStates(countryCode).find((s) => s.name === state);
+    if (match) setStateCode(match.code);
+  }, [countryCode, state, stateCode, statesReady]);
   // Real gaps in this dataset: ~53 countries have no state-level data at
   // all, and even within a listed state the city list can be sparse (Lagos
   // shows only 8 entries and is missing major LGAs like Alimosho entirely).
@@ -199,6 +224,7 @@ export function LocationSheet({
   // so it's usually there before anyone taps into the city picker.
   useEffect(() => {
     void loadAllCities();
+    void loadAllStates();
   }, []);
 
   function useCurrentLocation() {
@@ -216,15 +242,17 @@ export function LocationSheet({
         setLng(longitude);
         const geocoded = await reverseGeocode(latitude, longitude).catch(() => null);
         if (geocoded && !country) {
-          const matchedCountry = Country.getAllCountries().find((c) => c.name === geocoded.country);
+          const matchedCountryCode = countryCodeForName(geocoded.country);
           setCountry(geocoded.country);
-          setCountryCode(matchedCountry?.isoCode ?? "");
-          if (!state && matchedCountry) {
-            const matchedState = State.getStatesOfCountry(matchedCountry.isoCode).find(
+          setCountryCode(matchedCountryCode);
+          if (!state && matchedCountryCode) {
+            // May be empty if this country's states are still loading; the
+            // re-match effect above picks the code up when they land.
+            const matchedState = getStates(matchedCountryCode).find(
               (s) => s.name === geocoded.state,
             );
             setState(geocoded.state);
-            setStateCode(matchedState?.isoCode ?? "");
+            setStateCode(matchedState?.code ?? "");
           }
           if (!city) setCity(geocoded.city);
         }
@@ -448,6 +476,11 @@ export function LocationSheet({
             title="State/Province/Region"
             items={stateItems}
             allowCustom
+            loadingNote={
+              statesStillLoading
+                ? "Still loading regions for this country — you can type yours in."
+                : undefined
+            }
             onSelect={selectState}
             onClose={() => setPickerOpen(null)}
           />

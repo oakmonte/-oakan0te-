@@ -14,8 +14,6 @@ import {
   Image as ImageIcon,
   Wallet,
   ArrowLeftCircle,
-  Palette,
-  MapPin,
   Store as StoreIcon,
 } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
@@ -23,7 +21,6 @@ import { useSession } from "@/hooks/use-session";
 import { useActiveStore } from "@/hooks/use-own-store";
 import { StoreHeaderProvider } from "@/context/store-header-provider";
 import { useStoreHeader } from "@/hooks/use-store-header";
-import { LocationsListSheet } from "@/components/store/LocationsListSheet";
 
 export const Route = createFileRoute("/store")({
   // theme-color is NOT declared here any more. The dashboard needs a different
@@ -85,17 +82,15 @@ const NAV_ITEMS = [
   { label: "Discounts", to: "/store/discounts", icon: Tag },
   { label: "Content", to: "/store/content", icon: ImageIcon },
   { label: "Finance", to: "/store/finance", icon: Wallet },
-  // Store themes has a route and has never been in this list -- until now it
-  // was reachable ONLY through the setup checklist, so replacing that checklist
-  // with the dashboard would have stranded a finished feature. Pickup locations
-  // has the same history but no route (it is a sheet), so it is a button below
-  // the list rather than an entry in it.
-  { label: "Store themes", to: "/store/theme", icon: Palette },
+  // Store themes and Pickup locations are deliberately NOT here. They belong to
+  // the store home only (the Edit store button and Quick actions on the
+  // dashboard, and the setup checklist before that) -- Diadem's call. Keeping
+  // them out of this layout also keeps the pickup-location sheet out of the
+  // module graph of every other /store screen.
 ];
 
 function StoreLayoutInner() {
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [locationsOpen, setLocationsOpen] = useState(false);
   const closeDrawer = useCallback(() => setDrawerOpen(false), []);
   useOverlayHistory(drawerOpen, closeDrawer);
 
@@ -203,23 +198,6 @@ function StoreLayoutInner() {
                   {label}
                 </Link>
               ))}
-
-              {/* Pickup locations is a sheet, not a route (/store/locations does
-                  not exist -- only /store/locations/new), so it cannot be a
-                  Link. It belongs here regardless: like Store themes it was
-                  previously reachable only from the setup checklist, and the
-                  dashboard replaces that checklist. */}
-              <button
-                type="button"
-                onClick={() => {
-                  setDrawerOpen(false);
-                  setLocationsOpen(true);
-                }}
-                className="flex shrink-0 items-center gap-3.5 px-3 py-4 rounded-xl hover:bg-white/10 text-base text-left transition-colors duration-150"
-              >
-                <MapPin size={20} />
-                Pickup locations
-              </button>
             </nav>
 
             {/* Switching store lives here now, not in the header. The header's
@@ -269,12 +247,6 @@ function StoreLayoutInner() {
             </div>
           </div>
         </div>
-      )}
-
-      {/* Rendered by the LAYOUT, not the drawer, so closing the drawer that
-          opened it does not tear it down in the same breath. */}
-      {locationsOpen && store && (
-        <LocationsListSheet storeId={store.id} onClose={() => setLocationsOpen(false)} />
       )}
     </div>
   );

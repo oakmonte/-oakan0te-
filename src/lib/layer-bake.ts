@@ -143,7 +143,7 @@ function drawDrawLayer(ctx: CanvasRenderingContext2D, layer: DrawLayer, canvasW:
   // rotated/scaled to the layer's origin, so each point just needs converting
   // from a 0-1 fraction to raw pixels here.
   for (const stroke of layer.strokes) {
-    if (stroke.points.length < 2) continue;
+    if (stroke.points.length === 0) continue;
     ctx.beginPath();
     ctx.strokeStyle = stroke.color;
     ctx.lineWidth = stroke.width * canvasW;
@@ -154,12 +154,21 @@ function drawDrawLayer(ctx: CanvasRenderingContext2D, layer: DrawLayer, canvasW:
       ctx.shadowBlur = stroke.width * canvasW * 1.2;
     }
     const [firstX, firstY] = stroke.points[0];
-    ctx.moveTo(firstX * canvasW, firstY * canvasW);
-    for (let i = 1; i < stroke.points.length; i++) {
-      const [x, y] = stroke.points[i];
-      ctx.lineTo(x * canvasW, y * canvasW);
+    if (stroke.points.length === 1) {
+      // A dot. A zero-length lineTo with a round cap is left to the browser
+      // to paint or skip, so fill the circle outright — the same shape
+      // StrokeShape draws on screen.
+      ctx.fillStyle = stroke.color;
+      ctx.arc(firstX * canvasW, firstY * canvasW, (stroke.width * canvasW) / 2, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      ctx.moveTo(firstX * canvasW, firstY * canvasW);
+      for (let i = 1; i < stroke.points.length; i++) {
+        const [x, y] = stroke.points[i];
+        ctx.lineTo(x * canvasW, y * canvasW);
+      }
+      ctx.stroke();
     }
-    ctx.stroke();
     ctx.shadowColor = "transparent";
     ctx.shadowBlur = 0;
   }

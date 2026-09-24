@@ -5,6 +5,7 @@ import { activeLabel } from "@/lib/messages-format";
 import { ConversationAvatar } from "./ConversationAvatar";
 import { VerifiedBadge } from "./VerifiedBadge";
 import { glassFloating } from "./glass";
+import { GLASS_RIM } from "@/lib/liquid-glass";
 
 type Props = {
   conversation: Conversation;
@@ -80,7 +81,7 @@ export function ChatHeader({
         {menuOpen && (
           <div
             role="menu"
-            className="absolute right-1 top-11 z-40 w-[188px] overflow-hidden rounded-[16px] text-[14px] text-chat-text"
+            className={`absolute right-1 top-11 z-40 w-[188px] overflow-hidden rounded-[16px] text-[14px] text-chat-text ${GLASS_RIM}`}
             style={glassFloating}
           >
             <button

@@ -696,6 +696,34 @@ input:-webkit-autofill:active {
     box-shadow 180ms ease-out;
 }
 
+/* Liquid-glass rim -- see src/lib/liquid-glass.ts. A 1px ring cut out of a
+   gradient with a mask, so the edge can be bright where light catches it
+   (top-left, bottom-right) and fade along the sides; a border can only be one
+   colour all the way round. `--oak-rim` scales it per preset. */
+.oak-glass-rim::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(255, 255, 255, 0.28) 20%,
+    rgba(255, 255, 255, 0.06) 45%,
+    rgba(255, 255, 255, 0.06) 60%,
+    rgba(255, 255, 255, 0.32) 82%,
+    rgba(255, 255, 255, 0.75) 100%
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: var(--oak-rim, 1);
+  pointer-events: none;
+}
+
 /* Barcode-scanner sweep line -- ping-ponged with alternate rather than reset
    to 0% on loop, so the line never jump-cuts back to the top. */
 @keyframes oak-scan-sweep {

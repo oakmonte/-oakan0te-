@@ -11,6 +11,13 @@ export default tseslint.config(
       "dist",
       ".output",
       ".vinxi",
+      // Build output from `VERCEL=1 bun run build` (the Vercel preset, which
+      // CLAUDE.md suggests running locally to check a deploy) and from the
+      // default Cloudflare preset. Both are gitignored but were NOT ignored
+      // here, so linting after a local Vercel build crawled ~95 MB of bundled
+      // server code and appeared to hang.
+      ".vercel",
+      ".wrangler",
       // Generated Supabase types. These are replaced wholesale by the type
       // generator (and, for the two integrations/supabase copies, by Lovable),
       // so formatting them only survives until the next regeneration.

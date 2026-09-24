@@ -31,6 +31,7 @@ import { formatCommunityCount, useStoreCommunityCounts } from "./useStoreCommuni
 import { useThemePreviewCatalog, type PreviewTile, type TilePhoto } from "./useThemePreviewCatalog";
 import { readableTextColor } from "./colors";
 import { alpha, isDark } from "./theme-spec";
+import { GLASS_RIM, glassClear } from "@/lib/liquid-glass";
 
 function clamp(v: number, min: number, max: number) {
   return Math.min(max, Math.max(min, v));
@@ -250,19 +251,6 @@ function CroppableImage({
 
 const MAX_DOTS = 4;
 
-// Liquid glass, rich variant — this pill floats over a photo, which is
-// exactly the case that recipe's low-opacity background is for. See the
-// liquid-glass skill: the blur/saturate pair and the inset highlight inside
-// the box-shadow are fixed, only opacity and shadow flex per surface.
-const GLASS: CSSProperties = {
-  background: "rgba(255,255,255,0.07)",
-  backdropFilter: "blur(20px) saturate(180%)",
-  WebkitBackdropFilter: "blur(20px) saturate(180%)",
-  backgroundBlendMode: "screen",
-  boxShadow: "0px 8px 40px rgba(0,0,0,0.20), inset 0 1px 0 rgba(255,255,255,0.25)",
-  border: "1px solid rgba(255,255,255,0.12)",
-};
-
 // At most four dots, however many photos there are — the active one simply
 // cycles through them (photo 5 lights the first dot again), which is what
 // keeps a sixteen-photo strip reading as four dots ticking over instead of a
@@ -463,8 +451,8 @@ function CatalogTile({
             type="button"
             aria-label={`More about ${tile.title}`}
             onClick={(e) => e.stopPropagation()}
-            className="absolute bottom-2 right-2 flex h-[36px] w-[36px] items-center justify-center rounded-full text-white"
-            style={GLASS}
+            className={`absolute bottom-2 right-2 flex h-[36px] w-[36px] items-center justify-center rounded-full text-white ${GLASS_RIM}`}
+            style={glassClear}
           >
             <MoreHorizontal size={18} strokeWidth={2.5} />
           </button>
@@ -1241,8 +1229,8 @@ export function CollectionsGrid({
                     {!editing?.isEditing && (
                       <span
                         aria-hidden="true"
-                        className="absolute bottom-2 right-2 flex h-[36px] w-[36px] items-center justify-center rounded-full text-white"
-                        style={GLASS}
+                        className={`absolute bottom-2 right-2 flex h-[36px] w-[36px] items-center justify-center rounded-full text-white ${GLASS_RIM}`}
+                        style={glassClear}
                       >
                         <MoreHorizontal size={18} strokeWidth={2.5} />
                       </span>

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { X, Check, RotateCcw } from "lucide-react";
 import { composeCropRect, isCropNoop, type CropRect } from "@/lib/crop-rect";
+import { GLASS_RIM, glassClear } from "@/lib/liquid-glass";
 
 type Handle = "nw" | "ne" | "sw" | "se" | "n" | "s" | "w" | "e";
 
@@ -420,16 +421,16 @@ export default function CropPanel({
         <button
           onClick={handleCancel}
           aria-label="Cancel crop"
-          className="oak-motion-control flex items-center justify-center w-10 h-10 rounded-full active:scale-90"
-          style={{ background: "rgba(255,255,255,0.15)", backdropFilter: "blur(12px)" }}
+          className={`relative oak-motion-control flex items-center justify-center w-10 h-10 rounded-full active:scale-90 ${GLASS_RIM}`}
+          style={glassClear}
         >
           <X size={20} color="#fff" />
         </button>
         <button
           onClick={resetRect}
           aria-label="Reset crop"
-          className="oak-motion-control flex items-center justify-center w-10 h-10 rounded-full active:scale-90"
-          style={{ background: "rgba(255,255,255,0.15)", backdropFilter: "blur(12px)" }}
+          className={`relative oak-motion-control flex items-center justify-center w-10 h-10 rounded-full active:scale-90 ${GLASS_RIM}`}
+          style={glassClear}
         >
           <RotateCcw size={18} color="#fff" />
         </button>

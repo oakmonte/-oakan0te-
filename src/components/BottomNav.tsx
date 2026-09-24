@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { animate, motion, useMotionValue, useTransform, useVelocity } from "framer-motion";
+import { GLASS_RIM, glassLens, glassLight } from "@/lib/liquid-glass";
 import { isStandalone } from "@/lib/standalone";
 import { useGoRoot } from "@/hooks/use-back";
 import type { NavTarget } from "@/lib/nav-hierarchy";
@@ -21,6 +22,19 @@ const NAV_HEIGHT = 60;
 // Gap above the safe-area inset. Two values on purpose — see the nav's style.
 const GAP_BROWSER = 12;
 const GAP_INSTALLED = 4;
+
+// Every screen with a tab bar renders its OWN BottomNav, so switching section
+// unmounts one and mounts another. On its own that means the lens never
+// travels between tabs — the new nav is born with the lens already in place.
+// This is the hand-off: where the lens was, how fast it was going, and which
+// tab was lit when the old nav went away. The next nav starts from exactly
+// there and carries the motion on, so the slide reads as one continuous move
+// across the page change.
+let handoff: { x: number; velocity: number; activeIndex: number; colWidth: number } | null = null;
+
+// Quick and slightly elastic: lands in ~350ms with a small overshoot rather
+// than a bounce.
+const LENS_SPRING = { type: "spring", stiffness: 420, damping: 32, mass: 0.9 } as const;
 
 export function BottomNav({ active, ownUsername }: BottomNavProps) {
   // Tabs REPLACE rather than push, and unwind the stack on the way, so a root
@@ -50,7 +64,9 @@ export function BottomNav({ active, ownUsername }: BottomNavProps) {
   ];
 
   const trackRef = useRef<HTMLDivElement>(null);
-  const [colWidth, setColWidth] = useState(58);
+  // Seeded from the last nav's measurement, so the lens doesn't jump the
+  // moment this one measures itself.
+  const [colWidth, setColWidth] = useState(handoff?.colWidth ?? 58);
 
   useEffect(() => {
     const el = trackRef.current;
@@ -78,6 +94,62 @@ export function BottomNav({ active, ownUsername }: BottomNavProps) {
     items.findIndex((item) => item.key === active),
   );
 
+  // Where the lens is headed. Set on tap, before navigating — the tab root
+  // swap can take a few hundred ms to unwind history (useGoRoot), and a lens
+  // that waits for it feels like lag.
+  const [targetIndex, setTargetIndex] = useState(activeIndex);
+  useEffect(() => setTargetIndex(activeIndex), [activeIndex]);
+
+  // Which icon was lit on the previous nav, so its dimming animates too.
+  const [litFrom] = useState(() => handoff?.activeIndex ?? activeIndex);
+  // Read once: whether this nav continues a previous one's motion.
+  const [inherited] = useState(() => handoff);
+
+  const x = useMotionValue(inherited ? inherited.x : activeIndex * colWidth);
+  const velocity = useVelocity(x);
+  // The liquid part: while travelling the lens stretches along the direction
+  // of motion and thins, then settles back round as the spring comes to rest.
+  const scaleX = useTransform(velocity, [-2400, 0, 2400], [1.3, 1, 1.3]);
+  const scaleY = useTransform(velocity, [-2400, 0, 2400], [0.84, 1, 0.84]);
+
+  const firstRun = useRef(true);
+  useEffect(() => {
+    const to = targetIndex * colWidth;
+    const first = firstRun.current;
+    firstRun.current = false;
+    // The very first nav of the session has nothing to continue: place the
+    // lens (including after it measures its real width) instead of flying it
+    // in from wherever the placeholder width put it.
+    if (!inherited && x.getVelocity() === 0 && targetIndex === activeIndex) {
+      x.jump(to);
+      return;
+    }
+    const controls = animate(x, to, {
+      ...LENS_SPRING,
+      velocity: first && inherited ? inherited.velocity : x.getVelocity(),
+    });
+    return () => controls.stop();
+  }, [targetIndex, colWidth, activeIndex, inherited, x]);
+
+  const targetIndexRef = useRef(targetIndex);
+  const colWidthRef = useRef(colWidth);
+  useEffect(() => {
+    targetIndexRef.current = targetIndex;
+    colWidthRef.current = colWidth;
+  }, [targetIndex, colWidth]);
+
+  useEffect(
+    () => () => {
+      handoff = {
+        x: x.get(),
+        velocity: x.getVelocity(),
+        activeIndex: targetIndexRef.current,
+        colWidth: colWidthRef.current,
+      };
+    },
+    [x],
+  );
+
   return (
     <nav
       className="fixed left-1/2 -translate-x-1/2 z-50"
@@ -101,103 +173,40 @@ export function BottomNav({ active, ownUsername }: BottomNavProps) {
     >
       <div
         ref={trackRef}
-        className="relative flex items-center w-full h-full"
-        style={{
-          padding: PADDING,
-          borderRadius: 999,
-          background: "rgba(255,255,255,0.34)",
-          border: "1px solid rgba(255,255,255,0.58)",
-          boxShadow:
-            "0 18px 46px rgba(0,0,0,0.28), 0 4px 12px rgba(0,0,0,0.14), inset 0 1px 0 rgba(255,255,255,0.72), inset 0 -1px 3px rgba(0,0,0,0.05)",
-          backdropFilter: "blur(30px) saturate(195%)",
-          WebkitBackdropFilter: "blur(30px) saturate(195%)",
-        }}
+        className={`relative flex items-center w-full h-full ${GLASS_RIM}`}
+        style={{ ...glassLight, padding: PADDING, borderRadius: 999 }}
       >
-        {/* top-edge specular highlight */}
-        <span
-          aria-hidden
-          style={{
-            position: "absolute",
-            top: 2,
-            left: "12%",
-            right: "12%",
-            height: "44%",
-            borderRadius: 999,
-            background: "linear-gradient(180deg, rgba(255,255,255,0.58), rgba(255,255,255,0))",
-            filter: "blur(1.5px)",
-            pointerEvents: "none",
-          }}
-        />
-        {/* faint bottom refraction glow */}
-        <span
-          aria-hidden
-          style={{
-            position: "absolute",
-            bottom: 2,
-            left: "22%",
-            right: "22%",
-            height: "30%",
-            borderRadius: 999,
-            background: "linear-gradient(0deg, rgba(255,255,255,0.20), rgba(255,255,255,0))",
-            filter: "blur(2px)",
-            pointerEvents: "none",
-          }}
-        />
-
-        {/* sliding glass lens — spring physics for a liquid, momentum feel */}
+        {/* The lens: a brighter drop of the same glass, sprung between tabs
+            and stretched by its own velocity — see scaleX/scaleY above. */}
         <motion.span
           aria-hidden
-          initial={false}
-          animate={{
-            x: activeIndex * colWidth,
-            scale: 1,
-          }}
-          transition={{
-            type: "spring",
-            stiffness: 260,
-            damping: 22,
-            mass: 0.7,
-          }}
+          className={GLASS_RIM}
           style={{
+            ...glassLens,
+            x,
+            scaleX,
+            scaleY,
             position: "absolute",
             top: PADDING,
             left: PADDING,
             width: colWidth,
             height: NAV_HEIGHT - PADDING * 2,
             borderRadius: 999,
-            background: "rgba(255,255,255,0.88)",
-            border: "1px solid rgba(255,255,255,0.92)",
-            boxShadow:
-              "inset 0 1.5px 1px rgba(255,255,255,0.96), inset 0 -2px 5px rgba(0,0,0,0.08), 0 5px 18px rgba(0,0,0,0.20)",
-            backdropFilter: "blur(18px) saturate(175%) brightness(1.07)",
-            WebkitBackdropFilter: "blur(18px) saturate(175%) brightness(1.07)",
-            transformOrigin: "center center",
             willChange: "transform",
           }}
-        >
-          {/* lens inner top streak */}
-          <span
-            style={{
-              position: "absolute",
-              top: 2,
-              left: "18%",
-              right: "18%",
-              height: "38%",
-              borderRadius: 999,
-              background: "linear-gradient(180deg, rgba(255,255,255,0.92), rgba(255,255,255,0))",
-              filter: "blur(1px)",
-              pointerEvents: "none",
-            }}
-          />
-        </motion.span>
+        />
 
-        {items.map(({ key, label, icon, to, params }) => {
-          const isActive = key === active;
+        {items.map(({ key, label, icon, to, params }, i) => {
+          const isActive = i === targetIndex;
+          const wasActive = i === litFrom;
           return (
             <button
               key={key}
               type="button"
-              onClick={() => goRoot({ to, params } as NavTarget)}
+              onClick={() => {
+                setTargetIndex(i);
+                if (key !== active) goRoot({ to, params } as NavTarget);
+              }}
               aria-label={label}
               aria-current={isActive ? "page" : undefined}
               className="relative flex-1 flex items-center justify-center"
@@ -213,7 +222,13 @@ export function BottomNav({ active, ownUsername }: BottomNavProps) {
               <motion.img
                 src={icon}
                 alt=""
-                initial={false}
+                // Start from how the previous nav showed this icon, so the tab
+                // being left dims and the one arrived at lifts, across the
+                // page change.
+                initial={
+                  wasActive ? { scale: 1.18, opacity: 1, y: -1 } : { scale: 1, opacity: 0.55, y: 0 }
+                }
+                whileTap={{ scale: 0.86 }}
                 animate={{
                   scale: isActive ? 1.18 : 1,
                   opacity: isActive ? 1 : 0.55,
