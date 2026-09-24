@@ -423,7 +423,9 @@ function Index() {
                 {isOpen && (
                   <div
                     className="absolute top-full left-1/2 -translate-x-1/2 pt-4"
-                    style={{ animation: "ddFadeIn 180ms ease-out both" }}
+                    style={{
+                      animation: "ddFadeIn var(--duration-fast) var(--ease-smooth-out) both",
+                    }}
                   >
                     <div
                       className={`bg-brand-bg border border-brand-text/10 shadow-xl normal-case tracking-normal py-3 ${key === "product" ? "w-[560px] grid grid-cols-2" : "w-80"}`}
@@ -433,7 +435,7 @@ function Index() {
                           key={it.title}
                           href={it.href}
                           className="block px-5 py-3 hover:bg-brand-muted/40 transition-colors"
-                          style={{ animation: `ddItemIn 220ms ease-out ${i * 30}ms both` }}
+                          style={{ animation: `ddItemIn 220ms ease-out ${i * 40}ms both` }}
                         >
                           <div className="text-sm font-semibold">{it.title}</div>
                           <div className="text-xs text-brand-text/60 font-light mt-0.5 leading-snug">

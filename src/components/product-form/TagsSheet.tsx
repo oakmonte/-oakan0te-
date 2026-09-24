@@ -82,7 +82,7 @@ export function TagsSheet({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-white flex flex-col min-h-dvh animate-in fade-in slide-in-from-bottom-6 duration-300 ease-out">
+    <div className="fixed inset-0 z-50 bg-white flex flex-col min-h-dvh animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]">
       <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
         <button onClick={onClose} type="button" className="p-1 -ml-1">
           <X size={20} className="text-gray-500" />
@@ -185,11 +185,11 @@ export function TagsSheet({
 
       {menuOpen && (
         <div
-          className="fixed inset-0 z-50 bg-black/40 flex items-end justify-center px-3 pb-24 animate-in fade-in duration-200"
+          className="fixed inset-0 z-50 bg-black/40 flex items-end justify-center px-3 pb-24 animate-in fade-in duration-[var(--duration-fast)]"
           onClick={() => setMenuOpen(false)}
         >
           <div
-            className="bg-white rounded-2xl w-full max-w-xs overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-250 ease-out"
+            className="bg-white rounded-2xl w-full max-w-xs overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-[var(--duration-fast)] ease-[var(--ease-smooth-out)]"
             onClick={(e) => e.stopPropagation()}
           >
             <p className="text-center text-sm font-semibold text-gray-900 py-3 border-b border-gray-100">
@@ -223,11 +223,11 @@ export function TagsSheet({
 
       {selectedPanelOpen && (
         <div
-          className="fixed inset-0 z-50 bg-black/40 flex items-end justify-center px-3 pb-24 animate-in fade-in duration-200"
+          className="fixed inset-0 z-50 bg-black/40 flex items-end justify-center px-3 pb-24 animate-in fade-in duration-[var(--duration-fast)]"
           onClick={() => setSelectedPanelOpen(false)}
         >
           <div
-            className="bg-white rounded-2xl w-full max-w-xs p-4 animate-in fade-in slide-in-from-bottom-4 duration-250 ease-out"
+            className="bg-white rounded-2xl w-full max-w-xs p-4 animate-in fade-in slide-in-from-bottom-4 duration-[var(--duration-fast)] ease-[var(--ease-smooth-out)]"
             onClick={(e) => e.stopPropagation()}
           >
             <p className="text-sm font-semibold text-gray-900 mb-2">Selected tags</p>

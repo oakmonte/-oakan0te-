@@ -31,9 +31,12 @@ import {
   type SwipeAction,
 } from "@/lib/edge-swipe";
 
-const SLIDE_MS = 220;
-const SPRING_BACK = "transform 260ms cubic-bezier(0.2, 0.9, 0.3, 1)";
-const SLIDE_OUT = `transform ${SLIDE_MS}ms cubic-bezier(0.3, 0.6, 0.4, 1)`;
+// 250, matching --duration-fast (position-change usage) -- kept as a plain
+// number, not read off the CSS var, since it also drives the setTimeout
+// below that waits for SLIDE_OUT's transition to finish.
+const SLIDE_MS = 250;
+const SPRING_BACK = "transform var(--duration-fast) var(--ease-smooth-out)";
+const SLIDE_OUT = `transform ${SLIDE_MS}ms var(--ease-smooth-out)`;
 /** If the navigation never lands — a history.go() the host webview swallows,
  *  or an onIntercept confirm the user declines — show the page again. */
 const NAV_TIMEOUT_MS = 700;

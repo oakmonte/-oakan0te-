@@ -28,7 +28,7 @@ export function ProductTypeSwitchSheet({
         className="absolute inset-0 bg-black/40 animate-in fade-in duration-200"
         onClick={onClose}
       />
-      <div className="relative w-full bg-white rounded-t-2xl p-5 pb-8 animate-in fade-in slide-in-from-bottom-6 duration-300 ease-out">
+      <div className="relative w-full bg-white rounded-t-2xl p-5 pb-8 animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-semibold text-base">Product type</h2>
           <button onClick={onClose} type="button" className="p-1 -mr-1">

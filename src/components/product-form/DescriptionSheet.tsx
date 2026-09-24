@@ -335,7 +335,7 @@ export function DescriptionSheet({
   const activeAlign = ALIGN_OPTIONS.find((o) => formats[o.command]) ?? ALIGN_OPTIONS[0];
 
   return (
-    <div className="fixed inset-0 z-50 bg-white flex flex-col animate-in fade-in slide-in-from-bottom-6 duration-300 ease-out">
+    <div className="fixed inset-0 z-50 bg-white flex flex-col animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]">
       <style>{`
         .oak-description-editor:empty:before {
           content: attr(data-placeholder);
@@ -400,7 +400,7 @@ export function DescriptionSheet({
                 label={label}
                 active={formats[command]}
                 onClick={() => applyAndCollapse(command)}
-                style={{ animationDelay: `${i * 30}ms` }}
+                style={{ animationDelay: `${i * 40}ms` }} /* --duration-stagger */
                 className="animate-in fade-in slide-in-from-left-2 duration-200 ease-out fill-mode-both"
               >
                 <Icon size={18} />
@@ -424,7 +424,7 @@ export function DescriptionSheet({
                 label={label}
                 active={formats[command]}
                 onClick={() => applyAndCollapse(command)}
-                style={{ animationDelay: `${i * 30}ms` }}
+                style={{ animationDelay: `${i * 40}ms` }} /* --duration-stagger */
                 className="animate-in fade-in slide-in-from-left-2 duration-200 ease-out fill-mode-both"
               >
                 <Icon size={18} />
