@@ -1,5 +1,5 @@
 import { useCallback, useRef } from "react";
-import { X } from "lucide-react";
+import { X, MoveDiagonal2 } from "lucide-react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import type { Layer } from "@/lib/after-shot-layers";
 
@@ -274,61 +274,118 @@ export default function LayerOverlay({
                 transform: `translate(-50%, -50%) rotate(${layer.rotation}deg) scale(${layer.scale})`,
                 touchAction: "none",
                 cursor: "move",
-                outline: isSelected ? "1.5px dashed rgba(255,255,255,0.8)" : "none",
-                outlineOffset: 6,
               }}
             >
               {renderLayerContent(layer)}
 
               {isSelected && (
-                <>
-                  {/* Scale / rotate handle — bottom-right corner */}
-                  <div
-                    onPointerDown={startTransform(layer)}
-                    className="absolute rounded-full"
-                    style={{
-                      width: HANDLE_SIZE,
-                      height: HANDLE_SIZE,
-                      right: -HANDLE_SIZE / 2,
-                      bottom: -HANDLE_SIZE / 2,
-                      background: "#fff",
-                      border: "2px solid #000",
-                      cursor: "nwse-resize",
-                      touchAction: "none",
-                    }}
-                  />
-                  {/* Delete handle — top-left corner. Stops propagation so the
-                      tap doesn't also re-drag or deselect before the layer is
-                      gone. */}
-                  {onRemoveLayer && (
-                    <button
-                      type="button"
-                      aria-label="Delete layer"
-                      onPointerDown={(e) => e.stopPropagation()}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onRemoveLayer(layer.id);
-                      }}
-                      className="absolute flex items-center justify-center rounded-full"
-                      style={{
-                        width: DELETE_HANDLE_SIZE,
-                        height: DELETE_HANDLE_SIZE,
-                        left: -DELETE_HANDLE_SIZE / 2,
-                        top: -DELETE_HANDLE_SIZE / 2,
-                        background: "#ff3b30",
-                        border: "2px solid #fff",
-                        touchAction: "none",
-                        zIndex: 2,
-                      }}
-                    >
-                      <X size={12} strokeWidth={3} color="#fff" />
-                    </button>
-                  )}
-                </>
+                <SelectionFrame
+                  layer={layer}
+                  onRemove={onRemoveLayer}
+                  startTransform={startTransform}
+                />
               )}
             </div>
           );
         })}
     </div>
+  );
+}
+
+// Everything below lives INSIDE the layer's scale() transform, so each size is
+// divided by layer.scale to come out at a constant on-screen size. Without that
+// the old dashed outline thickened and blurred as a caption was pinched up, and
+// the handles ballooned with it.
+const FRAME_PAD = 8; // on-screen px between the content and the frame
+const FRAME_RADIUS = 10;
+
+// A thin solid line with a faint dark halo — readable over a white shirt and a
+// black one alike, which the translucent dashed line never was.
+const FRAME_SHADOW = "0 0 0 0.5px rgba(0,0,0,0.28), 0 2px 10px rgba(0,0,0,0.22)";
+const HANDLE_SHADOW = "0 1px 3px rgba(0,0,0,0.35), 0 0 0 0.5px rgba(0,0,0,0.15)";
+
+function SelectionFrame({
+  layer,
+  onRemove,
+  startTransform,
+}: {
+  layer: Layer;
+  onRemove?: (id: string) => void;
+  startTransform: (layer: Layer) => (e: ReactPointerEvent) => void;
+}) {
+  const k = 1 / (layer.scale || 1);
+  const pad = FRAME_PAD * k;
+
+  // A corner anchor is a zero-size point ON the frame line; the handle is
+  // centred on it and counter-scaled, so it sits exactly on the corner at any
+  // zoom instead of drifting off it.
+  const corner = (pos: React.CSSProperties, child: React.ReactNode) => (
+    <div className="absolute" style={{ ...pos, width: 0, height: 0 }}>
+      <div
+        className="absolute"
+        style={{ left: 0, top: 0, transform: `translate(-50%, -50%) scale(${k})` }}
+      >
+        {child}
+      </div>
+    </div>
+  );
+
+  return (
+    <>
+      <div
+        className="oak-motion-fade absolute pointer-events-none"
+        style={{
+          inset: -pad,
+          borderRadius: FRAME_RADIUS * k,
+          border: `${1.5 * k}px solid rgba(255,255,255,0.95)`,
+          boxShadow: FRAME_SHADOW,
+        }}
+      />
+
+      {onRemove &&
+        corner(
+          { left: -pad, top: -pad },
+          <button
+            type="button"
+            aria-label="Delete layer"
+            // Stops propagation so the tap doesn't also re-drag or deselect
+            // before the layer is gone.
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              onRemove(layer.id);
+            }}
+            className="oak-motion-control flex items-center justify-center rounded-full active:scale-90"
+            style={{
+              width: DELETE_HANDLE_SIZE,
+              height: DELETE_HANDLE_SIZE,
+              background: "#fff",
+              boxShadow: HANDLE_SHADOW,
+              touchAction: "none",
+            }}
+          >
+            <X size={12} strokeWidth={2.75} color="#111" />
+          </button>,
+        )}
+
+      {/* Scale / rotate handle — bottom-right corner */}
+      {corner(
+        { right: -pad, bottom: -pad },
+        <div
+          onPointerDown={startTransform(layer)}
+          className="flex items-center justify-center rounded-full"
+          style={{
+            width: HANDLE_SIZE,
+            height: HANDLE_SIZE,
+            background: "#fff",
+            boxShadow: HANDLE_SHADOW,
+            cursor: "nwse-resize",
+            touchAction: "none",
+          }}
+        >
+          <MoveDiagonal2 size={12} strokeWidth={2.5} color="#111" />
+        </div>,
+      )}
+    </>
   );
 }

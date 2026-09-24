@@ -19,9 +19,6 @@ import {
   Ratio as RatioIcon,
   Blend,
   Heart,
-  Pause,
-  Play,
-  Square,
   Zap,
   ZapOff,
   Grid3x3,
@@ -32,14 +29,12 @@ import { setPendingCapture } from "@/lib/capture-handoff";
 import { getLastNonCreateRoute } from "@/lib/last-visited-route";
 import { useFilterThumbnail } from "@/lib/filter-thumbnail";
 import { exportVideo } from "@/lib/after-shot-export";
-import { LIVE_MAX_SECONDS } from "@/lib/photo-carousel";
 
 import RatioPanel, { type CameraRatio } from "@/components/camera/RatioPanel";
 import TimerPanel, { type CameraTimer } from "@/components/camera/TimerPanel";
 import FilterPanel from "@/components/camera/FilterPanel";
 import LayoutPanel from "@/components/camera/LayoutPanel";
 import LayoutPreview from "@/components/camera/LayoutPreview";
-import LiquidGlassSegmented from "@/components/camera/LiquidGlassSegmented";
 import CreatePanel from "@/components/create/CreatePanel";
 import { useDraftCount } from "@/hooks/use-draft-count";
 import {
@@ -62,7 +57,6 @@ export const Route = createFileRoute("/create/")({
   component: CreatePage,
 });
 
-type Mode = "photo" | "video";
 type Section = "shoot" | "create";
 type CapturePhase = "live" | "counting";
 type PanelType = "ratio" | "timer" | "layout" | "filters";
@@ -173,8 +167,8 @@ const ROW_EDGE = 20;
 // Anchored on the widest icon (flip camera) so its position is unchanged.
 const ICON_COLUMN_CENTER_X = ROW_EDGE + ROTATE_SIZE / 2;
 const iconColumnLeft = (size: number) => ICON_COLUMN_CENTER_X - size / 2;
-// Pushed closer to the screen edge (was ROW_EDGE + 56) to free up clear space
-// above the filter strip for the mode toggle to sit in.
+// Pushed closer to the screen edge (was ROW_EDGE + 56). The space above the
+// strip used to hold the Photo/Video toggle; it now holds the recording timer.
 const CAPTURE_ROW_BOTTOM = ROW_EDGE + 25;
 const CAPTURE_ROW_TOP = CAPTURE_ROW_BOTTOM + CAPTURE_SIZE;
 
@@ -182,18 +176,34 @@ const CAPTURE_ROW_TOP = CAPTURE_ROW_BOTTOM + CAPTURE_SIZE;
 // flash — spaced by one shared gap regardless of their differing heights.
 // Lifted a small amount off the row's base offset — enough that gallery, the
 // lowest of the three, isn't flush against the very bottom edge, but still
-// well under the PHOTO/VIDEO toggle's own distance from the bottom
-// (MODE_PILL_BOTTOM) so the column doesn't float independently of it.
+// well under the top of the capture row so the column doesn't float
+// independently of it.
 const ICON_COLUMN_GAP = 12;
 const ICON_COLUMN_LIFT = 6;
 const ROTATE_BOTTOM = CAPTURE_ROW_BOTTOM + (CAPTURE_SIZE - ROTATE_SIZE) / 2 + ICON_COLUMN_LIFT;
 const FLASH_TOGGLE_BOTTOM = ROTATE_BOTTOM + ROTATE_SIZE + ICON_COLUMN_GAP;
 const GALLERY_ICON_BOTTOM = ROTATE_BOTTOM - ICON_COLUMN_GAP - GALLERY_ICON_SIZE;
 
-// Gap between the mode toggle's bottom edge and the filter strip's top edge.
-const MODE_PILL_GAP = 8;
-const MODE_PILL_BOTTOM = CAPTURE_ROW_TOP + MODE_PILL_GAP;
-const MODE_PILL_TAB_WIDTH = 92; // fatter than the previous 74px
+// Snapchat-style shutter: tap for a photo, hold to record, slide up while
+// holding to zoom. There is no Photo/Video toggle — the gesture is the mode.
+//
+// 250ms: a deliberate tap lifts well inside it, and a hold starts recording
+// before it registers as a wait.
+const HOLD_TO_RECORD_MS = 250;
+// Past this many pixels before recording starts, the gesture is a filter
+// swipe, not a press.
+const HOLD_SLOP_PX = 10;
+const MAX_RECORD_SECONDS = 60;
+// A MediaRecorder stopped a few frames in can hand back a clip nothing will
+// decode. Letting go sooner than this still stops — just this late.
+const MIN_RECORD_MS = 600;
+// Finger travel upward (px) per 1x of zoom while recording.
+const ZOOM_DRAG_PX_PER_X = 90;
+// While recording the shutter grows, like Snapchat's, so the red progress ring
+// is visible past the thumb holding it.
+const RECORDING_RING_SCALE = 1.3;
+// Recording timer sits where the Photo/Video toggle used to.
+const RECORD_TIMER_BOTTOM = CAPTURE_ROW_TOP + 8 + (CAPTURE_SIZE * (RECORDING_RING_SCALE - 1)) / 2;
 
 const SWATCH_DIAMETER = CAPTURE_SIZE - 16;
 const BARRIER_EDGE = ROW_EDGE + ROTATE_SIZE + 10;
@@ -249,7 +259,6 @@ function CreatePage() {
   const cellVideoRefsRef = useRef<(HTMLVideoElement | null)[]>([]);
 
   const [facing, setFacing] = useState<"user" | "environment">("user");
-  const [mode, setMode] = useState<Mode>("photo");
   const [section, setSection] = useState<Section>(search.tab === "create" ? "create" : "shoot");
   const [labelsVisible, setLabelsVisible] = useState(false);
 
@@ -276,13 +285,20 @@ function CreatePage() {
   // this above 1 — CSS-scaling a video the hardware already zoomed optically
   // double-applies it, which is what was dragging the back camera's frame.
   const [cssZoomScale, setCssZoomScale] = useState(1);
+  // The recording draw loop reads zoom per frame through this, so sliding up
+  // to zoom mid-recording lands in the file and not just on the preview.
+  const cssZoomRef = useRef(1);
+  useEffect(() => {
+    cssZoomRef.current = cssZoomScale;
+  }, [cssZoomScale]);
   const zoomCapabilitiesRef = useRef<{ min: number; max: number; step: number } | null>(null);
   const pinchStateRef = useRef<{ startDistance: number; startZoom: number } | null>(null);
 
   const [capturePhase, setCapturePhase] = useState<CapturePhase>("live");
   const [countdownRemaining, setCountdownRemaining] = useState<number | null>(null);
   const [isRecording, setIsRecording] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
+  // Seconds recorded so far, for the timer above the shutter.
+  const [recordSeconds, setRecordSeconds] = useState(0);
   // True only while a recording that used a true-LUT filter is being
   // re-graded post-recording — see startRecording's needsPostGrade. Every
   // other capture (photo, or a video whose filter is matrix-only) never
@@ -313,14 +329,22 @@ function CreatePage() {
         // request the widest natural capture and crop to the selected ratio
         // ourselves in getCropRect, which keeps the framing wide and lets
         // us control the crop precisely instead of trusting the hardware to.
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: facing,
-            width: { ideal: 1920 },
-            frameRate: { ideal: 30 },
-          },
-          audio: mode === "video",
-        });
+        const video = {
+          facingMode: facing,
+          width: { ideal: 1920 },
+          frameRate: { ideal: 30 },
+        };
+        // Audio is opened up front, not when a hold starts: asking for the mic
+        // mid-hold would put a permission sheet (and on iOS a stall) between
+        // the finger going down and the recording starting. A refused mic
+        // still leaves a working camera — it just records silent.
+        let stream: MediaStream;
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ video, audio: true });
+        } catch (err) {
+          console.warn("Microphone unavailable, recording without sound:", err);
+          stream = await navigator.mediaDevices.getUserMedia({ video, audio: false });
+        }
         if (cancelled) {
           stream.getTracks().forEach((t) => t.stop());
           return;
@@ -352,7 +376,7 @@ function CreatePage() {
       cancelled = true;
       streamRef.current?.getTracks().forEach((t) => t.stop());
     };
-  }, [facing, mode]);
+  }, [facing]);
 
   // Rebind every per-cell live-preview video to the current stream whenever
   // it changes — these elements set srcObject imperatively via ref callback
@@ -510,8 +534,9 @@ function CreatePage() {
 
   // Multi-cell mode only ever applies to photo capture — video-cell
   // compositing is real scope (audio, mismatched durations, actual editing)
-  // and deliberately not attempted here.
-  const isMultiCellActive = mode === "photo" && activeLayout.cells.length > 1;
+  // and deliberately not attempted here, so holding the shutter in a layout
+  // does nothing but take the cell's photo.
+  const isMultiCellActive = activeLayout.cells.length > 1;
   const cellCaptures = cellCapturesByLayout[activeLayout.id] ?? [];
 
   // Lazily initialize this layout's cell slots the first time it's used.
@@ -804,188 +829,191 @@ function CreatePage() {
     mirrorCanvasStreamRef.current = null;
   }, []);
 
-  // `live` means this is a held-shutter capture in Photo mode: a short clip
-  // that becomes a live photo. It changes exactly two things — how long the
-  // recording is allowed to run, and where it lands afterwards. Everything in
-  // between (the mirror canvas, the post-grade, the codec choice) is the same
-  // recording path, which is the point: a live photo is not a second recorder.
-  const startRecording = useCallback(
-    (live = false) => {
-      const stream = streamRef.current;
-      const video = videoRef.current;
-      if (!stream || !video) return;
-      recordedChunksRef.current = [];
+  const recordStartedAtRef = useRef(0);
 
-      let recordingStream: MediaStream = stream;
+  const startRecording = useCallback(() => {
+    const stream = streamRef.current;
+    const video = videoRef.current;
+    if (!stream || !video) return;
+    recordedChunksRef.current = [];
 
-      // A filter with a true LUT grade is deliberately NOT baked live below
-      // (see resolveCaptureFilter's doc) — recording stays raw/unfiltered at
-      // 30fps, and recorder.onstop further down runs the true grade once as a
-      // post-process instead. A filter without a grade already IS its own
-      // matrix at full accuracy, so those still bake live exactly as before:
-      // no post-process, no extra encode generation, no change.
-      const needsPostGrade = !!activeFilter.grade && filterIntensity > 0;
-      const gradeFilter = activeFilter;
-      const gradeIntensity = filterIntensity;
+    let recordingStream: MediaStream = stream;
 
-      if (video.videoWidth > 0) {
-        const sourceWidth = video.videoWidth;
-        const sourceHeight = video.videoHeight;
-        const { sx, sy, sw, sh } = applyZoomToCrop(
-          getCropRect(sourceWidth, sourceHeight, RATIO_ASPECT[ratio]),
-          cssZoomScale,
-        );
-        const compiledFilterAtStart = needsPostGrade
-          ? IDENTITY_FILTER
-          : compileFilter(currentFilterCss);
-        const shouldMirror = facing === "user";
-        const cropIsNoop = sx === 0 && sy === 0 && sw === sourceWidth && sh === sourceHeight;
-        const canUseNativeStream =
-          cropIsNoop &&
-          cssZoomScale === 1 &&
-          !shouldMirror &&
-          compiledFilterAtStart === IDENTITY_FILTER;
+    // A filter with a true LUT grade is deliberately NOT baked live below
+    // (see resolveCaptureFilter's doc) — recording stays raw/unfiltered at
+    // 30fps, and recorder.onstop further down runs the true grade once as a
+    // post-process instead. A filter without a grade already IS its own
+    // matrix at full accuracy, so those still bake live exactly as before:
+    // no post-process, no extra encode generation, no change.
+    const needsPostGrade = !!activeFilter.grade && filterIntensity > 0;
+    const gradeFilter = activeFilter;
+    const gradeIntensity = filterIntensity;
 
-        if (!canUseNativeStream) {
-          const recordCanvas = document.createElement("canvas");
-          recordCanvas.width = sw;
-          recordCanvas.height = sh;
-          const rctx = recordCanvas.getContext("2d");
+    if (video.videoWidth > 0) {
+      const sourceWidth = video.videoWidth;
+      const sourceHeight = video.videoHeight;
+      // The canvas is sized to the unzoomed crop; each frame samples the
+      // crop narrowed by the zoom at that moment and scales it up to fill.
+      const baseCrop = getCropRect(sourceWidth, sourceHeight, RATIO_ASPECT[ratio]);
+      const { sx, sy, sw, sh } = baseCrop;
+      const compiledFilterAtStart = needsPostGrade
+        ? IDENTITY_FILTER
+        : compileFilter(currentFilterCss);
+      const shouldMirror = facing === "user";
+      const cropIsNoop = sx === 0 && sy === 0 && sw === sourceWidth && sh === sourceHeight;
+      // Digital zoom is a crop, so it needs the canvas. Only the back camera
+      // with zoom hardware (applyZoom's first branch) zooms the stream itself.
+      const zoomIsHardware = facing === "environment" && zoomCapabilitiesRef.current !== null;
+      const canUseNativeStream =
+        cropIsNoop && zoomIsHardware && !shouldMirror && compiledFilterAtStart === IDENTITY_FILTER;
 
-          if (rctx) {
-            const drawFrame = () => {
-              rctx.save();
-              if (shouldMirror) {
-                rctx.translate(recordCanvas.width, 0);
-                rctx.scale(-1, 1);
-              }
-              rctx.drawImage(video, sx, sy, sw, sh, 0, 0, recordCanvas.width, recordCanvas.height);
-              if (compiledFilterAtStart !== IDENTITY_FILTER) {
-                const frame = rctx.getImageData(0, 0, recordCanvas.width, recordCanvas.height);
-                applyCompiledFilter(frame, compiledFilterAtStart);
-                rctx.putImageData(frame, 0, 0);
-              }
-              rctx.restore();
-              mirrorDrawLoopRef.current = requestAnimationFrame(drawFrame);
-            };
-            drawFrame();
+      if (!canUseNativeStream) {
+        const recordCanvas = document.createElement("canvas");
+        recordCanvas.width = sw;
+        recordCanvas.height = sh;
+        const rctx = recordCanvas.getContext("2d");
 
-            const canvasStream = recordCanvas.captureStream();
-            stream.getAudioTracks().forEach((track) => canvasStream.addTrack(track));
+        if (rctx) {
+          const drawFrame = () => {
+            rctx.save();
+            if (shouldMirror) {
+              rctx.translate(recordCanvas.width, 0);
+              rctx.scale(-1, 1);
+            }
+            const z = applyZoomToCrop(baseCrop, cssZoomRef.current);
+            rctx.drawImage(
+              video,
+              z.sx,
+              z.sy,
+              z.sw,
+              z.sh,
+              0,
+              0,
+              recordCanvas.width,
+              recordCanvas.height,
+            );
+            if (compiledFilterAtStart !== IDENTITY_FILTER) {
+              const frame = rctx.getImageData(0, 0, recordCanvas.width, recordCanvas.height);
+              applyCompiledFilter(frame, compiledFilterAtStart);
+              rctx.putImageData(frame, 0, 0);
+            }
+            rctx.restore();
+            mirrorDrawLoopRef.current = requestAnimationFrame(drawFrame);
+          };
+          drawFrame();
 
-            mirrorCanvasStreamRef.current = canvasStream;
-            recordingStream = canvasStream;
-          }
+          const canvasStream = recordCanvas.captureStream();
+          stream.getAudioTracks().forEach((track) => canvasStream.addTrack(track));
+
+          mirrorCanvasStreamRef.current = canvasStream;
+          recordingStream = canvasStream;
+        }
+      }
+    }
+
+    const candidates = [
+      "video/webm;codecs=vp9",
+      "video/webm;codecs=vp8",
+      "video/webm",
+      "video/mp4",
+    ];
+    const mimeType = candidates.find((t) => MediaRecorder.isTypeSupported(t)) ?? "";
+    const recorder = new MediaRecorder(
+      recordingStream,
+      mimeType ? { mimeType, videoBitsPerSecond: 8_000_000 } : { videoBitsPerSecond: 8_000_000 },
+    );
+
+    recorder.ondataavailable = (e) => {
+      if (e.data.size > 0) recordedChunksRef.current.push(e.data);
+    };
+    recorder.onstop = async () => {
+      stopMirrorDrawLoop();
+      const rawBlob = new Blob(recordedChunksRef.current, { type: mimeType || "video/webm" });
+
+      let finalBlob = rawBlob;
+      if (needsPostGrade) {
+        setIsGradingVideo(true);
+        setGradingProgress(0);
+        try {
+          // Same true-grade bake exportVideo already does for after-shot's
+          // export step — reused here instead of duplicated, with no layers
+          // (there aren't any yet at capture time).
+          finalBlob = await exportVideo(
+            rawBlob,
+            gradeFilter,
+            gradeIntensity,
+            [],
+            null,
+            setGradingProgress,
+          );
+        } catch (err) {
+          console.error("Post-recording grade failed, keeping the unfiltered capture:", err);
+        } finally {
+          setIsGradingVideo(false);
         }
       }
 
-      const candidates = [
-        "video/webm;codecs=vp9",
-        "video/webm;codecs=vp8",
-        "video/webm",
-        "video/mp4",
-      ];
-      const mimeType = candidates.find((t) => MediaRecorder.isTypeSupported(t)) ?? "";
-      const recorder = new MediaRecorder(
-        recordingStream,
-        mimeType ? { mimeType, videoBitsPerSecond: 8_000_000 } : { videoBitsPerSecond: 8_000_000 },
-      );
+      const url = URL.createObjectURL(finalBlob);
+      setPendingCapture({ type: "video", blob: finalBlob, url });
+      navigate({ to: "/create/after-shot" });
+    };
 
-      recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) recordedChunksRef.current.push(e.data);
-      };
-      recorder.onstop = async () => {
-        stopMirrorDrawLoop();
-        const rawBlob = new Blob(recordedChunksRef.current, { type: mimeType || "video/webm" });
+    recorder.start();
+    mediaRecorderRef.current = recorder;
+    recordStartedAtRef.current = performance.now();
+    setRecordSeconds(0);
+    setIsRecording(true);
+    if (navigator.vibrate) navigator.vibrate(12);
 
-        let finalBlob = rawBlob;
-        if (needsPostGrade) {
-          setIsGradingVideo(true);
-          setGradingProgress(0);
-          try {
-            // Same true-grade bake exportVideo already does for after-shot's
-            // export step — reused here instead of duplicated, with no layers
-            // (there aren't any yet at capture time).
-            finalBlob = await exportVideo(
-              rawBlob,
-              gradeFilter,
-              gradeIntensity,
-              [],
-              null,
-              setGradingProgress,
-            );
-          } catch (err) {
-            console.error("Post-recording grade failed, keeping the unfiltered capture:", err);
-          } finally {
-            setIsGradingVideo(false);
-          }
-        }
-
-        const url = URL.createObjectURL(finalBlob);
-        setPendingCapture({ type: "video", blob: finalBlob, url });
-        // A live photo is a photo-editor product — filters, crop, text, a sound
-        // — so it goes there, not to the after-shot screen a normal recording
-        // uses. The photo editor claims the pending capture on mount.
-        navigate({ to: live ? "/create/photo-editor" : "/create/after-shot" });
-      };
-
-      recorder.start();
-      mediaRecorderRef.current = recorder;
-      setIsRecording(true);
-      setIsPaused(false);
-
-      // A live photo stops itself; a normal recording just has a sane ceiling.
-      window.setTimeout(
-        () => {
-          if (mediaRecorderRef.current === recorder && recorder.state !== "inactive") {
-            recorder.stop();
-            setIsRecording(false);
-            setIsPaused(false);
-          }
-        },
-        live ? LIVE_MAX_SECONDS * 1000 : 60_000,
-      );
-    },
-    [
-      navigate,
-      facing,
-      currentFilterCss,
-      activeFilter,
-      filterIntensity,
-      stopMirrorDrawLoop,
-      ratio,
-      cssZoomScale,
-    ],
-  );
+    // Same ceiling the progress ring fills to — the ring running out is the
+    // recording ending, not a separate warning.
+    window.setTimeout(() => {
+      if (mediaRecorderRef.current === recorder && recorder.state !== "inactive") {
+        recorder.stop();
+        setIsRecording(false);
+      }
+    }, MAX_RECORD_SECONDS * 1000);
+  }, [
+    navigate,
+    facing,
+    currentFilterCss,
+    activeFilter,
+    filterIntensity,
+    stopMirrorDrawLoop,
+    ratio,
+  ]);
 
   const stopRecording = useCallback(() => {
-    mediaRecorderRef.current?.stop();
-    setIsRecording(false);
-    setIsPaused(false);
-  }, []);
-
-  const togglePause = useCallback(() => {
     const recorder = mediaRecorderRef.current;
-    if (!recorder) return;
-    if (recorder.state === "recording") {
-      recorder.pause();
-      setIsPaused(true);
-    } else if (recorder.state === "paused") {
-      recorder.resume();
-      setIsPaused(false);
+    if (!recorder || recorder.state === "inactive") return;
+    const wait = MIN_RECORD_MS - (performance.now() - recordStartedAtRef.current);
+    // The UI lets go at once either way; only the recorder is held open.
+    setIsRecording(false);
+    if (wait > 0) {
+      window.setTimeout(() => {
+        if (recorder.state !== "inactive") recorder.stop();
+      }, wait);
+    } else {
+      recorder.stop();
     }
   }, []);
 
+  useEffect(() => {
+    if (!isRecording) return;
+    const id = window.setInterval(() => {
+      setRecordSeconds(Math.floor((performance.now() - recordStartedAtRef.current) / 1000));
+    }, 250);
+    return () => clearInterval(id);
+  }, [isRecording]);
+
+  // A tap, or the end of a timer countdown, is always a photo. Video only
+  // comes from holding.
   const performCapture = useCallback(() => {
     setCapturePhase("live");
     setCountdownRemaining(null);
-    if (mode === "photo") {
-      if (isMultiCellActive) captureIntoActiveCell();
-      else capturePhoto();
-    } else {
-      startRecording();
-    }
-  }, [mode, isMultiCellActive, captureIntoActiveCell, capturePhoto, startRecording]);
+    if (isMultiCellActive) captureIntoActiveCell();
+    else capturePhoto();
+  }, [isMultiCellActive, captureIntoActiveCell, capturePhoto]);
 
   useEffect(() => {
     if (capturePhase !== "counting" || countdownRemaining === null) return;
@@ -997,20 +1025,23 @@ function CreatePage() {
     return () => clearTimeout(t);
   }, [capturePhase, countdownRemaining, performCapture]);
 
-  // Press-and-hold the shutter in Photo mode to record a live photo.
-  //
-  // Photo mode's stream is opened without an audio track (`audio: mode ===
-  // "video"` above), so a live photo is silent by construction — which is the
-  // behaviour we want anyway: if the post carries a sound, that track is what
-  // plays.
+  // Hold the shutter to record, let go to stop — Snapchat's gesture.
   const holdTimerRef = useRef<number | null>(null);
-  const liveRecordingRef = useRef(false);
+  // True from the moment a hold turns into a recording until the finger lifts.
+  const holdRecordingRef = useRef(false);
   // A hold ends with a click event too. Without this the tap handler would
   // fire straight after the hold ended and take a still on top of the clip.
   const suppressClickRef = useRef(false);
+  // Where the finger landed, and the zoom at the moment recording began, so
+  // sliding up can zoom relative to both.
+  const shutterOriginRef = useRef<{ x: number; y: number } | null>(null);
+  const zoomAtHoldRef = useRef(1);
+  const zoomLevelRef = useRef(zoomLevel);
+  useEffect(() => {
+    zoomLevelRef.current = zoomLevel;
+  }, [zoomLevel]);
 
-  const canHoldForLive =
-    mode === "photo" && !isMultiCellActive && timer === 0 && capturePhase !== "counting";
+  const canHoldToRecord = !isMultiCellActive && timer === 0 && capturePhase !== "counting";
 
   const clearHoldTimer = useCallback(() => {
     if (holdTimerRef.current !== null) {
@@ -1021,31 +1052,37 @@ function CreatePage() {
 
   useEffect(() => clearHoldTimer, [clearHoldTimer]);
 
-  // Where the finger landed on the shutter, so a swipe can be told from a hold.
-  const shutterOriginRef = useRef<{ x: number; y: number } | null>(null);
-  // Past this many pixels the gesture is a filter swipe, not a press.
-  const HOLD_SLOP_PX = 10;
+  const endHold = useCallback(() => {
+    shutterOriginRef.current = null;
+    clearHoldTimer();
+    if (!holdRecordingRef.current) return;
+    holdRecordingRef.current = false;
+    stopRecording();
+  }, [clearHoldTimer, stopRecording]);
 
   const handleShutterDown = useCallback(
     (e: PointerEvent) => {
       shutterOriginRef.current = { x: e.clientX, y: e.clientY };
-      if (!canHoldForLive) return;
-      // 350ms: long enough that a normal shutter tap never trips it, short
-      // enough that holding feels like it started recording immediately.
+      // Left over if the last hold ran into MAX_RECORD_SECONDS: the recorder
+      // stopped itself and the lift that would have cleared this never came.
+      holdRecordingRef.current = false;
+      suppressClickRef.current = false;
+      if (!canHoldToRecord) return;
       holdTimerRef.current = window.setTimeout(() => {
         holdTimerRef.current = null;
-        liveRecordingRef.current = true;
+        holdRecordingRef.current = true;
         suppressClickRef.current = true;
-        startRecording(true);
-      }, 350);
+        zoomAtHoldRef.current = zoomLevelRef.current;
+        startRecording();
+      }, HOLD_TO_RECORD_MS);
     },
-    [canHoldForLive, startRecording],
+    [canHoldToRecord, startRecording],
   );
 
-  // The strip scrolls under the finger by itself, but `pointercancel` only
-  // arrives once the browser has committed to the scroll — which can be after
-  // 350ms, by which time a hold would already be recording. Watching the
-  // movement ourselves cancels the hold at the moment the swipe becomes one.
+  // Before recording starts, movement past the slop means a filter swipe and
+  // cancels the hold — the strip scrolls under the finger by itself, but
+  // `pointercancel` only arrives once the browser has committed to the
+  // scroll, which can be after the hold would already have fired.
   const handleShutterMove = useCallback(
     (e: PointerEvent) => {
       const origin = shutterOriginRef.current;
@@ -1057,13 +1094,64 @@ function CreatePage() {
     [clearHoldTimer],
   );
 
-  const handleShutterUp = useCallback(() => {
-    shutterOriginRef.current = null;
-    clearHoldTimer();
-    if (!liveRecordingRef.current) return;
-    liveRecordingRef.current = false;
-    stopRecording();
-  }, [clearHoldTimer, stopRecording]);
+  // Before recording, a cancel is the strip taking the gesture: drop the hold.
+  // During recording it is ignored, and the window listeners below own the
+  // gesture instead.
+  const handleShutterCancel = useCallback(() => {
+    if (!holdRecordingRef.current) endHold();
+  }, [endHold]);
+
+  // Once recording, the gesture is followed on the WINDOW, through touch
+  // events as well as pointer events. The shutter lives inside a horizontal
+  // scroller, and a thumb sliding up to zoom drifts sideways: the moment the
+  // browser reads that as a pan it sends `pointercancel` and no further
+  // pointer events at all — no move, and no up to say the finger has lifted.
+  // Touch events keep coming through a pan and still end in `touchend`.
+  useEffect(() => {
+    if (!isRecording) return;
+    const zoomTo = (clientY: number) => {
+      const origin = shutterOriginRef.current;
+      if (!origin || !holdRecordingRef.current) return;
+      const up = Math.max(0, origin.y - clientY);
+      applyZoom(zoomAtHoldRef.current + up / ZOOM_DRAG_PX_PER_X);
+    };
+    const onPointerMove = (e: globalThis.PointerEvent) => {
+      if (e.pointerType !== "touch") zoomTo(e.clientY);
+    };
+    const onTouchMove = (e: globalThis.TouchEvent) => {
+      const t = e.touches[0];
+      if (t) zoomTo(t.clientY);
+    };
+    const onPointerUp = (e: globalThis.PointerEvent) => {
+      if (e.pointerType !== "touch") endHold();
+    };
+    const onTouchEnd = (e: globalThis.TouchEvent) => {
+      if (e.touches.length === 0) endHold();
+    };
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+    window.addEventListener("touchmove", onTouchMove, { passive: true });
+    window.addEventListener("touchend", onTouchEnd);
+    window.addEventListener("touchcancel", onTouchEnd);
+    return () => {
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
+      window.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("touchend", onTouchEnd);
+      window.removeEventListener("touchcancel", onTouchEnd);
+    };
+  }, [isRecording, applyZoom, endHold]);
+
+  // Leaving the screen mid-hold (tab switch, app backgrounded) never delivers
+  // a touchend — stop rather than record up to the ceiling.
+  useEffect(() => {
+    if (!isRecording) return;
+    const onHide = () => {
+      if (document.visibilityState === "hidden") endHold();
+    };
+    document.addEventListener("visibilitychange", onHide);
+    return () => document.removeEventListener("visibilitychange", onHide);
+  }, [isRecording, endHold]);
 
   const handleCaptureTap = useCallback(() => {
     // Swallow the click that closes a hold. Keyboard activation still reaches
@@ -1077,17 +1165,13 @@ function CreatePage() {
       setCountdownRemaining(null);
       return;
     }
-    if (mode === "video" && isRecording) {
-      stopRecording();
-      return;
-    }
     if (timer > 0) {
       setCapturePhase("counting");
       setCountdownRemaining(timer);
     } else {
       performCapture();
     }
-  }, [capturePhase, mode, isRecording, timer, performCapture, stopRecording]);
+  }, [capturePhase, timer, performCapture]);
 
   return (
     <div
@@ -1097,6 +1181,7 @@ function CreatePage() {
     >
       <style>{`
         .oak-filter-strip::-webkit-scrollbar { display: none; }
+        @keyframes oak-record-progress { from { stroke-dashoffset: 100; } to { stroke-dashoffset: 0; } }
         @keyframes oak-fade-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
         .oak-filter-strip {
           -webkit-mask-image: linear-gradient(to right, transparent ${BARRIER_EDGE}px, black ${BARRIER_EDGE}px);
@@ -1438,24 +1523,25 @@ function CreatePage() {
         </button>
       </div>
 
-      <div
-        className="absolute left-1/2 -translate-x-1/2"
-        style={{
-          bottom: `calc(env(safe-area-inset-bottom) + ${MODE_PILL_BOTTOM}px)`,
-          zIndex: 5,
-        }}
-      >
-        <LiquidGlassSegmented
-          options={[
-            { value: "photo", label: "Photo" },
-            { value: "video", label: "Video" },
-          ]}
-          value={mode}
-          onChange={setMode}
-          disabled={isRecording}
-          tabWidth={MODE_PILL_TAB_WIDTH}
-        />
-      </div>
+      {isRecording && (
+        <div
+          className="oak-motion-fade absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5 rounded-full px-2.5 py-1 pointer-events-none"
+          style={{
+            zIndex: 5,
+            bottom: `calc(env(safe-area-inset-bottom) + ${RECORD_TIMER_BOTTOM}px)`,
+            background: "rgba(0,0,0,0.35)",
+            backdropFilter: "blur(12px)",
+            fontVariantNumeric: "tabular-nums",
+          }}
+          role="timer"
+          aria-live="off"
+        >
+          <span className="block w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+          <span className="text-[13px] font-semibold">
+            0:{String(Math.min(recordSeconds, MAX_RECORD_SECONDS)).padStart(2, "0")}
+          </span>
+        </div>
+      )}
 
       <div
         ref={filterStripRef}
@@ -1465,9 +1551,9 @@ function CreatePage() {
           zIndex: 1,
           bottom: `calc(env(safe-area-inset-bottom) + ${CAPTURE_ROW_BOTTOM}px)`,
           height: CAPTURE_SIZE,
-          opacity: mode === "video" && isRecording ? 0 : 1,
-          pointerEvents: mode === "video" && isRecording ? "none" : "auto",
-          transition: "opacity 200ms ease-out",
+          // Frozen while recording: the filter was fixed when recording began,
+          // and a thumb sliding up to zoom must not drag the strip with it.
+          overflowX: isRecording ? "hidden" : undefined,
           scrollSnapType: "x mandatory",
           scrollbarWidth: "none",
           msOverflowStyle: "none",
@@ -1501,60 +1587,66 @@ function CreatePage() {
          * box — and it stays there at every scroll position, which is the ring
          * jammed against the right-hand edge. `left: 0` renders it at 145.5px
          * and holds there at scrollLeft 0, 168 and 504. */}
-        {!(mode === "video" && isRecording) && (
+        {/* Stays mounted while recording, and must: touch events keep going to
+            the element the touch started on, so removing the button mid-hold
+            would stop the window from ever hearing the finger lift. */}
+        <div
+          className="sticky shrink-0 pointer-events-none"
+          style={{
+            zIndex: 2,
+            left: 0,
+            width: 0,
+            height: CAPTURE_SIZE,
+          }}
+        >
           <div
-            className="sticky shrink-0 pointer-events-none"
+            className="absolute rounded-full"
             style={{
-              zIndex: 2,
+              top: 0,
               left: 0,
-              width: 0,
+              width: CAPTURE_SIZE,
               height: CAPTURE_SIZE,
+              border: "4px solid rgba(255,255,255,0.9)",
+              // Handed over to the recording ring outside the strip, which
+              // can grow past the strip's box without being clipped by it.
+              opacity: isRecording ? 0 : 1,
+              transition: "opacity 120ms ease-out",
             }}
-          >
-            <div
-              className="absolute rounded-full transition-colors duration-200"
-              style={{
-                top: 0,
-                left: 0,
-                width: CAPTURE_SIZE,
-                height: CAPTURE_SIZE,
-                // Red while a held shutter is recording a live photo. The ring
-                // is the only chrome that changes: everything else on the screen
-                // stays put, because the hold lasts a couple of seconds and a
-                // full recording UI arriving and leaving in that time is worse
-                // than no feedback at all.
-                border: `4px solid ${
-                  mode === "photo" && isRecording ? "#ef4444" : "rgba(255,255,255,0.9)"
-                }`,
-              }}
-            />
-            <button
-              onClick={handleCaptureTap}
-              onPointerDown={handleShutterDown}
-              onPointerMove={handleShutterMove}
-              onPointerUp={handleShutterUp}
-              onPointerCancel={handleShutterUp}
-              onPointerLeave={handleShutterUp}
-              aria-label={
-                mode === "photo" ? "Take photo, or hold for a live photo" : "Start recording"
-              }
-              className="absolute rounded-full pointer-events-auto"
-              style={{
-                top: 0,
-                left: 0,
-                width: CAPTURE_SIZE,
-                height: CAPTURE_SIZE,
-                background: "transparent",
-              }}
-            />
-          </div>
-        )}
+          />
+          <button
+            onClick={handleCaptureTap}
+            onPointerDown={handleShutterDown}
+            onPointerMove={handleShutterMove}
+            onPointerUp={endHold}
+            onPointerCancel={handleShutterCancel}
+            onContextMenu={(e) => e.preventDefault()}
+            aria-label="Take photo, or hold to record video"
+            className="absolute rounded-full pointer-events-auto"
+            style={{
+              top: 0,
+              left: 0,
+              width: CAPTURE_SIZE,
+              height: CAPTURE_SIZE,
+              background: "transparent",
+              // A long press must not start a text selection or the iOS
+              // callout — either one ends the touch and the recording.
+              WebkitUserSelect: "none",
+              userSelect: "none",
+              WebkitTouchCallout: "none",
+            }}
+          />
+        </div>
         {quickStripFilters.map((f, i) => (
           <button
             key={f.id}
             onClick={() => scrollFilterIntoRing(i)}
             className="shrink-0 flex items-center justify-center"
-            style={{ width: CAPTURE_SIZE, scrollSnapAlign: "center" }}
+            style={{
+              width: CAPTURE_SIZE,
+              scrollSnapAlign: "center",
+              opacity: isRecording ? 0 : 1,
+              transition: "opacity 200ms ease-out",
+            }}
           >
             <FilterSwatchThumb filter={f} diameter={SWATCH_DIAMETER} />
           </button>
@@ -1637,63 +1729,52 @@ function CreatePage() {
         }}
       />
 
-      {mode === "video" && isRecording ? (
-        <div
-          className="absolute left-1/2 -translate-x-1/2 flex items-center gap-6"
-          style={{
-            zIndex: 4,
-            bottom: `calc(env(safe-area-inset-bottom) + ${CAPTURE_ROW_BOTTOM}px)`,
-          }}
-        >
-          <button
-            onClick={togglePause}
-            aria-label={isPaused ? "Resume recording" : "Pause recording"}
-            className="flex items-center justify-center rounded-full transition-transform duration-150 active:scale-90"
-            style={{
-              width: CAPTURE_SIZE,
-              height: CAPTURE_SIZE,
-              border: "4px solid rgba(255,255,255,0.9)",
-              background: "rgba(255,255,255,0.10)",
-              backdropFilter: "blur(12px)",
-            }}
-          >
-            {isPaused ? <Play size={28} /> : <Pause size={28} />}
-          </button>
-          <button
-            onClick={stopRecording}
-            aria-label="Stop recording"
-            className="flex items-center justify-center rounded-full transition-transform duration-150 active:scale-90"
-            style={{
-              width: CAPTURE_SIZE,
-              height: CAPTURE_SIZE,
-              border: "4px solid #ef4444",
-              background: "rgba(255,255,255,0.10)",
-              backdropFilter: "blur(12px)",
-            }}
-          >
-            <Square size={24} fill="#ef4444" color="#ef4444" />
-          </button>
-        </div>
-      ) : (
-        /* The ring and the shutter button itself are rendered inside the filter
-         * strip above, so a swipe that starts on them scrolls it. Only the LIVE
-         * badge stays out here: `overflow-x: auto` clips the other axis too, and
-         * the badge sits above the strip's box. */
-        mode === "photo" &&
-        isRecording && (
-          <span
-            className="absolute pointer-events-none rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold tracking-wide text-white"
-            style={{
-              zIndex: 5,
-              left: "50%",
-              transform: "translateX(-50%)",
-              bottom: `calc(env(safe-area-inset-bottom) + ${CAPTURE_ROW_BOTTOM + CAPTURE_SIZE + 10}px)`,
-            }}
-          >
-            LIVE
-          </span>
-        )
-      )}
+      {/* The recording shutter, Snapchat's: the ring grows out from under the
+       * thumb and a red arc fills it over MAX_RECORD_SECONDS. Outside the
+       * strip because `overflow-x: auto` clips the other axis too, and a
+       * grown ring is taller than the strip. Pointer-events none — the touch
+       * still belongs to the shutter button underneath. */}
+      <div
+        className="absolute pointer-events-none"
+        style={{
+          zIndex: 4,
+          left: "50%",
+          bottom: `calc(env(safe-area-inset-bottom) + ${CAPTURE_ROW_BOTTOM}px)`,
+          width: CAPTURE_SIZE,
+          height: CAPTURE_SIZE,
+          marginLeft: -CAPTURE_SIZE / 2,
+          opacity: isRecording ? 1 : 0,
+          transform: `scale(${isRecording ? RECORDING_RING_SCALE : 1})`,
+          transition: "transform 220ms cubic-bezier(0.2, 0.9, 0.3, 1.2), opacity 120ms ease-out",
+        }}
+      >
+        <svg width={CAPTURE_SIZE} height={CAPTURE_SIZE} viewBox="0 0 100 100">
+          <circle cx="50" cy="50" r="46" fill="rgba(255,255,255,0.14)" />
+          <circle
+            cx="50"
+            cy="50"
+            r="46"
+            fill="none"
+            stroke="rgba(255,255,255,0.9)"
+            strokeWidth="3.5"
+          />
+          {isRecording && (
+            <circle
+              cx="50"
+              cy="50"
+              r="46"
+              fill="none"
+              stroke="#ef4444"
+              strokeWidth="4"
+              strokeLinecap="round"
+              pathLength={100}
+              strokeDasharray="100"
+              transform="rotate(-90 50 50)"
+              style={{ animation: `oak-record-progress ${MAX_RECORD_SECONDS}s linear forwards` }}
+            />
+          )}
+        </svg>
+      </div>
 
       {section === "create" && (
         <CreatePanel

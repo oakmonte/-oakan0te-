@@ -11,6 +11,7 @@ import {
   STICKER_LAYER_WIDTH_FRACTION,
   type Layer,
 } from "@/lib/after-shot-layers";
+import { StrokeShape } from "./StrokeShape";
 
 // How a confirmed layer looks on screen. Shared by the after-shot edit screen
 // and the studio so a caption can't render one way on one and another way
@@ -85,22 +86,7 @@ export function useLayerRenderer(mediaBoxRef: React.RefObject<HTMLDivElement | n
             style={{ overflow: "visible", pointerEvents: "none" }}
           >
             {layer.strokes.map((stroke, i) => (
-              <polyline
-                key={i}
-                points={stroke.points.map(([x, y]) => `${x * boxWidth},${y * boxWidth}`).join(" ")}
-                fill="none"
-                stroke={stroke.color}
-                strokeWidth={stroke.width * boxWidth}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                style={
-                  stroke.glow
-                    ? {
-                        filter: `drop-shadow(0 0 ${stroke.width * boxWidth * 0.9}px ${stroke.color})`,
-                      }
-                    : undefined
-                }
-              />
+              <StrokeShape key={i} stroke={stroke} scale={boxWidth} />
             ))}
           </svg>
         );
