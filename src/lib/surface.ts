@@ -50,6 +50,7 @@ export function surfaceForPathname(pathname: string): Surface {
 export function isHeldLight(pathname: string): boolean {
   if (pathname === "/store/products/new") return true;
   if (pathname === "/store/collections/new") return true;
+  if (pathname === "/store/drops/new") return true;
   // /store/products/:id -- but not the two sibling screens that share the
   // prefix and are fully converted.
   const m = /^\/store\/products\/([^/]+)$/.exec(pathname);
