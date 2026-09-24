@@ -8,6 +8,7 @@ import { supabase } from "@/lib/integrations/my-supabase/client";
 import { fetchStoreLogoUrl } from "@/lib/store-logo";
 import { useSession } from "@/hooks/use-session";
 import { useBodyScrollLock } from "@/hooks/use-body-scroll-lock";
+import { useStoreCatalogReadiness, isStorefrontVisible } from "@/hooks/use-store-catalog-readiness";
 import { BottomNav } from "@/components/BottomNav";
 import { ProfileTabEmptyState } from "@/components/ProfileTabEmptyState";
 import { PublicStorefront } from "@/components/store-themes/full-previews";
@@ -36,12 +37,13 @@ type StoreRow = {
   owner_id: string;
   logo_url: string | null;
   personal_storefront_only: boolean;
+  theme_id: string | null;
 };
 
 function StoreProfilePage() {
   const navigate = useNavigate();
   const { storeUsername } = useParams({ from: "/store-profile/$storeUsername" });
-  const { user } = useSession();
+  const { user, loading: sessionLoading } = useSession();
   const [store, setStore] = useState<StoreRow | null>(null);
   const [storeLoading, setStoreLoading] = useState(true);
   const [ownerUsername, setOwnerUsername] = useState<string | null>(null);
@@ -67,6 +69,15 @@ function StoreProfilePage() {
   const storeSheetDrag = useDragControls();
 
   const isOwnStoreProfile = !!user && !!store && user.id === store.owner_id;
+  // Only fetched once we can actually trust `!isOwnStoreProfile` -- before
+  // the session and the store row have both loaded, that reads false for
+  // everyone including the true owner, which used to fire this against the
+  // owner's own store on every visit and throw the result away a moment
+  // later. See profile.$username.tsx's matching comment and
+  // useStoreCatalogReadiness for why this check exists at all.
+  const catalogReadiness = useStoreCatalogReadiness(
+    !sessionLoading && !storeLoading && !isOwnStoreProfile ? (store?.id ?? null) : null,
+  );
 
   // Shared with TabPager so the strip animates off the same value the content
   // does, frame for frame.
@@ -91,7 +102,7 @@ function StoreProfilePage() {
     // dashboard's own reads.
     supabase
       .from("stores")
-      .select("id, store_username, brand_name, bio, owner_id, personal_storefront_only")
+      .select("id, store_username, brand_name, bio, owner_id, personal_storefront_only, theme_id")
       .eq("store_username", storeUsername)
       .maybeSingle()
       .then(({ data, error }) => {
@@ -193,9 +204,22 @@ function StoreProfilePage() {
     };
   }, [store]);
 
+  // This route had no readiness gate at all before -- any store row, even one
+  // with no theme picked, opened the sheet. Same shared gate
+  // profile.$username.tsx uses (see isStorefrontVisible) -- worth calling out
+  // here specifically that this route defaults `activeTab` to "store", so
+  // getting the "loading counts as visible" half of that rule right matters
+  // even more: gating on "hidden while loading" would animate the sheet open
+  // on its own the instant the two count queries resolved, on every visit.
+  const storefrontVisible = isStorefrontVisible(
+    store?.theme_id,
+    isOwnStoreProfile,
+    catalogReadiness,
+  );
+
   // Body scroll lock while the Store sheet is up, same as any bottom sheet —
   // also keeps sheetTop from drifting out from under the sheet mid-view.
-  useBodyScrollLock(activeTab === "store" && !!store);
+  useBodyScrollLock(activeTab === "store" && !!store && storefrontVisible);
 
   const tabRow = (
     <ProfileTabStrip
@@ -210,7 +234,7 @@ function StoreProfilePage() {
     />
   );
 
-  const storeSheetOpen = activeTab === "store" && !!store;
+  const storeSheetOpen = activeTab === "store" && !!store && storefrontVisible;
   const closeStoreSheet = () => setActiveTab(previousTabRef.current);
 
   return (

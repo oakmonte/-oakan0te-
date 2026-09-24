@@ -156,7 +156,6 @@ function MotionGridFull({
 
   return (
     <div className="relative bg-[#09070d] pb-2 text-white">
-      <div className="absolute inset-0 h-[300px] opacity-40 [background-image:linear-gradient(rgba(157,77,255,0.25)_1px,transparent_1px),linear-gradient(90deg,rgba(157,77,255,0.25)_1px,transparent_1px)] [background-size:22px_22px]" />
       <div className="absolute -left-16 top-10 h-44 w-44 rounded-full bg-[#722ee8]/35 blur-3xl" />
       <div className="absolute right-0 top-40 h-36 w-36 rounded-full bg-[#b673ff]/20 blur-3xl" />
       <div className="relative">
@@ -514,7 +513,6 @@ function NeonTerminalFull({
 
   return (
     <div className="relative bg-[#05070a] pb-2 text-[#eafcff]">
-      <div className="absolute inset-0 h-[320px] opacity-30 [background-image:linear-gradient(rgba(45,212,255,0.3)_1px,transparent_1px),linear-gradient(90deg,rgba(45,212,255,0.3)_1px,transparent_1px)] [background-size:18px_18px]" />
       <div className="absolute right-6 top-6 h-8 w-8 border-r-2 border-t-2 border-[#2dd4ff]/50" />
       <div className="absolute left-6 top-6 h-8 w-8 border-l-2 border-t-2 border-[#2dd4ff]/50" />
       <div className="relative">
