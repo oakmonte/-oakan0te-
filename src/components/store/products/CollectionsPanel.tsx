@@ -99,36 +99,45 @@ export function CollectionsPanel() {
       <div className="px-4 py-8 text-sm text-sd-ink-faint">No store found on this account.</div>
     );
 
+  const hasCollections = collections !== null && collections.length > 0;
+
   return (
     <div>
-      <div className="flex items-center justify-end mb-4">
-        <button
-          type="button"
-          onClick={() => navigate({ to: "/store/collections/new" })}
-          aria-label="Add collection"
-          className="p-2 rounded-lg bg-sd-ink text-sd-bg oak-motion-control active:scale-90"
-        >
-          <Plus size={16} />
-        </button>
-      </div>
+      {/* Only once there's something to add TO. While the list is empty, the
+          empty state below already carries its own "Create collection"
+          button front and centre -- a second, smaller way to do the exact
+          same thing up in the corner is a button with nothing to justify
+          it. */}
+      {hasCollections && (
+        <div className="flex items-center justify-end mb-4">
+          <button
+            type="button"
+            onClick={() => navigate({ to: "/store/collections/new" })}
+            aria-label="Add collection"
+            className="oak-tap grid h-11 w-11 place-items-center rounded-full bg-sd-ink text-sd-bg oak-motion-control active:scale-90"
+          >
+            <Plus size={18} />
+          </button>
+        </div>
+      )}
 
       {/* Only while the store has zero collections -- once the first one
           exists, the concept doesn't need re-explaining every visit. */}
       {collections !== null && collections.length === 0 && (
-        <p className="text-xs text-sd-ink-faint text-center mb-4 animate-in fade-in duration-300">
+        <p className="text-[14px] leading-relaxed text-sd-ink-faint text-center mb-4 animate-in fade-in duration-300">
           Complimentary pieces can be grouped as collections.
         </p>
       )}
 
       {collections === null ? (
-        <div className="text-sm text-sd-ink-faint text-center py-12">Loading…</div>
+        <div className="text-[14px] text-sd-ink-faint text-center py-12">Loading…</div>
       ) : collections.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 py-12 animate-in fade-in duration-300">
-          <p className="text-sm text-sd-ink-faint text-center">No collections yet.</p>
+        <div className="flex flex-col items-center gap-4 py-12 animate-in fade-in duration-300">
+          <p className="text-[15px] text-sd-ink-faint text-center">No collections yet.</p>
           <button
             type="button"
             onClick={() => navigate({ to: "/store/collections/new" })}
-            className="bg-sd-ink text-sd-bg text-sm font-medium rounded-full px-5 py-2.5"
+            className="oak-tap h-12 rounded-full bg-sd-ink px-6 text-[15px] font-semibold text-sd-bg oak-motion-control active:scale-[0.98]"
           >
             Create collection
           </button>
@@ -155,11 +164,11 @@ export function CollectionsPanel() {
       {selectMode && (
         <div className="fixed bottom-0 inset-x-0 z-40 bg-sd-surface border-t border-sd-line pb-[env(safe-area-inset-bottom)] flex flex-col animate-in fade-in slide-in-from-bottom-2 duration-200">
           {deleteError && (
-            <p className="px-4 pt-2 text-xs text-sd-danger-ink animate-in fade-in slide-in-from-top-1 duration-200">
+            <p className="px-4 pt-2 text-[13px] text-sd-danger-ink animate-in fade-in slide-in-from-top-1 duration-200">
               {deleteError}
             </p>
           )}
-          <div className="px-4 py-3 flex items-center justify-between">
+          <div className="px-3 py-2 flex items-center justify-between">
             <button
               type="button"
               onClick={() => {
@@ -167,17 +176,17 @@ export function CollectionsPanel() {
                 setDeleteError("");
               }}
               aria-label="Cancel selection"
-              className="p-2 -ml-2 rounded-full oak-motion-control active:scale-90"
+              className="oak-tap grid h-11 w-11 place-items-center rounded-full oak-motion-control active:scale-90"
             >
               <X size={18} className="text-sd-ink-muted" />
             </button>
-            <span className="text-sm font-medium text-sd-ink">{selectedIds.size} selected</span>
+            <span className="text-[15px] font-medium text-sd-ink">{selectedIds.size} selected</span>
             <button
               type="button"
               onClick={() => setConfirmDeleteOpen(true)}
               disabled={deleting}
               aria-label="Delete selected"
-              className="p-2 -mr-2 rounded-full text-sd-danger-ink disabled:opacity-50 oak-motion-control active:scale-90"
+              className="oak-tap grid h-11 w-11 place-items-center rounded-full text-sd-danger-ink disabled:opacity-50 oak-motion-control active:scale-90"
             >
               <Trash2 size={18} />
             </button>
@@ -230,7 +239,7 @@ function CollectionListRow({
       type="button"
       {...longPress}
       style={{ WebkitTouchCallout: "none" }}
-      className="w-full flex items-center gap-3 border border-sd-line rounded-xl p-3 text-left select-none oak-motion-control active:scale-[0.99]"
+      className="oak-tap w-full flex items-center gap-3 border border-sd-line rounded-2xl p-3.5 text-left select-none oak-motion-control active:scale-[0.99]"
     >
       {selectMode && (
         <span
@@ -241,15 +250,17 @@ function CollectionListRow({
           {selected && <Check size={13} className="text-sd-bg oak-motion-pop" />}
         </span>
       )}
-      <div className="w-10 h-10 rounded-lg bg-sd-soft flex items-center justify-center overflow-hidden shrink-0">
+      <div className="w-12 h-12 rounded-xl bg-sd-soft flex items-center justify-center overflow-hidden shrink-0">
         {c.image_url ? (
           <img src={c.image_url} alt="" className="w-full h-full object-cover" />
         ) : (
-          <ImageIcon size={16} className="text-sd-ink-faint" />
+          <ImageIcon size={18} className="text-sd-ink-faint" />
         )}
       </div>
-      <span className="flex-1 min-w-0 text-sm font-medium truncate">{c.title}</span>
-      <span className="text-xs text-sd-ink-faint shrink-0">
+      <span className="flex-1 min-w-0 text-[15px] font-semibold tracking-[-0.01em] truncate">
+        {c.title}
+      </span>
+      <span className="text-[13px] text-sd-ink-faint shrink-0">
         {c.count} product{c.count === 1 ? "" : "s"}
       </span>
     </button>
