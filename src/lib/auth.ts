@@ -337,7 +337,7 @@ export async function signInWithGoogle() {
  *  Hidden rather than merely broken: with the provider disabled, Supabase
  *  answers signInWithOAuth with a raw "Unsupported provider" error, and a
  *  button that shows that to a seller is worse than no button. */
-export const APPLE_SIGN_IN_ENABLED = false;
+export const APPLE_SIGN_IN_ENABLED = true;
 
 /** Sign in with Apple.
  *
