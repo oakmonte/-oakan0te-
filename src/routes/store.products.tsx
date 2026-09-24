@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
+import { motion, useMotionValue, useTransform } from "framer-motion";
+import { TabPager } from "@/components/profile/TabPager";
 import { ProductsPanel } from "@/components/store/products/ProductsPanel";
 import { CollectionsPanel } from "@/components/store/products/CollectionsPanel";
 import { DropsPanel } from "@/components/store/products/DropsPanel";
@@ -20,40 +22,62 @@ function StoreProducts() {
   // Only read as the *initial* tab -- the New/Edit Drop and New Collection
   // forms land back here via ?tab=Drops/Collections so the seller doesn't
   // reappear on Products after finishing something in another tab. Once
-  // mounted, tapping between tabs is purely local state, same as the status
-  // sub-tabs inside ProductsPanel.
+  // mounted, which tab is active is purely local state, driven by either a
+  // tap on the strip or a swipe through TabPager.
   const [topTab, setTopTab] = useState<TopTab>(tab ?? "Products");
   const activeIndex = TOP_TABS.indexOf(topTab);
 
+  // Shared with TabPager, same wiring as ProfileTabStrip/TabPager on
+  // /profile/$username -- the indicator below reads the pager's own motion
+  // value, so it tracks the finger through a swipe instead of only snapping
+  // into place after release.
+  const pagerX = useMotionValue(0);
+  const [pageWidth, setPageWidth] = useState(0);
+  const slotWidth = pageWidth / TOP_TABS.length;
+  const indicatorX = useTransform(pagerX, (v) => (pageWidth ? (-v / pageWidth) * slotWidth : 0));
+
   return (
-    <div className="px-4 py-5 pb-24">
-      <div className="relative grid grid-cols-3 border-b border-sd-line mb-5">
-        <div
-          className="absolute bottom-0 left-0 h-0.5 w-1/3 bg-sd-ink transition-transform duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]"
-          style={{ transform: `translateX(${activeIndex * 100}%)` }}
+    <div className="pt-5 pb-24">
+      <div className="relative flex border-b border-sd-line px-4">
+        <motion.span
+          aria-hidden
+          className="absolute bottom-0 h-[2.5px] rounded-full bg-sd-ink"
+          style={{ width: slotWidth ? slotWidth - 8 : 0, left: 4, x: indicatorX }}
         />
-        {TOP_TABS.map((tab) => (
+        {TOP_TABS.map((t) => (
           <button
-            key={tab}
+            key={t}
             type="button"
-            onClick={() => setTopTab(tab)}
-            className={`relative z-10 py-3 text-sm text-center transition-colors duration-200 ${
-              topTab === tab ? "font-medium text-sd-ink" : "text-sd-ink-faint"
+            onClick={() => setTopTab(t)}
+            aria-current={topTab === t ? "page" : undefined}
+            className={`oak-tap flex-1 py-3 text-center text-[15px] transition-colors duration-200 ${
+              topTab === t ? "font-semibold text-sd-ink" : "font-medium text-sd-ink-faint"
             }`}
           >
-            {tab}
+            {t}
           </button>
         ))}
       </div>
 
-      {/* key remounts the panel on switch -- each fetches its own store-scoped
-          list on mount, so a plain cross-fade (no shared state to preserve
-          between tabs) is simpler and cheaper than keeping all three mounted. */}
-      <div key={topTab} className="animate-in fade-in duration-200">
-        {topTab === "Products" && <ProductsPanel checklist={checklist} />}
-        {topTab === "Collections" && <CollectionsPanel />}
-        {topTab === "Drops" && <DropsPanel />}
-      </div>
+      <TabPager
+        index={activeIndex}
+        count={TOP_TABS.length}
+        onIndexChange={(next) => setTopTab(TOP_TABS[next])}
+        x={pagerX}
+        onPageWidth={setPageWidth}
+      >
+        {[
+          <div key="Products" className="px-4 pt-5">
+            <ProductsPanel checklist={checklist} />
+          </div>,
+          <div key="Collections" className="px-4 pt-5">
+            <CollectionsPanel />
+          </div>,
+          <div key="Drops" className="px-4 pt-5">
+            <DropsPanel />
+          </div>,
+        ]}
+      </TabPager>
     </div>
   );
 }
