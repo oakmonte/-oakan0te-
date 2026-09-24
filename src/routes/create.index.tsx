@@ -14,6 +14,7 @@ import {
   Timer as TimerIcon,
   Image as ImageIcon,
   ChevronUp,
+  Lock,
   ChevronDown,
   LayoutGrid,
   Ratio as RatioIcon,
@@ -36,6 +37,7 @@ import FilterPanel from "@/components/camera/FilterPanel";
 import LayoutPanel from "@/components/camera/LayoutPanel";
 import LayoutPreview from "@/components/camera/LayoutPreview";
 import CreatePanel from "@/components/create/CreatePanel";
+import LiquidGlassSegmented from "@/components/camera/LiquidGlassSegmented";
 import { useDraftCount } from "@/hooks/use-draft-count";
 import {
   CAMERA_FILTERS,
@@ -58,6 +60,7 @@ export const Route = createFileRoute("/create/")({
   component: CreatePage,
 });
 
+type Mode = "photo" | "video";
 type Section = "shoot" | "create";
 type CapturePhase = "live" | "counting";
 type PanelType = "ratio" | "timer" | "layout" | "filters";
@@ -185,8 +188,10 @@ const ROTATE_BOTTOM = CAPTURE_ROW_BOTTOM + (CAPTURE_SIZE - ROTATE_SIZE) / 2 + IC
 const FLASH_TOGGLE_BOTTOM = ROTATE_BOTTOM + ROTATE_SIZE + ICON_COLUMN_GAP;
 const GALLERY_ICON_BOTTOM = ROTATE_BOTTOM - ICON_COLUMN_GAP - GALLERY_ICON_SIZE;
 
-// Snapchat-style shutter: tap for a photo, hold to record, slide up while
-// holding to zoom. There is no Photo/Video toggle — the gesture is the mode.
+// The shutter works like Snapchat's in both modes: holding it records, and
+// letting go stops. What the mode changes is a TAP — a photo in Photo, and in
+// Video a hands-free recording that a second tap stops. While holding, drag up
+// onto the padlock to lock the recording and let go.
 //
 // 250ms: a deliberate tap lifts well inside it, and a hold starts recording
 // before it registers as a wait.
@@ -198,13 +203,18 @@ const MAX_RECORD_SECONDS = 60;
 // A MediaRecorder stopped a few frames in can hand back a clip nothing will
 // decode. Letting go sooner than this still stops — just this late.
 const MIN_RECORD_MS = 600;
-// Finger travel upward (px) per 1x of zoom while recording.
-const ZOOM_DRAG_PX_PER_X = 90;
+// How far above where the finger went down the padlock sits, and so how far
+// up a hold has to be dragged to lock.
+const LOCK_DRAG_PX = 110;
 // While recording the shutter grows, like Snapchat's, so the red progress ring
 // is visible past the thumb holding it.
 const RECORDING_RING_SCALE = 1.3;
-// Recording timer sits where the Photo/Video toggle used to.
-const RECORD_TIMER_BOTTOM = CAPTURE_ROW_TOP + 8 + (CAPTURE_SIZE * (RECORDING_RING_SCALE - 1)) / 2;
+// The Photo/Video toggle sits just above the capture row.
+const MODE_PILL_BOTTOM = CAPTURE_ROW_TOP + 10;
+const MODE_PILL_TAB_WIDTH = 84;
+// The padlock, centred on the lock point above the shutter's middle.
+const LOCK_SIZE = 44;
+const LOCK_BOTTOM = CAPTURE_ROW_BOTTOM + CAPTURE_SIZE / 2 + LOCK_DRAG_PX - LOCK_SIZE / 2;
 
 const SWATCH_DIAMETER = CAPTURE_SIZE - 16;
 const BARRIER_EDGE = ROW_EDGE + ROTATE_SIZE + 10;
@@ -286,8 +296,8 @@ function CreatePage() {
   // this above 1 — CSS-scaling a video the hardware already zoomed optically
   // double-applies it, which is what was dragging the back camera's frame.
   const [cssZoomScale, setCssZoomScale] = useState(1);
-  // The recording draw loop reads zoom per frame through this, so sliding up
-  // to zoom mid-recording lands in the file and not just on the preview.
+  // The recording draw loop reads zoom per frame through this, so pinching to
+  // zoom mid-recording lands in the file and not just on the preview.
   const cssZoomRef = useRef(1);
   useEffect(() => {
     cssZoomRef.current = cssZoomScale;
@@ -297,7 +307,14 @@ function CreatePage() {
 
   const [capturePhase, setCapturePhase] = useState<CapturePhase>("live");
   const [countdownRemaining, setCountdownRemaining] = useState<number | null>(null);
+  const [mode, setMode] = useState<Mode>("photo");
   const [isRecording, setIsRecording] = useState(false);
+  // A locked recording keeps going without a finger on the shutter: a
+  // Video-mode tap, or a hold dragged up onto the padlock. The shutter turns
+  // into a stop button.
+  const [recordingLocked, setRecordingLocked] = useState(false);
+  // 0..1 — how far a hold has been dragged towards the padlock, for its cue.
+  const [lockProgress, setLockProgress] = useState(0);
   // Seconds recorded so far, for the timer above the shutter.
   const [recordSeconds, setRecordSeconds] = useState(0);
   // True only while a recording that used a true-LUT filter is being
@@ -537,7 +554,7 @@ function CreatePage() {
   // compositing is real scope (audio, mismatched durations, actual editing)
   // and deliberately not attempted here, so holding the shutter in a layout
   // does nothing but take the cell's photo.
-  const isMultiCellActive = activeLayout.cells.length > 1;
+  const isMultiCellActive = mode === "photo" && activeLayout.cells.length > 1;
   const cellCaptures = cellCapturesByLayout[activeLayout.id] ?? [];
 
   // Lazily initialize this layout's cell slots the first time it's used.
@@ -972,6 +989,7 @@ function CreatePage() {
       if (mediaRecorderRef.current === recorder && recorder.state !== "inactive") {
         recorder.stop();
         setIsRecording(false);
+        setRecordingLocked(false);
       }
     }, MAX_RECORD_SECONDS * 1000);
   }, [
@@ -990,6 +1008,7 @@ function CreatePage() {
     const wait = MIN_RECORD_MS - (performance.now() - recordStartedAtRef.current);
     // The UI lets go at once either way; only the recorder is held open.
     setIsRecording(false);
+    setRecordingLocked(false);
     if (wait > 0) {
       window.setTimeout(() => {
         if (recorder.state !== "inactive") recorder.stop();
@@ -1007,14 +1026,17 @@ function CreatePage() {
     return () => clearInterval(id);
   }, [isRecording]);
 
-  // A tap, or the end of a timer countdown, is always a photo. Video only
-  // comes from holding.
+  // What a tap (or the end of a timer countdown) does: a photo in Photo mode,
+  // a hands-free recording in Video mode.
   const performCapture = useCallback(() => {
     setCapturePhase("live");
     setCountdownRemaining(null);
-    if (isMultiCellActive) captureIntoActiveCell();
+    if (mode === "video") {
+      setRecordingLocked(true);
+      startRecording();
+    } else if (isMultiCellActive) captureIntoActiveCell();
     else capturePhoto();
-  }, [isMultiCellActive, captureIntoActiveCell, capturePhoto]);
+  }, [mode, isMultiCellActive, captureIntoActiveCell, capturePhoto, startRecording]);
 
   useEffect(() => {
     if (capturePhase !== "counting" || countdownRemaining === null) return;
@@ -1026,21 +1048,16 @@ function CreatePage() {
     return () => clearTimeout(t);
   }, [capturePhase, countdownRemaining, performCapture]);
 
-  // Hold the shutter to record, let go to stop — Snapchat's gesture.
+  // Hold the shutter to record, let go to stop — Snapchat's gesture — or drag
+  // up onto the padlock to keep recording without holding.
   const holdTimerRef = useRef<number | null>(null);
   // True from the moment a hold turns into a recording until the finger lifts.
   const holdRecordingRef = useRef(false);
   // A hold ends with a click event too. Without this the tap handler would
   // fire straight after the hold ended and take a still on top of the clip.
   const suppressClickRef = useRef(false);
-  // Where the finger landed, and the zoom at the moment recording began, so
-  // sliding up can zoom relative to both.
+  // Where the finger landed, so a drag up can be measured towards the padlock.
   const shutterOriginRef = useRef<{ x: number; y: number } | null>(null);
-  const zoomAtHoldRef = useRef(1);
-  const zoomLevelRef = useRef(zoomLevel);
-  useEffect(() => {
-    zoomLevelRef.current = zoomLevel;
-  }, [zoomLevel]);
 
   const canHoldToRecord = !isMultiCellActive && timer === 0 && capturePhase !== "counting";
 
@@ -1068,16 +1085,17 @@ function CreatePage() {
       // stopped itself and the lift that would have cleared this never came.
       holdRecordingRef.current = false;
       suppressClickRef.current = false;
-      if (!canHoldToRecord) return;
+      // Already recording (locked): this press is the tap that stops it.
+      if (!canHoldToRecord || isRecording) return;
       holdTimerRef.current = window.setTimeout(() => {
         holdTimerRef.current = null;
         holdRecordingRef.current = true;
         suppressClickRef.current = true;
-        zoomAtHoldRef.current = zoomLevelRef.current;
+        setLockProgress(0);
         startRecording();
       }, HOLD_TO_RECORD_MS);
     },
-    [canHoldToRecord, startRecording],
+    [canHoldToRecord, isRecording, startRecording],
   );
 
   // Before recording starts, movement past the slop means a filter swipe and
@@ -1104,17 +1122,25 @@ function CreatePage() {
 
   // Once recording, the gesture is followed on the WINDOW, through touch
   // events as well as pointer events. The shutter lives inside a horizontal
-  // scroller, and a thumb sliding up to zoom drifts sideways: the moment the
+  // scroller, and a thumb sliding up to the padlock drifts sideways: the moment the
   // browser reads that as a pan it sends `pointercancel` and no further
   // pointer events at all — no move, and no up to say the finger has lifted.
   // Touch events keep coming through a pan and still end in `touchend`.
   useEffect(() => {
-    if (!isRecording) return;
+    if (!isRecording || recordingLocked) return;
     const zoomTo = (clientY: number) => {
       const origin = shutterOriginRef.current;
       if (!origin || !holdRecordingRef.current) return;
-      const up = Math.max(0, origin.y - clientY);
-      applyZoom(zoomAtHoldRef.current + up / ZOOM_DRAG_PX_PER_X);
+      const progress = Math.min(1, Math.max(0, (origin.y - clientY) / LOCK_DRAG_PX));
+      setLockProgress(progress);
+      if (progress < 1) return;
+      // Locked. The hold is over as far as the recording is concerned — the
+      // lift that follows must not stop it, and the click after that lift is
+      // still swallowed by suppressClickRef, so it doesn't stop it either.
+      holdRecordingRef.current = false;
+      shutterOriginRef.current = null;
+      setRecordingLocked(true);
+      if (navigator.vibrate) navigator.vibrate(12);
     };
     const onPointerMove = (e: globalThis.PointerEvent) => {
       if (e.pointerType !== "touch") zoomTo(e.clientY);
@@ -1141,18 +1167,21 @@ function CreatePage() {
       window.removeEventListener("touchend", onTouchEnd);
       window.removeEventListener("touchcancel", onTouchEnd);
     };
-  }, [isRecording, applyZoom, endHold]);
+  }, [isRecording, recordingLocked, endHold]);
 
-  // Leaving the screen mid-hold (tab switch, app backgrounded) never delivers
-  // a touchend — stop rather than record up to the ceiling.
+  // Leaving the screen mid-recording (tab switch, app backgrounded) never
+  // delivers a touchend — stop rather than record up to the ceiling. Locked
+  // recordings too: nobody expects a camera to keep rolling in the background.
   useEffect(() => {
     if (!isRecording) return;
     const onHide = () => {
-      if (document.visibilityState === "hidden") endHold();
+      if (document.visibilityState !== "hidden") return;
+      endHold();
+      stopRecording();
     };
     document.addEventListener("visibilitychange", onHide);
     return () => document.removeEventListener("visibilitychange", onHide);
-  }, [isRecording, endHold]);
+  }, [isRecording, endHold, stopRecording]);
 
   const handleCaptureTap = useCallback(() => {
     // Swallow the click that closes a hold. Keyboard activation still reaches
@@ -1166,13 +1195,18 @@ function CreatePage() {
       setCountdownRemaining(null);
       return;
     }
+    // A locked recording: the shutter is a stop button now, in either mode.
+    if (isRecording) {
+      stopRecording();
+      return;
+    }
     if (timer > 0) {
       setCapturePhase("counting");
       setCountdownRemaining(timer);
     } else {
       performCapture();
     }
-  }, [capturePhase, timer, performCapture]);
+  }, [capturePhase, isRecording, timer, performCapture, stopRecording]);
 
   return (
     <div
@@ -1412,7 +1446,7 @@ function CreatePage() {
       </div>
 
       <div
-        className="absolute right-4 flex flex-col items-end gap-5"
+        className="absolute right-4 flex flex-col items-end gap-5 oak-on-media"
         style={{ top: "calc(env(safe-area-inset-top) + 76px)", zIndex: 6 }}
       >
         {TOOLS.map((tool) => {
@@ -1527,12 +1561,13 @@ function CreatePage() {
 
       {isRecording && (
         <div
-          className="oak-motion-fade absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5 rounded-full px-2.5 py-1 pointer-events-none"
+          className={`oak-motion-fade absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5 rounded-full px-3 py-1.5 pointer-events-none ${GLASS_RIM}`}
           style={{
+            ...glassClear,
             zIndex: 5,
-            bottom: `calc(env(safe-area-inset-bottom) + ${RECORD_TIMER_BOTTOM}px)`,
-            background: "rgba(0,0,0,0.35)",
-            backdropFilter: "blur(12px)",
+            // Top centre, as Snapchat has it: the space above the shutter is
+            // the padlock's while holding.
+            top: "calc(env(safe-area-inset-top) + 16px)",
             fontVariantNumeric: "tabular-nums",
           }}
           role="timer"
@@ -1546,6 +1581,55 @@ function CreatePage() {
       )}
 
       <div
+        className="absolute left-1/2 -translate-x-1/2"
+        style={{
+          bottom: `calc(env(safe-area-inset-bottom) + ${MODE_PILL_BOTTOM}px)`,
+          zIndex: 5,
+          opacity: isRecording ? 0 : 1,
+          pointerEvents: isRecording ? "none" : "auto",
+          transition: "opacity 160ms ease-out",
+        }}
+      >
+        <LiquidGlassSegmented
+          options={[
+            { value: "photo", label: "Photo" },
+            { value: "video", label: "Video" },
+          ]}
+          value={mode}
+          onChange={setMode}
+          disabled={isRecording}
+          tabWidth={MODE_PILL_TAB_WIDTH}
+        />
+      </div>
+
+      {/* The padlock. Appears the moment a hold starts recording, is pulled
+          towards the finger as it drags up, and closes once reached. After
+          that it stays as the "this is locked" cue until the recording ends. */}
+      {isRecording && (
+        <div
+          className={`oak-motion-pop absolute left-1/2 flex flex-col items-center justify-center rounded-full pointer-events-none ${GLASS_RIM}`}
+          aria-hidden
+          style={{
+            ...glassClear,
+            ...(recordingLocked && { background: "rgba(255,255,255,0.92)", color: "#000" }),
+            zIndex: 5,
+            width: LOCK_SIZE,
+            height: LOCK_SIZE + (recordingLocked ? 0 : 18),
+            marginLeft: -LOCK_SIZE / 2,
+            bottom: `calc(env(safe-area-inset-bottom) + ${LOCK_BOTTOM}px)`,
+            transform: `scale(${recordingLocked ? 1 : 0.9 + lockProgress * 0.2})`,
+            transition:
+              "transform 120ms ease-out, height 180ms ease-out, background-color 160ms ease-out, color 160ms ease-out",
+          }}
+        >
+          {!recordingLocked && (
+            <ChevronUp size={14} style={{ opacity: 0.5 + lockProgress * 0.5, marginBottom: 2 }} />
+          )}
+          <Lock size={18} strokeWidth={2.4} />
+        </div>
+      )}
+
+      <div
         ref={filterStripRef}
         onScroll={handleFilterScroll}
         className="oak-filter-strip absolute left-0 right-0 flex items-center overflow-x-auto"
@@ -1554,7 +1638,7 @@ function CreatePage() {
           bottom: `calc(env(safe-area-inset-bottom) + ${CAPTURE_ROW_BOTTOM}px)`,
           height: CAPTURE_SIZE,
           // Frozen while recording: the filter was fixed when recording began,
-          // and a thumb sliding up to zoom must not drag the strip with it.
+          // and a thumb sliding up to the padlock must not drag the strip with it.
           overflowX: isRecording ? "hidden" : undefined,
           scrollSnapType: "x mandatory",
           scrollbarWidth: "none",
@@ -1614,7 +1698,18 @@ function CreatePage() {
               opacity: isRecording ? 0 : 1,
               transition: "opacity 120ms ease-out",
             }}
-          />
+          >
+            {/* Video mode: a red core, so a tap is visibly a recording. */}
+            <span
+              className="absolute rounded-full"
+              style={{
+                inset: 6,
+                background: "#ef4444",
+                transform: `scale(${mode === "video" ? 1 : 0})`,
+                transition: "transform 200ms cubic-bezier(0.2, 0.9, 0.3, 1.2)",
+              }}
+            />
+          </div>
           <button
             onClick={handleCaptureTap}
             onPointerDown={handleShutterDown}
@@ -1622,7 +1717,13 @@ function CreatePage() {
             onPointerUp={endHold}
             onPointerCancel={handleShutterCancel}
             onContextMenu={(e) => e.preventDefault()}
-            aria-label="Take photo, or hold to record video"
+            aria-label={
+              isRecording
+                ? "Stop recording"
+                : mode === "video"
+                  ? "Start recording, or hold to record"
+                  : "Take photo, or hold to record video"
+            }
             className="absolute rounded-full pointer-events-auto"
             style={{
               top: 0,
@@ -1774,6 +1875,20 @@ function CreatePage() {
               style={{ animation: `oak-record-progress ${MAX_RECORD_SECONDS}s linear forwards` }}
             />
           )}
+          {/* Locked: no finger on it any more, so it shows what a tap does. */}
+          <rect
+            x="36"
+            y="36"
+            width="28"
+            height="28"
+            rx="6"
+            fill="#ef4444"
+            style={{
+              transformOrigin: "50px 50px",
+              transform: `scale(${recordingLocked ? 1 : 0})`,
+              transition: "transform 180ms cubic-bezier(0.2, 0.9, 0.3, 1.2)",
+            }}
+          />
         </svg>
       </div>
 

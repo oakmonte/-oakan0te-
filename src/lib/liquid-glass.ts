@@ -61,19 +61,25 @@ export const glassLens: GlassStyle = {
   "--oak-rim": 1,
 };
 
-/** Small round controls floating over the live camera or media being edited.
- *  Mostly clear — the picture is the point — with just enough lift to hold a
- *  white icon. */
+/** Small round controls floating over the live camera or media being edited,
+ *  always with WHITE icons. The tint is dark, not white: a white-tinted clear
+ *  glass left white icons with nothing to stand on over a bright scene — a
+ *  white wall, a sky, a pale photo — and they vanished (reported on device
+ *  2026-09-24). Darkening what shows through (`brightness(0.8)`) as well as
+ *  tinting keeps the contrast even when the background is pure white, while
+ *  staying light enough over a dark scene to still read as glass. The white
+ *  icons also get a soft drop shadow from styles.css (`.oak-glass-rim > svg`).
+ */
 export const glassClear: GlassStyle = {
-  background: "rgba(255,255,255,0.12)",
-  ...backdrop("blur(12px) saturate(180%) brightness(1.05)"),
+  background: "rgba(16,16,18,0.30)",
+  ...backdrop("blur(12px) saturate(180%) brightness(0.8)"),
   boxShadow: [
     "0 6px 18px rgba(0,0,0,0.22)",
-    "inset 0 1px 0.5px rgba(255,255,255,0.45)",
-    "inset 0 -1px 0.5px rgba(255,255,255,0.12)",
-    "inset 0 0 10px rgba(255,255,255,0.08)",
+    "inset 0 1px 0.5px rgba(255,255,255,0.4)",
+    "inset 0 -1px 0.5px rgba(255,255,255,0.1)",
+    "inset 0 0 10px rgba(255,255,255,0.06)",
   ].join(", "),
-  "--oak-rim": 0.75,
+  "--oak-rim": 0.7,
 };
 
 /** Dark glass for white content that must stay legible over anything: the
