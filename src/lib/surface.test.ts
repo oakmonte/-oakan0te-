@@ -57,6 +57,7 @@ describe("isHeldLight", () => {
     expect(isHeldLight("/store/products/new")).toBe(true);
     expect(isHeldLight("/store/products/7d3f2a90-1c1e-4c1b-9a55-0b1f6d7e2c11")).toBe(true);
     expect(isHeldLight("/store/collections/new")).toBe(true);
+    expect(isHeldLight("/store/drops/new")).toBe(true);
   });
 
   // Same prefix, fully converted -- they must follow the phone like the rest.
@@ -70,6 +71,7 @@ describe("isHeldLight", () => {
     expect(isHeldLight("/store/products")).toBe(false);
     expect(isHeldLight("/store/collections")).toBe(false);
     expect(isHeldLight("/store/collections/abc123")).toBe(false);
+    expect(isHeldLight("/store/drops/abc123")).toBe(false);
   });
 
   test("never applies outside the dashboard", () => {

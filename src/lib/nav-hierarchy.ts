@@ -114,6 +114,12 @@ export function parentOf(
     // the list they were opened from, not the dashboard.
     if (seg[1] === "products" && seg.length > 2) return { to: "/store/products" };
     if (seg[1] === "collections" && seg.length > 2) return { to: "/store/collections" };
+    // Drops has no list page of its own -- it's a tab on /store/products
+    // (see store.products.tsx), unlike products/collections which each still
+    // have a page at that segment.
+    if (seg[1] === "drops" && seg.length > 2) {
+      return { to: "/store/products", search: { tab: "Drops" } };
+    }
     if (seg[1] === "locations" && seg.length > 2) return { to: "/store" };
 
     // Everything else under /store is a drawer sibling.
