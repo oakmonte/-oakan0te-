@@ -87,7 +87,21 @@ export function createInitialEditState(): ThemeEditState {
     tileCrops: {},
     text: {},
     textFonts: {},
-    hiddenBlocks: [],
+    // Promo banner defaults OFF. Its copy is drop/launch-flavored on every
+    // theme ("Limited drop live", "New drop online", ...) -- there is no real
+    // drops feature behind it yet, so publishing it by default would announce
+    // a drop that doesn't exist. A seller who wants it can restore it from the
+    // editor's "Hidden sections" list; once a real scheduled-drops feature
+    // exists to drive this block, this default should be revisited.
+    //
+    // Known gap to resolve then, not now: `hiddenBlocks` is a flat, generic
+    // "seller removed this section" list, so a store that never touched it
+    // and one where a seller explicitly hid "promo" both persist identically
+    // (`hidden_blocks: ['promo']`). Whoever wires the drops feature to this
+    // block will need to tell those two cases apart before auto-showing it
+    // when a drop goes live -- that needs its own dedicated flag (or a
+    // {id, source} shape), not a special case bolted onto this array.
+    hiddenBlocks: ["promo"],
     collectionsMode: "collections",
     columns: 2,
   };

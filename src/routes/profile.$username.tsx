@@ -28,6 +28,7 @@ import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useSession } from "@/hooks/use-session";
 import { useOwnStores } from "@/hooks/use-own-store";
 import { useStoreSetupStatus } from "@/hooks/use-store-setup-status";
+import { useStoreCatalogReadiness, isStorefrontVisible } from "@/hooks/use-store-catalog-readiness";
 import { useBodyScrollLock } from "@/hooks/use-body-scroll-lock";
 import { BottomNav } from "@/components/BottomNav";
 import { ProfileTabEmptyState } from "@/components/ProfileTabEmptyState";
@@ -154,6 +155,21 @@ function ProfilePage() {
   // `stores`/`products`, so they succeeded rather than coming back empty.
   // Every value it returns is read behind `isOwnProfile` anyway.
   const storeSetupStatus = useStoreSetupStatus(isOwnProfile ? (store?.id ?? null) : null);
+  // The reverse scope of storeSetupStatus above: only fetched for a NON-owner
+  // viewer, because the owner must always be able to see and edit their own
+  // in-progress storefront regardless of catalog state -- only a stranger is
+  // gated on whether there's actually anything real to show them (see
+  // storefrontVisible below, and useStoreCatalogReadiness's own comment for
+  // why CollectionsGrid's demo-product fallback makes this necessary).
+  //
+  // Gated on the session having actually resolved (same condition
+  // `ownershipKnown` below uses), not just `!isOwnProfile` -- before the
+  // session loads, `isOwnProfile` reads false for EVERYONE, including the
+  // store's own owner, which used to fire this against the owner's own store
+  // on every visit and throw the result away the instant `user` resolved.
+  const catalogReadiness = useStoreCatalogReadiness(
+    !sessionLoading && !!profile && !isOwnProfile ? (store?.id ?? null) : null,
+  );
   const searchInputRef = useRef<HTMLInputElement>(null);
   // Where the Store sheet's top edge should sit — the vertical MIDDLE of the
   // avatar circle, so the sheet rises high enough to cover the bottom half of
@@ -311,9 +327,19 @@ function ProfilePage() {
     };
   }, [profile?.id]);
 
+  // A visitor should never land on a storefront with nothing real behind it —
+  // CollectionsGrid fills an empty catalog with fake demo products and
+  // collections indistinguishable from real ones, which is fine for the
+  // owner previewing their own in-progress store, not fine as what a
+  // stranger sees. The owner is exempt (see catalogReadiness above); a
+  // non-owner whose store fails this falls through to the existing
+  // ProfileTabEmptyState below, same as any other empty tab. See
+  // isStorefrontVisible for why `loading` counts as visible, not hidden.
+  const storefrontVisible = isStorefrontVisible(store?.theme_id, isOwnProfile, catalogReadiness);
+
   // Body scroll lock while the Store sheet is up, same as any bottom sheet —
   // also keeps sheetTop from drifting out from under the sheet mid-view.
-  useBodyScrollLock(activeTab === "store" && !!store && storeIsSetUp);
+  useBodyScrollLock(activeTab === "store" && !!store && storefrontVisible);
 
   const tabRow = (
     <ProfileTabStrip
@@ -327,7 +353,7 @@ function ProfilePage() {
     />
   );
 
-  const storeSheetOpen = activeTab === "store" && !!store && storeIsSetUp;
+  const storeSheetOpen = activeTab === "store" && !!store && storefrontVisible;
   const closeStoreSheet = () => setActiveTab(previousTabRef.current);
 
   // The last sheet on this page that the back gesture could not see. It has a

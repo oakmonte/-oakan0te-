@@ -31,6 +31,9 @@ export type ThemeSpec = {
   eyebrow: string;
   description: string;
   demoBrand: string;
+  /** Lowercase mood/vibe search keywords — see the matching field on `Theme`
+   * in types.ts for why these exist and how they're picked. */
+  moods: string[];
 
   /** Storefront background. */
   bg: string;

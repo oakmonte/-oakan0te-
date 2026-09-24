@@ -8,6 +8,7 @@ import { THEMES, type Theme, type ThemeId } from "./store-themes/types";
 import { ThemePreviewSheet } from "./store-themes/full-previews";
 import { useStoreTheme } from "./store-themes/useStoreTheme";
 import { readableTextColor } from "./store-themes/colors";
+import { fuzzyFilter } from "@/lib/fuzzy-search";
 
 // Colour families are DERIVED from each theme's own accent rather than
 // tagged by hand. With 43 themes a hand-kept tag is one more thing to forget
@@ -96,6 +97,89 @@ function ThemeColorSwatch({ theme }: { theme: Theme }) {
   );
 }
 
+// Shared by the pinned "Your theme" card and the regular grid below it, so
+// pulling the selected theme out of the grid (see StoreThemeSelector) doesn't
+// mean maintaining two copies of this markup.
+function ThemeCard({
+  theme,
+  isSelected,
+  onUse,
+  onPreview,
+}: {
+  theme: Theme;
+  isSelected: boolean;
+  onUse: () => void;
+  onPreview: (mode: "view" | "edit") => void;
+}) {
+  return (
+    <article
+      className={`overflow-hidden rounded-[1.6rem] border bg-white p-3 shadow-[0_12px_35px_rgba(36,31,24,0.07)] transition-all duration-300 ${
+        isSelected
+          ? "border-[#1d1c1a] ring-1 ring-[#1d1c1a]"
+          : "border-[#e4e0d9] hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(36,31,24,0.13)]"
+      }`}
+    >
+      <button
+        type="button"
+        onClick={onUse}
+        className="block w-full rounded-[1.1rem] text-left focus:outline-none"
+        aria-pressed={isSelected}
+        aria-label={`Select ${theme.name}`}
+      >
+        <ThemeColorSwatch theme={theme} />
+      </button>
+
+      <div className="px-2 pb-2 pt-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-base font-semibold tracking-[-0.025em] text-[#1c1b19]">
+              {theme.name}
+            </p>
+            <p className="mt-1 text-[11px] font-medium uppercase tracking-[0.11em] text-[#8d8981]">
+              {theme.eyebrow}
+            </p>
+          </div>
+          <span
+            className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border transition-colors duration-200 ${
+              isSelected ? "border-transparent text-white" : "border-[#dbd7d0] text-transparent"
+            }`}
+            style={{ backgroundColor: isSelected ? theme.accent : "transparent" }}
+            aria-hidden="true"
+          >
+            <Check size={14} strokeWidth={3} className={isSelected ? "oak-motion-pop" : ""} />
+          </span>
+        </div>
+        <p className="mt-3 min-h-10 text-sm leading-5 text-[#706c65]">{theme.description}</p>
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => onPreview("edit")}
+            className="flex items-center justify-center gap-1.5 rounded-xl border border-[#e1ddd6] py-2.5 text-sm font-medium text-[#262421] transition-colors duration-200 hover:bg-[#f5f3ef]"
+          >
+            <Pencil size={14} />
+            Edit
+          </button>
+          <button
+            type="button"
+            onClick={() => onPreview("view")}
+            className="flex items-center justify-center gap-1.5 rounded-xl border border-[#e1ddd6] py-2.5 text-sm font-medium text-[#262421] transition-colors duration-200 hover:bg-[#f5f3ef]"
+          >
+            Preview
+          </button>
+        </div>
+        <button
+          type="button"
+          onClick={onUse}
+          className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl border border-[#e1ddd6] py-2.5 text-sm font-medium text-[#262421] transition-colors duration-200 hover:bg-[#f5f3ef]"
+        >
+          {isSelected ? "Selected" : "Use this theme"}
+          {!isSelected && <ChevronRight size={16} />}
+        </button>
+      </div>
+    </article>
+  );
+}
+
 export function StoreThemeSelector() {
   const navigate = useNavigate();
   const { checklist } = useSearch({ from: "/store/theme" });
@@ -119,22 +203,41 @@ export function StoreThemeSelector() {
   const [family, setFamily] = useState<Family | null>(null);
   const [tone, setTone] = useState<"light" | "dark" | null>(null);
 
-  // 43 themes in one flat grid is a wall to scroll, not a catalogue to
+  // 49 themes in one flat grid is a wall to scroll, not a catalogue to
   // browse, so the grid is filtered rather than paginated — a seller looking
-  // for "something pink and dark" gets there in two taps.
-  const visibleThemes = useMemo(() => {
-    const q = query.trim().toLowerCase();
+  // for "something pink and dark" gets there in two taps. The search box also
+  // matches each theme's curated `moods` keywords, not just its literal name/
+  // eyebrow/description text — so "cozy" finds Hearth and Oat even though
+  // neither one's own copy spells it that way (its own `moods` says "cosy").
+  // Family/tone are hard filters (applied first); the text query itself goes
+  // through fuzzy-search.ts's fuzzyFilter — the same typo-tolerant matcher the
+  // product form's material/colour pickers already use — rather than a plain
+  // `.includes()`, so a misspelled mood word still finds its theme instead of
+  // reading as "we don't have that".
+  const familyFiltered = useMemo(() => {
     return THEMES.filter((theme) => {
       if (family && familyOf(theme.accent) !== family) return false;
       if (tone && (tone === "dark") !== isDarkTheme(theme.background)) return false;
-      if (!q) return true;
-      return (
-        theme.name.toLowerCase().includes(q) ||
-        theme.eyebrow.toLowerCase().includes(q) ||
-        theme.description.toLowerCase().includes(q)
-      );
+      return true;
     });
-  }, [query, family, tone]);
+  }, [family, tone]);
+
+  const visibleThemes = useMemo(() => {
+    return fuzzyFilter(
+      query,
+      familyFiltered,
+      (theme) => `${theme.name} ${theme.eyebrow} ${theme.description} ${theme.moods.join(" ")}`,
+    );
+  }, [query, familyFiltered]);
+
+  // Pulled out of the grid entirely so it can sit apart with real separation
+  // — not just marked in place. Only pulled when it's actually among the
+  // current filter results, so pinning never fights a search/filter that
+  // excludes it.
+  const pickedTheme = visibleThemes.find((t) => t.id === pickedThemeId) ?? null;
+  const restThemes = pickedTheme
+    ? visibleThemes.filter((t) => t.id !== pickedThemeId)
+    : visibleThemes;
 
   useEffect(() => {
     if (!storeId) return;
@@ -211,7 +314,13 @@ export function StoreThemeSelector() {
   }
 
   return (
-    <main className="min-h-[calc(100vh-3.5rem)] bg-[#f6f5f2] px-4 py-7 sm:px-6 lg:px-8">
+    <main
+      className={`min-h-[calc(100vh-3.5rem)] bg-[#f6f5f2] px-4 py-7 sm:px-6 lg:px-8 ${
+        // Room for the fixed Next bar below so it never covers the last row
+        // of cards — only reserved while that bar can actually show.
+        checklist ? "pb-28" : ""
+      }`}
+    >
       <div className="mx-auto max-w-6xl">
         <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>
@@ -237,7 +346,7 @@ export function StoreThemeSelector() {
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search themes"
+              placeholder="Search themes, or the mood you're going for"
               aria-label="Search themes"
               className="w-full bg-transparent text-[15px] text-[#1c1b19] placeholder:text-[#a5a199] focus:outline-none"
             />
@@ -283,104 +392,57 @@ export function StoreThemeSelector() {
           </p>
         )}
 
-        <div className="grid gap-5 lg:grid-cols-3">
-          {visibleThemes.map((theme) => {
-            const isSelected = pickedThemeId === theme.id;
-            return (
-              <article
-                key={theme.id}
-                className={`overflow-hidden rounded-[1.6rem] border bg-white p-3 shadow-[0_12px_35px_rgba(36,31,24,0.07)] transition-all duration-300 ${
-                  isSelected
-                    ? "border-[#1d1c1a] ring-1 ring-[#1d1c1a]"
-                    : "border-[#e4e0d9] hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(36,31,24,0.13)]"
-                }`}
-              >
-                <button
-                  type="button"
-                  onClick={() => handleUseTheme(theme.id)}
-                  className="block w-full rounded-[1.1rem] text-left focus:outline-none"
-                  aria-pressed={isSelected}
-                  aria-label={`Select ${theme.name}`}
-                >
-                  <ThemeColorSwatch theme={theme} />
-                </button>
+        {pickedTheme && (
+          <div className="mb-10 border-b border-[#e4e0d9] pb-10">
+            <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8b735b]">
+              Your theme
+            </p>
+            <div className="grid gap-5 lg:grid-cols-3">
+              <ThemeCard
+                theme={pickedTheme}
+                isSelected
+                onUse={() => handleUseTheme(pickedTheme.id)}
+                onPreview={(mode) => openPreview(pickedTheme.id, mode)}
+              />
+            </div>
+          </div>
+        )}
 
-                <div className="px-2 pb-2 pt-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-base font-semibold tracking-[-0.025em] text-[#1c1b19]">
-                        {theme.name}
-                      </p>
-                      <p className="mt-1 text-[11px] font-medium uppercase tracking-[0.11em] text-[#8d8981]">
-                        {theme.eyebrow}
-                      </p>
-                    </div>
-                    <span
-                      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border transition-colors duration-200 ${
-                        isSelected
-                          ? "border-transparent text-white"
-                          : "border-[#dbd7d0] text-transparent"
-                      }`}
-                      style={{ backgroundColor: isSelected ? theme.accent : "transparent" }}
-                      aria-hidden="true"
-                    >
-                      <Check
-                        size={14}
-                        strokeWidth={3}
-                        className={isSelected ? "oak-motion-pop" : ""}
-                      />
-                    </span>
-                  </div>
-                  <p className="mt-3 min-h-10 text-sm leading-5 text-[#706c65]">
-                    {theme.description}
-                  </p>
-                  <div className="mt-4 grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => openPreview(theme.id, "edit")}
-                      className="flex items-center justify-center gap-1.5 rounded-xl border border-[#e1ddd6] py-2.5 text-sm font-medium text-[#262421] transition-colors duration-200 hover:bg-[#f5f3ef]"
-                    >
-                      <Pencil size={14} />
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => openPreview(theme.id, "view")}
-                      className="flex items-center justify-center gap-1.5 rounded-xl border border-[#e1ddd6] py-2.5 text-sm font-medium text-[#262421] transition-colors duration-200 hover:bg-[#f5f3ef]"
-                    >
-                      Preview
-                    </button>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleUseTheme(theme.id)}
-                    className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl border border-[#e1ddd6] py-2.5 text-sm font-medium text-[#262421] transition-colors duration-200 hover:bg-[#f5f3ef]"
-                  >
-                    {isSelected ? "Selected" : "Use this theme"}
-                    {!isSelected && <ChevronRight size={16} />}
-                  </button>
-                </div>
-              </article>
-            );
-          })}
+        <div className="grid gap-5 lg:grid-cols-3">
+          {restThemes.map((theme) => (
+            <ThemeCard
+              key={theme.id}
+              theme={theme}
+              isSelected={pickedThemeId === theme.id}
+              onUse={() => handleUseTheme(theme.id)}
+              onPreview={(mode) => openPreview(theme.id, mode)}
+            />
+          ))}
         </div>
 
         <p className="mt-6 text-center text-xs text-[#8c8881]">
           Your storefront content stays yours — a theme only changes how it is presented.
         </p>
-
-        {checklist && themeIdSet && ownUsername && (
-          <button
-            type="button"
-            onClick={() =>
-              navigate({ to: "/profile/$username", params: { username: ownUsername } })
-            }
-            className="mt-6 w-full rounded-xl bg-[#1d1c1a] py-3.5 text-sm font-semibold text-white oak-motion-control active:scale-[0.98]"
-          >
-            Next — see your store front
-          </button>
-        )}
       </div>
+
+      {checklist && themeIdSet && ownUsername && (
+        // Fixed to the device, not the scroll container — the theme grid
+        // above scrolls freely behind it instead of carrying the button away
+        // with the last row of cards.
+        <div className="fixed inset-x-0 bottom-0 z-40 bg-gradient-to-t from-[#f6f5f2] via-[#f6f5f2]/95 to-transparent px-4 pt-6 pb-[calc(env(safe-area-inset-bottom)+1rem)] sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-6xl">
+            <button
+              type="button"
+              onClick={() =>
+                navigate({ to: "/profile/$username", params: { username: ownUsername } })
+              }
+              className="w-full rounded-xl bg-[#1d1c1a] py-3.5 text-sm font-semibold text-white oak-motion-control active:scale-[0.98]"
+            >
+              Next — see your store front
+            </button>
+          </div>
+        </div>
+      )}
 
       {previewTheme && (
         <ThemePreviewSheet

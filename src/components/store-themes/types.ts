@@ -66,6 +66,12 @@ export type Theme = {
   background: string;
   /** Fictional example brand shown inside the mockup, for flavor. */
   demoBrand: string;
+  /** Lowercase mood/vibe words a seller might search for instead of a theme's
+   * actual name — "cozy", "bold", "editorial" — so the picker's search bar can
+   * match a feeling, not just literal name/eyebrow/description text. Curated
+   * by hand from each theme's own eyebrow/description, not derived, so a
+   * theme can be found under a word its own copy never uses. */
+  moods: string[];
 };
 
 const BASE_THEMES: Theme[] = [
@@ -77,6 +83,7 @@ const BASE_THEMES: Theme[] = [
     accent: "#9c4dff",
     background: "#09070d",
     demoBrand: "District 17",
+    moods: ["bold", "streetwear", "edgy", "high-energy", "dynamic"],
   },
   {
     id: "banner",
@@ -86,6 +93,7 @@ const BASE_THEMES: Theme[] = [
     accent: "#a67c52",
     background: "#e9e0d1",
     demoBrand: "terra",
+    moods: ["premium", "cinematic", "editorial", "refined", "elegant"],
   },
   {
     id: "atelier",
@@ -95,6 +103,7 @@ const BASE_THEMES: Theme[] = [
     accent: "#c9a227",
     background: "#0c0b0a",
     demoBrand: "Atelier Noir",
+    moods: ["quiet", "luxe", "understated", "gallery", "sophisticated"],
   },
   {
     id: "circuit",
@@ -104,6 +113,7 @@ const BASE_THEMES: Theme[] = [
     accent: "#2dd4ff",
     background: "#05070a",
     demoBrand: "Circuit",
+    moods: ["futuristic", "tech", "edgy", "bold", "high-energy"],
   },
   {
     id: "verdant",
@@ -113,6 +123,7 @@ const BASE_THEMES: Theme[] = [
     accent: "#3fae63",
     background: "#0a0f0b",
     demoBrand: "Fern & Co.",
+    moods: ["botanical", "moody", "earthy", "grounded", "natural"],
   },
   {
     id: "monochrome",
@@ -122,6 +133,7 @@ const BASE_THEMES: Theme[] = [
     accent: "#111111",
     background: "#fafafa",
     demoBrand: "NOIR/BLANC",
+    moods: ["minimal", "graphic", "timeless", "stark", "clean"],
   },
   {
     id: "gilded",
@@ -131,6 +143,7 @@ const BASE_THEMES: Theme[] = [
     accent: "#d4af37",
     background: "#0d0904",
     demoBrand: "Aurum House",
+    moods: ["opulent", "luxury", "regal", "glamorous", "rich"],
   },
   {
     id: "obsidian",
@@ -140,6 +153,7 @@ const BASE_THEMES: Theme[] = [
     accent: "#6b6b6b",
     background: "#030303",
     demoBrand: "VOID",
+    moods: ["minimal", "severe", "dark", "monolithic", "edgy"],
   },
 ];
 
@@ -157,5 +171,6 @@ export const THEMES: Theme[] = [
     accent: spec.accent,
     background: spec.bg,
     demoBrand: spec.demoBrand,
+    moods: spec.moods,
   })),
 ];
