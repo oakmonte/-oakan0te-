@@ -139,7 +139,7 @@ export function BarcodeScanSheet({
   }, [facing]);
 
   return (
-    <div className="fixed inset-0 z-[60] bg-black flex flex-col min-h-dvh animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[60] bg-black flex flex-col min-h-dvh animate-in fade-in duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]">
       <div className="absolute top-0 inset-x-0 z-10 flex items-center justify-between px-4 pt-4 pb-3">
         <button
           onClick={onClose}

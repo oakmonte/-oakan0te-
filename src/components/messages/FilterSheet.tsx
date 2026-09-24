@@ -24,7 +24,10 @@ export function FilterSheet({ selected, onToggle, onClear, onApply, onDismiss }:
         aria-modal="true"
         aria-labelledby="message-filter-title"
         className={`relative w-full rounded-t-[34px] px-5 pb-[calc(env(safe-area-inset-bottom)+18px)] pt-4 text-chat-text ${GLASS_RIM}`}
-        style={{ ...glassPanel, animation: "messages-sheet-rise 280ms ease-out both" }}
+        style={{
+          ...glassPanel,
+          animation: "messages-sheet-rise var(--duration-slow) var(--ease-smooth-out) both",
+        }}
         onClick={(event) => event.stopPropagation()}
       >
         <div className="mx-auto mb-3 h-1 w-12 rounded-full bg-white/55" />

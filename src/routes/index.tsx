@@ -568,14 +568,16 @@ function OakmonteLanding() {
                     {openMenu === item.key && (
                       <div
                         className="dd-wrap"
-                        style={{ animation: "ddFadeIn 180ms ease-out both" }}
+                        style={{
+                          animation: "ddFadeIn var(--duration-fast) var(--ease-smooth-out) both",
+                        }}
                       >
                         <div className={`dd-panel${item.key === "product" ? " wide" : ""}`}>
                           {MENUS[item.key as MenuKey].items.map((it, i) => (
                             <a
                               key={it.title}
                               href={it.href}
-                              style={{ animation: `ddItemIn 220ms ease-out ${i * 30}ms both` }}
+                              style={{ animation: `ddItemIn 220ms ease-out ${i * 40}ms both` }}
                             >
                               <span className="dd-title">{it.title}</span>
                               <span className="dd-desc">{it.desc}</span>

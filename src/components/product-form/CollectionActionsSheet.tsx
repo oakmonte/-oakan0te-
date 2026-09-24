@@ -37,7 +37,7 @@ export function CollectionActionsSheet({
         className="absolute inset-0 bg-black/40 animate-in fade-in duration-200"
         onClick={deleting ? undefined : onClose}
       />
-      <div className="relative w-full bg-white rounded-t-2xl p-5 pb-8 animate-in fade-in slide-in-from-bottom-6 duration-300 ease-out">
+      <div className="relative w-full bg-white rounded-t-2xl p-5 pb-8 animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]">
         {confirming ? (
           <>
             <h2 className="font-semibold text-base mb-1">Delete this collection?</h2>

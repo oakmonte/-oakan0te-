@@ -13,7 +13,7 @@ export function StatusSheet({
         className="absolute inset-0 bg-black/40 animate-in fade-in duration-200"
         onClick={onClose}
       />
-      <div className="relative w-full bg-white rounded-t-2xl p-4 pb-8 animate-in fade-in slide-in-from-bottom-6 duration-300 ease-out">
+      <div className="relative w-full bg-white rounded-t-2xl p-4 pb-8 animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]">
         <p className="text-sm font-medium text-gray-500 mb-3">Product status</p>
         {(["active", "draft"] as const).map((s) => (
           <button

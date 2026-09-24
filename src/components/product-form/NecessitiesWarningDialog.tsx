@@ -25,7 +25,7 @@ export function NecessitiesWarningDialog({
         className="absolute inset-0 bg-black/40 animate-in fade-in duration-200"
         onClick={onCancel}
       />
-      <div className="relative w-full bg-white rounded-t-2xl p-5 pb-8 animate-in fade-in slide-in-from-bottom-6 duration-300 ease-out">
+      <div className="relative w-full bg-white rounded-t-2xl p-5 pb-8 animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]">
         <div className="flex items-center gap-2 mb-1">
           <TriangleAlert size={18} className="text-amber-500 shrink-0" />
           <h2 className="font-semibold text-base text-gray-900">Some details are missing</h2>
