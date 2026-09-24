@@ -5,9 +5,9 @@ description: How to add or edit a storefront theme in src/components/store-theme
 
 # Store themes
 
-There are **43 themes in two forms**. Write new ones as specs; the components are history.
+There are **49 themes in two forms**. Write new ones as specs; the components are history.
 
-1. **Spec themes (35)** — an entry in `theme-specs.ts`, rendered by `ThemeSpecFull.tsx`. ~25 lines of
+1. **Spec themes (41)** — an entry in `theme-specs.ts`, rendered by `ThemeSpecFull.tsx`. ~25 lines of
    data: palette, two font ids, hero alignment/size, one decoration, copy, and the placeholder tiles.
    Everything else (tile tints, promo card, avatar cluster, the readable-text version of the accent)
    is **derived from the accent** by helpers in `theme-spec.ts`, so a theme cannot drift out of tune
@@ -37,7 +37,7 @@ Every `*Full` component takes one optional `editing?: ThemeEditingProps` prop an
 same shared blocks in `full-preview-blocks.tsx`: `PhoneHeader`, `HeroSlideshow`, `StatsRow`,
 `CollectionsGrid`, `PromoBanner`, `FooterTeaser`. Don't invent new bespoke markup for these — a theme
 distinguishes itself through **color/copy/hero decoration only**, passed as props into the shared
-blocks — which is what let the catalogue go from 8 to 43 as data rather than 4,000 more lines of JSX.
+blocks — which is what let the catalogue go from 8 to 49 as data rather than 4,000 more lines of JSX.
 
 The four blocks after the hero (`stats`/`collections`/`promo`/`footer`) are reorderable — build them
 as a `Partial<Record<ArrangeableBlockId, ReactNode>>` map and render with
