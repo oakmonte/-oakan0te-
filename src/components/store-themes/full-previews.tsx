@@ -1,7 +1,6 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   ArrowLeft,
-  ArrowRight,
   BadgeCheck,
   Check,
   Crown,
@@ -16,15 +15,18 @@ import {
   Pencil,
   Plus,
   Check as CheckIcon,
+  Redo2,
   ShieldCheck,
   Sparkles,
   Stars,
+  Undo2,
   X,
   Zap,
   Cpu,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { THEMES, type Theme, type ThemeId } from "./types";
+import { readableTextColor } from "./colors";
 import {
   CollectionsGrid,
   FooterTeaser,
@@ -49,10 +51,17 @@ import { LAYOUT_PRESETS, type ArrangeableBlockId } from "./layout-presets";
 import { useThemeCustomization } from "./useThemeCustomization";
 import { useStoreTheme } from "./useStoreTheme";
 import { useActiveStore } from "@/hooks/use-own-store";
+import { useBodyScrollLock } from "@/hooks/use-body-scroll-lock";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { startBackgroundUpload, onBackgroundUploadDone } from "@/lib/background-upload";
 
 function noop() {}
+
+// Shallow on purpose: every updater copies only the field it changes, so an
+// untouched field keeps its identity and a real change never compares equal.
+function sameEditState(a: ThemeEditState, b: ThemeEditState): boolean {
+  return (Object.keys(a) as (keyof ThemeEditState)[]).every((k) => a[k] === b[k]);
+}
 
 // One bespoke "full preview" per theme: shared blocks (header, stats,
 // features, collections, promo, footer) handle the repeated storefront
@@ -275,10 +284,12 @@ function ImmersiveBannerFull({
           mutedColor="rgba(41,34,25,0.6)"
           brandInitial={brandName.charAt(0).toUpperCase()}
           defaultLogoText={brandName}
+          ink="#292219"
           editing={editing}
         />
         <HeroSlideshow
           images={editing?.slideshowImages ?? HERO_SLIDESHOW_IMAGES}
+          ink="#292219"
           editing={editing}
         />
 
@@ -739,10 +750,12 @@ function MonochromeFull({
           mutedColor="rgba(17,17,17,0.6)"
           brandInitial={brandName.charAt(0).toUpperCase()}
           defaultLogoText={brandName}
+          ink="#111111"
           editing={editing}
         />
         <HeroSlideshow
           images={editing?.slideshowImages ?? HERO_SLIDESHOW_IMAGES}
+          ink="#111111"
           editing={editing}
         />
 
@@ -1183,6 +1196,13 @@ export function ThemePreviewSheet({
   // of time before useActiveStore resolves.
   const brandName = store?.brand_name ?? theme.demoBrand;
   const [mode, setMode] = useState<"view" | "edit">(initialMode);
+  // The theme grid underneath this sheet is a long scrolling page. Left
+  // scrollable, iOS scrolls IT to bring a focused field clear of the
+  // keyboard, which drags every fixed layer (this sheet included) away from
+  // where Safari then draws the caret — the "cursor sits far below the text"
+  // bug. Same failure .oak-locked-viewport exists for on the camera routes;
+  // this hook is the variant that also restores the grid's scroll position.
+  useBodyScrollLock(true);
   // `current` + `history` live in one state object on purpose: a setState
   // updater must be pure (React/StrictMode double-invokes it in dev to catch
   // exactly this), so `mutate` can't call a second setState from inside the
@@ -1233,7 +1253,15 @@ export function ThemePreviewSheet({
   // already been saved and possibly closed.
   const [pendingUploadIds, setPendingUploadIds] = useState<Set<string>>(new Set());
 
-  const { saved, save: saveCustomization } = useThemeCustomization(theme.id);
+  const {
+    saved,
+    loading: customizationLoading,
+    loadFailed,
+    save: saveCustomization,
+  } = useThemeCustomization(theme.id);
+  // A failed read blocks editing exactly like an unfinished one: either way
+  // we don't know what's stored, and Save would overwrite it with defaults.
+  const savedLoading = customizationLoading || loadFailed;
   // Applied once, the instant a saved row shows up — but skipped if the
   // seller has already started editing by the time it arrives. Without
   // hasEditedRef, a fetch that resolves after the first keystroke would
@@ -1264,11 +1292,14 @@ export function ThemePreviewSheet({
     hasEditedRef.current = true;
     // A fresh edit invalidates whatever was undone before it — otherwise
     // redo could resurrect a branch that the seller has since diverged from.
-    setEditState((es) => ({
-      current: updater(es.current),
-      history: [...es.history, es.current],
-      future: [],
-    }));
+    setEditState((es) => {
+      const next = updater(es.current);
+      // Re-tapping the layout already chosen, the tab already active, and so
+      // on returns a fresh object with nothing actually different; recording
+      // it left undo steps that visibly did nothing.
+      if (sameEditState(next, es.current)) return es;
+      return { current: next, history: [...es.history, es.current], future: [] };
+    });
   }
 
   // Swaps a preview url for the real one once its background upload
@@ -1304,9 +1335,60 @@ export function ThemePreviewSheet({
     setEditState((es) => ({ ...es, history: [], future: [] }));
     setMode("edit");
   }
-  function handleSave() {
-    if (pendingUploadIds.size > 0) return;
-    const snapshot = state;
+  const stateRef = useRef(state);
+  stateRef.current = state;
+  const historyLengthRef = useRef(history.length);
+  historyLengthRef.current = history.length;
+  const [confirmLeave, setConfirmLeave] = useState<null | "close" | "select">(null);
+
+  // Text commits on blur, and on iOS tapping a button does not reliably blur
+  // the field — so the last thing typed may not have reached state yet.
+  // Blur whatever is focused, then run `next` a tick later, once that commit
+  // has rendered into the refs it reads.
+  function afterCommittingFocusedField(next: () => void) {
+    const active = document.activeElement;
+    if (active instanceof HTMLElement && active !== document.body) active.blur();
+    setTimeout(next, 0);
+  }
+
+  // Leaving with unsaved edits asks first — the header X and "Use this
+  // theme" both used to drop a whole session's work without a word. Checked
+  // after the focused field commits, or a line still being typed (the only
+  // edit, possibly) would slip out unasked.
+  function guardLeave(kind: "close" | "select") {
+    afterCommittingFocusedField(() => {
+      if (mode === "edit" && historyLengthRef.current > 0) {
+        setConfirmLeave(kind);
+        return;
+      }
+      if (kind === "close") onClose();
+      else onSelect();
+    });
+  }
+
+  /** `then` runs only after a successful save — the leave dialog's "Save
+   *  changes" uses it to carry on closing, or selecting, once it's written. */
+  function handleSave(then?: () => void) {
+    if (savedLoading) return;
+    if (pendingUploadIds.size > 0) {
+      // Said out loud: from the leave dialog, a silent return here looked
+      // like Save simply didn't work.
+      flashHint("Still uploading a photo — try again in a moment", 3000);
+      return;
+    }
+    afterCommittingFocusedField(() => runSave(then));
+  }
+
+  function runSave(then?: () => void) {
+    const snapshot = stateRef.current;
+    // A photo whose upload failed stays on screen as its local blob: preview.
+    // Saving that would write a url that only ever existed in this tab, and
+    // the public storefront would show a broken image for good.
+    const local = (u: string | null) => u?.startsWith("blob:") ?? false;
+    if (local(snapshot.logoImage) || snapshot.slideshowImages.some(local)) {
+      flashHint("A photo didn't upload — remove it or retry it first", 3500);
+      return;
+    }
     flashHint("Saving…");
     void saveCustomization(snapshot).then((error) => {
       if (error) {
@@ -1319,6 +1401,7 @@ export function ThemePreviewSheet({
       setEditState((es) => ({ ...es, history: [], future: [] }));
       setMode("view");
       flashHint(null);
+      then?.();
     });
   }
   function handleUndo() {
@@ -1344,7 +1427,11 @@ export function ThemePreviewSheet({
 
   const editingProps: ThemeEditingProps = useMemo(
     () => ({
-      isEditing: mode === "edit",
+      // Held off until the saved customization has loaded: an edit made
+      // before then blocks that row from applying (hasEditedRef), and Save
+      // would then write defaults over the seller's stored logo, photos and
+      // copy. Usually a fraction of a second.
+      isEditing: mode === "edit" && !savedLoading,
       logoMode: state.logoMode,
       onLogoModeChange: (logoMode) => {
         mutate((s) => ({ ...s, logoMode }));
@@ -1378,10 +1465,17 @@ export function ThemePreviewSheet({
             markUploadDone(id);
             if (u.status !== "success" || !u.url) return;
             const url = u.url;
-            patchSilently((s) => ({
-              ...s,
-              slideshowImages: s.slideshowImages.map((img) => (img === previewUrl ? url : img)),
-            }));
+            patchSilently((s) => {
+              // Crops are keyed by src, so a crop set while the photo was
+              // still uploading has to follow it to its real url, or it
+              // snaps back to centre the moment the upload lands.
+              const { [previewUrl]: crop, ...otherCrops } = s.slideshowCrops;
+              return {
+                ...s,
+                slideshowImages: s.slideshowImages.map((img) => (img === previewUrl ? url : img)),
+                slideshowCrops: crop ? { ...otherCrops, [url]: crop } : s.slideshowCrops,
+              };
+            });
           });
         }
       },
@@ -1446,7 +1540,7 @@ export function ThemePreviewSheet({
         );
       },
     }),
-    [mode, state, flashHint],
+    [mode, state, flashHint, savedLoading],
   );
 
   return (
@@ -1454,23 +1548,29 @@ export function ThemePreviewSheet({
       <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/10 bg-neutral-950/95 px-4 py-3.5 backdrop-blur">
         <button
           type="button"
-          onClick={onClose}
+          onClick={() => guardLeave("close")}
           aria-label="Close preview"
-          className="flex h-10 w-10 items-center justify-center rounded-full text-white/60 hover:bg-white/10 hover:text-white"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white/60 hover:bg-white/10 hover:text-white"
         >
           <X size={22} />
         </button>
-        <div className="text-center">
-          <p className="text-[19px] font-semibold text-white">{theme.name}</p>
-          <p className="text-[11px] uppercase tracking-[0.14em] text-white/40">{theme.eyebrow}</p>
+        {/* min-w-0 + truncate: a 33-character tracked eyebrow wrapped to two
+            or three lines on a 360px phone and made the whole bar jump. */}
+        <div className="min-w-0 flex-1 px-2 text-center">
+          <p className="truncate text-[19px] font-semibold text-white">{theme.name}</p>
+          <p className="truncate text-[11px] uppercase tracking-[0.14em] text-white/40">
+            {theme.eyebrow}
+          </p>
         </div>
         <button
           type="button"
-          onClick={onSelect}
-          className="rounded-full px-4 py-2.5 text-[14px] font-semibold whitespace-nowrap"
+          onClick={() => guardLeave("select")}
+          className="h-11 shrink-0 rounded-full px-4 text-[14px] font-semibold whitespace-nowrap"
           style={{
             background: isSelected ? "rgba(255,255,255,0.12)" : theme.accent,
-            color: isSelected ? "#fff" : "#0a0a0a",
+            // Black text was fixed, so on a dark accent (Porcelain, Navy
+            // Linen, Monochrome's near-black) the main button read as blank.
+            color: isSelected ? "#fff" : readableTextColor(theme.accent),
           }}
         >
           {isSelected ? "Selected" : "Use this theme"}
@@ -1503,11 +1603,17 @@ export function ThemePreviewSheet({
               <div className="flex items-center gap-1.5">
                 <button
                   type="button"
-                  onClick={handleSave}
-                  disabled={pendingUploadIds.size > 0}
-                  className="rounded-full bg-white px-5 py-2.5 text-[15px] font-semibold text-neutral-900 hover:bg-white/90 disabled:opacity-50"
+                  onClick={() => handleSave()}
+                  disabled={pendingUploadIds.size > 0 || savedLoading}
+                  className="h-11 rounded-full bg-white px-5 text-[15px] font-semibold text-neutral-900 hover:bg-white/90 disabled:opacity-50"
                 >
-                  {pendingUploadIds.size > 0 ? "Uploading…" : "Save"}
+                  {loadFailed
+                    ? "Couldn't load"
+                    : savedLoading
+                      ? "Loading…"
+                      : pendingUploadIds.size > 0
+                        ? "Uploading…"
+                        : "Save"}
                 </button>
                 <button
                   type="button"
@@ -1516,7 +1622,9 @@ export function ThemePreviewSheet({
                   aria-label="Undo last edit"
                   className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white/70 hover:bg-white/15 hover:text-white disabled:pointer-events-none disabled:opacity-30"
                 >
-                  <ArrowLeft size={20} strokeWidth={1.8} />
+                  {/* Undo2, not ArrowLeft — the view-mode Back button in this
+                      same spot is an ArrowLeft, and the two read as one. */}
+                  <Undo2 size={20} strokeWidth={1.8} />
                 </button>
                 <button
                   type="button"
@@ -1525,7 +1633,7 @@ export function ThemePreviewSheet({
                   aria-label="Redo last undone edit"
                   className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white/70 hover:bg-white/15 hover:text-white disabled:pointer-events-none disabled:opacity-30"
                 >
-                  <ArrowRight size={20} strokeWidth={1.8} />
+                  <Redo2 size={20} strokeWidth={1.8} />
                 </button>
               </div>
               <Popover>
@@ -1595,12 +1703,67 @@ export function ThemePreviewSheet({
             />
           </div>
           {hint && (
-            <div className="pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-black/80 px-4 py-2 text-[13px] text-white backdrop-blur">
+            // w-max + a cap: a bare left-1/2 box is only half the frame
+            // wide, so longer hints broke into a lumpy two-line pill.
+            <div className="pointer-events-none absolute bottom-4 left-1/2 w-max max-w-[calc(100%-2rem)] -translate-x-1/2 rounded-2xl bg-black/80 px-4 py-2 text-center text-[13px] leading-snug text-white backdrop-blur">
               {hint}
             </div>
           )}
         </div>
       </div>
+
+      {confirmLeave && (
+        <div
+          className="fixed inset-0 z-[60] flex items-end justify-center bg-black/50 px-4 pb-8 animate-in fade-in duration-200 sm:items-center"
+          onClick={() => setConfirmLeave(null)}
+        >
+          <div
+            role="alertdialog"
+            aria-labelledby="theme-leave-title"
+            className="w-full max-w-sm rounded-2xl bg-neutral-900 p-5 text-white shadow-2xl ring-1 ring-white/10 animate-in slide-in-from-bottom-4 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p id="theme-leave-title" className="text-[17px] font-semibold">
+              Discard your edits?
+            </p>
+            <p className="mt-1.5 text-[14px] leading-snug text-white/60">
+              You have changes to this theme that haven't been saved.
+            </p>
+            <div className="mt-5 flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const kind = confirmLeave;
+                  setConfirmLeave(null);
+                  handleSave(kind === "close" ? onClose : onSelect);
+                }}
+                className="h-12 rounded-xl bg-white text-[15px] font-semibold text-neutral-900"
+              >
+                Save changes
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const kind = confirmLeave;
+                  setConfirmLeave(null);
+                  if (kind === "close") onClose();
+                  else onSelect();
+                }}
+                className="h-12 rounded-xl bg-white/10 text-[15px] font-semibold text-red-300"
+              >
+                {confirmLeave === "close" ? "Discard and close" : "Discard and use theme"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmLeave(null)}
+                className="h-12 rounded-xl text-[15px] font-medium text-white/60"
+              >
+                Keep editing
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

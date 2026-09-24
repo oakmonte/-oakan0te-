@@ -32,7 +32,9 @@ function familyOf(accentHex: string): Family {
   else if (max === g) hue = (b - r) / delta + 2;
   else hue = (r - g) / delta + 4;
   hue = (hue * 60 + 360) % 360;
-  if (hue < 20 || hue >= 330) return "Pink";
+  // 10°, not 20°: a dulled orange (Terracotta, Kiln, Hearth) sits at 14-18°
+  // and read as Pink; the wines and roses all sit above 330° anyway.
+  if (hue < 10 || hue >= 330) return "Pink";
   if (hue < 75) return "Warm";
   if (hue < 170) return "Green";
   if (hue < 255) return "Blue";

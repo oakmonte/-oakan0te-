@@ -30,6 +30,7 @@ import { MAX_SLIDESHOW_IMAGES, type CropPosition, type ThemeEditingProps } from 
 import { formatCommunityCount, useStoreCommunityCounts } from "./useStoreCommunityCounts";
 import { useThemePreviewCatalog, type PreviewTile, type TilePhoto } from "./useThemePreviewCatalog";
 import { readableTextColor } from "./colors";
+import { alpha, isDark } from "./theme-spec";
 
 function clamp(v: number, min: number, max: number) {
   return Math.min(max, Math.max(min, v));
@@ -96,6 +97,7 @@ function CroppableImage({
   function handlePointerDown(e: ReactPointerEvent<HTMLDivElement>) {
     if (!editable || !onPositionChange) return;
     e.stopPropagation();
+    suppressClickRef.current = false;
     e.currentTarget.setPointerCapture(e.pointerId);
     dragRef.current = {
       startX: e.clientX,
@@ -115,7 +117,10 @@ function CroppableImage({
     if (Math.abs(dx) > 3 || Math.abs(dy) > 3) drag.moved = true;
     // Dragging right should reveal more of the image's left edge, so the
     // focal point moves opposite the drag direction.
+    // Spread from origin so a zoom set by pinching survives a later drag —
+    // building a bare {x, y} here committed scale back to 1 on release.
     const next = {
+      ...drag.origin,
       x: clamp(drag.origin.x - (dx / rect.width) * 100, 0, 100),
       y: clamp(drag.origin.y - (dy / rect.height) * 100, 0, 100),
     };
@@ -158,17 +163,15 @@ function CroppableImage({
   // taps/swipes the container already needs to keep working.
   function handleContainerPointerDown(e: ReactPointerEvent<HTMLDivElement>) {
     if (!editable || !onPositionChange) return;
+    // A pinch never produces the click a drag does, so a flag it left set
+    // would otherwise swallow the seller's next ordinary tap.
+    if (pointersRef.current.size === 0) suppressClickRef.current = false;
     pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    if (pointersRef.current.size !== 2 || !containerRef.current) return;
+    if (pointersRef.current.size !== 2) return;
     // Second finger just landed — anchor the pinch on the current scale so
     // the image doesn't jump at the moment the gesture starts.
     const startDistance = pinchDistance([...pointersRef.current.values()]);
     pinchRef.current = { startDistance, startScale: savedScale, current: savedScale };
-    // Scoped to exactly the two-finger window, not the whole edit session —
-    // same reasoning as the handle's own touch-action:none, just toggled at
-    // runtime instead of always-on, so single-finger swipe between a tile's
-    // photos still works the rest of the time.
-    containerRef.current.style.touchAction = "none";
   }
 
   function handleContainerPointerMove(e: ReactPointerEvent<HTMLDivElement>) {
@@ -191,7 +194,6 @@ function CroppableImage({
     const pinch = pinchRef.current;
     if (!pinch || pointersRef.current.size >= 2) return;
     pinchRef.current = null;
-    if (containerRef.current) containerRef.current.style.touchAction = "";
     if (commit && pinch.current !== pinch.startScale) {
       suppressClickRef.current = true;
       onPositionChange?.({ ...savedPos, scale: pinch.current });
@@ -204,6 +206,12 @@ function CroppableImage({
     <div
       ref={containerRef}
       className="relative h-full w-full"
+      // pan-x pan-y, from the first touch: one-finger scrolling (the page,
+      // a tile's photo strip) still belongs to the browser, but a pinch is
+      // left to us. Browsers decide touch-action when a gesture STARTS, so
+      // switching it on once the second finger landed was too late — the
+      // page zoomed instead and cancelled the gesture.
+      style={editable && onPositionChange ? { touchAction: "pan-x pan-y" } : undefined}
       onPointerDown={handleContainerPointerDown}
       onPointerMove={handleContainerPointerMove}
       onPointerUp={(e) => endPinch(e.pointerId, true)}
@@ -229,7 +237,9 @@ function CroppableImage({
           onPointerCancel={() => endDrag(false)}
           onClick={handleSuppressibleClick}
           style={{ touchAction: "none" }}
-          className="absolute bottom-1 right-1 flex h-9 w-9 cursor-move items-center justify-center rounded-full bg-black/55 text-white active:bg-black/75"
+          // before: stretches the grab area to ~48px without making the
+          // visible disc any bigger over the seller's photo.
+          className="absolute bottom-1 right-1 flex h-9 w-9 cursor-move items-center justify-center rounded-full bg-black/55 text-white before:absolute before:-inset-1.5 before:content-[''] active:bg-black/75"
         >
           <Move size={16} />
         </div>
@@ -470,7 +480,10 @@ function CatalogTile({
             <p className="flex items-baseline gap-1 text-[11px]" style={{ color: mutedColor }}>
               <span>₦{tile.price.toLocaleString()}</span>
               {tile.compareAtPrice != null && tile.compareAtPrice > tile.price && (
-                <span className="text-[10px] line-through opacity-70">
+                // No extra fade: the strikethrough already says "old price",
+                // and opacity on top of the muted colour failed contrast on
+                // every theme.
+                <span className="text-[10px] line-through">
                   ₦{tile.compareAtPrice.toLocaleString()}
                 </span>
               )}
@@ -514,17 +527,21 @@ function LogoModeSwitch({
       type="button"
       onMouseDown={(e) => e.preventDefault()}
       onClick={() => onChange(id)}
-      className="flex h-7 w-7 items-center justify-center rounded-full"
+      aria-label={id === "image" ? "Image logo" : "Text logo"}
+      aria-pressed={mode === id}
+      className="flex h-10 w-10 items-center justify-center rounded-full"
       style={{
         background: mode === id ? "rgba(255,255,255,0.25)" : "transparent",
-        color: mode === id ? "#fff" : "rgba(255,255,255,0.5)",
+        color: mode === id ? "#fff" : "rgba(255,255,255,0.6)",
       }}
     >
-      <Icon size={14} />
+      <Icon size={17} />
     </button>
   );
   return (
-    <div className="mt-3 flex items-center gap-1 rounded-full bg-black/40 p-1 backdrop-blur-md">
+    // A dark pill on every theme, light or dark — it's edit chrome, not part
+    // of the storefront, so it reads the same wherever it lands.
+    <div className="mt-2.5 flex w-fit items-center gap-1 rounded-full bg-neutral-900/85 p-1 backdrop-blur-md">
       {opt("image", ImageIcon)}
       {opt("text", TypeIcon)}
     </div>
@@ -535,6 +552,7 @@ export function PhoneHeader({
   mutedColor,
   brandInitial,
   defaultLogoText,
+  ink,
   editing,
 }: {
   mutedColor: string;
@@ -543,10 +561,22 @@ export function PhoneHeader({
   brandInitial: string;
   /** Full brand name used when the seller picks a text logo instead of an image. */
   defaultLogoText: string;
+  /** The theme's own text colour, as hex. The header sits on the plain page
+   * ground above the slideshow, not over a photo — so on a pale theme the
+   * white-on-smoke chip came out around 1.9:1. A dark ink means a light
+   * ground, and the chip takes the ink instead. Omitted: the dark chip. */
+  ink?: string;
   editing?: ThemeEditingProps;
 }) {
   const logo = editing?.logoImage;
   const logoMode = editing?.logoMode ?? "image";
+  const lightGround = ink != null && isDark(ink);
+  const chipStyle: CSSProperties | undefined = lightGround
+    ? { background: alpha(ink, 0.06), borderColor: alpha(ink, 0.14), color: ink }
+    : undefined;
+  const chipClass = lightGround
+    ? "border"
+    : "border border-white/15 bg-black/25 text-white backdrop-blur-md";
 
   function handleFile(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -563,27 +593,33 @@ export function PhoneHeader({
   // height in JS rather than being pinned by a class, so nothing stopped it
   // from rendering taller than this pill.
   const textLogo = (
-    <div className="flex h-10 w-fit max-w-[220px] items-center overflow-hidden rounded-xl border border-white/15 bg-black/25 px-3 backdrop-blur-md">
+    <div
+      className={`flex h-10 w-fit max-w-[220px] items-center overflow-hidden rounded-xl px-3 ${chipClass}`}
+      style={chipStyle}
+    >
       <ThemeText
         editing={editing}
         field="logoText"
         defaultValue={defaultLogoText}
         as="span"
-        className="truncate text-[16px] font-bold text-white"
+        className="truncate text-[16px] font-bold"
       />
     </div>
   );
 
   const imageChip = (
-    <div className="relative flex h-10 min-w-10 items-center justify-center rounded-xl border border-white/15 bg-black/25 px-3 backdrop-blur-md">
+    <div
+      className={`relative flex h-10 min-w-10 items-center justify-center rounded-xl px-3 ${chipClass}`}
+      style={chipStyle}
+    >
       {logo ? (
         <img src={logo} alt="" className="h-7 w-7 rounded-md object-cover" />
       ) : (
-        <span className="text-[16px] font-bold text-white">{brandInitial}</span>
+        <span className="text-[16px] font-bold">{brandInitial}</span>
       )}
       {editing?.isEditing && (
-        <span className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-white text-black">
-          <Camera size={9} strokeWidth={2.5} />
+        <span className="absolute -bottom-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-white text-black shadow ring-1 ring-black/10">
+          <Camera size={11} strokeWidth={2.5} />
         </span>
       )}
     </div>
@@ -637,10 +673,15 @@ const MAX_SLIDESHOW_ASPECT = 1.91;
 export function HeroSlideshow({
   images,
   intervalMs = 3200,
+  ink,
   editing,
 }: {
   images: string[];
   intervalMs?: number;
+  /** The theme's text colour, for the empty-slideshow placeholder — the one
+   * part of this block drawn on the page ground rather than over a photo.
+   * White-on-near-white there hid the only way back to adding photos. */
+  ink?: string;
   editing?: ThemeEditingProps;
 }) {
   const [index, setIndex] = useState(0);
@@ -676,8 +717,14 @@ export function HeroSlideshow({
     if (!isEditing) return null;
     return (
       <div className="mx-4 mt-3">
-        <label className="flex aspect-[4/5] w-full cursor-pointer flex-col items-center justify-center gap-1.5 rounded-2xl border border-dashed border-white/30 px-6 text-center text-white/60">
-          <Plus size={18} />
+        <label
+          className="flex aspect-[4/5] w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed px-6 text-center"
+          style={{
+            color: ink ? alpha(ink, 0.65) : "rgba(255,255,255,0.6)",
+            borderColor: ink ? alpha(ink, 0.3) : "rgba(255,255,255,0.3)",
+          }}
+        >
+          <Plus size={22} />
           <span className="text-[13px] font-medium leading-snug">
             Add photos of your models wearing your best pieces
           </span>
@@ -696,7 +743,7 @@ export function HeroSlideshow({
   // repositioning: resize picks how much shows, drag-on-photo picks which
   // part. Live-updates for a smooth drag, commits once on release so undo
   // gets one history entry per resize, not one per pointermove.
-  function handleResizeStart(e: ReactPointerEvent<HTMLDivElement>) {
+  function handleResizeStart(e: ReactPointerEvent<HTMLElement>) {
     if (!isEditing || !editing?.onSlideshowAspectRatioChange) return;
     e.stopPropagation();
     const rect = cropBoxRef.current?.getBoundingClientRect();
@@ -711,7 +758,7 @@ export function HeroSlideshow({
     };
   }
 
-  function handleResizeMove(e: ReactPointerEvent<HTMLDivElement>) {
+  function handleResizeMove(e: ReactPointerEvent<HTMLElement>) {
     const drag = resizeDragRef.current;
     if (!drag) return;
     const dy = e.clientY - drag.startY;
@@ -767,9 +814,9 @@ export function HeroSlideshow({
             type="button"
             aria-label="Remove the slideshow"
             onClick={() => editing?.onClearSlideshow()}
-            className="absolute right-2.5 top-2.5 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white/80 hover:bg-black/80 hover:text-white"
+            className="absolute right-2.5 top-2.5 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white/85 ring-1 ring-white/15 before:absolute before:-inset-1.5 before:content-[''] hover:bg-black/80 hover:text-white"
           >
-            <Minus size={13} />
+            <Minus size={15} strokeWidth={2.5} />
           </button>
         )}
 
@@ -822,31 +869,47 @@ export function HeroSlideshow({
           // box — without it, scrolling to the last photo (once there are
           // enough to need scrolling) parks a real, pointer-events-auto
           // thumbnail directly on top of the handle again.
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center gap-1.5 overflow-x-auto bg-gradient-to-t from-black/70 to-transparent pl-2 pr-14 pb-2 pt-6">
+          // Thumbnails are 44px and spaced 12px apart so a thumb lands on
+          // the one it meant; each remove dot is small to look at but has a
+          // ~36px hit area. Tapping a thumbnail shows that slide — autoplay is
+          // off in edit mode, so this is the only way to reach slide 2+ to
+          // reposition or pinch it.
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center gap-3 overflow-x-auto bg-gradient-to-t from-black/70 to-transparent pl-3 pr-14 pb-2.5 pt-7">
             {images.map((src, i) => (
               <div key={src} className="pointer-events-auto relative shrink-0">
-                <img
-                  src={src}
-                  alt=""
-                  className="h-10 w-10 rounded-md border border-white/30 object-cover"
-                />
+                <button
+                  type="button"
+                  aria-label={`Show photo ${i + 1}`}
+                  aria-pressed={i === index}
+                  onClick={() => setIndex(i)}
+                  className="block"
+                >
+                  <img
+                    src={src}
+                    alt=""
+                    className={`h-11 w-11 rounded-lg object-cover transition-shadow ${
+                      i === index ? "ring-2 ring-white" : "ring-1 ring-white/30"
+                    }`}
+                  />
+                </button>
                 <button
                   type="button"
                   aria-label="Remove photo"
                   onClick={() => editing?.onRemoveSlideshowImage(i)}
-                  className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-black/80 text-white"
+                  className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-black/85 text-white ring-1 ring-white/25 before:absolute before:-inset-2 before:content-['']"
                 >
-                  <Minus size={9} />
+                  <Minus size={11} strokeWidth={2.5} />
                 </button>
               </div>
             ))}
             {images.length < MAX_SLIDESHOW_IMAGES && (
               <button
                 type="button"
+                aria-label="Add photos"
                 onClick={() => fileInputRef.current?.click()}
-                className="pointer-events-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-dashed border-white/40 text-white/70"
+                className="pointer-events-auto flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-dashed border-white/50 text-white/80"
               >
-                <Plus size={14} />
+                <Plus size={18} />
               </button>
             )}
             <input
@@ -869,18 +932,49 @@ export function HeroSlideshow({
           aria-valuemin={Math.round(MIN_SLIDESHOW_ASPECT * 100)}
           aria-valuemax={Math.round(MAX_SLIDESHOW_ASPECT * 100)}
           tabIndex={0}
-          className="relative z-20 -mt-4 flex h-11 cursor-ns-resize touch-none items-center justify-center"
-          onPointerDown={handleResizeStart}
-          onPointerMove={handleResizeMove}
-          onPointerUp={() => endResize(true)}
-          onPointerCancel={() => endResize(false)}
+          // The row itself lets taps through (pointer-events-none); only the
+          // pill grabs. A full-width grab strip overlapping the frame's
+          // bottom edge swallowed taps meant for the thumbnails, the "+" and
+          // the reposition handle right above it.
+          className="pointer-events-none relative z-20 -mt-4 flex h-11 items-center justify-center"
         >
-          <span className="flex h-8 w-16 items-center justify-center rounded-full bg-neutral-900 text-white shadow-lg ring-1 ring-white/15">
+          <span
+            onPointerDown={handleResizeStart}
+            onPointerMove={handleResizeMove}
+            onPointerUp={() => endResize(true)}
+            onPointerCancel={() => endResize(false)}
+            className="pointer-events-auto relative flex h-8 w-16 cursor-ns-resize touch-none items-center justify-center rounded-full bg-neutral-900 text-white shadow-lg ring-1 ring-white/15 before:absolute before:-inset-x-3 before:-bottom-2 before:top-0 before:content-['']"
+          >
             <GripHorizontal size={22} />
           </span>
         </div>
       )}
     </div>
+  );
+}
+
+// The one "remove this block" control, shared by every removable block. It
+// was a bare 12px glyph at 60% opacity, tinted from the theme — a ~20px
+// target, faint on half the palettes, and sitting on top of the block's own
+// content (the stats text field, the footer's chevron). Now: a solid dark
+// disc on the block's corner, the same language as the remove dots on text
+// and photos, 28px to see and ~44px to hit.
+function BlockRemoveButton({
+  onClick,
+  className = "",
+}: {
+  onClick: () => void;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label="Remove this block"
+      onClick={onClick}
+      className={`absolute z-10 flex h-7 w-7 items-center justify-center rounded-full bg-neutral-900/85 text-white shadow ring-1 ring-white/20 before:absolute before:-inset-2 before:content-[''] ${className}`}
+    >
+      <Minus size={14} strokeWidth={2.5} />
+    </button>
   );
 }
 
@@ -907,17 +1001,15 @@ export function StatsRow({
 }) {
   const { followers } = useStoreCommunityCounts(storeId);
   return (
-    <div className="relative mt-4 flex items-center gap-2 px-4">
+    // pr-14 in edit mode keeps the text field clear of the remove button.
+    <div
+      className={`relative mt-4 flex items-center gap-2 px-4 ${editing?.isEditing ? "pr-14" : ""}`}
+    >
       {editing?.isEditing && (
-        <button
-          type="button"
-          aria-label="Remove this block"
+        <BlockRemoveButton
           onClick={() => editing.onRemoveBlock("stats")}
-          className="absolute right-2 top-0 rounded-full p-1 opacity-60 hover:opacity-100"
-          style={{ color: mutedColor }}
-        >
-          <Minus size={12} />
-        </button>
+          className="right-4 top-1/2 -translate-y-1/2"
+        />
       )}
       <div className="flex -space-x-2">
         {clusterColors.map((c, i) => (
@@ -967,7 +1059,9 @@ function CollectionsModeTab({
     <button
       type="button"
       onClick={onClick}
-      className="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[12px] font-semibold"
+      // 40px tall to match the columns toggle beside it — at py-1.5 these
+      // were ~27px, the smallest targets in the whole editor.
+      className="flex h-10 items-center gap-1.5 rounded-full px-3 text-[13px] font-semibold"
       style={{
         background: active ? `${accent}26` : "transparent",
         color: active ? accent : textColor,
@@ -1105,12 +1199,16 @@ export function CollectionsGrid({
             {heading}
           </span>
         )}
-        <span
-          className="flex items-center gap-0.5 text-[12px] font-medium"
-          style={{ color: accent }}
-        >
-          View all <ChevronRight size={14} />
-        </span>
+        {/* Not in edit mode: the tabs and toggle already fill a 360-390px
+            row, and "View all" wrapped onto a stray line of its own. */}
+        {!editing?.isEditing && (
+          <span
+            className="flex items-center gap-0.5 text-[12px] font-medium"
+            style={{ color: accent }}
+          >
+            View all <ChevronRight size={14} />
+          </span>
+        )}
       </div>
       <div className={`mt-2.5 grid gap-1.5 ${columns === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
         {useReal
@@ -1193,7 +1291,7 @@ export function PromoBanner({
   cta,
   countdown,
   accent,
-  accentTextColor = "#0a0a0a",
+  accentTextColor,
   cardBg,
   textColor,
   editing,
@@ -1203,17 +1301,35 @@ export function PromoBanner({
   cta?: string;
   countdown?: string;
   accent: string;
+  /** Defaults to whichever of black/white actually reads on `accent` — a
+   * fixed #0a0a0a default put black text on Monochrome's #111 button. */
   accentTextColor?: string;
   cardBg: string;
   textColor: string;
   editing?: ThemeEditingProps;
 }) {
   const [showCountdownHint, setShowCountdownHint] = useState(false);
+  const hintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const ctaText = accentTextColor ?? readableTextColor(accent);
+
+  useEffect(() => {
+    return () => {
+      if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
+    };
+  }, []);
 
   function handleCountdownTap() {
     setShowCountdownHint(true);
-    setTimeout(() => setShowCountdownHint(false), 2500);
+    if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
+    hintTimerRef.current = setTimeout(() => setShowCountdownHint(false), 2500);
   }
+
+  // The countdown is a static placeholder for the live-drop timer that isn't
+  // built yet (see the store-themes skill). It stays in the editor, where
+  // the tap explains that — but a shopper must never see a frozen "02:18:47"
+  // presented as real urgency, the same objection that removed the fake star
+  // rating. On the public storefront the block falls back to its CTA.
+  const showCountdown = countdown != null && editing?.isEditing === true;
 
   return (
     <div
@@ -1221,15 +1337,10 @@ export function PromoBanner({
       style={{ background: cardBg, border: `1px solid ${accent}55` }}
     >
       {editing?.isEditing && (
-        <button
-          type="button"
-          aria-label="Remove this block"
+        <BlockRemoveButton
           onClick={() => editing.onRemoveBlock("promo")}
-          className="absolute right-1.5 top-1.5 rounded-full p-1 opacity-60 hover:opacity-100"
-          style={{ color: textColor }}
-        >
-          <Minus size={12} />
-        </button>
+          className="-right-2 -top-2.5"
+        />
       )}
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0 flex-1">
@@ -1251,11 +1362,11 @@ export function PromoBanner({
             style={{ color: textColor }}
           />
         </div>
-        {countdown ? (
+        {showCountdown ? (
           <button
             type="button"
             onClick={handleCountdownTap}
-            className="shrink-0 text-[13px] font-semibold tabular-nums"
+            className="-my-2 shrink-0 px-2 py-3 text-[13px] font-semibold tabular-nums"
             style={{ color: accent }}
           >
             {countdown}
@@ -1263,9 +1374,9 @@ export function PromoBanner({
         ) : (
           <span
             className="shrink-0 rounded-full px-3 py-2 text-[11px] font-semibold whitespace-nowrap"
-            style={{ background: accent, color: accentTextColor }}
+            style={{ background: accent, color: ctaText }}
           >
-            {cta}
+            {cta ?? "Shop now"}
           </span>
         )}
       </div>
@@ -1310,15 +1421,10 @@ export function FooterTeaser({
       style={{ background: cardBg }}
     >
       {editing?.isEditing && (
-        <button
-          type="button"
-          aria-label="Remove this block"
+        <BlockRemoveButton
           onClick={() => editing.onRemoveBlock("footer")}
-          className="absolute right-1.5 top-1.5 rounded-full p-1 opacity-60 hover:opacity-100"
-          style={{ color: textColor }}
-        >
-          <Minus size={12} />
-        </button>
+          className="-right-2 -top-2.5"
+        />
       )}
       <div className="min-w-0 flex-1">
         <ThemeText

@@ -136,7 +136,10 @@ export function ThemeSpecFull({
   }, [spec.heading, spec.body]);
 
   const dark = isDark(spec.bg);
-  const muted = alpha(spec.ink, 0.58);
+  // Lighter on a dark ground than a pale one: at 0.58 the secondary copy
+  // (prices, the hero sub-line, stats) fell to 3.3-4.1:1 on every light spec
+  // theme, under AA for the 11-13px it's set in. Dark grounds already clear it.
+  const muted = alpha(spec.ink, dark ? 0.58 : 0.72);
   const cluster = clusterFrom(spec.accent);
   const tileBg = alpha(spec.accent, dark ? 0.08 : 0.07);
   const promoBg = alpha(spec.accent, dark ? 0.1 : 0.08);
@@ -211,10 +214,12 @@ export function ThemeSpecFull({
           mutedColor={alpha(spec.ink, 0.65)}
           brandInitial={brandName.charAt(0).toUpperCase()}
           defaultLogoText={brandName}
+          ink={spec.ink}
           editing={editing}
         />
         <HeroSlideshow
           images={editing?.slideshowImages ?? HERO_SLIDESHOW_IMAGES}
+          ink={spec.ink}
           editing={editing}
         />
 

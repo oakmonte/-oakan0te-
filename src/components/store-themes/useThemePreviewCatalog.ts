@@ -81,6 +81,13 @@ export function useThemePreviewCatalog(mode: "collections" | "products", storeId
             "id, title, product_variants(main_image_url, additional_image_urls, price, compare_at_price)",
           )
           .eq("store_id", storeId)
+          // This same query feeds the PUBLIC storefront, so drafts stay out —
+          // a half-finished listing with no price or photos is not something
+          // a shopper should land on.
+          .eq("status", "active")
+          // Newest first, so which four products show is stable across loads
+          // and reflects what the seller just listed.
+          .order("created_at", { ascending: false })
           // Embedded rows come back in no guaranteed order otherwise, which
           // would let the tile's photo order — and the price below, taken
           // from the first variant — change between two loads of the same

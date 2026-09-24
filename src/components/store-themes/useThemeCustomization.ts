@@ -38,9 +38,14 @@ export function useThemeCustomization(themeId: ThemeId, storeIdOverride?: string
   const storeLoading = storeIdOverride === undefined && activeStoreLoading;
   const [loading, setLoading] = useState(true);
   const [saved, setSaved] = useState<SavedThemeCustomization | null>(null);
+  // Distinct from "no saved row": a failed read means we DON'T KNOW what's
+  // stored, so the editor must not offer a Save that would write defaults
+  // over whatever the seller had. `saved` alone can't tell the two apart.
+  const [loadFailed, setLoadFailed] = useState(false);
 
   useEffect(() => {
     if (storeLoading) return;
+    setLoadFailed(false);
     if (!storeId) {
       setSaved(null);
       setLoading(false);
@@ -60,6 +65,10 @@ export function useThemeCustomization(themeId: ThemeId, storeIdOverride?: string
         .eq("theme_slug", themeId)
         .maybeSingle();
       if (cancelled) return;
+      if (error) {
+        console.error("useThemeCustomization: load failed", error);
+        setLoadFailed(true);
+      }
       setSaved(
         !data || error
           ? null
@@ -113,5 +122,5 @@ export function useThemeCustomization(themeId: ThemeId, storeIdOverride?: string
     [themeId, storeId],
   );
 
-  return { loading, saved, save };
+  return { loading, loadFailed, saved, save };
 }

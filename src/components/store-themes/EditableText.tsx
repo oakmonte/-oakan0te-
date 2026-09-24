@@ -1,11 +1,13 @@
 import {
   useEffect,
+  useRef,
   useState,
   type CSSProperties,
   type ElementType,
   type KeyboardEvent,
 } from "react";
-import { Minus } from "lucide-react";
+import { createPortal } from "react-dom";
+import { Minus, Type } from "lucide-react";
 import { FONT_OPTIONS, ensureThemeFont, ensureThemePickerFonts, type FontId } from "./fonts";
 import type { TextFieldId, ThemeEditingProps } from "./edit-types";
 
@@ -32,8 +34,10 @@ const FIELD_BORDER = 1;
 // of where on the page the field sits). It starts collapsed to a single
 // "Change font" pill — tap it to expand into a scrollable list of every
 // option, with the field's current font highlighted in place; picking one
-// collapses it back to the pill. Both the pill and the list disappear
-// entirely once the field blurs. Every text box can carry its own font,
+// collapses it back to the pill. Both disappear once the field blurs, unless
+// the blur was the seller reaching for the control itself; an open list then
+// stays until a font is picked or something else is tapped. Every text box
+// can carry its own font,
 // never forced to match the rest of the storefront.
 // A small remove button sits at the field's own top-right corner whenever
 // it currently holds text, letting a seller delete just that line and fall
@@ -64,12 +68,38 @@ export function EditableText({
   onRemove?: () => void;
 }) {
   const [local, setLocal] = useState(value);
-  const [focused, setFocused] = useState(false);
+  // "active" rather than "focused": the font control has to outlive the
+  // field's own focus. On iOS, tapping the Change font pill can blur the
+  // input before the tap's click lands (preventDefault on mousedown doesn't
+  // reliably hold focus there) — tying the control to focus meant the pill
+  // unmounted mid-tap and the tap went nowhere.
+  const [active, setActive] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const fieldRef = useRef<HTMLInputElement & HTMLTextAreaElement>(null);
+  const controlRef = useRef<HTMLDivElement>(null);
+  // Set on pointerdown inside the control, which fires before the blur a tap
+  // causes — so handleBlur can tell "the seller is reaching for the font
+  // control" apart from "the seller is done with this field".
+  const pressingControlRef = useRef(false);
 
   useEffect(() => {
     setLocal(value);
   }, [value]);
+
+  // Once the field has blurred, the control stays up only while the picker
+  // is open; a tap anywhere else dismisses it.
+  useEffect(() => {
+    if (!active) return;
+    const onPointerDown = (e: PointerEvent) => {
+      const target = e.target as Node;
+      if (controlRef.current?.contains(target) || fieldRef.current?.contains(target)) return;
+      if (document.activeElement === fieldRef.current) return; // handleBlur owns this case
+      setActive(false);
+      setPickerOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown, true);
+    return () => document.removeEventListener("pointerdown", onPointerDown, true);
+  }, [active]);
 
   // How much of the layout viewport the on-screen keyboard is covering, so
   // the font control can sit just above it. visualViewport is the only thing
@@ -77,7 +107,7 @@ export function EditableText({
   // opens, and position:fixed still resolves against the layout viewport.
   const [keyboardInset, setKeyboardInset] = useState(0);
   useEffect(() => {
-    if (!focused) return;
+    if (!active) return;
     const vv = window.visualViewport;
     if (!vv) return;
     const update = () =>
@@ -89,7 +119,7 @@ export function EditableText({
       vv.removeEventListener("resize", update);
       vv.removeEventListener("scroll", update);
     };
-  }, [focused]);
+  }, [active]);
 
   if (!isEditing) {
     if (!value) return null;
@@ -101,7 +131,10 @@ export function EditableText({
     );
   }
 
-  const editClassName = `${className ?? ""} w-full resize-none rounded-md border border-white/25 bg-white/5 px-2 py-1 outline-none focus:border-white/60 focus:bg-white/10`;
+  // Drawn in currentColor, not white: the field inherits the theme's own text
+  // colour, so the outline shows on a pale theme as well as a dark one — a
+  // white/25 border simply vanished on the light grounds.
+  const editClassName = `${className ?? ""} w-full resize-none rounded-md border border-current/25 bg-current/[0.04] px-2 py-1 outline-none focus:border-current/60 focus:bg-current/[0.07]`;
 
   // iOS Safari force-zooms the viewport when it focuses a text control whose
   // COMPUTED font size is under 16px, and styles.css keeps every input at
@@ -158,14 +191,29 @@ export function EditableText({
   }
 
   function handleFocus() {
-    setFocused(true);
+    // A press on the control after the field had already blurred (picking a
+    // font on iOS) leaves the flag set with no blur to consume it.
+    pressingControlRef.current = false;
+    setActive(true);
     setPickerOpen(false);
   }
 
   function handleBlur() {
     commit();
-    setFocused(false);
+    if (pressingControlRef.current) {
+      pressingControlRef.current = false;
+      return;
+    }
+    setActive(false);
     setPickerOpen(false);
+  }
+
+  function pickFont(font: FontId) {
+    onFontChange?.(font);
+    setPickerOpen(false);
+    // Back to the pill if the field kept focus (Android, desktop); if the tap
+    // already dropped the keyboard (iOS), the edit is over — close it all.
+    if (document.activeElement !== fieldRef.current) setActive(false);
   }
 
   function handleKeyDown(e: KeyboardEvent<HTMLInputElement>) {
@@ -175,6 +223,7 @@ export function EditableText({
   const visualHeight = fieldHeight * scale;
   const field = multiline ? (
     <textarea
+      ref={fieldRef}
       rows={2}
       value={local}
       placeholder={placeholder}
@@ -186,6 +235,7 @@ export function EditableText({
     />
   ) : (
     <input
+      ref={fieldRef}
       type="text"
       value={local}
       placeholder={placeholder}
@@ -198,70 +248,103 @@ export function EditableText({
     />
   );
 
+  const fontControl =
+    active && onFontChange && typeof document !== "undefined"
+      ? createPortal(
+          // Portaled to <body>, not rendered next to the field. position:fixed
+          // only means "the screen" while no ancestor has a transform, filter
+          // or backdrop-filter — and several fields sit inside exactly that
+          // (the logo pill and the glass promo cards are backdrop-blurred), so
+          // there the control was pinned to a 40px pill and clipped by it.
+          //
+          // Docked just above the keyboard rather than centred on the screen:
+          // the field being edited is pushed up against the keyboard too, so a
+          // control halfway up the page meant looking in one place and reaching
+          // in another. Bottom-anchored also lets the list grow upward, away
+          // from the thumb. keyboardInset comes from visualViewport above.
+          <div
+            ref={controlRef}
+            onPointerDown={() => {
+              pressingControlRef.current = true;
+            }}
+            // Cleared shortly AFTER release, never on it: iOS fires
+            // pointerup with the touch itself and only blurs the field later,
+            // with the compatibility mouse events — clearing on pointerup
+            // reopened the original "tap goes nowhere" bug. The delay also
+            // covers Android/desktop, where focus is kept and no blur ever
+            // consumes the flag. A scroll of the font list cancels instead of
+            // releasing, and no blur follows that, so it clears at once.
+            onPointerUp={() => {
+              window.setTimeout(() => {
+                pressingControlRef.current = false;
+              }, 400);
+            }}
+            onPointerCancel={() => {
+              pressingControlRef.current = false;
+            }}
+            className="fixed right-3 z-[70] flex justify-end duration-200 ease-out animate-in fade-in slide-in-from-bottom-2"
+            style={{ bottom: keyboardInset + 12 }}
+          >
+            {pickerOpen ? (
+              <div
+                className="max-h-[300px] w-fit overflow-y-auto overscroll-contain rounded-2xl bg-neutral-900 p-1.5 shadow-xl ring-1 ring-white/10 duration-200 ease-out animate-in fade-in zoom-in-95 slide-in-from-bottom-4"
+                style={{ minWidth: "12rem" }}
+              >
+                {FONT_OPTIONS.map((f) => {
+                  const selected = currentFont ? currentFont === f.id : f.id === "sans";
+                  return (
+                    <button
+                      key={f.id}
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => pickFont(f.id)}
+                      className="block min-h-11 w-full rounded-xl px-3.5 py-2.5 text-left text-[15px] font-medium whitespace-nowrap text-white"
+                      style={{
+                        fontFamily: f.fontFamily,
+                        background: selected ? "rgba(255,255,255,0.2)" : "transparent",
+                        opacity: selected ? 1 : 0.7,
+                      }}
+                    >
+                      {f.label}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  ensureThemePickerFonts();
+                  setPickerOpen(true);
+                }}
+                className="flex h-11 items-center gap-2 rounded-full bg-neutral-900 px-4 text-[14px] font-semibold whitespace-nowrap text-white shadow-xl ring-1 ring-white/10"
+              >
+                <Type size={16} strokeWidth={2} />
+                Change font
+              </button>
+            )}
+          </div>,
+          document.body,
+        )
+      : null;
+
   return (
     <span className="relative block w-full">
-      {focused && onFontChange && (
-        // Docked just above the keyboard rather than centred on the screen:
-        // the field being edited is pushed up against the keyboard too, so a
-        // control halfway up the page meant looking in one place and reaching
-        // in another. Bottom-anchored also lets the list grow upward, away
-        // from the thumb. keyboardInset comes from visualViewport above.
-        <div
-          className="fixed right-3 z-30 flex justify-end duration-200 ease-out animate-in fade-in slide-in-from-bottom-2"
-          style={{ bottom: keyboardInset + 12 }}
-        >
-          {pickerOpen ? (
-            <div
-              className="max-h-[260px] w-fit overflow-y-auto overscroll-contain rounded-2xl bg-neutral-900 p-1.5 shadow-xl duration-200 ease-out animate-in fade-in zoom-in-95 slide-in-from-bottom-4"
-              style={{ minWidth: "10.5rem" }}
-            >
-              {FONT_OPTIONS.map((f) => {
-                const active = currentFont ? currentFont === f.id : f.id === "sans";
-                return (
-                  <button
-                    key={f.id}
-                    type="button"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => {
-                      onFontChange(f.id);
-                      setPickerOpen(false);
-                    }}
-                    className="block w-full rounded-lg px-3 py-2 text-left text-[13px] font-medium whitespace-nowrap text-white"
-                    style={{
-                      fontFamily: f.fontFamily,
-                      background: active ? "rgba(255,255,255,0.2)" : "transparent",
-                      opacity: active ? 1 : 0.65,
-                    }}
-                  >
-                    {f.label}
-                  </button>
-                );
-              })}
-            </div>
-          ) : (
-            <button
-              type="button"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => {
-                ensureThemePickerFonts();
-                setPickerOpen(true);
-              }}
-              className="rounded-full bg-neutral-900 px-3 py-2 text-[13px] font-medium whitespace-nowrap text-white shadow-xl"
-            >
-              Change font
-            </button>
-          )}
-        </div>
-      )}
+      {fontControl}
       {onRemove && value && (
+        // Small to look at, big to hit: the visible dot stays 20px so it
+        // doesn't crowd the copy, and the before: layer grows the hit area
+        // up and out to ~30px — outward only, so a tap near the end of a
+        // short line still lands in the field instead of deleting it.
         <button
           type="button"
           aria-label="Remove this text"
           onMouseDown={(e) => e.preventDefault()}
           onClick={onRemove}
-          className="absolute -right-1.5 -top-1.5 z-20 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-black/70 text-white/70 hover:text-white"
+          className="absolute -right-2 -top-2 z-20 flex h-5 w-5 items-center justify-center rounded-full bg-black/75 text-white/80 ring-1 ring-white/20 before:absolute before:-right-2.5 before:-top-2.5 before:bottom-0 before:left-0 before:content-[''] hover:text-white"
         >
-          <Minus size={8} />
+          <Minus size={11} strokeWidth={2.5} />
         </button>
       )}
       {scale === 1 ? (
