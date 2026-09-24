@@ -22,6 +22,7 @@ import { ProductSaveToast } from "../components/ProductSaveToast";
 import { BackgroundUploadToast } from "../components/BackgroundUploadToast";
 import { setLastNonCreateRoute } from "../lib/last-visited-route";
 import { attachNavStack } from "@/lib/nav-stack";
+import { EdgeSwipeBack } from "@/components/EdgeSwipeBack";
 import { isHeldLight, surfaceForPathname } from "@/lib/surface";
 
 function NotFoundComponent() {
@@ -374,8 +375,12 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes.
+          EdgeSwipeBack is the installed iOS app's back swipe; everywhere else it
+          renders two plain divs and attaches nothing. */}
+      <EdgeSwipeBack>
+        <Outlet />
+      </EdgeSwipeBack>
       <PostUploadToast />
       <ProductSaveToast />
       <BackgroundUploadToast />

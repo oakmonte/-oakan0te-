@@ -2,10 +2,11 @@
 // — this carries only the behaviour, which every one of them had been
 // hand-rolling as a hardcoded navigate() that PUSHED a new history entry
 // instead of popping one. See use-back.ts.
-import type { CSSProperties, ReactNode } from "react";
+import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import { ArrowLeft, ChevronLeft } from "lucide-react";
 import { useBack } from "@/hooks/use-back";
 import type { NavTarget } from "@/lib/nav-hierarchy";
+import { registerScreenBack } from "@/lib/screen-back";
 
 type BackButtonProps = {
   /** Match whatever the screen already used. */
@@ -41,13 +42,25 @@ export function BackButton({
   alwaysShow = false,
 }: BackButtonProps) {
   const { back, canGoUp } = useBack(to);
+  const shown = canGoUp || alwaysShow;
 
-  if (!canGoUp && !alwaysShow) return null;
+  const press = () => (onIntercept ? onIntercept(back) : back());
+  // Latest closure in a ref, so registration happens once per mount rather
+  // than on every render that passes a fresh inline onIntercept.
+  const pressRef = useRef(press);
+  pressRef.current = press;
+  // Lets the edge swipe do what this button does. See screen-back.ts.
+  useEffect(() => {
+    if (!shown) return;
+    return registerScreenBack(() => pressRef.current());
+  }, [shown]);
+
+  if (!shown) return null;
 
   return (
     <button
       type="button"
-      onClick={() => (onIntercept ? onIntercept(back) : back())}
+      onClick={press}
       aria-label={ariaLabel}
       className={className}
       style={style}
