@@ -3,6 +3,7 @@ import type { PointerEvent as ReactPointerEvent } from "react";
 import { X, Check, Undo2, Redo2 } from "lucide-react";
 import { useAfterShotLayers, type DrawStroke, type DrawLayer } from "@/lib/after-shot-layers";
 import { StrokeShape } from "./StrokeShape";
+import { GLASS_RIM, glassClear } from "@/lib/liquid-glass";
 
 // Stops for the vertical color slider — white at top through the hue
 // spectrum down to black at bottom, matching the Snapchat-style reference.
@@ -403,10 +404,9 @@ export default function DrawPanel({ open, containerRef, onClose }: DrawPanelProp
         <button
           onClick={handleCancel}
           aria-label="Cancel draw"
-          className="oak-motion-control flex items-center justify-center w-10 h-10 rounded-full active:scale-90"
+          className={`relative oak-motion-control flex items-center justify-center w-10 h-10 rounded-full active:scale-90 ${GLASS_RIM}`}
           style={{
-            background: "rgba(255,255,255,0.10)",
-            backdropFilter: "blur(12px)",
+            ...glassClear,
             pointerEvents: "auto",
           }}
         >
@@ -418,8 +418,8 @@ export default function DrawPanel({ open, containerRef, onClose }: DrawPanelProp
             onClick={handleUndo}
             aria-label="Undo"
             disabled={undoStack.length === 0}
-            className="oak-motion-control flex items-center justify-center w-10 h-10 rounded-full disabled:opacity-40 active:scale-90"
-            style={{ background: "rgba(255,255,255,0.10)", backdropFilter: "blur(12px)" }}
+            className={`relative oak-motion-control flex items-center justify-center w-10 h-10 rounded-full disabled:opacity-40 active:scale-90 ${GLASS_RIM}`}
+            style={glassClear}
           >
             <Undo2 size={18} color="#fff" />
           </button>
@@ -427,8 +427,8 @@ export default function DrawPanel({ open, containerRef, onClose }: DrawPanelProp
             onClick={handleRedo}
             aria-label="Redo"
             disabled={redoStack.length === 0}
-            className="oak-motion-control flex items-center justify-center w-10 h-10 rounded-full disabled:opacity-40 active:scale-90"
-            style={{ background: "rgba(255,255,255,0.10)", backdropFilter: "blur(12px)" }}
+            className={`relative oak-motion-control flex items-center justify-center w-10 h-10 rounded-full disabled:opacity-40 active:scale-90 ${GLASS_RIM}`}
+            style={glassClear}
           >
             <Redo2 size={18} color="#fff" />
           </button>

@@ -6,6 +6,7 @@ import {
   retryProductSave,
   dismissProductSave,
 } from "@/lib/product-save";
+import { GLASS_RIM, glassDark } from "@/lib/liquid-glass";
 
 /** Mounted once in __root.tsx so it survives navigating away from the
  *  product form — the save it's reporting on keeps running in the
@@ -16,13 +17,13 @@ export function ProductSaveToast() {
 
   return (
     <div
-      className="oak-motion-fade fixed left-1/2 -translate-x-1/2 z-[70] flex items-center gap-2.5 rounded-full px-4 py-2.5 text-[13px] font-medium text-white max-w-[92vw]"
+      className={`oak-motion-fade fixed left-1/2 -translate-x-1/2 z-[70] flex items-center gap-2.5 rounded-full px-4 py-2.5 text-[13px] font-medium text-white max-w-[92vw] ${GLASS_RIM}`}
       style={{
         bottom: "calc(env(safe-area-inset-bottom) + 76px)",
-        background: "rgba(24,24,24,0.94)",
-        backdropFilter: "blur(16px)",
-        WebkitBackdropFilter: "blur(16px)",
-        boxShadow: "0 8px 24px rgba(0,0,0,0.25)",
+        ...glassDark,
+        // Denser than the base recipe: a toast has to be read at a glance
+        // over whatever is behind it, including white screens.
+        background: "rgba(24,26,30,0.78)",
       }}
     >
       {state.status === "saving" && (

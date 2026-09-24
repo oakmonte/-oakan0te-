@@ -7,6 +7,7 @@ import {
   dismissBackgroundUpload,
   type BackgroundUpload,
 } from "@/lib/background-upload";
+import { GLASS_RIM, glassDark } from "@/lib/liquid-glass";
 
 // Module-level, not inline in the component: useSyncExternalStore requires
 // its server-snapshot getter to return a STABLE reference across calls, same
@@ -82,12 +83,12 @@ export function BackgroundUploadToast() {
 function Pill({ children }: { children: React.ReactNode }) {
   return (
     <div
-      className="oak-motion-fade flex items-center gap-2.5 rounded-full px-4 py-2.5 text-[13px] font-medium text-white max-w-full"
+      className={`relative oak-motion-fade flex items-center gap-2.5 rounded-full px-4 py-2.5 text-[13px] font-medium text-white max-w-full ${GLASS_RIM}`}
       style={{
-        background: "rgba(24,24,24,0.94)",
-        backdropFilter: "blur(16px)",
-        WebkitBackdropFilter: "blur(16px)",
-        boxShadow: "0 8px 24px rgba(0,0,0,0.25)",
+        ...glassDark,
+        // Denser than the base recipe: a toast has to be read at a glance
+        // over whatever is behind it, including white screens.
+        background: "rgba(24,26,30,0.78)",
       }}
     >
       {children}

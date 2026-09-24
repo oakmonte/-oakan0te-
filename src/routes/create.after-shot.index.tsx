@@ -35,6 +35,7 @@ import { useAfterShotLayers } from "@/lib/after-shot-layers";
 import { useLayerRenderer } from "@/components/camera/aftershot/use-layer-renderer";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
 import { useFittedSize } from "@/hooks/use-fitted-size";
+import { GLASS_RIM, glassClear } from "@/lib/liquid-glass";
 
 export const Route = createFileRoute("/create/after-shot/")({
   head: () => ({ meta: [{ title: "Edit — Oakmonte" }] }),
@@ -527,8 +528,8 @@ function AfterShotIndexPage() {
             <button
               onClick={discard}
               aria-label="Discard and retake"
-              className="oak-motion-control flex items-center justify-center w-10 h-10 rounded-full active:scale-90"
-              style={{ background: "rgba(255,255,255,0.10)", backdropFilter: "blur(12px)" }}
+              className={`relative oak-motion-control flex items-center justify-center w-10 h-10 rounded-full active:scale-90 ${GLASS_RIM}`}
+              style={glassClear}
             >
               <X size={20} />
             </button>
@@ -538,8 +539,8 @@ function AfterShotIndexPage() {
                 onClick={() => setVideoMuted((m) => !m)}
                 aria-label={videoMuted ? "Unmute preview" : "Mute preview"}
                 aria-pressed={!videoMuted}
-                className="oak-motion-control flex items-center justify-center w-10 h-10 rounded-full active:scale-90"
-                style={{ background: "rgba(255,255,255,0.10)", backdropFilter: "blur(12px)" }}
+                className={`relative oak-motion-control flex items-center justify-center w-10 h-10 rounded-full active:scale-90 ${GLASS_RIM}`}
+                style={glassClear}
               >
                 {videoMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
               </button>
@@ -551,8 +552,8 @@ function AfterShotIndexPage() {
                 to do nothing. */}
             {media.audio && (
               <div
-                className="oak-motion-pop flex min-w-0 items-center gap-2 rounded-full py-1.5 pl-3 pr-1.5"
-                style={{ background: "rgba(255,255,255,0.10)", backdropFilter: "blur(12px)" }}
+                className={`relative oak-motion-pop flex min-w-0 items-center gap-2 rounded-full py-1.5 pl-3 pr-1.5 ${GLASS_RIM}`}
+                style={glassClear}
               >
                 <Music size={13} className="shrink-0 opacity-70" />
                 <span className="truncate text-[12px]">{media.audio.name}</span>

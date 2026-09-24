@@ -1,6 +1,7 @@
 import { Copy, Forward, MessageCircleReply, Plus, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { glassFloating } from "./glass";
+import { GLASS_RIM } from "@/lib/liquid-glass";
 
 const REACTIONS = ["❤️", "😂", "😮", "😢", "👏", "👍"];
 
@@ -22,7 +23,7 @@ export function ReactionBar({
       role="presentation"
     >
       <section
-        className="w-full max-w-sm rounded-[22px] p-2"
+        className={`relative w-full max-w-sm rounded-[22px] p-2 ${GLASS_RIM}`}
         style={glassFloating}
         onClick={(event) => event.stopPropagation()}
         aria-label="Message actions"

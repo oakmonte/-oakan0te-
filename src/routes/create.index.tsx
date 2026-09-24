@@ -46,6 +46,7 @@ import {
 import { CAMERA_LAYOUTS } from "@/components/camera/layout-data";
 import type { CameraLayout, LayoutCell } from "@/components/camera/layout-data";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
+import { GLASS_RIM, glassClear } from "@/lib/liquid-glass";
 
 export const Route = createFileRoute("/create/")({
   // `?tab=create` opens straight onto the CREATE panel instead of the camera.
@@ -1337,8 +1338,9 @@ function CreatePage() {
                     />
                   ) : (
                     // Cells not yet reached: frosted glass instead of flat black, so
-                    // the live scene still shows through, just softened — matches the
-                    // liquid-glass language LiquidGlassSegmented already uses. No live
+                    // the live scene still shows through, just softened. Deliberately
+                    // heavier blur than the liquid-glass presets: a cell is a placeholder,
+                    // not floating chrome, and must NOT read as a live view. No live
                     // video here on purpose; a sharp feed would bring back the
                     // "which cell is active" confusion this was meant to fix.
                     <div
@@ -1402,8 +1404,8 @@ function CreatePage() {
         <button
           onClick={handleBack}
           aria-label="Back"
-          className="flex items-center justify-center w-10 h-10 rounded-full transition-transform duration-150 active:scale-90"
-          style={{ background: "rgba(255,255,255,0.10)", backdropFilter: "blur(12px)" }}
+          className={`relative flex items-center justify-center w-10 h-10 rounded-full transition-transform duration-150 active:scale-90 ${GLASS_RIM}`}
+          style={glassClear}
         >
           <X size={20} />
         </button>
@@ -1656,15 +1658,14 @@ function CreatePage() {
       <button
         onClick={() => !isRecording && setFacing((f) => (f === "user" ? "environment" : "user"))}
         aria-label="Flip camera"
-        className="absolute flex items-center justify-center rounded-full transition-transform duration-150 active:scale-90"
+        className={`absolute flex items-center justify-center rounded-full transition-transform duration-150 active:scale-90 ${GLASS_RIM}`}
         style={{
           zIndex: 3,
           left: iconColumnLeft(ROTATE_SIZE),
           bottom: `calc(env(safe-area-inset-bottom) + ${ROTATE_BOTTOM}px)`,
           width: ROTATE_SIZE,
           height: ROTATE_SIZE,
-          background: "rgba(255,255,255,0.10)",
-          backdropFilter: "blur(12px)",
+          ...glassClear,
           opacity: isRecording ? 0.4 : 1,
         }}
       >
@@ -1675,16 +1676,16 @@ function CreatePage() {
         onClick={() => setFlashOn((v) => !v)}
         aria-label={flashOn ? "Turn flash off" : "Turn flash on"}
         aria-pressed={flashOn}
-        className="absolute flex items-center justify-center rounded-full transition-transform duration-150 active:scale-90"
+        className={`absolute flex items-center justify-center rounded-full transition-transform duration-150 active:scale-90 ${GLASS_RIM}`}
         style={{
           zIndex: 3,
           left: iconColumnLeft(FLASH_TOGGLE_SIZE),
           bottom: `calc(env(safe-area-inset-bottom) + ${FLASH_TOGGLE_BOTTOM}px)`,
           width: FLASH_TOGGLE_SIZE,
           height: FLASH_TOGGLE_SIZE,
-          background: flashOn ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.10)",
+          ...glassClear,
+          ...(flashOn && { background: "rgba(255,255,255,0.9)" }),
           color: flashOn ? "#000" : "#fff",
-          backdropFilter: "blur(12px)",
         }}
       >
         {flashOn ? <Zap size={16} /> : <ZapOff size={16} />}

@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { setSavePref, useSavePrefs, type SavePrefs } from "@/lib/save-prefs";
+import { GLASS_RIM, glassDark } from "@/lib/liquid-glass";
 
 /** The strip that drops in after tapping the bookmark: what just happened,
  *  with a switch beside each line to undo it for good.
@@ -37,8 +38,8 @@ export function SaveToast({
           transition={{ type: "spring", stiffness: 520, damping: 40 }}
         >
           <div
-            className="w-full max-w-[340px] rounded-[12px] px-3.5 py-2 backdrop-blur-xl"
-            style={{ background: "rgba(28,28,30,0.82)" }}
+            className={`relative w-full max-w-[340px] rounded-[12px] px-3.5 py-2 ${GLASS_RIM}`}
+            style={{ ...glassDark, background: "rgba(24,26,30,0.78)" }}
             onClick={onDismiss}
           >
             <ToastRow label="Post added to favourites" prefKey="favourites" on={prefs.favourites} />
