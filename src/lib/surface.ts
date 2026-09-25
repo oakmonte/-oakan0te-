@@ -40,33 +40,43 @@ export function surfaceForPathname(pathname: string): Surface {
 
 /** Dashboard routes held in the LIGHT scheme even when the phone is in dark.
  *
- *  Temporary, and deliberately narrow. These two render the shared
- *  product-form components as the WHOLE page, top to bottom, and product-form
- *  (39 files) has not been moved onto the --sd-* tokens yet -- it is shared
- *  with the create flow and under active work by another developer, so
- *  converting it is being agreed separately rather than done in passing. Left
- *  in dark, its hardcoded dark text would sit on a dark page and simply
- *  disappear.
+ *  Two different reasons feed this list -- don't collapse them back into one
+ *  comment, they get deleted on different conditions:
+ *
+ *  1. Temporary, and deliberately narrow. /store/products/new,
+ *     /store/products/:id and /store/collections/new render the shared
+ *     product-form components as the WHOLE page, top to bottom, and
+ *     product-form (39 files) has not been moved onto the --sd-* tokens yet
+ *     -- it is shared with the create flow and under active work by another
+ *     developer, so converting it is being agreed separately rather than
+ *     done in passing. Left in dark, its hardcoded dark text would sit on a
+ *     dark page and simply disappear. Delete these entries (and this
+ *     paragraph) once product-form is on the tokens.
+ *
+ *  2. A permanent product decision, independent of any conversion. The theme
+ *     picker: every card is a swatch of a storefront's real colours, and half
+ *     of those are dark grounds that read as one black smear on a dark page.
+ *     /store/drops/new and /store/drops/:id, since 2026-09-25: unlike the
+ *     product-form hold above, these were already written in --sd-* tokens
+ *     (only the embedded cover-photo picker wasn't) and used to follow the
+ *     phone -- Diadem asked for them to stop, so they read the same as New
+ *     Product/New Collection instead of switching dark while everything
+ *     alongside them stays light. Don't delete these when group 1 goes.
  *
  *  Routes that use product-form only as a modal/sheet over a scrim, or as one
  *  inline piece of an otherwise --sd-* page, are NOT held: a white sheet (or a
  *  white MediaSection) over a dark page is inconsistent but perfectly
  *  legible, and holding the WHOLE page in light to avoid it would cost far
- *  more than it saves. /store/drops/new is exactly this case -- unlike the
- *  two below, its header, title field, source picker and timer are already
- *  written in --sd-* tokens; only the embedded cover-photo picker is not.
- *
- *  Delete this, and its callers, once product-form is on the tokens. */
+ *  more than it saves. */
 export function isHeldLight(pathname: string): boolean {
-  // Not part of the temporary product-form hold above, and NOT to be deleted
-  // with it. The theme picker is light by product decision: every card is a
-  // swatch of a storefront's real colours, and half of those are dark
-  // grounds that read as one black smear on a dark page.
   if (pathname === "/store/theme") return true;
   if (pathname === "/store/products/new") return true;
   if (pathname === "/store/collections/new") return true;
+  if (pathname === "/store/drops/new") return true;
   // /store/products/:id -- but not the two sibling screens that share the
   // prefix and are fully converted.
-  const m = /^\/store\/products\/([^/]+)$/.exec(pathname);
-  return !!m && m[1] !== "upload" && m[1] !== "newcomer";
+  const productId = /^\/store\/products\/([^/]+)$/.exec(pathname);
+  if (productId && productId[1] !== "upload" && productId[1] !== "newcomer") return true;
+  // /store/drops/:id -- same product decision as /store/drops/new above.
+  return /^\/store\/drops\/[^/]+$/.test(pathname);
 }

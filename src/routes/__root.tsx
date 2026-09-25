@@ -216,7 +216,22 @@ function RootShell({ children }: { children: ReactNode }) {
   // the point. Deciding the surface in an effect instead, as this used to, meant
   // every cold load of the white dashboard painted black first and was only
   // corrected a frame after hydration.
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  //
+  // `resolvedLocation`, not `location` -- TanStack Router updates `location`
+  // to the TARGET pathname the instant a navigation is kicked off, well
+  // before the new route's component has actually replaced the old one on
+  // screen (a lazy-loaded chunk in particular takes a beat). Reading that
+  // pending target here flipped this whole page's data-scheme -- a global
+  // <html> attribute -- while the OLD page was still what's on screen,
+  // which is what a seller tapping "+" from a dark Products/Collections/Drops
+  // page into a held-light New * screen saw as the CURRENT page flashing
+  // light for a frame before the new one ever appeared. `resolvedLocation`
+  // only updates once a navigation has actually committed, so it falls back
+  // to `location` only for the very first render (no navigation has happened
+  // yet to resolve).
+  const pathname = useRouterState({
+    select: (s) => (s.resolvedLocation ?? s.location).pathname,
+  });
   const surface = surfaceForPathname(pathname);
   // A few dashboard screens are held in the light scheme: the theme picker by
   // design, the rest until the shared product-form components are on the

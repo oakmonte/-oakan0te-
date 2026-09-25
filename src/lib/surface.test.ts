@@ -79,20 +79,20 @@ describe("isHeldLight", () => {
     expect(isHeldLight("/store/products")).toBe(false);
     expect(isHeldLight("/store/collections")).toBe(false);
     expect(isHeldLight("/store/collections/abc123")).toBe(false);
-    expect(isHeldLight("/store/drops/abc123")).toBe(false);
-  });
-
-  // Unlike products/new and collections/new, most of this page is already
-  // --sd-* -- only the embedded MediaSection is hardcoded light, the same
-  // tradeoff already accepted for a sheet over a scrim.
-  test("does not hold /store/drops/new -- only one inline piece is unconverted", () => {
-    expect(isHeldLight("/store/drops/new")).toBe(false);
   });
 
   // A product decision, not the temporary product-form hold: the swatches
   // are storefront colours, and dark ones vanish on a dark page.
   test("holds the theme picker light", () => {
     expect(isHeldLight("/store/theme")).toBe(true);
+  });
+
+  // Also a permanent product decision (2026-09-25), not the temporary
+  // product-form hold -- these two were already on --sd-* tokens and used to
+  // follow the phone, Diadem asked for them to just stay light instead.
+  test("holds the drop screens light", () => {
+    expect(isHeldLight("/store/drops/new")).toBe(true);
+    expect(isHeldLight("/store/drops/abc123")).toBe(true);
   });
 
   test("never applies outside the dashboard", () => {

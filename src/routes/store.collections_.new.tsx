@@ -203,51 +203,56 @@ function NewCollection() {
         </p>
       )}
 
-      <MediaSection
-        mainImageUrl={imageUrl}
-        onChange={setImageUrl}
-        additionalImageUrls={additionalImageUrls}
-        onAdditionalChange={setAdditionalImageUrls}
-      />
-
-      <div className="px-4 py-4 border-b-8 border-sd-line/50">
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Collection title"
-          className="w-full text-2xl font-semibold text-sd-ink placeholder:text-sd-ink-muted outline-none pb-3 border-b border-sd-line"
+      <div className="mx-4 mt-4 rounded-2xl border border-sd-line bg-sd-surface overflow-hidden">
+        <MediaSection
+          mainImageUrl={imageUrl}
+          onChange={setImageUrl}
+          additionalImageUrls={additionalImageUrls}
+          onAdditionalChange={setAdditionalImageUrls}
+          noDivider
         />
 
-        <button
-          type="button"
-          onClick={() => setDescriptionSheetOpen(true)}
-          className="w-full flex items-center justify-between py-4 text-left"
-        >
-          <span className="flex items-center gap-3 text-[15px] text-sd-ink">
-            {hasDescription ? (
-              <Check size={18} className="text-sd-ink" />
-            ) : (
-              <Plus size={18} className="text-sd-ink-faint" />
-            )}
-            {hasDescription ? "Description" : "Add description"}
-          </span>
-          <ChevronRight size={16} className="text-sd-ink-faint shrink-0" />
-        </button>
+        <div className="border-t border-sd-line px-4 py-4">
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Collection title"
+            className="w-full text-2xl font-semibold text-sd-ink placeholder:text-sd-ink-muted outline-none pb-3 border-b border-sd-line"
+          />
+
+          <button
+            type="button"
+            onClick={() => setDescriptionSheetOpen(true)}
+            className="w-full flex items-center justify-between py-4 text-left"
+          >
+            <span className="flex items-center gap-3 text-[15px] text-sd-ink">
+              {hasDescription ? (
+                <Check size={18} className="text-sd-ink" />
+              ) : (
+                <Plus size={18} className="text-sd-ink-faint" />
+              )}
+              {hasDescription ? "Description" : "Add description"}
+            </span>
+            <ChevronRight size={16} className="text-sd-ink-faint shrink-0" />
+          </button>
+        </div>
       </div>
 
-      <button
-        type="button"
-        onClick={() => setProductsSheetOpen(true)}
-        className="w-full flex items-center justify-between px-4 py-4 border-b-8 border-sd-line/50 text-left"
-      >
-        <span className="text-[15px] text-sd-ink">Products</span>
-        <span className="flex items-center gap-1 shrink-0">
-          {productIds.length > 0 && (
-            <span className="text-xs text-sd-ink-faint">{productIds.length} selected</span>
-          )}
-          <ChevronRight size={16} className="text-sd-ink-faint" />
-        </span>
-      </button>
+      <div className="mx-4 mt-3 rounded-2xl border border-sd-line bg-sd-surface overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setProductsSheetOpen(true)}
+          className="w-full flex items-center justify-between px-4 py-4 text-left"
+        >
+          <span className="text-[15px] text-sd-ink">Products</span>
+          <span className="flex items-center gap-1 shrink-0">
+            {productIds.length > 0 && (
+              <span className="text-xs text-sd-ink-faint">{productIds.length} selected</span>
+            )}
+            <ChevronRight size={16} className="text-sd-ink-faint" />
+          </span>
+        </button>
+      </div>
 
       {descriptionSheetOpen && (
         <DescriptionSheet

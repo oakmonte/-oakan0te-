@@ -174,18 +174,19 @@ function NewDrop() {
         </p>
       )}
 
-      <MediaSection mainImageUrl={imageUrl} onChange={setImageUrl} />
-
-      <div className="px-4 py-4 border-b-8 border-sd-line/50">
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Drop title"
-          className="w-full text-2xl font-semibold text-sd-ink placeholder:text-sd-ink-muted outline-none pb-3 border-b border-sd-line"
-        />
+      <div className="mx-4 mt-4 rounded-2xl border border-sd-line bg-sd-surface overflow-hidden">
+        <MediaSection mainImageUrl={imageUrl} onChange={setImageUrl} noDivider />
+        <div className="border-t border-sd-line px-4 py-4">
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Drop title"
+            className="w-full text-2xl font-semibold text-sd-ink placeholder:text-sd-ink-muted outline-none"
+          />
+        </div>
       </div>
 
-      <div className="px-4 py-4 border-b-8 border-sd-line/50">
+      <div className="mx-4 mt-3 rounded-2xl border border-sd-line bg-sd-surface p-4">
         <p className="text-xs font-medium text-sd-ink-faint mb-3 uppercase tracking-wide">
           What's in this drop?
         </p>
@@ -241,7 +242,7 @@ function NewDrop() {
         )}
       </div>
 
-      <div className="px-4 py-4">
+      <div className="mx-4 mt-3 rounded-2xl border border-sd-line bg-sd-surface p-4">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-[15px] text-sd-ink">Set a timer</p>
