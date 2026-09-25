@@ -274,6 +274,29 @@ export function AuthPanel({ intent, title, subtitle, defaultMode = "code" }: Pro
     return "a passkey";
   };
 
+  // Its own const, not inline JSX, because it now has two call sites: the
+  // ordinary spot below passkeyReady, and directly under Apple's button on
+  // iPhone (see appleAbovePasskey below) -- Face ID reads as a continuation
+  // of "Continue with Apple" there, not a separate, competing option.
+  const passkeyButton = (
+    <button
+      type="button"
+      onClick={handlePasskey}
+      disabled={busy === "passkey"}
+      className="w-full flex items-center justify-center gap-3 border border-[#0A0A0A]/15 rounded-full py-3.5 text-sm font-medium hover:border-[#0A0A0A]/40 hover:scale-[1.01] transition-all duration-300 disabled:opacity-60"
+    >
+      {busy === "passkey" ? <Spinner /> : `Sign in with ${passkeyLabel()}`}
+    </button>
+  );
+
+  // On iPhone, in the ordinary (non-installed) webapp, Apple leads and Face
+  // ID is the very next thing under it -- no divider, because Face ID here
+  // *is* how "Continue with Apple" completes on a device that already has an
+  // Apple ID signed in, not a competing method. emailFirst (the installed
+  // app) keeps its own existing order untouched; this is specifically about
+  // the browser sign-in page.
+  const appleAbovePasskey = passkeyReady && appleFirst && !emailFirst;
+
   const dividerWith = (label: string) => (
     <div className="flex items-center gap-4 my-8">
       <div className="flex-1 h-px bg-[#0A0A0A]/15" />
@@ -421,25 +444,34 @@ export function AuthPanel({ intent, title, subtitle, defaultMode = "code" }: Pro
             <p className="mt-3 text-sm text-[#0A0A0A]/70">{subtitle}</p>
           </div>
 
-          {passkeyReady && (
+          {appleAbovePasskey ? (
             <>
-              <button
-                type="button"
-                onClick={handlePasskey}
-                disabled={busy === "passkey"}
-                className="w-full flex items-center justify-center gap-3 border border-[#0A0A0A]/15 rounded-full py-3.5 text-sm font-medium hover:border-[#0A0A0A]/40 hover:scale-[1.01] transition-all duration-300 disabled:opacity-60"
-              >
-                {busy === "passkey" ? <Spinner /> : `Sign in with ${passkeyLabel()}`}
-              </button>
+              <div className="flex flex-col gap-3">
+                {appleButton}
+                {passkeyButton}
+              </div>
               {dividerWith("or")}
-            </>
-          )}
-
-          {!emailFirst && (
-            <>
-              {providerButtons}
+              {googleButton}
               {dividerWith(
                 mode === "password" ? "or sign in with email" : "or continue with email",
+              )}
+            </>
+          ) : (
+            <>
+              {passkeyReady && (
+                <>
+                  {passkeyButton}
+                  {dividerWith("or")}
+                </>
+              )}
+
+              {!emailFirst && (
+                <>
+                  {providerButtons}
+                  {dividerWith(
+                    mode === "password" ? "or sign in with email" : "or continue with email",
+                  )}
+                </>
               )}
             </>
           )}
