@@ -102,7 +102,7 @@ function DashboardForStore({
       <ComingSoonBanner
         open={shareComingSoonOpen}
         onClose={() => setShareComingSoonOpen(false)}
-        message="Sharing your store link will be available after official launch."
+        message={`Sharing your store link will be available after official launch. You'll get a free storefront link — ${store.store_username}.oakmonte.store.`}
       />
     </div>
   );
