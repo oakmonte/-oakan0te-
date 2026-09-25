@@ -38,9 +38,14 @@ Never use `ctx.filter` — see the root `CLAUDE.md`.
 
 ## Time model
 
-- The **video track is gapless and ordered**. A clip stores no absolute start; its position is the
-  sum of every earlier clip's on-timeline length (`clipStarts`). Trimming clip 1 cannot leave a hole
-  in front of clip 2.
+- The **video track is ordered, and gapless unless you ask for a gap**. A clip stores no absolute
+  start; its position is the sum of every earlier clip's on-timeline length plus each clip's
+  optional `gapBefore` (`clipStarts`). Trimming clip 1 cannot open a hole in front of clip 2 — the
+  only way to get one is to long-press a clip and slide it away from its neighbour (`slideClip`).
+  A gap is **black** in the preview and the export, never has a transition across it, can't be
+  split inside, and the first clip never has one (which keeps the single-clip export fast paths
+  valid). Reordering moves clips, not the gaps between them. `normalise()` in `project.ts` enforces
+  all of that; `gaps.test.ts` pins it.
 - A clip's timeline length is `(outPoint - inPoint) / speed`. Source seconds and timeline seconds
   are different units — mixing them up is the bug to watch for in every trim/split/beat calculation.
 - **Audio floats.** An `AudioClip` stores an absolute `timelineStart`, so detaching a clip's sound

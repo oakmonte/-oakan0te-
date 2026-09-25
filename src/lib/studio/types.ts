@@ -104,9 +104,11 @@ export const MIN_SPEED = 0.25;
 export const MAX_SPEED = 4;
 export const SPEED_PRESETS = [0.25, 0.5, 1, 2, 3, 4];
 
-/** The video track is gapless and ordered: a clip's timeline position is the sum
- *  of every earlier clip's on-timeline length. Nothing stores an absolute start,
- *  so trimming clip 1 can never leave a hole in front of clip 2. */
+/** The video track is ordered, and gapless unless a gap is asked for: a clip's
+ *  timeline position is the sum of every earlier clip's on-timeline length plus
+ *  every `gapBefore` up to and including its own. Nothing stores an absolute
+ *  start, so trimming clip 1 still can never OPEN a hole in front of clip 2 —
+ *  the only way to get one is to slide a clip away from its neighbour. */
 export type VideoClip = {
   id: string;
   sourceId: StudioSourceId;
@@ -124,6 +126,13 @@ export type VideoClip = {
   adjustments: Adjustments;
   /** Applies at the cut BEFORE this clip. The first clip's is always "none". */
   transitionIn: Transition;
+  /** Seconds of empty timeline in front of this clip, rendered as black in the
+   *  preview and the export. Made by sliding a clip away from its neighbour
+   *  (usually after a split). Absent/0 means butted up against the previous
+   *  clip. Always 0 on the first clip, and a clip with a gap never has an
+   *  incoming transition — there is nothing adjacent to transition from. See
+   *  normalise() in project.ts, which enforces both. */
+  gapBefore?: number;
 };
 
 export type AudioClipKind = "detached" | "music" | "voiceover";
@@ -245,19 +254,26 @@ export function clipDuration(clip: VideoClip): number {
   return Math.max(0, (clip.outPoint - clip.inPoint) / clip.speed);
 }
 
+export function clipGap(clip: VideoClip): number {
+  return Math.max(0, clip.gapBefore ?? 0);
+}
+
 /** Absolute timeline start of every clip, in order. Length === clips.length. */
 export function clipStarts(clips: VideoClip[]): number[] {
   const starts: number[] = [];
   let t = 0;
   for (const clip of clips) {
+    t += clipGap(clip);
     starts.push(t);
     t += clipDuration(clip);
   }
   return starts;
 }
 
+/** Where the last clip ends — gaps included, since they are black frames in the
+ *  finished video, not nothing. */
 export function videoDuration(clips: VideoClip[]): number {
-  return clips.reduce((sum, c) => sum + clipDuration(c), 0);
+  return clips.reduce((sum, c) => sum + clipGap(c) + clipDuration(c), 0);
 }
 
 /** How long the finished video is: the PICTURE track, full stop.
@@ -289,6 +305,11 @@ export type ResolvedClip = {
   end: number;
   /** Seconds into the SOURCE for the requested timeline instant. */
   sourceTime: number;
+  /** True when t falls in the empty gap in FRONT of `clip`: nothing is on
+   *  screen (black), and `clip` is only the next one along — held at its first
+   *  frame so it is warm when the playhead reaches it. Splitting, and anything
+   *  else that edits "the clip under the playhead", must do nothing here. */
+  inGap: boolean;
 };
 
 /** Which clip is on screen at timeline time t, and where in its source we are. */
@@ -297,6 +318,7 @@ export function resolveAtTime(clips: VideoClip[], t: number): ResolvedClip | nul
   const starts = clipStarts(clips);
   for (let i = clips.length - 1; i >= 0; i--) {
     const start = starts[i];
+    const gapStart = start - clipGap(clips[i]);
     if (t >= start || i === 0) {
       const clip = clips[i];
       const end = start + clipDuration(clip);
@@ -307,6 +329,17 @@ export function resolveAtTime(clips: VideoClip[], t: number): ResolvedClip | nul
         start,
         end,
         sourceTime: Math.min(clip.outPoint, clip.inPoint + local * clip.speed),
+        inGap: false,
+      };
+    }
+    if (t >= gapStart) {
+      return {
+        clip: clips[i],
+        index: i,
+        start,
+        end: start + clipDuration(clips[i]),
+        sourceTime: clips[i].inPoint,
+        inGap: true,
       };
     }
   }

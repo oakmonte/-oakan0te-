@@ -344,6 +344,16 @@ function StudioEditor({
     [dispatch],
   );
 
+  const handleSlide = useCallback(
+    (clipId: string, gapBefore: number) => dispatch({ type: "slideClip", id: clipId, gapBefore }),
+    [dispatch],
+  );
+
+  const handleCloseGap = useCallback(
+    (clipId: string) => dispatch({ type: "closeGap", id: clipId }),
+    [dispatch],
+  );
+
   const handleMoveAudio = useCallback(
     (audioId: string, timelineStart: number) =>
       dispatch({ type: "updateAudio", id: audioId, patch: { timelineStart } }),
@@ -970,6 +980,8 @@ function StudioEditor({
             beats={beatsOnTimeline}
             onTrim={handleTrim}
             onReorder={handleReorder}
+            onSlide={handleSlide}
+            onCloseGap={handleCloseGap}
             onMoveAudio={handleMoveAudio}
             onTrimAudio={handleTrimAudio}
             onAddClips={handleAddClips}

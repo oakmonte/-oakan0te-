@@ -43,6 +43,9 @@ export function transitionStateAt(clips: VideoClip[], time: number): TransitionS
   for (let i = 1; i < clips.length; i++) {
     const transition = clips[i].transitionIn;
     if (transition.kind === "none" || transition.duration <= 0) continue;
+    // normalise() already strips these, but a transition across black would
+    // freeze-frame the neighbour into the gap, so never render one.
+    if ((clips[i].gapBefore ?? 0) > 0) continue;
     const cut = starts[i];
     const half = transition.duration / 2;
     if (time < cut - half || time > cut + half) continue;

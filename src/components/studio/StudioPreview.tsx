@@ -73,13 +73,18 @@ export default function StudioPreview({
   const starts = useMemo(() => clipStarts(project.clips), [project.clips]);
   const transition = transitionStateAt(project.clips, time);
 
-  // Which clip is actually on screen right now.
-  const liveIndex = useMemo(() => {
-    if (transition) return transition.liveIndex;
+  // Which clip is actually on screen right now — and whether the playhead is in
+  // an empty gap, in which case nothing is (the box's own black shows) while
+  // the next clip stays mounted so it's ready when the gap ends.
+  const { liveIndex, inGap } = useMemo(() => {
+    if (transition) return { liveIndex: transition.liveIndex, inGap: false };
     for (let i = project.clips.length - 1; i >= 0; i--) {
-      if (time >= starts[i] || i === 0) return i;
+      if (time >= starts[i] || i === 0) return { liveIndex: i, inGap: false };
+      if (time >= starts[i] - (project.clips[i].gapBefore ?? 0)) {
+        return { liveIndex: i, inGap: true };
+      }
     }
-    return 0;
+    return { liveIndex: 0, inGap: false };
   }, [transition, project.clips, starts, time]);
 
   // Only a window of clips is mounted. Every clip getting its own <video> is
@@ -128,7 +133,7 @@ export default function StudioPreview({
           const t = transformFor(index);
           // Outside a transition exactly one clip is on screen; inside one, both
           // participants are, at whatever opacity the transition calls for.
-          const opacity = transition ? t.opacity : index === liveIndex ? 1 : 0;
+          const opacity = transition ? t.opacity : index === liveIndex && !inGap ? 1 : 0;
           const filterId =
             filterPreviewId && clip.id === gradeClipId ? filterPreviewId : clip.filterId;
 

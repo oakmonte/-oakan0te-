@@ -35,6 +35,10 @@ export type StudioAction =
   | { type: "duplicateClip"; id: string }
   | { type: "moveClip"; id: string; delta: number }
   | { type: "reorderClip"; id: string; toIndex: number }
+  /** Slide a clip within the free space around it: sets its own gap and hands
+   *  the difference to the next clip's, so nothing after it moves. */
+  | { type: "slideClip"; id: string; gapBefore: number }
+  | { type: "closeGap"; id: string }
   | { type: "splitAt"; time: number }
   | { type: "trimClip"; id: string; inPoint?: number; outPoint?: number; limit?: number }
   | { type: "setSpeed"; id: string; speed: number }
@@ -67,7 +71,11 @@ function transitionBudget(clips: VideoClip[], index: number): number {
   return Math.min(clipDuration(clips[index - 1]), clipDuration(clips[index])) * 0.9;
 }
 
-// Runs after every structural edit. Two invariants:
+/** Gaps smaller than this snap shut — a sub-frame sliver of black left by an
+ *  imprecise drag is never what anyone meant. */
+const MIN_GAP = 0.05;
+
+// Runs after every structural edit. Invariants:
 //
 // 1. The first clip can never have an incoming transition — there is nothing to
 //    transition FROM.
@@ -78,9 +86,18 @@ function transitionBudget(clips: VideoClip[], index: number): number {
 //    the first window containing the playhead, so the neighbouring transition
 //    silently stops rendering in both the preview and the bake. Re-clamping here
 //    means no edit can leave the project in that state.
+// 3. The first clip has no gap in front of it (black before anything starts is
+//    never wanted, and keeping it 0 is what lets the single-clip export fast
+//    paths stay valid), tiny gaps snap shut, and a clip with a gap has no
+//    incoming transition — a transition needs an adjacent clip to come from.
 function normalise(project: StudioProject): StudioProject {
-  const clips = project.clips.map((clip, i) => {
-    if (i === 0) {
+  const clips = project.clips.map((raw, i) => {
+    let clip = raw;
+    const gap = clip.gapBefore;
+    if (gap !== undefined && (i === 0 || gap < MIN_GAP)) {
+      clip = { ...clip, gapBefore: undefined };
+    }
+    if (i === 0 || (clip.gapBefore ?? 0) > 0) {
       return clip.transitionIn.kind === "none" ? clip : { ...clip, transitionIn: NO_TRANSITION };
     }
     if (clip.transitionIn.kind === "none") return clip;
@@ -92,6 +109,16 @@ function normalise(project: StudioProject): StudioProject {
   });
   const changed = clips.some((c, i) => c !== project.clips[i]);
   return changed ? { ...project, clips } : project;
+}
+
+/** Reordering moves clips, not the empty space between them: slot i keeps the
+ *  gap slot i had, so dragging a clip past its neighbour doesn't drag its black
+ *  space along with it and the track's overall shape stays put. */
+function keepGapsInPlace(before: VideoClip[], after: VideoClip[]): VideoClip[] {
+  return after.map((clip, i) => {
+    const gap = before[i]?.gapBefore;
+    return clip.gapBefore === gap ? clip : { ...clip, gapBefore: gap };
+  });
 }
 
 function mapClip(
@@ -127,7 +154,7 @@ export function studioReducer(project: StudioProject, action: StudioAction): Stu
     case "duplicateClip": {
       const index = project.clips.findIndex((c) => c.id === action.id);
       if (index < 0) return project;
-      const copy: VideoClip = { ...project.clips[index], id: uid("clip") };
+      const copy: VideoClip = { ...project.clips[index], id: uid("clip"), gapBefore: undefined };
       const clips = [...project.clips];
       clips.splice(index + 1, 0, copy);
       return normalise({ ...project, clips });
@@ -141,7 +168,7 @@ export function studioReducer(project: StudioProject, action: StudioAction): Stu
       const clips = [...project.clips];
       const [clip] = clips.splice(index, 1);
       clips.splice(to, 0, clip);
-      return normalise({ ...project, clips });
+      return normalise({ ...project, clips: keepGapsInPlace(project.clips, clips) });
     }
 
     case "reorderClip": {
@@ -152,12 +179,37 @@ export function studioReducer(project: StudioProject, action: StudioAction): Stu
       const clips = [...project.clips];
       const [clip] = clips.splice(index, 1);
       clips.splice(to, 0, clip);
+      return normalise({ ...project, clips: keepGapsInPlace(project.clips, clips) });
+    }
+
+    case "slideClip": {
+      const index = project.clips.findIndex((c) => c.id === action.id);
+      if (index <= 0) return project;
+      const clip = project.clips[index];
+      const next = project.clips[index + 1];
+      const gap = clip.gapBefore ?? 0;
+      // The free space this clip can move in: its own gap plus the next clip's.
+      // That sum is unchanged by a slide, which is what lets a drag dispatch
+      // absolute values over and over within one history group.
+      const room = next ? gap + (next.gapBefore ?? 0) : Infinity;
+      const nextGap = Math.min(room, Math.max(0, action.gapBefore));
+      const clips = project.clips.map((c, i) => {
+        if (i === index) return { ...c, gapBefore: nextGap };
+        if (next && i === index + 1) return { ...c, gapBefore: room - nextGap };
+        return c;
+      });
       return normalise({ ...project, clips });
+    }
+
+    case "closeGap": {
+      // Pulls this clip — and everything after it — back against its
+      // neighbour, the way deleting empty space works in every editor.
+      return normalise(mapClip(project, action.id, (clip) => ({ ...clip, gapBefore: undefined })));
     }
 
     case "splitAt": {
       const at = resolveAtTime(project.clips, action.time);
-      if (!at) return project;
+      if (!at || at.inGap) return project;
       const { clip, index, sourceTime } = at;
       // Both halves have to survive the minimum, or the split produces a sliver
       // that can't be trimmed, selected or exported.
@@ -174,6 +226,9 @@ export function studioReducer(project: StudioProject, action: StudioAction): Stu
         inPoint: sourceTime,
         // The cut you just made is a hard cut until you choose otherwise.
         transitionIn: NO_TRANSITION,
+        // Butted up against the left half; the original's own gap stays with
+        // the left half, in front of both.
+        gapBefore: undefined,
       };
       const clips = [...project.clips];
       clips.splice(index, 1, left, right);
@@ -278,6 +333,7 @@ export function studioReducer(project: StudioProject, action: StudioAction): Stu
     case "setTransition": {
       const index = project.clips.findIndex((c) => c.id === action.id);
       if (index <= 0) return project; // nothing to transition from
+      if ((project.clips[index].gapBefore ?? 0) > 0) return project; // black in between
       const budget = transitionBudget(project.clips, index);
       const duration = Math.min(action.transition.duration, Math.max(0, budget));
       return mapClip(project, action.id, (c) => ({
@@ -291,7 +347,7 @@ export function studioReducer(project: StudioProject, action: StudioAction): Stu
       // the middle slice into slow motion, which is the shot everyone edits by
       // hand and nobody enjoys doing by hand.
       const at = resolveAtTime(project.clips, action.time);
-      if (!at) return project;
+      if (!at || at.inGap) return project;
       const { clip, index, sourceTime } = at;
       const half = (RAMP_WINDOW / 2) * clip.speed;
       const rampIn = Math.max(clip.inPoint, sourceTime - half);
@@ -314,7 +370,8 @@ export function studioReducer(project: StudioProject, action: StudioAction): Stu
         parts.push({ ...clip, id: uid("clip"), inPoint: rampOut, transitionIn: NO_TRANSITION });
       }
       if (parts.length < 2) return project;
-      parts[0] = { ...parts[0], transitionIn: clip.transitionIn };
+      for (let p = 1; p < parts.length; p++) parts[p] = { ...parts[p], gapBefore: undefined };
+      parts[0] = { ...parts[0], transitionIn: clip.transitionIn, gapBefore: clip.gapBefore };
 
       const clips = [...project.clips];
       clips.splice(index, 1, ...parts);

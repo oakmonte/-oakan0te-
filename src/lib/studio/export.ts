@@ -230,7 +230,8 @@ function planFrames(project: StudioProject, duration: number, fps: number) {
     const resolved = resolveAtTime(project.clips, Math.min(time, duration));
     frames.push({
       time,
-      liveIndex: resolved ? resolved.index : project.clips.length - 1,
+      // -1 = a gap: nothing live, the frame is black (see the run loop).
+      liveIndex: resolved ? (resolved.inGap ? -1 : resolved.index) : project.clips.length - 1,
       liveSourceTime: resolved ? resolved.sourceTime : 0,
       transitionAt: null,
     });
@@ -678,6 +679,16 @@ export async function exportTimeline(
     };
 
     for (const run of runs) {
+      // A gap between clips: black, with overlays still drawn over it.
+      // Skipping the run instead would drop its frames from the file and
+      // everything after it would land early.
+      if (run.clipIndex < 0) {
+        liveCtx.clearRect(0, 0, width, height);
+        liveCtx.fillStyle = "#000";
+        liveCtx.fillRect(0, 0, width, height);
+        for (let i = run.from; i <= run.to; i++) await composeAndEncode(frames[i]);
+        continue;
+      }
       const clip = project.clips[run.clipIndex];
       const source = clip ? sources[clip.sourceId] : undefined;
       if (!clip || !source) continue;

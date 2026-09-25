@@ -1,6 +1,6 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
-import { Music2, Plus, Volume2, VolumeX, Type as TypeIcon, Sparkles } from "lucide-react";
+import { Music2, Plus, Volume2, VolumeX, Type as TypeIcon, Sparkles, X } from "lucide-react";
 import { tilesForRange, type FilmstripFrame } from "@/lib/studio/filmstrip";
 import { peaksForRange } from "./use-timeline-media";
 import {
@@ -70,6 +70,9 @@ type Props = {
   beats: number[];
   onTrim: (clipId: string, edge: "in" | "out", sourceTime: number) => void;
   onReorder: (clipId: string, toIndex: number) => void;
+  /** Slide a clip into the free space around it, opening or closing a gap. */
+  onSlide: (clipId: string, gapBefore: number) => void;
+  onCloseGap: (clipId: string) => void;
   onMoveAudio: (audioId: string, timelineStart: number) => void;
   onTrimAudio: (audioId: string, edge: "in" | "out", sourceTime: number) => void;
   onAddClips: () => void;
@@ -93,6 +96,8 @@ function StudioTimeline({
   beats,
   onTrim,
   onReorder,
+  onSlide,
+  onCloseGap,
   onMoveAudio,
   onTrimAudio,
   onAddClips,
@@ -268,6 +273,11 @@ function StudioTimeline({
     timer: number | null;
     active: boolean;
     moved: boolean;
+    /** The clip's gap when the drag (or the last swap) began. */
+    baseGap: number;
+    /** Set by a swap: re-read baseGap/startX on the next move, once the
+     *  reordered project has rendered. */
+    rebase: boolean;
   } | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState(0);
@@ -294,6 +304,8 @@ function StudioTimeline({
         timer,
         active: false,
         moved: false,
+        baseGap: clip.gapBefore ?? 0,
+        rebase: false,
       };
     },
     [beginHistoryGroup],
@@ -317,30 +329,64 @@ function StudioTimeline({
       }
 
       e.stopPropagation();
-      setDragOffset(dx);
 
-      // Swap the moment the lifted chip's centre passes a neighbour's centre.
-      const index = project.clips.findIndex((c) => c.id === press.clipId);
+      const clips = project.clips;
+      const index = clips.findIndex((c) => c.id === press.clipId);
       if (index < 0) return;
-      if (dx > 0 && index < project.clips.length - 1) {
-        const next = clipDuration(project.clips[index + 1]) * pps;
-        if (dx > next / 2) {
+      if (press.rebase) {
+        press.rebase = false;
+        press.startX = e.clientX;
+        press.baseGap = clips[index].gapBefore ?? 0;
+      }
+      const moveX = e.clientX - press.startX;
+      const last = clips.length - 1;
+
+      // A held clip SLIDES first: into the empty space in front of it, or out
+      // into new space behind it, leaving black where it was — so after a
+      // split the second half (or the last clip) can simply be pulled away.
+      // Its free space is its own gap plus the next clip's; the first clip
+      // has none (black before the video starts is never wanted). Only once
+      // the finger pushes past that space by half a neighbour does it swap
+      // with the neighbour, which is the old reorder.
+      const gap = clips[index].gapBefore ?? 0;
+      const nextGap = index < last ? (clips[index + 1].gapBefore ?? 0) : 0;
+      const room = index === 0 ? 0 : index < last ? gap + nextGap : Infinity;
+      const desired = index === 0 ? 0 : press.baseGap + moveX / pps;
+      const base = index === 0 ? 0 : press.baseGap;
+
+      let overflowPx = 0;
+      if (desired < 0) {
+        overflowPx = moveX + base * pps; // how far past the left edge (negative)
+      } else if (desired > room) {
+        overflowPx = (desired - room) * pps;
+      }
+      if (index > 0) {
+        const slid = Math.min(room, Math.max(0, desired));
+        if (Math.abs(slid - gap) > 0.001) onSlide(press.clipId, slid);
+      } else {
+        overflowPx = moveX;
+      }
+      setDragOffset(overflowPx);
+
+      if (overflowPx > 0 && index < last) {
+        const next = clipDuration(clips[index + 1]) * pps;
+        if (overflowPx > next / 2) {
           onReorder(press.clipId, index + 1);
           navigator.vibrate?.(6);
-          press.startX += next;
+          press.rebase = true;
           setDragOffset(0);
         }
-      } else if (dx < 0 && index > 0) {
-        const prev = clipDuration(project.clips[index - 1]) * pps;
-        if (-dx > prev / 2) {
+      } else if (overflowPx < 0 && index > 0) {
+        const prev = clipDuration(clips[index - 1]) * pps;
+        if (-overflowPx > prev / 2) {
           onReorder(press.clipId, index - 1);
           navigator.vibrate?.(6);
-          press.startX -= prev;
+          press.rebase = true;
           setDragOffset(0);
         }
       }
     },
-    [onReorder, pps, project.clips],
+    [onReorder, onSlide, pps, project.clips],
   );
 
   const endClipPress = useCallback(
@@ -486,6 +532,43 @@ function StudioTimeline({
 
             {/* ---------------- video track ---------------- */}
             <div className="relative" style={{ height: VIDEO_TRACK_H }}>
+              {/* Empty space between clips. Black in the finished video, so
+                  drawn as a dark hole rather than left see-through. */}
+              {project.clips.map((clip, index) => {
+                const gap = clip.gapBefore ?? 0;
+                if (gap <= 0) return null;
+                const width = gap * pps - CLIP_GAP;
+                if (width <= 0) return null;
+                return (
+                  <div
+                    key={`gap-${clip.id}`}
+                    className="absolute top-0 flex items-center justify-center"
+                    style={{
+                      left: (starts[index] - gap) * pps + CLIP_GAP / 2,
+                      width,
+                      height: VIDEO_TRACK_H,
+                      borderRadius: 6,
+                      background: "#050505",
+                      border: "1px dashed rgba(255,255,255,0.16)",
+                      zIndex: 0,
+                    }}
+                  >
+                    {width > 30 && (
+                      <button
+                        type="button"
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onClick={() => onCloseGap(clip.id)}
+                        aria-label="Close gap"
+                        className="flex h-6 w-6 items-center justify-center rounded-full active:scale-90"
+                        style={{ background: "rgba(255,255,255,0.12)", color: "#fff" }}
+                      >
+                        <X size={12} />
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+
               {project.clips.map((clip, index) => {
                 const source = sources[clip.sourceId];
                 const duration = clipDuration(clip);
@@ -572,26 +655,28 @@ function StudioTimeline({
 
               {/* Transition buttons live ON the cut — the cut is the thing being
                   changed, not either clip. */}
-              {project.clips.slice(1).map((clip, i) => (
-                <button
-                  key={`cut-${clip.id}`}
-                  onClick={() => onOpenTransition(clip.id)}
-                  aria-label="Change transition"
-                  className="absolute flex items-center justify-center rounded-[4px]"
-                  style={{
-                    left: starts[i + 1] * pps - 9,
-                    top: VIDEO_TRACK_H / 2 - 9,
-                    width: 18,
-                    height: 18,
-                    zIndex: 6,
-                    background: clip.transitionIn.kind === "none" ? "rgba(0,0,0,0.72)" : "#fff",
-                    color: clip.transitionIn.kind === "none" ? "#fff" : "#000",
-                    border: "1px solid rgba(255,255,255,0.5)",
-                  }}
-                >
-                  <Sparkles size={10} />
-                </button>
-              ))}
+              {project.clips.slice(1).map((clip, i) =>
+                (clip.gapBefore ?? 0) > 0 ? null : (
+                  <button
+                    key={`cut-${clip.id}`}
+                    onClick={() => onOpenTransition(clip.id)}
+                    aria-label="Change transition"
+                    className="absolute flex items-center justify-center rounded-[4px]"
+                    style={{
+                      left: starts[i + 1] * pps - 9,
+                      top: VIDEO_TRACK_H / 2 - 9,
+                      width: 18,
+                      height: 18,
+                      zIndex: 6,
+                      background: clip.transitionIn.kind === "none" ? "rgba(0,0,0,0.72)" : "#fff",
+                      color: clip.transitionIn.kind === "none" ? "#fff" : "#000",
+                      border: "1px solid rgba(255,255,255,0.5)",
+                    }}
+                  >
+                    <Sparkles size={10} />
+                  </button>
+                ),
+              )}
             </div>
 
             {/* ---------------- audio track ---------------- */}
