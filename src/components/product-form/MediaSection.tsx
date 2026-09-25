@@ -12,11 +12,16 @@ export function MediaSection({
   onChange,
   additionalImageUrls = [],
   onAdditionalChange,
+  noDivider = false,
 }: {
   mainImageUrl: string;
   onChange: (v: string) => void;
   additionalImageUrls?: string[];
   onAdditionalChange?: (urls: string[]) => void;
+  /** Drops the section's own 8px bottom divider -- for a caller grouping
+   *  this section inside a card, where the card's border already closes it
+   *  off. */
+  noDivider?: boolean;
 }) {
   // Multi-image support (add/remove/reorder without losing what's already
   // there) only makes sense where the caller actually tracks a gallery — a
@@ -110,7 +115,7 @@ export function MediaSection({
   }
 
   return (
-    <div className="px-4 py-5 border-b-8 border-gray-50">
+    <div className={`px-4 py-5 ${noDivider ? "" : "border-b-8 border-gray-50"}`}>
       {filePicker.node}
 
       <ImageGallery

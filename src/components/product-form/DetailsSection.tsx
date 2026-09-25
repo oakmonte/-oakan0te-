@@ -12,6 +12,7 @@ export function DetailsSection({
   compareAtPrice,
   onOpenPriceSheet,
   showPrice = true,
+  noDivider = false,
 }: {
   title: string;
   setTitle: (v: string) => void;
@@ -23,12 +24,16 @@ export function DetailsSection({
   compareAtPrice: string;
   onOpenPriceSheet: () => void;
   showPrice?: boolean;
+  /** Drops the section's own 8px bottom divider -- for a caller grouping
+   *  this section inside a card, where the card's border already closes it
+   *  off. */
+  noDivider?: boolean;
 }) {
   const categoryLabel = categoryPath.length ? categoryPath[categoryPath.length - 1].name : null;
   const hasDescription = descriptionShort.trim().length > 0;
 
   return (
-    <div className="px-4 py-4 border-b-8 border-gray-50">
+    <div className={`px-4 py-4 ${noDivider ? "" : "border-b-8 border-gray-50"}`}>
       <input
         value={title}
         onChange={(e) => setTitle(e.target.value)}

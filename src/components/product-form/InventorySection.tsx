@@ -8,16 +8,23 @@ export function InventorySection({
   available,
   locationCount,
   onOpen,
+  noDivider = false,
 }: {
   available: number;
   locationCount: number;
   onOpen: () => void;
+  /** Drops the section's own 8px bottom divider -- for a caller grouping
+   *  this row inside a card of its own, where the card's border already
+   *  closes it off. */
+  noDivider?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onOpen}
-      className="w-full flex items-center justify-between px-4 py-4 border-b-8 border-gray-50 text-left"
+      className={`w-full flex items-center justify-between px-4 py-4 text-left ${
+        noDivider ? "" : "border-b-8 border-gray-50"
+      }`}
     >
       <div>
         <p className="text-[15px] font-semibold text-gray-900">Inventory</p>

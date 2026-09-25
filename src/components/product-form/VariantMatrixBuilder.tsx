@@ -67,6 +67,7 @@ export function VariantMatrixBuilder({
   initialInventoryContext,
   initialNewLocationId,
   onInventoryContextConsumed,
+  noDivider = false,
 }: {
   options: VariantOption[];
   setOptions: (fn: (prev: VariantOption[]) => VariantOption[]) => void;
@@ -105,6 +106,10 @@ export function VariantMatrixBuilder({
   // before this component -- and VariantCombinationsSheet below it, which is
   // the one that actually reads the value -- ever existed to consume it.
   onInventoryContextConsumed?: () => void;
+  /** Drops the section's own 8px bottom divider -- for a caller grouping
+   *  this section inside a card, where the card's border already closes it
+   *  off. */
+  noDivider?: boolean;
 }) {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [wizardStep, setWizardStep] = useState<WizardStep>(() =>
@@ -139,7 +144,7 @@ export function VariantMatrixBuilder({
   const selectedCount = rows.filter((r) => r.selected).length;
 
   return (
-    <div className="border-b-8 border-gray-50">
+    <div className={noDivider ? "" : "border-b-8 border-gray-50"}>
       <p className="px-4 pt-4 text-[15px] font-semibold text-gray-900">Variants</p>
 
       <div className="px-4">

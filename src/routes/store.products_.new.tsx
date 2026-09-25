@@ -478,8 +478,8 @@ function NewProduct() {
   }
 
   return (
-    <div className="min-h-dvh bg-sd-surface pb-10">
-      <div className="sticky top-14 z-20 bg-sd-surface/95 backdrop-blur border-b border-sd-line px-4 h-14 flex items-center justify-between">
+    <div className="min-h-dvh bg-gray-50 pb-10">
+      <div className="sticky top-14 z-20 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
         <BackButton
           icon="chevron"
           size={18}
@@ -514,53 +514,65 @@ function NewProduct() {
 
       {error && <p className="px-4 pt-3 text-sm text-sd-danger-ink">{error}</p>}
 
-      <MediaSection
-        mainImageUrl={mainImageUrl}
-        onChange={setMainImageUrl}
-        additionalImageUrls={additionalImageUrls}
-        onAdditionalChange={setAdditionalImageUrls}
-      />
+      {/* Basic info: photo(s), title, description, category, price -- one
+          card, same fields and order as before, just framed together. */}
+      <div className="mx-4 mt-4 rounded-3xl border border-gray-200 bg-white overflow-hidden divide-y divide-gray-100">
+        <MediaSection
+          mainImageUrl={mainImageUrl}
+          onChange={setMainImageUrl}
+          additionalImageUrls={additionalImageUrls}
+          onAdditionalChange={setAdditionalImageUrls}
+          noDivider
+        />
 
-      <DetailsSection
-        title={title}
-        setTitle={setTitle}
-        descriptionShort={descriptionShort}
-        onOpenDescription={() => setDescriptionSheetOpen(true)}
-        categoryPath={categoryPath}
-        onOpenCategoryPicker={() => setCategoryPickerOpen(true)}
-        price={price}
-        compareAtPrice={compareAtPrice}
-        onOpenPriceSheet={() => setPriceSheetOpen(true)}
-        showPrice={kind === "regular"}
-      />
+        <DetailsSection
+          title={title}
+          setTitle={setTitle}
+          descriptionShort={descriptionShort}
+          onOpenDescription={() => setDescriptionSheetOpen(true)}
+          categoryPath={categoryPath}
+          onOpenCategoryPicker={() => setCategoryPickerOpen(true)}
+          price={price}
+          compareAtPrice={compareAtPrice}
+          onOpenPriceSheet={() => setPriceSheetOpen(true)}
+          showPrice={kind === "regular"}
+          noDivider
+        />
+      </div>
 
-      {kind === "regular" ? (
-        <>
-          <InventorySection
-            available={regularStockQty}
-            locationCount={Object.keys(regularLocationQuantities).length}
-            onOpen={() => setInventorySheetOpen(true)}
-          />
-        </>
-      ) : (
-        storeId && (
-          <VariantMatrixBuilder
-            options={options}
-            setOptions={setOptions}
-            rows={rows}
-            setRows={setRows}
-            mainImageUrl={mainImageUrl}
-            additionalImageUrls={additionalImageUrls}
-            passFeesToBuyer={passFeesToBuyer}
-            onChangePassFeesToBuyer={setPassFeesToBuyer}
-            storeId={storeId}
-            onCreateLocation={handleCreateLocation}
-            estimateWeightForRow={estimateWeightForRow}
-            initialInventoryContext={initialVariantInventoryContext}
-            initialNewLocationId={initialNewLocationId}
-            onInventoryContextConsumed={() => setInitialVariantInventoryContext(null)}
-          />
-        )
+      {/* Stock: Inventory for a regular product, the variant matrix
+          otherwise -- exactly one of the two, its own card either way. */}
+      {(kind === "regular" || storeId) && (
+        <div className="mx-4 mt-4 rounded-3xl border border-gray-200 bg-white overflow-hidden">
+          {kind === "regular" ? (
+            <InventorySection
+              available={regularStockQty}
+              locationCount={Object.keys(regularLocationQuantities).length}
+              onOpen={() => setInventorySheetOpen(true)}
+              noDivider
+            />
+          ) : (
+            storeId && (
+              <VariantMatrixBuilder
+                options={options}
+                setOptions={setOptions}
+                rows={rows}
+                setRows={setRows}
+                mainImageUrl={mainImageUrl}
+                additionalImageUrls={additionalImageUrls}
+                passFeesToBuyer={passFeesToBuyer}
+                onChangePassFeesToBuyer={setPassFeesToBuyer}
+                storeId={storeId}
+                onCreateLocation={handleCreateLocation}
+                estimateWeightForRow={estimateWeightForRow}
+                initialInventoryContext={initialVariantInventoryContext}
+                initialNewLocationId={initialNewLocationId}
+                onInventoryContextConsumed={() => setInitialVariantInventoryContext(null)}
+                noDivider
+              />
+            )
+          )}
+        </div>
       )}
 
       {/* initialNewCollectionId has two different producers, and only one of
@@ -576,31 +588,41 @@ function NewProduct() {
           told apart. Hiding the row in that second case (as an earlier
           version of this guard did, unconditionally) made the row the seller
           was just using vanish the moment they came back. */}
-      {!(initialNewCollectionId && !handoffDraft) && (
-        <button
-          type="button"
-          onClick={() => setCollectionsSheetOpen(true)}
-          className="w-full flex items-center justify-between px-4 py-4 border-b-8 border-sd-line/50 text-left"
-        >
-          <span className="flex items-center gap-3 text-[15px] text-sd-ink">
-            <Tag size={18} className="text-sd-ink-faint" />
-            Collections
-          </span>
-          <span className="flex items-center gap-2">
-            {collectionIds.length > 0 && (
-              <span className="text-xs text-sd-ink-faint">{collectionIds.length} selected</span>
-            )}
-            <ChevronRight size={16} className="text-sd-ink-faint" />
-          </span>
-        </button>
-      )}
-      <StubRow icon={<Hash size={18} />} label="Tags" onClick={() => setTagsSheetOpen(true)} />
-      <StubRow
-        icon={<ListChecks size={18} />}
-        label="Necessities"
-        isLast
-        onClick={() => setNecessitiesSheetOpen(true)}
-      />
+      {/* Organize: everything that tags this listing rather than describing
+          it -- grouped the same way iOS groups a settings list, one thin
+          divider per row instead of the page's usual thick section gap. */}
+      <div className="mx-4 mt-4 rounded-3xl border border-gray-200 bg-white overflow-hidden divide-y divide-gray-100">
+        {!(initialNewCollectionId && !handoffDraft) && (
+          <button
+            type="button"
+            onClick={() => setCollectionsSheetOpen(true)}
+            className="w-full flex items-center justify-between px-4 py-4 text-left"
+          >
+            <span className="flex items-center gap-3 text-[15px] text-sd-ink">
+              <Tag size={18} className="text-sd-ink-faint" />
+              Collections
+            </span>
+            <span className="flex items-center gap-2">
+              {collectionIds.length > 0 && (
+                <span className="text-xs text-sd-ink-faint">{collectionIds.length} selected</span>
+              )}
+              <ChevronRight size={16} className="text-sd-ink-faint" />
+            </span>
+          </button>
+        )}
+        <StubRow
+          icon={<Hash size={18} />}
+          label="Tags"
+          isLast
+          onClick={() => setTagsSheetOpen(true)}
+        />
+        <StubRow
+          icon={<ListChecks size={18} />}
+          label="Necessities"
+          isLast
+          onClick={() => setNecessitiesSheetOpen(true)}
+        />
+      </div>
 
       {categoryPickerOpen && (
         <CategoryPicker
@@ -728,7 +750,7 @@ function NewProduct() {
         />
       )}
 
-      <div className="px-4 py-5 border-b-8 border-sd-line/50">
+      <div className="mx-4 mt-4 rounded-3xl border border-gray-200 bg-white p-4">
         <p className="text-[15px] font-semibold text-sd-ink mb-3">Product Status</p>
         <div className="flex gap-3">
           <button
