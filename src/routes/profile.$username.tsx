@@ -24,6 +24,7 @@ import {
   Search,
   Menu,
   Star,
+  Store,
   X,
   Bell,
   BellRing,
@@ -507,18 +508,11 @@ function ProfilePage() {
               storeIsSetUp &&
               !store.personal_storefront_only && (
                 <button
-                  onClick={() =>
-                    stores.length > 1
-                      ? setStorePickerOpen(true)
-                      : navigate({
-                          to: "/store-profile/$storeUsername",
-                          params: { storeUsername: store.store_username },
-                        })
-                  }
+                  onClick={() => setStorePickerOpen(true)}
                   aria-label="Switch to store profile"
                   className="transition-transform duration-200 active:scale-90"
                 >
-                  <ArrowLeftRight size={20} />
+                  <Store size={20} />
                 </button>
               )}
             {ownershipKnown && isOwnProfile && (
@@ -879,11 +873,11 @@ function ProfilePage() {
         </div>
       </div>
 
-      {/* Store switcher — only ever reachable once an account owns more than
-          one store (not enabled anywhere yet), so this sits unused until
-          then. Bottom sheet, not the ArrowLeftRight tap's old direct jump,
-          since with 2+ stores that tap no longer has a single obvious
-          destination. */}
+      {/* Store switcher — the header's store icon always opens this sheet,
+          even for the common case of a single store, rather than jumping
+          straight there. One consistent destination regardless of store
+          count, instead of the tap meaning something different once a
+          seller owns a second store. */}
       <div
         className={`fixed inset-0 z-50 transition-opacity duration-300 ${
           storePickerOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
