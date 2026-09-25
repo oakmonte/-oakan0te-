@@ -25,7 +25,6 @@ import {
   Menu,
   Star,
   X,
-  Pencil,
   Bell,
   BellRing,
   Send,
@@ -562,9 +561,9 @@ function ProfilePage() {
                 <button
                   onClick={() => navigate({ to: "/edit-profile" })}
                   aria-label="Edit profile"
-                  className="text-white/50 hover:text-white transition-colors"
+                  className="text-[11px] font-bold text-white/50 hover:text-white transition-colors border border-white/30 hover:border-white/60 rounded-full px-2 py-0.5"
                 >
-                  <Pencil size={13} />
+                  Edit
                 </button>
               )}
             </div>
