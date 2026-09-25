@@ -474,6 +474,20 @@
   body {
     overflow-x: hidden;
     overscroll-behavior-x: none;
+    /* Neither element had an explicit height anywhere in this file, so
+       `.oak-locked-viewport`'s `height: 100%` on body (below) had nothing to
+       resolve against -- a percentage height on body needs html to already
+       have a real height, or it falls back to auto, i.e. body's own natural
+       CONTENT height. A locked body is also `position: fixed; overflow:
+       hidden`, so with no real height it froze at the full (often much
+       taller than one screen) height of whatever page was underneath,
+       instead of exactly one viewport -- overflow: hidden then made
+       everything past the first screenful simply unreachable, with no
+       scrolling left anywhere to get to it. This is what read as a sheet's
+       own header landing far down the page with dead space above it: the
+       sheet's `fixed inset-0` was sized/placed against that oversized,
+       frozen body instead of the actual screen. */
+    height: 100%;
   }
   /* clip on body, not hidden. html's overflow already moves to the viewport,
      so body's `hidden` is left on body itself -- where it quietly makes body a
@@ -555,6 +569,11 @@ input:-webkit-autofill:active {
 .oak-locked-viewport {
   position: fixed;
   overflow: hidden;
+  /* left/right, not just width -- matches use-body-scroll-lock.ts's own
+     working version of this same lock, and pins both edges explicitly
+     rather than relying on width alone. */
+  left: 0;
+  right: 0;
   width: 100%;
   height: 100%;
 }

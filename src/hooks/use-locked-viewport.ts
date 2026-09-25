@@ -1,7 +1,7 @@
 import { useLayoutEffect } from "react";
 
 // Toggles a body class that locks page scroll for as long as the calling
-// route is mounted, and opts this route's viewport into
+// component is mounted, and opts this route's viewport into
 // interactive-widget=overlays-content — the two together are what stop the
 // on-screen keyboard from dragging a fixed, full-screen layout (and the media
 // box inside it) upward. overlays-content is NOT the app's default anymore
@@ -12,6 +12,17 @@ import { useLayoutEffect } from "react";
 //
 // This hook does NOT touch element height/transform — that was the
 // regression that broke the aspect-ratio box on the after-shot page.
+//
+// Used far more widely than "a route" now suggests: every product-form sheet
+// with a text input calls this too (per this project's product-form
+// conventions), and those are modals opened from partway down a genuinely
+// long, scrollable product-form page -- not routes with their own
+// already-fixed layout the way the camera/after-shot screens are. That
+// mismatch is exactly what the scrollY save/restore below is for; see
+// styles.css's .oak-locked-viewport for the other half of the fix (an
+// unresolved percentage height on a locked body, which is what actually
+// produced a sheet's header landing far down the page with dead space above
+// it, not just a scroll-position jump).
 
 // Module-level, ref-counted rather than "capture original on mount, restore
 // on unmount" — two sheets that both call this hook (nothing stops that;
@@ -22,9 +33,23 @@ import { useLayoutEffect } from "react";
 // stops mattering.
 let lockCount = 0;
 let originalMetaContent: string | null = null;
+// Where the page was scrolled to right before locking it. `.oak-locked-
+// viewport` switches body to `position: fixed`, and a fixed box with no
+// `top` set falls back to its own STATIC position -- for `<body>` that's
+// always document y=0, regardless of how far the page was scrolled. Without
+// this, opening any sheet on a page scrolled even a little snapped body back
+// to its very top for as long as the sheet was open (invisible behind it,
+// since the sheet itself covers the screen) and then left it there, or in
+// some browsers reset to 0, once the sheet closed -- "the page I was on
+// jumped/reset the moment I opened or closed this". `top: -scrollY` keeps
+// body visually exactly where it already was the instant it goes fixed, and
+// the restore below un-does that same offset when it comes back.
+let savedScrollY = 0;
 
 function acquireLock() {
   if (lockCount === 0) {
+    savedScrollY = window.scrollY;
+    document.body.style.top = `-${savedScrollY}px`;
     document.body.classList.add("oak-locked-viewport");
     const meta = document.querySelector('meta[name="viewport"]');
     originalMetaContent = meta?.getAttribute("content") ?? null;
@@ -39,6 +64,8 @@ function releaseLock() {
   lockCount = Math.max(0, lockCount - 1);
   if (lockCount === 0) {
     document.body.classList.remove("oak-locked-viewport");
+    document.body.style.top = "";
+    window.scrollTo(0, savedScrollY);
     const meta = document.querySelector('meta[name="viewport"]');
     if (meta && originalMetaContent !== null) meta.setAttribute("content", originalMetaContent);
     originalMetaContent = null;
