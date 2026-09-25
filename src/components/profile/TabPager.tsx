@@ -160,7 +160,13 @@ export function TabPager({
       onScroll={handleScroll}
     >
       <motion.div
-        className="flex items-start"
+        // h-full, not just items-start sizing to content: the outer viewport
+        // can be taller than the active page (see minHeight above), and drag
+        // is bound to THIS element -- if it only sized to its own content,
+        // the empty space below a short page would have nothing draggable
+        // under the finger at all, which is exactly what made swiping only
+        // work right over the visible rows.
+        className="flex h-full items-start"
         style={{ x }}
         drag="x"
         dragDirectionLock
