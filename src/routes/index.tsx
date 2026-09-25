@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { isInAppBrowser } from "@/lib/in-app-browser";
+import { isInAppBrowser, androidChromeIntentUrl } from "@/lib/in-app-browser";
 import { isStandalone } from "@/lib/standalone";
 import logoO from "@/assets/logo-o.png";
 import streetwear from "@/assets/streetwear-summerstyle.jpeg";
@@ -431,6 +431,10 @@ function OakmonteLanding() {
   // corrects itself right after hydration) -- there's no user agent to check
   // until we're in the browser.
   const [inAppBrowser, setInAppBrowser] = useState(false);
+  // Only Android gets a real "Open in Chrome" link (see androidChromeIntentUrl)
+  // -- iOS has no API for a web page to hand off to Safari, so it keeps the
+  // manual "tap ••• / Share" instructions instead.
+  const [androidChromeUrl, setAndroidChromeUrl] = useState<string | null>(null);
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const showBanner = inAppBrowser && !bannerDismissed;
   // Measured, not hardcoded -- the copy wraps to 2-3 lines on a narrow phone
@@ -441,7 +445,11 @@ function OakmonteLanding() {
   const [bannerHeight, setBannerHeight] = useState(0);
 
   useEffect(() => {
-    if (isInAppBrowser(navigator.userAgent)) setInAppBrowser(true);
+    if (!isInAppBrowser(navigator.userAgent)) return;
+    setInAppBrowser(true);
+    if (/Android/.test(navigator.userAgent)) {
+      setAndroidChromeUrl(androidChromeIntentUrl(window.location.href));
+    }
   }, []);
 
   useEffect(() => {
@@ -493,10 +501,19 @@ function OakmonteLanding() {
           </span>
           <span className="in-app-banner-text">
             <strong>Open this in your real browser</strong>
-            <span>
-              Camera and uploads don't work in this in-app view — tap <strong>••• or Share</strong>{" "}
-              above, then <strong>Open in Browser</strong>.
-            </span>
+            {androidChromeUrl ? (
+              <span>
+                Camera and uploads don't work in this in-app view.{" "}
+                <a href={androidChromeUrl} className="in-app-banner-cta">
+                  Open in Chrome
+                </a>
+              </span>
+            ) : (
+              <span>
+                Camera and uploads don't work in this in-app view — tap{" "}
+                <strong>••• or Share</strong> above, then <strong>Open in Browser</strong>.
+              </span>
+            )}
           </span>
           <button
             type="button"
@@ -1146,6 +1163,9 @@ const CSS = `
    link on OUR page (which they aren't; the real "Open in Browser" lives in
    Instagram/Snapchat's own share sheet). */
 .oak .in-app-banner-text > span strong{display:inline-block;background:rgba(255,255,255,.16);color:#fff;font-weight:700;padding:1px 7px;border-radius:6px;}
+/* Android only (see androidChromeIntentUrl) -- this one really is a link, so
+   it gets real button chrome instead of the instructional pill above it. */
+.oak .in-app-banner-cta{display:inline-block;margin-top:8px;background:#fff;color:#0a0a0a;font-weight:700;font-size:13px;padding:8px 16px;border-radius:999px;}
 .oak .in-app-banner-close{flex:none;width:32px;height:32px;display:grid;place-items:center;font-size:22px;line-height:1;color:rgba(255,255,255,.6);border-radius:999px;margin:-4px -6px 0 0;}
 .oak .in-app-banner-close:hover{color:#fff;background:rgba(255,255,255,.08);}
 @media (min-width:640px){.oak .in-app-banner{align-items:center;justify-content:center;text-align:center;}
