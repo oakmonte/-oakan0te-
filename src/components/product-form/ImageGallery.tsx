@@ -44,22 +44,28 @@ export function ImageGallery({
 
   if (images.length === 0) {
     return (
-      <div className="w-full flex flex-col items-center gap-2">
+      <div className="w-full flex flex-col items-center">
+        {/* The icon square and its "Add images" label are one tap target,
+            not two -- they used to be a button followed by a sibling span,
+            so tapping the text (not just the icon sitting on top of it) did
+            nothing. */}
         <button
           ref={addButtonRef}
           type="button"
           onClick={onAddTap}
           disabled={uploading}
           aria-label="Add images"
-          className="w-24 h-24 rounded-2xl bg-gray-100 flex items-center justify-center overflow-hidden disabled:opacity-60"
+          className="flex flex-col items-center gap-2 disabled:opacity-60"
         >
-          {uploading ? (
-            <Loader2 size={22} className="text-gray-400 animate-spin" />
-          ) : (
-            <ImageIcon size={28} className="text-gray-300" />
-          )}
+          <span className="w-24 h-24 rounded-2xl bg-gray-100 flex items-center justify-center overflow-hidden">
+            {uploading ? (
+              <Loader2 size={22} className="text-gray-400 animate-spin" />
+            ) : (
+              <ImageIcon size={28} className="text-gray-300" />
+            )}
+          </span>
+          <span className="text-sm font-medium text-gray-900">Add images</span>
         </button>
-        <span className="text-sm font-medium text-gray-900">Add images</span>
       </div>
     );
   }

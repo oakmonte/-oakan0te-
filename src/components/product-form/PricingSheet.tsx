@@ -123,6 +123,7 @@ export function PricingSheet({
             </div>
             <div className="pt-0.5 shrink-0">
               <Switch
+                size="lg"
                 checked={passFeesToBuyer}
                 onCheckedChange={onChangePassFeesToBuyer}
                 aria-label="Customer covers the fees"

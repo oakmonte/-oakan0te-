@@ -166,8 +166,26 @@ export function TabPager({
         // the empty space below a short page would have nothing draggable
         // under the finger at all, which is exactly what made swiping only
         // work right over the visible rows.
+        //
+        // width is the other half of that, and the one that actually broke
+        // every tab except the first: a flex row with no declared width
+        // takes its OWN box from its containing block (one page-width, same
+        // as the clipping viewport), even though its children overflow it
+        // to `count` page-widths -- CSS doesn't grow a block box to fit
+        // overflowing content. That box is exactly what `drag="x"` hit-tests
+        // against, and translateX moves it independently of where the
+        // overflowing (but visually correct) child is actually painted. At
+        // index 0 the translate is 0, so the undersized box happens to still
+        // line up with the viewport and dragging "works" -- pure
+        // coincidence. At index 1+ the box shifts left by whole page-widths
+        // while the visible content stays put, so the box no longer
+        // overlaps what's on screen at all: every pointerdown on a
+        // Collections/Drops-style second or third tab lands on the
+        // `overflow-hidden` parent instead of this draggable element, and
+        // the swipe never starts. Giving the row its real full width fixes
+        // that at every index, not just the one that happened to line up.
         className="flex h-full items-start"
-        style={{ x }}
+        style={{ x, width: pageWidth ? pageWidth * count : undefined }}
         drag="x"
         dragDirectionLock
         onDirectionLock={(axis) => {

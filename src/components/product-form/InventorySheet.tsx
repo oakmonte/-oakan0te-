@@ -172,6 +172,7 @@ export function InventorySheet({
         <div className="flex items-center justify-between py-1">
           <span className="text-[15px] text-gray-900">Continue selling when out of stock</span>
           <Switch
+            size="lg"
             checked={continueSellingOutOfStock}
             onCheckedChange={setContinueSellingOutOfStock}
           />
