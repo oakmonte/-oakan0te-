@@ -1125,6 +1125,30 @@ input:-webkit-autofill:active {
   }
 }
 
+/* Same sweep as messages-skeleton (shares its @keyframes), tinted with
+   --sd-ink instead of a fixed white -- messages is always-dark, but /store
+   follows the phone's own scheme, so a fixed white sweep would all but
+   vanish on a light dashboard. --sd-ink is already black in light and white
+   in dark (see the seller dashboard tokens above), so this adapts for free
+   instead of needing its own light/dark pair. */
+@utility sd-skeleton {
+  background-color: var(--sd-soft);
+  background-image: linear-gradient(
+    100deg,
+    transparent 20%,
+    color-mix(in srgb, var(--sd-ink) 10%, transparent) 42%,
+    transparent 62%
+  );
+  background-size: 220% 100%;
+  animation: messages-shimmer 1.5s infinite linear;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sd-skeleton {
+    animation: none;
+  }
+}
+
 /* Bottom action bars ("Next", "Save", select-mode toolbars) sit flush against
    the bottom of the viewport. That reads fine in a browser tab, where Safari's
    own toolbar sits below them, and badly in the installed web app, where the
