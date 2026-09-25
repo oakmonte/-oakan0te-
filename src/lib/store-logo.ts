@@ -110,14 +110,6 @@ function isMissingColumnError(error: { code?: string } | null): boolean {
  *  service-role route would bypass that policy and put the authorisation logic
  *  in a second place. */
 export async function saveStoreLogoUrl(storeId: string, url: string): Promise<void> {
-  // `as never` only because src/lib/integrations/my-supabase/types.ts is a
-  // generated snapshot of the LIVE schema, and the migration adding this column
-  // is applied by hand -- so the column is real in the migration but absent from
-  // the snapshot until someone regenerates it. Delete the cast once types.ts is
-  // regenerated; typecheck will then verify this payload properly again.
-  const { error } = await supabase
-    .from("stores")
-    .update({ logo_url: url } as never)
-    .eq("id", storeId);
+  const { error } = await supabase.from("stores").update({ logo_url: url }).eq("id", storeId);
   if (error) throw error;
 }

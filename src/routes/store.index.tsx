@@ -41,13 +41,13 @@ const DASHBOARD_HINT_KEY = "oak_store_dashboard_seen";
  *  deliberately excludes "get the webapp", which is hidden on desktop and would
  *  otherwise leave every laptop seller permanently unfinished.
  *
- *  Once stores.onboarded_at is applied, this should read
- *  `complete || onboarded_at`, so that graduating is ONE-WAY. Deriving it live
- *  means it flips both ways, and a seller who deletes their last product would
- *  be dropped from a dashboard they have used for weeks back into an onboarding
+ *  Reads `complete || onboardedAt`, so that graduating is ONE-WAY.
+ *  `useStoreSetupStatus` stamps `stores.onboarded_at` itself the instant
+ *  `complete` first goes true. Deriving readiness from `complete` alone would
+ *  flip both ways -- a seller who deletes their last product would be dropped
+ *  from a dashboard they have used for weeks back into an onboarding
  *  checklist. A regression like that belongs in Needs attention, not in a
- *  full-page demotion. The column ships in the migration and is not applied
- *  yet, so this reads `complete` alone for now.
+ *  full-page demotion.
  *
  *  Every state has its own screen. The page used to have exactly one answer to
  *  "not ready yet" -- a skeleton -- which is how an account with no store, or a
@@ -57,6 +57,7 @@ function StoreHome() {
   const { user, loading: sessionLoading } = useSession();
   const { storeId, loading: storeLoading } = useActiveStoreId();
   const status = useStoreSetupStatus(storeId ?? null);
+  const graduated = status.complete || !!status.onboardedAt;
 
   useEffect(() => {
     try {
@@ -67,13 +68,13 @@ function StoreHome() {
   }, []);
 
   useEffect(() => {
-    if (!status.complete) return;
+    if (!graduated) return;
     try {
       localStorage.setItem(DASHBOARD_HINT_KEY, "1");
     } catch {
       // As above.
     }
-  }, [status.complete]);
+  }, [graduated]);
 
   if (sessionLoading || storeLoading) return <NeutralPlaceholder />;
   if (!user) {
@@ -96,7 +97,7 @@ function StoreHome() {
   }
   if (status.failed) return <LoadFailed onRetry={status.retry} />;
   if (status.loading) return <NeutralPlaceholder />;
-  if (!status.complete) return <SetupChecklist status={status} />;
+  if (!graduated) return <SetupChecklist status={status} />;
 
   return (
     <Suspense fallback={<DashboardSkeleton />}>

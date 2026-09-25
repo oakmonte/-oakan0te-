@@ -25,6 +25,13 @@ from the signed-in session) — that's no longer what's blocking this. A full mi
 held pending explicit sign-off. Ask before applying it — it isn't a "just do it" item even
 though the code is ready.
 
+Whoever writes that migration: `stores` is read by unauthenticated viewers too (the public
+storefront at `/store-profile/:username` looks a store up by username), and it holds
+`shopify_access_token`, `business_email` and other columns that can't go behind a public
+policy. It needs the same shape already used for profiles (`public_profiles`, see
+`20260826155813_add_public_profiles_view.sql`): a `public_stores` view exposing only the
+public columns, `logo_url` (added 2026-09-25, see `store-logo.ts`) included.
+
 ### 1.2 Supabase dashboard settings with no API
 
 Have to be clicked by hand — Auth → Policies / Rate Limits:

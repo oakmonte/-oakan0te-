@@ -58,6 +58,11 @@ export type StoreSetupStatus = {
   // pickup-locations sheet reporting its own list length) and wants to
   // reflect that immediately rather than wait on a refetch.
   setLocationCount: (count: number) => void;
+  // Null until the store's first-ever completion is stamped (see the effect
+  // below). store.index.tsx forks on `complete || onboardedAt` so graduating
+  // to the dashboard is one-way -- see stores.onboarded_at's migration
+  // comment for why `complete` alone flips both ways.
+  onboardedAt: string | null;
   // True when any of the signals could not be loaded. `loading` stays true in
   // that case -- the answer is genuinely unknown -- so a caller gating a
   // one-off action on `!loading && !complete` (the profile page's "your store
@@ -81,6 +86,7 @@ export function useStoreSetupStatus(storeId: string | null): StoreSetupStatus {
   const [productCount, setProductCount] = useState<number | null>(null);
   const [themeIdSet, setThemeIdSet] = useState(false);
   const [themeLoaded, setThemeLoaded] = useState(false);
+  const [onboardedAt, setOnboardedAt] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
   // Bumped by retry(); every fetch below depends on it.
   const [attempt, setAttempt] = useState(0);
@@ -173,7 +179,7 @@ export function useStoreSetupStatus(storeId: string | null): StoreSetupStatus {
     let cancelled = false;
     supabase
       .from("stores")
-      .select("theme_id")
+      .select("theme_id, onboarded_at")
       .eq("id", storeId)
       .maybeSingle()
       .then(({ data, error }) => {
@@ -184,6 +190,7 @@ export function useStoreSetupStatus(storeId: string | null): StoreSetupStatus {
           return;
         }
         setThemeIdSet(!!data?.theme_id);
+        setOnboardedAt(data?.onboarded_at ?? null);
         setThemeLoaded(true);
       });
     return () => {
@@ -209,6 +216,39 @@ export function useStoreSetupStatus(storeId: string | null): StoreSetupStatus {
     setAttempt((a) => a + 1);
   }, []);
 
+  const complete = !loading && payoutSet && !!locationCount && !!productCount && themeIdSet;
+
+  // Stamps the one-way graduation the instant this store first finishes
+  // setup. Gated on `themeLoaded` (not just `complete`) so this never fires
+  // from a stale pre-fetch render, and on `!onboardedAt` so it only ever
+  // writes once per store, ever -- a second store.index.tsx mount (switching
+  // stores, a refetch) must not re-stamp or touch an already-set value.
+  useEffect(() => {
+    if (!storeId || !themeLoaded || !complete || onboardedAt) return;
+    let cancelled = false;
+    supabase
+      .from("stores")
+      .update({ onboarded_at: new Date().toISOString() })
+      .eq("id", storeId)
+      .is("onboarded_at", null)
+      .select("onboarded_at")
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) {
+          // Not fatal: `complete` is still derived live and gets the seller
+          // to the dashboard regardless. Only the one-way latch is missing
+          // until a later render (or a later visit) tries the stamp again.
+          console.error("useStoreSetupStatus: failed to stamp onboarded_at", error);
+          return;
+        }
+        if (data?.onboarded_at) setOnboardedAt(data.onboarded_at);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [storeId, themeLoaded, complete, onboardedAt]);
+
   const nextStepLabel = loading
     ? null
     : !payoutSet
@@ -229,9 +269,10 @@ export function useStoreSetupStatus(storeId: string | null): StoreSetupStatus {
     productCount,
     themeIdSet,
     installedApp: hasInstalledApp(user),
-    complete: !loading && payoutSet && !!locationCount && !!productCount && themeIdSet,
+    complete,
     nextStepLabel,
     setLocationCount,
+    onboardedAt,
     failed,
     retry,
   };

@@ -1240,7 +1240,7 @@ export type Database = {
           logo_image_url: string | null
           logo_mode: string
           slideshow_image_urls: string[]
-          sticky_bottom: boolean
+          sticky_bottom: boolean | null
           store_id: string
           text: Json
           text_fonts: Json
@@ -1256,7 +1256,7 @@ export type Database = {
           logo_image_url?: string | null
           logo_mode?: string
           slideshow_image_urls?: string[]
-          sticky_bottom?: boolean
+          sticky_bottom?: boolean | null
           store_id: string
           text?: Json
           text_fonts?: Json
@@ -1272,7 +1272,7 @@ export type Database = {
           logo_image_url?: string | null
           logo_mode?: string
           slideshow_image_urls?: string[]
-          sticky_bottom?: boolean
+          sticky_bottom?: boolean | null
           store_id?: string
           text?: Json
           text_fonts?: Json
@@ -1338,7 +1338,9 @@ export type Database = {
           business_phone: string | null
           created_at: string | null
           id: string
+          logo_url: string | null
           offers_custom_orders: boolean | null
+          onboarded_at: string | null
           owner_id: string
           personal_storefront_only: boolean
           pickup_address_line: string | null
@@ -1367,7 +1369,9 @@ export type Database = {
           business_phone?: string | null
           created_at?: string | null
           id?: string
+          logo_url?: string | null
           offers_custom_orders?: boolean | null
+          onboarded_at?: string | null
           owner_id: string
           personal_storefront_only?: boolean
           pickup_address_line?: string | null
@@ -1396,7 +1400,9 @@ export type Database = {
           business_phone?: string | null
           created_at?: string | null
           id?: string
+          logo_url?: string | null
           offers_custom_orders?: boolean | null
+          onboarded_at?: string | null
           owner_id?: string
           personal_storefront_only?: boolean
           pickup_address_line?: string | null
