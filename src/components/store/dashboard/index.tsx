@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useActiveStore, type OwnedStoreSummary } from "@/hooks/use-own-store";
 import { LocationsListSheet } from "@/components/store/LocationsListSheet";
-import { ShareProfileOverlay } from "@/components/profile/ShareProfileOverlay";
+import { ComingSoonBanner } from "@/components/ComingSoonBanner";
 import { fetchStoreLogo, type StoreLogo } from "@/lib/store-logo";
 import { IdentityBlock } from "./IdentityBlock";
 import { QuickActions } from "./QuickActions";
@@ -52,7 +52,7 @@ function DashboardForStore({
 }) {
   const [logo, setLogo] = useState<StoreLogo | undefined>(undefined);
   const [locationsOpen, setLocationsOpen] = useState(false);
-  const [shareOpen, setShareOpen] = useState(false);
+  const [shareComingSoonOpen, setShareComingSoonOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -68,32 +68,11 @@ function DashboardForStore({
     setLogo((prev) => ({ canSaveOwnLogo: prev?.canSaveOwnLogo ?? true, url }));
   }, []);
 
-  const shareUrl =
-    typeof window !== "undefined"
-      ? `${window.location.origin}/store-profile/${store.store_username}`
-      : "";
-
-  /** One way to share, used by every share button on the page.
-   *
-   *  The phone's own share sheet first, because that is where WhatsApp and a
-   *  seller's real contacts are -- and for a Nigerian seller WhatsApp is where
-   *  the first order comes from. The in-app overlay is only the fallback for
-   *  browsers with no Web Share API (most desktops). It used to be the only
-   *  option, and two different copies of it were mounted depending on which
-   *  button you tapped, one of them without the store's picture. */
-  async function share() {
-    if (typeof navigator !== "undefined" && navigator.share) {
-      try {
-        await navigator.share({ title: store.brand_name, url: shareUrl });
-        return;
-      } catch (err) {
-        // Dismissing the sheet is a choice, not a failure: do nothing.
-        if ((err as DOMException)?.name === "AbortError") return;
-        // Anything else (a permissions policy, an in-app browser that exposes
-        // the API but refuses it) falls through to the overlay.
-      }
-    }
-    setShareOpen(true);
+  // Sharing a store link is held back until official launch -- both share
+  // buttons on this page point here rather than actually invoking the share
+  // sheet, until that's turned back on.
+  function share() {
+    setShareComingSoonOpen(true);
   }
 
   // Empty until Diadem defines what feeds this section. The shape is here so
@@ -120,12 +99,10 @@ function DashboardForStore({
         <LocationsListSheet storeId={store.id} onClose={() => setLocationsOpen(false)} />
       )}
 
-      <ShareProfileOverlay
-        open={shareOpen}
-        onClose={() => setShareOpen(false)}
-        avatarUrl={logo?.url ?? null}
-        shareUrl={shareUrl}
-        title="Share your store"
+      <ComingSoonBanner
+        open={shareComingSoonOpen}
+        onClose={() => setShareComingSoonOpen(false)}
+        message="Sharing your store link will be available after official launch."
       />
     </div>
   );

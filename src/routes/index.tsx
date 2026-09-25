@@ -488,9 +488,15 @@ function OakmonteLanding() {
 
       {showBanner && (
         <div ref={bannerRef} className="in-app-banner">
-          <span>
-            Some features (camera, uploads) need your real browser — tap{" "}
-            <strong>••• or Share</strong> above and choose <strong>Open in Browser</strong>.
+          <span className="in-app-banner-icon" aria-hidden="true">
+            !
+          </span>
+          <span className="in-app-banner-text">
+            <strong>Open this in your real browser</strong>
+            <span>
+              Camera and uploads don't work in this in-app view — tap <strong>••• or Share</strong>{" "}
+              above, then <strong>Open in Browser</strong>.
+            </span>
           </span>
           <button
             type="button"
@@ -1130,10 +1136,16 @@ const CSS = `
 .oak .reveal-delay-2.in-view{transition-delay:.2s;}
 .oak .reveal-delay-3.in-view{transition-delay:.3s;}
 
-.oak .in-app-banner{position:fixed;top:0;left:0;right:0;width:100%;z-index:110;display:flex;align-items:center;justify-content:center;gap:14px;background:var(--black);color:#fff;padding:10px 16px;font-size:12px;line-height:1.4;text-align:center;}
-.oak .in-app-banner strong{color:#6E8CFF;font-weight:700;}
-.oak .in-app-banner-close{flex:none;font-size:20px;line-height:1;color:rgba(255,255,255,.6);padding:4px;}
-.oak .in-app-banner-close:hover{color:#fff;}
+.oak .in-app-banner{position:fixed;top:0;left:0;right:0;width:100%;z-index:110;display:flex;align-items:flex-start;gap:14px;background:var(--black);color:#fff;padding:16px 18px;text-align:left;}
+.oak .in-app-banner-icon{flex:none;display:grid;place-items:center;width:26px;height:26px;border-radius:999px;background:#6E8CFF;color:#0a0a0a;font-size:15px;font-weight:800;margin-top:1px;}
+.oak .in-app-banner-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;}
+.oak .in-app-banner-text > strong{font-size:15px;line-height:1.3;font-weight:700;}
+.oak .in-app-banner-text > span{font-size:13px;line-height:1.5;color:rgba(255,255,255,.8);}
+.oak .in-app-banner strong{color:#8FA6FF;font-weight:700;}
+.oak .in-app-banner-close{flex:none;width:32px;height:32px;display:grid;place-items:center;font-size:22px;line-height:1;color:rgba(255,255,255,.6);border-radius:999px;margin:-4px -6px 0 0;}
+.oak .in-app-banner-close:hover{color:#fff;background:rgba(255,255,255,.08);}
+@media (min-width:640px){.oak .in-app-banner{align-items:center;justify-content:center;text-align:center;}
+.oak .in-app-banner-text{flex-direction:row;align-items:baseline;gap:8px;justify-content:center;}}
 .oak header{position:fixed;left:0;right:0;width:100%;height:76px;z-index:100;background:rgba(255,255,255,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);transition:box-shadow .3s ease,top .3s ease;}
 .oak .header-row{position:relative;z-index:101;display:flex;align-items:flex-end;justify-content:space-between;height:76px;padding-bottom:10px;}
 .oak .brand{display:flex;align-items:baseline;gap:0;}
