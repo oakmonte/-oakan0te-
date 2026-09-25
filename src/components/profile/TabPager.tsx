@@ -202,7 +202,16 @@ export function TabPager({
             ref={(el) => {
               pageRefs.current[i] = el;
             }}
-            className="w-full shrink-0"
+            // A fixed pixel width, not w-full: once the row above has an
+            // explicit total width, a percentage width here resolves against
+            // THAT (count * pageWidth), not one page -- every page becomes
+            // count times too wide, and translating by one page-width only
+            // creeps a sliver into page 0's now-giant content instead of
+            // reaching page 1. That's the corrupted/bled-together Collections
+            // and Drops tabs: what showed through was actually a horizontal
+            // slice of Products' own content, stretched 3x wide.
+            className="shrink-0"
+            style={{ width: pageWidth || undefined }}
             // inert, not pointer-events + aria-hidden: offscreen pages were
             // still keyboard-focusable (grid tiles, the empty states' upload
             // inputs), and aria-hidden over focusable content is its own
