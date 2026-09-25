@@ -4,13 +4,16 @@ import { Check, Download, MoreVertical, Share, Smartphone } from "lucide-react";
 import { isIOS } from "@/lib/platform";
 import { isStandalone } from "@/lib/standalone";
 import { canPromptInstall, promptInstall, subscribeInstallPrompt } from "@/lib/installed-app";
+import iosExplainerSrc from "@/assets/webapp-screen-record/ios-add-to-home-screen.mp4";
 
-// A plain public-directory path, deliberately not an `import`. An unresolved
-// import of a missing asset fails `bun run build` -- which on Vercel is a failed
-// deploy -- while typecheck, lint and test all stay green. A string path just
-// 404s, and `onError` below hides the player, so the page still reads correctly
-// until the explainer clip is dropped into /public.
-const EXPLAINER_SRC = "/get-the-webapp.mp4";
+// Android's clip doesn't exist yet -- a plain public-directory path,
+// deliberately not an `import`. An unresolved import of a missing asset fails
+// `bun run build` -- which on Vercel is a failed deploy -- while typecheck,
+// lint and test all stay green. A string path just 404s, and `onError` below
+// hides the player, so the page still reads correctly until that clip is
+// dropped into /public. The iOS clip is a real recording (imported above), so
+// it gets the normal bundled-asset treatment instead.
+const ANDROID_EXPLAINER_SRC = "/get-the-webapp.mp4";
 
 export const Route = createFileRoute("/store/get-the-webapp")({
   validateSearch: (search: Record<string, unknown>): { checklist?: boolean } => ({
@@ -100,7 +103,7 @@ function GetTheWebappPage() {
       {!videoFailed && (
         <div className="mb-6 overflow-hidden rounded-2xl bg-sd-soft">
           <video
-            src={EXPLAINER_SRC}
+            src={ios ? iosExplainerSrc : ANDROID_EXPLAINER_SRC}
             className="w-full"
             autoPlay
             loop
