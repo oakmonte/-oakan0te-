@@ -28,6 +28,7 @@ import {
   Bell,
   BellRing,
   Send,
+  ChevronUp,
 } from "lucide-react";
 import { BackButton } from "@/components/BackButton";
 import { supabase } from "@/lib/integrations/my-supabase/client";
@@ -177,11 +178,10 @@ function ProfilePage() {
     !sessionLoading && !!profile && !isOwnProfile ? (store?.id ?? null) : null,
   );
   const searchInputRef = useRef<HTMLInputElement>(null);
-  // Where the Store sheet's top edge should sit — the vertical MIDDLE of the
-  // avatar circle, so the sheet rises high enough to cover the bottom half of
-  // the avatar plus the name/rating/stats/bio below it, with only the top
-  // half of the avatar and the header bar left showing (dimmed by the
-  // backdrop). Tracked continuously (not just on the tap that opens it) in
+  // Where the Store sheet's top edge should sit — near the TOP of the avatar
+  // circle, so the sheet covers most of the avatar plus the name/rating/
+  // stats/bio below it, with only a sliver of the avatar and the header bar
+  // left showing (dimmed by the backdrop). Tracked continuously (not just on the tap that opens it) in
   // case layout shifts, e.g. once the avatar image finishes loading.
   const avatarRef = useRef<HTMLImageElement>(null);
   const [sheetTop, setSheetTop] = useState(0);
@@ -194,6 +194,9 @@ function ProfilePage() {
   // scrolling storefront whose product tiles are horizontal carousels, and a
   // listener spanning all of it would swallow both of those gestures.
   const storeSheetDrag = useDragControls();
+  // Where a pull-past-the-end gesture began, or null when it didn't start at
+  // the bottom of the storefront. See the sheet's scroller.
+  const pullOutRef = useRef<number | null>(null);
   const { data: isFollowing = false, isPending: followPending } = useQuery(
     followStatusQueryOptions(user?.id, baseProfile?.id),
   );
@@ -319,7 +322,10 @@ function ProfilePage() {
     if (!el) return;
     const update = () => {
       const rect = el.getBoundingClientRect();
-      setSheetTop(rect.top + rect.height / 2);
+      // A fifth of the way down the avatar, not its middle: the sheet sat a
+      // little low, and the storefront deserves the extra ~30px. Still low
+      // enough that the top of the avatar shows above it.
+      setSheetTop(rect.top + rect.height * 0.2);
     };
     update();
     const ro = new ResizeObserver(update);
@@ -801,8 +807,39 @@ function ProfilePage() {
                 what you were looking at — and it competed for the very same
                 gesture as the product tiles own photo carousels. Inside the
                 sheet, left/right belongs to those carousels alone. */}
-            <div className="flex-1 overflow-y-auto overscroll-contain">
+            <div
+              className="flex-1 overflow-y-auto overscroll-contain"
+              // Scrolling past the end of the storefront brings you out onto
+              // Posts: pull up another ~80px while already at the bottom and
+              // the sheet closes onto the Posts tab. Only counts a gesture
+              // that STARTED at the bottom, so ordinary momentum reaching the
+              // end never throws anyone out.
+              onTouchStart={(e) => {
+                const el = e.currentTarget;
+                const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
+                pullOutRef.current = atBottom ? e.touches[0].clientY : null;
+              }}
+              onTouchMove={(e) => {
+                const startY = pullOutRef.current;
+                if (startY === null) return;
+                if (startY - e.touches[0].clientY > 80) {
+                  pullOutRef.current = null;
+                  setActiveTab("posts");
+                }
+              }}
+              onTouchEnd={() => {
+                pullOutRef.current = null;
+              }}
+            >
               {store && <PublicStorefront storeId={store.id} />}
+              <button
+                type="button"
+                onClick={() => setActiveTab("posts")}
+                className="flex w-full flex-col items-center gap-1 bg-black py-5 text-[13px] font-medium text-white/60"
+              >
+                <ChevronUp size={18} />
+                Keep scrolling for posts
+              </button>
             </div>
           </motion.div>
         )}

@@ -1471,7 +1471,10 @@ export function LayoutBlocks({
     <>
       {render(above)}
       <div
-        className="sticky bottom-0 z-20 pb-[max(env(safe-area-inset-bottom),0.75rem)]"
+        // -1px, with the padding grown by the same pixel: iOS lands a sticky
+        // box on fractional pixels, and flush at bottom:0 it left a hairline
+        // of the grid showing between the strip and the screen edge.
+        className="sticky -bottom-px z-20 pb-[calc(max(env(safe-area-inset-bottom),0.75rem)+1px)]"
         style={{ background: bg }}
       >
         <div

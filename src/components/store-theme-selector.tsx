@@ -168,7 +168,7 @@ function ThemeCard({
                 }`}
               >
                 <span
-                  className={`absolute top-0.5 h-5 w-5 rounded-full bg-sd-surface shadow-sm transition-transform duration-200 ${
+                  className={`absolute left-0 top-0.5 h-5 w-5 rounded-full bg-sd-surface shadow-sm transition-transform duration-200 ${
                     sticky ? "translate-x-[18px]" : "translate-x-0.5"
                   }`}
                 />
