@@ -123,9 +123,9 @@ function SellersLanding() {
           <Link className="nav-login" to="/sign-in">
             Log in
           </Link>
-          <a className="pill-button pill-button-light" href="#plans">
+          <Link className="pill-button pill-button-light" to="/set-up-store">
             Start selling <ArrowUpRight size={15} />
-          </a>
+          </Link>
           <button
             className="menu-button"
             type="button"
@@ -155,9 +155,9 @@ function SellersLanding() {
             confidence to turn a point of view into a business.
           </p>
           <div className="hero-buttons">
-            <a className="pill-button pill-button-acid" href="#plans">
+            <Link className="pill-button pill-button-acid" to="/set-up-store">
               Start for free <ArrowUpRight size={16} />
-            </a>
+            </Link>
             <a className="text-link hero-link" href="#why">
               Why Oakmonte <ArrowUpRight size={15} />
             </a>
@@ -300,9 +300,9 @@ function SellersLanding() {
             A calm, clear workspace for the work behind the work. Know what is moving, what is
             working, and what to do next.
           </p>
-          <a className="text-link" href="#plans">
+          <Link className="text-link" to="/set-up-store">
             Enter the studio <ArrowUpRight size={15} />
-          </a>
+          </Link>
         </div>
       </section>
 
@@ -318,9 +318,9 @@ function SellersLanding() {
             Starting a brand should not mean navigating a maze. We help you find the right
             materials, partners, quantities, and next step.
           </p>
-          <a className="pill-button pill-button-dark" href="#plans">
+          <Link className="pill-button pill-button-dark" to="/set-up-store">
             Meet the makers <ArrowUpRight size={16} />
-          </a>
+          </Link>
         </div>
         <div className="manufacturer-list">
           <div>
@@ -390,9 +390,9 @@ function SellersLanding() {
                   </li>
                 ))}
               </ul>
-              <a href="#top">
+              <Link to="/set-up-store">
                 Claim free access <ArrowUpRight size={14} />
-              </a>
+              </Link>
             </article>
           ))}
         </div>
@@ -406,9 +406,9 @@ function SellersLanding() {
             <br />
             <em>big move.</em>
           </h2>
-          <a className="pill-button pill-button-acid" href="#plans">
+          <Link className="pill-button pill-button-acid" to="/set-up-store">
             Claim your free store <ArrowUpRight size={16} />
-          </a>
+          </Link>
         </div>
         <div className="footer-bottom">
           <a className="wordmark" href="#top">
