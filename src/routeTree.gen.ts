@@ -19,6 +19,7 @@ import { Route as StoreRouteImport } from './routes/store'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SetUpStoreRouteImport } from './routes/set-up-store'
+import { Route as SellersRouteImport } from './routes/sellers'
 import { Route as SellerTypeRouteImport } from './routes/seller-type'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PreviousIndexRouteImport } from './routes/previous-index'
@@ -135,6 +136,11 @@ const SettingsRoute = SettingsRouteImport.update({
 const SetUpStoreRoute = SetUpStoreRouteImport.update({
   id: '/set-up-store',
   path: '/set-up-store',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SellersRoute = SellersRouteImport.update({
+  id: '/sellers',
+  path: '/sellers',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SellerTypeRoute = SellerTypeRouteImport.update({
@@ -495,6 +501,7 @@ export interface FileRoutesByFullPath {
   '/previous-index': typeof PreviousIndexRoute
   '/privacy': typeof PrivacyRoute
   '/seller-type': typeof SellerTypeRoute
+  '/sellers': typeof SellersRoute
   '/set-up-store': typeof SetUpStoreRoute
   '/settings': typeof SettingsRoute
   '/sign-in': typeof SignInRoute
@@ -573,6 +580,7 @@ export interface FileRoutesByTo {
   '/previous-index': typeof PreviousIndexRoute
   '/privacy': typeof PrivacyRoute
   '/seller-type': typeof SellerTypeRoute
+  '/sellers': typeof SellersRoute
   '/set-up-store': typeof SetUpStoreRoute
   '/settings': typeof SettingsRoute
   '/sign-in': typeof SignInRoute
@@ -651,6 +659,7 @@ export interface FileRoutesById {
   '/previous-index': typeof PreviousIndexRoute
   '/privacy': typeof PrivacyRoute
   '/seller-type': typeof SellerTypeRoute
+  '/sellers': typeof SellersRoute
   '/set-up-store': typeof SetUpStoreRoute
   '/settings': typeof SettingsRoute
   '/sign-in': typeof SignInRoute
@@ -732,6 +741,7 @@ export interface FileRouteTypes {
     | '/previous-index'
     | '/privacy'
     | '/seller-type'
+    | '/sellers'
     | '/set-up-store'
     | '/settings'
     | '/sign-in'
@@ -810,6 +820,7 @@ export interface FileRouteTypes {
     | '/previous-index'
     | '/privacy'
     | '/seller-type'
+    | '/sellers'
     | '/set-up-store'
     | '/settings'
     | '/sign-in'
@@ -887,6 +898,7 @@ export interface FileRouteTypes {
     | '/previous-index'
     | '/privacy'
     | '/seller-type'
+    | '/sellers'
     | '/set-up-store'
     | '/settings'
     | '/sign-in'
@@ -967,6 +979,7 @@ export interface RootRouteChildren {
   PreviousIndexRoute: typeof PreviousIndexRoute
   PrivacyRoute: typeof PrivacyRoute
   SellerTypeRoute: typeof SellerTypeRoute
+  SellersRoute: typeof SellersRoute
   SetUpStoreRoute: typeof SetUpStoreRoute
   SettingsRoute: typeof SettingsRoute
   SignInRoute: typeof SignInRoute
@@ -1069,6 +1082,13 @@ declare module '@tanstack/react-router' {
       path: '/set-up-store'
       fullPath: '/set-up-store'
       preLoaderRoute: typeof SetUpStoreRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sellers': {
+      id: '/sellers'
+      path: '/sellers'
+      fullPath: '/sellers'
+      preLoaderRoute: typeof SellersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/seller-type': {
@@ -1646,6 +1666,7 @@ const rootRouteChildren: RootRouteChildren = {
   PreviousIndexRoute: PreviousIndexRoute,
   PrivacyRoute: PrivacyRoute,
   SellerTypeRoute: SellerTypeRoute,
+  SellersRoute: SellersRoute,
   SetUpStoreRoute: SetUpStoreRoute,
   SettingsRoute: SettingsRoute,
   SignInRoute: SignInRoute,

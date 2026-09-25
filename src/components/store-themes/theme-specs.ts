@@ -405,18 +405,24 @@ export const THEME_SPECS: ThemeSpec[] = [
     id: "black-red",
     name: "Black & Red",
     eyebrow: "SHARP · AGGRESSIVE · BOLD",
-    description: "Black with a single red cut — loud without saying much.",
+    description: "Pure black and a true, full-strength red — loud without saying much.",
     demoBrand: "Redline",
     moods: ["bold", "edgy", "aggressive", "streetwear", "loud"],
-    bg: "#070303",
-    ink: "#F6ECEC",
-    accent: "#E11D48",
+    // A real red, not a crimson. This used to be #E11D48 (Tailwind rose-600),
+    // which sits at 350° and reads pink-leaning beside an actual red. #FF1A1A
+    // is 0°, and bright enough to clear AA on black by itself, so
+    // readableAccent leaves it alone instead of lifting it toward pink.
+    bg: "#050505",
+    ink: "#FFFFFF",
+    accent: "#FF1A1A",
     heading: "archivoBlack",
     body: "barlowCondensed",
     heroAlign: "left",
     heroSize: 44,
     heroUppercase: true,
-    decor: { kind: "brackets" },
+    // A red bloom rather than the corner brackets, so the red is in the
+    // hero itself and not only in the tiles below it.
+    decor: { kind: "glow", at: "15% 0%" },
     copy: {
       eyebrow: "No apologies",
       sub: "Built to be seen from across the street.",
@@ -496,6 +502,40 @@ export const THEME_SPECS: ThemeSpec[] = [
     counts: [18, 14, 21, 10],
     products: ["Merlot Knit", "Wrap Dress", "Linen Trouser", "Wine Tote"],
     prices: [48000, 72000, 39000, 44000],
+  },
+  // The third wine, and the only one where the wine is the ground itself:
+  // Bordeaux is claret on near-black and Merlot is wine on blush, so
+  // Burgundy fills the whole page with the colour and lets champagne do the
+  // accenting. A burgundy accent here would vanish into its own background.
+  {
+    id: "burgundy",
+    name: "Burgundy",
+    eyebrow: "RICH · AUTUMNAL · TAILORED",
+    description: "A whole storefront in deep burgundy, finished in champagne.",
+    demoBrand: "Maison Burgundy",
+    moods: ["rich", "autumnal", "tailored", "classic", "luxurious"],
+    bg: "#4A0D1E",
+    ink: "#F7EDE4",
+    accent: "#E3C08D",
+    heading: "spectral",
+    body: "jost",
+    heroAlign: "center",
+    heroSize: 42,
+    rule: true,
+    decor: { kind: "orbs" },
+    copy: {
+      eyebrow: "The burgundy season",
+      sub: "Deep colour, cut close.",
+      followers: "in the house",
+      footer: "Worn into autumn",
+      promoEyebrow: "New in",
+      promoTitle: "The burgundy wool edit",
+      promoCta: "Shop the edit",
+    },
+    collections: ["New In", "Tailoring", "Knitwear", "Leather"],
+    counts: [16, 12, 19, 8],
+    products: ["Burgundy Wool Coat", "Pleated Trouser", "Cable Knit", "Leather Loafer"],
+    prices: [165000, 58000, 62000, 88000],
   },
 
   // ── warm / earth ─────────────────────────────────────────────────────────

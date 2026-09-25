@@ -58,6 +58,11 @@ export function surfaceForPathname(pathname: string): Surface {
  *
  *  Delete this, and its callers, once product-form is on the tokens. */
 export function isHeldLight(pathname: string): boolean {
+  // Not part of the temporary product-form hold above, and NOT to be deleted
+  // with it. The theme picker is light by product decision: every card is a
+  // swatch of a storefront's real colours, and half of those are dark
+  // grounds that read as one black smear on a dark page.
+  if (pathname === "/store/theme") return true;
   if (pathname === "/store/products/new") return true;
   if (pathname === "/store/collections/new") return true;
   // /store/products/:id -- but not the two sibling screens that share the

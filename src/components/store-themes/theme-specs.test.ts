@@ -8,7 +8,7 @@ import { THEMES } from "./types";
 // with a mistyped hex renders rgba(NaN,NaN,NaN) rather than throwing, and a
 // theme whose slug never reached the ThemeId union or store_themes looks
 // selectable and then reverts with no error anywhere. None of that is visible
-// in a screenshot of one theme, and there are 49 of them.
+// in a screenshot of one theme, and there are 50 of them.
 
 const HEX = /^#[0-9a-fA-F]{6}$/;
 

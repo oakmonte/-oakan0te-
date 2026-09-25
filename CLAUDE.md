@@ -102,7 +102,9 @@ parent layout.
   last). `isHeldLight()` in `surface.ts` force-lights the couple of screens still rendering
   unconverted product-form markup as their whole page — delete an entry once that screen's on
   tokens; don't add one just because a sheet or one inline piece inside an otherwise-dark page
-  renders light, that's an accepted tradeoff, not a bug.
+  renders light, that's an accepted tradeoff, not a bug. The exception is `/store/theme`, which is
+  held light **permanently, by product decision** (its cards are real storefront colours, and the
+  dark ones vanish on a dark page). Don't delete it along with the product-form entries.
 
 ## Performance
 

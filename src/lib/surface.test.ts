@@ -89,6 +89,12 @@ describe("isHeldLight", () => {
     expect(isHeldLight("/store/drops/new")).toBe(false);
   });
 
+  // A product decision, not the temporary product-form hold: the swatches
+  // are storefront colours, and dark ones vanish on a dark page.
+  test("holds the theme picker light", () => {
+    expect(isHeldLight("/store/theme")).toBe(true);
+  });
+
   test("never applies outside the dashboard", () => {
     expect(isHeldLight("/store")).toBe(false);
     expect(isHeldLight("/home")).toBe(false);

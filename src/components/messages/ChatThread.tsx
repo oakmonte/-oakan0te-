@@ -129,7 +129,11 @@ export function ChatThread({
                   lastOfGroup={lastOfGroup}
                   reaction={reactions[message.id]}
                   seenLabel={
-                    message.id === lastMine?.id && conversation.kind !== "self" ? "Seen" : null
+                    message.id === lastMine?.id &&
+                    conversation.kind !== "self" &&
+                    conversation.kind !== "support"
+                      ? "Seen"
+                      : null
                   }
                   onLongPress={() => setActionsFor(message)}
                   onReply={() => {

@@ -218,8 +218,9 @@ function RootShell({ children }: { children: ReactNode }) {
   // corrected a frame after hydration.
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const surface = surfaceForPathname(pathname);
-  // A few dashboard screens are held in the light scheme until the shared
-  // product-form components are on the tokens -- see isHeldLight().
+  // A few dashboard screens are held in the light scheme: the theme picker by
+  // design, the rest until the shared product-form components are on the
+  // tokens -- see isHeldLight().
   const heldLight = surface === "store" && isHeldLight(pathname);
   // A black full-screen overlay over a light screen (the Explore feed on
   // /home) — status strip and scroll edge go black with it. See dark-overlay.ts.

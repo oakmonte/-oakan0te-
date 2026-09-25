@@ -1,4 +1,6 @@
 import { THEME_SPECS } from "./theme-specs";
+import { THEME_COLORS } from "./theme-colors";
+import { isDark } from "./theme-spec";
 
 export type ThemeId =
   | "motion"
@@ -28,6 +30,7 @@ export type ThemeId =
   | "black-red"
   | "bordeaux"
   | "merlot"
+  | "burgundy"
   | "terracotta"
   | "saffron"
   | "clay"
@@ -72,9 +75,12 @@ export type Theme = {
    * by hand from each theme's own eyebrow/description, not derived, so a
    * theme can be found under a word its own copy never uses. */
   moods: string[];
+  /** Colour words for the same search: see THEME_COLORS for why these are
+   * written by hand rather than read off the hex values. */
+  colors: string[];
 };
 
-const BASE_THEMES: Theme[] = [
+const BASE_THEMES: Omit<Theme, "colors">[] = [
   {
     id: "motion",
     name: "Motion Grid",
@@ -173,4 +179,10 @@ export const THEMES: Theme[] = [
     demoBrand: spec.demoBrand,
     moods: spec.moods,
   })),
-];
+].map((theme) => ({
+  ...theme,
+  // "dark"/"light" come from the background itself rather than the
+  // hand-kept list: the picker used to have Light/Dark filter chips, and a
+  // search for "dark pink" is how that choice is made now.
+  colors: [...THEME_COLORS[theme.id], isDark(theme.background) ? "dark" : "light"],
+}));

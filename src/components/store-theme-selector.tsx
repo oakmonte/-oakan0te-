@@ -8,73 +8,12 @@ import { THEMES, type Theme, type ThemeId } from "./store-themes/types";
 import { ThemePreviewSheet } from "./store-themes/full-previews";
 import { useStoreTheme } from "./store-themes/useStoreTheme";
 import { readableTextColor } from "./store-themes/colors";
-import { fuzzyFilter } from "@/lib/fuzzy-search";
+import { searchThemes } from "./store-themes/theme-search";
 
-// Colour families are DERIVED from each theme's own accent rather than
-// tagged by hand. With 43 themes a hand-kept tag is one more thing to forget
-// when a palette changes, and the accent already is the theme's colour — so
-// the filter can never disagree with the swatch beside it.
-const FAMILIES = ["Lavender", "Pink", "Warm", "Green", "Blue", "Neutral"] as const;
-type Family = (typeof FAMILIES)[number];
-
-function familyOf(accentHex: string): Family {
-  const n = accentHex.replace("#", "");
-  const r = parseInt(n.substring(0, 2), 16) / 255;
-  const g = parseInt(n.substring(2, 4), 16) / 255;
-  const b = parseInt(n.substring(4, 6), 16) / 255;
-  const max = Math.max(r, g, b);
-  const min = Math.min(r, g, b);
-  const delta = max - min;
-  // Greys and near-greys are their own bucket — running them through the hue
-  // maths below would scatter them across whichever channel won by a hair.
-  if (delta < 0.12) return "Neutral";
-  let hue: number;
-  if (max === r) hue = ((g - b) / delta) % 6;
-  else if (max === g) hue = (b - r) / delta + 2;
-  else hue = (r - g) / delta + 4;
-  hue = (hue * 60 + 360) % 360;
-  // 10°, not 20°: a dulled orange (Terracotta, Kiln, Hearth) sits at 14-18°
-  // and read as Pink; the wines and roses all sit above 330° anyway.
-  if (hue < 10 || hue >= 330) return "Pink";
-  if (hue < 75) return "Warm";
-  if (hue < 170) return "Green";
-  if (hue < 255) return "Blue";
-  if (hue < 290) return "Lavender";
-  return "Pink";
-}
-
-function isDarkTheme(bgHex: string): boolean {
-  const n = bgHex.replace("#", "");
-  const r = parseInt(n.substring(0, 2), 16);
-  const g = parseInt(n.substring(2, 4), 16);
-  const b = parseInt(n.substring(4, 6), 16);
-  return (0.299 * r + 0.587 * g + 0.114 * b) / 255 < 0.5;
-}
-
-function FilterChip({
-  label,
-  active,
-  onClick,
-}: {
-  label: string;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={`shrink-0 rounded-full border px-3.5 py-2 text-[13px] font-medium transition-colors duration-200 ${
-        active
-          ? "border-[#1d1c1a] bg-[#1d1c1a] text-white"
-          : "border-[#e1ddd6] bg-white text-[#4a4741] hover:bg-[#f5f3ef]"
-      }`}
-    >
-      {label}
-    </button>
-  );
-}
+// Written in the dashboard's --sd-* tokens like every other /store screen,
+// but always rendered in their LIGHT values: /store/theme is held light by
+// isHeldLight() (lib/surface.ts), because the cards are swatches of real
+// storefront colours and the dark ones disappear on a dark page.
 
 // Just the theme's real background + accent — a full storefront mockup here
 // duplicated what Preview/Edit already show, and made every card ~400px
@@ -83,7 +22,7 @@ function ThemeColorSwatch({ theme }: { theme: Theme }) {
   const textColor = readableTextColor(theme.background);
   return (
     <div
-      className="flex h-24 flex-col justify-between rounded-[1.1rem] p-4"
+      className="flex h-24 flex-col justify-between rounded-xl p-4"
       style={{ background: theme.background }}
     >
       <span
@@ -102,59 +41,82 @@ function ThemeColorSwatch({ theme }: { theme: Theme }) {
 // mean maintaining two copies of this markup.
 function ThemeCard({
   theme,
+  matched,
   isSelected,
   onUse,
   onPreview,
 }: {
   theme: Theme;
+  /** Search keywords this theme matched, shown so the seller can see why it
+   * came up. Empty when there is no search, or it matched on its name. */
+  matched: string[];
   isSelected: boolean;
   onUse: () => void;
   onPreview: (mode: "view" | "edit") => void;
 }) {
   return (
     <article
-      className={`overflow-hidden rounded-[1.6rem] border bg-white p-3 shadow-[0_12px_35px_rgba(36,31,24,0.07)] transition-all duration-300 ${
-        isSelected
-          ? "border-[#1d1c1a] ring-1 ring-[#1d1c1a]"
-          : "border-[#e4e0d9] hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(36,31,24,0.13)]"
+      className={`rounded-2xl border bg-sd-surface p-3 transition-colors duration-200 ${
+        isSelected ? "border-sd-line-strong" : "border-sd-line"
       }`}
     >
       <button
         type="button"
         onClick={onUse}
-        className="block w-full rounded-[1.1rem] text-left focus:outline-none"
+        className="oak-tap block w-full rounded-xl text-left outline-none focus-visible:ring-2 focus-visible:ring-sd-focus focus-visible:ring-offset-2"
         aria-pressed={isSelected}
         aria-label={`Select ${theme.name}`}
       >
         <ThemeColorSwatch theme={theme} />
       </button>
 
-      <div className="px-2 pb-2 pt-4">
+      <div className="px-1 pb-1 pt-3.5">
         <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-base font-semibold tracking-[-0.025em] text-[#1c1b19]">
-              {theme.name}
-            </p>
-            <p className="mt-1 text-[11px] font-medium uppercase tracking-[0.11em] text-[#8d8981]">
+          <div className="min-w-0">
+            <p className="text-[15px] font-semibold tracking-[-0.01em] text-sd-ink">{theme.name}</p>
+            <p className="mt-0.5 text-[11px] font-medium uppercase tracking-[0.1em] text-sd-ink-faint">
               {theme.eyebrow}
             </p>
           </div>
           <span
             className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border transition-colors duration-200 ${
-              isSelected ? "border-transparent text-white" : "border-[#dbd7d0] text-transparent"
+              isSelected ? "border-transparent" : "border-sd-line text-transparent"
             }`}
-            style={{ backgroundColor: isSelected ? theme.accent : "transparent" }}
+            // The tick takes whichever of black/white reads on the accent. A
+            // fixed white one vanished on the pale accents (Burgundy's
+            // champagne, the golds, mint, lime).
+            style={
+              isSelected
+                ? { backgroundColor: theme.accent, color: readableTextColor(theme.accent) }
+                : undefined
+            }
             aria-hidden="true"
           >
             <Check size={14} strokeWidth={3} className={isSelected ? "oak-motion-pop" : ""} />
           </span>
         </div>
-        <p className="mt-3 min-h-10 text-sm leading-5 text-[#706c65]">{theme.description}</p>
-        <div className="mt-4 grid grid-cols-2 gap-2">
+        {matched.length > 0 && (
+          <div
+            className="mt-2.5 flex flex-wrap gap-1.5"
+            role="group"
+            aria-label="Matched your search"
+          >
+            {matched.map((word) => (
+              <span
+                key={word}
+                className="rounded-full bg-sd-accent-tint px-2.5 py-1 text-[12px] font-medium text-sd-accent-ink"
+              >
+                {word}
+              </span>
+            ))}
+          </div>
+        )}
+        <p className="mt-2.5 text-[14px] leading-5 text-sd-ink-muted">{theme.description}</p>
+        <div className="mt-3.5 grid grid-cols-2 gap-2">
           <button
             type="button"
             onClick={() => onPreview("edit")}
-            className="flex items-center justify-center gap-1.5 rounded-xl border border-[#e1ddd6] py-2.5 text-sm font-medium text-[#262421] transition-colors duration-200 hover:bg-[#f5f3ef]"
+            className="oak-tap flex h-11 items-center justify-center gap-1.5 rounded-full bg-sd-soft text-[14px] font-medium text-sd-ink oak-motion-control active:scale-[0.98]"
           >
             <Pencil size={14} />
             Edit
@@ -162,7 +124,7 @@ function ThemeCard({
           <button
             type="button"
             onClick={() => onPreview("view")}
-            className="flex items-center justify-center gap-1.5 rounded-xl border border-[#e1ddd6] py-2.5 text-sm font-medium text-[#262421] transition-colors duration-200 hover:bg-[#f5f3ef]"
+            className="oak-tap flex h-11 items-center justify-center rounded-full bg-sd-soft text-[14px] font-medium text-sd-ink oak-motion-control active:scale-[0.98]"
           >
             Preview
           </button>
@@ -170,7 +132,10 @@ function ThemeCard({
         <button
           type="button"
           onClick={onUse}
-          className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl border border-[#e1ddd6] py-2.5 text-sm font-medium text-[#262421] transition-colors duration-200 hover:bg-[#f5f3ef]"
+          disabled={isSelected}
+          className={`oak-tap mt-2 flex h-11 w-full items-center justify-center gap-1.5 rounded-full text-[14px] font-semibold oak-motion-control active:scale-[0.98] ${
+            isSelected ? "border border-sd-line text-sd-ink-muted" : "bg-sd-ink text-sd-bg"
+          }`}
         >
           {isSelected ? "Selected" : "Use this theme"}
           {!isSelected && <ChevronRight size={16} />}
@@ -200,44 +165,19 @@ export function StoreThemeSelector() {
   const [themeIdSet, setThemeIdSet] = useState(false);
   const [ownUsername, setOwnUsername] = useState<string | undefined>(undefined);
   const [query, setQuery] = useState("");
-  const [family, setFamily] = useState<Family | null>(null);
-  const [tone, setTone] = useState<"light" | "dark" | null>(null);
 
-  // 49 themes in one flat grid is a wall to scroll, not a catalogue to
-  // browse, so the grid is filtered rather than paginated — a seller looking
-  // for "something pink and dark" gets there in two taps. The search box also
-  // matches each theme's curated `moods` keywords, not just its literal name/
-  // eyebrow/description text — so "cozy" finds Hearth and Oat even though
-  // neither one's own copy spells it that way (its own `moods` says "cosy").
-  // Family/tone are hard filters (applied first); the text query itself goes
-  // through fuzzy-search.ts's fuzzyFilter — the same typo-tolerant matcher the
-  // product form's material/colour pickers already use — rather than a plain
-  // `.includes()`, so a misspelled mood word still finds its theme instead of
-  // reading as "we don't have that".
-  const familyFiltered = useMemo(() => {
-    return THEMES.filter((theme) => {
-      if (family && familyOf(theme.accent) !== family) return false;
-      if (tone && (tone === "dark") !== isDarkTheme(theme.background)) return false;
-      return true;
-    });
-  }, [family, tone]);
-
-  const visibleThemes = useMemo(() => {
-    return fuzzyFilter(
-      query,
-      familyFiltered,
-      (theme) => `${theme.name} ${theme.eyebrow} ${theme.description} ${theme.moods.join(" ")}`,
-    );
-  }, [query, familyFiltered]);
+  // Search is the only way to narrow 50 themes. It replaced the colour-family
+  // and light/dark chips: every theme carries hand-written colour words and
+  // mood words, plus "dark"/"light" from its own background, so "dark pink" or
+  // "something cosy" does what two taps on chips used to. See theme-search.ts
+  // for the matching rules, and why typos are a fallback there.
+  const results = useMemo(() => searchThemes(query, THEMES), [query]);
 
   // Pulled out of the grid entirely so it can sit apart with real separation
   // — not just marked in place. Only pulled when it's actually among the
-  // current filter results, so pinning never fights a search/filter that
-  // excludes it.
-  const pickedTheme = visibleThemes.find((t) => t.id === pickedThemeId) ?? null;
-  const restThemes = pickedTheme
-    ? visibleThemes.filter((t) => t.id !== pickedThemeId)
-    : visibleThemes;
+  // current search results, so pinning never fights a search that excludes it.
+  const picked = results.find((m) => m.theme.id === pickedThemeId) ?? null;
+  const rest = picked ? results.filter((m) => m.theme.id !== pickedThemeId) : results;
 
   useEffect(() => {
     if (!storeId) return;
@@ -315,104 +255,86 @@ export function StoreThemeSelector() {
 
   return (
     <main
-      className={`min-h-[calc(100vh-3.5rem)] bg-[#f6f5f2] px-4 py-7 sm:px-6 lg:px-8 ${
+      className={`min-h-[calc(100vh-3.5rem)] bg-sd-bg px-4 py-5 ${
         // Room for the fixed Next bar below so it never covers the last row
         // of cards — only reserved while that bar can actually show.
-        checklist ? "pb-28" : ""
+        checklist ? "pb-32" : "pb-24"
       }`}
     >
       <div className="mx-auto max-w-6xl">
-        <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-          <div>
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8b735b]">
-              Storefront design
-            </p>
-            <h1 className="text-2xl font-semibold tracking-[-0.04em] text-[#171717] sm:text-3xl">
-              Pick a store theme
-            </h1>
-            <p className="mt-2 max-w-xl text-sm leading-6 text-[#6b6862]">
-              Give your store a point of view. Every template is made for products first, and you
-              can switch at any time.
-            </p>
-          </div>
-          <div className="rounded-full border border-[#dfdcd5] bg-white px-3.5 py-2 text-xs text-[#6b6862] shadow-sm">
-            {THEMES.length} original storefronts
-          </div>
+        <h1 className="text-lg font-semibold text-sd-ink">Store theme</h1>
+        <p className="mt-1 text-[14px] leading-relaxed text-sd-ink-faint">
+          How your storefront looks. You can switch any time.
+        </p>
+
+        <div className="mb-6 mt-4 flex h-11 items-center gap-2 rounded-full bg-sd-soft px-4">
+          <Search size={17} className="shrink-0 text-sd-ink-faint" />
+          <input
+            // type="text" rather than "search" so iOS draws no clear button
+            // of its own beside ours. Autocorrect is off because the search
+            // already forgives typos, and iOS "fixing" a word first turns
+            // "burgandy" into something no theme is called.
+            type="text"
+            enterKeyHint="search"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search a colour, a mood, or a name"
+            aria-label="Search themes"
+            className="w-full min-w-0 bg-transparent text-base text-sd-ink outline-none placeholder:text-sd-ink-faint"
+          />
+          {query && (
+            <button
+              type="button"
+              onClick={() => setQuery("")}
+              aria-label="Clear search"
+              className="oak-tap -mr-2 grid h-9 w-9 shrink-0 place-items-center rounded-full"
+            >
+              <X size={16} className="text-sd-ink-faint" />
+            </button>
+          )}
         </div>
 
-        <div className="mb-6 space-y-3">
-          <div className="flex items-center gap-2.5 rounded-xl border border-[#dfdcd5] bg-white px-4 py-3">
-            <Search size={18} className="shrink-0 text-[#8d8981]" />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search themes, or the mood you're going for"
-              aria-label="Search themes"
-              className="w-full bg-transparent text-[15px] text-[#1c1b19] placeholder:text-[#a5a199] focus:outline-none"
-            />
-            {query && (
-              <button type="button" onClick={() => setQuery("")} aria-label="Clear search">
-                <X size={16} className="text-[#8d8981]" />
-              </button>
-            )}
-          </div>
-          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
-            <FilterChip
-              label="All"
-              active={!family && !tone}
-              onClick={() => {
-                setFamily(null);
-                setTone(null);
-              }}
-            />
-            {FAMILIES.map((f) => (
-              <FilterChip
-                key={f}
-                label={f}
-                active={family === f}
-                onClick={() => setFamily((cur) => (cur === f ? null : f))}
-              />
-            ))}
-            <FilterChip
-              label="Light"
-              active={tone === "light"}
-              onClick={() => setTone((t) => (t === "light" ? null : "light"))}
-            />
-            <FilterChip
-              label="Dark"
-              active={tone === "dark"}
-              onClick={() => setTone((t) => (t === "dark" ? null : "dark"))}
-            />
-          </div>
-        </div>
+        {/* Read out as the seller types, not shown: the visible count was
+            removed on purpose, but a screen-reader user still needs to hear
+            what a search left them with. */}
+        <p className="sr-only" role="status" aria-live="polite">
+          {query.trim()
+            ? results.length === 0
+              ? "No themes match"
+              : `${results.length} ${results.length === 1 ? "theme" : "themes"}`
+            : ""}
+        </p>
 
-        {visibleThemes.length === 0 && (
-          <p className="py-16 text-center text-sm text-[#8c8881]">
-            No theme matches that. Try a different colour or clear the filters.
+        {results.length === 0 && (
+          <p className="py-16 text-center text-[15px] text-sd-ink-faint">
+            No theme matches that. Try a colour like “green”, or a mood like “calm”.
           </p>
         )}
 
-        {pickedTheme && (
-          <div className="mb-10 border-b border-[#e4e0d9] pb-10">
-            <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8b735b]">
-              Your theme
-            </p>
-            <div className="grid gap-5 lg:grid-cols-3">
+        {picked && (
+          <div className="mb-8 border-b border-sd-line pb-8">
+            <p className="mb-3 text-[13px] font-medium text-sd-ink-muted">Your theme</p>
+            <div className="grid gap-4 lg:grid-cols-3">
               <ThemeCard
-                theme={pickedTheme}
+                theme={picked.theme}
+                matched={picked.matched}
                 isSelected
-                onUse={() => handleUseTheme(pickedTheme.id)}
-                onPreview={(mode) => openPreview(pickedTheme.id, mode)}
+                onUse={() => handleUseTheme(picked.theme.id)}
+                onPreview={(mode) => openPreview(picked.theme.id, mode)}
               />
             </div>
           </div>
         )}
 
-        <div className="grid gap-5 lg:grid-cols-3">
-          {restThemes.map((theme) => (
+        <div className="grid gap-4 lg:grid-cols-3">
+          {rest.map(({ theme, matched }) => (
             <ThemeCard
               key={theme.id}
               theme={theme}
+              matched={matched}
               isSelected={pickedThemeId === theme.id}
               onUse={() => handleUseTheme(theme.id)}
               onPreview={(mode) => openPreview(theme.id, mode)}
@@ -420,7 +342,7 @@ export function StoreThemeSelector() {
           ))}
         </div>
 
-        <p className="mt-6 text-center text-xs text-[#8c8881]">
+        <p className="mt-6 text-center text-[13px] text-sd-ink-faint">
           Your storefront content stays yours — a theme only changes how it is presented.
         </p>
       </div>
@@ -429,14 +351,14 @@ export function StoreThemeSelector() {
         // Fixed to the device, not the scroll container — the theme grid
         // above scrolls freely behind it instead of carrying the button away
         // with the last row of cards.
-        <div className="fixed inset-x-0 bottom-0 z-40 bg-gradient-to-t from-[#f6f5f2] via-[#f6f5f2]/95 to-transparent px-4 pt-6 pb-[calc(env(safe-area-inset-bottom)+1rem)] sm:px-6 lg:px-8">
+        <div className="fixed inset-x-0 bottom-0 z-40 bg-gradient-to-t from-sd-bg via-sd-bg/95 to-transparent px-4 pt-6 pb-[calc(env(safe-area-inset-bottom)+1rem)]">
           <div className="mx-auto max-w-6xl">
             <button
               type="button"
               onClick={() =>
                 navigate({ to: "/profile/$username", params: { username: ownUsername } })
               }
-              className="w-full rounded-xl bg-[#1d1c1a] py-3.5 text-sm font-semibold text-white oak-motion-control active:scale-[0.98]"
+              className="oak-tap h-12 w-full rounded-full bg-sd-ink text-[15px] font-semibold text-sd-bg oak-motion-control active:scale-[0.98]"
             >
               Next — see your store front
             </button>
@@ -459,22 +381,22 @@ export function StoreThemeSelector() {
       )}
 
       {confirmTheme && (
-        <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/40 px-4 pb-8 sm:items-center">
-          <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-[0_30px_80px_rgba(0,0,0,0.25)]">
+        <div className="fixed inset-0 z-[60] flex items-end justify-center bg-sd-scrim px-4 pb-8 animate-in fade-in duration-200 sm:items-center">
+          <div className="w-full max-w-sm rounded-2xl bg-sd-surface p-5 shadow-[var(--sd-shadow-float)]">
             <div className="flex items-start justify-between gap-3">
-              <p className="text-base font-semibold tracking-[-0.02em] text-[#1c1b19]">
+              <p className="text-[16px] font-semibold tracking-[-0.01em] text-sd-ink">
                 Customize {confirmTheme.name} first?
               </p>
               <button
                 type="button"
                 onClick={() => setConfirmUse(null)}
                 aria-label="Cancel"
-                className="shrink-0 rounded-full p-1 text-[#8d8981] hover:bg-[#f5f3ef]"
+                className="oak-tap -mr-2 -mt-2 grid h-9 w-9 shrink-0 place-items-center rounded-full text-sd-ink-faint"
               >
                 <X size={16} />
               </button>
             </div>
-            <p className="mt-1.5 text-sm leading-5 text-[#706c65]">
+            <p className="mt-1.5 text-[14px] leading-5 text-sd-ink-muted">
               You haven't made any changes to this theme yet — it'll go live with placeholder copy
               and photos. Customize it now, or use it as-is and edit later.
             </p>
@@ -486,7 +408,7 @@ export function StoreThemeSelector() {
                   setConfirmUse(null);
                   openPreview(themeId, "edit");
                 }}
-                className="flex items-center justify-center gap-1.5 rounded-xl bg-[#1d1c1a] py-2.5 text-sm font-semibold text-white"
+                className="oak-tap flex h-11 items-center justify-center gap-1.5 rounded-full bg-sd-ink text-[14px] font-semibold text-sd-bg oak-motion-control active:scale-[0.98]"
               >
                 <Pencil size={14} />
                 Customize it
@@ -498,7 +420,7 @@ export function StoreThemeSelector() {
                   setThemeIdSet(true);
                   setConfirmUse(null);
                 }}
-                className="rounded-xl border border-[#e1ddd6] py-2.5 text-sm font-medium text-[#262421] hover:bg-[#f5f3ef]"
+                className="oak-tap h-11 rounded-full bg-sd-soft text-[14px] font-medium text-sd-ink oak-motion-control active:scale-[0.98]"
               >
                 Use as-is
               </button>
