@@ -37,8 +37,9 @@ export function ProfileTabStrip({
   pagerX: MotionValue<number>;
   pageWidth: number;
   /** Which tabs to show. Defaults to the full personal-profile set; the store
-   *  profile passes STORE_TABS, which drops Wardrobe. Must be the same list
-   *  the caller's TabPager is paging over or the indicator won't line up. */
+   *  profile passes storeTabsFor(store.store_type), which relabels Wardrobe to
+   *  Gallery for Artist stores. Must be the same list the caller's TabPager is
+   *  paging over or the indicator won't line up. */
   tabs?: typeof TABS;
 }) {
   const slotWidth = pageWidth ? pageWidth / VISIBLE_TABS : 0;

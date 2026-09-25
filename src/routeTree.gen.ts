@@ -54,6 +54,7 @@ import { Route as StoreCollectionsRouteImport } from './routes/store.collections
 import { Route as StoreProfileStoreUsernameRouteImport } from './routes/store-profile.$storeUsername'
 import { Route as ProfileUsernameRouteImport } from './routes/profile.$username'
 import { Route as CreateVideoEditorRouteImport } from './routes/create.video-editor'
+import { Route as CreateStorePieceRouteImport } from './routes/create.store-piece'
 import { Route as CreatePhotoEditorRouteImport } from './routes/create.photo-editor'
 import { Route as CreateDraftsRouteImport } from './routes/create.drafts'
 import { Route as CreateAfterShotRouteImport } from './routes/create.after-shot'
@@ -76,6 +77,7 @@ import { Route as CreateAfterShotPublishRouteImport } from './routes/create.afte
 import { Route as ApiSupportMessagesReplyRouteImport } from './routes/api.support-messages.reply'
 import { Route as ApiStorePayoutRouteImport } from './routes/api.store.payout'
 import { Route as ApiStoreThemeUploadImageRouteImport } from './routes/api.store-theme.upload-image'
+import { Route as ApiStorePiecesUploadImageRouteImport } from './routes/api.store-pieces.upload-image'
 import { Route as ApiShopifyInstallRouteImport } from './routes/api.shopify.install'
 import { Route as ApiShopifyCallbackRouteImport } from './routes/api.shopify.callback'
 import { Route as ApiShipbubblePingRouteImport } from './routes/api.shipbubble.ping'
@@ -314,6 +316,11 @@ const CreateVideoEditorRoute = CreateVideoEditorRouteImport.update({
   path: '/video-editor',
   getParentRoute: () => CreateRoute,
 } as any)
+const CreateStorePieceRoute = CreateStorePieceRouteImport.update({
+  id: '/store-piece',
+  path: '/store-piece',
+  getParentRoute: () => CreateRoute,
+} as any)
 const CreatePhotoEditorRoute = CreatePhotoEditorRouteImport.update({
   id: '/photo-editor',
   path: '/photo-editor',
@@ -425,6 +432,12 @@ const ApiStoreThemeUploadImageRoute =
     path: '/api/store-theme/upload-image',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiStorePiecesUploadImageRoute =
+  ApiStorePiecesUploadImageRouteImport.update({
+    id: '/api/store-pieces/upload-image',
+    path: '/api/store-pieces/upload-image',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiShopifyInstallRoute = ApiShopifyInstallRouteImport.update({
   id: '/api/shopify/install',
   path: '/api/shopify/install',
@@ -519,6 +532,7 @@ export interface FileRoutesByFullPath {
   '/create/after-shot': typeof CreateAfterShotRouteWithChildren
   '/create/drafts': typeof CreateDraftsRoute
   '/create/photo-editor': typeof CreatePhotoEditorRoute
+  '/create/store-piece': typeof CreateStorePieceRoute
   '/create/video-editor': typeof CreateVideoEditorRoute
   '/profile/$username': typeof ProfileUsernameRoute
   '/store-profile/$storeUsername': typeof StoreProfileStoreUsernameRoute
@@ -545,6 +559,7 @@ export interface FileRoutesByFullPath {
   '/api/shipbubble/ping': typeof ApiShipbubblePingRoute
   '/api/shopify/callback': typeof ApiShopifyCallbackRoute
   '/api/shopify/install': typeof ApiShopifyInstallRoute
+  '/api/store-pieces/upload-image': typeof ApiStorePiecesUploadImageRoute
   '/api/store-theme/upload-image': typeof ApiStoreThemeUploadImageRoute
   '/api/store/payout': typeof ApiStorePayoutRoute
   '/api/support-messages/reply': typeof ApiSupportMessagesReplyRoute
@@ -596,6 +611,7 @@ export interface FileRoutesByTo {
   '/auth/callback': typeof AuthCallbackRoute
   '/create/drafts': typeof CreateDraftsRoute
   '/create/photo-editor': typeof CreatePhotoEditorRoute
+  '/create/store-piece': typeof CreateStorePieceRoute
   '/create/video-editor': typeof CreateVideoEditorRoute
   '/profile/$username': typeof ProfileUsernameRoute
   '/store-profile/$storeUsername': typeof StoreProfileStoreUsernameRoute
@@ -622,6 +638,7 @@ export interface FileRoutesByTo {
   '/api/shipbubble/ping': typeof ApiShipbubblePingRoute
   '/api/shopify/callback': typeof ApiShopifyCallbackRoute
   '/api/shopify/install': typeof ApiShopifyInstallRoute
+  '/api/store-pieces/upload-image': typeof ApiStorePiecesUploadImageRoute
   '/api/store-theme/upload-image': typeof ApiStoreThemeUploadImageRoute
   '/api/store/payout': typeof ApiStorePayoutRoute
   '/api/support-messages/reply': typeof ApiSupportMessagesReplyRoute
@@ -677,6 +694,7 @@ export interface FileRoutesById {
   '/create/after-shot': typeof CreateAfterShotRouteWithChildren
   '/create/drafts': typeof CreateDraftsRoute
   '/create/photo-editor': typeof CreatePhotoEditorRoute
+  '/create/store-piece': typeof CreateStorePieceRoute
   '/create/video-editor': typeof CreateVideoEditorRoute
   '/profile/$username': typeof ProfileUsernameRoute
   '/store-profile/$storeUsername': typeof StoreProfileStoreUsernameRoute
@@ -703,6 +721,7 @@ export interface FileRoutesById {
   '/api/shipbubble/ping': typeof ApiShipbubblePingRoute
   '/api/shopify/callback': typeof ApiShopifyCallbackRoute
   '/api/shopify/install': typeof ApiShopifyInstallRoute
+  '/api/store-pieces/upload-image': typeof ApiStorePiecesUploadImageRoute
   '/api/store-theme/upload-image': typeof ApiStoreThemeUploadImageRoute
   '/api/store/payout': typeof ApiStorePayoutRoute
   '/api/support-messages/reply': typeof ApiSupportMessagesReplyRoute
@@ -759,6 +778,7 @@ export interface FileRouteTypes {
     | '/create/after-shot'
     | '/create/drafts'
     | '/create/photo-editor'
+    | '/create/store-piece'
     | '/create/video-editor'
     | '/profile/$username'
     | '/store-profile/$storeUsername'
@@ -785,6 +805,7 @@ export interface FileRouteTypes {
     | '/api/shipbubble/ping'
     | '/api/shopify/callback'
     | '/api/shopify/install'
+    | '/api/store-pieces/upload-image'
     | '/api/store-theme/upload-image'
     | '/api/store/payout'
     | '/api/support-messages/reply'
@@ -836,6 +857,7 @@ export interface FileRouteTypes {
     | '/auth/callback'
     | '/create/drafts'
     | '/create/photo-editor'
+    | '/create/store-piece'
     | '/create/video-editor'
     | '/profile/$username'
     | '/store-profile/$storeUsername'
@@ -862,6 +884,7 @@ export interface FileRouteTypes {
     | '/api/shipbubble/ping'
     | '/api/shopify/callback'
     | '/api/shopify/install'
+    | '/api/store-pieces/upload-image'
     | '/api/store-theme/upload-image'
     | '/api/store/payout'
     | '/api/support-messages/reply'
@@ -916,6 +939,7 @@ export interface FileRouteTypes {
     | '/create/after-shot'
     | '/create/drafts'
     | '/create/photo-editor'
+    | '/create/store-piece'
     | '/create/video-editor'
     | '/profile/$username'
     | '/store-profile/$storeUsername'
@@ -942,6 +966,7 @@ export interface FileRouteTypes {
     | '/api/shipbubble/ping'
     | '/api/shopify/callback'
     | '/api/shopify/install'
+    | '/api/store-pieces/upload-image'
     | '/api/store-theme/upload-image'
     | '/api/store/payout'
     | '/api/support-messages/reply'
@@ -1007,6 +1032,7 @@ export interface RootRouteChildren {
   ApiShipbubblePingRoute: typeof ApiShipbubblePingRoute
   ApiShopifyCallbackRoute: typeof ApiShopifyCallbackRoute
   ApiShopifyInstallRoute: typeof ApiShopifyInstallRoute
+  ApiStorePiecesUploadImageRoute: typeof ApiStorePiecesUploadImageRoute
   ApiStoreThemeUploadImageRoute: typeof ApiStoreThemeUploadImageRoute
   ApiStorePayoutRoute: typeof ApiStorePayoutRoute
   ApiSupportMessagesReplyRoute: typeof ApiSupportMessagesReplyRoute
@@ -1329,6 +1355,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CreateVideoEditorRouteImport
       parentRoute: typeof CreateRoute
     }
+    '/create/store-piece': {
+      id: '/create/store-piece'
+      path: '/store-piece'
+      fullPath: '/create/store-piece'
+      preLoaderRoute: typeof CreateStorePieceRouteImport
+      parentRoute: typeof CreateRoute
+    }
     '/create/photo-editor': {
       id: '/create/photo-editor'
       path: '/photo-editor'
@@ -1483,6 +1516,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiStoreThemeUploadImageRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/store-pieces/upload-image': {
+      id: '/api/store-pieces/upload-image'
+      path: '/api/store-pieces/upload-image'
+      fullPath: '/api/store-pieces/upload-image'
+      preLoaderRoute: typeof ApiStorePiecesUploadImageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/shopify/install': {
       id: '/api/shopify/install'
       path: '/api/shopify/install'
@@ -1583,6 +1623,7 @@ interface CreateRouteChildren {
   CreateAfterShotRoute: typeof CreateAfterShotRouteWithChildren
   CreateDraftsRoute: typeof CreateDraftsRoute
   CreatePhotoEditorRoute: typeof CreatePhotoEditorRoute
+  CreateStorePieceRoute: typeof CreateStorePieceRoute
   CreateVideoEditorRoute: typeof CreateVideoEditorRoute
   CreateIndexRoute: typeof CreateIndexRoute
 }
@@ -1591,6 +1632,7 @@ const CreateRouteChildren: CreateRouteChildren = {
   CreateAfterShotRoute: CreateAfterShotRouteWithChildren,
   CreateDraftsRoute: CreateDraftsRoute,
   CreatePhotoEditorRoute: CreatePhotoEditorRoute,
+  CreateStorePieceRoute: CreateStorePieceRoute,
   CreateVideoEditorRoute: CreateVideoEditorRoute,
   CreateIndexRoute: CreateIndexRoute,
 }
@@ -1694,6 +1736,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiShipbubblePingRoute: ApiShipbubblePingRoute,
   ApiShopifyCallbackRoute: ApiShopifyCallbackRoute,
   ApiShopifyInstallRoute: ApiShopifyInstallRoute,
+  ApiStorePiecesUploadImageRoute: ApiStorePiecesUploadImageRoute,
   ApiStoreThemeUploadImageRoute: ApiStoreThemeUploadImageRoute,
   ApiStorePayoutRoute: ApiStorePayoutRoute,
   ApiSupportMessagesReplyRoute: ApiSupportMessagesReplyRoute,

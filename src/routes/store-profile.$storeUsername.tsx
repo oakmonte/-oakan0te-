@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
 import { useOverlayHistory } from "@/hooks/use-overlay-history";
-import { useCallback, useState, useRef, useEffect } from "react";
+import { useCallback, useState, useRef, useEffect, useMemo } from "react";
 import { motion, AnimatePresence, useDragControls, useMotionValue } from "framer-motion";
 import { ArrowLeft, ArrowLeftRight, Share2, Search, Menu, Star, X } from "lucide-react";
 import { BackButton } from "@/components/BackButton";
@@ -13,7 +13,8 @@ import { BottomNav } from "@/components/BottomNav";
 import { ProfileTabEmptyState } from "@/components/ProfileTabEmptyState";
 import { PublicStorefront } from "@/components/store-themes/full-previews";
 import { Stat, MenuRow } from "@/components/profile/profile-chrome";
-import { STORE_TABS, type TabKey } from "@/components/profile/profile-tabs";
+import { storeTabsFor, type TabKey } from "@/components/profile/profile-tabs";
+import { StorePiecesGrid, StorePiecesEmptyState } from "@/components/profile/StorePiecesGrid";
 import { TabPager } from "@/components/profile/TabPager";
 import { ProfileTabStrip } from "@/components/profile/ProfileTabStrip";
 
@@ -38,6 +39,7 @@ type StoreRow = {
   logo_url: string | null;
   personal_storefront_only: boolean;
   theme_id: string | null;
+  store_type: string | null;
 };
 
 function StoreProfilePage() {
@@ -79,18 +81,21 @@ function StoreProfilePage() {
     !sessionLoading && !storeLoading && !isOwnStoreProfile ? (store?.id ?? null) : null,
   );
 
+  const isArtist = store?.store_type === "Artist";
+  const storeTabs = useMemo(() => storeTabsFor(store?.store_type ?? null), [store?.store_type]);
+
   // Shared with TabPager so the strip animates off the same value the content
   // does, frame for frame.
   const pagerX = useMotionValue(0);
   const [pageWidth, setPageWidth] = useState(0);
   const tabIndex = Math.max(
     0,
-    STORE_TABS.findIndex((t) => t.key === activeTab),
+    storeTabs.findIndex((t) => t.key === activeTab),
   );
 
   const goToTab = (nextIndex: number) => {
-    if (nextIndex >= 0 && nextIndex < STORE_TABS.length) {
-      setActiveTab(STORE_TABS[nextIndex].key);
+    if (nextIndex >= 0 && nextIndex < storeTabs.length) {
+      setActiveTab(storeTabs[nextIndex].key);
     }
   };
 
@@ -102,7 +107,9 @@ function StoreProfilePage() {
     // dashboard's own reads.
     supabase
       .from("stores")
-      .select("id, store_username, brand_name, bio, owner_id, personal_storefront_only, theme_id")
+      .select(
+        "id, store_username, brand_name, bio, owner_id, personal_storefront_only, theme_id, store_type",
+      )
       .eq("store_username", storeUsername)
       .maybeSingle()
       .then(({ data, error }) => {
@@ -230,7 +237,7 @@ function StoreProfilePage() {
       }}
       pagerX={pagerX}
       pageWidth={pageWidth}
-      tabs={STORE_TABS}
+      tabs={storeTabs}
     />
   );
 
@@ -378,14 +385,30 @@ function StoreProfilePage() {
             <div className="pb-24">
               <TabPager
                 index={tabIndex}
-                count={STORE_TABS.length}
+                count={storeTabs.length}
                 onIndexChange={goToTab}
                 x={pagerX}
                 onPageWidth={setPageWidth}
               >
-                {STORE_TABS.map(({ key }) => (
+                {storeTabs.map(({ key }) => (
                   <div key={key} className="px-1 pt-4">
-                    <ProfileTabEmptyState tab={key} isOwnProfile={isOwnStoreProfile} />
+                    {key === "wardrobe" && store ? (
+                      <StorePiecesGrid
+                        storeId={store.id}
+                        storeUsername={store.store_username}
+                        isOwnStoreProfile={isOwnStoreProfile}
+                        emptyState={
+                          <StorePiecesEmptyState
+                            isArtist={isArtist}
+                            isOwnStoreProfile={isOwnStoreProfile}
+                            storeId={store.id}
+                            storeUsername={store.store_username}
+                          />
+                        }
+                      />
+                    ) : (
+                      <ProfileTabEmptyState tab={key} isOwnProfile={isOwnStoreProfile} />
+                    )}
                   </div>
                 ))}
               </TabPager>

@@ -1230,6 +1230,41 @@ export type Database = {
           },
         ]
       }
+      store_pieces: {
+        Row: {
+          caption: string | null
+          created_at: string
+          id: string
+          media_url: string
+          status: string
+          store_id: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          media_url: string
+          status?: string
+          store_id: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          media_url?: string
+          status?: string
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_pieces_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_theme_customizations: {
         Row: {
           collections_mode: string

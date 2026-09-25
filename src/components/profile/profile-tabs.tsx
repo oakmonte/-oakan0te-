@@ -169,7 +169,16 @@ export const TABS: {
   { key: "drafts", label: "Drafts", Icon: DraftsIcon },
 ];
 
-/** The store profile's tabs. A store is a seller identity, not a person — it
- *  has no wardrobe, so that tab isn't offered there. Everything else stays in
- *  the same order, so the two profile shapes still read as siblings. */
-export const STORE_TABS = TABS.filter((t) => t.key !== "wardrobe");
+/** The store profile's tabs. A store still gets the wardrobe/gallery slot —
+ *  unlike a personal profile it can't literally own clothes, but it can show
+ *  pieces that aren't for sale, backed by `store_pieces` (store_id, not
+ *  user_id) rather than the personal-profile wardrobe concept. Label swaps to
+ *  "Gallery" for an Artist store, same isArtist ternary used in
+ *  name-your-store.tsx. Everything else stays in the same order, so the two
+ *  profile shapes still read as siblings. */
+export function storeTabsFor(storeType: string | null): typeof TABS {
+  const isArtist = storeType === "Artist";
+  return TABS.map((t) =>
+    t.key === "wardrobe" ? { ...t, label: isArtist ? "Gallery" : "Wardrobe" } : t,
+  );
+}
