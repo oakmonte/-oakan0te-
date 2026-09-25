@@ -1139,9 +1139,13 @@ const CSS = `
 .oak .in-app-banner{position:fixed;top:0;left:0;right:0;width:100%;z-index:110;display:flex;align-items:flex-start;gap:14px;background:var(--black);color:#fff;padding:16px 18px;text-align:left;}
 .oak .in-app-banner-icon{flex:none;display:grid;place-items:center;width:26px;height:26px;border-radius:999px;background:#6E8CFF;color:#0a0a0a;font-size:15px;font-weight:800;margin-top:1px;}
 .oak .in-app-banner-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;}
-.oak .in-app-banner-text > strong{font-size:15px;line-height:1.3;font-weight:700;}
+.oak .in-app-banner-text > strong{font-size:15px;line-height:1.3;font-weight:700;color:#fff;}
 .oak .in-app-banner-text > span{font-size:13px;line-height:1.5;color:rgba(255,255,255,.8);}
-.oak .in-app-banner strong{color:#8FA6FF;font-weight:700;}
+/* These name the exact label to look for in the host app's own menu -- a
+   pill, not blue link-colored text, so nobody mistakes them for a tappable
+   link on OUR page (which they aren't; the real "Open in Browser" lives in
+   Instagram/Snapchat's own share sheet). */
+.oak .in-app-banner-text > span strong{display:inline-block;background:rgba(255,255,255,.16);color:#fff;font-weight:700;padding:1px 7px;border-radius:6px;}
 .oak .in-app-banner-close{flex:none;width:32px;height:32px;display:grid;place-items:center;font-size:22px;line-height:1;color:rgba(255,255,255,.6);border-radius:999px;margin:-4px -6px 0 0;}
 .oak .in-app-banner-close:hover{color:#fff;background:rgba(255,255,255,.08);}
 @media (min-width:640px){.oak .in-app-banner{align-items:center;justify-content:center;text-align:center;}
