@@ -1167,7 +1167,8 @@ export function PublicStorefront({ storeId }: { storeId: string }) {
   const background = THEMES.find((t) => t.id === themeId)?.background ?? specForTheme(themeId).bg;
 
   return (
-    <div className="min-h-full pb-24" style={{ background }}>
+    // overflow-x-clip: same sideways-drag guard as ThemePreviewSheet's frame.
+    <div className="min-h-full overflow-x-clip pb-24" style={{ background }}>
       <FullPreview themeId={themeId} editing={editing} storeId={storeId} brandName={brandName} />
     </div>
   );
@@ -1692,13 +1693,24 @@ export function ThemePreviewSheet({
           )}
         </div>
         <div className="relative w-full max-w-[430px] shrink-0 overflow-hidden rounded-[2.5rem] border-[3px] border-neutral-900 bg-neutral-900 shadow-[0_30px_80px_rgba(0,0,0,0.55)]">
+          {/* overflow-y-auto alone makes the x axis scrollable too, and edit
+              mode carries things that poke past the frame's right edge (the
+              remove dots, counter-scaled fields), so the whole storefront
+              could be dragged sideways — and iOS scrolled it sideways on its
+              own to chase the caret. The clip wrapper leaves nothing to
+              scroll to. It has to be a separate element: clip on one axis of
+              a scroll container computes to hidden, which is still
+              programmatically scrollable, and that is exactly what focus
+              does. */}
           <div className="max-h-[82vh] overflow-y-auto">
-            <FullPreview
-              themeId={theme.id}
-              editing={editingProps}
-              storeId={storeId}
-              brandName={brandName}
-            />
+            <div className="overflow-x-clip">
+              <FullPreview
+                themeId={theme.id}
+                editing={editingProps}
+                storeId={storeId}
+                brandName={brandName}
+              />
+            </div>
           </div>
           {hint && (
             // w-max + a cap: a bare left-1/2 box is only half the frame

@@ -101,25 +101,51 @@ export function EditableText({
     return () => document.removeEventListener("pointerdown", onPointerDown, true);
   }, [active]);
 
-  // How much of the layout viewport the on-screen keyboard is covering, so
-  // the font control can sit just above it. visualViewport is the only thing
-  // that reports this: window.innerHeight does not change when the keyboard
-  // opens, and position:fixed still resolves against the layout viewport.
-  const [keyboardInset, setKeyboardInset] = useState(0);
+  // Pins the font control's overlay box to the visual viewport, the part of
+  // the page actually on screen above the keyboard. position:fixed resolves
+  // against the layout viewport, which the keyboard does not shrink, and
+  // while it is up iOS pans the visible area around inside it. So the box is
+  // moved onto the visible area every frame, straight onto the element with
+  // no React render in between.
+  //
+  // This used to be `bottom: innerHeight - vv.height - vv.offsetTop`, updated
+  // from visualViewport's resize/scroll events. That lost the pill three
+  // ways. Those events arrive late or not at all during iOS's own
+  // focus-scroll and momentum pans, so it trailed off-screen. It measured
+  // from innerHeight, which in a standalone install is not reliably the box
+  // `bottom` resolves against. And it ignored offsetLeft and pinch zoom, so
+  // a panned or zoomed view put `right-3` off the edge. Anchoring top-left to
+  // offsetTop/offsetLeft and undoing the zoom with scale(1/vv.scale) needs
+  // none of that.
+  const overlayRef = useRef<HTMLDivElement>(null);
+  const showControl = active && !!onFontChange;
   useEffect(() => {
-    if (!active) return;
+    if (!showControl) return;
     const vv = window.visualViewport;
-    if (!vv) return;
-    const update = () =>
-      setKeyboardInset(Math.max(0, window.innerHeight - vv.height - vv.offsetTop));
-    update();
-    vv.addEventListener("resize", update);
-    vv.addEventListener("scroll", update);
-    return () => {
-      vv.removeEventListener("resize", update);
-      vv.removeEventListener("scroll", update);
+    let frame = 0;
+    let last = "";
+    const tick = () => {
+      const el = overlayRef.current;
+      if (el) {
+        const scale = vv?.scale ?? 1;
+        const w = (vv?.width ?? window.innerWidth) * scale;
+        const h = (vv?.height ?? window.innerHeight) * scale;
+        const transform = `translate(${vv?.offsetLeft ?? 0}px, ${vv?.offsetTop ?? 0}px) scale(${1 / scale})`;
+        const key = `${w}|${h}|${transform}`;
+        // Only touch the style when something moved: a write every frame
+        // would keep the compositor busy for nothing while the seller types.
+        if (key !== last) {
+          last = key;
+          el.style.width = `${w}px`;
+          el.style.height = `${h}px`;
+          el.style.transform = transform;
+        }
+      }
+      frame = requestAnimationFrame(tick);
     };
-  }, [active]);
+    tick();
+    return () => cancelAnimationFrame(frame);
+  }, [showControl]);
 
   if (!isEditing) {
     if (!value) return null;
@@ -249,7 +275,7 @@ export function EditableText({
   );
 
   const fontControl =
-    active && onFontChange && typeof document !== "undefined"
+    showControl && typeof document !== "undefined"
       ? createPortal(
           // Portaled to <body>, not rendered next to the field. position:fixed
           // only means "the screen" while no ancestor has a transform, filter
@@ -261,69 +287,76 @@ export function EditableText({
           // the field being edited is pushed up against the keyboard too, so a
           // control halfway up the page meant looking in one place and reaching
           // in another. Bottom-anchored also lets the list grow upward, away
-          // from the thumb. keyboardInset comes from visualViewport above.
+          // from the thumb. The outer box is sized and moved onto the visible
+          // area by the rAF loop above; it passes touches through, and only
+          // the control inside it takes them.
           <div
-            ref={controlRef}
-            onPointerDown={() => {
-              pressingControlRef.current = true;
-            }}
-            // Cleared shortly AFTER release, never on it: iOS fires
-            // pointerup with the touch itself and only blurs the field later,
-            // with the compatibility mouse events — clearing on pointerup
-            // reopened the original "tap goes nowhere" bug. The delay also
-            // covers Android/desktop, where focus is kept and no blur ever
-            // consumes the flag. A scroll of the font list cancels instead of
-            // releasing, and no blur follows that, so it clears at once.
-            onPointerUp={() => {
-              window.setTimeout(() => {
-                pressingControlRef.current = false;
-              }, 400);
-            }}
-            onPointerCancel={() => {
-              pressingControlRef.current = false;
-            }}
-            className="fixed right-3 z-[70] flex justify-end duration-200 ease-out animate-in fade-in slide-in-from-bottom-2"
-            style={{ bottom: keyboardInset + 12 }}
+            ref={overlayRef}
+            className="pointer-events-none fixed left-0 top-0 z-[70] origin-top-left"
+            style={{ width: "100vw", height: "100dvh" }}
           >
-            {pickerOpen ? (
-              <div
-                className="max-h-[300px] w-fit overflow-y-auto overscroll-contain rounded-2xl bg-neutral-900 p-1.5 shadow-xl ring-1 ring-white/10 duration-200 ease-out animate-in fade-in zoom-in-95 slide-in-from-bottom-4"
-                style={{ minWidth: "12rem" }}
-              >
-                {FONT_OPTIONS.map((f) => {
-                  const selected = currentFont ? currentFont === f.id : f.id === "sans";
-                  return (
-                    <button
-                      key={f.id}
-                      type="button"
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => pickFont(f.id)}
-                      className="block min-h-11 w-full rounded-xl px-3.5 py-2.5 text-left text-[15px] font-medium whitespace-nowrap text-white"
-                      style={{
-                        fontFamily: f.fontFamily,
-                        background: selected ? "rgba(255,255,255,0.2)" : "transparent",
-                        opacity: selected ? 1 : 0.7,
-                      }}
-                    >
-                      {f.label}
-                    </button>
-                  );
-                })}
-              </div>
-            ) : (
-              <button
-                type="button"
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => {
-                  ensureThemePickerFonts();
-                  setPickerOpen(true);
-                }}
-                className="flex h-11 items-center gap-2 rounded-full bg-neutral-900 px-4 text-[14px] font-semibold whitespace-nowrap text-white shadow-xl ring-1 ring-white/10"
-              >
-                <Type size={16} strokeWidth={2} />
-                Change font
-              </button>
-            )}
+            <div
+              ref={controlRef}
+              onPointerDown={() => {
+                pressingControlRef.current = true;
+              }}
+              // Cleared shortly AFTER release, never on it: iOS fires
+              // pointerup with the touch itself and only blurs the field later,
+              // with the compatibility mouse events — clearing on pointerup
+              // reopened the original "tap goes nowhere" bug. The delay also
+              // covers Android/desktop, where focus is kept and no blur ever
+              // consumes the flag. A scroll of the font list cancels instead of
+              // releasing, and no blur follows that, so it clears at once.
+              onPointerUp={() => {
+                window.setTimeout(() => {
+                  pressingControlRef.current = false;
+                }, 400);
+              }}
+              onPointerCancel={() => {
+                pressingControlRef.current = false;
+              }}
+              className="pointer-events-auto absolute bottom-3 right-3 flex justify-end duration-200 ease-out animate-in fade-in slide-in-from-bottom-2"
+            >
+              {pickerOpen ? (
+                <div
+                  className="max-h-[300px] w-fit overflow-y-auto overscroll-contain rounded-2xl bg-neutral-900 p-1.5 shadow-xl ring-1 ring-white/10 duration-200 ease-out animate-in fade-in zoom-in-95 slide-in-from-bottom-4"
+                  style={{ minWidth: "12rem" }}
+                >
+                  {FONT_OPTIONS.map((f) => {
+                    const selected = currentFont ? currentFont === f.id : f.id === "sans";
+                    return (
+                      <button
+                        key={f.id}
+                        type="button"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => pickFont(f.id)}
+                        className="block min-h-11 w-full rounded-xl px-3.5 py-2.5 text-left text-[15px] font-medium whitespace-nowrap text-white"
+                        style={{
+                          fontFamily: f.fontFamily,
+                          background: selected ? "rgba(255,255,255,0.2)" : "transparent",
+                          opacity: selected ? 1 : 0.7,
+                        }}
+                      >
+                        {f.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => {
+                    ensureThemePickerFonts();
+                    setPickerOpen(true);
+                  }}
+                  className="flex h-11 items-center gap-2 rounded-full bg-neutral-900 px-4 text-[14px] font-semibold whitespace-nowrap text-white shadow-xl ring-1 ring-white/10"
+                >
+                  <Type size={16} strokeWidth={2} />
+                  Change font
+                </button>
+              )}
+            </div>
           </div>,
           document.body,
         )
