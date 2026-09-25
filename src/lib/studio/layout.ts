@@ -30,6 +30,11 @@ export const TILE_W = 30;
  *  which at a fixed 30px tile is 840 base64 images in one row — a multi-second
  *  main-thread freeze mid-gesture. Past this the tiles simply get wider. */
 export const MAX_TILES_PER_CLIP = 80;
+/** Visual gap between neighbouring clips on the video track. Drawn, not
+ *  timed: the track stays gapless (see README "Time model") and each clip is
+ *  simply inset by half of this on both sides, so a cut reads as two objects
+ *  rather than one continuous strip. */
+export const CLIP_GAP = 3;
 /** Grab area on each end of a selected clip. */
 export const HANDLE_W = 14;
 

@@ -1,8 +1,9 @@
 /** Which of the app's visual surfaces a pathname belongs to.
  *
  *  The app is black almost everywhere — the feed, the camera, the studio,
- *  messages, the public storefront. Two areas are deliberately not: the seller
- *  dashboard and the publish screen. That distinction drives three things that
+ *  the public storefront. Three areas are deliberately not: the seller
+ *  dashboard and the publish screen, and /home + /messages, which follow the
+ *  phone's light/dark setting (the "social" surface). That distinction drives three things that
  *  used to be decided in three different places and could drift apart:
  *
  *    1. `<html data-surface>`, which scopes the dashboard's light/dark tokens
@@ -14,7 +15,7 @@
  *  A pure function on the pathname rather than a route match, deliberately:
  *  it is one answer for the whole app, it is testable without a router, and it
  *  cannot drift if the route tree is reshaped. */
-export type Surface = "store" | "publish" | null;
+export type Surface = "store" | "publish" | "social" | null;
 
 export function surfaceForPathname(pathname: string): Surface {
   // The trailing slash is load-bearing. "/store-profile/diadem" is the PUBLIC
@@ -29,6 +30,11 @@ export function surfaceForPathname(pathname: string): Surface {
   // create/after-shot flow (camera, filters, crop) which stays black like every
   // other camera-app editor.
   if (pathname === "/create/after-shot/publish") return "publish";
+  // Home and Messages follow the phone's light/dark setting (the chat-* token
+  // block in styles.css). Exact matches: /home's Explore overlay is state on
+  // the same route and paints its own black, and nothing nested under either
+  // path is part of this.
+  if (pathname === "/home" || pathname === "/messages") return "social";
   return null;
 }
 

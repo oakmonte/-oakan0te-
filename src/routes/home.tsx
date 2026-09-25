@@ -77,7 +77,9 @@ function HomePage() {
 
   return (
     <div
-      className="min-h-screen bg-black text-white pb-28"
+      // chat-* tokens, not bg-black: /home is the "social" surface and follows
+      // the phone's light/dark setting (styles.css, lib/surface.ts).
+      className="min-h-screen bg-chat-bg text-chat-text pb-28"
       style={{ fontFamily: "'SF Pro', system-ui, sans-serif" }}
     >
       <div className="fixed inset-x-0 top-0 z-50 flex justify-center px-4 pt-4 pb-2">
@@ -102,7 +104,7 @@ function HomePage() {
                   style={{ height: 220 }}
                 />
                 <p className="text-[14px] font-bold mt-2">{item.title}</p>
-                <p className="text-[13px] font-semibold text-white/80">₦{item.price}</p>
+                <p className="text-[13px] font-semibold text-chat-text/70">₦{item.price}</p>
               </div>
             ))}
           </div>

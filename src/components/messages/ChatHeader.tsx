@@ -49,7 +49,7 @@ export function ChatHeader({
         type="button"
         onClick={onBack}
         aria-label="Back to inbox"
-        className="flex h-11 w-11 items-center justify-center rounded-full text-chat-text active:bg-white/10"
+        className="flex h-11 w-11 items-center justify-center rounded-full text-chat-text active:bg-chat-text/10"
       >
         <ChevronLeft size={26} />
       </button>
@@ -74,7 +74,7 @@ export function ChatHeader({
           aria-label="Conversation options"
           aria-expanded={menuOpen}
           onClick={() => setMenuOpen((open) => !open)}
-          className="flex h-11 w-11 items-center justify-center rounded-full text-chat-text active:bg-white/10"
+          className="flex h-11 w-11 items-center justify-center rounded-full text-chat-text active:bg-chat-text/10"
         >
           <Tag size={21} />
         </button>
@@ -91,7 +91,7 @@ export function ChatHeader({
                 onToggleMute();
                 setMenuOpen(false);
               }}
-              className="flex h-11 w-full items-center gap-2.5 px-3.5 text-left active:bg-white/10"
+              className="flex h-11 w-full items-center gap-2.5 px-3.5 text-left active:bg-chat-text/10"
             >
               <BellOff size={17} /> {muted ? "Unmute" : "Mute"}
             </button>
@@ -102,7 +102,7 @@ export function ChatHeader({
                 onMarkUnread();
                 setMenuOpen(false);
               }}
-              className="flex h-11 w-full items-center gap-2.5 border-t border-chat-border px-3.5 text-left active:bg-white/10"
+              className="flex h-11 w-full items-center gap-2.5 border-t border-chat-border px-3.5 text-left active:bg-chat-text/10"
             >
               <MailOpen size={17} /> Mark unread
             </button>
@@ -110,7 +110,7 @@ export function ChatHeader({
               type="button"
               role="menuitem"
               onClick={() => setMenuOpen(false)}
-              className="flex h-11 w-full items-center gap-2.5 border-t border-chat-border px-3.5 text-left text-chat-danger active:bg-white/10"
+              className="flex h-11 w-full items-center gap-2.5 border-t border-chat-border px-3.5 text-left text-chat-danger active:bg-chat-text/10"
             >
               <ShieldAlert size={17} /> Report
             </button>

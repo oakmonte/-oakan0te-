@@ -14,6 +14,13 @@ export function getOwnUsername(): string | undefined {
   return cached;
 }
 
+/** Updated by /edit-profile when the username changes. Left stale, every
+ *  "back to your profile" went to the OLD /profile/$username, which no longer
+ *  exists. */
+export function setOwnUsername(username: string) {
+  cached = username;
+}
+
 /** Cleared on sign-out so the next account does not inherit it. */
 export function clearOwnUsername() {
   cached = undefined;

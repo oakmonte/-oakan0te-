@@ -21,7 +21,9 @@ type Props = {
 };
 
 /** Outgoing bubbles are a warm vertical gradient rather than flat white. */
-const OUTGOING = "linear-gradient(180deg,#ffffff 0%,#ece7e1 100%)";
+// Read through a variable so the light inbox can invert it (styles.css,
+// "Social surface"); the fallback is the dark inbox's warm white.
+const OUTGOING = "var(--chat-outgoing, linear-gradient(180deg,#ffffff 0%,#ece7e1 100%))";
 
 export function MessageBubble({
   message,
@@ -92,14 +94,16 @@ export function MessageBubble({
               }}
               {...press}
               className={`select-none ${isCard ? "" : `rounded-[22px] px-3.5 py-2.5 ${tail}`} ${
-                isCard ? "" : mine ? "text-chat-inverse" : "bg-white/10 text-chat-text"
+                isCard ? "" : mine ? "text-chat-inverse" : "bg-chat-text/10 text-chat-text"
               } ${sending ? "opacity-60" : ""}`}
               style={isCard || !mine ? undefined : { background: OUTGOING }}
             >
               {message.reply_to_body && (
                 <div
                   className={`mb-1.5 border-l-2 pl-2 text-[12px] ${
-                    mine ? "border-black/30 text-black/55" : "border-white/35 text-chat-muted"
+                    mine
+                      ? "border-chat-inverse/30 text-chat-inverse/55"
+                      : "border-chat-text/35 text-chat-muted"
                   }`}
                 >
                   <p className="font-semibold">{mine ? "You replied" : "Replied to you"}</p>

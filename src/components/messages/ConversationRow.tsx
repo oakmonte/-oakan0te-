@@ -27,7 +27,7 @@ function Highlighted({ text, query }: { text: string; query: string }) {
   return (
     <>
       {text.slice(0, index)}
-      <mark className="rounded-[3px] bg-[#7596ff]/30 px-[1px] text-white">
+      <mark className="rounded-[3px] bg-chat-accent/25 px-[1px] text-chat-text">
         {text.slice(index, index + needle.length)}
       </mark>
       {text.slice(index + needle.length)}
@@ -55,7 +55,9 @@ export function ConversationRow({
   };
 
   return (
-    <div className="relative overflow-hidden">
+    // The row owns its own horizontal swipe (read / mute / archive), so the
+    // inbox's tab swipe must stand down for any gesture that starts here.
+    <div data-swipe-owner className="relative overflow-hidden">
       <div className="absolute inset-y-0 right-0 flex items-stretch">
         <button
           type="button"
@@ -105,7 +107,7 @@ export function ConversationRow({
             settle(0);
           }
         }}
-        className="relative bg-black"
+        className="relative bg-chat-bg"
       >
         <button
           type="button"
@@ -116,35 +118,35 @@ export function ConversationRow({
             }
             onOpen();
           }}
-          className="flex w-full items-center gap-3.5 px-5 py-3 text-left transition-colors active:bg-white/[0.07]"
+          className="flex w-full items-center gap-3.5 px-5 py-3 text-left transition-colors active:bg-chat-text/[0.07]"
         >
           <ConversationAvatar conversation={conversation} />
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
               <p
-                className={`truncate text-[16px] tracking-[-0.01em] ${unread ? "font-bold text-white" : "font-semibold text-white/95"}`}
+                className={`truncate text-[16px] tracking-[-0.01em] ${unread ? "font-bold text-chat-text" : "font-semibold text-chat-text/95"}`}
               >
                 {<Highlighted text={conversation.name} query={query} />}
               </p>
               {conversation.verified && <VerifiedBadge />}
-              {muted && <BellOff size={13} className="shrink-0 text-white/40" />}
+              {muted && <BellOff size={13} className="shrink-0 text-chat-text/40" />}
             </div>
             {conversation.typing ? (
-              <p className="mt-[3px] flex h-[19px] items-center text-[#7596ff]">
+              <p className="mt-[3px] flex h-[19px] items-center text-chat-accent">
                 <TypingDots />
               </p>
             ) : (
               <p
-                className={`mt-[3px] flex items-center gap-1 truncate text-[14px] ${unread ? "font-semibold text-white" : "text-white/50"}`}
+                className={`mt-[3px] flex items-center gap-1 truncate text-[14px] ${unread ? "font-semibold text-chat-text" : "text-chat-text/50"}`}
               >
                 {conversation.previewFromMe && (
-                  <span className="shrink-0 text-white/45" aria-hidden>
+                  <span className="shrink-0 text-chat-text/45" aria-hidden>
                     {conversation.previewStatus === "sent" ? (
                       <Check size={13} />
                     ) : (
                       <CheckCheck
                         size={13}
-                        className={conversation.previewStatus === "seen" ? "text-[#7596ff]" : ""}
+                        className={conversation.previewStatus === "seen" ? "text-chat-accent" : ""}
                       />
                     )}
                   </span>
@@ -155,11 +157,11 @@ export function ConversationRow({
               </p>
             )}
             {presence && !conversation.typing && (
-              <p className="mt-[2px] truncate text-[12px] text-white/35">{presence}</p>
+              <p className="mt-[2px] truncate text-[12px] text-chat-text/35">{presence}</p>
             )}
           </div>
           <div className="flex shrink-0 flex-col items-end gap-1.5 pl-1">
-            <span className="text-[12px] text-white/40">
+            <span className="text-[12px] text-chat-text/40">
               {relativeShort(conversation.last_message_at)}
             </span>
             {unread && <span className="h-[9px] w-[9px] rounded-full bg-[#3897f0]" />}

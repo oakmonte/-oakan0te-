@@ -30,7 +30,37 @@ const GAP_INSTALLED = 4;
 // tab was lit when the old nav went away. The next nav starts from exactly
 // there and carries the motion on, so the slide reads as one continuous move
 // across the page change.
-let handoff: { x: number; velocity: number; activeIndex: number; colWidth: number } | null = null;
+//
+// Stamped with when it was written, and only honoured for HANDOFF_TTL_MS. A
+// nav that mounts long after the last one went away (back from a product page,
+// the Explore overlay opening over /home) is not continuing anything — letting
+// it inherit a stale x made the lens fly in from a tab you left minutes ago.
+let handoff: {
+  x: number;
+  velocity: number;
+  activeIndex: number;
+  colWidth: number;
+  at: number;
+} | null = null;
+const HANDOFF_TTL_MS = 900;
+
+// Where the user last TAPPED, until they arrive. useGoRoot unwinds history
+// (history.go(-n)) before replacing, so the screen at the bottom of the stack
+// — usually /home — mounts its own nav for a moment on the way. Without this,
+// that in-between nav aimed the lens at ITS tab, so it set off back toward
+// Home and then turned round when the real destination landed: the "lens goes
+// the wrong way" bug. A quick second tap during the unwind did the same. Any
+// nav that mounts while a heading is fresh keeps aiming at the heading.
+let heading: { index: number; at: number } | null = null;
+const HEADING_TTL_MS = 1500;
+
+function now() {
+  return typeof performance !== "undefined" ? performance.now() : 0;
+}
+
+function freshHeading() {
+  return heading && now() - heading.at < HEADING_TTL_MS ? heading : null;
+}
 
 // Quick and slightly elastic: lands in ~350ms with a small overshoot rather
 // than a bounce.
@@ -97,13 +127,22 @@ export function BottomNav({ active, ownUsername }: BottomNavProps) {
   // Where the lens is headed. Set on tap, before navigating — the tab root
   // swap can take a few hundred ms to unwind history (useGoRoot), and a lens
   // that waits for it feels like lag.
-  const [targetIndex, setTargetIndex] = useState(activeIndex);
-  useEffect(() => setTargetIndex(activeIndex), [activeIndex]);
+  // An in-between screen of a tab switch keeps heading where the user tapped.
+  const [targetIndex, setTargetIndex] = useState(() => freshHeading()?.index ?? activeIndex);
+  const lastActive = useRef(activeIndex);
+  useEffect(() => {
+    if (heading?.index === activeIndex) heading = null; // arrived
+    if (lastActive.current === activeIndex) return;
+    lastActive.current = activeIndex;
+    setTargetIndex(activeIndex);
+  }, [activeIndex]);
 
-  // Which icon was lit on the previous nav, so its dimming animates too.
-  const [litFrom] = useState(() => handoff?.activeIndex ?? activeIndex);
   // Read once: whether this nav continues a previous one's motion.
-  const [inherited] = useState(() => handoff);
+  const [inherited] = useState(() =>
+    handoff && now() - handoff.at < HANDOFF_TTL_MS ? handoff : null,
+  );
+  // Which icon was lit on the previous nav, so its dimming animates too.
+  const [litFrom] = useState(() => inherited?.activeIndex ?? activeIndex);
 
   const x = useMotionValue(inherited ? inherited.x : activeIndex * colWidth);
   const velocity = useVelocity(x);
@@ -145,6 +184,7 @@ export function BottomNav({ active, ownUsername }: BottomNavProps) {
         velocity: x.getVelocity(),
         activeIndex: targetIndexRef.current,
         colWidth: colWidthRef.current,
+        at: now(),
       };
     },
     [x],
@@ -205,7 +245,12 @@ export function BottomNav({ active, ownUsername }: BottomNavProps) {
               type="button"
               onClick={() => {
                 setTargetIndex(i);
-                if (key !== active) goRoot({ to, params } as NavTarget);
+                if (key === active) {
+                  heading = null;
+                  return;
+                }
+                heading = { index: i, at: now() };
+                goRoot({ to, params } as NavTarget);
               }}
               aria-label={label}
               aria-current={isActive ? "page" : undefined}

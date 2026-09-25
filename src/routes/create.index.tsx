@@ -13,6 +13,7 @@ import {
   RefreshCw,
   Timer as TimerIcon,
   Image as ImageIcon,
+  ChevronRight,
   ChevronUp,
   Lock,
   ChevronDown,
@@ -37,7 +38,6 @@ import FilterPanel from "@/components/camera/FilterPanel";
 import LayoutPanel from "@/components/camera/LayoutPanel";
 import LayoutPreview from "@/components/camera/LayoutPreview";
 import CreatePanel from "@/components/create/CreatePanel";
-import LiquidGlassSegmented from "@/components/camera/LiquidGlassSegmented";
 import { useDraftCount } from "@/hooks/use-draft-count";
 import {
   CAMERA_FILTERS,
@@ -60,7 +60,8 @@ export const Route = createFileRoute("/create/")({
   component: CreatePage,
 });
 
-type Mode = "photo" | "video";
+/** What a capture produces — decided by the gesture, not a toggle. */
+type CaptureKind = "photo" | "video";
 type Section = "shoot" | "create";
 type CapturePhase = "live" | "counting";
 type PanelType = "ratio" | "timer" | "layout" | "filters";
@@ -161,7 +162,10 @@ const RANDOM_FILLER_COUNT = 6;
 const ROTATE_SIZE = 48;
 const FLASH_TOGGLE_SIZE = 47;
 const GALLERY_ICON_SIZE = 40;
-const CAPTURE_SIZE = 84;
+// Bigger than it was (84), and raised off the bottom edge (see
+// CAPTURE_ROW_BOTTOM): the founder's review of the camera, 2026-09-24 — the
+// shutter read small and sat too low for a thumb.
+const CAPTURE_SIZE = 92;
 const ROW_EDGE = 20;
 
 // All three left-column icons (flip, flash, gallery) share this CENTER x —
@@ -169,12 +173,13 @@ const ROW_EDGE = 20;
 // widths differ (48/47/40), so a shared left edge put their visual centers up
 // to 13px apart: to a designer's eye they visibly didn't line up in a column.
 // Anchored on the widest icon (flip camera) so its position is unchanged.
-const ICON_COLUMN_CENTER_X = ROW_EDGE + ROTATE_SIZE / 2;
+// Pulled 14px in from the edge (2026-09-24) so the column sits closer to the
+// shutter instead of hugging the bezel.
+const ICON_COLUMN_CENTER_X = ROW_EDGE + 14 + ROTATE_SIZE / 2;
 const iconColumnLeft = (size: number) => ICON_COLUMN_CENTER_X - size / 2;
-// Pushed closer to the screen edge (was ROW_EDGE + 56). The space above the
-// strip used to hold the Photo/Video toggle; it now holds the recording timer.
-const CAPTURE_ROW_BOTTOM = ROW_EDGE + 25;
-const CAPTURE_ROW_TOP = CAPTURE_ROW_BOTTOM + CAPTURE_SIZE;
+// Raised well clear of the home indicator. It sat at ROW_EDGE + 25 — right
+// on the bottom edge, where a thumb has to reach down for it.
+const CAPTURE_ROW_BOTTOM = ROW_EDGE + 52;
 
 // The three left-column icons, stacked bottom-to-top as gallery, rotate,
 // flash — spaced by one shared gap regardless of their differing heights.
@@ -182,16 +187,22 @@ const CAPTURE_ROW_TOP = CAPTURE_ROW_BOTTOM + CAPTURE_SIZE;
 // lowest of the three, isn't flush against the very bottom edge, but still
 // well under the top of the capture row so the column doesn't float
 // independently of it.
-const ICON_COLUMN_GAP = 12;
+const ICON_COLUMN_GAP = 8;
 const ICON_COLUMN_LIFT = 6;
 const ROTATE_BOTTOM = CAPTURE_ROW_BOTTOM + (CAPTURE_SIZE - ROTATE_SIZE) / 2 + ICON_COLUMN_LIFT;
 const FLASH_TOGGLE_BOTTOM = ROTATE_BOTTOM + ROTATE_SIZE + ICON_COLUMN_GAP;
 const GALLERY_ICON_BOTTOM = ROTATE_BOTTOM - ICON_COLUMN_GAP - GALLERY_ICON_SIZE;
 
-// The shutter works like Snapchat's in both modes: holding it records, and
-// letting go stops. What the mode changes is a TAP — a photo in Photo, and in
-// Video a hands-free recording that a second tap stops. While holding, drag up
-// onto the padlock to lock the recording and let go.
+// The gesture is the mode — there is no Photo/Video toggle (the founder's
+// call, 2026-09-24: "the toggle was weird anyway"). A tap takes a photo;
+// holding records and letting go stops; while holding, slide sideways onto
+// the padlock beside the shutter to lock the recording and let go — a tap on
+// the shutter then stops it, Snapchat's hands-free.
+//
+// The timer follows the same rule: tap with a timer set counts down to a
+// photo, and HOLD with a timer set counts down to a hands-free (locked)
+// recording, because nobody can keep a thumb on the shutter from across the
+// room.
 //
 // 250ms: a deliberate tap lifts well inside it, and a hold starts recording
 // before it registers as a wait.
@@ -203,21 +214,20 @@ const MAX_RECORD_SECONDS = 60;
 // A MediaRecorder stopped a few frames in can hand back a clip nothing will
 // decode. Letting go sooner than this still stops — just this late.
 const MIN_RECORD_MS = 600;
-// How far above where the finger went down the padlock sits, and so how far
-// up a hold has to be dragged to lock.
-const LOCK_DRAG_PX = 110;
-// While recording the shutter grows, like Snapchat's, so the red progress ring
-// is visible past the thumb holding it.
-const RECORDING_RING_SCALE = 1.3;
-// The Photo/Video toggle sits just above the capture row.
-const MODE_PILL_BOTTOM = CAPTURE_ROW_TOP + 10;
-const MODE_PILL_TAB_WIDTH = 84;
-// The padlock, centred on the lock point above the shutter's middle.
+// How far to the right of the shutter's centre the padlock sits, and so how
+// far a hold has to slide to lock. Beside the shutter rather than above it:
+// above is where the thumb's own knuckle is, and the filter strip beside it is
+// hidden while recording anyway.
+const LOCK_DRAG_PX = 108;
+// While recording the shutter grows, like Snapchat's, so the progress ring is
+// visible past the thumb holding it.
+const RECORDING_RING_SCALE = 1.25;
+// The padlock, on the shutter's horizontal centre line.
 const LOCK_SIZE = 44;
-const LOCK_BOTTOM = CAPTURE_ROW_BOTTOM + CAPTURE_SIZE / 2 + LOCK_DRAG_PX - LOCK_SIZE / 2;
+const LOCK_BOTTOM = CAPTURE_ROW_BOTTOM + CAPTURE_SIZE / 2 - LOCK_SIZE / 2;
 
 const SWATCH_DIAMETER = CAPTURE_SIZE - 16;
-const BARRIER_EDGE = ROW_EDGE + ROTATE_SIZE + 10;
+const BARRIER_EDGE = ICON_COLUMN_CENTER_X + ROTATE_SIZE / 2 + 10;
 const BARRIER_HEIGHT = SWATCH_DIAMETER + 12;
 
 const TOOLS: { id: PanelType; label: string }[] = [
@@ -277,6 +287,13 @@ function CreatePage() {
   // CreatePage owns state; each panel owns its own UI/interaction.
   const [openPanel, setOpenPanel] = useState<PanelType | null>(null);
   const [flashOn, setFlashOn] = useState(false);
+  // Whether the rear camera's torch can be driven from this browser at all.
+  // null until the capability check below has had its retries. Torch control
+  // is up to the browser + phone + OS version (plenty of Android browsers and
+  // older iOS expose no `torch` capability), and the button used to light up
+  // "on" regardless — which is the "flash doesn't work" report. Now it says so.
+  const [torchSupported, setTorchSupported] = useState<boolean | null>(null);
+  const [flashHint, setFlashHint] = useState(false);
   const [gridVisible, setGridVisible] = useState(false);
   const [ratio, setRatio] = useState<CameraRatio>("9:16");
   const [timer, setTimer] = useState<CameraTimer>(0);
@@ -307,11 +324,13 @@ function CreatePage() {
 
   const [capturePhase, setCapturePhase] = useState<CapturePhase>("live");
   const [countdownRemaining, setCountdownRemaining] = useState<number | null>(null);
-  const [mode, setMode] = useState<Mode>("photo");
+  // What the running countdown will capture when it reaches zero: a tap
+  // started it (photo) or a hold did (hands-free video).
+  const [countdownKind, setCountdownKind] = useState<CaptureKind>("photo");
   const [isRecording, setIsRecording] = useState(false);
-  // A locked recording keeps going without a finger on the shutter: a
-  // Video-mode tap, or a hold dragged up onto the padlock. The shutter turns
-  // into a stop button.
+  // A locked recording keeps going without a finger on the shutter: a hold
+  // slid onto the padlock, or a timed hold. The shutter turns into a stop
+  // button.
   const [recordingLocked, setRecordingLocked] = useState(false);
   // 0..1 — how far a hold has been dragged towards the padlock, for its cue.
   const [lockProgress, setLockProgress] = useState(0);
@@ -416,6 +435,7 @@ function CreatePage() {
     if (facing !== "environment" || !streamRef.current) return;
 
     let cancelled = false;
+    setTorchSupported((v) => (v === true ? v : null));
     let attempt = 0;
     const maxAttempts = 6;
 
@@ -429,6 +449,7 @@ function CreatePage() {
       };
 
       if (capabilities && capabilities.torch) {
+        setTorchSupported(true);
         // Re-assert zoom alongside torch — applyConstraints replaces the
         // whole `advanced` set, so writing torch alone would silently drop
         // whatever zoom value the hardware-zoom branch last set.
@@ -442,6 +463,8 @@ function CreatePage() {
       attempt += 1;
       if (attempt < maxAttempts) {
         timer = setTimeout(tryApply, 150 * attempt);
+      } else {
+        setTorchSupported(false);
       }
     };
 
@@ -453,6 +476,16 @@ function CreatePage() {
       clearTimeout(timer);
     };
   }, [flashOn, facing, streamVersion]);
+
+  useEffect(() => {
+    if (!flashHint) return;
+    const t = setTimeout(() => setFlashHint(false), 2600);
+    return () => clearTimeout(t);
+  }, [flashHint]);
+
+  // Rear camera with no torch this browser can reach: the toggle can't do
+  // anything, so it looks off and explains instead of pretending.
+  const flashUnavailable = facing === "environment" && torchSupported === false;
 
   // A direct navigate to wherever the seller actually came from (tracked in
   // last-visited-route.ts), not window.history.back() — this is opened from
@@ -554,7 +587,7 @@ function CreatePage() {
   // compositing is real scope (audio, mismatched durations, actual editing)
   // and deliberately not attempted here, so holding the shutter in a layout
   // does nothing but take the cell's photo.
-  const isMultiCellActive = mode === "photo" && activeLayout.cells.length > 1;
+  const isMultiCellActive = activeLayout.cells.length > 1;
   const cellCaptures = cellCapturesByLayout[activeLayout.id] ?? [];
 
   // Lazily initialize this layout's cell slots the first time it's used.
@@ -1026,40 +1059,54 @@ function CreatePage() {
     return () => clearInterval(id);
   }, [isRecording]);
 
-  // What a tap (or the end of a timer countdown) does: a photo in Photo mode,
-  // a hands-free recording in Video mode.
-  const performCapture = useCallback(() => {
-    setCapturePhase("live");
-    setCountdownRemaining(null);
-    if (mode === "video") {
-      setRecordingLocked(true);
-      startRecording();
-    } else if (isMultiCellActive) captureIntoActiveCell();
-    else capturePhoto();
-  }, [mode, isMultiCellActive, captureIntoActiveCell, capturePhoto, startRecording]);
+  // What a tap does, and what a countdown does when it reaches zero: a photo,
+  // or — for a countdown a hold started — a hands-free recording.
+  const performCapture = useCallback(
+    (kind: CaptureKind) => {
+      setCapturePhase("live");
+      setCountdownRemaining(null);
+      if (kind === "video") {
+        setRecordingLocked(true);
+        startRecording();
+      } else if (isMultiCellActive) captureIntoActiveCell();
+      else capturePhoto();
+    },
+    [isMultiCellActive, captureIntoActiveCell, capturePhoto, startRecording],
+  );
+
+  const startCountdown = useCallback(
+    (kind: CaptureKind) => {
+      setCountdownKind(kind);
+      setCapturePhase("counting");
+      setCountdownRemaining(timer);
+    },
+    [timer],
+  );
 
   useEffect(() => {
     if (capturePhase !== "counting" || countdownRemaining === null) return;
     if (countdownRemaining <= 0) {
-      performCapture();
+      performCapture(countdownKind);
       return;
     }
     const t = setTimeout(() => setCountdownRemaining((c) => (c ?? 1) - 1), 1000);
     return () => clearTimeout(t);
-  }, [capturePhase, countdownRemaining, performCapture]);
+  }, [capturePhase, countdownRemaining, countdownKind, performCapture]);
 
-  // Hold the shutter to record, let go to stop — Snapchat's gesture — or drag
-  // up onto the padlock to keep recording without holding.
+  // Hold the shutter to record, let go to stop — Snapchat's gesture — or slide
+  // onto the padlock beside it to keep recording without holding.
   const holdTimerRef = useRef<number | null>(null);
   // True from the moment a hold turns into a recording until the finger lifts.
   const holdRecordingRef = useRef(false);
   // A hold ends with a click event too. Without this the tap handler would
   // fire straight after the hold ended and take a still on top of the clip.
   const suppressClickRef = useRef(false);
-  // Where the finger landed, so a drag up can be measured towards the padlock.
+  // Where the finger landed, so a slide can be measured towards the padlock.
   const shutterOriginRef = useRef<{ x: number; y: number } | null>(null);
 
-  const canHoldToRecord = !isMultiCellActive && timer === 0 && capturePhase !== "counting";
+  // A timer no longer turns hold-to-record off — a timed hold counts down to
+  // a hands-free recording instead (see the note above HOLD_TO_RECORD_MS).
+  const canHoldToRecord = !isMultiCellActive && capturePhase !== "counting";
 
   const clearHoldTimer = useCallback(() => {
     if (holdTimerRef.current !== null) {
@@ -1089,13 +1136,20 @@ function CreatePage() {
       if (!canHoldToRecord || isRecording) return;
       holdTimerRef.current = window.setTimeout(() => {
         holdTimerRef.current = null;
-        holdRecordingRef.current = true;
         suppressClickRef.current = true;
+        if (navigator.vibrate) navigator.vibrate(8);
+        // Timed: the finger can let go — the countdown ends in a locked
+        // recording, so there is no hold for the lift to end.
+        if (timer > 0) {
+          startCountdown("video");
+          return;
+        }
+        holdRecordingRef.current = true;
         setLockProgress(0);
         startRecording();
       }, HOLD_TO_RECORD_MS);
     },
-    [canHoldToRecord, isRecording, startRecording],
+    [canHoldToRecord, isRecording, startRecording, startCountdown, timer],
   );
 
   // Before recording starts, movement past the slop means a filter swipe and
@@ -1122,16 +1176,16 @@ function CreatePage() {
 
   // Once recording, the gesture is followed on the WINDOW, through touch
   // events as well as pointer events. The shutter lives inside a horizontal
-  // scroller, and a thumb sliding up to the padlock drifts sideways: the moment the
+  // scroller, and a thumb sliding over to the padlock is a sideways pan: the moment the
   // browser reads that as a pan it sends `pointercancel` and no further
   // pointer events at all — no move, and no up to say the finger has lifted.
   // Touch events keep coming through a pan and still end in `touchend`.
   useEffect(() => {
     if (!isRecording || recordingLocked) return;
-    const zoomTo = (clientY: number) => {
+    const slideTo = (clientX: number) => {
       const origin = shutterOriginRef.current;
       if (!origin || !holdRecordingRef.current) return;
-      const progress = Math.min(1, Math.max(0, (origin.y - clientY) / LOCK_DRAG_PX));
+      const progress = Math.min(1, Math.max(0, (clientX - origin.x) / LOCK_DRAG_PX));
       setLockProgress(progress);
       if (progress < 1) return;
       // Locked. The hold is over as far as the recording is concerned — the
@@ -1143,11 +1197,11 @@ function CreatePage() {
       if (navigator.vibrate) navigator.vibrate(12);
     };
     const onPointerMove = (e: globalThis.PointerEvent) => {
-      if (e.pointerType !== "touch") zoomTo(e.clientY);
+      if (e.pointerType !== "touch") slideTo(e.clientX);
     };
     const onTouchMove = (e: globalThis.TouchEvent) => {
       const t = e.touches[0];
-      if (t) zoomTo(t.clientY);
+      if (t) slideTo(t.clientX);
     };
     const onPointerUp = (e: globalThis.PointerEvent) => {
       if (e.pointerType !== "touch") endHold();
@@ -1195,18 +1249,14 @@ function CreatePage() {
       setCountdownRemaining(null);
       return;
     }
-    // A locked recording: the shutter is a stop button now, in either mode.
+    // A locked recording: the shutter is a stop button now.
     if (isRecording) {
       stopRecording();
       return;
     }
-    if (timer > 0) {
-      setCapturePhase("counting");
-      setCountdownRemaining(timer);
-    } else {
-      performCapture();
-    }
-  }, [capturePhase, isRecording, timer, performCapture, stopRecording]);
+    if (timer > 0) startCountdown("photo");
+    else performCapture("photo");
+  }, [capturePhase, isRecording, timer, performCapture, startCountdown, stopRecording]);
 
   return (
     <div
@@ -1413,13 +1463,23 @@ function CreatePage() {
 
       {capturePhase === "counting" && countdownRemaining !== null && countdownRemaining > 0 && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
-          <span
-            key={countdownRemaining}
-            className="oak-motion-pop text-8xl font-bold"
-            style={{ textShadow: "0 2px 12px rgba(0,0,0,0.5)" }}
-          >
-            {countdownRemaining}
-          </span>
+          <div className="flex flex-col items-center gap-2">
+            <span
+              key={countdownRemaining}
+              className="oak-motion-pop text-8xl font-bold"
+              style={{ textShadow: "0 2px 12px rgba(0,0,0,0.5)" }}
+            >
+              {countdownRemaining}
+            </span>
+            {/* With no Photo/Video toggle, this is the only place that says
+                which one is coming. */}
+            <span
+              className="text-[13px] font-semibold uppercase tracking-widest"
+              style={{ textShadow: "0 1px 6px rgba(0,0,0,0.6)" }}
+            >
+              {countdownKind === "video" ? "Video — tap to stop" : "Photo"}
+            </span>
+          </div>
         </div>
       )}
 
@@ -1580,31 +1640,10 @@ function CreatePage() {
         </div>
       )}
 
-      <div
-        className="absolute left-1/2 -translate-x-1/2"
-        style={{
-          bottom: `calc(env(safe-area-inset-bottom) + ${MODE_PILL_BOTTOM}px)`,
-          zIndex: 5,
-          opacity: isRecording ? 0 : 1,
-          pointerEvents: isRecording ? "none" : "auto",
-          transition: "opacity 160ms ease-out",
-        }}
-      >
-        <LiquidGlassSegmented
-          options={[
-            { value: "photo", label: "Photo" },
-            { value: "video", label: "Video" },
-          ]}
-          value={mode}
-          onChange={setMode}
-          disabled={isRecording}
-          tabWidth={MODE_PILL_TAB_WIDTH}
-        />
-      </div>
-
-      {/* The padlock. Appears the moment a hold starts recording, is pulled
-          towards the finger as it drags up, and closes once reached. After
-          that it stays as the "this is locked" cue until the recording ends. */}
+      {/* The padlock, beside the shutter. Appears the moment a hold starts
+          recording, grows as the finger slides towards it, and closes once
+          reached. After that it stays as the "this is locked" cue until the
+          recording ends. */}
       {isRecording && (
         <div
           className={`oak-motion-pop absolute left-1/2 flex flex-col items-center justify-center rounded-full pointer-events-none ${GLASS_RIM}`}
@@ -1613,19 +1652,24 @@ function CreatePage() {
             ...glassClear,
             ...(recordingLocked && { background: "rgba(255,255,255,0.92)", color: "#000" }),
             zIndex: 5,
-            width: LOCK_SIZE,
-            height: LOCK_SIZE + (recordingLocked ? 0 : 18),
-            marginLeft: -LOCK_SIZE / 2,
+            height: LOCK_SIZE,
+            width: LOCK_SIZE + (recordingLocked ? 0 : 18),
+            marginLeft: LOCK_DRAG_PX - LOCK_SIZE / 2 - (recordingLocked ? 0 : 18),
             bottom: `calc(env(safe-area-inset-bottom) + ${LOCK_BOTTOM}px)`,
             transform: `scale(${recordingLocked ? 1 : 0.9 + lockProgress * 0.2})`,
             transition:
-              "transform 120ms ease-out, height 180ms ease-out, background-color 160ms ease-out, color 160ms ease-out",
+              "transform 120ms ease-out, width 180ms ease-out, margin-left 180ms ease-out, background-color 160ms ease-out, color 160ms ease-out",
           }}
         >
-          {!recordingLocked && (
-            <ChevronUp size={14} style={{ opacity: 0.5 + lockProgress * 0.5, marginBottom: 2 }} />
-          )}
-          <Lock size={18} strokeWidth={2.4} />
+          <span className="flex flex-row items-center">
+            {!recordingLocked && (
+              <ChevronRight
+                size={14}
+                style={{ opacity: 0.5 + lockProgress * 0.5, marginRight: 2 }}
+              />
+            )}
+            <Lock size={18} strokeWidth={2.4} />
+          </span>
         </div>
       )}
 
@@ -1698,18 +1742,7 @@ function CreatePage() {
               opacity: isRecording ? 0 : 1,
               transition: "opacity 120ms ease-out",
             }}
-          >
-            {/* Video mode: a red core, so a tap is visibly a recording. */}
-            <span
-              className="absolute rounded-full"
-              style={{
-                inset: 6,
-                background: "#ef4444",
-                transform: `scale(${mode === "video" ? 1 : 0})`,
-                transition: "transform 200ms cubic-bezier(0.2, 0.9, 0.3, 1.2)",
-              }}
-            />
-          </div>
+          ></div>
           <button
             onClick={handleCaptureTap}
             onPointerDown={handleShutterDown}
@@ -1717,13 +1750,7 @@ function CreatePage() {
             onPointerUp={endHold}
             onPointerCancel={handleShutterCancel}
             onContextMenu={(e) => e.preventDefault()}
-            aria-label={
-              isRecording
-                ? "Stop recording"
-                : mode === "video"
-                  ? "Start recording, or hold to record"
-                  : "Take photo, or hold to record video"
-            }
+            aria-label={isRecording ? "Stop recording" : "Take photo, or hold to record video"}
             className="absolute rounded-full pointer-events-auto"
             style={{
               top: 0,
@@ -1774,9 +1801,22 @@ function CreatePage() {
       </button>
 
       <button
-        onClick={() => setFlashOn((v) => !v)}
-        aria-label={flashOn ? "Turn flash off" : "Turn flash on"}
-        aria-pressed={flashOn}
+        onClick={() => {
+          if (flashUnavailable) {
+            setFlashOn(false);
+            setFlashHint(true);
+            return;
+          }
+          setFlashOn((v) => !v);
+        }}
+        aria-label={
+          flashUnavailable
+            ? "Flash isn't available in this browser"
+            : flashOn
+              ? "Turn flash off"
+              : "Turn flash on"
+        }
+        aria-pressed={flashOn && !flashUnavailable}
         className={`absolute flex items-center justify-center rounded-full transition-transform duration-150 active:scale-90 ${GLASS_RIM}`}
         style={{
           zIndex: 3,
@@ -1785,12 +1825,28 @@ function CreatePage() {
           width: FLASH_TOGGLE_SIZE,
           height: FLASH_TOGGLE_SIZE,
           ...glassClear,
-          ...(flashOn && { background: "rgba(255,255,255,0.9)" }),
-          color: flashOn ? "#000" : "#fff",
+          ...(flashOn && !flashUnavailable && { background: "rgba(255,255,255,0.9)" }),
+          color: flashOn && !flashUnavailable ? "#000" : "#fff",
+          opacity: flashUnavailable ? 0.45 : 1,
         }}
       >
-        {flashOn ? <Zap size={16} /> : <ZapOff size={16} />}
+        {flashOn && !flashUnavailable ? <Zap size={16} /> : <ZapOff size={16} />}
       </button>
+
+      {flashHint && (
+        <div
+          role="status"
+          className={`oak-motion-fade absolute rounded-full px-3.5 py-2 text-[12.5px] font-medium pointer-events-none ${GLASS_RIM}`}
+          style={{
+            ...glassClear,
+            zIndex: 6,
+            left: iconColumnLeft(FLASH_TOGGLE_SIZE) + FLASH_TOGGLE_SIZE + 10,
+            bottom: `calc(env(safe-area-inset-bottom) + ${FLASH_TOGGLE_BOTTOM + FLASH_TOGGLE_SIZE / 2 - 16}px)`,
+          }}
+        >
+          This browser can&rsquo;t control the flash. Front camera flash works.
+        </div>
+      )}
 
       <button
         aria-label="Import from gallery"
@@ -1832,7 +1888,7 @@ function CreatePage() {
       />
 
       {/* The recording shutter, Snapchat's: the ring grows out from under the
-       * thumb and a red arc fills it over MAX_RECORD_SECONDS. Outside the
+       * thumb and a white arc fills it over MAX_RECORD_SECONDS. Outside the
        * strip because `overflow-x: auto` clips the other axis too, and a
        * grown ring is taller than the strip. Pointer-events none — the touch
        * still belongs to the shutter button underneath. */}
@@ -1852,12 +1908,13 @@ function CreatePage() {
       >
         <svg width={CAPTURE_SIZE} height={CAPTURE_SIZE} viewBox="0 0 100 100">
           <circle cx="50" cy="50" r="46" fill="rgba(255,255,255,0.14)" />
+          {/* Track dimmed so the white progress over it reads. */}
           <circle
             cx="50"
             cy="50"
             r="46"
             fill="none"
-            stroke="rgba(255,255,255,0.9)"
+            stroke="rgba(255,255,255,0.35)"
             strokeWidth="3.5"
           />
           {isRecording && (
@@ -1866,8 +1923,10 @@ function CreatePage() {
               cy="50"
               r="46"
               fill="none"
-              stroke="#ef4444"
-              strokeWidth="4"
+              // White, not red — the founder's call (2026-09-24). Red read
+              // as an error on a screen that is otherwise all white glass.
+              stroke="#ffffff"
+              strokeWidth="4.5"
               strokeLinecap="round"
               pathLength={100}
               strokeDasharray="100"
@@ -1882,7 +1941,7 @@ function CreatePage() {
             width="28"
             height="28"
             rx="6"
-            fill="#ef4444"
+            fill="#ffffff"
             style={{
               transformOrigin: "50px 50px",
               transform: `scale(${recordingLocked ? 1 : 0})`,

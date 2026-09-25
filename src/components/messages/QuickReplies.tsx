@@ -18,7 +18,7 @@ export function QuickReplies({
           key={reply}
           type="button"
           onClick={() => onPick(reply)}
-          className="h-9 shrink-0 rounded-full border border-chat-border bg-white/[0.06] px-3.5 text-[13px] font-medium text-chat-text transition-transform active:scale-95"
+          className="h-9 shrink-0 rounded-full border border-chat-border bg-chat-text/[0.06] px-3.5 text-[13px] font-medium text-chat-text transition-transform active:scale-95"
         >
           {reply}
         </button>

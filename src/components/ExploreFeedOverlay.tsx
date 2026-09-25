@@ -3,6 +3,7 @@ import { motion, AnimatePresence, type PanInfo } from "framer-motion";
 import { ChevronLeft, Bookmark, Lock, Search, ShoppingBag, User, UserPlus } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { PostFeed, type ActivePost, type TaggedProduct } from "@/components/feed/PostFeed";
+import { useDarkOverlay } from "@/lib/dark-overlay";
 import { useSession } from "@/hooks/use-session";
 
 type FeedTab = "following" | "for-you" | "listed-items" | "profile";
@@ -34,6 +35,9 @@ export function ExploreFeedOverlay({
   const [activePost, setActivePost] = useState<ActivePost | null>(null);
   const { user } = useSession();
   const index = TABS.findIndex((t) => t.key === active);
+  // /home is light when the phone is; this feed is always black, so the
+  // status strip goes black with it while it's up.
+  useDarkOverlay(true);
 
   function go(delta: number) {
     const next = index + delta;
