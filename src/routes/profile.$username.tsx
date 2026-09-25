@@ -207,6 +207,13 @@ function ProfilePage() {
   const [notifyEnabled, setNotifyEnabled] = useState(false);
   const [messageHint, setMessageHint] = useState<string | null>(null);
   const [sellerPromptOpen, setSellerPromptOpen] = useState(false);
+  // Briefly lights the hamburger menu's "Oakmonte Store" row during the
+  // guided walkthrough below, as if it had just been tapped.
+  const [storeRowLit, setStoreRowLit] = useState(false);
+  // Cleared on unmount (navigating away mid-tour) so a stale timeout can't
+  // fire setState after this page is gone.
+  const tourTimeouts = useRef<ReturnType<typeof setTimeout>[]>([]);
+  useEffect(() => () => tourTimeouts.current.forEach(clearTimeout), []);
 
   // Until the session resolves we don't know whose profile this is, and
   // guessing "not yours" meant your own profile briefly rendered a Follow
@@ -433,6 +440,27 @@ function ProfilePage() {
 
   const storeSheetOpen = activeTab === "store" && !!store && storefrontVisible;
   const closeStoreSheet = () => setActiveTab(previousTabRef.current);
+
+  // Where the seller setup prompt's button actually goes: not straight to
+  // /store, but through the same hamburger menu a seller would use every
+  // other time, with the row it would tap lighting up -- so the one time
+  // this page shoves them toward their store, they also learn where the
+  // door is for next time. 550ms lets the drawer's own 300ms slide-in
+  // (below) finish before the row lights, so it doesn't flash mid-slide;
+  // the row then stays lit ~450ms, long enough to read as "tapped", before
+  // the navigation it's demonstrating actually fires.
+  function goToStoreViaMenu() {
+    setSellerPromptOpen(false);
+    setMenuOpen(true);
+    tourTimeouts.current.push(
+      setTimeout(() => setStoreRowLit(true), 550),
+      setTimeout(() => {
+        setMenuOpen(false);
+        setStoreRowLit(false);
+        navigate({ to: "/store" });
+      }, 1000),
+    );
+  }
 
   // The last sheet on this page that the back gesture could not see. It has a
   // scrim, drag-to-dismiss, a scroll lock and a depth cue on the page behind
@@ -859,7 +887,11 @@ function ProfilePage() {
             Creation &amp; business
           </div>
           <MenuRow label="Oakmonte Studio" onClick={() => navigate({ to: "/studio" })} />
-          <MenuRow label="Oakmonte Store" onClick={() => navigate({ to: "/store" })} />
+          <MenuRow
+            label="Oakmonte Store"
+            onClick={() => navigate({ to: "/store" })}
+            highlighted={storeRowLit}
+          />
 
           <div className="text-[12px] uppercase tracking-wide text-white/40 mt-6 mb-2">
             Personal
@@ -932,9 +964,14 @@ function ProfilePage() {
       </div>
 
       {/* Bottom nav — shown only when viewing your own profile, and hidden
-          while the Store sheet is up (it has no use there and just crowds
-          the storefront). */}
-      {isOwnProfile && !storeSheetOpen && (
+          while the Store sheet or the store-switcher sheet is up. The Store
+          sheet has no use for it and it just crowds the storefront; the
+          switcher sheet is a `fixed inset-0` of its own at the same z-50 and,
+          rendered after this in the DOM, painted on TOP of the switcher's own
+          bottom rows with nothing gating it out -- a seller with more than
+          one store could open "Switch to" and find its last row cut off
+          behind the floating nav pill. */}
+      {isOwnProfile && !storeSheetOpen && !storePickerOpen && (
         <BottomNav active="profile" ownUsername={profile?.personal_username || username} />
       )}
 
@@ -952,9 +989,10 @@ function ProfilePage() {
       {/* One action, on purpose. This used to offer a second button, "Upload or
           create content", which navigated nowhere and only closed the dialog --
           so it was a choice between doing something and doing nothing, dressed
-          as a real fork. It names the next outstanding step rather than saying
-          "set up my store", so the seller doesn't have to work out where they
-          got to either.
+          as a real fork. Deliberately doesn't name the exact outstanding step
+          (payout, a pickup location, ...) -- this prompt is a nudge, not a
+          status readout, and "Finish store set up" reads the same for every
+          seller regardless of which step they're actually on.
 
           Still a Radix Dialog rather than one of the hand-rolled sheets: this
           opens by itself, without being asked for, so focus trapping and
@@ -967,21 +1005,16 @@ function ProfilePage() {
               Your store isn&rsquo;t live yet
             </DialogTitle>
             <DialogDescription className="pt-1.5 text-sm leading-5 text-gray-500">
-              {storeSetupStatus.nextStepLabel
-                ? `Next up: ${storeSetupStatus.nextStepLabel.toLowerCase()}. It takes a minute.`
-                : "A few steps left before people can buy from you."}
+              A few steps left before people can buy from you.
             </DialogDescription>
           </DialogHeader>
           <div className="mt-5 flex flex-col gap-2">
             <button
               type="button"
-              onClick={() => {
-                setSellerPromptOpen(false);
-                navigate({ to: "/store" });
-              }}
+              onClick={goToStoreViaMenu}
               className="oak-motion-control w-full rounded-full bg-black py-4 text-[15px] font-semibold text-white active:scale-[0.98]"
             >
-              {storeSetupStatus.nextStepLabel ?? "Finish setting up"}
+              Finish store set up
             </button>
             <button
               type="button"
