@@ -40,6 +40,10 @@ export const Route = createFileRoute("/")({
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      // The landing page is white again, so it must say so: without its own
+      // value it inherits the root's #000000 and iOS paints a black status
+      // strip above a white page (see the theme-color note in __root.tsx).
+      { name: "theme-color", content: "#ffffff" },
     ],
     links: [
       // First slideshow frame is the LCP image — start its fetch before hydration.
