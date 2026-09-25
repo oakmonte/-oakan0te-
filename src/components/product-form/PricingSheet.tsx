@@ -2,6 +2,7 @@ import { useState } from "react";
 import { X, ChevronDown, XCircle } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
+import { useKeyboardInset } from "@/hooks/use-keyboard-inset";
 import { cleanPriceDigits, displayPriceWithCommas, padPriceOnBlur } from "@/lib/format-price-input";
 import {
   computeFees,
@@ -38,6 +39,17 @@ export function PricingSheet({
 }) {
   useLockedViewport();
 
+  // useLockedViewport stops the keyboard from pushing this fixed sheet up the
+  // screen (good — that's what made the media box on the camera pages jump),
+  // but it also means nothing here resizes for the keyboard on its own: a
+  // field or the Save button below it just ends up covered. This measures
+  // the actual covered height via visualViewport and adds it as bottom
+  // padding, so the sheet's own content area shrinks to fit above the
+  // keyboard instead -- the "grow/shrink in place" behavior, not a shove.
+  // Same pattern already used by the studio's text/pin panels.
+  const [fieldFocused, setFieldFocused] = useState(false);
+  const keyboardInset = useKeyboardInset(fieldFocused);
+
   const [breakdownOpen, setBreakdownOpen] = useState(false);
 
   const numPrice = parseFloat(price);
@@ -62,7 +74,10 @@ export function PricingSheet({
   const compareAtTooLow = charged !== null && !isNaN(numCompareAt) && numCompareAt < charged;
 
   return (
-    <div className="fixed inset-0 z-50 bg-white flex flex-col min-h-dvh animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]">
+    <div
+      className="fixed inset-0 z-50 bg-white flex flex-col min-h-dvh animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
+      style={{ paddingBottom: keyboardInset }}
+    >
       <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-gray-300 px-4 h-14 flex items-center justify-between">
         <button onClick={onClose} type="button" className="p-1 -ml-1">
           <X size={20} className="text-gray-500" />
@@ -80,6 +95,8 @@ export function PricingSheet({
           value={price}
           onChange={onChangePrice}
           autoFocus
+          onFocus={() => setFieldFocused(true)}
+          onBlur={() => setFieldFocused(false)}
         />
         <p className="text-xs text-gray-400 mt-1.5 mb-5">
           {passFeesToBuyer
@@ -91,6 +108,8 @@ export function PricingSheet({
           label="Compare-at price"
           value={compareAtPrice}
           onChange={onChangeCompareAtPrice}
+          onFocus={() => setFieldFocused(true)}
+          onBlur={() => setFieldFocused(false)}
         />
         <p className="text-xs text-gray-400 mt-1.5">
           What the product would've cost without a discount — shown crossed out next to your actual
@@ -103,7 +122,13 @@ export function PricingSheet({
         )}
         <div className="mb-5" />
 
-        <PriceBox label="Cost price" value={costPrice} onChange={onChangeCostPrice} />
+        <PriceBox
+          label="Cost price"
+          value={costPrice}
+          onChange={onChangeCostPrice}
+          onFocus={() => setFieldFocused(true)}
+          onBlur={() => setFieldFocused(false)}
+        />
         <p className="text-xs text-gray-400 mt-1.5 mb-5">
           Type in how much this product/variant cost you in order to measure your profit, customers
           won't see this.
@@ -241,11 +266,15 @@ function PriceBox({
   value,
   onChange,
   autoFocus,
+  onFocus,
+  onBlur,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   autoFocus?: boolean;
+  onFocus?: () => void;
+  onBlur?: () => void;
 }) {
   return (
     <label className="block border border-gray-400 bg-gray-50 rounded-xl px-3 py-2.5 mb-3">
@@ -257,7 +286,11 @@ function PriceBox({
           inputMode="decimal"
           value={displayPriceWithCommas(value)}
           onChange={(e) => onChange(cleanPriceDigits(e.target.value))}
-          onBlur={() => value && onChange(padPriceOnBlur(value))}
+          onFocus={onFocus}
+          onBlur={() => {
+            if (value) onChange(padPriceOnBlur(value));
+            onBlur?.();
+          }}
           autoFocus={autoFocus}
           placeholder="0.00"
           className="text-base flex-1 outline-none min-w-0 bg-transparent"
