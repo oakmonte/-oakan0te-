@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   ArrowLeft,
   BadgeCheck,
@@ -31,6 +31,7 @@ import {
   CollectionsGrid,
   FooterTeaser,
   HeroSlideshow,
+  LayoutBlocks,
   PhoneHeader,
   PromoBanner,
   StatsRow,
@@ -47,7 +48,8 @@ import {
   type ThemeEditingProps,
   type ThemeEditState,
 } from "./edit-types";
-import { LAYOUT_PRESETS, type ArrangeableBlockId } from "./layout-presets";
+import { LAYOUT_PRESETS, blocksBelowGrid, type ArrangeableBlockId } from "./layout-presets";
+import { useStoreLiveDrop } from "@/hooks/use-store-live-drop";
 import { useThemeCustomization } from "./useThemeCustomization";
 import { useStoreTheme } from "./useStoreTheme";
 import { useActiveStore } from "@/hooks/use-own-store";
@@ -73,15 +75,27 @@ function sameEditState(a: ThemeEditState, b: ThemeEditState): boolean {
 // its four reorderable blocks (stats/collections/promo/footer) and renders
 // them in whatever order the active layout preset specifies, instead of a
 // fixed sequence — the theme still owns every block's colors/copy, only the
-// order becomes data-driven.
+// order becomes data-driven (see LayoutBlocks).
 
-function orderedBlocks(
-  editing: ThemeEditingProps | undefined,
-  blocks: Partial<Record<ArrangeableBlockId, ReactNode>>,
-) {
-  const layoutId = editing?.layoutId ?? "hero-led";
-  const order = LAYOUT_PRESETS.find((p) => p.id === layoutId)?.order ?? LAYOUT_PRESETS[0].order;
-  return order.map((id) => <Fragment key={id}>{blocks[id]}</Fragment>);
+// What each block is called in the stick-to-page question.
+const BLOCK_NOUNS: Record<ArrangeableBlockId, string> = {
+  stats: "follower count",
+  collections: "collections",
+  promo: "drop banner",
+  footer: "community section",
+};
+
+// "a", "a and b", "a, b and c".
+function listJoin(items: string[]): string {
+  if (items.length <= 1) return items[0] ?? "";
+  return `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
+}
+
+// The page colour behind a hand-written theme, for LayoutBlocks' sticky
+// strip. Read from THEMES, the same value the picker's swatch shows, so the
+// strip can never disagree with the theme it sits in.
+function themeBackground(id: ThemeId): string {
+  return THEMES.find((t) => t.id === id)?.background ?? "#000000";
 }
 
 function MotionGridFull({
@@ -132,8 +146,7 @@ function MotionGridFull({
     promo: !hidden.includes("promo") && (
       <PromoBanner
         eyebrow={text.promoEyebrow ?? "Limited drop live"}
-        title={text.promoTitle ?? "Only available for a few more hours"}
-        countdown="02:18:47"
+        storeId={storeId}
         accent="#c9a3ff"
         cardBg="rgba(156,77,255,0.08)"
         textColor="#fff"
@@ -194,7 +207,12 @@ function MotionGridFull({
           />
         </div>
 
-        {orderedBlocks(editing, blocks)}
+        <LayoutBlocks
+          editing={editing}
+          blocks={blocks}
+          storeId={storeId}
+          bg={themeBackground("motion")}
+        />
       </div>
     </div>
   );
@@ -253,7 +271,7 @@ function ImmersiveBannerFull({
     promo: !hidden.includes("promo") && (
       <PromoBanner
         eyebrow={text.promoEyebrow ?? "New collection"}
-        title={text.promoTitle ?? "Soft layers — for every season, every day"}
+        storeId={storeId}
         cta="Explore"
         accent="#7a6450"
         cardBg="rgba(166,124,82,0.08)"
@@ -317,7 +335,12 @@ function ImmersiveBannerFull({
           />
         </div>
 
-        {orderedBlocks(editing, blocks)}
+        <LayoutBlocks
+          editing={editing}
+          blocks={blocks}
+          storeId={storeId}
+          bg={themeBackground("banner")}
+        />
       </div>
     </div>
   );
@@ -371,7 +394,7 @@ function GalleryEditFull({
     promo: !hidden.includes("promo") && (
       <PromoBanner
         eyebrow={text.promoEyebrow ?? "New arrivals, quietly"}
-        title={text.promoTitle ?? "This week's edit is now viewable"}
+        storeId={storeId}
         cta="View the edit"
         accent="#c9a227"
         accentTextColor="#0c0b0a"
@@ -434,7 +457,12 @@ function GalleryEditFull({
           />
         </div>
 
-        {orderedBlocks(editing, blocks)}
+        <LayoutBlocks
+          editing={editing}
+          blocks={blocks}
+          storeId={storeId}
+          bg={themeBackground("atelier")}
+        />
       </div>
     </div>
   );
@@ -488,7 +516,7 @@ function NeonTerminalFull({
     promo: !hidden.includes("promo") && (
       <PromoBanner
         eyebrow={text.promoEyebrow ?? "System update"}
-        title={text.promoTitle ?? "New drop online — sync inventory to view"}
+        storeId={storeId}
         cta="Explore now"
         accent="#2dd4ff"
         accentTextColor="#05070a"
@@ -549,7 +577,12 @@ function NeonTerminalFull({
           />
         </div>
 
-        {orderedBlocks(editing, blocks)}
+        <LayoutBlocks
+          editing={editing}
+          blocks={blocks}
+          storeId={storeId}
+          bg={themeBackground("circuit")}
+        />
       </div>
     </div>
   );
@@ -603,7 +636,7 @@ function VerdantNoirFull({
     promo: !hidden.includes("promo") && (
       <PromoBanner
         eyebrow={text.promoEyebrow ?? "New season"}
-        title={text.promoTitle ?? "Rooted pieces, built to outlast a trend"}
+        storeId={storeId}
         cta="Explore"
         accent="#3fae63"
         cardBg="rgba(63,174,99,0.08)"
@@ -664,7 +697,12 @@ function VerdantNoirFull({
           />
         </div>
 
-        {orderedBlocks(editing, blocks)}
+        <LayoutBlocks
+          editing={editing}
+          blocks={blocks}
+          storeId={storeId}
+          bg={themeBackground("verdant")}
+        />
       </div>
     </div>
   );
@@ -718,7 +756,7 @@ function MonochromeFull({
     promo: !hidden.includes("promo") && (
       <PromoBanner
         eyebrow={text.promoEyebrow ?? "New arrivals"}
-        title={text.promoTitle ?? "Black and white. Nothing to hide behind."}
+        storeId={storeId}
         cta="Shop now"
         accent="#111111"
         cardBg="rgba(17,17,17,0.04)"
@@ -782,7 +820,12 @@ function MonochromeFull({
           />
         </div>
 
-        {orderedBlocks(editing, blocks)}
+        <LayoutBlocks
+          editing={editing}
+          blocks={blocks}
+          storeId={storeId}
+          bg={themeBackground("monochrome")}
+        />
       </div>
     </div>
   );
@@ -836,7 +879,7 @@ function GildedFull({
     promo: !hidden.includes("promo") && (
       <PromoBanner
         eyebrow={text.promoEyebrow ?? "By invitation"}
-        title={text.promoTitle ?? "The gilded edit — available for a short while"}
+        storeId={storeId}
         cta="Enter"
         accent="#d4af37"
         cardBg="rgba(212,175,55,0.08)"
@@ -898,7 +941,12 @@ function GildedFull({
           />
         </div>
 
-        {orderedBlocks(editing, blocks)}
+        <LayoutBlocks
+          editing={editing}
+          blocks={blocks}
+          storeId={storeId}
+          bg={themeBackground("gilded")}
+        />
       </div>
     </div>
   );
@@ -952,7 +1000,7 @@ function ObsidianFull({
     promo: !hidden.includes("promo") && (
       <PromoBanner
         eyebrow={text.promoEyebrow ?? "Almost nothing left"}
-        title={text.promoTitle ?? "The whole drop, one shade of black"}
+        storeId={storeId}
         cta="See it"
         accent="#6b6b6b"
         cardBg="rgba(255,255,255,0.04)"
@@ -1013,7 +1061,12 @@ function ObsidianFull({
           />
         </div>
 
-        {orderedBlocks(editing, blocks)}
+        <LayoutBlocks
+          editing={editing}
+          blocks={blocks}
+          storeId={storeId}
+          bg={themeBackground("obsidian")}
+        />
       </div>
     </div>
   );
@@ -1151,6 +1204,7 @@ export function PublicStorefront({ storeId }: { storeId: string }) {
     columns: state.columns,
     onColumnsChange: noop,
     onTileTapBlocked: noop,
+    stickyBottom: state.stickyBottom,
   };
 
   // The theme's own background, not a color invented for this wrapper — same
@@ -1339,6 +1393,11 @@ export function ThemePreviewSheet({
   const historyLengthRef = useRef(history.length);
   historyLengthRef.current = history.length;
   const [confirmLeave, setConfirmLeave] = useState<null | "close" | "select">(null);
+  // Set while Save waits on "stick the bottom sections to the page?".
+  // Carries the save's own continuation (close / use theme) through the
+  // question.
+  const [stickPrompt, setStickPrompt] = useState<null | { then?: () => void }>(null);
+  const liveDrop = useStoreLiveDrop(storeId);
 
   // Text commits on blur, and on iOS tapping a button does not reliably blur
   // the field — so the last thing typed may not have reached state yet.
@@ -1378,8 +1437,26 @@ export function ThemePreviewSheet({
     afterCommittingFocusedField(() => runSave(then));
   }
 
-  function runSave(then?: () => void) {
-    const snapshot = stateRef.current;
+  // `stick` is the seller's answer to the stick-to-page question. Undefined
+  // means "not asked yet": when the layout has anything below the grid, the
+  // save pauses on that question first (stickPrompt), and the answer comes
+  // back in here as part of the same save, so it's one write rather than two.
+  function runSave(then?: () => void, stick?: boolean) {
+    if (
+      stick === undefined &&
+      blocksBelowGrid(stateRef.current.layoutId, stateRef.current.hiddenBlocks, liveDrop !== null)
+        .length > 0
+    ) {
+      setStickPrompt({ then });
+      return;
+    }
+    const snapshot =
+      stick === undefined ? stateRef.current : { ...stateRef.current, stickyBottom: stick };
+    if (snapshot !== stateRef.current) {
+      // Not an undo step: it's part of saving, and history is cleared on
+      // success anyway.
+      setEditState((es) => ({ ...es, current: snapshot }));
+    }
     // A photo whose upload failed stays on screen as its local blob: preview.
     // Saving that would write a url that only ever existed in this tab, and
     // the public storefront would show a broken image for good.
@@ -1538,6 +1615,7 @@ export function ThemePreviewSheet({
           2500,
         );
       },
+      stickyBottom: state.stickyBottom,
     }),
     [mode, state, flashHint, savedLoading],
   );
@@ -1721,6 +1799,57 @@ export function ThemePreviewSheet({
           )}
         </div>
       </div>
+
+      {stickPrompt && (
+        <div
+          className="fixed inset-0 z-[60] flex items-end justify-center bg-black/50 px-4 pb-8 animate-in fade-in duration-200 sm:items-center"
+          // Backdrop = not now: the save is abandoned, and the seller stays
+          // in the editor with nothing lost.
+          onClick={() => setStickPrompt(null)}
+        >
+          <div
+            role="alertdialog"
+            aria-labelledby="theme-stick-title"
+            className="w-full max-w-sm rounded-2xl bg-neutral-900 p-5 text-white shadow-2xl ring-1 ring-white/10 animate-in slide-in-from-bottom-4 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p id="theme-stick-title" className="text-[17px] font-semibold">
+              Stick the bottom sections to the page?
+            </p>
+            <p className="mt-1.5 text-[14px] leading-snug text-white/60">
+              Your{" "}
+              {listJoin(
+                blocksBelowGrid(state.layoutId, state.hiddenBlocks, liveDrop !== null).map(
+                  (b) => BLOCK_NOUNS[b],
+                ),
+              )}{" "}
+              stay on screen while your {state.collectionsMode} scroll under them. Good for stores
+              with a lot of items. You can change it any time from the theme card.
+            </p>
+            <div className="mt-5 flex flex-col gap-2">
+              {[true, false].map((stick) => (
+                <button
+                  key={String(stick)}
+                  type="button"
+                  onClick={() => {
+                    const then = stickPrompt.then;
+                    setStickPrompt(null);
+                    runSave(then, stick);
+                  }}
+                  className={`h-12 rounded-xl text-[15px] font-semibold ${
+                    stick ? "bg-white text-neutral-900" : "bg-white/10 text-white"
+                  }`}
+                >
+                  {stick ? "Stick them" : "Keep them at the end"}
+                  {state.stickyBottom === stick && (
+                    <span className="ml-1.5 font-normal opacity-60">(current)</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {confirmLeave && (
         <div

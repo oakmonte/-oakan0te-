@@ -1240,6 +1240,7 @@ export type Database = {
           logo_image_url: string | null
           logo_mode: string
           slideshow_image_urls: string[]
+          sticky_bottom: boolean
           store_id: string
           text: Json
           text_fonts: Json
@@ -1255,6 +1256,7 @@ export type Database = {
           logo_image_url?: string | null
           logo_mode?: string
           slideshow_image_urls?: string[]
+          sticky_bottom?: boolean
           store_id: string
           text?: Json
           text_fonts?: Json
@@ -1270,6 +1272,7 @@ export type Database = {
           logo_image_url?: string | null
           logo_mode?: string
           slideshow_image_urls?: string[]
+          sticky_bottom?: boolean
           store_id?: string
           text?: Json
           text_fonts?: Json
@@ -1441,6 +1444,52 @@ export type Database = {
             columns: ["theme_id"]
             isOneToOne: false
             referencedRelation: "store_themes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_messages: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          sender: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          sender?: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          sender?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_messages_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profile_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_messages_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_messages_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
             referencedColumns: ["id"]
           },
         ]

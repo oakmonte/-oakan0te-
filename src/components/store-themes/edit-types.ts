@@ -7,7 +7,7 @@ export type RemovableBlockId = "stats" | "promo" | "footer";
 // back once a block is removed.
 export const REMOVABLE_BLOCK_LABELS: Record<RemovableBlockId, string> = {
   stats: "Follower count",
-  promo: "Promo banner",
+  promo: "Drop banner",
   footer: "Community",
 };
 
@@ -74,6 +74,12 @@ export type ThemeEditState = {
   // tileCrops above — see useThemeCustomization.ts's SavedThemeCustomization
   // comment for why persisting it is a follow-up, not wired here yet.
   columns: 1 | 2;
+  // Pin the blocks that sit below the collections/products grid (which ones
+  // depends on layoutId) to the bottom of the screen, so a large catalogue
+  // scrolls under them instead of burying them at the very end. Off by
+  // default: a store with a handful of items shouldn't have its grid
+  // covered. Persisted (store_theme_customizations.sticky_bottom).
+  stickyBottom: boolean;
 };
 
 export function createInitialEditState(): ThemeEditState {
@@ -87,23 +93,14 @@ export function createInitialEditState(): ThemeEditState {
     tileCrops: {},
     text: {},
     textFonts: {},
-    // Promo banner defaults OFF. Its copy is drop/launch-flavored on every
-    // theme ("Limited drop live", "New drop online", ...) -- there is no real
-    // drops feature behind it yet, so publishing it by default would announce
-    // a drop that doesn't exist. A seller who wants it can restore it from the
-    // editor's "Hidden sections" list; once a real scheduled-drops feature
-    // exists to drive this block, this default should be revisited.
-    //
-    // Known gap to resolve then, not now: `hiddenBlocks` is a flat, generic
-    // "seller removed this section" list, so a store that never touched it
-    // and one where a seller explicitly hid "promo" both persist identically
-    // (`hidden_blocks: ['promo']`). Whoever wires the drops feature to this
-    // block will need to tell those two cases apart before auto-showing it
-    // when a drop goes live -- that needs its own dedicated flag (or a
-    // {id, source} shape), not a special case bolted onto this array.
-    hiddenBlocks: ["promo"],
+    // Nothing hidden. The promo block is the DROP banner, and it hides
+    // itself whenever the store has no live or upcoming drop (PromoBanner
+    // via useStoreLiveDrop), so it never needs a default here. hiddenBlocks
+    // only ever means "the seller removed this".
+    hiddenBlocks: [],
     collectionsMode: "collections",
     columns: 2,
+    stickyBottom: false,
   };
 }
 
@@ -139,4 +136,5 @@ export type ThemeEditingProps = {
   columns: 1 | 2;
   onColumnsChange: (columns: 1 | 2) => void;
   onTileTapBlocked: () => void;
+  stickyBottom: boolean;
 };

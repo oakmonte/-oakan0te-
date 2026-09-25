@@ -1,9 +1,10 @@
-import { Fragment, useEffect, type ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { Check, Heart, Sparkles, Stars } from "lucide-react";
 import {
   CollectionsGrid,
   FooterTeaser,
   HeroSlideshow,
+  LayoutBlocks,
   PhoneHeader,
   PromoBanner,
   StatsRow,
@@ -22,7 +23,7 @@ import {
 import { readableTextColor } from "./colors";
 import { HERO_SLIDESHOW_IMAGES } from "./hero-placeholders";
 import type { ThemeEditingProps } from "./edit-types";
-import { LAYOUT_PRESETS, type ArrangeableBlockId } from "./layout-presets";
+import type { ArrangeableBlockId } from "./layout-presets";
 
 // Placeholder tile art is the same four marks for every spec theme on
 // purpose: these only ever show for a store with nothing listed yet, and the
@@ -102,15 +103,6 @@ function Decoration({ decor, accent }: { decor: HeroDecor; accent: string }) {
   }
 }
 
-function orderedSpecBlocks(
-  editing: ThemeEditingProps | undefined,
-  blocks: Partial<Record<ArrangeableBlockId, ReactNode>>,
-) {
-  const layoutId = editing?.layoutId ?? "hero-led";
-  const order = LAYOUT_PRESETS.find((p) => p.id === layoutId)?.order ?? LAYOUT_PRESETS[0].order;
-  return order.map((id) => <Fragment key={id}>{blocks[id]}</Fragment>);
-}
-
 // Same contract as every hand-written *Full component: one optional `editing`
 // prop, and the four reorderable blocks built as a map rendered in the active
 // layout's order rather than a fixed sequence.
@@ -183,7 +175,7 @@ export function ThemeSpecFull({
     promo: !hidden.includes("promo") && (
       <PromoBanner
         eyebrow={text.promoEyebrow ?? spec.copy.promoEyebrow}
-        title={text.promoTitle ?? spec.copy.promoTitle}
+        storeId={storeId}
         cta={spec.copy.promoCta}
         accent={accentInk}
         accentTextColor={readableTextColor(accentInk)}
@@ -262,7 +254,7 @@ export function ThemeSpecFull({
           />
         </div>
 
-        {orderedSpecBlocks(editing, blocks)}
+        <LayoutBlocks editing={editing} blocks={blocks} storeId={storeId} bg={spec.bg} />
       </div>
     </div>
   );

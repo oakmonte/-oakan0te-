@@ -59,7 +59,7 @@ export function useThemeCustomization(themeId: ThemeId, storeIdOverride?: string
       const { data, error } = await supabase
         .from("store_theme_customizations")
         .select(
-          "layout_id, logo_mode, logo_image_url, slideshow_image_urls, text, text_fonts, hidden_blocks, collections_mode",
+          "layout_id, logo_mode, logo_image_url, slideshow_image_urls, text, text_fonts, hidden_blocks, collections_mode, sticky_bottom",
         )
         .eq("store_id", storeId)
         .eq("theme_slug", themeId)
@@ -81,6 +81,7 @@ export function useThemeCustomization(themeId: ThemeId, storeIdOverride?: string
               textFonts: (data.text_fonts ?? {}) as ThemeTextFonts,
               hiddenBlocks: (data.hidden_blocks ?? []) as RemovableBlockId[],
               collectionsMode: data.collections_mode as "collections" | "products",
+              stickyBottom: data.sticky_bottom,
             },
       );
       setLoading(false);
@@ -110,6 +111,7 @@ export function useThemeCustomization(themeId: ThemeId, storeIdOverride?: string
           text_fonts: state.textFonts,
           hidden_blocks: state.hiddenBlocks,
           collections_mode: state.collectionsMode,
+          sticky_bottom: state.stickyBottom,
         },
         { onConflict: "store_id,theme_slug" },
       );

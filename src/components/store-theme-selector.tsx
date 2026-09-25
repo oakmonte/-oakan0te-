@@ -9,6 +9,8 @@ import { ThemePreviewSheet } from "./store-themes/full-previews";
 import { useStoreTheme } from "./store-themes/useStoreTheme";
 import { readableTextColor } from "./store-themes/colors";
 import { searchThemes } from "./store-themes/theme-search";
+import { blocksBelowGrid, type LayoutId } from "./store-themes/layout-presets";
+import { useStoreLiveDrop } from "@/hooks/use-store-live-drop";
 
 // Written in the dashboard's --sd-* tokens like every other /store screen,
 // but always rendered in their LIGHT values: /store/theme is held light by
@@ -45,6 +47,8 @@ function ThemeCard({
   isSelected,
   onUse,
   onPreview,
+  sticky,
+  onStickyChange,
 }: {
   theme: Theme;
   /** Search keywords this theme matched, shown so the seller can see why it
@@ -53,11 +57,17 @@ function ThemeCard({
   isSelected: boolean;
   onUse: () => void;
   onPreview: (mode: "view" | "edit") => void;
+  /** This theme's stick-to-page setting, or null when its layout has nothing
+   * below the grid to stick, in which case there is no toggle at all. */
+  sticky: boolean | null;
+  onStickyChange: (next: boolean) => void;
 }) {
   return (
     <article
       className={`rounded-2xl border bg-sd-surface p-3 transition-colors duration-200 ${
-        isSelected ? "border-sd-line-strong" : "border-sd-line"
+        // sd-line is a 10% hairline and read as barely there around a card
+        // this size; the ink at 22% holds its edge without shouting.
+        isSelected ? "border-sd-ink" : "border-sd-ink/[0.22]"
       }`}
     >
       <button
@@ -80,7 +90,7 @@ function ThemeCard({
           </div>
           <span
             className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border transition-colors duration-200 ${
-              isSelected ? "border-transparent" : "border-sd-line text-transparent"
+              isSelected ? "border-transparent" : "border-sd-ink/30 text-transparent"
             }`}
             // The tick takes whichever of black/white reads on the accent. A
             // fixed white one vanished on the pale accents (Burgundy's
@@ -129,17 +139,43 @@ function ThemeCard({
             Preview
           </button>
         </div>
-        <button
-          type="button"
-          onClick={onUse}
-          disabled={isSelected}
-          className={`oak-tap mt-2 flex h-11 w-full items-center justify-center gap-1.5 rounded-full text-[14px] font-semibold oak-motion-control active:scale-[0.98] ${
-            isSelected ? "border border-sd-line text-sd-ink-muted" : "bg-sd-ink text-sd-bg"
-          }`}
-        >
-          {isSelected ? "Selected" : "Use this theme"}
-          {!isSelected && <ChevronRight size={16} />}
-        </button>
+        <div className="mt-2 flex gap-2">
+          <button
+            type="button"
+            onClick={onUse}
+            disabled={isSelected}
+            className={`oak-tap flex h-11 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-full text-[14px] font-semibold oak-motion-control active:scale-[0.98] ${
+              isSelected ? "border border-sd-ink/[0.22] text-sd-ink-muted" : "bg-sd-ink text-sd-bg"
+            }`}
+          >
+            {isSelected ? "Selected" : "Use this theme"}
+            {!isSelected && <ChevronRight size={16} />}
+          </button>
+          {sticky !== null && (
+            <button
+              type="button"
+              role="switch"
+              aria-checked={sticky}
+              aria-label="Stick bottom sections to the page"
+              onClick={() => onStickyChange(!sticky)}
+              className="oak-tap flex h-11 shrink-0 items-center gap-2 rounded-full bg-sd-soft pl-3.5 pr-2 text-[13px] font-medium text-sd-ink"
+            >
+              Stick bottom
+              <span
+                aria-hidden="true"
+                className={`relative h-6 w-10 rounded-full transition-colors duration-200 ${
+                  sticky ? "bg-sd-ink" : "bg-sd-ink/20"
+                }`}
+              >
+                <span
+                  className={`absolute top-0.5 h-5 w-5 rounded-full bg-sd-surface shadow-sm transition-transform duration-200 ${
+                    sticky ? "translate-x-[18px]" : "translate-x-0.5"
+                  }`}
+                />
+              </span>
+            </button>
+          )}
+        </div>
       </div>
     </article>
   );
@@ -157,6 +193,14 @@ export function StoreThemeSelector() {
   // used only to decide whether "Use this theme" should ask first, not to
   // render anything (see PublicStorefront for the render-time read).
   const [customizedThemes, setCustomizedThemes] = useState<Set<ThemeId>>(new Set());
+  // Per theme: what decides the card's stick-to-page toggle. Kept apart from
+  // customizedThemes on purpose, so a row the toggle creates doesn't count as
+  // "customized" and skip the placeholder-copy warning in handleUseTheme.
+  const [stickRows, setStickRows] = useState<
+    Map<ThemeId, { layoutId: LayoutId; hiddenBlocks: string[]; sticky: boolean }>
+  >(new Map());
+  const [rowsVersion, setRowsVersion] = useState(0);
+  const liveDrop = useStoreLiveDrop(storeId);
   const [confirmUse, setConfirmUse] = useState<ThemeId | null>(null);
   // Raw stores.theme_id, kept for the checklist flow below. This predates
   // useStoreTheme() exposing `pickedThemeId` and now carries the same
@@ -224,17 +268,71 @@ export function StoreThemeSelector() {
     let cancelled = false;
     supabase
       .from("store_theme_customizations")
-      .select("theme_slug")
+      .select("theme_slug, layout_id, hidden_blocks, sticky_bottom")
       .eq("store_id", storeId)
       .then(({ data, error }) => {
         if (cancelled) return;
         if (error) console.error("StoreThemeSelector: failed to load customizations", error);
         setCustomizedThemes(new Set((data ?? []).map((r) => r.theme_slug as ThemeId)));
+        setStickRows(
+          new Map(
+            (data ?? []).map((r) => [
+              r.theme_slug as ThemeId,
+              {
+                layoutId: r.layout_id as LayoutId,
+                hiddenBlocks: r.hidden_blocks,
+                sticky: r.sticky_bottom,
+              },
+            ]),
+          ),
+        );
       });
     return () => {
       cancelled = true;
     };
-  }, [storeId]);
+    // rowsVersion: re-read after the editor closes, since a save there can
+    // change the layout (and so whether the toggle applies) or the setting.
+  }, [storeId, rowsVersion]);
+
+  // A theme's stick-to-page state for its card, or null when its layout has
+  // nothing below the grid (no toggle then). A theme with no saved row reads
+  // as the editor's starting state, which is also what the column defaults
+  // give a row created by the toggle below.
+  function stickyFor(themeId: ThemeId): boolean | null {
+    const row = stickRows.get(themeId) ?? {
+      layoutId: "editorial",
+      hiddenBlocks: [],
+      sticky: false,
+    };
+    return blocksBelowGrid(row.layoutId, row.hiddenBlocks, liveDrop !== null).length > 0
+      ? row.sticky
+      : null;
+  }
+
+  // Writes only sticky_bottom: on an existing row the upsert updates just
+  // that column, and a theme never customized gets a row of defaults plus
+  // the setting. Optimistic, rolled back if the write fails.
+  async function setSticky(themeId: ThemeId, next: boolean) {
+    if (!storeId) return;
+    const prev = stickRows.get(themeId);
+    const base = prev ?? { layoutId: "editorial" as LayoutId, hiddenBlocks: [], sticky: false };
+    setStickRows((m) => new Map(m).set(themeId, { ...base, sticky: next }));
+    const { error } = await supabase
+      .from("store_theme_customizations")
+      .upsert(
+        { store_id: storeId, theme_slug: themeId, sticky_bottom: next },
+        { onConflict: "store_id,theme_slug" },
+      );
+    if (error) {
+      console.error("StoreThemeSelector: failed to save stick-to-page", error);
+      setStickRows((m) => {
+        const copy = new Map(m);
+        if (prev) copy.set(themeId, prev);
+        else copy.delete(themeId);
+        return copy;
+      });
+    }
+  }
 
   function openPreview(themeId: ThemeId, mode: "view" | "edit") {
     setPreviewing(themeId);
@@ -324,6 +422,8 @@ export function StoreThemeSelector() {
                 isSelected
                 onUse={() => handleUseTheme(picked.theme.id)}
                 onPreview={(mode) => openPreview(picked.theme.id, mode)}
+                sticky={stickyFor(picked.theme.id)}
+                onStickyChange={(next) => void setSticky(picked.theme.id, next)}
               />
             </div>
           </div>
@@ -338,6 +438,8 @@ export function StoreThemeSelector() {
               isSelected={pickedThemeId === theme.id}
               onUse={() => handleUseTheme(theme.id)}
               onPreview={(mode) => openPreview(theme.id, mode)}
+              sticky={stickyFor(theme.id)}
+              onStickyChange={(next) => void setSticky(theme.id, next)}
             />
           ))}
         </div>
@@ -371,11 +473,15 @@ export function StoreThemeSelector() {
           theme={previewTheme}
           isSelected={pickedThemeId === previewTheme.id}
           initialMode={previewMode}
-          onClose={() => setPreviewing(null)}
+          onClose={() => {
+            setPreviewing(null);
+            setRowsVersion((v) => v + 1);
+          }}
           onSelect={() => {
             void selectTheme(previewTheme.id);
             setThemeIdSet(true);
             setPreviewing(null);
+            setRowsVersion((v) => v + 1);
           }}
         />
       )}

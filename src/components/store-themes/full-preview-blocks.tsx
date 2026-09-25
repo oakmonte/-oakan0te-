@@ -1,4 +1,5 @@
 import {
+  Fragment,
   useEffect,
   useRef,
   useState,
@@ -32,6 +33,9 @@ import { useThemePreviewCatalog, type PreviewTile, type TilePhoto } from "./useT
 import { readableTextColor } from "./colors";
 import { alpha, isDark } from "./theme-spec";
 import { GLASS_RIM, glassClear } from "@/lib/liquid-glass";
+import { useStoreLiveDrop } from "@/hooks/use-store-live-drop";
+import { dropCountdown, formatCountdown } from "@/lib/drops";
+import { LAYOUT_PRESETS, blocksBelowGrid, type ArrangeableBlockId } from "./layout-presets";
 
 function clamp(v: number, min: number, max: number) {
   return Math.min(max, Math.max(min, v));
@@ -1273,21 +1277,26 @@ export function CollectionsGrid({
   );
 }
 
+// The DROP banner. It renders only while the store has a real drop that
+// hasn't ended (useStoreLiveDrop). With no drop there is no banner at all,
+// in the editor as well as on the storefront, because an announcement of
+// nothing is exactly the empty element this block used to be. The title is
+// the drop's own, set where the seller creates the drop (/store/drops). The
+// eyebrow stays the theme's editable copy, and the countdown is real,
+// counting to the start and then to the end.
 export function PromoBanner({
+  storeId,
   eyebrow,
-  title,
   cta,
-  countdown,
   accent,
   accentTextColor,
   cardBg,
   textColor,
   editing,
 }: {
+  storeId: string | null;
   eyebrow: string;
-  title: string;
   cta?: string;
-  countdown?: string;
   accent: string;
   /** Defaults to whichever of black/white actually reads on `accent` — a
    * fixed #0a0a0a default put black text on Monochrome's #111 button. */
@@ -1296,28 +1305,19 @@ export function PromoBanner({
   textColor: string;
   editing?: ThemeEditingProps;
 }) {
-  const [showCountdownHint, setShowCountdownHint] = useState(false);
-  const hintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const drop = useStoreLiveDrop(storeId);
   const ctaText = accentTextColor ?? readableTextColor(accent);
+  const [now, setNow] = useState(() => new Date());
+  const countdown = drop ? dropCountdown(drop, now) : null;
+  const ticking = countdown !== null;
 
   useEffect(() => {
-    return () => {
-      if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
-    };
-  }, []);
+    if (!ticking) return;
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, [ticking]);
 
-  function handleCountdownTap() {
-    setShowCountdownHint(true);
-    if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
-    hintTimerRef.current = setTimeout(() => setShowCountdownHint(false), 2500);
-  }
-
-  // The countdown is a static placeholder for the live-drop timer that isn't
-  // built yet (see the store-themes skill). It stays in the editor, where
-  // the tap explains that — but a shopper must never see a frozen "02:18:47"
-  // presented as real urgency, the same objection that removed the fake star
-  // rating. On the public storefront the block falls back to its CTA.
-  const showCountdown = countdown != null && editing?.isEditing === true;
+  if (!drop) return null;
 
   return (
     <div
@@ -1340,25 +1340,19 @@ export function PromoBanner({
             className="text-[11px] font-semibold uppercase tracking-[0.14em]"
             style={{ color: accent }}
           />
-          <ThemeText
-            editing={editing}
-            field="promoTitle"
-            defaultValue={title}
-            multiline
-            as="p"
-            className="mt-1 text-[14px] font-semibold leading-tight"
-            style={{ color: textColor }}
-          />
+          <p className="mt-1 text-[14px] font-semibold leading-tight" style={{ color: textColor }}>
+            {drop.title}
+          </p>
         </div>
-        {showCountdown ? (
-          <button
-            type="button"
-            onClick={handleCountdownTap}
-            className="-my-2 shrink-0 px-2 py-3 text-[13px] font-semibold tabular-nums"
-            style={{ color: accent }}
-          >
-            {countdown}
-          </button>
+        {countdown ? (
+          <div className="shrink-0 text-right" style={{ color: accent }}>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] opacity-80">
+              {countdown.label}
+            </p>
+            <p className="text-[13px] font-semibold tabular-nums">
+              {formatCountdown(countdown.msLeft)}
+            </p>
+          </div>
         ) : (
           <span
             className="shrink-0 rounded-full px-3 py-2 text-[11px] font-semibold whitespace-nowrap"
@@ -1368,12 +1362,6 @@ export function PromoBanner({
           </span>
         )}
       </div>
-
-      {showCountdownHint && (
-        <div className="absolute right-2 top-full z-20 mt-2 w-44 rounded-lg bg-black/90 px-2.5 py-2 text-[12px] leading-5 text-white shadow-lg">
-          A live drop timer will be available at full launch.
-        </div>
-      )}
     </div>
   );
 }
@@ -1441,5 +1429,58 @@ export function FooterTeaser({
         <ChevronRight size={14} style={{ color: accent }} />
       </div>
     </div>
+  );
+}
+
+/** The four arrangeable blocks in the active layout's order. Shared by the
+ *  hand-written themes and ThemeSpecFull, so all 50 behave the same.
+ *
+ *  With stickyBottom on, the blocks that sit below the grid (blocksBelowGrid)
+ *  go into one `position: sticky; bottom: 0` strip, so they stay on screen
+ *  while the grid scrolls under them. A big catalogue then doesn't bury them
+ *  at the very end, and a small store that leaves it off isn't forced into
+ *  it. The strip takes the theme's own background plus a short fade above
+ *  it, so tiles passing under it don't show through. It pins against the
+ *  nearest scroll container: the storefront sheet on a profile, or the
+ *  phone frame in the editor. Nothing between the strip and that container
+ *  may be overflow:hidden/auto, or it stops sticking (that is why the
+ *  sideways-drag guard uses overflow-x: clip, which is not a scroll
+ *  container). */
+export function LayoutBlocks({
+  editing,
+  blocks,
+  storeId,
+  bg,
+}: {
+  editing: ThemeEditingProps | undefined;
+  blocks: Partial<Record<ArrangeableBlockId, ReactNode>>;
+  storeId: string | null;
+  bg: string;
+}) {
+  const drop = useStoreLiveDrop(storeId);
+  const layoutId = editing?.layoutId ?? "hero-led";
+  const order = LAYOUT_PRESETS.find((p) => p.id === layoutId)?.order ?? LAYOUT_PRESETS[0].order;
+  const render = (ids: ArrangeableBlockId[]) =>
+    ids.map((id) => <Fragment key={id}>{blocks[id]}</Fragment>);
+
+  const below = blocksBelowGrid(layoutId, editing?.hiddenBlocks ?? [], drop !== null);
+  if (!editing?.stickyBottom || below.length === 0) return <>{render(order)}</>;
+
+  const above = order.filter((id) => !below.includes(id));
+  return (
+    <>
+      {render(above)}
+      <div
+        className="sticky bottom-0 z-20 pb-[max(env(safe-area-inset-bottom),0.75rem)]"
+        style={{ background: bg }}
+      >
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 -top-6 h-6"
+          style={{ background: `linear-gradient(to top, ${bg}, ${alpha(bg, 0)})` }}
+        />
+        {render(below)}
+      </div>
+    </>
   );
 }
