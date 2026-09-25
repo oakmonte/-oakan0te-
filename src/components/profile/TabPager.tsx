@@ -38,6 +38,7 @@ export function TabPager({
   onIndexChange,
   x: externalX,
   onPageWidth,
+  minHeight,
   children,
 }: {
   index: number;
@@ -47,6 +48,12 @@ export function TabPager({
    *  wants to animate its own chrome in step with the drag. */
   x?: MotionValue<number>;
   onPageWidth?: (width: number) => void;
+  /** CSS min-height for the swipeable viewport. Without it, the drag surface
+   *  is exactly as tall as the active page's own content -- fine for a posts
+   *  grid that's always tall, but a page with a short or empty list leaves
+   *  most of the screen below it un-swipeable. Paired with the measured
+   *  `height` below, whichever is larger wins. */
+  minHeight?: string | number;
   /** Exactly `count` nodes, one per page, in tab order. */
   children: ReactNode[];
 }) {
@@ -146,7 +153,12 @@ export function TabPager({
   }
 
   return (
-    <div ref={viewportRef} className="overflow-hidden" style={{ height }} onScroll={handleScroll}>
+    <div
+      ref={viewportRef}
+      className="overflow-hidden"
+      style={{ height, minHeight }}
+      onScroll={handleScroll}
+    >
       <motion.div
         className="flex items-start"
         style={{ x }}

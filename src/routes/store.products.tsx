@@ -65,6 +65,13 @@ function StoreProducts() {
         onIndexChange={(next) => setTopTab(TOP_TABS[next])}
         x={pagerX}
         onPageWidth={setPageWidth}
+        // Without this, the drag surface is only as tall as the active tab's
+        // own content -- an empty or single-item list leaves most of the
+        // screen un-swipeable below it. Roughly the header (56px) + this
+        // page's own top padding and tab strip (~68px) + its bottom padding
+        // (96px) subtracted from the viewport, so the pager reaches close to
+        // the screen edge on any tab regardless of how little it holds.
+        minHeight="calc(100dvh - 220px)"
       >
         {[
           <div key="Products" className="px-4 pt-5">
