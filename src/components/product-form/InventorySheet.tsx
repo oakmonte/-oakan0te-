@@ -3,6 +3,7 @@ import { X, ChevronLeft, ChevronRight, Check, Plus } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
+import { useKeyboardInset } from "@/hooks/use-keyboard-inset";
 import { Code128Barcode } from "./Code128Barcode";
 import { BarcodesSheet } from "./BarcodesSheet";
 import type { BarcodeEntry } from "@/lib/barcode-types";
@@ -72,6 +73,11 @@ export function InventorySheet({
   hideIdentifiers?: boolean;
 }) {
   useLockedViewport();
+  // See PricingSheet's identical comment -- useLockedViewport alone leaves
+  // the sticky Save button (and the SKU/quantity fields above it) covered
+  // by the keyboard instead of reachable above it.
+  const [fieldFocused, setFieldFocused] = useState(false);
+  const keyboardInset = useKeyboardInset(fieldFocused);
 
   const [continueSellingOutOfStock, setContinueSellingOutOfStock] = useState(
     initial.continueSellingOutOfStock,
@@ -148,7 +154,10 @@ export function InventorySheet({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-white flex flex-col min-h-dvh animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]">
+    <div
+      className="fixed inset-0 z-50 bg-white flex flex-col min-h-dvh animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
+      style={{ paddingBottom: keyboardInset }}
+    >
       <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 pt-4 pb-3 flex flex-col items-center shrink-0 relative">
         <button
           // Commits, doesn't discard: BarcodesSheet and "Edit locations" both
@@ -193,6 +202,8 @@ export function InventorySheet({
                   <input
                     value={sku}
                     onChange={(e) => setSku(e.target.value)}
+                    onFocus={() => setFieldFocused(true)}
+                    onBlur={() => setFieldFocused(false)}
                     placeholder="Optional"
                     className="text-base border border-gray-200 rounded-lg px-2 py-2 outline-none transition-colors duration-150 focus:border-gray-400"
                   />
@@ -277,7 +288,11 @@ export function InventorySheet({
                       onChange={(e) =>
                         setQuantity(loc.id, e.target.value === "" ? 0 : Number(e.target.value))
                       }
-                      onFocus={(e) => e.target.select()}
+                      onFocus={(e) => {
+                        e.target.select();
+                        setFieldFocused(true);
+                      }}
+                      onBlur={() => setFieldFocused(false)}
                       aria-label={`${loc.name} quantity`}
                       className="w-12 text-center text-[15px] font-medium bg-gray-100 rounded-full py-1 outline-none transition-shadow duration-150 focus:ring-1 focus:ring-gray-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />

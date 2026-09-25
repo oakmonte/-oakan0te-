@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { X } from "lucide-react";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
+import { useKeyboardInset } from "@/hooks/use-keyboard-inset";
 import type { WeightEstimate } from "@/lib/weight-estimate";
 
 /** Per-SKU shipping weight editor -- same split as InventorySheet (a
@@ -33,6 +34,10 @@ export function WeightSheet({
   onClose: () => void;
 }) {
   useLockedViewport();
+  // See PricingSheet's identical comment -- keeps the sticky Save button
+  // reachable above the keyboard instead of covered by it.
+  const [fieldFocused, setFieldFocused] = useState(false);
+  const keyboardInset = useKeyboardInset(fieldFocused);
   const [value, setValue] = useState(initial != null ? String(initial) : "");
   const [blocked, setBlocked] = useState<string | null>(null);
   const isEstimate = estimate.grams != null && value === String(estimate.grams);
@@ -52,7 +57,10 @@ export function WeightSheet({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-white flex flex-col min-h-dvh animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]">
+    <div
+      className="fixed inset-0 z-50 bg-white flex flex-col min-h-dvh animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
+      style={{ paddingBottom: keyboardInset }}
+    >
       <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 pt-4 pb-3 flex flex-col items-center shrink-0 relative">
         <button
           onClick={onClose}
@@ -76,6 +84,8 @@ export function WeightSheet({
             min={0}
             value={value}
             onChange={(e) => setValue(e.target.value)}
+            onFocus={() => setFieldFocused(true)}
+            onBlur={() => setFieldFocused(false)}
             placeholder="0"
             className="flex-1 text-2xl font-semibold text-gray-900 outline-none min-w-0"
           />
