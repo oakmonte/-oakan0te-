@@ -24,6 +24,7 @@ import { setLastNonCreateRoute } from "../lib/last-visited-route";
 import { attachNavStack } from "@/lib/nav-stack";
 import { EdgeSwipeBack } from "@/components/EdgeSwipeBack";
 import { isHeldLight, surfaceForPathname } from "@/lib/surface";
+import { useDarkOverlayActive } from "@/lib/dark-overlay";
 
 function NotFoundComponent() {
   return (
@@ -220,6 +221,9 @@ function RootShell({ children }: { children: ReactNode }) {
   // A few dashboard screens are held in the light scheme until the shared
   // product-form components are on the tokens -- see isHeldLight().
   const heldLight = surface === "store" && isHeldLight(pathname);
+  // A black full-screen overlay over a light screen (the Explore feed on
+  // /home) — status strip and scroll edge go black with it. See dark-overlay.ts.
+  const darkOverlay = useDarkOverlayActive();
   return (
     // Drives the dashboard's light/dark tokens, the scroll-bounce edge colour
     // (--oak-edge) and `color-scheme`, all in styles.css. See lib/surface.ts.
@@ -227,10 +231,11 @@ function RootShell({ children }: { children: ReactNode }) {
       lang="en"
       data-surface={surface ?? undefined}
       data-scheme={heldLight ? "light" : undefined}
+      data-overlay={surface === "social" && darkOverlay ? "dark" : undefined}
     >
       <head>
-        {/* The dashboard is the only surface with both a light and a dark
-            theme, so it is the only one needing a theme-color per scheme -- and
+        {/* The dashboard (and, below, the social surface) have both a light
+            and a dark theme, so they need a theme-color per scheme -- and
             a `media` pair cannot be expressed through head(), because TanStack
             dedupes <meta> by `name` alone (media is not part of the key) and
             collapses the two into whichever came last. Hence literal JSX, here,
@@ -255,6 +260,19 @@ function RootShell({ children }: { children: ReactNode }) {
               media="(prefers-color-scheme: dark)"
               content={heldLight ? "#ffffff" : "#000000"}
             />
+          </>
+        )}
+        {/* /home and /messages follow the phone too — see the "social" block
+            in styles.css. Their own head() declares no theme-color, so this
+            pair is the first match and wins over the root's #000000. */}
+        {surface === "social" && (
+          <>
+            <meta
+              name="theme-color"
+              media="(prefers-color-scheme: light)"
+              content={darkOverlay ? "#000000" : "#ffffff"}
+            />
+            <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#000000" />
           </>
         )}
         <HeadContent />
@@ -314,6 +332,9 @@ function RootComponent() {
   // rather than push on top of it. Mounted at the root because the mirror has
   // to see every navigation, including ones no screen is listening for.
   useEffect(() => attachNavStack(router.history), [router]);
+  // Re-read theme-color when a black overlay opens or closes over a light
+  // screen, too — see the effect below.
+  const darkOverlay = useDarkOverlayActive();
 
   // The scroll-bounce/toolbar edge colour used to be set from here, by writing
   // document.documentElement.style.backgroundColor per route. It now lives in
@@ -371,7 +392,7 @@ function RootComponent() {
       parent.removeChild(meta);
       parent.insertBefore(meta, next);
     }
-  }, [pathname]);
+  }, [pathname, darkOverlay]);
 
   return (
     <QueryClientProvider client={queryClient}>

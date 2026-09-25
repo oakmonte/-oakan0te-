@@ -580,7 +580,7 @@ function AfterShotIndexPage() {
           </div>
 
           <div
-            className="oak-motion-enter absolute right-4 flex flex-col items-end gap-5 z-20"
+            className="oak-motion-enter absolute right-4 flex flex-col items-end gap-5 z-20 oak-on-media"
             style={{ top: "calc(env(safe-area-inset-top) + 76px)" }}
           >
             {media.type === "video" && (

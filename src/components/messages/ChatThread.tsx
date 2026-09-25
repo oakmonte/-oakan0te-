@@ -147,7 +147,7 @@ export function ChatThread({
           {typing && (
             <div className="flex items-center gap-2 pt-3">
               <ConversationAvatar conversation={conversation} size={26} />
-              <span className="rounded-[18px] bg-white/10 px-3.5 py-3 text-chat-muted">
+              <span className="rounded-[18px] bg-chat-text/10 px-3.5 py-3 text-chat-muted">
                 <TypingDots />
               </span>
             </div>

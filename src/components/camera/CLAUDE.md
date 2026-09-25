@@ -11,8 +11,10 @@ shape (see `src/lib/studio/README.md`). It replaced the old single-clip `.edit.t
 - **Control surfaces are panels**, one per tool, following `CameraPanel.tsx` — match that shape
   (`FilterPanel`, `FlashPanel`, `RatioPanel`, `TimerPanel`, `LayoutPanel`, `aftershot/DrawPanel`,
   `aftershot/TextPanel`, `aftershot/CropPanel`).
-- Icons: the after-shot toolbar uses hand-rolled inline SVGs in `aftershot-icons.tsx`; the panels use
-  `lucide-react` for generic glyphs. Prefer `aftershot-icons.tsx` when an equivalent already exists.
+- Icons: the after-shot toolbar is `lucide-react` (`EDIT_TOOLS` in `create.after-shot.index.tsx`).
+  `aftershot-icons.tsx` holds hand-rolled SVGs only for glyphs lucide lacks (today just `TrimIcon`,
+  unused since the studio button became a clapperboard); they take lucide's props, so either kind
+  drops into the same tool list.
 - **Any route or panel with a text input calls `useLockedViewport()`**
   (`@/hooks/use-locked-viewport`) so the mobile keyboard overlays instead of pushing the page up.
 - The route→route media handoff is an in-memory module variable (`src/lib/capture-handoff.ts`), not

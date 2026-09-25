@@ -30,6 +30,11 @@ at a glance over white screens; `messages/glass.ts` `glassPanel` also flips the 
 bottom-anchored panel). Leave the backdrop filter alone — sharp blur plus high saturation is what
 makes it glass instead of frosted plastic.
 
+**`glassClear` is dark-tinted on purpose.** It carries white icons over the camera and photos, and a
+white-tinted version made them vanish over bright scenes (2026-09-24). Keep its tint dark and its
+backdrop `brightness(<1)`. White icons with no glass behind them at all (the camera tool column, the
+after-shot toolbar) go in a container with the `oak-on-media` class, which shadows their edges.
+
 ## The rim
 
 `GLASS_RIM` (`.oak-glass-rim` in `styles.css`) is a 1px ring cut from a gradient with a mask, so the

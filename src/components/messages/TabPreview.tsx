@@ -47,7 +47,7 @@ export function TabPreview({ tab }: { tab: "offers" | "orders" }) {
       </div>
 
       <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 px-8 text-center">
-        <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-chat-text">
+        <span className="flex h-11 w-11 items-center justify-center rounded-full bg-chat-text/10 text-chat-text">
           <Lock size={19} />
         </span>
         <p className="text-[15px] font-semibold text-chat-text">

@@ -1,7 +1,14 @@
 import { createFileRoute, useNavigate, useParams, useRouter } from "@tanstack/react-router";
 import { useOverlayHistory } from "@/hooks/use-overlay-history";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useState, useRef, useEffect, type ReactElement } from "react";
+import {
+  useCallback,
+  useState,
+  useRef,
+  useEffect,
+  useLayoutEffect,
+  type ReactElement,
+} from "react";
 import {
   motion,
   AnimatePresence,
@@ -319,13 +326,78 @@ function ProfilePage() {
     const ro = new ResizeObserver(update);
     ro.observe(el);
     window.addEventListener("resize", update);
-    window.addEventListener("scroll", update, { passive: true });
     return () => {
       ro.disconnect();
       window.removeEventListener("resize", update);
-      window.removeEventListener("scroll", update);
     };
-  }, [profile?.id]);
+    // Re-measured when the tab changes (i.e. when Store opens) rather than on
+    // every scroll event. This used to listen to window scroll and setState on
+    // each one, which re-rendered the WHOLE profile — pager, grids and all — on
+    // every frame of a scroll, and was the main reason scrolling here felt
+    // heavy. The value only matters at the moment the sheet rises, and the
+    // page is scroll-locked while it's up, so it can't drift underneath.
+  }, [profile?.id, activeTab]);
+
+  // --- TikTok-style scroll ----------------------------------------------------
+  // The header (avatar, name, stats, bio) scrolls away; the top bar and the tab
+  // strip stay pinned, and the top bar picks up the name once the big one has
+  // gone. Each tab remembers how far down it was: switching tabs while the
+  // strip is pinned lands the new tab where you left it (or at its top), with
+  // the strip still pinned — instead of the page jumping by however much
+  // taller or shorter the new tab's content is.
+  const topBarRef = useRef<HTMLDivElement>(null);
+  const [topBarH, setTopBarH] = useState(48);
+  useLayoutEffect(() => {
+    const el = topBarRef.current;
+    if (!el) return;
+    const measure = () => setTopBarH(el.getBoundingClientRect().height);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const nameRef = useRef<HTMLDivElement>(null);
+  const [nameScrolledAway, setNameScrolledAway] = useState(false);
+  useEffect(() => {
+    const el = nameRef.current;
+    if (!el) return;
+    // An observer, not a scroll listener: it fires on the crossing only.
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        setNameScrolledAway(!entry.isIntersecting && entry.boundingClientRect.top < topBarH);
+      },
+      { rootMargin: `-${Math.round(topBarH)}px 0px 0px 0px` },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [topBarH, profile?.id]);
+
+  const stripAnchorRef = useRef<HTMLDivElement>(null);
+  const tabScroll = useRef<Partial<Record<TabKey, number>>>({});
+  const lastTabRef = useRef(activeTab);
+  useLayoutEffect(() => {
+    const prev = lastTabRef.current;
+    lastTabRef.current = activeTab;
+    // Store is a sheet over the page, not a page in the scroll — and the body
+    // is scroll-locked while it's up.
+    if (prev === activeTab || prev === "store" || activeTab === "store") return;
+    const anchor = stripAnchorRef.current;
+    if (!anchor) return;
+    const stickAt = anchor.getBoundingClientRect().top + window.scrollY - topBarH;
+    const y = window.scrollY;
+    tabScroll.current[prev] = y;
+    // Header still (partly) showing: leave the page where it is, like TikTok.
+    if (y < stickAt - 1) return;
+    const target = Math.max(stickAt, tabScroll.current[activeTab] ?? stickAt);
+    // Two frames: TabPager sizes itself to the incoming page in an effect, and
+    // a scroll written before that lands is clamped to the OLD page's height.
+    // "instant" because html has scroll-behavior: smooth, and a restore that
+    // glides reads as the page moving by itself.
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => window.scrollTo({ top: target, behavior: "instant" })),
+    );
+  }, [activeTab, topBarH]);
 
   // A visitor should never land on a storefront with nothing real behind it —
   // CollectionsGrid fills an empty catalog with fake demo products and
@@ -381,10 +453,24 @@ function ProfilePage() {
         animate={{ scale: storeSheetOpen ? 0.97 : 1 }}
         transition={{ duration: 0.32, ease: [0.32, 0.72, 0, 1] }}
       >
-        {/* Top bar */}
-        <div className="flex items-center justify-between px-6 pt-4 pb-2">
-          <div className="w-[22px]">
-            <BackButton />
+        {/* Top bar — pinned. Picks up the name once the big one below has
+            scrolled under it. */}
+        <div
+          ref={topBarRef}
+          className="sticky top-0 z-30 flex items-center justify-between gap-3 bg-black px-6 pt-4 pb-2"
+        >
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            <div className="w-[22px] shrink-0">
+              <BackButton />
+            </div>
+            <span
+              aria-hidden={!nameScrolledAway}
+              className={`truncate text-[15px] font-bold transition-[opacity,transform] duration-200 ${
+                nameScrolledAway ? "translate-y-0 opacity-100" : "translate-y-1 opacity-0"
+              }`}
+            >
+              {profile?.display_name || profile?.personal_username || username}
+            </span>
           </div>
           <div className="flex items-center gap-5">
             {ownershipKnown && !isOwnProfile && isFollowing && (
@@ -466,7 +552,10 @@ function ProfilePage() {
                 almost always the right text, so it stands in while the row
                 loads instead of an ellipsis that then jumps to a longer
                 name. */}
-              <div className={`text-[15px] font-bold ${profileLoading ? "opacity-40" : ""}`}>
+              <div
+                ref={nameRef}
+                className={`text-[15px] font-bold ${profileLoading ? "opacity-40" : ""}`}
+              >
                 {profile?.display_name || profile?.personal_username || username}
               </div>
               {isOwnProfile && (
@@ -543,7 +632,13 @@ function ProfilePage() {
         {
           <>
             {/* Tab row */}
-            <div className="mt-6 border-b border-[#474747]">{tabRow}</div>
+            <div ref={stripAnchorRef} className="mt-6" />
+            <div
+              className="sticky z-20 border-b border-[#474747] bg-black"
+              style={{ top: topBarH }}
+            >
+              {tabRow}
+            </div>
 
             {/* Inline search */}
             <div
@@ -580,7 +675,10 @@ function ProfilePage() {
               track that follows the finger 1:1 — see TabPager for what this
               replaces and why. Pages stay mounted, so paging back is
               instant and nothing refetches. */}
-            <div className="pb-24">
+            {/* min-height so a short tab (an empty state) can still be
+                scrolled to the point where the strip is pinned — otherwise
+                switching to it while pinned would yank the header back. */}
+            <div className="pb-24" style={{ minHeight: `calc(100dvh - ${topBarH + 48}px)` }}>
               <TabPager
                 index={tabIndex}
                 count={TABS.length}

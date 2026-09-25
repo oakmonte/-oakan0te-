@@ -252,6 +252,54 @@
 }
 
 /* ---------------------------------------------------------------------------
+ * Social surface: /home and /messages follow the phone's light/dark setting
+ *
+ * Same mechanism as the dashboard above, and for the same reasons: no toggle,
+ * no stored preference, no JS. The --color-chat-* tokens in @theme are the DARK
+ * set and stay the default everywhere; inside [data-surface="social"] a phone
+ * in light mode gets the light set instead. Anything on these two screens
+ * written in chat-* tokens (including opacity modifiers like text-chat-text/50,
+ * which Tailwind compiles to a color-mix over the variable) flips with it.
+ *
+ * The glass/bubble variables are here because those surfaces are inline
+ * styles in JS (messages/glass.ts, MessageBubble) and can only follow the
+ * scheme by reading a variable.
+ *
+ * Deliberately NOT on the Explore feed overlay or the camera: full-bleed media
+ * stays black in both schemes, like every other video app.
+ * ------------------------------------------------------------------------- */
+@layer base {
+  @media (prefers-color-scheme: light) {
+    html[data-surface="social"] {
+      --color-chat-bg: #ffffff;
+      --color-chat-surface: #f6f7f9;
+      --color-chat-elevated: #f1f2f4;
+      --color-chat-soft: #eff0f3;
+      --color-chat-border: rgba(10, 10, 10, 0.1);
+      --color-chat-text: #0a0a0a;
+      --color-chat-inverse: #ffffff;
+      --color-chat-muted: rgba(10, 10, 10, 0.52);
+      --color-chat-faint: rgba(10, 10, 10, 0.34);
+      /* The dark set's periwinkle is too pale to read as text on white; this
+         is the brand blue the landing page and dashboard use. */
+      --color-chat-accent: #2151f5;
+      --color-chat-online: #12a150;
+      --color-chat-danger: #d92d20;
+      --color-chat-overlay: rgba(10, 10, 10, 0.4);
+
+      --chat-glass-panel: rgba(255, 255, 255, 0.8);
+      --chat-glass-float: rgba(255, 255, 255, 0.82);
+      /* Outgoing bubbles invert: warm white on the black inbox, near-black on
+         the white one, with text-chat-inverse on top in both. */
+      --chat-outgoing: linear-gradient(180deg, #25272c 0%, #0a0a0a 100%);
+    }
+  }
+  html[data-surface="social"] {
+    color-scheme: light dark;
+  }
+}
+
+/* ---------------------------------------------------------------------------
  * Seller dashboard typography
  *
  * Fraunces speaks. Inter reports.
@@ -426,6 +474,16 @@
   body {
     overflow-x: hidden;
     overscroll-behavior-x: none;
+  }
+  /* clip on body, not hidden. html's overflow already moves to the viewport,
+     so body's `hidden` is left on body itself -- where it quietly makes body a
+     scroll container that never scrolls, and every position: sticky on a page
+     sticks to THAT instead of the viewport, i.e. never sticks. `clip` clips
+     sideways overflow the same way without creating a scroll container.
+     `hidden` above stays as the fallback for browsers without clip (Safari
+     < 16). */
+  body {
+    overflow-x: clip;
   }
   body {
     font-family: var(--font-sans);
@@ -763,6 +821,24 @@ input:-webkit-autofill:active {
   pointer-events: none;
 }
 
+/* White icons and labels on glass: a soft shadow so their edges hold against
+   a bright background showing through. Harmless under the dark icons on the
+   light navs, which are <img>s and so aren't matched anyway. */
+.oak-glass-rim > svg,
+.oak-glass-rim > span > svg {
+  filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.35));
+}
+
+/* White icons and labels sitting straight on a photo or the live camera, with
+   no glass behind them (the camera's tool column, the after-shot toolbar).
+   Without this they disappear against anything bright. */
+.oak-on-media {
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+}
+.oak-on-media svg {
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45));
+}
+
 /* Barcode-scanner sweep line -- ping-ponged with alternate rather than reset
    to 0% on loop, so the line never jump-cuts back to the top. */
 @keyframes oak-scan-sweep {
@@ -985,6 +1061,13 @@ input:-webkit-autofill:active {
   html[data-surface="publish"] {
     --oak-edge: #fff;
   }
+  /* /home and /messages are black by default and white when the phone is in
+     light mode — the inverse of the dashboard's rule below. */
+  @media (prefers-color-scheme: light) {
+    html[data-surface="social"]:not([data-overlay="dark"]) {
+      --oak-edge: #fff;
+    }
+  }
   html,
   body {
     /* body inherits the custom property from html, so one variable drives both
@@ -1038,6 +1121,30 @@ input:-webkit-autofill:active {
 
 @media (prefers-reduced-motion: reduce) {
   .messages-skeleton {
+    animation: none;
+  }
+}
+
+/* Same sweep as messages-skeleton (shares its @keyframes), tinted with
+   --sd-ink instead of a fixed white -- messages is always-dark, but /store
+   follows the phone's own scheme, so a fixed white sweep would all but
+   vanish on a light dashboard. --sd-ink is already black in light and white
+   in dark (see the seller dashboard tokens above), so this adapts for free
+   instead of needing its own light/dark pair. */
+@utility sd-skeleton {
+  background-color: var(--sd-soft);
+  background-image: linear-gradient(
+    100deg,
+    transparent 20%,
+    color-mix(in srgb, var(--sd-ink) 10%, transparent) 42%,
+    transparent 62%
+  );
+  background-size: 220% 100%;
+  animation: messages-shimmer 1.5s infinite linear;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sd-skeleton {
     animation: none;
   }
 }

@@ -4,7 +4,7 @@ import { useActiveStoreId } from "@/hooks/use-own-store";
 import { useSession } from "@/hooks/use-session";
 import { useStoreSetupStatus } from "@/hooks/use-store-setup-status";
 import { SetupChecklist } from "@/components/store/SetupChecklist";
-import { Skeleton } from "@/components/ui/skeleton";
+import { DashboardSkeleton } from "@/components/store/dashboard/DashboardSkeleton";
 
 export const Route = createFileRoute("/store/")({
   component: StoreHome,
@@ -99,15 +99,7 @@ function StoreHome() {
   if (!status.complete) return <SetupChecklist status={status} />;
 
   return (
-    <Suspense
-      fallback={
-        <div className="px-4 py-6">
-          <Skeleton className="h-[72px] w-[72px] rounded-full" />
-          <Skeleton className="mt-4 h-11 w-full rounded-full" />
-          <Skeleton className="mt-6 h-[220px] w-full rounded-3xl" />
-        </div>
-      }
-    >
+    <Suspense fallback={<DashboardSkeleton />}>
       <StoreDashboard productCount={status.productCount} payoutStatus={status.payoutStatus} />
     </Suspense>
   );
@@ -124,9 +116,9 @@ function NeutralPlaceholder() {
       <span className="sr-only" role="status">
         Loading your store
       </span>
-      <Skeleton className="h-6 w-56 rounded" />
-      <Skeleton className="mt-3 h-4 w-40 rounded" />
-      <Skeleton className="mt-6 h-[168px] w-full rounded-2xl" />
+      <div className="sd-skeleton h-6 w-56 rounded" />
+      <div className="sd-skeleton mt-3 h-4 w-40 rounded" />
+      <div className="sd-skeleton mt-6 h-[168px] w-full rounded-2xl" />
     </div>
   );
 }

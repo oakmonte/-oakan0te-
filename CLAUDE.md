@@ -220,8 +220,12 @@ anything larger), `apple-touch-icon` at 180px.
 
 ### Seller dashboard colours: tokens, surfaces, and dark mode
 
-`/store/*` follows the phone's light/dark setting (`prefers-color-scheme`, no toggle). The rest of the
-app is fixed. Three rules that are not guessable from any one file:
+`/store/*` follows the phone's light/dark setting (`prefers-color-scheme`, no toggle), and so do
+`/home` and `/messages` (the `social` surface: the `--color-chat-*` tokens get a light set under
+`html[data-surface="social"]` in `styles.css`; write those screens in `chat-*` tokens, never `bg-black`
+/ `text-white`). The rest of the app is fixed. A black full-screen overlay on a social screen (the
+Explore feed) calls `useDarkOverlay()` (`src/lib/dark-overlay.ts`) so the status strip goes black with
+it. Three rules that are not guessable from any one file:
 
 - **Colour dashboard UI with the `--sd-*` tokens** (`bg-sd-surface`, `text-sd-ink`, `border-sd-line`…,
   defined in `styles.css`). Never `dark:` (it is bound to a `.dark` class nothing adds) and never

@@ -30,7 +30,7 @@ export function FilterSheet({ selected, onToggle, onClear, onApply, onDismiss }:
         }}
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="mx-auto mb-3 h-1 w-12 rounded-full bg-white/55" />
+        <div className="mx-auto mb-3 h-1 w-12 rounded-full bg-chat-text/40" />
         <div className="flex items-center justify-between border-b border-chat-border pb-3">
           <div className="w-16" />
           <h2 id="message-filter-title" className="text-[21px] font-bold">
@@ -62,7 +62,7 @@ export function FilterSheet({ selected, onToggle, onClear, onApply, onDismiss }:
                   className={`flex h-[26px] w-[26px] items-center justify-center rounded-full border transition-colors ${
                     active
                       ? "border-chat-text bg-chat-text text-chat-inverse"
-                      : "border-white/40 text-transparent"
+                      : "border-chat-text/40 text-transparent"
                   }`}
                 >
                   <Check size={16} strokeWidth={3} />

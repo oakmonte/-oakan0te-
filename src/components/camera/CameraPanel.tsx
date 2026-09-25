@@ -11,6 +11,10 @@ type CameraPanelProps = {
    *  deliberate white-background exception (see __root.tsx) — this lets its
    *  sheets match without changing the shared default. */
   light?: boolean;
+  /** Pinned between the title and the scrolling content — for controls that
+   *  must stay put while the list moves under them (the sound sheet's search
+   *  box and genre chips). Content passed as children scrolls; this doesn't. */
+  toolbar?: ReactNode;
 };
 
 export default function CameraPanel({
@@ -20,6 +24,7 @@ export default function CameraPanel({
   onClose,
   height = 320,
   light = false,
+  toolbar,
 }: CameraPanelProps) {
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -72,7 +77,7 @@ export default function CameraPanel({
       {/* Panel */}
       <div
         ref={panelRef}
-        className="fixed left-0 right-0 z-50 transition-transform duration-300 ease-out"
+        className="fixed left-0 right-0 z-50 flex flex-col transition-transform duration-300 ease-out"
         style={{
           bottom: 0,
           // Clamped, not trusted. `height` is what the panel WANTS; a tall one
@@ -95,7 +100,7 @@ export default function CameraPanel({
         }}
       >
         {/* Drag Handle */}
-        <div className="flex justify-center pt-3 pb-2">
+        <div className="flex shrink-0 justify-center pt-3 pb-2">
           <div
             style={{
               width: 46,
@@ -107,7 +112,7 @@ export default function CameraPanel({
         </div>
 
         {/* Header */}
-        <div className="px-6 pb-4">
+        <div className="shrink-0 px-6 pb-4">
           <h2
             className={
               light ? "text-black text-lg font-semibold" : "text-white text-lg font-semibold"
@@ -120,17 +125,13 @@ export default function CameraPanel({
           </h2>
         </div>
 
-        {/* Content */}
-        <div
-          className="px-6 overflow-y-auto"
-          style={{
-            // 76px is the handle plus the header above it; the content takes
-            // whatever the clamped panel has left.
-            height: `calc(min(${height}px, 78dvh) - 76px)`,
-          }}
-        >
-          {children}
-        </div>
+        {toolbar && <div className="shrink-0 px-6">{toolbar}</div>}
+
+        {/* Content. Takes whatever the clamped panel has left after the
+            handle, header and any pinned toolbar — as a flex child rather
+            than a hand-computed calc(), so a toolbar doesn't have to know its
+            own height for the list to end at the right place. */}
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6">{children}</div>
       </div>
     </>
   );

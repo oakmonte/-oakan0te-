@@ -119,7 +119,10 @@ function MessagesPage() {
   const [sending, setSending] = useState(false);
   const [threadError, setThreadError] = useState<string | null>(null);
 
-  const touchStartX = useRef<number | null>(null);
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
+  // Which way the last tab change went, so the incoming tab slides in from
+  // the side the finger came from instead of just swapping in place.
+  const [tabDirection, setTabDirection] = useState<1 | -1>(1);
   const inboxScroll = useRef(0);
 
   /* ---------- own username for the bottom nav ---------- */
@@ -334,18 +337,42 @@ function MessagesPage() {
   }, [conversations, debouncedQuery, activeFilters]);
 
   /* ---------- tab swipe ---------- */
+  const switchTab = (next: Tab) => {
+    const from = TABS.findIndex(({ key }) => key === tab);
+    const to = TABS.findIndex(({ key }) => key === next);
+    if (from === to) return;
+    setTabDirection(to > from ? 1 : -1);
+    setTab(next);
+  };
+
+  // The page-level swipe used to fire on ANY touch that ended 50px sideways of
+  // where it began, which is what made it feel random:
+  //   - swiping a conversation row (read / mute / archive) ALSO changed tab,
+  //     because the row's own drag and this listener both saw the gesture;
+  //   - scrolling the story rail or the filter chips sideways changed tab;
+  //   - a vertical scroll of the inbox that drifted 50px sideways changed tab.
+  // Now anything that owns a horizontal gesture of its own opts out with
+  // `data-swipe-owner`, and the swipe has to be clearly horizontal.
   const handleTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
-    if (!openId && !filterOpen) touchStartX.current = event.touches[0]?.clientX ?? null;
+    touchStart.current = null;
+    if (openId || filterOpen) return;
+    if ((event.target as Element | null)?.closest?.("[data-swipe-owner]")) return;
+    const touch = event.touches[0];
+    if (touch) touchStart.current = { x: touch.clientX, y: touch.clientY };
   };
 
   const handleTouchEnd = (event: React.TouchEvent<HTMLDivElement>) => {
-    if (openId || filterOpen || touchStartX.current === null) return;
-    const distance = (event.changedTouches[0]?.clientX ?? 0) - touchStartX.current;
-    touchStartX.current = null;
-    if (Math.abs(distance) < 50) return;
+    const start = touchStart.current;
+    touchStart.current = null;
+    if (openId || filterOpen || !start) return;
+    const touch = event.changedTouches[0];
+    if (!touch) return;
+    const dx = touch.clientX - start.x;
+    const dy = touch.clientY - start.y;
+    if (Math.abs(dx) < 56 || Math.abs(dx) < Math.abs(dy) * 1.6) return;
     const currentIndex = TABS.findIndex(({ key }) => key === tab);
-    const nextTab = TABS[distance < 0 ? currentIndex + 1 : currentIndex - 1];
-    if (nextTab) setTab(nextTab.key);
+    const nextTab = TABS[dx < 0 ? currentIndex + 1 : currentIndex - 1];
+    if (nextTab) switchTab(nextTab.key);
   };
 
   const threadMessages =
@@ -358,6 +385,7 @@ function MessagesPage() {
       className="min-h-screen bg-chat-bg pb-28 text-chat-text"
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
+      onTouchCancel={() => (touchStart.current = null)}
     >
       {/* Centered column so wide desktop screens keep phone-like density */}
       <div className="mx-auto w-full max-w-[560px] md:border-x md:border-chat-border">
@@ -377,7 +405,7 @@ function MessagesPage() {
                 type="button"
                 aria-label="Clear search"
                 onClick={() => setQuery("")}
-                className="flex h-8 w-8 items-center justify-center rounded-full text-chat-muted active:bg-white/10"
+                className="flex h-8 w-8 items-center justify-center rounded-full text-chat-muted active:bg-chat-text/10"
               >
                 <X size={17} />
               </button>
@@ -394,7 +422,7 @@ function MessagesPage() {
           >
             <SlidersHorizontal size={20} />
             {activeFilters.length > 0 && (
-              <span className="absolute -right-1 -top-1 flex h-[19px] min-w-[19px] items-center justify-center rounded-full bg-chat-accent px-1 text-[11px] font-bold text-black">
+              <span className="absolute -right-1 -top-1 flex h-[19px] min-w-[19px] items-center justify-center rounded-full bg-chat-accent px-1 text-[11px] font-bold text-chat-inverse">
                 {activeFilters.length}
               </span>
             )}
@@ -403,7 +431,7 @@ function MessagesPage() {
 
         {/* ---------- active filter chips ---------- */}
         {activeFilters.length > 0 && (
-          <div className="mt-3 flex gap-2 overflow-x-auto px-4 no-scrollbar">
+          <div data-swipe-owner className="mt-3 flex gap-2 overflow-x-auto px-4 no-scrollbar">
             {activeFilters.map((key) => {
               const filter = FILTERS.find((item) => item.key === key);
               if (!filter) return null;
@@ -413,7 +441,7 @@ function MessagesPage() {
                   type="button"
                   aria-label={`Remove ${filter.label} filter`}
                   onClick={() => setActiveFilters((current) => current.filter((k) => k !== key))}
-                  className="flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-chat-border bg-white/[0.07] px-3 text-[13px] font-medium text-chat-text active:scale-95"
+                  className="flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-chat-border bg-chat-text/[0.07] px-3 text-[13px] font-medium text-chat-text active:scale-95"
                 >
                   <filter.icon size={14} />
                   {filter.label}
@@ -450,7 +478,7 @@ function MessagesPage() {
                 <button
                   key={key}
                   type="button"
-                  onClick={() => setTab(key)}
+                  onClick={() => switchTab(key)}
                   aria-current={tab === key}
                   className={`flex-1 pb-3 pt-1 transition-colors ${
                     tab === key ? "text-chat-text" : "text-chat-muted"
@@ -468,63 +496,70 @@ function MessagesPage() {
             />
           </div>
 
-          {tab === "messages" ? (
-            inboxLoading ? (
-              <ConversationSkeleton />
-            ) : visible.length === 0 ? (
-              <div className="px-8 pt-14 text-center">
-                <p className="text-[16px] font-semibold text-chat-text">No conversations found</p>
-                <p className="mt-1.5 text-[13px] text-chat-muted">
-                  {debouncedQuery
-                    ? `Nothing matches “${debouncedQuery}”.`
-                    : "Try clearing your filters."}
-                </p>
-              </div>
+          <motion.div
+            key={tab}
+            initial={{ x: tabDirection * 36, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ type: "spring", stiffness: 420, damping: 38 }}
+          >
+            {tab === "messages" ? (
+              inboxLoading ? (
+                <ConversationSkeleton />
+              ) : visible.length === 0 ? (
+                <div className="px-8 pt-14 text-center">
+                  <p className="text-[16px] font-semibold text-chat-text">No conversations found</p>
+                  <p className="mt-1.5 text-[13px] text-chat-muted">
+                    {debouncedQuery
+                      ? `Nothing matches “${debouncedQuery}”.`
+                      : "Try clearing your filters."}
+                  </p>
+                </div>
+              ) : (
+                <div className="pt-1.5">
+                  {searching && (
+                    <p className="px-5 pb-1 pt-2 text-[12px] text-chat-faint">Searching…</p>
+                  )}
+                  {visible.map((conversation) => (
+                    <ConversationRow
+                      key={conversation.id}
+                      conversation={conversation}
+                      query={debouncedQuery}
+                      muted={Boolean(muted[conversation.id])}
+                      onOpen={() => openThread(conversation.id)}
+                      onToggleRead={() =>
+                        setConversations((current) =>
+                          current.map((item) =>
+                            item.id === conversation.id
+                              ? { ...item, unread: item.unread > 0 ? 0 : 1 }
+                              : item,
+                          ),
+                        )
+                      }
+                      onToggleMute={() => {
+                        setMuted((current) => ({
+                          ...current,
+                          [conversation.id]: !current[conversation.id],
+                        }));
+                        setToast(
+                          muted[conversation.id]
+                            ? `${conversation.name} unmuted`
+                            : `${conversation.name} muted`,
+                        );
+                      }}
+                      onArchive={() => {
+                        setConversations((current) =>
+                          current.filter((item) => item.id !== conversation.id),
+                        );
+                        setToast(`${conversation.name} archived`);
+                      }}
+                    />
+                  ))}
+                </div>
+              )
             ) : (
-              <div className="pt-1.5">
-                {searching && (
-                  <p className="px-5 pb-1 pt-2 text-[12px] text-chat-faint">Searching…</p>
-                )}
-                {visible.map((conversation) => (
-                  <ConversationRow
-                    key={conversation.id}
-                    conversation={conversation}
-                    query={debouncedQuery}
-                    muted={Boolean(muted[conversation.id])}
-                    onOpen={() => openThread(conversation.id)}
-                    onToggleRead={() =>
-                      setConversations((current) =>
-                        current.map((item) =>
-                          item.id === conversation.id
-                            ? { ...item, unread: item.unread > 0 ? 0 : 1 }
-                            : item,
-                        ),
-                      )
-                    }
-                    onToggleMute={() => {
-                      setMuted((current) => ({
-                        ...current,
-                        [conversation.id]: !current[conversation.id],
-                      }));
-                      setToast(
-                        muted[conversation.id]
-                          ? `${conversation.name} unmuted`
-                          : `${conversation.name} muted`,
-                      );
-                    }}
-                    onArchive={() => {
-                      setConversations((current) =>
-                        current.filter((item) => item.id !== conversation.id),
-                      );
-                      setToast(`${conversation.name} archived`);
-                    }}
-                  />
-                ))}
-              </div>
-            )
-          ) : (
-            <TabPreview tab={tab} />
-          )}
+              <TabPreview tab={tab} />
+            )}
+          </motion.div>
         </div>
       </div>
 

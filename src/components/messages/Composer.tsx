@@ -54,7 +54,7 @@ export function Composer({
             exit={{ opacity: 0, height: 0 }}
             className="overflow-hidden"
           >
-            <div className="mb-2 flex items-start gap-2 rounded-[14px] bg-white/[0.06] px-3 py-2">
+            <div className="mb-2 flex items-start gap-2 rounded-[14px] bg-chat-text/[0.06] px-3 py-2">
               <span className="mt-[3px] h-8 w-[2px] shrink-0 rounded-full bg-chat-accent" />
               <div className="min-w-0 flex-1">
                 <p className="text-[11px] font-semibold text-chat-accent">Replying</p>
@@ -64,7 +64,7 @@ export function Composer({
                 type="button"
                 aria-label="Cancel reply"
                 onClick={onCancelReply}
-                className="flex h-9 w-9 items-center justify-center rounded-full text-chat-muted active:bg-white/10"
+                className="flex h-9 w-9 items-center justify-center rounded-full text-chat-muted active:bg-chat-text/10"
               >
                 <X size={16} />
               </button>
@@ -83,11 +83,11 @@ export function Composer({
         <button
           type="button"
           aria-label="Take a photo"
-          className="mb-[3px] flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/[0.08] text-chat-text active:scale-95"
+          className="mb-[3px] flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-chat-text/[0.08] text-chat-text active:scale-95"
         >
           <Camera size={20} />
         </button>
-        <div className="flex min-w-0 flex-1 items-end gap-1 rounded-[24px] bg-white/[0.08] px-3 py-[9px]">
+        <div className="flex min-w-0 flex-1 items-end gap-1 rounded-[24px] bg-chat-text/[0.08] px-3 py-[9px]">
           <textarea
             ref={field}
             rows={1}

@@ -115,39 +115,49 @@ export default function SoundLibrarySheet({ open, onClose, onPick }: Props) {
   }
 
   return (
-    <CameraPanel open={open} title="Sound" onClose={onClose} height={600}>
-      <div className="relative mb-3">
-        <Search
-          size={17}
-          className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-white/35"
-        />
-        <input
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="Search for a sound"
-          className="w-full rounded-xl bg-white/[0.08] py-3 pl-11 pr-3.5 text-[15px] text-white outline-none placeholder:text-white/35 focus:bg-white/[0.12]"
-        />
-      </div>
+    <CameraPanel
+      open={open}
+      title="Sound"
+      onClose={onClose}
+      height={600}
+      // Search and genres are pinned: the results scroll UNDER them rather
+      // than dragging the controls up into the sheet's header with them.
+      toolbar={
+        <>
+          <div className="relative mb-3">
+            <Search
+              size={17}
+              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-white/35"
+            />
+            <input
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="Search for a sound"
+              className="w-full rounded-xl bg-white/[0.08] py-3 pl-11 pr-3.5 text-[15px] text-white outline-none placeholder:text-white/35 focus:bg-white/[0.12]"
+            />
+          </div>
 
-      {/* Genres rather than only a search box. Nobody knows what to type into
-          a catalogue they have never seen, and the honest answer to "what is
-          in here" is a row of things to tap. */}
-      <div className="no-scrollbar -mx-6 mb-3 flex gap-2 overflow-x-auto px-6 pb-1">
-        {SOUND_GENRES.map((g) => (
-          <button
-            key={g.id}
-            type="button"
-            onClick={() => setGenre(g.id)}
-            aria-pressed={genre === g.id}
-            className={`shrink-0 rounded-full px-4 py-2 text-[13px] font-medium transition-colors active:scale-95 ${
-              genre === g.id ? "bg-white text-black" : "bg-white/[0.10] text-white/75"
-            }`}
-          >
-            {g.label}
-          </button>
-        ))}
-      </div>
-
+          {/* Genres rather than only a search box. Nobody knows what to type into
+              a catalogue they have never seen, and the honest answer to "what is
+              in here" is a row of things to tap. */}
+          <div className="no-scrollbar -mx-6 mb-3 flex gap-2 overflow-x-auto px-6 pb-1">
+            {SOUND_GENRES.map((g) => (
+              <button
+                key={g.id}
+                type="button"
+                onClick={() => setGenre(g.id)}
+                aria-pressed={genre === g.id}
+                className={`shrink-0 rounded-full px-4 py-2 text-[13px] font-medium transition-colors active:scale-95 ${
+                  genre === g.id ? "bg-white text-black" : "bg-white/[0.10] text-white/75"
+                }`}
+              >
+                {g.label}
+              </button>
+            ))}
+          </div>
+        </>
+      }
+    >
       {error && <p className="px-1 pb-2 text-[13px] leading-snug text-red-300">{error}</p>}
 
       {loading && tracks.length === 0 ? (

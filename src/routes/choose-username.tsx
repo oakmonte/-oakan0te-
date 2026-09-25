@@ -11,6 +11,11 @@ import {
 } from "@/components/onboarding/OnboardingShell";
 import { useRequireSession } from "@/components/onboarding/use-require-session";
 import { usePrefetchNextStep } from "@/hooks/use-prefetch-next-step";
+import {
+  USERNAME_MAX as MAX,
+  normalizeUsername as normalize,
+  validateUsername as validate,
+} from "@/lib/username-rules";
 
 export const Route = createFileRoute("/choose-username")({
   head: () => ({
@@ -20,55 +25,6 @@ export const Route = createFileRoute("/choose-username")({
   }),
   component: ChooseUsernamePage,
 });
-
-const MIN = 3;
-const MAX = 30;
-
-// This becomes the /profile/$username URL, so it has to survive being a path
-// segment. Before, the field accepted spaces, capitals, "@" and emoji.
-const USERNAME_RE = /^[a-z0-9][a-z0-9_.]*[a-z0-9]$/;
-
-const RESERVED = new Set([
-  "admin",
-  "api",
-  "oakmonte",
-  "support",
-  "help",
-  "settings",
-  "store",
-  "profile",
-  "create",
-  "studio",
-  "activity",
-  "home",
-  "terms",
-  "privacy",
-  "signin",
-  "sign-in",
-  "signup",
-  "me",
-  "you",
-  "null",
-  "undefined",
-]);
-
-/** Applied as the user types, so the field can never hold something the rules
- *  would reject on submit. */
-function normalize(raw: string) {
-  return raw
-    .toLowerCase()
-    .replace(/\s+/g, "_")
-    .replace(/[^a-z0-9_.]/g, "")
-    .slice(0, MAX);
-}
-
-function validate(username: string): string | null {
-  if (username.length < MIN) return `Usernames need at least ${MIN} characters.`;
-  if (!USERNAME_RE.test(username))
-    return "Use letters and numbers — underscores and dots can go in the middle.";
-  if (RESERVED.has(username)) return "That username is reserved. Try another.";
-  return null;
-}
 
 type Availability = "idle" | "checking" | "available" | "taken" | "error";
 

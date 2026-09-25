@@ -5,6 +5,7 @@ import { tilesForRange, type FilmstripFrame } from "@/lib/studio/filmstrip";
 import { peaksForRange } from "./use-timeline-media";
 import {
   AUDIO_TRACK_H,
+  CLIP_GAP,
   DEFAULT_PPS,
   HANDLE_W,
   LAYER_TRACK_H,
@@ -325,6 +326,7 @@ function StudioTimeline({
         const next = clipDuration(project.clips[index + 1]) * pps;
         if (dx > next / 2) {
           onReorder(press.clipId, index + 1);
+          navigator.vibrate?.(6);
           press.startX += next;
           setDragOffset(0);
         }
@@ -332,6 +334,7 @@ function StudioTimeline({
         const prev = clipDuration(project.clips[index - 1]) * pps;
         if (-dx > prev / 2) {
           onReorder(press.clipId, index - 1);
+          navigator.vibrate?.(6);
           press.startX -= prev;
           setDragOffset(0);
         }
@@ -485,7 +488,11 @@ function StudioTimeline({
             <div className="relative" style={{ height: VIDEO_TRACK_H }}>
               {project.clips.map((clip, index) => {
                 const source = sources[clip.sourceId];
-                const width = Math.max(6, clipDuration(clip) * pps);
+                const duration = clipDuration(clip);
+                // Inset by half the gap on each side — see CLIP_GAP. Only the
+                // drawing moves; starts[] and the cut buttons stay on the
+                // true timeline positions.
+                const width = Math.max(6, duration * pps - CLIP_GAP);
                 const isSelected = selection?.kind === "clip" && selection.id === clip.id;
                 const isDragging = draggingId === clip.id;
                 return (
@@ -497,7 +504,7 @@ function StudioTimeline({
                     onPointerCancel={endClipPress}
                     className="absolute top-0 overflow-hidden"
                     style={{
-                      left: starts[index] * pps,
+                      left: starts[index] * pps + CLIP_GAP / 2,
                       width,
                       height: VIDEO_TRACK_H,
                       borderRadius: 6,
@@ -516,6 +523,22 @@ function StudioTimeline({
                       outPoint={clip.outPoint}
                       width={width}
                     />
+
+                    {/* Live length of the selected clip, so a trim can be
+                        judged in seconds rather than by eye. */}
+                    {isSelected && width > 40 && (
+                      <span
+                        className="absolute top-0.5 rounded px-1 text-[9px] font-semibold leading-[14px] tabular-nums"
+                        style={{
+                          left: HANDLE_W + 2,
+                          background: "rgba(0,0,0,0.68)",
+                          color: "#fff",
+                          zIndex: 5,
+                        }}
+                      >
+                        {duration < 10 ? duration.toFixed(1) : Math.round(duration)}s
+                      </span>
+                    )}
 
                     <div className="absolute inset-x-0 bottom-0 flex items-center gap-1 px-1 pb-0.5">
                       {(clip.muted || project.masterMuted) && (

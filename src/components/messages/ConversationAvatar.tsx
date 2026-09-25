@@ -31,7 +31,13 @@ export function ConversationAvatar({ conversation, size = 56 }: Props) {
             conversation.kind === "support"
               ? "#ffffff"
               : "linear-gradient(160deg,#4a4d54 0%,#2b2e33 100%)",
-          border: ring ? "2px solid #000" : "none",
+          border: ring ? "2px solid var(--color-chat-bg)" : "none",
+          // The support avatar is a white disc; on the light inbox it needs
+          // an edge or it dissolves into the page.
+          boxShadow:
+            conversation.kind === "support"
+              ? "inset 0 0 0 1px var(--color-chat-border)"
+              : undefined,
           width: ring ? inner : size,
           height: ring ? inner : size,
         }}
@@ -50,7 +56,7 @@ export function ConversationAvatar({ conversation, size = 56 }: Props) {
       </div>
       {conversation.activeMinutesAgo === 0 && conversation.kind !== "self" && (
         <span
-          className="absolute bottom-0 right-0 rounded-full border-[2.5px] border-black bg-[#2ee36a]"
+          className="absolute bottom-0 right-0 rounded-full border-[2.5px] border-chat-bg bg-chat-online"
           style={{ width: size * 0.24, height: size * 0.24 }}
         />
       )}

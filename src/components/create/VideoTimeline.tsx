@@ -36,7 +36,7 @@ import {
 // padding is handed back on release, when the timeline settles to its real
 // shape with the new in-point under the playhead.
 
-export const PX_PER_SECOND = 62;
+const PX_PER_SECOND = 62;
 const TRACK_HEIGHT = 62;
 /** How far a finger may drift during a press-and-hold before it counts as a
  *  drag instead. A thumb on a phone moves several pixels without meaning to. */
@@ -55,6 +55,12 @@ const SCROLL_SETTLE_MS = 140;
 /** Visible width of a trim bar, and the wider invisible area around it. */
 const BAR_WIDTH = 14;
 const BAR_HIT = 34;
+/** Visual gap between neighbouring clips. The sequence stays gapless — each
+ *  tile keeps its exact time-accurate width, so the selection frame and the
+ *  playhead maths are untouched — and only what the tile DRAWS is inset by
+ *  half of this on each side, with rounded ends, so a cut reads as two
+ *  separate clips instead of one continuous strip. */
+const CLIP_GAP = 3;
 
 type TrimPatch = { trimStart?: number; trimEnd?: number; stillDuration?: number };
 
@@ -505,7 +511,7 @@ function TrimBar({
 const SNAP_THRESHOLD_PX = 10;
 
 // This function calculates snap positions for the clip, start/end and the playhead. This is to avoid gaps and so on
-export function getSnapPosition(
+function getSnapPosition(
   targetTime: number,
   clips: Clip[],
   starts: number[],
@@ -627,6 +633,7 @@ function ClipTile({
       const steps = Math.trunc(delta / Math.max(40, width * 0.6));
       if (steps !== 0) {
         onReorder(index, index + steps);
+        navigator.vibrate?.(6);
         origin.current = e.clientX;
       }
     };
@@ -676,10 +683,13 @@ function ClipTile({
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") onSelect(isSelected ? null : clip.id);
         }}
-        className={`relative shrink-0 overflow-hidden transition-opacity ${
-          isDragging ? "opacity-70" : ""
+        className={`relative shrink-0 overflow-hidden transition-[opacity,transform] ${
+          isDragging ? "scale-[1.04] opacity-80" : ""
         }`}
-        style={{ width: Math.max(24, width) }}
+        style={{
+          width: Math.max(24, width),
+          clipPath: `inset(0 ${CLIP_GAP / 2}px round 7px)`,
+        }}
       >
         {clip.kind === "video" && clip.frames.length > 0 ? (
           <Filmstrip clip={clip} />
@@ -701,6 +711,16 @@ function ClipTile({
         {clip.speed !== 1 && (
           <span className="absolute bottom-1 right-1 rounded-[3px] bg-black/65 px-1 text-[9px] font-semibold">
             {clip.speed}x
+          </span>
+        )}
+        {/* Live length of the selected clip, so a trim can be judged in
+            seconds. Clear of the trim bar's 14px on the left. */}
+        {isSelected && width > 56 && (
+          <span className="absolute top-1 left-[18px] rounded-[3px] bg-black/65 px-1 text-[9px] font-semibold tabular-nums">
+            {clipDuration(clip) < 10
+              ? clipDuration(clip).toFixed(1)
+              : Math.round(clipDuration(clip))}
+            s
           </span>
         )}
       </div>
