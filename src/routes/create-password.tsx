@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { needsPassword, resolvePostAuthRedirect, setAccountPassword, signOut } from "@/lib/auth";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { clearPasswordResetPending, isPasswordResetPending } from "@/lib/onboarding-state";
@@ -30,6 +30,12 @@ function CreatePasswordPage() {
   const [resetting, setResetting] = useState(false);
   // Fed to the policy so the password can't just be the user's own email.
   const [identifiers, setIdentifiers] = useState<string[]>([]);
+
+  // Uncontrolled on purpose -- see the note above the inputs below. These
+  // refs are how the "real" value gets read, both for the strength meter and
+  // at submit time.
+  const passwordRef = useRef<HTMLInputElement>(null);
+  const confirmRef = useRef<HTMLInputElement>(null);
 
   const verdict = checkPassword(password, identifiers);
 
@@ -67,17 +73,27 @@ function CreatePasswordPage() {
     e.preventDefault();
     setError(null);
 
-    if (!verdict.ok) {
-      setError(`Your password needs ${verdict.problems.join(", ")}.`);
+    // Safari's "Suggest Strong Password" autofill sets these fields' real DOM
+    // value directly and withholds it from scripts (including React's
+    // onChange) until the form is submitted -- so `password`/`confirm` state
+    // can still be empty here even though the fields are visibly filled.
+    // Read the DOM directly rather than trust state that may never have
+    // caught up.
+    const pwd = passwordRef.current?.value ?? password;
+    const conf = confirmRef.current?.value ?? confirm;
+    const freshVerdict = checkPassword(pwd, identifiers);
+
+    if (!freshVerdict.ok) {
+      setError(`Your password needs ${freshVerdict.problems.join(", ")}.`);
       return;
     }
-    if (password !== confirm) {
+    if (pwd !== conf) {
       setError("Those two passwords don't match.");
       return;
     }
 
     setSaving(true);
-    const { data, error: updateError } = await setAccountPassword(password);
+    const { data, error: updateError } = await setAccountPassword(pwd);
     if (updateError) {
       setSaving(false);
       setError(updateError.message);
@@ -114,14 +130,22 @@ function CreatePasswordPage() {
           <label htmlFor="new-password" className="sr-only">
             New password
           </label>
+          {/* Uncontrolled (no `value`): Safari's own "Suggest Strong
+              Password" fills this field's real DOM value directly, without
+              telling React. A controlled input would fight that by
+              snapping the DOM back to stale (empty) state on every re-render
+              -- including the one "Show password" triggers, which is exactly
+              what made that checkbox look broken. onChange still runs for a
+              password the user types themselves; the ref is the fallback
+              read for one the browser filled in. */}
           <input
+            ref={passwordRef}
             id="new-password"
             type={show ? "text" : "password"}
             required
             autoFocus
             autoComplete="new-password"
             minLength={MIN_PASSWORD_LENGTH}
-            value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder={`Password (${MIN_PASSWORD_LENGTH}+ characters)`}
             className="w-full rounded-full border border-brand-text/25 bg-transparent px-5 py-3.5 text-sm placeholder:text-brand-text/40 focus:outline-none focus:border-brand-accent transition-colors"
@@ -156,12 +180,13 @@ function CreatePasswordPage() {
           <label htmlFor="confirm-password" className="sr-only">
             Confirm password
           </label>
+          {/* Uncontrolled -- see the note on the password field above. */}
           <input
+            ref={confirmRef}
             id="confirm-password"
             type={show ? "text" : "password"}
             required
             autoComplete="new-password"
-            value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
             placeholder="Confirm password"
             className="w-full rounded-full border border-brand-text/25 bg-transparent px-5 py-3.5 text-sm placeholder:text-brand-text/40 focus:outline-none focus:border-brand-accent transition-colors"
@@ -183,9 +208,15 @@ function CreatePasswordPage() {
             Show password
           </label>
 
+          {/* Not gated on verdict/match here -- those read `password`/`confirm`
+              state, which (see the inputs above) can still be empty for an
+              autofilled password nobody has typed a keystroke into. Blocking
+              the button on that would leave exactly those people stuck with
+              no error and no way forward. handleSubmit re-reads the DOM and
+              does the real check, surfacing FormError if it actually fails. */}
           <button
             type="submit"
-            disabled={saving || !verdict.ok || password !== confirm}
+            disabled={saving}
             className="w-full rounded-full bg-brand-accent text-brand-bg py-3.5 text-sm font-medium uppercase tracking-widest hover:bg-brand-accent/90 hover:scale-[1.01] transition-all duration-300 disabled:opacity-60"
           >
             {saving ? "Saving…" : "Continue"}
