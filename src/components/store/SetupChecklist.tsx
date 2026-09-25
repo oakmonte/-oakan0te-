@@ -358,7 +358,7 @@ export function SetupChecklist({ status }: { status: StoreSetupStatus }) {
                   setOrderWarningKey(null);
                   if (target !== -1) steps[target].go();
                 }}
-                className="rounded-xl bg-sd-ink py-2.5 text-sm font-semibold text-sd-bg"
+                className="rounded-xl bg-sd-ink py-3.5 text-sm font-semibold text-sd-bg"
               >
                 {blockedByInstall ? "Get the webapp" : "Go in order"}
               </button>
@@ -369,7 +369,7 @@ export function SetupChecklist({ status }: { status: StoreSetupStatus }) {
                   setOrderWarningKey(null);
                   steps[index].go();
                 }}
-                className="rounded-xl border border-sd-line py-2.5 text-sm font-medium text-sd-ink hover:bg-sd-elevated"
+                className="rounded-xl border border-sd-line py-1.5 text-sm font-medium text-sd-ink hover:bg-sd-elevated"
               >
                 Skip ahead anyway
               </button>
