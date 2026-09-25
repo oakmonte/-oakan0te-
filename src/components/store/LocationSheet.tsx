@@ -27,13 +27,6 @@ import {
   loadAllStates,
   subscribeToStates,
 } from "@/lib/region-data";
-import {
-  allCitiesReady,
-  getCityNames,
-  isSeededCountry,
-  loadAllCities,
-  subscribeToCities,
-} from "@/lib/city-data";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
 import { LocationListPicker, type LocationListItem } from "./LocationListPicker";
 
@@ -48,12 +41,6 @@ export type StoreLocationValues = {
   postalCode: string;
   lat: number | null;
   lng: number | null;
-};
-
-// Known gaps in the country-state-city dataset, keyed by `${countryIsoCode}-${stateIsoCode}`.
-// Lagos (NG-LA) only lists 8 of its dozens of LGAs and is missing Alimosho entirely.
-const EXTRA_CITIES: Record<string, string[]> = {
-  "NG-LA": ["Alimosho"],
 };
 
 // No paid geocoding provider is wired up yet (no Mapbox/Google Maps key in
@@ -129,7 +116,7 @@ export function LocationSheet({
     () => getStates(countryCode).find((s) => s.name === initial?.state)?.code ?? "",
   );
 
-  const [pickerOpen, setPickerOpen] = useState<"country" | "state" | "city" | null>(null);
+  const [pickerOpen, setPickerOpen] = useState<"country" | "state" | null>(null);
   const [promptVisible, setPromptVisible] = useState(false);
   const [locating, setLocating] = useState(false);
   const [located, setLocated] = useState(false);
@@ -168,29 +155,6 @@ export function LocationSheet({
     const match = getStates(countryCode).find((s) => s.name === state);
     if (match) setStateCode(match.code);
   }, [countryCode, state, stateCode, statesReady]);
-  // Real gaps in this dataset: ~53 countries have no state-level data at
-  // all, and even within a listed state the city list can be sparse (Lagos
-  // shows only 8 entries and is missing major LGAs like Alimosho entirely).
-  // EXTRA_CITIES patches in known-missing places we've hit; anything else
-  // still isn't blocked -- both pickers stay open via LocationListPicker's
-  // allowCustom, so a typed value that isn't in the list is still usable.
-  // Re-renders once the full world city dataset finishes streaming in.
-  const citiesReady = useSyncExternalStore(
-    subscribeToCities,
-    allCitiesReady,
-    () => false, // SSR: only the seed exists on the server
-  );
-  const cityItems: LocationListItem[] = useMemo(() => {
-    const extra = EXTRA_CITIES[`${countryCode}-${stateCode}`] ?? [];
-    const base = countryCode ? getCityNames(countryCode, stateCode) : [];
-    const names = new Set([...base, ...(countryCode ? extra : [])]);
-    return [...names].sort((a, b) => a.localeCompare(b)).map((name) => ({ code: name, name }));
-    // citiesReady isn't read above; it's a dep so the list recomputes the
-    // moment the background dataset lands.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [countryCode, stateCode, citiesReady]);
-  const citiesStillLoading = !citiesReady && !!countryCode && !isSeededCountry(countryCode);
-
   function selectCountry(item: LocationListItem) {
     setCountryCode(item.code);
     setCountry(item.name);
@@ -210,20 +174,14 @@ export function LocationSheet({
     setPickerOpen(null);
   }
 
-  function selectCity(item: LocationListItem) {
-    setCity(item.name);
-    setPickerOpen(null);
-  }
-
   useEffect(() => {
     const t = setTimeout(() => setPromptVisible(true), 350);
     return () => clearTimeout(t);
   }, []);
 
-  // Start pulling the rest of the world's cities the moment the sheet opens,
-  // so it's usually there before anyone taps into the city picker.
+  // Start pulling the rest of the world's states the moment the sheet opens,
+  // so it's usually there before anyone taps into the state picker.
   useEffect(() => {
-    void loadAllCities();
     void loadAllStates();
   }, []);
 
@@ -327,34 +285,6 @@ export function LocationSheet({
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-5 flex flex-col gap-6">
-        <div>
-          <p className="text-[17px] font-semibold text-sd-ink mb-1">Location name</p>
-          <p className="text-xs text-sd-ink-muted mb-3">
-            So you can tell it apart from your other locations — e.g. "Lekki warehouse" or "Main
-            store".
-          </p>
-          <div className="relative">
-            <input
-              id="location-name-input"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder=" "
-              className={`w-full text-base border rounded-xl px-4 py-3 outline-none focus:border-sd-ink-faint transition-colors duration-150 ${
-                showErrors && !name.trim() ? "border-sd-danger-mark/50" : "border-sd-line"
-              }`}
-            />
-            {!name.trim() && (
-              <label
-                htmlFor="location-name-input"
-                className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-1 text-sd-ink-faint pointer-events-none"
-              >
-                <span className="text-base">Custom location name</span>
-                <span className="text-xs">e.g main store</span>
-              </label>
-            )}
-          </div>
-        </div>
-
         {promptVisible && (
           <div className="border border-sd-line rounded-3xl p-5 flex items-start gap-3.5 bg-sd-elevated animate-in fade-in slide-in-from-top-2 duration-300">
             <div className="p-2 rounded-full bg-sd-surface border border-sd-line shrink-0">
@@ -435,17 +365,14 @@ export function LocationSheet({
               <ChevronRight size={16} className="text-sd-ink-faint shrink-0" />
             </button>
 
-            <button
-              type="button"
-              onClick={() => countryCode && setPickerOpen("city")}
-              disabled={!countryCode}
-              className={`w-full flex items-center justify-between text-base border rounded-xl px-4 py-3 transition-colors duration-150 disabled:opacity-50 ${
+            <input
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              placeholder="City"
+              className={`w-full text-base border rounded-xl px-4 py-3 outline-none focus:border-sd-ink-faint transition-colors duration-150 ${
                 showErrors && !city.trim() ? "border-sd-danger-mark/50" : "border-sd-line"
               }`}
-            >
-              <span className={city ? "text-sd-ink" : "text-sd-ink-faint"}>{city || "City"}</span>
-              <ChevronRight size={16} className="text-sd-ink-faint shrink-0" />
-            </button>
+            />
 
             <input
               value={postalCode}
@@ -485,21 +412,6 @@ export function LocationSheet({
             onClose={() => setPickerOpen(null)}
           />
         )}
-        {pickerOpen === "city" && (
-          <LocationListPicker
-            title="City"
-            items={cityItems}
-            allowCustom
-            loadingNote={
-              citiesStillLoading
-                ? "Still loading cities for this country — you can type yours in."
-                : undefined
-            }
-            onSelect={selectCity}
-            onClose={() => setPickerOpen(null)}
-          />
-        )}
-
         {lat != null && lng != null && (
           <div className="flex items-center gap-2 text-xs text-sd-ink-muted">
             <MapPin size={13} className="text-sd-ink-faint shrink-0" />
@@ -523,6 +435,36 @@ export function LocationSheet({
             {deleting ? "Deleting…" : "Delete this location"}
           </button>
         )}
+
+        <div>
+          <p className="text-[17px] font-semibold text-sd-ink mb-1">
+            Location name <span className="text-xs font-normal text-sd-ink-faint">(required)</span>
+          </p>
+          <p className="text-xs text-sd-ink-muted mb-3">
+            So you can tell it apart from your other locations — e.g. "Lekki warehouse" or "Main
+            store".
+          </p>
+          <div className="relative">
+            <input
+              id="location-name-input"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder=" "
+              className={`w-full text-base border rounded-xl px-4 py-3 outline-none focus:border-sd-ink-faint transition-colors duration-150 ${
+                showErrors && !name.trim() ? "border-sd-danger-mark/50" : "border-sd-line"
+              }`}
+            />
+            {!name.trim() && (
+              <label
+                htmlFor="location-name-input"
+                className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-1 text-sd-ink-faint pointer-events-none"
+              >
+                <span className="text-base">Custom location name</span>
+                <span className="text-xs">e.g main store</span>
+              </label>
+            )}
+          </div>
+        </div>
       </div>
 
       <div className="sticky bottom-0 px-4 pt-3 oak-safe-bottom border-t border-sd-line bg-sd-surface shrink-0">
