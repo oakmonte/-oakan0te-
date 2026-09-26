@@ -61,7 +61,7 @@ const hasKids = (node: CategoryNode) => !!node.children && node.children.length 
 // Pressable card shared by every row: roomy tap target, visible edge, and a
 // press state that lands on touch-down rather than after release.
 const CARD =
-  "w-full min-h-[60px] flex items-center gap-3 px-4 py-3.5 rounded-xl border text-left " +
+  "w-full min-h-[52px] flex items-center gap-3 px-4 py-3 rounded-xl border text-left " +
   "transition-[transform,background-color] duration-150 ease-out active:scale-[0.98] " +
   "[-webkit-tap-highlight-color:transparent]";
 const OPTION_CARD = `${CARD} bg-gray-50 border-gray-300 active:bg-gray-200`;
@@ -188,14 +188,14 @@ export function CategoryPicker({
         </span>
       </div>
 
-      <div className="px-4 pt-3 pb-3">
-        <label className="flex items-center gap-2.5 h-12 bg-gray-100 border border-gray-300 rounded-xl px-3.5 focus-within:border-gray-500">
-          <Search size={18} className="text-gray-600 shrink-0" />
+      <div className="px-4 pt-4 pb-6">
+        <label className="flex items-center gap-3 h-14 bg-gray-100 border border-gray-300 rounded-xl px-3.5 focus-within:border-gray-500">
+          <Search size={20} className="text-gray-600 shrink-0" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search categories"
-            className="bg-transparent text-base text-gray-950 placeholder:text-gray-500 flex-1 outline-none"
+            className="bg-transparent text-[17px] text-gray-950 placeholder:text-gray-500 flex-1 outline-none"
           />
         </label>
       </div>
