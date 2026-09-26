@@ -228,7 +228,7 @@ export function VariantCombinationsSheet({
 
   return (
     <div className="fixed inset-0 z-40 bg-white flex flex-col min-h-dvh">
-      <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
+      <div className="shrink-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
         <button
           onClick={onBack}
           type="button"

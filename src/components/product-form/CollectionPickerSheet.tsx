@@ -62,7 +62,7 @@ export function CollectionPickerSheet({
       className="fixed inset-0 z-50 bg-white flex flex-col min-h-dvh animate-in fade-in slide-in-from-bottom-6 duration-300 ease-out"
       style={{ paddingBottom: keyboardInset }}
     >
-      <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
+      <div className="shrink-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
         <button onClick={onClose} type="button" className="p-1 -ml-1">
           <X size={20} className="text-gray-500" />
         </button>
@@ -130,7 +130,7 @@ export function CollectionPickerSheet({
             )}
           </div>
 
-          <div className="sticky bottom-0 bg-black text-white px-4 min-h-14 pb-[env(safe-area-inset-bottom)] flex items-center justify-between shrink-0">
+          <div className="bg-black text-white px-4 min-h-14 pb-[env(safe-area-inset-bottom)] flex items-center justify-between shrink-0">
             <span className="text-sm">{selected ? "1 selected" : "None selected"}</span>
             <button
               type="button"

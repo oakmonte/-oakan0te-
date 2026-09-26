@@ -158,7 +158,7 @@ export function InventorySheet({
       className="fixed inset-0 z-50 bg-white flex flex-col min-h-dvh animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
       style={{ paddingBottom: keyboardInset }}
     >
-      <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 pt-4 pb-3 flex flex-col items-center shrink-0 relative">
+      <div className="bg-white/95 backdrop-blur border-b border-gray-100 px-4 pt-4 pb-3 flex flex-col items-center shrink-0 relative">
         <button
           // Commits, doesn't discard: BarcodesSheet and "Edit locations" both
           // now apply on their own X/Save (the seller sees "3 barcodes" the
@@ -334,7 +334,7 @@ export function InventorySheet({
         />
       )}
 
-      <div className="sticky bottom-0 px-4 pt-3 oak-safe-bottom border-t border-gray-100 bg-white shrink-0">
+      <div className="px-4 pt-3 oak-safe-bottom border-t border-gray-100 bg-white shrink-0">
         <button
           type="button"
           onClick={handleSave}
@@ -391,7 +391,7 @@ function InventoryLocationsPicker({
 }) {
   return (
     <div className="fixed inset-0 z-50 bg-white flex flex-col min-h-dvh animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]">
-      <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between shrink-0">
+      <div className="bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between shrink-0">
         <button
           onClick={onClose}
           className="p-1 -ml-1 transition-transform duration-150 active:scale-90"
@@ -449,7 +449,7 @@ function InventoryLocationsPicker({
       </div>
 
       {locations.length > 0 && (
-        <div className="sticky bottom-0 px-4 pt-3 oak-safe-bottom border-t border-gray-100 bg-white shrink-0">
+        <div className="px-4 pt-3 oak-safe-bottom border-t border-gray-100 bg-white shrink-0">
           <button
             type="button"
             onClick={onClose}

@@ -114,7 +114,7 @@ export function CollectionsSheet({
       className="fixed inset-0 z-50 bg-white flex flex-col min-h-dvh animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
       style={{ paddingBottom: keyboardInset }}
     >
-      <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
+      <div className="shrink-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
         <button onClick={onClose} type="button" className="p-1 -ml-1">
           <X size={20} className="text-gray-500" />
         </button>
@@ -240,7 +240,7 @@ export function CollectionsSheet({
               gap below it (and fades the list out behind it) while staying
               sticky, so the pill never sits flush against the phone's
               bottom edge or the browser toolbar under it. */}
-          <div className="sticky bottom-0 shrink-0 px-3 pt-3 pb-[calc(env(safe-area-inset-bottom)+1.25rem)] bg-gradient-to-t from-white via-white/95 to-transparent">
+          <div className="shrink-0 px-3 pt-3 pb-[calc(env(safe-area-inset-bottom)+1.25rem)] bg-gradient-to-t from-white via-white/95 to-transparent">
             <div className="bg-black text-white rounded-full h-[60px] pl-6 pr-2 flex items-center justify-between shadow-lg shadow-black/20">
               <span className="text-sm">{selected.size} selected</span>
               <button

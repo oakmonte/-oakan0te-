@@ -61,7 +61,7 @@ export function WeightSheet({
       className="fixed inset-0 z-50 bg-white flex flex-col min-h-dvh animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
       style={{ paddingBottom: keyboardInset }}
     >
-      <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 pt-4 pb-3 flex flex-col items-center shrink-0 relative">
+      <div className="bg-white/95 backdrop-blur border-b border-gray-100 px-4 pt-4 pb-3 flex flex-col items-center shrink-0 relative">
         <button
           onClick={onClose}
           type="button"
@@ -111,7 +111,7 @@ export function WeightSheet({
         )}
       </div>
 
-      <div className="sticky bottom-0 px-4 pt-3 oak-safe-bottom border-t border-gray-100 bg-white shrink-0">
+      <div className="px-4 pt-3 oak-safe-bottom border-t border-gray-100 bg-white shrink-0">
         <button
           type="button"
           onClick={handleSave}

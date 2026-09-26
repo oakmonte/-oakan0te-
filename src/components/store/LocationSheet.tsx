@@ -274,7 +274,7 @@ export function LocationSheet({
 
   return (
     <div className="fixed inset-0 z-50 bg-sd-surface flex flex-col min-h-dvh animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]">
-      <div className="sticky top-0 bg-sd-surface/95 backdrop-blur border-b border-sd-line px-4 h-14 flex items-center justify-between shrink-0">
+      <div className="bg-sd-surface/95 backdrop-blur border-b border-sd-line px-4 h-14 flex items-center justify-between shrink-0">
         <button onClick={onClose} type="button" className="p-1 -ml-1">
           <X size={20} className="text-sd-ink-muted" />
         </button>
@@ -467,7 +467,7 @@ export function LocationSheet({
         </div>
       </div>
 
-      <div className="sticky bottom-0 px-4 pt-3 oak-safe-bottom border-t border-sd-line bg-sd-surface shrink-0">
+      <div className="px-4 pt-3 oak-safe-bottom border-t border-sd-line bg-sd-surface shrink-0">
         <button
           type="button"
           onClick={handleSave}

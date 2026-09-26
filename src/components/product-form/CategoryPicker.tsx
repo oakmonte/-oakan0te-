@@ -111,7 +111,7 @@ export function CategoryPicker({
 
   return (
     <div className="fixed inset-0 z-50 bg-white flex flex-col min-h-dvh animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]">
-      <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center gap-3">
+      <div className="shrink-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center gap-3">
         <button onClick={goBack} className="p-1 -ml-1" type="button">
           <ChevronLeft size={22} />
         </button>

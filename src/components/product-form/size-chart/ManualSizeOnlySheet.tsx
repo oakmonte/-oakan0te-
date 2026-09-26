@@ -141,7 +141,7 @@ export function ManualSizeOnlySheet({
 
   return (
     <div className="fixed inset-0 z-50 bg-white flex flex-col min-h-dvh animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]">
-      <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between shrink-0">
+      <div className="bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between shrink-0">
         <button onClick={onClose} type="button" className="p-1 -ml-1">
           <X size={20} className="text-gray-500" />
         </button>
@@ -250,7 +250,7 @@ export function ManualSizeOnlySheet({
       </div>
 
       {(isVariantMode || pickedSize) && (
-        <div className="sticky bottom-0 px-4 pt-3 oak-safe-bottom border-t border-gray-100 bg-white shrink-0 flex gap-3">
+        <div className="px-4 pt-3 oak-safe-bottom border-t border-gray-100 bg-white shrink-0 flex gap-3">
           {isVariantMode && index > 0 && (
             <button
               type="button"

@@ -35,7 +35,7 @@ export function VariantListSheet({
 
   return (
     <div className="fixed inset-0 z-40 bg-white flex flex-col min-h-dvh">
-      <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center">
+      <div className="shrink-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center">
         <button
           onClick={onBack}
           type="button"
@@ -100,7 +100,7 @@ export function VariantListSheet({
         </div>
       </div>
 
-      <div className="sticky bottom-0 bg-white/95 backdrop-blur border-t border-gray-100 px-4 pt-3 oak-safe-bottom">
+      <div className="shrink-0 bg-white/95 backdrop-blur border-t border-gray-100 px-4 pt-3 oak-safe-bottom">
         <button
           type="button"
           onClick={onContinue}

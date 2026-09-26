@@ -18,11 +18,9 @@ import { useLayoutEffect } from "react";
 // conventions), and those are modals opened from partway down a genuinely
 // long, scrollable product-form page -- not routes with their own
 // already-fixed layout the way the camera/after-shot screens are. That
-// mismatch is exactly what the scrollY save/restore below is for; see
-// styles.css's .oak-locked-viewport for the other half of the fix (an
-// unresolved percentage height on a locked body, which is what actually
-// produced a sheet's header landing far down the page with dead space above
-// it, not just a scroll-position jump).
+// mismatch is exactly what the scrollY save/restore below is for. See
+// styles.css's .oak-locked-viewport for why the lock must use overflow: clip
+// -- a scrollable locked body is what displaced sheets' headers and footers.
 
 // Module-level, ref-counted rather than "capture original on mount, restore
 // on unmount" — two sheets that both call this hook (nothing stops that;

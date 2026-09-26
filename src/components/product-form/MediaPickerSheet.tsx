@@ -96,7 +96,7 @@ export function MediaPickerSheet({
 
   return (
     <div className="fixed inset-0 z-50 flex min-h-dvh flex-col bg-white">
-      <div className="sticky top-0 flex h-14 items-center justify-between border-b border-gray-100 bg-white/95 px-4 backdrop-blur">
+      <div className="shrink-0 flex h-14 items-center justify-between border-b border-gray-100 bg-white/95 px-4 backdrop-blur">
         <button
           onClick={onClose}
           type="button"

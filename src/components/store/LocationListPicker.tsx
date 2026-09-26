@@ -47,7 +47,7 @@ export function LocationListPicker({
 
   return (
     <div className="fixed inset-0 z-50 bg-sd-surface flex flex-col min-h-dvh animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]">
-      <div className="sticky top-0 bg-sd-surface/95 backdrop-blur border-b border-sd-line px-4 h-14 flex items-center gap-3 shrink-0">
+      <div className="bg-sd-surface/95 backdrop-blur border-b border-sd-line px-4 h-14 flex items-center gap-3 shrink-0">
         <button onClick={onClose} className="p-1 -ml-1" type="button">
           <ChevronLeft size={22} />
         </button>

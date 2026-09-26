@@ -92,7 +92,7 @@ export function TagsSheet({
       className="fixed inset-0 z-50 bg-white flex flex-col min-h-dvh animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
       style={{ paddingBottom: keyboardInset }}
     >
-      <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
+      <div className="shrink-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
         <button onClick={onClose} type="button" className="p-1 -ml-1">
           <X size={20} className="text-gray-500" />
         </button>
@@ -171,7 +171,7 @@ export function TagsSheet({
         )}
       </div>
 
-      <div className="sticky bottom-0 px-3 pt-2 oak-safe-bottom shrink-0">
+      <div className="px-3 pt-2 oak-safe-bottom shrink-0">
         <div className="bg-black text-white rounded-full px-4 h-12 flex items-center justify-between shadow-lg">
           <span className="text-sm text-gray-300">{selectedIds.length} selected</span>
           <div className="flex items-center gap-2">

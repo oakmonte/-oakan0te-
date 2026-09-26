@@ -17,7 +17,9 @@ bg-gray-50` plus a filled black check. There is no accent color anywhere in this
 - **Always offer one-tap _and_ typing** in the same view — curated presets plus a free-text input, no
   mode toggle. Typed values pin above the presets so they survive a preset-list swap.
 - **Full-screen sheets**, not bottom drawers: `fixed inset-0 z-50 bg-white flex flex-col min-h-dvh`
-  with a sticky Cancel / title / Save header.
+  with a Cancel / title / Save header. Header and any bottom action bar are plain `shrink-0` flex
+  children around a `flex-1 overflow-y-auto` body — **never `sticky`**: inside these fixed sheets it
+  does nothing useful, and on iPhone it displaced headers down the screen and footers up it.
 - **Any sheet containing a text input must call `useLockedViewport()`** (`@/hooks/use-locked-viewport`)
   so the mobile keyboard overlays the page instead of pushing it up. Easy to forget on new sheets;
   see `OptionEditorSheet.tsx`.
