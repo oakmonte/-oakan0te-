@@ -128,21 +128,53 @@ function ThumbStrip({
 }) {
   const [dragUrl, setDragUrl] = useState<string | null>(null);
   const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const startPos = useRef<{ x: number; y: number } | null>(null);
-  const moved = useRef(false);
   const tileRefs = useRef(new Map<string, HTMLDivElement>());
   const prevRects = useRef(new Map<string, DOMRect>());
+  const imagesRef = useRef(images);
+  imagesRef.current = images;
+  const callbacks = useRef({ onReorder, onFocus });
+  callbacks.current = { onReorder, onFocus };
+  const removeListeners = useRef<(() => void) | null>(null);
+
+  // Everything the live drag reads lives in one ref, not state: pointermove
+  // fires far faster than React re-renders, and a handler reading `images`
+  // or `dragUrl` from a render closure acts on a stale order.
+  const drag = useRef<{
+    url: string;
+    pointerId: number;
+    finger: { x: number; y: number };
+    // Finger position relative to the tile's top-left when the drag began,
+    // so the lifted tile stays under the finger at the same spot.
+    grab: { x: number; y: number };
+    // Slot geometry frozen at drag start. The target slot is chosen against
+    // THESE, never by hit-testing the tiles themselves -- tiles are mid-FLIP
+    // after every swap, and the one just swapped away still sits visually
+    // under the finger for ~200ms, so hit-testing it swapped straight back:
+    // the rapid left-right flicker, and drops that landed on a swap-back.
+    slots: DOMRect[];
+    active: boolean;
+  } | null>(null);
+
+  function positionDragged() {
+    const d = drag.current;
+    if (!d?.active) return;
+    const el = tileRefs.current.get(d.url);
+    const slot = d.slots[imagesRef.current.indexOf(d.url)];
+    if (!el || !slot) return;
+    el.style.transform = `translate(${d.finger.x - d.grab.x - slot.left}px, ${d.finger.y - d.grab.y - slot.top}px)`;
+  }
 
   // FLIP reorder: a swap just teleports these tiles in the DOM, which reads
   // as a jump-cut rather than a drag. Snapshot every tile's position right
   // before the array actually changes, then here -- after React has already
   // repainted them at their new spots -- offset each one back to where it
   // just was and let it transition to zero, turning the teleport into a
-  // slide. No animation library needed for four flex children.
+  // slide. The dragged tile is skipped: it follows the finger instead.
   useLayoutEffect(() => {
+    const dragging = drag.current?.active ? drag.current.url : null;
     tileRefs.current.forEach((el, url) => {
       const prev = prevRects.current.get(url);
-      if (!prev) return;
+      if (!prev || url === dragging) return;
       const next = el.getBoundingClientRect();
       const dx = prev.left - next.left;
       const dy = prev.top - next.top;
@@ -162,7 +194,10 @@ function ThumbStrip({
       }
     });
     prevRects.current.clear();
+    positionDragged();
   }, [images]);
+
+  useEffect(() => () => endGesture(false), []); // eslint-disable-line react-hooks/exhaustive-deps
 
   function snapshotRects() {
     tileRefs.current.forEach((el, url) => prevRects.current.set(url, el.getBoundingClientRect()));
@@ -175,63 +210,120 @@ function ThumbStrip({
     }
   }
 
-  function handlePointerDown(e: React.PointerEvent, url: string) {
-    startPos.current = { x: e.clientX, y: e.clientY };
-    moved.current = false;
-    const pointerId = e.pointerId;
-    const target = e.currentTarget as HTMLElement;
-    clearTimer();
-    pressTimer.current = setTimeout(() => {
-      setDragUrl(url);
-      // Guarded: the browser can have already released this pointer by the
-      // time this delayed callback runs, and an uncaught exception here
-      // would abandon the gesture mid-setup -- move/up are also listened for
-      // on window, so the drag still works without capture either way.
-      try {
-        target.setPointerCapture(pointerId);
-      } catch {
-        // See above -- not fatal.
+  function nearestSlot(slots: DOMRect[], x: number, y: number) {
+    let best = 0;
+    let bestDist = Infinity;
+    slots.forEach((r, i) => {
+      const dist = (r.left + r.width / 2 - x) ** 2 + (r.top + r.height / 2 - y) ** 2;
+      if (dist < bestDist) {
+        bestDist = dist;
+        best = i;
       }
-    }, 300);
+    });
+    return best;
   }
 
-  function handlePointerMove(e: React.PointerEvent) {
-    if (startPos.current && !dragUrl) {
-      const dx = Math.abs(e.clientX - startPos.current.x);
-      const dy = Math.abs(e.clientY - startPos.current.y);
-      if (dx > 8 || dy > 8) {
-        moved.current = true;
-        clearTimer();
+  function onWindowMove(e: PointerEvent) {
+    const d = drag.current;
+    if (!d || e.pointerId !== d.pointerId) return;
+    if (!d.active) {
+      // Moving before the long-press fires means a scroll/swipe, not a drag.
+      if (Math.abs(e.clientX - d.finger.x) > 8 || Math.abs(e.clientY - d.finger.y) > 8) {
+        endGesture(false);
       }
       return;
     }
-    if (!dragUrl) return;
-    const hit = document
-      .elementsFromPoint(e.clientX, e.clientY)
-      .find((n): n is HTMLElement => n instanceof HTMLElement && !!n.dataset.galleryUrl);
-    const overUrl = hit?.dataset.galleryUrl;
-    if (!overUrl || overUrl === dragUrl) return;
-    const from = images.indexOf(dragUrl);
-    const to = images.indexOf(overUrl);
-    if (from === -1 || to === -1) return;
-    snapshotRects();
-    const next = [...images];
-    next.splice(from, 1);
-    next.splice(to, 0, dragUrl);
-    onReorder(next);
+    e.preventDefault();
+    d.finger = { x: e.clientX, y: e.clientY };
+    const current = imagesRef.current;
+    const from = current.indexOf(d.url);
+    if (from === -1) {
+      // Its upload finished mid-drag and swapped the preview URL for the real one.
+      endGesture(false);
+      return;
+    }
+    const to = nearestSlot(d.slots, e.clientX, e.clientY);
+    if (to !== from) {
+      snapshotRects();
+      const next = [...current];
+      next.splice(from, 1);
+      next.splice(to, 0, d.url);
+      imagesRef.current = next;
+      callbacks.current.onReorder(next);
+    }
+    positionDragged();
   }
 
-  function handlePointerUp(url: string) {
-    clearTimer();
-    if (!dragUrl && !moved.current) onFocus(images.indexOf(url));
-    setDragUrl(null);
-    startPos.current = null;
+  function onWindowUp(e: PointerEvent) {
+    const d = drag.current;
+    if (!d || e.pointerId !== d.pointerId) return;
+    endGesture(!d.active);
   }
 
-  function handlePointerCancel() {
+  function onWindowCancel(e: PointerEvent) {
+    if (drag.current && e.pointerId === drag.current.pointerId) endGesture(false);
+  }
+
+  function endGesture(wasTap: boolean) {
     clearTimer();
+    removeListeners.current?.();
+    removeListeners.current = null;
+    const d = drag.current;
+    drag.current = null;
+    if (!d) return;
+    if (wasTap) {
+      const i = imagesRef.current.indexOf(d.url);
+      if (i !== -1) callbacks.current.onFocus(i);
+      return;
+    }
+    const el = tileRefs.current.get(d.url);
+    if (el && d.active) {
+      // Settle from wherever the finger let go into the tile's final slot.
+      el.style.transition = "transform 180ms ease-out, scale 150ms ease-out";
+      el.style.transform = "";
+      el.addEventListener("transitionend", () => (el.style.transition = ""), { once: true });
+    }
     setDragUrl(null);
-    startPos.current = null;
+  }
+
+  function handlePointerDown(e: React.PointerEvent, url: string) {
+    if (drag.current) return;
+    const tile = e.currentTarget as HTMLElement;
+    const rect = tile.getBoundingClientRect();
+    drag.current = {
+      url,
+      pointerId: e.pointerId,
+      finger: { x: e.clientX, y: e.clientY },
+      grab: { x: e.clientX - rect.left, y: e.clientY - rect.top },
+      slots: [],
+      active: false,
+    };
+    // Window listeners rather than per-tile ones plus pointer capture: the
+    // finger crosses other tiles all drag long, and a capture acquired from a
+    // delayed timer can silently fail on iOS.
+    const move = onWindowMove;
+    const up = onWindowUp;
+    const cancel = onWindowCancel;
+    window.addEventListener("pointermove", move, { passive: false });
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", cancel);
+    removeListeners.current = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", cancel);
+    };
+    pressTimer.current = setTimeout(() => {
+      const d = drag.current;
+      if (!d) return;
+      d.slots = imagesRef.current.map(
+        (u) => tileRefs.current.get(u)?.getBoundingClientRect() ?? new DOMRect(),
+      );
+      const el = tileRefs.current.get(url);
+      if (el) el.style.transition = "scale 150ms ease-out";
+      d.active = true;
+      setDragUrl(url);
+      navigator.vibrate?.(10);
+    }, 300);
   }
 
   return (
@@ -245,11 +337,9 @@ function ThumbStrip({
           }}
           data-gallery-url={url}
           onPointerDown={(e) => handlePointerDown(e, url)}
-          onPointerMove={handlePointerMove}
-          onPointerUp={() => handlePointerUp(url)}
-          onPointerCancel={handlePointerCancel}
+          onContextMenu={(e) => e.preventDefault()}
           style={{ WebkitTouchCallout: "none" }}
-          className={`relative w-14 h-14 shrink-0 rounded-lg bg-gray-100 overflow-hidden touch-none select-none transition-transform duration-150 ${
+          className={`relative w-14 h-14 shrink-0 rounded-lg bg-gray-100 overflow-hidden touch-none select-none transition-[scale] duration-150 ${
             // :active has higher specificity than a plain conditional class
             // regardless of source order, so active:scale-90 would win over
             // scale-110 for the entire drag (setPointerCapture keeps :active
