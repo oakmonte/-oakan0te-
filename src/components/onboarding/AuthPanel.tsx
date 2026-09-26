@@ -567,7 +567,7 @@ export function AuthPanel({ intent, title, subtitle, defaultMode = "code" }: Pro
                         setNotice(null);
                       }
                 }
-                className="w-full text-[11px] uppercase tracking-widest text-[#0A0A0A]/60 hover:text-[#0A0A0A] transition-colors pt-2"
+                className="w-full text-[11px] uppercase tracking-widest text-[#0A0A0A]/60 underline underline-offset-2 hover:text-[#0A0A0A] transition-colors pt-2"
               >
                 {intent === null
                   ? "Forgot password? Email me a code"
@@ -678,7 +678,7 @@ export function AuthPanel({ intent, title, subtitle, defaultMode = "code" }: Pro
           {intent === null && (
             <Link
               to="/no-account"
-              className="mt-8 block text-center text-[11px] uppercase tracking-widest text-[#0A0A0A]/60 hover:text-[#0A0A0A] transition-colors"
+              className="mt-8 block text-center text-[11px] uppercase tracking-widest text-[#0A0A0A]/60 underline underline-offset-2 hover:text-[#0A0A0A] transition-colors"
             >
               Create a new account
             </Link>
