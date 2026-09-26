@@ -11,11 +11,11 @@ import type { ManualSize, SizeMeasurements } from "@/lib/size-chart-config";
 // Which category-specific parameters a category requires before a product in
 // it can be published, keyed by category id anywhere in the chosen path —
 // not just the leaf, since e.g. "Dresses" and "Shorts" both fall under
-// "Clothing" and share the same requirements. Covers every top-level Apparel
-// & Accessories branch, plus the Apparel & Accessories root itself as a
-// fallback for sellers who stop there without drilling into a branch; Size
-// is only included where it's actually standardized (clothing, costumes,
-// shoes) — small-accessory branches don't share a size axis. Beauty &
+// "Clothing" and share the same requirements. Covers every Fashion branch,
+// plus the Fashion root itself as a fallback for sellers who stop there
+// without drilling into a branch; Size is only included where it's actually
+// standardized (clothing, footwear) — accessories, shoe care and costume
+// accessories don't share a size axis. Beauty &
 // Personal Care / Art & Crafts have no category-specific tracked fields
 // yet — selecting either of those (at any depth) falls through to just the
 // universal params below (Link content).
@@ -29,16 +29,17 @@ import type { ManualSize, SizeMeasurements } from "@/lib/size-chart-config";
 export type NecessityParam = "Size" | "Color" | "Material" | "Weight" | "Link content";
 
 const NECESSITY_PARAMS: Record<string, NecessityParam[]> = {
-  "apparel-accessories": ["Size", "Color", "Material"],
+  fashion: ["Size", "Color", "Material"],
   clothing: ["Size", "Color", "Material"],
-  "costumes-accessories": ["Size", "Color", "Material"],
-  shoes: ["Size", "Color", "Material"],
-  "clothing-accessories": ["Color", "Material"],
-  "shoe-accessories": ["Color", "Material"],
-  "handbags-wallets-cases": ["Color", "Material"],
-  "handbag-wallet-accessories": ["Material", "Color"],
+  "costume-accessories": ["Color", "Material"],
+  footwear: ["Size", "Color", "Material"],
+  "shoe-care": ["Color", "Material"],
+  accessories: ["Color", "Material"],
   jewelry: ["Material", "Color"],
 };
+
+/** Exported only for categories.test.ts, which checks each key is a real category id. */
+export const NECESSITY_CATEGORY_IDS = Object.keys(NECESSITY_PARAMS);
 
 // Applies to every category, regardless of what else it tracks: "Link
 // content" because a product isn't ready to publish without one, "Weight"
@@ -60,7 +61,7 @@ export function paramsForCategory(
 ): NecessityParam[] {
   if (categoryPath.length === 0) return [];
   // Walk leaf-to-root so a specific branch (e.g. Jewelry) wins over the
-  // broader Apparel & Accessories root fallback further up the same path.
+  // broader Fashion root fallback further up the same path.
   let params: NecessityParam[] | null = null;
   for (let i = categoryPath.length - 1; i >= 0; i--) {
     const match = NECESSITY_PARAMS[categoryPath[i].id];

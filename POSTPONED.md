@@ -96,14 +96,15 @@ collected after the user has something to lose. One-line move in `FLOWS`
 ### 2.5 Size chart — coverage holes, not architecture
 
 `size-chart-config.ts` + `SizeChartSheet` are real and persist actual cm measurements to
-`product_size_measurements`. What's left is coverage: extend `CHARTS_BY_CATEGORY` +
-`GUIDE_IMAGES` the same way the existing 94 category mappings work. Three categories stay
-manual on purpose, not as gaps to close:
+`product_size_measurements`. The tree was trimmed 2026-09-26 (Apparel & Accessories → Fashion,
+880 leaves → 426; the Fashion branch alone went 627 → 173). What's left is coverage: leaves
+with no guide (Blouses, Sweaters, Jackets, Maxi Dresses, Kids' Tops, …) still get the blank
+manual sheet. The planned fix is preset measurement lists for those, not more artwork. Three
+categories stay manual on purpose, not as gaps to close:
 
 - **Footwear** — a shoe has no lettered spans to measure; `SHOE_SIZE_SYSTEMS` replaces the
   clothing ladder in the manual picker instead.
-- **Costume sets, cloaks/capes, accessories, wigs** — no single chart fits a bundle or a
-  drape.
+- **Costume sets, capes & cloaks, accessories** — no single chart fits a bundle or a drape.
 - **Bodycon dresses** — the guide artwork labels two different spans both `B`; needs
   relabelled art, not a chart definition.
 

@@ -1,5 +1,14 @@
 # Size-chart image audit
 
+## Category tree trimmed 2026-09-26
+
+Category ids quoted in the older entries below (`costume-shoes`, `shoes`, `clothing-tops-*`,
+`Volleyball Shorts`, …) predate the trim and no longer exist. Footwear is now the `footwear`
+branch (minus `shoe-care`); costume shoes folded into it. `CHARTS_BY_CATEGORY` is the current
+source of truth. The `activewear-tshirt` and `polo-alt` charts are no longer mapped: their leaves
+were duplicates of T-Shirts and Polos. New rule: split a category (and draw a guide) only when
+the garment's shape changes, never for material.
+
 ## Resolved 2026-09-22
 
 **`Bodycon-dress guide.png` — identity confirmed, but the labels are broken.** The 2026-09-10 row

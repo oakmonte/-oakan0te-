@@ -14,7 +14,7 @@ import { BackButton } from "@/components/BackButton";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { startProductSave } from "@/lib/product-save";
 import { hasPendingUploads } from "@/lib/background-upload";
-import { CategoryNode, ROOT_CATEGORY } from "@/lib/categories";
+import { CategoryNode, categoryPathFromProductType, productTypeForPath } from "@/lib/categories";
 import { StubRow } from "@/components/product-form/ui";
 import { MediaSection } from "@/components/product-form/MediaSection";
 import { DetailsSection } from "@/components/product-form/DetailsSection";
@@ -73,25 +73,6 @@ export const Route = createFileRoute("/store/products_/$id")({
 });
 
 type ProductKind = "regular" | "variant";
-
-// Resolves products.product_type (a free-text leaf name — the manual form
-// never writes category_id, see canonical-product-schema skill) back onto a
-// CategoryNode path by matching the leaf's name. Best-effort: if the name was
-// edited, renamed upstream, or never resolved to begin with, this just comes
-// back null and the seller re-picks — the same "missing beats wrong" stance
-// the import contract takes for category_id.
-function findCategoryPathByName(name: string): CategoryNode[] | null {
-  function walk(node: CategoryNode, path: CategoryNode[]): CategoryNode[] | null {
-    for (const child of node.children ?? []) {
-      const nextPath = [...path, child];
-      if (child.name.toLowerCase() === name.trim().toLowerCase()) return nextPath;
-      const found = walk(child, nextPath);
-      if (found) return found;
-    }
-    return null;
-  }
-  return walk(ROOT_CATEGORY, []);
-}
 
 type LoadedProduct = {
   id: string;
@@ -603,7 +584,7 @@ function EditProduct() {
       setTitle(product.title ?? "");
       setDescriptionShort(product.description_short ?? "");
       setCategoryPath(
-        product.product_type ? (findCategoryPathByName(product.product_type) ?? []) : [],
+        product.product_type ? (categoryPathFromProductType(product.product_type) ?? []) : [],
       );
 
       if (product.manual_size_value && product.manual_size_system) {
@@ -935,7 +916,7 @@ function EditProduct() {
       storeId: storeId!,
       title,
       descriptionShort,
-      categoryName: categoryPath.at(-1)?.name || null,
+      categoryName: productTypeForPath(categoryPath),
       status,
       manualSize,
       kind,

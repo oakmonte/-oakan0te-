@@ -198,9 +198,7 @@ function topChart(id: string, guide: SizeChartDefinition["guide"]): SizeChartDef
   return { id, guide, lines: STANDARD_TOP_LINES };
 }
 
-const ACTIVEWEAR_TSHIRT = topChart("activewear-tshirt", "activewear-tshirt");
 const STANDARD_TSHIRT = topChart("standard-tshirt", "standard-tshirt");
-const POLO_ALT = topChart("polo-alt", "polo-alt");
 
 function letteredChart(
   id: string,
@@ -443,117 +441,124 @@ const WRAP_DRESS = letteredChart("wrap-dress", "wrap-dress", [
 
 // Every category node id (at any depth in the path) that should get a chart.
 // A guide is reused wherever its illustration fairly represents the garment,
-// not only for the category it was drawn for — e.g. the generic drawstring
-// Shorts guide also covers chino/cargo/jogger shorts, and the T-shirt guide
-// covers all five "T-Shirts" leaves in categories.ts.
+// not only for the category it was drawn for — e.g. Trousers borrows the
+// baggy corporate trousers guide, and Costume Tops borrows the T-shirt guide.
+// categories.test.ts asserts every key here exists in categories.ts.
 const CHARTS_BY_CATEGORY: Record<string, SizeChartDefinition> = {
   // Tops
-  "clothing-tops-t-shirts": STANDARD_TSHIRT,
-  "t-shirts": ACTIVEWEAR_TSHIRT,
-  "baby-childrens-tops-t-shirts": TSHIRT_SHORT_SLEEVE,
-  "maternity-tops-t-shirts": TSHIRT_SHORT_SLEEVE,
-  "nursing-t-shirts": TSHIRT_SHORT_SLEEVE,
-  polos: POLO_SHIRT,
-  "clothing-tops-polos": POLO_ALT,
-  "off-shoulder-tops": OFF_SHOULDER_TOP,
-  "nfl-jerseys": NFL_JERSEY,
-  "football-jerseys": FOOTBALL_JERSEY,
-  "dress-shirts": DRESS_SHIRT,
-  "clothing-tops-shirts": DRESS_SHIRT,
+  "t-shirts": STANDARD_TSHIRT,
+  "short-sleeve-shirts": SHORT_SLEEVE_SHIRT,
   shirts: DRESS_SHIRT,
+  polos: POLO_SHIRT,
+  "henley-shirts": HENLEY,
+  "tank-tops": TANK_TOP,
+  "crop-tops": CROP_TOP,
+  "corset-tops": CORSET,
+  "off-shoulder-tops": OFF_SHOULDER_TOP,
+  "peplum-tops": PEPLUM_TOP,
+  tunics: TUNIC,
+  hoodies: HOODIE,
+  sweatshirts: NEW_SWEATSHIRT,
+  cardigans: CARDIGAN,
+  turtlenecks: TURTLE_NECK,
+  "sweater-vests": SWEATER_VEST,
 
-  // Pants & joggers
+  // Pants & trousers
+  trousers: BAGGY_CORPORATE_TROUSERS,
+  "baggy-corporate-trousers": BAGGY_CORPORATE_TROUSERS,
+  jeans: BAGGY_JEANS,
+  "baggy-jeans": BAGGY_JEANS,
+  "cargo-pants": CARGO_PANTS,
   "baggy-joggers": BAGGY_JOGGERS,
   "cuffed-joggers": CUFFED_JOGGERS,
-  "pants-joggers": CUFFED_JOGGERS,
-  joggers: CUFFED_JOGGERS,
-  "loungewear-bottoms-joggers": CUFFED_JOGGERS,
   "straight-joggers": STRAIGHT_JOGGERS,
-  "lounge-pants": STRAIGHT_JOGGERS,
   "skinny-joggers": SKINNY_JOGGERS,
-  "baggy-corporate-trousers": BAGGY_CORPORATE_TROUSERS,
-  "pants-trousers": BAGGY_CORPORATE_TROUSERS,
-  "pants-chinos": BAGGY_CORPORATE_TROUSERS,
+  leggings: LEGGINGS,
   "palazzo-pants": PALAZZO,
+  "flared-pants": FLARED_PANTS,
   "harem-pants": HAREM_PANTS,
-  "baggy-jeans": BAGGY_JEANS,
-  "pants-jeans": BAGGY_JEANS,
-  "pants-jeggings": BAGGY_JEANS,
-  "pants-leggings": LEGGINGS,
+  "parachute-pants": PARACHUTE_PANTS,
+  "leather-pants": LEATHER_PANTS,
+  "linen-pants": LINEN_PANTS,
 
   // Shorts & jorts
   shorts: SHORTS,
-  "jogger-shorts": SHORTS,
-  "chino-shorts": SHORTS,
-  "cargo-shorts": SHORTS,
-  bermudas: BERMUDA_SHORTS,
-  "short-trousers": SHORTS,
-  "legging-shorts": SHORTS,
-  "loungewear-bottoms-shorts": SHORTS,
-  "jogger-jorts": JOGGER_JORTS,
-  "denim-jorts": DENIM_JORTS,
-  "denim-shorts": DENIM_JORTS,
+  "bermuda-shorts": BERMUDA_SHORTS,
+  "biker-shorts": BIKER_SHORTS,
+  "sports-shorts": SPORTS_SHORTS,
   "dolphin-shorts": DOLPHIN_SHORTS,
   "bum-shorts": BUM_SHORTS,
-  "jegging-shorts": BUM_SHORTS,
   "denim-bum-shorts": DENIM_BUM_SHORTS,
-  "clothing-tops-sweatshirts": NEW_SWEATSHIRT,
-  "volleyball-shorts": SHORTS,
-  "basketball-jerseys": BASKETBALL_JERSEY,
-  "clothing-tops-cardigans": CARDIGAN,
-  "cargo-pants": CARGO_PANTS,
-  "crop-tops": CROP_TOP,
-  "clothing-tops-hoodies": HOODIE,
-  jumpsuits: JUMPSUIT,
-  "costume-onesies-jumpsuits": JUMPSUIT,
-  "mini-dresses": MINI_DRESS,
+  "denim-jorts": DENIM_JORTS,
+  "jogger-jorts": JOGGER_JORTS,
+
+  // Skirts & dresses
   "mini-skirts": MINI_SKIRT,
   "pleated-skirts": PLEATED_SKIRT,
-  "coats-jackets-puffer-jackets": PUFFER_JACKET,
-  rompers: ROMPER,
-  "short-sleeve-shirts": SHORT_SLEEVE_SHIRT,
-  "sports-shorts": SPORTS_SHORTS,
-  "outerwear-vests": SWEATER_VEST,
-  "clothing-tops-tank-tops": TANK_TOP,
-  "turtle-necks": TURTLE_NECK,
-  "varsity-jackets": VARSITY_JACKET,
+  "mini-dresses": MINI_DRESS,
   "a-line-dresses": A_LINE_DRESS,
-  "biker-shorts": BIKER_SHORTS,
-  "compression-shirts": COMPRESSION_SHIRT,
-  "flared-pants": FLARED_PANTS,
-  gilet: GILET,
-  "henley-shirts": HENLEY,
-  "leather-jackets": LEATHER_JACKET,
-  "leather-pants": LEATHER_PANTS,
-  leggings: LEGGINGS,
-  "linen-pants": LINEN_PANTS,
-  "off-shoulder-dresses": OFF_SHOULDER_DRESS,
-  "parachute-pants": PARACHUTE_PANTS,
-  "coats-jackets-parkas": PARKA,
-  "senator-wear": SENATOR_WEAR,
-  "shirt-dresses": SHIRT_DRESS,
   "slip-dresses": SLIP_DRESS,
-  "sports-bras": SPORTS_BRA,
-  "track-jackets": TRACK_JACKET,
-  "coats-jackets-track-jackets": TRACK_JACKET,
-  "trucker-jackets": TRUCKER_JACKET,
-  "coats-jackets-trucker-jackets": TRUCKER_JACKET,
-  tunics: TUNIC,
-  "clothing-tops-tunics": TUNIC,
-  "corset-tops": CORSET,
-  "corsets-bustiers": CORSET,
-  "peplum-tops": PEPLUM_TOP,
   "wrap-dresses": WRAP_DRESS,
+  "shirt-dresses": SHIRT_DRESS,
+  "off-shoulder-dresses": OFF_SHOULDER_DRESS,
+  jumpsuits: JUMPSUIT,
+  rompers: ROMPER,
 
-  // Costumes. A costume top or dress is measured exactly like its everyday
-  // counterpart, so these borrow the generic top and dress guides the same
-  // way costume-onesies-jumpsuits already borrows JUMPSUIT. Deliberately not
-  // mapped: costume-sets (a top-plus-bottom bundle has no single chart),
-  // costume-cloaks-capes (a drape has no chest/shoulder span to measure),
-  // costume-shoes (see isFootwearCategory), and costume-accessories /
-  // costume-wigs (not sized garments at all).
+  // Outerwear
+  "puffer-jackets": PUFFER_JACKET,
+  parkas: PARKA,
+  "leather-jackets": LEATHER_JACKET,
+  "trucker-jackets": TRUCKER_JACKET,
+  "track-jackets": TRACK_JACKET,
+  "varsity-jackets": VARSITY_JACKET,
+  gilets: GILET,
+
+  // Traditional, activewear, underwear, kids
+  "senator-wear": SENATOR_WEAR,
+  "sports-bras": SPORTS_BRA,
+  "compression-shirts": COMPRESSION_SHIRT,
+  "football-jerseys": FOOTBALL_JERSEY,
+  "basketball-jerseys": BASKETBALL_JERSEY,
+  "nfl-jerseys": NFL_JERSEY,
+  "corsets-bustiers": CORSET,
+  undershirts: TANK_TOP,
+
+  // Kids' pieces are the adult shape, smaller — the guide is only there to
+  // show the seller where to measure.
+  "kids-t-shirts": TSHIRT_SHORT_SLEEVE,
+  "kids-tops": STANDARD_TSHIRT,
+  "kids-trousers": BAGGY_CORPORATE_TROUSERS,
+  "kids-shorts": SHORTS,
+  "kids-dresses": A_LINE_DRESS,
+  "baby-clothing": ROMPER,
+
+  // No art of their own, but close enough in silhouette to measure the same
+  // spans off a borrowed picture. Deliberately unmapped: drapes and bundles
+  // (agbada, boubous, abayas, saris, iro & buba, sets, pajamas, robes) and
+  // blazers, bodysuits and cheongsams, which no existing guide resembles.
+  blouses: DRESS_SHIRT,
+  sweaters: NEW_SWEATSHIRT,
+  kaftans: TUNIC,
+  dashikis: TUNIC,
+  kurtas: TUNIC,
+  kimonos: CARDIGAN,
+  jackets: TRUCKER_JACKET,
+  "bomber-jackets": VARSITY_JACKET,
+  coats: PARKA,
+  "midi-maxi-skirts": PLEATED_SKIRT,
+  "maxi-dresses": A_LINE_DRESS,
+  "wedding-dresses": A_LINE_DRESS,
+  nightgowns: SLIP_DRESS,
+  "swim-trunks": SHORTS,
+
+  // Costumes. A costume top, dress or jumpsuit is measured exactly like its
+  // everyday counterpart. Deliberately not mapped: costume-sets (a
+  // top-plus-bottom bundle has no single chart), costume-capes (a drape has
+  // no chest/shoulder span to measure), and costume-accessories (not a sized
+  // garment at all).
   "costume-tops": STANDARD_TSHIRT,
   "costume-dresses": A_LINE_DRESS,
+  "costume-jumpsuits": JUMPSUIT,
 };
 
 // Only categories explicitly mapped above get a guide. Adding a new guide is
@@ -579,13 +584,21 @@ export function getSizeChartForCategory(categoryPath: CategoryNode[]): SizeChart
 // Footwear has no illustrated chart and never will have one of this kind —
 // shoes aren't measured by lettered spans across a flat-laid garment. What it
 // does need is the right ladder in the manual Size picker: shoe numbers, not
-// S/M/L. `shoes` covers its whole subtree (the path carries every ancestor);
-// `costume-shoes` sits under Costumes instead and has no `shoes` ancestor.
-const FOOTWEAR_CATEGORY_IDS = new Set(["shoes", "costume-shoes"]);
+// S/M/L. `footwear` covers its whole subtree (the path carries every
+// ancestor) except Shoe Care & Accessories — laces and insoles aren't sized in
+// shoe numbers.
+export const FOOTWEAR_CATEGORY_ID = "footwear";
+export const SHOE_CARE_CATEGORY_ID = "shoe-care";
 
 export function isFootwearCategory(categoryPath: CategoryNode[]): boolean {
-  return categoryPath.some((node) => FOOTWEAR_CATEGORY_IDS.has(node.id));
+  return (
+    categoryPath.some((node) => node.id === FOOTWEAR_CATEGORY_ID) &&
+    !categoryPath.some((node) => node.id === SHOE_CARE_CATEGORY_ID)
+  );
 }
+
+/** Exported only for categories.test.ts, which checks each key is a real category id. */
+export const SIZE_CHART_CATEGORY_IDS = Object.keys(CHARTS_BY_CATEGORY);
 
 export const CM_PER_INCH = 2.54;
 

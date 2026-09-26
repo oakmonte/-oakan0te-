@@ -29,7 +29,7 @@ export type ProductSavePayload = {
   storeId: string;
   title: string;
   descriptionShort: string;
-  // Precomputed by the caller (categoryPath.at(-1)?.name || null) so this
+  // Precomputed by the caller (productTypeForPath in lib/categories) so this
   // module doesn't need to import CategoryNode / walk the category tree.
   categoryName: string | null;
   status: "draft" | "active";

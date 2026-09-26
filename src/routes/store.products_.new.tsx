@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronDown, ChevronRight, Tag, Hash, ListChecks } from "l
 import { BackButton } from "@/components/BackButton";
 import { startProductSave } from "@/lib/product-save";
 import { hasPendingUploads } from "@/lib/background-upload";
-import { CategoryNode } from "@/lib/categories";
+import { CategoryNode, productTypeForPath } from "@/lib/categories";
 import { StubRow } from "@/components/product-form/ui";
 import { MediaSection } from "@/components/product-form/MediaSection";
 import { DetailsSection } from "@/components/product-form/DetailsSection";
@@ -441,7 +441,7 @@ function NewProduct() {
       storeId: storeId!,
       title,
       descriptionShort,
-      categoryName: categoryPath.at(-1)?.name || null,
+      categoryName: productTypeForPath(categoryPath),
       status,
       manualSize,
       kind,
