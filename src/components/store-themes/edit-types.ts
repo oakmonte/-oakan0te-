@@ -76,10 +76,12 @@ export type ThemeEditState = {
   columns: 1 | 2;
   // Pin the blocks that sit below the collections/products grid (which ones
   // depends on layoutId) to the bottom of the screen, so a large catalogue
-  // scrolls under them instead of burying them at the very end. Off by
-  // default: a store with a handful of items shouldn't have its grid
-  // covered. Persisted (store_theme_customizations.sticky_bottom).
-  stickyBottom: boolean;
+  // scrolls under them instead of burying them at the very end. null means
+  // the seller hasn't chosen: it's then on only for a grid of more than 12
+  // items (resolveStickyBottom in layout-presets.ts), so a store with a
+  // handful of items doesn't get its grid covered. Persisted
+  // (store_theme_customizations.sticky_bottom, nullable for the same reason).
+  stickyBottom: boolean | null;
 };
 
 export function createInitialEditState(): ThemeEditState {
@@ -100,7 +102,7 @@ export function createInitialEditState(): ThemeEditState {
     hiddenBlocks: [],
     collectionsMode: "collections",
     columns: 2,
-    stickyBottom: false,
+    stickyBottom: null,
   };
 }
 
@@ -136,5 +138,6 @@ export type ThemeEditingProps = {
   columns: 1 | 2;
   onColumnsChange: (columns: 1 | 2) => void;
   onTileTapBlocked: () => void;
-  stickyBottom: boolean;
+  /** The seller's choice, or null for "not chosen" -- see ThemeEditState. */
+  stickyBottom: boolean | null;
 };

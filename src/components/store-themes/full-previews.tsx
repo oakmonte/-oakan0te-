@@ -48,7 +48,13 @@ import {
   type ThemeEditingProps,
   type ThemeEditState,
 } from "./edit-types";
-import { LAYOUT_PRESETS, blocksBelowGrid, type ArrangeableBlockId } from "./layout-presets";
+import {
+  LAYOUT_PRESETS,
+  blocksBelowGrid,
+  resolveStickyBottom,
+  type ArrangeableBlockId,
+} from "./layout-presets";
+import { useStoreCatalogReadiness } from "@/hooks/use-store-catalog-readiness";
 import { useStoreLiveDrop } from "@/hooks/use-store-live-drop";
 import { useThemeCustomization } from "./useThemeCustomization";
 import { useStoreTheme } from "./useStoreTheme";
@@ -1398,6 +1404,9 @@ export function ThemePreviewSheet({
   // question.
   const [stickPrompt, setStickPrompt] = useState<null | { then?: () => void }>(null);
   const liveDrop = useStoreLiveDrop(storeId);
+  // For "(current)" in the stick-to-page prompt: with no choice made yet,
+  // what the storefront is doing right now is the 12-item default.
+  const catalog = useStoreCatalogReadiness(storeId);
 
   // Text commits on blur, and on iOS tapping a button does not reliably blur
   // the field — so the last thing typed may not have reached state yet.
@@ -1841,9 +1850,12 @@ export function ThemePreviewSheet({
                   }`}
                 >
                   {stick ? "Stick them" : "Keep them at the end"}
-                  {state.stickyBottom === stick && (
-                    <span className="ml-1.5 font-normal opacity-60">(current)</span>
-                  )}
+                  {resolveStickyBottom(
+                    state.stickyBottom,
+                    state.collectionsMode === "products"
+                      ? catalog.productCount
+                      : catalog.collectionCount,
+                  ) === stick && <span className="ml-1.5 font-normal opacity-60">(current)</span>}
                 </button>
               ))}
             </div>

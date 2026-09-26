@@ -9,7 +9,8 @@ import { ThemePreviewSheet } from "./store-themes/full-previews";
 import { useStoreTheme } from "./store-themes/useStoreTheme";
 import { readableTextColor } from "./store-themes/colors";
 import { searchThemes } from "./store-themes/theme-search";
-import { blocksBelowGrid, type LayoutId } from "./store-themes/layout-presets";
+import { blocksBelowGrid, resolveStickyBottom, type LayoutId } from "./store-themes/layout-presets";
+import { useStoreCatalogReadiness } from "@/hooks/use-store-catalog-readiness";
 import { useStoreLiveDrop } from "@/hooks/use-store-live-drop";
 
 // Written in the dashboard's --sd-* tokens like every other /store screen,
@@ -37,6 +38,16 @@ function ThemeColorSwatch({ theme }: { theme: Theme }) {
     </div>
   );
 }
+
+// A theme with no saved row: the editor's starting state, which is also
+// what the column defaults give a row the stick toggle creates. sticky null
+// is "not chosen", which follows the 12-item default.
+const DEFAULT_STICK_ROW = {
+  layoutId: "editorial" as LayoutId,
+  hiddenBlocks: [] as string[],
+  collectionsMode: "collections",
+  sticky: null as boolean | null,
+};
 
 // Shared by the pinned "Your theme" card and the regular grid below it, so
 // pulling the selected theme out of the grid (see StoreThemeSelector) doesn't
@@ -197,10 +208,19 @@ export function StoreThemeSelector() {
   // customizedThemes on purpose, so a row the toggle creates doesn't count as
   // "customized" and skip the placeholder-copy warning in handleUseTheme.
   const [stickRows, setStickRows] = useState<
-    Map<ThemeId, { layoutId: LayoutId; hiddenBlocks: string[]; sticky: boolean }>
+    Map<
+      ThemeId,
+      {
+        layoutId: LayoutId;
+        hiddenBlocks: string[];
+        collectionsMode: string;
+        sticky: boolean | null;
+      }
+    >
   >(new Map());
   const [rowsVersion, setRowsVersion] = useState(0);
   const liveDrop = useStoreLiveDrop(storeId);
+  const catalog = useStoreCatalogReadiness(storeId);
   const [confirmUse, setConfirmUse] = useState<ThemeId | null>(null);
   // Raw stores.theme_id, kept for the checklist flow below. This predates
   // useStoreTheme() exposing `pickedThemeId` and now carries the same
@@ -268,7 +288,7 @@ export function StoreThemeSelector() {
     let cancelled = false;
     supabase
       .from("store_theme_customizations")
-      .select("theme_slug, layout_id, hidden_blocks, sticky_bottom")
+      .select("theme_slug, layout_id, hidden_blocks, collections_mode, sticky_bottom")
       .eq("store_id", storeId)
       .then(({ data, error }) => {
         if (cancelled) return;
@@ -281,6 +301,7 @@ export function StoreThemeSelector() {
               {
                 layoutId: r.layout_id as LayoutId,
                 hiddenBlocks: r.hidden_blocks,
+                collectionsMode: r.collections_mode,
                 sticky: r.sticky_bottom,
               },
             ]),
@@ -299,14 +320,16 @@ export function StoreThemeSelector() {
   // as the editor's starting state, which is also what the column defaults
   // give a row created by the toggle below.
   function stickyFor(themeId: ThemeId): boolean | null {
-    const row = stickRows.get(themeId) ?? {
-      layoutId: "editorial",
-      hiddenBlocks: [],
-      sticky: false,
-    };
-    return blocksBelowGrid(row.layoutId, row.hiddenBlocks, liveDrop !== null).length > 0
-      ? row.sticky
-      : null;
+    const row = stickRows.get(themeId) ?? DEFAULT_STICK_ROW;
+    if (blocksBelowGrid(row.layoutId, row.hiddenBlocks, liveDrop !== null).length === 0) {
+      return null;
+    }
+    // Shown as what the storefront actually does: with no choice saved,
+    // that's the 12-item default.
+    return resolveStickyBottom(
+      row.sticky,
+      row.collectionsMode === "products" ? catalog.productCount : catalog.collectionCount,
+    );
   }
 
   // Writes only sticky_bottom: on an existing row the upsert updates just
@@ -315,7 +338,7 @@ export function StoreThemeSelector() {
   async function setSticky(themeId: ThemeId, next: boolean) {
     if (!storeId) return;
     const prev = stickRows.get(themeId);
-    const base = prev ?? { layoutId: "editorial" as LayoutId, hiddenBlocks: [], sticky: false };
+    const base = prev ?? DEFAULT_STICK_ROW;
     setStickRows((m) => new Map(m).set(themeId, { ...base, sticky: next }));
     const { error } = await supabase
       .from("store_theme_customizations")

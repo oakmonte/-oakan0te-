@@ -51,3 +51,19 @@ export function blocksBelowGrid(
     .slice(order.indexOf("collections") + 1)
     .filter((id) => !hidden.includes(id) && (id !== "promo" || hasDrop));
 }
+
+/** Above this many items in the grid, stick-to-page turns itself on for a
+ *  seller who hasn't chosen. At 12 or fewer the blocks below the grid are
+ *  only a short scroll away, and pinning them would just cover the grid. */
+export const AUTO_STICK_MIN_ITEMS = 12;
+
+/** Whether the blocks below the grid actually stick. The seller's own choice
+ *  (the save prompt or the theme card's toggle) always wins. With no choice
+ *  (null), it's on only when the grid holds more than AUTO_STICK_MIN_ITEMS
+ *  of whatever it shows: active products, or collections. An unknown count
+ *  (still loading) reads as off, so a small store never flashes a pinned
+ *  strip while its count is on the way. */
+export function resolveStickyBottom(choice: boolean | null, itemCount: number | null): boolean {
+  if (choice !== null) return choice;
+  return itemCount !== null && itemCount > AUTO_STICK_MIN_ITEMS;
+}

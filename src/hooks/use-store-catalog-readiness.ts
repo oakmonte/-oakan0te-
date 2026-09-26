@@ -12,6 +12,10 @@ export type StoreCatalogReadiness = {
   // What callers actually gate on: is there *anything* real to show. A store
   // with three collections and zero products, or vice versa, still counts.
   hasAny: boolean;
+  /** The counts themselves, null until loaded. Used for the stick-to-page
+   * default (more than 12 of whichever the grid shows). */
+  productCount: number | null;
+  collectionCount: number | null;
 };
 
 /** Whether a store has any real catalog to show a stranger -- distinct from
@@ -27,16 +31,16 @@ export type StoreCatalogReadiness = {
  *  `loading` stays true and both counts stay false, since nothing is being
  *  asked. */
 export function useStoreCatalogReadiness(storeId: string | null): StoreCatalogReadiness {
-  const [hasProducts, setHasProducts] = useState(false);
-  const [hasCollections, setHasCollections] = useState(false);
+  const [productCount, setProductCount] = useState<number | null>(null);
+  const [collectionCount, setCollectionCount] = useState<number | null>(null);
   const [productsLoaded, setProductsLoaded] = useState(false);
   const [collectionsLoaded, setCollectionsLoaded] = useState(false);
 
   useEffect(() => {
     setProductsLoaded(false);
     setCollectionsLoaded(false);
-    setHasProducts(false);
-    setHasCollections(false);
+    setProductCount(null);
+    setCollectionCount(null);
     if (!storeId) return;
     let cancelled = false;
 
@@ -53,7 +57,7 @@ export function useStoreCatalogReadiness(storeId: string | null): StoreCatalogRe
         if (error) {
           console.error("useStoreCatalogReadiness: failed to load product count", error);
         }
-        setHasProducts((count ?? 0) > 0);
+        setProductCount(count ?? 0);
         setProductsLoaded(true);
       });
 
@@ -66,7 +70,7 @@ export function useStoreCatalogReadiness(storeId: string | null): StoreCatalogRe
         if (error) {
           console.error("useStoreCatalogReadiness: failed to load collection count", error);
         }
-        setHasCollections((count ?? 0) > 0);
+        setCollectionCount(count ?? 0);
         setCollectionsLoaded(true);
       });
 
@@ -77,9 +81,11 @@ export function useStoreCatalogReadiness(storeId: string | null): StoreCatalogRe
 
   return {
     loading: !storeId || !productsLoaded || !collectionsLoaded,
-    hasProducts,
-    hasCollections,
-    hasAny: hasProducts || hasCollections,
+    hasProducts: (productCount ?? 0) > 0,
+    hasCollections: (collectionCount ?? 0) > 0,
+    hasAny: (productCount ?? 0) > 0 || (collectionCount ?? 0) > 0,
+    productCount,
+    collectionCount,
   };
 }
 

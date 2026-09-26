@@ -15,6 +15,7 @@ import {
   useDragControls,
   useMotionValue,
   useTransform,
+  animate,
 } from "framer-motion";
 import type { MotionValue } from "framer-motion";
 import {
@@ -29,7 +30,6 @@ import {
   Bell,
   BellRing,
   Send,
-  ChevronUp,
 } from "lucide-react";
 import { BackButton } from "@/components/BackButton";
 import { supabase } from "@/lib/integrations/my-supabase/client";
@@ -193,11 +193,13 @@ function ProfilePage() {
   // Drag-to-dismiss is started by hand from the sheet's grab strip rather
   // than by a dragListener on the sheet itself: the sheet's body is a
   // scrolling storefront whose product tiles are horizontal carousels, and a
-  // listener spanning all of it would swallow both of those gestures.
+  // listener spanning all of it would swallow both of those gestures. The
+  // body gets its own narrower pull-down instead (see the effect below).
   const storeSheetDrag = useDragControls();
-  // Where a pull-past-the-end gesture began, or null when it didn't start at
-  // the bottom of the storefront. See the sheet's scroller.
-  const pullOutRef = useRef<number | null>(null);
+  // The sheet's vertical offset, shared by the grab strip's framer drag and
+  // the body's hand-rolled pull-down so both move the same sheet.
+  const storeSheetY = useMotionValue(0);
+  const storeScrollRef = useRef<HTMLDivElement>(null);
   const { data: isFollowing = false, isPending: followPending } = useQuery(
     followStatusQueryOptions(user?.id, baseProfile?.id),
   );
@@ -467,6 +469,69 @@ function ProfilePage() {
   // it -- it is an overlay by every other measure -- so swiping back while it
   // was open left the profile entirely instead of closing it.
   useOverlayHistory(storeSheetOpen, closeStoreSheet);
+
+  // Pull down anywhere on the storefront, not just the grab strip, to bring
+  // the sheet down with your finger -- but only a gesture that starts with
+  // the storefront already scrolled to its top and heads down first. Anything
+  // else (scrolling back up through the catalogue, sideways through a tile's
+  // photos) is left to the browser. Raw touch listeners rather than framer's
+  // drag: once a native scroll claims a touch, pointer events are cancelled,
+  // and this needs a non-passive touchmove to claim it first.
+  useEffect(() => {
+    const el = storeScrollRef.current;
+    if (!storeSheetOpen || !el) return;
+    let startX = 0;
+    let startY: number | null = null;
+    let pulling = false;
+    let lastY = 0;
+    let lastT = 0;
+    let velocity = 0; // px/ms, downward positive
+    const onStart = (e: TouchEvent) => {
+      pulling = false;
+      startY = el.scrollTop <= 0 ? e.touches[0].clientY : null;
+      startX = e.touches[0].clientX;
+    };
+    const onMove = (e: TouchEvent) => {
+      if (startY === null) return;
+      const { clientX, clientY } = e.touches[0];
+      const dy = clientY - startY;
+      if (!pulling) {
+        // The first movement decides: down and more vertical than sideways
+        // is ours, anything else goes back to the browser for this touch.
+        if (dy <= 0 || Math.abs(clientX - startX) > dy) {
+          startY = null;
+          return;
+        }
+        pulling = true;
+        lastY = clientY;
+        lastT = e.timeStamp;
+      }
+      e.preventDefault();
+      const dt = e.timeStamp - lastT;
+      if (dt > 0) velocity = (clientY - lastY) / dt;
+      lastY = clientY;
+      lastT = e.timeStamp;
+      storeSheetY.set(Math.max(0, dy));
+    };
+    const onEnd = () => {
+      if (pulling) {
+        if (storeSheetY.get() > 90 || velocity > 0.6) setActiveTab(previousTabRef.current);
+        else animate(storeSheetY, 0, { type: "spring", stiffness: 400, damping: 40 });
+      }
+      startY = null;
+      pulling = false;
+    };
+    el.addEventListener("touchstart", onStart, { passive: true });
+    el.addEventListener("touchmove", onMove, { passive: false });
+    el.addEventListener("touchend", onEnd);
+    el.addEventListener("touchcancel", onEnd);
+    return () => {
+      el.removeEventListener("touchstart", onStart);
+      el.removeEventListener("touchmove", onMove);
+      el.removeEventListener("touchend", onEnd);
+      el.removeEventListener("touchcancel", onEnd);
+    };
+  }, [storeSheetOpen, storeSheetY]);
 
   return (
     <div
@@ -804,7 +869,7 @@ function ProfilePage() {
             onDragEnd={(_, info) => {
               if (info.offset.y > 90 || info.velocity.y > 600) closeStoreSheet();
             }}
-            style={{ top: sheetTop }}
+            style={{ top: sheetTop, y: storeSheetY }}
             className="fixed inset-x-0 bottom-0 z-50 flex flex-col overflow-hidden rounded-t-[28px] shadow-[0_-12px_40px_rgba(0,0,0,0.6)]"
           >
             {/* No black strip here on purpose — the theme's own background
@@ -812,9 +877,9 @@ function ProfilePage() {
                 runs all the way up into the rounded corners. The grabber
                 floats over it instead of owning its own row: mix-blend-
                 difference gives it contrast against ANY theme color without
-                per-theme casing. This strip is also the sheet's drag handle —
-                the one place a downward drag dismisses it — so unlike before
-                it takes pointer events; the pill inside stays inert so the
+                per-theme casing. This strip is also the sheet's drag handle
+                (a pull from the scrolled-to-top body works too), so it takes
+                pointer events; the pill inside stays inert so the
                 whole 36px strip is grabbable, not just the 4px pill. */}
             <div
               onPointerDown={(e) => storeSheetDrag.start(e)}
@@ -829,39 +894,8 @@ function ProfilePage() {
                 what you were looking at — and it competed for the very same
                 gesture as the product tiles own photo carousels. Inside the
                 sheet, left/right belongs to those carousels alone. */}
-            <div
-              className="flex-1 overflow-y-auto overscroll-contain"
-              // Scrolling past the end of the storefront brings you out onto
-              // Posts: pull up another ~80px while already at the bottom and
-              // the sheet closes onto the Posts tab. Only counts a gesture
-              // that STARTED at the bottom, so ordinary momentum reaching the
-              // end never throws anyone out.
-              onTouchStart={(e) => {
-                const el = e.currentTarget;
-                const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
-                pullOutRef.current = atBottom ? e.touches[0].clientY : null;
-              }}
-              onTouchMove={(e) => {
-                const startY = pullOutRef.current;
-                if (startY === null) return;
-                if (startY - e.touches[0].clientY > 80) {
-                  pullOutRef.current = null;
-                  setActiveTab("posts");
-                }
-              }}
-              onTouchEnd={() => {
-                pullOutRef.current = null;
-              }}
-            >
+            <div ref={storeScrollRef} className="flex-1 overflow-y-auto overscroll-contain">
               {store && <PublicStorefront storeId={store.id} />}
-              <button
-                type="button"
-                onClick={() => setActiveTab("posts")}
-                className="flex w-full flex-col items-center gap-1 bg-black py-5 text-[13px] font-medium text-white/60"
-              >
-                <ChevronUp size={18} />
-                Keep scrolling for posts
-              </button>
             </div>
           </motion.div>
         )}
@@ -875,8 +909,14 @@ function ProfilePage() {
       >
         <div className="absolute inset-0 bg-black/40" onClick={() => setMenuOpen(false)} />
         <div
-          className={`absolute right-0 top-0 h-full w-[280px] bg-black border-l border-white/10 px-5 py-6 transition-transform duration-300 ease-out ${
-            menuOpen ? "translate-x-0" : "translate-x-full"
+          // Grows out of the hamburger icon's corner instead of sliding in
+          // from the screen edge -- scale + fade from a top-right
+          // transform-origin, the way an iOS/macOS menu expands from
+          // wherever it was tapped, rather than a drawer creeping in from
+          // off-screen. The overshoot easing is what gives it that same
+          // slight springy settle instead of a flat linear grow.
+          className={`absolute right-0 top-0 h-full w-[280px] bg-black border-l border-white/10 px-5 py-6 origin-top-right transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${
+            menuOpen ? "scale-100 opacity-100" : "scale-0 opacity-0"
           }`}
         >
           <button onClick={() => setMenuOpen(false)} className="mb-6" aria-label="Close menu">

@@ -35,7 +35,13 @@ import { alpha, isDark } from "./theme-spec";
 import { GLASS_RIM, glassClear } from "@/lib/liquid-glass";
 import { useStoreLiveDrop } from "@/hooks/use-store-live-drop";
 import { dropCountdown, formatCountdown } from "@/lib/drops";
-import { LAYOUT_PRESETS, blocksBelowGrid, type ArrangeableBlockId } from "./layout-presets";
+import {
+  LAYOUT_PRESETS,
+  blocksBelowGrid,
+  resolveStickyBottom,
+  type ArrangeableBlockId,
+} from "./layout-presets";
+import { useStoreCatalogReadiness } from "@/hooks/use-store-catalog-readiness";
 
 function clamp(v: number, min: number, max: number) {
   return Math.min(max, Math.max(min, v));
@@ -1439,8 +1445,10 @@ export function FooterTeaser({
  *  go into one `position: sticky; bottom: 0` strip, so they stay on screen
  *  while the grid scrolls under them. A big catalogue then doesn't bury them
  *  at the very end, and a small store that leaves it off isn't forced into
- *  it. The strip takes the theme's own background plus a short fade above
- *  it, so tiles passing under it don't show through. It pins against the
+ *  it. The strip takes the theme's own background, and nothing else: no
+ *  fade or shadow above it (a dark fade read as a smear over the grid).
+ *  Whether it's on is resolveStickyBottom: the seller's choice, or more than
+ *  12 items when they haven't chosen. It pins against the
  *  nearest scroll container: the storefront sheet on a profile, or the
  *  phone frame in the editor. Nothing between the strip and that container
  *  may be overflow:hidden/auto, or it stops sticking (that is why the
@@ -1463,8 +1471,15 @@ export function LayoutBlocks({
   const render = (ids: ArrangeableBlockId[]) =>
     ids.map((id) => <Fragment key={id}>{blocks[id]}</Fragment>);
 
+  const catalog = useStoreCatalogReadiness(storeId);
+  const itemCount =
+    (editing?.collectionsMode ?? "collections") === "products"
+      ? catalog.productCount
+      : catalog.collectionCount;
+  const sticky = resolveStickyBottom(editing?.stickyBottom ?? null, itemCount);
+
   const below = blocksBelowGrid(layoutId, editing?.hiddenBlocks ?? [], drop !== null);
-  if (!editing?.stickyBottom || below.length === 0) return <>{render(order)}</>;
+  if (!sticky || below.length === 0) return <>{render(order)}</>;
 
   const above = order.filter((id) => !below.includes(id));
   return (
@@ -1477,11 +1492,6 @@ export function LayoutBlocks({
         className="sticky -bottom-px z-20 pb-[calc(max(env(safe-area-inset-bottom),0.75rem)+1px)]"
         style={{ background: bg }}
       >
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 -top-6 h-6"
-          style={{ background: `linear-gradient(to top, ${bg}, ${alpha(bg, 0)})` }}
-        />
         {render(below)}
       </div>
     </>
