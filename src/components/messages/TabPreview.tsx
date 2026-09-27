@@ -1,5 +1,23 @@
 import { Lock } from "lucide-react";
-import { SAMPLE_OFFER, SAMPLE_ORDER } from "@/lib/messages-seed";
+// Real files, imported by path so Vite bundles them (never a *.asset.json
+// sidecar -- see CLAUDE.md).
+import editorial from "@/assets/hero-editorial.jpg";
+import streetwear from "@/assets/streetwear-summerstyle.jpeg";
+
+// Illustrative only, and blurred: the shape of the feature, not data.
+const SAMPLE_OFFER = {
+  buyer: "Nia from Lagos",
+  offered: "₦18,000",
+  listed: "₦25,000",
+  image: streetwear,
+};
+
+const SAMPLE_ORDER = {
+  code: "#OK-2841",
+  status: "Dispatched",
+  image: editorial,
+  title: "Two-cap bundle",
+};
 
 /**
  * Offers / Orders aren't wired to real data yet. Rather than an empty

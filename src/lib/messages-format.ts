@@ -15,15 +15,6 @@ export function relativeShort(iso: string, now = Date.now()): string {
   return `${Math.floor(days / 365)}y`;
 }
 
-export function activeLabel(minutes: number | null): string | null {
-  if (minutes === null) return null;
-  if (minutes === 0) return "Active now";
-  if (minutes < 60) return `Active ${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `Active ${hours}h ago`;
-  return `Active ${Math.floor(hours / 24)}d ago`;
-}
-
 export function clockTime(iso: string): string {
   const date = new Date(iso);
   return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;

@@ -47,6 +47,15 @@ Have to be clicked by hand — Auth → Policies / Rate Limits:
 Paystack isn't wired. `store_payout_accounts.status` is always written `"pending"` because
 nothing verifies an account.
 
+### 1.4 Direct messages · migration written, not applied
+
+`/messages` is built against `supabase/migrations/20260927120000_add_direct_messages.sql`
+(conversations, messages, reactions, blocks, reports, private `chat-media` bucket — RLS on
+every table from the start). Until it's applied, signed-in users see Support only plus a
+"switching on shortly" note. After applying: regenerate `my-supabase/types.ts` and delete the
+hand-written rows in `src/lib/chat/db.ts`. Typing indicators ride public broadcast channels
+keyed by user id — fine for launch, move to private Realtime channels later.
+
 ---
 
 ## 2. Needs a decision
