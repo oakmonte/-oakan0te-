@@ -103,7 +103,9 @@ function SellersLanding() {
 
       <header className="site-nav">
         <a className="wordmark" href="#top">
-          <img className="wordmark-logo" src={logoO} alt="Oakmonte logo" /> <span>oakmonte</span>
+          <img className="wordmark-logo" src={logoO} alt="Oakmonte" />
+          <span className="wordmark-word">akmonte</span>
+          <span className="wordmark-tagline">CREATED TO CREATE.</span>
         </a>
         <nav className={menuOpen ? "nav-links is-open" : "nav-links"}>
           <a href="#why" onClick={() => setMenuOpen(false)}>
@@ -412,7 +414,8 @@ function SellersLanding() {
         </div>
         <div className="footer-bottom">
           <a className="wordmark" href="#top">
-            <img className="wordmark-logo" src={logoO} alt="Oakmonte logo" /> <span>oakmonte</span>
+            <img className="wordmark-logo" src={logoO} alt="Oakmonte" />
+            <span className="wordmark-word">akmonte</span>
           </a>
           <span>© 2026 Oakmonte Commerce, Inc.</span>
           <span>
@@ -432,15 +435,22 @@ const CSS = `
 .oak-sellers{
   --background:#fff;--foreground:#111827;--primary:#1455d9;--primary-foreground:#fff;
   --border:#d8dee8;--muted:#667085;--paper:#f3f6fa;--ink:#111827;--blue-soft:#eaf1ff;--grey:#eef1f5;
+  /* The main landing page's blue (routes/index.tsx's --blue) -- used only for
+     the big headline em text and the acid pill buttons, per Diadem's request
+     to match the two pages' blues. Everything else (orbit lines, dots,
+     eyebrow/kicker subtext, icons, the studio chart bars) stays on --primary
+     above, deliberately untouched. */
+  --accent-blue:#2151F5;
   overflow:hidden;background:#fff;color:var(--foreground);font-family:'Manrope',sans-serif;
 }
 .oak-sellers *{box-sizing:border-box}
 .oak-sellers a{color:inherit;text-decoration:none}
 .oak-sellers button{font:inherit;color:inherit}
 .oak-sellers .site-nav{height:76px;padding:0 4vw;position:absolute;z-index:5;width:100%;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(17,24,39,.14);background:rgba(255,255,255,.78);backdrop-filter:blur(16px)}
-.oak-sellers .wordmark{display:inline-flex;align-items:center;gap:8px;font-size:20px;font-weight:800;letter-spacing:-.08em}
-.oak-sellers .wordmark-logo{width:30px;height:30px;object-fit:contain;display:block;filter:none}
-.oak-sellers .wordmark span{display:inline-block;animation:oakSellersWordmarkReveal .8s .15s cubic-bezier(.2,.8,.2,1) both}
+.oak-sellers .wordmark{display:flex;align-items:baseline;gap:0}
+.oak-sellers .wordmark-logo{height:44px;width:auto;flex:none;display:inline-block;transform:translateY(4px)}
+.oak-sellers .wordmark-word{display:inline-block;font-family:'Inter',ui-sans-serif,system-ui,sans-serif;font-weight:400;font-size:26px;letter-spacing:-.01em;line-height:1;color:var(--foreground);animation:oakSellersWordmarkReveal .8s .15s cubic-bezier(.2,.8,.2,1) both}
+.oak-sellers .wordmark-tagline{margin-left:16px;font-size:9px;font-weight:500;letter-spacing:.16em;text-transform:uppercase;color:var(--accent-blue);transform:translateY(-2px);white-space:nowrap}
 .oak-sellers .nav-links{display:flex;gap:34px;margin-left:auto;margin-right:5vw;font:11px 'DM Mono',monospace;color:#667085}
 .oak-sellers .nav-links a:hover,.oak-sellers .nav-login:hover{color:var(--primary)}
 .oak-sellers .nav-actions{display:flex;align-items:center;gap:22px;font-size:12px}
@@ -448,7 +458,7 @@ const CSS = `
 .oak-sellers .pill-button::after{content:'';position:absolute;inset:0;width:35%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.42),transparent);transform:translateX(-140%);animation:oakSellersShimmer 5s 2s ease-in-out infinite}
 .oak-sellers .pill-button:hover{transform:translateY(-4px) scale(1.025);box-shadow:0 14px 28px rgba(20,85,217,.2)}
 .oak-sellers .pill-button-light{background:#111827;color:#fff}
-.oak-sellers .pill-button-acid{background:var(--primary);color:#fff}
+.oak-sellers .pill-button-acid{background:var(--accent-blue);color:#fff}
 .oak-sellers .pill-button-dark{background:#111827;color:#fff}
 .oak-sellers .menu-button{display:none;background:none;border:0;cursor:pointer;padding:5px}
 
@@ -462,7 +472,7 @@ const CSS = `
 .oak-sellers .eyebrow,.oak-sellers .section-kicker{color:var(--primary);text-transform:uppercase;letter-spacing:.06em;font:10px 'DM Mono',monospace}
 .oak-sellers .status-dot,.oak-sellers .studio-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--primary);margin-right:8px;box-shadow:0 0 14px rgba(20,85,217,.55);animation:oakSellersBlink 2s ease-in-out infinite}
 .oak-sellers .hero h1{margin:26px 0 32px;font-size:clamp(72px,13vw,185px);line-height:.82;letter-spacing:-.1em;font-weight:600;animation:oakSellersHeadlineIn 1.15s .15s ease both}
-.oak-sellers .hero h1 em,.oak-sellers .manifesto h2 em,.oak-sellers .feature-intro h2 em,.oak-sellers .studio-copy h2 em,.oak-sellers .manufacturer-section h2 em,.oak-sellers .plans-heading h2 em,.oak-sellers .footer-cta h2 em{font-family:Georgia,serif;font-weight:400;color:var(--primary)}
+.oak-sellers .hero h1 em,.oak-sellers .manifesto h2 em,.oak-sellers .feature-intro h2 em,.oak-sellers .studio-copy h2 em,.oak-sellers .manufacturer-section h2 em,.oak-sellers .plans-heading h2 em,.oak-sellers .footer-cta h2 em{font-family:Georgia,serif;font-weight:400;color:var(--accent-blue)}
 .oak-sellers .hero-copy p{max-width:440px;color:#475467;line-height:1.55;font-size:16px;animation:oakSellersRise .9s .35s ease both}
 .oak-sellers .hero-buttons{display:flex;align-items:center;gap:27px;margin-top:32px;animation:oakSellersRise .9s .5s ease both}
 .oak-sellers .text-link{display:inline-flex;align-items:center;gap:8px;font:11px 'DM Mono',monospace}
@@ -582,6 +592,7 @@ const CSS = `
 
 @media (max-width:800px){
   .oak-sellers .site-nav{padding:0 5vw}
+  .oak-sellers .wordmark-tagline{display:none}
   .oak-sellers .nav-links{display:none;position:absolute;left:0;right:0;top:76px;padding:25px 5vw;margin:0;flex-direction:column;gap:22px;background:#fff}
   .oak-sellers .nav-links.is-open{display:flex}
   .oak-sellers .nav-login{display:none}
@@ -611,7 +622,7 @@ const CSS = `
 }
 
 @media (prefers-reduced-motion:reduce){
-  .oak-sellers .marquee-track,.oak-sellers .hero-orbit,.oak-sellers .hero-grid,.oak-sellers .studio-card,.oak-sellers .chart i,.oak-sellers .wordmark-logo,.oak-sellers .wordmark span,.oak-sellers .pill-button::after,.oak-sellers .hero-orbit::after{animation:none}
+  .oak-sellers .marquee-track,.oak-sellers .hero-orbit,.oak-sellers .hero-grid,.oak-sellers .studio-card,.oak-sellers .chart i,.oak-sellers .wordmark-word,.oak-sellers .pill-button::after,.oak-sellers .hero-orbit::after{animation:none}
   .oak-sellers .hero-copy,.oak-sellers .hero h1,.oak-sellers .hero-copy p,.oak-sellers .hero-buttons{animation:none}
   .oak-sellers .pill-button,.oak-sellers .plan-card,.oak-sellers .feature-row{transition:none}
 }
