@@ -1,25 +1,40 @@
 import { useRef } from "react";
 import { motion, useAnimationControls } from "framer-motion";
-import { Archive, BellOff, Check, CheckCheck, MailOpen } from "lucide-react";
-import type { Conversation } from "@/lib/messages-seed";
-import { activeLabel, haptic, relativeShort } from "@/lib/messages-format";
-import { ConversationAvatar } from "./ConversationAvatar";
+import {
+  Archive,
+  ArchiveRestore,
+  BellOff,
+  Camera,
+  Check,
+  CheckCheck,
+  Mail,
+  MailOpen,
+  Mic,
+  Pin,
+  PinOff,
+} from "lucide-react";
+import { useLongPress } from "@/hooks/use-long-press";
+import { haptic, relativeShort } from "@/lib/messages-format";
+import { describeMessage, isOnline, isUnread, tickFor, type Chat } from "@/lib/chat/model";
+import { Avatar } from "./Avatar";
 import { VerifiedBadge } from "./VerifiedBadge";
 import { TypingDots } from "./TypingDots";
 
-const ACTION_WIDTH = 152;
+const ACTION_WIDTH = 74;
 
 type Props = {
-  conversation: Conversation;
+  chat: Chat;
   query: string;
-  muted: boolean;
+  typing: boolean;
   onOpen: () => void;
+  onLongPress: () => void;
   onToggleRead: () => void;
   onToggleMute: () => void;
-  onArchive: () => void;
+  onTogglePin: () => void;
+  onToggleArchive: () => void;
 };
 
-function Highlighted({ text, query }: { text: string; query: string }) {
+export function Highlighted({ text, query }: { text: string; query: string }) {
   const needle = query.trim();
   if (!needle) return <>{text}</>;
   const index = text.toLowerCase().indexOf(needle.toLowerCase());
@@ -36,138 +51,254 @@ function Highlighted({ text, query }: { text: string; query: string }) {
 }
 
 export function ConversationRow({
-  conversation,
+  chat,
   query,
-  muted,
+  typing,
   onOpen,
+  onLongPress,
   onToggleRead,
   onToggleMute,
-  onArchive,
+  onTogglePin,
+  onToggleArchive,
 }: Props) {
   const controls = useAnimationControls();
-  const openRef = useRef(false);
-  const unread = conversation.unread > 0;
-  const presence = activeLabel(conversation.activeMinutesAgo);
+  const revealed = useRef(false);
+  // A swipe ends in a click on the same row; that click is not a tap.
+  const draggedAt = useRef(0);
+  const unread = isUnread(chat);
+  const last = chat.lastMessage;
+  const supportsSwipe = chat.kind !== "support";
+  const trailing = chat.kind === "self" ? 2 : 3;
 
   const settle = (to: number) => {
-    openRef.current = to !== 0;
+    revealed.current = to !== 0;
     void controls.start({ x: to, transition: { type: "spring", stiffness: 520, damping: 44 } });
   };
 
+  const press = useLongPress(
+    () => {
+      haptic(12);
+      settle(0);
+      onLongPress();
+    },
+    {
+      delay: 380,
+      onTap: () => {
+        if (Date.now() - draggedAt.current < 400) return;
+        if (revealed.current) {
+          settle(0);
+          return;
+        }
+        onOpen();
+      },
+    },
+  );
+
+  const preview = typing ? null : last ? describeMessage(last) : null;
+
   return (
-    // The row owns its own horizontal swipe (read / mute / archive), so the
-    // inbox's tab swipe must stand down for any gesture that starts here.
+    // The row owns its own horizontal swipe, so the inbox's folder swipe
+    // stands down for any gesture that starts here.
     <div data-swipe-owner className="relative overflow-hidden">
-      <div className="absolute inset-y-0 right-0 flex items-stretch">
-        <button
-          type="button"
-          aria-label={muted ? `Unmute ${conversation.name}` : `Mute ${conversation.name}`}
-          onClick={() => {
-            onToggleMute();
-            settle(0);
-          }}
-          className="flex w-[76px] flex-col items-center justify-center gap-1 bg-[#3a3d44] text-[11px] font-semibold text-white active:bg-[#4a4e56]"
-        >
-          <BellOff size={19} />
-          {muted ? "Unmute" : "Mute"}
-        </button>
-        <button
-          type="button"
-          aria-label={`Archive ${conversation.name}`}
-          onClick={() => {
-            onArchive();
-            settle(0);
-          }}
-          className="flex w-[76px] flex-col items-center justify-center gap-1 bg-[#7596ff] text-[11px] font-semibold text-black active:bg-[#8fa9ff]"
-        >
-          <Archive size={19} />
-          Archive
-        </button>
-      </div>
-      <div className="absolute inset-y-0 left-0 flex w-[110px] items-center gap-2 bg-[#2ee36a]/80 pl-5 text-[11px] font-semibold text-black">
-        <MailOpen size={18} />
-        {unread ? "Read" : "Unread"}
-      </div>
+      {supportsSwipe && (
+        <>
+          <div className="absolute inset-y-0 right-0 flex items-stretch">
+            <SwipeAction
+              name={chat.title}
+              label={chat.muted ? "Unmute" : "Mute"}
+              icon={BellOff}
+              className="bg-[#8e8e93]"
+              onClick={() => {
+                onToggleMute();
+                settle(0);
+              }}
+            />
+            {chat.kind !== "self" && (
+              <SwipeAction
+                name={chat.title}
+                label={chat.pinnedAt ? "Unpin" : "Pin"}
+                icon={chat.pinnedAt ? PinOff : Pin}
+                className="bg-[#ff9500]"
+                onClick={() => {
+                  onTogglePin();
+                  settle(0);
+                }}
+              />
+            )}
+            <SwipeAction
+              name={chat.title}
+              label={chat.archivedAt ? "Unarchive" : "Archive"}
+              icon={chat.archivedAt ? ArchiveRestore : Archive}
+              className="bg-[#5b7cfa]"
+              onClick={() => {
+                onToggleArchive();
+                settle(0);
+              }}
+            />
+          </div>
+          <div className="absolute inset-y-0 left-0 flex w-[120px] items-center gap-2 bg-chat-accent pl-6 text-[12px] font-semibold text-white">
+            {unread ? <MailOpen size={20} /> : <Mail size={20} />}
+            {unread ? "Read" : "Unread"}
+          </div>
+        </>
+      )}
 
       <motion.div
-        drag="x"
+        drag={supportsSwipe ? "x" : false}
         dragDirectionLock
-        dragElastic={0.18}
-        dragConstraints={{ left: -ACTION_WIDTH, right: 110 }}
+        dragElastic={0.12}
+        dragConstraints={{ left: -ACTION_WIDTH * trailing, right: 120 }}
         animate={controls}
+        onDragStart={() => (draggedAt.current = Date.now())}
         onDragEnd={(_, info) => {
-          if (info.offset.x > 70) {
+          draggedAt.current = Date.now();
+          if (info.offset.x > 80) {
             haptic();
             onToggleRead();
             settle(0);
           } else if (info.offset.x < -60) {
             haptic();
-            settle(-ACTION_WIDTH);
+            settle(-ACTION_WIDTH * trailing);
           } else {
             settle(0);
           }
         }}
         className="relative bg-chat-bg"
       >
-        <button
-          type="button"
-          onClick={() => {
-            if (openRef.current) {
-              settle(0);
-              return;
-            }
-            onOpen();
+        <div
+          role="button"
+          tabIndex={0}
+          aria-label={`${chat.title}${unread ? ", unread" : ""}`}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") onOpen();
           }}
-          className="flex w-full items-center gap-3.5 px-5 py-3 text-left transition-colors active:bg-chat-text/[0.07]"
+          onContextMenu={(event) => {
+            event.preventDefault();
+            onLongPress();
+          }}
+          {...press}
+          className="flex w-full select-none items-center gap-3 px-4 py-[3px] text-left transition-colors active:bg-chat-text/[0.06]"
+          style={{ WebkitTouchCallout: "none" }}
         >
-          <ConversationAvatar conversation={conversation} />
-          <div className="min-w-0 flex-1">
+          <Avatar
+            kind={chat.kind}
+            name={chat.title}
+            src={chat.peer?.avatarUrl}
+            seed={chat.peer?.id ?? chat.id}
+            online={chat.kind === "direct" && isOnline(chat.peerLastActiveAt)}
+          />
+          <div className="min-w-0 flex-1 border-b border-chat-border py-[11px]">
             <div className="flex items-center gap-1.5">
               <p
-                className={`truncate text-[16px] tracking-[-0.01em] ${unread ? "font-bold text-chat-text" : "font-semibold text-chat-text/95"}`}
+                className={`min-w-0 truncate text-[16px] tracking-[-0.01em] ${
+                  unread ? "font-bold" : "font-semibold"
+                } text-chat-text`}
               >
-                {<Highlighted text={conversation.name} query={query} />}
+                <Highlighted text={chat.title} query={query} />
               </p>
-              {conversation.verified && <VerifiedBadge />}
-              {muted && <BellOff size={13} className="shrink-0 text-chat-text/40" />}
+              {chat.verified && <VerifiedBadge />}
+              {chat.muted && (
+                <BellOff size={13} className="shrink-0 text-chat-faint" aria-label="Muted" />
+              )}
+              <span
+                className={`ml-auto shrink-0 pl-2 text-[12.5px] ${
+                  unread && !chat.muted ? "font-semibold text-chat-accent" : "text-chat-faint"
+                }`}
+              >
+                {last ? relativeShort(last.createdAt) : ""}
+              </span>
             </div>
-            {conversation.typing ? (
-              <p className="mt-[3px] flex h-[19px] items-center text-chat-accent">
-                <TypingDots />
-              </p>
-            ) : (
-              <p
-                className={`mt-[3px] flex items-center gap-1 truncate text-[14px] ${unread ? "font-semibold text-chat-text" : "text-chat-text/50"}`}
-              >
-                {conversation.previewFromMe && (
-                  <span className="shrink-0 text-chat-text/45" aria-hidden>
-                    {conversation.previewStatus === "sent" ? (
-                      <Check size={13} />
+            <div className="mt-[3px] flex items-center gap-1.5">
+              {typing ? (
+                <p className="flex h-[20px] flex-1 items-center gap-1.5 text-[14px] font-medium text-chat-accent">
+                  <TypingDots /> typing
+                </p>
+              ) : (
+                <p
+                  className={`flex min-w-0 flex-1 items-center gap-1 text-[14.5px] leading-[20px] ${
+                    unread ? "font-medium text-chat-text" : "text-chat-muted"
+                  }`}
+                >
+                  {last?.mine && !last.deleted && chat.kind === "direct" && (
+                    <PreviewTick chat={chat} />
+                  )}
+                  {last?.kind === "image" && !last.deleted && (
+                    <Camera size={15} className="shrink-0" aria-hidden />
+                  )}
+                  {last?.kind === "audio" && !last.deleted && (
+                    <Mic size={15} className="shrink-0 text-chat-accent" aria-hidden />
+                  )}
+                  <span className={`truncate ${last?.deleted ? "italic" : ""}`}>
+                    {preview ? (
+                      <Highlighted text={preview} query={query} />
+                    ) : chat.kind === "self" ? (
+                      "Notes, links and saved looks"
+                    ) : chat.kind === "support" ? (
+                      "Questions, complaints or feedback"
                     ) : (
-                      <CheckCheck
-                        size={13}
-                        className={conversation.previewStatus === "seen" ? "text-chat-accent" : ""}
-                      />
+                      ""
                     )}
                   </span>
+                </p>
+              )}
+              <span className="flex shrink-0 items-center gap-1.5">
+                {chat.pinnedAt && (
+                  <Pin size={14} className="rotate-45 text-chat-faint" aria-label="Pinned" />
                 )}
-                <span className="truncate">
-                  <Highlighted text={conversation.preview} query={query} />
-                </span>
-              </p>
-            )}
-            {presence && !conversation.typing && (
-              <p className="mt-[2px] truncate text-[12px] text-chat-text/35">{presence}</p>
-            )}
+                {unread && (
+                  <span
+                    className={`flex h-[21px] min-w-[21px] items-center justify-center rounded-full px-1.5 text-[12px] font-bold text-white ${
+                      chat.muted ? "bg-chat-faint" : "bg-chat-accent"
+                    }`}
+                  >
+                    {chat.unreadCount > 0 ? (chat.unreadCount > 99 ? "99+" : chat.unreadCount) : ""}
+                  </span>
+                )}
+              </span>
+            </div>
           </div>
-          <div className="flex shrink-0 flex-col items-end gap-1.5 pl-1">
-            <span className="text-[12px] text-chat-text/40">
-              {relativeShort(conversation.last_message_at)}
-            </span>
-            {unread && <span className="h-[9px] w-[9px] rounded-full bg-[#3897f0]" />}
-          </div>
-        </button>
+        </div>
       </motion.div>
     </div>
+  );
+}
+
+function PreviewTick({ chat }: { chat: Chat }) {
+  if (!chat.lastMessage) return null;
+  const tick = tickFor({ createdAt: chat.lastMessage.createdAt }, chat);
+  if (tick === "sent") return <Check size={15} className="shrink-0" aria-label="Sent" />;
+  return (
+    <CheckCheck
+      size={15}
+      className={`shrink-0 ${tick === "read" ? "text-chat-accent" : ""}`}
+      aria-label={tick === "read" ? "Read" : "Delivered"}
+    />
+  );
+}
+
+function SwipeAction({
+  label,
+  name,
+  icon: Icon,
+  className,
+  onClick,
+}: {
+  label: string;
+  name: string;
+  icon: typeof Pin;
+  className: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={`${label} ${name}`}
+      className={`flex flex-col items-center justify-center gap-1 text-[11.5px] font-semibold text-white active:brightness-110 ${className}`}
+      style={{ width: ACTION_WIDTH }}
+    >
+      <Icon size={20} />
+      {label}
+    </button>
   );
 }

@@ -14,7 +14,12 @@
 // index ourselves keeps it and the stack mirror consistent.
 import { useEffect, useRef } from "react";
 import { useRouter } from "@tanstack/react-router";
-import { noteExternalPush, readIndex, shouldRemoveOverlayEntry } from "@/lib/nav-stack";
+import {
+  noteExternalPush,
+  readIndex,
+  shouldCloseOnPop,
+  shouldRemoveOverlayEntry,
+} from "@/lib/nav-stack";
 
 export function useOverlayHistory(open: boolean, onClose: () => void) {
   const router = useRouter();
@@ -27,9 +32,10 @@ export function useOverlayHistory(open: boolean, onClose: () => void) {
   useEffect(() => {
     if (!open) return;
 
+    const openedIndex = readIndex(window.history.state) + 1;
     const state = {
       ...(window.history.state ?? {}),
-      __TSR_index: readIndex(window.history.state) + 1,
+      __TSR_index: openedIndex,
       __oakOverlay: true,
     };
     window.history.pushState(state, "");
@@ -45,7 +51,9 @@ export function useOverlayHistory(open: boolean, onClose: () => void) {
     const hrefAtOpen = router.history.location.href;
 
     let poppedByGesture = false;
-    const onPop = () => {
+    const onPop = (event: PopStateEvent) => {
+      // A pop that only took a sheet stacked above us off is not ours.
+      if (!shouldCloseOnPop(openedIndex, readIndex(event.state))) return;
       poppedByGesture = true;
       onCloseRef.current();
     };

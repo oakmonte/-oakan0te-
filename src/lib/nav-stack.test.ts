@@ -5,6 +5,7 @@ import {
   noteExternalPush,
   readIndex,
   reset,
+  shouldCloseOnPop,
   shouldRemoveOverlayEntry,
   __setStateForTest,
 } from "./nav-stack";
@@ -137,5 +138,22 @@ describe("shouldRemoveOverlayEntry", () => {
         hrefNow: "/store/finance?checklist=true",
       }),
     ).toBe(false);
+  });
+});
+
+describe("shouldCloseOnPop", () => {
+  // A chat thread pushed at 4, a contact sheet on top of it at 5.
+  test("a pop off the top sheet leaves the overlay beneath it open", () => {
+    expect(shouldCloseOnPop(4, 4)).toBe(false);
+    expect(shouldCloseOnPop(5, 4)).toBe(true);
+  });
+
+  test("a pop below an overlay's own entry closes it", () => {
+    expect(shouldCloseOnPop(4, 3)).toBe(true);
+    expect(shouldCloseOnPop(4, 0)).toBe(true);
+  });
+
+  test("a forward navigation never closes anything", () => {
+    expect(shouldCloseOnPop(4, 5)).toBe(false);
   });
 });
