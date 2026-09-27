@@ -61,7 +61,7 @@ const hasKids = (node: CategoryNode) => !!node.children && node.children.length 
 // Pressable card shared by every row: roomy tap target, visible edge, and a
 // press state that lands on touch-down rather than after release.
 const CARD =
-  "w-full min-h-[52px] flex items-center gap-3 px-4 py-3 rounded-xl border text-left " +
+  "w-full min-h-[44px] flex items-center gap-3 px-4 py-2.5 rounded-xl border text-left " +
   "transition-[transform,background-color] duration-150 ease-out active:scale-[0.98] " +
   "[-webkit-tap-highlight-color:transparent]";
 const OPTION_CARD = `${CARD} bg-gray-50 border-gray-300 active:bg-gray-200`;
@@ -240,7 +240,9 @@ export function CategoryPicker({
                 onClick={() => handleRowTap(child)}
               />
             ))}
-            <CreateCard title="Can’t find your category?" onClick={() => setCreating(true)} />
+            {stack.length > 1 && (
+              <CreateCard title="Can’t find your category?" onClick={() => setCreating(true)} />
+            )}
           </>
         )}
       </div>
@@ -256,15 +258,15 @@ function CreateCard({ title, onClick }: { title: string; onClick: () => void }) 
       onClick={onClick}
       className={`${CARD} mt-2 bg-white border-dashed border-gray-400 active:bg-gray-100`}
     >
-      <span className="w-9 h-9 rounded-full bg-gray-950 text-white flex items-center justify-center shrink-0">
-        <Plus size={18} strokeWidth={2.5} />
+      <span className="w-7 h-7 rounded-full bg-gray-950 text-white flex items-center justify-center shrink-0">
+        <Plus size={15} strokeWidth={2.5} />
       </span>
       <span className="flex-1 min-w-0 flex flex-col">
         <span className="text-[16px] font-semibold text-gray-950 leading-snug break-words">
           {title}
         </span>
-        <span className="text-[13px] text-gray-700 leading-snug mt-0.5">
-          Name it yourself — we review new ones and add the best for everyone
+        <span className="text-[13px] text-gray-700 leading-snug">
+          Name it yourself — we review new ones
         </span>
       </span>
     </button>
