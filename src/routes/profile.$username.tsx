@@ -32,6 +32,7 @@ import {
   Send,
 } from "lucide-react";
 import { BackButton } from "@/components/BackButton";
+import { useGoRoot } from "@/hooks/use-back";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useSession } from "@/hooks/use-session";
 import { useOwnStores } from "@/hooks/use-own-store";
@@ -109,6 +110,7 @@ function ProfilePage() {
   const navigate = useNavigate();
   const router = useRouter();
   const { username } = useParams({ from: "/profile/$username" });
+  const goRoot = useGoRoot();
   const { user, loading: sessionLoading } = useSession();
   const { stores: ownedStores, loading: ownedStoresLoading } = useOwnStores();
   const queryClient = useQueryClient();
@@ -207,7 +209,6 @@ function ProfilePage() {
   // Whether the bell shows as "on" — the follows table has no notify column
   // yet, so this is visual/session-only, not persisted.
   const [notifyEnabled, setNotifyEnabled] = useState(false);
-  const [messageHint, setMessageHint] = useState<string | null>(null);
   const [sellerPromptOpen, setSellerPromptOpen] = useState(false);
   // Briefly lights the hamburger menu's "Oakmonte Store" row during the
   // guided walkthrough below, as if it had just been tapped.
@@ -701,8 +702,16 @@ function ProfilePage() {
               </button>
               <button
                 onClick={() => {
-                  setMessageHint("Messaging is coming soon");
-                  setTimeout(() => setMessageHint(null), 2500);
+                  if (!user) {
+                    navigate({ to: "/sign-in" });
+                    return;
+                  }
+                  // Messages is a root tab, so it goes through the same
+                  // unwind-then-replace as the bottom nav (routes/README.md).
+                  goRoot({
+                    to: "/messages",
+                    search: { to: profile?.personal_username || username },
+                  });
                 }}
                 aria-label="Message"
                 className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-black transition-transform active:scale-90"
@@ -711,7 +720,6 @@ function ProfilePage() {
               </button>
             </div>
           )}
-          {messageHint && <p className="text-[11px] text-white/50">{messageHint}</p>}
 
           {profile?.bio && <p className="text-[14px] font-bold text-center">{profile.bio}</p>}
         </div>

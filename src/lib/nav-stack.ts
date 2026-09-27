@@ -77,6 +77,18 @@ export function shouldRemoveOverlayEntry(args: {
   return args.hrefNow === args.hrefAtOpen;
 }
 
+/**
+ * Whether a popstate should close an overlay that pushed its entry at
+ * `openedIndex`. Every open overlay hears every popstate, so without this a
+ * sheet stacked on another overlay (a contact sheet inside a chat thread)
+ * took BOTH down on one back press: the gesture meant for the top sheet also
+ * closed the thread under it. Only the overlays whose entry the pop went
+ * below should close.
+ */
+export function shouldCloseOnPop(openedIndex: number, poppedToIndex: number): boolean {
+  return poppedToIndex < openedIndex;
+}
+
 /** Subscribe the mirror to the router's history. Returns an unsubscribe. */
 export function attachNavStack(history: RouterHistory): () => void {
   const record = () => {

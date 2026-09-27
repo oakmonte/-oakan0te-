@@ -292,6 +292,10 @@
       /* Outgoing bubbles invert: warm white on the black inbox, near-black on
          the white one, with text-chat-inverse on top in both. */
       --chat-outgoing: linear-gradient(180deg, #25272c 0%, #0a0a0a 100%);
+      /* The chat thread's backdrop and the bubbles written on it. The dark
+         values are the fallbacks in MessageBubble / ChatThread. */
+      --chat-wallpaper: #eceef2;
+      --chat-incoming: #ffffff;
     }
   }
   html[data-surface="social"] {
