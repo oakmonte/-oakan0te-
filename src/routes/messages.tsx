@@ -129,19 +129,24 @@ function MessagesPage() {
   const startWith = useCallback(
     async (person: api.PersonResult) => {
       try {
+        const self = person.id === me;
+        // The RPC already routes "message myself" to the self conversation;
+        // the local snapshot has to agree, or it renders as a 1:1 with me.
         const conversationId = await api.startDirectConversation(person.id);
         const existing = inbox.chats.find((chat) => chat.id === conversationId);
         const chat: Chat = existing ?? {
           id: conversationId,
-          kind: "direct",
-          title: person.displayName?.trim() || person.username,
-          handle: person.username,
-          peer: {
-            id: person.id,
-            username: person.username,
-            displayName: person.displayName,
-            avatarUrl: person.avatarUrl,
-          },
+          kind: self ? "self" : "direct",
+          title: self ? "Me" : person.displayName?.trim() || person.username,
+          handle: self ? null : person.username,
+          peer: self
+            ? null
+            : {
+                id: person.id,
+                username: person.username,
+                displayName: person.displayName,
+                avatarUrl: person.avatarUrl,
+              },
           verified: false,
           lastMessageAt: new Date().toISOString(),
           lastMessage: null,
@@ -164,7 +169,7 @@ function MessagesPage() {
         return null;
       }
     },
-    [inbox.chats, report],
+    [inbox.chats, me, report],
   );
 
   /* ---------- deep link: /messages?to=<username> (the profile "Message" button) ---------- */
@@ -182,11 +187,6 @@ function MessagesPage() {
           report(`@${username} isn't on Oakmonte`);
           return;
         }
-        if (person.id === me) {
-          const self = inbox.chats.find((chat) => chat.kind === "self");
-          if (self) openThread(self);
-          return;
-        }
         const chat = await startWith(person);
         if (chat) {
           openSnapshot.current = chat;
@@ -196,7 +196,7 @@ function MessagesPage() {
         report((reason as Error).message);
       }
     })();
-  }, [search.to, me, inbox.status, inbox.chats, navigate, openThread, report, startWith]);
+  }, [search.to, me, inbox.status, navigate, openThread, report, startWith]);
 
   /* ---------- filtering ---------- */
   const needle = query.trim().toLowerCase();

@@ -83,6 +83,7 @@ export type PersonResult = {
   avatarUrl: string | null;
 };
 
+/** Includes the caller: picking yourself opens your "Me" notes chat. */
 export async function searchPeople(query: string, me: string | null): Promise<PersonResult[]> {
   const needle = query
     .trim()
@@ -96,7 +97,8 @@ export async function searchPeople(query: string, me: string | null): Promise<Pe
     .limit(25);
   if (error) fail(error, "Search is unavailable");
   return (data ?? [])
-    .filter((row) => row.id && row.personal_username && row.id !== me)
+    .filter((row) => row.id && row.personal_username)
+    .sort((a, b) => Number(b.id === me) - Number(a.id === me))
     .map((row) => ({
       id: row.id as string,
       username: row.personal_username as string,

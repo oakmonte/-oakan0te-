@@ -181,9 +181,14 @@ export function NewChatSheet({
           {results.map((person) => (
             <PersonRow
               key={person.id}
-              name={person.displayName?.trim() || person.username}
-              subtitle={`@${person.username}`}
-              avatar={person.avatarUrl}
+              name={
+                person.id === me
+                  ? "Message yourself"
+                  : person.displayName?.trim() || person.username
+              }
+              subtitle={person.id === me ? `@${person.username} · You` : `@${person.username}`}
+              avatar={person.id === me ? null : person.avatarUrl}
+              kind={person.id === me ? "self" : "direct"}
               seed={person.id}
               onSelect={() => {
                 setStarting(person.id);
