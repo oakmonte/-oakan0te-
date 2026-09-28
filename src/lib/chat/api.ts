@@ -5,7 +5,14 @@
  * not by anything here.
  */
 import type { Json } from "@/lib/integrations/my-supabase/types";
-import { CHAT_MEDIA_BUCKET, chatDb, type MemberRow, type MessageKind, type MessageRow } from "./db";
+import {
+  CHAT_MEDIA_BUCKET,
+  chatDb,
+  isMissingSchema,
+  type MemberRow,
+  type MessageKind,
+  type MessageRow,
+} from "./db";
 import { fromInboxRow, fromMessageRow, type Chat, type ChatMessage, type MediaMeta } from "./model";
 
 export const PAGE_SIZE = 50;
@@ -72,6 +79,27 @@ export function markRead(conversationId: string, me: string) {
     last_read_at: new Date().toISOString(),
     marked_unread: false,
   });
+}
+
+/* ---------- settings ---------- */
+
+/** No row means the default: on. null means the setting doesn't exist on
+ *  this database yet (20260929120000_read_receipts_setting not applied). */
+export async function fetchReadReceipts(me: string): Promise<boolean | null> {
+  const { data, error } = await chatDb
+    .from("messaging_settings")
+    .select("read_receipts")
+    .eq("user_id", me)
+    .maybeSingle();
+  if (isMissingSchema(error)) return null;
+  return data?.read_receipts ?? true;
+}
+
+export async function setReadReceipts(me: string, on: boolean): Promise<void> {
+  const { error } = await chatDb
+    .from("messaging_settings")
+    .upsert({ user_id: me, read_receipts: on, updated_at: new Date().toISOString() });
+  if (error) fail(error, "Could not save that setting");
 }
 
 /* ---------- people ---------- */
@@ -206,14 +234,6 @@ export async function fetchReactions(conversationId: string) {
     .select("message_id, user_id, conversation_id, emoji, created_at")
     .eq("conversation_id", conversationId);
   return data ?? [];
-}
-
-export async function fetchMembers(conversationId: string): Promise<MemberRow[]> {
-  const { data } = await chatDb
-    .from("conversation_members")
-    .select("*")
-    .eq("conversation_id", conversationId);
-  return (data ?? []) as MemberRow[];
 }
 
 export async function isBlockedBy(me: string, other: string): Promise<boolean> {

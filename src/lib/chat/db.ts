@@ -52,6 +52,30 @@ export type ReactionRow = {
   created_at: string;
 };
 
+/** What the other member of a chat may see of you. Private to its owner since
+ *  20260929120000_read_receipts_setting; these two tables carry the rest.
+ *  Both are written by the database only. read_at stops advancing while the
+ *  reader has receipts off, and the row is invisible to a viewer whose own
+ *  receipts are off. */
+export type ReadReceiptRow = {
+  conversation_id: string;
+  user_id: string;
+  read_at: string;
+};
+
+export type PresenceRow = {
+  conversation_id: string;
+  user_id: string;
+  delivered_at: string;
+  active_at: string | null;
+};
+
+export type MessagingSettingsRow = {
+  user_id: string;
+  read_receipts: boolean;
+  updated_at: string;
+};
+
 export type SupportMessageRow = {
   id: string;
   user_id: string;
@@ -167,6 +191,13 @@ type MessagingTables = {
       details?: string | null;
     },
     never
+  >;
+  conversation_read_receipts: Table<ReadReceiptRow, never, never>;
+  conversation_presence: Table<PresenceRow, never, never>;
+  messaging_settings: Table<
+    MessagingSettingsRow,
+    Pick<MessagingSettingsRow, "user_id"> & Partial<MessagingSettingsRow>,
+    Partial<Pick<MessagingSettingsRow, "read_receipts" | "updated_at">>
   >;
   support_messages: Table<
     SupportMessageRow,

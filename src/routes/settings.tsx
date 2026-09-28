@@ -7,6 +7,7 @@ import { supabase } from "@/lib/integrations/my-supabase/client";
 import { checkPassword, MIN_PASSWORD_LENGTH } from "@/lib/password-policy";
 import { useRequireSession } from "@/components/onboarding/use-require-session";
 import { useActiveStore } from "@/hooks/use-own-store";
+import { fetchReadReceipts, setReadReceipts } from "@/lib/chat/api";
 import { BackButton } from "@/components/BackButton";
 
 export const Route = createFileRoute("/settings")({
@@ -25,10 +26,12 @@ function SettingsPage() {
   const { checking } = useRequireSession();
   const [email, setEmail] = useState<string | null>(null);
   const [hasPassword, setHasPassword] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       if (!data.user) return;
+      setUserId(data.user.id);
       setEmail(data.user.email ?? null);
       setHasPassword(data.user.user_metadata?.has_password === true);
     });
@@ -72,6 +75,8 @@ function SettingsPage() {
             <NavRow label="Edit profile" onClick={() => navigate({ to: "/edit-profile" })} />
           </Panel>
         </Section>
+
+        {userId && <MessagesSection userId={userId} />}
 
         <StoreSection />
 
@@ -142,6 +147,91 @@ function NavRow({ label, onClick }: { label: string; onClick: () => void }) {
   );
 }
 
+function Switch({
+  checked,
+  label,
+  onClick,
+  disabled,
+}: {
+  checked: boolean;
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      onClick={onClick}
+      disabled={disabled}
+      className={`relative w-11 h-6 rounded-full transition-colors duration-200 shrink-0 disabled:opacity-60 ${
+        checked ? "bg-white" : "bg-white/20"
+      }`}
+    >
+      <span
+        className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-black transition-transform duration-200 ${
+          checked ? "translate-x-5" : "translate-x-0"
+        }`}
+      />
+    </button>
+  );
+}
+
+/** WhatsApp's rule, enforced by RLS (20260929120000_read_receipts_setting):
+ *  off means nobody sees when you've read their messages, and you don't see
+ *  when they've read yours. Delivered ticks are unaffected. */
+function MessagesSection({ userId }: { userId: string }) {
+  const [readReceipts, setReadReceiptsState] = useState<boolean | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchReadReceipts(userId).then((on) => {
+      if (!cancelled) setReadReceiptsState(on);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
+
+  async function toggle() {
+    if (readReceipts === null || saving) return;
+    const next = !readReceipts;
+    setSaving(true);
+    setReadReceiptsState(next);
+    try {
+      await setReadReceipts(userId, next);
+    } catch (error) {
+      console.error("MessagesSection: failed to save read receipts", error);
+      setReadReceiptsState(!next);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  // Also null while the setting doesn't exist on this database yet.
+  if (readReceipts === null) return null;
+
+  return (
+    <Section title="Messages">
+      <Panel>
+        <div className="flex items-center justify-between gap-3 px-4 py-3.5">
+          <span className="text-[14px] text-white/70">
+            Read receipts
+            <span className="block text-[12px] text-white/40 mt-0.5">
+              If you turn this off, people won't see when you've read their messages, and you won't
+              see when they've read yours. Delivered ticks still show.
+            </span>
+          </span>
+          <Switch checked={readReceipts} label="Read receipts" onClick={toggle} disabled={saving} />
+        </div>
+      </Panel>
+    </Section>
+  );
+}
+
 /** Only rendered for accounts that actually have a store — creators/curators
  *  with no stores row see no "Store" section at all, same as how the rest of
  *  this page only shows what applies to the signed-in account. */
@@ -199,23 +289,12 @@ function StoreSection() {
               No separate store page — your listings live on your profile's Store tab instead.
             </span>
           </span>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={personalOnly}
-            aria-label="Only sell from my personal page"
+          <Switch
+            checked={personalOnly}
+            label="Only sell from my personal page"
             onClick={toggle}
             disabled={saving}
-            className={`relative w-11 h-6 rounded-full transition-colors duration-200 shrink-0 disabled:opacity-60 ${
-              personalOnly ? "bg-white" : "bg-white/20"
-            }`}
-          >
-            <span
-              className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-black transition-transform duration-200 ${
-                personalOnly ? "translate-x-5" : "translate-x-0"
-              }`}
-            />
-          </button>
+          />
         </div>
       </Panel>
     </Section>

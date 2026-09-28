@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Loader2, Pause, Play } from "lucide-react";
 import { formatDuration, type ChatMessage } from "@/lib/chat/model";
 import { useMediaUrl } from "./use-media-url";
@@ -9,7 +9,17 @@ const SPEEDS = [1, 1.5, 2] as const;
 // pauses whichever was playing.
 let playing: HTMLAudioElement | null = null;
 
-export function VoiceNote({ message, mine }: { message: ChatMessage; mine: boolean }) {
+export function VoiceNote({
+  message,
+  mine,
+  stamp,
+}: {
+  message: ChatMessage;
+  mine: boolean;
+  /** Time and ticks, laid out in the same row as the duration and speed so
+   *  the three never stack on top of each other. */
+  stamp?: ReactNode;
+}) {
   const url = useMediaUrl(message.mediaPath, message.localUrl);
   const audio = useRef<HTMLAudioElement>(null);
   const [isPlaying, setPlaying] = useState(false);
@@ -112,22 +122,27 @@ export function VoiceNote({ message, mine }: { message: ChatMessage; mine: boole
             />
           ))}
         </div>
-        <div className="mt-0.5 flex items-center justify-between text-[11px] opacity-70">
-          <span>{formatDuration(isPlaying || current > 0 ? current : duration)}</span>
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              setSpeed(SPEEDS[(SPEEDS.indexOf(speed) + 1) % SPEEDS.length]);
-            }}
-            onPointerDown={(event) => event.stopPropagation()}
-            className={`rounded-full px-1.5 py-[1px] text-[10.5px] font-bold ${
-              mine ? "bg-chat-inverse/15" : "bg-chat-text/10"
-            }`}
-            aria-label={`Playback speed ${speed}x`}
-          >
-            {speed}×
-          </button>
+        <div className="mt-1 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="text-[12px] tabular-nums opacity-70">
+              {formatDuration(isPlaying || current > 0 ? current : duration)}
+            </span>
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                setSpeed(SPEEDS[(SPEEDS.indexOf(speed) + 1) % SPEEDS.length]);
+              }}
+              onPointerDown={(event) => event.stopPropagation()}
+              className={`flex h-7 min-w-[42px] items-center justify-center rounded-full px-2 text-[12.5px] font-semibold tabular-nums leading-none active:scale-95 ${
+                mine ? "bg-chat-inverse/12" : "bg-chat-text/10"
+              }`}
+              aria-label={`Playback speed ${speed}x`}
+            >
+              {speed}×
+            </button>
+          </div>
+          {stamp}
         </div>
       </div>
       {url && (
