@@ -38,6 +38,18 @@ white-tinted version made them vanish over bright scenes (2026-09-24). Keep its 
 backdrop `brightness(<1)`. White icons with no glass behind them at all (the camera tool column, the
 after-shot toolbar) go in a container with the `oak-on-media` class, which shadows their edges.
 
+## Never put glass inside a blurred element
+
+An element with `backdrop-filter` (also `filter`, `opacity` < 1, `mask`, `clip-path`,
+`mix-blend-mode`) is a **backdrop root**: a glass surface inside it can only blur what's inside
+that ancestor, not the page behind. The frost vanishes and whatever sits behind shows through
+sharp, like a see-through box. It first showed up in the chat header's ⋮ menu (2026-09-29): the
+header had `backdrop-blur-xl`, so the thread's bubbles showed crisply through the menu. When a
+bar with its own blur hosts a glass dropdown, put the bar's blur on an `aria-hidden`
+`absolute inset-0 -z-10` layer (see `ChatHeader.tsx`), or make the dropdown solid (the composer's
+attach menu). The lenses inside the nav/toggle tracks are nested on purpose: they only need to
+blur the track under them.
+
 ## The rim
 
 `GLASS_RIM` (`.oak-glass-rim` in `styles.css`) is a 1px ring cut from a gradient with a mask, so the

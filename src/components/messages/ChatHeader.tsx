@@ -105,10 +105,18 @@ export function ChatHeader({
 
   return (
     <header
-      className={`relative z-30 flex h-[60px] shrink-0 items-center gap-1 bg-chat-bg/90 px-1.5 backdrop-blur-xl transition-[border-color] ${
+      className={`relative z-30 flex h-[60px] shrink-0 items-center gap-1 px-1.5 transition-[border-color] ${
         scrolled ? "border-b border-chat-border" : "border-b border-transparent"
       }`}
     >
+      {/* The header's own blur lives on this layer, not on <header>: an
+          element with backdrop-filter is a backdrop root, so the glass menu
+          inside it could only sample the header — the thread behind showed
+          through the menu completely unblurred. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 -z-10 bg-chat-bg/90 backdrop-blur-xl"
+      />
       {search.active ? (
         <>
           <div className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-[12px] bg-chat-soft px-3 text-chat-muted">
