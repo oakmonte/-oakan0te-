@@ -237,15 +237,15 @@ function RootShell({ children }: { children: ReactNode }) {
   // design, the rest until the shared product-form components are on the
   // tokens -- see isHeldLight().
   const heldLight = surface === "store" && isHeldLight(pathname);
-  // "/" and "/sellers" are always white -- unlike /store they never follow
-  // the phone's scheme, so a single unconditional value is enough. Both
-  // already declare #ffffff in their own head() and that's normally all a
-  // fixed-white route needs (see the sixteen auth/onboarding routes). Diadem
-  // reported the status strip staying black on these two specifically
-  // (2026-09-27) -- same class of bug as the store override below, so it
-  // gets the same defense-in-depth fix rather than a guess at the exact
-  // browser quirk.
-  const alwaysWhite = pathname === "/" || pathname === "/sellers";
+  // The marketing surface ("/" and "/sellers") is always white -- unlike
+  // /store it never follows the phone's scheme, so a single unconditional
+  // value is enough. Both already declare #ffffff in their own head(), and
+  // that's normally all a fixed-white route needs (see the sixteen
+  // auth/onboarding routes) -- the actual black-at-the-top bug Diadem hit
+  // (2026-09-27/28) turned out to be --oak-edge (see surface.ts, styles.css),
+  // not this meta tag. Kept anyway as the same defense-in-depth the store
+  // override below relies on.
+  const alwaysWhite = surface === "marketing";
   // A black full-screen overlay over a light screen (the Explore feed on
   // /home) — status strip and scroll edge go black with it. See dark-overlay.ts.
   const darkOverlay = useDarkOverlayActive();

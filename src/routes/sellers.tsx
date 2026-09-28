@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowUpRight, Check, ChevronDown, Menu, X } from "lucide-react";
 import logoO from "@/assets/logo-o.png";
 
@@ -13,13 +13,13 @@ export const Route = createFileRoute("/sellers")({
       {
         name: "description",
         content:
-          "Oakmonte gives ambitious sellers a beautiful storefront, a sharper studio, and the confidence to turn a point of view into a business.",
+          "Oakmonte gives honest sellers a fully customizable storefront and every tool and resource they need to set themselves apart — at whatever scale they choose to sell.",
       },
       { property: "og:title", content: "Sell on Oakmonte — Build the unmissable." },
       {
         property: "og:description",
         content:
-          "A personal storefront, a considered seller studio, and manufacturing support — everything free to start.",
+          "A personal storefront, escrow-protected payments, and manufacturing support — everything free to start.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -36,61 +36,116 @@ export const Route = createFileRoute("/sellers")({
   component: SellersLanding,
 });
 
-/* ---------------- Data ---------------- */
+/* ---------------- Data ----------------
+   Grounded in what's actually true about Oakmonte (see routes/index.tsx and
+   its FAQ copy) rather than generic SaaS-template language: escrow payments,
+   creator-driven distribution, handled logistics, and up-front fees are real
+   product facts, not marketing filler. */
 const FEATURES = [
   {
     number: "01",
-    title: "Your store, your rules.",
-    copy: "Launch a personal storefront with a sharp point of view — no marketplace sameness, no template fatigue.",
+    title: "Your storefront, everywhere.",
+    copy: "A free, fully customizable storefront your audience can reach from whatever social platform they already follow you on — one link, not a caged-in marketplace page.",
   },
   {
     number: "02",
-    title: "A studio that stays out of the way.",
-    copy: "Products, orders, customers, and signals in one considered workspace built for momentum.",
+    title: "Keep your margin.",
+    copy: "No commission-hungry marketplace games — list for free, and see every fee before you publish, never after a sale.",
   },
   {
     number: "03",
-    title: "From idea to inventory.",
-    copy: "Oakmonte Manufacturers helps first-time brands source, sample, and produce with confidence.",
+    title: "Get paid, safely.",
+    copy: "Payment sits in escrow until your customer confirms the piece, so a bad-faith return, a chargeback, or a customer who takes the product and refuses to pay doesn't cost you a thing.",
+  },
+  {
+    number: "04",
+    title: "Collaborate with creators.",
+    copy: "Partner directly with creators to shoot the campaigns, drops, and content built around your pieces — not a link shared after the fact, but genius made together.",
+  },
+  {
+    number: "05",
+    title: "Customers you didn't chase.",
+    copy: "Creators link your pieces right in their own content, so a curator can buy in one swipe — and every seller gets free visibility to curators browsing the app, no ad budget required.",
+  },
+  {
+    number: "06",
+    title: "The operations, handled.",
+    copy: "Delivery, tracked riders, website hosting — we absorb the pain points so you can focus on the product. Need a manufacturer too? We can connect you with one.",
   },
 ];
 
-const PLANS = [
-  {
-    name: "Launch",
-    price: "FREE",
-    label: "Everything you need to open beautifully",
-    features: [
-      "Personal storefront",
-      "30+ premium store templates",
-      "Unlimited products and collections",
-      "Seller Studio essentials",
-    ],
-  },
-  {
-    name: "Grow",
-    price: "FREE",
-    label: "More tools. More momentum. Still free.",
-    features: [
-      "Everything in Launch",
-      "Custom store direction",
-      "Growth insights and analytics",
-      "Marketing tools and support",
-    ],
-    featured: true,
-  },
-  {
-    name: "Build Your Brand",
-    price: "FREE",
-    label: "A full runway for your next big move",
-    features: [
-      "Everything in Grow",
-      "Bespoke digital experience",
-      "Priority seller support",
-      "Oakmonte Manufacturers access",
-    ],
-  },
+// The same honest, verifiable facts routes/index.tsx already stands behind
+// (its RESULTS array) — not fabricated traction numbers. This is a
+// pre-launch product; see POSTPONED.md.
+const STATS = [
+  { value: "0", label: "Payments released before your customer confirms" },
+  { value: "100%", label: "Disputes routed through review, not chargebacks" },
+  { value: "1", label: "Shared size chart across every listing" },
+  { value: "$0", label: "Hidden fees — every cost shown before you publish" },
 ];
+
+// Replaces three "plan" cards that all said FREE with nothing to actually
+// compare — same CTA, same destination, no real tiers. One honest list
+// instead of a fake choice.
+const INCLUDED = [
+  "Personal, customizable storefront",
+  "30+ premium store templates",
+  "Unlimited products and collections",
+  "Escrow-protected payments on every sale",
+  "Seller Studio — orders, products, customers, signals",
+  "Growth insights and analytics",
+  "Marketing tools and creator distribution",
+  "Collaborate with creators and produce genius",
+  "Full creative control over your store's direction",
+  "Priority seller support",
+  "Oakmonte Manufacturers access",
+];
+
+/* ---------------- Scroll reveal ----------------
+   Same IntersectionObserver pattern as routes/index.tsx's Reveal component —
+   reused here for consistency rather than reinvented. */
+function useReveal<T extends HTMLElement>() {
+  const ref = useRef<T | null>(null);
+  const [inView, setInView] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setInView(true);
+            io.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.15 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return { ref, className: `reveal${inView ? " in-view" : ""}` };
+}
+
+function Reveal({
+  children,
+  delay = 0,
+  className = "",
+  as: Tag = "div",
+}: {
+  children: React.ReactNode;
+  delay?: 0 | 1 | 2 | 3;
+  className?: string;
+  as?: React.ElementType;
+}) {
+  const { ref, className: rc } = useReveal<HTMLDivElement>();
+  const delayClass = delay ? ` reveal-delay-${delay}` : "";
+  return (
+    <Tag ref={ref} className={`${rc}${delayClass} ${className}`.trim()}>
+      {children}
+    </Tag>
+  );
+}
 
 /* ---------------- Page ---------------- */
 function SellersLanding() {
@@ -118,7 +173,7 @@ function SellersLanding() {
             Manufacturers
           </a>
           <a href="#plans" onClick={() => setMenuOpen(false)}>
-            Pricing
+            What's included
           </a>
         </nav>
         <div className="nav-actions">
@@ -144,40 +199,33 @@ function SellersLanding() {
         <div className="hero-orbit orbit-two" />
         <div className="hero-grid" />
         <div className="hero-copy">
-          <div className="eyebrow">
-            <span className="status-dot" /> The independent commerce company
-          </div>
           <h1>
-            Build the
+            Start something
             <br />
-            <em>unmissable.</em>
+            <em>Remarkable.</em>
           </h1>
           <p>
-            Oakmonte gives ambitious sellers a beautiful storefront, a sharper studio, and the
-            confidence to turn a point of view into a business.
+            Oakmonte gives honest sellers a fully customizable storefront and every tool and
+            resource they need to set themselves apart — at whatever scale they choose to sell.
           </p>
           <div className="hero-buttons">
             <Link className="pill-button pill-button-acid" to="/set-up-store">
-              Start for free <ArrowUpRight size={16} />
+              Set up my store <ArrowUpRight size={16} />
             </Link>
-            <a className="text-link hero-link" href="#why">
-              Why Oakmonte <ArrowUpRight size={15} />
-            </a>
+            <Link className="text-link hero-link" to="/sign-in">
+              Login <ArrowUpRight size={15} />
+            </Link>
           </div>
         </div>
         <div className="hero-side-note">
           <span>EST. 2026</span>
           <strong>
-            Commerce
+            The tool
             <br />
-            for the
+            for
             <br />
-            <em>particular.</em>
+            <em>creatives.</em>
           </strong>
-        </div>
-        <div className="hero-bottom">
-          <span>Scroll to explore</span>
-          <span>↓</span>
         </div>
       </section>
 
@@ -200,54 +248,81 @@ function SellersLanding() {
       </section>
 
       <section className="manifesto" id="why">
-        <div className="section-kicker">Oakmonte / A better way to begin</div>
-        <h2>
-          Not a marketplace.
-          <br />
-          <em>A point of view.</em>
-        </h2>
-        <p>
-          We believe the next great brands will not be built by blending in. Oakmonte gives
-          independent sellers the tools, confidence, and runway to make their own category.
-        </p>
-        <div className="manifesto-sign">
+        <Reveal>
+          <div className="section-kicker">Oakmonte / A better way to begin</div>
+          <h2>
+            Not a marketplace.
+            <br />
+            <em>A point of view.</em>
+          </h2>
+          <p>
+            We believe some realities of starting a brand kills creativity.
+            <br />
+            We absorb those headaches so you stay creative and focus on what matters.
+          </p>
+        </Reveal>
+        <Reveal delay={1} className="manifesto-sign">
           OAKMONTE
           <br />
-          <span>FOR THE PARTICULAR</span>
-        </div>
+          <span>CREATED TO CREATE.</span>
+        </Reveal>
+      </section>
+
+      <section className="steps-section">
+        <Reveal className="steps-list">
+          <div>
+            <span>01</span>
+            <strong>Set up your store</strong>
+          </div>
+          <div>
+            <span>02</span>
+            <strong>Give us your account number</strong>
+          </div>
+          <div>
+            <span>03</span>
+            <strong>We handle the rest!</strong>
+          </div>
+        </Reveal>
       </section>
 
       <section className="features-section" id="sellers">
-        <div className="feature-intro">
+        <Reveal className="feature-intro">
           <div className="section-kicker">The platform</div>
           <h2>
-            Everything you need.
+            What Oakmonte
             <br />
-            <em>Nothing you don't.</em>
+            <em>does for you.</em>
           </h2>
-          <p>Three moves from idea to a business people come back to.</p>
-        </div>
-        <div className="feature-list">
-          {FEATURES.map((feature, index) => (
-            <button
-              type="button"
-              className={openFeature === index ? "feature-row is-open" : "feature-row"}
-              key={feature.number}
-              onClick={() => setOpenFeature(index)}
-            >
-              <span className="feature-number">{feature.number}</span>
-              <span className="feature-body">
-                <strong>{feature.title}</strong>
-                {openFeature === index && <span>{feature.copy}</span>}
-              </span>
-              <ChevronDown className="feature-chevron" size={20} />
-            </button>
-          ))}
-        </div>
+          <p>Six concrete reasons sellers pick Oakmonte over building alone.</p>
+        </Reveal>
+        <Reveal delay={1} className="feature-list">
+          {FEATURES.map((feature, index) => {
+            const isOpen = openFeature === index;
+            return (
+              <div className={isOpen ? "feature-row is-open" : "feature-row"} key={feature.number}>
+                <button
+                  type="button"
+                  className="feature-trigger"
+                  aria-expanded={isOpen}
+                  onClick={() => setOpenFeature(isOpen ? -1 : index)}
+                >
+                  <span className="feature-number">{feature.number}</span>
+                  <strong className="feature-title">{feature.title}</strong>
+                  <ChevronDown className="feature-chevron" size={20} />
+                </button>
+                <div className="feature-panel">
+                  <div className="feature-panel-inner">
+                    <p>{feature.copy}</p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </Reveal>
       </section>
 
       <section className="studio-section">
-        <div className="studio-card">
+        <Reveal className="studio-card">
           <div className="studio-top">
             <span className="studio-dot" /> Seller Studio{" "}
             <span className="studio-status">LIVE WORKSPACE</span>
@@ -290,8 +365,8 @@ function SellersLanding() {
               </div>
             </div>
           </div>
-        </div>
-        <div className="studio-copy">
+        </Reveal>
+        <Reveal delay={1} className="studio-copy">
           <div className="section-kicker">02 / Seller Studio</div>
           <h2>
             Run the shop.
@@ -299,17 +374,17 @@ function SellersLanding() {
             <em>Keep the spark.</em>
           </h2>
           <p>
-            A calm, clear workspace for the work behind the work. Know what is moving, what is
-            working, and what to do next.
+            Products, orders, customers and real-time signals in one screen — not four different
+            tools stitched together to run your store.
           </p>
           <Link className="text-link" to="/set-up-store">
             Enter the studio <ArrowUpRight size={15} />
           </Link>
-        </div>
+        </Reveal>
       </section>
 
       <section className="manufacturer-section" id="manufacturers">
-        <div>
+        <Reveal>
           <div className="section-kicker">03 / Oakmonte Manufacturers</div>
           <h2>
             Make the thing
@@ -317,14 +392,15 @@ function SellersLanding() {
             <em>you can't stop thinking about.</em>
           </h2>
           <p>
-            Starting a brand should not mean navigating a maze. We help you find the right
-            materials, partners, quantities, and next step.
+            Starting a brand shouldn't mean navigating a maze alone. Oakmonte Manufacturers connects
+            you with vetted materials, partners, and minimum order quantities that actually fit a
+            first run.
           </p>
           <Link className="pill-button pill-button-dark" to="/set-up-store">
             Meet the makers <ArrowUpRight size={16} />
           </Link>
-        </div>
-        <div className="manufacturer-list">
+        </Reveal>
+        <Reveal delay={1} className="manufacturer-list">
           <div>
             <span>01</span>
             <strong>Source with confidence</strong>
@@ -337,71 +413,49 @@ function SellersLanding() {
             <span>03</span>
             <strong>Produce your first run</strong>
           </div>
-        </div>
+        </Reveal>
       </section>
 
       <section className="stats-section">
-        <div className="section-kicker">The Oakmonte signal</div>
+        <Reveal className="section-kicker">The Oakmonte signal</Reveal>
         <div className="stats-grid">
-          <div>
-            <strong>14.8k</strong>
-            <span>independent sellers</span>
-          </div>
-          <div>
-            <strong>92%</strong>
-            <span>repeat customer rate</span>
-          </div>
-          <div>
-            <strong>3.4m</strong>
-            <span>products discovered</span>
-          </div>
-          <div>
-            <strong>24/7</strong>
-            <span>ideas in motion</span>
-          </div>
-        </div>
-      </section>
-
-      <section className="plans-section" id="plans">
-        <div className="section-kicker">Everything starts free</div>
-        <div className="plans-heading">
-          <h2>
-            30+ ways to begin.
-            <br />
-            <em>Zero reasons to wait.</em>
-          </h2>
-          <p>
-            Choose your starting point and get every essential perk included — beautiful templates,
-            powerful tools, and room to grow, all free.
-          </p>
-        </div>
-        <div className="plan-grid">
-          {PLANS.map((plan) => (
-            <article className={plan.featured ? "plan-card featured" : "plan-card"} key={plan.name}>
-              <div className="plan-label">
-                {plan.featured && <span className="plan-badge">MOST CHOSEN</span>}
-                <span>{plan.name}</span>
-              </div>
-              <strong>{plan.price}</strong>
-              <p>{plan.label}</p>
-              <ul>
-                {plan.features.map((feature) => (
-                  <li key={feature}>
-                    <Check size={14} />
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-              <Link to="/set-up-store">
-                Claim free access <ArrowUpRight size={14} />
-              </Link>
-            </article>
+          {STATS.map((stat, index) => (
+            <Reveal key={stat.label} delay={(index % 4) as 0 | 1 | 2 | 3}>
+              <strong>{stat.value}</strong>
+              <span>{stat.label}</span>
+            </Reveal>
           ))}
         </div>
       </section>
 
+      <section className="plans-section" id="plans">
+        <Reveal className="free-panel">
+          <div className="section-kicker">Everything starts free</div>
+          <h2>
+            Everything, from day one.
+            <br />
+            <em>No tiers to unlock.</em>
+          </h2>
+          <p>
+            Every seller gets the same toolkit, free — there's no plan to pick between and nothing
+            you outgrow.
+          </p>
+          <ul className="free-list">
+            {INCLUDED.map((item) => (
+              <li key={item}>
+                <Check size={14} />
+                {item}
+              </li>
+            ))}
+          </ul>
+          <Link className="pill-button pill-button-acid" to="/set-up-store">
+            Start selling free <ArrowUpRight size={16} />
+          </Link>
+        </Reveal>
+      </section>
+
       <footer className="site-footer">
-        <div className="footer-cta">
+        <Reveal className="footer-cta">
           <div className="section-kicker">For the particular</div>
           <h2>
             Your next
@@ -411,7 +465,7 @@ function SellersLanding() {
           <Link className="pill-button pill-button-acid" to="/set-up-store">
             Claim your free store <ArrowUpRight size={16} />
           </Link>
-        </div>
+        </Reveal>
         <div className="footer-bottom">
           <a className="wordmark" href="#top">
             <img className="wordmark-logo" src={logoO} alt="Oakmonte" />
@@ -419,7 +473,7 @@ function SellersLanding() {
           </a>
           <span>© 2026 Oakmonte Commerce, Inc.</span>
           <span>
-            <Link to="/privacy">Privacy</Link> · <Link to="/terms">Terms</Link> · Instagram
+            <Link to="/privacy">Privacy</Link> · <Link to="/terms">Terms</Link>
           </span>
         </div>
       </footer>
@@ -441,6 +495,13 @@ const CSS = `
      eyebrow/kicker subtext, icons, the studio chart bars) stays on --primary
      above, deliberately untouched. */
   --accent-blue:#2151F5;
+  /* Motion tokens (transitions.dev scale) -- named so every duration/easing
+     choice below is traceable to a usage, not a random number. */
+  --ease-out:cubic-bezier(.22,1,.36,1);
+  --ease-in-out:cubic-bezier(.65,0,.35,1);
+  --duration-quick:150ms;
+  --duration-fast:250ms;
+  --duration-slow:400ms;
   overflow:hidden;background:#fff;color:var(--foreground);font-family:'Manrope',sans-serif;
 }
 .oak-sellers *{box-sizing:border-box}
@@ -451,41 +512,59 @@ const CSS = `
 .oak-sellers .wordmark-logo{height:44px;width:auto;flex:none;display:inline-block;transform:translateY(4px)}
 .oak-sellers .wordmark-word{display:inline-block;font-family:'Inter',ui-sans-serif,system-ui,sans-serif;font-weight:400;font-size:26px;letter-spacing:-.01em;line-height:1;color:var(--foreground);animation:oakSellersWordmarkReveal .8s .15s cubic-bezier(.2,.8,.2,1) both}
 .oak-sellers .wordmark-tagline{margin-left:16px;font-size:9px;font-weight:500;letter-spacing:.16em;text-transform:uppercase;color:var(--accent-blue);transform:translateY(-2px);white-space:nowrap}
-.oak-sellers .nav-links{display:flex;gap:34px;margin-left:auto;margin-right:5vw;font:11px 'DM Mono',monospace;color:#667085}
+/* The wordmark keeps its own tuned baseline position (untouched above) --
+   these two are nudged down to meet it there, instead of moving the
+   wordmark to meet them. */
+.oak-sellers .nav-links{display:flex;gap:34px;margin-left:auto;margin-right:5vw;font:11px 'DM Mono',monospace;color:#667085;transform:translateY(19px)}
+.oak-sellers .nav-links a{transition:color var(--duration-fast) var(--ease-out)}
 .oak-sellers .nav-links a:hover,.oak-sellers .nav-login:hover{color:var(--primary)}
+
+/* Buttons: instant press feedback (emil-design-eng) -- scale(.97) on
+   :active, hover lift gated to real pointers so a tap on touch doesn't
+   leave the button stuck "lifted" (Touch device hover states). */
 .oak-sellers .nav-actions{display:flex;align-items:center;gap:22px;font-size:12px}
-.oak-sellers .pill-button{display:inline-flex;align-items:center;justify-content:center;gap:11px;border-radius:999px;padding:14px 20px;font-size:12px;font-weight:800;transition:transform .25s ease,box-shadow .25s ease,background .25s ease;position:relative;overflow:hidden}
+.oak-sellers .nav-login{display:inline-block;transform:translateY(19px)}
+.oak-sellers .pill-button{display:inline-flex;align-items:center;justify-content:center;gap:11px;border-radius:999px;padding:14px 20px;font-size:12px;font-weight:800;transition:transform var(--duration-fast) var(--ease-out),box-shadow var(--duration-fast) var(--ease-out),background var(--duration-fast) var(--ease-out);position:relative;overflow:hidden}
 .oak-sellers .pill-button::after{content:'';position:absolute;inset:0;width:35%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.42),transparent);transform:translateX(-140%);animation:oakSellersShimmer 5s 2s ease-in-out infinite}
-.oak-sellers .pill-button:hover{transform:translateY(-4px) scale(1.025);box-shadow:0 14px 28px rgba(20,85,217,.2)}
+@media (hover:hover) and (pointer:fine){
+  .oak-sellers .pill-button:hover{transform:translateY(-4px) scale(1.025);box-shadow:0 14px 28px rgba(20,85,217,.2)}
+}
+.oak-sellers .pill-button:active{transform:scale(.97);transition-duration:var(--duration-quick)}
 .oak-sellers .pill-button-light{background:#111827;color:#fff}
 .oak-sellers .pill-button-acid{background:var(--accent-blue);color:#fff}
 .oak-sellers .pill-button-dark{background:#111827;color:#fff}
 .oak-sellers .menu-button{display:none;background:none;border:0;cursor:pointer;padding:5px}
 
-.oak-sellers .hero{min-height:750px;height:100vh;position:relative;display:flex;align-items:flex-end;padding:0 7vw 10vw;overflow:hidden;background:linear-gradient(120deg,#fff 0%,#f4f7fb 52%,#eaf1ff 100%)}
+.oak-sellers .hero{min-height:750px;height:100vh;position:relative;display:flex;align-items:flex-end;padding:0 7vw 4vw;overflow:hidden;background:linear-gradient(120deg,#fff 0%,#f4f7fb 52%,#eaf1ff 100%)}
 .oak-sellers .hero-grid{position:absolute;inset:0;opacity:.5;background-image:linear-gradient(rgba(20,85,217,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(20,85,217,.08) 1px,transparent 1px);background-size:88px 88px;mask-image:linear-gradient(90deg,black,transparent 75%);animation:oakSellersGridPulse 8s ease-in-out infinite}
 .oak-sellers .hero-orbit{position:absolute;border:1px solid rgba(20,85,217,.22);border-radius:50%;transform:rotate(-25deg);animation:oakSellersDrift 13s ease-in-out infinite alternate}
 .oak-sellers .hero-orbit::after{content:'';position:absolute;width:10px;height:10px;border-radius:50%;background:var(--primary);right:12%;top:8%;box-shadow:0 0 0 8px rgba(20,85,217,.08),0 0 24px rgba(20,85,217,.4);animation:oakSellersPulseRing 3s ease-in-out infinite}
 .oak-sellers .orbit-one{width:780px;height:430px;right:-80px;top:160px}
 .oak-sellers .orbit-two{width:580px;height:260px;right:30px;top:245px;border-color:rgba(17,24,39,.13);animation-duration:17s;animation-direction:alternate-reverse}
 .oak-sellers .hero-copy{position:relative;z-index:1;max-width:740px;animation:oakSellersRise 1s ease both}
-.oak-sellers .eyebrow,.oak-sellers .section-kicker{color:var(--primary);text-transform:uppercase;letter-spacing:.06em;font:10px 'DM Mono',monospace}
-.oak-sellers .status-dot,.oak-sellers .studio-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--primary);margin-right:8px;box-shadow:0 0 14px rgba(20,85,217,.55);animation:oakSellersBlink 2s ease-in-out infinite}
+.oak-sellers .section-kicker{color:var(--primary);text-transform:uppercase;letter-spacing:.06em;font:10px 'DM Mono',monospace}
+.oak-sellers .studio-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--primary);margin-right:8px;box-shadow:0 0 14px rgba(20,85,217,.55);animation:oakSellersBlink 2s ease-in-out infinite}
 .oak-sellers .hero h1{margin:26px 0 32px;font-size:clamp(72px,13vw,185px);line-height:.82;letter-spacing:-.1em;font-weight:600;animation:oakSellersHeadlineIn 1.15s .15s ease both}
-.oak-sellers .hero h1 em,.oak-sellers .manifesto h2 em,.oak-sellers .feature-intro h2 em,.oak-sellers .studio-copy h2 em,.oak-sellers .manufacturer-section h2 em,.oak-sellers .plans-heading h2 em,.oak-sellers .footer-cta h2 em{font-family:Georgia,serif;font-weight:400;color:var(--accent-blue)}
+.oak-sellers .hero h1 em,.oak-sellers .manifesto h2 em,.oak-sellers .feature-intro h2 em,.oak-sellers .studio-copy h2 em,.oak-sellers .manufacturer-section h2 em,.oak-sellers .free-panel h2 em,.oak-sellers .footer-cta h2 em{font-family:Georgia,serif;font-weight:400;color:var(--accent-blue)}
 .oak-sellers .hero-copy p{max-width:440px;color:#475467;line-height:1.55;font-size:16px;animation:oakSellersRise .9s .35s ease both}
 .oak-sellers .hero-buttons{display:flex;align-items:center;gap:27px;margin-top:32px;animation:oakSellersRise .9s .5s ease both}
-.oak-sellers .text-link{display:inline-flex;align-items:center;gap:8px;font:11px 'DM Mono',monospace}
+.oak-sellers .text-link{display:inline-flex;align-items:center;gap:8px;font:11px 'DM Mono',monospace;transition:color var(--duration-fast) var(--ease-out)}
 .oak-sellers .hero-link{color:#344054}
-.oak-sellers .hero-side-note{position:absolute;right:7vw;bottom:12vw;z-index:1;display:flex;flex-direction:column;gap:21px;color:#667085;font:10px 'DM Mono',monospace}
-.oak-sellers .hero-side-note strong{color:#111827;font:600 32px/1 Georgia,serif;letter-spacing:-.06em}
-.oak-sellers .hero-bottom{position:absolute;right:7vw;bottom:4vw;display:flex;gap:14px;color:#667085;font:10px 'DM Mono',monospace}
+.oak-sellers .hero-side-note{position:absolute;right:7vw;bottom:32vw;z-index:1;display:flex;flex-direction:column;gap:16px;color:#667085;font:10px 'DM Mono',monospace}
+.oak-sellers .hero-side-note strong{color:#111827;font:600 24px/1.2 Georgia,serif;letter-spacing:-.05em}
 
 .oak-sellers .ticker-section{display:flex;align-items:center;gap:40px;padding:20px 0;overflow:hidden;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
 .oak-sellers .ticker-label{flex:0 0 auto;padding-left:4vw;color:var(--muted);text-transform:uppercase;font:10px 'DM Mono',monospace}
 .oak-sellers .marquee{overflow:hidden;flex:1}
-.oak-sellers .marquee-track{display:flex;gap:65px;width:max-content;color:#344054;font-size:17px;font-weight:700;animation:oakSellersMarquee 28s linear infinite}
+.oak-sellers .marquee-track{display:flex;gap:65px;width:max-content;color:#344054;font-size:17px;font-weight:700;animation:oakSellersMarquee 16s linear infinite}
 .oak-sellers .marquee-track span:nth-child(3n){font:italic 20px Georgia,serif;color:var(--primary)}
+
+/* Scroll reveal -- same convention as routes/index.tsx's .reveal/.reveal-delay-N. */
+.oak-sellers .reveal{opacity:0;transform:translateY(24px);transition:opacity var(--duration-slow) var(--ease-in-out),transform var(--duration-slow) var(--ease-in-out)}
+.oak-sellers .reveal.in-view{opacity:1;transform:translateY(0)}
+.oak-sellers .reveal-delay-1.in-view{transition-delay:.08s}
+.oak-sellers .reveal-delay-2.in-view{transition-delay:.16s}
+.oak-sellers .reveal-delay-3.in-view{transition-delay:.24s}
 
 .oak-sellers .manifesto{position:relative;padding:155px 7vw 170px;background:var(--ink);color:#fff}
 .oak-sellers .manifesto .section-kicker{color:#7ba2ff}
@@ -494,18 +573,33 @@ const CSS = `
 .oak-sellers .manifesto-sign{margin-top:120px;color:#7ba2ff;font:12px/1.3 'DM Mono',monospace}
 .oak-sellers .manifesto-sign span{font-size:9px;color:#98a2b3}
 
+.oak-sellers .steps-section{padding:90px 7vw;border-bottom:1px solid var(--border)}
+.oak-sellers .steps-list{max-width:640px;margin:0 auto;border-top:1px solid var(--border)}
+.oak-sellers .steps-list div{display:flex;gap:20px;align-items:center;padding:22px 0;border-bottom:1px solid var(--border)}
+.oak-sellers .steps-list span{color:var(--primary);font:11px 'DM Mono',monospace}
+.oak-sellers .steps-list strong{font-size:20px;letter-spacing:-.05em;font-weight:600}
+
 .oak-sellers .features-section{display:grid;grid-template-columns:.9fr 1.1fr;gap:9vw;padding:130px 7vw}
-.oak-sellers .feature-intro h2,.oak-sellers .studio-copy h2,.oak-sellers .manufacturer-section h2,.oak-sellers .plans-heading h2{margin:27px 0;font-size:clamp(49px,7vw,95px);line-height:.9;letter-spacing:-.09em;font-weight:600}
-.oak-sellers .feature-intro p,.oak-sellers .studio-copy p,.oak-sellers .manufacturer-section p,.oak-sellers .plans-heading p{max-width:360px;color:var(--muted);line-height:1.6;font-size:14px}
+.oak-sellers .feature-intro h2,.oak-sellers .studio-copy h2,.oak-sellers .manufacturer-section h2,.oak-sellers .free-panel h2{margin:27px 0;font-size:clamp(49px,7vw,95px);line-height:.9;letter-spacing:-.09em;font-weight:600}
+.oak-sellers .feature-intro p,.oak-sellers .studio-copy p,.oak-sellers .manufacturer-section p,.oak-sellers .free-panel p{max-width:360px;color:var(--muted);line-height:1.6;font-size:14px}
 .oak-sellers .feature-list{border-top:1px solid var(--border)}
-.oak-sellers .feature-row{width:100%;display:flex;align-items:flex-start;gap:20px;text-align:left;padding:28px 0;border:0;border-bottom:1px solid var(--border);background:none;cursor:pointer;transition:padding .35s ease,background .35s ease}
-.oak-sellers .feature-row:hover{padding-left:12px;background:var(--blue-soft)}
-.oak-sellers .feature-number{padding-top:4px;color:var(--primary);font:11px 'DM Mono',monospace}
-.oak-sellers .feature-body{flex:1;display:flex;flex-direction:column;gap:0}
-.oak-sellers .feature-body strong{font-size:clamp(22px,3vw,36px);letter-spacing:-.07em;font-weight:600}
-.oak-sellers .feature-body span{max-width:440px;margin-top:13px;color:var(--muted);font-size:13px;line-height:1.5;animation:oakSellersReveal .45s ease both}
-.oak-sellers .feature-chevron{color:var(--muted);margin-top:5px;transition:transform .3s}
-.oak-sellers .feature-row.is-open .feature-chevron{transform:rotate(180deg);color:var(--primary)}
+.oak-sellers .feature-row{border-bottom:1px solid var(--border)}
+.oak-sellers .feature-trigger{width:100%;display:flex;align-items:center;gap:20px;text-align:left;padding:28px 0;border:0;background:none;cursor:pointer;transition:padding var(--duration-fast) var(--ease-out),background var(--duration-fast) var(--ease-out)}
+@media (hover:hover) and (pointer:fine){
+  .oak-sellers .feature-trigger:hover{padding-left:12px;background:var(--blue-soft)}
+}
+.oak-sellers .feature-number{color:var(--primary);font:11px 'DM Mono',monospace}
+.oak-sellers .feature-title{flex:1;font-size:clamp(22px,3vw,36px);letter-spacing:-.07em;font-weight:600}
+.oak-sellers .feature-chevron{color:var(--muted);flex:none;transition:transform var(--duration-fast) var(--ease-out),color var(--duration-fast) var(--ease-out)}
+.oak-sellers .feature-row.is-open .feature-chevron{transform:rotate(180deg);color:var(--accent-blue)}
+/* Accordion via grid-template-rows, not conditional mount -- animates open
+   AND closed, and replaying never restarts from a mount pop (transitions-dev
+   accordion pattern). Padding lives on the inner wrapper, never the track,
+   or a 0fr row never fully collapses. */
+.oak-sellers .feature-panel{display:grid;grid-template-rows:0fr;transition:grid-template-rows var(--duration-slow) var(--ease-in-out)}
+.oak-sellers .feature-row.is-open .feature-panel{grid-template-rows:1fr}
+.oak-sellers .feature-panel-inner{overflow:hidden}
+.oak-sellers .feature-panel-inner p{max-width:440px;margin:0;padding:0 32px 24px 72px;color:var(--muted);font-size:13px;line-height:1.6}
 
 .oak-sellers .studio-section{display:grid;grid-template-columns:1.1fr .9fr;align-items:center;gap:9vw;padding:120px 7vw;background:var(--paper)}
 .oak-sellers .studio-card{border:1px solid #b7c9ed;background:#fff;box-shadow:0 30px 90px rgba(20,85,217,.12);animation:oakSellersFloatCard 5s ease-in-out infinite}
@@ -546,35 +640,26 @@ const CSS = `
 
 .oak-sellers .stats-section{padding:90px 7vw;border-bottom:1px solid var(--border)}
 .oak-sellers .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin-top:45px}
-.oak-sellers .stats-grid div{display:flex;flex-direction:column;gap:7px}
+.oak-sellers .stats-grid .reveal{display:flex;flex-direction:column;gap:7px}
 .oak-sellers .stats-grid strong{font-size:clamp(35px,5vw,66px);letter-spacing:-.1em}
 .oak-sellers .stats-grid span{color:var(--muted);text-transform:uppercase;font:10px 'DM Mono',monospace}
 
+/* One honest panel instead of three "plan" cards that all said FREE with
+   nothing to actually compare (same CTA, same destination each). */
 .oak-sellers .plans-section{padding:125px 7vw;background:var(--paper);color:var(--ink)}
-.oak-sellers .plans-section .section-kicker{color:var(--primary)}
-.oak-sellers .plans-heading{display:flex;justify-content:space-between;align-items:end}
-.oak-sellers .plans-heading p{color:#667085}
-.oak-sellers .plan-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:70px}
-.oak-sellers .plan-card{min-height:365px;padding:26px;display:flex;flex-direction:column;background:#fff;border:1px solid #d8dee8;transition:transform .3s ease,box-shadow .3s ease}
-.oak-sellers .plan-card:hover{transform:translateY(-10px);box-shadow:0 20px 45px rgba(20,85,217,.13)}
-.oak-sellers .plan-card.featured{background:var(--ink);color:#fff;border-color:var(--ink)}
-.oak-sellers .plan-label{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:17px;text-transform:uppercase;font:10px 'DM Mono',monospace}
-.oak-sellers .featured .plan-label{border-color:#3b4657}
-.oak-sellers .plan-badge{color:#8eb0ff}
-.oak-sellers .plan-card>strong{margin-top:31px;font-size:51px;letter-spacing:-.1em}
-.oak-sellers .plan-card>p{color:#667085;font-size:12px}
-.oak-sellers .featured>p{color:#c4cad5}
-.oak-sellers .plan-card ul{display:grid;gap:10px;list-style:none;padding:0;margin:22px 0;color:#667085;font-size:12px}
-.oak-sellers .featured ul{color:#c4cad5}
-.oak-sellers .plan-card li{display:flex;align-items:center;gap:7px}
-.oak-sellers .plan-card li svg{color:var(--primary)}
-.oak-sellers .plan-card>a{display:flex;align-items:center;gap:8px;margin-top:auto;font:10px 'DM Mono',monospace}
+.oak-sellers .free-panel{max-width:820px;margin:0 auto;padding:56px;background:#fff;border:1px solid var(--border);border-radius:4px;text-align:center}
+.oak-sellers .free-panel .section-kicker{color:var(--primary);display:block}
+.oak-sellers .free-panel p{max-width:520px;margin-left:auto;margin-right:auto}
+.oak-sellers .free-list{display:grid;grid-template-columns:1fr 1fr;gap:14px 32px;list-style:none;padding:0;margin:40px 0 44px;text-align:left;color:#344054;font-size:14px}
+.oak-sellers .free-list li{display:flex;align-items:flex-start;gap:9px;line-height:1.4}
+.oak-sellers .free-list li svg{flex:none;margin-top:3px;color:var(--primary)}
 
 .oak-sellers .site-footer{padding:130px 7vw 25px}
 .oak-sellers .footer-cta{min-height:445px;display:flex;flex-direction:column;justify-content:center;align-items:flex-start}
 .oak-sellers .footer-cta h2{margin:27px 0 45px;font-size:clamp(70px,10vw,145px);line-height:.83;letter-spacing:-.1em}
 .oak-sellers .footer-bottom{display:flex;justify-content:space-between;align-items:center;padding-top:20px;border-top:1px solid var(--border);color:#798078;font:10px 'DM Mono',monospace}
 .oak-sellers .footer-bottom .wordmark{color:var(--foreground)}
+.oak-sellers .footer-bottom a{transition:color var(--duration-fast) var(--ease-out)}
 .oak-sellers .footer-bottom a:hover{color:var(--primary)}
 
 @keyframes oakSellersMarquee{to{transform:translateX(-50%)}}
@@ -586,7 +671,6 @@ const CSS = `
 @keyframes oakSellersDrift{from{transform:rotate(-25deg) translate(0)}to{transform:rotate(-18deg) translate(-35px,20px)}}
 @keyframes oakSellersGridPulse{50%{opacity:.2;transform:scale(1.04)}}
 @keyframes oakSellersBlink{50%{opacity:.35;transform:scale(.7)}}
-@keyframes oakSellersReveal{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
 @keyframes oakSellersFloatCard{50%{transform:translateY(-7px)}}
 @keyframes oakSellersBars{to{transform:scaleY(.82)}}
 
@@ -597,15 +681,15 @@ const CSS = `
   .oak-sellers .nav-links.is-open{display:flex}
   .oak-sellers .nav-login{display:none}
   .oak-sellers .menu-button{display:block}
-  .oak-sellers .hero{min-height:720px;padding:0 7vw 100px}
-  .oak-sellers .hero h1{font-size:clamp(70px,20vw,125px)}
+  .oak-sellers .hero{min-height:720px;padding:0 7vw 30px}
+  .oak-sellers .hero h1{font-size:clamp(58px,18vw,125px)}
   .oak-sellers .hero-side-note{right:7vw;top:145px;bottom:auto}
-  .oak-sellers .hero-bottom{right:7vw}
   .oak-sellers .ticker-section{gap:20px}
   .oak-sellers .ticker-label{padding-left:5vw}
   .oak-sellers .manifesto{padding:100px 7vw}
   .oak-sellers .manifesto p{margin-left:0}
   .oak-sellers .manifesto-sign{margin-top:70px}
+  .oak-sellers .steps-section{padding:70px 7vw}
   .oak-sellers .features-section,.oak-sellers .studio-section,.oak-sellers .manufacturer-section{display:flex;flex-direction:column;gap:55px;padding:85px 7vw}
   .oak-sellers .studio-window{min-height:320px}
   .oak-sellers .window-nav{width:88px;font-size:9px}
@@ -613,10 +697,8 @@ const CSS = `
   .oak-sellers .stats-section{padding:75px 7vw}
   .oak-sellers .stats-grid{grid-template-columns:repeat(2,1fr);row-gap:35px}
   .oak-sellers .plans-section{padding:85px 7vw}
-  .oak-sellers .plans-heading{display:block}
-  .oak-sellers .plans-heading p{margin-top:25px}
-  .oak-sellers .plan-grid{grid-template-columns:1fr;margin-top:45px}
-  .oak-sellers .plan-card{min-height:320px}
+  .oak-sellers .free-panel{padding:36px 22px}
+  .oak-sellers .free-list{grid-template-columns:1fr}
   .oak-sellers .footer-bottom{flex-wrap:wrap;gap:17px}
   .oak-sellers .footer-bottom span:last-child{width:100%}
 }
@@ -624,6 +706,7 @@ const CSS = `
 @media (prefers-reduced-motion:reduce){
   .oak-sellers .marquee-track,.oak-sellers .hero-orbit,.oak-sellers .hero-grid,.oak-sellers .studio-card,.oak-sellers .chart i,.oak-sellers .wordmark-word,.oak-sellers .pill-button::after,.oak-sellers .hero-orbit::after{animation:none}
   .oak-sellers .hero-copy,.oak-sellers .hero h1,.oak-sellers .hero-copy p,.oak-sellers .hero-buttons{animation:none}
-  .oak-sellers .pill-button,.oak-sellers .plan-card,.oak-sellers .feature-row{transition:none}
+  .oak-sellers .pill-button,.oak-sellers .feature-trigger,.oak-sellers .feature-panel,.oak-sellers .feature-chevron{transition:none}
+  .oak-sellers .reveal{transition:opacity var(--duration-slow) linear;transform:none}
 }
 `;

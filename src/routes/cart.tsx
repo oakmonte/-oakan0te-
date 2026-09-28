@@ -53,9 +53,9 @@ function CartPage() {
 
           {/* One statement, said once. An earlier pass had a title, a body and
               a "Coming at launch" pill all carrying the same sentence. */}
-          <p className="mt-5 text-[17px] font-semibold tracking-[-0.01em]">Nothing here yet</p>
+          <p className="mt-5 text-[17px] font-semibold tracking-[-0.01em]">Opens at full launch</p>
           <p className="mt-2 max-w-[272px] text-[13px] leading-relaxed text-white/50">
-            This route will be available during launch. Everything you pick out will collect here.
+            Organize your bags and wishlists in ways never been done before.
           </p>
         </div>
       </main>

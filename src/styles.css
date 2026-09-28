@@ -1070,7 +1070,8 @@ input:-webkit-autofill:active {
     --oak-edge: #000;
   }
   html[data-surface="store"],
-  html[data-surface="publish"] {
+  html[data-surface="publish"],
+  html[data-surface="marketing"] {
     --oak-edge: #fff;
   }
   /* /home and /messages are black by default and white when the phone is in

@@ -45,8 +45,20 @@ describe("surfaceForPathname", () => {
   });
 
   test("the dark screens report no surface", () => {
-    expect(surfaceForPathname("/")).toBe(null);
     expect(surfaceForPathname("/store-profile/diadem")).toBe(null);
+    expect(surfaceForPathname("/welcome")).toBe(null);
+  });
+
+  // Always white, never phone-following -- unlike /store or /home. See the
+  // --oak-edge bug this surface exists to fix, in styles.css.
+  test("the marketing pages are their own always-white surface", () => {
+    expect(surfaceForPathname("/")).toBe("marketing");
+    expect(surfaceForPathname("/sellers")).toBe("marketing");
+  });
+
+  // Exact matches only -- a prefix match would sweep in unrelated routes.
+  test("routes that merely start with a marketing path are not marketing", () => {
+    expect(surfaceForPathname("/sellers-guide")).toBe(null);
   });
 
   test("home and messages are the social surface, which follows the phone", () => {

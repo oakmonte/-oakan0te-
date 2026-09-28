@@ -1,9 +1,10 @@
 /** Which of the app's visual surfaces a pathname belongs to.
  *
  *  The app is black almost everywhere — the feed, the camera, the studio,
- *  the public storefront. Three areas are deliberately not: the seller
- *  dashboard and the publish screen, and /home, /messages and /profile/*, which follow the
- *  phone's light/dark setting (the "social" surface). That distinction drives three things that
+ *  the public storefront. Four areas are deliberately not: the seller
+ *  dashboard and the publish screen; /home, /messages and /profile/*, which follow the
+ *  phone's light/dark setting (the "social" surface); and the fixed-white
+ *  marketing pages (the "marketing" surface). That distinction drives three things that
  *  used to be decided in three different places and could drift apart:
  *
  *    1. `<html data-surface>`, which scopes the dashboard's light/dark tokens
@@ -15,7 +16,7 @@
  *  A pure function on the pathname rather than a route match, deliberately:
  *  it is one answer for the whole app, it is testable without a router, and it
  *  cannot drift if the route tree is reshaped. */
-export type Surface = "store" | "publish" | "social" | null;
+export type Surface = "store" | "publish" | "social" | "marketing" | null;
 
 export function surfaceForPathname(pathname: string): Surface {
   // The trailing slash is load-bearing. "/store-profile/diadem" is the PUBLIC
@@ -38,6 +39,13 @@ export function surfaceForPathname(pathname: string): Surface {
   // Personal profiles too (not /store-profile/*, the public storefront, which
   // paints its own theme colours).
   if (pathname.startsWith("/profile/")) return "social";
+  // The marketing landing page and the seller pitch page: always white,
+  // never phone-following. Each already declares #ffffff in its own head(),
+  // but that alone only fixes the status-bar chrome -- the page background
+  // black-at-the-edges bug (see --oak-edge below) needs data-surface too, or
+  // iOS scroll-bounce and the true top/bottom edge still reveal body's black
+  // default. Reported by Diadem on device, 2026-09-28.
+  if (pathname === "/" || pathname === "/sellers") return "marketing";
   return null;
 }
 
