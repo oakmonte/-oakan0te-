@@ -18,17 +18,20 @@ import { GLASS_RIM, glassClear } from "@/lib/liquid-glass";
 
 ## Pick by what sits on it and behind it
 
-| Preset       | Use for                                                        | Examples                                   |
-| ------------ | -------------------------------------------------------------- | ------------------------------------------ |
-| `glassLight` | dark icons/labels over photos and video                        | `BottomNav` track, `TopToggleNav`          |
-| `glassLens`  | the selected indicator sliding inside a `glassLight` track     | the nav and toggle lenses                  |
-| `glassClear` | small white-icon controls over the live camera or edited media | camera, after-shot, draw, crop buttons     |
-| `glassDark`  | white text that must stay legible over anything                | messages menus, reaction bar, toasts       |
+| Preset       | Use for                                                        | Examples                               |
+| ------------ | -------------------------------------------------------------- | -------------------------------------- |
+| `glassLight` | dark icons/labels over photos and video                        | `BottomNav` track, `TopToggleNav`      |
+| `glassLens`  | the selected indicator sliding inside a `glassLight` track     | the nav and toggle lenses              |
+| `glassClear` | small white-icon controls over the live camera or edited media | camera, after-shot, draw, crop buttons |
+| `glassDark`  | white text that must stay legible over anything                | messages menus, reaction bar, toasts   |
 
 Override `background` after the spread when a surface needs to be denser (toasts use 0.78 so they read
 at a glance over white screens; `messages/glass.ts` `glassPanel` also flips the shadow upward for a
-bottom-anchored panel). Leave the backdrop filter alone — sharp blur plus high saturation is what
-makes it glass instead of frosted plastic.
+bottom-anchored panel). Leave the backdrop filter alone per surface — tune it in the preset so every
+surface moves together. The glass is **frosted by product decision (2026-09-28)**: 12–28px blur
+with a slightly denser tint, because the earlier sharp 6–18px blur let busy media show through so
+clearly the chrome got lost. Don't sharpen it back to "look more like glass"; the high saturation is
+what keeps frosted from reading as grey plastic.
 
 **`glassClear` is dark-tinted on purpose.** It carries white icons over the camera and photos, and a
 white-tinted version made them vanish over bright scenes (2026-09-24). Keep its tint dark and its

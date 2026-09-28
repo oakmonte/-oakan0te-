@@ -137,18 +137,18 @@ export function ChatHeader({
             aria-label="Older match"
             disabled={!search.count}
             onClick={() => search.onStep(-1)}
-            className="flex h-10 w-10 items-center justify-center rounded-full text-chat-text disabled:opacity-30"
+            className="flex h-11 w-11 items-center justify-center rounded-full text-chat-text disabled:opacity-30"
           >
-            <ChevronUp size={22} />
+            <ChevronUp size={24} />
           </button>
           <button
             type="button"
             aria-label="Newer match"
             disabled={!search.count}
             onClick={() => search.onStep(1)}
-            className="flex h-10 w-10 items-center justify-center rounded-full text-chat-text disabled:opacity-30"
+            className="flex h-11 w-11 items-center justify-center rounded-full text-chat-text disabled:opacity-30"
           >
-            <ChevronDown size={22} />
+            <ChevronDown size={24} />
           </button>
           <button
             type="button"
@@ -164,9 +164,9 @@ export function ChatHeader({
             type="button"
             onClick={onBack}
             aria-label="Back to chats"
-            className="flex h-11 min-w-11 items-center justify-center rounded-full pr-1 text-chat-text active:bg-chat-text/10"
+            className="flex h-12 min-w-12 items-center justify-center rounded-full pr-1 text-chat-text active:bg-chat-text/10"
           >
-            <ChevronLeft size={28} />
+            <ChevronLeft size={30} />
             {otherUnread > 0 && (
               <span className="-ml-1 flex h-[20px] min-w-[20px] items-center justify-center rounded-full bg-chat-text/10 px-1.5 text-[12px] font-semibold">
                 {otherUnread > 99 ? "99+" : otherUnread}
@@ -218,9 +218,9 @@ export function ChatHeader({
               type="button"
               onClick={() => onMenu("search")}
               aria-label="Search in chat"
-              className="flex h-11 w-11 items-center justify-center rounded-full text-chat-text active:bg-chat-text/10"
+              className="flex h-12 w-12 items-center justify-center rounded-full text-chat-text active:bg-chat-text/10"
             >
-              <Search size={21} />
+              <Search size={23} />
             </button>
           )}
           <div className="relative" ref={wrapper}>
@@ -229,9 +229,9 @@ export function ChatHeader({
               aria-label="More options"
               aria-expanded={menuOpen}
               onClick={() => setMenuOpen((open) => !open)}
-              className="flex h-11 w-11 items-center justify-center rounded-full text-chat-text active:bg-chat-text/10"
+              className="flex h-12 w-12 items-center justify-center rounded-full text-chat-text active:bg-chat-text/10"
             >
-              <MoreVertical size={21} />
+              <MoreVertical size={23} />
             </button>
             <AnimatePresence>
               {menuOpen && (

@@ -240,11 +240,14 @@ const TOOLS: { id: PanelType; label: string }[] = [
 function AnimatedLabel({ visible, children }: { visible: boolean; children: ReactNode }) {
   return (
     <span
-      className="overflow-hidden whitespace-nowrap text-sm font-medium transition-all duration-300 ease-out"
+      className="overflow-hidden whitespace-nowrap text-sm font-semibold transition-all duration-300 ease-out"
       style={{
         maxWidth: visible ? 160 : 0,
         opacity: visible ? 1 : 0,
         marginRight: visible ? 2 : 0,
+        // Heavier than the column's own oak-on-media shadow: these labels are
+        // the only text over the live camera and got lost on bright scenes.
+        textShadow: "0 1px 2px rgba(0,0,0,0.6), 0 0 8px rgba(0,0,0,0.35)",
       }}
     >
       {children}

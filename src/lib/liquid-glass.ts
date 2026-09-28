@@ -6,8 +6,10 @@
 //
 // What makes it read as glass rather than a translucent box, in order of how
 // much each matters:
-//   1. A light tint over a SHARP, very saturated blur. Heavy blur is frosted
-//      plastic; glass lets shapes through and makes their colour richer.
+//   1. A tint over a frosted, very saturated blur. Frosted on purpose since
+//      2026-09-28: the sharper 6-18px blur let busy photos and video show
+//      through so clearly that the chrome itself was hard to see. The
+//      saturation is what keeps it reading as glass rather than grey plastic.
 //   2. The rim — `className={GLASS_RIM}` — a 1px edge that is bright where
 //      light would catch it (top-left, bottom-right) and nearly gone along
 //      the sides. A uniform border is what makes a pill look drawn.
@@ -35,8 +37,8 @@ function backdrop(filter: string): CSSProperties {
  *  nav, the shop/explore toggle. Tint high enough that black icons still read
  *  over a dark video frame; brightness lifts what shows through. */
 export const glassLight: GlassStyle = {
-  background: "rgba(255,255,255,0.3)",
-  ...backdrop("blur(14px) saturate(210%) brightness(1.12)"),
+  background: "rgba(255,255,255,0.4)",
+  ...backdrop("blur(24px) saturate(210%) brightness(1.12)"),
   boxShadow: [
     "0 12px 32px rgba(0,0,0,0.22)",
     "0 2px 6px rgba(0,0,0,0.10)",
@@ -50,8 +52,8 @@ export const glassLight: GlassStyle = {
 /** The selected lens sliding inside a glassLight track: a brighter, thicker
  *  drop of glass rather than an opaque white pill. */
 export const glassLens: GlassStyle = {
-  background: "rgba(255,255,255,0.58)",
-  ...backdrop("blur(6px) saturate(240%) brightness(1.18)"),
+  background: "rgba(255,255,255,0.64)",
+  ...backdrop("blur(12px) saturate(240%) brightness(1.18)"),
   boxShadow: [
     "0 4px 14px rgba(0,0,0,0.16)",
     "inset 0 1.5px 1px rgba(255,255,255,1)",
@@ -71,27 +73,27 @@ export const glassLens: GlassStyle = {
  *  icons also get a soft drop shadow from styles.css (`.oak-glass-rim > svg`).
  */
 export const glassClear: GlassStyle = {
-  background: "rgba(16,16,18,0.30)",
-  ...backdrop("blur(12px) saturate(180%) brightness(0.8)"),
+  background: "rgba(16,16,18,0.38)",
+  ...backdrop("blur(22px) saturate(180%) brightness(0.8)"),
   boxShadow: [
     "0 6px 18px rgba(0,0,0,0.22)",
     "inset 0 1px 0.5px rgba(255,255,255,0.4)",
     "inset 0 -1px 0.5px rgba(255,255,255,0.1)",
     "inset 0 0 10px rgba(255,255,255,0.06)",
   ].join(", "),
-  "--oak-rim": 0.7,
+  "--oak-rim": 0.9,
 };
 
 /** Dark glass for white content that must stay legible over anything: the
  *  messages panels, toasts. */
 export const glassDark: GlassStyle = {
-  background: "rgba(24,26,30,0.58)",
-  ...backdrop("blur(18px) saturate(190%)"),
+  background: "rgba(24,26,30,0.64)",
+  ...backdrop("blur(28px) saturate(190%)"),
   boxShadow: [
     "0 14px 38px rgba(0,0,0,0.38)",
     "inset 0 1px 0.5px rgba(255,255,255,0.28)",
     "inset 0 -1px 0.5px rgba(255,255,255,0.08)",
     "inset 0 0 14px rgba(255,255,255,0.05)",
   ].join(", "),
-  "--oak-rim": 0.5,
+  "--oak-rim": 0.7,
 };

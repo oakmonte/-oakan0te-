@@ -383,9 +383,9 @@ function MessagesPage() {
                   type="button"
                   onClick={() => window.history.back()}
                   aria-label="Back to chats"
-                  className="-ml-2 flex h-11 w-11 items-center justify-center rounded-full active:bg-chat-text/10"
+                  className="-ml-2 flex h-12 w-12 items-center justify-center rounded-full active:bg-chat-text/10"
                 >
-                  <ChevronLeft size={28} />
+                  <ChevronLeft size={30} />
                 </button>
                 <h1 className="flex-1 text-[20px] font-bold">Archived</h1>
               </>
@@ -397,9 +397,9 @@ function MessagesPage() {
                     type="button"
                     onClick={() => setNewChatOpen(true)}
                     aria-label="New message"
-                    className="-mr-1 flex h-11 w-11 items-center justify-center rounded-full text-chat-text active:bg-chat-text/10"
+                    className="-mr-1 flex h-12 w-12 items-center justify-center rounded-full text-chat-text active:bg-chat-text/10"
                   >
-                    <SquarePen size={23} />
+                    <SquarePen size={25} />
                   </button>
                 )}
               </>
@@ -489,7 +489,7 @@ function MessagesPage() {
                       role="tab"
                       aria-selected={folder === key}
                       onClick={() => switchFolder(key)}
-                      className={`flex h-9 shrink-0 items-center gap-1.5 rounded-full px-4 text-[14px] font-semibold transition-colors ${
+                      className={`flex h-10 shrink-0 items-center gap-1.5 rounded-full px-[18px] text-[15px] font-semibold transition-colors ${
                         folder === key
                           ? "bg-chat-text text-chat-inverse"
                           : "bg-chat-soft text-chat-text"
