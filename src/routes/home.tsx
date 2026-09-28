@@ -1,11 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useOverlayHistory } from "@/hooks/use-overlay-history";
-import { useCallback, useEffect, useState } from "react";
-import { AnimatePresence } from "framer-motion";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { BottomNav } from "@/components/BottomNav";
 import { TopToggleNav } from "@/components/TopToggleNav";
-import { ExploreFeedOverlay } from "@/components/ExploreFeedOverlay";
-import { Search } from "lucide-react";
+import { Lock, Search } from "lucide-react";
+import { ExplorePreview, ShopPreview } from "@/components/home/LockedPreview";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useSession } from "@/hooks/use-session";
 
@@ -14,50 +12,10 @@ export const Route = createFileRoute("/home")({
   component: HomePage,
 });
 
-const SHOP_ITEMS = [
-  { id: "1", src: "https://placehold.co/227x310", title: "Pink summer hoodie", price: "30,000" },
-  { id: "2", src: "https://placehold.co/227x310", title: "Pink summer hoodie", price: "30,000" },
-  { id: "3", src: "https://placehold.co/227x310", title: "Pink summer hoodie", price: "30,000" },
-  { id: "4", src: "https://placehold.co/227x310", title: "Pink summer hoodie", price: "30,000" },
-];
-
-const EXPLORE_ITEMS = [
-  { id: "e1", src: "https://placehold.co/280x350" },
-  { id: "e2", src: "https://placehold.co/280x280" },
-  { id: "e3", src: "https://placehold.co/280x420" },
-  { id: "e4", src: "https://placehold.co/280x300" },
-  { id: "e5", src: "https://placehold.co/280x380" },
-  { id: "e6", src: "https://placehold.co/280x320" },
-  { id: "e7", src: "https://placehold.co/280x360" },
-  { id: "e8", src: "https://placehold.co/280x400" },
-  { id: "e9", src: "https://placehold.co/280x260" },
-  { id: "e10", src: "https://placehold.co/280x340" },
-  { id: "e11", src: "https://placehold.co/280x440" },
-  { id: "e12", src: "https://placehold.co/280x300" },
-  { id: "e13", src: "https://placehold.co/280x370" },
-  { id: "e14", src: "https://placehold.co/280x290" },
-  { id: "e15", src: "https://placehold.co/280x410" },
-  { id: "e16", src: "https://placehold.co/280x330" },
-  { id: "e17", src: "https://placehold.co/280x350" },
-  { id: "e18", src: "https://placehold.co/280x280" },
-  { id: "e19", src: "https://placehold.co/280x420" },
-  { id: "e20", src: "https://placehold.co/280x380" },
-  { id: "e21", src: "https://placehold.co/280x320" },
-  { id: "e22", src: "https://placehold.co/280x360" },
-  { id: "e23", src: "https://placehold.co/280x400" },
-  { id: "e24", src: "https://placehold.co/280x300" },
-];
-
 function HomePage() {
   const [tab, setTab] = useState<"shop" | "explore">("explore");
   const { user } = useSession();
   const [ownUsername, setOwnUsername] = useState<string | undefined>(undefined);
-  const [feedOpen, setFeedOpen] = useState(false);
-
-  // The Explore feed covers the whole screen and reads as a page, so the back
-  // gesture should close it rather than leave /home entirely.
-  const closeFeed = useCallback(() => setFeedOpen(false), []);
-  useOverlayHistory(feedOpen, closeFeed);
 
   useEffect(() => {
     if (!user) return;
@@ -90,52 +48,41 @@ function HomePage() {
         />
       </div>
 
-      {tab === "shop" ? (
-        <div className="px-4 pt-[88px]">
-          <h2 className="text-[24px] font-bold mb-3">Hoodie shelf</h2>
-          <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
-            {SHOP_ITEMS.map((item) => (
-              <div key={item.id} className="shrink-0" style={{ width: 160 }}>
-                <img
-                  src={item.src}
-                  alt=""
-                  loading="lazy"
-                  className="w-full rounded-[14px] object-cover"
-                  style={{ height: 220 }}
-                />
-                <p className="text-[14px] font-bold mt-2">{item.title}</p>
-                <p className="text-[13px] font-semibold text-chat-text/70">₦{item.price}</p>
-              </div>
-            ))}
+      <div className="relative">
+        <div className="pointer-events-none select-none blur-[6px]" aria-hidden>
+          {tab === "shop" ? <ShopPreview /> : <ExplorePreview />}
+        </div>
+
+        <div className="fixed inset-x-0 top-[30vh] z-40 flex flex-col items-center gap-2 px-8 text-center">
+          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-chat-text/10 text-chat-text">
+            <Lock size={19} />
+          </span>
+          <p className="text-[15px] font-semibold text-chat-text">
+            {tab === "shop" ? "Shopping" : "Explore"} opens at full launch
+          </p>
+          <p className="text-[13px] text-chat-muted">
+            {tab === "shop"
+              ? "Browse shelves from every store and check out in a tap."
+              : "Scroll looks, then shop every piece in them straight from the post."}
+          </p>
+          <div className="mt-3 flex gap-2">
+            <Link
+              to="/create"
+              className="h-10 rounded-full bg-chat-text px-5 text-[14px] font-semibold leading-10 text-chat-inverse"
+            >
+              Post a look
+            </Link>
+            <Link
+              to="/set-up-store"
+              className="h-10 rounded-full border border-chat-border px-5 text-[14px] font-semibold leading-10 text-chat-text"
+            >
+              Set up a store
+            </Link>
           </div>
         </div>
-      ) : (
-        <div className="columns-2 gap-2 px-3 pt-[88px] [column-fill:_balance]">
-          {EXPLORE_ITEMS.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => setFeedOpen(true)}
-              className="block w-full mb-2 break-inside-avoid oak-motion-control active:scale-[0.98]"
-            >
-              <img
-                src={item.src}
-                alt=""
-                loading="lazy"
-                className="w-full rounded-[13px] object-cover"
-              />
-            </button>
-          ))}
-        </div>
-      )}
+      </div>
 
       <BottomNav active="home" ownUsername={ownUsername} />
-
-      <AnimatePresence>
-        {feedOpen && (
-          <ExploreFeedOverlay ownUsername={ownUsername} onClose={() => setFeedOpen(false)} />
-        )}
-      </AnimatePresence>
     </div>
   );
 }
