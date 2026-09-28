@@ -7,7 +7,7 @@ export function Stat({ value, label }: { value: string; label: string }) {
   return (
     <div className="flex flex-col items-center">
       <div className="text-[15px] font-bold">{value}</div>
-      <div className="text-[11px] font-bold text-[#B0ADAD]">{label}</div>
+      <div className="text-[11px] font-bold text-chat-muted">{label}</div>
     </div>
   );
 }
@@ -29,11 +29,11 @@ export function MenuRow({
     <button
       onClick={onClick}
       className={`w-full flex items-center justify-between -mx-3 rounded-xl px-3 py-4 text-[16px] transition-colors duration-300 ${
-        highlighted ? "bg-white/15 text-white" : "hover:text-white/80"
+        highlighted ? "bg-chat-text/15 text-chat-text" : "hover:text-chat-text/80"
       }`}
     >
       <span>{label}</span>
-      <ChevronRight size={18} className={highlighted ? "text-white" : "text-white/40"} />
+      <ChevronRight size={18} className={highlighted ? "text-chat-text" : "text-chat-text/40"} />
     </button>
   );
 }

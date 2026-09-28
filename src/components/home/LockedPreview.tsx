@@ -1,9 +1,11 @@
 // Blurred, untappable stand-ins for /home's Shop and Explore tabs until they go
 // live. Rebuilt from the Figma "Oakmonte landing page" frames (Shop 14:1476,
-// Explore 20:282), trimmed to a screen or two -- everything is lazy-loaded, so
-// tiles below the fold only download if someone scrolls. Page colours use chat-* tokens
-// so this follows the phone's light/dark setting; text on the hero photo stays
-// light in both.
+// Explore 20:282). The blur is baked into the images (64px-wide pre-blurred
+// WebPs, a few hundred bytes each, inlined by Vite) rather than a CSS filter
+// over the whole page: a big blur() over a tall scrolling layer was visibly
+// slow to paint on phones. Only the few text blocks keep a CSS blur, and
+// they're small. Page colours use chat-* tokens so this follows the phone's
+// light/dark setting; text on the hero photo stays light in both.
 import heroImg from "@/assets/home-preview/shop-hero.webp";
 import hoodiePink from "@/assets/home-preview/shop-hoodie-pink.webp";
 import hoodieTan from "@/assets/home-preview/shop-hoodie-tan.webp";
@@ -51,7 +53,7 @@ export function ShopPreview() {
     <div>
       <div className="relative aspect-[440/846] w-full overflow-hidden rounded-b-[5px]">
         <CroppedImg src={heroImg} crop={{ w: 108.15, h: 100, l: -7.17, t: 0 }} />
-        <div className="absolute left-[42px] top-[70%] flex flex-col gap-[10px]">
+        <div className="absolute left-[42px] top-[70%] flex flex-col gap-[10px] blur-[10px]">
           <div className="flex flex-col gap-[20px]">
             <p
               className="flex h-[35px] items-center text-[48px] font-black leading-[27px] tracking-[-0.43px] text-[#f2f1ef]"
@@ -81,7 +83,7 @@ export function ShopPreview() {
       </div>
 
       <div className="pl-[9px]">
-        <h2 className="flex h-[60px] items-center text-[30px] font-bold tracking-[-1px]">
+        <h2 className="flex h-[60px] items-center text-[30px] font-bold tracking-[-1px] blur-[10px]">
           Hoodie shelf
         </h2>
         <div className="flex gap-[15px] overflow-hidden">
@@ -92,7 +94,7 @@ export function ShopPreview() {
               >
                 <CroppedImg src={card.src} crop={card.crop} />
               </div>
-              <div className="w-[182px] font-bold tracking-[-1px]">
+              <div className="w-[182px] font-bold tracking-[-1px] blur-[8px]">
                 <p className="h-[27px] text-center text-[20px]">Pink summerhoodie</p>
                 <p className="px-[3px] text-[16px]">30,000</p>
               </div>

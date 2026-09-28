@@ -60,7 +60,7 @@ export function StorePiecesGrid({
     return (
       <div className="grid grid-cols-3 gap-0.5">
         {Array.from({ length: 9 }).map((_, i) => (
-          <div key={i} className="aspect-square bg-white/[0.06] animate-pulse" />
+          <div key={i} className="aspect-square bg-chat-text/[0.06] animate-pulse" />
         ))}
       </div>
     );
@@ -81,9 +81,9 @@ export function StorePiecesGrid({
             type="button"
             onClick={addPiece}
             aria-label="Add a piece"
-            className="oak-motion-control aspect-square flex items-center justify-center bg-white/[0.06] active:scale-[0.97]"
+            className="oak-motion-control aspect-square flex items-center justify-center bg-chat-text/[0.06] active:scale-[0.97]"
           >
-            <Plus size={22} className="text-white/60" />
+            <Plus size={22} className="text-chat-text/60" />
           </button>
         )}
         {pieces.map((p) => (
@@ -92,7 +92,7 @@ export function StorePiecesGrid({
             type="button"
             onClick={() => setActiveId(p.id)}
             aria-label="Open piece"
-            className="oak-motion-control relative aspect-square bg-neutral-900 overflow-hidden active:scale-[0.97]"
+            className="oak-motion-control relative aspect-square bg-chat-surface overflow-hidden active:scale-[0.97]"
           >
             <img src={p.media_url} alt="" loading="lazy" className="w-full h-full object-cover" />
           </button>
@@ -150,7 +150,7 @@ export function StorePiecesEmptyState({
   if (!isOwnStoreProfile) {
     return (
       <div className="flex flex-col items-center text-center px-8 pt-16">
-        <h3 className="text-[16px] font-bold text-white/70">
+        <h3 className="text-[16px] font-bold text-chat-text/70">
           {isArtist ? "No gallery yet" : "No wardrobe yet"}
         </h3>
       </div>
@@ -162,7 +162,7 @@ export function StorePiecesEmptyState({
       <h3 className="text-[16px] font-bold">
         {isArtist ? "Build your gallery" : "Build your wardrobe"}
       </h3>
-      <p className="text-[13px] text-white/50 max-w-[220px]">
+      <p className="text-[13px] text-chat-text/50 max-w-[220px]">
         {isArtist
           ? "Share pieces that aren't for sale — work you want people to see."
           : "Pieces you own or want to show off and get recommendations for live here."}
@@ -170,7 +170,7 @@ export function StorePiecesEmptyState({
       <button
         type="button"
         onClick={() => navigate({ to: "/create/store-piece", search: { storeId, storeUsername } })}
-        className="mt-3 rounded-full bg-white text-black py-2.5 px-6 text-[14px] font-semibold"
+        className="mt-3 rounded-full bg-chat-text text-chat-inverse py-2.5 px-6 text-[14px] font-semibold"
       >
         Add piece
       </button>

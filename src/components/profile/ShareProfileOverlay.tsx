@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Link2, Send, MessageCircle, MessageSquare, Check } from "lucide-react";
+import { X, Link2, Send, MessageCircle, MessageSquare, Check, UserRound } from "lucide-react";
 
 /** Full-screen "Share profile" view, opened by tapping the profile photo.
  *
@@ -85,7 +85,13 @@ export function ShareProfileOverlay({
               animate={{ scale: 1 }}
               transition={{ type: "spring", stiffness: 420, damping: 34 }}
             >
-              {avatarUrl && <img src={avatarUrl} alt="" className="h-full w-full object-cover" />}
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center">
+                  <UserRound size={140} strokeWidth={1.25} className="text-white/40" />
+                </div>
+              )}
             </motion.div>
           </div>
 

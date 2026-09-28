@@ -68,7 +68,7 @@ export function PostsGrid({
     return (
       <div className="grid grid-cols-3 gap-0.5">
         {Array.from({ length: 9 }).map((_, i) => (
-          <div key={i} className="aspect-square bg-white/[0.06] animate-pulse" />
+          <div key={i} className="aspect-square bg-chat-text/[0.06] animate-pulse" />
         ))}
       </div>
     );
@@ -85,7 +85,7 @@ export function PostsGrid({
             type="button"
             onClick={() => setActiveId(p.id)}
             aria-label="Open post"
-            className="oak-motion-control relative aspect-square bg-neutral-900 overflow-hidden active:scale-[0.97]"
+            className="oak-motion-control relative aspect-square bg-chat-surface overflow-hidden active:scale-[0.97]"
           >
             {p.media_type === "video" ? (
               <video

@@ -53,7 +53,7 @@ export function ProfileTabEmptyState({
   if (!isOwnProfile) {
     return (
       <div className="flex flex-col items-center text-center px-8 pt-16">
-        <h3 className="text-[16px] font-bold text-white/70">{VISITOR_COPY[tab]}</h3>
+        <h3 className="text-[16px] font-bold text-chat-text/70">{VISITOR_COPY[tab]}</h3>
       </div>
     );
   }
@@ -66,14 +66,14 @@ export function ProfileTabEmptyState({
         <div className="flex flex-col items-center gap-2 w-full max-w-[220px]">
           <button
             onClick={() => navigate({ to: "/create" })}
-            className="w-full rounded-full bg-white text-black py-3 text-[14px] font-semibold"
+            className="w-full rounded-full bg-chat-text text-chat-inverse py-3 text-[14px] font-semibold"
           >
             Create
           </button>
 
           <button
             onClick={() => setUploadOpen((v) => !v)}
-            className="w-full rounded-full border border-white/25 py-3 text-[14px] font-semibold"
+            className="w-full rounded-full border border-chat-text/25 py-3 text-[14px] font-semibold"
           >
             Upload
           </button>
@@ -87,11 +87,11 @@ export function ProfileTabEmptyState({
               <div className="flex flex-col gap-2 pt-2">
                 <button
                   onClick={() => galleryInputRef.current?.click()}
-                  className="w-full flex items-center justify-center gap-2 rounded-full bg-white/[0.06] py-2.5 text-[13px] font-medium"
+                  className="w-full flex items-center justify-center gap-2 rounded-full bg-chat-text/[0.06] py-2.5 text-[13px] font-medium"
                 >
                   <ImageIcon size={15} /> Upload from gallery
                 </button>
-                <button className="w-full flex items-center justify-center gap-2 rounded-full bg-white/[0.06] py-2.5 text-[13px] font-medium">
+                <button className="w-full flex items-center justify-center gap-2 rounded-full bg-chat-text/[0.06] py-2.5 text-[13px] font-medium">
                   <Instagram size={15} /> Upload from Instagram
                 </button>
               </div>
@@ -127,7 +127,7 @@ export function ProfileTabEmptyState({
   return (
     <div className="flex flex-col items-center text-center px-8 pt-16 gap-1.5">
       <h3 className="text-[16px] font-bold">{title}</h3>
-      <p className="text-[13px] text-white/50 max-w-[220px]">{subtitle}</p>
+      <p className="text-[13px] text-chat-text/50 max-w-[220px]">{subtitle}</p>
     </div>
   );
 }

@@ -52,7 +52,7 @@ function HomePage() {
       </div>
 
       <div className="relative">
-        <div className="pointer-events-none select-none blur-[22px]" aria-hidden>
+        <div className="pointer-events-none select-none" aria-hidden>
           {tab === "shop" ? <ShopPreview /> : <ExplorePreview />}
         </div>
 

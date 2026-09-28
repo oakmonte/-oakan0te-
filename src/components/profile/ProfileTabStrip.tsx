@@ -79,7 +79,7 @@ export function ProfileTabStrip({
         {slotWidth > 0 && (
           <motion.span
             aria-hidden
-            className="absolute bottom-0 h-[2px] rounded-full bg-white"
+            className="absolute bottom-0 h-[2px] rounded-full bg-chat-text"
             // Inside the track, so it rides along with it and only has to
             // account for its own slot.
             style={{ width: slotWidth - 22, left: 11, x: indicatorX }}
@@ -110,7 +110,7 @@ function TabIcon({
     return 0.4 + 0.6 * (1 - Math.min(1, Math.abs(page - index)));
   });
   return (
-    <motion.span style={{ opacity }} className="block text-white">
+    <motion.span style={{ opacity }} className="block text-chat-text">
       <Icon className={size ?? "w-[21px] h-[21px]"} />
     </motion.span>
   );

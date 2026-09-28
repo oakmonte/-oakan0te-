@@ -46,12 +46,13 @@ describe("surfaceForPathname", () => {
 
   test("the dark screens report no surface", () => {
     expect(surfaceForPathname("/")).toBe(null);
-    expect(surfaceForPathname("/profile/diadem")).toBe(null);
+    expect(surfaceForPathname("/store-profile/diadem")).toBe(null);
   });
 
   test("home and messages are the social surface, which follows the phone", () => {
     expect(surfaceForPathname("/home")).toBe("social");
     expect(surfaceForPathname("/messages")).toBe("social");
+    expect(surfaceForPathname("/profile/diadem")).toBe("social");
   });
 
   // Exact matches only — a prefix match would sweep in unrelated routes.

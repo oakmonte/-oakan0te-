@@ -30,6 +30,7 @@ import {
   Bell,
   BellRing,
   Send,
+  UserRound,
 } from "lucide-react";
 import { BackButton } from "@/components/BackButton";
 import { useGoRoot } from "@/hooks/use-back";
@@ -186,7 +187,7 @@ function ProfilePage() {
   // stats/bio below it, with only a sliver of the avatar and the header bar
   // left showing (dimmed by the backdrop). Tracked continuously (not just on the tap that opens it) in
   // case layout shifts, e.g. once the avatar image finishes loading.
-  const avatarRef = useRef<HTMLImageElement>(null);
+  const avatarRef = useRef<HTMLDivElement>(null);
   const [sheetTop, setSheetTop] = useState(0);
   // Which tab was active right before Store was opened — tapping outside the
   // sheet, or dragging it down, restores this instead of always landing on
@@ -536,7 +537,7 @@ function ProfilePage() {
 
   return (
     <div
-      className="min-h-screen bg-black text-white"
+      className="min-h-screen bg-chat-bg text-chat-text"
       style={{ fontFamily: "'SF Pro', system-ui, sans-serif" }}
     >
       <motion.div
@@ -557,7 +558,7 @@ function ProfilePage() {
             scrolled under it. */}
         <div
           ref={topBarRef}
-          className="sticky top-0 z-30 flex items-center justify-between gap-3 bg-black px-6 pt-4 pb-2"
+          className="sticky top-0 z-30 flex items-center justify-between gap-3 bg-chat-bg px-6 pt-4 pb-2"
         >
           <div className="flex min-w-0 flex-1 items-center gap-3">
             <div className="w-[22px] shrink-0">
@@ -594,7 +595,7 @@ function ProfilePage() {
               aria-label="Search"
               className="transition-transform duration-200 active:scale-90"
             >
-              <Search size={22} className={searchOpen ? "text-[#FF7300]" : "text-white"} />
+              <Search size={22} className={searchOpen ? "text-[#FF7300]" : "text-chat-text"} />
             </button>
             {ownershipKnown &&
               isOwnProfile &&
@@ -631,13 +632,28 @@ function ProfilePage() {
             aria-label="Share profile"
             className="transition-transform duration-150 active:scale-95"
           >
-            <img
+            {/* The ref sits on the wrapper so the share sheet can measure the
+                avatar whether or not there's a photo yet. */}
+            <div
               ref={avatarRef}
-              src={profile?.avatar_url || "https://placehold.co/135x139"}
-              alt={username}
-              loading="eager"
-              className="w-[110px] h-[110px] rounded-full border-[3px] border-white object-cover"
-            />
+              className="flex h-[110px] w-[110px] items-center justify-center overflow-hidden rounded-full border-[3px] border-white bg-chat-soft"
+            >
+              {profile?.avatar_url ? (
+                <img
+                  src={profile.avatar_url}
+                  alt={username}
+                  loading="eager"
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <UserRound
+                  size={56}
+                  strokeWidth={1.5}
+                  className="text-chat-muted"
+                  aria-label={username}
+                />
+              )}
+            </div>
           </button>
           <div className="text-center">
             <div className="flex items-center justify-center gap-1.5">
@@ -655,13 +671,13 @@ function ProfilePage() {
                 <button
                   onClick={() => navigate({ to: "/edit-profile" })}
                   aria-label="Edit profile"
-                  className="text-[11px] font-bold text-white/50 hover:text-white transition-colors border border-white/30 hover:border-white/60 rounded-full px-2 py-0.5"
+                  className="text-[11px] font-bold text-chat-text/50 hover:text-chat-text transition-colors border border-chat-text/30 hover:border-chat-text/60 rounded-full px-2 py-0.5"
                 >
                   Edit
                 </button>
               )}
             </div>
-            <div className="text-[11px] font-bold text-[#B0ADAD] mt-0.5">
+            <div className="text-[11px] font-bold text-chat-muted mt-0.5">
               @{profile?.personal_username || username}
             </div>
             <div className="flex items-center justify-center gap-1.5 mt-1.5">
@@ -695,7 +711,7 @@ function ProfilePage() {
                 // take them to sign-in, which toggleFollow already does.
                 disabled={followBusy || (!!user && followPending)}
                 className={`min-w-[110px] rounded-full px-6 py-2 text-[13px] font-bold transition-colors active:scale-95 disabled:opacity-60 ${
-                  isFollowing ? "bg-white/10 text-white" : "bg-white text-black"
+                  isFollowing ? "bg-chat-text/10 text-chat-text" : "bg-chat-text text-chat-inverse"
                 }`}
               >
                 {isFollowing ? "Following" : "Follow"}
@@ -714,7 +730,7 @@ function ProfilePage() {
                   });
                 }}
                 aria-label="Message"
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-black transition-transform active:scale-90"
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-chat-text text-chat-inverse transition-transform active:scale-90"
               >
                 <Send size={15} />
               </button>
@@ -734,7 +750,7 @@ function ProfilePage() {
             {/* Tab row */}
             <div ref={stripAnchorRef} className="mt-6" />
             <div
-              className="sticky z-20 border-b border-[#474747] bg-black"
+              className="sticky z-20 border-b border-chat-border bg-chat-bg"
               style={{ top: topBarH }}
             >
               {tabRow}
@@ -752,18 +768,18 @@ function ProfilePage() {
                     searchOpen ? "opacity-100 delay-100" : "opacity-0"
                   }`}
                 >
-                  <div className="flex items-center gap-2.5 rounded-xl border border-[#FFFBFB] px-4 py-2.5">
-                    <Search size={18} className="text-white shrink-0" />
+                  <div className="flex items-center gap-2.5 rounded-xl border border-chat-text px-4 py-2.5">
+                    <Search size={18} className="text-chat-text shrink-0" />
                     <input
                       ref={searchInputRef}
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Search"
-                      className="w-full bg-transparent text-[16px] placeholder:text-white/50 focus:outline-none"
+                      className="w-full bg-transparent text-[16px] placeholder:text-chat-text/50 focus:outline-none"
                     />
                     {searchQuery && (
                       <button onClick={() => setSearchQuery("")} aria-label="Clear search">
-                        <X size={16} className="text-white/60" />
+                        <X size={16} className="text-chat-text/60" />
                       </button>
                     )}
                   </div>
@@ -805,12 +821,12 @@ function ProfilePage() {
                     ) : key === "store" && isOwnProfile && !storeIsSetUp ? (
                       <div className="flex flex-col items-center text-center px-8 pt-16 gap-3">
                         <h3 className="text-[16px] font-bold">Set up your store</h3>
-                        <p className="text-[13px] text-white/50 max-w-[220px]">
+                        <p className="text-[13px] text-chat-text/50 max-w-[220px]">
                           Add your products, pickup locations, and storefront look to start selling.
                         </p>
                         <button
                           onClick={() => navigate({ to: "/store" })}
-                          className="mt-1 rounded-full bg-white text-black px-6 py-2.5 text-[14px] font-semibold"
+                          className="mt-1 rounded-full bg-chat-text text-chat-inverse px-6 py-2.5 text-[14px] font-semibold"
                         >
                           Set up store
                         </button>
@@ -923,7 +939,7 @@ function ProfilePage() {
           // wherever it was tapped, rather than a drawer creeping in from
           // off-screen. The overshoot easing is what gives it that same
           // slight springy settle instead of a flat linear grow.
-          className={`absolute right-0 top-0 h-full w-[280px] bg-black border-l border-white/10 px-5 py-6 origin-top-right transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${
+          className={`absolute right-0 top-0 h-full w-[280px] bg-chat-bg border-l border-chat-text/10 px-5 py-6 origin-top-right transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${
             menuOpen ? "scale-100 opacity-100" : "scale-0 opacity-0"
           }`}
         >
@@ -931,7 +947,7 @@ function ProfilePage() {
             <ArrowLeft size={20} />
           </button>
 
-          <div className="text-[12px] uppercase tracking-wide text-white/40 mb-2">
+          <div className="text-[12px] uppercase tracking-wide text-chat-text/40 mb-2">
             Creation &amp; business
           </div>
           <MenuRow label="Oakmonte Studio" onClick={() => navigate({ to: "/studio" })} />
@@ -941,13 +957,13 @@ function ProfilePage() {
             highlighted={storeRowLit}
           />
 
-          <div className="text-[12px] uppercase tracking-wide text-white/40 mt-6 mb-2">
+          <div className="text-[12px] uppercase tracking-wide text-chat-text/40 mt-6 mb-2">
             Personal
           </div>
           <MenuRow label="Activity centre" onClick={() => navigate({ to: "/activity" })} />
           <MenuRow label="Offline videos" onClick={() => navigate({ to: "/offline-videos" })} />
 
-          <div className="mt-6 pt-4 border-t border-white/10">
+          <div className="mt-6 pt-4 border-t border-chat-text/10">
             <MenuRow label="Settings and privacy" onClick={() => navigate({ to: "/settings" })} />
           </div>
         </div>
@@ -965,15 +981,15 @@ function ProfilePage() {
       >
         <div className="absolute inset-0 bg-black/40" onClick={() => setStorePickerOpen(false)} />
         <div
-          className={`absolute inset-x-0 bottom-0 rounded-t-[28px] bg-black border-t border-white/10 transition-transform duration-300 ease-out ${
+          className={`absolute inset-x-0 bottom-0 rounded-t-[28px] bg-chat-bg border-t border-chat-text/10 transition-transform duration-300 ease-out ${
             storePickerOpen ? "translate-y-0" : "translate-y-full"
           }`}
           style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
         >
           <div className="flex justify-center pt-2.5 pb-1">
-            <div className="h-1 w-9 rounded-full bg-white/25" />
+            <div className="h-1 w-9 rounded-full bg-chat-text/25" />
           </div>
-          <p className="px-5 pt-2 pb-1 text-[11px] font-semibold text-white/40 uppercase tracking-wide">
+          <p className="px-5 pt-2 pb-1 text-[11px] font-semibold text-chat-text/40 uppercase tracking-wide">
             Switch to
           </p>
           <div className="pb-4">
@@ -998,13 +1014,15 @@ function ProfilePage() {
                       params: { storeUsername: s.store_username },
                     })
                   }
-                  className="w-full flex items-center justify-between gap-3 px-5 py-3.5 text-left active:bg-white/5 transition-colors duration-150"
+                  className="w-full flex items-center justify-between gap-3 px-5 py-3.5 text-left active:bg-chat-text/5 transition-colors duration-150"
                 >
                   <div className="min-w-0">
-                    <p className="text-[15px] font-medium text-white truncate">{s.brand_name}</p>
-                    <p className="text-[12px] text-white/40">@{s.store_username}</p>
+                    <p className="text-[15px] font-medium text-chat-text truncate">
+                      {s.brand_name}
+                    </p>
+                    <p className="text-[12px] text-chat-text/40">@{s.store_username}</p>
                   </div>
-                  <ArrowLeftRight size={16} className="text-white/30 shrink-0" />
+                  <ArrowLeftRight size={16} className="text-chat-text/30 shrink-0" />
                 </button>
               ))}
           </div>
