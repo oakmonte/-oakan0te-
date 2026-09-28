@@ -1,7 +1,7 @@
 // Blurred, untappable stand-ins for /home's Shop and Explore tabs until they go
 // live. Rebuilt from the Figma "Oakmonte landing page" frames (Shop 14:1476,
-// Explore 20:282), trimmed to roughly one screen -- nothing below the fold is
-// worth downloading when it sits under a blur. Page colours use chat-* tokens
+// Explore 20:282), trimmed to a screen or two -- everything is lazy-loaded, so
+// tiles below the fold only download if someone scrolls. Page colours use chat-* tokens
 // so this follows the phone's light/dark setting; text on the hero photo stays
 // light in both.
 import heroImg from "@/assets/home-preview/shop-hero.webp";
@@ -14,6 +14,11 @@ import explore5 from "@/assets/home-preview/explore-5.webp";
 import explore6 from "@/assets/home-preview/explore-6.webp";
 import explore7 from "@/assets/home-preview/explore-7.webp";
 import explore8 from "@/assets/home-preview/explore-8.webp";
+// The store-theme slideshow placeholders, recompressed -- extra length for the feed.
+import explore9 from "@/assets/home-preview/explore-9.webp";
+import explore10 from "@/assets/home-preview/explore-10.webp";
+import explore11 from "@/assets/home-preview/explore-11.webp";
+import explore12 from "@/assets/home-preview/explore-12.webp";
 
 // Figma crops images inside their frame by oversizing them; percentages are
 // straight from the design. Without a crop the image just covers the frame.
@@ -119,12 +124,16 @@ const EXPLORE_LEFT: Tile[] = [
     radius: 15,
     crop: { w: 102.67, h: 100.06, l: -2.67, t: -0.03 },
   },
+  { src: explore9, ratio: "883/1280", radius: 13 },
+  { src: explore11, ratio: "853/1280", radius: 13 },
 ];
 const EXPLORE_RIGHT: Tile[] = [
   { src: explore5, ratio: "194/263", radius: 7, crop: { w: 120.24, h: 100, l: -11.83, t: 0 } },
   { src: explore6, ratio: "194/195", radius: 7, mt: 6 },
   { src: explore7, ratio: "474/842", radius: 13 },
   { src: explore8, ratio: "1200/1599", radius: 10 },
+  { src: explore10, ratio: "837/1280", radius: 13 },
+  { src: explore12, ratio: "854/1280", radius: 13 },
 ];
 
 function ExploreColumn({ tiles, gap }: { tiles: Tile[]; gap: number }) {

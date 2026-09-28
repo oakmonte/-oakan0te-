@@ -16,17 +16,20 @@ function HomePage() {
   const [tab, setTab] = useState<"shop" | "explore">("explore");
   const { user } = useSession();
   const [ownUsername, setOwnUsername] = useState<string | undefined>(undefined);
+  const [isSeller, setIsSeller] = useState(false);
 
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
     supabase
       .from("profiles")
-      .select("personal_username")
+      .select("personal_username, account_type")
       .eq("id", user.id)
       .maybeSingle()
       .then(({ data }) => {
-        if (!cancelled && data) setOwnUsername(data.personal_username);
+        if (cancelled || !data) return;
+        setOwnUsername(data.personal_username);
+        setIsSeller(data.account_type === "seller");
       });
     return () => {
       cancelled = true;
@@ -49,18 +52,18 @@ function HomePage() {
       </div>
 
       <div className="relative">
-        <div className="pointer-events-none select-none blur-[6px]" aria-hidden>
+        <div className="pointer-events-none select-none blur-[22px]" aria-hidden>
           {tab === "shop" ? <ShopPreview /> : <ExplorePreview />}
         </div>
 
         <div className="fixed inset-x-0 top-[30vh] z-40 flex flex-col items-center gap-2 px-8 text-center">
-          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-chat-text/10 text-chat-text">
-            <Lock size={19} />
+          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-chat-text/10 text-chat-text">
+            <Lock size={24} />
           </span>
-          <p className="text-[15px] font-semibold text-chat-text">
+          <p className="text-[20px] font-bold text-chat-text">
             {tab === "shop" ? "Shopping" : "Explore"} opens at full launch
           </p>
-          <p className="text-[13px] text-chat-muted">
+          <p className="text-[15px] font-medium text-chat-text/85">
             {tab === "shop"
               ? "Browse shelves from every store and check out in a tap."
               : "Scroll looks, then shop every piece in them straight from the post."}
@@ -72,12 +75,14 @@ function HomePage() {
             >
               Post a look
             </Link>
-            <Link
-              to="/set-up-store"
-              className="h-10 rounded-full border border-chat-border px-5 text-[14px] font-semibold leading-10 text-chat-text"
-            >
-              Set up a store
-            </Link>
+            {isSeller && (
+              <Link
+                to="/set-up-store"
+                className="h-10 rounded-full border border-chat-border px-5 text-[14px] font-semibold leading-10 text-chat-text"
+              >
+                Set up a store
+              </Link>
+            )}
           </div>
         </div>
       </div>
