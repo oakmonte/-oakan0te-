@@ -260,14 +260,14 @@ function FramingGuides() {
         style={{ top: "21.875%", bottom: "21.875%", borderColor: "rgba(255,255,255,0.18)" }}
       />
       <span
-        className="absolute text-[9px] uppercase tracking-widest"
+        className="absolute text-[10px] uppercase tracking-widest"
         style={{ top: "10%", left: 6, marginTop: 3, color: "rgba(255,255,255,0.45)" }}
       >
         4:5 crop
       </span>
       <span
-        className="absolute text-[9px] uppercase tracking-widest"
-        style={{ top: "21.875%", left: 6, marginTop: 3, color: "rgba(255,255,255,0.28)" }}
+        className="absolute text-[10px] uppercase tracking-widest"
+        style={{ top: "21.875%", left: 6, marginTop: 3, color: "rgba(255,255,255,0.45)" }}
       >
         1:1 crop
       </span>
@@ -276,7 +276,7 @@ function FramingGuides() {
         style={{ height: "13%", background: "rgba(255,0,80,0.10)" }}
       />
       <span
-        className="absolute left-1.5 text-[9px] uppercase tracking-widest"
+        className="absolute left-1.5 text-[10px] uppercase tracking-widest"
         style={{ bottom: 6, color: "rgba(255,255,255,0.5)" }}
       >
         UI overlay

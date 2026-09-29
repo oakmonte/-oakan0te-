@@ -1,7 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ArrowRight,
   ChevronLeft,
   Loader2,
   Maximize2,
@@ -10,6 +9,7 @@ import {
   Play,
   Redo2,
   Undo2,
+  X,
 } from "lucide-react";
 import { useAfterShotContext } from "@/lib/after-shot-context";
 import { useAfterShotLayers } from "@/lib/after-shot-layers";
@@ -43,6 +43,9 @@ import {
   loadSource,
 } from "@/lib/studio/sources";
 import { TIMELINE_HEIGHT } from "@/lib/studio/layout";
+import ConfirmDiscard from "@/components/editor/ConfirmDiscard";
+import { HintBubble } from "@/components/editor/OneTimeHint";
+import { useOneTimeHint } from "@/hooks/use-one-time-hint";
 import {
   ASPECT_PRESETS,
   NEUTRAL_ADJUSTMENTS,
@@ -196,7 +199,7 @@ function StudioEditor({
 }) {
   useLockedViewport();
   const navigate = useNavigate();
-  const { setMedia } = useAfterShotContext();
+  const { media, setMedia } = useAfterShotContext();
   const { layers: inheritedLayers } = useAfterShotLayers();
 
   const { project, dispatch, undo, redo, canUndo, canRedo, beginHistoryGroup, endHistoryGroup } =
@@ -222,6 +225,10 @@ function StudioEditor({
   const [exporting, setExporting] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  // Kept apart from `error`, which clears itself: a failed render is the one
+  // message here that must still be on screen when the seller looks back, and
+  // it comes with a way to try again.
+  const [exportError, setExportError] = useState<string | null>(null);
 
   // "No beats inside this clip" is worth saying once, not worth parking over the
   // toolbar until something unrelated happens to clear it.
@@ -573,21 +580,36 @@ function StudioEditor({
     setExporting(true);
     setProgress(0);
     setError(null);
+    setExportError(null);
     try {
       const blob = await exportTimeline(project, sources, setProgress);
       const url = URL.createObjectURL(blob);
       const poster = coverBlob
         ? { blob: coverBlob, url: URL.createObjectURL(coverBlob) }
         : undefined;
-      setMedia({ type: "video", blob, url, poster });
+      // Spread so the sound picked on the after-shot screen survives the trip;
+      // it was dropped here, and the post went out silent. Unless the studio
+      // laid its own music: the feed plays a post's sound INSTEAD of the
+      // video's, so keeping the old pick would silence the mix just made.
+      // The cover is the studio's own pick or none — the old one is a frame
+      // of the old cut.
+      const { audio, ...rest } = media;
+      setMedia({
+        ...rest,
+        ...(audio && project.audio.length === 0 ? { audio } : {}),
+        type: "video",
+        blob,
+        url,
+        poster,
+      });
       navigate({ to: "/create/after-shot" });
     } catch (err) {
       console.error("Studio export failed:", err);
-      setError(err instanceof Error ? err.message : "Export failed");
+      setExportError("Couldn't make your video.");
     } finally {
       setExporting(false);
     }
-  }, [coverBlob, navigate, playback, project, setMedia, sources]);
+  }, [coverBlob, media, navigate, playback, project, setMedia, sources]);
 
   // Leaving throws the whole edit away: the project is in memory only, so a
   // mis-tapped chevron on a six-clip cut is unrecoverable. Anything more than
@@ -600,6 +622,13 @@ function StudioEditor({
     project.pins.length > 0 ||
     canUndo;
 
+  // The two timeline gestures nothing on screen shows. Waits for a second clip,
+  // because that is the first moment either of them is worth knowing.
+  const [gestureHint, dismissGestureHint] = useOneTimeHint(
+    "studio-timeline-gestures",
+    project.clips.length > 1,
+  );
+
   const handleBack = useCallback(() => {
     playback.pause();
     if (hasWork) setConfirmBack(true);
@@ -611,8 +640,24 @@ function StudioEditor({
   const handlePrimary = useCallback(
     (tool: PrimaryTool) => {
       if (tool === "edit") {
-        const at = resolveAtTime(project.clips, playback.timeRef.current);
-        if (at) setSelection({ kind: "clip", id: at.clip.id });
+        // The clip under the playhead — or, when the playhead is parked in a
+        // gap, the nearest one. Doing nothing there left Edit looking broken.
+        const now = playback.timeRef.current;
+        const at = resolveAtTime(project.clips, now);
+        let clip = at?.clip ?? null;
+        if (!clip && project.clips.length > 0) {
+          let best = Infinity;
+          project.clips.forEach((c, i) => {
+            const start = starts[i];
+            const end = start + clipDuration(c);
+            const distance = now < start ? start - now : Math.max(0, now - end);
+            if (distance < best) {
+              best = distance;
+              clip = c;
+            }
+          });
+        }
+        if (clip) setSelection({ kind: "clip", id: clip.id });
         setPanel(null);
         return;
       }
@@ -620,7 +665,7 @@ function StudioEditor({
       if (tool === "tags") setSelection(null);
       setPanel(tool === "sound" ? "sound" : tool);
     },
-    [playback.timeRef, project.clips],
+    [playback.timeRef, project.clips, starts],
   );
 
   const handleClipTool = useCallback(
@@ -867,6 +912,7 @@ function StudioEditor({
       return (
         <ClipToolbar
           onPick={handleClipTool}
+          onDone={() => setSelection(null)}
           canDetach={canDetach}
           canDelete={project.clips.length > 1}
           isFirstClip={project.clips[0]?.id === selection.id}
@@ -892,20 +938,24 @@ function StudioEditor({
         <button
           onClick={handleBack}
           aria-label="Back"
-          className="flex h-9 w-9 items-center justify-center rounded-full transition-transform active:scale-90"
+          className="flex h-11 w-11 items-center justify-center rounded-full transition-transform active:scale-90"
           style={{ background: "rgba(255,255,255,0.10)" }}
         >
           <ChevronLeft size={20} />
         </button>
 
+        <span className="text-[15px] font-semibold">Edit clips</span>
+
+        {/* Says what it does. It was a bare red arrow, which read as "next
+            step" — it renders the cut and hands it back to the editor you
+            came from. */}
         <button
           onClick={handleExport}
           disabled={exporting}
-          aria-label="Finish and continue"
-          className="flex h-9 w-9 items-center justify-center rounded-full transition-transform active:scale-90 disabled:opacity-60"
-          style={{ background: "#F5254B" }}
+          aria-label="Done editing clips"
+          className="flex h-11 items-center justify-center gap-1.5 rounded-full bg-[var(--oak-action)] px-4 text-[13px] font-semibold transition-transform active:scale-90 disabled:opacity-60"
         >
-          {exporting ? <Loader2 size={18} className="animate-spin" /> : <ArrowRight size={19} />}
+          {exporting ? <Loader2 size={18} className="animate-spin" /> : <span>Done</span>}
         </button>
       </header>
 
@@ -924,26 +974,30 @@ function StudioEditor({
       />
 
       {/* Transport row — timecode, play, history, fullscreen. */}
-      <div className="flex shrink-0 items-center px-4 py-2.5">
-        <span className="w-24 text-[12px] tabular-nums text-white/55">
+      <div className="flex shrink-0 items-center px-2 py-0.5">
+        <span className="w-[132px] text-[12px] tabular-nums text-white/65">
           <span className="text-white">{formatTimecode(playback.time)}</span>
-          <span className="text-white/40">/{formatTimecode(duration)}</span>
+          <span className="text-white/60">/{formatTimecode(duration)}</span>
         </span>
 
-        <button
-          onClick={playback.toggle}
-          aria-label={playback.playing ? "Pause" : "Play"}
-          className="flex flex-1 items-center justify-center"
-        >
-          {playback.playing ? <Pause size={20} fill="#fff" /> : <Play size={20} fill="#fff" />}
-        </button>
+        <div className="flex flex-1 justify-center">
+          <button
+            onClick={playback.toggle}
+            aria-label={playback.playing ? "Pause" : "Play"}
+            className="flex h-11 w-11 items-center justify-center active:scale-90"
+          >
+            {playback.playing ? <Pause size={20} fill="#fff" /> : <Play size={20} fill="#fff" />}
+          </button>
+        </div>
 
-        <div className="flex w-24 items-center justify-end gap-3">
+        {/* Each a full 44px square, side by side with no gap: at 18px glyphs
+            12px apart, a thumb meant for Undo landed on Redo. */}
+        <div className="flex w-[132px] items-center justify-end">
           <button
             onClick={undo}
             disabled={!canUndo}
             aria-label="Undo"
-            className="disabled:opacity-25"
+            className="flex h-11 w-11 items-center justify-center active:scale-90 disabled:opacity-25"
           >
             <Undo2 size={18} />
           </button>
@@ -951,13 +1005,14 @@ function StudioEditor({
             onClick={redo}
             disabled={!canRedo}
             aria-label="Redo"
-            className="disabled:opacity-25"
+            className="flex h-11 w-11 items-center justify-center active:scale-90 disabled:opacity-25"
           >
             <Redo2 size={18} />
           </button>
           <button
             onClick={() => setFullscreen((v) => !v)}
-            aria-label={fullscreen ? "Show timeline" : "Hide timeline"}
+            aria-label={fullscreen ? "Exit full screen" : "Full screen"}
+            className="flex h-11 w-11 items-center justify-center active:scale-90"
           >
             {fullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
           </button>
@@ -1003,39 +1058,59 @@ function StudioEditor({
       )}
 
       {error && (
-        <div className="pointer-events-none absolute inset-x-6 bottom-28 rounded-xl bg-black/85 px-4 py-3">
-          <p className="text-center text-[12px] text-red-300">{error}</p>
+        <div
+          role="status"
+          className="pointer-events-none absolute inset-x-6 bottom-28 rounded-xl bg-black/85 px-4 py-3"
+        >
+          <p className="text-center text-[13px] text-red-300">{error}</p>
+        </div>
+      )}
+
+      {gestureHint && (
+        <div
+          className="pointer-events-none absolute inset-x-0 z-30 flex justify-center px-4"
+          style={{ top: "calc(env(safe-area-inset-top) + 64px)" }}
+        >
+          <HintBubble onDismiss={dismissGestureHint}>
+            Hold a clip to move it. Pinch the timeline to zoom.
+          </HintBubble>
+        </div>
+      )}
+
+      {exportError && !exporting && (
+        <div
+          role="alert"
+          className="absolute inset-x-4 bottom-28 z-40 flex items-center gap-3 rounded-xl bg-black/90 py-2 pl-4 pr-2"
+        >
+          <p className="min-w-0 flex-1 text-[13px] text-red-300">{exportError}</p>
+          <button
+            onClick={() => void handleExport()}
+            className="h-9 shrink-0 rounded-full bg-white px-4 text-[13px] font-semibold text-black active:scale-95"
+          >
+            Try again
+          </button>
+          <button
+            onClick={() => setExportError(null)}
+            aria-label="Dismiss"
+            className="oak-hit flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white/70 active:scale-90"
+          >
+            <X size={16} />
+          </button>
         </div>
       )}
 
       {confirmBack && (
-        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-black/85 px-8">
-          <p className="text-center text-[13px] text-white/80">
-            Leave the studio? This edit isn&rsquo;t saved anywhere.
-          </p>
-          <div className="flex gap-3">
-            <button
-              onClick={() => setConfirmBack(false)}
-              className="rounded-full px-5 py-2 text-[13px] font-semibold"
-              style={{ background: "rgba(255,255,255,0.12)" }}
-            >
-              Keep editing
-            </button>
-            <button
-              onClick={() => navigate({ to: "/create/after-shot" })}
-              className="rounded-full px-5 py-2 text-[13px] font-semibold"
-              style={{ background: "#fff", color: "#000" }}
-            >
-              Discard
-            </button>
-          </div>
-        </div>
+        <ConfirmDiscard
+          message="Discard these clip edits? They aren't saved anywhere."
+          onKeep={() => setConfirmBack(false)}
+          onDiscard={() => navigate({ to: "/create/after-shot" })}
+        />
       )}
 
       {exporting && (
         <div className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-black/80">
           <span className="text-[12px] uppercase tracking-widest">
-            Rendering… {Math.round(progress * 100)}%
+            Making your video… {Math.round(progress * 100)}%
           </span>
           <div className="h-1 w-44 overflow-hidden rounded-full bg-white/20">
             <div
@@ -1045,7 +1120,7 @@ function StudioEditor({
           </div>
           {/* Both numbers are measured from the footage rather than fixed, and a
               seller who shot at 60 has no other way to know they kept it. */}
-          <span className="text-[11px] tabular-nums text-white/45">
+          <span className="text-[12px] tabular-nums text-white/60">
             {outputSpec.width}×{outputSpec.height} · {outputSpec.fps}fps
           </span>
         </div>

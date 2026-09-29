@@ -89,13 +89,15 @@ export function FilterPanel({
             className="flex shrink-0 flex-col items-center gap-1"
           >
             <FilterSwatch filter={f} active={clip.filterId === f.id} />
-            <span className="text-[9px] text-white/70">{f.name}</span>
+            <span className="text-[11px] text-white/75">{f.name}</span>
           </button>
         ))}
       </div>
 
-      <div className="pb-2">
+      <div className="flex items-center justify-between gap-3 pb-2">
         <Pill onClick={() => onApplyAll(clip.filterId)}>Apply to all clips</Pill>
+        {/* The hold-to-audition gesture above has no other sign it exists. */}
+        <span className="text-[12px] text-white/55">Hold a filter to preview</span>
       </div>
     </StudioSheet>
   );

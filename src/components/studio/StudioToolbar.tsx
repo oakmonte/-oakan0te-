@@ -1,4 +1,5 @@
 import {
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Copy,
@@ -49,7 +50,7 @@ export function PrimaryToolbar({ onPick }: { onPick: (tool: PrimaryTool) => void
       <ToolButton label="Edit" icon={<SquarePen size={18} />} onClick={() => onPick("edit")} />
       <ToolButton label="Sound" icon={<Music2 size={18} />} onClick={() => onPick("sound")} />
       <ToolButton label="Text" icon={<Type size={18} />} onClick={() => onPick("text")} />
-      <ToolButton label="Tags" icon={<Tag size={18} />} onClick={() => onPick("tags")} />
+      <ToolButton label="Product tag" icon={<Tag size={18} />} onClick={() => onPick("tags")} />
       <ToolButton label="Canvas" icon={<Crop size={18} />} onClick={() => onPick("canvas")} />
       <ToolButton label="Cover" icon={<ImageIcon size={18} />} onClick={() => onPick("cover")} />
     </div>
@@ -58,6 +59,7 @@ export function PrimaryToolbar({ onPick }: { onPick: (tool: PrimaryTool) => void
 
 export function ClipToolbar({
   onPick,
+  onDone,
   canDetach,
   canDelete,
   isFirstClip,
@@ -65,6 +67,9 @@ export function ClipToolbar({
   canMoveRight,
 }: {
   onPick: (tool: ClipTool) => void;
+  /** Back to the project tools. There used to be no way out of this row but
+   *  tapping the preview, which nothing on screen suggested. */
+  onDone: () => void;
   canDetach: boolean;
   canDelete: boolean;
   isFirstClip: boolean;
@@ -73,11 +78,16 @@ export function ClipToolbar({
 }) {
   return (
     <div className={ROW}>
+      {/* First and pinned, like the video editor's: the one button in this row
+          that isn't about the clip, where a thumb finds it without reading. */}
+      <div className="sticky left-0 z-10 -ml-3 shrink-0 bg-black pl-3">
+        <ToolButton label="Done" icon={<ChevronDown size={18} />} onClick={onDone} />
+      </div>
       <ToolButton label="Split" icon={<Scissors size={18} />} onClick={() => onPick("split")} />
       <ToolButton label="Speed" icon={<Gauge size={18} />} onClick={() => onPick("speed")} />
       <ToolButton label="Volume" icon={<Volume2 size={18} />} onClick={() => onPick("volume")} />
       <ToolButton
-        label="Separate"
+        label="Detach audio"
         icon={<Unlink size={18} />}
         onClick={() => onPick("separate")}
         disabled={!canDetach}
@@ -98,18 +108,18 @@ export function ClipToolbar({
           with no affordance is a gesture nobody finds — and on touch it has to
           compete with the scroller it lives inside. These always work. */}
       <ToolButton
-        label="Move"
+        label="Move left"
         icon={<ChevronLeft size={18} />}
         onClick={() => onPick("moveLeft")}
         disabled={!canMoveLeft}
       />
       <ToolButton
-        label="Move"
+        label="Move right"
         icon={<ChevronRight size={18} />}
         onClick={() => onPick("moveRight")}
         disabled={!canMoveRight}
       />
-      <ToolButton label="Copy" icon={<Copy size={18} />} onClick={() => onPick("duplicate")} />
+      <ToolButton label="Duplicate" icon={<Copy size={18} />} onClick={() => onPick("duplicate")} />
       <ToolButton
         label="Delete"
         icon={<Trash2 size={18} />}

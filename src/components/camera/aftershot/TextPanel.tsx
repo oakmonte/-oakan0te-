@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { X, Palette, RectangleHorizontal, AlignLeft, AlignCenter, AlignRight } from "lucide-react";
+import {
+  Check,
+  Palette,
+  RectangleHorizontal,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+} from "lucide-react";
 import {
   useAfterShotLayers,
   TEXT_LAYER_WIDTH_FRACTION,
@@ -122,7 +129,7 @@ export default function TextPanel({ open, containerRef, editingLayerId, onClose 
   const activeFont = FONTS.find((f) => f.id === selectedFontId) ?? FONTS[0];
   const AlignIcon = ALIGN_ICON[align];
   const fontWeight = WEIGHT_LEVELS[weightLevel];
-  const committedRef = useRef(false); // guards against double-commit (blur + X firing together)
+  const committedRef = useRef(false); // guards against double-commit (blur + the Done check firing together)
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   // Compose at the exact width the placed layer will wrap at, so the text
@@ -327,7 +334,7 @@ export default function TextPanel({ open, containerRef, editingLayerId, onClose 
     setWeightLevel((prev) => (prev + 1) % WEIGHT_LEVELS.length);
   }, []);
 
-  // Single commit path for every trigger (the X, blur from tapping outside the
+  // Single commit path for every trigger (the Done check, blur from tapping outside the
   // input, tapping the background directly). Guarded so it only actually runs
   // once even if two triggers fire back to back.
   const commit = useCallback(() => {
@@ -507,7 +514,10 @@ export default function TextPanel({ open, containerRef, editingLayerId, onClose 
           aria-label="Done, place text"
           className="oak-motion-control flex items-center justify-center w-11 h-11 rounded-full active:scale-90 disabled:opacity-30"
         >
-          <X size={22} color="#fff" />
+          {/* A check, not the X it used to be: this places the text, and an X
+              reads as "throw it away" — people backed out of their own caption
+              expecting to lose it. */}
+          <Check size={22} color="#fff" />
         </button>
       </div>
 

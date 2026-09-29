@@ -34,7 +34,7 @@ export function StudioSheet({
             <button
               onClick={onReset}
               aria-label={`Reset ${title.toLowerCase()}`}
-              className="flex h-8 w-8 items-center justify-center rounded-full text-white/70 active:scale-90"
+              className="oak-hit flex h-9 w-9 items-center justify-center rounded-full text-white/70 active:scale-90"
             >
               <RotateCcw size={16} />
             </button>
@@ -43,7 +43,7 @@ export function StudioSheet({
             onClick={onDone}
             disabled={doneDisabled}
             aria-label="Done"
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-black active:scale-90 disabled:opacity-30"
+            className="oak-hit ml-1 flex h-9 w-9 items-center justify-center rounded-full bg-white text-black active:scale-90 disabled:opacity-30"
           >
             <Check size={17} />
           </button>
@@ -78,7 +78,7 @@ export function StudioSlider({
 }) {
   return (
     <label className="block py-1.5">
-      <span className="mb-1 flex items-center justify-between text-[11px] text-white/60">
+      <span className="mb-1 flex items-center justify-between text-[12px] text-white/65">
         <span>{label}</span>
         <span className="tabular-nums text-white/85">
           {Number.isInteger(value) ? value : value.toFixed(2)}
@@ -120,7 +120,7 @@ export function Pill({
     <button
       onClick={onClick}
       disabled={disabled}
-      className="shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-medium transition-transform active:scale-95 disabled:opacity-35"
+      className="shrink-0 rounded-full px-3.5 py-2 text-[13px] font-medium transition-transform active:scale-95 disabled:opacity-35"
       style={{
         background: active ? "#fff" : "rgba(255,255,255,0.10)",
         color: active ? "#000" : tone === "danger" ? "#FF7A7A" : "#fff",
@@ -149,18 +149,18 @@ export function ToolButton({
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
-      className="flex h-[58px] w-[68px] shrink-0 flex-col items-center justify-center gap-1 rounded-xl transition-transform active:scale-95 disabled:opacity-30"
+      className="flex h-[58px] w-[72px] shrink-0 flex-col items-center justify-center gap-1 rounded-xl transition-transform active:scale-95 disabled:opacity-30"
       style={{
         background: "rgba(255,255,255,0.07)",
         color: tone === "danger" ? "#FF7A7A" : "#fff",
       }}
     >
       {icon}
-      <span className="text-[10px] font-medium leading-none">{label}</span>
+      <span className="whitespace-nowrap text-[11px] font-medium leading-none">{label}</span>
     </button>
   );
 }
 
 export function EmptyHint({ children }: { children: ReactNode }) {
-  return <p className="py-4 text-center text-[12px] text-white/45">{children}</p>;
+  return <p className="py-4 text-center text-[13px] text-white/60">{children}</p>;
 }

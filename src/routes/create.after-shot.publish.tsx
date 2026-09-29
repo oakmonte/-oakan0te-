@@ -63,7 +63,11 @@ type ProductOption = { id: string; title: string; price: number | null; image: s
 function PublishPage() {
   useLockedViewport();
   const navigate = useNavigate();
-  const { media, setMedia } = useAfterShotContext();
+  // The composite after-shot made, when it made one; otherwise the source
+  // itself. The source stays untouched underneath so Back reopens the edit.
+  const { media: source, output, setMedia, setOutput } = useAfterShotContext();
+  const media = output ?? source;
+  const setPublished = output ? setOutput : setMedia;
   const { user } = useSession();
   const { storeId } = useActiveStoreId();
 
@@ -179,6 +183,14 @@ function PublishPage() {
       // now-backgrounded upload to finish.
       URL.revokeObjectURL(media.url);
       if (media.poster) URL.revokeObjectURL(media.poster.url);
+      // The untouched source under an after-shot composite has no one else to
+      // free it once this screen navigates away.
+      if (output) {
+        URL.revokeObjectURL(source.url);
+        if (source.poster && source.poster.url !== media.poster?.url) {
+          URL.revokeObjectURL(source.poster.url);
+        }
+      }
       media.extra?.forEach((item) => URL.revokeObjectURL(item.url));
       // Safe here and only here. The photo editor's copy of this URL is freed
       // by the session discard just above, at the same moment; the after-shot
@@ -199,6 +211,8 @@ function PublishPage() {
       user,
       submitting,
       media,
+      output,
+      source,
       caption,
       location,
       visibility,
@@ -455,7 +469,7 @@ function PublishPage() {
           url={media.url}
           onClose={() => setCoverOpen(false)}
           onPick={(poster) => {
-            setMedia({ ...media, poster });
+            setPublished({ ...media, poster });
             setCoverOpen(false);
           }}
         />

@@ -35,7 +35,7 @@ export function SoundPanel({
         </Pill>
         <Pill onClick={onDetach} disabled={!clip || !canDetach || clip.audioDetached}>
           <span className="flex items-center gap-1.5">
-            <Unlink size={13} /> Separate audio
+            <Unlink size={13} /> Detach audio
           </span>
         </Pill>
         <Pill onClick={onDetectBeats} disabled={detecting}>
@@ -51,13 +51,13 @@ export function SoundPanel({
       </div>
 
       {beatCount > 0 ? (
-        <p className="pb-3 text-[11px] text-white/55">
+        <p className="pb-3 text-[12px] text-white/60">
           {beatCount} beats found{bpm ? ` · about ${bpm} BPM` : ""}. They are marked on the timeline
           — &ldquo;Cut on beats&rdquo; splits the clip under the playhead at every one.
         </p>
       ) : (
         <EmptyHint>
-          Add a track or separate a clip&rsquo;s audio, then find beats to cut an outfit change
+          Add a track or detach a clip&rsquo;s audio, then find beats to cut an outfit change
           exactly on the drop.
         </EmptyHint>
       )}

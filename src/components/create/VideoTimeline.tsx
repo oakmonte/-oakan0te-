@@ -54,7 +54,7 @@ const GUTTER = 32;
 const SCROLL_SETTLE_MS = 140;
 /** Visible width of a trim bar, and the wider invisible area around it. */
 const BAR_WIDTH = 14;
-const BAR_HIT = 34;
+const BAR_HIT = 44;
 /** Visual gap between neighbouring clips. The sequence stays gapless — each
  *  tile keeps its exact time-accurate width, so the selection frame and the
  *  playhead maths are untouched — and only what the tile DRAWS is inset by
@@ -359,7 +359,7 @@ export default function VideoTimeline({
             type="button"
             onClick={() => onToggleMute(selected.id)}
             aria-label={selected.muted ? "Unmute clip" : "Mute clip"}
-            className="flex h-7 items-center gap-1.5 rounded-full bg-white/[0.12] px-2.5 text-[11px] font-medium text-white/85 active:scale-90"
+            className="oak-hit flex h-8 items-center gap-1.5 rounded-full bg-white/[0.12] px-2.5 text-[11px] font-medium text-white/85 active:scale-90"
           >
             {selected.muted ? <VolumeX size={13} /> : <Volume2 size={13} />}
             {selected.muted ? "Muted" : "Sound on"}
@@ -370,7 +370,7 @@ export default function VideoTimeline({
             type="button"
             onClick={onSplit}
             aria-label="Split clip at playhead"
-            className="absolute left-1/2 flex h-7 -translate-x-1/2 items-center gap-1.5 rounded-full bg-white px-3 text-[11px] font-semibold text-black active:scale-95"
+            className="oak-hit absolute left-1/2 flex h-8 -translate-x-1/2 items-center gap-1.5 rounded-full bg-white px-3 text-[11px] font-semibold text-black active:scale-95"
           >
             <Split size={13} /> Split
           </button>
@@ -705,18 +705,18 @@ function ClipTile({
 
         {clip.muted && clip.kind === "video" && (
           <span className="absolute bottom-1 left-1 rounded-[3px] bg-black/65 p-[3px]">
-            <VolumeX size={10} />
+            <VolumeX size={11} aria-label="Muted" />
           </span>
         )}
         {clip.speed !== 1 && (
-          <span className="absolute bottom-1 right-1 rounded-[3px] bg-black/65 px-1 text-[9px] font-semibold">
+          <span className="absolute bottom-1 right-1 rounded-[3px] bg-black/65 px-1 text-[11px] font-semibold">
             {clip.speed}x
           </span>
         )}
         {/* Live length of the selected clip, so a trim can be judged in
             seconds. Clear of the trim bar's 14px on the left. */}
         {isSelected && width > 56 && (
-          <span className="absolute top-1 left-[18px] rounded-[3px] bg-black/65 px-1 text-[9px] font-semibold tabular-nums">
+          <span className="absolute top-1 left-[18px] rounded-[3px] bg-black/65 px-1 text-[11px] font-semibold tabular-nums">
             {clipDuration(clip) < 10
               ? clipDuration(clip).toFixed(1)
               : Math.round(clipDuration(clip))}

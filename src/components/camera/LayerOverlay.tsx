@@ -355,7 +355,9 @@ function SelectionFrame({
               e.stopPropagation();
               onRemove(layer.id);
             }}
-            className="oak-motion-control flex items-center justify-center rounded-full active:scale-90"
+            // oak-hit: drawn small so it doesn't hide the caption, grabbed
+            // at a full 44px so it doesn't take three tries.
+            className="oak-hit oak-motion-control flex items-center justify-center rounded-full active:scale-90"
             style={{
               width: DELETE_HANDLE_SIZE,
               height: DELETE_HANDLE_SIZE,
@@ -373,7 +375,7 @@ function SelectionFrame({
         { right: -pad, bottom: -pad },
         <div
           onPointerDown={startTransform(layer)}
-          className="flex items-center justify-center rounded-full"
+          className="oak-hit flex items-center justify-center rounded-full"
           style={{
             width: HANDLE_SIZE,
             height: HANDLE_SIZE,

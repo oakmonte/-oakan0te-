@@ -1,6 +1,15 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
-import { Music2, Plus, Volume2, VolumeX, Type as TypeIcon, Sparkles, X } from "lucide-react";
+import {
+  Music2,
+  Plus,
+  Volume2,
+  VolumeX,
+  Type as TypeIcon,
+  Sparkles,
+  Unlink,
+  X,
+} from "lucide-react";
 import { tilesForRange, type FilmstripFrame } from "@/lib/studio/filmstrip";
 import { peaksForRange } from "./use-timeline-media";
 import {
@@ -559,7 +568,7 @@ function StudioTimeline({
                         onPointerDown={(e) => e.stopPropagation()}
                         onClick={() => onCloseGap(clip.id)}
                         aria-label="Close gap"
-                        className="flex h-6 w-6 items-center justify-center rounded-full active:scale-90"
+                        className="oak-hit flex h-7 w-7 items-center justify-center rounded-full active:scale-90"
                         style={{ background: "rgba(255,255,255,0.12)", color: "#fff" }}
                       >
                         <X size={12} />
@@ -611,7 +620,7 @@ function StudioTimeline({
                         judged in seconds rather than by eye. */}
                     {isSelected && width > 40 && (
                       <span
-                        className="absolute top-0.5 rounded px-1 text-[9px] font-semibold leading-[14px] tabular-nums"
+                        className="pointer-events-none absolute top-0.5 rounded px-1 text-[11px] font-semibold leading-[15px] tabular-nums"
                         style={{
                           left: HANDLE_W + 2,
                           background: "rgba(0,0,0,0.68)",
@@ -626,10 +635,16 @@ function StudioTimeline({
                     <div className="absolute inset-x-0 bottom-0 flex items-center gap-1 px-1 pb-0.5">
                       {(clip.muted || project.masterMuted) && (
                         <Badge>
-                          <VolumeX size={9} />
+                          <VolumeX size={10} aria-label="Muted" />
                         </Badge>
                       )}
-                      {clip.audioDetached && <Badge>split</Badge>}
+                      {/* The same glyph as Detach audio in the toolbar. It used to
+                          say "split", the name of a different tool. */}
+                      {clip.audioDetached && (
+                        <Badge>
+                          <Unlink size={10} aria-label="Audio detached" />
+                        </Badge>
+                      )}
                       {clip.speed !== 1 && <Badge>{clip.speed}x</Badge>}
                     </div>
 
@@ -656,12 +671,18 @@ function StudioTimeline({
               {/* Transition buttons live ON the cut — the cut is the thing being
                   changed, not either clip. */}
               {project.clips.slice(1).map((clip, i) =>
-                (clip.gapBefore ?? 0) > 0 ? null : (
+                (clip.gapBefore ?? 0) > 0 ||
+                // Steps aside while either neighbour is selected: that is
+                // when the trim handles need these same pixels, and a 44px
+                // target sitting on the cut would swallow both of them. The
+                // clip toolbar's Transition button covers the selected clip.
+                (selection?.kind === "clip" &&
+                  (selection.id === clip.id || selection.id === project.clips[i].id)) ? null : (
                   <button
                     key={`cut-${clip.id}`}
                     onClick={() => onOpenTransition(clip.id)}
                     aria-label="Change transition"
-                    className="absolute flex items-center justify-center rounded-[4px]"
+                    className="oak-hit absolute flex items-center justify-center rounded-[4px]"
                     style={{
                       left: starts[i + 1] * pps - 9,
                       top: VIDEO_TRACK_H / 2 - 9,
@@ -705,7 +726,7 @@ function StudioTimeline({
                     }}
                   >
                     <Music2 size={11} className="shrink-0 text-white" />
-                    <span className="text-[10px] font-medium text-white truncate">
+                    <span className="text-[11px] font-medium text-white truncate">
                       {audio.label}
                     </span>
                     <Waveform
@@ -769,7 +790,7 @@ function StudioTimeline({
         onClick={onToggleMasterMute}
         aria-label={project.masterMuted ? "Unmute timeline" : "Mute timeline"}
         aria-pressed={project.masterMuted}
-        className="absolute flex items-center justify-center rounded-full"
+        className="oak-hit absolute flex items-center justify-center rounded-full"
         style={{
           left: 10,
           top: VIDEO_TRACK_CENTER - 16,
@@ -785,7 +806,7 @@ function StudioTimeline({
       <button
         onClick={onAddClips}
         aria-label="Add clips from gallery"
-        className="absolute flex items-center justify-center rounded-lg transition-transform active:scale-95"
+        className="oak-hit absolute flex items-center justify-center rounded-lg transition-transform active:scale-95"
         style={{
           right: 10,
           top: VIDEO_TRACK_CENTER - 16,
@@ -801,15 +822,15 @@ function StudioTimeline({
 
       {project.audio.length === 0 && (
         <div
-          className="absolute left-0 right-0 flex items-center justify-center whitespace-nowrap text-[10px] pointer-events-none"
+          className="absolute left-0 right-0 flex items-center justify-center whitespace-nowrap text-[11px] pointer-events-none"
           style={{
             top: TRACK_TOP_PAD + RULER_H + VIDEO_TRACK_H + TRACK_GAP,
             height: AUDIO_TRACK_H,
-            color: "rgba(255,255,255,0.26)",
+            color: "rgba(255,255,255,0.5)",
             zIndex: 7,
           }}
         >
-          Separate a clip&rsquo;s audio, or add a track, to edit sound on its own
+          Detach a clip&rsquo;s audio, or add a track, to edit sound on its own
         </div>
       )}
     </div>
@@ -819,7 +840,7 @@ function StudioTimeline({
 function Badge({ children }: { children: React.ReactNode }) {
   return (
     <span
-      className="inline-flex items-center gap-0.5 rounded px-1 text-[9px] font-semibold leading-[14px]"
+      className="inline-flex items-center gap-0.5 rounded px-1 text-[11px] font-semibold leading-[15px]"
       style={{ background: "rgba(0,0,0,0.68)", color: "#fff" }}
     >
       {children}
@@ -858,6 +879,14 @@ function TrimHandle({
       }}
     >
       <span style={{ width: 2, height: 14, borderRadius: 1, background: "rgba(0,0,0,0.55)" }} />
+      {/* The grab area reaches inward past the drawn 14px bar — into the clip,
+          never outward over its neighbour, and never outside the clip's own
+          overflow clip, which would cut it off anyway. */}
+      <span
+        aria-hidden
+        className="absolute inset-y-0"
+        style={{ [side]: 0, width: compact ? 24 : 30 }}
+      />
     </div>
   );
 }
@@ -944,8 +973,8 @@ function LayerChip({
         color: selected ? "#000" : "#fff",
       }}
     >
-      <TypeIcon size={10} className="shrink-0" />
-      <span className="truncate text-[9px] font-medium">
+      <TypeIcon size={11} className="shrink-0" />
+      <span className="truncate text-[11px] font-medium">
         {layer.kind === "text" ? layer.content || "Text" : "Overlay"}
       </span>
     </button>

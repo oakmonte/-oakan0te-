@@ -4,6 +4,7 @@ import {
   ArrowRight,
   ChevronDown,
   ChevronLeft,
+  ChevronRight,
   Copy,
   Crop,
   Gauge,
@@ -25,6 +26,7 @@ import {
   Volume2,
   VolumeX,
   Wand2,
+  X,
 } from "lucide-react";
 import {
   AfterShotLayersContext,
@@ -57,6 +59,9 @@ import { takePendingDraft } from "@/lib/draft-handoff";
 import VideoTimeline from "@/components/create/VideoTimeline";
 import { SpeedSheet, RatioSheet, SoundSheet } from "@/components/create/ClipOptionSheets";
 import { exportSequence } from "@/lib/video-sequence-export";
+import ConfirmDiscard from "@/components/editor/ConfirmDiscard";
+import { HintBubble } from "@/components/editor/OneTimeHint";
+import { useOneTimeHint } from "@/hooks/use-one-time-hint";
 import SoundLibrarySheet from "@/components/camera/SoundLibrarySheet";
 import { authedFetch } from "@/lib/authed-fetch";
 import { type LibraryTrack, type SoundCredit, creditFor } from "@/lib/sound-library";
@@ -194,6 +199,10 @@ function VideoEditor() {
   const [progress, setProgress] = useState<number | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // True when `error` is a failed export, which gets a Try again button. The
+  // other errors are about one clip and have nothing to retry.
+  const [errorIsExport, setErrorIsExport] = useState(false);
+  const [confirmLeave, setConfirmLeave] = useState(false);
 
   const stageRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
@@ -422,43 +431,59 @@ function VideoEditor() {
    *  Duration is required — a clip without one has no length on the timeline.
    *  A poster is not, so a failed grab downgrades to a plain tile instead of
    *  failing the whole add. */
-  const measureVideo = useCallback(async (clip: Clip, posterUrl?: string | null) => {
-    const duration = await videoDuration(clip.url);
-    if (duration <= 0) {
-      setError("Couldn't read how long one of those videos is");
-      return;
-    }
-
-    let thumbUrl = posterUrl ?? null;
-    let size: { w: number; h: number } | null = null;
-    if (!thumbUrl) {
-      try {
-        const thumb = await videoThumbnail(clip.url);
-        ownedUrls.current.push(thumb.url);
-        thumbUrl = thumb.url;
-        size = { w: thumb.w, h: thumb.h };
-      } catch {
-        thumbUrl = null;
+  const measureVideo = useCallback(
+    async (clip: Clip, posterUrl?: string | null, replacing?: Clip) => {
+      const duration = await videoDuration(clip.url);
+      if (duration <= 0) {
+        // Never left behind: a clip with no length is a 24px sliver on the
+        // timeline that nobody can select, trim or understand. A new clip is
+        // dropped; a failed Replace puts the original back.
+        setClips((prev) =>
+          replacing
+            ? prev.map((c) => (c.id === clip.id ? replacing : c))
+            : prev.filter((c) => c.id !== clip.id),
+        );
+        setErrorIsExport(false);
+        setError(
+          replacing
+            ? "That video couldn't be read, so the clip wasn't replaced. Try a different file."
+            : "One video couldn't be read, so it was left out. Try a different file.",
+        );
+        return;
       }
-    }
 
-    setClips((prev) =>
-      prev.map((c) =>
-        c.id === clip.id
-          ? {
-              ...c,
-              thumbUrl,
-              naturalSize: size ?? c.naturalSize,
-              sourceDuration: duration,
-              trimEnd: duration,
-            }
-          : c,
-      ),
-    );
+      let thumbUrl = posterUrl ?? null;
+      let size: { w: number; h: number } | null = null;
+      if (!thumbUrl) {
+        try {
+          const thumb = await videoThumbnail(clip.url);
+          ownedUrls.current.push(thumb.url);
+          thumbUrl = thumb.url;
+          size = { w: thumb.w, h: thumb.h };
+        } catch {
+          thumbUrl = null;
+        }
+      }
 
-    queueFilmstrip(clip.id, clip.url, duration);
+      setClips((prev) =>
+        prev.map((c) =>
+          c.id === clip.id
+            ? {
+                ...c,
+                thumbUrl,
+                naturalSize: size ?? c.naturalSize,
+                sourceDuration: duration,
+                trimEnd: duration,
+              }
+            : c,
+        ),
+      );
+
+      queueFilmstrip(clip.id, clip.url, duration);
+    },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    [],
+  );
 
   function handleDeviceFiles(files: FileList | null) {
     if (!files) return;
@@ -603,11 +628,17 @@ function VideoEditor() {
     };
     setClips((prev) => prev.map((c) => (c.id === target.id ? replaced : c)));
     setReplaceTargetId(null);
-    if (replaced.kind === "video") void measureVideo(replaced, poster ?? null);
+    if (replaced.kind === "video") void measureVideo(replaced, poster ?? null, target);
     else measurePhoto(replaced);
   }
 
+  /** The picker, for ADDING. Replace opens the same sheets with a target set;
+   *  every add path comes through here and clears it, because a Replace the
+   *  seller backed out of (closing the photo library, say, which reports
+   *  nothing) used to stay armed — and the next "+" silently swapped that clip
+   *  out instead of adding one. */
   function openSource(e: React.MouseEvent<HTMLElement>) {
+    setReplaceTargetId(null);
     setSourceAnchor(e.currentTarget.getBoundingClientRect());
     setSourceOpen(true);
   }
@@ -698,11 +729,12 @@ function VideoEditor() {
   }
 
   function handleDuplicate() {
-    if (!selected) return;
-    const index = clips.findIndex((c) => c.id === selected.id);
-    const copy = { ...selected, id: newClipId() };
+    const target = selected ?? current;
+    if (!target) return;
+    const index = clips.findIndex((c) => c.id === target.id);
+    const copy = { ...target, id: newClipId() };
     layersByClip.current[copy.id] = (
-      selected.id === current?.id ? layers : (layersByClip.current[selected.id] ?? [])
+      target.id === current?.id ? layers : (layersByClip.current[target.id] ?? [])
     ).map((l) => ({ ...l }));
     const next = clips.slice();
     next.splice(index + 1, 0, copy);
@@ -711,9 +743,10 @@ function VideoEditor() {
   }
 
   function handleDelete() {
-    if (!selected) return;
-    delete layersByClip.current[selected.id];
-    const next = clips.filter((c) => c.id !== selected.id);
+    const target = selected ?? current;
+    if (!target) return;
+    delete layersByClip.current[target.id];
+    const next = clips.filter((c) => c.id !== target.id);
     commit(next);
     setSelectedId(null);
     // The clip the toolbar was about is gone, so the toolbar goes too. Falling
@@ -721,6 +754,28 @@ function VideoEditor() {
     // the same thumb that just pressed it, aimed at a different clip.
     setClipEditing(false);
     setTime((t) => Math.min(t, sequenceDuration(next)));
+  }
+
+  // A visible way to reorder. Hold-and-drag on the strip still works, but it
+  // competes with the scroll it lives inside and nothing on screen says it
+  // exists — the studio found the same and grew the same two buttons.
+  function handleMove(delta: -1 | 1) {
+    if (!editTarget) return;
+    const index = clips.findIndex((c) => c.id === editTarget.id);
+    const to = index + delta;
+    if (index < 0 || to < 0 || to >= clips.length) return;
+    commit(moveClip(clips, index, to));
+  }
+
+  /** Put a clip on screen before a panel edits it. The preview shows the clip
+   *  under the playhead, so grading a selected clip somewhere else on the
+   *  timeline meant dragging sliders against a picture of a different one. */
+  function focusClip(id: string) {
+    const index = clips.findIndex((c) => c.id === id);
+    if (index < 0 || current?.id === id) return;
+    setPlaying(false);
+    const start = clipStarts(clips)[index];
+    setTime(start + Math.min(0.05, clipDuration(clips[index]) / 2));
   }
 
   /* ---------------- playback ---------------- */
@@ -849,6 +904,7 @@ function VideoEditor() {
     if (empty) return;
     setPlaying(false);
     setError(null);
+    setErrorIsExport(false);
     setBusy("Making your video…");
     setProgress(0);
     try {
@@ -867,6 +923,7 @@ function VideoEditor() {
       // find out in the feed. Stopping here costs a re-export if they try
       // again, which is the cheaper of the two surprises.
       if (music && !musicIncluded) {
+        setErrorIsExport(false);
         setError("That track couldn't be added to the video. Try another one.");
         return;
       }
@@ -922,7 +979,8 @@ function VideoEditor() {
       await navigate({ to: "/create/after-shot/publish" });
     } catch (err) {
       console.error("VideoEditor: export failed", err);
-      setError(err instanceof Error ? err.message : "Couldn't make that video");
+      setErrorIsExport(true);
+      setError("Couldn't make your video.");
     } finally {
       setBusy(null);
       setProgress(null);
@@ -943,6 +1001,10 @@ function VideoEditor() {
    *  the sheet says it is working and stays open until this resolves. */
   const chooseTrack = useCallback(
     async (track: LibraryTrack) => {
+      // Back to the Sound sheet straight away, which is where "Getting the
+      // track…" and any error are shown. Left open, the library sat unchanged
+      // over them for the whole download and the tap looked dead.
+      setSoundOpen(false);
       setSoundLoading(true);
       setSoundError(null);
       try {
@@ -976,7 +1038,6 @@ function VideoEditor() {
         // purpose — a slider would push forty snapshots on one drag.
         push();
         setMusic((m) => (m ? { ...next, volume: m.volume } : next));
-        setSoundOpen(false);
       } catch (err) {
         console.error("VideoEditor: could not fetch track", err);
         setSoundError("Couldn't load that sound. Check your connection and try another.");
@@ -1008,17 +1069,29 @@ function VideoEditor() {
         icon: Sticker,
         run: () => stickerInputRef.current?.click(),
       },
-      { id: "filters", label: "Filters", icon: Wand2, run: () => setActiveTool("filter") },
+      {
+        id: "filters",
+        label: "Filters",
+        icon: Wand2,
+        run: () => {
+          if (current) setSelectedId(current.id);
+          setActiveTool("filter");
+        },
+      },
       {
         id: "adjust",
         label: "Adjust",
         icon: SlidersHorizontal,
-        run: () => setActiveTool("adjust"),
+        run: () => {
+          if (current) setSelectedId(current.id);
+          setActiveTool("adjust");
+        },
       },
       { id: "canvas", label: "Canvas", icon: Ratio, run: () => setActiveTool("ratio") },
       { id: "sound", label: "Sound", icon: Music, run: () => setActiveTool("sound") },
-      { id: "duplicate", label: "Duplicate", icon: Copy, run: handleDuplicate },
-      { id: "delete", label: "Delete", icon: Trash2, run: handleDelete },
+      // No Duplicate or Delete here. They were greyed out until a clip was
+      // selected, with nothing to say so — exactly the disabled-and-unexplained
+      // button the note below rules out. They live on the clip's own toolbar.
     ];
 
   /** The toolbar while a clip is selected for editing.
@@ -1055,11 +1128,16 @@ function VideoEditor() {
           id: "speed",
           label: editTarget.kind === "photo" ? "Duration" : "Speed",
           icon: Gauge,
-          run: () => setActiveTool("speed"),
+          run: () => {
+            focusClip(editTarget.id);
+            setActiveTool("speed");
+          },
         },
         {
           id: "fit",
-          label: editTarget.fit === "cover" ? "Fit" : "Fill",
+          // Named for what the tap will do, in words rather than the bare
+          // "Fit"/"Fill" pair, which nobody could tell apart.
+          label: editTarget.fit === "cover" ? "Show all" : "Fill frame",
           icon: Crop,
           run: () => {
             beginGesture();
@@ -1070,7 +1148,10 @@ function VideoEditor() {
           ? [
               {
                 id: "volume",
-                label: editTarget.muted ? "Unmute" : "Mute",
+                // The state, matching the pill above the timeline — the two
+                // used to disagree, one saying "Mute" while the other said
+                // "Sound on" about the same clip.
+                label: editTarget.muted ? "Muted" : "Sound on",
                 icon: editTarget.muted ? VolumeX : Volume2,
                 run: () => {
                   beginGesture();
@@ -1079,13 +1160,37 @@ function VideoEditor() {
               },
             ]
           : []),
-        { id: "filters", label: "Filters", icon: Wand2, run: () => setActiveTool("filter") },
+        {
+          id: "filters",
+          label: "Filters",
+          icon: Wand2,
+          run: () => {
+            focusClip(editTarget.id);
+            setActiveTool("filter");
+          },
+        },
         {
           id: "adjust",
           label: "Adjust",
           icon: SlidersHorizontal,
-          run: () => setActiveTool("adjust"),
+          run: () => {
+            focusClip(editTarget.id);
+            setActiveTool("adjust");
+          },
         },
+        ...(editIndex > 0
+          ? [{ id: "move-left", label: "Move left", icon: ChevronLeft, run: () => handleMove(-1) }]
+          : []),
+        ...(editIndex >= 0 && editIndex < clips.length - 1
+          ? [
+              {
+                id: "move-right",
+                label: "Move right",
+                icon: ChevronRight,
+                run: () => handleMove(1),
+              },
+            ]
+          : []),
         { id: "duplicate", label: "Duplicate", icon: Copy, run: handleDuplicate },
         { id: "delete", label: "Delete", icon: Trash2, run: handleDelete },
       ]
@@ -1098,6 +1203,25 @@ function VideoEditor() {
   }, [empty]);
 
   const chromeHidden = activeTool !== null || expanded;
+
+  /** Leaving on purpose ends the edit, so the parked session goes with it —
+   *  otherwise the next New video would open onto the timeline you just
+   *  walked away from. */
+  function leave() {
+    discardVideoEditorSession();
+    void navigate({ to: "/create", search: { tab: "create" } });
+  }
+
+  const [reorderHint, dismissReorderHint] = useOneTimeHint(
+    "video-editor-hold-to-move",
+    clips.length > 1 && !chromeHidden && !busy,
+  );
+  // Text and stickers belong to the clip they were added on, which is not
+  // what anyone assumes the first time a caption vanishes at the next cut.
+  const [layerHint, dismissLayerHint] = useOneTimeHint(
+    "video-editor-layers-per-clip",
+    clips.length > 1 && layers.length > 0 && !chromeHidden && !busy && !reorderHint,
+  );
 
   return (
     <div
@@ -1114,11 +1238,10 @@ function VideoEditor() {
           <button
             type="button"
             onClick={() => {
-              // Leaving on purpose ends the edit, so the parked session goes
-              // with it — otherwise the next New video would open onto the
-              // timeline you just walked away from.
-              discardVideoEditorSession();
-              void navigate({ to: "/create", search: { tab: "create" } });
+              // Nothing here is saved anywhere, so an edit with clips on it
+              // asks before it goes. An empty timeline has nothing to lose.
+              if (empty) leave();
+              else setConfirmLeave(true);
             }}
             aria-label="Back"
             className="flex h-11 w-11 items-center justify-center rounded-full bg-white/[0.14] active:scale-90"
@@ -1214,10 +1337,12 @@ function VideoEditor() {
               />
             )}
 
-            {(activeTool === null || activeTool === "text") && !expanded && (
+            {/* Shown in full screen too, just not editable there: a preview
+                that drops the captions isn't a preview of the post. */}
+            {(activeTool === null || activeTool === "text") && (
               <div
                 className="absolute inset-0"
-                style={{ pointerEvents: activeTool === null ? undefined : "none" }}
+                style={{ pointerEvents: activeTool === null && !expanded ? undefined : "none" }}
               >
                 <LayerOverlay
                   containerRef={frameRef}
@@ -1225,7 +1350,7 @@ function VideoEditor() {
                     activeTool === "text" ? layers.filter((l) => l.id !== editingLayerId) : layers
                   }
                   updateLayer={updateLayer}
-                  selectedLayerId={activeTool === null ? selectedLayerId : null}
+                  selectedLayerId={activeTool === null && !expanded ? selectedLayerId : null}
                   setSelectedLayerId={setSelectedLayerId}
                   renderLayerContent={renderLayerContent}
                   onLayerTap={(layer) => {
@@ -1235,23 +1360,29 @@ function VideoEditor() {
                 />
               </div>
             )}
-
-            {busy && (
-              <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-3 bg-black/75">
-                <span className="text-[12px] uppercase tracking-widest">{busy}</span>
-                {progress !== null && (
-                  <div className="h-[3px] w-40 overflow-hidden rounded-full bg-white/15">
-                    <div
-                      className="h-full rounded-full bg-white transition-[width] duration-150"
-                      style={{ width: `${Math.round(progress * 100)}%` }}
-                    />
-                  </div>
-                )}
-              </div>
-            )}
           </div>
         )}
       </div>
+
+      {/* Over the WHOLE screen, not just the frame. It used to cover only the
+          picture, so the timeline, the tools and Back all kept working
+          underneath — and Back mid-export threw the edit away. */}
+      {busy && (
+        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-black/80">
+          <span className="text-[12px] uppercase tracking-widest">
+            {busy}
+            {progress !== null ? ` ${Math.round(progress * 100)}%` : ""}
+          </span>
+          {progress !== null && (
+            <div className="h-1 w-44 overflow-hidden rounded-full bg-white/20">
+              <div
+                className="h-full rounded-full bg-white transition-[width] duration-150"
+                style={{ width: `${Math.round(progress * 100)}%` }}
+              />
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Expanded preview keeps only a scrubber and the way back out. */}
       {expanded && (
@@ -1266,7 +1397,7 @@ function VideoEditor() {
             type="button"
             onClick={togglePlay}
             aria-label={playing ? "Pause" : "Play"}
-            className="flex h-9 w-9 shrink-0 items-center justify-center active:scale-90"
+            className="flex h-11 w-11 shrink-0 items-center justify-center active:scale-90"
           >
             {playing ? <Pause size={20} fill="white" /> : <Play size={20} fill="white" />}
           </button>
@@ -1393,27 +1524,33 @@ function VideoEditor() {
           className="absolute inset-x-0 bottom-0 z-20"
           style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 10px)" }}
         >
-          <div className="flex items-center justify-between px-5 pb-3">
-            <span className="text-[13px] tabular-nums text-white/85">
+          {/* Time on the left, play dead centre, history on the right. The
+              side groups share one width so play really is centred, and each
+              glyph gets a whole 44px square: 19px icons 16px apart put Redo
+              under the thumb that was aiming for Undo. */}
+          <div className="flex items-center px-3 pb-1">
+            <span className="w-[132px] pl-2 text-[13px] tabular-nums text-white/85">
               {formatTime(time)}
-              <span className="text-white/35"> / {formatTime(total)}</span>
+              <span className="text-white/60"> / {formatTime(total)}</span>
             </span>
-            <button
-              type="button"
-              onClick={togglePlay}
-              disabled={empty}
-              aria-label={playing ? "Pause" : "Play"}
-              className="flex h-9 w-9 items-center justify-center active:scale-90 disabled:opacity-30"
-            >
-              {playing ? <Pause size={22} fill="white" /> : <Play size={22} fill="white" />}
-            </button>
-            <div className="flex items-center gap-4">
+            <div className="flex flex-1 justify-center">
+              <button
+                type="button"
+                onClick={togglePlay}
+                disabled={empty}
+                aria-label={playing ? "Pause" : "Play"}
+                className="flex h-11 w-11 items-center justify-center active:scale-90 disabled:opacity-30"
+              >
+                {playing ? <Pause size={22} fill="white" /> : <Play size={22} fill="white" />}
+              </button>
+            </div>
+            <div className="flex w-[132px] items-center justify-end">
               <button
                 type="button"
                 onClick={undo}
                 disabled={past.length === 0}
                 aria-label="Undo"
-                className="active:scale-90 disabled:opacity-25"
+                className="flex h-11 w-11 items-center justify-center active:scale-90 disabled:opacity-25"
               >
                 <Undo2 size={19} />
               </button>
@@ -1422,7 +1559,7 @@ function VideoEditor() {
                 onClick={redo}
                 disabled={future.length === 0}
                 aria-label="Redo"
-                className="active:scale-90 disabled:opacity-25"
+                className="flex h-11 w-11 items-center justify-center active:scale-90 disabled:opacity-25"
               >
                 <Redo2 size={19} />
               </button>
@@ -1431,7 +1568,7 @@ function VideoEditor() {
                 onClick={() => setExpanded(true)}
                 disabled={empty}
                 aria-label="Full screen"
-                className="active:scale-90 disabled:opacity-25"
+                className="flex h-11 w-11 items-center justify-center active:scale-90 disabled:opacity-25"
               >
                 <Maximize2 size={19} />
               </button>
@@ -1443,7 +1580,7 @@ function VideoEditor() {
               <button
                 type="button"
                 onClick={openSource}
-                className="flex h-[62px] w-full items-center justify-center gap-2 rounded-[10px] border border-dashed border-white/20 text-[13px] text-white/45 active:scale-[0.99]"
+                className="flex h-[62px] w-full items-center justify-center gap-2 rounded-[10px] border border-dashed border-white/25 text-[13px] text-white/65 active:scale-[0.99]"
               >
                 Add media to start your video
               </button>
@@ -1474,8 +1611,28 @@ function VideoEditor() {
           )}
 
           {error && (
-            <div className="mx-4 mb-2 rounded-xl bg-black/80 px-4 py-2.5">
-              <p className="text-[12px] text-red-300">{error}</p>
+            <div
+              role="alert"
+              className="mx-4 mb-2 flex items-center gap-3 rounded-xl bg-black/80 py-1.5 pl-4 pr-1.5"
+            >
+              <p className="min-w-0 flex-1 text-[13px] leading-snug text-red-300">{error}</p>
+              {errorIsExport && (
+                <button
+                  type="button"
+                  onClick={() => void handleNext()}
+                  className="h-9 shrink-0 rounded-full bg-white px-4 text-[13px] font-semibold text-black active:scale-95"
+                >
+                  Try again
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setError(null)}
+                aria-label="Dismiss"
+                className="oak-hit flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white/70 active:scale-90"
+              >
+                <X size={16} />
+              </button>
             </div>
           )}
 
@@ -1496,9 +1653,10 @@ function VideoEditor() {
                     setSelectedId(null);
                   }}
                   aria-label="Done editing this clip"
-                  className="sticky left-0 z-10 flex w-[52px] shrink-0 flex-col items-center justify-center self-stretch rounded-[10px] bg-white/[0.14] py-2.5 backdrop-blur active:scale-95"
+                  className="sticky left-0 z-10 flex w-[60px] shrink-0 flex-col items-center justify-center gap-1.5 self-stretch rounded-[10px] bg-white/[0.14] py-2.5 backdrop-blur active:scale-95"
                 >
                   <ChevronDown size={21} strokeWidth={1.7} />
+                  <span className="text-[11px] leading-tight">Done</span>
                 </button>
                 {CLIP_TOOLS.map(({ id, label, icon: Icon, run }) => (
                   <button
@@ -1516,12 +1674,11 @@ function VideoEditor() {
               </>
             ) : (
               TOOLS.map(({ id, label, icon: Icon, run }) => {
-                const needsSelection = id === "duplicate" || id === "delete";
                 return (
                   <button
                     key={id}
                     type="button"
-                    disabled={empty || (needsSelection && !selected)}
+                    disabled={empty}
                     onClick={run}
                     aria-label={label}
                     className={`flex w-[70px] shrink-0 flex-col items-center gap-1.5 rounded-[10px] bg-white/[0.07] py-2.5 active:scale-95 disabled:opacity-30 ${activeTool === id ? "ring-2 ring-white/30" : ""}`}
@@ -1534,6 +1691,31 @@ function VideoEditor() {
             )}
           </div>
         </div>
+      )}
+
+      {(reorderHint || layerHint) && (
+        <div
+          className="pointer-events-none absolute inset-x-0 z-30 flex justify-center px-4"
+          style={{ top: "calc(env(safe-area-inset-top) + 64px)" }}
+        >
+          {reorderHint ? (
+            <HintBubble onDismiss={dismissReorderHint}>
+              Hold a clip to drag it into place
+            </HintBubble>
+          ) : (
+            <HintBubble onDismiss={dismissLayerHint}>
+              Text and stickers stay on the clip they&rsquo;re added to
+            </HintBubble>
+          )}
+        </div>
+      )}
+
+      {confirmLeave && (
+        <ConfirmDiscard
+          message="Discard this video? Your clips and edits aren't saved anywhere."
+          onKeep={() => setConfirmLeave(false)}
+          onDiscard={leave}
+        />
       )}
 
       <input

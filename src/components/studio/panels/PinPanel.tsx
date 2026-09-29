@@ -145,7 +145,7 @@ export function PinPanel({
               </Pill>
               <Pill tone="danger" onClick={onDelete}>
                 <span className="flex items-center gap-1">
-                  <Trash2 size={13} /> Remove
+                  <Trash2 size={13} /> Delete
                 </span>
               </Pill>
             </div>

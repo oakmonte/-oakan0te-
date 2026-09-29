@@ -37,13 +37,13 @@ export function OptionSheet({
       >
         <div className="pb-3">
           <span className="text-[14px] font-semibold text-white">{title}</span>
-          {note && <p className="pt-1 text-[11px] leading-snug text-white/45">{note}</p>}
+          {note && <p className="pt-1 text-[12px] leading-snug text-white/60">{note}</p>}
         </div>
         {children}
         <button
           type="button"
           onClick={onClose}
-          className="mt-4 w-full rounded-full bg-white py-2.5 text-[13px] font-semibold text-black active:scale-[0.98]"
+          className="mt-4 h-11 w-full rounded-full bg-white text-[14px] font-semibold text-black active:scale-[0.98]"
         >
           Done
         </button>
@@ -66,7 +66,7 @@ function Pill({
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`shrink-0 rounded-full px-4 py-2 text-[13px] font-medium transition-colors active:scale-95 ${
+      className={`shrink-0 rounded-full px-4 py-2.5 text-[13px] font-medium transition-colors active:scale-95 ${
         active ? "bg-white text-black" : "bg-white/[0.12] text-white/80"
       }`}
     >
@@ -75,8 +75,8 @@ function Pill({
   );
 }
 
-/** Speed, hold duration and fit for one clip — everything about how it
- *  occupies the frame and the clock, in one place. */
+/** Speed for a video clip, or how long a photo holds. (Fit lives on the clip
+ *  toolbar as Show all / Fill frame, not here.) */
 export function SpeedSheet({
   clip,
   onPatch,
@@ -102,7 +102,7 @@ export function SpeedSheet({
       {isPhoto ? (
         <div className="py-1">
           <div className="flex items-center justify-between pb-1.5">
-            <span className="text-[12px] text-white/60">Hold for</span>
+            <span className="text-[13px] text-white/65">Hold for</span>
             <span className="text-[12px] font-medium tabular-nums text-white">
               {clip.stillDuration.toFixed(1)}s
             </span>
@@ -120,7 +120,7 @@ export function SpeedSheet({
         </div>
       ) : (
         <div className="py-1">
-          <span className="text-[12px] text-white/60">Speed</span>
+          <span className="text-[13px] text-white/65">Speed</span>
           <div className="flex gap-2 overflow-x-auto pt-2 pb-1" style={{ scrollbarWidth: "none" }}>
             {SPEED_OPTIONS.map((s) => (
               <Pill key={s} active={clip.speed === s} onClick={() => onPatch({ speed: s })}>
@@ -209,14 +209,15 @@ export function SoundSheet({
             <button
               type="button"
               onClick={onRemove}
-              className="shrink-0 text-[12px] font-medium text-white/50 active:scale-95"
+              aria-label="Remove sound"
+              className="oak-hit -mr-2 h-9 shrink-0 rounded-full px-3 text-[13px] font-medium text-[#FF7A7A] active:scale-95"
             >
               Remove
             </button>
           </div>
           <div className="pt-4">
             <div className="flex items-center justify-between pb-1.5">
-              <span className="text-[12px] text-white/60">Volume</span>
+              <span className="text-[13px] text-white/65">Volume</span>
               <span className="text-[12px] font-medium tabular-nums text-white">
                 {Math.round(music.volume * 100)}%
               </span>
@@ -245,7 +246,7 @@ export function SoundSheet({
               MP4, so by the time a seller sees the credit anywhere else it is
               already inside the file. */}
           {music.credit?.attribution && (
-            <p className="pt-2.5 text-[11px] leading-snug text-white/45">
+            <p className="pt-2.5 text-[12px] leading-snug text-white/60">
               Will be credited as “{music.credit.attribution}”
             </p>
           )}
@@ -255,7 +256,7 @@ export function SoundSheet({
           type="button"
           onClick={onPick}
           disabled={loading}
-          className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-white/20 py-6 text-[13px] text-white/60 active:scale-[0.99] disabled:active:scale-100"
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-white/25 py-6 text-[14px] text-white/75 active:scale-[0.99] disabled:active:scale-100"
         >
           {loading ? "Getting the track…" : "Browse sounds"}
         </button>

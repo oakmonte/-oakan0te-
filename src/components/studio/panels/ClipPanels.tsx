@@ -94,7 +94,7 @@ export function ClipVolumePanel({
     <StudioSheet title="Clip sound" onDone={onDone} onReset={() => onVolume(1)}>
       {clip.audioDetached ? (
         <EmptyHint>
-          This clip&rsquo;s sound is on its own track — select the blue chip to edit it.
+          This clip&rsquo;s sound is on its own track — tap the blue chip under it to edit it.
         </EmptyHint>
       ) : (
         <StudioSlider
@@ -113,10 +113,10 @@ export function ClipVolumePanel({
           {clip.muted ? "Unmute" : "Mute"}
         </Pill>
         <Pill onClick={onDetach} disabled={!canDetach || clip.audioDetached}>
-          Separate audio
+          Detach audio
         </Pill>
       </div>
-      {!canDetach && <EmptyHint>This clip has no audio track to separate.</EmptyHint>}
+      {!canDetach && <EmptyHint>This clip has no sound to detach.</EmptyHint>}
     </StudioSheet>
   );
 }
@@ -139,7 +139,7 @@ export function AudioClipPanel({
   const length = (audio.outPoint - audio.inPoint) / audio.speed;
   return (
     <StudioSheet
-      title={audio.kind === "detached" ? "Separated audio" : "Audio track"}
+      title={audio.kind === "detached" ? "Detached audio" : "Audio track"}
       onDone={onDone}
     >
       <StudioSlider
@@ -255,7 +255,7 @@ export function TransitionPanel({
           onCommitEnd={group.end}
         />
       )}
-      <p className="pb-2 text-[11px] leading-snug text-white/40">
+      <p className="pb-2 text-[12px] leading-snug text-white/60">
         Sits across the cut without changing how long your video is.
       </p>
     </StudioSheet>
