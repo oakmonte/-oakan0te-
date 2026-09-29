@@ -35,12 +35,15 @@ export function VoiceNote({
     if (node) node.playbackRate = speed;
   }, [speed]);
 
-  useEffect(
-    () => () => {
-      if (playing === audio.current) playing = null;
-    },
-    [],
-  );
+  // Stop on unmount: the copy in the long-press menu goes away with the menu,
+  // and a detached <audio> isn't reliably paused by every browser.
+  useEffect(() => {
+    const node = audio.current;
+    return () => {
+      node?.pause();
+      if (playing === node) playing = null;
+    };
+  }, [url]);
 
   const toggle = async () => {
     const node = audio.current;
