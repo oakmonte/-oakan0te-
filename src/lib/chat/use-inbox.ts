@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
-import { chatDb, isMissingSchema, type MemberRow, type SupportMessageRow } from "./db";
+import {
+  chatDb,
+  isMissingSchema,
+  type MemberRow,
+  type PresenceRow,
+  type ReadReceiptRow,
+  type SupportMessageRow,
+} from "./db";
 import * as api from "./api";
 import { SUPPORT_CHAT_ID, sortChats, type Chat } from "./model";
 
@@ -131,6 +138,9 @@ export function useInbox(me: string | null, sessionLoading: boolean) {
             scheduleReload();
             return;
           }
+          // Only reachable on a database without the read-receipts
+          // migration: after it, the other member's row is private and the
+          // two subscriptions below carry what we may see of them.
           setChats((current) =>
             current.map((chat) =>
               chat.id === row.conversation_id
@@ -139,6 +149,40 @@ export function useInbox(me: string | null, sessionLoading: boolean) {
                     peerLastReadAt: row.last_read_at,
                     peerLastDeliveredAt: row.last_delivered_at,
                     peerLastActiveAt: row.last_active_at,
+                  }
+                : chat,
+            ),
+          );
+        },
+      )
+      // RLS decides what arrives: a peer's read receipt only while my own
+      // receipts are on, which is what makes them reciprocal.
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "conversation_read_receipts" },
+        (payload) => {
+          const row = payload.new as ReadReceiptRow;
+          if (row.user_id === me) return;
+          setChats((current) =>
+            current.map((chat) =>
+              chat.id === row.conversation_id ? { ...chat, peerLastReadAt: row.read_at } : chat,
+            ),
+          );
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "conversation_presence" },
+        (payload) => {
+          const row = payload.new as PresenceRow;
+          if (row.user_id === me) return;
+          setChats((current) =>
+            current.map((chat) =>
+              chat.id === row.conversation_id
+                ? {
+                    ...chat,
+                    peerLastDeliveredAt: row.delivered_at,
+                    peerLastActiveAt: row.active_at,
                   }
                 : chat,
             ),

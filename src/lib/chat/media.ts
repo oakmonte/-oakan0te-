@@ -13,9 +13,12 @@ export type PreparedImage = {
   height: number;
 };
 
-/** Downscales to MAX_EDGE on the long side and re-encodes as JPEG. GIFs pass
- *  through untouched so they keep animating. */
-export async function prepareImage(file: File): Promise<PreparedImage> {
+/** Downscales to `maxEdge` (MAX_EDGE by default) on the long side and
+ *  re-encodes as JPEG. GIFs pass through untouched so they keep animating. */
+export async function prepareImage(
+  file: File,
+  { maxEdge = MAX_EDGE }: { maxEdge?: number } = {},
+): Promise<PreparedImage> {
   const bitmap = await loadBitmap(file);
   const { width, height } = bitmap;
 
@@ -24,7 +27,7 @@ export async function prepareImage(file: File): Promise<PreparedImage> {
     return { blob: file, extension: "gif", width, height };
   }
 
-  const scale = Math.min(1, MAX_EDGE / Math.max(width, height));
+  const scale = Math.min(1, maxEdge / Math.max(width, height));
   const targetWidth = Math.round(width * scale);
   const targetHeight = Math.round(height * scale);
   const canvas = document.createElement("canvas");

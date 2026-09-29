@@ -84,6 +84,10 @@
   --color-chat-online: #2ee36a;
   --color-chat-danger: #ff6b6b;
   --color-chat-overlay: rgba(0, 0, 0, 0.66);
+  /* Blue "read" ticks sit on MY bubbles, which invert against the inbox:
+     warm white here, so a deep blue (WhatsApp's #53bdeb all but vanished on
+     it); the light set flips it for the near-black bubble. */
+  --color-chat-tick-read: #1a73e8;
 }
 
 /* ---------------------------------------------------------------------------
@@ -286,6 +290,7 @@
       --color-chat-online: #12a150;
       --color-chat-danger: #d92d20;
       --color-chat-overlay: rgba(10, 10, 10, 0.4);
+      --color-chat-tick-read: #53bdeb;
 
       --chat-glass-panel: rgba(255, 255, 255, 0.8);
       --chat-glass-float: rgba(255, 255, 255, 0.82);

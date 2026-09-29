@@ -18,22 +18,37 @@ import { GLASS_RIM, glassClear } from "@/lib/liquid-glass";
 
 ## Pick by what sits on it and behind it
 
-| Preset       | Use for                                                        | Examples                                   |
-| ------------ | -------------------------------------------------------------- | ------------------------------------------ |
-| `glassLight` | dark icons/labels over photos and video                        | `BottomNav` track, `TopToggleNav`          |
-| `glassLens`  | the selected indicator sliding inside a `glassLight` track     | the nav and toggle lenses                  |
-| `glassClear` | small white-icon controls over the live camera or edited media | camera, after-shot, draw, crop buttons     |
-| `glassDark`  | white text that must stay legible over anything                | messages menus, reaction bar, toasts       |
+| Preset       | Use for                                                        | Examples                               |
+| ------------ | -------------------------------------------------------------- | -------------------------------------- |
+| `glassLight` | dark icons/labels over photos and video                        | `BottomNav` track, `TopToggleNav`      |
+| `glassLens`  | the selected indicator sliding inside a `glassLight` track     | the nav and toggle lenses              |
+| `glassClear` | small white-icon controls over the live camera or edited media | camera, after-shot, draw, crop buttons |
+| `glassDark`  | white text that must stay legible over anything                | messages menus, reaction bar, toasts   |
 
 Override `background` after the spread when a surface needs to be denser (toasts use 0.78 so they read
 at a glance over white screens; `messages/glass.ts` `glassPanel` also flips the shadow upward for a
-bottom-anchored panel). Leave the backdrop filter alone — sharp blur plus high saturation is what
-makes it glass instead of frosted plastic.
+bottom-anchored panel). Leave the backdrop filter alone per surface — tune it in the preset so every
+surface moves together. The glass is **frosted by product decision (2026-09-28)**: 12–28px blur
+with a slightly denser tint, because the earlier sharp 6–18px blur let busy media show through so
+clearly the chrome got lost. Don't sharpen it back to "look more like glass"; the high saturation is
+what keeps frosted from reading as grey plastic.
 
 **`glassClear` is dark-tinted on purpose.** It carries white icons over the camera and photos, and a
 white-tinted version made them vanish over bright scenes (2026-09-24). Keep its tint dark and its
 backdrop `brightness(<1)`. White icons with no glass behind them at all (the camera tool column, the
 after-shot toolbar) go in a container with the `oak-on-media` class, which shadows their edges.
+
+## Never put glass inside a blurred element
+
+An element with `backdrop-filter` (also `filter`, `opacity` < 1, `mask`, `clip-path`,
+`mix-blend-mode`) is a **backdrop root**: a glass surface inside it can only blur what's inside
+that ancestor, not the page behind. The frost vanishes and whatever sits behind shows through
+sharp, like a see-through box. It first showed up in the chat header's ⋮ menu (2026-09-29): the
+header had `backdrop-blur-xl`, so the thread's bubbles showed crisply through the menu. When a
+bar with its own blur hosts a glass dropdown, put the bar's blur on an `aria-hidden`
+`absolute inset-0 -z-10` layer (see `ChatHeader.tsx`), or make the dropdown solid (the composer's
+attach menu). The lenses inside the nav/toggle tracks are nested on purpose: they only need to
+blur the track under them.
 
 ## The rim
 

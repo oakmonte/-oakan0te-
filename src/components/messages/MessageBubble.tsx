@@ -62,15 +62,15 @@ function corners(mine: boolean, position: GroupPosition) {
     : { borderRadius: `${topNear} ${big} ${big} ${tail}` };
 }
 
-function TickIcon({ tick }: { tick: Tick }) {
+function TickIcon({ tick, readClass }: { tick: Tick; readClass: string }) {
   if (tick === "sending") return <Clock size={12} aria-label="Sending" />;
   if (tick === "failed") return null;
-  if (tick === "sent") return <Check size={14} aria-label="Sent" />;
+  if (tick === "sent") return <Check size={15} aria-label="Sent" />;
   return (
     <CheckCheck
-      size={14}
+      size={15}
       aria-label={tick === "read" ? "Read" : "Delivered"}
-      className={tick === "read" ? "text-[#53bdeb]" : ""}
+      className={tick === "read" ? readClass : ""}
     />
   );
 }
@@ -143,7 +143,14 @@ function Stamp({
     >
       {message.editedAt && !message.deletedAt && <span>edited</span>}
       {clockTime(message.createdAt)}
-      {mine && tick && <TickIcon tick={tick} />}
+      {/* Only my messages get a tick. `mine` is false for the jumbo-emoji
+          stamp too, which sits on an incoming-coloured pill, not my bubble. */}
+      {tick && (
+        <TickIcon
+          tick={tick}
+          readClass={overlay ? "text-[#53bdeb]" : mine ? "text-chat-tick-read" : "text-chat-accent"}
+        />
+      )}
     </span>
   );
 }
@@ -425,11 +432,12 @@ export const MessageBubble = memo(function MessageBubble({
                   )}
                 </>
               ) : message.kind === "audio" ? (
-                <div className="flex flex-col py-0.5">
-                  <VoiceNote message={message} mine={mine} />
-                  <span className="-mt-3 self-end">
-                    <Stamp message={message} tick={tick} mine={mine} />
-                  </span>
+                <div className="py-0.5">
+                  <VoiceNote
+                    message={message}
+                    mine={mine}
+                    stamp={<Stamp message={message} tick={tick} mine={mine} />}
+                  />
                 </div>
               ) : (
                 <p className="whitespace-pre-wrap break-words text-[15.5px] leading-[1.35]">

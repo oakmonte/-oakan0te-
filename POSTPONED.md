@@ -56,6 +56,13 @@ every table from the start). Until it's applied, signed-in users see Support onl
 hand-written rows in `src/lib/chat/db.ts`. Typing indicators ride public broadcast channels
 keyed by user id — fine for launch, move to private Realtime channels later.
 
+The read-receipts toggle (Settings → Messages) needs `20260929120000_read_receipts_setting.sql`
+applied. Until then the toggle stays hidden and ticks behave as before. After applying:
+regenerate types, then check on two accounts that ticks and "online" still update live (they now
+ride `conversation_read_receipts` / `conversation_presence`) and that with receipts off neither
+side turns blue. Contract later: drop `conversation_members.last_delivered_at` / `last_active_at`
+once no deployed client predates the migration.
+
 ---
 
 ## 2. Needs a decision

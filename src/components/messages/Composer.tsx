@@ -75,7 +75,7 @@ export function Composer({
     const node = field.current;
     if (!node) return;
     node.style.height = "auto";
-    node.style.height = `${Math.min(node.scrollHeight, LINE_HEIGHT * MAX_LINES + 16)}px`;
+    node.style.height = `${Math.min(node.scrollHeight, LINE_HEIGHT * MAX_LINES + 20)}px`;
   }, [value]);
 
   useEffect(() => {
@@ -212,9 +212,9 @@ export function Composer({
                 type="button"
                 aria-label={context.mode === "reply" ? "Cancel reply" : "Cancel edit"}
                 onClick={onCancelContext}
-                className="flex h-9 w-9 items-center justify-center rounded-full text-chat-muted active:bg-chat-text/10"
+                className="flex h-10 w-10 items-center justify-center rounded-full text-chat-muted active:bg-chat-text/10"
               >
-                <X size={18} />
+                <X size={20} />
               </button>
             </div>
           </motion.div>
@@ -227,11 +227,11 @@ export function Composer({
             type="button"
             onClick={cancelRecording}
             aria-label="Discard recording"
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-chat-danger active:bg-chat-danger/10"
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-chat-danger active:bg-chat-danger/10"
           >
-            <Trash2 size={21} />
+            <Trash2 size={23} />
           </button>
-          <div className="flex h-11 min-w-0 flex-1 items-center gap-2.5 rounded-full bg-chat-text/[0.07] px-4">
+          <div className="flex h-12 min-w-0 flex-1 items-center gap-2.5 rounded-full bg-chat-text/[0.07] px-4">
             <span className="h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-[#ff3b30]" />
             <span className="w-11 shrink-0 text-[15px] tabular-nums text-chat-text">
               {formatDuration(elapsed)}
@@ -250,9 +250,9 @@ export function Composer({
             type="button"
             onClick={() => void finishRecording()}
             aria-label="Send voice message"
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-chat-accent text-white active:scale-95"
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-chat-accent text-white active:scale-95"
           >
-            <SendHorizontal size={19} />
+            <SendHorizontal size={21} />
           </button>
         </div>
       ) : (
@@ -271,11 +271,11 @@ export function Composer({
                 aria-expanded={attachOpen}
                 disabled={disabled}
                 onClick={() => setAttachOpen((open) => !open)}
-                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-chat-text transition-transform active:scale-90 disabled:opacity-40 ${
+                className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-chat-text transition-transform active:scale-90 disabled:opacity-40 ${
                   attachOpen ? "rotate-45" : ""
                 }`}
               >
-                <Plus size={26} strokeWidth={1.9} />
+                <Plus size={28} strokeWidth={1.9} />
               </button>
               <AnimatePresence>
                 {attachOpen && (
@@ -336,7 +336,7 @@ export function Composer({
             </div>
           )}
 
-          <div className="flex min-h-11 min-w-0 flex-1 items-end rounded-[22px] border border-chat-border bg-chat-bg pl-3.5 pr-1">
+          <div className="flex min-h-12 min-w-0 flex-1 items-end rounded-[24px] border border-chat-border bg-chat-bg pl-3.5 pr-1">
             <textarea
               ref={field}
               rows={1}
@@ -356,7 +356,7 @@ export function Composer({
               placeholder={placeholder}
               aria-label="Write a message"
               enterKeyHint="send"
-              className="min-w-0 flex-1 resize-none bg-transparent py-[10px] text-[16px] leading-[21px] text-chat-text outline-none placeholder:text-chat-faint disabled:opacity-50"
+              className="min-w-0 flex-1 resize-none bg-transparent py-3 text-[16px] leading-[21px] text-chat-text outline-none placeholder:text-chat-faint disabled:opacity-50"
             />
             <button
               type="button"
@@ -371,9 +371,9 @@ export function Composer({
                   setEmojiOpen(true);
                 }
               }}
-              className="mb-[3px] flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-chat-muted active:scale-90 disabled:opacity-40"
+              className="mb-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-chat-muted active:scale-90 disabled:opacity-40"
             >
-              {emojiOpen ? <Keyboard size={21} /> : <Smile size={21} />}
+              {emojiOpen ? <Keyboard size={23} /> : <Smile size={23} />}
             </button>
           </div>
 
@@ -388,9 +388,9 @@ export function Composer({
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.6 }}
                 transition={{ type: "spring", stiffness: 560, damping: 32 }}
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-chat-accent text-white transition-opacity disabled:opacity-40"
+                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-chat-accent text-white transition-opacity disabled:opacity-40"
               >
-                {context?.mode === "edit" ? <Check size={21} /> : <SendHorizontal size={19} />}
+                {context?.mode === "edit" ? <Check size={23} /> : <SendHorizontal size={21} />}
               </motion.button>
             ) : (
               <motion.button
@@ -403,9 +403,9 @@ export function Composer({
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.6 }}
                 transition={{ type: "spring", stiffness: 560, damping: 32 }}
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-chat-text active:scale-90 active:bg-chat-text/10 disabled:opacity-40"
+                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-chat-text active:scale-90 active:bg-chat-text/10 disabled:opacity-40"
               >
-                <Mic size={23} />
+                <Mic size={25} />
               </motion.button>
             )}
           </AnimatePresence>
