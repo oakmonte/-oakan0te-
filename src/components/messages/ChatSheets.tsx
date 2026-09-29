@@ -334,12 +334,12 @@ export function ChatActionsSheet({
 /* ---------- forward ---------- */
 
 export function ForwardSheet({
-  message,
+  open,
   chats,
   onClose,
   onForward,
 }: {
-  message: ChatMessage | null;
+  open: boolean;
   chats: Chat[];
   onClose: () => void;
   onForward: (targets: Chat[]) => Promise<void>;
@@ -349,12 +349,12 @@ export function ForwardSheet({
   const [sending, setSending] = useState(false);
 
   useEffect(() => {
-    if (!message) {
+    if (!open) {
       setQuery("");
       setPicked([]);
       setSending(false);
     }
-  }, [message]);
+  }, [open]);
 
   const candidates = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -375,7 +375,7 @@ export function ForwardSheet({
 
   return (
     <Sheet
-      open={!!message}
+      open={open}
       onClose={onClose}
       title="Forward to…"
       tall

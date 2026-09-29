@@ -44,6 +44,15 @@ type Props = {
   onImageTap: (message: ChatMessage) => void;
   onRetry: (message: ChatMessage) => void;
   onReactionsTap: (message: ChatMessage) => void;
+  /** Multi-select mode: a tap anywhere on the row toggles it, and nothing
+   *  inside the bubble (play, open photo, swipe to reply) reacts. */
+  selecting?: boolean;
+  selected?: boolean;
+  onToggleSelect?: (message: ChatMessage) => void;
+  /** The copy drawn in the long-press menu, on top of the original: no id,
+   *  no long-press, double-tap or swipe -- but photos still open and voice
+   *  notes still play. */
+  lifted?: boolean;
 };
 
 const OUTGOING = "var(--chat-outgoing, linear-gradient(180deg,#ffffff 0%,#ece7e1 100%))";
@@ -221,6 +230,10 @@ export const MessageBubble = memo(function MessageBubble({
   onImageTap,
   onRetry,
   onReactionsTap,
+  selecting = false,
+  selected = false,
+  onToggleSelect,
+  lifted = false,
 }: Props) {
   const bubble = useRef<HTMLDivElement>(null);
   const lastTap = useRef(0);
@@ -272,11 +285,40 @@ export const MessageBubble = memo(function MessageBubble({
 
   return (
     <div
-      id={`message-${message.id}`}
-      className={`flex flex-col ${mine ? "items-end" : "items-start"} ${spacing} ${
-        reactions?.length ? "mb-4" : ""
+      id={lifted ? undefined : `message-${message.id}`}
+      className={`relative flex flex-col ${mine ? "items-end" : "items-start"} ${spacing} ${
+        selecting
+          ? // The reaction pill hangs below the bubble; inside the row's
+            // padding here so it sits on the selected tint, not past it.
+            `-mx-3 pl-12 pr-3 pt-[2px] ${reactions?.length ? "pb-5" : "pb-[2px]"} ${
+              selected ? "bg-chat-accent/15" : ""
+            }`
+          : reactions?.length
+            ? "mb-4"
+            : ""
       }`}
     >
+      {selecting && (
+        <>
+          <span
+            className={`absolute left-3 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full border-2 ${
+              selected
+                ? "border-chat-accent bg-chat-accent text-white"
+                : "border-chat-text/35 text-transparent"
+            }`}
+            aria-hidden
+          >
+            <Check size={14} strokeWidth={3} />
+          </span>
+          <button
+            type="button"
+            onClick={() => onToggleSelect?.(message)}
+            aria-pressed={selected}
+            aria-label={`Select: ${describeMessage({ ...message, deleted: !!message.deletedAt })}`}
+            className="absolute inset-0 z-20"
+          />
+        </>
+      )}
       <div className="relative flex max-w-[82%] items-center gap-2">
         {canReply && !deleted && (
           <motion.span
@@ -298,7 +340,7 @@ export const MessageBubble = memo(function MessageBubble({
           </button>
         )}
         <motion.div
-          drag={canReply && !deleted && !message.status ? "x" : false}
+          drag={canReply && !lifted && !deleted && !message.status ? "x" : false}
           dragDirectionLock
           dragElastic={0.25}
           dragConstraints={{ left: 0, right: 72 }}
@@ -319,20 +361,25 @@ export const MessageBubble = memo(function MessageBubble({
           >
             <div
               ref={bubble}
-              role="button"
-              tabIndex={0}
-              aria-label={`${mine ? "You" : "Them"}: ${describeMessage({ ...message, deleted })}`}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault();
-                  openMenu();
-                }
-              }}
-              onContextMenu={(event) => {
-                event.preventDefault();
-                openMenu();
-              }}
-              {...press}
+              data-bubble
+              {...(lifted
+                ? { onContextMenu: (event: React.MouseEvent) => event.preventDefault() }
+                : {
+                    role: "button",
+                    tabIndex: 0,
+                    "aria-label": `${mine ? "You" : "Them"}: ${describeMessage({ ...message, deleted })}`,
+                    onKeyDown: (event: React.KeyboardEvent) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        openMenu();
+                      }
+                    },
+                    onContextMenu: (event: React.MouseEvent) => {
+                      event.preventDefault();
+                      openMenu();
+                    },
+                    ...press,
+                  })}
               className={`relative select-none transition-shadow ${
                 jumbo
                   ? ""

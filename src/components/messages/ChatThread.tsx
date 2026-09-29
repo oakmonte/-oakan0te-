@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown, Loader2 } from "lucide-react";
+import { ChevronDown, Copy, Forward, Loader2, Trash2, X } from "lucide-react";
+import { useOverlayHistory } from "@/hooks/use-overlay-history";
 import { useVisibleViewport } from "@/hooks/use-visible-viewport";
 import { dayDividerLabel, groupsWith, haptic, sameDay } from "@/lib/messages-format";
 import * as api from "@/lib/chat/api";
@@ -17,7 +18,7 @@ import type { InboxActions } from "@/lib/chat/use-inbox";
 import { ChatHeader, type HeaderMenuAction } from "./ChatHeader";
 import { Composer, type ComposerContext } from "./Composer";
 import { MessageBubble, type GroupPosition } from "./MessageBubble";
-import { MessageMenu, type MessageAction } from "./MessageMenu";
+import { MessageMenu, type MenuAnchor, type MessageAction } from "./MessageMenu";
 import { ImageViewer, PhotoSendPreview } from "./MediaOverlays";
 import { ContactInfoSheet, ForwardSheet, ReportSheet } from "./ChatSheets";
 import { ConfirmDialog } from "./Sheet";
@@ -48,7 +49,7 @@ const drafts = new Map<string, string>();
 const SUPPORT_REPLIES = ["I need help with an order", "Report a seller", "Payout question"];
 
 type Confirm =
-  | { kind: "delete-message"; message: ChatMessage }
+  | { kind: "delete-messages"; messages: ChatMessage[] }
   | { kind: "clear" }
   | { kind: "delete-chat" }
   | { kind: "block" }
@@ -74,9 +75,15 @@ export function ChatThread({
   const [contextTarget, setContextTarget] = useState<ChatMessage | null>(null);
   const [focusKey, setFocusKey] = useState(0);
   const [menuFor, setMenuFor] = useState<ChatMessage | null>(null);
+  const [menuAnchor, setMenuAnchor] = useState<MenuAnchor | null>(null);
   const [viewer, setViewer] = useState<ChatMessage | null>(null);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
-  const [forwarding, setForwarding] = useState<ChatMessage | null>(null);
+  const [forwarding, setForwarding] = useState<ChatMessage[] | null>(null);
+  // Multi-select: non-empty means the thread is in selection mode. It gets a
+  // history entry like any overlay, so back leaves selection, not the chat.
+  const [selected, setSelected] = useState<string[]>([]);
+  const selecting = selected.length > 0;
+  useOverlayHistory(selecting, () => setSelected([]));
   const [reportTarget, setReportTarget] = useState<{
     chat: Chat;
     message: ChatMessage | null;
@@ -149,6 +156,8 @@ export function ChatThread({
       }),
     [messages, firstUnreadId],
   );
+
+  const menuRow = menuFor ? rows.find((row) => row.message.id === menuFor.id) : undefined;
 
   const unreadAfterDivider = useMemo(() => {
     if (!firstUnreadId) return 0;
@@ -329,7 +338,65 @@ export function ChatThread({
     setFocusKey((key) => key + 1);
   };
 
+  /* ---------- selection ---------- */
+  const selectedMessages = useMemo(
+    () => messages.filter((message) => selected.includes(message.id)),
+    [messages, selected],
+  );
+
+  const toggleSelect = (message: ChatMessage) => {
+    if (message.status) return;
+    haptic(8);
+    setSelected((current) =>
+      current.includes(message.id)
+        ? current.filter((id) => id !== message.id)
+        : [...current, message.id],
+    );
+  };
+
+  // After a sheet or dialog opened from the selection bar closes -- its own
+  // history entry has to come off first (see afterOverlayClose).
+  const endSelectionAfterOverlay = () => {
+    if (selecting) afterOverlayClose(() => setSelected([]));
+  };
+
+  const canCopySelection =
+    selectedMessages.length > 0 &&
+    selectedMessages.every(
+      (message) => message.kind === "text" && !message.deletedAt && message.body,
+    );
+  const canForwardSelection =
+    thread.capabilities.forward &&
+    selectedMessages.length > 0 &&
+    selectedMessages.every((message) => !message.deletedAt);
+
+  const copySelection = () => {
+    const text = selectedMessages.map((message) => message.body).join("\n");
+    void navigator.clipboard
+      ?.writeText(text)
+      .then(() =>
+        onToast(
+          selectedMessages.length === 1 ? "Copied" : `Copied ${selectedMessages.length} messages`,
+        ),
+      )
+      .catch(() => onToast("Couldn't copy"));
+    setSelected([]);
+  };
+
   /* ---------- message menu ---------- */
+  // Measured here, at the moment of the long-press, so the menu can lift the
+  // message exactly where it already is instead of re-centering it.
+  const openMenu = (message: ChatMessage) => {
+    const row = document.getElementById(`message-${message.id}`);
+    const bubble = row?.querySelector("[data-bubble]");
+    setMenuAnchor(
+      row && bubble
+        ? { row: row.getBoundingClientRect(), bubble: bubble.getBoundingClientRect() }
+        : null,
+    );
+    setMenuFor(message);
+  };
+
   const actionsFor = (message: ChatMessage): MessageAction[] => {
     if (message.status === "failed") return ["retry", "delete"];
     if (message.status === "sending") return [];
@@ -342,6 +409,7 @@ export function ChatThread({
     if (caps.edit && canEdit(message, me)) list.push("edit");
     if (caps.forward && !deleted) list.push("forward");
     if (message.kind === "image" && !deleted) list.push("save");
+    list.push("select");
     if (caps.report && !mine && !deleted) list.push("report");
     if (caps.delete) list.push("delete");
     return list;
@@ -380,7 +448,11 @@ export function ChatThread({
         });
         break;
       case "forward":
-        later(() => setForwarding(message));
+        later(() => setForwarding([message]));
+        break;
+      case "select":
+        (document.activeElement as HTMLElement | null)?.blur?.();
+        later(() => setSelected([message.id]));
         break;
       case "save":
         later(() => setViewer(message));
@@ -393,7 +465,7 @@ export function ChatThread({
           thread.discard(message.id);
           break;
         }
-        later(() => setConfirm({ kind: "delete-message", message }));
+        later(() => setConfirm({ kind: "delete-messages", messages: [message] }));
         break;
     }
   };
@@ -440,27 +512,31 @@ export function ChatThread({
   };
 
   const forward = async (targets: Chat[]) => {
-    const message = forwarding;
-    if (!message) return;
+    const list = forwarding;
+    if (!list?.length) return;
     try {
       await Promise.all(
         targets.map(async (target) => {
-          const mediaPath = message.mediaPath
-            ? await api.copyMedia(message.mediaPath, target.id)
-            : null;
-          await api.insertMessage({
-            id: crypto.randomUUID(),
-            conversationId: target.id,
-            senderId: me,
-            kind: message.kind,
-            body: message.body,
-            mediaPath,
-            meta: message.meta,
-            forwarded: true,
-          });
+          // One at a time per chat, so they arrive in the order they were sent.
+          for (const message of list) {
+            const mediaPath = message.mediaPath
+              ? await api.copyMedia(message.mediaPath, target.id)
+              : null;
+            await api.insertMessage({
+              id: crypto.randomUUID(),
+              conversationId: target.id,
+              senderId: me,
+              kind: message.kind,
+              body: message.body,
+              mediaPath,
+              meta: message.meta,
+              forwarded: true,
+            });
+          }
         }),
       );
       setForwarding(null);
+      endSelectionAfterOverlay();
       onToast(targets.length === 1 ? `Forwarded to ${targets[0].title}` : "Forwarded");
     } catch (reason) {
       onToast((reason as Error).message || "Couldn't forward");
@@ -491,27 +567,34 @@ export function ChatThread({
   const confirmCopy = (() => {
     if (!confirm) return null;
     switch (confirm.kind) {
-      case "delete-message": {
-        const mine = confirm.message.senderId === me;
-        const everyone = mine && !confirm.message.deletedAt && chat.kind !== "support";
+      case "delete-messages": {
+        const list = confirm.messages;
+        const one = list.length === 1;
+        const everyone =
+          chat.kind !== "support" &&
+          list.every((message) => message.senderId === me && !message.deletedAt);
         return {
-          title: "Delete message?",
+          title: one ? "Delete message?" : `Delete ${list.length} messages?`,
           body: everyone
-            ? "Delete for everyone removes it for both of you."
-            : "It will be removed from this device.",
+            ? `Delete for everyone removes ${one ? "it" : "them"} for both of you.`
+            : `${one ? "It" : "They"} will be removed from this device.`,
           confirmLabel: "Delete for me",
           onConfirm: () => {
-            void thread.deleteForMe([confirm.message.id]).catch((r: Error) => onToast(r.message));
+            void thread
+              .deleteForMe(list.map((message) => message.id))
+              .catch((r: Error) => onToast(r.message));
             setConfirm(null);
+            endSelectionAfterOverlay();
           },
           extra: everyone
             ? {
                 label: "Delete for everyone",
                 onSelect: () => {
-                  void thread
-                    .deleteForEveryone(confirm.message)
-                    .catch((r: Error) => onToast(r.message));
+                  void Promise.all(list.map((message) => thread.deleteForEveryone(message))).catch(
+                    (r: Error) => onToast(r.message),
+                  );
                   setConfirm(null);
+                  endSelectionAfterOverlay();
                 },
               }
             : undefined,
@@ -575,32 +658,52 @@ export function ChatThread({
       transition={{ type: "spring", stiffness: 380, damping: 40 }}
     >
       <div className="flex h-full w-full max-w-[560px] flex-col pt-[env(safe-area-inset-top)] md:border-x md:border-chat-border">
-        <ChatHeader
-          chat={chat}
-          typing={typing}
-          scrolled={scrolled}
-          otherUnread={otherUnread}
-          onBack={onBack}
-          onOpenInfo={() => setInfoOpen(true)}
-          onMenu={onHeaderMenu}
-          search={{
-            active: search.active,
-            query: search.query,
-            count: matches.length,
-            index: Math.min(search.index, Math.max(0, matches.length - 1)),
-            onQuery: (query) =>
-              setSearch((current) => ({ ...current, query, index: Number.MAX_SAFE_INTEGER })),
-            onStep: (direction) =>
-              setSearch((current) => {
-                const at = Math.min(current.index, matches.length - 1);
-                return {
-                  ...current,
-                  index: Math.min(matches.length - 1, Math.max(0, at + direction)),
-                };
-              }),
-            onClose: () => setSearch({ active: false, query: "", index: 0 }),
-          }}
-        />
+        {selecting ? (
+          <header className="relative z-30 flex h-[60px] shrink-0 items-center gap-1 border-b border-chat-border px-1.5">
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 -z-10 bg-chat-bg/90 backdrop-blur-xl"
+            />
+            <button
+              type="button"
+              onClick={() => setSelected([])}
+              aria-label="Cancel selection"
+              className="flex h-11 w-11 items-center justify-center rounded-full text-chat-text active:bg-chat-text/10"
+            >
+              <X size={24} />
+            </button>
+            <p className="flex-1 text-[17px] font-semibold text-chat-text" aria-live="polite">
+              {selected.length} selected
+            </p>
+          </header>
+        ) : (
+          <ChatHeader
+            chat={chat}
+            typing={typing}
+            scrolled={scrolled}
+            otherUnread={otherUnread}
+            onBack={onBack}
+            onOpenInfo={() => setInfoOpen(true)}
+            onMenu={onHeaderMenu}
+            search={{
+              active: search.active,
+              query: search.query,
+              count: matches.length,
+              index: Math.min(search.index, Math.max(0, matches.length - 1)),
+              onQuery: (query) =>
+                setSearch((current) => ({ ...current, query, index: Number.MAX_SAFE_INTEGER })),
+              onStep: (direction) =>
+                setSearch((current) => {
+                  const at = Math.min(current.index, matches.length - 1);
+                  return {
+                    ...current,
+                    index: Math.min(matches.length - 1, Math.max(0, at + direction)),
+                  };
+                }),
+              onClose: () => setSearch({ active: false, query: "", index: 0 }),
+            }}
+          />
+        )}
 
         <div className="relative min-h-0 flex-1">
           <div
@@ -708,7 +811,7 @@ export function ChatThread({
                       canReply={thread.capabilities.reply}
                       onMenu={(target) => {
                         if (actionsFor(target).length || thread.capabilities.react)
-                          setMenuFor(target);
+                          openMenu(target);
                       }}
                       onReply={startReply}
                       onDoubleTap={(target) => {
@@ -719,8 +822,11 @@ export function ChatThread({
                         if (!scrollToMessage(id)) onToast("That message is further back");
                       }}
                       onImageTap={setViewer}
-                      onRetry={(target) => setMenuFor(target)}
-                      onReactionsTap={(target) => setMenuFor(target)}
+                      onRetry={openMenu}
+                      onReactionsTap={openMenu}
+                      selecting={selecting}
+                      selected={selecting && selected.includes(message.id)}
+                      onToggleSelect={toggleSelect}
                     />
                   </div>
                 );
@@ -774,43 +880,77 @@ export function ChatThread({
           </div>
         )}
 
-        {composerDisabled ? (
-          <button
-            type="button"
-            onClick={() => void toggleBlock()}
-            className="shrink-0 border-t border-chat-border bg-chat-bg px-6 pb-[calc(env(safe-area-inset-bottom)+14px)] pt-3.5 text-center text-[14px] text-chat-muted active:bg-chat-text/5"
-          >
-            You blocked {chat.title}.{" "}
-            <span className="font-semibold text-chat-accent">Tap to unblock</span>
-          </button>
-        ) : (
-          <Composer
-            value={draft}
-            onChange={setDraft}
-            onSend={send}
-            onPickImages={thread.capabilities.media ? (files) => setPendingFiles(files) : undefined}
-            onVoice={
-              thread.capabilities.voice
-                ? (recording) => {
-                    nearBottom.current = true;
-                    void thread.sendVoice(recording, replyToId);
-                    setContext(null);
-                    setContextTarget(null);
-                  }
-                : undefined
-            }
-            onTyping={thread.capabilities.typing ? thread.notifyTyping : undefined}
-            onError={onToast}
-            context={context}
-            onCancelContext={() => {
-              if (context?.mode === "edit") setDraft("");
-              setContext(null);
-              setContextTarget(null);
-            }}
-            placeholder={chat.kind === "self" ? "Note to self" : "Message"}
-            focusKey={focusKey}
-          />
+        {selecting && (
+          <div className="flex shrink-0 items-center justify-around border-t border-chat-border bg-chat-bg px-2 pb-[calc(env(safe-area-inset-bottom)+6px)] pt-1.5">
+            <SelectionAction
+              icon={Copy}
+              label="Copy"
+              disabled={!canCopySelection}
+              onClick={copySelection}
+            />
+            {thread.capabilities.forward && (
+              <SelectionAction
+                icon={Forward}
+                label="Forward"
+                disabled={!canForwardSelection}
+                onClick={() => setForwarding(selectedMessages)}
+              />
+            )}
+            {thread.capabilities.delete && (
+              <SelectionAction
+                icon={Trash2}
+                label="Delete"
+                danger
+                disabled={selectedMessages.length === 0}
+                onClick={() => setConfirm({ kind: "delete-messages", messages: selectedMessages })}
+              />
+            )}
+          </div>
         )}
+
+        {/* Hidden rather than unmounted while selecting: it holds its own
+            state (emoji panel, a focus bump it would replay on remount). */}
+        <div className={selecting ? "hidden" : "contents"}>
+          {composerDisabled ? (
+            <button
+              type="button"
+              onClick={() => void toggleBlock()}
+              className="shrink-0 border-t border-chat-border bg-chat-bg px-6 pb-[calc(env(safe-area-inset-bottom)+14px)] pt-3.5 text-center text-[14px] text-chat-muted active:bg-chat-text/5"
+            >
+              You blocked {chat.title}.{" "}
+              <span className="font-semibold text-chat-accent">Tap to unblock</span>
+            </button>
+          ) : (
+            <Composer
+              value={draft}
+              onChange={setDraft}
+              onSend={send}
+              onPickImages={
+                thread.capabilities.media ? (files) => setPendingFiles(files) : undefined
+              }
+              onVoice={
+                thread.capabilities.voice
+                  ? (recording) => {
+                      nearBottom.current = true;
+                      void thread.sendVoice(recording, replyToId);
+                      setContext(null);
+                      setContextTarget(null);
+                    }
+                  : undefined
+              }
+              onTyping={thread.capabilities.typing ? thread.notifyTyping : undefined}
+              onError={onToast}
+              context={context}
+              onCancelContext={() => {
+                if (context?.mode === "edit") setDraft("");
+                setContext(null);
+                setContextTarget(null);
+              }}
+              placeholder={chat.kind === "self" ? "Note to self" : "Message"}
+              focusKey={focusKey}
+            />
+          )}
+        </div>
       </div>
 
       <MessageMenu
@@ -825,6 +965,41 @@ export function ChatThread({
         }}
         onAction={(action) => menuFor && runAction(menuFor, action)}
         onClose={() => setMenuFor(null)}
+        anchor={menuAnchor}
+        preview={
+          menuFor && (
+            <MessageBubble
+              lifted
+              message={menuFor}
+              mine={menuFor.senderId === me}
+              position={menuRow?.position ?? "single"}
+              tick={
+                menuFor.senderId === me && chat.kind === "direct"
+                  ? tickFor(menuFor, chat)
+                  : (menuFor.status ?? null)
+              }
+              reactions={thread.reactions[menuFor.id]}
+              quote={
+                menuFor.replyToId
+                  ? {
+                      author: thread.quotes[menuFor.replyToId]
+                        ? author(thread.quotes[menuFor.replyToId])
+                        : "Message",
+                      message: thread.quotes[menuFor.replyToId] ?? null,
+                    }
+                  : null
+              }
+              canReply={false}
+              onMenu={() => undefined}
+              onReply={() => undefined}
+              onDoubleTap={() => undefined}
+              onQuoteTap={() => undefined}
+              onImageTap={(target) => runAction(target, "save")}
+              onRetry={() => undefined}
+              onReactionsTap={() => undefined}
+            />
+          )
+        }
       />
 
       <ImageViewer
@@ -850,7 +1025,7 @@ export function ChatThread({
       />
 
       <ForwardSheet
-        message={forwarding}
+        open={!!forwarding}
         chats={chats}
         onClose={() => setForwarding(null)}
         onForward={forward}
@@ -897,5 +1072,33 @@ export function ChatThread({
         extra={dialog?.extra}
       />
     </motion.div>
+  );
+}
+
+function SelectionAction({
+  icon: Icon,
+  label,
+  onClick,
+  disabled,
+  danger,
+}: {
+  icon: typeof Copy;
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  danger?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={`flex h-14 min-w-[76px] flex-col items-center justify-center gap-1 rounded-[14px] text-[12px] font-medium active:bg-chat-text/10 disabled:opacity-35 ${
+        danger ? "text-chat-danger" : "text-chat-text"
+      }`}
+    >
+      <Icon size={22} />
+      {label}
+    </button>
   );
 }
