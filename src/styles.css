@@ -856,6 +856,30 @@ input:-webkit-autofill:active {
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45));
 }
 
+/* A 44px touch target around a control that is drawn smaller. The editors are
+   dense -- an 18px undo glyph, a transition marker sitting on a cut -- and
+   growing the drawing would crowd them, so only the invisible hit area grows.
+   ::after because the glass rim already owns ::before. An ancestor that clips
+   its overflow cuts the extension back, so check the parent before relying on
+   it.
+   The position rule is layered so a Tailwind `absolute` on the same element
+   wins: unlayered, it silently turned every absolutely placed control it
+   touched into an in-flow one. */
+@layer components {
+  .oak-hit {
+    position: relative;
+  }
+}
+.oak-hit::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: max(100%, 44px);
+  height: max(100%, 44px);
+  transform: translate(-50%, -50%);
+}
+
 /* Barcode-scanner sweep line -- ping-ponged with alternate rather than reset
    to 0% on loop, so the line never jump-cuts back to the top. */
 @keyframes oak-scan-sweep {

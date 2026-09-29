@@ -27,8 +27,13 @@ shape (see `src/lib/studio/README.md`). It replaced the old single-clip `.edit.t
   (client-side, in `video-trim.ts` / `after-shot-export.ts`) — note this is the media library,
   unrelated to Bunny.net.
 - **Crop is intent, not a bake.** `CropPanel` only ever proposes a `CropRect` up to
-  `create.after-shot.index.tsx`; it doesn't touch `media.blob`. The live preview simulates the crop
+  `create.after-shot.index.tsx`, which keeps it — with the filter and adjust — in the layout's
+  `edits` (`after-shot-context.ts`); it doesn't touch `media.blob`. The live preview simulates the crop
   with CSS (shift + scale the still-uncropped `<img>`/`<video>`, clipped by the media box's
   `overflow:hidden`) so cropping, filtering, and layering all still cost exactly one encode
   generation together, at export. Don't reintroduce an eager `cropPhotoBlob`/`cropVideoBlob`-style
   helper — that pattern was deliberately removed.
+- **Next writes `output`, never `media`.** `media` stays the untouched capture (or the studio's
+  render); the composite goes to `setOutput` and publish reads `output ?? media`. Writing the
+  composite over `media` is what made Back from publish show baked captions under live ones and
+  bake them a second time.

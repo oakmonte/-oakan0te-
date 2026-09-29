@@ -46,8 +46,8 @@ export function CanvasPanel({
                 borderRadius: 3,
               }}
             />
-            <span className="text-[10px] font-semibold leading-none">{preset.label}</span>
-            <span className="text-[9px] leading-none opacity-65">{preset.sublabel}</span>
+            <span className="text-[11px] font-semibold leading-none">{preset.label}</span>
+            <span className="text-[10px] leading-none opacity-70">{preset.sublabel}</span>
           </button>
         ))}
       </div>
@@ -65,7 +65,7 @@ export function CanvasPanel({
           </span>
         </Pill>
       </div>
-      <p className="pb-2 text-[11px] leading-snug text-white/40">
+      <p className="pb-2 text-[12px] leading-snug text-white/60">
         Safe areas show where the grid and product-card crops cut into a 9:16 master, and where
         Oakmonte&rsquo;s own controls sit over the video.
       </p>

@@ -9,15 +9,13 @@ import {
   VolumeX,
   Blend,
   Crop,
-  ChevronDown,
-  ChevronUp,
   Clapperboard,
   Music,
   Pause,
   Play,
   SlidersHorizontal,
 } from "lucide-react";
-import { useAfterShotContext } from "@/lib/after-shot-context";
+import { NO_EDITS, useAfterShotContext } from "@/lib/after-shot-context";
 import SoundLibrarySheet from "@/components/camera/SoundLibrarySheet";
 import { type LibraryTrack, creditFor } from "@/lib/sound-library";
 import TextPanel from "@/components/camera/aftershot/TextPanel";
@@ -26,16 +24,19 @@ import DrawPanel from "@/components/camera/aftershot/DrawPanel";
 import FilterPanel, { PANEL_HEIGHT as FILTER_PANEL_HEIGHT } from "@/components/camera/FilterPanel";
 import PhotoAdjustPanel from "@/components/create/PhotoAdjustPanel";
 import { CAMERA_FILTERS, previewCssAtIntensity } from "@/components/camera/filter-data";
-import { adjustToCss, NEUTRAL_ADJUST, type PhotoAdjust } from "@/lib/photo-adjust";
+import { adjustToCss, type PhotoAdjust } from "@/lib/photo-adjust";
 import { vignetteCss } from "@/lib/vignette";
 import { exportComposite } from "@/lib/after-shot-export";
 import type { CropRect } from "@/lib/crop-rect";
 import LayerOverlay from "@/components/camera/LayerOverlay";
-import { useAfterShotLayers } from "@/lib/after-shot-layers";
+import { useAfterShotLayers, type Layer } from "@/lib/after-shot-layers";
 import { useLayerRenderer } from "@/components/camera/aftershot/use-layer-renderer";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
 import { useFittedSize } from "@/hooks/use-fitted-size";
 import { GLASS_RIM, glassClear } from "@/lib/liquid-glass";
+import ConfirmDiscard from "@/components/editor/ConfirmDiscard";
+import { HintBubble } from "@/components/editor/OneTimeHint";
+import { useOneTimeHint } from "@/hooks/use-one-time-hint";
 
 export const Route = createFileRoute("/create/after-shot/")({
   head: () => ({ meta: [{ title: "Edit — Oakmonte" }] }),
@@ -47,8 +48,6 @@ export const Route = createFileRoute("/create/after-shot/")({
 // was a second entry point that had never been wired to anything.
 type ToolId = "crop" | "text" | "draw" | "filter" | "sound" | "sticker" | "adjust";
 
-const DEFAULT_FILTER_ID = "natural";
-
 const EDIT_TOOLS: { id: ToolId; label: string; icon: typeof Type }[] = [
   { id: "text", label: "Text", icon: Type },
   { id: "draw", label: "Draw", icon: Pencil },
@@ -59,24 +58,30 @@ const EDIT_TOOLS: { id: ToolId; label: string; icon: typeof Type }[] = [
   { id: "sound", label: "Sound", icon: Music },
   { id: "filter", label: "Filters", icon: Blend },
   { id: "adjust", label: "Adjust", icon: SlidersHorizontal },
-];
-
-const COLLAPSED_TOOLS: { id: ToolId; label: string; icon: typeof Crop }[] = [
+  // Crop used to sit alone behind an unlabelled "more" chevron. Seven labelled
+  // tools fit the rail on the smallest phone we support, and a tool nobody can
+  // find is a tool nobody has.
   { id: "crop", label: "Crop", icon: Crop },
 ];
 
 function AfterShotIndexPage() {
   useLockedViewport();
   const navigate = useNavigate();
-  const { media, setMedia, discard } = useAfterShotContext();
+  const { media, setMedia, discard, edits, setEdits, output, setOutput } = useAfterShotContext();
 
   const mediaBoxRef = useRef<HTMLDivElement>(null);
   const mediaAreaRef = useRef<HTMLDivElement>(null);
-  const { layers, addLayer, updateLayer, removeLayer, selectedLayerId, setSelectedLayerId } =
-    useAfterShotLayers();
+  const {
+    layers,
+    addLayer,
+    updateLayer,
+    removeLayer,
+    replaceLayers,
+    selectedLayerId,
+    setSelectedLayerId,
+  } = useAfterShotLayers();
   const renderLayerContent = useLayerRenderer(mediaBoxRef);
 
-  const [toolsExpanded, setToolsExpanded] = useState(false);
   const [mediaAspect, setMediaAspect] = useState(9 / 16);
   const [activeTool, setActiveTool] = useState<ToolId | null>(null);
   // Measured from PhotoAdjustPanel's actual rendered height (it's
@@ -99,14 +104,18 @@ function AfterShotIndexPage() {
   // it no longer bakes a crop into media.blob itself. The live preview below
   // simulates the crop with CSS on the still-uncropped media element, and
   // exportComposite bakes it for real, once, alongside the filter and layers.
-  const [cropRect, setCropRect] = useState<CropRect | null>(null);
+  const cropRect = edits.cropRect;
+  const setCropRect = useCallback(
+    (next: CropRect | null) => setEdits((e) => ({ ...e, cropRect: next })),
+    [setEdits],
+  );
 
   // Filters stay a quick pick-one-and-apply interaction (matching
   // FilterPanel's existing bottom-sheet shape from create.tsx) rather than
   // an overlay panel like Crop/Text/Draw, since there's nothing to place or
   // drag — just re-encoding the whole frame, same as the old filters route.
-  const [selectedFilterId, setSelectedFilterId] = useState(DEFAULT_FILTER_ID);
-  const [selectedFilterIntensity, setSelectedFilterIntensity] = useState(100);
+  const selectedFilterId = edits.filterId;
+  const selectedFilterIntensity = edits.filterIntensity;
   // What the filter list is currently hovering on, before you commit to it.
   // FilterPanel drives this through onPreview and resets it itself on discard.
   const [previewFilterId, setPreviewFilterId] = useState<string | null>(null);
@@ -116,7 +125,11 @@ function AfterShotIndexPage() {
 
   // Manual tone adjustments. Neutral (all zeroes) on first open, committed on
   // export alongside the filter so both travel in one canvas pass.
-  const [adjust, setAdjust] = useState<PhotoAdjust>(NEUTRAL_ADJUST);
+  const adjust = edits.adjust;
+  const setAdjust = useCallback(
+    (next: PhotoAdjust) => setEdits((e) => ({ ...e, adjust: next })),
+    [setEdits],
+  );
 
   // Export state — the one place the whole edit stack turns into a file.
   const [exporting, setExporting] = useState(false);
@@ -178,9 +191,10 @@ function AfterShotIndexPage() {
 
   const closeTool = useCallback(() => setActiveTool(null), []);
 
-  // Stickers are gallery images. Object URLs are held here and revoked on
-  // unmount — the layer stack only stores the URL string, so nothing else owns
-  // them and they'd otherwise leak for the life of the tab.
+  // Stickers are gallery images, held as object URLs on their layers. The
+  // layout's layer provider frees them when the flow ends — not this page,
+  // which unmounts on every trip to publish or the studio while the layers
+  // (and the need to bake them again) carry on.
   const stickerInputRef = useRef<HTMLInputElement>(null);
   const [soundSheetOpen, setSoundSheetOpen] = useState(false);
   const audioElRef = useRef<HTMLAudioElement>(null);
@@ -225,14 +239,6 @@ function AfterShotIndexPage() {
     if (el.paused) void el.play().catch(() => setAuditioning(false));
     else el.pause();
   }, []);
-  const stickerUrlsRef = useRef<string[]>([]);
-  useEffect(
-    () => () => {
-      stickerUrlsRef.current.forEach((u) => URL.revokeObjectURL(u));
-      stickerUrlsRef.current = [];
-    },
-    [],
-  );
 
   const handleStickerFiles = useCallback(
     (files: FileList | null) => {
@@ -240,7 +246,6 @@ function AfterShotIndexPage() {
       for (const file of Array.from(files)) {
         if (!file.type.startsWith("image/")) continue;
         const url = URL.createObjectURL(file);
-        stickerUrlsRef.current.push(url);
         addLayer({
           id: `sticker-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
           kind: "sticker",
@@ -303,22 +308,34 @@ function AfterShotIndexPage() {
         setExportProgress,
         adjust,
       );
-      // Same blob back means exportComposite took its no-op fast path; replacing
-      // the media (and revoking the old URL) would only churn for nothing.
-      if (blob !== media.blob) {
-        const url = URL.createObjectURL(blob);
-        setMedia(
-          media.type === "photo"
-            ? { type: "photo", blob, url, poster: media.poster }
-            : // The cover frame the studio picked has to survive this hop, or the
-              // Cover tool is write-only and the listing falls back to frame zero.
-              { type: "video", blob, url, poster: media.poster },
-        );
-      }
+      // Same blob back means exportComposite took its no-op fast path, and
+      // the source goes out as it is.
+      //
+      // The composite is an OUTPUT, not a new source. Writing it over `media`
+      // is what made Back from publish show the baked file under still-live
+      // captions. Spread from `media` so the sound, and the cover frame the
+      // studio picked, travel with it — both used to be dropped here, so any
+      // filter quietly cost the post its music.
+      //
+      // A cover the seller picked on publish rides along too. It lives on the
+      // old output, and rebuilding the output from `media` would drop it — the
+      // tile reverting after Back → Next, with nothing to say why.
+      setOutput(
+        blob === media.blob
+          ? null
+          : {
+              ...media,
+              blob,
+              url: URL.createObjectURL(blob),
+              poster: output?.poster ?? media.poster,
+            },
+      );
       navigate({ to: "/create/after-shot/publish" });
     } catch (err) {
       console.error("Export failed:", err);
-      setExportError(err instanceof Error ? err.message : "Export failed");
+      setExportError(
+        media.type === "video" ? "Couldn't make your video." : "Couldn't save your photo.",
+      );
     } finally {
       setExporting(false);
     }
@@ -329,9 +346,59 @@ function AfterShotIndexPage() {
     layers,
     cropRect,
     adjust,
-    setMedia,
+    output,
+    setOutput,
     navigate,
   ]);
+
+  // X throws the capture away, and nothing here is saved anywhere — so once
+  // there is something to lose it asks first. An untouched shot still goes
+  // straight back to the camera: a quick retake shouldn't cost a second tap.
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const hasWork =
+    layers.length > 0 ||
+    Boolean(media.audio) ||
+    edits.filterId !== NO_EDITS.filterId ||
+    edits.cropRect !== null ||
+    edits.adjust !== NO_EDITS.adjust;
+  const handleDiscard = useCallback(() => {
+    if (hasWork) setConfirmDiscard(true);
+    else discard();
+  }, [hasWork, discard]);
+
+  // Deleting a caption, sticker or drawing is one tap on a small corner
+  // button, right beside the handle that scales it. This screen has no undo
+  // stack, so a mis-tap there was permanent; a few seconds to take it back
+  // costs nothing and doesn't put a dialog in front of a deliberate delete.
+  const [undoDelete, setUndoDelete] = useState<{ before: Layer[]; label: string } | null>(null);
+  const handleRemoveLayer = useCallback(
+    (id: string) => {
+      const layer = layers.find((l) => l.id === id);
+      if (!layer) return;
+      setUndoDelete({
+        before: layers,
+        label:
+          layer.kind === "text"
+            ? "Text deleted"
+            : layer.kind === "sticker"
+              ? "Sticker deleted"
+              : "Drawing deleted",
+      });
+      removeLayer(id);
+    },
+    [layers, removeLayer],
+  );
+  useEffect(() => {
+    if (!undoDelete) return;
+    const timer = window.setTimeout(() => setUndoDelete(null), 5000);
+    return () => window.clearTimeout(timer);
+  }, [undoDelete]);
+
+  const hasText = layers.some((l) => l.kind === "text");
+  const [textHint, dismissTextHint] = useOneTimeHint(
+    "after-shot-tap-text",
+    hasText && activeTool === null,
+  );
 
   return (
     <div
@@ -403,8 +470,8 @@ function AfterShotIndexPage() {
             <div className="oak-motion-fade absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/70 z-30">
               <span className="text-sm uppercase tracking-widest">
                 {media.type === "video"
-                  ? `Exporting… ${Math.round(exportProgress * 100)}%`
-                  : "Exporting…"}
+                  ? `Making your video… ${Math.round(exportProgress * 100)}%`
+                  : "Saving your photo…"}
               </span>
               {media.type === "video" && (
                 <div className="w-40 h-1 rounded-full overflow-hidden bg-white/25">
@@ -418,8 +485,24 @@ function AfterShotIndexPage() {
           )}
 
           {exportError && !exporting && (
-            <div className="oak-motion-enter absolute inset-x-4 bottom-4 rounded-xl px-4 py-3 bg-black/80 z-30">
-              <p className="text-xs text-red-300">{exportError}</p>
+            <div
+              role="alert"
+              className="oak-motion-enter absolute inset-x-4 bottom-4 z-30 flex items-center gap-3 rounded-xl bg-black/80 py-2 pl-4 pr-2"
+            >
+              <p className="min-w-0 flex-1 text-[13px] text-red-300">{exportError}</p>
+              <button
+                onClick={() => void handleNext()}
+                className="h-9 shrink-0 rounded-full bg-white px-4 text-[13px] font-semibold text-black active:scale-95"
+              >
+                Try again
+              </button>
+              <button
+                onClick={() => setExportError(null)}
+                aria-label="Dismiss"
+                className="oak-hit flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white/70 active:scale-90"
+              >
+                <X size={16} />
+              </button>
             </div>
           )}
 
@@ -456,7 +539,7 @@ function AfterShotIndexPage() {
                 selectedLayerId={activeTool === null ? selectedLayerId : null}
                 setSelectedLayerId={setSelectedLayerId}
                 renderLayerContent={renderLayerContent}
-                onRemoveLayer={removeLayer}
+                onRemoveLayer={handleRemoveLayer}
                 onLayerTap={(layer) => {
                   setEditingLayerId(layer.id);
                   setActiveTool("text");
@@ -526,9 +609,9 @@ function AfterShotIndexPage() {
         <>
           <div className="oak-motion-enter absolute top-0 left-0 right-0 flex items-center gap-3 px-4 pt-[calc(env(safe-area-inset-top)+12px)] z-20">
             <button
-              onClick={discard}
+              onClick={handleDiscard}
               aria-label="Discard and retake"
-              className={`relative oak-motion-control flex items-center justify-center w-10 h-10 rounded-full active:scale-90 ${GLASS_RIM}`}
+              className={`relative oak-motion-control flex items-center justify-center w-11 h-11 rounded-full active:scale-90 ${GLASS_RIM}`}
               style={glassClear}
             >
               <X size={20} />
@@ -539,7 +622,7 @@ function AfterShotIndexPage() {
                 onClick={() => setVideoMuted((m) => !m)}
                 aria-label={videoMuted ? "Unmute preview" : "Mute preview"}
                 aria-pressed={!videoMuted}
-                className={`relative oak-motion-control flex items-center justify-center w-10 h-10 rounded-full active:scale-90 ${GLASS_RIM}`}
+                className={`relative oak-motion-control flex items-center justify-center w-11 h-11 rounded-full active:scale-90 ${GLASS_RIM}`}
                 style={glassClear}
               >
                 {videoMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
@@ -560,7 +643,7 @@ function AfterShotIndexPage() {
                 <button
                   onClick={toggleAudition}
                   aria-label={auditioning ? "Pause sound" : "Play sound"}
-                  className="oak-motion-control flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/15 active:scale-90"
+                  className="oak-hit oak-motion-control flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/15 active:scale-90"
                 >
                   {auditioning ? (
                     <Pause size={11} fill="currentColor" strokeWidth={0} />
@@ -571,7 +654,7 @@ function AfterShotIndexPage() {
                 <button
                   onClick={removeSound}
                   aria-label="Remove sound"
-                  className="oak-motion-control flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/15 opacity-70 active:scale-90"
+                  className="oak-hit oak-motion-control flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/15 opacity-70 active:scale-90"
                 >
                   <X size={11} />
                 </button>
@@ -579,77 +662,74 @@ function AfterShotIndexPage() {
             )}
           </div>
 
+          {/* Every tool says its name. The rail used to be bare icons, which
+              left people guessing what the difference between Filters and
+              Adjust was, or that a clapperboard meant "more than one clip". */}
           <div
-            className="oak-motion-enter absolute right-4 flex flex-col items-end gap-5 z-20 oak-on-media"
-            style={{ top: "calc(env(safe-area-inset-top) + 76px)" }}
+            className="oak-motion-enter absolute right-3 flex flex-col items-end gap-1 z-20 oak-on-media"
+            style={{ top: "calc(env(safe-area-inset-top) + 68px)" }}
           >
             {media.type === "video" && (
               // A clapperboard, not the old scissors: what sits behind this is a
               // multi-clip editor, and an icon that still says "trim" undersells
               // it to the point that people won't open it.
-              <button
+              <RailButton
+                label="Edit clips"
+                icon={Clapperboard}
                 onClick={() => navigate({ to: "/create/after-shot/studio" })}
-                aria-label="Open video studio"
-                className="oak-motion-control flex items-center gap-2 opacity-90 active:scale-95"
-              >
-                <Clapperboard size={24} />
-              </button>
+              />
             )}
 
-            {EDIT_TOOLS.map((tool) => {
-              const Icon = tool.icon;
-              return (
-                <button
-                  key={tool.id}
-                  onClick={() => {
-                    if (tool.id === "text") {
-                      setEditingLayerId(null);
-                      setActiveTool("text");
-                    } else if (tool.id === "draw") setActiveTool(tool.id);
-                    else if (tool.id === "filter") setActiveTool("filter");
-                    else if (tool.id === "adjust") setActiveTool("adjust");
-                    else if (tool.id === "sticker") stickerInputRef.current?.click();
-                    else if (tool.id === "sound") setSoundSheetOpen(true);
-                  }}
-                  aria-label={tool.label}
-                  className="oak-motion-control flex items-center gap-2 opacity-90 active:scale-95"
-                >
-                  <Icon size={24} />
-                </button>
-              );
-            })}
-
-            {toolsExpanded &&
-              COLLAPSED_TOOLS.map((tool) => {
-                const Icon = tool.icon;
-                return (
-                  // The enter animation lives on the wrapper, not the button.
-                  // oak-motion-enter animates transform with fill-mode both, so
-                  // it keeps applying translateY(0) after it ends and beats any
-                  // transform the button sets — active:scale-95 on the same
-                  // element never fires at all.
-                  <span key={tool.id} className="oak-motion-enter flex">
-                    <button
-                      onClick={() => setActiveTool(tool.id)}
-                      aria-label={tool.label}
-                      className="oak-motion-control flex items-center gap-2 opacity-90 active:scale-95"
-                    >
-                      <Icon size={24} />
-                    </button>
-                  </span>
-                );
-              })}
-
-            <button
-              onClick={() => setToolsExpanded((v) => !v)}
-              aria-label={toolsExpanded ? "Hide more tools" : "More tools"}
-              className="oak-motion-control flex items-center justify-center w-8 h-8 mt-1 active:scale-90"
-            >
-              <span key={toolsExpanded ? "up" : "down"} className="oak-motion-pop flex">
-                {toolsExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-              </span>
-            </button>
+            {EDIT_TOOLS.map((tool) => (
+              <RailButton
+                key={tool.id}
+                label={tool.label}
+                icon={tool.icon}
+                onClick={() => {
+                  if (tool.id === "text") {
+                    setEditingLayerId(null);
+                    setActiveTool("text");
+                  } else if (tool.id === "sticker") stickerInputRef.current?.click();
+                  else if (tool.id === "sound") setSoundSheetOpen(true);
+                  else setActiveTool(tool.id);
+                }}
+              />
+            ))}
           </div>
+
+          {undoDelete && (
+            <div
+              className="absolute inset-x-0 z-30 flex justify-center px-4"
+              style={{ bottom: "calc(env(safe-area-inset-bottom) + 80px)" }}
+            >
+              <div
+                role="status"
+                className="oak-motion-pop flex items-center gap-3 rounded-full bg-black/85 py-1 pl-4 pr-1 text-[13px] font-medium text-white"
+              >
+                {undoDelete.label}
+                <button
+                  onClick={() => {
+                    replaceLayers(undoDelete.before);
+                    setUndoDelete(null);
+                  }}
+                  className="h-9 rounded-full bg-white px-4 text-[13px] font-semibold text-black active:scale-95"
+                >
+                  Undo
+                </button>
+              </div>
+            </div>
+          )}
+
+          {textHint && !undoDelete && (
+            <div
+              className="absolute inset-x-0 z-20 flex justify-center px-4"
+              style={{ bottom: "calc(env(safe-area-inset-bottom) + 80px)" }}
+            >
+              <HintBubble onDismiss={dismissTextHint}>
+                Tap text to edit it, drag to move it
+              </HintBubble>
+            </div>
+          )}
 
           <div
             className="oak-motion-enter absolute left-0 right-0 flex items-center justify-end px-5 z-20"
@@ -658,11 +738,10 @@ function AfterShotIndexPage() {
             <button
               onClick={handleNext}
               disabled={exporting}
-              aria-label="Export edited media"
               className="oak-motion-control px-6 py-2.5 rounded-full font-bold text-sm uppercase tracking-wide disabled:opacity-50 active:scale-95"
               style={{ background: "var(--oak-action)", color: "#fff" }}
             >
-              {exporting ? "Exporting…" : "Next"}
+              Next
             </button>
           </div>
         </>
@@ -682,8 +761,7 @@ function AfterShotIndexPage() {
           setPreviewFilterIntensity(intensity);
         }}
         onApply={(id, intensity) => {
-          setSelectedFilterId(id);
-          setSelectedFilterIntensity(intensity);
+          setEdits((e) => ({ ...e, filterId: id, filterIntensity: intensity }));
           setPreviewFilterId(null);
           setPreviewFilterIntensity(null);
         }}
@@ -697,6 +775,44 @@ function AfterShotIndexPage() {
         onClose={closeTool}
         onHeightChange={setAdjustPanelHeight}
       />
+
+      {confirmDiscard && (
+        <ConfirmDiscard
+          message={
+            media.type === "video"
+              ? "Discard this video and your edits?"
+              : "Discard this photo and your edits?"
+          }
+          onKeep={() => setConfirmDiscard(false)}
+          onDiscard={discard}
+        />
+      )}
     </div>
+  );
+}
+
+function RailButton({
+  label,
+  icon: Icon,
+  onClick,
+}: {
+  label: string;
+  icon: typeof Type;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="oak-motion-control flex h-11 items-center gap-2.5 pl-2 opacity-95 active:scale-95"
+    >
+      {/* A heavier shadow than oak-on-media's: thin 12px type vanishes over a
+          white shirt where a 24px glyph still holds. */}
+      <span className="text-[12px] font-semibold leading-none [text-shadow:0_0_2px_rgba(0,0,0,0.7),0_1px_4px_rgba(0,0,0,0.6)]">
+        {label}
+      </span>
+      <span className="flex w-7 justify-center">
+        <Icon size={24} />
+      </span>
+    </button>
   );
 }
