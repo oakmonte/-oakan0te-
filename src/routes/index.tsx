@@ -879,8 +879,8 @@ function OakmonteLanding() {
                   Open a store, list your pieces, and let creators drive traffic — with payment that
                   only releases once your customer's happy. No chargeback roulette.
                 </p>
-                <Link to="/set-up-store" className="cta-btn on-black">
-                  Sell my stuff!
+                <Link to="/sellers" className="cta-btn on-black">
+                  See more 
                 </Link>
                 <p className="stars-line">
                   <span className="stars">★★★★★</span>Loved by our early sellers
