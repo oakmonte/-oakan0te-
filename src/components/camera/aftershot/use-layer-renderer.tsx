@@ -32,7 +32,9 @@ export function useLayerRenderer(mediaBoxRef: React.RefObject<HTMLDivElement | n
           // against the space left of the media box edge (about half of it at
           // x=0.5) and would squeeze a max-width span far narrower than intended.
           // The inner one stays inline-block so the optional text box still hugs
-          // the text instead of painting a full-width bar behind it.
+          // the text instead of painting a full-width bar behind it — and it is
+          // the part LayerOverlay outlines (`data-layer-bounds`), so the
+          // selection frame hugs the words rather than the 80% wrap box.
           <span
             style={{
               display: "block",
@@ -42,6 +44,7 @@ export function useLayerRenderer(mediaBoxRef: React.RefObject<HTMLDivElement | n
             }}
           >
             <span
+              data-layer-bounds=""
               style={{
                 display: "inline-block",
                 maxWidth: "100%",
@@ -78,8 +81,13 @@ export function useLayerRenderer(mediaBoxRef: React.RefObject<HTMLDivElement | n
         // vector-effect="non-scaling-stroke", which made stroke-width 0.014 mean
         // 0.014 screen px: placed drawings painted nothing at all.
         const boxWidth = mediaBoxRef.current?.clientWidth ?? 0;
+        // Half the thickest stroke: getBBox measures centre lines, and
+        // LayerOverlay grows the frame by this so a fat stroke stays inside.
+        const strokePad = Math.max(0, ...layer.strokes.map((st) => st.width)) * boxWidth * 0.5;
         return (
           <svg
+            data-layer-bounds=""
+            data-stroke-pad={strokePad}
             width={boxWidth}
             height={boxWidth}
             viewBox={`${-boxWidth / 2} ${-boxWidth / 2} ${boxWidth} ${boxWidth}`}
