@@ -38,6 +38,7 @@ import { Route as CartRouteImport } from './routes/cart'
 import { Route as BecomeACuratorRouteImport } from './routes/become-a-curator'
 import { Route as BecomeACreatorRouteImport } from './routes/become-a-creator'
 import { Route as ActivityRouteImport } from './routes/activity'
+import { Route as InfoRouteImport } from './routes/Info'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StoreIndexRouteImport } from './routes/store.index'
 import { Route as CreateIndexRouteImport } from './routes/create.index'
@@ -233,6 +234,11 @@ const BecomeACreatorRoute = BecomeACreatorRouteImport.update({
 const ActivityRoute = ActivityRouteImport.update({
   id: '/activity',
   path: '/activity',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InfoRoute = InfoRouteImport.update({
+  id: '/Info',
+  path: '/Info',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -496,6 +502,7 @@ const ApiAccountDeleteRoute = ApiAccountDeleteRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/Info': typeof InfoRoute
   '/activity': typeof ActivityRoute
   '/become-a-creator': typeof BecomeACreatorRoute
   '/become-a-curator': typeof BecomeACuratorRoute
@@ -578,6 +585,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/Info': typeof InfoRoute
   '/activity': typeof ActivityRoute
   '/become-a-creator': typeof BecomeACreatorRoute
   '/become-a-curator': typeof BecomeACuratorRoute
@@ -658,6 +666,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/Info': typeof InfoRoute
   '/activity': typeof ActivityRoute
   '/become-a-creator': typeof BecomeACreatorRoute
   '/become-a-curator': typeof BecomeACuratorRoute
@@ -742,6 +751,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/Info'
     | '/activity'
     | '/become-a-creator'
     | '/become-a-curator'
@@ -824,6 +834,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/Info'
     | '/activity'
     | '/become-a-creator'
     | '/become-a-curator'
@@ -903,6 +914,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/Info'
     | '/activity'
     | '/become-a-creator'
     | '/become-a-curator'
@@ -986,6 +998,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  InfoRoute: typeof InfoRoute
   ActivityRoute: typeof ActivityRoute
   BecomeACreatorRoute: typeof BecomeACreatorRoute
   BecomeACuratorRoute: typeof BecomeACuratorRoute
@@ -1241,6 +1254,13 @@ declare module '@tanstack/react-router' {
       path: '/activity'
       fullPath: '/activity'
       preLoaderRoute: typeof ActivityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/Info': {
+      id: '/Info'
+      path: '/Info'
+      fullPath: '/Info'
+      preLoaderRoute: typeof InfoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -1690,6 +1710,7 @@ const StoreRouteWithChildren = StoreRoute._addFileChildren(StoreRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  InfoRoute: InfoRoute,
   ActivityRoute: ActivityRoute,
   BecomeACreatorRoute: BecomeACreatorRoute,
   BecomeACuratorRoute: BecomeACuratorRoute,
