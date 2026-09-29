@@ -104,7 +104,7 @@ function GetTheWebappPage() {
         <div className="mb-6 overflow-hidden rounded-2xl bg-sd-soft">
           <video
             src={ios ? iosExplainerSrc : ANDROID_EXPLAINER_SRC}
-            className="w-full"
+            className="h-auto w-auto max-h-[320px] max-w-full"
             autoPlay
             loop
             playsInline
