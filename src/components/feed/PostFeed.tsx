@@ -36,6 +36,8 @@ export type FeedScope =
   | { type: "following"; viewerId: string }
   | { type: "user"; userId: string; status: "published" | "draft" };
 
+export type FeedLayout = "reels" | "list";
+
 export type TaggedProduct = {
   id: string;
   title: string;
@@ -204,6 +206,7 @@ export function PostFeed({
   initialPostId,
   onClose,
   mode = "standalone",
+  layout = "reels",
   asStore = false,
   onActivePost,
 }: {
@@ -211,6 +214,12 @@ export function PostFeed({
   initialPostId?: string;
   onClose?: () => void;
   mode?: "embedded" | "standalone";
+  /** `reels` (default): one full-bleed post per screen, snap-paged, chrome
+   *  laid over the media — Explore's feed. `list`: an Instagram-style column
+   *  where each post sits at its own aspect ratio with a header above and
+   *  actions below, scrolled freely — the profile grid's viewer, where you're
+   *  browsing one person's posts rather than being fed them. */
+  layout?: FeedLayout;
   /** Set by a surface where the viewer is acting as one of their stores
    *  (the store profile's own post viewer, once stores can post). Hides
    *  add-to-cart: a store is a seller identity, it doesn't buy. Browsing as
@@ -253,10 +262,12 @@ export function PostFeed({
 
   // `relative` on the embedded shell matters: the inner layers are
   // `absolute inset-0`, and embedded mode has no `fixed` to position against.
+  const isList = layout === "list";
+  const surfaceClass = isList ? "bg-chat-bg text-chat-text" : "bg-black";
   const shellClass =
     mode === "standalone"
-      ? "fixed inset-0 z-[70] bg-black"
-      : "relative w-full h-full bg-black overflow-hidden";
+      ? `fixed inset-0 z-[70] ${surfaceClass}`
+      : `relative w-full h-full ${surfaceClass} overflow-hidden`;
 
   // Swipe RIGHT to dismiss.
   //
@@ -398,7 +409,7 @@ export function PostFeed({
       className="absolute z-20 flex items-center justify-center active:scale-90"
       style={{ top: "calc(env(safe-area-inset-top) + 12px)", left: 16 }}
     >
-      <ChevronLeft size={26} className="text-white" />
+      <ChevronLeft size={26} className={isList ? "text-chat-text" : "text-white"} />
     </button>
   );
 
@@ -407,14 +418,14 @@ export function PostFeed({
     body = (
       <div className={`${shellClass} flex items-center justify-center`}>
         {closeButton}
-        <p className="text-[13px] text-white/40">Loading…</p>
+        <p className={`text-[13px] ${isList ? "text-chat-muted" : "text-white/40"}`}>Loading…</p>
       </div>
     );
   } else if (posts.length === 0) {
     body = (
       <div className={`${shellClass} flex flex-col items-center justify-center text-center px-8`}>
         {closeButton}
-        <p className="text-[13px] text-white/50 max-w-[220px]">
+        <p className={`text-[13px] max-w-[220px] ${isList ? "text-chat-muted" : "text-white/50"}`}>
           {scope.type === "following"
             ? "Follow people to see their posts here."
             : "Nothing to show yet."}
@@ -430,29 +441,59 @@ export function PostFeed({
       <div className={shellClass}>
         <motion.div className="absolute inset-0 bg-black" style={{ opacity: backdropOpacity }} />
         <motion.div
-          className="absolute inset-0 overflow-hidden bg-black"
+          className={`absolute inset-0 overflow-hidden ${surfaceClass} ${isList ? "flex flex-col" : ""}`}
           style={{
             x: dismissX,
             scale: dismissScale,
             borderRadius: dismissRadius,
           }}
         >
-          {closeButton}
+          {isList ? (
+            // A bar of its own rather than a button floating over the first
+            // post: in this layout nothing is full-bleed, so a floating
+            // chevron would sit on top of the first post's header.
+            <div
+              className="relative shrink-0 flex items-center justify-center border-b border-chat-border"
+              style={{
+                paddingTop: "env(safe-area-inset-top)",
+                height: "calc(env(safe-area-inset-top) + 50px)",
+              }}
+            >
+              {onClose && (
+                <button
+                  type="button"
+                  onClick={onClose}
+                  aria-label="Back"
+                  className="absolute left-3 flex items-center justify-center active:scale-90"
+                  style={{ top: "calc(env(safe-area-inset-top) + 12px)" }}
+                >
+                  <ChevronLeft size={26} className="text-chat-text" />
+                </button>
+              )}
+              <p className="text-[16px] font-semibold">Posts</p>
+            </div>
+          ) : (
+            closeButton
+          )}
           <div
             ref={containerRef}
-            className="h-full w-full overflow-y-auto"
-            style={{ scrollSnapType: "y mandatory" }}
+            className={
+              isList ? "min-h-0 flex-1 w-full overflow-y-auto" : "h-full w-full overflow-y-auto"
+            }
+            style={isList ? undefined : { scrollSnapType: "y mandatory" }}
           >
             {posts.map((post) => (
               <FeedPostCard
                 key={post.id}
                 post={post}
                 viewerId={viewerId}
+                layout={layout}
                 isProfileViewer={scope.type === "user"}
                 asStore={asStore}
                 onActive={handleActive}
               />
             ))}
+            {isList && <div style={{ height: "calc(env(safe-area-inset-bottom) + 24px)" }} />}
           </div>
         </motion.div>
       </div>
@@ -493,8 +534,13 @@ export function PostFeed({
  *  the top of somebody's outfit. */
 function PostCarousel({
   media,
+  onAspect,
 }: {
   media: { url: string; type: string; thumbnail: string | null }[];
+  /** Reports the FIRST item's width/height once it's known. The list layout
+   *  sizes the whole carousel to it, the way Instagram does — later items of
+   *  a different shape are letterboxed inside that frame, never cropped. */
+  onAspect?: (aspect: number) => void;
 }) {
   const [index, setIndex] = useState(0);
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -530,12 +576,32 @@ function PostCarousel({
                 disablePictureInPicture
                 disableRemotePlayback
                 preload="metadata"
+                onLoadedMetadata={
+                  i === 0 && onAspect
+                    ? (e) =>
+                        reportAspect(
+                          e.currentTarget.videoWidth,
+                          e.currentTarget.videoHeight,
+                          onAspect,
+                        )
+                    : undefined
+                }
                 className="h-full w-full object-contain"
               />
             ) : (
               <img
                 src={item.url}
                 alt=""
+                onLoad={
+                  i === 0 && onAspect
+                    ? (e) =>
+                        reportAspect(
+                          e.currentTarget.naturalWidth,
+                          e.currentTarget.naturalHeight,
+                          onAspect,
+                        )
+                    : undefined
+                }
                 // Only the first item is worth blocking the post's first paint
                 // on; the rest load as the reader gets to them.
                 loading={i === 0 ? "eager" : "lazy"}
@@ -559,6 +625,26 @@ function PostCarousel({
     </div>
   );
 }
+
+function reportAspect(w: number, h: number, set: (aspect: number) => void) {
+  if (w > 0 && h > 0) set(w / h);
+}
+
+/** Frame shape for a list-layout post before its media has reported its real
+ *  size — Instagram's portrait default, which most outfit shots are close to,
+ *  so the correction on load is usually small. */
+const DEFAULT_LIST_ASPECT = 4 / 5;
+
+/** The list layout's column width. On a phone the screen is narrower than
+ *  this, so it changes nothing; on a desktop it stops a post being blown up
+ *  to the width of the window — Instagram's web feed uses the same column. */
+const LIST_MAX_WIDTH = 470;
+
+/** Tallest a list-layout post's media may get, as a share of the viewport.
+ *  A 9:16 clip at full column width is taller than a laptop screen, so past
+ *  this the frame narrows instead — width and height shrink together, which
+ *  keeps the aspect ratio, where capping height alone would letterbox it. */
+const LIST_MAX_MEDIA_HEIGHT = "85svh";
 
 function RailAction({
   label,
@@ -590,6 +676,40 @@ function RailAction({
   );
 }
 
+/** The list layout's version of RailAction: icon and count side by side in a
+ *  row under the media rather than stacked in a column over it. Same
+ *  pointer-down firing, for the same reason. A zero count is left off — in a
+ *  row, a string of 0s reads as a broken stat line rather than as a label. */
+function InlineAction({
+  label,
+  count,
+  pressed,
+  onPress,
+  children,
+}: {
+  label: string;
+  count?: number;
+  pressed?: boolean;
+  onPress?: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      aria-pressed={pressed}
+      onPointerDown={onPress}
+      style={{ touchAction: "manipulation" }}
+      className="flex items-center gap-1.5 active:scale-90 transition-transform duration-100"
+    >
+      {children}
+      {count !== undefined && count > 0 && (
+        <span className="text-[14px] font-semibold leading-none">{formatCount(count)}</span>
+      )}
+    </button>
+  );
+}
+
 function formatCount(n: number): string {
   if (n < 1000) return String(n);
   if (n < 1_000_000) return `${(n / 1000).toFixed(n < 10_000 ? 1 : 0).replace(/\.0$/, "")}K`;
@@ -599,12 +719,14 @@ function formatCount(n: number): string {
 function FeedPostCard({
   post,
   viewerId,
+  layout,
   isProfileViewer,
   asStore,
   onActive,
 }: {
   post: FeedPost;
   viewerId: string | null;
+  layout: FeedLayout;
   /** Fired when this card becomes the one on screen. */
   onActive: (active: ActivePost) => void;
   /** True when this feed is a profile grid's post viewer rather than the home
@@ -616,6 +738,16 @@ function FeedPostCard({
   asStore: boolean;
 }) {
   const cardRef = useRef<HTMLDivElement>(null);
+  // What the "on screen" observer watches. In reels that's the card, which is
+  // the screen; in the list it's just the media frame — a card there also
+  // carries a header, actions and caption, and a video shouldn't start
+  // because its caption scrolled into view.
+  const mediaFrameRef = useRef<HTMLDivElement>(null);
+  const isList = layout === "list";
+  // Real width/height of the post's (first) media, once it's loaded. Only the
+  // list layout uses it: the frame takes the media's own shape instead of the
+  // media being cropped to the screen's.
+  const [aspect, setAspect] = useState<number | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   // Every video in this feed is muted, so a post's chosen sound is the only
@@ -662,14 +794,14 @@ function FeedPostCard({
   // plays and the rest sit paused on their poster), and it's what tells the
   // caller which post's linked products to show on its Listed items tab.
   useEffect(() => {
-    const el = cardRef.current;
+    const el = isList ? mediaFrameRef.current : cardRef.current;
     if (!el) return;
     const io = new IntersectionObserver(([entry]) => setOnScreen(entry.intersectionRatio >= 0.6), {
       threshold: [0, 0.6, 1],
     });
     io.observe(el);
     return () => io.disconnect();
-  }, []);
+  }, [isList]);
 
   useEffect(() => {
     if (onScreen) onActive({ id: post.id, tags });
@@ -835,38 +967,47 @@ function FeedPostCard({
     }
   }
 
-  return (
-    <div
-      ref={cardRef}
-      data-post-id={post.id}
-      className="relative w-full h-full bg-neutral-950 text-white"
-      style={{ scrollSnapAlign: "start" }}
-    >
-      {post.media.length > 1 ? (
-        <PostCarousel media={post.media} />
-      ) : isVideo ? (
-        <video
-          ref={videoRef}
-          src={post.media_url}
-          poster={post.thumbnail_url ?? undefined}
-          loop
-          muted
-          playsInline
-          disablePictureInPicture
-          disableRemotePlayback
-          preload="metadata"
-          className="absolute inset-0 w-full h-full object-cover"
-        />
-      ) : (
-        <img src={post.media_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
-      )}
+  const mediaClass = isList ? "object-contain" : "object-cover";
+  const media =
+    post.media.length > 1 ? (
+      <PostCarousel media={post.media} onAspect={isList ? setAspect : undefined} />
+    ) : isVideo ? (
+      <video
+        ref={videoRef}
+        src={post.media_url}
+        poster={post.thumbnail_url ?? undefined}
+        loop
+        muted
+        playsInline
+        disablePictureInPicture
+        disableRemotePlayback
+        preload="metadata"
+        onLoadedMetadata={
+          isList
+            ? (e) =>
+                reportAspect(e.currentTarget.videoWidth, e.currentTarget.videoHeight, setAspect)
+            : undefined
+        }
+        className={`absolute inset-0 w-full h-full ${mediaClass}`}
+      />
+    ) : (
+      <img
+        src={post.media_url}
+        alt=""
+        onLoad={
+          isList
+            ? (e) =>
+                reportAspect(e.currentTarget.naturalWidth, e.currentTarget.naturalHeight, setAspect)
+            : undefined
+        }
+        className={`absolute inset-0 w-full h-full ${mediaClass}`}
+      />
+    );
 
-      {/* The post's sound. Looped, because a track is almost always longer or
-          shorter than the pictures it plays over and neither end should be a
-          silence. No `controls` — the tap surface above already owns
-          play/pause for this card. */}
-      {post.audio_url && <audio ref={audioRef} src={post.audio_url} loop preload="none" />}
-
+  // Everything that lives ON the media in both layouts: the tap surface, the
+  // pause glyph and the double-tap heart.
+  const mediaOverlays = (
+    <>
       {/* The tap surface. Its own layer rather than a handler on the media so
           it can sit under the rail and the caption — those get their own taps
           — and so a photo post is tappable for the double-tap like too. The
@@ -915,6 +1056,246 @@ function FeedPostCard({
           </motion.div>
         )}
       </AnimatePresence>
+    </>
+  );
+
+  const heartIcon = (
+    // Keyed on `liked` so the icon remounts and replays its pop on every
+    // change — the state itself is already synchronous.
+    <motion.span
+      key={liked ? "on" : "off"}
+      initial={{ scale: liked ? 0.6 : 1 }}
+      animate={{ scale: 1 }}
+      transition={{ type: "spring", stiffness: 800, damping: 18 }}
+      className="block"
+    >
+      <Heart
+        size={26}
+        className={liked ? "text-[#fe2c55]" : undefined}
+        fill={liked ? "#fe2c55" : "none"}
+      />
+    </motion.span>
+  );
+
+  const bookmarkIcon = (
+    <motion.span
+      key={saved ? "on" : "off"}
+      initial={{ scale: saved ? 0.6 : 1 }}
+      animate={{ scale: 1 }}
+      transition={{ type: "spring", stiffness: 800, damping: 18 }}
+      className="block"
+    >
+      <Bookmark
+        size={26}
+        className={saved ? "text-[#f5c518]" : undefined}
+        fill={saved ? "#f5c518" : "none"}
+      />
+    </motion.span>
+  );
+
+  // A catalogue track under a licence that requires it shows its full credit
+  // rather than just its title. That line is a condition of being allowed to
+  // play the track at all, so unlike the title it is allowed to wrap, and is
+  // not clamped either. Commons' artist field sometimes holds the whole
+  // required credit rather than a name — one real track carries 'Required
+  // credit: "music by audionautix.com"' as its artist — and a clamp would be
+  // the app deciding which half of a licence condition to honour.
+  //
+  // The autoplay prompt is appended to it rather than replacing it.
+  // `audioBlocked` is the *default* state on iOS and Android until the viewer
+  // makes a gesture, so a prompt that took the line over would hide the credit
+  // on almost every mobile view of the post — which is every view that matters.
+  const soundLine = showsSoundLine && (
+    <p
+      className={`text-[12px] flex items-start gap-1 mt-1 ${isList ? "text-chat-muted" : "text-white/60"}`}
+    >
+      <Music size={12} className="shrink-0 mt-[3px]" />
+      <span className={post.audio_attribution ? "" : "truncate"}>
+        {post.audio_attribution ?? post.audio_name ?? "Original sound"}
+        {hasAudio && audioBlocked && " · Tap for sound"}
+      </span>
+    </p>
+  );
+
+  const tagChips = tags.length > 0 && (
+    <div className="flex gap-2 overflow-x-auto pt-2.5" style={{ scrollbarWidth: "none" }}>
+      {tags.map((t) => (
+        <div
+          key={t.id}
+          className={`shrink-0 flex items-center gap-2 rounded-full pl-1 pr-3 py-1 ${
+            isList ? "bg-chat-text/10" : "bg-white/10"
+          }`}
+        >
+          <img
+            src={t.image ?? "https://placehold.co/32x32"}
+            alt=""
+            className="w-6 h-6 rounded-full object-cover"
+          />
+          <span className="text-[12px]">
+            {t.title}
+            {t.price != null ? ` · ₦${t.price.toLocaleString()}` : ""}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+
+  // The post's sound. Looped, because a track is almost always longer or
+  // shorter than the pictures it plays over and neither end should be a
+  // silence. No `controls` — the tap surface already owns play/pause.
+  const audio = post.audio_url && <audio ref={audioRef} src={post.audio_url} loop preload="none" />;
+
+  const sheets = (
+    <>
+      <CommentSheet open={commentsOpen} onClose={() => setCommentsOpen(false)} />
+      {isOwnerView && (
+        <LinkProductsSheet
+          open={linkOpen}
+          onClose={() => setLinkOpen(false)}
+          postId={post.id}
+          linked={tags}
+          onChange={setTags}
+        />
+      )}
+    </>
+  );
+
+  const saveToast = (
+    <SaveToast open={toastOpen} hasItems={tags.length > 0} onDismiss={() => setToastOpen(false)} />
+  );
+
+  if (isList) {
+    return (
+      <div
+        ref={cardRef}
+        data-post-id={post.id}
+        className="relative mx-auto w-full pb-4"
+        style={{ maxWidth: LIST_MAX_WIDTH }}
+      >
+        {/* Header: who posted it, and where. */}
+        <div className="flex items-center gap-3 px-3 py-2.5">
+          <div className="w-8 h-8 shrink-0 rounded-full overflow-hidden bg-chat-soft">
+            {post.authorAvatar && (
+              <img src={post.authorAvatar} alt="" className="w-full h-full object-cover" />
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[14px] font-semibold truncate leading-tight">
+              {post.authorDisplayName ?? "User"}
+            </p>
+            {post.location && (
+              <p className="text-[12px] text-chat-muted truncate leading-tight mt-0.5">
+                {post.location}
+              </p>
+            )}
+          </div>
+          {!isOwnPost && viewerId && (
+            <button
+              type="button"
+              onClick={toggleFollow}
+              className={`shrink-0 rounded-lg px-3 py-1.5 text-[13px] font-semibold active:scale-95 ${
+                following ? "bg-chat-text/10 text-chat-text" : "bg-chat-text text-chat-inverse"
+              }`}
+            >
+              {following ? "Following" : "Follow"}
+            </button>
+          )}
+          {/* "More" (delete, edit, and so on) — owner-only, same as the reels
+              rail. No options menu exists yet; this is the icon. */}
+          {isOwnerView && (
+            <button type="button" aria-label="More" className="shrink-0 active:scale-90">
+              <MoreHorizontal size={22} />
+            </button>
+          )}
+        </div>
+
+        {/* The media at its own shape. Width is the column's (narrowed if the
+            result would be taller than LIST_MAX_MEDIA_HEIGHT); height follows
+            from the media's real aspect ratio once it has loaded, so nothing
+            is cropped — a landscape photo is short, a 9:16 clip tall. */}
+        <div
+          ref={mediaFrameRef}
+          className="relative mx-auto overflow-hidden bg-chat-surface"
+          style={{
+            aspectRatio: aspect ?? DEFAULT_LIST_ASPECT,
+            width: `min(100%, calc(${LIST_MAX_MEDIA_HEIGHT} * ${aspect ?? DEFAULT_LIST_ASPECT}))`,
+          }}
+        >
+          {media}
+          {mediaOverlays}
+        </div>
+        {audio}
+
+        {/* Actions under the media, Instagram's order: like, comment, share on
+            the left; the bag, link and save on the right. */}
+        <div className="flex items-center gap-4 px-3 pt-3">
+          <InlineAction
+            label={liked ? "Unlike" : "Like"}
+            count={likeCount}
+            pressed={liked}
+            onPress={() => setLiked((v) => !v)}
+          >
+            {heartIcon}
+          </InlineAction>
+          <InlineAction label="Comments" count={0} onPress={() => setCommentsOpen(true)}>
+            <MessageCircle size={26} />
+          </InlineAction>
+          <InlineAction label="Share">
+            <Send size={24} strokeLinecap="round" strokeLinejoin="round" />
+          </InlineAction>
+          <div className="flex-1" />
+          {/* Add-to-cart / Link products: see the reels rail below for why
+              these are shown to whom. */}
+          {!asStore && (
+            <InlineAction label="Add tagged items to cart" count={tags.length}>
+              <ShoppingBag size={24} />
+            </InlineAction>
+          )}
+          {isOwnerView && (
+            <InlineAction label="Link products" onPress={() => setLinkOpen(true)}>
+              <Link2 size={24} />
+            </InlineAction>
+          )}
+          <InlineAction
+            label={saved ? "Remove from favourites" : "Add to favourites"}
+            pressed={saved}
+            onPress={handleSave}
+          >
+            {bookmarkIcon}
+          </InlineAction>
+        </div>
+
+        <div className="px-3 pt-2">
+          {post.caption && (
+            <p className="text-[14px] leading-snug">
+              <span className="font-semibold mr-1.5">{post.authorDisplayName ?? "User"}</span>
+              {post.caption}
+            </p>
+          )}
+          {soundLine}
+          {tagChips}
+        </div>
+
+        {/* The toast is written for a full-screen card (it sits under the
+            status bar). A zero-height fixed box puts it back there: the
+            dismiss shell's transform makes it the containing block, and that
+            shell is the screen. */}
+        <div className="fixed inset-x-0 top-0 z-30 h-0">{saveToast}</div>
+        {sheets}
+      </div>
+    );
+  }
+
+  return (
+    <div
+      ref={cardRef}
+      data-post-id={post.id}
+      className="relative w-full h-full bg-neutral-950 text-white"
+      style={{ scrollSnapAlign: "start" }}
+    >
+      {media}
+      {audio}
+      {mediaOverlays}
 
       <div className="absolute right-5 bottom-20 flex flex-col items-center text-white">
         {/* Avatar always sits above the action rail, in line with it — only
@@ -945,21 +1326,7 @@ function FeedPostCard({
             pressed={liked}
             onPress={() => setLiked((v) => !v)}
           >
-            {/* Keyed on `liked` so the icon remounts and replays its pop on
-                every change — the state itself is already synchronous. */}
-            <motion.span
-              key={liked ? "on" : "off"}
-              initial={{ scale: liked ? 0.6 : 1 }}
-              animate={{ scale: 1 }}
-              transition={{ type: "spring", stiffness: 800, damping: 18 }}
-              className="block"
-            >
-              <Heart
-                size={26}
-                className={liked ? "text-[#fe2c55]" : "text-white"}
-                fill={liked ? "#fe2c55" : "none"}
-              />
-            </motion.span>
+            {heartIcon}
           </RailAction>
 
           <RailAction label="Comments" count={0} onPress={() => setCommentsOpen(true)}>
@@ -972,19 +1339,7 @@ function FeedPostCard({
             pressed={saved}
             onPress={handleSave}
           >
-            <motion.span
-              key={saved ? "on" : "off"}
-              initial={{ scale: saved ? 0.6 : 1 }}
-              animate={{ scale: 1 }}
-              transition={{ type: "spring", stiffness: 800, damping: 18 }}
-              className="block"
-            >
-              <Bookmark
-                size={26}
-                className={saved ? "text-[#f5c518]" : "text-white"}
-                fill={saved ? "#f5c518" : "none"}
-              />
-            </motion.span>
+            {bookmarkIcon}
           </RailAction>
 
           {/* Add-to-cart: adds every product tagged on this post at once so
@@ -1045,68 +1400,12 @@ function FeedPostCard({
             start it. The prompt is part of this line rather than a badge
             elsewhere so there is exactly one place on the card that talks
             about sound. */}
-        {/* A catalogue track under a licence that requires it shows its full
-            credit here rather than just its title. That line is a condition of
-            being allowed to play the track at all, so unlike the title it is
-            allowed to wrap, and is not clamped either. Commons' artist field
-            sometimes holds the whole required credit rather than a name — one
-            real track carries 'Required credit: "music by audionautix.com"' as
-            its artist — and a clamp would be the app deciding which half of a
-            licence condition to honour.
-            
-            The autoplay prompt is appended to it rather than replacing it.
-            `audioBlocked` is the *default* state on iOS and Android until the
-            viewer makes a gesture, so a prompt that took the line over would
-            hide the credit on almost every mobile view of the post — which is
-            every view that matters. */}
-        {showsSoundLine && (
-          <p className="text-[12px] text-white/60 flex items-start gap-1 mt-1">
-            <Music size={12} className="shrink-0 mt-[3px]" />
-            <span className={post.audio_attribution ? "" : "truncate"}>
-              {post.audio_attribution ?? post.audio_name ?? "Original sound"}
-              {hasAudio && audioBlocked && " · Tap for sound"}
-            </span>
-          </p>
-        )}
-        {tags.length > 0 && (
-          <div className="flex gap-2 overflow-x-auto pt-2.5" style={{ scrollbarWidth: "none" }}>
-            {tags.map((t) => (
-              <div
-                key={t.id}
-                className="shrink-0 flex items-center gap-2 rounded-full pl-1 pr-3 py-1"
-                style={{ background: "rgba(255,255,255,0.1)" }}
-              >
-                <img
-                  src={t.image ?? "https://placehold.co/32x32"}
-                  alt=""
-                  className="w-6 h-6 rounded-full object-cover"
-                />
-                <span className="text-[12px]">
-                  {t.title}
-                  {t.price != null ? ` · ₦${t.price.toLocaleString()}` : ""}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
+        {soundLine}
+        {tagChips}
       </div>
 
-      <SaveToast
-        open={toastOpen}
-        hasItems={tags.length > 0}
-        onDismiss={() => setToastOpen(false)}
-      />
-
-      <CommentSheet open={commentsOpen} onClose={() => setCommentsOpen(false)} />
-      {isOwnerView && (
-        <LinkProductsSheet
-          open={linkOpen}
-          onClose={() => setLinkOpen(false)}
-          postId={post.id}
-          linked={tags}
-          onChange={setTags}
-        />
-      )}
+      {saveToast}
+      {sheets}
     </div>
   );
 }
