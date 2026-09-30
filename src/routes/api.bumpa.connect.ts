@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin as supabase } from "@/lib/integrations/my-supabase/client.server";
 import { requireStoreOwner } from "@/lib/server-auth";
+import { encryptField, fieldContext } from "@/lib/field-encryption.server";
 
 export const Route = createFileRoute("/api/bumpa/connect")({
   server: {
@@ -32,10 +33,19 @@ export const Route = createFileRoute("/api/bumpa/connect")({
           return Response.json({ error: "Invalid Bumpa API key" }, { status: 401 });
         }
 
+        // Stored encrypted; see field-encryption.server.ts.
+        let sealedKey: string;
+        try {
+          sealedKey = await encryptField(apiKey, fieldContext.bumpaApiKey(owns.value.storeId));
+        } catch (err) {
+          console.error("bumpa connect: could not encrypt key", err);
+          return Response.json({ error: "Something went wrong" }, { status: 500 });
+        }
+
         const { error } = await supabase.from("store_credentials").upsert(
           {
-            store_id: storeId,
-            bumpa_api_key: apiKey,
+            store_id: owns.value.storeId,
+            bumpa_api_key: sealedKey,
             bumpa_connected_at: new Date().toISOString(),
           },
           { onConflict: "store_id" },

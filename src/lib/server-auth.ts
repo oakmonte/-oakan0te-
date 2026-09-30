@@ -13,7 +13,9 @@ import { supabaseAdmin } from "@/lib/integrations/my-supabase/client.server";
 
 export type ServerUser = { id: string; email: string | null };
 
-function bearer(request: Request): string | null {
+/** The caller's raw access token, for a handler that forwards it to Supabase
+ *  so RLS runs as the caller. Not a check on its own — see getRequestUser. */
+export function bearer(request: Request): string | null {
   const header = request.headers.get("Authorization") ?? request.headers.get("authorization");
   if (!header?.startsWith("Bearer ")) return null;
   const token = header.slice(7).trim();

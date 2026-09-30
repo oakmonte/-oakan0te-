@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { encryptField, fieldContext } from "@/lib/field-encryption.server";
 
 /**
  * Step 2 of the Instagram connect flow.
@@ -141,10 +142,19 @@ export const Route = createFileRoute("/api/instagram/callback")({
         const { supabaseAdmin: supabase } =
           await import("@/lib/integrations/my-supabase/client.server");
 
+        // Stored encrypted; see field-encryption.server.ts.
+        let sealedToken: string;
+        try {
+          sealedToken = await encryptField(accessToken, fieldContext.instagramAccessToken(storeId));
+        } catch (err) {
+          console.error("Instagram callback: could not encrypt token", err);
+          return fail("could not save the Instagram connection");
+        }
+
         const credentialsPayload = {
           store_id: storeId,
           instagram_user_id: instagramUserId,
-          instagram_access_token: accessToken,
+          instagram_access_token: sealedToken,
           instagram_token_expires_at: expiresAt,
           instagram_connected_at: new Date().toISOString(),
         };

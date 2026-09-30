@@ -63,6 +63,34 @@ ride `conversation_read_receipts` / `conversation_presence`) and that with recei
 side turns blue. Contract later: drop `conversation_members.last_delivered_at` / `last_active_at`
 once no deployed client predates the migration.
 
+### 1.5 Encrypted secrets · code done, rollout pending
+
+Message bodies (DMs and support), Shopify/Bumpa/Instagram tokens and payout account numbers are
+encrypted by the app before they're written (`src/lib/field-encryption.server.ts`, AES-256-GCM).
+It isn't end-to-end: the server holds the key. Bodies now travel only through `api.chat.*` and
+`api.support-messages.*`, which query **as the caller**, so RLS is still the authorization
+boundary. Rollout, in this order:
+
+1. `openssl rand -base64 32` → `DATA_ENCRYPTION_KEY` in Vercel (Production + Preview) and locally.
+   Keep a copy somewhere safe: **lose the key and every encrypted value is gone for good.**
+2. Apply `20260930120000_relax_encrypted_column_lengths.sql`. It only lifts the plaintext
+   length checks, so it's safe with the old code too; skip it and long messages fail once
+   bodies are ciphertext.
+3. Deploy. Reads handle both plaintext and ciphertext; writes refuse to run without the key.
+4. `bun scripts/encrypt-existing-secrets.ts` (dry run), then `--write`.
+5. Apply `20260930130000_require_encrypted_columns.sql`, which refuses plaintext from then on.
+   It fails if any plaintext is left; if so, re-run step 4 and apply it again.
+
+Staff now see ciphertext in the dashboard, so support threads are read through
+`GET /api/support-messages/staff?user_id=`, which uses the same secret as the reply route.
+Rotation: put the new key in `DATA_ENCRYPTION_KEY` and the old one in `DATA_ENCRYPTION_KEYS_OLD`
+(comma-separated), then re-run the backfill once it can re-encrypt (it only converts plaintext
+today). The import worker, once it exists, decrypts with `decryptField(value, fieldContext.*)`.
+
+Not covered: chat media files (the private `chat-media` bucket), `message_reports.details`,
+`store_payout_accounts.account_name` (nothing writes it yet), and the legacy
+`stores.shopify_access_token` column (nothing writes it; the backfill reports any rows left).
+
 ---
 
 ## 2. Needs a decision

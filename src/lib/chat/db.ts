@@ -201,7 +201,7 @@ type MessagingTables = {
   >;
   support_messages: Table<
     SupportMessageRow,
-    Pick<SupportMessageRow, "user_id" | "body" | "sender">,
+    Pick<SupportMessageRow, "user_id" | "body" | "sender"> & { id?: string },
     Partial<Pick<SupportMessageRow, "body" | "sender">>
   >;
 };
@@ -213,7 +213,7 @@ type MessagingFunctions = {
   touch_messaging_presence: { Args: Record<string, never>; Returns: undefined };
 };
 
-type MessagingDatabase = Database & {
+export type MessagingDatabase = Database & {
   public: Database["public"] & {
     Tables: Database["public"]["Tables"] & MessagingTables;
     Functions: Database["public"]["Functions"] & MessagingFunctions;

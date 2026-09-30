@@ -75,7 +75,9 @@ import { Route as StoreCollectionsNewRouteImport } from './routes/store.collecti
 import { Route as StoreCollectionsIdRouteImport } from './routes/store.collections_.$id'
 import { Route as CreateAfterShotStudioRouteImport } from './routes/create.after-shot.studio'
 import { Route as CreateAfterShotPublishRouteImport } from './routes/create.after-shot.publish'
+import { Route as ApiSupportMessagesStaffRouteImport } from './routes/api.support-messages.staff'
 import { Route as ApiSupportMessagesReplyRouteImport } from './routes/api.support-messages.reply'
+import { Route as ApiSupportMessagesMineRouteImport } from './routes/api.support-messages.mine'
 import { Route as ApiStorePayoutRouteImport } from './routes/api.store.payout'
 import { Route as ApiStoreThemeUploadImageRouteImport } from './routes/api.store-theme.upload-image'
 import { Route as ApiStorePiecesUploadImageRouteImport } from './routes/api.store-pieces.upload-image'
@@ -88,6 +90,8 @@ import { Route as ApiInstagramCallbackRouteImport } from './routes/api.instagram
 import { Route as ApiImportStatusRouteImport } from './routes/api.import.status'
 import { Route as ApiImportStartRouteImport } from './routes/api.import.start'
 import { Route as ApiImportCsvRouteImport } from './routes/api.import.csv'
+import { Route as ApiChatMessagesRouteImport } from './routes/api.chat.messages'
+import { Route as ApiChatInboxRouteImport } from './routes/api.chat.inbox'
 import { Route as ApiBumpaConnectRouteImport } from './routes/api.bumpa.connect'
 import { Route as ApiAccountDeleteRouteImport } from './routes/api.account.delete'
 
@@ -422,9 +426,19 @@ const CreateAfterShotPublishRoute = CreateAfterShotPublishRouteImport.update({
   path: '/publish',
   getParentRoute: () => CreateAfterShotRoute,
 } as any)
+const ApiSupportMessagesStaffRoute = ApiSupportMessagesStaffRouteImport.update({
+  id: '/api/support-messages/staff',
+  path: '/api/support-messages/staff',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiSupportMessagesReplyRoute = ApiSupportMessagesReplyRouteImport.update({
   id: '/api/support-messages/reply',
   path: '/api/support-messages/reply',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSupportMessagesMineRoute = ApiSupportMessagesMineRouteImport.update({
+  id: '/api/support-messages/mine',
+  path: '/api/support-messages/mine',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiStorePayoutRoute = ApiStorePayoutRouteImport.update({
@@ -487,6 +501,16 @@ const ApiImportStartRoute = ApiImportStartRouteImport.update({
 const ApiImportCsvRoute = ApiImportCsvRouteImport.update({
   id: '/api/import/csv',
   path: '/api/import/csv',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiChatMessagesRoute = ApiChatMessagesRouteImport.update({
+  id: '/api/chat/messages',
+  path: '/api/chat/messages',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiChatInboxRoute = ApiChatInboxRouteImport.update({
+  id: '/api/chat/inbox',
+  path: '/api/chat/inbox',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiBumpaConnectRoute = ApiBumpaConnectRouteImport.update({
@@ -557,6 +581,8 @@ export interface FileRoutesByFullPath {
   '/store/': typeof StoreIndexRoute
   '/api/account/delete': typeof ApiAccountDeleteRoute
   '/api/bumpa/connect': typeof ApiBumpaConnectRoute
+  '/api/chat/inbox': typeof ApiChatInboxRoute
+  '/api/chat/messages': typeof ApiChatMessagesRoute
   '/api/import/csv': typeof ApiImportCsvRoute
   '/api/import/start': typeof ApiImportStartRoute
   '/api/import/status': typeof ApiImportStatusRoute
@@ -569,7 +595,9 @@ export interface FileRoutesByFullPath {
   '/api/store-pieces/upload-image': typeof ApiStorePiecesUploadImageRoute
   '/api/store-theme/upload-image': typeof ApiStoreThemeUploadImageRoute
   '/api/store/payout': typeof ApiStorePayoutRoute
+  '/api/support-messages/mine': typeof ApiSupportMessagesMineRoute
   '/api/support-messages/reply': typeof ApiSupportMessagesReplyRoute
+  '/api/support-messages/staff': typeof ApiSupportMessagesStaffRoute
   '/create/after-shot/publish': typeof CreateAfterShotPublishRoute
   '/create/after-shot/studio': typeof CreateAfterShotStudioRoute
   '/store/collections/$id': typeof StoreCollectionsIdRoute
@@ -637,6 +665,8 @@ export interface FileRoutesByTo {
   '/store': typeof StoreIndexRoute
   '/api/account/delete': typeof ApiAccountDeleteRoute
   '/api/bumpa/connect': typeof ApiBumpaConnectRoute
+  '/api/chat/inbox': typeof ApiChatInboxRoute
+  '/api/chat/messages': typeof ApiChatMessagesRoute
   '/api/import/csv': typeof ApiImportCsvRoute
   '/api/import/start': typeof ApiImportStartRoute
   '/api/import/status': typeof ApiImportStatusRoute
@@ -649,7 +679,9 @@ export interface FileRoutesByTo {
   '/api/store-pieces/upload-image': typeof ApiStorePiecesUploadImageRoute
   '/api/store-theme/upload-image': typeof ApiStoreThemeUploadImageRoute
   '/api/store/payout': typeof ApiStorePayoutRoute
+  '/api/support-messages/mine': typeof ApiSupportMessagesMineRoute
   '/api/support-messages/reply': typeof ApiSupportMessagesReplyRoute
+  '/api/support-messages/staff': typeof ApiSupportMessagesStaffRoute
   '/create/after-shot/publish': typeof CreateAfterShotPublishRoute
   '/create/after-shot/studio': typeof CreateAfterShotStudioRoute
   '/store/collections/$id': typeof StoreCollectionsIdRoute
@@ -721,6 +753,8 @@ export interface FileRoutesById {
   '/store/': typeof StoreIndexRoute
   '/api/account/delete': typeof ApiAccountDeleteRoute
   '/api/bumpa/connect': typeof ApiBumpaConnectRoute
+  '/api/chat/inbox': typeof ApiChatInboxRoute
+  '/api/chat/messages': typeof ApiChatMessagesRoute
   '/api/import/csv': typeof ApiImportCsvRoute
   '/api/import/start': typeof ApiImportStartRoute
   '/api/import/status': typeof ApiImportStatusRoute
@@ -733,7 +767,9 @@ export interface FileRoutesById {
   '/api/store-pieces/upload-image': typeof ApiStorePiecesUploadImageRoute
   '/api/store-theme/upload-image': typeof ApiStoreThemeUploadImageRoute
   '/api/store/payout': typeof ApiStorePayoutRoute
+  '/api/support-messages/mine': typeof ApiSupportMessagesMineRoute
   '/api/support-messages/reply': typeof ApiSupportMessagesReplyRoute
+  '/api/support-messages/staff': typeof ApiSupportMessagesStaffRoute
   '/create/after-shot/publish': typeof CreateAfterShotPublishRoute
   '/create/after-shot/studio': typeof CreateAfterShotStudioRoute
   '/store/collections_/$id': typeof StoreCollectionsIdRoute
@@ -806,6 +842,8 @@ export interface FileRouteTypes {
     | '/store/'
     | '/api/account/delete'
     | '/api/bumpa/connect'
+    | '/api/chat/inbox'
+    | '/api/chat/messages'
     | '/api/import/csv'
     | '/api/import/start'
     | '/api/import/status'
@@ -818,7 +856,9 @@ export interface FileRouteTypes {
     | '/api/store-pieces/upload-image'
     | '/api/store-theme/upload-image'
     | '/api/store/payout'
+    | '/api/support-messages/mine'
     | '/api/support-messages/reply'
+    | '/api/support-messages/staff'
     | '/create/after-shot/publish'
     | '/create/after-shot/studio'
     | '/store/collections/$id'
@@ -886,6 +926,8 @@ export interface FileRouteTypes {
     | '/store'
     | '/api/account/delete'
     | '/api/bumpa/connect'
+    | '/api/chat/inbox'
+    | '/api/chat/messages'
     | '/api/import/csv'
     | '/api/import/start'
     | '/api/import/status'
@@ -898,7 +940,9 @@ export interface FileRouteTypes {
     | '/api/store-pieces/upload-image'
     | '/api/store-theme/upload-image'
     | '/api/store/payout'
+    | '/api/support-messages/mine'
     | '/api/support-messages/reply'
+    | '/api/support-messages/staff'
     | '/create/after-shot/publish'
     | '/create/after-shot/studio'
     | '/store/collections/$id'
@@ -969,6 +1013,8 @@ export interface FileRouteTypes {
     | '/store/'
     | '/api/account/delete'
     | '/api/bumpa/connect'
+    | '/api/chat/inbox'
+    | '/api/chat/messages'
     | '/api/import/csv'
     | '/api/import/start'
     | '/api/import/status'
@@ -981,7 +1027,9 @@ export interface FileRouteTypes {
     | '/api/store-pieces/upload-image'
     | '/api/store-theme/upload-image'
     | '/api/store/payout'
+    | '/api/support-messages/mine'
     | '/api/support-messages/reply'
+    | '/api/support-messages/staff'
     | '/create/after-shot/publish'
     | '/create/after-shot/studio'
     | '/store/collections_/$id'
@@ -1036,6 +1084,8 @@ export interface RootRouteChildren {
   StoreProfileStoreUsernameRoute: typeof StoreProfileStoreUsernameRoute
   ApiAccountDeleteRoute: typeof ApiAccountDeleteRoute
   ApiBumpaConnectRoute: typeof ApiBumpaConnectRoute
+  ApiChatInboxRoute: typeof ApiChatInboxRoute
+  ApiChatMessagesRoute: typeof ApiChatMessagesRoute
   ApiImportCsvRoute: typeof ApiImportCsvRoute
   ApiImportStartRoute: typeof ApiImportStartRoute
   ApiImportStatusRoute: typeof ApiImportStatusRoute
@@ -1048,7 +1098,9 @@ export interface RootRouteChildren {
   ApiStorePiecesUploadImageRoute: typeof ApiStorePiecesUploadImageRoute
   ApiStoreThemeUploadImageRoute: typeof ApiStoreThemeUploadImageRoute
   ApiStorePayoutRoute: typeof ApiStorePayoutRoute
+  ApiSupportMessagesMineRoute: typeof ApiSupportMessagesMineRoute
   ApiSupportMessagesReplyRoute: typeof ApiSupportMessagesReplyRoute
+  ApiSupportMessagesStaffRoute: typeof ApiSupportMessagesStaffRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1515,11 +1567,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CreateAfterShotPublishRouteImport
       parentRoute: typeof CreateAfterShotRoute
     }
+    '/api/support-messages/staff': {
+      id: '/api/support-messages/staff'
+      path: '/api/support-messages/staff'
+      fullPath: '/api/support-messages/staff'
+      preLoaderRoute: typeof ApiSupportMessagesStaffRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/support-messages/reply': {
       id: '/api/support-messages/reply'
       path: '/api/support-messages/reply'
       fullPath: '/api/support-messages/reply'
       preLoaderRoute: typeof ApiSupportMessagesReplyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/support-messages/mine': {
+      id: '/api/support-messages/mine'
+      path: '/api/support-messages/mine'
+      fullPath: '/api/support-messages/mine'
+      preLoaderRoute: typeof ApiSupportMessagesMineRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/store/payout': {
@@ -1604,6 +1670,20 @@ declare module '@tanstack/react-router' {
       path: '/api/import/csv'
       fullPath: '/api/import/csv'
       preLoaderRoute: typeof ApiImportCsvRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/chat/messages': {
+      id: '/api/chat/messages'
+      path: '/api/chat/messages'
+      fullPath: '/api/chat/messages'
+      preLoaderRoute: typeof ApiChatMessagesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/chat/inbox': {
+      id: '/api/chat/inbox'
+      path: '/api/chat/inbox'
+      fullPath: '/api/chat/inbox'
+      preLoaderRoute: typeof ApiChatInboxRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/bumpa/connect': {
@@ -1748,6 +1828,8 @@ const rootRouteChildren: RootRouteChildren = {
   StoreProfileStoreUsernameRoute: StoreProfileStoreUsernameRoute,
   ApiAccountDeleteRoute: ApiAccountDeleteRoute,
   ApiBumpaConnectRoute: ApiBumpaConnectRoute,
+  ApiChatInboxRoute: ApiChatInboxRoute,
+  ApiChatMessagesRoute: ApiChatMessagesRoute,
   ApiImportCsvRoute: ApiImportCsvRoute,
   ApiImportStartRoute: ApiImportStartRoute,
   ApiImportStatusRoute: ApiImportStatusRoute,
@@ -1760,7 +1842,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiStorePiecesUploadImageRoute: ApiStorePiecesUploadImageRoute,
   ApiStoreThemeUploadImageRoute: ApiStoreThemeUploadImageRoute,
   ApiStorePayoutRoute: ApiStorePayoutRoute,
+  ApiSupportMessagesMineRoute: ApiSupportMessagesMineRoute,
   ApiSupportMessagesReplyRoute: ApiSupportMessagesReplyRoute,
+  ApiSupportMessagesStaffRoute: ApiSupportMessagesStaffRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

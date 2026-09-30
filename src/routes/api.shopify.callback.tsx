@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin as supabase } from "@/lib/integrations/my-supabase/client.server";
+import { encryptField, fieldContext } from "@/lib/field-encryption.server";
 
 async function hmacHex(secret: string, message: string) {
   const key = await crypto.subtle.importKey(
@@ -72,11 +73,22 @@ export const Route = createFileRoute("/api/shopify/callback")({
 
         const { access_token, scope } = await tokenRes.json();
 
+        // Stored encrypted; the import worker decrypts it with the same
+        // fieldContext. No key configured means no connection, not a
+        // plaintext token.
+        let sealedToken: string;
+        try {
+          sealedToken = await encryptField(access_token, fieldContext.shopifyAccessToken(storeId));
+        } catch (err) {
+          console.error("Shopify callback: could not encrypt token", err);
+          return Response.json({ error: "could not save the connection" }, { status: 500 });
+        }
+
         const { error } = await supabase.from("store_credentials").upsert(
           {
             store_id: storeId,
             shopify_shop_domain: shop,
-            shopify_access_token: access_token,
+            shopify_access_token: sealedToken,
             shopify_connected_at: new Date().toISOString(),
             shopify_scopes: scope,
           },
@@ -84,7 +96,8 @@ export const Route = createFileRoute("/api/shopify/callback")({
         );
 
         if (error) {
-          return Response.json({ error: error.message }, { status: 500 });
+          console.error("Shopify callback: could not save credentials", error);
+          return Response.json({ error: "could not save the connection" }, { status: 500 });
         }
 
         return Response.redirect("https://oakmonte.store/store?shopify=connected", 302);

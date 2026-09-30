@@ -114,10 +114,10 @@ export function useThread(
           table: "messages",
           filter: `conversation_id=eq.${conversationId}`,
         },
-        (payload) => {
-          const message = fromMessageRow(payload.new as MessageRow);
-          setMessages((current) => upsert(current, message));
-        },
+        (payload) =>
+          void openRealtime(payload.new as MessageRow).then((message) => {
+            if (!cancelled && message) setMessages((current) => upsert(current, message));
+          }),
       )
       .on(
         "postgres_changes",
@@ -127,15 +127,16 @@ export function useThread(
           table: "messages",
           filter: `conversation_id=eq.${conversationId}`,
         },
-        (payload) => {
-          const message = fromMessageRow(payload.new as MessageRow);
-          setMessages((current) =>
-            current.map((item) => (item.id === message.id ? { ...message } : item)),
-          );
-          setExtraQuotes((current) =>
-            current[message.id] ? { ...current, [message.id]: message } : current,
-          );
-        },
+        (payload) =>
+          void openRealtime(payload.new as MessageRow).then((message) => {
+            if (cancelled || !message) return;
+            setMessages((current) =>
+              current.map((item) => (item.id === message.id ? { ...message } : item)),
+            );
+            setExtraQuotes((current) =>
+              current[message.id] ? { ...current, [message.id]: message } : current,
+            );
+          }),
       )
       .on(
         "postgres_changes",
@@ -531,6 +532,15 @@ export function useThread(
   };
 }
 
+/** A realtime row carries the body as stored — encrypted. A row with no body
+ *  (a voice note, a delete) is usable as it arrives; one with a body is
+ *  re-read through the server, which decrypts it. */
+async function openRealtime(row: MessageRow): Promise<ChatMessage | null> {
+  if (row.body == null) return fromMessageRow(row);
+  const [message] = await api.fetchMessagesById([row.id]);
+  return message ?? null;
+}
+
 function quotesHas(list: ChatMessage[], id: string) {
   return list.some((message) => message.id === id);
 }
@@ -578,6 +588,8 @@ export function useSupportThread(
   options: { onError?: (message: string) => void } = {},
 ): ThreadController {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const messagesRef = useRef<ChatMessage[]>([]);
+  messagesRef.current = messages;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const optionsRef = useRef(options);
@@ -589,17 +601,16 @@ export function useSupportThread(
     let cancelled = false;
     setLoading(true);
     setError(null);
-    void chatDb
-      .from("support_messages")
-      .select("id, user_id, body, sender, created_at")
-      .eq("user_id", me)
-      .order("created_at", { ascending: true })
-      .then(({ data, error: loadError }) => {
-        if (cancelled) return;
-        if (loadError) setError("Messages are temporarily unavailable.");
-        else
-          setMessages(((data ?? []) as SupportMessageRow[]).map((row) => fromSupportRow(row, me)));
-        setLoading(false);
+    void api
+      .fetchSupportMessages()
+      .then((rows) => {
+        if (!cancelled) setMessages(rows.map((row) => fromSupportRow(row, me)));
+      })
+      .catch(() => {
+        if (!cancelled) setError("Messages are temporarily unavailable.");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
       });
 
     const channel = chatDb
@@ -613,19 +624,22 @@ export function useSupportThread(
           filter: `user_id=eq.${me}`,
         },
         (payload) => {
-          const message = fromSupportRow(payload.new as SupportMessageRow, me);
-          setMessages((current) => {
-            if (current.some((item) => item.id === message.id)) return current;
-            // Our own insert echoing back: swap out the optimistic copy.
-            const optimistic = current.find(
-              (item) => item.status && item.senderId === me && item.body === message.body,
-            );
-            if (optimistic) {
-              pending.current.delete(optimistic.id);
-              return current.map((item) => (item.id === optimistic.id ? message : item));
-            }
-            return [...current, message];
-          });
+          const row = payload.new as SupportMessageRow;
+          // Our own send already swapped its optimistic copy for the saved row
+          // (see `send`), so an echo we already hold needs nothing. Anything
+          // else — a staff reply, or a send from another device — arrives
+          // encrypted and is re-read through the server.
+          if (messagesRef.current.some((item) => item.id === row.id)) return;
+          void api
+            .fetchSupportMessages({ id: row.id })
+            .then(([opened]) => {
+              if (cancelled || !opened) return;
+              const message = fromSupportRow(opened, me);
+              setMessages((current) =>
+                current.some((item) => item.id === message.id) ? current : [...current, message],
+              );
+            })
+            .catch(() => undefined);
         },
       )
       .subscribe();
@@ -642,19 +656,18 @@ export function useSupportThread(
       setMessages((current) =>
         current.map((item) => (item.id === id ? { ...item, status: "sending" } : item)),
       );
-      const { data, error: sendError } = await chatDb
-        .from("support_messages")
-        .insert({ user_id: me, body: text, sender: "user" })
-        .select("id, user_id, body, sender, created_at")
-        .single();
-      if (sendError || !data) {
+      let data: SupportMessageRow;
+      try {
+        data = await api.sendSupportMessage(text);
+      } catch {
         setMessages((current) =>
           current.map((item) => (item.id === id ? { ...item, status: "failed" } : item)),
         );
         optionsRef.current.onError?.("Your message could not be sent. Please try again.");
         return;
       }
-      const saved = fromSupportRow(data as SupportMessageRow, me);
+      pending.current.delete(id);
+      const saved = fromSupportRow(data, me);
       setMessages((current) => {
         const withoutEcho = current.filter((item) => item.id !== saved.id);
         return withoutEcho.map((item) => (item.id === id ? saved : item));
