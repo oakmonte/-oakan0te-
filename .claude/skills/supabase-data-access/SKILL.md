@@ -136,6 +136,10 @@ Server-only, `process.env` only, never `import.meta.env`:
 `SHOPIFY_REDIRECT_URI`, `SHIPBUBBLE_API_KEY`, `SUPPORT_REPLY_SECRET` (gates
 `api.support-messages.reply.ts` — the only caller that may write a `sender: "support"` row; unset means
 that route 401s on every call, see `POSTPONED.md` 0.5).
+`DATA_ENCRYPTION_KEY` (32 bytes base64, plus optional comma-separated `DATA_ENCRYPTION_KEYS_OLD`
+for rotation) — the key for `field-encryption.server.ts`. Message bodies, `store_credentials`
+tokens and `store_payout_accounts.account_number` are stored as `enc:v1:...` ciphertext bound
+to their row; losing the key loses the data. See `POSTPONED.md` §1.5.
 
 The URL and publishable key in `my-supabase/config.ts` are checked into the repo on purpose — those are
 meant to be public. The service-role key is not, and must never acquire a `VITE_` prefix, which would

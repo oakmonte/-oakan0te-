@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin as supabase } from "@/lib/integrations/my-supabase/client.server";
 import { requireOwnStore } from "@/lib/server-auth";
+import { decryptField, encryptField, fieldContext } from "@/lib/field-encryption.server";
 
 // Responses carry a bank account number. Keep them out of the browser's disk
 // cache and out of any shared cache that might key on URL alone.
@@ -11,6 +12,21 @@ const PRIVATE = {
 
 function privateJson(body: unknown, init?: ResponseInit) {
   return Response.json(body, { ...init, headers: { ...PRIVATE, ...init?.headers } });
+}
+
+type StoredAccount = { bank_name: string; account_number: string; status: string };
+
+// account_number is stored encrypted (field-encryption.server.ts) and only
+// ever decrypted here, on its way back to the store's own owner.
+async function openAccount(storeId: string, row: StoredAccount | null) {
+  if (!row) return null;
+  return {
+    ...row,
+    account_number: await decryptField(
+      row.account_number,
+      fieldContext.payoutAccountNumber(storeId),
+    ),
+  };
 }
 
 // store_payout_accounts has RLS enabled with zero policies, so the browser
@@ -48,7 +64,12 @@ export const Route = createFileRoute("/api/store/payout")({
           return Response.json({ error: "Could not load payout account" }, { status: 500 });
         }
 
-        return privateJson({ account: data });
+        try {
+          return privateJson({ account: await openAccount(auth.value.storeId, data) });
+        } catch (err) {
+          console.error("payout GET: could not decrypt", err);
+          return Response.json({ error: "Could not load payout account" }, { status: 500 });
+        }
       },
       POST: async ({ request }: { request: Request }) => {
         const auth = await requireOwnStore(request);
@@ -84,6 +105,19 @@ export const Route = createFileRoute("/api/store/payout")({
           return Response.json({ error: "Bank name is too long" }, { status: 400 });
         }
 
+        let sealedNumber: string;
+        try {
+          sealedNumber = await encryptField(
+            accountNumber,
+            fieldContext.payoutAccountNumber(auth.value.storeId),
+          );
+        } catch (err) {
+          // No key configured. Refuse rather than store a bank account number
+          // in the clear.
+          console.error("payout POST: could not encrypt", err);
+          return Response.json({ error: "Could not save payout account" }, { status: 500 });
+        }
+
         const { data, error } = await supabase
           .from("store_payout_accounts")
           .upsert(
@@ -91,7 +125,7 @@ export const Route = createFileRoute("/api/store/payout")({
               // From the session, never from the request body.
               store_id: auth.value.storeId,
               bank_name: bankName,
-              account_number: accountNumber,
+              account_number: sealedNumber,
               status: "pending",
               updated_at: new Date().toISOString(),
             },
@@ -107,7 +141,9 @@ export const Route = createFileRoute("/api/store/payout")({
           return Response.json({ error: "Could not save payout account" }, { status: 500 });
         }
 
-        return privateJson({ account: data });
+        // The number just saved, not a decrypt of what came back — same value,
+        // one less thing to fail after the write already succeeded.
+        return privateJson({ account: { ...data, account_number: accountNumber } });
       },
     },
   },

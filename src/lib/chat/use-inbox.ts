@@ -84,15 +84,9 @@ export function useInbox(me: string | null, sessionLoading: boolean) {
 
   const loadSupport = useCallback(async () => {
     if (!me) return;
-    const { data } = await chatDb
-      .from("support_messages")
-      .select("id, user_id, body, sender, created_at")
-      .eq("user_id", me)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    const [latest] = await api.fetchSupportMessages({ latest: true }).catch(() => []);
     setSupport((current) => ({
-      ...supportChat((data as SupportMessageRow | null) ?? null, me),
+      ...supportChat(latest ?? null, me),
       pinnedAt: current.pinnedAt,
       muted: current.muted,
       archivedAt: current.archivedAt,

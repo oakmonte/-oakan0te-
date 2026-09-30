@@ -127,3 +127,7 @@ in these docs). Store scoping itself is real (`useActiveStore`); the RLS migrati
 reviewed but held pending explicit sign-off — see POSTPONED §1.1.
 The direct-messages migration is written but not applied — `/messages` shows Support only until
 it is (POSTPONED §1.4).
+Message bodies, third-party tokens and payout account numbers are encrypted at the app layer (not
+E2E); the rollout order (key → relax migration → deploy → backfill → require migration) is
+POSTPONED §1.5. Never
+write those columns without `encryptField`, and never read message bodies from the browser.

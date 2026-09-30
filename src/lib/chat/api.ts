@@ -1,17 +1,22 @@
 /**
- * Every messaging read and write the browser makes. All of it goes through the
- * publishable-key client; what a caller can see or change is decided by the
- * RLS policies and column grants in 20260927120000_add_direct_messages.sql,
- * not by anything here.
+ * Every messaging read and write the browser makes. Anything that carries a
+ * message body goes through our own api.chat.* / api.support-messages.*
+ * routes, because bodies are encrypted at rest and only the server holds the
+ * key (see chat.server.ts). Everything else goes straight through the
+ * publishable-key client. Either way, what a caller can see or change is
+ * decided by the RLS policies and column grants in the messaging migrations —
+ * the routes query as the caller — not by anything here.
  */
-import type { Json } from "@/lib/integrations/my-supabase/types";
+import { authedFetch } from "@/lib/authed-fetch";
 import {
   CHAT_MEDIA_BUCKET,
   chatDb,
   isMissingSchema,
+  type InboxRow,
   type MemberRow,
   type MessageKind,
   type MessageRow,
+  type SupportMessageRow,
 } from "./db";
 import { fromInboxRow, fromMessageRow, type Chat, type ChatMessage, type MediaMeta } from "./model";
 
@@ -30,12 +35,37 @@ function fail(error: { message: string; code?: string } | null, fallback: string
   throw new ChatError(error?.message || fallback, error?.code);
 }
 
+/** Calls one of the encrypted-body routes. Errors come back as ChatError
+ *  carrying the Postgres code, so callers can tell a block (42501) or an
+ *  unapplied migration (PGRST202/205) apart exactly as before. */
+async function chatRequest<T>(path: string, fallback: string, init?: RequestInit): Promise<T> {
+  let response: Response;
+  try {
+    response = await authedFetch(path, {
+      ...init,
+      headers: { "Content-Type": "application/json", ...init?.headers },
+    });
+  } catch {
+    throw new ChatError(fallback);
+  }
+  const payload = (await response.json().catch(() => null)) as
+    | (T & { error?: string; code?: string })
+    | null;
+  if (!response.ok || !payload) {
+    if (payload?.code === "42501") throw new ChatError("You can't message this account", "blocked");
+    throw new ChatError(payload?.error || fallback, payload?.code);
+  }
+  return payload;
+}
+
 /* ---------- inbox ---------- */
 
 export async function listInbox(me: string): Promise<Chat[]> {
-  const { data, error } = await chatDb.rpc("list_inbox");
-  if (error) fail(error, "Could not load your chats");
-  return (data ?? []).map((row) => fromInboxRow(row, me));
+  const { rows } = await chatRequest<{ rows: InboxRow[] }>(
+    "/api/chat/inbox",
+    "Could not load your chats",
+  );
+  return rows.map((row) => fromInboxRow(row, me));
 }
 
 export async function touchPresence(): Promise<void> {
@@ -176,56 +206,36 @@ export async function report(input: {
 
 /* ---------- messages ---------- */
 
-const MESSAGE_COLUMNS =
-  "id, conversation_id, sender_id, kind, body, media_path, media_meta, reply_to_id, forwarded, edited_at, deleted_at, created_at";
-
-/** One page, newest first from the database, returned oldest-first. Hidden
- *  ("deleted for me") messages and anything before a clear are dropped. */
+/** One page, oldest-first. Hidden ("deleted for me") messages and anything
+ *  before a clear are dropped server-side. */
 export async function fetchMessages(
   conversationId: string,
-  me: string,
+  _me: string,
   options: { before?: string; clearedAt?: string | null },
 ): Promise<{ messages: ChatMessage[]; hasMore: boolean }> {
-  let query = chatDb
-    .from("messages")
-    .select(MESSAGE_COLUMNS)
-    .eq("conversation_id", conversationId)
-    .order("created_at", { ascending: false })
-    .limit(PAGE_SIZE);
-  if (options.before) query = query.lt("created_at", options.before);
-  if (options.clearedAt) query = query.gt("created_at", options.clearedAt);
-  const { data, error } = await query;
-  if (error) fail(error, "Could not load messages");
-  const rows = (data ?? []) as MessageRow[];
-  const hidden = await fetchHidden(
-    rows.map((row) => row.id),
-    me,
+  const params = new URLSearchParams({ conversationId });
+  if (options.before) params.set("before", options.before);
+  if (options.clearedAt) params.set("clearedAt", options.clearedAt);
+  const page = await chatRequest<{ messages: MessageRow[]; hasMore: boolean }>(
+    `/api/chat/messages?${params}`,
+    "Could not load messages",
   );
-  return {
-    messages: rows
-      .filter((row) => !hidden.has(row.id))
-      .reverse()
-      .map(fromMessageRow),
-    hasMore: rows.length === PAGE_SIZE,
-  };
+  return { messages: page.messages.map(fromMessageRow), hasMore: page.hasMore };
 }
 
-async function fetchHidden(messageIds: string[], me: string): Promise<Set<string>> {
-  if (messageIds.length === 0) return new Set();
-  const { data } = await chatDb
-    .from("message_hides")
-    .select("message_id")
-    .eq("user_id", me)
-    .in("message_id", messageIds);
-  return new Set((data ?? []).map((row) => row.message_id));
-}
-
-/** Messages a reply points at that aren't on a loaded page. */
+/** Specific messages by id: quotes older than the loaded pages, and a
+ *  realtime change, whose payload only carries the ciphertext. */
 export async function fetchMessagesById(ids: string[]): Promise<ChatMessage[]> {
   if (ids.length === 0) return [];
-  const { data, error } = await chatDb.from("messages").select(MESSAGE_COLUMNS).in("id", ids);
-  if (error) return [];
-  return ((data ?? []) as MessageRow[]).map(fromMessageRow);
+  try {
+    const { messages } = await chatRequest<{ messages: MessageRow[] }>(
+      `/api/chat/messages?ids=${ids.map(encodeURIComponent).join(",")}`,
+      "Could not load messages",
+    );
+    return messages.map(fromMessageRow);
+  } catch {
+    return [];
+  }
 }
 
 export async function fetchReactions(conversationId: string) {
@@ -249,6 +259,8 @@ export async function isBlockedBy(me: string, other: string): Promise<boolean> {
 export async function insertMessage(input: {
   id: string;
   conversationId: string;
+  /** Unused: the server takes the sender from the session. Kept so callers
+   *  read the same as before. */
   senderId: string;
   kind: MessageKind;
   body?: string | null;
@@ -257,32 +269,55 @@ export async function insertMessage(input: {
   replyToId?: string | null;
   forwarded?: boolean;
 }): Promise<ChatMessage> {
-  const { data, error } = await chatDb
-    .from("messages")
-    .insert({
-      id: input.id,
-      conversation_id: input.conversationId,
-      sender_id: input.senderId,
-      kind: input.kind,
-      body: input.body?.trim() ? input.body.trim() : null,
-      media_path: input.mediaPath ?? null,
-      media_meta: (input.meta ?? null) as Json,
-      reply_to_id: input.replyToId ?? null,
-      forwarded: input.forwarded ?? false,
-    })
-    .select(MESSAGE_COLUMNS)
-    .single();
-  if (error || !data) {
-    // An RLS refusal on insert, for a member, can only be a block.
-    if (error?.code === "42501") throw new ChatError("You can't message this account", "blocked");
-    fail(error, "Message not sent");
-  }
-  return fromMessageRow(data as MessageRow);
+  const { message } = await chatRequest<{ message: MessageRow }>(
+    "/api/chat/messages",
+    "Message not sent",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        id: input.id,
+        conversationId: input.conversationId,
+        kind: input.kind,
+        body: input.body?.trim() ? input.body.trim() : null,
+        mediaPath: input.mediaPath ?? null,
+        meta: input.meta ?? null,
+        replyToId: input.replyToId ?? null,
+        forwarded: input.forwarded ?? false,
+      }),
+    },
+  );
+  return fromMessageRow(message);
 }
 
 export async function editMessage(id: string, body: string): Promise<void> {
-  const { error } = await chatDb.from("messages").update({ body: body.trim() }).eq("id", id);
-  if (error) fail(error, "Could not edit the message");
+  await chatRequest("/api/chat/messages", "Could not edit the message", {
+    method: "PATCH",
+    body: JSON.stringify({ id, body: body.trim() }),
+  });
+}
+
+/* ---------- support ---------- */
+
+export async function fetchSupportMessages(
+  options: { latest?: boolean; id?: string } = {},
+): Promise<SupportMessageRow[]> {
+  const params = new URLSearchParams();
+  if (options.latest) params.set("latest", "1");
+  if (options.id) params.set("id", options.id);
+  const { messages } = await chatRequest<{ messages: SupportMessageRow[] }>(
+    `/api/support-messages/mine?${params}`,
+    "Messages are temporarily unavailable.",
+  );
+  return messages;
+}
+
+export async function sendSupportMessage(body: string): Promise<SupportMessageRow> {
+  const { message } = await chatRequest<{ message: SupportMessageRow }>(
+    "/api/support-messages/mine",
+    "Your message could not be sent. Please try again.",
+    { method: "POST", body: JSON.stringify({ body }) },
+  );
+  return message;
 }
 
 export async function deleteForEveryone(message: ChatMessage): Promise<void> {
