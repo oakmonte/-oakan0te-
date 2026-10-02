@@ -47,21 +47,25 @@ Have to be clicked by hand — Auth → Policies / Rate Limits:
 Paystack isn't wired. `store_payout_accounts.status` is always written `"pending"` because
 nothing verifies an account.
 
-### 1.4 Direct messages · migration written, not applied
+### 1.4 Direct messages · applied, follow-ups open
 
-`/messages` is built against `supabase/migrations/20260927120000_add_direct_messages.sql`
-(conversations, messages, reactions, blocks, reports, private `chat-media` bucket — RLS on
-every table from the start). Until it's applied, signed-in users see Support only plus a
-"switching on shortly" note. After applying: regenerate `my-supabase/types.ts` and delete the
-hand-written rows in `src/lib/chat/db.ts`. Typing indicators ride public broadcast channels
-keyed by user id — fine for launch, move to private Realtime channels later.
+`/messages` is built against the direct-messages migrations (conversations, messages, reactions,
+blocks, reports, private `chat-media` bucket — RLS on every table from the start), **applied**
+(`add_direct_messages` / `harden_direct_messages` are in the database's migration history).
+Still to do: regenerate `my-supabase/types.ts` and delete the hand-written rows in
+`src/lib/chat/db.ts`. Typing indicators ride public broadcast channels keyed by user id — fine
+for launch, move to private Realtime channels later.
 
-The read-receipts toggle (Settings → Messages) needs `20260929120000_read_receipts_setting.sql`
-applied. Until then the toggle stays hidden and ticks behave as before. After applying:
-regenerate types, then check on two accounts that ticks and "online" still update live (they now
-ride `conversation_read_receipts` / `conversation_presence`) and that with receipts off neither
-side turns blue. Contract later: drop `conversation_members.last_delivered_at` / `last_active_at`
-once no deployed client predates the migration.
+Read receipts: `20260929120000_read_receipts_setting.sql` was **applied 2026-10-02 by pasting
+it into the Supabase SQL editor**, so it is not in the migration history table — a later
+`supabase db push` may try to re-run it and fail on "already exists"; mark it applied
+(`supabase migration repair`) first. Verified afterwards: 3 new tables, 11 backfilled rows each
+(= `conversation_members`), the old cross-member SELECT policy gone, 4 triggers, both tables in
+realtime. Still to do: regenerate types, then check on two accounts that ticks and "online" still
+update live (they now ride `conversation_read_receipts` / `conversation_presence`) and that with
+receipts off neither side turns blue. Contract later: drop
+`conversation_members.last_delivered_at` / `last_active_at` once no deployed client predates the
+migration.
 
 ### 1.5 Encrypted secrets · code done, rollout pending
 
