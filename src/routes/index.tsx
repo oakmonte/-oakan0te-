@@ -864,7 +864,7 @@ function OakmonteLanding() {
                   only releases once your customer's happy. No chargeback roulette.
                 </p>
                 <Link to="/sellers" className="cta-btn on-black">
-                  See more 
+                  See more
                 </Link>
                 <p className="stars-line">
                   <span className="stars">★★★★★</span>Loved by our early sellers
