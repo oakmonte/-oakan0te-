@@ -524,7 +524,11 @@ const CSS = `
 /* Buttons: instant press feedback (emil-design-eng) -- scale(.97) on
    :active, hover lift gated to real pointers so a tap on touch doesn't
    leave the button stuck "lifted" (Touch device hover states). */
-.oak-sellers .nav-actions{display:flex;align-items:center;gap:22px;font-size:12px}
+.oak-sellers .nav-actions{display:flex;align-items:center;gap:44px;font-size:12px}
+/* Desktop: the button's label sits on the same baseline as the links and Log in
+   (they are all nudged down 19px to meet the wordmark). translate, not
+   transform, so the hover lift above still composes with it. */
+@media (min-width:801px){.oak-sellers .nav-actions .pill-button{padding:10px 20px;translate:0 19px}}
 .oak-sellers .nav-login{display:inline-block;transform:translateY(19px)}
 .oak-sellers .pill-button{display:inline-flex;align-items:center;justify-content:center;gap:11px;border-radius:999px;padding:14px 20px;font-size:12px;font-weight:800;transition:transform var(--duration-fast) var(--ease-out),box-shadow var(--duration-fast) var(--ease-out),background var(--duration-fast) var(--ease-out);position:relative;overflow:hidden}
 .oak-sellers .pill-button::after{content:'';position:absolute;inset:0;width:35%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.42),transparent);transform:translateX(-140%);animation:oakSellersShimmer 5s 2s ease-in-out infinite}
@@ -553,7 +557,7 @@ const CSS = `
 .oak-sellers .hero-buttons{display:flex;align-items:center;gap:27px;margin-top:32px;animation:oakSellersRise .9s .5s ease both}
 .oak-sellers .text-link{display:inline-flex;align-items:center;gap:8px;font:11px 'DM Mono',monospace;transition:color var(--duration-fast) var(--ease-out)}
 .oak-sellers .hero-link{color:#344054}
-.oak-sellers .hero-side-note{position:absolute;right:7vw;bottom:32vw;z-index:1;display:flex;flex-direction:column;gap:16px;color:#667085;font:10px 'DM Mono',monospace}
+.oak-sellers .hero-side-note{position:absolute;right:7vw;bottom:calc(min(30.7vw,436px) + 171px);z-index:1;display:flex;flex-direction:column;gap:16px;color:#667085;font:10px 'DM Mono',monospace}
 .oak-sellers .hero-side-note strong{color:#111827;font:600 24px/1.2 Georgia,serif;letter-spacing:-.05em}
 
 .oak-sellers .ticker-section{display:flex;align-items:center;gap:40px;padding:20px 0;overflow:hidden;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
