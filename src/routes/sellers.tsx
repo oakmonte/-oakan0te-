@@ -324,6 +324,11 @@ function SellersLanding() {
               </div>
             );
           })}
+          <div className="feature-more">
+            <Link className="pill-button pill-button-acid" to="/creators">
+              See more about creators <ArrowUpRight size={15} />
+            </Link>
+          </div>
         </Reveal>
       </section>
 
@@ -539,6 +544,7 @@ const CSS = `
 .oak-sellers .pill-button-light{background:#111827;color:#fff}
 .oak-sellers .pill-button-acid{background:var(--accent-blue);color:#fff}
 .oak-sellers .pill-button-dark{background:#111827;color:#fff}
+.oak-sellers .feature-more{margin-top:32px}
 .oak-sellers .menu-button{display:none;background:none;border:0;cursor:pointer;padding:5px}
 
 .oak-sellers .hero{min-height:750px;height:100vh;position:relative;display:flex;align-items:flex-end;padding:0 7vw 4vw;overflow:hidden;background:linear-gradient(120deg,#fff 0%,#f4f7fb 52%,#eaf1ff 100%)}
