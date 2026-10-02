@@ -351,9 +351,20 @@ export async function setReaction(messageId: string, me: string, emoji: string |
   }
   const { error } = await chatDb
     .from("message_reactions")
-    .upsert({ message_id: messageId, user_id: me, emoji }, { onConflict: "message_id,user_id" });
+    // conversation_id is filled by the message_reactions_set_conversation trigger;
+    // the generated Insert type cannot know that, so it is cast in.
+    .upsert({ message_id: messageId, user_id: me, emoji } as ReactionInsert, {
+      onConflict: "message_id,user_id",
+    });
   if (error) fail(error, "Could not react");
 }
+
+type ReactionInsert = {
+  message_id: string;
+  user_id: string;
+  emoji: string;
+  conversation_id: string;
+};
 
 /* ---------- media ---------- */
 
