@@ -175,6 +175,12 @@ function SellersLanding() {
           <a href="#plans" onClick={() => setMenuOpen(false)}>
             What's included
           </a>
+          <Link to="/creators" onClick={() => setMenuOpen(false)}>
+            Creators
+          </Link>
+          <Link to="/" onClick={() => setMenuOpen(false)}>
+            Main
+          </Link>
         </nav>
         <div className="nav-actions">
           <Link className="nav-login" to="/sign-in">

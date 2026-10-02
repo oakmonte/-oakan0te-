@@ -622,6 +622,7 @@ function CreatorsLanding() {
   const barRef = useRef<HTMLDivElement | null>(null);
   const marqRef = useRef<HTMLDivElement | null>(null);
   const phoneHostRef = useRef<HTMLDivElement | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const tlRef = useRef<HTMLDivElement | null>(null);
   const fillRef = useRef<HTMLDivElement | null>(null);
   const [active, setActive] = useState(0);
@@ -713,9 +714,29 @@ function CreatorsLanding() {
               <span className="word">akmonte</span>
               <small>CREATED TO CREATE.</small>
             </Link>
-            <Link className="btn ghost" to="/sign-in">
-              Sign in
-            </Link>
+            <div className={menuOpen ? "links is-open" : "links"}>
+              <Link to="/" onClick={() => setMenuOpen(false)}>
+                Main
+              </Link>
+              <Link to="/sellers" onClick={() => setMenuOpen(false)}>
+                Sellers
+              </Link>
+            </div>
+            <div className="nav-end">
+              <Link className="btn ghost" to="/sign-in">
+                Sign in
+              </Link>
+              <button
+                type="button"
+                className="menu-btn"
+                aria-label={menuOpen ? "Close menu" : "Open menu"}
+                aria-expanded={menuOpen}
+                onClick={() => setMenuOpen((v) => !v)}
+              >
+                <span />
+                <span />
+              </button>
+            </div>
           </nav>
         </div>
       </header>
@@ -785,6 +806,11 @@ function CreatorsLanding() {
           <Link className="btn" to="/become-a-creator">
             Come join us. It's free.
           </Link>
+          <div>
+            <Link className="btn ghost back" to="/">
+              Back to landing page
+            </Link>
+          </div>
         </div>
       </main>
 
@@ -840,6 +866,22 @@ const CSS = `
 @media (max-width:640px){.oak-creators .logo small{margin-left:10px;font-size:7px;letter-spacing:.1em}.oak-creators header .btn{padding:8px 14px;font-size:13px;white-space:nowrap}}
 @media (max-width:350px){.oak-creators .logo small{display:none}}
 
+.oak-creators .links{display:flex;gap:32px;margin-left:auto;margin-right:28px;font-weight:600;font-size:15px}
+.oak-creators .links a{text-decoration:none;color:var(--mut);transition:color .2s}
+.oak-creators .links a:hover{color:var(--ink)}
+.oak-creators .nav-end{display:flex;align-items:center;gap:10px}
+.oak-creators .menu-btn{display:none;width:40px;height:40px;border:0;background:none;cursor:pointer;position:relative}
+.oak-creators .menu-btn span{position:absolute;left:10px;right:10px;height:2px;background:var(--ink);border-radius:2px;transition:transform .25s var(--ease)}
+.oak-creators .menu-btn span:first-child{top:15px}
+.oak-creators .menu-btn span:last-child{top:23px}
+.oak-creators .menu-btn[aria-expanded="true"] span:first-child{transform:translateY(4px) rotate(45deg)}
+.oak-creators .menu-btn[aria-expanded="true"] span:last-child{transform:translateY(-4px) rotate(-45deg)}
+.oak-creators .cta .back{margin-top:14px}
+@media (max-width:760px){
+  .oak-creators .menu-btn{display:block}
+  .oak-creators .links{display:none;position:absolute;left:0;right:0;top:100%;margin:0;padding:18px 22px 22px;flex-direction:column;gap:18px;font-size:17px;background:#fff;border-bottom:1px solid var(--line)}
+  .oak-creators .links.is-open{display:flex}
+}
 .oak-creators .btn{position:relative;overflow:hidden;display:inline-block;background:var(--blue);color:#fff;padding:14px 26px;border-radius:999px;font-weight:600;font-size:16px;line-height:1.55;text-decoration:none;border:0;cursor:pointer;transition:transform .2s var(--ease),background .2s,color .2s}
 .oak-creators .btn::after{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.5) 50%,transparent 70%);transform:translateX(-120%);animation:ocShine 3.5s infinite}
 .oak-creators .btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--ink)}
@@ -851,7 +893,7 @@ const CSS = `
 .oak-creators .btn:active{transform:scale(.97);transition-duration:.1s}
 
 .oak-creators .hero{display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center;padding:40px 0 70px}
-.oak-creators .hero h1{font-size:clamp(46px,8.4vw,104px);font-weight:800}
+.oak-creators .hero h1{font-size:clamp(46px,6.2vw,76px)}
 .oak-creators .hero h1 .w{display:inline-block;overflow:hidden;vertical-align:top;padding-bottom:.14em;margin-bottom:-.06em}
 .oak-creators .hero h1 .w span{display:inline-block;animation:ocWordUp 1s var(--ease-expo) both;animation-delay:calc(var(--i,0) * 80ms + 100ms)}
 .oak-creators .hero p.lead{max-width:34ch;color:var(--mut);font-size:19px;margin:24px 0 30px}
