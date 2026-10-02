@@ -101,7 +101,9 @@ function GetTheWebappPage() {
       </p>
 
       {!videoFailed && (
-        <div className="mb-6 overflow-hidden rounded-2xl bg-sd-soft">
+        <div
+          className={`mb-6 overflow-hidden rounded-2xl bg-sd-soft ${ios ? "mx-auto max-w-[200px]" : ""}`}
+        >
           <video
             src={ios ? iosExplainerSrc : ANDROID_EXPLAINER_SRC}
             className="h-auto w-auto max-h-[320px] max-w-full"
