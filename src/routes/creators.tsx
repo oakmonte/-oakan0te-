@@ -771,6 +771,11 @@ function CreatorsLanding() {
                 </div>
               ))}
             </div>
+            <div className="more">
+              <Link className="btn" to="/sellers">
+                See more about sellers
+              </Link>
+            </div>
           </div>
         </section>
 
@@ -877,6 +882,7 @@ const CSS = `
 .oak-creators .menu-btn[aria-expanded="true"] span:first-child{transform:translateY(4px) rotate(45deg)}
 .oak-creators .menu-btn[aria-expanded="true"] span:last-child{transform:translateY(-4px) rotate(-45deg)}
 .oak-creators .cta .back{margin-top:14px}
+.oak-creators .more{margin-top:40px}
 @media (max-width:760px){
   .oak-creators .menu-btn{display:block}
   .oak-creators .links{display:none;position:absolute;left:0;right:0;top:100%;margin:0;padding:18px 22px 22px;flex-direction:column;gap:18px;font-size:17px;background:#fff;border-bottom:1px solid var(--line)}
