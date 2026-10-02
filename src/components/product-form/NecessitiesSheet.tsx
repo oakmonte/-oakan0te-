@@ -6,6 +6,7 @@ import { VariantOption, VariantRow } from "@/components/product-form/VariantMatr
 import {
   getSizeChartForCategory,
   isFootwearCategory,
+  getPresetMeasurementsForCategory,
   type ManualSize,
   type SizeMeasurements,
 } from "@/lib/size-chart-config";
@@ -296,6 +297,7 @@ export function NecessitiesSheet({
             manualSize={manualSize}
             initialMeasurements={sizeMeasurements}
             isFootwear={isFootwearCategory(categoryPath)}
+            presetLabels={getPresetMeasurementsForCategory(categoryPath)}
             onSave={(m, picked) => {
               onChangeSizeMeasurements(m);
               onChangeManualSize(picked);

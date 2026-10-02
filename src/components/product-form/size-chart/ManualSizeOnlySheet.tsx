@@ -25,6 +25,7 @@ export function ManualSizeOnlySheet({
   manualSize,
   initialMeasurements,
   isFootwear = false,
+  presetLabels = [],
   onSave,
   onClose,
 }: {
@@ -34,6 +35,9 @@ export function ManualSizeOnlySheet({
   // Shoe categories pick from shoe numbers, not the clothing ladder — a
   // sneaker seller was previously offered "M" and dress sizes 0-20.
   isFootwear?: boolean;
+  // What this category normally needs (getPresetMeasurementsForCategory),
+  // shown as ready-to-fill rows so the seller never faces a blank list.
+  presetLabels?: string[];
   onSave: (measurements: SizeMeasurements, manualSize: ManualSize | null) => void;
   onClose: () => void;
 }) {
@@ -59,7 +63,20 @@ export function ManualSizeOnlySheet({
 
   const activeSizes = isVariantMode ? variantSizeValues : pickedSize ? [pickedSize.value] : [];
   const currentSize = activeSizes[index];
-  const currentEntries = Object.entries(measurements[currentSize] ?? {});
+  const currentEntries = Object.entries(measurements[currentSize] ?? {}).filter(
+    ([label]) => !presetLabels.includes(label),
+  );
+
+  function setPresetValue(label: string, raw: string) {
+    const value = parseFloat(raw);
+    setMeasurements((prev) => {
+      const next = { ...prev[currentSize] };
+      if (isNaN(value) || value <= 0) delete next[label];
+      else next[label] = value;
+      return { ...prev, [currentSize]: next };
+    });
+    setConfirmEmptySave(false);
+  }
 
   function addEntry() {
     const label = labelDraft.trim();
@@ -179,10 +196,26 @@ export function ManualSizeOnlySheet({
                 )}
               </div>
               <p className="text-xs text-gray-500">
-                There's no illustrated guide for this category yet — add the measurements that
-                matter for this piece yourself (e.g. "Foot length", "Bust"), in cm.
+                {presetLabels.length === 0
+                  ? "Add the measurements that matter for this piece, in cm."
+                  : isFootwear
+                    ? "Measure the insole, in cm. Add anything else that matters below."
+                    : "Lay the piece flat and measure in cm. Fill what applies, and add anything else below."}
               </p>
             </div>
+
+            {presetLabels.length > 0 && (
+              <div className="flex flex-col gap-2">
+                {presetLabels.map((label) => (
+                  <PresetRow
+                    key={`${currentSize}|${label}`}
+                    label={label}
+                    cm={measurements[currentSize]?.[label]}
+                    onChange={(raw) => setPresetValue(label, raw)}
+                  />
+                ))}
+              </div>
+            )}
 
             {currentEntries.length > 0 && (
               <div className="flex flex-col gap-2">
@@ -210,11 +243,13 @@ export function ManualSizeOnlySheet({
 
             <div className="flex items-end gap-2">
               <label className="flex-1 flex flex-col gap-1">
-                <span className="text-xs text-gray-400">Measurement name</span>
+                <span className="text-xs text-gray-400">
+                  {presetLabels.length > 0 ? "Another measurement" : "Measurement name"}
+                </span>
                 <input
                   value={labelDraft}
                   onChange={(e) => setLabelDraft(e.target.value)}
-                  placeholder="e.g. Foot length"
+                  placeholder={presetLabels.length > 0 ? "e.g. Hem width" : "e.g. Length"}
                   className="text-[15px] border border-gray-200 rounded-lg px-3 py-2.5 outline-none focus:border-gray-400"
                 />
               </label>
@@ -275,5 +310,37 @@ export function ManualSizeOnlySheet({
         </div>
       )}
     </div>
+  );
+}
+
+// Keeps its own string so a half-typed "12." isn't parsed back to "12" mid-keystroke.
+function PresetRow({
+  label,
+  cm,
+  onChange,
+}: {
+  label: string;
+  cm: number | undefined;
+  onChange: (raw: string) => void;
+}) {
+  const [draft, setDraft] = useState(cm === undefined ? "" : String(cm));
+  return (
+    <label className="flex items-center justify-between gap-3 border border-gray-200 rounded-xl pl-4 pr-2 py-2">
+      <span className="text-[15px] text-gray-900 truncate">{label}</span>
+      <span className="flex items-center gap-1.5 shrink-0">
+        <input
+          value={draft}
+          onChange={(e) => {
+            const raw = e.target.value.replace(/[^0-9.]/g, "");
+            setDraft(raw);
+            onChange(raw);
+          }}
+          inputMode="decimal"
+          placeholder="0"
+          className="w-20 text-right text-base text-gray-900 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-gray-400"
+        />
+        <span className="text-sm text-gray-500 w-6">cm</span>
+      </span>
+    </label>
   );
 }
