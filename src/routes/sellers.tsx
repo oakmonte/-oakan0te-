@@ -163,17 +163,8 @@ function SellersLanding() {
           <span className="wordmark-tagline">CREATED TO CREATE.</span>
         </a>
         <nav className={menuOpen ? "nav-links is-open" : "nav-links"}>
-          <a href="#why" onClick={() => setMenuOpen(false)}>
-            Why Oakmonte
-          </a>
           <a href="#sellers" onClick={() => setMenuOpen(false)}>
             For sellers
-          </a>
-          <a href="#manufacturers" onClick={() => setMenuOpen(false)}>
-            Manufacturers
-          </a>
-          <a href="#plans" onClick={() => setMenuOpen(false)}>
-            What's included
           </a>
           <Link to="/creators" onClick={() => setMenuOpen(false)}>
             Creators
