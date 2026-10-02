@@ -31,6 +31,7 @@ import { Route as MessagesRouteImport } from './routes/messages'
 import { Route as HomeRouteImport } from './routes/home'
 import { Route as FindYourFitRouteImport } from './routes/find-your-fit'
 import { Route as EditProfileRouteImport } from './routes/edit-profile'
+import { Route as CreatorsRouteImport } from './routes/creators'
 import { Route as CreatePasswordRouteImport } from './routes/create-password'
 import { Route as CreateRouteImport } from './routes/create'
 import { Route as ChooseUsernameRouteImport } from './routes/choose-username'
@@ -203,6 +204,11 @@ const FindYourFitRoute = FindYourFitRouteImport.update({
 const EditProfileRoute = EditProfileRouteImport.update({
   id: '/edit-profile',
   path: '/edit-profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CreatorsRoute = CreatorsRouteImport.update({
+  id: '/creators',
+  path: '/creators',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CreatePasswordRoute = CreatePasswordRouteImport.update({
@@ -534,6 +540,7 @@ export interface FileRoutesByFullPath {
   '/choose-username': typeof ChooseUsernameRoute
   '/create': typeof CreateRouteWithChildren
   '/create-password': typeof CreatePasswordRoute
+  '/creators': typeof CreatorsRoute
   '/edit-profile': typeof EditProfileRoute
   '/find-your-fit': typeof FindYourFitRoute
   '/home': typeof HomeRoute
@@ -620,6 +627,7 @@ export interface FileRoutesByTo {
   '/cart': typeof CartRoute
   '/choose-username': typeof ChooseUsernameRoute
   '/create-password': typeof CreatePasswordRoute
+  '/creators': typeof CreatorsRoute
   '/edit-profile': typeof EditProfileRoute
   '/find-your-fit': typeof FindYourFitRoute
   '/home': typeof HomeRoute
@@ -706,6 +714,7 @@ export interface FileRoutesById {
   '/choose-username': typeof ChooseUsernameRoute
   '/create': typeof CreateRouteWithChildren
   '/create-password': typeof CreatePasswordRoute
+  '/creators': typeof CreatorsRoute
   '/edit-profile': typeof EditProfileRoute
   '/find-your-fit': typeof FindYourFitRoute
   '/home': typeof HomeRoute
@@ -795,6 +804,7 @@ export interface FileRouteTypes {
     | '/choose-username'
     | '/create'
     | '/create-password'
+    | '/creators'
     | '/edit-profile'
     | '/find-your-fit'
     | '/home'
@@ -881,6 +891,7 @@ export interface FileRouteTypes {
     | '/cart'
     | '/choose-username'
     | '/create-password'
+    | '/creators'
     | '/edit-profile'
     | '/find-your-fit'
     | '/home'
@@ -966,6 +977,7 @@ export interface FileRouteTypes {
     | '/choose-username'
     | '/create'
     | '/create-password'
+    | '/creators'
     | '/edit-profile'
     | '/find-your-fit'
     | '/home'
@@ -1054,6 +1066,7 @@ export interface RootRouteChildren {
   ChooseUsernameRoute: typeof ChooseUsernameRoute
   CreateRoute: typeof CreateRouteWithChildren
   CreatePasswordRoute: typeof CreatePasswordRoute
+  CreatorsRoute: typeof CreatorsRoute
   EditProfileRoute: typeof EditProfileRoute
   FindYourFitRoute: typeof FindYourFitRoute
   HomeRoute: typeof HomeRoute
@@ -1257,6 +1270,13 @@ declare module '@tanstack/react-router' {
       path: '/edit-profile'
       fullPath: '/edit-profile'
       preLoaderRoute: typeof EditProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/creators': {
+      id: '/creators'
+      path: '/creators'
+      fullPath: '/creators'
+      preLoaderRoute: typeof CreatorsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/create-password': {
@@ -1798,6 +1818,7 @@ const rootRouteChildren: RootRouteChildren = {
   ChooseUsernameRoute: ChooseUsernameRoute,
   CreateRoute: CreateRouteWithChildren,
   CreatePasswordRoute: CreatePasswordRoute,
+  CreatorsRoute: CreatorsRoute,
   EditProfileRoute: EditProfileRoute,
   FindYourFitRoute: FindYourFitRoute,
   HomeRoute: HomeRoute,

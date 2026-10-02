@@ -43,6 +43,11 @@ const UNMANAGED_PATHS = new Set([
   // shallow stack the plain back gesture already does the right thing here.
   "/terms",
   "/privacy",
+  // Public pitch pages, reached from outside the app (a shared link, a bio).
+  // Without this the default "up" is /home -- the signed-in feed -- which is
+  // wrong for someone who has never had an account.
+  "/sellers",
+  "/creators",
   "/sign-in",
   "/no-account",
   "/create-password",

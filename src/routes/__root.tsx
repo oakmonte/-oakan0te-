@@ -237,7 +237,7 @@ function RootShell({ children }: { children: ReactNode }) {
   // design, the rest until the shared product-form components are on the
   // tokens -- see isHeldLight().
   const heldLight = surface === "store" && isHeldLight(pathname);
-  // The marketing surface ("/" and "/sellers") is always white -- unlike
+  // The marketing surface ("/", "/sellers", "/creators") is always white -- unlike
   // /store it never follows the phone's scheme, so a single unconditional
   // value is enough. Both already declare #ffffff in their own head(), and
   // that's normally all a fixed-white route needs (see the sixteen
