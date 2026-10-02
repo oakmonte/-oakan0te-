@@ -239,7 +239,7 @@ function CountUp({ value, suffix }: { value: number; suffix: string }) {
 }
 
 /* ---------------- Header menus ---------------- */
-type MenuKey = "product" | "solutions" | "resources" | "blog";
+type MenuKey = "product" | "solutions" | "resources";
 
 const MENUS: Record<
   MenuKey,
@@ -322,30 +322,14 @@ const MENUS: Record<
       },
     ],
   },
-  blog: {
-    label: "Blog",
-    items: [
-      { title: "Journal", desc: "Editorial fashion features and style curation.", href: "/blog" },
-      {
-        title: "Creator Spotlights",
-        desc: "Stories from creators building on Oakmonte.",
-        href: "/blog",
-      },
-      {
-        title: "Style Guides",
-        desc: "Curated collections from our style curators.",
-        href: "/blog",
-      },
-    ],
-  },
 };
 
 const NAV: { label: string; href: string; key?: MenuKey }[] = [
   { label: "Product", href: "#product", key: "product" },
-  { label: "Story", href: "#story" },
+  { label: "Sellers", href: "/sellers" },
   { label: "Solutions", href: "#solutions", key: "solutions" },
   { label: "FAQ", href: "#faq" },
-  { label: "Blog", href: "/blog", key: "blog" },
+  { label: "Creators", href: "/creators" },
   { label: "Rescources", href: "#resources", key: "resources" },
 ];
 
@@ -907,8 +891,8 @@ function OakmonteLanding() {
                   Tag products in your fits, reviews, and hauls. When your audience buys through
                   your content, you earn — no invoices, no chasing brands, no middlemen.
                 </p>
-                <Link to="/become-a-creator" className="cta-btn">
-                  Start creating!
+                <Link to="/creators" className="cta-btn">
+                  See more
                 </Link>
                 <p className="stars-line">
                   <span className="stars">★★★★★</span>Loved by our early creators
@@ -1210,6 +1194,11 @@ const CSS = `
 .oak .cta-btn.big{padding:18px 38px;font-size:15px;}
 .oak .cta-btn.on-black{background:var(--blue);}
 .oak .cta-btn.on-black:hover{background:var(--white);color:var(--black);}
+.oak .offer-card.blue .cta-btn.on-black::after{content:"";position:absolute;inset:0;}
+.oak .offer-card.blue .cta-btn.on-black:hover{transform:none;}
+.oak .offer-card.accent-border .cta-btn::after{content:"";position:absolute;inset:0;}
+.oak .offer-card.accent-border .cta-btn:hover{transform:none;}
+.oak .offer-card.blue,.oak .offer-card.accent-border{cursor:pointer;}
 .oak .offer-card.blue .cta-btn.on-black{background:var(--white);color:var(--black);}
 .oak .offer-card.blue .cta-btn.on-black:hover{background:var(--black);color:var(--white);}
 .oak .offer-card.accent-border .cta-btn{background:var(--blue);}
