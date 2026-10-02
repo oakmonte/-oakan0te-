@@ -25,7 +25,7 @@ export const Route = createFileRoute("/creators")({
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700;800&family=Instrument+Sans:wght@400;500;600&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700&display=swap",
       },
     ],
   }),
@@ -124,7 +124,7 @@ const FAQ: [string, string][] = [
   ],
   [
     "Is there a fee to join?",
-    "Creating an account is free. Selling fees are laid out clearly before you list, with no surprise deductions.",
+    "Creating an account is free, and creators pay no fees at all. What you earn is yours.",
   ],
   [
     "Will I get paid if a buyer disputes?",
@@ -705,19 +705,19 @@ function CreatorsLanding() {
       <div className="oc-glow" aria-hidden="true" />
       <div className="oc-bar" ref={barRef} aria-hidden="true" />
 
-      <header className="wrap">
-        <nav>
-          <Link className="logo" to="/" aria-label="Oakmonte home">
-            <span className="logo-row">
+      <header>
+        <div className="wrap">
+          <nav>
+            <Link className="logo" to="/" aria-label="Oakmonte home">
               <img className="logo-o" src={logoO} alt="" />
-              <span>akmonte</span>
-            </span>
-            <small>CREATED TO CREATE.</small>
-          </Link>
-          <Link className="btn ghost" to="/sign-in">
-            Sign in
-          </Link>
-        </nav>
+              <span className="word">akmonte</span>
+              <small>CREATED TO CREATE.</small>
+            </Link>
+            <Link className="btn ghost" to="/sign-in">
+              Sign in
+            </Link>
+          </nav>
+        </div>
       </header>
 
       <main>
@@ -812,12 +812,13 @@ const CSS = `
   --bg:#fff;--ink:#0A0A0A;--mut:#6B6B73;--card:#fff;--soft:#F4F5F8;--line:#E3E4EA;--blue:#1F4DFF;
   --ease:cubic-bezier(.2,.9,.3,1);--ease-expo:cubic-bezier(.16,1,.3,1);
   position:relative;isolation:isolate;overflow-x:clip;background:var(--bg);color:var(--ink);
-  font:400 17px/1.55 'Instrument Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased;
-  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+  font:400 17px/1.55 Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;
+  padding-bottom:env(safe-area-inset-bottom,0px);
 }
 .oak-creators *,.oak-creators *::before,.oak-creators *::after{box-sizing:border-box}
-.oak-creators h1,.oak-creators h2,.oak-creators h3{font-family:'Bricolage Grotesque','Arial Black',sans-serif;line-height:1;margin:0;letter-spacing:-.03em}
-.oak-creators h3{font-weight:700}
+.oak-creators h1,.oak-creators h2,.oak-creators h3{font-family:'Archivo Black','Helvetica Neue',Arial,sans-serif;line-height:1;margin:0;letter-spacing:-.02em;font-weight:400}
+.oak-creators h1,.oak-creators h2,.oak-creators h3{text-transform:uppercase}
+.oak-creators h3{font-weight:400}
 .oak-creators p{margin:0}
 .oak-creators a{color:inherit}
 .oak-creators button{font:inherit;color:inherit}
@@ -831,10 +832,13 @@ const CSS = `
 .oak-creators .oc-bar{position:fixed;left:0;right:0;top:0;height:4px;background:var(--blue);transform:scaleX(0);transform-origin:0 50%;z-index:100;pointer-events:none}
 
 .oak-creators nav{display:flex;justify-content:space-between;align-items:center;padding:20px 0}
-.oak-creators .logo{display:block;text-decoration:none;font:800 24px/1 'Bricolage Grotesque',sans-serif;letter-spacing:-.04em}
-.oak-creators .logo-row{display:flex;align-items:baseline}
-.oak-creators .logo-o{height:34px;width:auto;flex:none;display:block;transform:translateY(3px)}
-.oak-creators .logo small{display:block;margin-top:2px;font:500 10px 'Instrument Sans';letter-spacing:.14em;color:var(--mut)}
+.oak-creators header{position:sticky;top:0;z-index:50;padding-top:env(safe-area-inset-top,0px);background:rgba(255,255,255,.92);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.oak-creators .logo{display:flex;align-items:baseline;text-decoration:none}
+.oak-creators .logo-o{height:44px;width:auto;flex:none;display:block;transform:translateY(4px)}
+.oak-creators .logo .word{font:400 26px/1 Inter,ui-sans-serif,system-ui,sans-serif;letter-spacing:-.01em;color:var(--ink)}
+.oak-creators .logo small{margin-left:16px;font:500 9px Inter,sans-serif;letter-spacing:.16em;color:var(--blue);transform:translateY(-2px);white-space:nowrap}
+@media (max-width:640px){.oak-creators .logo small{margin-left:10px;font-size:7px;letter-spacing:.1em}.oak-creators header .btn{padding:8px 14px;font-size:13px;white-space:nowrap}}
+@media (max-width:350px){.oak-creators .logo small{display:none}}
 
 .oak-creators .btn{position:relative;overflow:hidden;display:inline-block;background:var(--blue);color:#fff;padding:14px 26px;border-radius:999px;font-weight:600;font-size:16px;line-height:1.55;text-decoration:none;border:0;cursor:pointer;transition:transform .2s var(--ease),background .2s,color .2s}
 .oak-creators .btn::after{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.5) 50%,transparent 70%);transform:translateX(-120%);animation:ocShine 3.5s infinite}
@@ -863,14 +867,14 @@ const CSS = `
 .oak-creators .hs.on::after{animation:none;opacity:0}
 .oak-creators .spark{position:absolute;width:8px;height:8px;margin:-4px 0 0 -4px;border-radius:50%;background:#fff;pointer-events:none;z-index:7;animation:ocSpark var(--d,1s) cubic-bezier(.22,1,.36,1) forwards}
 .oak-creators .tagcard{position:absolute;left:14px;right:14px;bottom:14px;background:rgba(255,255,255,.94);color:#16132E;border-radius:20px;padding:14px 16px;z-index:4}
-.oak-creators .tagcard b{font:800 28px 'Bricolage Grotesque'}
+.oak-creators .tagcard b{font:400 28px 'Archivo Black'}
 .oak-creators .tagcard small{display:block;color:#5E5A7A;font-size:13px}
 .oak-creators .toast{position:absolute;right:-8px;top:26px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:10px 14px;font-size:14px;z-index:5;box-shadow:0 12px 30px -12px rgba(0,0,0,.4);animation:ocPop .5s cubic-bezier(.3,1.6,.5,1)}
-.oak-creators .chip{position:absolute;background:#fff;border:1px solid var(--line);border-radius:999px;padding:8px 14px;font:600 13px 'Instrument Sans';box-shadow:0 14px 30px -14px rgba(0,0,0,.35);z-index:6;white-space:nowrap;animation:ocBob 4s ease-in-out infinite}
+.oak-creators .chip{position:absolute;background:#fff;border:1px solid var(--line);border-radius:999px;padding:8px 14px;font:600 13px Inter;box-shadow:0 14px 30px -14px rgba(0,0,0,.35);z-index:6;white-space:nowrap;animation:ocBob 4s ease-in-out infinite}
 .oak-creators .chip::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--blue);margin-right:8px}
 
 .oak-creators .marq{overflow:hidden;background:var(--ink);color:var(--bg);padding:16px 0;transform:rotate(-1.2deg);margin:20px -20px}
-.oak-creators .marq div{display:flex;width:max-content;animation:ocMq 26s linear infinite;font:700 22px 'Bricolage Grotesque'}
+.oak-creators .marq div{display:flex;width:max-content;animation:ocMq 26s linear infinite;font:400 22px 'Archivo Black'}
 .oak-creators .marq span{padding:0 28px;white-space:nowrap}
 
 .oak-creators section{padding:80px 0}
@@ -882,7 +886,7 @@ const CSS = `
 .oak-creators .rv.in{opacity:1;transform:none}
 
 .oak-creators .tabs{display:flex;gap:8px;margin:34px 0 22px;flex-wrap:wrap}
-.oak-creators .tab{border:1.5px solid var(--line);background:transparent;color:var(--ink);padding:10px 20px;border-radius:999px;font:600 16px 'Instrument Sans';cursor:pointer;transition:background .25s,color .25s,border-color .25s,transform .15s var(--ease)}
+.oak-creators .tab{border:1.5px solid var(--line);background:transparent;color:var(--ink);padding:10px 20px;border-radius:999px;font:600 16px Inter;cursor:pointer;transition:background .25s,color .25s,border-color .25s,transform .15s var(--ease)}
 .oak-creators .tab:active{transform:scale(.97)}
 .oak-creators .tab[aria-selected=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 .oak-creators .panel{animation:ocPanelIn .55s var(--ease);display:grid;grid-template-columns:1fr 1fr;gap:30px;background:var(--card);border:1px solid var(--line);border-radius:30px;padding:34px;min-height:340px}
@@ -890,7 +894,7 @@ const CSS = `
 .oak-creators .panel p{color:var(--mut);margin:0 0 18px}
 .oak-creators .items{display:grid;gap:10px;align-content:start}
 .oak-creators .item{display:flex;justify-content:space-between;align-items:center;gap:12px;background:var(--soft);border-radius:16px;padding:14px 18px;animation:ocSlide .5s var(--ease) backwards}
-.oak-creators .item b{font-family:'Bricolage Grotesque';font-weight:700}
+.oak-creators .item b{font-family:'Archivo Black';font-weight:400}
 .oak-creators .item em{font-style:normal;color:var(--blue);font-weight:600;font-size:14px}
 
 .oak-creators #how{scroll-margin-top:12px}
@@ -898,7 +902,7 @@ const CSS = `
 .oak-creators .tl .rail{position:absolute;left:21px;top:6px;bottom:6px;width:3px;background:var(--line);border-radius:3px}
 .oak-creators .tl .fill{position:absolute;left:21px;top:6px;width:3px;background:var(--blue);border-radius:3px;height:0;max-height:calc(100% - 12px)}
 .oak-creators .st{position:relative}
-.oak-creators .st .dot{position:absolute;left:-64px;top:-2px;width:44px;height:44px;border-radius:50%;background:var(--card);border:3px solid var(--line);display:grid;place-items:center;font:800 17px 'Bricolage Grotesque';transition:background .4s,border-color .4s,color .4s,transform .4s}
+.oak-creators .st .dot{position:absolute;left:-64px;top:-2px;width:44px;height:44px;border-radius:50%;background:var(--card);border:3px solid var(--line);display:grid;place-items:center;font:400 17px 'Archivo Black';transition:background .4s,border-color .4s,color .4s,transform .4s}
 .oak-creators .st.act .dot{animation:ocPulse 1.8s infinite;background:var(--blue);border-color:var(--blue);color:#fff;transform:scale(1.15)}
 .oak-creators .st h3{font-size:28px;margin-bottom:6px}
 .oak-creators .st p{color:var(--mut);max-width:52ch}
@@ -908,13 +912,13 @@ const CSS = `
 .oak-creators .calc label span{float:right;font-weight:700}
 .oak-creators .calc input{width:100%;accent-color:#6D8BFF;margin-top:8px}
 .oak-creators .result{align-self:center}
-.oak-creators .big{font:800 clamp(44px,7vw,84px)/1 'Bricolage Grotesque';letter-spacing:-.04em;color:#7B96FF;overflow-wrap:anywhere}
+.oak-creators .big{font:400 clamp(44px,7vw,84px)/1 'Archivo Black';letter-spacing:-.04em;color:#7B96FF;overflow-wrap:anywhere}
 .oak-creators .calc small{opacity:.7;display:block;margin-top:14px;font-size:14px}
-.oak-creators .quote{font:700 clamp(26px,4vw,46px)/1.1 'Bricolage Grotesque';letter-spacing:-.03em;max-width:22ch}
+.oak-creators .quote{font:400 clamp(26px,4vw,46px)/1.1 'Archivo Black';letter-spacing:-.03em;max-width:22ch}
 
 .oak-creators .faq details{border-top:1.5px solid var(--line);padding:22px 0}
 .oak-creators .faq details:last-child{border-bottom:1.5px solid var(--line)}
-.oak-creators .faq summary{font:700 22px 'Bricolage Grotesque';cursor:pointer;list-style:none;display:flex;justify-content:space-between;gap:16px}
+.oak-creators .faq summary{font:400 22px 'Archivo Black';cursor:pointer;list-style:none;display:flex;justify-content:space-between;gap:16px}
 .oak-creators .faq summary::-webkit-details-marker{display:none}
 .oak-creators .faq summary::after{content:"+";transition:transform .3s var(--ease)}
 .oak-creators .faq details[open] summary::after{transform:rotate(45deg)}
