@@ -33,8 +33,19 @@ export function isIOS(): boolean {
   return navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
 }
 
+/** True on an Android tablet that is hiding behind a desktop user agent.
+ *  Chrome on large Android screens defaults to "Desktop site", which drops
+ *  "Android" from the UA and reports a Linux desktop -- the same disguise
+ *  iPadOS wears, and the reason `/Android/` alone missed a Redmi Pad. A real
+ *  touchscreen is what separates it from a Linux laptop; ChromeOS is excluded
+ *  because it can't install this way and also looks like Linux. */
+function isDisguisedAndroidTablet(): boolean {
+  if (/CrOS/.test(navigator.userAgent)) return false;
+  return /Linux/.test(navigator.platform) && navigator.maxTouchPoints > 1;
+}
+
 /** True on a device that can install the web app to a home screen — every iOS
- *  device, plus Android phones and tablets.
+ *  device, plus Android phones and tablets (including tablets in desktop mode).
  *
  *  Read this from an effect into state, never a `useState` initialiser: the
  *  server has no `navigator` and would render the other branch, which is the
@@ -42,5 +53,5 @@ export function isIOS(): boolean {
  *  `installed`. */
 export function isInstallablePhone(): boolean {
   if (typeof navigator === "undefined") return false;
-  return isIOS() || /Android/.test(navigator.userAgent);
+  return isIOS() || /Android/.test(navigator.userAgent) || isDisguisedAndroidTablet();
 }
