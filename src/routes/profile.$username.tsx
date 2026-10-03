@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate, useParams, useRouter } from "@tanstack/react-router";
 import { useOverlayHistory } from "@/hooks/use-overlay-history";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { fetchStoreLogoUrl } from "@/lib/store-logo";
 import {
   useCallback,
   useState,
@@ -25,7 +26,6 @@ import {
   Search,
   Menu,
   Star,
-  Store,
   X,
   Bell,
   BellRing,
@@ -146,6 +146,13 @@ function ProfilePage() {
   // Oldest-first, same tie-break as useOwnStores — "the" store for anything
   // on this page that isn't multi-store aware yet (the Store tab preview).
   const store = stores[0] ?? null;
+  // The store's picture, shown on the switch-to-store button in the top bar.
+  const { data: storeLogoUrl = null } = useQuery({
+    queryKey: ["store-logo", store?.id],
+    queryFn: () => fetchStoreLogoUrl(store!.id),
+    enabled: !!store?.id,
+    staleTime: 60_000,
+  });
   // theme_id stays null until the seller explicitly saves a theme (see
   // useStoreTheme.ts) — a store row exists as soon as onboarding names it,
   // well before there's anything real to preview, so this is the signal for
@@ -607,7 +614,13 @@ function ProfilePage() {
                   aria-label="Switch to store profile"
                   className="transition-transform duration-200 active:scale-90"
                 >
-                  <Store size={20} />
+                  <span className="flex h-[26px] w-[26px] items-center justify-center overflow-hidden rounded-full border border-white/60 bg-chat-soft">
+                    {storeLogoUrl ? (
+                      <img src={storeLogoUrl} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <UserRound size={16} strokeWidth={1.5} className="text-chat-muted" />
+                    )}
+                  </span>
                 </button>
               )}
             {ownershipKnown && isOwnProfile && (

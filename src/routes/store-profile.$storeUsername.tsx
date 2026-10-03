@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router"
 import { useOverlayHistory } from "@/hooks/use-overlay-history";
 import { useCallback, useState, useRef, useEffect, useMemo } from "react";
 import { motion, AnimatePresence, useDragControls, useMotionValue } from "framer-motion";
-import { ArrowLeft, ArrowLeftRight, Share2, Search, Menu, Star, X } from "lucide-react";
+import { ArrowLeft, Share2, Search, Menu, Star, UserRound, X } from "lucide-react";
 import { BackButton } from "@/components/BackButton";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { fetchStoreLogoUrl } from "@/lib/store-logo";
@@ -49,6 +49,7 @@ function StoreProfilePage() {
   const [store, setStore] = useState<StoreRow | null>(null);
   const [storeLoading, setStoreLoading] = useState(true);
   const [ownerUsername, setOwnerUsername] = useState<string | null>(null);
+  const [ownerAvatarUrl, setOwnerAvatarUrl] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabKey>("store");
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -59,7 +60,7 @@ function StoreProfilePage() {
   // See profile.$username.tsx for why this is tracked continuously rather
   // than only captured on the tap that opens the sheet — and why it targets
   // the avatar circle, not the whole info block.
-  const avatarRef = useRef<HTMLImageElement>(null);
+  const avatarRef = useRef<HTMLDivElement>(null);
   const [sheetTop, setSheetTop] = useState(0);
   // Which tab was active right before Store was opened — see
   // profile.$username.tsx.
@@ -160,13 +161,14 @@ function StoreProfilePage() {
     // profiles only ever returns the signed-in user's own row.
     supabase
       .from("public_profiles")
-      .select("personal_username")
+      .select("personal_username, avatar_url")
       .eq("id", store.owner_id)
       .maybeSingle()
       .then(({ data, error }) => {
         if (cancelled) return;
         if (error) console.error("StoreProfilePage: failed to load owner", error);
         setOwnerUsername(data?.personal_username ?? null);
+        setOwnerAvatarUrl(data?.avatar_url ?? null);
       });
 
     return () => {
@@ -287,7 +289,13 @@ function StoreProfilePage() {
                 aria-label="Switch to personal profile"
                 className="transition-transform duration-200 active:scale-90"
               >
-                <ArrowLeftRight size={20} />
+                <span className="flex h-[26px] w-[26px] items-center justify-center overflow-hidden rounded-full border border-white/60 bg-white/10">
+                  {ownerAvatarUrl ? (
+                    <img src={ownerAvatarUrl} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <UserRound size={16} strokeWidth={1.5} className="text-white/60" />
+                  )}
+                </span>
               </button>
             )}
             {isOwnStoreProfile && (
@@ -304,13 +312,26 @@ function StoreProfilePage() {
 
         {/* Store info */}
         <div className="flex flex-col items-center gap-4 px-6 mt-2">
-          <img
+          <div
             ref={avatarRef}
-            src={store?.logo_url || "https://placehold.co/135x139"}
-            alt={storeUsername}
-            loading="eager"
-            className="w-[110px] h-[110px] rounded-full border-[3px] border-white object-cover"
-          />
+            className="flex h-[110px] w-[110px] items-center justify-center overflow-hidden rounded-full border-[3px] border-white bg-white/10"
+          >
+            {store?.logo_url ? (
+              <img
+                src={store.logo_url}
+                alt={storeUsername}
+                loading="eager"
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <UserRound
+                size={56}
+                strokeWidth={1.5}
+                className="text-white/50"
+                aria-label={storeUsername}
+              />
+            )}
+          </div>
           <div className="text-center">
             <div className="text-[15px] font-bold">
               {storeLoading ? "…" : store?.brand_name || storeUsername}
