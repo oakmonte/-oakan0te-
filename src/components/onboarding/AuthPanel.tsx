@@ -404,7 +404,9 @@ function AuthPanelInner({ intent, title, subtitle, defaultMode = "code" }: Props
     const { data, error: signInError } = await signInWithPassword(email.trim(), password);
     setBusy(null);
     if (signInError || !data.session) {
-      setError("That email and password don't match. Try again, or use a code instead.");
+      setError(
+        "That email and password don't match. If you signed up with Apple or Google and never set a password, use that button — or get a code instead.",
+      );
       return;
     }
     await finish(data.session.user.id);

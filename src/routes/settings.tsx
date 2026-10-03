@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { ChevronRight } from "lucide-react";
 import { setAccountPassword, signInWithPassword, signOut } from "@/lib/auth";
 import { authedFetch } from "@/lib/authed-fetch";
@@ -314,6 +314,15 @@ function PasswordRow({ email, hasPassword }: { email: string | null; hasPassword
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
 
+  // Uncontrolled inputs, read through refs at submit time: Safari's "Suggest
+  // Strong Password" writes the DOM value without telling React, so a
+  // controlled `value` snaps it back to empty on the next render (including
+  // the one "Show passwords" causes) and state-gated buttons stay disabled.
+  // Same fix and reasoning as /create-password.
+  const currentRef = useRef<HTMLInputElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
+  const confirmRef = useRef<HTMLInputElement>(null);
+
   const verdict = checkPassword(password, [email ?? ""]);
 
   const reset = () => {
@@ -328,11 +337,16 @@ function PasswordRow({ email, hasPassword }: { email: string | null; hasPassword
     e.preventDefault();
     setError(null);
 
-    if (!verdict.ok) {
-      setError(`Your new password needs ${verdict.problems.join(", ")}.`);
+    const currentPwd = currentRef.current?.value ?? currentPassword;
+    const pwd = passwordRef.current?.value ?? password;
+    const conf = confirmRef.current?.value ?? confirm;
+    const freshVerdict = checkPassword(pwd, [email ?? ""]);
+
+    if (!freshVerdict.ok) {
+      setError(`Your new password needs ${freshVerdict.problems.join(", ")}.`);
       return;
     }
-    if (password !== confirm) {
+    if (pwd !== conf) {
       setError("Those two passwords don't match.");
       return;
     }
@@ -348,7 +362,7 @@ function PasswordRow({ email, hasPassword }: { email: string | null; hasPassword
         setError("Something went wrong. Please try again.");
         return;
       }
-      const { error: verifyError } = await signInWithPassword(email, currentPassword);
+      const { error: verifyError } = await signInWithPassword(email, currentPwd);
       if (verifyError) {
         setSaving(false);
         setError("Your current password doesn't match.");
@@ -356,7 +370,7 @@ function PasswordRow({ email, hasPassword }: { email: string | null; hasPassword
       }
     }
 
-    const { error: updateError } = await setAccountPassword(password);
+    const { error: updateError } = await setAccountPassword(pwd);
     setSaving(false);
     if (updateError) {
       setError(updateError.message);
@@ -395,6 +409,12 @@ function PasswordRow({ email, hasPassword }: { email: string | null; hasPassword
   return (
     <div className="px-4 py-4">
       <form onSubmit={handleSubmit} className="space-y-3">
+        {!hasPassword && email && (
+          <p className="px-1 text-[12px] leading-relaxed text-white/50">
+            Set a password to sign in with just your email and password, alongside Apple or Google.
+            Your email for sign-in is <span className="text-white/80">{email}</span>.
+          </p>
+        )}
         {hasPassword && (
           <>
             <label htmlFor="current-password" className="sr-only">
@@ -406,7 +426,7 @@ function PasswordRow({ email, hasPassword }: { email: string | null; hasPassword
               required
               autoFocus
               autoComplete="current-password"
-              value={currentPassword}
+              ref={currentRef}
               onChange={(e) => setCurrentPassword(e.target.value)}
               placeholder="Current password"
               className={inputClass}
@@ -424,7 +444,7 @@ function PasswordRow({ email, hasPassword }: { email: string | null; hasPassword
           autoFocus={!hasPassword}
           autoComplete="new-password"
           minLength={MIN_PASSWORD_LENGTH}
-          value={password}
+          ref={passwordRef}
           onChange={(e) => setPassword(e.target.value)}
           placeholder={`New password (${MIN_PASSWORD_LENGTH}+ characters)`}
           className={inputClass}
@@ -464,7 +484,7 @@ function PasswordRow({ email, hasPassword }: { email: string | null; hasPassword
           type={show ? "text" : "password"}
           required
           autoComplete="new-password"
-          value={confirm}
+          ref={confirmRef}
           onChange={(e) => setConfirm(e.target.value)}
           placeholder="Confirm new password"
           className={inputClass}
@@ -496,9 +516,7 @@ function PasswordRow({ email, hasPassword }: { email: string | null; hasPassword
           </button>
           <button
             type="submit"
-            disabled={
-              saving || !verdict.ok || password !== confirm || (hasPassword && !currentPassword)
-            }
+            disabled={saving}
             className="flex-1 rounded-full bg-white text-black py-3 text-[13px] font-semibold uppercase tracking-widest disabled:opacity-40 transition-opacity"
           >
             {saving ? "Saving…" : "Save"}
