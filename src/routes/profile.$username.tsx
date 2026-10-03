@@ -674,21 +674,25 @@ function ProfilePage() {
                 almost always the right text, so it stands in while the row
                 loads instead of an ellipsis that then jumps to a longer
                 name. */}
-              <div
-                ref={nameRef}
-                className={`text-[15px] font-bold ${profileLoading ? "opacity-40" : ""}`}
-              >
-                {profile?.display_name || profile?.personal_username || username}
-              </div>
-              {isOwnProfile && (
-                <button
-                  onClick={() => navigate({ to: "/edit-profile" })}
-                  aria-label="Edit profile"
-                  className="text-[11px] font-bold text-chat-text/50 hover:text-chat-text transition-colors border border-chat-text/30 hover:border-chat-text/60 rounded-full px-2 py-0.5"
+              <div className="relative">
+                <div
+                  ref={nameRef}
+                  className={`text-[15px] font-bold ${profileLoading ? "opacity-40" : ""}`}
                 >
-                  Edit
-                </button>
-              )}
+                  {profile?.display_name || profile?.personal_username || username}
+                </div>
+                {/* Hangs off the name's right edge instead of sitting in the
+                  row with it, so the name stays centred under the photo. */}
+                {isOwnProfile && (
+                  <button
+                    onClick={() => navigate({ to: "/edit-profile" })}
+                    aria-label="Edit profile"
+                    className="absolute left-full top-1/2 ml-1.5 -translate-y-1/2 text-[11px] font-bold text-chat-text/50 hover:text-chat-text transition-colors border border-chat-text/30 hover:border-chat-text/60 rounded-full px-2 py-0.5"
+                  >
+                    Edit
+                  </button>
+                )}
+              </div>
             </div>
             <div className="text-[11px] font-bold text-chat-muted mt-0.5">
               @{profile?.personal_username || username}
