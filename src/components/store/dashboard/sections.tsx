@@ -6,7 +6,7 @@ import {
   ListPlus,
   Megaphone,
   PlayCircle,
-  Sparkles,
+  Plus,
   TrendingUp,
   Wallet,
 } from "lucide-react";
@@ -132,7 +132,7 @@ export function NeedsAttention({ items }: { items: AttentionItem[] }) {
 const NEXT_STEPS = [
   {
     id: "create",
-    icon: Sparkles,
+    icon: Plus,
     title: "Create / upload content",
     body: "Shoot or edit a post that shows off your pieces.",
     cta: "Create",

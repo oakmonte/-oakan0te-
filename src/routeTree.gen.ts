@@ -62,7 +62,6 @@ import { Route as StoreFinanceRouteImport } from './routes/store.finance'
 import { Route as StoreGetTheWebappRouteImport } from './routes/store.get-the-webapp'
 import { Route as StoreGrowthRouteImport } from './routes/store.growth'
 import { Route as StoreOrdersRouteImport } from './routes/store.orders'
-import { Route as StorePlaylistsRouteImport } from './routes/store.playlists'
 import { Route as StoreProductsRouteImport } from './routes/store.products'
 import { Route as StoreThemeRouteImport } from './routes/store.theme'
 import { Route as ApiAccountDeleteRouteImport } from './routes/api.account.delete'
@@ -92,6 +91,8 @@ import { Route as StoreCollectionsNewRouteImport } from './routes/store.collecti
 import { Route as StoreDropsIdRouteImport } from './routes/store.drops_.$id'
 import { Route as StoreDropsNewRouteImport } from './routes/store.drops_.new'
 import { Route as StoreLocationsNewRouteImport } from './routes/store.locations_.new'
+import { Route as StorePlaylistsIndexRouteImport } from './routes/store.playlists.index'
+import { Route as StorePlaylistsIdRouteImport } from './routes/store.playlists.$id'
 import { Route as StoreProductsIdRouteImport } from './routes/store.products_.$id'
 import { Route as StoreProductsNewRouteImport } from './routes/store.products_.new'
 import { Route as StoreProductsNewcomerRouteImport } from './routes/store.products_.newcomer'
@@ -363,11 +364,6 @@ const StoreOrdersRoute = StoreOrdersRouteImport.update({
   path: '/orders',
   getParentRoute: () => StoreRoute,
 } as any)
-const StorePlaylistsRoute = StorePlaylistsRouteImport.update({
-  id: '/playlists',
-  path: '/playlists',
-  getParentRoute: () => StoreRoute,
-} as any)
 const StoreProductsRoute = StoreProductsRouteImport.update({
   id: '/products',
   path: '/products',
@@ -515,6 +511,16 @@ const StoreLocationsNewRoute = StoreLocationsNewRouteImport.update({
   path: '/locations/new',
   getParentRoute: () => StoreRoute,
 } as any)
+const StorePlaylistsIndexRoute = StorePlaylistsIndexRouteImport.update({
+  id: '/playlists/',
+  path: '/playlists/',
+  getParentRoute: () => StoreRoute,
+} as any)
+const StorePlaylistsIdRoute = StorePlaylistsIdRouteImport.update({
+  id: '/playlists/$id',
+  path: '/playlists/$id',
+  getParentRoute: () => StoreRoute,
+} as any)
 const StoreProductsIdRoute = StoreProductsIdRouteImport.update({
   id: '/products_/$id',
   path: '/products/$id',
@@ -588,7 +594,6 @@ export interface FileRoutesByFullPath {
   '/store/get-the-webapp': typeof StoreGetTheWebappRoute
   '/store/growth': typeof StoreGrowthRoute
   '/store/orders': typeof StoreOrdersRoute
-  '/store/playlists': typeof StorePlaylistsRoute
   '/store/products': typeof StoreProductsRoute
   '/store/theme': typeof StoreThemeRoute
   '/create/': typeof CreateIndexRoute
@@ -619,11 +624,13 @@ export interface FileRoutesByFullPath {
   '/store/drops/$id': typeof StoreDropsIdRoute
   '/store/drops/new': typeof StoreDropsNewRoute
   '/store/locations/new': typeof StoreLocationsNewRoute
+  '/store/playlists/$id': typeof StorePlaylistsIdRoute
   '/store/products/$id': typeof StoreProductsIdRoute
   '/store/products/new': typeof StoreProductsNewRoute
   '/store/products/newcomer': typeof StoreProductsNewcomerRoute
   '/store/products/upload': typeof StoreProductsUploadRoute
   '/create/after-shot/': typeof CreateAfterShotIndexRoute
+  '/store/playlists/': typeof StorePlaylistsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -674,7 +681,6 @@ export interface FileRoutesByTo {
   '/store/get-the-webapp': typeof StoreGetTheWebappRoute
   '/store/growth': typeof StoreGrowthRoute
   '/store/orders': typeof StoreOrdersRoute
-  '/store/playlists': typeof StorePlaylistsRoute
   '/store/products': typeof StoreProductsRoute
   '/store/theme': typeof StoreThemeRoute
   '/create': typeof CreateIndexRoute
@@ -705,11 +711,13 @@ export interface FileRoutesByTo {
   '/store/drops/$id': typeof StoreDropsIdRoute
   '/store/drops/new': typeof StoreDropsNewRoute
   '/store/locations/new': typeof StoreLocationsNewRoute
+  '/store/playlists/$id': typeof StorePlaylistsIdRoute
   '/store/products/$id': typeof StoreProductsIdRoute
   '/store/products/new': typeof StoreProductsNewRoute
   '/store/products/newcomer': typeof StoreProductsNewcomerRoute
   '/store/products/upload': typeof StoreProductsUploadRoute
   '/create/after-shot': typeof CreateAfterShotIndexRoute
+  '/store/playlists': typeof StorePlaylistsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -764,7 +772,6 @@ export interface FileRoutesById {
   '/store/get-the-webapp': typeof StoreGetTheWebappRoute
   '/store/growth': typeof StoreGrowthRoute
   '/store/orders': typeof StoreOrdersRoute
-  '/store/playlists': typeof StorePlaylistsRoute
   '/store/products': typeof StoreProductsRoute
   '/store/theme': typeof StoreThemeRoute
   '/create/': typeof CreateIndexRoute
@@ -795,11 +802,13 @@ export interface FileRoutesById {
   '/store/drops_/$id': typeof StoreDropsIdRoute
   '/store/drops_/new': typeof StoreDropsNewRoute
   '/store/locations_/new': typeof StoreLocationsNewRoute
+  '/store/playlists/$id': typeof StorePlaylistsIdRoute
   '/store/products_/$id': typeof StoreProductsIdRoute
   '/store/products_/new': typeof StoreProductsNewRoute
   '/store/products_/newcomer': typeof StoreProductsNewcomerRoute
   '/store/products_/upload': typeof StoreProductsUploadRoute
   '/create/after-shot/': typeof CreateAfterShotIndexRoute
+  '/store/playlists/': typeof StorePlaylistsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -855,7 +864,6 @@ export interface FileRouteTypes {
     | '/store/get-the-webapp'
     | '/store/growth'
     | '/store/orders'
-    | '/store/playlists'
     | '/store/products'
     | '/store/theme'
     | '/create/'
@@ -886,11 +894,13 @@ export interface FileRouteTypes {
     | '/store/drops/$id'
     | '/store/drops/new'
     | '/store/locations/new'
+    | '/store/playlists/$id'
     | '/store/products/$id'
     | '/store/products/new'
     | '/store/products/newcomer'
     | '/store/products/upload'
     | '/create/after-shot/'
+    | '/store/playlists/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -941,7 +951,6 @@ export interface FileRouteTypes {
     | '/store/get-the-webapp'
     | '/store/growth'
     | '/store/orders'
-    | '/store/playlists'
     | '/store/products'
     | '/store/theme'
     | '/create'
@@ -972,11 +981,13 @@ export interface FileRouteTypes {
     | '/store/drops/$id'
     | '/store/drops/new'
     | '/store/locations/new'
+    | '/store/playlists/$id'
     | '/store/products/$id'
     | '/store/products/new'
     | '/store/products/newcomer'
     | '/store/products/upload'
     | '/create/after-shot'
+    | '/store/playlists'
   id:
     | '__root__'
     | '/'
@@ -1030,7 +1041,6 @@ export interface FileRouteTypes {
     | '/store/get-the-webapp'
     | '/store/growth'
     | '/store/orders'
-    | '/store/playlists'
     | '/store/products'
     | '/store/theme'
     | '/create/'
@@ -1061,11 +1071,13 @@ export interface FileRouteTypes {
     | '/store/drops_/$id'
     | '/store/drops_/new'
     | '/store/locations_/new'
+    | '/store/playlists/$id'
     | '/store/products_/$id'
     | '/store/products_/new'
     | '/store/products_/newcomer'
     | '/store/products_/upload'
     | '/create/after-shot/'
+    | '/store/playlists/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1501,13 +1513,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StoreOrdersRouteImport
       parentRoute: typeof StoreRoute
     }
-    '/store/playlists': {
-      id: '/store/playlists'
-      path: '/playlists'
-      fullPath: '/store/playlists'
-      preLoaderRoute: typeof StorePlaylistsRouteImport
-      parentRoute: typeof StoreRoute
-    }
     '/store/products': {
       id: '/store/products'
       path: '/products'
@@ -1711,6 +1716,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StoreLocationsNewRouteImport
       parentRoute: typeof StoreRoute
     }
+    '/store/playlists/': {
+      id: '/store/playlists/'
+      path: '/playlists'
+      fullPath: '/store/playlists/'
+      preLoaderRoute: typeof StorePlaylistsIndexRouteImport
+      parentRoute: typeof StoreRoute
+    }
+    '/store/playlists/$id': {
+      id: '/store/playlists/$id'
+      path: '/playlists/$id'
+      fullPath: '/store/playlists/$id'
+      preLoaderRoute: typeof StorePlaylistsIdRouteImport
+      parentRoute: typeof StoreRoute
+    }
     '/store/products_/$id': {
       id: '/store/products_/$id'
       path: '/products/$id'
@@ -1788,7 +1807,6 @@ interface StoreRouteChildren {
   StoreGetTheWebappRoute: typeof StoreGetTheWebappRoute
   StoreGrowthRoute: typeof StoreGrowthRoute
   StoreOrdersRoute: typeof StoreOrdersRoute
-  StorePlaylistsRoute: typeof StorePlaylistsRoute
   StoreProductsRoute: typeof StoreProductsRoute
   StoreThemeRoute: typeof StoreThemeRoute
   StoreIndexRoute: typeof StoreIndexRoute
@@ -1797,10 +1815,12 @@ interface StoreRouteChildren {
   StoreDropsIdRoute: typeof StoreDropsIdRoute
   StoreDropsNewRoute: typeof StoreDropsNewRoute
   StoreLocationsNewRoute: typeof StoreLocationsNewRoute
+  StorePlaylistsIdRoute: typeof StorePlaylistsIdRoute
   StoreProductsIdRoute: typeof StoreProductsIdRoute
   StoreProductsNewRoute: typeof StoreProductsNewRoute
   StoreProductsNewcomerRoute: typeof StoreProductsNewcomerRoute
   StoreProductsUploadRoute: typeof StoreProductsUploadRoute
+  StorePlaylistsIndexRoute: typeof StorePlaylistsIndexRoute
 }
 
 const StoreRouteChildren: StoreRouteChildren = {
@@ -1812,7 +1832,6 @@ const StoreRouteChildren: StoreRouteChildren = {
   StoreGetTheWebappRoute: StoreGetTheWebappRoute,
   StoreGrowthRoute: StoreGrowthRoute,
   StoreOrdersRoute: StoreOrdersRoute,
-  StorePlaylistsRoute: StorePlaylistsRoute,
   StoreProductsRoute: StoreProductsRoute,
   StoreThemeRoute: StoreThemeRoute,
   StoreIndexRoute: StoreIndexRoute,
@@ -1821,10 +1840,12 @@ const StoreRouteChildren: StoreRouteChildren = {
   StoreDropsIdRoute: StoreDropsIdRoute,
   StoreDropsNewRoute: StoreDropsNewRoute,
   StoreLocationsNewRoute: StoreLocationsNewRoute,
+  StorePlaylistsIdRoute: StorePlaylistsIdRoute,
   StoreProductsIdRoute: StoreProductsIdRoute,
   StoreProductsNewRoute: StoreProductsNewRoute,
   StoreProductsNewcomerRoute: StoreProductsNewcomerRoute,
   StoreProductsUploadRoute: StoreProductsUploadRoute,
+  StorePlaylistsIndexRoute: StorePlaylistsIndexRoute,
 }
 
 const StoreRouteWithChildren = StoreRoute._addFileChildren(StoreRouteChildren)
