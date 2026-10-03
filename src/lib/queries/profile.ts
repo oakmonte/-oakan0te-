@@ -7,6 +7,8 @@ export type PublicProfileRow = {
   display_name: string | null;
   avatar_url: string | null;
   bio: string | null;
+  /** Store owner opted out of showing stars + Sold Items (Settings > Store). */
+  hide_store_stats: boolean;
 };
 
 async function fetchPublicProfile(username: string): Promise<PublicProfileRow | null> {
@@ -15,13 +17,18 @@ async function fetchPublicProfile(username: string): Promise<PublicProfileRow | 
   // exposes just the columns the profile page renders publicly.
   const { data, error } = await supabase
     .from("public_profiles")
-    .select("id, personal_username, display_name, avatar_url, bio")
+    .select("id, personal_username, display_name, avatar_url, bio, hide_store_stats")
     .eq("personal_username", username)
     .single();
   // id/personal_username are NOT NULL on the base table — the view's
   // generated type just can't express that for a view's columns.
   if (error || !data || !data.id || !data.personal_username) return null;
-  return { ...data, id: data.id, personal_username: data.personal_username };
+  return {
+    ...data,
+    id: data.id,
+    personal_username: data.personal_username,
+    hide_store_stats: data.hide_store_stats ?? false,
+  };
 }
 
 // 30s staleTime is what actually makes the router's `intent` preload (see
@@ -45,6 +52,7 @@ export type ProfileStats = {
   followers_count: number;
   rating: number;
   rating_count: number;
+  sold_items_count: number;
 };
 
 const EMPTY_STATS: ProfileStats = {
@@ -52,6 +60,7 @@ const EMPTY_STATS: ProfileStats = {
   followers_count: 0,
   rating: 0,
   rating_count: 0,
+  sold_items_count: 0,
 };
 
 /** Follower/following/rating counts. These live on the profile_stats view,
@@ -68,7 +77,7 @@ export function profileStatsQueryOptions(profileId: string | undefined) {
       if (!profileId) return EMPTY_STATS;
       const { data } = await supabase
         .from("profile_stats")
-        .select("following_count, followers_count, rating, rating_count")
+        .select("following_count, followers_count, rating, rating_count, sold_items_count")
         .eq("id", profileId)
         .maybeSingle();
       if (!data) return EMPTY_STATS;
@@ -77,6 +86,7 @@ export function profileStatsQueryOptions(profileId: string | undefined) {
         followers_count: data.followers_count ?? 0,
         rating: data.rating ?? 0,
         rating_count: data.rating_count ?? 0,
+        sold_items_count: data.sold_items_count ?? 0,
       };
     },
     enabled: !!profileId,

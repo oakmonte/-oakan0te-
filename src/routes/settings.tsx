@@ -1,5 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useSession } from "@/hooks/use-session";
 import { ChevronRight } from "lucide-react";
 import { setAccountPassword, signInWithPassword, signOut } from "@/lib/auth";
 import { authedFetch } from "@/lib/authed-fetch";
@@ -237,8 +239,51 @@ function MessagesSection({ userId }: { userId: string }) {
  *  this page only shows what applies to the signed-in account. */
 function StoreSection() {
   const { storeId, loading: storeLoading } = useActiveStore();
+  const { user } = useSession();
+  const queryClient = useQueryClient();
   const [personalOnly, setPersonalOnly] = useState<boolean | null>(null);
   const [saving, setSaving] = useState(false);
+  // Per OWNER (profiles.hide_store_stats), not per store: hides the star badges
+  // and Sold Items on the personal profile.
+  const [hideStats, setHideStats] = useState<boolean | null>(null);
+  const [savingHide, setSavingHide] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    supabase
+      .from("profiles")
+      .select("hide_store_stats")
+      .eq("id", user.id)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) console.error("StoreSection: failed to load hide_store_stats", error);
+        setHideStats(data?.hide_store_stats ?? false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  async function toggleHideStats() {
+    if (!user || hideStats === null || savingHide) return;
+    const next = !hideStats;
+    setSavingHide(true);
+    setHideStats(next);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ hide_store_stats: next })
+      .eq("id", user.id);
+    setSavingHide(false);
+    if (error) {
+      console.error("StoreSection: failed to save hide_store_stats", error);
+      setHideStats(!next);
+      return;
+    }
+    // The profile page reads this through the cached public_profiles query.
+    void queryClient.invalidateQueries({ queryKey: ["public-profile"] });
+  }
 
   useEffect(() => {
     if (!storeId) {
@@ -296,6 +341,22 @@ function StoreSection() {
             disabled={saving}
           />
         </div>
+        {hideStats !== null && (
+          <div className="flex items-center justify-between gap-3 px-4 py-3.5 border-t border-white/10">
+            <span className="text-[14px] text-white/70">
+              Hide my store from my profile
+              <span className="block text-[12px] text-white/40 mt-0.5">
+                Removes your star badges and Sold Items from your profile.
+              </span>
+            </span>
+            <Switch
+              checked={hideStats}
+              label="Hide my store from my profile"
+              onClick={toggleHideStats}
+              disabled={savingHide}
+            />
+          </div>
+        )}
       </Panel>
     </Section>
   );

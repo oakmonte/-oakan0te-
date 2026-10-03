@@ -1515,6 +1515,7 @@ export type Database = {
           created_at: string | null
           display_name: string | null
           gender: string | null
+          hide_store_stats: boolean
           id: string
           pending_offers_custom_orders: boolean
           pending_store_type: string | null
@@ -1531,6 +1532,7 @@ export type Database = {
           created_at?: string | null
           display_name?: string | null
           gender?: string | null
+          hide_store_stats?: boolean
           id: string
           pending_offers_custom_orders?: boolean
           pending_store_type?: string | null
@@ -1547,6 +1549,7 @@ export type Database = {
           created_at?: string | null
           display_name?: string | null
           gender?: string | null
+          hide_store_stats?: boolean
           id?: string
           pending_offers_custom_orders?: boolean
           pending_store_type?: string | null
@@ -2123,6 +2126,7 @@ export type Database = {
           avatar_url: string | null
           bio: string | null
           display_name: string | null
+          hide_store_stats: boolean | null
           id: string | null
           personal_username: string | null
         }
@@ -2130,6 +2134,7 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           display_name?: string | null
+          hide_store_stats?: boolean | null
           id?: string | null
           personal_username?: string | null
         }
@@ -2137,6 +2142,7 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           display_name?: string | null
+          hide_store_stats?: boolean | null
           id?: string | null
           personal_username?: string | null
         }

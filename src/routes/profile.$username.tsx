@@ -87,6 +87,7 @@ type ProfileRow = {
   followers_count: number;
   rating: number;
   rating_count: number;
+  sold_items_count: number;
 };
 
 const PROFILE_SELLER_PROMPT_KEY = "oak-profile-seller-prompt-seen";
@@ -128,6 +129,7 @@ function ProfilePage() {
         followers_count: stats?.followers_count ?? 0,
         rating: stats?.rating ?? 0,
         rating_count: stats?.rating_count ?? 0,
+        sold_items_count: stats?.sold_items_count ?? 0,
       }
     : null;
   const [activeTab, setActiveTab] = useState<TabKey>("posts");
@@ -146,6 +148,10 @@ function ProfilePage() {
   // Oldest-first, same tie-break as useOwnStores — "the" store for anything
   // on this page that isn't multi-store aware yet (the Store tab preview).
   const store = stores[0] ?? null;
+  // Stars and Sold Items are seller stats: only store owners have them, and an
+  // owner can hide them from Settings > Store (profiles.hide_store_stats). The
+  // flag is per owner, not per store, and applies to the owner's own view too.
+  const showSellerStats = stores.length > 0 && !baseProfile?.hide_store_stats;
   // The store's picture, shown on the switch-to-store button in the top bar.
   const { data: storeLogoUrl = null } = useQuery({
     queryKey: ["store-logo", store?.id],
@@ -697,19 +703,24 @@ function ProfilePage() {
             <div className="text-[11px] font-bold text-chat-muted mt-0.5">
               @{profile?.personal_username || username}
             </div>
-            <div className="flex items-center justify-center gap-1.5 mt-1.5">
-              <div className="flex items-center gap-[2px]">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Star key={i} size={13} className="fill-[#FF7300] text-[#FF7300]" />
-                ))}
+            {showSellerStats && (
+              <div className="flex items-center justify-center gap-1.5 mt-1.5">
+                <div className="flex items-center gap-[2px]">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Star key={i} size={13} className="fill-[#FF7300] text-[#FF7300]" />
+                  ))}
+                </div>
+                <span className="text-[11px] font-medium">({profile?.rating_count ?? 0})</span>
               </div>
-              <span className="text-[11px] font-medium">({profile?.rating_count ?? 0})</span>
-            </div>
+            )}
           </div>
 
           <div className="flex items-center gap-8">
             <Stat value={String(profile?.following_count ?? 0)} label="Following" />
             <Stat value={String(profile?.followers_count ?? 0)} label="Followers" />
+            {showSellerStats && (
+              <Stat value={String(profile?.sold_items_count ?? 0)} label="Sold Items" />
+            )}
           </div>
 
           {ownershipKnown && !isOwnProfile && (
