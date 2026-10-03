@@ -994,7 +994,7 @@ function ProfilePage() {
       >
         <div className="absolute inset-0 bg-black/40" onClick={() => setStorePickerOpen(false)} />
         <div
-          className={`absolute inset-x-0 bottom-0 rounded-t-[28px] bg-chat-bg border-t border-chat-text/10 transition-transform duration-300 ease-out ${
+          className={`absolute inset-x-0 bottom-0 min-h-[42vh] rounded-t-[28px] bg-chat-bg border-t border-chat-text/10 transition-transform duration-300 ease-out ${
             storePickerOpen ? "translate-y-0" : "translate-y-full"
           }`}
           style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
