@@ -65,6 +65,8 @@ export function useStoreCatalogReadiness(storeId: string | null): StoreCatalogRe
       .from("collections")
       .select("id", { count: "exact", head: true })
       .eq("store_id", storeId)
+      // Draft collections are left off the storefront, so they don't count.
+      .eq("status", "active")
       .then(({ count, error }) => {
         if (cancelled) return;
         if (error) {

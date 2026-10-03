@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       collections: {
@@ -46,6 +21,7 @@ export type Database = {
           description: string | null
           id: string
           image_url: string | null
+          status: string
           store_id: string
           title: string
         }
@@ -55,6 +31,7 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          status?: string
           store_id: string
           title: string
         }
@@ -64,6 +41,7 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          status?: string
           store_id?: string
           title?: string
         }
@@ -303,6 +281,39 @@ export type Database = {
             columns: ["owner_id"]
             isOneToOne: true
             referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      drop_collections: {
+        Row: {
+          collection_id: string
+          created_at: string
+          drop_id: string
+        }
+        Insert: {
+          collection_id: string
+          created_at?: string
+          drop_id: string
+        }
+        Update: {
+          collection_id?: string
+          created_at?: string
+          drop_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "drop_collections_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "collections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "drop_collections_drop_id_fkey"
+            columns: ["drop_id"]
+            isOneToOne: false
+            referencedRelation: "drops"
             referencedColumns: ["id"]
           },
         ]
@@ -2327,9 +2338,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {},
   },

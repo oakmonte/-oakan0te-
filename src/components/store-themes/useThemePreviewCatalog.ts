@@ -57,6 +57,8 @@ export function useThemePreviewCatalog(mode: "collections" | "products", storeId
           .from("collections")
           .select("id, title, image_url, additional_image_urls")
           .eq("store_id", storeId)
+          // Same as products: drafts stay off the public storefront.
+          .eq("status", "active")
           // Newest first, same as products below -- without an order, which
           // four of a larger set came back was arbitrary, and a collection
           // the seller just made could simply never appear.

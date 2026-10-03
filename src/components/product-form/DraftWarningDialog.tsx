@@ -6,10 +6,13 @@ import { EyeOff } from "lucide-react";
 // and then wonder why it never showed up. Same bottom-sheet confirm pattern
 // as NecessitiesWarningDialog.
 export function DraftWarningDialog({
+  noun = "product",
   onPublish,
   onKeepDraft,
   onCancel,
 }: {
+  /** "product" or "collection", for the copy. */
+  noun?: string;
   onPublish: () => void;
   onKeepDraft: () => void;
   onCancel: () => void;
@@ -26,8 +29,7 @@ export function DraftWarningDialog({
           <h2 className="font-semibold text-base text-gray-900">Saving as a draft</h2>
         </div>
         <p className="text-sm text-gray-500 mb-5">
-          Drafts don't show on your storefront, so shoppers won't see this product until it's
-          active.
+          Drafts don't show on your storefront, so shoppers won't see this {noun} until it's active.
         </p>
         <div className="flex flex-col gap-2">
           <button

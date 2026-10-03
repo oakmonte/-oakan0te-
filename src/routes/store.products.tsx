@@ -5,9 +5,14 @@ import { TabPager } from "@/components/profile/TabPager";
 import { ProductsPanel } from "@/components/store/products/ProductsPanel";
 import { CollectionsPanel } from "@/components/store/products/CollectionsPanel";
 import { DropsPanel } from "@/components/store/products/DropsPanel";
+import { DROPS_ENABLED } from "@/lib/drops";
 
-const TOP_TABS = ["Products", "Collections", "Drops"] as const;
-type TopTab = (typeof TOP_TABS)[number];
+const ALL_TABS = ["Products", "Collections", "Drops"] as const;
+type TopTab = (typeof ALL_TABS)[number];
+// Drops is hidden while DROPS_ENABLED is off -- see src/lib/drops.ts.
+const TOP_TABS: readonly TopTab[] = DROPS_ENABLED
+  ? ALL_TABS
+  : ALL_TABS.filter((t) => t !== "Drops");
 
 export const Route = createFileRoute("/store/products")({
   validateSearch: (search: Record<string, unknown>): { checklist?: boolean; tab?: TopTab } => ({
@@ -24,7 +29,7 @@ function StoreProducts() {
   // reappear on Products after finishing something in another tab. Once
   // mounted, which tab is active is purely local state, driven by either a
   // tap on the strip or a swipe through TabPager.
-  const [topTab, setTopTab] = useState<TopTab>(tab ?? "Products");
+  const [topTab, setTopTab] = useState<TopTab>(tab && TOP_TABS.includes(tab) ? tab : "Products");
   const activeIndex = TOP_TABS.indexOf(topTab);
 
   // Shared with TabPager, same wiring as ProfileTabStrip/TabPager on
@@ -73,17 +78,17 @@ function StoreProducts() {
         // the screen edge on any tab regardless of how little it holds.
         minHeight="calc(100dvh - 220px)"
       >
-        {[
-          <div key="Products" className="px-4 pt-5">
-            <ProductsPanel checklist={checklist} />
-          </div>,
-          <div key="Collections" className="px-4 pt-5">
-            <CollectionsPanel />
-          </div>,
-          <div key="Drops" className="px-4 pt-5">
-            <DropsPanel />
-          </div>,
-        ]}
+        {TOP_TABS.map((t) => (
+          <div key={t} className="px-4 pt-5">
+            {t === "Products" ? (
+              <ProductsPanel checklist={checklist} />
+            ) : t === "Collections" ? (
+              <CollectionsPanel />
+            ) : (
+              <DropsPanel />
+            )}
+          </div>
+        ))}
       </TabPager>
     </div>
   );
