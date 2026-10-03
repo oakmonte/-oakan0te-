@@ -1316,7 +1316,7 @@ function EditProduct() {
                 : "border-sd-line text-sd-ink-muted"
             }`}
           >
-            Published
+            Active
           </button>
           <button
             type="button"
@@ -1327,7 +1327,7 @@ function EditProduct() {
                 : "border-sd-line text-sd-ink-muted"
             }`}
           >
-            Unpublished
+            Draft
           </button>
         </div>
       </div>

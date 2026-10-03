@@ -789,7 +789,7 @@ function NewProduct() {
                 : "border-sd-line text-sd-ink-muted"
             }`}
           >
-            Published
+            Active
           </button>
           <button
             type="button"
@@ -800,7 +800,7 @@ function NewProduct() {
                 : "border-sd-line text-sd-ink-muted"
             }`}
           >
-            Unpublished
+            Draft
           </button>
         </div>
       </div>
