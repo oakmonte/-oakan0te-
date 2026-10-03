@@ -1,0 +1,63 @@
+# Runs on every pull request into main (and on main itself, so a red main is
+# visible). `checks` is the required status for merging -- see branch
+# protection on main. Nothing here deploys: Vercel builds its own preview for
+# each PR, and that preview link is what gets tested on a phone.
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun run typecheck
+      - run: bun run lint
+      # `bun test src`, not bare `bun test` -- the bare runner also globs the
+      # Playwright specs in e2e/ and fails on them.
+      - run: bun run test
+      # The only check that catches a missing asset import (vite/client types
+      # image imports as `any`, so tsc can't).
+      - run: bun run build
+
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # The Lovable-era Supabase client (still wired into start.ts's auth
+    # middleware) reads these at runtime. Both are public values, but they
+    # live in .env, so CI gets them as repo secrets. Until they're set this job
+    # is skipped rather than failing.
+    env:
+      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+      HAS_SUPABASE_SECRETS: ${{ secrets.VITE_SUPABASE_URL != '' }}
+    steps:
+      - uses: actions/checkout@v4
+        if: env.HAS_SUPABASE_SECRETS == 'true'
+      - uses: oven-sh/setup-bun@v2
+        if: env.HAS_SUPABASE_SECRETS == 'true'
+      - run: bun install --frozen-lockfile
+        if: env.HAS_SUPABASE_SECRETS == 'true'
+      - run: bunx playwright install --with-deps webkit chromium
+        if: env.HAS_SUPABASE_SECRETS == 'true'
+      - run: bun run e2e
+        if: env.HAS_SUPABASE_SECRETS == 'true'
+        env:
+          CI: "true"
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-artifacts
+          path: e2e/.artifacts
+          retention-days: 7
