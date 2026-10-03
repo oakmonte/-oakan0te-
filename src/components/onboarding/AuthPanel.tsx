@@ -23,6 +23,7 @@ import { isStandalone } from "@/lib/standalone";
 import { isIOS } from "@/lib/platform";
 import { AppleIcon, GoogleIcon } from "@/components/auth-icons";
 import { Spinner } from "@/components/spinner";
+import { OpenInBrowserGate } from "@/components/onboarding/OpenInBrowserGate";
 import { CodeInput } from "@/components/onboarding/CodeInput";
 import { FormError, OnboardingChecking } from "@/components/onboarding/OnboardingShell";
 import logoO from "@/assets/logo-o.png";
@@ -43,7 +44,15 @@ type Props = {
   defaultMode?: Mode;
 };
 
-export function AuthPanel({ intent, title, subtitle, defaultMode = "code" }: Props) {
+export function AuthPanel(props: Props) {
+  return (
+    <OpenInBrowserGate>
+      <AuthPanelInner {...props} />
+    </OpenInBrowserGate>
+  );
+}
+
+function AuthPanelInner({ intent, title, subtitle, defaultMode = "code" }: Props) {
   const navigate = useNavigate();
   const [mode, setMode] = useState<Mode>(defaultMode);
   const [email, setEmail] = useState("");
