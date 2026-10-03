@@ -50,7 +50,7 @@ function StoreProfilePage() {
   const [storeLoading, setStoreLoading] = useState(true);
   const [ownerUsername, setOwnerUsername] = useState<string | null>(null);
   const [ownerAvatarUrl, setOwnerAvatarUrl] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<TabKey>("store");
+  const [activeTab, setActiveTab] = useState<TabKey>("posts");
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -216,10 +216,11 @@ function StoreProfilePage() {
   // This route had no readiness gate at all before -- any store row, even one
   // with no theme picked, opened the sheet. Same shared gate
   // profile.$username.tsx uses (see isStorefrontVisible) -- worth calling out
-  // here specifically that this route defaults `activeTab` to "store", so
-  // getting the "loading counts as visible" half of that rule right matters
-  // even more: gating on "hidden while loading" would animate the sheet open
-  // on its own the instant the two count queries resolved, on every visit.
+  // here that this route used to default `activeTab` to "store" (it now opens
+  // on Posts, like the personal profile), so the "loading counts as visible"
+  // half of that rule still matters whenever someone taps Store before the
+  // count queries resolve: gating on "hidden while loading" would animate the
+  // sheet open on its own the instant they resolved.
   const storefrontVisible = isStorefrontVisible(
     store?.theme_id,
     isOwnStoreProfile,
