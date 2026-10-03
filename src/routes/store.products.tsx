@@ -7,12 +7,8 @@ import { CollectionsPanel } from "@/components/store/products/CollectionsPanel";
 import { DropsPanel } from "@/components/store/products/DropsPanel";
 import { DROPS_ENABLED } from "@/lib/drops";
 
-const ALL_TABS = ["Products", "Collections", "Drops"] as const;
-type TopTab = (typeof ALL_TABS)[number];
-// Drops is hidden while DROPS_ENABLED is off -- see src/lib/drops.ts.
-const TOP_TABS: readonly TopTab[] = DROPS_ENABLED
-  ? ALL_TABS
-  : ALL_TABS.filter((t) => t !== "Drops");
+const TOP_TABS = ["Products", "Collections", "Drops"] as const;
+type TopTab = (typeof TOP_TABS)[number];
 
 export const Route = createFileRoute("/store/products")({
   validateSearch: (search: Record<string, unknown>): { checklist?: boolean; tab?: TopTab } => ({
@@ -29,7 +25,7 @@ function StoreProducts() {
   // reappear on Products after finishing something in another tab. Once
   // mounted, which tab is active is purely local state, driven by either a
   // tap on the strip or a swipe through TabPager.
-  const [topTab, setTopTab] = useState<TopTab>(tab && TOP_TABS.includes(tab) ? tab : "Products");
+  const [topTab, setTopTab] = useState<TopTab>(tab ?? "Products");
   const activeIndex = TOP_TABS.indexOf(topTab);
 
   // Shared with TabPager, same wiring as ProfileTabStrip/TabPager on
@@ -84,8 +80,19 @@ function StoreProducts() {
               <ProductsPanel checklist={checklist} />
             ) : t === "Collections" ? (
               <CollectionsPanel />
-            ) : (
+            ) : DROPS_ENABLED ? (
               <DropsPanel />
+            ) : (
+              // Built, but off until sellers can take payment -- see
+              // DROPS_ENABLED in src/lib/drops.ts.
+              <div className="flex flex-col items-center gap-2 py-16 text-center animate-in fade-in duration-300">
+                <p className="text-[17px] font-semibold text-sd-ink">
+                  Drops will be available soon
+                </p>
+                <p className="max-w-[280px] text-[14px] leading-relaxed text-sd-ink-faint">
+                  You'll be able to group collections and products into a timed drop.
+                </p>
+              </div>
             )}
           </div>
         ))}

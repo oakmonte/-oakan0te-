@@ -2,7 +2,7 @@ import { supabase } from "@/lib/integrations/my-supabase/client";
 
 // Drops are built but switched off until sellers can actually take payment:
 // a timed drop announcing products nobody can buy yet is worse than none.
-// While false, the Drops tab is hidden, /store/drops/* redirects to the
+// While false, the Drops tab says "available soon", /store/drops/* redirects to the
 // products list, and no storefront shows a drop banner. Flip to true to
 // launch -- nothing else needs to change.
 export const DROPS_ENABLED = false;
