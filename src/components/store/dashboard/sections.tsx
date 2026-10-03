@@ -1,6 +1,15 @@
 import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { Bell, ChevronRight, Megaphone, TrendingUp, Wallet } from "lucide-react";
+import {
+  Bell,
+  ChevronRight,
+  ListPlus,
+  Megaphone,
+  PlayCircle,
+  Sparkles,
+  TrendingUp,
+  Wallet,
+} from "lucide-react";
 
 /** The landing page's blue-dot micro-label. Used ONCE on the page, inside the
  *  sales hero. It used to head every section, which made seven sections read as
@@ -116,6 +125,69 @@ export function NeedsAttention({ items }: { items: AttentionItem[] }) {
           </SnapRow>
         </div>
       )}
+    </section>
+  );
+}
+
+const NEXT_STEPS = [
+  {
+    id: "create",
+    icon: Sparkles,
+    title: "Create / upload content",
+    body: "Shoot or edit a post that shows off your pieces.",
+    cta: "Create",
+  },
+  {
+    id: "playlist",
+    icon: PlayCircle,
+    title: "See our curated playlist",
+    body: "Short videos on branding, sourcing and selling fashion.",
+    cta: "Watch",
+  },
+  {
+    id: "products",
+    icon: ListPlus,
+    title: "List more products",
+    body: "More pieces in your store means more reasons to buy.",
+    cta: "Add product",
+  },
+] as const;
+
+/** The three standing next steps for a seller who cannot take orders yet. Sits
+ *  in Needs attention until real signals (an order to ship, low stock) feed that
+ *  section, at which point they should join those rather than replace them. */
+export function NextSteps() {
+  const cls =
+    "oak-tap flex w-[248px] shrink-0 snap-start flex-col items-start rounded-2xl border border-sd-line bg-sd-surface p-4 text-left oak-motion-control active:scale-[0.98]";
+  const body = (s: (typeof NEXT_STEPS)[number]) => (
+    <>
+      <span className="grid h-9 w-9 place-items-center rounded-full bg-sd-soft">
+        <s.icon size={17} className="text-sd-ink-muted" />
+      </span>
+      <p className="mt-3 text-[15px] font-semibold leading-snug tracking-[-0.01em] text-sd-ink">
+        {s.title}
+      </p>
+      <p className="mt-1 text-[13px] leading-relaxed text-sd-ink-muted">{s.body}</p>
+      <span className="mt-3 inline-block text-[13px] font-bold text-sd-accent-ink">{s.cta} →</span>
+    </>
+  );
+  const [create, playlist, products] = NEXT_STEPS;
+  return (
+    <section aria-labelledby="sd-attention">
+      <SectionTitle id="sd-attention">Needs attention</SectionTitle>
+      <div className="mt-3">
+        <SnapRow>
+          <Link to="/create" className={cls}>
+            {body(create)}
+          </Link>
+          <Link to="/store/playlists" className={cls}>
+            {body(playlist)}
+          </Link>
+          <Link to="/store/products/new" className={cls}>
+            {body(products)}
+          </Link>
+        </SnapRow>
+      </div>
     </section>
   );
 }

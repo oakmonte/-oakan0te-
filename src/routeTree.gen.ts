@@ -45,6 +45,7 @@ import { Route as StoreIndexRouteImport } from './routes/store.index'
 import { Route as CreateIndexRouteImport } from './routes/create.index'
 import { Route as StoreThemeRouteImport } from './routes/store.theme'
 import { Route as StoreProductsRouteImport } from './routes/store.products'
+import { Route as StorePlaylistsRouteImport } from './routes/store.playlists'
 import { Route as StoreOrdersRouteImport } from './routes/store.orders'
 import { Route as StoreGrowthRouteImport } from './routes/store.growth'
 import { Route as StoreGetTheWebappRouteImport } from './routes/store.get-the-webapp'
@@ -274,6 +275,11 @@ const StoreThemeRoute = StoreThemeRouteImport.update({
 const StoreProductsRoute = StoreProductsRouteImport.update({
   id: '/products',
   path: '/products',
+  getParentRoute: () => StoreRoute,
+} as any)
+const StorePlaylistsRoute = StorePlaylistsRouteImport.update({
+  id: '/playlists',
+  path: '/playlists',
   getParentRoute: () => StoreRoute,
 } as any)
 const StoreOrdersRoute = StoreOrdersRouteImport.update({
@@ -582,6 +588,7 @@ export interface FileRoutesByFullPath {
   '/store/get-the-webapp': typeof StoreGetTheWebappRoute
   '/store/growth': typeof StoreGrowthRoute
   '/store/orders': typeof StoreOrdersRoute
+  '/store/playlists': typeof StorePlaylistsRoute
   '/store/products': typeof StoreProductsRoute
   '/store/theme': typeof StoreThemeRoute
   '/create/': typeof CreateIndexRoute
@@ -667,6 +674,7 @@ export interface FileRoutesByTo {
   '/store/get-the-webapp': typeof StoreGetTheWebappRoute
   '/store/growth': typeof StoreGrowthRoute
   '/store/orders': typeof StoreOrdersRoute
+  '/store/playlists': typeof StorePlaylistsRoute
   '/store/products': typeof StoreProductsRoute
   '/store/theme': typeof StoreThemeRoute
   '/create': typeof CreateIndexRoute
@@ -756,6 +764,7 @@ export interface FileRoutesById {
   '/store/get-the-webapp': typeof StoreGetTheWebappRoute
   '/store/growth': typeof StoreGrowthRoute
   '/store/orders': typeof StoreOrdersRoute
+  '/store/playlists': typeof StorePlaylistsRoute
   '/store/products': typeof StoreProductsRoute
   '/store/theme': typeof StoreThemeRoute
   '/create/': typeof CreateIndexRoute
@@ -846,6 +855,7 @@ export interface FileRouteTypes {
     | '/store/get-the-webapp'
     | '/store/growth'
     | '/store/orders'
+    | '/store/playlists'
     | '/store/products'
     | '/store/theme'
     | '/create/'
@@ -931,6 +941,7 @@ export interface FileRouteTypes {
     | '/store/get-the-webapp'
     | '/store/growth'
     | '/store/orders'
+    | '/store/playlists'
     | '/store/products'
     | '/store/theme'
     | '/create'
@@ -1019,6 +1030,7 @@ export interface FileRouteTypes {
     | '/store/get-the-webapp'
     | '/store/growth'
     | '/store/orders'
+    | '/store/playlists'
     | '/store/products'
     | '/store/theme'
     | '/create/'
@@ -1368,6 +1380,13 @@ declare module '@tanstack/react-router' {
       path: '/products'
       fullPath: '/store/products'
       preLoaderRoute: typeof StoreProductsRouteImport
+      parentRoute: typeof StoreRoute
+    }
+    '/store/playlists': {
+      id: '/store/playlists'
+      path: '/playlists'
+      fullPath: '/store/playlists'
+      preLoaderRoute: typeof StorePlaylistsRouteImport
       parentRoute: typeof StoreRoute
     }
     '/store/orders': {
@@ -1769,6 +1788,7 @@ interface StoreRouteChildren {
   StoreGetTheWebappRoute: typeof StoreGetTheWebappRoute
   StoreGrowthRoute: typeof StoreGrowthRoute
   StoreOrdersRoute: typeof StoreOrdersRoute
+  StorePlaylistsRoute: typeof StorePlaylistsRoute
   StoreProductsRoute: typeof StoreProductsRoute
   StoreThemeRoute: typeof StoreThemeRoute
   StoreIndexRoute: typeof StoreIndexRoute
@@ -1792,6 +1812,7 @@ const StoreRouteChildren: StoreRouteChildren = {
   StoreGetTheWebappRoute: StoreGetTheWebappRoute,
   StoreGrowthRoute: StoreGrowthRoute,
   StoreOrdersRoute: StoreOrdersRoute,
+  StorePlaylistsRoute: StorePlaylistsRoute,
   StoreProductsRoute: StoreProductsRoute,
   StoreThemeRoute: StoreThemeRoute,
   StoreIndexRoute: StoreIndexRoute,
