@@ -551,7 +551,7 @@ function StoreProfilePage() {
       >
         <div className="absolute inset-0 bg-black/40" onClick={() => setSwitchOpen(false)} />
         <div
-          className={`absolute inset-x-0 bottom-0 min-h-[42vh] rounded-t-[28px] bg-black border-t border-white/10 transition-transform duration-300 ease-out ${
+          className={`absolute inset-x-0 bottom-0 min-h-[28vh] rounded-t-[28px] bg-black border-t border-white/10 transition-transform duration-300 ease-out ${
             switchOpen ? "translate-y-0" : "translate-y-full"
           }`}
           style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
