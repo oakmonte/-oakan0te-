@@ -282,8 +282,8 @@ function StoreSection() {
       setHideStats(!next);
       return;
     }
-    // The profile page reads this through the cached public_profiles query.
-    void queryClient.invalidateQueries({ queryKey: ["public-profile"] });
+    // The profile page reads this through the cached public_profiles query; refetch now so it is already fresh when you go back.
+    void queryClient.invalidateQueries({ queryKey: ["public-profile"], refetchType: "all" });
   }
 
   useEffect(() => {
@@ -333,7 +333,7 @@ function StoreSection() {
       return;
     }
     // The profile page reads these through the cached profile-stores query.
-    void queryClient.invalidateQueries({ queryKey: ["profile-stores"] });
+    void queryClient.invalidateQueries({ queryKey: ["profile-stores"], refetchType: "all" });
   }
 
   if (storeLoading || !storeId || personalOnly === null) return null;
