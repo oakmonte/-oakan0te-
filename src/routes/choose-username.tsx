@@ -29,7 +29,7 @@ export const Route = createFileRoute("/choose-username")({
 
 type Availability = "idle" | "checking" | "available" | "taken" | "error";
 
-const DISPLAY_NAME_MAX = 15;
+const DISPLAY_NAME_MAX = 25;
 const MONTHS = [
   "Jan",
   "Feb",
@@ -326,7 +326,7 @@ function ChooseUsernamePage() {
           // Tap buttons rather than a native <select>: on Android the system
           // picker is a separate window that jumped to the top of the page when
           // opened, which read as the page breaking.
-          <div role="group" aria-label="Gender (optional)" className="grid grid-cols-2 gap-2">
+          <div role="group" aria-label="Gender (optional)" className="grid grid-cols-2 gap-2 pt-3">
             {GENDER_OPTIONS.map((option) => (
               <button
                 key={option}

@@ -4,7 +4,7 @@
 // "a", "admin" or "x." — names onboarding refuses.
 
 export const USERNAME_MIN = 3;
-export const USERNAME_MAX = 15;
+export const USERNAME_MAX = 20;
 
 // This becomes the /profile/$username URL, so it has to survive being a path
 // segment. Before, the field accepted spaces, capitals, "@" and emoji.

@@ -6,8 +6,8 @@ describe("normalizeUsername", () => {
     expect(normalizeUsername("Kim Tsok@!✨")).toBe("kim_tsok");
   });
 
-  test("caps at 15 characters", () => {
-    expect(normalizeUsername("a".repeat(40))).toHaveLength(15);
+  test("caps at 20 characters", () => {
+    expect(normalizeUsername("a".repeat(40))).toHaveLength(20);
   });
 });
 
