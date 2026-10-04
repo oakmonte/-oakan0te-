@@ -47,7 +47,11 @@ export function WheelField({
       }}
       className={`transition-opacity duration-300 ${engaged ? "opacity-100" : "opacity-50"}`}
     >
-      <WheelPickerWrapper className="h-[168px] rounded-2xl border border-brand-text/15">
+      <WheelPickerWrapper
+        className={`mx-auto h-[168px] rounded-2xl border border-brand-text/15 ${
+          columns.length > 1 ? "max-w-[240px]" : "max-w-[170px]"
+        }`}
+      >
         {columns.map((c, i) => (
           <WheelPicker<number>
             key={`${c.unit}-${c.min}`}
