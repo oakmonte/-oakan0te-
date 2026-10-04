@@ -9,6 +9,7 @@ import {
   OnboardingChecking,
   OnboardingShell,
 } from "@/components/onboarding/OnboardingShell";
+import { WheelField } from "@/components/onboarding/WheelField";
 import { useRequireSession } from "@/components/onboarding/use-require-session";
 import { usePrefetchNextStep } from "@/hooks/use-prefetch-next-step";
 import {
@@ -28,11 +29,47 @@ export const Route = createFileRoute("/choose-username")({
 
 type Availability = "idle" | "checking" | "available" | "taken" | "error";
 
+const DISPLAY_NAME_MAX = 50;
+const MONTHS = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+] as const;
+const MIN_YEAR = 1920;
+// What the wheel shows before anyone touches it. Never saved unless engaged.
+const DEFAULT_DOB = { day: 15, month: 6, year: 2000 };
+
+const GENDER_OPTIONS = ["Female", "Male", "prefer not to say"] as const;
+
+function daysInMonth(year: number, month: number) {
+  return new Date(year, month, 0).getDate();
+}
+
+function pad(n: number) {
+  return String(n).padStart(2, "0");
+}
+
 function ChooseUsernamePage() {
   const navigate = useNavigate();
   const { userId, checking } = useRequireSession();
+  const [displayName, setDisplayName] = useState("");
   const [username, setUsername] = useState("");
   const [gender, setGender] = useState("");
+  const [dobDay, setDobDay] = useState(DEFAULT_DOB.day);
+  const [dobMonth, setDobMonth] = useState(DEFAULT_DOB.month);
+  const [dobYear, setDobYear] = useState(DEFAULT_DOB.year);
+  // The wheel always shows a date, so whether it was actually answered has to
+  // be tracked separately -- see WheelField.
+  const [dobEngaged, setDobEngaged] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Read after mount: reading storage during render made the server and the
@@ -41,26 +78,52 @@ function ChooseUsernamePage() {
   usePrefetchNextStep(intent, "/choose-username");
   const [availability, setAvailability] = useState<Availability>("idle");
 
+  const thisYear = new Date().getFullYear();
+  // 31 on a 30-day month would be an impossible date, so the day wheel's range
+  // follows the month and a day left over from a longer month is pulled back.
+  const dayCount = daysInMonth(dobYear, dobMonth);
+  const dayShown = Math.min(dobDay, dayCount);
+
   useEffect(() => {
     setIntentState(readIntent() ?? "seller");
   }, []);
 
   // Prefill if they've been here before — a later step's "Back" link lands
   // here, and this step has to be re-enterable for that to be worth offering.
+  // A display name from the sign-in provider (Google/Apple's real name) is a
+  // fair starting point; nothing is derived from the email address.
   useEffect(() => {
     if (!userId) return;
     let cancelled = false;
-    supabase
-      .from("profiles")
-      .select("personal_username, gender, account_type")
-      .eq("id", userId)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (cancelled || !data) return;
-        setUsername(data.personal_username ?? "");
-        setGender(data.gender ?? "");
-        if (data.account_type) setIntentState(data.account_type as Intent);
-      });
+    (async () => {
+      const [{ data }, { data: authData }] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("personal_username, display_name, gender, account_type, date_of_birth")
+          .eq("id", userId)
+          .maybeSingle(),
+        supabase.auth.getUser(),
+      ]);
+      if (cancelled) return;
+      const providerName = getDisplayNameFromUser(authData.user);
+      if (!data) {
+        if (providerName) setDisplayName(providerName.slice(0, DISPLAY_NAME_MAX));
+        return;
+      }
+      setUsername(data.personal_username ?? "");
+      setDisplayName((data.display_name ?? providerName ?? "").slice(0, DISPLAY_NAME_MAX));
+      setGender(data.gender ?? "");
+      if (data.account_type) setIntentState(data.account_type as Intent);
+      if (data.date_of_birth) {
+        const [y, m, d] = data.date_of_birth.split("-").map(Number);
+        if (y && m && d) {
+          setDobYear(y);
+          setDobMonth(m);
+          setDobDay(d);
+          setDobEngaged(true);
+        }
+      }
+    })();
     return () => {
       cancelled = true;
     };
@@ -105,9 +168,25 @@ function ChooseUsernamePage() {
     e.preventDefault();
     if (!userId) return;
 
+    const name = displayName.trim().replace(/\s+/g, " ");
+    if (!name) {
+      setError("Add your display name.");
+      return;
+    }
+
     const formatProblem = validate(username);
     if (formatProblem) {
       setError(formatProblem);
+      return;
+    }
+
+    if (!dobEngaged) {
+      setError("Scroll to your date of birth.");
+      return;
+    }
+    const dob = `${dobYear}-${pad(dobMonth)}-${pad(dayShown)}`;
+    if (new Date(dobYear, dobMonth - 1, dayShown) > new Date()) {
+      setError("That date of birth is in the future.");
       return;
     }
 
@@ -141,9 +220,10 @@ function ChooseUsernamePage() {
       {
         id: user.id,
         personal_username: username,
-        display_name: getDisplayNameFromUser(user) ?? username,
+        display_name: name,
         personal_email: user.email,
         gender: gender || null,
+        date_of_birth: dob,
         account_type: resolvedIntent,
       },
       { onConflict: "id" },
@@ -167,34 +247,63 @@ function ChooseUsernamePage() {
 
   if (checking) return <OnboardingChecking />;
 
+  const fieldClass =
+    "w-full min-w-0 rounded-full border border-brand-text/25 bg-transparent px-4 py-3.5 text-sm placeholder:text-brand-text/40 focus:outline-none focus:border-brand-accent transition-colors";
+
   return (
     <OnboardingShell
-      title="Choose a personal username"
-      subtitle="You can set a separate display and store/brand name later."
+      title="Tell us about you"
+      subtitle="Your display name is how you appear. Your handle is your unique @name."
       step={step}
     >
-      <form onSubmit={handleSubmit} className="space-y-3" noValidate>
-        <label htmlFor="username" className="sr-only">
-          Username
-        </label>
-        <input
-          id="username"
-          type="text"
-          required
-          autoFocus
-          autoComplete="username"
-          autoCapitalize="none"
-          autoCorrect="off"
-          spellCheck={false}
-          inputMode="text"
-          maxLength={MAX}
-          value={username}
-          onChange={(e) => setUsername(normalize(e.target.value))}
-          placeholder="Username"
-          aria-describedby="username-hint"
-          aria-invalid={problem ? true : undefined}
-          className="w-full rounded-full border border-brand-text/25 bg-transparent px-5 py-3.5 text-sm placeholder:text-brand-text/40 focus:outline-none focus:border-brand-accent transition-colors"
-        />
+      <form onSubmit={handleSubmit} className="space-y-3 text-left" noValidate>
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label htmlFor="display-name" className="sr-only">
+              Display name
+            </label>
+            <input
+              id="display-name"
+              type="text"
+              required
+              autoFocus
+              autoComplete="name"
+              autoCapitalize="words"
+              maxLength={DISPLAY_NAME_MAX}
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              placeholder="Display name"
+              className={fieldClass}
+            />
+          </div>
+          <div>
+            <label htmlFor="username" className="sr-only">
+              Handle
+            </label>
+            <div className="flex w-full min-w-0 items-center rounded-full border border-brand-text/25 pl-4 pr-3 transition-colors focus-within:border-brand-accent">
+              <span aria-hidden="true" className="text-sm text-brand-text/50">
+                @
+              </span>
+              <input
+                id="username"
+                type="text"
+                required
+                autoComplete="username"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                inputMode="text"
+                maxLength={MAX}
+                value={username}
+                onChange={(e) => setUsername(normalize(e.target.value))}
+                placeholder="handle"
+                aria-describedby="username-hint"
+                aria-invalid={problem ? true : undefined}
+                className="w-full min-w-0 bg-transparent py-3.5 pl-0.5 text-sm placeholder:text-brand-text/40 focus:outline-none"
+              />
+            </div>
+          </div>
+        </div>
         <p
           id="username-hint"
           className={`text-[11px] px-2 text-left ${
@@ -205,33 +314,87 @@ function ChooseUsernamePage() {
             (availability === "checking"
               ? "Checking availability…"
               : availability === "taken"
-                ? "That username is taken."
+                ? "That handle is taken."
                 : availability === "available"
                   ? "Available."
                   : `oakmonte.com/profile/${username || "your-name"}`)}
         </p>
 
         {!asksGenderElsewhere && (
-          <>
-            <label htmlFor="gender" className="sr-only">
-              Gender (optional)
-            </label>
-            <select
-              id="gender"
-              value={gender}
-              onChange={(e) => setGender(e.target.value)}
-              className="w-full rounded-full border border-brand-text/25 bg-transparent px-5 py-3.5 text-sm text-brand-text/80 focus:outline-none focus:border-brand-accent transition-colors"
-            >
-              <option value="Female">Female</option>
-              <option value="Male">Male</option>
-              <option value="prefer not to say">Prefer not to say</option>
-            </select>
-          </>
+          // Tap buttons rather than a native <select>: on Android the system
+          // picker is a separate window that jumped to the top of the page when
+          // opened, which read as the page breaking.
+          <div role="group" aria-label="Gender (optional)" className="grid grid-cols-2 gap-2">
+            {GENDER_OPTIONS.map((option) => (
+              <button
+                key={option}
+                type="button"
+                aria-pressed={gender === option}
+                onClick={() => setGender(gender === option ? "" : option)}
+                className={`rounded-full border px-3 py-3.5 text-sm transition-colors ${
+                  option === "prefer not to say" ? "col-span-2" : ""
+                } ${
+                  gender === option
+                    ? "border-brand-accent bg-brand-accent text-brand-bg"
+                    : "border-brand-text/25 text-brand-text/80 hover:border-brand-text/50"
+                }`}
+              >
+                {option === "prefer not to say" ? "Prefer not to say" : option}
+              </button>
+            ))}
+          </div>
         )}
+
+        <div className="flex items-center gap-3 pt-3" role="presentation">
+          <span className="h-px flex-1 bg-brand-text/15" />
+          <span className="text-[11px] uppercase tracking-widest text-brand-text/50">
+            Date of birth
+          </span>
+          <span className="h-px flex-1 bg-brand-text/15" />
+        </div>
+
+        <WheelField
+          engaged={dobEngaged}
+          onEngage={() => {
+            setDobDay(dayShown);
+            setDobEngaged(true);
+          }}
+          columns={[
+            {
+              min: 1,
+              max: dayCount,
+              value: dayShown,
+              onChange: setDobDay,
+            },
+            {
+              min: 1,
+              max: 12,
+              labels: MONTHS,
+              value: dobMonth,
+              onChange: setDobMonth,
+            },
+            {
+              min: MIN_YEAR,
+              max: thisYear,
+              value: dobYear,
+              onChange: setDobYear,
+            },
+          ]}
+        />
+        <p className="text-center text-[11px] text-brand-text/50">
+          Only used to confirm your age. It&rsquo;s never shown on your profile.
+        </p>
 
         <button
           type="submit"
-          disabled={loading || !username || Boolean(problem) || availability === "taken"}
+          disabled={
+            loading ||
+            !displayName.trim() ||
+            !username ||
+            Boolean(problem) ||
+            availability === "taken" ||
+            !dobEngaged
+          }
           className="w-full rounded-full bg-brand-accent text-brand-bg py-3.5 text-sm font-medium uppercase tracking-widest hover:bg-brand-accent/90 hover:scale-[1.01] transition-all duration-300 disabled:opacity-40"
         >
           {loading ? "Saving…" : "Continue"}

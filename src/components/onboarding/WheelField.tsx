@@ -12,14 +12,22 @@ export const WHEEL_WIDTH_CLASS = "mx-auto w-[clamp(190px,62%,220px)]";
 export type WheelColumn = {
   min: number;
   max: number;
-  unit: string;
+  /** Appended to each number ("170 cm"). Leave off when `labels` or the bare
+   *  number is what should show. */
+  unit?: string;
+  /** Replaces the number as the row text; index 0 is `min`. */
+  labels?: readonly string[];
   value: number;
   onChange: (value: number) => void;
 };
 
-function optionsFor(min: number, max: number, unit: string): WheelPickerOption<number>[] {
+function optionsFor(column: WheelColumn): WheelPickerOption<number>[] {
   const out: WheelPickerOption<number>[] = [];
-  for (let n = min; n <= max; n++) out.push({ value: n, label: `${n} ${unit}` });
+  for (let n = column.min; n <= column.max; n++) {
+    const label =
+      column.labels?.[n - column.min] ?? (column.unit ? `${n} ${column.unit}` : String(n));
+    out.push({ value: n, label });
+  }
   return out;
 }
 
@@ -36,13 +44,14 @@ export function WheelField({
   engaged: boolean;
   onEngage: () => void;
 }) {
-  const shape = columns.map((c) => `${c.min}-${c.max}-${c.unit}`).join("|");
+  const shape = columns
+    .map((c) => `${c.min}~${c.max}~${c.unit ?? ""}~${c.labels?.join(",") ?? ""}`)
+    .join("|");
   const options = useMemo(
-    () =>
-      shape.split("|").map((part) => {
-        const [min, max, unit] = part.split("-");
-        return optionsFor(Number(min), Number(max), unit);
-      }),
+    () => columns.map(optionsFor),
+    // Ranges, units and labels are all captured by `shape`; values change
+    // constantly and must not rebuild the option lists.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [shape],
   );
 
@@ -56,7 +65,7 @@ export function WheelField({
       <WheelPickerWrapper className="h-[168px] rounded-2xl border border-brand-text/15">
         {columns.map((c, i) => (
           <WheelPicker<number>
-            key={`${c.unit}-${c.min}`}
+            key={`${c.unit ?? "col"}-${c.min}-${i}`}
             options={options[i]}
             value={c.value}
             optionItemHeight={40}

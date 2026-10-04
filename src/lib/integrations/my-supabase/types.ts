@@ -1524,6 +1524,7 @@ export type Database = {
           avatar_url: string | null
           bio: string | null
           created_at: string | null
+          date_of_birth: string | null
           display_name: string | null
           gender: string | null
           hide_store_stats: boolean
@@ -1541,6 +1542,7 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           created_at?: string | null
+          date_of_birth?: string | null
           display_name?: string | null
           gender?: string | null
           hide_store_stats?: boolean
@@ -1558,6 +1560,7 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           created_at?: string | null
+          date_of_birth?: string | null
           display_name?: string | null
           gender?: string | null
           hide_store_stats?: boolean
