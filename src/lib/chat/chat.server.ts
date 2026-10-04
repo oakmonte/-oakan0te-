@@ -1,16 +1,14 @@
 /**
  * The server half of messaging: every read or write that carries a message
- * body. Bodies are stored encrypted (field-encryption.server.ts), so the
- * browser can't read or write them directly any more — it goes through
- * api.chat.* and api.support-messages.*, which call into here.
+ * body. The browser goes through api.chat.* and api.support-messages.*, which
+ * call into here.
  *
  * Queries run on a client carrying the CALLER'S access token, not the
  * service-role key. That keeps every RLS policy and column grant in the
  * messaging migrations as the authorization boundary, exactly as when the
- * browser made these calls itself; this layer only adds the encryption. The
- * one exception is the staff support reader, which is gated by its own secret.
+ * browser made these calls itself. The one exception is the staff support reader, which is gated by its own secret.
  *
- * Server-only: imports the encryption key.
+ * Server-only.
  */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import {
@@ -18,12 +16,6 @@ import {
   MY_SUPABASE_URL,
 } from "@/lib/integrations/my-supabase/config";
 import { bearer, getRequestUser } from "@/lib/server-auth";
-import {
-  decryptField,
-  encryptField,
-  FieldEncryptionError,
-  fieldContext,
-} from "@/lib/field-encryption.server";
 import type { Json } from "@/lib/integrations/my-supabase/types";
 import type {
   ConversationKind,
@@ -36,15 +28,9 @@ import type {
 
 export type ChatDb = SupabaseClient<MessagingDatabase>;
 
-/** Same cap the database enforced on plaintext before bodies were encrypted —
- *  the column's own limit is now sized for ciphertext, so this is the real one. */
+/** Longest message body, in characters. */
 export const MAX_BODY_CHARS = 4000;
 export const PAGE_SIZE = 50;
-
-/** Shown in place of a body that fails to decrypt (a key that was removed, a
- *  row edited by hand), so one bad row degrades to one odd bubble instead of
- *  the whole chat failing to load. */
-const UNREADABLE = "This message can't be displayed.";
 
 export const MESSAGE_COLUMNS =
   "id, conversation_id, sender_id, kind, body, media_path, media_meta, reply_to_id, forwarded, edited_at, deleted_at, created_at";
@@ -98,64 +84,16 @@ export function validateBody(body: unknown, required: boolean): BodyCheck {
   return { ok: true, body: trimmed };
 }
 
-async function openBody(stored: string | null, context: string): Promise<string | null> {
-  if (stored == null) return null;
-  try {
-    return await decryptField(stored, context);
-  } catch (err) {
-    console.error("chat: could not decrypt a message body", err);
-    return UNREADABLE;
-  }
-}
-
-export async function openMessage(row: MessageRow): Promise<MessageRow> {
-  return {
-    ...row,
-    body: await openBody(
-      row.body,
-      fieldContext.messageBody({
-        id: row.id,
-        conversationId: row.conversation_id,
-        senderId: row.sender_id,
-      }),
-    ),
-  };
-}
-
-export async function openSupportMessage(row: SupportMessageRow): Promise<SupportMessageRow> {
-  return {
-    ...row,
-    body:
-      (await openBody(
-        row.body,
-        fieldContext.supportMessageBody({ id: row.id, userId: row.user_id, sender: row.sender }),
-      )) ?? "",
-  };
-}
-
 /* ---------- direct messages ---------- */
 
 export async function listInbox(db: ChatDb): Promise<InboxRow[]> {
   const { data, error } = await db.rpc("list_inbox");
   if (error) throw error;
-  return Promise.all(
-    (data ?? []).map(async (row) => ({
-      ...row,
-      kind: row.kind as ConversationKind,
-      last_message_kind: row.last_message_kind as MessageKind | null,
-      last_message_body:
-        row.last_message_id && row.last_message_sender_id
-          ? await openBody(
-              row.last_message_body,
-              fieldContext.messageBody({
-                id: row.last_message_id,
-                conversationId: row.conversation_id,
-                senderId: row.last_message_sender_id,
-              }),
-            )
-          : row.last_message_body,
-    })),
-  );
+  return (data ?? []).map((row) => ({
+    ...row,
+    kind: row.kind as ConversationKind,
+    last_message_kind: row.last_message_kind as MessageKind | null,
+  }));
 }
 
 /** One page, newest first from the database, returned oldest-first. Hidden
@@ -192,7 +130,7 @@ export async function fetchPage(
 
   const visible = rows.filter((row) => !hidden.has(row.id)).reverse();
   return {
-    messages: await Promise.all(visible.map(openMessage)),
+    messages: visible,
     hasMore: rows.length === PAGE_SIZE,
   };
 }
@@ -201,7 +139,7 @@ export async function fetchByIds(db: ChatDb, ids: string[]): Promise<MessageRow[
   if (ids.length === 0) return [];
   const { data, error } = await db.from("messages").select(MESSAGE_COLUMNS).in("id", ids);
   if (error) throw error;
-  return Promise.all(((data ?? []) as MessageRow[]).map(openMessage));
+  return (data ?? []) as MessageRow[];
 }
 
 export type NewMessage = {
@@ -224,16 +162,7 @@ export async function insertMessage({ db, me }: Caller, input: NewMessage): Prom
       // From the session. RLS would refuse anyone else's id anyway.
       sender_id: me,
       kind: input.kind,
-      body: input.body
-        ? await encryptField(
-            input.body,
-            fieldContext.messageBody({
-              id: input.id,
-              conversationId: input.conversationId,
-              senderId: me,
-            }),
-          )
-        : null,
+      body: input.body,
       media_path: input.mediaPath,
       media_meta: input.meta,
       reply_to_id: input.replyToId,
@@ -242,34 +171,15 @@ export async function insertMessage({ db, me }: Caller, input: NewMessage): Prom
     .select(MESSAGE_COLUMNS)
     .single();
   if (error || !data) throw error ?? new Error("Message not sent");
-  // The text just sent, not a decrypt of the echo.
-  return { ...(data as MessageRow), body: input.body };
+  return data as MessageRow;
 }
 
 export async function editMessage(db: ChatDb, id: string, body: string): Promise<void> {
-  // The ciphertext is bound to the conversation and sender, so read those
-  // first — as the caller, so a message they can't see can't be edited.
-  const { data: row, error: readError } = await db
-    .from("messages")
-    .select("conversation_id, sender_id")
-    .eq("id", id)
-    .maybeSingle();
-  if (readError) throw readError;
-  if (!row) throw { message: "Message not found", code: "42501" };
-  const { error } = await db
-    .from("messages")
-    .update({
-      body: await encryptField(
-        body,
-        fieldContext.messageBody({
-          id,
-          conversationId: row.conversation_id,
-          senderId: row.sender_id,
-        }),
-      ),
-    })
-    .eq("id", id);
+  // Updated as the caller, so RLS refuses a message they can't edit; zero rows
+  // back means it wasn't theirs (or doesn't exist).
+  const { data, error } = await db.from("messages").update({ body }).eq("id", id).select("id");
   if (error) throw error;
+  if (!data || data.length === 0) throw { message: "Message not found", code: "42501" };
 }
 
 /* ---------- support ---------- */
@@ -312,41 +222,29 @@ export async function fetchSupportThread(
     : query.order("created_at", { ascending: true });
   const { data, error } = await query;
   if (error) throw error;
-  return Promise.all(((data ?? []) as SupportMessageRow[]).map(openSupportMessage));
+  return (data ?? []) as SupportMessageRow[];
 }
 
-/** Writes one support message. The id is generated here rather than by the
- *  database because the ciphertext is bound to it. */
+/** Writes one support message. */
 export async function insertSupportMessage(
   db: ChatDb,
   input: { userId: string; body: string; sender: "user" | "support" },
 ): Promise<SupportMessageRow> {
-  const id = crypto.randomUUID();
   const { data, error } = await db
     .from("support_messages")
     .insert({
-      id,
       user_id: input.userId,
-      body: await encryptField(
-        input.body,
-        fieldContext.supportMessageBody({ id, userId: input.userId, sender: input.sender }),
-      ),
+      body: input.body,
       sender: input.sender,
     })
     .select(SUPPORT_COLUMNS)
     .single();
   if (error || !data) throw error ?? new Error("Message not sent");
-  return { ...(data as SupportMessageRow), body: input.body };
+  return data as SupportMessageRow;
 }
 
-/** Maps a thrown Supabase/encryption error to a response. */
+/** Maps a thrown Supabase error to a response. */
 export function failure(err: unknown, fallback: string): Response {
-  if (err instanceof FieldEncryptionError) {
-    // Misconfiguration (no key), not the caller's fault — and never a reason
-    // to fall back to storing plaintext.
-    console.error("chat: encryption unavailable", err);
-    return chatError(fallback, 500);
-  }
   const pg = err as { message?: string; code?: string } | null;
   console.error("chat:", fallback, pg);
   const status = pg?.code === "42501" ? 403 : 500;
