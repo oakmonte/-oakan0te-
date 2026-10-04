@@ -276,10 +276,12 @@ expansion makes neighbors' hit zones collide more than it closes real dead space
 ## Autosave clearing — clear synchronously at the Save call site, not in the background save
 
 `startProductSave` (`product-save.ts`) is fire-and-forget: both `store.products_.new.tsx` and
-`store.products_.$id.tsx`'s `performSave` call it without awaiting, then navigate away immediately.
-`product-save.ts`'s own `run()` clears the relevant `localStorage` autosave slot, but only once the real
-DB writes finish — seconds away for a variant product. That's too late: both pages now also call
-`clearAutosavedDraft(...)` directly in `performSave`, synchronously, right before `navigate()`. Without
-it, tapping "+" (or reopening the same product) inside that window restores the just-saved draft into
-what should be a blank/fresh form — a real, shipped bug. Keep the synchronous call if you touch either
-`performSave`; the deferred one in `product-save.ts` is a harmless backstop, not the actual fix.
+`store.products_.$id.tsx`'s `writeProduct` call it without awaiting, then navigate away immediately.
+(`performSave` in front of it is only a gate: it opens `DraftWarningDialog` when the product is still
+a draft.) `product-save.ts`'s own `run()` clears the relevant `localStorage` autosave slot, but only
+once the real DB writes finish — seconds away for a variant product. That's too late: both pages now
+also call `clearAutosavedDraft(...)` directly in `writeProduct`, synchronously, right before
+`navigate()`. Without it, tapping "+" (or reopening the same product) inside that window restores the
+just-saved draft into what should be a blank/fresh form — a real, shipped bug. Keep the synchronous
+call if you touch either `writeProduct`; the deferred one in `product-save.ts` is a harmless backstop,
+not the actual fix.

@@ -1,12 +1,14 @@
 import { createFileRoute, useNavigate, useParams, useRouter } from "@tanstack/react-router";
 import { useOverlayHistory } from "@/hooks/use-overlay-history";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { fetchStoreLogoUrl } from "@/lib/store-logo";
 import {
   useCallback,
   useState,
   useRef,
   useEffect,
   useLayoutEffect,
+  useMemo,
   type ReactElement,
 } from "react";
 import {
@@ -25,7 +27,6 @@ import {
   Search,
   Menu,
   Star,
-  Store,
   X,
   Bell,
   BellRing,
@@ -87,21 +88,26 @@ type ProfileRow = {
   followers_count: number;
   rating: number;
   rating_count: number;
+  sold_items_count: number;
 };
 
-const PROFILE_SELLER_PROMPT_KEY = "oak-profile-seller-prompt-seen";
+// Remembers, per account on this device, that the store checklist was once seen
+// finished. The prompt no longer waits for the checklist's network calls to
+// resolve before opening (that wait is what made it feel late), so this is
+// what keeps it from flashing at a seller who is already done.
+const STORE_SETUP_DONE_KEY = "oak-store-setup-done";
 
-function hasSeenSellerPrompt(userId: string) {
+function knownSetupDone(userId: string) {
   try {
-    return sessionStorage.getItem(`${PROFILE_SELLER_PROMPT_KEY}:${userId}`) === "1";
+    return localStorage.getItem(`${STORE_SETUP_DONE_KEY}:${userId}`) === "1";
   } catch {
     return false;
   }
 }
 
-function markSellerPromptSeen(userId: string) {
+function rememberSetupDone(userId: string) {
   try {
-    sessionStorage.setItem(`${PROFILE_SELLER_PROMPT_KEY}:${userId}`, "1");
+    localStorage.setItem(`${STORE_SETUP_DONE_KEY}:${userId}`, "1");
   } catch {
     return;
   }
@@ -128,6 +134,7 @@ function ProfilePage() {
         followers_count: stats?.followers_count ?? 0,
         rating: stats?.rating ?? 0,
         rating_count: stats?.rating_count ?? 0,
+        sold_items_count: stats?.sold_items_count ?? 0,
       }
     : null;
   const [activeTab, setActiveTab] = useState<TabKey>("posts");
@@ -146,6 +153,17 @@ function ProfilePage() {
   // Oldest-first, same tie-break as useOwnStores — "the" store for anything
   // on this page that isn't multi-store aware yet (the Store tab preview).
   const store = stores[0] ?? null;
+  // Stars and Sold Items are seller stats: only store owners have them, and an
+  // owner can hide them from Settings > Store (profiles.hide_store_stats). The
+  // flag is per owner, not per store, and applies to the owner's own view too.
+  const showSellerStats = stores.length > 0 && !baseProfile?.hide_store_stats;
+  // The store's picture, shown on the switch-to-store button in the top bar.
+  const { data: storeLogoUrl = null } = useQuery({
+    queryKey: ["store-logo", store?.id],
+    queryFn: () => fetchStoreLogoUrl(store!.id),
+    enabled: !!store?.id,
+    staleTime: 60_000,
+  });
   // theme_id stays null until the seller explicitly saves a theme (see
   // useStoreTheme.ts) — a store row exists as soon as onboarding names it,
   // well before there's anything real to preview, so this is the signal for
@@ -226,25 +244,24 @@ function ProfilePage() {
   // Owner-only chrome waits; visitor-only chrome waits too.
   const ownershipKnown = !sessionLoading && !!profile;
 
+  // Opens as soon as we know this is a seller's own profile -- it deliberately
+  // does NOT wait for the checklist's four network calls to finish, which is
+  // what made it appear late. If they turn out to be finished (or the status
+  // can't be loaded, so we can't tell), it closes again; a seller known from
+  // an earlier visit to be finished never sees it open at all.
+  const leavingForStore = useRef(false);
   useEffect(() => {
-    if (
-      !ownershipKnown ||
-      !isOwnProfile ||
-      !user ||
-      ownedStoresLoading ||
-      ownedStores.length === 0 ||
-      storeSetupStatus.loading ||
-      // Already finished the checklist — the prompt's whole job was getting
-      // them through onboarding, and it has nothing left to nudge them
-      // toward. Without this a fully set-up seller would see "Set up my
-      // store" forever, once per session, for no reason.
-      storeSetupStatus.complete ||
-      hasSeenSellerPrompt(user.id)
-    ) {
+    if (!ownershipKnown || !isOwnProfile || !user || leavingForStore.current) return;
+    if (storeSetupStatus.complete) {
+      rememberSetupDone(user.id);
+      setSellerPromptOpen(false);
       return;
     }
-
-    markSellerPromptSeen(user.id);
+    if (storeSetupStatus.failed) {
+      setSellerPromptOpen(false);
+      return;
+    }
+    if (ownedStoresLoading || ownedStores.length === 0 || knownSetupDone(user.id)) return;
     setSellerPromptOpen(true);
   }, [
     isOwnProfile,
@@ -252,7 +269,7 @@ function ProfilePage() {
     ownedStoresLoading,
     ownershipKnown,
     storeSetupStatus.complete,
-    storeSetupStatus.loading,
+    storeSetupStatus.failed,
     user,
   ]);
 
@@ -263,14 +280,21 @@ function ProfilePage() {
 
   // findIndex can't miss (activeTab is always a TabKey), but a -1 would send
   // the pager to +pageWidth and strand it off-screen, so it's clamped.
+  // An owner who sells from the store profile only (stores.store_profile_only)
+  // gets no Store tab here, which leaves their personal profile free of store
+  // content. The switch button still reaches the store profile.
+  const profileTabs = useMemo(
+    () => (store?.store_profile_only ? TABS.filter((t) => t.key !== "store") : TABS),
+    [store?.store_profile_only],
+  );
   const tabIndex = Math.max(
     0,
-    TABS.findIndex((t) => t.key === activeTab),
+    profileTabs.findIndex((t) => t.key === activeTab),
   );
 
   const goToTab = (nextIndex: number) => {
-    if (nextIndex >= 0 && nextIndex < TABS.length) {
-      setActiveTab(TABS[nextIndex].key);
+    if (nextIndex >= 0 && nextIndex < profileTabs.length) {
+      setActiveTab(profileTabs[nextIndex].key);
     }
   };
 
@@ -439,6 +463,7 @@ function ProfilePage() {
       }}
       pagerX={pagerX}
       pageWidth={pageWidth}
+      tabs={profileTabs}
     />
   );
 
@@ -454,6 +479,7 @@ function ProfilePage() {
   // the row then stays lit ~450ms, long enough to read as "tapped", before
   // the navigation it's demonstrating actually fires.
   function goToStoreViaMenu() {
+    leavingForStore.current = true;
     setSellerPromptOpen(false);
     setMenuOpen(true);
     tourTimeouts.current.push(
@@ -607,7 +633,13 @@ function ProfilePage() {
                   aria-label="Switch to store profile"
                   className="transition-transform duration-200 active:scale-90"
                 >
-                  <Store size={20} />
+                  <span className="flex h-[26px] w-[26px] items-center justify-center overflow-hidden rounded-full border border-white/60 bg-chat-soft">
+                    {storeLogoUrl ? (
+                      <img src={storeLogoUrl} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <UserRound size={16} strokeWidth={1.5} className="text-chat-muted" />
+                    )}
+                  </span>
                 </button>
               )}
             {ownershipKnown && isOwnProfile && (
@@ -661,38 +693,47 @@ function ProfilePage() {
                 almost always the right text, so it stands in while the row
                 loads instead of an ellipsis that then jumps to a longer
                 name. */}
-              <div
-                ref={nameRef}
-                className={`text-[15px] font-bold ${profileLoading ? "opacity-40" : ""}`}
-              >
-                {profile?.display_name || profile?.personal_username || username}
-              </div>
-              {isOwnProfile && (
-                <button
-                  onClick={() => navigate({ to: "/edit-profile" })}
-                  aria-label="Edit profile"
-                  className="text-[11px] font-bold text-chat-text/50 hover:text-chat-text transition-colors border border-chat-text/30 hover:border-chat-text/60 rounded-full px-2 py-0.5"
+              <div className="relative">
+                <div
+                  ref={nameRef}
+                  className={`text-[15px] font-bold ${profileLoading ? "opacity-40" : ""}`}
                 >
-                  Edit
-                </button>
-              )}
+                  {profile?.display_name || profile?.personal_username || username}
+                </div>
+                {/* Hangs off the name's right edge instead of sitting in the
+                  row with it, so the name stays centred under the photo. */}
+                {isOwnProfile && (
+                  <button
+                    onClick={() => navigate({ to: "/edit-profile" })}
+                    aria-label="Edit profile"
+                    className="absolute left-full top-1/2 ml-1.5 -translate-y-1/2 text-[11px] font-bold text-chat-text/50 hover:text-chat-text transition-colors border border-chat-text/30 hover:border-chat-text/60 rounded-full px-2 py-0.5"
+                  >
+                    Edit
+                  </button>
+                )}
+              </div>
             </div>
             <div className="text-[11px] font-bold text-chat-muted mt-0.5">
               @{profile?.personal_username || username}
             </div>
-            <div className="flex items-center justify-center gap-1.5 mt-1.5">
-              <div className="flex items-center gap-[2px]">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Star key={i} size={13} className="fill-[#FF7300] text-[#FF7300]" />
-                ))}
+            {showSellerStats && (
+              <div className="flex items-center justify-center gap-1.5 mt-1.5">
+                <div className="flex items-center gap-[2px]">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Star key={i} size={13} className="fill-[#FF7300] text-[#FF7300]" />
+                  ))}
+                </div>
+                <span className="text-[11px] font-medium">({profile?.rating_count ?? 0})</span>
               </div>
-              <span className="text-[11px] font-medium">({profile?.rating_count ?? 0})</span>
-            </div>
+            )}
           </div>
 
           <div className="flex items-center gap-8">
             <Stat value={String(profile?.following_count ?? 0)} label="Following" />
             <Stat value={String(profile?.followers_count ?? 0)} label="Followers" />
+            {showSellerStats && (
+              <Stat value={String(profile?.sold_items_count ?? 0)} label="Sold Items" />
+            )}
           </div>
 
           {ownershipKnown && !isOwnProfile && (
@@ -797,12 +838,12 @@ function ProfilePage() {
             <div className="pb-24" style={{ minHeight: `calc(100dvh - ${topBarH + 48}px)` }}>
               <TabPager
                 index={tabIndex}
-                count={TABS.length}
+                count={profileTabs.length}
                 onIndexChange={goToTab}
                 x={pagerX}
                 onPageWidth={setPageWidth}
               >
-                {TABS.map(({ key }) => (
+                {profileTabs.map(({ key }) => (
                   <div key={key} className="px-1 pt-4">
                     {profile && key === "posts" ? (
                       <PostsGrid
@@ -981,7 +1022,7 @@ function ProfilePage() {
       >
         <div className="absolute inset-0 bg-black/40" onClick={() => setStorePickerOpen(false)} />
         <div
-          className={`absolute inset-x-0 bottom-0 rounded-t-[28px] bg-chat-bg border-t border-chat-text/10 transition-transform duration-300 ease-out ${
+          className={`absolute inset-x-0 bottom-0 min-h-[28vh] rounded-t-[28px] bg-chat-bg border-t border-chat-text/10 transition-transform duration-300 ease-out ${
             storePickerOpen ? "translate-y-0" : "translate-y-full"
           }`}
           style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
@@ -1060,12 +1101,19 @@ function ProfilePage() {
           status readout, and "Finish store set up" reads the same for every
           seller regardless of which step they're actually on.
 
-          Still a Radix Dialog rather than one of the hand-rolled sheets: this
-          opens by itself, without being asked for, so focus trapping and
-          escape-to-close are not optional. The classes below only move it to
+          Deliberately not dismissible -- no close button, no tap-outside, no
+          Escape, no "Later". A seller who owns a store that can't sell yet has
+          one thing to do, and it goes away on its own once the checklist is
+          finished. Still a Radix Dialog rather than a hand-rolled sheet so focus
+          stays trapped inside it. The classes below only move it to
           the bottom of the screen in the house sheet shape. */}
-      <Dialog open={sellerPromptOpen} onOpenChange={setSellerPromptOpen}>
-        <DialogContent className="left-0 top-auto bottom-0 w-full max-w-none translate-x-0 translate-y-0 gap-0 rounded-t-[28px] rounded-b-none border-0 bg-white p-6 pb-[calc(env(safe-area-inset-bottom)+24px)] text-gray-900 shadow-[0_-20px_60px_rgba(0,0,0,0.18)] duration-300 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom data-[state=closed]:zoom-out-100 data-[state=open]:zoom-in-100 sm:left-[50%] sm:max-w-sm sm:translate-x-[-50%] sm:rounded-t-[28px] sm:rounded-b-none">
+      <Dialog open={sellerPromptOpen}>
+        <DialogContent
+          onEscapeKeyDown={(e) => e.preventDefault()}
+          onPointerDownOutside={(e) => e.preventDefault()}
+          onInteractOutside={(e) => e.preventDefault()}
+          className="[&>button]:hidden left-0 top-auto bottom-0 w-full max-w-none translate-x-0 translate-y-0 gap-0 rounded-t-[28px] rounded-b-none border-0 bg-white p-6 pb-[calc(env(safe-area-inset-bottom)+24px)] text-gray-900 shadow-[0_-20px_60px_rgba(0,0,0,0.18)] duration-300 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom data-[state=closed]:zoom-out-100 data-[state=open]:zoom-in-100 sm:left-[50%] sm:max-w-sm sm:translate-x-[-50%] sm:rounded-t-[28px] sm:rounded-b-none"
+        >
           <DialogHeader className="text-left">
             <DialogTitle className="text-[20px] tracking-[-0.02em]">
               Your store isn&rsquo;t live yet
@@ -1081,13 +1129,6 @@ function ProfilePage() {
               className="oak-motion-control w-full rounded-full bg-black py-4 text-[15px] font-semibold text-white active:scale-[0.98]"
             >
               Finish store set up
-            </button>
-            <button
-              type="button"
-              onClick={() => setSellerPromptOpen(false)}
-              className="oak-motion-control w-full rounded-full py-3 text-[15px] font-medium text-gray-500"
-            >
-              Later
             </button>
           </div>
         </DialogContent>

@@ -5,14 +5,7 @@ import { ComingSoonBanner } from "@/components/ComingSoonBanner";
 import { fetchStoreLogo, type StoreLogo } from "@/lib/store-logo";
 import { IdentityBlock } from "./IdentityBlock";
 import { QuickActions } from "./QuickActions";
-import {
-  NeedsAttention,
-  SalesAnalytics,
-  StatTiles,
-  TotalSales,
-  WhatsNew,
-  type AttentionItem,
-} from "./sections";
+import { NextSteps, SalesAnalytics, StatTiles, WhatsNew } from "./sections";
 
 /** The seller dashboard: what /store shows once setup is finished.
  *
@@ -75,10 +68,6 @@ function DashboardForStore({
     setShareComingSoonOpen(true);
   }
 
-  // Empty until Diadem defines what feeds this section. The shape is here so
-  // adding a signal is a data change rather than a layout change.
-  const attention: AttentionItem[] = [];
-
   return (
     // font-normal: body copy is weight 300 app-wide, and 13-14px grey Inter at
     // 300 is the least legible text on a phone -- which on this page is exactly
@@ -87,9 +76,9 @@ function DashboardForStore({
     <div className="flex flex-col gap-8 px-4 pb-[calc(env(safe-area-inset-bottom)+2.5rem)] pt-5 font-normal">
       <IdentityBlock store={store} logo={logo} onLogoChange={onLogoChange} onShare={share} />
       <WhatsNew />
-      <NeedsAttention items={attention} />
+      <NextSteps />
       <div className="flex flex-col gap-6">
-        <TotalSales onShare={share} />
+        {/* Re-enable <TotalSales onShare={share} /> (and its import) once sellers can take orders. */}
         <SalesAnalytics />
         <StatTiles productCount={productCount} payoutVerified={payoutStatus === "verified"} />
       </div>

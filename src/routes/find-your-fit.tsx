@@ -11,6 +11,7 @@ import {
 import { useRequireSession } from "@/components/onboarding/use-require-session";
 import { usePrefetchNextStep } from "@/hooks/use-prefetch-next-step";
 import { supabase } from "@/lib/integrations/my-supabase/client";
+import { WheelField, WHEEL_WIDTH_CLASS } from "@/components/onboarding/WheelField";
 import { cmToDisplay, displayToCm, CM_PER_INCH } from "@/lib/size-chart-config";
 import fSkinny from "@/assets/body-types/female/skinny.webp";
 import fSlim from "@/assets/body-types/female/slim.webp";
@@ -540,6 +541,18 @@ const MALE_BODY_TYPES: TracedBodyShape[] = [
   },
 ];
 
+const HEIGHT_MIN_CM = 90;
+const HEIGHT_MAX_CM = 250;
+const HEIGHT_DEFAULT_CM = 170;
+const HEIGHT_DEFAULT_FT = 5;
+const HEIGHT_DEFAULT_IN = 6;
+const WEIGHT_MIN_KG = 20;
+const WEIGHT_MAX_KG = 300;
+const WEIGHT_DEFAULT_KG = 65;
+const WEIGHT_MIN_LBS = 44;
+const WEIGHT_MAX_LBS = 660;
+const WEIGHT_DEFAULT_LBS = 143;
+
 function onlyDigits(value: string) {
   return value.replace(/\D/g, "");
 }
@@ -649,7 +662,6 @@ function FindYourFitPage() {
   const [heightCm, setHeightCm] = useState("");
   const [heightFt, setHeightFt] = useState("");
   const [heightIn, setHeightIn] = useState("");
-  const heightInRef = useRef<HTMLInputElement>(null);
 
   const [weightUnit, setWeightUnit] = useState<"kg" | "lbs">("kg");
   const [weight, setWeight] = useState("");
@@ -750,6 +762,42 @@ function FindYourFitPage() {
   // and shared across roles, so a person who's both creator and curator only
   // answers these questions once.
   const roleTable = intent === "curator" ? "curators" : "creators";
+
+  // Wheels always show a value, so the strings above stay "" -- meaning
+  // "not answered" -- until the person touches the wheel (see WheelField).
+  const heightCmNum = Number(heightCm) || HEIGHT_DEFAULT_CM;
+  const heightFtNum = heightFt === "" ? HEIGHT_DEFAULT_FT : Number(heightFt);
+  const heightInNum = heightIn === "" ? HEIGHT_DEFAULT_IN : Number(heightIn);
+  const weightNum =
+    Number(weight) || (weightUnit === "kg" ? WEIGHT_DEFAULT_KG : WEIGHT_DEFAULT_LBS);
+  const heightEngaged = heightUnit === "cm" ? heightCm !== "" : heightFt !== "" && heightIn !== "";
+  const weightEngaged = weight !== "";
+
+  // Carry an answered value across a unit switch instead of leaving a number
+  // that now means something else.
+  function switchHeightUnit(next: "cm" | "ftin") {
+    if (next === heightUnit) return;
+    if (next === "ftin" && heightCm !== "") {
+      const totalIn = Math.round(Number(heightCm) / CM_PER_INCH);
+      setHeightFt(String(Math.min(9, Math.max(2, Math.floor(totalIn / 12)))));
+      setHeightIn(String(totalIn % 12));
+    } else if (next === "cm" && heightFt !== "" && heightIn !== "") {
+      const cm = Math.round((Number(heightFt) * 12 + Number(heightIn)) * CM_PER_INCH);
+      setHeightCm(String(Math.min(HEIGHT_MAX_CM, Math.max(HEIGHT_MIN_CM, cm))));
+    }
+    setHeightUnit(next);
+  }
+
+  function switchWeightUnit(next: "kg" | "lbs") {
+    if (next === weightUnit) return;
+    if (weight !== "") {
+      const converted = next === "lbs" ? Number(weight) / 0.453592 : Number(weight) * 0.453592;
+      const [min, max] =
+        next === "kg" ? [WEIGHT_MIN_KG, WEIGHT_MAX_KG] : [WEIGHT_MIN_LBS, WEIGHT_MAX_LBS];
+      setWeight(String(Math.min(max, Math.max(min, Math.round(converted)))));
+    }
+    setWeightUnit(next);
+  }
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -855,94 +903,92 @@ function FindYourFitPage() {
     >
       <form onSubmit={handleSubmit} className="space-y-3">
         <div>
-          <div className="flex items-center justify-end gap-3 mb-1.5 px-1">
+          <div className={`${WHEEL_WIDTH_CLASS} flex items-center justify-end gap-3 mb-1.5 px-1`}>
             <button
               type="button"
-              onClick={() => setHeightUnit("cm")}
+              onClick={() => switchHeightUnit("cm")}
               className={`text-[11px] uppercase tracking-widest transition-colors ${heightUnit === "cm" ? "text-brand-accent" : "text-brand-text/40"}`}
             >
               cm
             </button>
             <button
               type="button"
-              onClick={() => setHeightUnit("ftin")}
+              onClick={() => switchHeightUnit("ftin")}
               className={`text-[11px] uppercase tracking-widest transition-colors ${heightUnit === "ftin" ? "text-brand-accent" : "text-brand-text/40"}`}
             >
               ft/in
             </button>
           </div>
           {heightUnit === "cm" ? (
-            <input
-              type="text"
-              inputMode="numeric"
-              value={heightCm}
-              onChange={(e) => setHeightCm(onlyDigits(e.target.value))}
-              placeholder="Height (cm)"
-              className="w-full rounded-full border border-brand-text/25 bg-transparent px-5 py-3.5 text-sm placeholder:text-brand-text/40 focus:outline-none focus:border-brand-accent transition-colors"
+            <WheelField
+              engaged={heightEngaged}
+              onEngage={() => setHeightCm(String(heightCmNum))}
+              columns={[
+                {
+                  min: HEIGHT_MIN_CM,
+                  max: HEIGHT_MAX_CM,
+                  unit: "cm",
+                  value: heightCmNum,
+                  onChange: (v) => setHeightCm(String(v)),
+                },
+              ]}
             />
           ) : (
-            // Fixed-width, not flex-1 — a value here is never more than 2
-            // digits, so stretching each box to half the row (like a normal
-            // full-width field) left the Inches box overflowing the screen.
-            <div className="flex gap-2">
-              <div className="flex items-center gap-1.5 w-[108px] rounded-full border border-brand-text/25 px-4 py-3.5 focus-within:border-brand-accent transition-colors">
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={heightFt}
-                  onChange={(e) => {
-                    // A person's height in feet is always one digit — advance
-                    // to Inches the moment it's typed instead of making them
-                    // tap over manually.
-                    const digits = onlyDigits(e.target.value).slice(0, 1);
-                    setHeightFt(digits);
-                    if (digits.length === 1) heightInRef.current?.focus();
-                  }}
-                  placeholder="0"
-                  className="w-6 min-w-0 bg-transparent text-sm placeholder:text-brand-text/40 focus:outline-none"
-                />
-                <span className="text-xs text-brand-text/40">ft</span>
-              </div>
-              <div className="flex items-center gap-1.5 w-[108px] rounded-full border border-brand-text/25 px-4 py-3.5 focus-within:border-brand-accent transition-colors">
-                <input
-                  ref={heightInRef}
-                  type="text"
-                  inputMode="numeric"
-                  value={heightIn}
-                  onChange={(e) => setHeightIn(onlyDigits(e.target.value).slice(0, 2))}
-                  placeholder="0"
-                  className="w-6 min-w-0 bg-transparent text-sm placeholder:text-brand-text/40 focus:outline-none"
-                />
-                <span className="text-xs text-brand-text/40">in</span>
-              </div>
-            </div>
+            <WheelField
+              engaged={heightEngaged}
+              onEngage={() => {
+                setHeightFt(String(heightFtNum));
+                setHeightIn(String(heightInNum));
+              }}
+              columns={[
+                {
+                  min: 2,
+                  max: 9,
+                  unit: "ft",
+                  value: heightFtNum,
+                  onChange: (v) => setHeightFt(String(v)),
+                },
+                {
+                  min: 0,
+                  max: 11,
+                  unit: "in",
+                  value: heightInNum,
+                  onChange: (v) => setHeightIn(String(v)),
+                },
+              ]}
+            />
           )}
         </div>
 
         <div>
-          <div className="flex items-center justify-end gap-3 mb-1.5 px-1">
+          <div className={`${WHEEL_WIDTH_CLASS} flex items-center justify-end gap-3 mb-1.5 px-1`}>
             <button
               type="button"
-              onClick={() => setWeightUnit("kg")}
+              onClick={() => switchWeightUnit("kg")}
               className={`text-[11px] uppercase tracking-widest transition-colors ${weightUnit === "kg" ? "text-brand-accent" : "text-brand-text/40"}`}
             >
               kg
             </button>
             <button
               type="button"
-              onClick={() => setWeightUnit("lbs")}
+              onClick={() => switchWeightUnit("lbs")}
               className={`text-[11px] uppercase tracking-widest transition-colors ${weightUnit === "lbs" ? "text-brand-accent" : "text-brand-text/40"}`}
             >
               lbs
             </button>
           </div>
-          <input
-            type="text"
-            inputMode="numeric"
-            value={weight}
-            onChange={(e) => setWeight(onlyDigits(e.target.value))}
-            placeholder={weightUnit === "kg" ? "Weight (kg)" : "Weight (lbs)"}
-            className="w-full rounded-full border border-brand-text/25 bg-transparent px-5 py-3.5 text-sm placeholder:text-brand-text/40 focus:outline-none focus:border-brand-accent transition-colors"
+          <WheelField
+            engaged={weightEngaged}
+            onEngage={() => setWeight(String(weightNum))}
+            columns={[
+              {
+                min: weightUnit === "kg" ? WEIGHT_MIN_KG : WEIGHT_MIN_LBS,
+                max: weightUnit === "kg" ? WEIGHT_MAX_KG : WEIGHT_MAX_LBS,
+                unit: weightUnit,
+                value: weightNum,
+                onChange: (v) => setWeight(String(v)),
+              },
+            ]}
           />
         </div>
 

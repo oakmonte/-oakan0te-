@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
-import { pickLiveDrop, type LiveDrop } from "@/lib/drops";
+import { DROPS_ENABLED, pickLiveDrop, type LiveDrop } from "@/lib/drops";
 
 // Shared across every caller for the same store: a storefront renders the
 // drop banner once, but the editor sheet and the theme picker ask as well,
@@ -41,7 +41,7 @@ export function useStoreLiveDrop(storeId: string | null): LiveDrop | null {
 
   useEffect(() => {
     setDrops([]);
-    if (!storeId) return;
+    if (!storeId || !DROPS_ENABLED) return;
     let cancelled = false;
     void loadDrops(storeId).then((d) => {
       if (!cancelled) setDrops(d);

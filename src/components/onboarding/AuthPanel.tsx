@@ -23,6 +23,7 @@ import { isStandalone } from "@/lib/standalone";
 import { isIOS } from "@/lib/platform";
 import { AppleIcon, GoogleIcon } from "@/components/auth-icons";
 import { Spinner } from "@/components/spinner";
+import { OpenInBrowserGate } from "@/components/onboarding/OpenInBrowserGate";
 import { CodeInput } from "@/components/onboarding/CodeInput";
 import { FormError, OnboardingChecking } from "@/components/onboarding/OnboardingShell";
 import logoO from "@/assets/logo-o.png";
@@ -43,7 +44,15 @@ type Props = {
   defaultMode?: Mode;
 };
 
-export function AuthPanel({ intent, title, subtitle, defaultMode = "code" }: Props) {
+export function AuthPanel(props: Props) {
+  return (
+    <OpenInBrowserGate>
+      <AuthPanelInner {...props} />
+    </OpenInBrowserGate>
+  );
+}
+
+function AuthPanelInner({ intent, title, subtitle, defaultMode = "code" }: Props) {
   const navigate = useNavigate();
   const [mode, setMode] = useState<Mode>(defaultMode);
   const [email, setEmail] = useState("");
@@ -395,7 +404,9 @@ export function AuthPanel({ intent, title, subtitle, defaultMode = "code" }: Pro
     const { data, error: signInError } = await signInWithPassword(email.trim(), password);
     setBusy(null);
     if (signInError || !data.session) {
-      setError("That email and password don't match. Try again, or use a code instead.");
+      setError(
+        "That email and password don't match. If you signed up with Apple or Google and never set a password, use that button — or get a code instead.",
+      );
       return;
     }
     await finish(data.session.user.id);
@@ -424,7 +435,7 @@ export function AuthPanel({ intent, title, subtitle, defaultMode = "code" }: Pro
 
   return (
     <div data-onboarding className="min-h-dvh bg-white text-[#0A0A0A] flex flex-col">
-      <header className="px-6 sm:px-10 py-6 flex items-center justify-between">
+      <header className="px-4 min-[360px]:px-6 sm:px-10 py-6 flex items-center justify-between">
         <Link to="/" className="flex items-baseline gap-0.5">
           <img src={logoO} alt="" className="h-9 w-auto translate-y-0.5" />
           <span className="text-lg tracking-tight leading-none">akmonte</span>
@@ -437,10 +448,12 @@ export function AuthPanel({ intent, title, subtitle, defaultMode = "code" }: Pro
         </Link>
       </header>
 
-      <main className="flex-1 flex items-center justify-center px-6 py-10">
+      <main className="flex-1 flex items-center justify-center px-4 min-[360px]:px-6 py-10">
         <div className="w-full max-w-sm">
           <div className="text-center mb-10">
-            <h1 className="font-serif text-4xl sm:text-5xl leading-tight">{title}</h1>
+            <h1 className="font-serif text-[32px] min-[360px]:text-4xl sm:text-5xl leading-tight">
+              {title}
+            </h1>
             <p className="mt-3 text-sm text-[#0A0A0A]/70">{subtitle}</p>
           </div>
 

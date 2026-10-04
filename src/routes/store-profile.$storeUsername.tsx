@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router"
 import { useOverlayHistory } from "@/hooks/use-overlay-history";
 import { useCallback, useState, useRef, useEffect, useMemo } from "react";
 import { motion, AnimatePresence, useDragControls, useMotionValue } from "framer-motion";
-import { ArrowLeft, ArrowLeftRight, Share2, Search, Menu, Star, X } from "lucide-react";
+import { ArrowLeft, Share2, Search, Menu, Star, UserRound, X } from "lucide-react";
 import { BackButton } from "@/components/BackButton";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { fetchStoreLogoUrl } from "@/lib/store-logo";
@@ -49,17 +49,21 @@ function StoreProfilePage() {
   const [store, setStore] = useState<StoreRow | null>(null);
   const [storeLoading, setStoreLoading] = useState(true);
   const [ownerUsername, setOwnerUsername] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<TabKey>("store");
+  const [ownerAvatarUrl, setOwnerAvatarUrl] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<TabKey>("posts");
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const closeMenu = useCallback(() => setMenuOpen(false), []);
   useOverlayHistory(menuOpen, closeMenu);
+  const [switchOpen, setSwitchOpen] = useState(false);
+  const closeSwitch = useCallback(() => setSwitchOpen(false), []);
+  useOverlayHistory(switchOpen, closeSwitch);
   const searchInputRef = useRef<HTMLInputElement>(null);
   // See profile.$username.tsx for why this is tracked continuously rather
   // than only captured on the tap that opens the sheet — and why it targets
   // the avatar circle, not the whole info block.
-  const avatarRef = useRef<HTMLImageElement>(null);
+  const avatarRef = useRef<HTMLDivElement>(null);
   const [sheetTop, setSheetTop] = useState(0);
   // Which tab was active right before Store was opened — see
   // profile.$username.tsx.
@@ -160,13 +164,14 @@ function StoreProfilePage() {
     // profiles only ever returns the signed-in user's own row.
     supabase
       .from("public_profiles")
-      .select("personal_username")
+      .select("personal_username, avatar_url")
       .eq("id", store.owner_id)
       .maybeSingle()
       .then(({ data, error }) => {
         if (cancelled) return;
         if (error) console.error("StoreProfilePage: failed to load owner", error);
         setOwnerUsername(data?.personal_username ?? null);
+        setOwnerAvatarUrl(data?.avatar_url ?? null);
       });
 
     return () => {
@@ -214,10 +219,11 @@ function StoreProfilePage() {
   // This route had no readiness gate at all before -- any store row, even one
   // with no theme picked, opened the sheet. Same shared gate
   // profile.$username.tsx uses (see isStorefrontVisible) -- worth calling out
-  // here specifically that this route defaults `activeTab` to "store", so
-  // getting the "loading counts as visible" half of that rule right matters
-  // even more: gating on "hidden while loading" would animate the sheet open
-  // on its own the instant the two count queries resolved, on every visit.
+  // here that this route used to default `activeTab` to "store" (it now opens
+  // on Posts, like the personal profile), so the "loading counts as visible"
+  // half of that rule still matters whenever someone taps Store before the
+  // count queries resolve: gating on "hidden while loading" would animate the
+  // sheet open on its own the instant they resolved.
   const storefrontVisible = isStorefrontVisible(
     store?.theme_id,
     isOwnStoreProfile,
@@ -281,13 +287,17 @@ function StoreProfilePage() {
             </button>
             {ownerUsername && (
               <button
-                onClick={() =>
-                  navigate({ to: "/profile/$username", params: { username: ownerUsername } })
-                }
+                onClick={() => setSwitchOpen(true)}
                 aria-label="Switch to personal profile"
                 className="transition-transform duration-200 active:scale-90"
               >
-                <ArrowLeftRight size={20} />
+                <span className="flex h-[26px] w-[26px] items-center justify-center overflow-hidden rounded-full border border-white/60 bg-white/10">
+                  {ownerAvatarUrl ? (
+                    <img src={ownerAvatarUrl} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <UserRound size={16} strokeWidth={1.5} className="text-white/60" />
+                  )}
+                </span>
               </button>
             )}
             {isOwnStoreProfile && (
@@ -304,13 +314,26 @@ function StoreProfilePage() {
 
         {/* Store info */}
         <div className="flex flex-col items-center gap-4 px-6 mt-2">
-          <img
+          <div
             ref={avatarRef}
-            src={store?.logo_url || "https://placehold.co/135x139"}
-            alt={storeUsername}
-            loading="eager"
-            className="w-[110px] h-[110px] rounded-full border-[3px] border-white object-cover"
-          />
+            className="flex h-[110px] w-[110px] items-center justify-center overflow-hidden rounded-full border-[3px] border-white bg-white/10"
+          >
+            {store?.logo_url ? (
+              <img
+                src={store.logo_url}
+                alt={storeUsername}
+                loading="eager"
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <UserRound
+                size={56}
+                strokeWidth={1.5}
+                className="text-white/50"
+                aria-label={storeUsername}
+              />
+            )}
+          </div>
           <div className="text-center">
             <div className="text-[15px] font-bold">
               {storeLoading ? "…" : store?.brand_name || storeUsername}
@@ -519,10 +542,58 @@ function StoreProfilePage() {
         </div>
       </div>
 
+      {/* Switch sheet — mirrors the personal profile's "Switch to" sheet, so
+          going back is the same raised pop-up and then a switch. */}
+      <div
+        className={`fixed inset-0 z-50 transition-opacity duration-300 ${
+          switchOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        }`}
+      >
+        <div className="absolute inset-0 bg-black/40" onClick={() => setSwitchOpen(false)} />
+        <div
+          className={`absolute inset-x-0 bottom-0 min-h-[28vh] rounded-t-[28px] bg-black border-t border-white/10 transition-transform duration-300 ease-out ${
+            switchOpen ? "translate-y-0" : "translate-y-full"
+          }`}
+          style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+        >
+          <div className="flex justify-center pt-2.5 pb-1">
+            <div className="h-1 w-9 rounded-full bg-white/25" />
+          </div>
+          <p className="px-5 pt-2 pb-1 text-[11px] font-semibold text-white/40 uppercase tracking-wide">
+            Switch to
+          </p>
+          <div className="pb-4">
+            {ownerUsername && (
+              <button
+                type="button"
+                // Not closed here on purpose: closing in the same click tears
+                // the button out mid-click and the navigation never fires (see
+                // the matching sheet in profile.$username.tsx).
+                onClick={() =>
+                  navigate({ to: "/profile/$username", params: { username: ownerUsername } })
+                }
+                className="w-full flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/5 transition-colors duration-150"
+              >
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/60 bg-white/10">
+                  {ownerAvatarUrl ? (
+                    <img src={ownerAvatarUrl} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <UserRound size={22} strokeWidth={1.5} className="text-white/60" />
+                  )}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[15px] font-medium truncate">Personal profile</p>
+                  <p className="text-[12px] text-white/40">@{ownerUsername}</p>
+                </div>
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Bottom nav — shown only when viewing your own store profile, and
-          hidden while the Store sheet is up (it has no use there and just
-          crowds the storefront). */}
-      {isOwnStoreProfile && ownerUsername && !storeSheetOpen && (
+          hidden while the Store sheet or the switch sheet is up. */}
+      {isOwnStoreProfile && ownerUsername && !storeSheetOpen && !switchOpen && (
         <BottomNav active="profile" ownUsername={ownerUsername} />
       )}
     </div>

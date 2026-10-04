@@ -2,15 +2,16 @@
 //
 // This is a usability guard, NOT the enforcement boundary — anyone can call the
 // Supabase auth endpoint directly and skip it. The real enforcement lives in
-// the Supabase project's Auth settings (minimum length, required character
-// classes, and HaveIBeenPwned leaked-password protection). Keep the two in
-// sync; this file exists so the user finds out before submitting, not after.
+// the Supabase project's Auth settings (minimum length -- set it to match
+// MIN_PASSWORD_LENGTH below). HaveIBeenPwned leaked-password protection is
+// Pro-plan only and is NOT enabled, so the checks in this file are the only
+// guard against common passwords. Keep the two in sync; this file exists so the user finds out before submitting, not after.
 
-export const MIN_PASSWORD_LENGTH = 10;
+export const MIN_PASSWORD_LENGTH = 8;
 
 /** Passwords that pass a length/composition check but are still the first
  *  thing any credential-stuffing list tries. Deliberately short: the real
- *  breach-corpus check is HaveIBeenPwned, enabled server-side. */
+ *  breach-corpus check (HaveIBeenPwned) needs Supabase's Pro plan and is off. */
 const OBVIOUS = [
   "password",
   "passw0rd",

@@ -54,6 +54,7 @@ describe("surfaceForPathname", () => {
   test("the marketing pages are their own always-white surface", () => {
     expect(surfaceForPathname("/")).toBe("marketing");
     expect(surfaceForPathname("/sellers")).toBe("marketing");
+    expect(surfaceForPathname("/creators")).toBe("marketing");
   });
 
   // Exact matches only -- a prefix match would sweep in unrelated routes.

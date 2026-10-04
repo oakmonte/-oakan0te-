@@ -11,6 +11,8 @@ import {
   FOOTWEAR_CATEGORY_ID,
   SHOE_CARE_CATEGORY_ID,
   SIZE_CHART_CATEGORY_IDS,
+  PRESET_MEASUREMENT_CATEGORY_IDS,
+  getPresetMeasurementsForCategory,
   getSizeChartForCategory,
   isFootwearCategory,
 } from "./size-chart-config";
@@ -127,5 +129,30 @@ describe("kids' pieces borrow the adult guide", () => {
     );
     expect(getSizeChartForCategory(pathTo("kids-shorts"))?.guide).toBe("shorts");
     expect(getSizeChartForCategory(pathTo("kids-dresses"))?.guide).toBe("a-line-dress");
+  });
+});
+
+describe("preset measurements", () => {
+  test("every key is a real category", () => {
+    expect(PRESET_MEASUREMENT_CATEGORY_IDS.filter((id) => !IDS.has(id))).toEqual([]);
+  });
+
+  // Anything that asks for Size but has no guide picture must still open
+  // with a measurement list, never a blank "name your own" sheet.
+  test("every Size-asking category without a chart has presets", () => {
+    const missing = NODES.filter((n) => {
+      const path = pathTo(n.id);
+      return (
+        paramsForCategory(path, "variant").includes("Size") &&
+        !getSizeChartForCategory(path) &&
+        getPresetMeasurementsForCategory(path).length === 0
+      );
+    }).map((n) => n.id);
+    expect(missing).toEqual([]);
+  });
+
+  test("a custom category inherits its group's presets", () => {
+    const path = categoryPathFromProductType("Clothing › Aso oke robe")!;
+    expect(getPresetMeasurementsForCategory(path)).toEqual(["Chest", "Waist", "Hip", "Length"]);
   });
 });

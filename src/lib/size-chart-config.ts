@@ -660,3 +660,100 @@ export function isMeasurementSetPlausible(
   }
   return true;
 }
+
+// --- Preset measurements for categories with no guide picture -------------
+//
+// What the manual Size sheet pre-fills when no chart (and so no artwork)
+// covers a category: the spans a seller should measure, laid flat, in cm.
+// Looked up leaf-first, so a specific leaf beats its group, and the group
+// entries catch "All Tops"-style picks and custom categories underneath.
+// Labels double as the stored measurement_key, same as hand-typed ones.
+const TOP = ["Chest", "Shoulder", "Length", "Sleeve"];
+const BOTTOM = ["Waist", "Hip", "Inseam", "Leg opening"];
+const SHORTS_SET = ["Waist", "Hip", "Length", "Leg opening"];
+const SKIRT = ["Waist", "Hip", "Length"];
+const DRESS = ["Bust", "Waist", "Hip", "Length"];
+const TOP_AND_BOTTOM = [
+  "Top chest",
+  "Top length",
+  "Sleeve",
+  "Bottom waist",
+  "Bottom hip",
+  "Bottom length",
+];
+const SHOE = ["Insole length", "Insole width"];
+
+const PRESET_MEASUREMENTS_BY_CATEGORY: Record<string, string[]> = {
+  // Groups and catch-alls
+  fashion: ["Chest", "Waist", "Hip", "Length"],
+  clothing: ["Chest", "Waist", "Hip", "Length"],
+  tops: TOP,
+  "pants-trousers": BOTTOM,
+  "shorts-jorts": SHORTS_SET,
+  skirts: SKIRT,
+  dresses: DRESS,
+  "jumpsuits-rompers": ["Chest", "Waist", "Hip", "Length", "Inseam"],
+  outerwear: TOP,
+  "suits-sets": TOP_AND_BOTTOM,
+  "traditional-wear": ["Chest", "Shoulder", "Length", "Sleeve"],
+  activewear: TOP,
+  "underwear-lingerie": ["Waist", "Hip"],
+  "sleepwear-loungewear": TOP_AND_BOTTOM,
+  swimwear: ["Bust", "Waist", "Hip"],
+  "kids-clothing": ["Chest", "Waist", "Length"],
+  costumes: ["Chest", "Waist", "Length"],
+  "uniforms-workwear": TOP_AND_BOTTOM,
+  footwear: SHOE,
+
+  // Leaves
+  bodysuits: ["Chest", "Waist", "Shoulder", "Length"],
+  "bodycon-dresses": DRESS,
+  blazers: ["Chest", "Shoulder", "Length", "Sleeve", "Waist"],
+  suits: [
+    "Jacket chest",
+    "Jacket shoulder",
+    "Jacket length",
+    "Sleeve",
+    "Trouser waist",
+    "Trouser inseam",
+  ],
+  "two-piece-sets": TOP_AND_BOTTOM,
+  tracksuits: TOP_AND_BOTTOM,
+  agbada: ["Agbada length", "Agbada width", "Neck", "Trouser waist", "Trouser length"],
+  "iro-buba": ["Buba bust", "Buba length", "Sleeve", "Wrapper length", "Wrapper width"],
+  boubous: ["Length", "Width", "Neck opening"],
+  "abayas-jilbabs": ["Bust", "Shoulder", "Length", "Sleeve"],
+  saris: ["Sari length", "Sari width", "Blouse bust", "Blouse length"],
+  cheongsams: ["Bust", "Waist", "Hip", "Shoulder", "Length"],
+  bras: ["Underband", "Bust"],
+  panties: ["Waist", "Hip"],
+  "boxers-briefs": ["Waist", "Hip", "Length"],
+  "lingerie-sets": ["Underband", "Bust", "Waist", "Hip"],
+  shapewear: ["Waist", "Hip", "Length"],
+  "tights-hosiery": ["Waist", "Hip", "Length"],
+  pajamas: TOP_AND_BOTTOM,
+  robes: ["Chest", "Length", "Sleeve"],
+  "loungewear-sets": TOP_AND_BOTTOM,
+  bikinis: ["Underband", "Bust", "Waist", "Hip"],
+  "one-piece-swimsuits": ["Bust", "Waist", "Hip", "Torso length"],
+  burkinis: ["Bust", "Waist", "Hip", "Length", "Sleeve"],
+  "cover-ups": ["Bust", "Length"],
+  "kids-sets": TOP_AND_BOTTOM,
+  "costume-sets": TOP_AND_BOTTOM,
+  "costume-capes": ["Length", "Neck", "Hem width"],
+  "school-uniforms": TOP_AND_BOTTOM,
+  scrubs: TOP_AND_BOTTOM,
+  workwear: TOP_AND_BOTTOM,
+  socks: ["Foot length", "Leg length"],
+};
+
+export function getPresetMeasurementsForCategory(categoryPath: CategoryNode[]): string[] {
+  for (let i = categoryPath.length - 1; i >= 0; i--) {
+    const preset = PRESET_MEASUREMENTS_BY_CATEGORY[categoryPath[i].id];
+    if (preset) return preset;
+  }
+  return [];
+}
+
+/** Exported only for categories.test.ts, which checks each key is a real category id. */
+export const PRESET_MEASUREMENT_CATEGORY_IDS = Object.keys(PRESET_MEASUREMENTS_BY_CATEGORY);

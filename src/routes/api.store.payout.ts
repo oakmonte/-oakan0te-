@@ -113,9 +113,19 @@ export const Route = createFileRoute("/api/store/payout")({
           );
         } catch (err) {
           // No key configured. Refuse rather than store a bank account number
-          // in the clear.
+          // in the clear. Its own message and status (not the generic 500
+          // below) because this is a server-setup problem, not something the
+          // seller can fix by retrying -- and it must be tellable apart from a
+          // database failure when someone reports "payout won't save".
           console.error("payout POST: could not encrypt", err);
-          return Response.json({ error: "Could not save payout account" }, { status: 500 });
+          return Response.json(
+            {
+              error:
+                "Saving payout details isn't available right now because of a problem on our side. Nothing was saved and it isn't you -- please try again later.",
+              code: "encryption_unavailable",
+            },
+            { status: 503 },
+          );
         }
 
         const { data, error } = await supabase

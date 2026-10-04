@@ -45,7 +45,7 @@ export function surfaceForPathname(pathname: string): Surface {
   // black-at-the-edges bug (see --oak-edge below) needs data-surface too, or
   // iOS scroll-bounce and the true top/bottom edge still reveal body's black
   // default. Reported by Diadem on device, 2026-09-28.
-  if (pathname === "/" || pathname === "/sellers") return "marketing";
+  if (pathname === "/" || pathname === "/sellers" || pathname === "/creators") return "marketing";
   return null;
 }
 

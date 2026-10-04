@@ -47,6 +47,13 @@ describe("unmanaged trees", () => {
   test("a prefix match does not swallow unrelated routes", () => {
     expect(isUnmanaged("/created-something")).toBe(false);
   });
+
+  test("the public pitch pages never send a visitor 'up' into the app", () => {
+    for (const path of ["/sellers", "/creators"]) {
+      expect(isUnmanaged(path)).toBe(true);
+      expect(parentOf(path, NO_SEARCH, ME)).toBeNull();
+    }
+  });
 });
 
 describe("settings and profile", () => {

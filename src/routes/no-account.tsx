@@ -18,7 +18,7 @@ function NoAccountPage() {
 
   return (
     <div className="min-h-screen bg-brand-bg text-brand-text flex flex-col">
-      <header className="px-6 sm:px-10 py-6 flex items-center justify-between">
+      <header className="px-4 min-[360px]:px-6 sm:px-10 py-6 flex items-center justify-between">
         <Link to="/" className="flex items-center">
           <img src="/favicon.png" alt="Oakmonte" className="h-9 w-auto" />
         </Link>

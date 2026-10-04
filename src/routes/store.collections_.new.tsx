@@ -1,3 +1,5 @@
+import { StatusPicker } from "@/components/product-form/StatusPicker";
+import { DraftWarningDialog } from "@/components/product-form/DraftWarningDialog";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { ChevronLeft, ChevronRight, Check, Plus } from "lucide-react";
@@ -37,6 +39,11 @@ function NewCollection() {
   const [descriptionSheetOpen, setDescriptionSheetOpen] = useState(false);
   const [productIds, setProductIds] = useState<string[]>([]);
   const [productsSheetOpen, setProductsSheetOpen] = useState(false);
+  // Starts as a draft, same as a new product -- saving one asks first (see
+  // DraftWarningDialog), so nobody ends up with an invisible collection
+  // without knowing it.
+  const [status, setStatus] = useState<"draft" | "active">("draft");
+  const [draftWarningOpen, setDraftWarningOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   // Set once the `collections` row itself is created -- lets a failed
@@ -58,7 +65,7 @@ function NewCollection() {
       : "/store/products/new"
     : "/store/collections";
 
-  async function handleSave() {
+  async function handleSave(confirmed?: "draft" | "active") {
     if (!storeId) {
       setError("No store found on this account");
       return;
@@ -87,6 +94,12 @@ function NewCollection() {
       return;
     }
 
+    if (!confirmed && status === "draft") {
+      setDraftWarningOpen(true);
+      return;
+    }
+    const finalStatus = confirmed ?? status;
+
     setSaving(true);
     setError("");
 
@@ -99,6 +112,7 @@ function NewCollection() {
     let collectionId = createdCollectionId;
     const collectionFields = {
       title: title.trim(),
+      status: finalStatus,
       description: description.trim() || null,
       image_url: imageUrl.trim() || null,
       additional_image_urls: additionalImageUrls.length > 0 ? additionalImageUrls : null,
@@ -188,7 +202,7 @@ function NewCollection() {
         />
         <span className="font-semibold text-[15px]">New Collection</span>
         <button
-          onClick={handleSave}
+          onClick={() => handleSave()}
           disabled={saving || !storeId}
           type="button"
           className="text-sm font-medium text-sd-ink disabled:text-sd-ink-faint"
@@ -253,6 +267,26 @@ function NewCollection() {
           </span>
         </button>
       </div>
+
+      <div className="mx-4 mt-3">
+        <StatusPicker label="Collection Status" value={status} onChange={setStatus} />
+      </div>
+
+      {draftWarningOpen && (
+        <DraftWarningDialog
+          noun="collection"
+          onPublish={() => {
+            setDraftWarningOpen(false);
+            setStatus("active");
+            void handleSave("active");
+          }}
+          onKeepDraft={() => {
+            setDraftWarningOpen(false);
+            void handleSave("draft");
+          }}
+          onCancel={() => setDraftWarningOpen(false)}
+        />
+      )}
 
       {descriptionSheetOpen && (
         <DescriptionSheet

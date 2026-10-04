@@ -43,6 +43,11 @@ const UNMANAGED_PATHS = new Set([
   // shallow stack the plain back gesture already does the right thing here.
   "/terms",
   "/privacy",
+  // Public pitch pages, reached from outside the app (a shared link, a bio).
+  // Without this the default "up" is /home -- the signed-in feed -- which is
+  // wrong for someone who has never had an account.
+  "/sellers",
+  "/creators",
   "/sign-in",
   "/no-account",
   "/create-password",
@@ -114,6 +119,7 @@ export function parentOf(
     // the list they were opened from, not the dashboard.
     if (seg[1] === "products" && seg.length > 2) return { to: "/store/products" };
     if (seg[1] === "collections" && seg.length > 2) return { to: "/store/collections" };
+    if (seg[1] === "playlists" && seg.length > 2) return { to: "/store/playlists" };
     // Drops has no list page of its own -- it's a tab on /store/products
     // (see store.products.tsx), unlike products/collections which each still
     // have a page at that segment.

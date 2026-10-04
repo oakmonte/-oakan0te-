@@ -9,6 +9,7 @@ import { deleteCollection } from "@/lib/collections";
 import { setPendingNewCollectionId } from "@/lib/product-draft-handoff";
 import { ProductsSheet } from "@/components/product-form/ProductsSheet";
 import { CollectionActionsSheet } from "@/components/product-form/CollectionActionsSheet";
+import { StatusPicker } from "@/components/product-form/StatusPicker";
 
 export const Route = createFileRoute("/store/collections_/$id")({
   component: CollectionDetail,
@@ -18,6 +19,7 @@ type CollectionInfo = {
   id: string;
   title: string;
   image_url: string | null;
+  status: string;
 };
 
 type ProductRow = {
@@ -39,11 +41,30 @@ function CollectionDetail() {
   // same "..." -> actions sheet -> explicit confirm pattern as the product
   // edit page, rather than a bare trash icon in this page's own header.
   const [actionsSheetOpen, setActionsSheetOpen] = useState(false);
+  const [statusError, setStatusError] = useState("");
+
+  // Saved on tap, like Add products below -- this page has no Save button.
+  // Optimistic, rolled back if the write fails.
+  async function handleStatusChange(next: "draft" | "active") {
+    if (!collection || !storeId || collection.status === next) return;
+    const prev = collection.status;
+    setCollection({ ...collection, status: next });
+    setStatusError("");
+    const { error } = await supabase
+      .from("collections")
+      .update({ status: next })
+      .eq("id", id)
+      .eq("store_id", storeId);
+    if (error) {
+      setCollection((c) => (c ? { ...c, status: prev } : c));
+      setStatusError("Couldn't change the status — try again.");
+    }
+  }
 
   const fetchCollection = useCallback(async () => {
     const { data } = await supabase
       .from("collections")
-      .select("id, title, image_url")
+      .select("id, title, image_url, status")
       .eq("id", id)
       .maybeSingle();
     setCollection(data ?? null);
@@ -153,6 +174,20 @@ function CollectionDetail() {
             {products?.length ?? 0} product{(products?.length ?? 0) === 1 ? "" : "s"}
           </p>
         </div>
+      </div>
+
+      <div className="px-4 pt-4">
+        <StatusPicker
+          label="Collection Status"
+          value={collection.status === "draft" ? "draft" : "active"}
+          onChange={handleStatusChange}
+        />
+        {statusError && <p className="mt-2 text-sm text-sd-danger-ink">{statusError}</p>}
+        {collection.status === "draft" && (
+          <p className="mt-2 text-[13px] text-sd-ink-faint">
+            Drafts don't show on your storefront.
+          </p>
+        )}
       </div>
 
       <div className="px-4 py-4">

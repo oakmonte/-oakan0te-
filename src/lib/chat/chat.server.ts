@@ -25,7 +25,14 @@ import {
   fieldContext,
 } from "@/lib/field-encryption.server";
 import type { Json } from "@/lib/integrations/my-supabase/types";
-import type { InboxRow, MessageKind, MessageRow, MessagingDatabase, SupportMessageRow } from "./db";
+import type {
+  ConversationKind,
+  InboxRow,
+  MessageKind,
+  MessageRow,
+  MessagingDatabase,
+  SupportMessageRow,
+} from "./db";
 
 export type ChatDb = SupabaseClient<MessagingDatabase>;
 
@@ -134,6 +141,8 @@ export async function listInbox(db: ChatDb): Promise<InboxRow[]> {
   return Promise.all(
     (data ?? []).map(async (row) => ({
       ...row,
+      kind: row.kind as ConversationKind,
+      last_message_kind: row.last_message_kind as MessageKind | null,
       last_message_body:
         row.last_message_id && row.last_message_sender_id
           ? await openBody(

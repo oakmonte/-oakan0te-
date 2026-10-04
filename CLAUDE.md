@@ -125,8 +125,8 @@ off on the tables the seller dashboard writes to directly from the browser (chec
 `mcp__supabase__get_advisors` for the current list rather than trusting a hardcoded count anywhere
 in these docs). Store scoping itself is real (`useActiveStore`); the RLS migration is drafted and
 reviewed but held pending explicit sign-off — see POSTPONED §1.1.
-The direct-messages migration is written but not applied — `/messages` shows Support only until
-it is (POSTPONED §1.4).
+The direct-messages and read-receipts migrations are applied; follow-ups (regenerate types, a
+two-account tick check) are in POSTPONED §1.4.
 Message bodies, third-party tokens and payout account numbers are encrypted at the app layer (not
 E2E); the rollout order (key → relax migration → deploy → backfill → require migration) is
 POSTPONED §1.5. Never

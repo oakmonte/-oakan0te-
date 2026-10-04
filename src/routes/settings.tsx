@@ -1,5 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useSession } from "@/hooks/use-session";
 import { ChevronRight } from "lucide-react";
 import { setAccountPassword, signInWithPassword, signOut } from "@/lib/auth";
 import { authedFetch } from "@/lib/authed-fetch";
@@ -237,8 +239,52 @@ function MessagesSection({ userId }: { userId: string }) {
  *  this page only shows what applies to the signed-in account. */
 function StoreSection() {
   const { storeId, loading: storeLoading } = useActiveStore();
+  const { user } = useSession();
+  const queryClient = useQueryClient();
   const [personalOnly, setPersonalOnly] = useState<boolean | null>(null);
+  const [storeOnly, setStoreOnly] = useState(false);
   const [saving, setSaving] = useState(false);
+  // Per OWNER (profiles.hide_store_stats), not per store: hides the star badges
+  // and Sold Items on the personal profile.
+  const [hideStats, setHideStats] = useState<boolean | null>(null);
+  const [savingHide, setSavingHide] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    supabase
+      .from("profiles")
+      .select("hide_store_stats")
+      .eq("id", user.id)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) console.error("StoreSection: failed to load hide_store_stats", error);
+        setHideStats(data?.hide_store_stats ?? false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  async function toggleHideStats() {
+    if (!user || hideStats === null || savingHide) return;
+    const next = !hideStats;
+    setSavingHide(true);
+    setHideStats(next);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ hide_store_stats: next })
+      .eq("id", user.id);
+    setSavingHide(false);
+    if (error) {
+      console.error("StoreSection: failed to save hide_store_stats", error);
+      setHideStats(!next);
+      return;
+    }
+    // The profile page reads this through the cached public_profiles query; refetch now so it is already fresh when you go back.
+    void queryClient.invalidateQueries({ queryKey: ["public-profile"], refetchType: "all" });
+  }
 
   useEffect(() => {
     if (!storeId) {
@@ -248,33 +294,46 @@ function StoreSection() {
     let cancelled = false;
     supabase
       .from("stores")
-      .select("personal_storefront_only")
+      .select("personal_storefront_only, store_profile_only")
       .eq("id", storeId)
       .maybeSingle()
       .then(({ data, error }) => {
         if (cancelled) return;
         if (error) console.error("StoreSection: failed to load store", error);
         setPersonalOnly(data?.personal_storefront_only ?? false);
+        setStoreOnly(data?.store_profile_only ?? false);
       });
     return () => {
       cancelled = true;
     };
   }, [storeId]);
 
-  async function toggle() {
+  // The two "only" options are mutually exclusive (the database enforces it
+  // too): turning one on turns the other off in the same write, so a store is
+  // never left with nowhere to sell from.
+  async function setSurface(surface: "personal" | "store", on: boolean) {
     if (!storeId || personalOnly === null || saving) return;
-    const next = !personalOnly;
+    const prev = { personal: personalOnly, store: storeOnly };
+    const next = {
+      personal: surface === "personal" ? on : on ? false : prev.personal,
+      store: surface === "store" ? on : on ? false : prev.store,
+    };
     setSaving(true);
-    setPersonalOnly(next);
+    setPersonalOnly(next.personal);
+    setStoreOnly(next.store);
     const { error } = await supabase
       .from("stores")
-      .update({ personal_storefront_only: next })
+      .update({ personal_storefront_only: next.personal, store_profile_only: next.store })
       .eq("id", storeId);
     setSaving(false);
     if (error) {
       console.error("StoreSection: failed to save toggle", error);
-      setPersonalOnly(!next);
+      setPersonalOnly(prev.personal);
+      setStoreOnly(prev.store);
+      return;
     }
+    // The profile page reads these through the cached profile-stores query.
+    void queryClient.invalidateQueries({ queryKey: ["profile-stores"], refetchType: "all" });
   }
 
   if (storeLoading || !storeId || personalOnly === null) return null;
@@ -292,10 +351,41 @@ function StoreSection() {
           <Switch
             checked={personalOnly}
             label="Only sell from my personal page"
-            onClick={toggle}
+            onClick={() => setSurface("personal", !personalOnly)}
             disabled={saving}
           />
         </div>
+        <div className="flex items-center justify-between gap-3 px-4 py-3.5 border-t border-white/10">
+          <span className="text-[14px] text-white/70">
+            Only sell from my store page
+            <span className="block text-[12px] text-white/40 mt-0.5">
+              Your personal profile stays free of store content — no Store tab. Your store page does
+              the selling.
+            </span>
+          </span>
+          <Switch
+            checked={storeOnly}
+            label="Only sell from my store page"
+            onClick={() => setSurface("store", !storeOnly)}
+            disabled={saving}
+          />
+        </div>
+        {hideStats !== null && (
+          <div className="flex items-center justify-between gap-3 px-4 py-3.5 border-t border-white/10">
+            <span className="text-[14px] text-white/70">
+              Hide my store from my profile
+              <span className="block text-[12px] text-white/40 mt-0.5">
+                Removes your star badges and Sold Items from your profile.
+              </span>
+            </span>
+            <Switch
+              checked={hideStats}
+              label="Hide my store from my profile"
+              onClick={toggleHideStats}
+              disabled={savingHide}
+            />
+          </div>
+        )}
       </Panel>
     </Section>
   );
@@ -314,6 +404,15 @@ function PasswordRow({ email, hasPassword }: { email: string | null; hasPassword
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
 
+  // Uncontrolled inputs, read through refs at submit time: Safari's "Suggest
+  // Strong Password" writes the DOM value without telling React, so a
+  // controlled `value` snaps it back to empty on the next render (including
+  // the one "Show passwords" causes) and state-gated buttons stay disabled.
+  // Same fix and reasoning as /create-password.
+  const currentRef = useRef<HTMLInputElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
+  const confirmRef = useRef<HTMLInputElement>(null);
+
   const verdict = checkPassword(password, [email ?? ""]);
 
   const reset = () => {
@@ -328,11 +427,16 @@ function PasswordRow({ email, hasPassword }: { email: string | null; hasPassword
     e.preventDefault();
     setError(null);
 
-    if (!verdict.ok) {
-      setError(`Your new password needs ${verdict.problems.join(", ")}.`);
+    const currentPwd = currentRef.current?.value ?? currentPassword;
+    const pwd = passwordRef.current?.value ?? password;
+    const conf = confirmRef.current?.value ?? confirm;
+    const freshVerdict = checkPassword(pwd, [email ?? ""]);
+
+    if (!freshVerdict.ok) {
+      setError(`Your new password needs ${freshVerdict.problems.join(", ")}.`);
       return;
     }
-    if (password !== confirm) {
+    if (pwd !== conf) {
       setError("Those two passwords don't match.");
       return;
     }
@@ -348,7 +452,7 @@ function PasswordRow({ email, hasPassword }: { email: string | null; hasPassword
         setError("Something went wrong. Please try again.");
         return;
       }
-      const { error: verifyError } = await signInWithPassword(email, currentPassword);
+      const { error: verifyError } = await signInWithPassword(email, currentPwd);
       if (verifyError) {
         setSaving(false);
         setError("Your current password doesn't match.");
@@ -356,7 +460,7 @@ function PasswordRow({ email, hasPassword }: { email: string | null; hasPassword
       }
     }
 
-    const { error: updateError } = await setAccountPassword(password);
+    const { error: updateError } = await setAccountPassword(pwd);
     setSaving(false);
     if (updateError) {
       setError(updateError.message);
@@ -395,6 +499,12 @@ function PasswordRow({ email, hasPassword }: { email: string | null; hasPassword
   return (
     <div className="px-4 py-4">
       <form onSubmit={handleSubmit} className="space-y-3">
+        {!hasPassword && email && (
+          <p className="px-1 text-[12px] leading-relaxed text-white/50">
+            Set a password to sign in with just your email and password, alongside Apple or Google.
+            Your email for sign-in is <span className="text-white/80">{email}</span>.
+          </p>
+        )}
         {hasPassword && (
           <>
             <label htmlFor="current-password" className="sr-only">
@@ -406,7 +516,7 @@ function PasswordRow({ email, hasPassword }: { email: string | null; hasPassword
               required
               autoFocus
               autoComplete="current-password"
-              value={currentPassword}
+              ref={currentRef}
               onChange={(e) => setCurrentPassword(e.target.value)}
               placeholder="Current password"
               className={inputClass}
@@ -424,7 +534,7 @@ function PasswordRow({ email, hasPassword }: { email: string | null; hasPassword
           autoFocus={!hasPassword}
           autoComplete="new-password"
           minLength={MIN_PASSWORD_LENGTH}
-          value={password}
+          ref={passwordRef}
           onChange={(e) => setPassword(e.target.value)}
           placeholder={`New password (${MIN_PASSWORD_LENGTH}+ characters)`}
           className={inputClass}
@@ -464,7 +574,7 @@ function PasswordRow({ email, hasPassword }: { email: string | null; hasPassword
           type={show ? "text" : "password"}
           required
           autoComplete="new-password"
-          value={confirm}
+          ref={confirmRef}
           onChange={(e) => setConfirm(e.target.value)}
           placeholder="Confirm new password"
           className={inputClass}
@@ -496,9 +606,7 @@ function PasswordRow({ email, hasPassword }: { email: string | null; hasPassword
           </button>
           <button
             type="submit"
-            disabled={
-              saving || !verdict.ok || password !== confirm || (hasPassword && !currentPassword)
-            }
+            disabled={saving}
             className="flex-1 rounded-full bg-white text-black py-3 text-[13px] font-semibold uppercase tracking-widest disabled:opacity-40 transition-opacity"
           >
             {saving ? "Saving…" : "Save"}

@@ -5,6 +5,7 @@ import { TabPager } from "@/components/profile/TabPager";
 import { ProductsPanel } from "@/components/store/products/ProductsPanel";
 import { CollectionsPanel } from "@/components/store/products/CollectionsPanel";
 import { DropsPanel } from "@/components/store/products/DropsPanel";
+import { DROPS_ENABLED } from "@/lib/drops";
 
 const TOP_TABS = ["Products", "Collections", "Drops"] as const;
 type TopTab = (typeof TOP_TABS)[number];
@@ -73,17 +74,28 @@ function StoreProducts() {
         // the screen edge on any tab regardless of how little it holds.
         minHeight="calc(100dvh - 220px)"
       >
-        {[
-          <div key="Products" className="px-4 pt-5">
-            <ProductsPanel checklist={checklist} />
-          </div>,
-          <div key="Collections" className="px-4 pt-5">
-            <CollectionsPanel />
-          </div>,
-          <div key="Drops" className="px-4 pt-5">
-            <DropsPanel />
-          </div>,
-        ]}
+        {TOP_TABS.map((t) => (
+          <div key={t} className="px-4 pt-5">
+            {t === "Products" ? (
+              <ProductsPanel checklist={checklist} />
+            ) : t === "Collections" ? (
+              <CollectionsPanel />
+            ) : DROPS_ENABLED ? (
+              <DropsPanel />
+            ) : (
+              // Built, but off until sellers can take payment -- see
+              // DROPS_ENABLED in src/lib/drops.ts.
+              <div className="flex flex-col items-center gap-2 py-16 text-center animate-in fade-in duration-300">
+                <p className="text-[17px] font-semibold text-sd-ink">
+                  Drops will be available soon
+                </p>
+                <p className="max-w-[280px] text-[14px] leading-relaxed text-sd-ink-faint">
+                  You'll be able to group collections and products into a timed drop.
+                </p>
+              </div>
+            )}
+          </div>
+        ))}
       </TabPager>
     </div>
   );

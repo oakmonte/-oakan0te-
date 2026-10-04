@@ -20,6 +20,7 @@ type CollectionRow = {
   id: string;
   title: string;
   image_url: string | null;
+  status: string;
   count: number;
 };
 
@@ -39,7 +40,7 @@ export function CollectionsPanel() {
     (async () => {
       const { data: cols } = await supabase
         .from("collections")
-        .select("id, title, image_url")
+        .select("id, title, image_url, status")
         .eq("store_id", storeId)
         .order("created_at", { ascending: false });
       if (cancelled) return;
@@ -261,6 +262,7 @@ function CollectionListRow({
         {c.title}
       </span>
       <span className="text-[13px] text-sd-ink-faint shrink-0">
+        {c.status === "draft" && "Draft · "}
         {c.count} product{c.count === 1 ? "" : "s"}
       </span>
     </button>

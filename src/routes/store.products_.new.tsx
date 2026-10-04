@@ -13,6 +13,7 @@ import { CollectionsSheet } from "@/components/product-form/CollectionsSheet";
 import { TagsSheet } from "@/components/product-form/TagsSheet";
 import { NecessitiesSheet } from "@/components/product-form/NecessitiesSheet";
 import { NecessitiesWarningDialog } from "@/components/product-form/NecessitiesWarningDialog";
+import { DraftWarningDialog } from "@/components/product-form/DraftWarningDialog";
 import { allNecessitiesFilled, normalizeOptionName } from "@/lib/necessities";
 import { PricingSheet } from "@/components/product-form/PricingSheet";
 import { InventorySection } from "@/components/product-form/InventorySection";
@@ -97,6 +98,7 @@ function NewProduct() {
 
   const [kind, setKind] = useState<ProductKind>(initialDraft?.kind ?? intentKind ?? "variant");
   const [status, setStatus] = useState<"draft" | "active">(initialDraft?.status ?? "draft");
+  const [draftWarningOpen, setDraftWarningOpen] = useState(false);
   const [mainImageUrl, setMainImageUrl] = useState(initialDraft?.mainImageUrl ?? "");
   const [additionalImageUrls, setAdditionalImageUrls] = useState<string[]>(
     initialDraft?.additionalImageUrls ?? [],
@@ -427,7 +429,17 @@ function NewProduct() {
     performSave();
   }
 
+  // Every save path ends here. A draft is invisible on the storefront, so
+  // stop and say so (with a one-tap publish) before writing one.
   function performSave() {
+    if (status === "draft") {
+      setDraftWarningOpen(true);
+      return;
+    }
+    writeProduct("active");
+  }
+
+  function writeProduct(finalStatus: "draft" | "active") {
     setSaving(true);
     setError("");
 
@@ -442,7 +454,7 @@ function NewProduct() {
       title,
       descriptionShort,
       categoryName: productTypeForPath(categoryPath),
-      status,
+      status: finalStatus,
       manualSize,
       kind,
       passFeesToBuyer,
@@ -734,6 +746,21 @@ function NewProduct() {
         />
       )}
 
+      {draftWarningOpen && (
+        <DraftWarningDialog
+          onPublish={() => {
+            setDraftWarningOpen(false);
+            setStatus("active");
+            writeProduct("active");
+          }}
+          onKeepDraft={() => {
+            setDraftWarningOpen(false);
+            writeProduct("draft");
+          }}
+          onCancel={() => setDraftWarningOpen(false)}
+        />
+      )}
+
       {necessitiesWarningOpen && (
         <NecessitiesWarningDialog
           reviewLabel={categoryPath.length === 0 ? "Pick a category" : "Review necessities"}
@@ -762,7 +789,7 @@ function NewProduct() {
                 : "border-sd-line text-sd-ink-muted"
             }`}
           >
-            Published
+            Active
           </button>
           <button
             type="button"
@@ -773,7 +800,7 @@ function NewProduct() {
                 : "border-sd-line text-sd-ink-muted"
             }`}
           >
-            Unpublished
+            Draft
           </button>
         </div>
       </div>

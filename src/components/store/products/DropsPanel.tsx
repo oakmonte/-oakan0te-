@@ -20,10 +20,10 @@ type DropRow = {
   id: string;
   title: string;
   cover_image_url: string | null;
-  collection_id: string | null;
   starts_at: string | null;
   ends_at: string | null;
-  count: number;
+  collectionCount: number;
+  productCount: number;
 };
 
 export function DropsPanel() {
@@ -42,46 +42,17 @@ export function DropsPanel() {
     (async () => {
       const { data: rows } = await supabase
         .from("drops")
-        .select("id, title, cover_image_url, collection_id, starts_at, ends_at")
+        .select(
+          "id, title, cover_image_url, starts_at, ends_at, drop_collections(count), drop_products(count)",
+        )
         .eq("store_id", storeId)
         .order("created_at", { ascending: false });
       if (cancelled) return;
-
-      // A drop's product count comes from two different places depending on
-      // which mode it's in (see the drops migration): collection-mode drops
-      // read it live off product_collections, product-set-mode drops off
-      // drop_products. Two counting passes, same shape as CollectionsPanel's
-      // single one.
-      const collectionIds = [
-        ...new Set((rows ?? []).flatMap((r) => (r.collection_id ? [r.collection_id] : []))),
-      ];
-      const dropIds = (rows ?? []).filter((r) => !r.collection_id).map((r) => r.id);
-
-      const [{ data: collectionLinks }, { data: dropLinks }] = await Promise.all([
-        collectionIds.length
-          ? supabase
-              .from("product_collections")
-              .select("collection_id")
-              .in("collection_id", collectionIds)
-          : Promise.resolve({ data: [] as { collection_id: string }[] }),
-        dropIds.length
-          ? supabase.from("drop_products").select("drop_id").in("drop_id", dropIds)
-          : Promise.resolve({ data: [] as { drop_id: string }[] }),
-      ]);
-      if (cancelled) return;
-
-      const byCollection = new Map<string, number>();
-      for (const l of collectionLinks ?? [])
-        byCollection.set(l.collection_id, (byCollection.get(l.collection_id) ?? 0) + 1);
-      const byDrop = new Map<string, number>();
-      for (const l of dropLinks ?? []) byDrop.set(l.drop_id, (byDrop.get(l.drop_id) ?? 0) + 1);
-
       setDrops(
-        (rows ?? []).map((r) => ({
+        (rows ?? []).map(({ drop_collections, drop_products, ...r }) => ({
           ...r,
-          count: r.collection_id
-            ? (byCollection.get(r.collection_id) ?? 0)
-            : (byDrop.get(r.id) ?? 0),
+          collectionCount: drop_collections?.[0]?.count ?? 0,
+          productCount: drop_products?.[0]?.count ?? 0,
         })),
       );
     })();
@@ -143,7 +114,7 @@ export function DropsPanel() {
 
       {drops !== null && drops.length === 0 && (
         <p className="text-[14px] leading-relaxed text-sd-ink-faint text-center mb-4 animate-in fade-in duration-300">
-          Give a collection or a handful of products a timer, or just announce them as new.
+          Group collections and products into a drop, with a start and end time if you want one.
         </p>
       )}
 
@@ -277,7 +248,13 @@ function DropListRow({
       <div className="flex-1 min-w-0">
         <p className="text-[15px] font-semibold tracking-[-0.01em] truncate">{d.title}</p>
         <p className="text-[13px] text-sd-ink-faint truncate">
-          {d.count} product{d.count === 1 ? "" : "s"}
+          {[
+            d.collectionCount &&
+              `${d.collectionCount} collection${d.collectionCount === 1 ? "" : "s"}`,
+            d.productCount && `${d.productCount} product${d.productCount === 1 ? "" : "s"}`,
+          ]
+            .filter(Boolean)
+            .join(" · ") || "Empty"}
         </p>
       </div>
       <span className="text-[12px] font-medium px-2.5 py-1.5 rounded-full bg-sd-soft text-sd-ink-muted tabular-nums shrink-0">
