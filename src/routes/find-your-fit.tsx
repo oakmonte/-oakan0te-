@@ -541,16 +541,16 @@ const MALE_BODY_TYPES: TracedBodyShape[] = [
   },
 ];
 
-const HEIGHT_MIN_CM = 120;
-const HEIGHT_MAX_CM = 230;
+const HEIGHT_MIN_CM = 90;
+const HEIGHT_MAX_CM = 250;
 const HEIGHT_DEFAULT_CM = 170;
 const HEIGHT_DEFAULT_FT = 5;
 const HEIGHT_DEFAULT_IN = 6;
-const WEIGHT_MIN_KG = 30;
-const WEIGHT_MAX_KG = 200;
+const WEIGHT_MIN_KG = 20;
+const WEIGHT_MAX_KG = 300;
 const WEIGHT_DEFAULT_KG = 65;
-const WEIGHT_MIN_LBS = 66;
-const WEIGHT_MAX_LBS = 440;
+const WEIGHT_MIN_LBS = 44;
+const WEIGHT_MAX_LBS = 660;
 const WEIGHT_DEFAULT_LBS = 143;
 
 function onlyDigits(value: string) {
@@ -779,7 +779,7 @@ function FindYourFitPage() {
     if (next === heightUnit) return;
     if (next === "ftin" && heightCm !== "") {
       const totalIn = Math.round(Number(heightCm) / CM_PER_INCH);
-      setHeightFt(String(Math.min(7, Math.max(3, Math.floor(totalIn / 12)))));
+      setHeightFt(String(Math.min(8, Math.max(2, Math.floor(totalIn / 12)))));
       setHeightIn(String(totalIn % 12));
     } else if (next === "cm" && heightFt !== "" && heightIn !== "") {
       const cm = Math.round((Number(heightFt) * 12 + Number(heightIn)) * CM_PER_INCH);
@@ -942,8 +942,8 @@ function FindYourFitPage() {
               }}
               columns={[
                 {
-                  min: 3,
-                  max: 7,
+                  min: 2,
+                  max: 8,
                   unit: "ft",
                   value: heightFtNum,
                   onChange: (v) => setHeightFt(String(v)),

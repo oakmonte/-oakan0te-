@@ -60,7 +60,7 @@ export function WheelField({
             }}
             classNames={{
               optionItem: "text-[17px] text-brand-text/40",
-              highlightWrapper: "rounded-xl bg-brand-text/[0.07]",
+              highlightWrapper: "rounded-xl bg-[#EFEFEF]",
               highlightItem: "text-[20px] font-medium text-brand-text",
             }}
           />
