@@ -33,11 +33,11 @@ async function fetchProfilePosts(
  *  posts, backed by the `posts` table (RLS decides what a non-owner viewer
  *  gets back — this component doesn't re-filter by visibility itself). Falls
  *  back to `emptyState` (the existing per-tab copy) when there's nothing.
- *  Tapping a thumbnail opens the same feed engine Explore's For You/Following
- *  tabs use, in its Instagram-style `list` layout (each post at its own
- *  aspect ratio, freely scrolled) rather than Explore's full-bleed reels,
- *  scoped to this same user+status set and scrolled to the tapped post — one
- *  feed-viewing implementation, not two.
+ *  Tapping a thumbnail opens the same full-screen, swipeable feed viewer used
+ *  by Explore's For You/Following tabs (in its profile mode, where each post
+ *  keeps its own aspect ratio over a blurred backdrop instead of being
+ *  cropped), scoped to this same user+status set and scrolled to the tapped
+ *  post — one feed-viewing implementation, not two.
  *
  *  Read through react-query, not a raw useEffect: the profile page keeps
  *  every tab panel mounted and people bounce in and out of a profile
@@ -118,7 +118,6 @@ export function PostsGrid({
       {activeId && (
         <PostFeed
           scope={{ type: "user", userId, status }}
-          layout="list"
           initialPostId={activeId}
           onClose={() => setActiveId(null)}
         />
