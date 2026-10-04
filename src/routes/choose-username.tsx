@@ -29,7 +29,7 @@ export const Route = createFileRoute("/choose-username")({
 
 type Availability = "idle" | "checking" | "available" | "taken" | "error";
 
-const DISPLAY_NAME_MAX = 50;
+const DISPLAY_NAME_MAX = 15;
 const MONTHS = [
   "Jan",
   "Feb",
@@ -304,21 +304,23 @@ function ChooseUsernamePage() {
             </div>
           </div>
         </div>
-        <p
-          id="username-hint"
-          className={`text-[11px] px-2 text-left ${
-            availability === "taken" ? "text-red-500" : "text-brand-text/50"
-          }`}
-        >
-          {problem ??
-            (availability === "checking"
-              ? "Checking availability…"
-              : availability === "taken"
-                ? "That handle is taken."
-                : availability === "available"
-                  ? "Available."
-                  : `oakmonte.com/profile/${username || "your-name"}`)}
-        </p>
+        {(problem || availability !== "idle") && (
+          <p
+            id="username-hint"
+            className={`text-[11px] px-2 text-left ${
+              availability === "taken" ? "text-red-500" : "text-brand-text/50"
+            }`}
+          >
+            {problem ??
+              (availability === "checking"
+                ? "Checking availability…"
+                : availability === "taken"
+                  ? "That handle is taken."
+                  : availability === "available"
+                    ? "Available."
+                    : "Couldn't check that right now.")}
+          </p>
+        )}
 
         {!asksGenderElsewhere && (
           // Tap buttons rather than a native <select>: on Android the system
