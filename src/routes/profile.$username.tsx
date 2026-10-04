@@ -91,19 +91,23 @@ type ProfileRow = {
   sold_items_count: number;
 };
 
-const PROFILE_SELLER_PROMPT_KEY = "oak-profile-seller-prompt-seen";
+// Remembers, per account on this device, that the store checklist was once seen
+// finished. The prompt no longer waits for the checklist's network calls to
+// resolve before opening (that wait is what made it feel late), so this is
+// what keeps it from flashing at a seller who is already done.
+const STORE_SETUP_DONE_KEY = "oak-store-setup-done";
 
-function hasSeenSellerPrompt(userId: string) {
+function knownSetupDone(userId: string) {
   try {
-    return sessionStorage.getItem(`${PROFILE_SELLER_PROMPT_KEY}:${userId}`) === "1";
+    return localStorage.getItem(`${STORE_SETUP_DONE_KEY}:${userId}`) === "1";
   } catch {
     return false;
   }
 }
 
-function markSellerPromptSeen(userId: string) {
+function rememberSetupDone(userId: string) {
   try {
-    sessionStorage.setItem(`${PROFILE_SELLER_PROMPT_KEY}:${userId}`, "1");
+    localStorage.setItem(`${STORE_SETUP_DONE_KEY}:${userId}`, "1");
   } catch {
     return;
   }
@@ -240,25 +244,24 @@ function ProfilePage() {
   // Owner-only chrome waits; visitor-only chrome waits too.
   const ownershipKnown = !sessionLoading && !!profile;
 
+  // Opens as soon as we know this is a seller's own profile -- it deliberately
+  // does NOT wait for the checklist's four network calls to finish, which is
+  // what made it appear late. If they turn out to be finished (or the status
+  // can't be loaded, so we can't tell), it closes again; a seller known from
+  // an earlier visit to be finished never sees it open at all.
+  const leavingForStore = useRef(false);
   useEffect(() => {
-    if (
-      !ownershipKnown ||
-      !isOwnProfile ||
-      !user ||
-      ownedStoresLoading ||
-      ownedStores.length === 0 ||
-      storeSetupStatus.loading ||
-      // Already finished the checklist — the prompt's whole job was getting
-      // them through onboarding, and it has nothing left to nudge them
-      // toward. Without this a fully set-up seller would see "Set up my
-      // store" forever, once per session, for no reason.
-      storeSetupStatus.complete ||
-      hasSeenSellerPrompt(user.id)
-    ) {
+    if (!ownershipKnown || !isOwnProfile || !user || leavingForStore.current) return;
+    if (storeSetupStatus.complete) {
+      rememberSetupDone(user.id);
+      setSellerPromptOpen(false);
       return;
     }
-
-    markSellerPromptSeen(user.id);
+    if (storeSetupStatus.failed) {
+      setSellerPromptOpen(false);
+      return;
+    }
+    if (ownedStoresLoading || ownedStores.length === 0 || knownSetupDone(user.id)) return;
     setSellerPromptOpen(true);
   }, [
     isOwnProfile,
@@ -266,7 +269,7 @@ function ProfilePage() {
     ownedStoresLoading,
     ownershipKnown,
     storeSetupStatus.complete,
-    storeSetupStatus.loading,
+    storeSetupStatus.failed,
     user,
   ]);
 
@@ -476,6 +479,7 @@ function ProfilePage() {
   // the row then stays lit ~450ms, long enough to read as "tapped", before
   // the navigation it's demonstrating actually fires.
   function goToStoreViaMenu() {
+    leavingForStore.current = true;
     setSellerPromptOpen(false);
     setMenuOpen(true);
     tourTimeouts.current.push(
@@ -1097,12 +1101,19 @@ function ProfilePage() {
           status readout, and "Finish store set up" reads the same for every
           seller regardless of which step they're actually on.
 
-          Still a Radix Dialog rather than one of the hand-rolled sheets: this
-          opens by itself, without being asked for, so focus trapping and
-          escape-to-close are not optional. The classes below only move it to
+          Deliberately not dismissible -- no close button, no tap-outside, no
+          Escape, no "Later". A seller who owns a store that can't sell yet has
+          one thing to do, and it goes away on its own once the checklist is
+          finished. Still a Radix Dialog rather than a hand-rolled sheet so focus
+          stays trapped inside it. The classes below only move it to
           the bottom of the screen in the house sheet shape. */}
-      <Dialog open={sellerPromptOpen} onOpenChange={setSellerPromptOpen}>
-        <DialogContent className="left-0 top-auto bottom-0 w-full max-w-none translate-x-0 translate-y-0 gap-0 rounded-t-[28px] rounded-b-none border-0 bg-white p-6 pb-[calc(env(safe-area-inset-bottom)+24px)] text-gray-900 shadow-[0_-20px_60px_rgba(0,0,0,0.18)] duration-300 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom data-[state=closed]:zoom-out-100 data-[state=open]:zoom-in-100 sm:left-[50%] sm:max-w-sm sm:translate-x-[-50%] sm:rounded-t-[28px] sm:rounded-b-none">
+      <Dialog open={sellerPromptOpen}>
+        <DialogContent
+          onEscapeKeyDown={(e) => e.preventDefault()}
+          onPointerDownOutside={(e) => e.preventDefault()}
+          onInteractOutside={(e) => e.preventDefault()}
+          className="[&>button]:hidden left-0 top-auto bottom-0 w-full max-w-none translate-x-0 translate-y-0 gap-0 rounded-t-[28px] rounded-b-none border-0 bg-white p-6 pb-[calc(env(safe-area-inset-bottom)+24px)] text-gray-900 shadow-[0_-20px_60px_rgba(0,0,0,0.18)] duration-300 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom data-[state=closed]:zoom-out-100 data-[state=open]:zoom-in-100 sm:left-[50%] sm:max-w-sm sm:translate-x-[-50%] sm:rounded-t-[28px] sm:rounded-b-none"
+        >
           <DialogHeader className="text-left">
             <DialogTitle className="text-[20px] tracking-[-0.02em]">
               Your store isn&rsquo;t live yet
@@ -1118,13 +1129,6 @@ function ProfilePage() {
               className="oak-motion-control w-full rounded-full bg-black py-4 text-[15px] font-semibold text-white active:scale-[0.98]"
             >
               Finish store set up
-            </button>
-            <button
-              type="button"
-              onClick={() => setSellerPromptOpen(false)}
-              className="oak-motion-control w-full rounded-full py-3 text-[15px] font-medium text-gray-500"
-            >
-              Later
             </button>
           </div>
         </DialogContent>
