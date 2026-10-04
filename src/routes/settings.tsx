@@ -242,6 +242,7 @@ function StoreSection() {
   const { user } = useSession();
   const queryClient = useQueryClient();
   const [personalOnly, setPersonalOnly] = useState<boolean | null>(null);
+  const [storeOnly, setStoreOnly] = useState(false);
   const [saving, setSaving] = useState(false);
   // Per OWNER (profiles.hide_store_stats), not per store: hides the star badges
   // and Sold Items on the personal profile.
@@ -293,33 +294,46 @@ function StoreSection() {
     let cancelled = false;
     supabase
       .from("stores")
-      .select("personal_storefront_only")
+      .select("personal_storefront_only, store_profile_only")
       .eq("id", storeId)
       .maybeSingle()
       .then(({ data, error }) => {
         if (cancelled) return;
         if (error) console.error("StoreSection: failed to load store", error);
         setPersonalOnly(data?.personal_storefront_only ?? false);
+        setStoreOnly(data?.store_profile_only ?? false);
       });
     return () => {
       cancelled = true;
     };
   }, [storeId]);
 
-  async function toggle() {
+  // The two "only" options are mutually exclusive (the database enforces it
+  // too): turning one on turns the other off in the same write, so a store is
+  // never left with nowhere to sell from.
+  async function setSurface(surface: "personal" | "store", on: boolean) {
     if (!storeId || personalOnly === null || saving) return;
-    const next = !personalOnly;
+    const prev = { personal: personalOnly, store: storeOnly };
+    const next = {
+      personal: surface === "personal" ? on : on ? false : prev.personal,
+      store: surface === "store" ? on : on ? false : prev.store,
+    };
     setSaving(true);
-    setPersonalOnly(next);
+    setPersonalOnly(next.personal);
+    setStoreOnly(next.store);
     const { error } = await supabase
       .from("stores")
-      .update({ personal_storefront_only: next })
+      .update({ personal_storefront_only: next.personal, store_profile_only: next.store })
       .eq("id", storeId);
     setSaving(false);
     if (error) {
       console.error("StoreSection: failed to save toggle", error);
-      setPersonalOnly(!next);
+      setPersonalOnly(prev.personal);
+      setStoreOnly(prev.store);
+      return;
     }
+    // The profile page reads these through the cached profile-stores query.
+    void queryClient.invalidateQueries({ queryKey: ["profile-stores"] });
   }
 
   if (storeLoading || !storeId || personalOnly === null) return null;
@@ -337,7 +351,22 @@ function StoreSection() {
           <Switch
             checked={personalOnly}
             label="Only sell from my personal page"
-            onClick={toggle}
+            onClick={() => setSurface("personal", !personalOnly)}
+            disabled={saving}
+          />
+        </div>
+        <div className="flex items-center justify-between gap-3 px-4 py-3.5 border-t border-white/10">
+          <span className="text-[14px] text-white/70">
+            Only sell from my store page
+            <span className="block text-[12px] text-white/40 mt-0.5">
+              Your personal profile stays free of store content — no Store tab. Your store page does
+              the selling.
+            </span>
+          </span>
+          <Switch
+            checked={storeOnly}
+            label="Only sell from my store page"
+            onClick={() => setSurface("store", !storeOnly)}
             disabled={saving}
           />
         </div>

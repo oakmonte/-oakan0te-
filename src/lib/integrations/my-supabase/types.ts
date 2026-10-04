@@ -1875,6 +1875,7 @@ export type Database = {
           shopify_connected_at: string | null
           shopify_scopes: string | null
           shopify_shop_domain: string | null
+          store_profile_only: boolean
           store_type: string | null
           store_username: string
           theme_id: string | null
@@ -1906,6 +1907,7 @@ export type Database = {
           shopify_connected_at?: string | null
           shopify_scopes?: string | null
           shopify_shop_domain?: string | null
+          store_profile_only?: boolean
           store_type?: string | null
           store_username: string
           theme_id?: string | null
@@ -1937,6 +1939,7 @@ export type Database = {
           shopify_connected_at?: string | null
           shopify_scopes?: string | null
           shopify_shop_domain?: string | null
+          store_profile_only?: boolean
           store_type?: string | null
           store_username?: string
           theme_id?: string | null

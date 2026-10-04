@@ -8,6 +8,7 @@ import {
   useRef,
   useEffect,
   useLayoutEffect,
+  useMemo,
   type ReactElement,
 } from "react";
 import {
@@ -276,14 +277,21 @@ function ProfilePage() {
 
   // findIndex can't miss (activeTab is always a TabKey), but a -1 would send
   // the pager to +pageWidth and strand it off-screen, so it's clamped.
+  // An owner who sells from the store profile only (stores.store_profile_only)
+  // gets no Store tab here, which leaves their personal profile free of store
+  // content. The switch button still reaches the store profile.
+  const profileTabs = useMemo(
+    () => (store?.store_profile_only ? TABS.filter((t) => t.key !== "store") : TABS),
+    [store?.store_profile_only],
+  );
   const tabIndex = Math.max(
     0,
-    TABS.findIndex((t) => t.key === activeTab),
+    profileTabs.findIndex((t) => t.key === activeTab),
   );
 
   const goToTab = (nextIndex: number) => {
-    if (nextIndex >= 0 && nextIndex < TABS.length) {
-      setActiveTab(TABS[nextIndex].key);
+    if (nextIndex >= 0 && nextIndex < profileTabs.length) {
+      setActiveTab(profileTabs[nextIndex].key);
     }
   };
 
@@ -452,6 +460,7 @@ function ProfilePage() {
       }}
       pagerX={pagerX}
       pageWidth={pageWidth}
+      tabs={profileTabs}
     />
   );
 
@@ -825,12 +834,12 @@ function ProfilePage() {
             <div className="pb-24" style={{ minHeight: `calc(100dvh - ${topBarH + 48}px)` }}>
               <TabPager
                 index={tabIndex}
-                count={TABS.length}
+                count={profileTabs.length}
                 onIndexChange={goToTab}
                 x={pagerX}
                 onPageWidth={setPageWidth}
               >
-                {TABS.map(({ key }) => (
+                {profileTabs.map(({ key }) => (
                   <div key={key} className="px-1 pt-4">
                     {profile && key === "posts" ? (
                       <PostsGrid
