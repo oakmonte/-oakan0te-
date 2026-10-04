@@ -115,9 +115,9 @@ function CreatePasswordPage() {
   if (checking) return <OnboardingChecking />;
 
   return (
-    <div className="min-h-dvh bg-brand-bg text-brand-text flex items-center justify-center px-6 py-10">
+    <div className="min-h-dvh bg-brand-bg text-brand-text flex items-center justify-center px-4 min-[360px]:px-6 py-10">
       <div className="w-full max-w-sm text-center">
-        <h1 className="font-serif text-4xl sm:text-5xl leading-tight mb-3">
+        <h1 className="font-serif text-[32px] min-[360px]:text-4xl sm:text-5xl leading-tight mb-3">
           {resetting ? "Set a new password" : "Create a password"}
         </h1>
         <p className="text-sm text-brand-text/70 mb-8">

@@ -1,6 +1,7 @@
 import { Check, ChevronRight, Pencil, Search, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
+import { BackButton } from "@/components/BackButton";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useActiveStoreId } from "@/hooks/use-own-store";
 import { useSession } from "@/hooks/use-session";
@@ -383,6 +384,7 @@ export function StoreThemeSelector() {
       }`}
     >
       <div className="mx-auto max-w-6xl">
+        <BackButton className="oak-tap -ml-2 mb-1 grid h-10 w-10 place-items-center text-sd-ink" />
         <h1 className="text-lg font-semibold text-sd-ink">Store theme</h1>
         <p className="mt-1 text-[14px] leading-relaxed text-sd-ink-faint">
           How your storefront looks. You can switch any time.

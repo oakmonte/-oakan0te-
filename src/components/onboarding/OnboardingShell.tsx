@@ -10,6 +10,9 @@ type Props = {
   backTo?: OnboardingStep | null;
   step?: { current: number; total: number };
   onSkip?: () => void;
+  /** For pages whose content changes height while you use them (filters, a
+   *  list that grows): vertically centred content would jump on every change. */
+  topAligned?: boolean;
   children: ReactNode;
 };
 
@@ -38,7 +41,15 @@ function Progress({ current, total }: { current: number; total: number }) {
   );
 }
 
-export function OnboardingShell({ title, subtitle, backTo, step, onSkip, children }: Props) {
+export function OnboardingShell({
+  title,
+  subtitle,
+  backTo,
+  step,
+  onSkip,
+  topAligned,
+  children,
+}: Props) {
   const showHeader = Boolean(backTo || step || onSkip);
 
   return (
@@ -76,9 +87,13 @@ export function OnboardingShell({ title, subtitle, backTo, step, onSkip, childre
         </header>
       )}
 
-      <main className="flex-1 flex items-center justify-center px-4 min-[360px]:px-6 py-10">
+      <main
+        className={`flex-1 flex justify-center ${topAligned ? "items-start" : "items-center"} px-4 min-[360px]:px-6 py-10`}
+      >
         <div className="w-full max-w-sm text-center">
-          <h1 className="font-serif text-4xl sm:text-5xl leading-tight mb-3">{title}</h1>
+          <h1 className="font-serif text-[32px] min-[360px]:text-4xl sm:text-5xl leading-tight mb-3">
+            {title}
+          </h1>
           {subtitle && <p className="text-sm text-brand-text/70 mb-8">{subtitle}</p>}
           {children}
         </div>

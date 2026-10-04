@@ -3,6 +3,12 @@ import { WheelPicker, WheelPickerWrapper, type WheelPickerOption } from "@ncdai/
 import "@ncdai/react-wheel-picker/style.css";
 import { hapticTick } from "@/lib/haptics";
 
+/** One width rule for every wheel, so the unit toggles above it can share it and
+ *  sit flush with the wheel's right edge. Scales with the phone: the 190px
+ *  floor keeps "250 cm" legible on a 320px screen, the 220px cap stops it
+ *  ballooning on a big one. */
+export const WHEEL_WIDTH_CLASS = "mx-auto w-[clamp(190px,62%,220px)]";
+
 export type WheelColumn = {
   min: number;
   max: number;
@@ -45,13 +51,9 @@ export function WheelField({
       onPointerDown={() => {
         if (!engaged) onEngage();
       }}
-      className={`transition-opacity duration-300 ${engaged ? "opacity-100" : "opacity-50"}`}
+      className={`${WHEEL_WIDTH_CLASS} transition-opacity duration-300 ${engaged ? "opacity-100" : "opacity-50"}`}
     >
-      <WheelPickerWrapper
-        className={`mx-auto h-[168px] rounded-2xl border border-brand-text/15 ${
-          columns.length > 1 ? "max-w-[240px]" : "max-w-[170px]"
-        }`}
-      >
+      <WheelPickerWrapper className="h-[168px] rounded-2xl border border-brand-text/15">
         {columns.map((c, i) => (
           <WheelPicker<number>
             key={`${c.unit}-${c.min}`}

@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type FormEvent, type KeyboardEvent } from "react";
-import { Plus } from "lucide-react";
+import { Plus, Search, X } from "lucide-react";
 import { readIntent, type Intent } from "@/lib/onboarding-state";
 import { nextRoute, previousStep, stepPosition } from "@/lib/onboarding-flow";
 import { STYLE_CATEGORIES, validateCustomStyle, type StyleCategory } from "@/lib/style-options";
@@ -22,7 +22,20 @@ export const Route = createFileRoute("/whats-your-style")({
   component: WhatsYourStylePage,
 });
 
-const CATEGORIES = Object.keys(STYLE_CATEGORIES) as StyleCategory[];
+type Filter = "All" | StyleCategory;
+// Order the person asked for: All, Fashion, Art, Cosmetics.
+const FILTERS: readonly Filter[] = ["All", "Fashion", "Art", "Cosmetics"];
+
+type StyleItem = {
+  label: string;
+  /** Null for something typed in while "All" was showing: it belongs to no
+   *  category, so it appears under All only. */
+  category: StyleCategory | null;
+};
+
+const SEED_ITEMS: StyleItem[] = (Object.keys(STYLE_CATEGORIES) as StyleCategory[]).flatMap(
+  (category) => STYLE_CATEGORIES[category].map((label) => ({ label, category })),
+);
 
 function WhatsYourStylePage() {
   const navigate = useNavigate();
@@ -37,36 +50,26 @@ function WhatsYourStylePage() {
   }, []);
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  // Custom entries the user has typed in, kept separate from the seed list so
-  // they render at the end of their category instead of reshuffling the chips
-  // the user is already looking at.
-  const [customByCategory, setCustomByCategory] = useState<Record<StyleCategory, string[]>>({
-    Fashion: [],
-    Cosmetics: [],
-    Art: [],
-  });
-  const [draftByCategory, setDraftByCategory] = useState<Record<StyleCategory, string>>({
-    Fashion: "",
-    Cosmetics: "",
-    Art: "",
-  });
-  const [addErrorByCategory, setAddErrorByCategory] = useState<
-    Record<StyleCategory, string | null>
-  >({
-    Fashion: null,
-    Cosmetics: null,
-    Art: null,
-  });
+  // Typed-in entries sit in the same list as the seeded ones, after them, so
+  // adding one never reshuffles the chips the person is already looking at.
+  const [custom, setCustom] = useState<StyleItem[]>([]);
+  const [filter, setFilter] = useState<Filter>("All");
+  const [query, setQuery] = useState("");
+  const [addError, setAddError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  const allOptionsFlat = useMemo(
-    () => [
-      ...CATEGORIES.flatMap((c) => STYLE_CATEGORIES[c]),
-      ...CATEGORIES.flatMap((c) => customByCategory[c]),
-    ],
-    [customByCategory],
-  );
+  const allItems = useMemo(() => [...SEED_ITEMS, ...custom], [custom]);
+  const allLabels = useMemo(() => allItems.map((item) => item.label), [allItems]);
+
+  const visible = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    return allItems.filter(
+      (item) =>
+        (filter === "All" || item.category === filter) &&
+        (needle === "" || item.label.toLowerCase().includes(needle)),
+    );
+  }, [allItems, filter, query]);
 
   const toggle = (option: string) => {
     setSelected((prev) => {
@@ -77,24 +80,32 @@ function WhatsYourStylePage() {
     });
   };
 
-  const addCustom = (category: StyleCategory) => {
-    const raw = draftByCategory[category];
-    if (!raw.trim()) return;
-    const result = validateCustomStyle(raw, allOptionsFlat);
-    if (!result.ok) {
-      setAddErrorByCategory((prev) => ({ ...prev, [category]: result.reason }));
+  // The + turns whatever is in the search box into a new style, filed under
+  // the active filter (or under All only, when no filter is picked).
+  const addCustom = () => {
+    if (!query.trim()) {
+      setAddError("Type your style in the box first, then tap +.");
       return;
     }
-    setCustomByCategory((prev) => ({ ...prev, [category]: [...prev[category], result.value] }));
+    const result = validateCustomStyle(query, allLabels);
+    if (!result.ok) {
+      setAddError(result.reason);
+      return;
+    }
+    setCustom((prev) => [
+      ...prev,
+      { label: result.value, category: filter === "All" ? null : filter },
+    ]);
     setSelected((prev) => new Set(prev).add(result.value));
-    setDraftByCategory((prev) => ({ ...prev, [category]: "" }));
-    setAddErrorByCategory((prev) => ({ ...prev, [category]: null }));
+    setQuery("");
+    setAddError(null);
   };
 
-  const handleDraftKeyDown = (category: StyleCategory) => (e: KeyboardEvent<HTMLInputElement>) => {
+  const handleQueryKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    // Enter never submits the form from here; it adds, like the + does.
     if (e.key === "Enter") {
       e.preventDefault();
-      addCustom(category);
+      addCustom();
     }
   };
 
@@ -136,6 +147,8 @@ function WhatsYourStylePage() {
 
   if (checking || !intent) return <OnboardingChecking />;
 
+  const trimmedQuery = query.trim();
+
   return (
     <OnboardingShell
       title="What's your style?"
@@ -143,66 +156,108 @@ function WhatsYourStylePage() {
       backTo={previousStep(intent, "/whats-your-style")}
       step={stepPosition(intent, "/whats-your-style")}
       onSkip={handleSkip}
+      topAligned
     >
-      <form onSubmit={handleSubmit} className="space-y-7 text-left">
-        {CATEGORIES.map((category) => (
-          <div key={category}>
-            <h2 className="text-[11px] uppercase tracking-widest text-brand-text/50 mb-3">
-              {category}
-            </h2>
-            <div className="flex flex-wrap gap-2">
-              {[...STYLE_CATEGORIES[category], ...customByCategory[category]].map((option) => {
-                const isSelected = selected.has(option);
-                return (
-                  <button
-                    key={option}
-                    type="button"
-                    aria-pressed={isSelected}
-                    onClick={() => toggle(option)}
-                    className={`rounded-full border px-4 py-2 text-[13px] font-medium transition-all duration-200 ${
-                      isSelected
-                        ? "bg-brand-text text-brand-bg border-brand-text"
-                        : "border-brand-text/25 hover:border-brand-text/50 hover:bg-brand-text/5"
-                    }`}
-                  >
-                    {option}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="flex items-center gap-2 mt-3">
+      <form onSubmit={handleSubmit} className="space-y-4 text-left">
+        <div>
+          <div className="flex items-center gap-2">
+            <div className="flex h-11 min-w-0 flex-1 items-center gap-2 rounded-full border border-brand-text/25 px-4 focus-within:border-brand-accent transition-colors">
+              <Search size={16} className="shrink-0 text-brand-text/40" />
               <input
                 type="text"
-                value={draftByCategory[category]}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setDraftByCategory((prev) => ({ ...prev, [category]: value }));
-                  if (addErrorByCategory[category]) {
-                    setAddErrorByCategory((prev) => ({ ...prev, [category]: null }));
-                  }
-                }}
-                onKeyDown={handleDraftKeyDown(category)}
-                placeholder={`Add your own ${category.toLowerCase()} style`}
+                enterKeyHint="done"
+                autoCapitalize="words"
+                autoCorrect="off"
+                spellCheck={false}
+                value={query}
                 maxLength={30}
-                className="flex-1 min-w-0 rounded-full border border-brand-text/15 bg-transparent px-4 py-2 text-[13px] placeholder:text-brand-text/35 focus:outline-none focus:border-brand-accent transition-colors"
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  if (addError) setAddError(null);
+                }}
+                onKeyDown={handleQueryKeyDown}
+                placeholder="Search or add your own"
+                aria-label="Search styles, or type your own to add"
+                className="w-full min-w-0 bg-transparent text-base placeholder:text-brand-text/40 focus:outline-none"
               />
-              <button
-                type="button"
-                onClick={() => addCustom(category)}
-                aria-label={`Add custom ${category.toLowerCase()} style`}
-                className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full border border-brand-text/25 hover:border-brand-text/50 hover:bg-brand-text/5 transition-colors"
-              >
-                <Plus size={14} />
-              </button>
+              {query && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setQuery("");
+                    setAddError(null);
+                  }}
+                  aria-label="Clear search"
+                  className="-mr-2 grid h-8 w-8 shrink-0 place-items-center"
+                >
+                  <X size={15} className="text-brand-text/40" />
+                </button>
+              )}
             </div>
-            {addErrorByCategory[category] && (
-              <p role="alert" className="text-xs text-red-600 mt-1.5">
-                {addErrorByCategory[category]}
-              </p>
-            )}
+            <button
+              type="button"
+              onClick={addCustom}
+              aria-label="Add your own style"
+              className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-brand-text/25 transition-colors hover:border-brand-text/50 hover:bg-brand-text/5 active:scale-95"
+            >
+              <Plus size={18} />
+            </button>
           </div>
-        ))}
+          {addError && (
+            <p role="alert" className="mt-1.5 px-1 text-xs text-red-600">
+              {addError}
+            </p>
+          )}
+        </div>
+
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Filter styles">
+          {FILTERS.map((name) => {
+            const active = filter === name;
+            return (
+              <button
+                key={name}
+                type="button"
+                aria-pressed={active}
+                onClick={() => setFilter(name)}
+                className={`rounded-full px-3.5 py-1.5 text-xs font-medium uppercase tracking-wider transition-colors ${
+                  active
+                    ? "bg-brand-accent text-brand-bg"
+                    : "bg-brand-text/[0.06] text-brand-text/70 hover:bg-brand-text/10"
+                }`}
+              >
+                {name}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="flex flex-wrap gap-2" aria-live="polite">
+          {visible.map(({ label }) => {
+            const isSelected = selected.has(label);
+            return (
+              <button
+                key={label}
+                type="button"
+                aria-pressed={isSelected}
+                onClick={() => toggle(label)}
+                className={`rounded-full border px-4 py-2 text-[13px] font-medium transition-all duration-200 ${
+                  isSelected
+                    ? "bg-brand-text text-brand-bg border-brand-text"
+                    : "border-brand-text/25 hover:border-brand-text/50 hover:bg-brand-text/5"
+                }`}
+              >
+                {label}
+              </button>
+            );
+          })}
+          {visible.length === 0 && (
+            <p className="px-1 py-2 text-sm text-brand-text/50">
+              {trimmedQuery
+                ? `Nothing matches “${trimmedQuery}”. Tap + to add it as your own.`
+                : "Nothing here yet."}
+            </p>
+          )}
+        </div>
 
         <FormError>{saveError}</FormError>
 

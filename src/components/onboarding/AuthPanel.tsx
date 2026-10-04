@@ -451,7 +451,9 @@ function AuthPanelInner({ intent, title, subtitle, defaultMode = "code" }: Props
       <main className="flex-1 flex items-center justify-center px-4 min-[360px]:px-6 py-10">
         <div className="w-full max-w-sm">
           <div className="text-center mb-10">
-            <h1 className="font-serif text-4xl sm:text-5xl leading-tight">{title}</h1>
+            <h1 className="font-serif text-[32px] min-[360px]:text-4xl sm:text-5xl leading-tight">
+              {title}
+            </h1>
             <p className="mt-3 text-sm text-[#0A0A0A]/70">{subtitle}</p>
           </div>
 

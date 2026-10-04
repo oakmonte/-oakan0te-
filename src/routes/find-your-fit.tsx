@@ -11,7 +11,7 @@ import {
 import { useRequireSession } from "@/components/onboarding/use-require-session";
 import { usePrefetchNextStep } from "@/hooks/use-prefetch-next-step";
 import { supabase } from "@/lib/integrations/my-supabase/client";
-import { WheelField } from "@/components/onboarding/WheelField";
+import { WheelField, WHEEL_WIDTH_CLASS } from "@/components/onboarding/WheelField";
 import { cmToDisplay, displayToCm, CM_PER_INCH } from "@/lib/size-chart-config";
 import fSkinny from "@/assets/body-types/female/skinny.webp";
 import fSlim from "@/assets/body-types/female/slim.webp";
@@ -779,7 +779,7 @@ function FindYourFitPage() {
     if (next === heightUnit) return;
     if (next === "ftin" && heightCm !== "") {
       const totalIn = Math.round(Number(heightCm) / CM_PER_INCH);
-      setHeightFt(String(Math.min(8, Math.max(2, Math.floor(totalIn / 12)))));
+      setHeightFt(String(Math.min(9, Math.max(2, Math.floor(totalIn / 12)))));
       setHeightIn(String(totalIn % 12));
     } else if (next === "cm" && heightFt !== "" && heightIn !== "") {
       const cm = Math.round((Number(heightFt) * 12 + Number(heightIn)) * CM_PER_INCH);
@@ -903,7 +903,7 @@ function FindYourFitPage() {
     >
       <form onSubmit={handleSubmit} className="space-y-3">
         <div>
-          <div className="flex items-center justify-end gap-3 mb-1.5 px-1">
+          <div className={`${WHEEL_WIDTH_CLASS} flex items-center justify-end gap-3 mb-1.5 px-1`}>
             <button
               type="button"
               onClick={() => switchHeightUnit("cm")}
@@ -943,7 +943,7 @@ function FindYourFitPage() {
               columns={[
                 {
                   min: 2,
-                  max: 8,
+                  max: 9,
                   unit: "ft",
                   value: heightFtNum,
                   onChange: (v) => setHeightFt(String(v)),
@@ -961,7 +961,7 @@ function FindYourFitPage() {
         </div>
 
         <div>
-          <div className="flex items-center justify-end gap-3 mb-1.5 px-1">
+          <div className={`${WHEEL_WIDTH_CLASS} flex items-center justify-end gap-3 mb-1.5 px-1`}>
             <button
               type="button"
               onClick={() => switchWeightUnit("kg")}
