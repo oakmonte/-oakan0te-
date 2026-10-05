@@ -43,11 +43,65 @@ function b64(s: string): string {
   return btoa(unescape(encodeURIComponent(s)));
 }
 
+// A posted video is uploaded as-is when it has no edits (exportComposite
+// hands back the original capture), and an iPhone's 4K original runs ~30
+// Mbps: a 3-second clip was 11.8 MB and took ~90 s to upload on mobile data.
+// Bunny re-encodes to at most 1080p for playback anyway, so anything above
+// 1080p or SHRINK_ABOVE_BPS is re-encoded here first, to 1080p at
+// TARGET_BPS -- a second or two on the phone's hardware encoder, several
+// times less to send. Any failure just uploads the original.
+const SHRINK_ABOVE_BPS = 6_000_000;
+const TARGET_BPS = 5_000_000;
+const MAX_SHORT_EDGE = 1080;
+
+async function shrinkVideo(blob: Blob): Promise<Blob> {
+  try {
+    // Loaded here, not at the top: this module is reachable from the global
+    // upload toast, and mediabunny must stay out of the shared bundle.
+    const { Input, Output, Conversion, ALL_FORMATS, BlobSource, BufferTarget, Mp4OutputFormat } =
+      await import("mediabunny");
+    const input = new Input({ source: new BlobSource(blob), formats: ALL_FORMATS });
+    const track = await input.getPrimaryVideoTrack();
+    const duration = await input.computeDuration();
+    if (!track || !(duration > 0)) return blob;
+    const w = track.displayWidth;
+    const h = track.displayHeight;
+    const shortEdge = Math.min(w, h);
+    const bps = (blob.size * 8) / duration;
+    if (bps <= SHRINK_ABOVE_BPS && shortEdge <= MAX_SHORT_EDGE) return blob;
+
+    const target = new BufferTarget();
+    const conversion = await Conversion.init({
+      input,
+      output: new Output({ format: new Mp4OutputFormat(), target }),
+      video: {
+        // Scale the SHORT edge to 1080, whichever way round the clip is.
+        ...(shortEdge > MAX_SHORT_EDGE
+          ? w <= h
+            ? { width: MAX_SHORT_EDGE }
+            : { height: MAX_SHORT_EDGE }
+          : {}),
+        codec: "avc",
+        bitrate: TARGET_BPS,
+        forceTranscode: true,
+      },
+    });
+    if (!conversion.isValid) return blob;
+    await conversion.execute();
+    if (!target.buffer || target.buffer.byteLength >= blob.size) return blob;
+    return new Blob([target.buffer], { type: "video/mp4" });
+  } catch (err) {
+    console.warn("Video shrink failed, uploading the original", err);
+    return blob;
+  }
+}
+
 /** Uploads one video straight to Bunny Stream and returns its video id. */
 export async function uploadPostVideo(
   blob: Blob,
   onProgress?: (fraction: number) => void,
 ): Promise<{ videoId: string; bytes: number }> {
+  blob = await shrinkVideo(blob);
   const res = await authedFetch("/api/post-video", { method: "POST" });
   if (!res.ok) throw await errorFrom(res, "Could not start the video upload");
   const { libraryId, videoId, title, expires, signature } = (await res.json()) as {
