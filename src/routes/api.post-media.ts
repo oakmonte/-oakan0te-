@@ -16,8 +16,11 @@ import { getRequestUser } from "@/lib/server-auth";
  *
  * POST multipart/form-data:
  *   file      the image (JPEG/PNG/WEBP/GIF)   (required)
- *   uploadId  uuid shared by one post's files (required)
  *   name      e.g. "media-0" or "thumbnail"   (required)
+ *
+ * The folder is a fresh server-chosen uuid every time, never the client's:
+ * letting the client name it meant re-POSTing the same path could silently
+ * swap the picture on a post that was already published.
  */
 
 // Matches fitForUpload (upload-image-file.ts), which shrinks to 4,000,000.
@@ -28,7 +31,6 @@ const EXT_BY_TYPE: Record<string, string> = {
   "image/webp": "webp",
   "image/gif": "gif",
 };
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const NAME = /^(media-\d{1,2}|thumbnail)$/;
 
 export const Route = createFileRoute("/api/post-media")({
@@ -54,12 +56,11 @@ export const Route = createFileRoute("/api/post-media")({
           return Response.json({ error: "Expected multipart/form-data" }, { status: 400 });
         }
         const file = form.get("file");
-        const uploadId = String(form.get("uploadId") ?? "");
         const name = String(form.get("name") ?? "");
         if (!(file instanceof File) || file.size === 0) {
           return Response.json({ error: "file is required" }, { status: 400 });
         }
-        if (!UUID.test(uploadId) || !NAME.test(name)) {
+        if (!NAME.test(name)) {
           return Response.json({ error: "Invalid upload" }, { status: 400 });
         }
         if (file.size > MAX_BYTES) {
@@ -68,7 +69,7 @@ export const Route = createFileRoute("/api/post-media")({
         const ext = EXT_BY_TYPE[file.type];
         if (!ext) return Response.json({ error: "Unsupported image type" }, { status: 400 });
 
-        const remotePath = `posts/${user.id}/${uploadId}/${name}.${ext}`;
+        const remotePath = `posts/${user.id}/${crypto.randomUUID()}/${name}.${ext}`;
         const res = await fetch(`${endpoint.replace(/\/+$/, "")}/${zone}/${remotePath}`, {
           method: "PUT",
           headers: { AccessKey: password, "Content-Type": file.type },

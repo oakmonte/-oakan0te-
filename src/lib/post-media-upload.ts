@@ -24,7 +24,6 @@ async function errorFrom(res: Response, fallback: string): Promise<Error> {
 /** Stores one photo (or the poster frame) and returns its URL. */
 export async function uploadPostPhoto(
   blob: Blob,
-  uploadId: string,
   name: string,
 ): Promise<{ url: string; bytes: number }> {
   // Same shrink-to-fit the product and theme image uploads use: anything
@@ -32,7 +31,6 @@ export async function uploadPostPhoto(
   const file = await fitForUpload(new File([blob], `${name}.jpg`, { type: blob.type }));
   const fd = new FormData();
   fd.set("file", file);
-  fd.set("uploadId", uploadId);
   fd.set("name", name);
   const res = await authedFetch("/api/post-media", { method: "POST", body: fd });
   if (!res.ok) throw await errorFrom(res, "Could not upload a photo");
@@ -51,6 +49,11 @@ function b64(s: string): string {
 // bitrate -- is re-encoded here first to H.264 at 720p on its short edge.
 // A second or two on the phone's hardware encoder; any failure uploads the
 // original as-is.
+//
+// Files that are already fine are still REMUXED (packets copied, nothing
+// re-encoded, near-instant) with the metadata dropped: a phone's gallery
+// clip carries its GPS location in container tags, and viewers download
+// this exact file.
 const SHRINK_ABOVE_BPS = 6_000_000;
 const TARGET_BPS = 4_500_000;
 const MAX_SHORT_EDGE = 720;
@@ -73,27 +76,35 @@ async function shrinkVideo(blob: Blob): Promise<Blob> {
     const shortEdge = Math.min(w, h);
     const bps = (blob.size * 8) / duration;
     const playable = track.codec === "avc" && (await input.getMimeType()).startsWith("video/mp4");
-    if (playable && bps <= SHRINK_ABOVE_BPS && shortEdge <= KEEP_SHORT_EDGE) return blob;
+    const reencode = !(playable && bps <= SHRINK_ABOVE_BPS && shortEdge <= KEEP_SHORT_EDGE);
 
     const target = new BufferTarget();
     const conversion = await Conversion.init({
       input,
       output: new Output({ format: new Mp4OutputFormat(), target }),
-      video: {
-        // Scale the SHORT edge to 720, whichever way round the clip is.
-        ...(shortEdge > MAX_SHORT_EDGE
-          ? w <= h
-            ? { width: MAX_SHORT_EDGE }
-            : { height: MAX_SHORT_EDGE }
-          : {}),
-        codec: "avc",
-        bitrate: TARGET_BPS,
-        forceTranscode: true,
-      },
+      // No metadata carried over (location, device, dates).
+      tags: {},
+      video: reencode
+        ? {
+            // Scale the SHORT edge to 720, whichever way round the clip is.
+            ...(shortEdge > MAX_SHORT_EDGE
+              ? w <= h
+                ? { width: MAX_SHORT_EDGE }
+                : { height: MAX_SHORT_EDGE }
+              : {}),
+            codec: "avc",
+            bitrate: TARGET_BPS,
+            forceTranscode: true,
+          }
+        : {},
     });
     if (!conversion.isValid) return blob;
     await conversion.execute();
-    if (!target.buffer || target.buffer.byteLength >= blob.size) return blob;
+    if (!target.buffer) return blob;
+    // A re-encode of a file that was already playable but somehow came out
+    // bigger isn't worth it; an unplayable original (HEVC, WebM) is replaced
+    // whatever the size.
+    if (reencode && playable && target.buffer.byteLength >= blob.size) return blob;
     return new Blob([target.buffer], { type: "video/mp4" });
   } catch (err) {
     console.warn("Video shrink failed, uploading the original", err);

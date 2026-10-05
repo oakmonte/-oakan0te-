@@ -67,7 +67,6 @@ async function toPublishForm(fd: FormData, poster: Blob | null): Promise<FormDat
   const files = fd.getAll("files").filter((f): f is File => f instanceof File);
   const types = JSON.parse(String(fd.get("mediaTypes") ?? "[]")) as string[];
   const thumbnail = poster;
-  const uploadId = crypto.randomUUID();
 
   const items: (
     | { type: "photo"; url: string; bytes: number }
@@ -77,7 +76,7 @@ async function toPublishForm(fd: FormData, poster: Blob | null): Promise<FormDat
     if (types[i] === "video") {
       items.push({ type: "video", ...(await uploadPostVideo(file)) });
     } else {
-      items.push({ type: "photo", ...(await uploadPostPhoto(file, uploadId, `media-${i}`)) });
+      items.push({ type: "photo", ...(await uploadPostPhoto(file, `media-${i}`)) });
     }
   }
 
@@ -88,7 +87,7 @@ async function toPublishForm(fd: FormData, poster: Blob | null): Promise<FormDat
   }
   out.set("items", JSON.stringify(items));
   if (thumbnail instanceof Blob && thumbnail.size > 0) {
-    out.set("thumbnailUrl", (await uploadPostPhoto(thumbnail, uploadId, "thumbnail")).url);
+    out.set("thumbnailUrl", (await uploadPostPhoto(thumbnail, "thumbnail")).url);
   }
   return out;
 }

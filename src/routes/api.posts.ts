@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { getRequestUser } from "@/lib/server-auth";
+import { isOwnPostMediaUrl } from "@/lib/post-media-url";
 
 /**
  * Publishes a post whose media is ALREADY in Bunny: photos and the poster
@@ -63,6 +64,7 @@ const AUDIO_EXTENSIONS: Record<string, string> = {
 type IncomingItem =
   | { type: "photo"; url: string; bytes?: number }
   | { type: "video"; videoId: string; bytes?: number };
+type StreamVideo = { title?: string; status?: number; storageSize?: number };
 const VIDEO_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const VISIBILITIES = new Set(["public", "followers", "only_me"]);
 const STATUSES = new Set(["published", "draft"]);
@@ -168,11 +170,17 @@ export const Route = createFileRoute("/api/posts")({
           );
         }
         // Only media this caller uploaded: photos under their own folder,
-        // videos /api/post-video created for them.
-        const ownPrefix = `https://${pullZone}/posts/${user.id}/`;
-        const ownsUrl = (u: unknown) =>
-          typeof u === "string" && u.startsWith(ownPrefix) && !u.includes("..");
+        // videos /api/post-video created for them. Parsed, not prefix-matched:
+        // a URL parser resolves "%2e%2e/" to "..", so a string startsWith
+        // check let "posts/<me>/%2e%2e/<someone else>/..." through. The path
+        // has to be exactly what /api/post-media writes, nothing else.
+        const ownsUrl = (u: unknown) => isOwnPostMediaUrl(u, pullZone, user.id);
+        const validBytes = (b: unknown) =>
+          b === undefined || (typeof b === "number" && Number.isSafeInteger(b) && b > 0);
         for (const it of items) {
+          if (!validBytes(it?.bytes)) {
+            return Response.json({ error: "Invalid item size" }, { status: 400 });
+          }
           if (it?.type === "photo") {
             if (!ownsUrl(it.url)) {
               return Response.json({ error: "Invalid photo" }, { status: 400 });
@@ -206,16 +214,32 @@ export const Route = createFileRoute("/api/posts")({
           console.error("Post publish: Bunny Stream is not configured");
           return Response.json({ error: "Video uploads are not configured" }, { status: 500 });
         }
-        // Each video must exist in our library and have been created for this
-        // caller (api.post-video.ts titles it "<user id>/...").
+        // Each video must exist in our library, have been created for this
+        // caller (api.post-video.ts titles it "<user id>/..."), and actually
+        // have been uploaded -- a created-but-never-uploaded video would be a
+        // post whose /original 404s. Bunny status: 0 created, 1 uploaded,
+        // 2-4 processing..finished, 5 encode error (the original is still
+        // fine), 6 upload failed. A just-finished TUS upload can still read 0
+        // for a moment, so 0 is re-checked briefly before giving up.
         for (const videoId of videoIds) {
-          const res = await fetch(
-            `https://video.bunnycdn.com/library/${streamLibrary}/videos/${videoId}`,
-            { headers: { AccessKey: streamKey!, Accept: "application/json" } },
-          );
-          const video = res.ok ? ((await res.json()) as { title?: string }) : null;
+          let video: StreamVideo | null = null;
+          for (let attempt = 0; attempt < 4; attempt++) {
+            const res = await fetch(
+              `https://video.bunnycdn.com/library/${streamLibrary}/videos/${videoId}`,
+              { headers: { AccessKey: streamKey!, Accept: "application/json" } },
+            );
+            video = res.ok ? ((await res.json()) as StreamVideo) : null;
+            if (!video || video.status !== 0 || (video.storageSize ?? 0) > 0) break;
+            await new Promise((r) => setTimeout(r, 750));
+          }
           if (!video?.title?.startsWith(`${user.id}/`)) {
             return Response.json({ error: "Invalid video" }, { status: 400 });
+          }
+          if (video.status === 6 || (video.status === 0 && !(video.storageSize ?? 0))) {
+            return Response.json(
+              { error: "That video didn't finish uploading — try posting again" },
+              { status: 409 },
+            );
           }
         }
 

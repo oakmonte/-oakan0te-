@@ -15,7 +15,13 @@ import { getRequestUser } from "@/lib/server-auth";
  * POST, no body. Returns { libraryId, videoId, title, expires, signature }.
  */
 
-const SIGNATURE_TTL_SECONDS = 6 * 60 * 60;
+// Long enough for a 60-second clip on a slow connection, short enough that a
+// leaked signature isn't a standing upload slot.
+const SIGNATURE_TTL_SECONDS = 2 * 60 * 60;
+// Upload slots one account can open per hour. A real person posts a few
+// videos an hour; without a cap, any signed-in account could loop this route
+// and use the library as free unlimited video hosting on our bill.
+const MAX_VIDEOS_PER_HOUR = 20;
 
 async function sha256Hex(input: string): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
@@ -35,6 +41,35 @@ export const Route = createFileRoute("/api/post-video")({
 
         const user = await getRequestUser(request);
         if (!user) return Response.json({ error: "Not signed in" }, { status: 401 });
+
+        // Counted from the library itself (every video this route makes is
+        // titled "<user id>/..."), so no table to keep in step with Bunny.
+        const recent = await fetch(
+          `https://video.bunnycdn.com/library/${libraryId}/videos?page=1&itemsPerPage=100&orderBy=date&search=${user.id}`,
+          { headers: { AccessKey: apiKey, Accept: "application/json" } },
+        );
+        if (recent.ok) {
+          const { items = [] } = (await recent.json()) as {
+            items?: { title?: string; dateUploaded?: string }[];
+          };
+          const hourAgo = Date.now() - 60 * 60 * 1000;
+          const count = items.filter(
+            (v) =>
+              v.title?.startsWith(`${user.id}/`) &&
+              // Bunny returns this without a zone suffix; it is UTC.
+              Date.parse(v.dateUploaded?.endsWith("Z") ? v.dateUploaded : `${v.dateUploaded}Z`) >
+                hourAgo,
+          ).length;
+          if (count >= MAX_VIDEOS_PER_HOUR) {
+            return Response.json(
+              { error: "You've posted a lot of videos in the last hour — try again a bit later" },
+              { status: 429 },
+            );
+          }
+        } else {
+          // Fail open: a listing hiccup shouldn't stop someone posting.
+          console.error("Bunny Stream list failed:", recent.status);
+        }
 
         // The title is how /api/posts knows this video is the caller's. The
         // client must send this exact title in its TUS metadata: Bunny
