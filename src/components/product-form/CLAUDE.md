@@ -119,13 +119,13 @@ Two traps this cost real bugs to learn:
   material, an unestimable material) into the same blank space. If you add a bail-out branch, give it
   a reason string written for a seller to read, and add a case to `weight-estimate.test.ts` — the
   strings tell people which thing to go and fix, so a wrong branch sends them to the wrong screen.
-- **Shapes with no area formula**: only `turtle-neck`, because its chart measures neck height, cuff
-  and hem but no `body_length`, so there is nothing to size the panels from. `REQUIRED_MEASUREMENTS`
-  in `weight-estimate.ts` is the source of truth, and a test (`weight-estimate.test.ts`) asserts every
-  guide in `ALL_SIZE_CHARTS` either has a formula or is on that documented exception list. That guard
-  exists because the 2026-09-10 artwork batch added 19 guides with trim multipliers and images but no
-  formula — typecheck, lint and build all stayed green while roughly half the catalogue (hoodies, tank
-  tops, cargo pants, skirts) silently told sellers "we can't estimate this shape".
+- **Every guide is estimated**: `build()` in `weight-estimate.ts` models each shape as what ships
+  (fabric, lining, fill, notions), not the fabric bought to cut it, and `REQUIRED_MEASUREMENTS` is a
+  full `Record` over the guide union, so a new guide fails typecheck until it has an entry. Accuracy
+  is pinned by the "reference garments" tests: real weighed garments with a min-max range. Re-run them
+  after touching any ratio, GSM or notions figure; widen a range only with a real garment to justify it.
+  A bare fibre ("cotton") takes a garment-dependent weight (`FabricContext`): jersey on a tee, twill on
+  trousers, fleece on a hoodie.
 - **Color and Material can already be answered as real variant option axes**, and that editor is the
   richer one. Those rows report ("already set from your variant options") instead of opening a second
   screen over the same values — `ownedByVariantEditor` in `NecessitiesSheet.tsx`. Its threshold is

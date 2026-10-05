@@ -7,7 +7,7 @@
 // category→group map in step with categories.ts. Groups are display order.
 //
 // Spellings are chosen to match weight-estimate.ts's GSM keywords, which are
-// substring-matched — so "Pique", not "Piqué" (the accented form contains no
+// matched at word starts — so "Pique", not "Piqué" (the accented form contains no
 // "pique" substring and would silently produce no weight estimate), and
 // "Cotton rib" rather than "Rib knit". If you add a fabric here, check
 // guessGsmForMaterial recognises it, or accept that it reports "we don't know

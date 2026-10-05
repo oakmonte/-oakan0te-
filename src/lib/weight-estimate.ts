@@ -4,407 +4,537 @@ import type { SizeChartDefinition } from "@/lib/size-chart-config";
  *
  *  This used to just be `number | null`, and the UI only rendered its
  *  "Estimate weight" button when a number existed -- so every failure looked
- *  identical to the feature not being there at all. A seller with a suede
- *  jacket (deliberately unsupported, see NO_GSM_KEYWORDS) and a seller who
- *  simply hadn't filled in the size chart yet both saw exactly nothing. The
- *  reason string is written to be shown to a seller verbatim. */
+ *  identical to the feature not being there at all. The reason string is
+ *  written to be shown to a seller verbatim. */
 export type WeightEstimate = { grams: number } | { grams: null; reason: string };
 
-// Fabric weight in grams per square metre, keyed by normalized (lowercase,
-// trimmed) fabric/material name -- sourced from apparel-industry GSM
-// reference ranges, using the midpoint "practical default" for each. Ordered
-// most-specific first: matching is substring-based, so "cotton twill" must
-// be checked before the bare "cotton" fallback or it would never be reached.
-// Real/faux distinction matters for leather: real leather and suede are
-// tanned hide, not woven fabric, so GSM doesn't apply to them at all -- no
-// entry means no auto-estimate, not a wrong one.
+type Guide = SizeChartDefinition["guide"];
+
+/** Which weight a fabric named only by its fibre ("cotton", "polyester")
+ *  most likely is. A seller who types "cotton" for a t-shirt means jersey, for
+ *  trousers means twill or drill, and for a hoodie means fleece -- three
+ *  fabrics nearly 2x apart. Named fabrics ("poplin", "denim") ignore this. */
+export type FabricContext = "top" | "bottom" | "fleece";
+
+// Fabric weight in grams per square metre, keyed by lowercase name. Values
+// are the common middle of each fabric's trade range (e.g. jersey 140-220,
+// denim 300-500). Matching is by word start ("lace" matches "lace" and
+// "lacework", not "necklace"), most specific first: "silk chiffon" must hit
+// chiffon's 60 before the bare "silk" fallback.
 const GSM_KEYWORDS: { keywords: string[]; gsm: number }[] = [
-  { keywords: ["heavy denim", "raw denim", "selvedge"], gsm: 450 },
-  { keywords: ["denim"], gsm: 350 },
-  { keywords: ["cotton twill", "twill"], gsm: 280 },
-  { keywords: ["heavy cotton"], gsm: 240 },
-  { keywords: ["cotton interlock"], gsm: 240 },
+  // Coated and imitation leathers are sheet goods with a real per-area
+  // weight, and contain "leather"/"suede", so they precede the hides below.
+  { keywords: ["faux suede", "microsuede", "vegan suede"], gsm: 280 },
+  { keywords: ["faux leather", "pu leather", "vegan leather", "pleather"], gsm: 550 },
+  { keywords: ["pvc", "vinyl"], gsm: 600 },
+  // Hides. Leather is sold by area and thickness, and a hide is roughly as
+  // dense as water (0.8-1.0 g/cm³), so thickness pins the weight: garment
+  // lambskin is ~0.7 mm, cowhide 1.0-1.3 mm.
+  { keywords: ["shearling"], gsm: 1300 },
+  { keywords: ["lambskin", "lamb leather", "nappa"], gsm: 650 },
+  { keywords: ["sheepskin"], gsm: 700 },
+  { keywords: ["goatskin", "goat leather"], gsm: 750 },
+  { keywords: ["cowhide", "cow leather", "buffalo"], gsm: 1100 },
+  { keywords: ["patent leather"], gsm: 950 },
+  { keywords: ["nubuck"], gsm: 900 },
+  { keywords: ["suede"], gsm: 700 },
+  { keywords: ["leather"], gsm: 900 },
+
+  { keywords: ["heavy denim", "raw denim", "selvedge", "selvage"], gsm: 450 },
+  { keywords: ["stretch denim"], gsm: 340 },
+  { keywords: ["denim"], gsm: 380 },
+  { keywords: ["chino", "drill", "gabardine"], gsm: 260 },
+  { keywords: ["cotton twill", "twill"], gsm: 260 },
+  { keywords: ["heavy cotton", "heavyweight cotton"], gsm: 240 },
+  { keywords: ["cotton interlock", "interlock"], gsm: 220 },
   { keywords: ["cotton pique", "pique"], gsm: 220 },
-  { keywords: ["cotton rib"], gsm: 260 },
-  { keywords: ["cotton poplin", "poplin", "shirting"], gsm: 150 },
-  { keywords: ["cotton fleece"], gsm: 340 },
-  { keywords: ["polyester fleece"], gsm: 300 },
-  { keywords: ["fleece"], gsm: 340 },
+  { keywords: ["cotton rib", "rib knit", "ribbed"], gsm: 240 },
+  { keywords: ["waffle"], gsm: 220 },
+  { keywords: ["oxford"], gsm: 155 },
+  { keywords: ["cotton poplin", "poplin", "shirting", "broadcloth"], gsm: 125 },
+  { keywords: ["seersucker"], gsm: 120 },
+  { keywords: ["lawn", "voile", "muslin", "gauze", "cheesecloth"], gsm: 85 },
+  { keywords: ["sherpa", "teddy", "borg"], gsm: 380 },
+  { keywords: ["loopback", "heavyweight fleece"], gsm: 400 },
+  { keywords: ["cotton fleece", "brushed fleece"], gsm: 330 },
+  { keywords: ["polar fleece", "polyester fleece", "microfleece"], gsm: 250 },
+  { keywords: ["fleece"], gsm: 320 },
   { keywords: ["french terry", "terry"], gsm: 300 },
-  { keywords: ["polyester mesh", "mesh"], gsm: 140 },
-  { keywords: ["polyester interlock"], gsm: 240 },
-  { keywords: ["nylon", "activewear"], gsm: 230 },
-  { keywords: ["spandex", "elastane", "stretch"], gsm: 230 },
-  { keywords: ["cotton jersey", "jersey"], gsm: 180 },
-  { keywords: ["faux leather", "pu leather", "pvc"], gsm: 800 },
+  { keywords: ["scuba"], gsm: 330 },
+  { keywords: ["ponte"], gsm: 300 },
+  { keywords: ["polyester mesh", "mesh", "eyelet"], gsm: 140 },
+  { keywords: ["ripstop", "taffeta"], gsm: 80 },
+  { keywords: ["softshell"], gsm: 300 },
+  { keywords: ["lycra", "spandex", "elastane", "stretch", "activewear"], gsm: 230 },
+  { keywords: ["cotton jersey", "jersey", "single jersey"], gsm: 170 },
   // West African fabrics. Ankara/wax print and batik are printed or dyed
   // cotton, and adire is a resist-dyeing technique applied to a cotton base,
-  // so all three sit in cotton's range. Aso oke, kente and akwete are
-  // deliberately absent: handwoven strip cloth varies far too much by weaver
-  // and by whether it's beaten, and george varies with its beading and
-  // embroidery -- a made-up midpoint for any of those would be worse than
-  // the honest "we don't know how heavy that is yet".
-  { keywords: ["guinea brocade", "brocade", "damask", "shadda"], gsm: 250 },
+  // so all three sit in cotton's range. Senator is a cotton-polyester suiting.
+  // Aso oke, kente and akwete are deliberately absent: handwoven strip cloth
+  // varies far too much by weaver and by whether it's beaten, and george
+  // varies with its beading -- a made-up midpoint for any of those would be
+  // worse than the honest "we don't know how heavy that is yet".
+  { keywords: ["guinea brocade", "brocade", "damask", "shadda", "jacquard"], gsm: 250 },
   { keywords: ["ankara", "wax print", "kitenge", "adire", "batik"], gsm: 200 },
-  // Wovens and knits, lightest-first only where a substring would otherwise
-  // shadow another entry.
+  { keywords: ["senator"], gsm: 190 },
   { keywords: ["organza"], gsm: 45 },
   { keywords: ["tulle", "net fabric"], gsm: 30 },
   { keywords: ["chiffon"], gsm: 60 },
   { keywords: ["georgette"], gsm: 80 },
+  { keywords: ["crepe de chine"], gsm: 90 },
   { keywords: ["satin", "charmeuse"], gsm: 90 },
-  { keywords: ["crepe"], gsm: 120 },
+  { keywords: ["crepe"], gsm: 160 },
   { keywords: ["lace"], gsm: 120 },
   { keywords: ["chambray"], gsm: 140 },
-  { keywords: ["viscose", "rayon"], gsm: 140 },
+  { keywords: ["viscose", "rayon", "tencel", "lyocell"], gsm: 140 },
   { keywords: ["modal"], gsm: 160 },
-  { keywords: ["flannel"], gsm: 170 },
+  { keywords: ["flannel"], gsm: 180 },
   { keywords: ["bamboo"], gsm: 180 },
-  { keywords: ["acrylic"], gsm: 240 },
-  { keywords: ["cashmere"], gsm: 250 },
-  { keywords: ["velour", "velvet"], gsm: 300 },
-  { keywords: ["corduroy", "cord"], gsm: 330 },
-  { keywords: ["tweed"], gsm: 350 },
   { keywords: ["neoprene"], gsm: 500 },
-  // Bare fibre names last: they're substrings of the compound names above
-  // ("silk chiffon" is chiffon's 60, not silk's 110), so a generic match must
-  // only be reached once every specific one has failed.
-  { keywords: ["canvas"], gsm: 450 },
+  { keywords: ["melton", "boiled wool"], gsm: 550 },
+  { keywords: ["boucle", "chenille"], gsm: 380 },
+  { keywords: ["cable knit", "chunky knit"], gsm: 480 },
+  { keywords: ["velour", "velvet"], gsm: 280 },
+  { keywords: ["corduroy"], gsm: 320 },
+  { keywords: ["tweed"], gsm: 350 },
+  { keywords: ["canvas", "duck"], gsm: 400 },
+  // Bare fibre names last: each is a word inside the compound names above.
+  { keywords: ["acrylic"], gsm: 260 },
+  { keywords: ["cashmere"], gsm: 250 },
   { keywords: ["linen"], gsm: 180 },
-  { keywords: ["silk"], gsm: 110 },
-  { keywords: ["wool", "suiting"], gsm: 300 },
-  { keywords: ["polyester"], gsm: 180 },
-  { keywords: ["cotton blend"], gsm: 180 }, // overridden to 280 for bottoms, see guessGsm below
-  { keywords: ["cotton"], gsm: 180 },
+  { keywords: ["silk"], gsm: 100 },
+  { keywords: ["wool", "suiting", "merino"], gsm: 280 },
 ];
 
-// Leather/suede are tanned hide, not a woven sheet -- there's no meaningful
-// GSM for them, so they're excluded from GSM_KEYWORDS entirely and matched
-// here first to short-circuit to "no estimate" rather than falling through
-// to an unrelated fabric match.
-const NO_GSM_KEYWORDS = ["suede", "leather"];
+// A bare fibre says nothing about the fabric's construction, so its weight
+// comes from what the garment usually is (see FabricContext).
+const GENERIC_FIBRE_GSM: { keywords: string[]; gsm: Record<FabricContext, number> }[] = [
+  { keywords: ["cotton"], gsm: { top: 175, bottom: 260, fleece: 320 } },
+  { keywords: ["polyester", "poly"], gsm: { top: 150, bottom: 220, fleece: 260 } },
+  { keywords: ["nylon"], gsm: { top: 180, bottom: 200, fleece: 250 } },
+];
 
-// Coated/bonded synthetics that merely have "leather" in the name. Real
-// sheet goods with a real GSM, so they're checked before NO_GSM_KEYWORDS
-// above rather than being caught by its "leather" substring.
-const FAUX_LEATHER_KEYWORDS = ["faux leather", "pu leather", "vegan leather", "pvc", "vinyl"];
+function hasWord(name: string, keyword: string): boolean {
+  const i = name.indexOf(keyword);
+  if (i < 0) return false;
+  // Word start only: "lace" must not match "necklace", but plurals and
+  // suffixes ("laces", "lacework") still do.
+  if (i === 0 || !/[a-z]/.test(name[i - 1])) return true;
+  return hasWord(name.slice(i + 1), keyword);
+}
 
-/** Guesses a fabric's weight in g/m² from a free-typed material name.
- *  `isBottom` only affects the "cotton blend" bucket, which genuinely
- *  differs by garment (a lighter jersey-weight blend on tops, a heavier
- *  twill-weight blend on trousers) per the sourced reference. Returns null
- *  when the name doesn't match anything, or names a non-textile (leather,
- *  suede) that GSM doesn't apply to. */
-export function guessGsmForMaterial(material: string, isBottom: boolean): number | null {
+/** Guesses a fabric's weight in g/m² from a free-typed material name, or
+ *  null when it doesn't recognise it. A blend ("60% cotton 40% polyester")
+ *  resolves by its first named fabric. */
+export function guessGsmForMaterial(
+  material: string,
+  context: FabricContext = "top",
+): number | null {
   const name = material.trim().toLowerCase();
   if (!name) return null;
-  // Coated synthetics MUST be tested before NO_GSM_KEYWORDS: "faux leather"
-  // contains "leather", so with the checks the other way round this returned
-  // null and both of its 800 gsm entries (here and in GSM_KEYWORDS) were
-  // unreachable dead code -- only the bare "pvc" spelling ever worked.
-  if (FAUX_LEATHER_KEYWORDS.some((kw) => name.includes(kw))) return 800;
-  if (NO_GSM_KEYWORDS.some((kw) => name.includes(kw))) return null;
-  if (name.includes("cotton blend")) return isBottom ? 280 : 180;
   for (const { keywords, gsm } of GSM_KEYWORDS) {
-    if (keywords.some((kw) => name.includes(kw))) return gsm;
+    if (keywords.some((kw) => hasWord(name, kw))) return gsm;
   }
-  return null;
+  // Fibres are tried in the order they appear in the name, so a blend takes
+  // the weight of its main fibre.
+  let best: { at: number; gsm: number } | null = null;
+  for (const { keywords, gsm } of GENERIC_FIBRE_GSM) {
+    for (const kw of keywords) {
+      const at = name.indexOf(kw);
+      if (at >= 0 && hasWord(name, kw) && (!best || at < best.at)) {
+        best = { at, gsm: gsm[context] };
+      }
+    }
+  }
+  return best?.gsm ?? null;
 }
 
-// Every guide that gets a trim/waste allowance and a fabric-area formula.
-// Trim % is the midpoint of the sourced range (accounts for thread, seams,
-// labels, and cutting waste on top of the raw fabric weight) -- deliberately
-// not the full packaging allowance, which is a shipping-time concern applied
-// separately, not a property of the garment itself.
-const TRIM_MULTIPLIER: Record<SizeChartDefinition["guide"], number> = {
-  tshirt: 1.065,
-  polo: 1.1,
-  "dress-shirt": 1.125,
-  "off-shoulder-top": 1.065,
-  "nfl-jersey": 1.1,
-  "football-jersey": 1.1,
-  "baggy-joggers": 1.1,
-  "cuffed-joggers": 1.1,
-  "straight-joggers": 1.1,
-  "skinny-joggers": 1.1,
-  "baggy-corporate-trousers": 1.16,
-  "baggy-jeans": 1.16,
-  shorts: 1.115,
-  "jogger-jorts": 1.115,
-  "denim-jorts": 1.115,
-  "dolphin-shorts": 1.115,
-  "bum-shorts": 1.115,
-  "denim-bum-shorts": 1.115,
-  "activewear-tshirt": 1.065,
-  "standard-tshirt": 1.065,
-  "polo-alt": 1.1,
-  sweatshirt: 1.1,
-  "basketball-jersey": 1.1,
-  cardigan: 1.1,
-  "cargo-pants": 1.16,
-  "crop-top": 1.065,
-  hoodie: 1.1,
-  jumpsuit: 1.125,
-  "mini-dress": 1.125,
-  "mini-skirt": 1.1,
-  "pleated-skirt": 1.1,
-  "puffer-jacket": 1.2,
-  romper: 1.125,
-  "short-sleeve-shirt": 1.065,
-  "sports-shorts": 1.115,
-  "sweater-vest": 1.1,
-  "tank-top": 1.065,
-  "turtle-neck": 1.1,
-  "varsity-jacket": 1.16,
-  "a-line-dress": 1.125,
-  "bermuda-shorts": 1.115,
-  "biker-shorts": 1.1,
-  "compression-shirt": 1.065,
-  "flared-pants": 1.16,
-  gilet: 1.16,
-  "harem-pants": 1.16,
-  henley: 1.1,
-  "leather-jacket": 1.2,
-  "leather-pants": 1.16,
-  leggings: 1.1,
-  "linen-pants": 1.16,
-  "off-shoulder-dress": 1.125,
-  palazzo: 1.16,
-  "parachute-pants": 1.16,
-  parka: 1.2,
-  "senator-wear": 1.125,
-  "shirt-dress": 1.125,
-  "slip-dress": 1.1,
-  "sports-bra": 1.1,
-  "track-jacket": 1.16,
-  "trucker-jacket": 1.16,
-  tunic: 1.1,
-  corset: 1.2,
-  "peplum-top": 1.1,
-  "wrap-dress": 1.125,
+// ---------------------------------------------------------------------------
+// Garment construction
+//
+// The weight is what ships: the garment's own fabric, its lining and fill,
+// and its notions (zips, buttons, rivets, rib trims, labels, thread). It is
+// NOT the fabric bought to cut it -- the cutting waste stays on the factory
+// floor, so the old flat "trim multiplier" overstated light garments and
+// still missed everything a jacket is actually made of.
+//
+// Every measurement is a flat (laid-out) width in cm, as the size guides
+// draw them. Areas are m². Pattern ratios below were checked against
+// measured garments: a 180 gsm tee M (51 cm chest, 74 cm long) at ~175 g, a
+// 270 gsm pullover hoodie M at ~530 g, 12 oz jeans W32 at ~600 g, a pique
+// polo M at ~225 g, a poplin shirt M at ~230 g, nylon-spandex leggings at
+// ~200 g. See weight-estimate.test.ts for the full reference set.
+// ---------------------------------------------------------------------------
+
+const LINING_GSM = 65; // polyester taffeta/satin lining
+const POCKETING_GSM = 120; // poly-cotton pocket bags
+const INTERLINING_GSM = 300; // corset coutil
+
+type Build = {
+  /** m² of the seller's own fabric. */
+  main: number;
+  /** m² of light lining. */
+  lining?: number;
+  /** m² of pocket-bag cloth. */
+  pocketing?: number;
+  /** m² of stiff interlining. */
+  interlining?: number;
+  /** grams of insulation (down or synthetic wadding). */
+  fill?: number;
+  /** grams of zips, buttons, rivets, rib trims, elastic, labels and thread. */
+  notions: number;
 };
 
-// Fabric area formulas per garment shape, in m², from cm measurements --
-// values already include front+back panels, sleeves where relevant, seam
-// allowance and typical cutting waste. Every constant here is the midpoint
-// of a sourced range, not a precision figure -- this whole module produces a
-// starting suggestion for the seller to edit, never an authoritative number.
-function topArea(chest: number, bodyLength: number, sleeve: number | undefined): number {
-  const body = (2 * (chest + 8) * (bodyLength + 5)) / 10000;
-  const sleeves = sleeve != null ? (2 * (sleeve + 5) * (chest / 4 + 5)) / 10000 : 0;
-  return body + sleeves;
+const m2 = (cm2: number) => cm2 / 10000;
+
+/** Front and back panels. `width` is the flat chest (or the average flat
+ *  width for a flared garment); neckline and armholes are cut out of the
+ *  rectangle, more so with no sleeve set into them. */
+function panels(width: number, length: number, sleeveless: boolean): number {
+  return m2(2 * (width + 2) * (length + 3) * (sleeveless ? 0.88 : 0.93));
 }
 
-function bottomArea(waist: number, outseam: number, extra: number): number {
-  return (2 * (waist + 8) * (outseam + 8)) / 10000 + extra;
+/** Two sleeves. A sleeve is a tube: its flat bicep is ~40% of the flat chest
+ *  and it is cut double that wide. The cap curve and the taper to the cuff
+ *  take more off a long sleeve than a short one. */
+function sleeves(chest: number, sleeve: number | undefined): number {
+  if (sleeve == null || sleeve <= 0) return 0;
+  const taper = sleeve < 35 ? 0.9 : 0.75;
+  return m2(2 * (2 * 0.4 * chest) * (sleeve + 3) * taper);
 }
 
-/** A skirt is a single tube, not two legs: front and back panel only, so it
- *  reuses bottomArea's rectangle without the crotch/inseam allowance. Charts
- *  for skirts and sports shorts measure `length` rather than `outseam_length`
- *  (see letteredChart in size-chart-config.ts), which is why they can't share
- *  the trouser cases below. */
-function skirtArea(waist: number, length: number, hipWidth: number | undefined): number {
-  const widest = Math.max(waist, hipWidth ?? waist);
-  return (2 * (widest + 8) * (length + 6)) / 10000;
+function top(chest: number, length: number, sleeve: number | undefined): number {
+  return panels(chest, length, sleeve == null) + sleeves(chest, sleeve);
 }
 
-/** Jumpsuits, rompers and dresses: one torso plus whatever hangs off it. The
- *  parts are the existing top and bottom rectangles with the same ease
- *  allowances -- composed, not re-derived, so a one-piece can never disagree
- *  with the separates it is made of. `body_length` on these charts is the
- *  torso to the waist, so it does not double-count the leg. */
-function onePieceArea(
-  chest: number,
-  bodyLength: number,
-  sleeve: number | undefined,
-  hipWidth: number | undefined,
-  inseam: number | undefined,
+/** Flat rise (waist to crotch), for charts that measure the inseam only. */
+const rise = (waist: number) => Math.max(18, 0.62 * waist);
+
+/** Two legs plus a double-layer waistband. Each leg is cut as a front and a
+ *  back panel: at the top they span the hip plus the crotch extensions
+ *  (~30% of the flat hip), at the hem the full leg opening. Thigh-to-knee
+ *  stays near the top width, so the average is weighted 60/40 toward it. */
+function legs(
+  waist: number,
+  outseam: number,
+  opts: { hip?: number; legOpening?: number; hipRatio?: number; hemRatio?: number } = {},
 ): number {
-  const torso = topArea(chest, bodyLength, sleeve);
-  if (inseam == null) return torso;
-  const legs = (2 * ((hipWidth ?? chest) + 8) * (inseam + 8)) / 10000;
-  return torso + legs;
+  const hip = opts.hip ?? waist * (opts.hipRatio ?? 1.25);
+  const topWidth = 1.3 * hip;
+  const hemWidth = opts.legOpening != null ? 2 * opts.legOpening : (opts.hemRatio ?? 0.75) * hip;
+  const leg = 0.6 * topWidth + 0.4 * hemWidth;
+  return m2(2 * leg * (outseam + 4)) + m2(2 * (waist + 2) * 8);
 }
 
-function estimateAreaM2(
-  guide: SizeChartDefinition["guide"],
-  cm: Partial<Record<string, number>>,
-): number | null {
-  const {
-    shoulder_width,
-    chest_width,
-    body_length,
-    sleeve_length,
-    waist_width,
-    outseam_length,
-    hip_width,
-    inseam_length,
-    length,
-  } = cm as Record<string, number | undefined>;
+/** A skirt (or a dress below the waist) is one tube from waist to hem. */
+function tube(topFlat: number, hemFlat: number, length: number): number {
+  return m2(((2 * topFlat + 2 * hemFlat) / 2) * (length + 4));
+}
 
+type Cm = Partial<Record<string, number>>;
+
+// A size guide draws flat widths, but some sellers type the full
+// circumference off a tape. No adult garment lies flat wider than these, so
+// anything above is a circumference and is halved.
+const CIRCUMFERENCE_OVER: Record<string, number> = {
+  chest_width: 85,
+  waist_width: 80,
+  hip_width: 90,
+};
+
+function normalise(cm: Cm): Cm {
+  const out: Cm = {};
+  for (const [key, value] of Object.entries(cm)) {
+    if (value == null || !Number.isFinite(value) || value <= 0) continue;
+    const over = CIRCUMFERENCE_OVER[key];
+    out[key] = over != null && value > over ? value / 2 : value;
+  }
+  return out;
+}
+
+/** The materials a garment is built from, per shape. null when a required
+ *  measurement is missing (REQUIRED_MEASUREMENTS names which). */
+function build(guide: Guide, cm: Cm): Build | null {
+  const chest = cm.chest_width;
+  const len = cm.body_length;
+  const sleeve = cm.sleeve_length;
+  const waist = cm.waist_width;
+  const hip = cm.hip_width;
+  const hem = cm.hem_width;
+  const outseam = cm.outseam_length;
+  const inseam = cm.inseam_length;
+  const opening = cm.leg_opening;
+
+  const needTop = chest != null && len != null;
   switch (guide) {
-    // standard-tshirt/activewear-tshirt and polo-alt aren't different
-    // garments -- they're the same shapes under a second chart id, drawn for
-    // a different category, with byte-identical measurement lines
-    // (STANDARD_TOP_LINES in size-chart-config.ts) and the same trim
-    // multiplier. Leaving them out of this switch meant the single most
-    // common product in the catalogue -- a plain t-shirt, which maps to
-    // standard-tshirt -- could never be estimated at all.
+    // ---- Knit tops ------------------------------------------------------
     case "tshirt":
     case "standard-tshirt":
     case "activewear-tshirt":
-      if (chest_width == null || body_length == null) return null;
-      return topArea(chest_width, body_length, sleeve_length);
+    case "compression-shirt":
+    case "crop-top":
+      if (!needTop) return null;
+      return { main: top(chest, len, sleeve), notions: 6 }; // neck rib, label, thread
+    case "henley":
+      if (!needTop) return null;
+      return { main: top(chest, len, sleeve) + 0.02, notions: 9 }; // placket, 3 buttons
+    case "tunic":
+      if (!needTop) return null;
+      return { main: top(chest, len, sleeve), notions: 6 };
+    case "tank-top":
+      if (!needTop) return null;
+      return { main: panels(chest, len, true), notions: 4 };
     case "polo":
     case "polo-alt":
-      if (chest_width == null || body_length == null) return null;
-      return topArea(chest_width, body_length, sleeve_length) * 1.1;
-    // A dress shirt is cut as a looser button-through layer.
-    case "dress-shirt": {
-      if (chest_width == null || body_length == null) return null;
-      const body = (2 * (chest_width + 10) * (body_length + 7)) / 10000;
-      const sleeves =
-        sleeve_length != null ? (2 * (sleeve_length + 7) * (chest_width / 4 + 6)) / 10000 : 0;
-      return body + sleeves;
-    }
+      if (!needTop) return null;
+      // Flat-knit collar and two-layer placket.
+      return { main: top(chest, len, sleeve) + 0.045, notions: 9 };
     case "off-shoulder-top":
-      if (chest_width == null || body_length == null) return null;
-      return (2 * (chest_width + 8) * (body_length + 5) * 0.975) / 10000 + 0.075;
+      if (!needTop) return null;
+      return { main: top(chest, len, sleeve), notions: 10 }; // elasticated neckline
+    case "peplum-top":
+      if (!needTop) return null;
+      // The peplum is a flared ruffle ~1.5x the waist, ~15 cm deep.
+      return { main: top(chest, len, sleeve) + m2(2 * 1.5 * chest * 18), notions: 10 };
+    case "turtle-neck":
+      if (!needTop) return null;
+      // Doubled neck tube: ~40% of the flat chest across, folded over.
+      return {
+        main: top(chest, len, sleeve) + m2(2 * 0.4 * chest * 2 * ((cm.neck_height ?? 12) + 2)),
+        notions: 6,
+      };
     case "nfl-jersey":
     case "football-jersey":
-      if (chest_width == null || body_length == null) return null;
-      return topArea(chest_width, body_length, sleeve_length) * 1.175 + 0.085;
+    case "basketball-jersey":
+      if (!needTop) return null;
+      // Numbers and crests: heat-pressed twill on an NFL jersey is heavy.
+      return {
+        main: guide === "basketball-jersey" ? panels(chest, len, true) : top(chest, len, sleeve),
+        notions: guide === "nfl-jersey" ? 45 : 12,
+      };
+
+    // ---- Sweats and knitwear ---------------------------------------------
+    case "sweatshirt":
+      if (!needTop) return null;
+      return { main: top(chest, len, sleeve), notions: 12 }; // rib cuffs, hem, collar
+    case "hoodie":
+      if (!needTop) return null;
+      // Two-panel hood (lined hoods are doubled; the midpoint is ~0.27 m²)
+      // and a kangaroo pocket.
+      return { main: top(chest, len, sleeve) + 0.27 + 0.06, notions: 18 };
+    case "cardigan":
+      if (!needTop) return null;
+      return { main: top(chest, len, sleeve) + 0.03, notions: 14 }; // button bands
+    case "sweater-vest":
+      if (!needTop) return null;
+      return { main: panels(chest, len, true), notions: 8 };
+
+    // ---- Woven shirts -------------------------------------------------------
+    case "dress-shirt":
+    case "short-sleeve-shirt":
+      if (!needTop) return null;
+      // Collar, stand, cuffs, placket and yoke are all doubled or interfaced.
+      return {
+        main: top(chest, len, sleeve) + (guide === "dress-shirt" ? 0.12 : 0.08),
+        notions: 12,
+      };
+    case "senator-wear": {
+      if (!needTop) return null;
+      // Senator is sold as a set: the long top plus matching trousers, sized
+      // from the top (a flat waist is ~85% of the flat chest; the trousers run
+      // ~1.45x the top's length).
+      const trousers = legs(0.85 * chest, 1.45 * len);
+      return { main: top(chest, len, sleeve) + 0.06 + trousers, notions: 25 };
+    }
+
+    // ---- Outerwear ----------------------------------------------------------
+    case "puffer-jacket": {
+      if (!needTop) return null;
+      // Baffles bulge, so the shell is ~15% more than the flat pattern; the
+      // lining matches the pattern; synthetic or down fill averages ~260 g/m².
+      const pattern = top(chest, len, sleeve) + 0.05;
+      return { main: pattern * 1.15, lining: pattern, fill: pattern * 260, notions: 50 };
+    }
+    case "gilet": {
+      if (!needTop) return null;
+      const pattern = panels(chest, len, true) + 0.04;
+      return { main: pattern * 1.1, lining: pattern, fill: pattern * 200, notions: 35 };
+    }
+    case "parka": {
+      if (!needTop) return null;
+      // Hood, storm flap, big pockets; lighter wadding than a puffer.
+      const pattern = top(chest, len, sleeve) + 0.3 + 0.12;
+      return { main: pattern, lining: pattern, fill: pattern * 150, notions: 90 };
+    }
+    case "varsity-jacket": {
+      if (!needTop) return null;
+      // Quilted lining is about 1.6x a plain one; heavy rib collar, cuffs and
+      // hem plus snap buttons.
+      const pattern = top(chest, len, sleeve);
+      return { main: pattern, lining: pattern * 1.6, notions: 95 };
+    }
+    case "leather-jacket": {
+      if (!needTop) return null;
+      // Lapels and pockets; zips and studs on a biker are heavy.
+      const pattern = top(chest, len, sleeve) + 0.1;
+      return { main: pattern, lining: pattern, notions: 110 };
+    }
+    case "trucker-jacket":
+      if (!needTop) return null;
+      // Collar, yokes, chest pockets and button plackets; metal shank buttons.
+      return { main: top(chest, len, sleeve) + 0.25, notions: 35 };
+    case "track-jacket":
+      if (!needTop) return null;
+      return { main: top(chest, len, sleeve) + 0.04, notions: 30 }; // full zip
+
+    // ---- Dresses and one-pieces ---------------------------------------------
+    case "mini-dress":
+    case "off-shoulder-dress":
+    case "slip-dress":
+    case "wrap-dress":
+    case "shirt-dress":
+    case "a-line-dress": {
+      if (!needTop) return null;
+      // Body length runs the full dress. The skirt flares from the widest of
+      // chest and hip to the hem (a measured hem, or a gentle default flare).
+      const widest = Math.max(chest, hip ?? chest);
+      const hemFlat = hem ?? widest * (guide === "a-line-dress" ? 1.4 : 1.1);
+      const width = (chest + widest + hemFlat) / 3 + (guide === "wrap-dress" ? 0.25 * chest : 0);
+      const main =
+        panels(width, len, sleeve == null || guide === "slip-dress") + sleeves(chest, sleeve);
+      const extra = guide === "shirt-dress" ? 0.1 : 0;
+      const notions = guide === "shirt-dress" ? 14 : guide === "wrap-dress" ? 6 : 12; // zip
+      return { main: main + extra, notions };
+    }
+    case "jumpsuit":
+    case "romper": {
+      if (!needTop) return null;
+      // body_length on these charts is the torso to the waist.
+      const torso = top(chest, len, sleeve);
+      const w = waist ?? 0.85 * chest;
+      const legLength = inseam != null ? inseam + rise(w) : guide === "romper" ? 35 : 95;
+      return { main: torso + legs(w, legLength, { hip }), notions: 18 };
+    }
+    case "corset": {
+      if (!needTop) return null;
+      // Fashion fabric over coutil, with boning, a busk or zip and lacing.
+      const area = m2(2 * ((chest + (waist ?? 0.8 * chest)) / 2 + 2) * (len + 3) * 0.95);
+      return { main: area, interlining: area, notions: 55 };
+    }
+    case "sports-bra":
+      if (!needTop) return null;
+      // Self-lined front and back plus an underband.
+      return { main: m2(2 * chest * len * 0.75) * 2, notions: 15 };
+
+    // ---- Trousers -----------------------------------------------------------
     case "baggy-joggers":
     case "cuffed-joggers":
     case "straight-joggers":
     case "skinny-joggers":
-      if (waist_width == null || outseam_length == null) return null;
-      return bottomArea(waist_width, outseam_length, 0.15);
+      if (waist == null || outseam == null) return null;
+      // Elasticated waists measure small for the hip they sit over.
+      return {
+        main:
+          legs(waist, outseam, {
+            legOpening: opening,
+            hipRatio: 1.3,
+            hemRatio: guide === "baggy-joggers" ? 0.85 : 0.55,
+          }) + 0.06,
+        notions: 14,
+      };
     case "baggy-corporate-trousers":
-      if (waist_width == null || outseam_length == null) return null;
-      return bottomArea(waist_width, outseam_length, 0.2);
+      if (waist == null || outseam == null) return null;
+      return {
+        main: legs(waist, outseam, { legOpening: opening, hemRatio: 0.85 }) + 0.04,
+        pocketing: 0.14,
+        notions: 18,
+      };
     case "baggy-jeans":
-      if (waist_width == null || outseam_length == null) return null;
-      return bottomArea(waist_width, outseam_length, 0.2) * 1.175;
-    case "shorts":
-    case "jogger-jorts":
-    case "dolphin-shorts":
-    case "bum-shorts":
-      if (waist_width == null || outseam_length == null) return null;
-      return bottomArea(waist_width, outseam_length, 0.085);
-    case "denim-jorts":
-    case "denim-bum-shorts":
-      if (waist_width == null || outseam_length == null) return null;
-      return bottomArea(waist_width, outseam_length, 0.085) * 1.175;
-    // Every shape below arrived with the 2026-09-10 artwork batch. They were
-    // given trim multipliers and guide images but no area formula, so the
-    // estimator answered "we can't estimate this shape yet" for roughly half
-    // the catalogue -- hoodies, tank tops, cargo pants and skirts included.
-    //
-    // Each is the generic top or bottom rectangle, not a new derivation:
-    // where a garment's own construction differs (a puffer's loft, a
-    // cardigan's open front) that difference lives in TRIM_MULTIPLIER and in
-    // the fabric's GSM, both of which are already set per guide.
-    case "sweatshirt":
-    case "hoodie":
-    case "cardigan":
-    case "crop-top":
-    case "short-sleeve-shirt":
-    case "tank-top":
-    case "sweater-vest":
-    case "basketball-jersey":
-    case "puffer-jacket":
-    case "varsity-jacket":
-      if (chest_width == null || body_length == null) return null;
-      return topArea(chest_width, body_length, sleeve_length);
-    // Trousers proper: this chart measures a real outseam, so it is the same
-    // rectangle the joggers use.
+      if (waist == null || outseam == null) return null;
+      // Back and coin pockets, belt loops; rivets, shank button, zip, patch.
+      return {
+        main: legs(waist, outseam, { legOpening: opening, hemRatio: 0.85 }) + 0.08,
+        pocketing: 0.14,
+        notions: 28,
+      };
     case "cargo-pants":
-      if (waist_width == null || outseam_length == null) return null;
-      return bottomArea(waist_width, outseam_length, 0.2);
-    case "mini-skirt":
-    case "pleated-skirt":
-    case "sports-shorts":
-      if (waist_width == null || length == null) return null;
-      return skirtArea(waist_width, length, hip_width);
-    case "jumpsuit":
-    case "romper":
-      if (chest_width == null || body_length == null) return null;
-      return onePieceArea(chest_width, body_length, sleeve_length, hip_width, inseam_length);
-    // A dress is a long top: body_length runs the full garment, and there is
-    // no inseam to add. (bodycon-dress was dropped from the guide union in the
-    // 2026-09-10 artwork pass -- if it returns, it belongs here.)
-    case "mini-dress":
-      if (chest_width == null || body_length == null) return null;
-      return topArea(chest_width, body_length, sleeve_length);
-    case "a-line-dress":
-    case "off-shoulder-dress":
-    case "shirt-dress":
-    case "slip-dress":
-    case "wrap-dress":
-      if (chest_width == null || body_length == null) return null;
-      return topArea(chest_width, body_length, sleeve_length);
-    case "compression-shirt":
-    case "gilet":
-    case "henley":
-    case "leather-jacket":
-    case "parka":
-    case "senator-wear":
-    case "track-jacket":
-    case "trucker-jacket":
-    case "tunic":
-    case "peplum-top":
-      if (chest_width == null || body_length == null) return null;
-      return topArea(chest_width, body_length, sleeve_length);
-    case "bermuda-shorts":
-    case "biker-shorts":
-      if (waist_width == null || outseam_length == null) return null;
-      return bottomArea(waist_width, outseam_length, 0.085);
+      if (waist == null || outseam == null) return null;
+      return {
+        main: legs(waist, outseam, { hip, legOpening: opening, hemRatio: 0.8 }) + 0.25,
+        pocketing: 0.12,
+        notions: 25,
+      };
+    case "leggings":
     case "flared-pants":
     case "harem-pants":
     case "leather-pants":
-    case "leggings":
     case "linen-pants":
     case "palazzo":
-    case "parachute-pants":
-      if (waist_width == null || inseam_length == null) return null;
-      return bottomArea(waist_width, inseam_length, 0.2);
-    case "sports-bra":
-      if (chest_width == null || body_length == null) return null;
-      return topArea(chest_width, body_length, undefined) * 0.7;
-    // turtle-neck is deliberately absent. Its chart measures shoulder, chest,
-    // neck height, sleeve, cuff and hem -- but no body length, so there is no
-    // way to size the front and back panels. Add body_length to that chart
-    // and it becomes an ordinary top case.
-    default:
-      return null;
-  }
-}
+    case "parachute-pants": {
+      if (waist == null || inseam == null) return null;
+      const notions: Partial<Record<Guide, number>> = {
+        leggings: 4,
+        "leather-pants": 22,
+        "parachute-pants": 28,
+        "flared-pants": 12,
+      };
+      const lined = guide === "leather-pants";
+      const main =
+        legs(waist, inseam + rise(waist), {
+          hip,
+          legOpening: opening,
+          hipRatio: guide === "leggings" ? 1.2 : 1.25,
+          hemRatio: guide === "palazzo" ? 1.3 : 0.75,
+        }) + (guide === "parachute-pants" ? 0.1 : 0);
+      return { main, lining: lined ? main * 0.5 : 0, notions: notions[guide] ?? 10 };
+    }
 
-const BOTTOM_GUIDES = new Set<SizeChartDefinition["guide"]>([
-  "baggy-joggers",
-  "cuffed-joggers",
-  "straight-joggers",
-  "skinny-joggers",
-  "baggy-corporate-trousers",
-  "baggy-jeans",
-  "shorts",
-  "jogger-jorts",
-  "denim-jorts",
-  "dolphin-shorts",
-  "bum-shorts",
-  "denim-bum-shorts",
-  "bermuda-shorts",
-  "biker-shorts",
-  "flared-pants",
-  "harem-pants",
-  "leather-pants",
-  "leggings",
-  "linen-pants",
-  "palazzo",
-  "parachute-pants",
-]);
+    // ---- Shorts -------------------------------------------------------------
+    case "shorts":
+    case "bermuda-shorts":
+    case "denim-jorts":
+    case "denim-bum-shorts":
+      if (waist == null || outseam == null) return null;
+      return {
+        main: legs(waist, outseam, { hip, legOpening: opening, hemRatio: 1.1 }) + 0.05,
+        pocketing: 0.1,
+        notions: guide.startsWith("denim") ? 22 : 14,
+      };
+    case "jogger-jorts":
+    case "dolphin-shorts":
+    case "bum-shorts":
+    case "biker-shorts":
+      if (waist == null || outseam == null) return null;
+      return {
+        main: legs(waist, outseam, {
+          hip,
+          legOpening: opening,
+          hipRatio: guide === "jogger-jorts" ? 1.3 : 1.2,
+          hemRatio: guide === "biker-shorts" ? 0.75 : 1.1,
+        }),
+        notions: guide === "jogger-jorts" ? 12 : 5,
+      };
+    case "sports-shorts":
+      if (waist == null || cm.length == null) return null;
+      // Usually with a brief liner, about a quarter of the shell.
+      return {
+        main: legs(waist, cm.length, { hip, legOpening: opening, hemRatio: 1.1 }) * 1.25,
+        notions: 10,
+      };
+
+    // ---- Skirts -------------------------------------------------------------
+    case "mini-skirt":
+    case "pleated-skirt": {
+      if (waist == null || cm.length == null) return null;
+      const widest = Math.max(waist, hip ?? waist * 1.25);
+      const shell = tube(widest, hem ?? widest * 1.15, cm.length);
+      // Knife and box pleats fold ~2.5x the visible width into the skirt.
+      const pleated = guide === "pleated-skirt" ? 2.5 : 1;
+      return { main: shell * pleated + m2(2 * (waist + 2) * 8), notions: 10 };
+    }
+  }
+  return null;
+}
 
 // Real weight units only -- a Weight/Volume option value in mL/L/fl oz has no
 // fixed gram equivalent (depends on the product's density), so those are
@@ -438,81 +568,121 @@ export function parseWeightVolumeValueToGrams(value: string): number | null {
   return Math.round(amount * perGram * 100) / 100;
 }
 
-// Which measurements each supported shape's formula actually reads, so a
-// missing one can be named instead of just producing no estimate. Guides
-// absent from this map have no area formula at all (corsets and bodysuits --
-// boning, panelling and a gusset aren't the flat front/back rectangles the
-// formulas above assume, and there's no sourced figure to model them with).
-const REQUIRED_MEASUREMENTS: Partial<Record<SizeChartDefinition["guide"], string[]>> = {
-  tshirt: ["chest_width", "body_length"],
-  "standard-tshirt": ["chest_width", "body_length"],
-  "activewear-tshirt": ["chest_width", "body_length"],
-  polo: ["chest_width", "body_length"],
-  "polo-alt": ["chest_width", "body_length"],
-  "dress-shirt": ["chest_width", "body_length"],
-  "off-shoulder-top": ["chest_width", "body_length"],
-  "nfl-jersey": ["chest_width", "body_length"],
-  "football-jersey": ["chest_width", "body_length"],
-  "baggy-joggers": ["waist_width", "outseam_length"],
-  "cuffed-joggers": ["waist_width", "outseam_length"],
-  "straight-joggers": ["waist_width", "outseam_length"],
-  "skinny-joggers": ["waist_width", "outseam_length"],
-  "baggy-corporate-trousers": ["waist_width", "outseam_length"],
-  "baggy-jeans": ["waist_width", "outseam_length"],
-  shorts: ["waist_width", "outseam_length"],
-  "jogger-jorts": ["waist_width", "outseam_length"],
-  "denim-jorts": ["waist_width", "outseam_length"],
-  "dolphin-shorts": ["waist_width", "outseam_length"],
-  "bum-shorts": ["waist_width", "outseam_length"],
-  "denim-bum-shorts": ["waist_width", "outseam_length"],
-  // The 2026-09-10 artwork batch. Each entry names only what its own formula
-  // reads, so a seller is told exactly which lettered row to go and fill in
-  // rather than "we can't estimate this shape".
-  sweatshirt: ["chest_width", "body_length"],
-  hoodie: ["chest_width", "body_length"],
-  cardigan: ["chest_width", "body_length"],
-  "crop-top": ["chest_width", "body_length"],
-  "short-sleeve-shirt": ["chest_width", "body_length"],
-  "tank-top": ["chest_width", "body_length"],
-  "sweater-vest": ["chest_width", "body_length"],
-  "basketball-jersey": ["chest_width", "body_length"],
-  "puffer-jacket": ["chest_width", "body_length"],
-  "varsity-jacket": ["chest_width", "body_length"],
-  "mini-dress": ["chest_width", "body_length"],
-  "a-line-dress": ["chest_width", "body_length"],
-  "off-shoulder-dress": ["chest_width", "body_length"],
-  "shirt-dress": ["chest_width", "body_length"],
-  "slip-dress": ["chest_width", "body_length"],
-  "wrap-dress": ["chest_width", "body_length"],
-  "compression-shirt": ["chest_width", "body_length"],
-  gilet: ["chest_width", "body_length"],
-  henley: ["chest_width", "body_length"],
-  "leather-jacket": ["chest_width", "body_length"],
-  parka: ["chest_width", "body_length"],
-  "senator-wear": ["chest_width", "body_length"],
-  "track-jacket": ["chest_width", "body_length"],
-  "trucker-jacket": ["chest_width", "body_length"],
-  tunic: ["chest_width", "body_length"],
-  "peplum-top": ["chest_width", "body_length"],
-  "bermuda-shorts": ["waist_width", "outseam_length"],
-  "biker-shorts": ["waist_width", "outseam_length"],
-  "flared-pants": ["waist_width", "inseam_length"],
-  "harem-pants": ["waist_width", "inseam_length"],
-  "leather-pants": ["waist_width", "inseam_length"],
-  leggings: ["waist_width", "inseam_length"],
-  "linen-pants": ["waist_width", "inseam_length"],
-  palazzo: ["waist_width", "inseam_length"],
-  "parachute-pants": ["waist_width", "inseam_length"],
-  "sports-bra": ["chest_width", "body_length"],
-  jumpsuit: ["chest_width", "body_length"],
-  romper: ["chest_width", "body_length"],
-  "cargo-pants": ["waist_width", "outseam_length"],
-  "mini-skirt": ["waist_width", "length"],
-  "pleated-skirt": ["waist_width", "length"],
-  "sports-shorts": ["waist_width", "length"],
-  // turtle-neck is deliberately absent: its chart has no body_length, so
-  // there is nothing to size the panels from. See estimateAreaM2.
+// Which measurements each shape's construction reads, so a missing one can
+// be named instead of just producing no estimate. Every guide is here: the
+// guard test in weight-estimate.test.ts fails if a new one isn't.
+const TOP = ["chest_width", "body_length"];
+const OUTSEAM = ["waist_width", "outseam_length"];
+const INSEAM = ["waist_width", "inseam_length"];
+const SKIRT = ["waist_width", "length"];
+const REQUIRED_MEASUREMENTS: Record<Guide, string[]> = {
+  tshirt: TOP,
+  "standard-tshirt": TOP,
+  "activewear-tshirt": TOP,
+  "compression-shirt": TOP,
+  "crop-top": TOP,
+  henley: TOP,
+  tunic: TOP,
+  "tank-top": TOP,
+  polo: TOP,
+  "polo-alt": TOP,
+  "off-shoulder-top": TOP,
+  "peplum-top": TOP,
+  "turtle-neck": TOP,
+  "nfl-jersey": TOP,
+  "football-jersey": TOP,
+  "basketball-jersey": TOP,
+  sweatshirt: TOP,
+  hoodie: TOP,
+  cardigan: TOP,
+  "sweater-vest": TOP,
+  "dress-shirt": TOP,
+  "short-sleeve-shirt": TOP,
+  "senator-wear": TOP,
+  "puffer-jacket": TOP,
+  gilet: TOP,
+  parka: TOP,
+  "varsity-jacket": TOP,
+  "leather-jacket": TOP,
+  "trucker-jacket": TOP,
+  "track-jacket": TOP,
+  "mini-dress": TOP,
+  "off-shoulder-dress": TOP,
+  "slip-dress": TOP,
+  "wrap-dress": TOP,
+  "shirt-dress": TOP,
+  "a-line-dress": TOP,
+  jumpsuit: TOP,
+  romper: TOP,
+  corset: TOP,
+  "sports-bra": TOP,
+  "baggy-joggers": OUTSEAM,
+  "cuffed-joggers": OUTSEAM,
+  "straight-joggers": OUTSEAM,
+  "skinny-joggers": OUTSEAM,
+  "baggy-corporate-trousers": OUTSEAM,
+  "baggy-jeans": OUTSEAM,
+  "cargo-pants": OUTSEAM,
+  shorts: OUTSEAM,
+  "bermuda-shorts": OUTSEAM,
+  "denim-jorts": OUTSEAM,
+  "denim-bum-shorts": OUTSEAM,
+  "jogger-jorts": OUTSEAM,
+  "dolphin-shorts": OUTSEAM,
+  "bum-shorts": OUTSEAM,
+  "biker-shorts": OUTSEAM,
+  leggings: INSEAM,
+  "flared-pants": INSEAM,
+  "harem-pants": INSEAM,
+  "leather-pants": INSEAM,
+  "linen-pants": INSEAM,
+  palazzo: INSEAM,
+  "parachute-pants": INSEAM,
+  "sports-shorts": SKIRT,
+  "mini-skirt": SKIRT,
+  "pleated-skirt": SKIRT,
 };
+
+// What a bare fibre name most likely means for each garment (see
+// FabricContext). Anything not listed is "top".
+const FLEECE_GUIDES = new Set<Guide>([
+  "hoodie",
+  "sweatshirt",
+  "baggy-joggers",
+  "cuffed-joggers",
+  "straight-joggers",
+  "skinny-joggers",
+  "jogger-jorts",
+]);
+const BOTTOMWEIGHT_GUIDES = new Set<Guide>([
+  "baggy-corporate-trousers",
+  "baggy-jeans",
+  "cargo-pants",
+  "shorts",
+  "bermuda-shorts",
+  "denim-jorts",
+  "denim-bum-shorts",
+  "flared-pants",
+  "parachute-pants",
+  "mini-skirt",
+  "pleated-skirt",
+  "trucker-jacket",
+  "varsity-jacket",
+  "parka",
+]);
+
+function fabricContext(guide: Guide): FabricContext {
+  if (FLEECE_GUIDES.has(guide)) return "fleece";
+  if (BOTTOMWEIGHT_GUIDES.has(guide)) return "bottom";
+  return "top";
+}
+
+// A puffer or gilet "in nylon" or "in polyester" means a light ripstop or
+// taffeta shell (40-100 gsm), not the 150-230 gsm knits those fibre names
+// mean on a t-shirt -- the bulk is the fill, counted separately.
+const LIGHT_SHELL_GUIDES = new Set<Guide>(["puffer-jacket", "gilet"]);
+const LIGHT_SHELL_GSM = 80;
+const MELTON_GSM = 550;
 
 const MEASUREMENT_NAMES: Record<string, string> = {
   chest_width: "chest width",
@@ -541,9 +711,9 @@ function joinWithAnd(parts: string[]): string {
   return `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
 }
 
-/** Rough shipping-weight estimate in grams, from a category's chart shape,
- *  one size's cm measurements, and a free-typed material name -- or the
- *  specific reason there isn't one, phrased for the seller to read.
+/** Estimated weight of the garment itself in grams (not its packaging),
+ *  from its shape, one size's measurements and a free-typed material -- or
+ *  the specific reason there isn't one, phrased for the seller to read.
  *
  *  Deliberately never guesses past a missing input: an estimate the seller
  *  can't trace back to their own numbers is worse than no estimate, because
@@ -561,16 +731,9 @@ export function estimateWeight(
     };
   }
 
-  const required = REQUIRED_MEASUREMENTS[chart.guide];
-  if (!required) {
-    return {
-      grams: null,
-      reason:
-        "We can't estimate this shape yet — its panels aren't a simple front and back. Weigh one and type it in.",
-    };
-  }
-
-  const missing = required.filter((key) => measurementsCm[key] == null);
+  const cm = normalise(measurementsCm);
+  const required = REQUIRED_MEASUREMENTS[chart.guide] ?? [];
+  const missing = required.filter((key) => cm[key] == null);
   if (missing.length > 0) {
     return {
       grams: null,
@@ -578,9 +741,12 @@ export function estimateWeight(
     };
   }
 
-  const areaM2 = estimateAreaM2(chart.guide, measurementsCm);
-  if (areaM2 == null) {
-    return { grams: null, reason: "We couldn't work out the fabric area from these measurements." };
+  const parts = build(chart.guide, cm);
+  if (!parts) {
+    return {
+      grams: null,
+      reason: "We can't estimate this shape yet. Weigh one and type it in.",
+    };
   }
 
   const name = material.trim();
@@ -591,21 +757,26 @@ export function estimateWeight(
     };
   }
 
-  const gsm = guessGsmForMaterial(name, BOTTOM_GUIDES.has(chart.guide));
+  let gsm = guessGsmForMaterial(name, fabricContext(chart.guide));
   if (gsm == null) {
-    const lower = name.toLowerCase();
-    if (NO_GSM_KEYWORDS.some((kw) => lower.includes(kw))) {
-      return {
-        grams: null,
-        reason: `${name} is sold by the hide, not by fabric weight, so there's no honest way to estimate it. Weigh one and type it in.`,
-      };
-    }
     return {
       grams: null,
       reason: `We don't know how heavy "${name}" is yet. Weigh one and type it in.`,
     };
   }
+  if (LIGHT_SHELL_GUIDES.has(chart.guide) && gsm < 250) gsm = Math.min(gsm, LIGHT_SHELL_GSM);
+  // A varsity jacket "in wool" is melton, not the suiting or knit that bare
+  // "wool" means anywhere else.
+  if (chart.guide === "varsity-jacket" && hasWord(name.toLowerCase(), "wool")) {
+    gsm = Math.max(gsm, MELTON_GSM);
+  }
 
-  const trim = TRIM_MULTIPLIER[chart.guide] ?? 1.1;
-  return { grams: Math.round((areaM2 * gsm * trim) / 5) * 5 };
+  const grams =
+    parts.main * gsm +
+    (parts.lining ?? 0) * LINING_GSM +
+    (parts.pocketing ?? 0) * POCKETING_GSM +
+    (parts.interlining ?? 0) * INTERLINING_GSM +
+    (parts.fill ?? 0) +
+    parts.notions;
+  return { grams: Math.round(grams / 5) * 5 };
 }

@@ -18,17 +18,6 @@ const TEE: SizeChartDefinition = {
     { key: "sleeve_length", label: "d" },
   ],
 };
-// A real guide with no area formula: its chart measures neck height, cuff and
-// hem but no body length, so there is nothing to size the panels from.
-const TURTLENECK: SizeChartDefinition = {
-  id: "turtle-neck",
-  guide: "turtle-neck",
-  lines: [
-    { key: "shoulder_width", label: "a" },
-    { key: "chest_width", label: "b" },
-    { key: "neck_height", label: "c" },
-  ],
-};
 const TEE_CM = { chest_width: 52, body_length: 70, sleeve_length: 20 };
 
 // Every branch here produces a string a seller reads and acts on, so each
@@ -40,40 +29,64 @@ describe("guessGsmForMaterial", () => {
   // contains no "pique". Every fabric a seller can tap must resolve.
   test("every fabric in the picker is recognised", () => {
     const fabrics = MATERIAL_GROUPS.find((g) => g.label === "Fabrics")!.materials;
-    const unrecognised = fabrics.filter((m) => guessGsmForMaterial(m, false) === null);
+    const unrecognised = fabrics.filter((m) => guessGsmForMaterial(m) === null);
     expect(unrecognised).toEqual([]);
   });
 
-  // Regression: NO_GSM_KEYWORDS was tested first, and "faux leather"
-  // contains "leather", so this returned null and both of its 800 gsm
-  // entries were unreachable. Only the bare "pvc" spelling worked.
-  test("coated synthetics beat the bare 'leather' exclusion", () => {
-    expect(guessGsmForMaterial("Faux leather", false)).toBe(800);
-    expect(guessGsmForMaterial("PU leather", false)).toBe(800);
-    expect(guessGsmForMaterial("Leather", false)).toBeNull();
-    expect(guessGsmForMaterial("Patent leather", false)).toBeNull();
+  // Coated synthetics contain "leather", so they must resolve before the
+  // hides -- and hides are estimated from their usual thickness.
+  test("imitation leather is lighter than hide, and hides go by thickness", () => {
+    expect(guessGsmForMaterial("Faux leather")).toBe(550);
+    expect(guessGsmForMaterial("PU leather")).toBe(550);
+    expect(guessGsmForMaterial("Lambskin")).toBeLessThan(guessGsmForMaterial("Cowhide")!);
+    expect(guessGsmForMaterial("Leather")).toBe(900);
+    expect(guessGsmForMaterial("Faux suede")).toBeLessThan(guessGsmForMaterial("Suede")!);
+  });
+
+  test("matches whole words, not letters inside another word", () => {
+    expect(guessGsmForMaterial("lace")).toBe(120);
+    expect(guessGsmForMaterial("necklace chain")).toBeNull();
+    expect(guessGsmForMaterial("Laces")).toBe(120);
+  });
+
+  // "Cotton" on a tee is jersey, on chinos twill, on a hoodie fleece.
+  test("a bare fibre takes the weight its garment usually is", () => {
+    expect(guessGsmForMaterial("Cotton", "top")).toBeLessThan(
+      guessGsmForMaterial("Cotton", "bottom")!,
+    );
+    expect(guessGsmForMaterial("Cotton", "bottom")).toBeLessThan(
+      guessGsmForMaterial("Cotton", "fleece")!,
+    );
+    // A named fabric ignores the garment.
+    expect(guessGsmForMaterial("Poplin", "fleece")).toBe(guessGsmForMaterial("Poplin", "top"));
+  });
+
+  test("a blend takes its first-named fibre", () => {
+    expect(guessGsmForMaterial("80% cotton 20% polyester", "top")).toBe(
+      guessGsmForMaterial("cotton", "top"),
+    );
+    expect(guessGsmForMaterial("poly/cotton", "top")).toBe(guessGsmForMaterial("polyester", "top"));
   });
 
   test("a compound name resolves to the specific fabric, not the bare fibre", () => {
-    expect(guessGsmForMaterial("silk chiffon", false)).toBe(60);
-    expect(guessGsmForMaterial("polyester satin", false)).toBe(90);
-    expect(guessGsmForMaterial("silk", false)).toBe(110);
+    expect(guessGsmForMaterial("silk chiffon")).toBe(60);
+    expect(guessGsmForMaterial("polyester satin")).toBe(90);
+    expect(guessGsmForMaterial("silk")).toBe(100);
   });
 
   // Printed/dyed cotton gets cotton's weight; handwoven and beaded cloth is
   // deliberately absent rather than given an invented midpoint.
   test("West African fabrics: printed cotton yes, handwoven no", () => {
-    expect(guessGsmForMaterial("Ankara", false)).toBe(200);
-    expect(guessGsmForMaterial("Adire", false)).toBe(200);
-    expect(guessGsmForMaterial("Aso oke", false)).toBeNull();
-    expect(guessGsmForMaterial("George", false)).toBeNull();
+    expect(guessGsmForMaterial("Ankara")).toBe(200);
+    expect(guessGsmForMaterial("Adire")).toBe(200);
+    expect(guessGsmForMaterial("Aso oke")).toBeNull();
+    expect(guessGsmForMaterial("George")).toBeNull();
   });
 });
 
 describe("estimateWeight", () => {
   test("estimates a plain t-shirt", () => {
     const result = estimateWeight(TEE, TEE_CM, "cotton jersey");
-    // ~0.85 m² of 180 gsm jersey plus 6.5% trim, rounded to 5 g.
     expect(result.grams).toBeGreaterThan(100);
     expect(result.grams).toBeLessThan(400);
   });
@@ -102,21 +115,21 @@ describe("estimateWeight", () => {
     expect(result).toHaveProperty("reason", expect.stringContaining("material"));
   });
 
-  // Distinct from an unrecognised fabric: suede/leather will never be
-  // estimable, so the copy must not imply we'll learn it later.
-  test("explains that hide is not fabric, separately from an unknown fabric", () => {
-    const hide = estimateWeight(TEE, TEE_CM, "Suede");
-    expect(hide.grams).toBeNull();
-    expect(hide).toHaveProperty("reason", expect.stringContaining("hide"));
-
+  test("names an unrecognised material back to the seller", () => {
     const unknown = estimateWeight(TEE, TEE_CM, "Vibranium");
     expect(unknown.grams).toBeNull();
     expect(unknown).toHaveProperty("reason", expect.stringContaining("Vibranium"));
   });
 
-  test("says so for a shape with no formula, and for no chart at all", () => {
-    expect(estimateWeight(TURTLENECK, { chest_width: 50 }, "cotton").grams).toBeNull();
+  test("says so with no chart at all", () => {
     expect(estimateWeight(null, {}, "cotton").grams).toBeNull();
+  });
+
+  // Some sellers type the full tape measurement instead of the flat width.
+  test("treats an impossible flat width as a circumference", () => {
+    expect(estimateWeight(TEE, { ...TEE_CM, chest_width: 104 }, "cotton").grams).toBe(
+      estimateWeight(TEE, TEE_CM, "cotton").grams,
+    );
   });
 
   test("never returns a reason alongside a number", () => {
@@ -161,14 +174,11 @@ describe("parseWeightVolumeValueToGrams", () => {
 
 // Guides that intentionally have no area formula, with the reason. Anything
 // else missing one is a gap, not a decision.
-const NO_FORMULA_BY_DESIGN: Record<string, string> = {
-  "turtle-neck": "its chart has no body_length, so the panels can't be sized",
-  corset: "boning and structured panels are not a simple front/back fabric rectangle",
-};
+const NO_FORMULA_BY_DESIGN: Record<string, string> = {};
 
 describe("every size chart can be estimated", () => {
-  // The 2026-09-10 artwork batch added 19 guides with trim multipliers and
-  // images but no area formula, so roughly half the catalogue -- hoodies,
+  // The 2026-09-10 artwork batch added 19 guides with images but no area
+  // formula, so roughly half the catalogue -- hoodies,
   // tank tops, cargo pants, skirts -- silently answered "we can't estimate
   // this shape". Nothing failed; sellers just got no button. This is the
   // guard so the next batch can't repeat it.
@@ -196,4 +206,138 @@ describe("every size chart can be estimated", () => {
       expect(grams).toBeLessThan(5000);
     }
   });
+});
+
+// Real garments, weighed. Each range is what that garment actually weighs in
+// that size and fabric across common brands; the estimate must land inside
+// it. If you change a ratio, GSM or notions figure in weight-estimate.ts,
+// this is what tells you whether it got more or less right.
+const REFERENCE: [string, string, Record<string, number>, string, number, number][] = [
+  // guide, material, flat cm, label, min g, max g
+  [
+    "standard-tshirt",
+    "Cotton",
+    { chest_width: 51, body_length: 74, sleeve_length: 20 },
+    "tee M",
+    150,
+    200,
+  ],
+  ["polo", "Pique", { chest_width: 53, body_length: 72, sleeve_length: 22 }, "polo M", 200, 260],
+  [
+    "dress-shirt",
+    "Poplin",
+    { chest_width: 56, body_length: 78, sleeve_length: 64 },
+    "poplin shirt M",
+    180,
+    260,
+  ],
+  [
+    "hoodie",
+    "Cotton",
+    { chest_width: 56, body_length: 71, sleeve_length: 62 },
+    "pullover hoodie M",
+    450,
+    650,
+  ],
+  [
+    "sweatshirt",
+    "Cotton fleece",
+    { chest_width: 56, body_length: 70, sleeve_length: 62 },
+    "crewneck M",
+    380,
+    520,
+  ],
+  [
+    "baggy-jeans",
+    "Denim",
+    { waist_width: 41, outseam_length: 106, leg_opening: 20 },
+    "jeans W32",
+    520,
+    750,
+  ],
+  [
+    "baggy-corporate-trousers",
+    "Cotton",
+    { waist_width: 41, outseam_length: 104 },
+    "chinos W32",
+    350,
+    500,
+  ],
+  [
+    "cuffed-joggers",
+    "Cotton",
+    { waist_width: 36, outseam_length: 100, leg_opening: 12 },
+    "fleece joggers M",
+    330,
+    480,
+  ],
+  [
+    "leggings",
+    "Nylon spandex",
+    { waist_width: 33, hip_width: 42, inseam_length: 70, leg_opening: 9 },
+    "leggings M",
+    160,
+    260,
+  ],
+  [
+    "denim-jorts",
+    "Denim",
+    { waist_width: 41, outseam_length: 55, leg_opening: 30 },
+    "jorts W32",
+    300,
+    450,
+  ],
+  [
+    "puffer-jacket",
+    "Nylon",
+    { chest_width: 60, body_length: 70, sleeve_length: 64 },
+    "puffer M",
+    500,
+    1000,
+  ],
+  [
+    "leather-jacket",
+    "Leather",
+    { chest_width: 55, body_length: 66, sleeve_length: 64 },
+    "leather jacket M",
+    1100,
+    2200,
+  ],
+  [
+    "trucker-jacket",
+    "Denim",
+    { chest_width: 56, body_length: 66, sleeve_length: 63 },
+    "trucker jacket M",
+    520,
+    800,
+  ],
+  [
+    "varsity-jacket",
+    "Wool",
+    { chest_width: 60, body_length: 68, sleeve_length: 64 },
+    "varsity jacket M",
+    850,
+    1500,
+  ],
+  ["tank-top", "Cotton", { chest_width: 50, body_length: 70 }, "tank M", 90, 150],
+  ["sports-bra", "Nylon spandex", { chest_width: 34, body_length: 25 }, "sports bra M", 50, 110],
+  [
+    "a-line-dress",
+    "Linen",
+    { chest_width: 46, body_length: 105, hem_width: 75 },
+    "linen midi dress",
+    170,
+    320,
+  ],
+];
+
+describe("reference garments", () => {
+  for (const [guide, material, cm, label, min, max] of REFERENCE) {
+    test(`${label} in ${material.toLowerCase()} weighs ${min}-${max} g`, () => {
+      const chart = { id: guide, guide: guide as SizeChartDefinition["guide"], lines: [] };
+      const grams = estimateWeight(chart, cm, material).grams;
+      expect(grams).toBeGreaterThanOrEqual(min);
+      expect(grams).toBeLessThanOrEqual(max);
+    });
+  }
 });
