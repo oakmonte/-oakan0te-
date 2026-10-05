@@ -46,6 +46,8 @@ import { useStoreSetupStatus } from "@/hooks/use-store-setup-status";
 import { useStoreCatalogReadiness, isStorefrontVisible } from "@/hooks/use-store-catalog-readiness";
 import { useBodyScrollLock } from "@/hooks/use-body-scroll-lock";
 import { BottomNav } from "@/components/BottomNav";
+import { SellerWelcomeTour } from "@/components/store/SellerWelcomeTour";
+import { sellerWelcomeSeen } from "@/components/store/seller-welcome";
 import { ProfileTabEmptyState } from "@/components/ProfileTabEmptyState";
 import { PostsGrid } from "@/components/profile/PostsGrid";
 import { PublicStorefront } from "@/components/store-themes/full-previews";
@@ -71,8 +73,12 @@ import {
 export const Route = createFileRoute("/profile/$username")({
   // ?tab=store opens straight onto the storefront (the theme picker's
   // "Next: see your storefront" lands here).
-  validateSearch: (search: Record<string, unknown>): { tab?: "store" } =>
-    search.tab === "store" ? { tab: "store" } : {},
+  // welcome: arriving from the setup checklist's "see your storefront" --
+  // runs the seller welcome tour once (SellerWelcomeTour).
+  validateSearch: (search: Record<string, unknown>): { tab?: "store"; welcome?: true } => ({
+    ...(search.tab === "store" ? { tab: "store" as const } : {}),
+    ...(search.welcome === true || search.welcome === "true" ? { welcome: true as const } : {}),
+  }),
   // Fire-and-forget: starts this fetch as early as `intent` preload allows
   // (hover/touch-start on a Link to this route — see router.tsx) without
   // making navigation wait on it. The component below still reads the same
@@ -165,7 +171,7 @@ function ProfilePage() {
         sold_items_count: stats?.sold_items_count ?? 0,
       }
     : null;
-  const { tab: initialTab } = Route.useSearch();
+  const { tab: initialTab, welcome } = Route.useSearch();
   const [activeTab, setActiveTab] = useState<TabKey>(initialTab ?? "posts");
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -524,6 +530,32 @@ function ProfilePage() {
   // (below) finish before the row lights, so it doesn't flash mid-slide;
   // the row then stays lit ~450ms, long enough to read as "tapped", before
   // the navigation it's demonstrating actually fires.
+  // The welcome tour's last stop: the menu opens with "Oakmonte Store" lit
+  // long enough to find it, and stays open for them to tap.
+  function openMenuWithStoreLit() {
+    setMenuOpen(true);
+    tourTimeouts.current.push(
+      setTimeout(() => setStoreRowLit(true), 550),
+      setTimeout(() => setStoreRowLit(false), 2600),
+    );
+  }
+
+  // Once per seller per device, only on their own profile, only when they
+  // came from the checklist. Latched on, not derived: finishing the tour
+  // marks it seen, which mustn't pull it off screen mid-animation. The flag
+  // leaves the URL straight away so a reload doesn't restart it.
+  const [showWelcome, setShowWelcome] = useState(false);
+  useEffect(() => {
+    if (!welcome || !ownershipKnown) return;
+    if (isOwnProfile && user && !sellerWelcomeSeen(user.id)) setShowWelcome(true);
+    void navigate({
+      to: "/profile/$username",
+      params: { username },
+      search: initialTab ? { tab: initialTab } : {},
+      replace: true,
+    });
+  }, [welcome, ownershipKnown, isOwnProfile, user, navigate, username, initialTab]);
+
   function goToStoreViaMenu() {
     leavingForStore.current = true;
     setSellerPromptOpen(false);
@@ -677,6 +709,7 @@ function ProfilePage() {
                 <button
                   onClick={() => setStorePickerOpen(true)}
                   aria-label="Switch to store profile"
+                  data-tour="switch-profile"
                   className="transition-transform duration-200 active:scale-90"
                 >
                   <span className="flex h-[26px] w-[26px] items-center justify-center overflow-hidden rounded-full border border-white/60 bg-chat-soft">
@@ -692,6 +725,7 @@ function ProfilePage() {
               <button
                 onClick={() => setMenuOpen(true)}
                 aria-label="Menu"
+                data-tour="menu"
                 className="transition-transform duration-200 active:scale-90"
               >
                 <Menu size={22} />
@@ -1153,7 +1187,15 @@ function ProfilePage() {
           finished. Still a Radix Dialog rather than a hand-rolled sheet so focus
           stays trapped inside it. The classes below only move it to
           the bottom of the screen in the house sheet shape. */}
-      <Dialog open={sellerPromptOpen}>
+      {showWelcome && user && (
+        <SellerWelcomeTour
+          userId={user.id}
+          storefrontOpen={storeSheetOpen}
+          closeStorefront={closeStoreSheet}
+          openMenuWithStoreLit={openMenuWithStoreLit}
+        />
+      )}
+      <Dialog open={sellerPromptOpen && !showWelcome}>
         <DialogContent
           onEscapeKeyDown={(e) => e.preventDefault()}
           onPointerDownOutside={(e) => e.preventDefault()}

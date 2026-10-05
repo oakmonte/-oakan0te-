@@ -253,6 +253,7 @@ export function BottomNav({ active, ownUsername }: BottomNavProps) {
                 goRoot({ to, params } as NavTarget);
               }}
               aria-label={label}
+              data-tour={key}
               aria-current={isActive ? "page" : undefined}
               className="relative flex-1 flex items-center justify-center"
               style={{

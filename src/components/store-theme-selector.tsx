@@ -519,7 +519,7 @@ export function StoreThemeSelector() {
                 navigate({
                   to: "/profile/$username",
                   params: { username: ownUsername },
-                  search: { tab: "store" },
+                  search: { tab: "store", welcome: true },
                 })
               }
               className="oak-tap mt-6 flex h-14 w-full items-center justify-center gap-2 rounded-full bg-sd-ink text-[17px] font-bold text-sd-bg oak-motion-control active:scale-[0.98] disabled:opacity-60"
