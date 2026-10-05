@@ -217,7 +217,7 @@ function NewCollection() {
         </p>
       )}
 
-      <div className="mx-4 mt-4 rounded-2xl border border-sd-line bg-sd-surface overflow-hidden">
+      <div className="mx-4 mt-4 rounded-2xl border border-sd-ink/25 bg-sd-surface overflow-hidden">
         <MediaSection
           mainImageUrl={imageUrl}
           onChange={setImageUrl}
@@ -227,7 +227,7 @@ function NewCollection() {
         />
       </div>
 
-      <div className="mx-4 mt-3 rounded-2xl border border-sd-line bg-sd-surface overflow-hidden">
+      <div className="mx-4 mt-3 rounded-2xl border border-sd-ink/25 bg-sd-surface overflow-hidden">
         <div className="px-4 py-4">
           <input
             value={title}
@@ -254,7 +254,7 @@ function NewCollection() {
         </div>
       </div>
 
-      <div className="mx-4 mt-3 rounded-2xl border border-sd-line bg-sd-surface overflow-hidden">
+      <div className="mx-4 mt-3 rounded-2xl border border-sd-ink/25 bg-sd-surface overflow-hidden">
         <button
           type="button"
           onClick={() => setProductsSheetOpen(true)}

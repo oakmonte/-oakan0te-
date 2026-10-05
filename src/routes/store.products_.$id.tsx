@@ -1062,7 +1062,7 @@ function EditProduct() {
 
       {error && <p className="px-4 pt-3 text-sm text-sd-danger-ink">{error}</p>}
 
-      <div className="mx-4 mt-4 rounded-3xl border border-gray-200 bg-white overflow-hidden">
+      <div className="mx-4 mt-4 rounded-3xl border border-gray-300 bg-white overflow-hidden">
         <MediaSection
           mainImageUrl={mainImageUrl}
           onChange={setMainImageUrl}
@@ -1074,7 +1074,7 @@ function EditProduct() {
         />
       </div>
 
-      <div className="mx-4 mt-4 mb-4 rounded-3xl border border-gray-200 bg-white overflow-hidden">
+      <div className="mx-4 mt-4 mb-4 rounded-3xl border border-gray-300 bg-white overflow-hidden">
         <DetailsSection
           noDivider
           title={title}

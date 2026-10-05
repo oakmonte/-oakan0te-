@@ -527,7 +527,7 @@ function NewProduct() {
       {error && <p className="px-4 pt-3 text-sm text-sd-danger-ink">{error}</p>}
 
       {/* Photos get their own card, apart from the fields below. */}
-      <div className="mx-4 mt-4 rounded-3xl border border-gray-200 bg-white overflow-hidden">
+      <div className="mx-4 mt-4 rounded-3xl border border-gray-300 bg-white overflow-hidden">
         <MediaSection
           mainImageUrl={mainImageUrl}
           onChange={setMainImageUrl}
@@ -538,7 +538,7 @@ function NewProduct() {
       </div>
 
       {/* Basic info: title, description, category, price -- one card. */}
-      <div className="mx-4 mt-4 rounded-3xl border border-gray-200 bg-white overflow-hidden divide-y divide-gray-100">
+      <div className="mx-4 mt-4 rounded-3xl border border-gray-300 bg-white overflow-hidden divide-y divide-gray-100">
         <DetailsSection
           title={title}
           setTitle={setTitle}
@@ -557,7 +557,7 @@ function NewProduct() {
       {/* Stock: Inventory for a regular product, the variant matrix
           otherwise -- exactly one of the two, its own card either way. */}
       {(kind === "regular" || storeId) && (
-        <div className="mx-4 mt-4 rounded-3xl border border-gray-200 bg-white overflow-hidden">
+        <div className="mx-4 mt-4 rounded-3xl border border-gray-300 bg-white overflow-hidden">
           {kind === "regular" ? (
             <InventorySection
               available={regularStockQty}
@@ -605,7 +605,7 @@ function NewProduct() {
       {/* Organize: everything that tags this listing rather than describing
           it -- grouped the same way iOS groups a settings list, one thin
           divider per row instead of the page's usual thick section gap. */}
-      <div className="mx-4 mt-4 rounded-3xl border border-gray-200 bg-white overflow-hidden divide-y divide-gray-100">
+      <div className="mx-4 mt-4 rounded-3xl border border-gray-300 bg-white overflow-hidden divide-y divide-gray-100">
         {!(initialNewCollectionId && !handoffDraft) && (
           <button
             type="button"
@@ -779,7 +779,7 @@ function NewProduct() {
         />
       )}
 
-      <div className="mx-4 mt-4 rounded-3xl border border-gray-200 bg-white p-4">
+      <div className="mx-4 mt-4 rounded-3xl border border-gray-300 bg-white p-4">
         <p className="text-[15px] font-semibold text-sd-ink mb-3">Product Status</p>
         <div className="flex gap-3">
           <button
