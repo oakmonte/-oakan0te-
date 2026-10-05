@@ -1,5 +1,5 @@
 import { authedFetch } from "@/lib/authed-fetch";
-import { uploadPostPhoto, uploadPostVideo } from "@/lib/post-media-upload";
+import { posterFromVideo, uploadPostPhoto, uploadPostVideo } from "@/lib/post-media-upload";
 
 // Posting/saving-a-draft used to block the publish page until the upload
 // finished — the seller couldn't leave, and there was nothing to look at but
@@ -44,7 +44,12 @@ export function getPostUploadSnapshot(): PostUploadState {
 async function toPublishForm(fd: FormData): Promise<FormData> {
   const files = fd.getAll("files").filter((f): f is File => f instanceof File);
   const types = JSON.parse(String(fd.get("mediaTypes") ?? "[]")) as string[];
-  const thumbnail = fd.get("thumbnail");
+  let thumbnail: FormDataEntryValue | Blob | null = fd.get("thumbnail");
+  // No cover picked for a video post: make one from the clip itself, so the
+  // grid never waits on (or shows black for) Bunny's own thumbnail.
+  if (!(thumbnail instanceof Blob && thumbnail.size > 0) && types[0] === "video" && files[0]) {
+    thumbnail = await posterFromVideo(files[0]);
+  }
   const uploadId = crypto.randomUUID();
 
   const items: (

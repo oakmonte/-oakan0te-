@@ -264,14 +264,17 @@ export const Route = createFileRoute("/api/posts")({
 
         const postId = crypto.randomUUID();
 
-        // A Stream video plays from its MP4 fallback rendition, which a plain
-        // <video src> can use on every browser (HLS would need hls.js off
-        // Safari). Needs "MP4 fallback" on in the library's Encoding settings.
-        // It 404s for the minute or so Bunny spends encoding a fresh upload.
+        // A Stream video plays from its ORIGINAL -- the file the phone
+        // uploaded, which is already a 720p H.264 MP4 (post-media-upload.ts
+        // makes sure of that). It's there the moment the upload finishes,
+        // where Bunny's play_720p.mp4 404'd for the minute encoding took (the
+        // black-screen posts), and it skips a second lossy re-encode that
+        // left video blocky and dark. Needs "Keep original files" on in the
+        // library's Encoding settings.
         const uploaded = items.map((it) =>
           it.type === "photo"
             ? { url: it.url, mediaType: "photo" }
-            : { url: `https://${streamCdn}/${it.videoId}/play_720p.mp4`, mediaType: "video" },
+            : { url: `https://${streamCdn}/${it.videoId}/original`, mediaType: "video" },
         );
         const totalBytes = items.reduce(
           (n, it) => n + (typeof it.bytes === "number" && it.bytes > 0 ? it.bytes : 0),

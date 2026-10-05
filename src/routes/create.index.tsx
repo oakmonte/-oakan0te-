@@ -211,6 +211,25 @@ const HOLD_TO_RECORD_MS = 250;
 // swipe, not a press.
 const HOLD_SLOP_PX = 10;
 const MAX_RECORD_SECONDS = 60;
+// Recorded video is 720p on its short edge at ~5 Mbps H.264. Snapchat- and
+// Instagram-grade for a phone screen, and what the feed plays as-is (the
+// original file is served, not a re-encode -- see api.posts.ts). The camera
+// still runs at 1080p for the preview and for photos; recording downscales,
+// which also comes out sharper than capturing at 720p natively.
+const RECORD_SHORT_EDGE = 720;
+const RECORD_BITRATE = 5_000_000;
+const RECORD_FPS = 30;
+// H.264 in MP4 first: every iPhone and modern Android encodes it in hardware,
+// so it's smooth and small. VP9 (which Safari also offers) is a SOFTWARE
+// encoder on iPhone -- it was the source of choppy, 15 Mbps, judder-y clips.
+const RECORDER_MIME_TYPES = [
+  "video/mp4;codecs=avc1.640028,mp4a.40.2",
+  "video/mp4;codecs=avc1",
+  "video/mp4",
+  "video/webm;codecs=vp9",
+  "video/webm;codecs=vp8",
+  "video/webm",
+];
 // A MediaRecorder stopped a few frames in can hand back a clip nothing will
 // decode. Letting go sooner than this still stops — just this late.
 const MIN_RECORD_MS = 600;
@@ -269,6 +288,9 @@ function CreatePage() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
   const mirrorDrawLoopRef = useRef<number | null>(null);
+  // Stops the recording canvas's per-frame draw, whichever scheduler it used
+  // (requestVideoFrameCallback or requestAnimationFrame).
+  const stopRecordDrawRef = useRef<(() => void) | null>(null);
   const mirrorCanvasStreamRef = useRef<MediaStream | null>(null);
   // `applyConstraints` replaces the whole `advanced` set rather than merging
   // it, so the torch effect and applyZoom's hardware-zoom branch — two
@@ -875,6 +897,8 @@ function CreatePage() {
   );
 
   const stopMirrorDrawLoop = useCallback(() => {
+    stopRecordDrawRef.current?.();
+    stopRecordDrawRef.current = null;
     if (mirrorDrawLoopRef.current !== null) {
       cancelAnimationFrame(mirrorDrawLoopRef.current);
       mirrorDrawLoopRef.current = null;
@@ -923,8 +947,12 @@ function CreatePage() {
 
       if (!canUseNativeStream) {
         const recordCanvas = document.createElement("canvas");
-        recordCanvas.width = sw;
-        recordCanvas.height = sh;
+        // Downscaled to RECORD_SHORT_EDGE (even dimensions, which H.264
+        // needs): drawing and encoding 1080x1920 per frame was more than a
+        // phone sustains at 30fps once a filter runs too.
+        const scale = Math.min(1, RECORD_SHORT_EDGE / Math.min(sw, sh));
+        recordCanvas.width = Math.round((sw * scale) / 2) * 2;
+        recordCanvas.height = Math.round((sh * scale) / 2) * 2;
         const rctx = recordCanvas.getContext("2d");
 
         if (rctx) {
@@ -952,11 +980,30 @@ function CreatePage() {
               rctx.putImageData(frame, 0, 0);
             }
             rctx.restore();
-            mirrorDrawLoopRef.current = requestAnimationFrame(drawFrame);
+            schedule();
+          };
+          // One draw per REAL camera frame (requestVideoFrameCallback), not
+          // per screen refresh. The old requestAnimationFrame loop ran at the
+          // display's 60-120Hz over a 30fps camera, recording duplicated,
+          // unevenly spaced frames -- the judder. rAF stays as the fallback
+          // for browsers without rVFC.
+          let stopped = false;
+          let handle = 0;
+          const rvfc = "requestVideoFrameCallback" in video;
+          const schedule = () => {
+            if (stopped) return;
+            handle = rvfc
+              ? video.requestVideoFrameCallback(() => drawFrame())
+              : requestAnimationFrame(() => drawFrame());
+          };
+          stopRecordDrawRef.current = () => {
+            stopped = true;
+            if (rvfc) video.cancelVideoFrameCallback(handle);
+            else cancelAnimationFrame(handle);
           };
           drawFrame();
 
-          const canvasStream = recordCanvas.captureStream();
+          const canvasStream = recordCanvas.captureStream(RECORD_FPS);
           stream.getAudioTracks().forEach((track) => canvasStream.addTrack(track));
 
           mirrorCanvasStreamRef.current = canvasStream;
@@ -965,16 +1012,12 @@ function CreatePage() {
       }
     }
 
-    const candidates = [
-      "video/webm;codecs=vp9",
-      "video/webm;codecs=vp8",
-      "video/webm",
-      "video/mp4",
-    ];
-    const mimeType = candidates.find((t) => MediaRecorder.isTypeSupported(t)) ?? "";
+    const mimeType = RECORDER_MIME_TYPES.find((t) => MediaRecorder.isTypeSupported(t)) ?? "";
     const recorder = new MediaRecorder(
       recordingStream,
-      mimeType ? { mimeType, videoBitsPerSecond: 8_000_000 } : { videoBitsPerSecond: 8_000_000 },
+      mimeType
+        ? { mimeType, videoBitsPerSecond: RECORD_BITRATE }
+        : { videoBitsPerSecond: RECORD_BITRATE },
     );
 
     recorder.ondataavailable = (e) => {

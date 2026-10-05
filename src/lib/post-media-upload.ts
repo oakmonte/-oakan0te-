@@ -43,16 +43,20 @@ function b64(s: string): string {
   return btoa(unescape(encodeURIComponent(s)));
 }
 
-// A posted video is uploaded as-is when it has no edits (exportComposite
-// hands back the original capture), and an iPhone's 4K original runs ~30
-// Mbps: a 3-second clip was 11.8 MB and took ~90 s to upload on mobile data.
-// Bunny re-encodes to at most 1080p for playback anyway, so anything above
-// 1080p or SHRINK_ABOVE_BPS is re-encoded here first, to 1080p at
-// TARGET_BPS -- a second or two on the phone's hardware encoder, several
-// times less to send. Any failure just uploads the original.
+// The uploaded file IS what the feed plays (api.posts.ts serves Bunny's
+// /original, not a re-encode), so it has to be a universally playable,
+// reasonably sized H.264 MP4. The in-app camera already records exactly that
+// (720p / 5 Mbps, create.index.tsx) and goes up untouched. Anything else --
+// a 4K or HEVC gallery clip, a WebM from an older Android, an oversized
+// bitrate -- is re-encoded here first to H.264 at 720p on its short edge.
+// A second or two on the phone's hardware encoder; any failure uploads the
+// original as-is.
 const SHRINK_ABOVE_BPS = 6_000_000;
-const TARGET_BPS = 5_000_000;
-const MAX_SHORT_EDGE = 1080;
+const TARGET_BPS = 4_500_000;
+const MAX_SHORT_EDGE = 720;
+/** Short edges up to this are left alone when nothing else is wrong -- a
+ *  1080p back-camera recording is fine to play as-is. */
+const KEEP_SHORT_EDGE = 1080;
 
 async function shrinkVideo(blob: Blob): Promise<Blob> {
   try {
@@ -68,14 +72,15 @@ async function shrinkVideo(blob: Blob): Promise<Blob> {
     const h = track.displayHeight;
     const shortEdge = Math.min(w, h);
     const bps = (blob.size * 8) / duration;
-    if (bps <= SHRINK_ABOVE_BPS && shortEdge <= MAX_SHORT_EDGE) return blob;
+    const playable = track.codec === "avc" && (await input.getMimeType()).startsWith("video/mp4");
+    if (playable && bps <= SHRINK_ABOVE_BPS && shortEdge <= KEEP_SHORT_EDGE) return blob;
 
     const target = new BufferTarget();
     const conversion = await Conversion.init({
       input,
       output: new Output({ format: new Mp4OutputFormat(), target }),
       video: {
-        // Scale the SHORT edge to 1080, whichever way round the clip is.
+        // Scale the SHORT edge to 720, whichever way round the clip is.
         ...(shortEdge > MAX_SHORT_EDGE
           ? w <= h
             ? { width: MAX_SHORT_EDGE }
@@ -93,6 +98,46 @@ async function shrinkVideo(blob: Blob): Promise<Blob> {
   } catch (err) {
     console.warn("Video shrink failed, uploading the original", err);
     return blob;
+  }
+}
+
+/** A JPEG poster from near the start of a video, made on the phone so a
+ *  fresh post's grid tile and feed card show a picture immediately instead
+ *  of black while Bunny generates its own thumbnail. null if the browser
+ *  can't produce one -- the post still goes out. */
+export async function posterFromVideo(blob: Blob): Promise<Blob | null> {
+  const url = URL.createObjectURL(blob);
+  const video = document.createElement("video");
+  video.muted = true;
+  video.playsInline = true;
+  video.preload = "auto";
+  video.src = url;
+  try {
+    await new Promise<void>((resolve, reject) => {
+      video.onloadeddata = () => resolve();
+      video.onerror = () => reject(new Error("video load failed"));
+      setTimeout(() => reject(new Error("video load timed out")), 8000);
+    });
+    // A hair past 0: frame 0 of a phone recording is often black or still
+    // adjusting exposure.
+    await new Promise<void>((resolve) => {
+      video.onseeked = () => resolve();
+      video.currentTime = Math.min(0.3, (video.duration || 1) / 2);
+      setTimeout(resolve, 3000);
+    });
+    const scale = Math.min(1, 1080 / Math.max(video.videoWidth, video.videoHeight));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(video.videoWidth * scale);
+    canvas.height = Math.round(video.videoHeight * scale);
+    if (!canvas.width || !canvas.height) return null;
+    canvas.getContext("2d")!.drawImage(video, 0, 0, canvas.width, canvas.height);
+    return await new Promise<Blob | null>((r) => canvas.toBlob(r, "image/jpeg", 0.85));
+  } catch {
+    return null;
+  } finally {
+    URL.revokeObjectURL(url);
+    video.removeAttribute("src");
+    video.load();
   }
 }
 
