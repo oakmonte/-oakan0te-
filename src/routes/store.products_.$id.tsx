@@ -1062,25 +1062,33 @@ function EditProduct() {
 
       {error && <p className="px-4 pt-3 text-sm text-sd-danger-ink">{error}</p>}
 
-      <MediaSection
-        mainImageUrl={mainImageUrl}
-        onChange={setMainImageUrl}
-        additionalImageUrls={regularAdditionalImageUrls ?? []}
-        onAdditionalChange={(urls) => setRegularAdditionalImageUrls(urls.length > 0 ? urls : null)}
-      />
+      <div className="mx-4 mt-4 rounded-3xl border border-gray-200 bg-white overflow-hidden">
+        <MediaSection
+          mainImageUrl={mainImageUrl}
+          onChange={setMainImageUrl}
+          additionalImageUrls={regularAdditionalImageUrls ?? []}
+          onAdditionalChange={(urls) =>
+            setRegularAdditionalImageUrls(urls.length > 0 ? urls : null)
+          }
+          noDivider
+        />
+      </div>
 
-      <DetailsSection
-        title={title}
-        setTitle={setTitle}
-        descriptionShort={descriptionShort}
-        onOpenDescription={() => setDescriptionSheetOpen(true)}
-        categoryPath={categoryPath}
-        onOpenCategoryPicker={() => setCategoryPickerOpen(true)}
-        price={price}
-        compareAtPrice={compareAtPrice}
-        onOpenPriceSheet={() => setPriceSheetOpen(true)}
-        showPrice={kind === "regular"}
-      />
+      <div className="mx-4 mt-4 mb-4 rounded-3xl border border-gray-200 bg-white overflow-hidden">
+        <DetailsSection
+          noDivider
+          title={title}
+          setTitle={setTitle}
+          descriptionShort={descriptionShort}
+          onOpenDescription={() => setDescriptionSheetOpen(true)}
+          categoryPath={categoryPath}
+          onOpenCategoryPicker={() => setCategoryPickerOpen(true)}
+          price={price}
+          compareAtPrice={compareAtPrice}
+          onOpenPriceSheet={() => setPriceSheetOpen(true)}
+          showPrice={kind === "regular"}
+        />
+      </div>
 
       {kind === "regular" ? (
         <>

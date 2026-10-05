@@ -225,13 +225,15 @@ function NewCollection() {
           onAdditionalChange={setAdditionalImageUrls}
           noDivider
         />
+      </div>
 
-        <div className="border-t border-sd-line px-4 py-4">
+      <div className="mx-4 mt-3 rounded-2xl border border-sd-line bg-sd-surface overflow-hidden">
+        <div className="px-4 py-4">
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Collection title"
-            className="w-full text-2xl font-semibold text-sd-ink placeholder:text-sd-ink-muted outline-none pb-3 border-b border-sd-line"
+            className="w-full text-[28px] leading-tight font-semibold text-sd-ink placeholder:text-sd-ink-muted outline-none pt-3 pb-6 border-b border-sd-line"
           />
 
           <button
