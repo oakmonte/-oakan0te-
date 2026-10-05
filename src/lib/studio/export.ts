@@ -26,7 +26,7 @@ import {
   getFirstEncodableAudioCodec,
 } from "mediabunny";
 import { compileFilter, IDENTITY_FILTER, type CompiledFilter } from "@/lib/canvas-filter";
-import { applyFilterToContext } from "@/lib/gl-filter";
+import { applyFilterToContext, gpuFilterAvailable } from "@/lib/gl-filter";
 import { drawLayers, preloadStickers } from "@/lib/layer-bake";
 import { trimVideo } from "@/lib/video-trim";
 import { combinedFilterCss } from "./adjustments";
@@ -252,7 +252,11 @@ function makeCanvas(
   // willReadFrequently only where a getImageData actually happens. Setting it on
   // the canvas the encoder reads from is counterproductive: it pins the surface
   // to the CPU, and every frame then has to be uploaded again for the encode.
-  const ctx = canvas.getContext("2d", readFrequently ? { willReadFrequently: true } : undefined);
+  // With the GPU filter available nothing reads pixels back on the CPU at all.
+  const ctx = canvas.getContext(
+    "2d",
+    readFrequently && !gpuFilterAvailable() ? { willReadFrequently: true } : undefined,
+  );
   if (!ctx) throw new Error("Canvas 2D context unavailable");
   return { canvas, ctx };
 }

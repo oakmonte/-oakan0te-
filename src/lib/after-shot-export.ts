@@ -13,7 +13,7 @@ import {
   getFirstEncodableVideoCodec,
 } from "mediabunny";
 import { compileFilter, type CompiledFilter } from "@/lib/canvas-filter";
-import { applyFilterToContext } from "@/lib/gl-filter";
+import { applyFilterToContext, gpuFilterAvailable } from "@/lib/gl-filter";
 import { drawVignette } from "@/lib/vignette";
 import { compileGrade, isNoopFilter, type CameraFilter } from "@/components/camera/filter-data";
 import { drawLayers, preloadStickers } from "@/lib/layer-bake";
@@ -87,7 +87,7 @@ export async function exportPhoto(
     });
 
     const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    const ctx = canvas.getContext("2d", { willReadFrequently: !gpuFilterAvailable() });
     if (!ctx) throw new Error("Canvas 2D context unavailable");
 
     // Crop first — everything after this (filter, layers) draws against the
@@ -159,7 +159,7 @@ export async function exportVideo(
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
-  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  const ctx = canvas.getContext("2d", { willReadFrequently: !gpuFilterAvailable() });
   if (!ctx) throw new Error("Canvas 2D context unavailable");
 
   // Same true-grade bake as exportPhoto. This runs once per frame of the

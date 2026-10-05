@@ -7,33 +7,75 @@ import { posterFromVideo, uploadPostPhoto, uploadPostVideo } from "@/lib/post-me
 // caller fires it and navigates away immediately, and PostUploadToast (mounted
 // once in __root.tsx) shows progress/errors regardless of what route the
 // seller's on when it settles. Plain module state, not React state — same
-// "survives navigation" reasoning as capture-handoff.ts, and there's only
-// ever one upload in flight at a time since the publish flow is one-post-at-
-// a-time.
+// "survives navigation" reasoning as capture-handoff.ts.
+//
+// Every post is its own JOB, and jobs run one at a time, in order. A second
+// post started while the first is still uploading (post a video, then a
+// photo straight after) waits its turn instead of sharing one global slot --
+// that used to revoke the first post's preview, make Retry re-send the WRONG
+// post, and let one post's success hide the other's failure.
 export type PostUploadKind = "published" | "draft";
-// `preview` is an object URL of the post's cover -- the picked cover, the
-// first photo, or a frame from the video -- so the profile grid can show the
-// post the instant it's sent, with a spinner, instead of nothing (or black)
-// until the upload lands. `postId` arrives with success, so the grid knows
-// when the real post has replaced the placeholder.
+
+// What the toast shows: the job running now, or the last one that finished.
+// `preview` is an object URL of that post's cover -- the picked cover, the
+// first photo, or a frame from the video. `postId` arrives with success.
 export type PostUploadState =
   | { status: "uploading"; kind: PostUploadKind; preview: string | null }
   | { status: "success"; kind: PostUploadKind; preview: string | null; postId: string }
   | { status: "error"; kind: PostUploadKind; preview: string | null; message: string }
   | null;
 
+/** A post on its way, for the profile grid to show in place right away:
+ *  queued or uploading, or landed but not yet in the grid's own data. */
+export type PendingPost = {
+  jobId: number;
+  kind: PostUploadKind;
+  preview: string | null;
+  postId: string | null;
+};
+
+type Job = {
+  id: number;
+  fd: FormData;
+  kind: PostUploadKind;
+  preview: string | null;
+  postId: string | null;
+  phase: "queued" | "uploading" | "landed" | "failed";
+};
+
+let nextJobId = 1;
+const queue: Job[] = [];
+let active: Job | null = null;
+let failed: Job | null = null;
+// Landed jobs stay listed briefly so the grid can keep the tile up until its
+// refetch has the real post; then they're dropped and their previews freed.
+const landed: Job[] = [];
+const LANDED_KEEP_MS = 30_000;
+
 let state: PostUploadState = null;
-let pendingFormData: FormData | null = null;
-let pendingKind: PostUploadKind | null = null;
+let pendingSnapshot: PendingPost[] = [];
+let landedAt = 0;
 const listeners = new Set<() => void>();
 
-function setState(next: PostUploadState) {
-  // The preview URL is owned by whichever state holds it; drop it once
-  // nothing does.
-  const old = state?.preview;
-  if (old && old !== next?.preview) URL.revokeObjectURL(old);
-  state = next;
+function notify() {
+  const jobs = [...(active ? [active] : []), ...queue, ...landed];
+  pendingSnapshot = jobs.map((j) => ({
+    jobId: j.id,
+    kind: j.kind,
+    preview: j.preview,
+    postId: j.postId,
+  }));
   listeners.forEach((l) => l());
+}
+
+function setState(next: PostUploadState) {
+  state = next;
+  notify();
+}
+
+function release(job: Job) {
+  if (job.preview) URL.revokeObjectURL(job.preview);
+  job.preview = null;
 }
 
 export function subscribePostUpload(listener: () => void): () => void {
@@ -43,6 +85,18 @@ export function subscribePostUpload(listener: () => void): () => void {
 
 export function getPostUploadSnapshot(): PostUploadState {
   return state;
+}
+
+/** Posts on their way (see PendingPost). Same subscription as above. */
+export function getPendingPostsSnapshot(): PendingPost[] {
+  return pendingSnapshot;
+}
+
+/** When a post last landed (ms epoch, 0 = never this session). A grid whose
+ *  data is older than this refetches, even one that wasn't mounted when it
+ *  happened -- publishing navigates away from the profile. */
+export function getLastLandedAt(): number {
+  return landedAt;
 }
 
 // The publish screen still builds one FormData holding every file. This
@@ -92,56 +146,90 @@ async function toPublishForm(fd: FormData, poster: Blob | null): Promise<FormDat
   return out;
 }
 
-async function run(fd: FormData, kind: PostUploadKind) {
-  // A retry keeps the preview it already has rather than making another.
-  const reuse = state?.status === "error" ? state.preview : null;
-  setState({ status: "uploading", kind, preview: reuse });
-  let preview = reuse;
+async function runJob(job: Job) {
+  job.phase = "uploading";
+  setState({ status: "uploading", kind: job.kind, preview: job.preview });
   try {
-    const cover = await coverOf(fd);
-    if (!preview && cover.blob) {
-      preview = URL.createObjectURL(cover.blob);
-      setState({ status: "uploading", kind, preview });
+    const cover = await coverOf(job.fd);
+    if (!job.preview && cover.blob) {
+      job.preview = URL.createObjectURL(cover.blob);
+      setState({ status: "uploading", kind: job.kind, preview: job.preview });
     }
-    const publishForm = await toPublishForm(fd, cover.isPoster ? cover.blob : null);
+    const publishForm = await toPublishForm(job.fd, cover.isPoster ? cover.blob : null);
     const res = await authedFetch("/api/posts", { method: "POST", body: publishForm });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}) as { error?: string });
       throw new Error(body.error || "Could not publish");
     }
     const { id } = (await res.json()) as { id: string };
-    setState({ status: "success", kind, preview, postId: id });
+    job.postId = id;
+    job.phase = "landed";
+    landed.push(job);
+    landedAt = Date.now();
+    setState({ status: "success", kind: job.kind, preview: job.preview, postId: id });
     setTimeout(() => {
-      // Only clear if nothing newer has started since (a fast second post).
+      // Only clear the toast if nothing newer has replaced it since.
       if (state?.status === "success" && state.postId === id) setState(null);
     }, 4000);
+    setTimeout(() => {
+      const i = landed.indexOf(job);
+      if (i >= 0) landed.splice(i, 1);
+      release(job);
+      notify();
+    }, LANDED_KEEP_MS);
   } catch (err) {
+    job.phase = "failed";
+    // One retryable failure at a time: an older one still waiting is
+    // superseded (its toast was already replaced).
+    if (failed && failed !== job) release(failed);
+    failed = job;
     setState({
       status: "error",
-      kind,
-      preview,
+      kind: job.kind,
+      preview: job.preview,
       message: err instanceof Error ? err.message : "Could not publish",
     });
+  } finally {
+    active = null;
+    pump();
   }
 }
 
-/** Kicks off a post/draft upload in the background. Caller should navigate
- *  away immediately after calling this rather than awaiting it. */
-export function startPostUpload(fd: FormData, kind: PostUploadKind) {
-  pendingFormData = fd;
-  pendingKind = kind;
-  void run(fd, kind);
+function pump() {
+  if (active) return;
+  const next = queue.shift();
+  if (!next) {
+    notify();
+    return;
+  }
+  active = next;
+  void runJob(next);
 }
 
-/** Retries the most recent upload with the exact FormData it failed with —
- *  safe because the Blob was already read into the FormData at capture time,
- *  independent of whatever after-shot state the seller has since left. */
+/** Kicks off a post/draft upload in the background. Caller should navigate
+ *  away immediately after calling this rather than awaiting it. Queued
+ *  behind any upload already running. */
+export function startPostUpload(fd: FormData, kind: PostUploadKind) {
+  queue.push({ id: nextJobId++, fd, kind, preview: null, postId: null, phase: "queued" });
+  pump();
+}
+
+/** Retries the post that failed -- that exact one, with the FormData it
+ *  failed with (its Blobs were read in at capture time, so whatever the
+ *  seller has done since doesn't matter). */
 export function retryPostUpload() {
-  if (pendingFormData && pendingKind) void run(pendingFormData, pendingKind);
+  const job = failed;
+  if (!job) return;
+  failed = null;
+  job.phase = "queued";
+  queue.unshift(job);
+  pump();
 }
 
 export function dismissPostUpload() {
-  pendingFormData = null;
-  pendingKind = null;
+  if (failed) {
+    release(failed);
+    failed = null;
+  }
   setState(null);
 }

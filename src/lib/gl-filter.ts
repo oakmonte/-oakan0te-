@@ -96,13 +96,17 @@ export class GlFilterRenderer {
   private luts = new WeakMap<LutTable, WebGLTexture>();
   private srcTexture: WebGLTexture;
   private lost = false;
+  private readonly maxTextureSize: number;
 
-  /** null when WebGL2 isn't available. */
-  static create(): GlFilterRenderer | null {
+  /** null when WebGL2 isn't available. `opaque` for a renderer whose output
+   *  is recorded: an alpha channel there only costs conversions (and on the
+   *  WebM fallback, a needless alpha plane). Exports keep alpha, which the
+   *  studio's transparent letterbox bars rely on. */
+  static create({ opaque = false }: { opaque?: boolean } = {}): GlFilterRenderer | null {
     if (typeof document === "undefined") return null;
     const canvas = document.createElement("canvas");
     const gl = canvas.getContext("webgl2", {
-      alpha: true,
+      alpha: !opaque,
       premultipliedAlpha: false,
       // Kept, because the canvas is read after drawing: by captureStream
       // (recording) and by drawImage (exports). Safari has captured blank
@@ -124,6 +128,7 @@ export class GlFilterRenderer {
   private constructor(canvas: HTMLCanvasElement, gl: WebGL2RenderingContext) {
     this.canvas = canvas;
     this.gl = gl;
+    this.maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE) as number;
     canvas.addEventListener("webglcontextlost", (e) => {
       e.preventDefault();
       this.lost = true;
@@ -152,6 +157,44 @@ export class GlFilterRenderer {
     if (this.canvas.height !== height) this.canvas.height = height;
   }
 
+  /** Whether a source and an output of these sizes fit this GPU. Beyond
+   *  MAX_TEXTURE_SIZE the upload fails WITHOUT throwing and samples black,
+   *  and a drawing buffer the browser couldn't allocate in full comes back
+   *  smaller -- both would "succeed" with a wrong picture. */
+  fits(sourceWidth: number, sourceHeight: number): boolean {
+    const max = this.maxTextureSize;
+    return (
+      sourceWidth > 0 &&
+      sourceHeight > 0 &&
+      sourceWidth <= max &&
+      sourceHeight <= max &&
+      this.gl.drawingBufferWidth === this.canvas.width &&
+      this.gl.drawingBufferHeight === this.canvas.height
+    );
+  }
+
+  /** Compiles `compiled`'s shader and uploads its LUTs ahead of time, so the
+   *  first recorded frame or shutter press doesn't pay for it (shader
+   *  compiles are slow on iOS's Metal backend). */
+  warm(compiled: CompiledFilter): void {
+    if (!this.usable) return;
+    const ops = compiled === IDENTITY_FILTER ? [] : compiled.ops;
+    this.program(ops, ops.length > 0 && (compiled.amount ?? 1) < 1);
+    for (const op of ops) if (op.kind === "lut") this.lutTexture(op.table);
+  }
+
+  /** Drops the big buffers (drawing buffer + source texture) back to 1x1
+   *  while keeping compiled shaders and LUTs. A 12 MP photo otherwise pins
+   *  ~100 MB of GPU memory for the rest of the session -- jetsam territory
+   *  for an installed iPhone app. */
+  shrink(): void {
+    if (!this.usable) return;
+    this.setSize(1, 1);
+    const gl = this.gl;
+    gl.bindTexture(gl.TEXTURE_2D, this.srcTexture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4));
+  }
+
   /** Draws `crop` of `source` through `compiled` onto this.canvas, scaled to
    *  fill it. Returns false if the GPU couldn't (context lost); the caller
    *  should fall back to the CPU path for this frame. */
@@ -163,7 +206,7 @@ export class GlFilterRenderer {
     crop?: SourceRect,
     mirror = false,
   ): boolean {
-    if (!this.usable) return false;
+    if (!this.usable || !this.fits(sourceWidth, sourceHeight)) return false;
     const gl = this.gl;
     const ops = compiled === IDENTITY_FILTER ? [] : compiled.ops;
     const amount = compiled.amount ?? 1;
@@ -288,12 +331,26 @@ export class GlFilterRenderer {
 
 // One shared renderer for the one-shot and export paths below. Created on
 // first use; a creation failure is remembered so it isn't retried per frame.
+// A context lost later (iOS reclaims them when the app is backgrounded) is
+// recreated on next use.
 let shared: GlFilterRenderer | null | undefined;
 function sharedRenderer(): GlFilterRenderer | null {
   if (shared && !shared.usable) shared = undefined;
   if (shared === undefined) shared = GlFilterRenderer.create();
   return shared;
 }
+
+/** Whether applyFilterToContext will run on the GPU. Canvases that are only
+ *  filtered through it should then NOT be created willReadFrequently: that
+ *  hint keeps a canvas in CPU memory, turning every GPU frame into an extra
+ *  upload plus a stalling readback. */
+export function gpuFilterAvailable(): boolean {
+  return sharedRenderer() !== null;
+}
+
+// Above this many output pixels the shared renderer gives its buffers back
+// after each use (a photo); below it (video frames) they're kept for reuse.
+const KEEP_BUFFERS_MAX_PIXELS = 2_500_000;
 
 /** Applies `compiled` to the whole of `ctx`'s canvas in place -- a drop-in
  *  for the getImageData / applyCompiledFilter / putImageData sequence. On
@@ -311,27 +368,35 @@ export function applyFilterToContext(
   if (gpu) {
     try {
       gpu.setSize(width, height);
-      if (
-        gpu.render(ctx.canvas, ctx.canvas.width, ctx.canvas.height, compiled, {
-          sx: 0,
-          sy: 0,
-          sw: width,
-          sh: height,
-        })
-      ) {
+      const done = gpu.render(ctx.canvas, ctx.canvas.width, ctx.canvas.height, compiled, {
+        sx: 0,
+        sy: 0,
+        sw: width,
+        sh: height,
+      });
+      if (done) {
         ctx.save();
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.globalCompositeOperation = "copy";
         ctx.drawImage(gpu.canvas, 0, 0, width, height, 0, 0, width, height);
         ctx.restore();
-        return;
       }
+      if (width * height > KEEP_BUFFERS_MAX_PIXELS) gpu.shrink();
+      if (done) return;
     } catch (err) {
+      // Only a dead context is worth dropping the renderer over; anything
+      // else (a tainted canvas, say) is about this call, not the GPU.
       console.warn("GPU filter failed, using the CPU path", err);
-      shared = null;
+      if (!gpu.usable) shared = undefined;
     }
   }
   const frame = ctx.getImageData(0, 0, width, height);
   applyCompiledFilter(frame, compiled);
   ctx.putImageData(frame, 0, 0);
+}
+
+/** Compiles `compiled`'s shader on the shared renderer ahead of use (see
+ *  GlFilterRenderer.warm). */
+export function warmFilter(compiled: CompiledFilter): void {
+  sharedRenderer()?.warm(compiled);
 }

@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 
 import { compileFilter, applyCompiledFilter, IDENTITY_FILTER } from "@/lib/canvas-filter";
-import { applyFilterToContext, GlFilterRenderer } from "@/lib/gl-filter";
+import { applyFilterToContext, GlFilterRenderer, warmFilter } from "@/lib/gl-filter";
 import { setPendingCapture } from "@/lib/capture-handoff";
 import { getLastNonCreateRoute } from "@/lib/last-visited-route";
 import { useFilterThumbnail } from "@/lib/filter-thumbnail";
@@ -296,6 +296,11 @@ function CreatePage() {
   // and kept for the page's life. null = WebGL2 unavailable (CPU fallback);
   // undefined = not tried yet.
   const recordGlRef = useRef<GlFilterRenderer | null | undefined>(undefined);
+  // True from a recording's start until its onstop has finished. A new hold
+  // in between (stopRecording keeps the recorder open up to MIN_RECORD_MS,
+  // and onstop is async) used to reset the chunks and hijack the shared
+  // draw-loop/stream refs, so the old onstop killed the NEW recording.
+  const recordingBusyRef = useRef(false);
   const mirrorCanvasStreamRef = useRef<MediaStream | null>(null);
   // `applyConstraints` replaces the whole `advanced` set rather than merging
   // it, so the torch effect and applyZoom's hardware-zoom branch — two
@@ -917,8 +922,12 @@ function CreatePage() {
   const startRecording = useCallback(() => {
     const stream = streamRef.current;
     const video = videoRef.current;
-    if (!stream || !video) return;
+    if (!stream || !video || recordingBusyRef.current) return;
     recordedChunksRef.current = [];
+    // This recording's own draw loop and canvas stream. onstop tears down
+    // exactly these, never whatever the shared refs point at by then.
+    let ownStopDraw: (() => void) | null = null;
+    let ownCanvasStream: MediaStream | null = null;
 
     let recordingStream: MediaStream = stream;
 
@@ -929,9 +938,17 @@ function CreatePage() {
     // live (too slow per frame), recording stays raw and recorder.onstop
     // runs the grade once as a post-process; a matrix-only filter is cheap
     // enough to bake live on the CPU.
-    if (recordGlRef.current === undefined) recordGlRef.current = GlFilterRenderer.create();
-    const gpu = recordGlRef.current?.usable ? recordGlRef.current : null;
-    const needsPostGrade = !gpu && !!activeFilter.grade && filterIntensity > 0;
+    // Made once per page (and remade if iOS reclaimed the context while the
+    // app was backgrounded). Opaque: its output is recorded, and alpha there
+    // only costs conversions.
+    if (recordGlRef.current === undefined || (recordGlRef.current && !recordGlRef.current.usable)) {
+      recordGlRef.current = GlFilterRenderer.create({ opaque: true });
+    }
+    let gpu = recordGlRef.current ?? null;
+    // Decided after the GPU is proven below; read through this helper so the
+    // onstop closure sees the final answer.
+    const needsPostGradeFor = (f: typeof activeFilter, intensity: number) =>
+      !gpu && !!f.grade && intensity > 0;
     const gradeFilter = activeFilter;
     const gradeIntensity = filterIntensity;
 
@@ -942,9 +959,21 @@ function CreatePage() {
       // crop narrowed by the zoom at that moment and scales it up to fill.
       const baseCrop = getCropRect(sourceWidth, sourceHeight, RATIO_ASPECT[ratio]);
       const { sx, sy, sw, sh } = baseCrop;
+      const trueGrade = resolveCaptureFilter();
+      // Proven on a real frame before committing to it: a shader that won't
+      // compile on this GPU must fall back to the CPU here, not throw out of
+      // the hold and record nothing.
+      if (gpu) {
+        try {
+          if (!gpu.render(video, sourceWidth, sourceHeight, trueGrade, baseCrop)) gpu = null;
+        } catch (err) {
+          console.warn("GPU recording unavailable, using the CPU path", err);
+          gpu = null;
+        }
+      }
       const compiledFilterAtStart = gpu
-        ? resolveCaptureFilter()
-        : needsPostGrade
+        ? trueGrade
+        : needsPostGradeFor(activeFilter, filterIntensity)
           ? IDENTITY_FILTER
           : compileFilter(currentFilterCss);
       const shouldMirror = facing === "user";
@@ -972,14 +1001,20 @@ function CreatePage() {
         if (gpu || rctx) {
           const drawFrame = () => {
             if (gpu) {
-              gpu.render(
-                video,
-                sourceWidth,
-                sourceHeight,
-                compiledFilterAtStart,
-                applyZoomToCrop(baseCrop, cssZoomRef.current),
-                shouldMirror,
-              );
+              try {
+                gpu.render(
+                  video,
+                  sourceWidth,
+                  sourceHeight,
+                  compiledFilterAtStart,
+                  applyZoomToCrop(baseCrop, cssZoomRef.current),
+                  shouldMirror,
+                );
+              } catch (err) {
+                // A frame that fails keeps the last good one on the canvas;
+                // the loop (and the recording) carry on.
+                console.warn("GPU frame failed", err);
+              }
               schedule();
               return;
             }
@@ -1023,16 +1058,27 @@ function CreatePage() {
               ? video.requestVideoFrameCallback(() => drawFrame())
               : requestAnimationFrame(() => drawFrame());
           };
-          stopRecordDrawRef.current = () => {
+          ownStopDraw = () => {
             stopped = true;
             if (rvfc) video.cancelVideoFrameCallback(handle);
             else cancelAnimationFrame(handle);
           };
+          stopRecordDrawRef.current = ownStopDraw;
           drawFrame();
 
-          const canvasStream = recordCanvas.captureStream(RECORD_FPS);
-          stream.getAudioTracks().forEach((track) => canvasStream.addTrack(track));
+          // No frame rate when frames are already one-per-camera-frame: with
+          // one, the browser keeps a draw only if its own 33ms timer has
+          // ticked since the last kept frame, and draws landing just before a
+          // tick were dropped -- skipped frames, the judder all over again.
+          // The rAF fallback draws at screen rate, so it does need the cap.
+          const canvasStream = rvfc
+            ? recordCanvas.captureStream()
+            : recordCanvas.captureStream(RECORD_FPS);
+          // Clones: stopping this stream's tracks when the recording ends
+          // must not stop the camera's own microphone track.
+          stream.getAudioTracks().forEach((track) => canvasStream.addTrack(track.clone()));
 
+          ownCanvasStream = canvasStream;
           mirrorCanvasStreamRef.current = canvasStream;
           recordingStream = canvasStream;
         }
@@ -1050,9 +1096,17 @@ function CreatePage() {
     recorder.ondataavailable = (e) => {
       if (e.data.size > 0) recordedChunksRef.current.push(e.data);
     };
+    const needsPostGrade = needsPostGradeFor(activeFilter, filterIntensity);
     recorder.onstop = async () => {
-      stopMirrorDrawLoop();
-      const rawBlob = new Blob(recordedChunksRef.current, { type: mimeType || "video/webm" });
+      ownStopDraw?.();
+      ownCanvasStream?.getTracks().forEach((t) => t.stop());
+      if (stopRecordDrawRef.current === ownStopDraw) stopRecordDrawRef.current = null;
+      if (mirrorCanvasStreamRef.current === ownCanvasStream) mirrorCanvasStreamRef.current = null;
+      // What the recorder actually produced, which can differ from what was
+      // asked for.
+      const rawBlob = new Blob(recordedChunksRef.current, {
+        type: recorder.mimeType || mimeType || "video/webm",
+      });
 
       let finalBlob = rawBlob;
       if (needsPostGrade) {
@@ -1078,11 +1132,15 @@ function CreatePage() {
       }
 
       const url = URL.createObjectURL(finalBlob);
+      recordingBusyRef.current = false;
       setPendingCapture({ type: "video", blob: finalBlob, url });
       navigate({ to: "/create/after-shot" });
     };
 
     recorder.start();
+    // Set only once a recording really exists: anything above that throws
+    // must not leave the camera refusing every hold after it.
+    recordingBusyRef.current = true;
     mediaRecorderRef.current = recorder;
     recordStartedAtRef.current = performance.now();
     setRecordSeconds(0);
@@ -1104,10 +1162,40 @@ function CreatePage() {
     currentFilterCss,
     activeFilter,
     filterIntensity,
-    stopMirrorDrawLoop,
     ratio,
     resolveCaptureFilter,
   ]);
+
+  // Compile the GPU shader for the chosen filter (and upload its LUT) while
+  // the seller is still choosing, so neither the first recorded frame nor
+  // the shutter pays for it. Both the recording renderer and the shared one
+  // the shutter uses.
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      const compiled = resolveCaptureFilter();
+      if (recordGlRef.current === undefined) {
+        recordGlRef.current = GlFilterRenderer.create({ opaque: true });
+      }
+      try {
+        recordGlRef.current?.warm(compiled);
+        warmFilter(compiled);
+      } catch (err) {
+        console.warn("GPU warm-up failed", err);
+      }
+    }, 150);
+    return () => window.clearTimeout(id);
+  }, [resolveCaptureFilter]);
+
+  // Leaving the camera stops any draw loop still running and gives the
+  // recording renderer's GPU memory back.
+  useEffect(
+    () => () => {
+      stopMirrorDrawLoop();
+      recordGlRef.current?.dispose();
+      recordGlRef.current = undefined;
+    },
+    [stopMirrorDrawLoop],
+  );
 
   const stopRecording = useCallback(() => {
     const recorder = mediaRecorderRef.current;

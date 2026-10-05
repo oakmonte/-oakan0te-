@@ -65,8 +65,16 @@ async function shrinkVideo(blob: Blob): Promise<Blob> {
   try {
     // Loaded here, not at the top: this module is reachable from the global
     // upload toast, and mediabunny must stay out of the shared bundle.
-    const { Input, Output, Conversion, ALL_FORMATS, BlobSource, BufferTarget, Mp4OutputFormat } =
-      await import("mediabunny");
+    const {
+      Input,
+      Output,
+      Conversion,
+      ALL_FORMATS,
+      BlobSource,
+      BufferTarget,
+      Mp4OutputFormat,
+      canEncodeAudio,
+    } = await import("mediabunny");
     const input = new Input({ source: new BlobSource(blob), formats: ALL_FORMATS });
     const track = await input.getPrimaryVideoTrack();
     const duration = await input.computeDuration();
@@ -77,6 +85,12 @@ async function shrinkVideo(blob: Blob): Promise<Blob> {
     const bps = (blob.size * 8) / duration;
     const playable = track.codec === "avc" && (await input.getMimeType()).startsWith("video/mp4");
     const reencode = !(playable && bps <= SHRINK_ABOVE_BPS && shortEdge <= KEEP_SHORT_EDGE);
+    // AAC is the one audio codec every phone plays inside an MP4. Opus in MP4
+    // (Android's recorder, or a WebM source) may not play on older iPhones,
+    // so it's converted -- where this browser can encode AAC at all; if it
+    // can't, the original track is the best available.
+    const audioTrack = await input.getPrimaryAudioTrack();
+    const toAac = !!audioTrack && audioTrack.codec !== "aac" && (await canEncodeAudio("aac"));
 
     const target = new BufferTarget();
     const conversion = await Conversion.init({
@@ -97,6 +111,7 @@ async function shrinkVideo(blob: Blob): Promise<Blob> {
             forceTranscode: true,
           }
         : {},
+      audio: toAac ? { codec: "aac", bitrate: 128_000 } : {},
     });
     if (!conversion.isValid) return blob;
     await conversion.execute();
@@ -117,6 +132,40 @@ async function shrinkVideo(blob: Blob): Promise<Blob> {
  *  of black while Bunny generates its own thumbnail. null if the browser
  *  can't produce one -- the post still goes out. */
 export async function posterFromVideo(blob: Blob): Promise<Blob | null> {
+  // Decoded straight from the file (WebCodecs, via mediabunny) first: a
+  // detached, never-played <video> isn't guaranteed to reach loadeddata on
+  // iOS, which meant an 8 s stall and then no poster.
+  try {
+    const { Input, ALL_FORMATS, BlobSource, CanvasSink } = await import("mediabunny");
+    const input = new Input({ source: new BlobSource(blob), formats: ALL_FORMATS });
+    const track = await input.getPrimaryVideoTrack();
+    if (track && (await track.canDecode())) {
+      const long = Math.max(track.displayWidth, track.displayHeight);
+      const scale = Math.min(1, 1080 / long);
+      const sink = new CanvasSink(track, {
+        width: Math.round(track.displayWidth * scale),
+        height: Math.round(track.displayHeight * scale),
+      });
+      const duration = await input.computeDuration();
+      // A hair past 0: frame 0 of a phone recording is often black or still
+      // adjusting exposure.
+      const frame = await sink.getCanvas(Math.min(0.3, duration / 2));
+      if (frame) {
+        const c = frame.canvas;
+        const out =
+          "convertToBlob" in c
+            ? await c.convertToBlob({ type: "image/jpeg", quality: 0.85 })
+            : await new Promise<Blob | null>((r) => c.toBlob(r, "image/jpeg", 0.85));
+        if (out) return out;
+      }
+    }
+  } catch (err) {
+    console.warn("posterFromVideo: decode failed, trying a <video> element", err);
+  }
+  return posterViaElement(blob);
+}
+
+async function posterViaElement(blob: Blob): Promise<Blob | null> {
   const url = URL.createObjectURL(blob);
   const video = document.createElement("video");
   video.muted = true;
@@ -206,13 +255,22 @@ export async function uploadPostVideo(
           body: chunk,
         });
         if (!patch.ok) throw new Error(String(patch.status));
-        offset = Number(patch.headers.get("Upload-Offset") ?? offset + chunk.size);
+        const reported = patch.headers.get("Upload-Offset");
+        const next = reported === null ? offset + chunk.size : Number(reported);
+        // An OK that doesn't move the offset forward would loop forever.
+        if (!Number.isFinite(next) || next <= offset) {
+          throw new Error("Upload didn't advance");
+        }
+        offset = next;
         done = true;
       } catch {
         if (attempt === TUS_ATTEMPTS) throw new Error("The video upload kept failing");
         await new Promise((r) => setTimeout(r, 1000 * attempt));
         const head = await fetch(uploadUrl, { method: "HEAD", headers: auth }).catch(() => null);
-        const serverOffset = Number(head?.headers.get("Upload-Offset"));
+        // Only a real answer counts: Number(null) is 0, and a 5xx/429 HEAD
+        // with no header used to rewind the whole upload to the start.
+        const header = head?.ok ? head.headers.get("Upload-Offset") : null;
+        const serverOffset = header === null ? NaN : Number(header);
         if (Number.isFinite(serverOffset) && serverOffset !== offset) {
           offset = serverOffset;
           done = true; // continue from where the server is

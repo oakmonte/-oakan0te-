@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Copy, Loader2, Play } from "lucide-react";
 import { useSession } from "@/hooks/use-session";
-import { getPostUploadSnapshot, subscribePostUpload } from "@/lib/post-upload";
+import { getLastLandedAt, getPendingPostsSnapshot, subscribePostUpload } from "@/lib/post-upload";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import type { Tables } from "@/lib/integrations/my-supabase/types";
 import { PostFeed } from "@/components/feed/PostFeed";
@@ -26,9 +26,12 @@ async function fetchProfilePosts(
     .eq("user_id", userId)
     .eq("status", status)
     .order("created_at", { ascending: false });
+  // Thrown, not swallowed into []: react-query then keeps the grid it
+  // already has. Returning [] on a flaky connection replaced a full grid
+  // with the empty state.
   if (error) {
     console.error("PostsGrid: failed to load posts", error);
-    return [];
+    throw error;
   }
   return data ?? [];
 }
@@ -65,6 +68,7 @@ export function PostsGrid({
     data: posts,
     isPending,
     refetch,
+    dataUpdatedAt,
   } = useQuery({
     queryKey: ["profile-posts", userId, status] as const,
     queryFn: () => fetchProfilePosts(userId, status),
@@ -76,18 +80,18 @@ export function PostsGrid({
   // spinner, until the real post replaces it. Without this the grid sat
   // unchanged, then the post appeared later, black until its video loaded.
   const { user } = useSession();
-  const upload = useSyncExternalStore(subscribePostUpload, getPostUploadSnapshot, () => null);
-  const uploadIsHere = !!upload && upload.kind === status && user?.id === userId;
-  const landedId = upload?.status === "success" ? upload.postId : null;
+  const isOwnGrid = !!user && user.id === userId;
+  const allPending = useSyncExternalStore(subscribePostUpload, getPendingPostsSnapshot, () => []);
+  const landedAt = useSyncExternalStore(subscribePostUpload, getLastLandedAt, () => 0);
+  // A post landed since this grid's data was fetched -- including while the
+  // grid wasn't even mounted, since publishing navigates away -- so refetch.
   useEffect(() => {
-    if (landedId && uploadIsHere) void refetch();
-  }, [landedId, uploadIsHere, refetch]);
-  const pending =
-    uploadIsHere &&
-    (upload.status === "uploading" ||
-      (upload.status === "success" && !(posts ?? []).some((p) => p.id === upload.postId)))
-      ? upload
-      : null;
+    if (isOwnGrid && landedAt > dataUpdatedAt) void refetch();
+  }, [isOwnGrid, landedAt, dataUpdatedAt, refetch]);
+  const shownIds = new Set((posts ?? []).map((p) => p.id));
+  const pending = isOwnGrid
+    ? allPending.filter((j) => j.kind === status && !(j.postId && shownIds.has(j.postId)))
+    : [];
 
   // Skeleton tiles rather than a centred "Loading…" line: same 3-col grid,
   // same aspect ratio, so the real thumbnails drop straight into the boxes
@@ -102,23 +106,22 @@ export function PostsGrid({
     );
   }
 
-  if ((!posts || posts.length === 0) && !pending) return <>{emptyState}</>;
+  if ((!posts || posts.length === 0) && pending.length === 0) return <>{emptyState}</>;
 
   return (
     <>
       {/* 3:4 tiles, taller than the old squares: posts are portrait, and a
           square crop cut off most of each one. */}
       <div className="grid grid-cols-3 gap-0.5">
-        {pending && (
-          <div className="relative aspect-[3/4] overflow-hidden bg-chat-surface">
-            {pending.preview && (
-              <img src={pending.preview} alt="" className="h-full w-full object-cover" />
-            )}
+        {/* Newest first, same as the grid: the most recent post in front. */}
+        {[...pending].reverse().map((job) => (
+          <div key={job.jobId} className="relative aspect-[3/4] overflow-hidden bg-chat-surface">
+            {job.preview && <img src={job.preview} alt="" className="h-full w-full object-cover" />}
             <div className="absolute inset-0 flex items-center justify-center bg-black/25">
               <Loader2 size={26} className="animate-spin text-white drop-shadow" />
             </div>
           </div>
-        )}
+        ))}
         {(posts ?? []).map((p) => (
           <button
             key={p.id}

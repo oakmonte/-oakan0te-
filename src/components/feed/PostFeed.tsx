@@ -232,6 +232,7 @@ export function PostFeed({
   onActivePost?: (active: ActivePost) => void;
 }) {
   const [posts, setPosts] = useState<FeedPost[] | null>(null);
+  const hasPosts = posts !== null && posts.length > 0;
   const containerRef = useRef<HTMLDivElement>(null);
   const key = scopeKey(scope);
   const { user: viewer } = useSession();
@@ -385,7 +386,11 @@ export function PostFeed({
       el.removeEventListener("touchend", onTouchEnd);
       el.removeEventListener("touchcancel", onTouchEnd);
     };
-  }, [onClose, dismissX]);
+    // hasPosts: the scroller this attaches to only exists once posts have
+    // loaded. Without it the effect ran on the first (loading) render, found
+    // nothing, and never ran again -- swipe-to-close was dead in the
+    // profile viewer.
+  }, [onClose, dismissX, hasPosts]);
 
   // The page behind a full-screen viewer must not scroll under it — and
   // scrollIntoView below walks scrollable ANCESTORS, so without this opening
@@ -497,12 +502,17 @@ export function PostFeed({
  *  broken black post. */
 function useVideoBuffering(ref: RefObject<HTMLVideoElement | null>, active: boolean): boolean {
   const [buffering, setBuffering] = useState(true);
+  // Only while it's actually trying to play: an autoplay the browser refused
+  // (iOS Low Power Mode) leaves it paused with no data coming, and a spinner
+  // there would spin forever over a video that will never load by itself.
+  const [paused, setPaused] = useState(true);
   useEffect(() => {
     const v = ref.current;
     if (!v) return;
     const check = () => setBuffering(v.readyState < 3);
     const on = () => setBuffering(true);
     const off = () => setBuffering(false);
+    const syncPaused = () => setPaused(v.paused);
     v.addEventListener("waiting", on);
     v.addEventListener("stalled", check);
     v.addEventListener("playing", off);
@@ -510,7 +520,10 @@ function useVideoBuffering(ref: RefObject<HTMLVideoElement | null>, active: bool
     v.addEventListener("loadeddata", check);
     // A broken file shouldn't spin forever; the poster is what's left.
     v.addEventListener("error", off);
+    v.addEventListener("play", syncPaused);
+    v.addEventListener("pause", syncPaused);
     check();
+    syncPaused();
     return () => {
       v.removeEventListener("waiting", on);
       v.removeEventListener("stalled", check);
@@ -518,9 +531,11 @@ function useVideoBuffering(ref: RefObject<HTMLVideoElement | null>, active: bool
       v.removeEventListener("canplay", off);
       v.removeEventListener("loadeddata", check);
       v.removeEventListener("error", off);
+      v.removeEventListener("play", syncPaused);
+      v.removeEventListener("pause", syncPaused);
     };
   }, [ref]);
-  return active && buffering;
+  return active && buffering && !paused;
 }
 
 function BufferingSpinner() {
@@ -563,6 +578,7 @@ function PostCarousel({
   playing,
   tap,
   onIndexChange,
+  activeVideoRef,
 }: {
   media: { url: string; type: string; thumbnail: string | null }[];
   fit: string;
@@ -570,6 +586,9 @@ function PostCarousel({
   playing: boolean;
   tap: TapHandlers;
   onIndexChange: (index: number) => void;
+  /** Set to the visible slide's <video> (null on a photo), so the card's tap
+   *  handler can start it directly. */
+  activeVideoRef: { current: HTMLVideoElement | null };
 }) {
   const [index, setIndex] = useState(0);
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -590,6 +609,7 @@ function PostCarousel({
   // Only the visible slide's video plays; the rest pause and rewind, so
   // swiping back to one starts it over.
   useEffect(() => {
+    activeVideoRef.current = videoRefs.current[index] ?? null;
     videoRefs.current.forEach((v, i) => {
       if (!v) return;
       if (i === index && playing) {
@@ -599,7 +619,7 @@ function PostCarousel({
         if (i !== index) v.currentTime = 0;
       }
     });
-  }, [index, playing]);
+  }, [index, playing, activeVideoRef]);
 
   return (
     <div
@@ -635,6 +655,9 @@ function PostCarousel({
               // the one a swipe reveals); the rest load as they come up.
               loading={i < 2 ? "eager" : "lazy"}
               className={`h-full w-full select-none ${fit}`}
+              // Uncovered by the tap layer now, so a long press would open
+              // iOS's image preview / Android's "Download image" menu.
+              style={{ WebkitTouchCallout: "none" }}
             />
           )}
         </div>
@@ -671,7 +694,8 @@ function CarouselVideo({
         disablePictureInPicture
         disableRemotePlayback
         preload="metadata"
-        className={`h-full w-full ${fit}`}
+        className={`h-full w-full select-none ${fit}`}
+        style={{ WebkitTouchCallout: "none" }}
       />
       {buffering && <BufferingSpinner />}
     </>
@@ -808,8 +832,11 @@ function FeedPostCard({
   const [tags, setTags] = useState<TaggedProduct[]>(post.tags);
   const [slide, setSlide] = useState(0);
   const isCarousel = post.media.length > 1;
+  const carouselVideoRef = useRef<HTMLVideoElement | null>(null);
   const isOwnPost = viewerId === post.user_id;
   const isVideo = post.media_type === "video";
+  // What's on screen right now: in a carousel, the visible slide, not item 0.
+  const currentIsVideo = isCarousel ? post.media[slide]?.type === "video" : isVideo;
   // A sound chosen on the publish screen. It plays INSTEAD of the media's own
   // audio — the media is muted either way — so no post ever plays two things
   // at once, and a photo carousel can carry a track without being a video.
@@ -1001,7 +1028,16 @@ function FeedPostCard({
           .catch(() => {});
         return;
       }
-      if (isVideo || hasAudio) setUserPaused((p) => !p);
+      // Started HERE, inside the tap, when it should already be playing but
+      // isn't: the browser refused autoplay (iOS Low Power Mode), and only a
+      // play() from a gesture gets past that -- the effect's play() never
+      // would. Otherwise the tap toggles pause on what's on screen now.
+      const visibleVideo = isCarousel ? carouselVideoRef.current : videoRef.current;
+      if (visibleVideo && visibleVideo.paused && !userPaused) {
+        void visibleVideo.play().catch(() => {});
+        return;
+      }
+      if (currentIsVideo || hasAudio) setUserPaused((p) => !p);
     }, 260);
   }
 
@@ -1061,6 +1097,7 @@ function FeedPostCard({
           playing={onScreen && !userPaused}
           tap={tapHandlers}
           onIndexChange={setSlide}
+          activeVideoRef={carouselVideoRef}
         />
       ) : isVideo ? (
         <>
@@ -1118,7 +1155,7 @@ function FeedPostCard({
           the video wasn't playing, which — now that playback starts on its
           own — would mean a play button flashing over every card you scroll
           past. */}
-      {(isVideo || hasAudio) && userPaused && (
+      {(currentIsVideo || hasAudio) && userPaused && (
         <motion.div
           className="absolute inset-0 flex items-center justify-center pointer-events-none"
           initial={{ opacity: 0, scale: 1.25 }}

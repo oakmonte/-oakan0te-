@@ -14,7 +14,7 @@ import {
   getFirstEncodableAudioCodec,
 } from "mediabunny";
 import { compileFilter, type CompiledFilter } from "@/lib/canvas-filter";
-import { applyFilterToContext } from "@/lib/gl-filter";
+import { applyFilterToContext, gpuFilterAvailable } from "@/lib/gl-filter";
 import { compileGrade, CAMERA_FILTERS } from "@/components/camera/filter-data";
 import { drawLayers, preloadStickers } from "@/lib/layer-bake";
 import { drawVignette } from "@/lib/vignette";
@@ -119,7 +119,7 @@ export async function exportSequence(
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
-  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  const ctx = canvas.getContext("2d", { willReadFrequently: !gpuFilterAvailable() });
   if (!ctx) throw new Error("Canvas 2D context unavailable");
 
   const target = new BufferTarget();
