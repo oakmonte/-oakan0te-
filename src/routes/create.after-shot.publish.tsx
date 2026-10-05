@@ -18,13 +18,13 @@ import {
 import { useAfterShotContext } from "@/lib/after-shot-context";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
 import { useSession } from "@/hooks/use-session";
-import { useActiveStoreId } from "@/hooks/use-own-store";
-import { supabase } from "@/lib/integrations/my-supabase/client";
 import { startPostUpload } from "@/lib/post-upload";
 import { discardVideoEditorSession } from "@/lib/video-editor-session";
 import { discardPhotoEditorSession } from "@/lib/photo-carousel";
 import { blockedContentMessage, findBlockedContent } from "@/lib/content-policy";
 import CameraPanel from "@/components/camera/CameraPanel";
+import { LinkProductsSheet } from "@/components/feed/LinkProductsSheet";
+import { useLockedBanner } from "@/components/LockedBanner";
 
 export const Route = createFileRoute("/create/after-shot/publish")({
   // Overrides root's #000000 theme-color, the same way store.tsx does for the
@@ -69,7 +69,6 @@ function PublishPage() {
   const media = output ?? source;
   const setPublished = output ? setOutput : setMedia;
   const { user } = useSession();
-  const { storeId } = useActiveStoreId();
 
   const [caption, setCaption] = useState("");
   const [location, setLocation] = useState("");
@@ -77,6 +76,7 @@ function PublishPage() {
   const [visibilityOpen, setVisibilityOpen] = useState(false);
   const [taggedProducts, setTaggedProducts] = useState<ProductOption[]>([]);
   const [tagPickerOpen, setTagPickerOpen] = useState(false);
+  const { banner: lockedBanner, showLocked } = useLockedBanner();
   const [coverOpen, setCoverOpen] = useState(false);
   // Only guards against a double-tap in the brief tick before navigate()
   // unmounts this page — the actual upload runs in the background via
@@ -313,13 +313,17 @@ function PublishPage() {
               >
                 <Hash size={15} />
               </button>
+              {/* Mentions aren't live yet: padlocked, and a tap says so. */}
               <button
                 type="button"
-                onClick={() => insertToken("@")}
-                aria-label="Mention someone"
-                className="oak-motion-control flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 active:scale-90"
+                onClick={() => showLocked("Tagging people is unavailable for now")}
+                aria-label="Mention someone (unavailable)"
+                className="oak-motion-control relative flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 text-gray-400 active:scale-90"
               >
                 <AtSign size={15} />
+                <span className="absolute -bottom-1 -right-1 grid h-4 w-4 place-items-center rounded-full bg-black text-white">
+                  <Lock size={9} strokeWidth={3} />
+                </span>
               </button>
               <span className="text-[11px] text-gray-400">{caption.length}/2200</span>
             </div>
@@ -475,19 +479,17 @@ function PublishPage() {
         />
       )}
 
-      <ProductTagPanel
+      {/* The same Link products sheet a published post uses (search, status
+          and collection filters), with postId null: nothing is written until
+          the post itself is, and the picks ride along as productIds. */}
+      <LinkProductsSheet
         open={tagPickerOpen}
-        storeId={storeId}
-        selectedIds={new Set(taggedProducts.map((p) => p.id))}
         onClose={() => setTagPickerOpen(false)}
-        onToggle={(product) =>
-          setTaggedProducts((prev) =>
-            prev.some((p) => p.id === product.id)
-              ? prev.filter((p) => p.id !== product.id)
-              : [...prev, product],
-          )
-        }
+        postId={null}
+        linked={taggedProducts}
+        onChange={setTaggedProducts}
       />
+      {lockedBanner}
     </div>
   );
 }
@@ -622,117 +624,6 @@ function VisibilityPanel({
           );
         })}
       </div>
-    </CameraPanel>
-  );
-}
-
-function ProductTagPanel({
-  open,
-  storeId,
-  selectedIds,
-  onClose,
-  onToggle,
-}: {
-  open: boolean;
-  storeId: string | null;
-  selectedIds: Set<string>;
-  onClose: () => void;
-  onToggle: (product: ProductOption) => void;
-}) {
-  const navigate = useNavigate();
-  const [products, setProducts] = useState<ProductOption[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!open || !storeId) return;
-    let cancelled = false;
-    setLoading(true);
-    supabase
-      .from("products")
-      .select("id, title, status, product_variants(price, main_image_url)")
-      .eq("store_id", storeId)
-      .eq("status", "active")
-      .order("created_at", { ascending: false })
-      .then(({ data, error }) => {
-        if (cancelled) return;
-        if (!error && data) {
-          setProducts(
-            data.map((p) => ({
-              id: p.id,
-              title: p.title ?? "Untitled",
-              price: p.product_variants[0]?.price ?? null,
-              image: p.product_variants[0]?.main_image_url ?? null,
-            })),
-          );
-        }
-        setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [open, storeId]);
-
-  return (
-    <CameraPanel open={open} onClose={onClose} title="Link products" height={520} light>
-      <p className="pb-3 text-[12px] text-gray-500">So your customers can buy at a swipe.</p>
-      {!storeId ? (
-        <div className="flex flex-col items-center text-center gap-3 py-10">
-          <p className="text-[13px] text-gray-500 max-w-[220px]">
-            List a product in your store before you can link it to a post.
-          </p>
-          <button
-            onClick={() => {
-              onClose();
-              navigate({ to: "/store/products/new" });
-            }}
-            className="oak-motion-control rounded-full bg-black text-white text-[13px] font-semibold px-5 py-2.5 active:scale-95"
-          >
-            List a product
-          </button>
-        </div>
-      ) : loading ? (
-        <div className="text-center text-[13px] text-gray-400 py-10">Loading your products…</div>
-      ) : products.length === 0 ? (
-        <div className="text-center text-[13px] text-gray-400 py-10">
-          No active products to link yet.
-        </div>
-      ) : (
-        <div className="flex flex-col gap-2 pb-4">
-          {products.map((p) => {
-            const active = selectedIds.has(p.id);
-            return (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => onToggle(p)}
-                className="oak-motion-control flex items-center gap-3 rounded-xl px-2 py-2 text-left text-black active:scale-[0.99]"
-                style={{ background: active ? "#f3f4f6" : "transparent" }}
-              >
-                <img
-                  src={p.image ?? "https://placehold.co/48x48"}
-                  alt=""
-                  className="w-11 h-11 rounded-lg object-cover bg-gray-100 shrink-0"
-                />
-                <div className="flex-1 min-w-0">
-                  <p className="text-[14px] font-medium truncate">{p.title}</p>
-                  <p className="text-[12px] text-gray-500">
-                    {p.price != null ? `₦${p.price.toLocaleString()}` : "No price"}
-                  </p>
-                </div>
-                <span
-                  className="flex items-center justify-center w-6 h-6 rounded-full shrink-0"
-                  style={{
-                    background: active ? "#000" : "#f3f4f6",
-                    color: active ? "#fff" : "transparent",
-                  }}
-                >
-                  <Check size={14} strokeWidth={3} />
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      )}
     </CameraPanel>
   );
 }

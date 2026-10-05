@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence, useDragControls } from "framer-motion";
 import { useNavigate } from "@tanstack/react-router";
-import { Check, ChevronLeft, Search, Store, X } from "lucide-react";
+import { Check, ChevronLeft, Layers, Lock, Search, Store, X } from "lucide-react";
+import { useLockedBanner } from "@/components/LockedBanner";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useOwnStores } from "@/hooks/use-own-store";
 import type { TaggedProduct } from "@/components/feed/PostFeed";
@@ -26,6 +27,16 @@ import {
  *   - `mine`         your own products, searchable and filterable by status
  *   - `stores`       a directory of other stores to link from
  *   - `store`        one of those stores' products
+ *
+ *  Also used by the new-post page (create.after-shot.publish.tsx) with
+ *  `postId` null: the post doesn't exist yet, so nothing is written here and
+ *  the picks travel with the publish request instead.
+ *
+ *  Collections show as filter chips after the status ones: pick one to see
+ *  just its products, and "Link all" links every one of them at once.
+ *
+ *  The other-stores screens are locked for now -- the Store button shows a
+ *  padlock and says so. They stay built (below) for when it opens.
  *
  *  The last two are UI ONLY. Cross-store linking needs a collaborator
  *  relationship (approved by the store, or a request sent to it) that has no
@@ -55,7 +66,8 @@ export function LinkProductsSheet({
 }: {
   open: boolean;
   onClose: () => void;
-  postId: string;
+  /** null on the new-post page: picks are returned via onChange only. */
+  postId: string | null;
   linked: TaggedProduct[];
   onChange: (next: TaggedProduct[]) => void;
 }) {
@@ -70,6 +82,11 @@ export function LinkProductsSheet({
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<StatusFilterKey>("all");
   const [storeFilter, setStoreFilter] = useState<StoreFilterKey>("all");
+  const [collections, setCollections] = useState<{ id: string; title: string }[]>([]);
+  // product id -> the collection ids it's in
+  const [membership, setMembership] = useState<Map<string, Set<string>>>(new Map());
+  const [collectionId, setCollectionId] = useState<string | null>(null);
+  const { banner, showLocked } = useLockedBanner();
   const linkedIds = new Set(linked.map((p) => p.id));
 
   useEffect(() => {
@@ -90,6 +107,7 @@ export function LinkProductsSheet({
     setQuery("");
     setStatus("all");
     setStoreFilter("all");
+    setCollectionId(null);
   }, [open]);
 
   useEffect(() => {
@@ -100,6 +118,24 @@ export function LinkProductsSheet({
       return;
     }
     let cancelled = false;
+    supabase
+      .from("collections")
+      .select("id, title, product_collections(product_id)")
+      .in("store_id", storeIds)
+      .order("created_at", { ascending: false })
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) console.error("LinkProductsSheet: failed to load collections", error);
+        const map = new Map<string, Set<string>>();
+        for (const c of data ?? []) {
+          for (const l of c.product_collections ?? []) {
+            if (!map.has(l.product_id)) map.set(l.product_id, new Set());
+            map.get(l.product_id)!.add(c.id);
+          }
+        }
+        setCollections((data ?? []).map((c) => ({ id: c.id, title: c.title })));
+        setMembership(map);
+      });
     // Every status, filtered on the client: the filter chips need drafts in
     // hand, and a seller's catalogue is small enough that refetching per chip
     // would only add latency.
@@ -136,9 +172,10 @@ export function LinkProductsSheet({
     return products.filter(
       (p) =>
         (status === "all" || p.status === status) &&
+        (!collectionId || membership.get(p.id)?.has(collectionId)) &&
         (q === "" || p.title.toLowerCase().includes(q)),
     );
-  }, [products, query, status]);
+  }, [products, query, status, collectionId, membership]);
 
   const visibleStores = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -163,6 +200,7 @@ export function LinkProductsSheet({
           { id: product.id, title: product.title, price: product.price, image: product.image },
         ];
     onChange(next);
+    if (!postId) return;
     setBusy((s) => new Set(s).add(product.id));
     try {
       const { error } = wasLinked
@@ -188,6 +226,44 @@ export function LinkProductsSheet({
     }
   }
 
+  // Links every product in the open collection filter that isn't linked yet,
+  // or unlinks them all when every one already is.
+  async function toggleAllVisible() {
+    const list = visibleProducts ?? [];
+    if (list.length === 0) return;
+    const allLinked = list.every((p) => linkedIds.has(p.id));
+    const ids = new Set(list.map((p) => p.id));
+    const next = allLinked
+      ? linked.filter((p) => !ids.has(p.id))
+      : [
+          ...linked,
+          ...list
+            .filter((p) => !linkedIds.has(p.id))
+            .map((p) => ({ id: p.id, title: p.title, price: p.price, image: p.image })),
+        ];
+    onChange(next);
+    if (!postId) return;
+    try {
+      const { error } = allLinked
+        ? await supabase
+            .from("post_product_tags")
+            .delete()
+            .eq("post_id", postId)
+            .in("product_id", [...ids])
+        : await supabase
+            .from("post_product_tags")
+            .insert(
+              list
+                .filter((p) => !linkedIds.has(p.id))
+                .map((p) => ({ post_id: postId, product_id: p.id })),
+            );
+      if (error) throw error;
+    } catch (err) {
+      console.error("LinkProductsSheet: link-all failed", err);
+      onChange(linked);
+    }
+  }
+
   function goBack() {
     setQuery("");
     if (view === "store") {
@@ -203,174 +279,206 @@ export function LinkProductsSheet({
   if (typeof document === "undefined") return null;
 
   return createPortal(
-    <AnimatePresence>
-      {open && (
-        <div className="fixed inset-0 z-[90] flex flex-col justify-end">
-          <motion.div
-            className="absolute inset-0 bg-black/40"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-          />
-          <motion.div
-            className="relative flex flex-col rounded-t-[14px] bg-[#1c1c1e] text-white"
-            style={{ height: "78vh" }}
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ type: "spring", stiffness: 460, damping: 44 }}
-            drag="y"
-            // Drag ONLY from the handle. With the default listener the whole
-            // sheet is a drag surface, so every attempt to scroll the product
-            // list dragged the sheet instead of scrolling — fine when the list
-            // was one empty state, fatal now that it's a real list.
-            dragListener={false}
-            dragControls={dragControls}
-            dragConstraints={{ top: 0, bottom: 0 }}
-            dragElastic={{ top: 0, bottom: 0.7 }}
-            onDragEnd={(_, info) => {
-              if (info.offset.y > 120 || info.velocity.y > 600) onClose();
-            }}
-          >
-            <div
-              className="flex justify-center pt-2 pb-1"
-              style={{ touchAction: "none" }}
-              onPointerDown={(e) => dragControls.start(e)}
+    <>
+      <AnimatePresence>
+        {open && (
+          <div className="fixed inset-0 z-[90] flex flex-col justify-end">
+            <motion.div
+              className="absolute inset-0 bg-black/40"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={onClose}
+            />
+            <motion.div
+              className="relative flex flex-col rounded-t-[14px] bg-[#1c1c1e] text-white"
+              style={{ height: "78vh" }}
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", stiffness: 460, damping: 44 }}
+              drag="y"
+              // Drag ONLY from the handle. With the default listener the whole
+              // sheet is a drag surface, so every attempt to scroll the product
+              // list dragged the sheet instead of scrolling — fine when the list
+              // was one empty state, fatal now that it's a real list.
+              dragListener={false}
+              dragControls={dragControls}
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={{ top: 0, bottom: 0.7 }}
+              onDragEnd={(_, info) => {
+                if (info.offset.y > 120 || info.velocity.y > 600) onClose();
+              }}
             >
-              <span className="h-1 w-9 rounded-full bg-white/25" />
-            </div>
+              <div
+                className="flex justify-center pt-2 pb-1"
+                style={{ touchAction: "none" }}
+                onPointerDown={(e) => dragControls.start(e)}
+              >
+                <span className="h-1 w-9 rounded-full bg-white/25" />
+              </div>
 
-            <div className="relative flex items-center justify-center px-4 pb-3">
-              {view !== "mine" && (
+              <div className="relative flex items-center justify-center px-4 pb-3">
+                {view !== "mine" && (
+                  <button
+                    type="button"
+                    onClick={goBack}
+                    aria-label="Back"
+                    className="absolute left-3 text-white active:scale-90"
+                  >
+                    <ChevronLeft size={24} />
+                  </button>
+                )}
+                <span className="max-w-[60%] truncate text-[14px] font-semibold">
+                  {view === "store" ? openStore?.brand_name : title}
+                </span>
                 <button
                   type="button"
-                  onClick={goBack}
-                  aria-label="Back"
-                  className="absolute left-3 text-white active:scale-90"
+                  onClick={onClose}
+                  aria-label="Close"
+                  className="absolute right-4 text-white active:scale-90"
                 >
-                  <ChevronLeft size={24} />
+                  <X size={22} />
                 </button>
-              )}
-              <span className="max-w-[60%] truncate text-[14px] font-semibold">
-                {view === "store" ? openStore?.brand_name : title}
-              </span>
-              <button
-                type="button"
-                onClick={onClose}
-                aria-label="Close"
-                className="absolute right-4 text-white active:scale-90"
-              >
-                <X size={22} />
-              </button>
-            </div>
+              </div>
 
-            {/* Search + the door to other stores. One row, because the store
+              {/* Search + the door to other stores. One row, because the store
                 button is a peer of search, not a filter: it changes what
                 you're searching, not how the results are narrowed. */}
-            {view !== "store" && (
-              <div className="flex items-center gap-2 px-4 pb-2.5">
-                <div className="flex min-w-0 flex-1 items-center gap-2 rounded-[10px] bg-white/[0.08] px-3 py-2">
-                  <Search size={15} className="shrink-0 text-white/40" />
-                  <input
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    placeholder={view === "mine" ? "Search products" : "Search stores"}
-                    className="min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-white/35"
-                  />
-                  {query && (
+              {view !== "store" && (
+                <div className="flex items-center gap-2 px-4 pb-2.5">
+                  <div className="flex min-w-0 flex-1 items-center gap-2 rounded-[10px] bg-white/[0.08] px-3 py-2">
+                    <Search size={15} className="shrink-0 text-white/40" />
+                    <input
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      placeholder={view === "mine" ? "Search products" : "Search stores"}
+                      className="min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-white/35"
+                    />
+                    {query && (
+                      <button
+                        type="button"
+                        onClick={() => setQuery("")}
+                        aria-label="Clear search"
+                        className="shrink-0 text-white/40 active:scale-90"
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
+                  {view === "mine" && (
+                    // Locked until cross-store linking ships: the padlock says
+                    // so before the tap, the banner says it after.
                     <button
                       type="button"
-                      onClick={() => setQuery("")}
-                      aria-label="Clear search"
-                      className="shrink-0 text-white/40 active:scale-90"
+                      onClick={() =>
+                        showLocked("Advertising for other stores is still unavailable")
+                      }
+                      aria-label="Other stores (unavailable)"
+                      className="relative flex h-[36px] w-[36px] shrink-0 items-center justify-center rounded-[10px] bg-white/[0.08] text-white/50 active:scale-90"
                     >
-                      <X size={14} />
+                      <Store size={17} />
+                      <span className="absolute -bottom-1 -right-1 grid h-[18px] w-[18px] place-items-center rounded-full bg-white text-black">
+                        <Lock size={10} strokeWidth={3} />
+                      </span>
                     </button>
                   )}
                 </div>
-                {view === "mine" && (
+              )}
+
+              {view !== "store" && (
+                <div
+                  className="flex gap-2 overflow-x-auto px-4 pb-3"
+                  style={{ scrollbarWidth: "none" }}
+                >
+                  {view === "mine"
+                    ? [
+                        ...STATUS_FILTERS.map((f) => (
+                          <FilterChip
+                            key={f.key}
+                            label={f.label}
+                            active={status === f.key}
+                            onClick={() => setStatus(f.key)}
+                          />
+                        )),
+                        ...collections.map((c) => (
+                          <FilterChip
+                            key={c.id}
+                            label={c.title}
+                            icon={<Layers size={12} />}
+                            active={collectionId === c.id}
+                            onClick={() => setCollectionId((cur) => (cur === c.id ? null : c.id))}
+                          />
+                        )),
+                      ]
+                    : STORE_FILTERS.map((f) => (
+                        <FilterChip
+                          key={f.key}
+                          label={f.label}
+                          active={storeFilter === f.key}
+                          onClick={() => setStoreFilter(f.key)}
+                        />
+                      ))}
+                </div>
+              )}
+
+              <div className="flex-1 overflow-y-auto px-4 pb-6">
+                {view === "mine" && collectionId && (visibleProducts?.length ?? 0) > 0 && (
                   <button
                     type="button"
-                    onClick={() => {
-                      setQuery("");
-                      setView("stores");
-                    }}
-                    aria-label="Browse other stores"
-                    className="flex h-[36px] w-[36px] shrink-0 items-center justify-center rounded-[10px] bg-white/[0.08] active:scale-90"
+                    onClick={() => void toggleAllVisible()}
+                    className="mb-1 flex w-full items-center justify-center gap-2 rounded-xl bg-white/[0.08] py-2.5 text-[13px] font-semibold active:scale-[0.99]"
                   >
-                    <Store size={17} />
+                    <Layers size={14} />
+                    {(visibleProducts ?? []).every((p) => linkedIds.has(p.id))
+                      ? "Unlink this collection"
+                      : `Link all ${visibleProducts?.length} in this collection`}
                   </button>
                 )}
+                {view === "mine" ? (
+                  <OwnProductList
+                    products={visibleProducts}
+                    loading={products === null || storesLoading}
+                    hasAnyProducts={(products?.length ?? 0) > 0}
+                    hasStore={stores.length > 0}
+                    linkedIds={linkedIds}
+                    onToggle={(p) => void toggle(p)}
+                    onEmptyAction={() => {
+                      onClose();
+                      navigate({ to: stores.length === 0 ? "/store" : "/store/products/new" });
+                    }}
+                  />
+                ) : view === "stores" ? (
+                  <StoreList
+                    stores={visibleStores}
+                    onOpen={(s) => {
+                      setQuery("");
+                      setOpenStore(s);
+                      setView("store");
+                    }}
+                  />
+                ) : (
+                  openStore && <StoreProducts store={openStore} />
+                )}
               </div>
-            )}
-
-            {view !== "store" && (
-              <div
-                className="flex gap-2 overflow-x-auto px-4 pb-3"
-                style={{ scrollbarWidth: "none" }}
-              >
-                {view === "mine"
-                  ? STATUS_FILTERS.map((f) => (
-                      <FilterChip
-                        key={f.key}
-                        label={f.label}
-                        active={status === f.key}
-                        onClick={() => setStatus(f.key)}
-                      />
-                    ))
-                  : STORE_FILTERS.map((f) => (
-                      <FilterChip
-                        key={f.key}
-                        label={f.label}
-                        active={storeFilter === f.key}
-                        onClick={() => setStoreFilter(f.key)}
-                      />
-                    ))}
-              </div>
-            )}
-
-            <div className="flex-1 overflow-y-auto px-4 pb-6">
-              {view === "mine" ? (
-                <OwnProductList
-                  products={visibleProducts}
-                  loading={products === null || storesLoading}
-                  hasAnyProducts={(products?.length ?? 0) > 0}
-                  hasStore={stores.length > 0}
-                  linkedIds={linkedIds}
-                  onToggle={(p) => void toggle(p)}
-                  onEmptyAction={() => {
-                    onClose();
-                    navigate({ to: stores.length === 0 ? "/store" : "/store/products/new" });
-                  }}
-                />
-              ) : view === "stores" ? (
-                <StoreList
-                  stores={visibleStores}
-                  onOpen={(s) => {
-                    setQuery("");
-                    setOpenStore(s);
-                    setView("store");
-                  }}
-                />
-              ) : (
-                openStore && <StoreProducts store={openStore} />
-              )}
-            </div>
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>,
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+      {banner}
+    </>,
     document.body,
   );
 }
 
 function FilterChip({
   label,
+  icon,
   active,
   onClick,
 }: {
   label: string;
+  icon?: ReactNode;
   active: boolean;
   onClick: () => void;
 }) {
@@ -379,10 +487,11 @@ function FilterChip({
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-medium transition-colors ${
+      className={`flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[12px] font-medium transition-colors ${
         active ? "bg-white text-black" : "bg-white/[0.08] text-white/60"
       }`}
     >
+      {icon}
       {label}
     </button>
   );

@@ -22,6 +22,7 @@ import { useSession } from "@/hooks/use-session";
 import { CommentSheet } from "@/components/feed/CommentSheet";
 import { SaveToast } from "@/components/feed/SaveToast";
 import { LinkProductsSheet } from "@/components/feed/LinkProductsSheet";
+import { useLockedBanner } from "@/components/LockedBanner";
 import { claimMediaSession, releaseMediaSession } from "@/lib/media-session";
 
 // Bare icons over the media — no chip behind them and no drop shadow either.
@@ -653,6 +654,7 @@ function FeedPostCard({
   const [burst, setBurst] = useState(0);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
+  const { banner: lockedBanner, showLocked } = useLockedBanner();
   // Local so linking a product updates the chips under the caption straight
   // away — the feed's post list is fetched once and isn't refetched on a
   // link, and re-running the whole query to move one chip would jump the
@@ -1064,7 +1066,11 @@ function FeedPostCard({
               subsystem first, not something to improvise as a side effect
               of a feed icon. */}
           {!asStore && (
-            <RailAction label="Add tagged items to cart" count={tags.length}>
+            <RailAction
+              label="Add tagged items to cart"
+              count={tags.length}
+              onPress={() => showLocked("Cart is unavailable for now")}
+            >
               <ShoppingBag size={28} />
             </RailAction>
           )}
@@ -1163,6 +1169,7 @@ function FeedPostCard({
       />
 
       <CommentSheet open={commentsOpen} onClose={() => setCommentsOpen(false)} />
+      {lockedBanner}
       {isOwnerView && (
         <LinkProductsSheet
           open={linkOpen}

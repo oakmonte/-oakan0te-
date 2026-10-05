@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence, animate, useMotionValue } from "framer-motion";
-import { X, SlidersHorizontal, ImageIcon, Smile, AtSign } from "lucide-react";
+import { X, SlidersHorizontal, ImageIcon, Smile, AtSign, Lock } from "lucide-react";
 
 // Snap back from a swipe that did not go far enough to dismiss.
 const SETTLE = { type: "spring" as const, stiffness: 420, damping: 40 };
@@ -201,11 +201,15 @@ export function CommentSheet({
               </div>
 
               <div ref={listRef} className="flex-1 overflow-y-auto px-4">
-                <div className="flex h-full flex-col items-center justify-center gap-1.5 text-center">
-                  <p className="text-[15px] font-semibold text-white/80">No comments yet</p>
-                  <p className="max-w-[240px] text-[12px] text-white/40">
-                    Comments aren&apos;t live yet — this post can&apos;t take them until the backend
-                    ships.
+                <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
+                  <span className="mb-1 grid h-14 w-14 place-items-center rounded-full bg-white/10">
+                    <Lock size={24} strokeWidth={2.25} className="text-white" />
+                  </span>
+                  <p className="text-[16px] font-semibold text-white/90">
+                    Comments are unavailable for now
+                  </p>
+                  <p className="max-w-[240px] text-[13px] text-white/45">
+                    They&apos;re coming soon. You&apos;ll be able to comment on posts here.
                   </p>
                 </div>
               </div>
@@ -216,9 +220,10 @@ export function CommentSheet({
               >
                 <div className="h-8 w-8 shrink-0 rounded-full bg-white/15" />
                 <div className="flex flex-1 items-center gap-2 rounded-full bg-white/[0.08] px-4 py-2">
+                  <Lock size={15} strokeWidth={2.5} className="shrink-0 text-white/60" />
                   <input
                     disabled
-                    placeholder="Comments aren't live yet"
+                    placeholder="Comments are locked for now"
                     className="min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-white/35"
                   />
                   <ImageIcon size={17} className="shrink-0 text-white/35" />
