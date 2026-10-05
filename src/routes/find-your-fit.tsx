@@ -658,7 +658,7 @@ function FindYourFitPage() {
     setIntentState(readIntent() ?? "creator");
   }, []);
 
-  const [heightUnit, setHeightUnit] = useState<"cm" | "ftin">("cm");
+  const [heightUnit, setHeightUnit] = useState<"cm" | "ftin">("ftin");
   const [heightCm, setHeightCm] = useState("");
   const [heightFt, setHeightFt] = useState("");
   const [heightIn, setHeightIn] = useState("");
@@ -1029,8 +1029,8 @@ function FindYourFitPage() {
               </span>
             </button>
             {measurementsOpen && (
-              <div className="px-5 pb-5 pt-4 border-t border-brand-text/10 space-y-4">
-                <div className="w-full aspect-[3/4] bg-brand-text/5 rounded-2xl p-3">
+              <div className="px-3 pb-5 pt-3 border-t border-brand-text/10 space-y-4">
+                <div className="w-full aspect-[3/4] bg-white rounded-2xl overflow-hidden">
                   <img
                     src={measurementGuideImage}
                     alt={`${gender} body measurement guide`}
@@ -1096,58 +1096,6 @@ function FindYourFitPage() {
                     </div>
                   ))}
                 </div>
-
-                <div className="pt-4 border-t border-brand-text/10">
-                  <p className="text-sm text-brand-text/90 mb-1">Full body photo</p>
-                  <p className="text-xs text-brand-text/50 mb-3">
-                    Optional — helps us judge your proportions more accurately than measurements
-                    alone.
-                  </p>
-
-                  {bodyPhotoPreview ? (
-                    <div className="flex items-center gap-3">
-                      <div className="relative w-16 aspect-[3/4] rounded-lg overflow-hidden shrink-0 border border-brand-text/15">
-                        <img
-                          src={bodyPhotoPreview}
-                          alt="Your uploaded full body photo"
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <div className="flex flex-col gap-1.5 items-start">
-                        <button
-                          type="button"
-                          onClick={() => bodyPhotoInputRef.current?.click()}
-                          className="text-xs uppercase tracking-widest text-brand-accent hover:underline"
-                        >
-                          Replace photo
-                        </button>
-                        <button
-                          type="button"
-                          onClick={clearBodyPhoto}
-                          className="text-xs uppercase tracking-widest text-brand-text/50 hover:text-brand-text/80"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => bodyPhotoInputRef.current?.click()}
-                      className="w-full rounded-xl border border-dashed border-brand-text/25 py-5 text-sm text-brand-text/60 hover:border-brand-text/50 transition-colors"
-                    >
-                      Tap to snap a photo or upload from gallery
-                    </button>
-                  )}
-
-                  <input
-                    ref={bodyPhotoInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleBodyPhotoChange}
-                    className="hidden"
-                  />
-                </div>
               </div>
             )}
           </div>
@@ -1166,6 +1114,59 @@ function FindYourFitPage() {
                 />
               ))}
             </div>
+          </div>
+        )}
+
+        {(gender === "Female" || gender === "Male") && (
+          <div className="rounded-2xl border border-brand-text/15 p-4 text-left">
+            <p className="text-sm text-brand-text/90 mb-1">Full body photo</p>
+            <p className="text-xs text-brand-text/50 mb-3">
+              Optional — helps us judge your proportions more accurately than measurements alone.
+            </p>
+
+            {bodyPhotoPreview ? (
+              <div className="flex items-center gap-3">
+                <div className="relative w-16 aspect-[3/4] rounded-lg overflow-hidden shrink-0 border border-brand-text/15">
+                  <img
+                    src={bodyPhotoPreview}
+                    alt="Your uploaded full body photo"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5 items-start">
+                  <button
+                    type="button"
+                    onClick={() => bodyPhotoInputRef.current?.click()}
+                    className="text-xs uppercase tracking-widest text-brand-accent hover:underline"
+                  >
+                    Replace photo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={clearBodyPhoto}
+                    className="text-xs uppercase tracking-widest text-brand-text/50 hover:text-brand-text/80"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => bodyPhotoInputRef.current?.click()}
+                className="w-full rounded-xl border border-dashed border-brand-text/25 py-5 text-sm text-brand-text/60 hover:border-brand-text/50 transition-colors"
+              >
+                Tap to snap a photo or upload from gallery
+              </button>
+            )}
+
+            <input
+              ref={bodyPhotoInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleBodyPhotoChange}
+              className="hidden"
+            />
           </div>
         )}
 

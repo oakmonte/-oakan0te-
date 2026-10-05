@@ -23,6 +23,26 @@ export const STYLE_CATEGORIES: Record<StyleCategory, readonly string[]> = {
     "Athleisure",
     "Coastal",
     "Maximalist",
+    "Gorpcore",
+    "Dark Academia",
+    "Light Academia",
+    "Quiet Luxury",
+    "Scandi",
+    "Boho Chic",
+    "Skater",
+    "Workwear",
+    "Normcore",
+    "Edgy",
+    "Romantic",
+    "Retro",
+    "Smart Casual",
+    "Sporty",
+    "Afrocentric",
+    "Native Wear",
+    "Capsule Wardrobe",
+    "Glamorous",
+    "Loungewear",
+    "Western",
   ],
   Cosmetics: [
     "Clean Girl",
@@ -35,6 +55,24 @@ export const STYLE_CATEGORIES: Record<StyleCategory, readonly string[]> = {
     "Dark/Gothic",
     "Bridal",
     "Graphic Liner",
+    "Glass Skin",
+    "Natural Glow",
+    "Dewy",
+    "Matte",
+    "Smokey Eye",
+    "Bold Lips",
+    "Monochromatic",
+    "Vintage Glam",
+    "Soft Girl",
+    "Sunkissed",
+    "Fresh-Faced",
+    "Glitter & Gems",
+    "Skincare First",
+    "Nails",
+    "Hair Styling",
+    "Braids & Locs",
+    "Special Effects",
+    "Everyday Makeup",
   ],
   Art: [
     "Illustration",
@@ -47,6 +85,27 @@ export const STYLE_CATEGORIES: Record<StyleCategory, readonly string[]> = {
     "Fashion Illustration",
     "Textile & Pattern",
     "Street Art",
+    "Ceramics",
+    "Printmaking",
+    "Collage",
+    "Calligraphy",
+    "Embroidery",
+    "Fashion Design",
+    "3D Art",
+    "Animation",
+    "Installation",
+    "Watercolour",
+    "Oil Painting",
+    "Charcoal & Sketch",
+    "Jewellery Design",
+    "Murals",
+    "Concept Art",
+    "Pixel Art",
+    "Typography",
+    "Film Photography",
+    "Portraiture",
+    "Abstract",
+    "Surrealism",
   ],
 };
 
@@ -78,6 +137,9 @@ const BLOCKED_TERMS = new Set([
  *  that obviously isn't a style/aesthetic name — profanity, numbers-only
  *  strings, URLs, single letters — without pretending to be a full content
  *  moderation system. */
+/** Longest a person-typed style can be. */
+export const CUSTOM_STYLE_MAX = 25;
+
 export function validateCustomStyle(
   raw: string,
   existing: readonly string[],
@@ -85,7 +147,9 @@ export function validateCustomStyle(
   const value = raw.trim().replace(/\s+/g, " ");
 
   if (value.length < 2) return { ok: false, reason: "Too short." };
-  if (value.length > 30) return { ok: false, reason: "Keep it under 30 characters." };
+  if (value.length > CUSTOM_STYLE_MAX) {
+    return { ok: false, reason: `Keep it under ${CUSTOM_STYLE_MAX} characters.` };
+  }
   if (!/^[a-zA-Z][a-zA-Z\s&/-]*$/.test(value)) {
     return { ok: false, reason: "Letters only, please." };
   }

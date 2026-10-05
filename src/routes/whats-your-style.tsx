@@ -1,9 +1,22 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState, type FormEvent, type KeyboardEvent } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+  type KeyboardEvent,
+  type TouchEvent,
+} from "react";
 import { Plus, Search, X } from "lucide-react";
 import { readIntent, type Intent } from "@/lib/onboarding-state";
 import { nextRoute, previousStep, stepPosition } from "@/lib/onboarding-flow";
-import { STYLE_CATEGORIES, validateCustomStyle, type StyleCategory } from "@/lib/style-options";
+import {
+  CUSTOM_STYLE_MAX,
+  STYLE_CATEGORIES,
+  validateCustomStyle,
+  type StyleCategory,
+} from "@/lib/style-options";
 import {
   FormError,
   OnboardingChecking,
@@ -54,6 +67,9 @@ function WhatsYourStylePage() {
   // adding one never reshuffles the chips the person is already looking at.
   const [custom, setCustom] = useState<StyleItem[]>([]);
   const [filter, setFilter] = useState<Filter>("All");
+  // Which way the list should slide in from after a filter change.
+  const [slide, setSlide] = useState<"next" | "prev">("next");
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
   const [query, setQuery] = useState("");
   const [addError, setAddError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -70,6 +86,32 @@ function WhatsYourStylePage() {
         (needle === "" || item.label.toLowerCase().includes(needle)),
     );
   }, [allItems, filter, query]);
+
+  const pickFilter = (next: Filter) => {
+    if (next === filter) return;
+    setSlide(FILTERS.indexOf(next) > FILTERS.indexOf(filter) ? "next" : "prev");
+    setFilter(next);
+  };
+
+  // Swipe the list sideways to step through All / Fashion / Art / Cosmetics.
+  // Only a mostly-horizontal, deliberate drag counts, so scrolling the list up
+  // and down never changes the filter by accident.
+  const handleTouchStart = (e: TouchEvent) => {
+    const t = e.touches[0];
+    touchStart.current = { x: t.clientX, y: t.clientY };
+  };
+  const handleTouchEnd = (e: TouchEvent) => {
+    const start = touchStart.current;
+    touchStart.current = null;
+    if (!start) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - start.x;
+    const dy = t.clientY - start.y;
+    if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    const index = FILTERS.indexOf(filter);
+    const next = FILTERS[index + (dx < 0 ? 1 : -1)];
+    if (next) pickFilter(next);
+  };
 
   const toggle = (option: string) => {
     setSelected((prev) => {
@@ -170,7 +212,7 @@ function WhatsYourStylePage() {
                 autoCorrect="off"
                 spellCheck={false}
                 value={query}
-                maxLength={30}
+                maxLength={CUSTOM_STYLE_MAX}
                 onChange={(e) => {
                   setQuery(e.target.value);
                   if (addError) setAddError(null);
@@ -218,7 +260,7 @@ function WhatsYourStylePage() {
                 key={name}
                 type="button"
                 aria-pressed={active}
-                onClick={() => setFilter(name)}
+                onClick={() => pickFilter(name)}
                 className={`rounded-full px-3.5 py-1.5 text-xs font-medium uppercase tracking-wider transition-colors ${
                   active
                     ? "bg-brand-accent text-brand-bg"
@@ -231,32 +273,50 @@ function WhatsYourStylePage() {
           })}
         </div>
 
-        <div className="flex flex-wrap gap-2" aria-live="polite">
-          {visible.map(({ label }) => {
-            const isSelected = selected.has(label);
-            return (
-              <button
-                key={label}
-                type="button"
-                aria-pressed={isSelected}
-                onClick={() => toggle(label)}
-                className={`rounded-full border px-4 py-2 text-[13px] font-medium transition-all duration-200 ${
-                  isSelected
-                    ? "bg-brand-text text-brand-bg border-brand-text"
-                    : "border-brand-text/25 hover:border-brand-text/50 hover:bg-brand-text/5"
-                }`}
-              >
-                {label}
-              </button>
-            );
-          })}
-          {visible.length === 0 && (
-            <p className="px-1 py-2 text-sm text-brand-text/50">
-              {trimmedQuery
-                ? `Nothing matches “${trimmedQuery}”. Tap + to add it as your own.`
-                : "Nothing here yet."}
-            </p>
-          )}
+        <div
+          // A fixed-height window onto the whole list: with this many styles the
+          // page itself would otherwise scroll for ages and push Continue far
+          // out of reach. The cap follows the screen's height so it still fits
+          // on a short phone.
+          className="max-h-[min(340px,42dvh)] overflow-y-auto overscroll-contain touch-pan-y rounded-2xl border border-brand-text/15 p-3"
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+        >
+          <div
+            // Re-mounted per filter so each swipe slides the new list in from
+            // the side you swiped toward.
+            key={filter}
+            className={`flex flex-wrap gap-2 animate-in fade-in-0 duration-200 ${
+              slide === "next" ? "slide-in-from-right-6" : "slide-in-from-left-6"
+            }`}
+            aria-live="polite"
+          >
+            {visible.map(({ label }) => {
+              const isSelected = selected.has(label);
+              return (
+                <button
+                  key={label}
+                  type="button"
+                  aria-pressed={isSelected}
+                  onClick={() => toggle(label)}
+                  className={`rounded-full border px-4 py-2 text-[13px] font-medium transition-all duration-200 ${
+                    isSelected
+                      ? "bg-brand-text text-brand-bg border-brand-text"
+                      : "border-brand-text/25 hover:border-brand-text/50 hover:bg-brand-text/5"
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
+            {visible.length === 0 && (
+              <p className="px-1 py-2 text-sm text-brand-text/50">
+                {trimmedQuery
+                  ? `Nothing matches “${trimmedQuery}”. Tap + to add it as your own.`
+                  : "Nothing here yet."}
+              </p>
+            )}
+          </div>
         </div>
 
         <FormError>{saveError}</FormError>
