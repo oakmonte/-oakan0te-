@@ -1,5 +1,5 @@
 import { Check, ChevronRight, Pencil, Search, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { BackButton } from "@/components/BackButton";
 import { supabase } from "@/lib/integrations/my-supabase/client";
@@ -232,6 +232,11 @@ export function StoreThemeSelector() {
   // this change to the selection bug.
   const [themeIdSet, setThemeIdSet] = useState(false);
   const [ownUsername, setOwnUsername] = useState<string | undefined>(undefined);
+  // Checklist flow only: the "theme's set, go see your storefront" popup.
+  // Opens when a theme is picked here, and once on arrival if the store
+  // already has one. Replaces a Next bar that sat fixed over the cards.
+  const [nextPrompt, setNextPrompt] = useState(false);
+  const arrivalPromptShown = useRef(false);
   const [query, setQuery] = useState("");
 
   // Search is the only way to narrow 50 themes. It replaced the colour-family
@@ -259,11 +264,15 @@ export function StoreThemeSelector() {
         if (cancelled) return;
         if (error) console.error("StoreThemeSelector: failed to load theme status", error);
         setThemeIdSet(!!data?.theme_id);
+        if (checklist && data?.theme_id && !arrivalPromptShown.current) {
+          arrivalPromptShown.current = true;
+          setNextPrompt(true);
+        }
       });
     return () => {
       cancelled = true;
     };
-  }, [storeId]);
+  }, [storeId, checklist]);
 
   useEffect(() => {
     if (!checklist || !user) return;
@@ -283,6 +292,7 @@ export function StoreThemeSelector() {
 
   const previewTheme = THEMES.find((t) => t.id === previewing) ?? null;
   const confirmTheme = THEMES.find((t) => t.id === confirmUse) ?? null;
+  const pickedTheme = THEMES.find((t) => t.id === pickedThemeId) ?? null;
 
   useEffect(() => {
     if (!storeId) {
@@ -375,17 +385,17 @@ export function StoreThemeSelector() {
       return;
     }
     void selectTheme(themeId);
+    markPicked();
+  }
+
+  // Every path that sets the store's theme ends here.
+  function markPicked() {
     setThemeIdSet(true);
+    if (checklist) setNextPrompt(true);
   }
 
   return (
-    <main
-      className={`min-h-[calc(100vh-3.5rem)] bg-sd-bg px-4 py-5 ${
-        // Room for the fixed Next bar below so it never covers the last row
-        // of cards — only reserved while that bar can actually show.
-        checklist ? "pb-32" : "pb-24"
-      }`}
-    >
+    <main className={`min-h-[calc(100vh-3.5rem)] bg-sd-bg px-4 py-5 ${"pb-24"}`}>
       <div className="mx-auto max-w-6xl">
         <BackButton className="oak-tap -ml-2 mb-1 grid h-10 w-10 place-items-center text-sd-ink" />
         <h1 className="text-lg font-semibold text-sd-ink">Store theme</h1>
@@ -477,20 +487,48 @@ export function StoreThemeSelector() {
         </p>
       </div>
 
-      {checklist && themeIdSet && ownUsername && (
-        // Fixed to the device, not the scroll container — the theme grid
-        // above scrolls freely behind it instead of carrying the button away
-        // with the last row of cards.
-        <div className="fixed inset-x-0 bottom-0 z-40 bg-gradient-to-t from-sd-bg via-sd-bg/95 to-transparent px-4 pt-6 pb-[calc(env(safe-area-inset-bottom)+1rem)]">
-          <div className="mx-auto max-w-6xl">
+      {checklist && themeIdSet && nextPrompt && !previewTheme && !confirmTheme && (
+        // A real modal, not a bar over the cards. Deliberately no tap-outside
+        // to close: the backdrop does nothing, so the only ways out are the
+        // two buttons.
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="next-prompt-title"
+          className="fixed inset-0 z-[60] flex items-end justify-center bg-sd-scrim px-4 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] animate-in fade-in duration-200 sm:items-center"
+        >
+          <div className="w-full max-w-sm rounded-3xl bg-sd-surface p-6 shadow-[var(--sd-shadow-float)] animate-in slide-in-from-bottom-4 duration-300">
+            <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-sd-ink text-sd-bg">
+              <Check size={22} strokeWidth={3} />
+            </div>
+            <p
+              id="next-prompt-title"
+              className="mt-4 text-center text-[20px] font-bold tracking-[-0.02em] text-sd-ink"
+            >
+              Your theme is set
+            </p>
+            <p className="mt-1.5 text-center text-[14px] leading-5 text-sd-ink-muted">
+              {pickedTheme ? `${pickedTheme.name} is live. ` : ""}Have a look at your storefront the
+              way shoppers will see it.
+            </p>
             <button
               type="button"
+              disabled={!ownUsername}
               onClick={() =>
+                ownUsername &&
                 navigate({ to: "/profile/$username", params: { username: ownUsername } })
               }
-              className="oak-tap h-12 w-full rounded-full bg-sd-ink text-[15px] font-semibold text-sd-bg oak-motion-control active:scale-[0.98]"
+              className="oak-tap mt-6 flex h-14 w-full items-center justify-center gap-2 rounded-full bg-sd-ink text-[17px] font-bold text-sd-bg oak-motion-control active:scale-[0.98] disabled:opacity-60"
             >
-              Next — see your store front
+              Next: see your storefront
+              <ChevronRight size={18} strokeWidth={2.75} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setNextPrompt(false)}
+              className="oak-tap mt-2 h-11 w-full rounded-full text-[14px] font-medium text-sd-ink-muted"
+            >
+              Keep browsing themes
             </button>
           </div>
         </div>
@@ -507,7 +545,7 @@ export function StoreThemeSelector() {
           }}
           onSelect={() => {
             void selectTheme(previewTheme.id);
-            setThemeIdSet(true);
+            markPicked();
             setPreviewing(null);
             setRowsVersion((v) => v + 1);
           }}
@@ -551,7 +589,7 @@ export function StoreThemeSelector() {
                 type="button"
                 onClick={() => {
                   void selectTheme(confirmTheme.id);
-                  setThemeIdSet(true);
+                  markPicked();
                   setConfirmUse(null);
                 }}
                 className="oak-tap h-11 rounded-full bg-sd-soft text-[14px] font-medium text-sd-ink oak-motion-control active:scale-[0.98]"
