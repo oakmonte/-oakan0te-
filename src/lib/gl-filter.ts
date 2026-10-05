@@ -349,8 +349,21 @@ export function gpuFilterAvailable(): boolean {
 }
 
 // Above this many output pixels the shared renderer gives its buffers back
-// after each use (a photo); below it (video frames) they're kept for reuse.
+// once it has sat idle for a moment -- not after every call, which would
+// re-allocate 15-30 MB per frame of a large video export.
 const KEEP_BUFFERS_MAX_PIXELS = 2_500_000;
+let shrinkTimer: ReturnType<typeof setTimeout> | null = null;
+function shrinkWhenIdle(gpu: GlFilterRenderer) {
+  if (shrinkTimer) clearTimeout(shrinkTimer);
+  shrinkTimer = setTimeout(() => {
+    shrinkTimer = null;
+    gpu.shrink();
+  }, 1000);
+}
+// Filters whose shader failed for a reason other than a lost context: sent
+// straight to the CPU from then on, instead of recompiling (and warning) on
+// every frame of an export.
+const gpuFailed = new WeakSet<CompiledFilter>();
 
 /** Applies `compiled` to the whole of `ctx`'s canvas in place -- a drop-in
  *  for the getImageData / applyCompiledFilter / putImageData sequence. On
@@ -364,7 +377,7 @@ export function applyFilterToContext(
   height: number,
 ): void {
   if (compiled === IDENTITY_FILTER || compiled.ops.length === 0) return;
-  const gpu = sharedRenderer();
+  const gpu = gpuFailed.has(compiled) ? null : sharedRenderer();
   if (gpu) {
     try {
       gpu.setSize(width, height);
@@ -381,13 +394,14 @@ export function applyFilterToContext(
         ctx.drawImage(gpu.canvas, 0, 0, width, height, 0, 0, width, height);
         ctx.restore();
       }
-      if (width * height > KEEP_BUFFERS_MAX_PIXELS) gpu.shrink();
+      if (width * height > KEEP_BUFFERS_MAX_PIXELS) shrinkWhenIdle(gpu);
       if (done) return;
     } catch (err) {
       // Only a dead context is worth dropping the renderer over; anything
       // else (a tainted canvas, say) is about this call, not the GPU.
       console.warn("GPU filter failed, using the CPU path", err);
       if (!gpu.usable) shared = undefined;
+      else gpuFailed.add(compiled);
     }
   }
   const frame = ctx.getImageData(0, 0, width, height);

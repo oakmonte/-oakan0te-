@@ -221,17 +221,24 @@ export const Route = createFileRoute("/api/posts")({
         // 2-4 processing..finished, 5 encode error (the original is still
         // fine), 6 upload failed. A just-finished TUS upload can still read 0
         // for a moment, so 0 is re-checked briefly before giving up.
-        for (const videoId of videoIds) {
+        // All videos checked side by side, each re-polled for up to ~8 s:
+        // one after another with a short grace, a carousel of several fresh
+        // uploads could be turned away while Bunny was still catching up.
+        const checkVideo = async (videoId: string): Promise<StreamVideo | null> => {
           let video: StreamVideo | null = null;
-          for (let attempt = 0; attempt < 4; attempt++) {
+          for (let attempt = 0; attempt < 9; attempt++) {
             const res = await fetch(
               `https://video.bunnycdn.com/library/${streamLibrary}/videos/${videoId}`,
               { headers: { AccessKey: streamKey!, Accept: "application/json" } },
             );
             video = res.ok ? ((await res.json()) as StreamVideo) : null;
             if (!video || video.status !== 0 || (video.storageSize ?? 0) > 0) break;
-            await new Promise((r) => setTimeout(r, 750));
+            await new Promise((r) => setTimeout(r, 1000));
           }
+          return video;
+        };
+        const videos = await Promise.all(videoIds.map(checkVideo));
+        for (const video of videos) {
           if (!video?.title?.startsWith(`${user.id}/`)) {
             return Response.json({ error: "Invalid video" }, { status: 400 });
           }

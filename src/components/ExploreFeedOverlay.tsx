@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { motion, AnimatePresence, type PanInfo } from "framer-motion";
 import { ChevronLeft, Bookmark, Lock, Search, ShoppingBag, User, UserPlus } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
@@ -39,7 +39,13 @@ export function ExploreFeedOverlay({
   // status strip goes black with it while it's up.
   useDarkOverlay(true);
 
+  // One swipe moves one tab: a carousel's past-the-end hand-off and the
+  // track's own drag can both see the same gesture.
+  const lastGoAt = useRef(0);
   function go(delta: number) {
+    const now = Date.now();
+    if (now - lastGoAt.current < 400) return;
+    lastGoAt.current = now;
     const next = index + delta;
     if (next >= 0 && next < TABS.length) setActive(TABS[next].key);
   }
@@ -117,6 +123,7 @@ export function ExploreFeedOverlay({
               <PostFeed
                 mode="embedded"
                 onActivePost={setActivePost}
+                onSwipePastEnd={() => go(1)}
                 scope={
                   active === "following"
                     ? { type: "following", viewerId: user?.id ?? "" }

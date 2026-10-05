@@ -14,6 +14,11 @@ type PostRow = Pick<
   "id" | "media_url" | "media_type" | "thumbnail_url" | "caption" | "location" | "created_with"
 > & { post_media: { count: number }[] };
 
+// Stable server snapshot for useSyncExternalStore (a fresh [] each call makes
+// React warn and re-render).
+const NO_PENDING: never[] = [];
+const getNoPendingPosts = () => NO_PENDING;
+
 async function fetchProfilePosts(
   userId: string,
   status: "published" | "draft",
@@ -81,7 +86,11 @@ export function PostsGrid({
   // unchanged, then the post appeared later, black until its video loaded.
   const { user } = useSession();
   const isOwnGrid = !!user && user.id === userId;
-  const allPending = useSyncExternalStore(subscribePostUpload, getPendingPostsSnapshot, () => []);
+  const allPending = useSyncExternalStore(
+    subscribePostUpload,
+    getPendingPostsSnapshot,
+    getNoPendingPosts,
+  );
   const landedAt = useSyncExternalStore(subscribePostUpload, getLastLandedAt, () => 0);
   // A post landed since this grid's data was fetched -- including while the
   // grid wasn't even mounted, since publishing navigates away -- so refetch.
@@ -114,14 +123,18 @@ export function PostsGrid({
           square crop cut off most of each one. */}
       <div className="grid grid-cols-3 gap-0.5">
         {/* Newest first, same as the grid: the most recent post in front. */}
-        {[...pending].reverse().map((job) => (
-          <div key={job.jobId} className="relative aspect-[3/4] overflow-hidden bg-chat-surface">
-            {job.preview && <img src={job.preview} alt="" className="h-full w-full object-cover" />}
-            <div className="absolute inset-0 flex items-center justify-center bg-black/25">
-              <Loader2 size={26} className="animate-spin text-white drop-shadow" />
+        {[...pending]
+          .sort((a, b) => b.jobId - a.jobId)
+          .map((job) => (
+            <div key={job.jobId} className="relative aspect-[3/4] overflow-hidden bg-chat-surface">
+              {job.preview && (
+                <img src={job.preview} alt="" className="h-full w-full object-cover" />
+              )}
+              <div className="absolute inset-0 flex items-center justify-center bg-black/25">
+                <Loader2 size={26} className="animate-spin text-white drop-shadow" />
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
         {(posts ?? []).map((p) => (
           <button
             key={p.id}
@@ -178,7 +191,7 @@ export function PostsGrid({
         <PostFeed
           scope={{ type: "user", userId, status }}
           initialPostId={activeId}
-          onClose={() => setActiveId(null)}
+          onClose={closeViewer}
         />
       )}
     </>

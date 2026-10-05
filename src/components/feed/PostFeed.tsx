@@ -216,6 +216,7 @@ export function PostFeed({
   mode = "standalone",
   asStore = false,
   onActivePost,
+  onSwipePastEnd,
 }: {
   scope: FeedScope;
   initialPostId?: string;
@@ -230,6 +231,10 @@ export function PostFeed({
    *  every scroll to a new one. Explore uses it to keep its Listed items tab
    *  pointed at the post you were just looking at. */
   onActivePost?: (active: ActivePost) => void;
+  /** A leftward swipe on a carousel already on its last slide -- Explore
+   *  moves to its next tab, the same as a left swipe anywhere else. A
+   *  carousel owns horizontal swipes, so this is its hand-off. */
+  onSwipePastEnd?: () => void;
 }) {
   const [posts, setPosts] = useState<FeedPost[] | null>(null);
   const hasPosts = posts !== null && posts.length > 0;
@@ -467,6 +472,7 @@ export function PostFeed({
                 overNav={mode === "embedded"}
                 asStore={asStore}
                 onActive={handleActive}
+                onSwipePastEnd={onSwipePastEnd}
               />
             ))}
           </div>
@@ -579,6 +585,7 @@ function PostCarousel({
   tap,
   onIndexChange,
   activeVideoRef,
+  onSwipePastEnd,
 }: {
   media: { url: string; type: string; thumbnail: string | null }[];
   fit: string;
@@ -589,7 +596,12 @@ function PostCarousel({
   /** Set to the visible slide's <video> (null on a photo), so the card's tap
    *  handler can start it directly. */
   activeVideoRef: { current: HTMLVideoElement | null };
+  onSwipePastEnd?: () => void;
 }) {
+  // Where a touch started, and whether the carousel was already at its last
+  // slide then -- only a swipe that STARTS there counts as "past the end",
+  // never one that merely arrives at it.
+  const pastEndStart = useRef<{ x: number; y: number; atEnd: boolean } | null>(null);
   const [index, setIndex] = useState(0);
   const scrollerRef = useRef<HTMLDivElement>(null);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
@@ -628,6 +640,22 @@ function PostCarousel({
       onScroll={handleScroll}
       onPointerDown={tap.onPointerDown}
       onPointerUp={tap.onPointerUp}
+      onTouchStart={(e) => {
+        const el = e.currentTarget;
+        pastEndStart.current = {
+          x: e.touches[0].clientX,
+          y: e.touches[0].clientY,
+          atEnd: el.scrollLeft >= el.scrollWidth - el.clientWidth - 2,
+        };
+      }}
+      onTouchEnd={(e) => {
+        const start = pastEndStart.current;
+        pastEndStart.current = null;
+        if (!start?.atEnd || !onSwipePastEnd) return;
+        const dx = e.changedTouches[0].clientX - start.x;
+        const dy = e.changedTouches[0].clientY - start.y;
+        if (dx < -60 && Math.abs(dx) > Math.abs(dy) * 1.5) onSwipePastEnd();
+      }}
       className="no-scrollbar absolute inset-0 flex overflow-x-auto overflow-y-hidden"
       style={{ scrollSnapType: "x mandatory", overscrollBehaviorX: "contain" }}
     >
@@ -785,8 +813,10 @@ function FeedPostCard({
   overNav,
   asStore,
   onActive,
+  onSwipePastEnd,
 }: {
   post: FeedPost;
+  onSwipePastEnd?: () => void;
   /** True when the app's floating BottomNav pill is drawn over this feed
    *  (Explore, embedded mode). The rail and caption then sit above the pill
    *  instead of underneath it. */
@@ -1098,6 +1128,7 @@ function FeedPostCard({
           tap={tapHandlers}
           onIndexChange={setSlide}
           activeVideoRef={carouselVideoRef}
+          onSwipePastEnd={onSwipePastEnd}
         />
       ) : isVideo ? (
         <>

@@ -57,9 +57,33 @@ function b64(s: string): string {
 const SHRINK_ABOVE_BPS = 6_000_000;
 const TARGET_BPS = 4_500_000;
 const MAX_SHORT_EDGE = 720;
-/** Short edges up to this are left alone when nothing else is wrong -- a
- *  1080p back-camera recording is fine to play as-is. */
+/** Short edges up to this aren't re-encoded when nothing else is wrong -- a
+ *  1080p back-camera recording plays fine as-is (it's still remuxed, to
+ *  drop its metadata). */
 const KEEP_SHORT_EDGE = 1080;
+
+/** Packets copied as-is into a fresh MP4 with no metadata -- needs no
+ *  decoder, so it works on clips this browser can't decode (HEVC on some
+ *  Androids). The last resort before uploading a raw file with its GPS. */
+async function remuxWithoutMetadata(blob: Blob): Promise<Blob> {
+  try {
+    const { Input, Output, Conversion, ALL_FORMATS, BlobSource, BufferTarget, Mp4OutputFormat } =
+      await import("mediabunny");
+    const target = new BufferTarget();
+    const conversion = await Conversion.init({
+      input: new Input({ source: new BlobSource(blob), formats: ALL_FORMATS }),
+      output: new Output({ format: new Mp4OutputFormat(), target }),
+      tags: {},
+      video: {},
+      audio: {},
+    });
+    if (!conversion.isValid) return blob;
+    await conversion.execute();
+    return target.buffer ? new Blob([target.buffer], { type: "video/mp4" }) : blob;
+  } catch {
+    return blob;
+  }
+}
 
 async function shrinkVideo(blob: Blob): Promise<Blob> {
   try {
@@ -113,17 +137,19 @@ async function shrinkVideo(blob: Blob): Promise<Blob> {
         : {},
       audio: toAac ? { codec: "aac", bitrate: 128_000 } : {},
     });
-    if (!conversion.isValid) return blob;
+    if (!conversion.isValid) return remuxWithoutMetadata(blob);
     await conversion.execute();
-    if (!target.buffer) return blob;
+    if (!target.buffer) return remuxWithoutMetadata(blob);
     // A re-encode of a file that was already playable but somehow came out
     // bigger isn't worth it; an unplayable original (HEVC, WebM) is replaced
     // whatever the size.
-    if (reencode && playable && target.buffer.byteLength >= blob.size) return blob;
+    if (reencode && playable && target.buffer.byteLength >= blob.size) {
+      return remuxWithoutMetadata(blob);
+    }
     return new Blob([target.buffer], { type: "video/mp4" });
   } catch (err) {
-    console.warn("Video shrink failed, uploading the original", err);
-    return blob;
+    console.warn("Video shrink failed, uploading the original remuxed", err);
+    return remuxWithoutMetadata(blob);
   }
 }
 
@@ -142,10 +168,9 @@ export async function posterFromVideo(blob: Blob): Promise<Blob | null> {
     if (track && (await track.canDecode())) {
       const long = Math.max(track.displayWidth, track.displayHeight);
       const scale = Math.min(1, 1080 / long);
-      const sink = new CanvasSink(track, {
-        width: Math.round(track.displayWidth * scale),
-        height: Math.round(track.displayHeight * scale),
-      });
+      // Width only: mediabunny derives the height from the aspect ratio, and
+      // refuses width + height without a `fit`.
+      const sink = new CanvasSink(track, { width: Math.round(track.displayWidth * scale) });
       const duration = await input.computeDuration();
       // A hair past 0: frame 0 of a phone recording is often black or still
       // adjusting exposure.

@@ -301,6 +301,7 @@ function CreatePage() {
   // and onstop is async) used to reset the chunks and hijack the shared
   // draw-loop/stream refs, so the old onstop killed the NEW recording.
   const recordingBusyRef = useRef(false);
+  const unmountedRef = useRef(false);
   const mirrorCanvasStreamRef = useRef<MediaStream | null>(null);
   // `applyConstraints` replaces the whole `advanced` set rather than merging
   // it, so the torch effect and applyZoom's hardware-zoom branch — two
@@ -922,7 +923,9 @@ function CreatePage() {
   const startRecording = useCallback(() => {
     const stream = streamRef.current;
     const video = videoRef.current;
-    if (!stream || !video || recordingBusyRef.current) return;
+    // videoWidth 0: the camera has no frames yet (e.g. just flipped). Starting
+    // anyway recorded the raw stream with no grade at all.
+    if (!stream || !video || recordingBusyRef.current || video.videoWidth === 0) return;
     recordedChunksRef.current = [];
     // This recording's own draw loop and canvas stream. onstop tears down
     // exactly these, never whatever the shared refs point at by then.
@@ -960,11 +963,18 @@ function CreatePage() {
       const baseCrop = getCropRect(sourceWidth, sourceHeight, RATIO_ASPECT[ratio]);
       const { sx, sy, sw, sh } = baseCrop;
       const trueGrade = resolveCaptureFilter();
-      // Proven on a real frame before committing to it: a shader that won't
-      // compile on this GPU must fall back to the CPU here, not throw out of
-      // the hold and record nothing.
+      // Downscaled to RECORD_SHORT_EDGE (even dimensions, which H.264
+      // needs): encoding 1080x1920 buys nothing on a phone screen.
+      const scale = Math.min(1, RECORD_SHORT_EDGE / Math.min(sw, sh));
+      const outW = Math.round((sw * scale) / 2) * 2;
+      const outH = Math.round((sh * scale) / 2) * 2;
+      // Proven on a real frame, at the real output size, before committing
+      // to it: a shader that won't compile on this GPU (or a drawing buffer
+      // it can't allocate) must fall back to the CPU here, not throw out of
+      // the hold or record one frozen frame.
       if (gpu) {
         try {
+          gpu.setSize(outW, outH);
           if (!gpu.render(video, sourceWidth, sourceHeight, trueGrade, baseCrop)) gpu = null;
         } catch (err) {
           console.warn("GPU recording unavailable, using the CPU path", err);
@@ -985,12 +995,6 @@ function CreatePage() {
         cropIsNoop && zoomIsHardware && !shouldMirror && compiledFilterAtStart === IDENTITY_FILTER;
 
       if (!canUseNativeStream) {
-        // Downscaled to RECORD_SHORT_EDGE (even dimensions, which H.264
-        // needs): encoding 1080x1920 buys nothing on a phone screen.
-        const scale = Math.min(1, RECORD_SHORT_EDGE / Math.min(sw, sh));
-        const outW = Math.round((sw * scale) / 2) * 2;
-        const outH = Math.round((sh * scale) / 2) * 2;
-        if (gpu) gpu.setSize(outW, outH);
         const recordCanvas = gpu ? gpu.canvas : document.createElement("canvas");
         if (!gpu) {
           recordCanvas.width = outW;
@@ -1086,12 +1090,22 @@ function CreatePage() {
     }
 
     const mimeType = RECORDER_MIME_TYPES.find((t) => MediaRecorder.isTypeSupported(t)) ?? "";
-    const recorder = new MediaRecorder(
-      recordingStream,
-      mimeType
-        ? { mimeType, videoBitsPerSecond: RECORD_BITRATE }
-        : { videoBitsPerSecond: RECORD_BITRATE },
-    );
+    let recorder: MediaRecorder;
+    try {
+      recorder = new MediaRecorder(
+        recordingStream,
+        mimeType
+          ? { mimeType, videoBitsPerSecond: RECORD_BITRATE }
+          : { videoBitsPerSecond: RECORD_BITRATE },
+      );
+    } catch (err) {
+      // Don't leave the draw loop and the mic clone running behind a
+      // recording that never started.
+      console.error("MediaRecorder failed to start", err);
+      ownStopDraw?.();
+      ownCanvasStream?.getTracks().forEach((t) => t.stop());
+      return;
+    }
 
     recorder.ondataavailable = (e) => {
       if (e.data.size > 0) recordedChunksRef.current.push(e.data);
@@ -1131,13 +1145,23 @@ function CreatePage() {
         }
       }
 
-      const url = URL.createObjectURL(finalBlob);
       recordingBusyRef.current = false;
+      // Left the camera mid-recording (Back): don't drag them into the
+      // editor from wherever they went.
+      if (unmountedRef.current) return;
+      const url = URL.createObjectURL(finalBlob);
       setPendingCapture({ type: "video", blob: finalBlob, url });
       navigate({ to: "/create/after-shot" });
     };
 
-    recorder.start();
+    try {
+      recorder.start();
+    } catch (err) {
+      console.error("MediaRecorder failed to start", err);
+      ownStopDraw?.();
+      ownCanvasStream?.getTracks().forEach((t) => t.stop());
+      return;
+    }
     // Set only once a recording really exists: anything above that throws
     // must not leave the camera refusing every hold after it.
     recordingBusyRef.current = true;
@@ -1188,14 +1212,16 @@ function CreatePage() {
 
   // Leaving the camera stops any draw loop still running and gives the
   // recording renderer's GPU memory back.
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    // Reset on (re)mount: React's dev StrictMode mounts, unmounts and remounts.
+    unmountedRef.current = false;
+    return () => {
+      unmountedRef.current = true;
       stopMirrorDrawLoop();
       recordGlRef.current?.dispose();
       recordGlRef.current = undefined;
-    },
-    [stopMirrorDrawLoop],
-  );
+    };
+  }, [stopMirrorDrawLoop]);
 
   const stopRecording = useCallback(() => {
     const recorder = mediaRecorderRef.current;

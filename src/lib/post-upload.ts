@@ -41,6 +41,10 @@ type Job = {
   preview: string | null;
   postId: string | null;
   phase: "queued" | "uploading" | "landed" | "failed";
+  /** The /api/posts form once every file is up. A retry after a failure at
+   *  the final step re-sends just this, instead of uploading every photo and
+   *  video again (and opening fresh video slots each time). */
+  publishForm?: FormData;
 };
 
 let nextJobId = 1;
@@ -155,7 +159,9 @@ async function runJob(job: Job) {
       job.preview = URL.createObjectURL(cover.blob);
       setState({ status: "uploading", kind: job.kind, preview: job.preview });
     }
-    const publishForm = await toPublishForm(job.fd, cover.isPoster ? cover.blob : null);
+    const publishForm =
+      job.publishForm ?? (await toPublishForm(job.fd, cover.isPoster ? cover.blob : null));
+    job.publishForm = publishForm;
     const res = await authedFetch("/api/posts", { method: "POST", body: publishForm });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}) as { error?: string });
@@ -179,9 +185,8 @@ async function runJob(job: Job) {
     }, LANDED_KEEP_MS);
   } catch (err) {
     job.phase = "failed";
-    // One retryable failure at a time: an older one still waiting is
-    // superseded (its toast was already replaced).
-    if (failed && failed !== job) release(failed);
+    // The queue pauses on a failure (see finally), so there's never an older
+    // failure still waiting here.
     failed = job;
     setState({
       status: "error",
@@ -191,12 +196,21 @@ async function runJob(job: Job) {
     });
   } finally {
     active = null;
-    pump();
+    // A failure stops the queue until the seller retries or dismisses it.
+    // Moving straight on to the next post replaced the error toast with
+    // "Posting…" in the same tick, so the failed post just vanished with no
+    // Retry anywhere.
+    if (failed) notify();
+    else pump();
   }
 }
 
 function pump() {
-  if (active) return;
+  if (active || failed) {
+    // Still show anything newly queued in the grid straight away.
+    notify();
+    return;
+  }
   const next = queue.shift();
   if (!next) {
     notify();
@@ -232,4 +246,6 @@ export function dismissPostUpload() {
     failed = null;
   }
   setState(null);
+  // Anything queued behind the dismissed failure goes now.
+  pump();
 }
