@@ -2,18 +2,21 @@ import { createFileRoute } from "@tanstack/react-router";
 import { getRequestUser } from "@/lib/server-auth";
 
 /**
- * Publishes a post: uploads every carousel item (and, for video, its poster
- * frame) to Bunny Storage, writes the posts row plus one post_media row per
- * item, and tags any of the caller's own products picked on the publish screen.
+ * Publishes a post whose media is ALREADY in Bunny: photos and the poster
+ * frame went up one at a time through /api/post-media (Bunny Storage), and
+ * videos straight from the phone to Bunny Stream (/api/post-video). This
+ * request carries no media bytes at all -- Vercel refuses request bodies over
+ * 4.5 MB, which is what made video posts fail. It writes the posts row plus
+ * one post_media row per item, and tags any of the caller's own products.
  *
  * POST multipart/form-data:
- *   files        one or more media blobs, IN CAROUSEL ORDER   (required)
- *   mediaTypes   JSON array of 'photo' | 'video', one per file (required)
- *   thumbnail    poster frame for item 0, video only           (optional)
- *   audio        a sound to play over the post, as bytes       (optional)
- *   audioName    display name for that sound                   (optional)
+ *   items        JSON array, IN CAROUSEL ORDER                  (required)
+ *                  { type: "photo", url, bytes }   url from /api/post-media
+ *                  { type: "video", videoId, bytes }  a Bunny Stream video
+ *                                                     from /api/post-video
+ *   thumbnailUrl poster frame for item 0, from /api/post-media  (optional)
+ *   audioName    display name for the post's sound              (optional)
  *   audioSource  a catalogue track's URL, fetched server-side   (optional)
- *                — an alternative to `audio`, never both
  *   audioLicence licence the track is used under                (required with
  *                audioSource or audioBakedIn)
  *   audioAttribution  credit line to show beside the post       (optional)
@@ -27,17 +30,17 @@ import { getRequestUser } from "@/lib/server-auth";
  *   createdWith  'camera' | 'photo-editor' | 'video-editor'     (optional)
  *   productIds   JSON array of product ids to tag               (optional)
  *
+ * Every URL must sit under this caller's own posts/<user id>/ folder, and
+ * every video must be one /api/post-video created for this caller, so a
+ * request can't attach someone else's media to its post.
+ *
  * Item 0 is the cover, and its url/type/thumbnail are ALSO written to the
  * posts row itself. That mirroring is what lets every existing reader — the
  * feed, the profile grid, the media pickers — keep working without knowing
  * post_media exists. See the migration for the expand/contract plan.
  */
 
-const MAX_MEDIA_BYTES = 200 * 1024 * 1024;
-/** A carousel can be big, but not unbounded — this is one background upload. */
-const MAX_TOTAL_BYTES = 500 * 1024 * 1024;
 const MAX_ITEMS = 10;
-const MAX_THUMBNAIL_BYTES = 10 * 1024 * 1024;
 const MAX_AUDIO_NAME_LENGTH = 120;
 
 /** Bunny serves what it is given, so the stored extension is what decides
@@ -57,7 +60,10 @@ const AUDIO_EXTENSIONS: Record<string, string> = {
   "audio/flac": "flac",
   "audio/x-flac": "flac",
 };
-const MEDIA_TYPES = new Set(["photo", "video"]);
+type IncomingItem =
+  | { type: "photo"; url: string; bytes?: number }
+  | { type: "video"; videoId: string; bytes?: number };
+const VIDEO_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const VISIBILITIES = new Set(["public", "followers", "only_me"]);
 const STATUSES = new Set(["published", "draft"]);
 const CREATED_WITH = new Set(["camera", "photo-editor", "video-editor"]);
@@ -95,6 +101,9 @@ export const Route = createFileRoute("/api/posts")({
         const password = process.env.BUNNY_STORAGE_PASSWORD;
         const endpoint = process.env.BUNNY_STORAGE_ENDPOINT ?? "https://storage.bunnycdn.com";
         const pullZone = process.env.BUNNY_PULL_ZONE_HOSTNAME;
+        const streamLibrary = process.env.BUNNY_STREAM_LIBRARY_ID;
+        const streamKey = process.env.BUNNY_STREAM_API_KEY;
+        const streamCdn = process.env.BUNNY_STREAM_CDN_HOSTNAME;
 
         if (!zone || !password || !pullZone) {
           console.error("Post publish: Bunny Storage is not configured");
@@ -111,10 +120,8 @@ export const Route = createFileRoute("/api/posts")({
           return Response.json({ error: "Expected multipart/form-data" }, { status: 400 });
         }
 
-        const files = form.getAll("files").filter((f): f is File => f instanceof File);
-        const mediaTypesRaw = form.get("mediaTypes") as string | null;
-        const thumbnail = form.get("thumbnail");
-        const audio = form.get("audio");
+        const itemsRaw = form.get("items") as string | null;
+        const thumbnailUrlRaw = (form.get("thumbnailUrl") as string | null) || null;
         const audioName =
           (form.get("audioName") as string | null)?.trim().slice(0, MAX_AUDIO_NAME_LENGTH) || null;
         // A library track arrives as a URL rather than bytes — see
@@ -144,39 +151,45 @@ export const Route = createFileRoute("/api/posts")({
         const createdWithRaw = (form.get("createdWith") as string | null) || null;
         const productIdsRaw = form.get("productIds") as string | null;
 
-        if (files.length === 0) {
-          return Response.json({ error: "At least one file is required" }, { status: 400 });
+        let items: IncomingItem[] = [];
+        try {
+          const parsed: unknown = JSON.parse(itemsRaw ?? "");
+          if (Array.isArray(parsed)) items = parsed as IncomingItem[];
+        } catch {
+          return Response.json({ error: "items must be a JSON array" }, { status: 400 });
         }
-        if (files.length > MAX_ITEMS) {
+        if (items.length === 0) {
+          return Response.json({ error: "At least one item is required" }, { status: 400 });
+        }
+        if (items.length > MAX_ITEMS) {
           return Response.json(
             { error: `A post can hold at most ${MAX_ITEMS} items` },
             { status: 400 },
           );
         }
-
-        let mediaTypes: string[] = [];
-        try {
-          const parsed = JSON.parse(mediaTypesRaw ?? "");
-          if (Array.isArray(parsed) && parsed.every((v) => typeof v === "string")) {
-            mediaTypes = parsed;
+        // Only media this caller uploaded: photos under their own folder,
+        // videos /api/post-video created for them.
+        const ownPrefix = `https://${pullZone}/posts/${user.id}/`;
+        const ownsUrl = (u: unknown) =>
+          typeof u === "string" && u.startsWith(ownPrefix) && !u.includes("..");
+        for (const it of items) {
+          if (it?.type === "photo") {
+            if (!ownsUrl(it.url)) {
+              return Response.json({ error: "Invalid photo" }, { status: 400 });
+            }
+          } else if (it?.type === "video") {
+            if (typeof it.videoId !== "string" || !VIDEO_ID.test(it.videoId)) {
+              return Response.json({ error: "Invalid video" }, { status: 400 });
+            }
+          } else {
+            return Response.json(
+              { error: "Every item must be a photo or a video" },
+              { status: 400 },
+            );
           }
-        } catch {
-          return Response.json({ error: "mediaTypes must be a JSON array" }, { status: 400 });
         }
-        // One type per file, positionally. A mismatch means the client and the
-        // server disagree about what is being uploaded, which is worse than a
-        // missing field — refuse rather than guess.
-        if (mediaTypes.length !== files.length) {
-          return Response.json(
-            { error: "mediaTypes must have one entry per file" },
-            { status: 400 },
-          );
-        }
-        if (!mediaTypes.every((t) => MEDIA_TYPES.has(t))) {
-          return Response.json(
-            { error: "Every mediaType must be 'photo' or 'video'" },
-            { status: 400 },
-          );
+        if (thumbnailUrlRaw && !ownsUrl(thumbnailUrlRaw)) {
+          return Response.json({ error: "Invalid thumbnail" }, { status: 400 });
         }
         if (!VISIBILITIES.has(visibility)) {
           return Response.json({ error: "Invalid visibility" }, { status: 400 });
@@ -188,43 +201,27 @@ export const Route = createFileRoute("/api/posts")({
           return Response.json({ error: "Invalid createdWith" }, { status: 400 });
         }
 
-        let totalBytes = 0;
-        for (const f of files) {
-          if (f.size === 0) {
-            return Response.json({ error: "One of the files is empty" }, { status: 400 });
-          }
-          if (f.size > MAX_MEDIA_BYTES) {
-            return Response.json(
-              { error: `A file is over the ${MAX_MEDIA_BYTES / 1024 / 1024} MB limit` },
-              { status: 413 },
-            );
-          }
-          totalBytes += f.size;
+        const videoIds = items.flatMap((it) => (it.type === "video" ? [it.videoId] : []));
+        if (videoIds.length > 0 && (!streamLibrary || !streamKey || !streamCdn)) {
+          console.error("Post publish: Bunny Stream is not configured");
+          return Response.json({ error: "Video uploads are not configured" }, { status: 500 });
         }
-        if (totalBytes > MAX_TOTAL_BYTES) {
-          return Response.json(
-            { error: `This post is over the ${MAX_TOTAL_BYTES / 1024 / 1024} MB total limit` },
-            { status: 413 },
+        // Each video must exist in our library and have been created for this
+        // caller (api.post-video.ts titles it "<user id>/...").
+        for (const videoId of videoIds) {
+          const res = await fetch(
+            `https://video.bunnycdn.com/library/${streamLibrary}/videos/${videoId}`,
+            { headers: { AccessKey: streamKey!, Accept: "application/json" } },
           );
+          const video = res.ok ? ((await res.json()) as { title?: string }) : null;
+          if (!video?.title?.startsWith(`${user.id}/`)) {
+            return Response.json({ error: "Invalid video" }, { status: 400 });
+          }
         }
-        if (thumbnail instanceof File && thumbnail.size > MAX_THUMBNAIL_BYTES) {
-          return Response.json({ error: "Thumbnail is too large" }, { status: 413 });
-        }
+
         // Server-only, so it comes in through the handler rather than at the
         // top of a route file — same rule as the admin Supabase client.
-        const { fetchTrustedAudio, MAX_AUDIO_BYTES } = await import("@/lib/trusted-audio.server");
-
-        if (audio instanceof File && audio.size > 0) {
-          if (audio.size > MAX_AUDIO_BYTES) {
-            return Response.json(
-              { error: `The sound is over the ${MAX_AUDIO_BYTES / 1024 / 1024} MB limit` },
-              { status: 413 },
-            );
-          }
-          if (!audio.type.startsWith("audio/")) {
-            return Response.json({ error: "That sound is not an audio file" }, { status: 400 });
-          }
-        }
+        const { fetchTrustedAudio } = await import("@/lib/trusted-audio.server");
 
         // A catalogue track has to arrive with its licence. The three credit
         // fields are stored verbatim and nothing here re-derives them from the
@@ -243,7 +240,7 @@ export const Route = createFileRoute("/api/posts")({
         // would publish a post playing two tracks at once, so this is a
         // disagreement about what is being published rather than a field to
         // reconcile.
-        if (audioBakedIn && (audioSource || (audio instanceof File && audio.size > 0))) {
+        if (audioBakedIn && audioSource) {
           return Response.json(
             { error: "A baked-in sound cannot also be uploaded" },
             { status: 400 },
@@ -267,27 +264,23 @@ export const Route = createFileRoute("/api/posts")({
 
         const postId = crypto.randomUUID();
 
-        // Uploaded one after another rather than in parallel. A carousel on a
-        // phone connection is already competing for the same uplink, and ten
-        // simultaneous PUTs to Bunny make every one of them slower and the
-        // failure modes harder to report.
-        const uploaded: { url: string; mediaType: string }[] = [];
-        for (const [index, f] of files.entries()) {
-          const ext = mediaTypes[index] === "video" ? "mp4" : "jpg";
-          const path = `posts/${user.id}/${postId}/media-${index}.${ext}`;
-          const stored = await uploadToBunny(path, f, endpoint, zone, password);
-          if (!stored) {
-            return Response.json({ error: "Could not store the uploaded media" }, { status: 502 });
-          }
-          uploaded.push({ url: `https://${pullZone}/${stored}`, mediaType: mediaTypes[index] });
-        }
-
-        let thumbnailUrl: string | null = null;
-        if (thumbnail instanceof File && thumbnail.size > 0) {
-          const thumbPath = `posts/${user.id}/${postId}/thumbnail.jpg`;
-          const uploadedThumb = await uploadToBunny(thumbPath, thumbnail, endpoint, zone, password);
-          if (uploadedThumb) thumbnailUrl = `https://${pullZone}/${uploadedThumb}`;
-        }
+        // A Stream video plays from its MP4 fallback rendition, which a plain
+        // <video src> can use on every browser (HLS would need hls.js off
+        // Safari). Needs "MP4 fallback" on in the library's Encoding settings.
+        // It 404s for the minute or so Bunny spends encoding a fresh upload.
+        const uploaded = items.map((it) =>
+          it.type === "photo"
+            ? { url: it.url, mediaType: "photo" }
+            : { url: `https://${streamCdn}/${it.videoId}/play_720p.mp4`, mediaType: "video" },
+        );
+        const totalBytes = items.reduce(
+          (n, it) => n + (typeof it.bytes === "number" && it.bytes > 0 ? it.bytes : 0),
+          0,
+        );
+        const first = items[0];
+        const thumbnailUrl =
+          thumbnailUrlRaw ??
+          (first.type === "video" ? `https://${streamCdn}/${first.videoId}/thumbnail.jpg` : null);
 
         // A sound that fails to store isn't worth losing the post over — the
         // media is already up by this point, and a silent post is a far better
@@ -298,12 +291,7 @@ export const Route = createFileRoute("/api/posts")({
         // Two ways in, one way out: whichever the sound came from, it ends up
         // copied into our own storage. A post must not depend on a third
         // party's URL still resolving next year.
-        const audioBody =
-          audio instanceof File && audio.size > 0
-            ? { blob: audio, type: audio.type, size: audio.size }
-            : audioSource
-              ? await fetchTrustedAudio(audioSource, [pullZone])
-              : null;
+        const audioBody = audioSource ? await fetchTrustedAudio(audioSource, [pullZone]) : null;
 
         if (audioBody) {
           const ext = AUDIO_EXTENSIONS[audioBody.type] ?? "mp3";

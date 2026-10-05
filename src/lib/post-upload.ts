@@ -1,4 +1,5 @@
 import { authedFetch } from "@/lib/authed-fetch";
+import { uploadPostPhoto, uploadPostVideo } from "@/lib/post-media-upload";
 
 // Posting/saving-a-draft used to block the publish page until the upload
 // finished — the seller couldn't leave, and there was nothing to look at but
@@ -35,10 +36,46 @@ export function getPostUploadSnapshot(): PostUploadState {
   return state;
 }
 
+// The publish screen still builds one FormData holding every file. This
+// takes the files back out, puts each one into Bunny on its own (see
+// post-media-upload.ts -- Vercel refuses request bodies over 4.5 MB, which is
+// what broke video posts), and sends /api/posts the rest of the form plus
+// the URLs and video ids.
+async function toPublishForm(fd: FormData): Promise<FormData> {
+  const files = fd.getAll("files").filter((f): f is File => f instanceof File);
+  const types = JSON.parse(String(fd.get("mediaTypes") ?? "[]")) as string[];
+  const thumbnail = fd.get("thumbnail");
+  const uploadId = crypto.randomUUID();
+
+  const items: (
+    | { type: "photo"; url: string; bytes: number }
+    | { type: "video"; videoId: string; bytes: number }
+  )[] = [];
+  for (const [i, file] of files.entries()) {
+    if (types[i] === "video") {
+      items.push({ type: "video", ...(await uploadPostVideo(file)) });
+    } else {
+      items.push({ type: "photo", ...(await uploadPostPhoto(file, uploadId, `media-${i}`)) });
+    }
+  }
+
+  const out = new FormData();
+  for (const [key, value] of fd.entries()) {
+    if (key === "files" || key === "mediaTypes" || key === "thumbnail" || key === "audio") continue;
+    out.append(key, value);
+  }
+  out.set("items", JSON.stringify(items));
+  if (thumbnail instanceof Blob && thumbnail.size > 0) {
+    out.set("thumbnailUrl", (await uploadPostPhoto(thumbnail, uploadId, "thumbnail")).url);
+  }
+  return out;
+}
+
 async function run(fd: FormData, kind: PostUploadKind) {
   setState({ status: "uploading", kind });
   try {
-    const res = await authedFetch("/api/posts", { method: "POST", body: fd });
+    const publishForm = await toPublishForm(fd);
+    const res = await authedFetch("/api/posts", { method: "POST", body: publishForm });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}) as { error?: string });
       throw new Error(body.error || "Could not publish");

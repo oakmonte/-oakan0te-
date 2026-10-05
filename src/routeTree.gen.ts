@@ -42,6 +42,8 @@ import { Route as TermsRouteImport } from './routes/terms'
 import { Route as WelcomeRouteImport } from './routes/welcome'
 import { Route as WhatsYourStyleRouteImport } from './routes/whats-your-style'
 import { Route as WhereDidYouHearAboutUsRouteImport } from './routes/where-did-you-hear-about-us'
+import { Route as ApiPostMediaRouteImport } from './routes/api.post-media'
+import { Route as ApiPostVideoRouteImport } from './routes/api.post-video'
 import { Route as ApiPostsRouteImport } from './routes/api.posts'
 import { Route as ApiSoundFileRouteImport } from './routes/api.sound-file'
 import { Route as ApiSoundsRouteImport } from './routes/api.sounds'
@@ -262,6 +264,16 @@ const WhatsYourStyleRoute = WhatsYourStyleRouteImport.update({
 const WhereDidYouHearAboutUsRoute = WhereDidYouHearAboutUsRouteImport.update({
   id: '/where-did-you-hear-about-us',
   path: '/where-did-you-hear-about-us',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPostMediaRoute = ApiPostMediaRouteImport.update({
+  id: '/api/post-media',
+  path: '/api/post-media',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPostVideoRoute = ApiPostVideoRouteImport.update({
+  id: '/api/post-video',
+  path: '/api/post-video',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPostsRoute = ApiPostsRouteImport.update({
@@ -582,6 +594,8 @@ export interface FileRoutesByFullPath {
   '/welcome': typeof WelcomeRoute
   '/whats-your-style': typeof WhatsYourStyleRoute
   '/where-did-you-hear-about-us': typeof WhereDidYouHearAboutUsRoute
+  '/api/post-media': typeof ApiPostMediaRoute
+  '/api/post-video': typeof ApiPostVideoRoute
   '/api/posts': typeof ApiPostsRoute
   '/api/sound-file': typeof ApiSoundFileRoute
   '/api/sounds': typeof ApiSoundsRoute
@@ -671,6 +685,8 @@ export interface FileRoutesByTo {
   '/welcome': typeof WelcomeRoute
   '/whats-your-style': typeof WhatsYourStyleRoute
   '/where-did-you-hear-about-us': typeof WhereDidYouHearAboutUsRoute
+  '/api/post-media': typeof ApiPostMediaRoute
+  '/api/post-video': typeof ApiPostVideoRoute
   '/api/posts': typeof ApiPostsRoute
   '/api/sound-file': typeof ApiSoundFileRoute
   '/api/sounds': typeof ApiSoundsRoute
@@ -762,6 +778,8 @@ export interface FileRoutesById {
   '/welcome': typeof WelcomeRoute
   '/whats-your-style': typeof WhatsYourStyleRoute
   '/where-did-you-hear-about-us': typeof WhereDidYouHearAboutUsRoute
+  '/api/post-media': typeof ApiPostMediaRoute
+  '/api/post-video': typeof ApiPostVideoRoute
   '/api/posts': typeof ApiPostsRoute
   '/api/sound-file': typeof ApiSoundFileRoute
   '/api/sounds': typeof ApiSoundsRoute
@@ -855,6 +873,8 @@ export interface FileRouteTypes {
     | '/welcome'
     | '/whats-your-style'
     | '/where-did-you-hear-about-us'
+    | '/api/post-media'
+    | '/api/post-video'
     | '/api/posts'
     | '/api/sound-file'
     | '/api/sounds'
@@ -944,6 +964,8 @@ export interface FileRouteTypes {
     | '/welcome'
     | '/whats-your-style'
     | '/where-did-you-hear-about-us'
+    | '/api/post-media'
+    | '/api/post-video'
     | '/api/posts'
     | '/api/sound-file'
     | '/api/sounds'
@@ -1034,6 +1056,8 @@ export interface FileRouteTypes {
     | '/welcome'
     | '/whats-your-style'
     | '/where-did-you-hear-about-us'
+    | '/api/post-media'
+    | '/api/post-video'
     | '/api/posts'
     | '/api/sound-file'
     | '/api/sounds'
@@ -1126,6 +1150,8 @@ export interface RootRouteChildren {
   WelcomeRoute: typeof WelcomeRoute
   WhatsYourStyleRoute: typeof WhatsYourStyleRoute
   WhereDidYouHearAboutUsRoute: typeof WhereDidYouHearAboutUsRoute
+  ApiPostMediaRoute: typeof ApiPostMediaRoute
+  ApiPostVideoRoute: typeof ApiPostVideoRoute
   ApiPostsRoute: typeof ApiPostsRoute
   ApiSoundFileRoute: typeof ApiSoundFileRoute
   ApiSoundsRoute: typeof ApiSoundsRoute
@@ -1384,6 +1410,20 @@ declare module '@tanstack/react-router' {
       path: '/where-did-you-hear-about-us'
       fullPath: '/where-did-you-hear-about-us'
       preLoaderRoute: typeof WhereDidYouHearAboutUsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/post-media': {
+      id: '/api/post-media'
+      path: '/api/post-media'
+      fullPath: '/api/post-media'
+      preLoaderRoute: typeof ApiPostMediaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/post-video': {
+      id: '/api/post-video'
+      path: '/api/post-video'
+      fullPath: '/api/post-video'
+      preLoaderRoute: typeof ApiPostVideoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/posts': {
@@ -1904,6 +1944,8 @@ const rootRouteChildren: RootRouteChildren = {
   WelcomeRoute: WelcomeRoute,
   WhatsYourStyleRoute: WhatsYourStyleRoute,
   WhereDidYouHearAboutUsRoute: WhereDidYouHearAboutUsRoute,
+  ApiPostMediaRoute: ApiPostMediaRoute,
+  ApiPostVideoRoute: ApiPostVideoRoute,
   ApiPostsRoute: ApiPostsRoute,
   ApiSoundFileRoute: ApiSoundFileRoute,
   ApiSoundsRoute: ApiSoundsRoute,
