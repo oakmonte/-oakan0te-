@@ -29,7 +29,7 @@ import productPlaceholder from "@/assets/Store theme placeholder images/Products
 import { ThemeText } from "./EditableText";
 import { MAX_SLIDESHOW_IMAGES, type CropPosition, type ThemeEditingProps } from "./edit-types";
 import { formatCommunityCount, useStoreCommunityCounts } from "./useStoreCommunityCounts";
-import { useThemePreviewCatalog, type PreviewTile, type TilePhoto } from "./useThemePreviewCatalog";
+import { useStorefrontCatalog, type PreviewTile, type TilePhoto } from "./storefront-catalog";
 import { readableTextColor } from "./colors";
 import { alpha, isDark } from "./theme-spec";
 import { GLASS_RIM, glassClear } from "@/lib/liquid-glass";
@@ -605,15 +605,22 @@ export function PhoneHeader({
     </div>
   );
 
+  // 56px tall with a 44px image (was 40 / 28 -- too small to read a real
+  // logo). object-contain with a width cap rather than a cropped square, so
+  // a wide wordmark shows whole instead of losing its ends.
   const imageChip = (
     <div
-      className={`relative flex h-10 min-w-10 items-center justify-center rounded-xl px-3 ${chipClass}`}
+      className={`relative flex h-14 min-w-14 items-center justify-center rounded-2xl px-1.5 ${chipClass}`}
       style={chipStyle}
     >
       {logo ? (
-        <img src={logo} alt="" className="h-7 w-7 rounded-md object-cover" />
+        <img
+          src={logo}
+          alt=""
+          className="h-11 w-auto min-w-11 max-w-[160px] rounded-lg object-contain"
+        />
       ) : (
-        <span className="text-[16px] font-bold">{brandInitial}</span>
+        <span className="px-2 text-[20px] font-bold">{brandInitial}</span>
       )}
       {editing?.isEditing && (
         <span className="absolute -bottom-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-white text-black shadow ring-1 ring-black/10">
@@ -640,7 +647,12 @@ export function PhoneHeader({
           <LogoModeSwitch mode={logoMode} onChange={(m) => editing.onLogoModeChange(m)} />
         )}
       </div>
-      <div className="flex shrink-0 items-center gap-5 pt-1.5" style={{ color: mutedColor }}>
+      <div
+        // Centred on the logo beside it: (56 - 20) / 2 for the image chip,
+        // (40 - 20) / 2 for the text one.
+        className={`flex shrink-0 items-center gap-5 ${logoMode === "text" ? "pt-2.5" : "pt-[18px]"}`}
+        style={{ color: mutedColor }}
+      >
         <Search size={20} strokeWidth={1.8} />
         <ShoppingBag size={20} strokeWidth={1.8} />
         <Share2 size={20} strokeWidth={1.8} />
@@ -1040,38 +1052,6 @@ export function StatsRow({
   );
 }
 
-function CollectionsModeTab({
-  label,
-  active,
-  accent,
-  textColor,
-  onClick,
-}: {
-  label: string;
-  active: boolean;
-  accent: string;
-  textColor: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      // 40px tall to match the columns toggle beside it — at py-1.5 these
-      // were ~27px, the smallest targets in the whole editor.
-      className="flex h-10 items-center gap-1.5 rounded-full px-3 text-[13px] font-semibold"
-      style={{
-        background: active ? `${accent}26` : "transparent",
-        color: active ? accent : textColor,
-        opacity: active ? 1 : 0.55,
-      }}
-    >
-      {active && <span className="h-1.5 w-1.5 rounded-full" style={{ background: accent }} />}
-      {label}
-    </button>
-  );
-}
-
 // Fixed pixel sizing rather than percentages -- with exactly two segments the
 // sliding-highlight math (transitions-dev's "tabs sliding" pattern) is exact
 // and doesn't fight the container's own padding/gap.
@@ -1151,135 +1131,158 @@ export function CollectionsGrid({
   editing?: ThemeEditingProps;
   /** Whose catalog to preview — the seller's own store while editing, or the
    * store actually being viewed on a public storefront. Always explicit:
-   * see the comment on useThemePreviewCatalog for why. */
+   * see useStorefrontCatalog for why. */
   storeId: string | null;
 }) {
-  const mode = editing?.collectionsMode ?? "collections";
-  const { tiles } = useThemePreviewCatalog(mode, storeId);
-  const useReal = tiles.length > 0;
-  const heading = mode === "products" ? "Products" : "Collections";
+  // No Collections / Products switch: collections first, then the products
+  // that aren't in a collection, and a section with nothing in it isn't
+  // drawn at all (storefront-catalog.ts).
+  const { catalog, loading } = useStorefrontCatalog(storeId);
   const columns = editing?.columns ?? 2;
+  const gridClass = `mt-2.5 grid gap-1.5 ${columns === 1 ? "grid-cols-1" : "grid-cols-2"}`;
 
   function handleTileTap() {
     if (editing?.isEditing) editing.onTileTapBlocked();
   }
 
-  return (
-    <div className="mt-5 px-4">
-      <div className="flex flex-wrap items-center justify-between gap-y-2">
-        {editing?.isEditing ? (
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="flex items-center gap-1">
-              <CollectionsModeTab
-                label="Collections"
-                active={mode === "collections"}
-                accent={accent}
-                textColor={textColor}
-                onClick={() => editing.onCollectionsModeChange("collections")}
-              />
-              <CollectionsModeTab
-                label="Products"
-                active={mode === "products"}
-                accent={accent}
-                textColor={textColor}
-                onClick={() => editing.onCollectionsModeChange("products")}
-              />
-            </div>
-            <ColumnsToggle
-              columns={columns}
-              accent={accent}
-              textColor={textColor}
-              onChange={editing.onColumnsChange}
-            />
-          </div>
+  // Blank while loading rather than demo tiles: the demo used to flash up in
+  // front of a real catalogue for the first few hundred ms of every visit.
+  if (loading) return <div className="mt-5 min-h-[240px]" />;
+
+  const realCollections = catalog?.collections ?? [];
+  const realProducts = catalog?.products ?? [];
+  // Nothing real yet (a seller previewing before their first listing --
+  // visitors never get here, see isStorefrontVisible): show both demo
+  // sections so the whole design is there to judge.
+  const demo = realCollections.length === 0 && realProducts.length === 0;
+
+  // The columns toggle sits in whichever section header comes first.
+  let toggleShown = false;
+  const header = (title: string) => {
+    const showToggle = !!editing?.isEditing && !toggleShown;
+    toggleShown ||= showToggle;
+    return (
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[15px] font-semibold" style={{ color: textColor }}>
+          {title}
+        </span>
+        {showToggle && editing ? (
+          <ColumnsToggle
+            columns={columns}
+            accent={accent}
+            textColor={textColor}
+            onChange={editing.onColumnsChange}
+          />
         ) : (
-          <span className="text-[15px] font-semibold" style={{ color: textColor }}>
-            {heading}
-          </span>
-        )}
-        {/* Not in edit mode: the tabs and toggle already fill a 360-390px
-            row, and "View all" wrapped onto a stray line of its own. */}
-        {!editing?.isEditing && (
-          <span
-            className="flex items-center gap-0.5 text-[12px] font-medium"
-            style={{ color: accent }}
-          >
-            View all <ChevronRight size={14} />
-          </span>
+          !editing?.isEditing && (
+            <span
+              className="flex items-center gap-0.5 text-[12px] font-medium"
+              style={{ color: accent }}
+            >
+              View all <ChevronRight size={14} />
+            </span>
+          )
         )}
       </div>
-      <div className={`mt-2.5 grid gap-1.5 ${columns === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
-        {useReal
-          ? tiles.map((tile) => (
-              <CatalogTile
-                key={tile.id}
-                tile={tile}
-                mode={mode}
-                textColor={textColor}
-                mutedColor={mutedColor}
-                tileBg={tileBg}
-                accent={accent}
-                editing={editing}
-                onTap={handleTileTap}
-              />
-            ))
-          : mode === "products"
-            ? // Demo tiles for a store with nothing listed yet. One photo, so
-              // no dots and no variant counter — but the glass button still
-              // shows, or a seller evaluating themes before their first
-              // upload would be judging a product tile that is missing a
-              // piece of its real design.
-              fallbackProducts.map((p, i) => (
-                <div key={i} className="rounded-xl p-1 text-left" style={{ background: tileBg }}>
-                  <div
-                    className="relative mb-2 aspect-[4/5] w-full overflow-hidden rounded-lg"
-                    style={{ background: `${accent}22` }}
-                  >
-                    <img src={productPlaceholder} alt="" className="h-full w-full object-cover" />
-                    {!editing?.isEditing && (
-                      <span
-                        aria-hidden="true"
-                        className={`absolute bottom-2 right-2 flex h-[36px] w-[36px] items-center justify-center rounded-full text-white ${GLASS_RIM}`}
-                        style={glassClear}
-                      >
-                        <MoreHorizontal size={18} strokeWidth={2.5} />
-                      </span>
-                    )}
-                  </div>
-                  <button type="button" onClick={handleTileTap} className="block w-full text-left">
-                    <p className="truncate text-[13px] font-medium" style={{ color: textColor }}>
-                      {p.name}
-                    </p>
-                    <p className="text-[11px]" style={{ color: mutedColor }}>
-                      ₦{p.price.toLocaleString()}
-                    </p>
-                  </button>
-                </div>
-              ))
-            : fallbackItems.map((it, i) => (
-                <button
-                  type="button"
-                  key={i}
-                  onClick={handleTileTap}
-                  className="rounded-xl p-1 text-left"
-                  style={{ background: tileBg }}
-                >
-                  <div
-                    className="mb-2 aspect-[4/5] w-full overflow-hidden rounded-lg"
-                    style={{ background: `${accent}22` }}
-                  >
-                    <img src={productPlaceholder} alt="" className="h-full w-full object-cover" />
-                  </div>
-                  <p className="text-[13px] font-medium" style={{ color: textColor }}>
-                    {it.label}
-                  </p>
-                  <p className="text-[11px]" style={{ color: mutedColor }}>
-                    {it.count} items
-                  </p>
-                </button>
-              ))}
+    );
+  };
+
+  const realSection = (kind: "collections" | "products", tiles: PreviewTile[]) => (
+    <div key={kind} className="mt-5 px-4">
+      {header(kind === "collections" ? "Collections" : "Products")}
+      <div className={gridClass}>
+        {tiles.map((tile) => (
+          <CatalogTile
+            key={tile.id}
+            tile={tile}
+            mode={kind}
+            textColor={textColor}
+            mutedColor={mutedColor}
+            tileBg={tileBg}
+            accent={accent}
+            editing={editing}
+            onTap={handleTileTap}
+          />
+        ))}
       </div>
     </div>
+  );
+
+  if (!demo) {
+    return (
+      <>
+        {realCollections.length > 0 && realSection("collections", realCollections)}
+        {realProducts.length > 0 && realSection("products", realProducts)}
+      </>
+    );
+  }
+
+  return (
+    <>
+      <div className="mt-5 px-4">
+        {header("Collections")}
+        <div className={gridClass}>
+          {fallbackItems.map((it, i) => (
+            <button
+              type="button"
+              key={i}
+              onClick={handleTileTap}
+              className="rounded-xl p-1 text-left"
+              style={{ background: tileBg }}
+            >
+              <div
+                className="mb-2 aspect-[4/5] w-full overflow-hidden rounded-lg"
+                style={{ background: `${accent}22` }}
+              >
+                <img src={productPlaceholder} alt="" className="h-full w-full object-cover" />
+              </div>
+              <p className="text-[13px] font-medium" style={{ color: textColor }}>
+                {it.label}
+              </p>
+              <p className="text-[11px]" style={{ color: mutedColor }}>
+                {it.count} items
+              </p>
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="mt-5 px-4">
+        {header("Products")}
+        <div className={gridClass}>
+          {/* One photo, so no dots and no variant counter — but the glass
+              button still shows, or a seller evaluating themes before their
+              first upload would be judging a tile missing part of its real
+              design. */}
+          {fallbackProducts.map((p, i) => (
+            <div key={i} className="rounded-xl p-1 text-left" style={{ background: tileBg }}>
+              <div
+                className="relative mb-2 aspect-[4/5] w-full overflow-hidden rounded-lg"
+                style={{ background: `${accent}22` }}
+              >
+                <img src={productPlaceholder} alt="" className="h-full w-full object-cover" />
+                {!editing?.isEditing && (
+                  <span
+                    aria-hidden="true"
+                    className={`absolute bottom-2 right-2 flex h-[36px] w-[36px] items-center justify-center rounded-full text-white ${GLASS_RIM}`}
+                    style={glassClear}
+                  >
+                    <MoreHorizontal size={18} strokeWidth={2.5} />
+                  </span>
+                )}
+              </div>
+              <button type="button" onClick={handleTileTap} className="block w-full text-left">
+                <p className="truncate text-[13px] font-medium" style={{ color: textColor }}>
+                  {p.name}
+                </p>
+                <p className="text-[11px]" style={{ color: mutedColor }}>
+                  ₦{p.price.toLocaleString()}
+                </p>
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -1472,11 +1475,7 @@ export function LayoutBlocks({
     ids.map((id) => <Fragment key={id}>{blocks[id]}</Fragment>);
 
   const catalog = useStoreCatalogReadiness(storeId);
-  const itemCount =
-    (editing?.collectionsMode ?? "collections") === "products"
-      ? catalog.productCount
-      : catalog.collectionCount;
-  const sticky = resolveStickyBottom(editing?.stickyBottom ?? null, itemCount);
+  const sticky = resolveStickyBottom(editing?.stickyBottom ?? null, catalog.gridItemCount);
 
   const below = blocksBelowGrid(layoutId, editing?.hiddenBlocks ?? [], drop !== null);
   if (!sticky || below.length === 0) return <>{render(order)}</>;

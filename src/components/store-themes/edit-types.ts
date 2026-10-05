@@ -58,7 +58,8 @@ export type ThemeEditState = {
   // frame instead of each reflowing to its own shape. Same preview-only tier
   // as slideshowCrops — it's meaningless once slideshowImages resets on load.
   slideshowAspectRatio: number | null;
-  // Keyed by `${collectionsMode}:${tileId}` for the real-catalog tiles in
+  // Keyed by `${section}:${tileId}:${photoUrl}` (section is "collections" or
+  // "products") for the real-catalog tiles in
   // CollectionsGrid. Deliberately preview-only (not saved against the
   // product/collection itself) — repositioning here only changes how the
   // photo sits inside this theme's tile frame, not the source image, so it
@@ -67,10 +68,9 @@ export type ThemeEditState = {
   text: ThemeTextEdits;
   textFonts: ThemeTextFonts;
   hiddenBlocks: RemovableBlockId[];
-  collectionsMode: "collections" | "products";
   // How many products/collections CollectionsGrid shows per row. Independent
   // of layoutId (which only reorders blocks) — its own dedicated toggle sits
-  // next to the Collections/Products tabs. Session-only for now, same as
+  // in the catalog's first section header. Session-only for now, same as
   // tileCrops above — see useThemeCustomization.ts's SavedThemeCustomization
   // comment for why persisting it is a follow-up, not wired here yet.
   columns: 1 | 2;
@@ -100,7 +100,6 @@ export function createInitialEditState(): ThemeEditState {
     // via useStoreLiveDrop), so it never needs a default here. hiddenBlocks
     // only ever means "the seller removed this".
     hiddenBlocks: [],
-    collectionsMode: "collections",
     columns: 2,
     stickyBottom: null,
   };
@@ -133,8 +132,6 @@ export type ThemeEditingProps = {
   onRestoreBlock: (block: RemovableBlockId) => void;
   layoutId: LayoutId;
   onLayoutChange: (id: LayoutId) => void;
-  collectionsMode: "collections" | "products";
-  onCollectionsModeChange: (mode: "collections" | "products") => void;
   columns: 1 | 2;
   onColumnsChange: (columns: 1 | 2) => void;
   onTileTapBlocked: () => void;

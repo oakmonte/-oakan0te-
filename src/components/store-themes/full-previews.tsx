@@ -1206,8 +1206,6 @@ export function PublicStorefront({ storeId }: { storeId: string }) {
     onRestoreBlock: noop,
     layoutId: state.layoutId,
     onLayoutChange: noop,
-    collectionsMode: state.collectionsMode,
-    onCollectionsModeChange: noop,
     columns: state.columns,
     onColumnsChange: noop,
     onTileTapBlocked: noop,
@@ -1454,13 +1452,10 @@ export function ThemePreviewSheet({
   function runSave(then?: () => void, stick?: boolean) {
     if (
       stick === undefined &&
-      // Only asked when the store has more than 10 products (or collections,
-      // whichever its storefront shows) -- below that there's nothing to stick.
-      stickyOptionAvailable(
-        stateRef.current.collectionsMode === "products"
-          ? catalog.productCount
-          : catalog.collectionCount,
-      ) &&
+      // Only asked when the storefront's catalog (collections plus the
+      // products outside them) has more than 10 tiles -- below that there's
+      // nothing to stick.
+      stickyOptionAvailable(catalog.gridItemCount) &&
       blocksBelowGrid(stateRef.current.layoutId, stateRef.current.hiddenBlocks, liveDrop !== null)
         .length > 0
     ) {
@@ -1616,21 +1611,12 @@ export function ThemePreviewSheet({
       onLayoutChange: (id) => {
         mutate((s) => ({ ...s, layoutId: id }));
       },
-      collectionsMode: state.collectionsMode,
-      onCollectionsModeChange: (collectionsMode) => {
-        mutate((s) => ({ ...s, collectionsMode }));
-      },
       columns: state.columns,
       onColumnsChange: (columns) => {
         mutate((s) => ({ ...s, columns }));
       },
       onTileTapBlocked: () => {
-        flashHint(
-          state.collectionsMode === "products"
-            ? "Edit products from the Products page"
-            : "Edit collections from the Collections page",
-          2500,
-        );
+        flashHint("Edit these from the Products page", 2500);
       },
       stickyBottom: state.stickyBottom,
     }),
@@ -1840,7 +1826,7 @@ export function ThemePreviewSheet({
                   (b) => BLOCK_NOUNS[b],
                 ),
               )}{" "}
-              stay on screen while your {state.collectionsMode} scroll under them. Good for stores
+              stay on screen while your collections and products scroll under them. Good for stores
               with a lot of items. You can change it any time from the theme card.
             </p>
             <div className="mt-5 flex flex-col gap-2">
@@ -1858,12 +1844,9 @@ export function ThemePreviewSheet({
                   }`}
                 >
                   {stick ? "Stick them" : "Keep them at the end"}
-                  {resolveStickyBottom(
-                    state.stickyBottom,
-                    state.collectionsMode === "products"
-                      ? catalog.productCount
-                      : catalog.collectionCount,
-                  ) === stick && <span className="ml-1.5 font-normal opacity-60">(current)</span>}
+                  {resolveStickyBottom(state.stickyBottom, catalog.gridItemCount) === stick && (
+                    <span className="ml-1.5 font-normal opacity-60">(current)</span>
+                  )}
                 </button>
               ))}
             </div>

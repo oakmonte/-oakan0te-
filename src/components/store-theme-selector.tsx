@@ -47,11 +47,10 @@ function ThemeColorSwatch({ theme }: { theme: Theme }) {
 
 // A theme with no saved row: the editor's starting state, which is also
 // what the column defaults give a row the stick toggle creates. sticky null
-// is "not chosen", which follows the 12-item default.
+// is "not chosen", which follows the 10-item default.
 const DEFAULT_STICK_ROW = {
   layoutId: "editorial" as LayoutId,
   hiddenBlocks: [] as string[],
-  collectionsMode: "collections",
   sticky: null as boolean | null,
 };
 
@@ -219,7 +218,6 @@ export function StoreThemeSelector() {
       {
         layoutId: LayoutId;
         hiddenBlocks: string[];
-        collectionsMode: string;
         sticky: boolean | null;
       }
     >
@@ -294,7 +292,7 @@ export function StoreThemeSelector() {
     let cancelled = false;
     supabase
       .from("store_theme_customizations")
-      .select("theme_slug, layout_id, hidden_blocks, collections_mode, sticky_bottom")
+      .select("theme_slug, layout_id, hidden_blocks, sticky_bottom")
       .eq("store_id", storeId)
       .then(({ data, error }) => {
         if (cancelled) return;
@@ -307,7 +305,6 @@ export function StoreThemeSelector() {
               {
                 layoutId: r.layout_id as LayoutId,
                 hiddenBlocks: r.hidden_blocks,
-                collectionsMode: r.collections_mode,
                 sticky: r.sticky_bottom,
               },
             ]),
@@ -330,10 +327,9 @@ export function StoreThemeSelector() {
     if (blocksBelowGrid(row.layoutId, row.hiddenBlocks, liveDrop !== null).length === 0) {
       return null;
     }
-    // Only offered once the store lists more than 10 of whatever its
-    // storefront shows (products or collections, per collectionsMode).
-    const count =
-      row.collectionsMode === "products" ? catalog.productCount : catalog.collectionCount;
+    // Only offered once the storefront's catalog (collections plus the
+    // products outside them) has more than 10 tiles.
+    const count = catalog.gridItemCount;
     if (!stickyOptionAvailable(count)) return null;
     // Shown as what the storefront actually does: with no choice saved,
     // that's the 10-item default.
