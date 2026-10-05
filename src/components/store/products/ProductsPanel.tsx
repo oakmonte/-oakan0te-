@@ -218,7 +218,10 @@ export function ProductsPanel({ checklist }: { checklist?: boolean }) {
           onClose={() => setCreateTypeOpen(false)}
           onSelect={(kind) => {
             setCreateTypeOpen(false);
-            navigate({ to: "/store/products/new", search: { kind } });
+            navigate({
+              to: "/store/products/new",
+              search: { kind, checklist: checklist || undefined },
+            });
           }}
         />
       )}
@@ -276,7 +279,11 @@ export function ProductsPanel({ checklist }: { checklist?: boolean }) {
               onTap={() =>
                 selectMode
                   ? toggleSelected(p.id)
-                  : navigate({ to: "/store/products/$id", params: { id: p.id } })
+                  : navigate({
+                      to: "/store/products/$id",
+                      params: { id: p.id },
+                      search: { checklist: checklist || undefined },
+                    })
               }
             />
           ))}

@@ -70,6 +70,10 @@ import { useStoreHeader } from "@/hooks/use-store-header";
 import { Spinner } from "@/components/spinner";
 
 export const Route = createFileRoute("/store/products_/$id")({
+  // See store.products_.new.tsx: carried so a save returns to the checklist's list.
+  validateSearch: (search: Record<string, unknown>): { checklist?: boolean } => ({
+    checklist: search.checklist === true || search.checklist === "true" ? true : undefined,
+  }),
   component: EditProduct,
 });
 
@@ -131,6 +135,7 @@ type LoadedProduct = {
 function EditProduct() {
   const navigate = useNavigate();
   const { id: productId } = Route.useParams();
+  const { checklist } = Route.useSearch();
   const { storeId, loading: storeLoading } = useActiveStoreId();
   const { setRightAction } = useStoreHeader();
 
@@ -787,7 +792,7 @@ function EditProduct() {
     if (productErr) throw new Error(productErr.message);
 
     clearAutosavedDraft(productId);
-    navigate({ to: "/store/products" });
+    navigate({ to: "/store/products", search: { checklist } });
   }
 
   function handleSave() {
@@ -967,7 +972,7 @@ function EditProduct() {
     // the stale pre-save draft (with a "Restored your unsaved progress"
     // banner) over data that was, in fact, already saved.
     clearAutosavedDraft(productId);
-    navigate({ to: "/store/products" });
+    navigate({ to: "/store/products", search: { checklist } });
   }
 
   if (storeLoading || loading) {
@@ -986,7 +991,7 @@ function EditProduct() {
         </p>
         <button
           type="button"
-          onClick={() => navigate({ to: "/store/products" })}
+          onClick={() => navigate({ to: "/store/products", search: { checklist } })}
           className="text-sm font-medium text-sd-ink"
         >
           Back to products

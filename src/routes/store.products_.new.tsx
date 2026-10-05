@@ -50,8 +50,13 @@ export const Route = createFileRoute("/store/products_/new")({
   // CreateProductTypeModal) open this page with intent instead of always
   // landing on the variant default — the in-page regular/variant switch
   // stays as the fallback for anyone who arrives without picking first.
-  validateSearch: (search: Record<string, unknown>): { kind?: ProductKind } => ({
+  // `checklist` rides along from the setup checklist's product step, so that
+  // saving lands back on a list that still offers "Keep listing" and "Next".
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { kind?: ProductKind; checklist?: boolean } => ({
     kind: search.kind === "regular" || search.kind === "variant" ? search.kind : undefined,
+    checklist: search.checklist === true || search.checklist === "true" ? true : undefined,
   }),
   component: NewProduct,
 });
@@ -59,7 +64,7 @@ export const Route = createFileRoute("/store/products_/new")({
 function NewProduct() {
   const navigate = useNavigate();
   const { storeId } = useActiveStoreId();
-  const { kind: intentKind } = Route.useSearch();
+  const { kind: intentKind, checklist } = Route.useSearch();
 
   // Two sources of "come back to where I was," checked in order: a draft
   // stashed just before a side-trip to create a collection/location (see
@@ -487,7 +492,7 @@ function NewProduct() {
     // that background write resolves, restored the JUST-SAVED product's
     // data into what should have been a blank form.
     clearAutosavedDraft(undefined);
-    navigate({ to: "/store/products" });
+    navigate({ to: "/store/products", search: { checklist } });
   }
 
   return (
