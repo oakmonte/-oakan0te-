@@ -119,9 +119,12 @@ export function InventorySheet({
         // Start with the store's first few locations already ticked at 0, so
         // a seller isn't sent through "Edit locations" on every product just
         // to stock the place they already have. Only when nothing is chosen
-        // yet; a product that already has stock rows keeps exactly those.
+        // yet; a product that already has stock rows keeps exactly those. Not
+        // for the "apply to all variants" bulk sheet (hideIdentifiers): there
+        // an empty pick means "leave every row's stock alone", and seeding it
+        // would make merely opening and closing the sheet overwrite them.
         setLocationQuantities((prev) =>
-          Object.keys(prev).length > 0
+          hideIdentifiers || Object.keys(prev).length > 0
             ? prev
             : Object.fromEntries(loaded.slice(0, DEFAULT_TICKED_LOCATIONS).map((l) => [l.id, 0])),
         );

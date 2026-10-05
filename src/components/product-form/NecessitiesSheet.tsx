@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import type { WeightEstimate } from "@/lib/weight-estimate";
 import { Check, ChevronRight, Loader2, X } from "lucide-react";
 import { CategoryNode } from "@/lib/categories";
@@ -335,21 +336,28 @@ export function NecessitiesSheet({
         />
       )}
 
-      {materialSheetOpen && (
-        <MaterialSheet
-          initial={kind === "regular" ? material : sharedRowMaterial}
-          onSave={saveMaterial}
-          onClose={() => setMaterialSheetOpen(false)}
-        />
-      )}
+      {/* Portalled to <body>: these are full-screen sheets opened from inside
+          this full-screen sheet, and nested in it the Material list was cut
+          short, leaving the bottom third of the screen blank. */}
+      {materialSheetOpen &&
+        createPortal(
+          <MaterialSheet
+            initial={kind === "regular" ? material : sharedRowMaterial}
+            onSave={saveMaterial}
+            onClose={() => setMaterialSheetOpen(false)}
+          />,
+          document.body,
+        )}
 
-      {colorSheetOpen && (
-        <ColorSheet
-          initial={variantColors}
-          onSave={saveColors}
-          onClose={() => setColorSheetOpen(false)}
-        />
-      )}
+      {colorSheetOpen &&
+        createPortal(
+          <ColorSheet
+            initial={variantColors}
+            onSave={saveColors}
+            onClose={() => setColorSheetOpen(false)}
+          />,
+          document.body,
+        )}
     </div>
   );
 }
