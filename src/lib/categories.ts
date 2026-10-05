@@ -919,6 +919,22 @@ const ART_AND_CRAFTS: CategoryNode = {
     { id: "calligraphy-lettering", name: "Calligraphy & Lettering" },
     { id: "woodwork-carving", name: "Woodwork & Carving" },
     { id: "craft-supplies", name: "Craft Supplies" },
+    {
+      id: "art-supplies",
+      name: "Art Supplies",
+      children: [
+        { id: "paint-brushes", name: "Paint Brushes" },
+        { id: "canvases", name: "Canvases" },
+        { id: "paints", name: "Paints" },
+        { id: "sketchbooks-drawing-books", name: "Sketchbooks & Drawing Books" },
+        { id: "drawing-pencils-charcoal", name: "Drawing Pencils & Charcoal" },
+        { id: "markers-pens-inks", name: "Markers, Pens & Inks" },
+        { id: "easels-stands", name: "Easels & Stands" },
+        { id: "palettes-mixing-tools", name: "Palettes & Mixing Tools" },
+        { id: "sculpting-clay-tools", name: "Sculpting & Clay Tools" },
+        { id: "art-books-guides", name: "Art Books & Guides" },
+      ],
+    },
   ],
 };
 

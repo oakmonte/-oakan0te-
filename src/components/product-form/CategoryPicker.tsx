@@ -61,7 +61,7 @@ const hasKids = (node: CategoryNode) => !!node.children && node.children.length 
 // Pressable card shared by every row: roomy tap target, visible edge, and a
 // press state that lands on touch-down rather than after release.
 const CARD =
-  "w-full min-h-[44px] flex items-center gap-3 px-4 py-2.5 rounded-xl border text-left " +
+  "w-full min-h-[44px] shrink-0 flex items-center gap-3 px-4 py-3 rounded-xl border text-left " +
   "transition-[transform,background-color] duration-150 ease-out active:scale-[0.98] " +
   "[-webkit-tap-highlight-color:transparent]";
 const OPTION_CARD = `${CARD} bg-gray-50 border-gray-300 active:bg-gray-200`;
@@ -84,9 +84,13 @@ function OptionRow({
   return (
     <button type="button" onClick={onClick} className={OPTION_CARD}>
       <span className="flex-1 min-w-0 flex flex-col">
-        <span className="text-[16px] font-medium text-gray-950 leading-snug">{title}</span>
+        <span className="text-[16px] font-medium text-gray-950 leading-snug break-words">
+          {title}
+        </span>
         {subtitle && (
-          <span className="text-[13px] text-gray-700 leading-snug mt-0.5">{subtitle}</span>
+          <span className="text-[13px] text-gray-700 leading-snug mt-1 break-words">
+            {subtitle}
+          </span>
         )}
       </span>
       {branch ? <ChevronRight size={20} className="text-gray-600 shrink-0" /> : <Radio />}

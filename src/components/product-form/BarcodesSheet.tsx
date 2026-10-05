@@ -70,7 +70,7 @@ export function BarcodesSheet({
         {productLabel && <span className="text-xs text-gray-400 mt-0.5">{productLabel}</span>}
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-5 flex flex-col gap-2.5">
+      <div className="flex-1 overflow-y-auto px-4 py-5 flex flex-col gap-2.5 [&>*]:shrink-0">
         {rows.map((row, i) => (
           <div
             key={i}

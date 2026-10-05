@@ -80,7 +80,7 @@ export function CollectionProductsViewSheet({
           No products in this collection yet.
         </div>
       ) : (
-        <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 flex flex-col gap-3 animate-in fade-in duration-300">
+        <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 flex flex-col gap-3 [&>*]:shrink-0 animate-in fade-in duration-300">
           {products.map((p) => (
             <div
               key={p.id}
