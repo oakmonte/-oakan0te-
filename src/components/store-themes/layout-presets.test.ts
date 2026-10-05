@@ -15,7 +15,11 @@ test("hidden blocks, and the drop banner with no drop, don't count", () => {
 });
 
 test("stick-to-page: the seller's choice wins, otherwise more than 10 items", () => {
-  expect(resolveStickyBottom(true, 0)).toBe(true);
+  // A saved "on" doesn't survive dropping to the threshold or below, where
+  // the toggle to turn it off is hidden.
+  expect(resolveStickyBottom(true, 0)).toBe(false);
+  expect(resolveStickyBottom(true, 10)).toBe(false);
+  expect(resolveStickyBottom(true, 11)).toBe(true);
   expect(resolveStickyBottom(false, 500)).toBe(false);
   expect(resolveStickyBottom(null, 10)).toBe(false);
   expect(resolveStickyBottom(null, 11)).toBe(true);

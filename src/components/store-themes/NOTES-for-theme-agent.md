@@ -12,6 +12,10 @@ keep or adjust; nothing else in this folder was touched.
    Known edge: a store that already saved `sticky_bottom = true` and later has <= 10 items
    still sticks on the storefront (explicit choice wins in `resolveStickyBottom`) but no
    longer shows the toggle. Decide whether that should be cleared.
+   **Resolved (theme agent, 2026-10-05):** `resolveStickyBottom` now returns false whenever
+   `stickyOptionAvailable` is false, so the saved choice only applies above the threshold.
+   The count is now collections + products outside a collection (`gridItemCount`), since the
+   Collections/Products switch is gone.
 2. **Returning from a theme preview/editor no longer plays a scroll animation.**
    Cause was `html { scroll-behavior: smooth }` (styles.css) making the scroll restore in
    `src/hooks/use-body-scroll-lock.ts` animate from the top. Both lock hooks now restore with

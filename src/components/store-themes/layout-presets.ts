@@ -58,21 +58,22 @@ export function blocksBelowGrid(
 export const AUTO_STICK_MIN_ITEMS = 10;
 
 /** Whether the stick-to-page choice is worth offering at all: only when the
- *  grid holds more than AUTO_STICK_MIN_ITEMS of whatever the store shows
- *  (products, or collections -- pass the count for the one it's using). A
+ *  storefront's catalog (collections plus the products outside them) has
+ *  more than AUTO_STICK_MIN_ITEMS tiles. A
  *  small store has nothing to stick past, and an unknown (still loading)
  *  count reads as "not yet", so the toggle never flashes in and out. */
 export function stickyOptionAvailable(itemCount: number | null): boolean {
   return itemCount !== null && itemCount > AUTO_STICK_MIN_ITEMS;
 }
 
-/** Whether the blocks below the grid actually stick. The seller's own choice
- *  (the save prompt or the theme card's toggle) always wins. With no choice
- *  (null), it's on only when the grid holds more than AUTO_STICK_MIN_ITEMS
- *  of whatever it shows: active products, or collections. An unknown count
- *  (still loading) reads as off, so a small store never flashes a pinned
- *  strip while its count is on the way. */
+/** Whether the blocks below the grid actually stick. Never at or below the
+ *  threshold -- not even if the seller once switched it on: the toggle is
+ *  hidden there (stickyOptionAvailable), so a saved "on" from when the store
+ *  was bigger would otherwise be stuck with no way to turn it off. Above
+ *  it, the seller's own choice (save prompt or theme card toggle) wins, and
+ *  no choice (null) means on. An unknown count (still loading) reads as off,
+ *  so a small store never flashes a pinned strip. */
 export function resolveStickyBottom(choice: boolean | null, itemCount: number | null): boolean {
-  if (choice !== null) return choice;
-  return itemCount !== null && itemCount > AUTO_STICK_MIN_ITEMS;
+  if (!stickyOptionAvailable(itemCount)) return false;
+  return choice ?? true;
 }
