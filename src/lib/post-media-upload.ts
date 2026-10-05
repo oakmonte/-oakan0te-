@@ -65,7 +65,12 @@ const KEEP_SHORT_EDGE = 1080;
 /** Packets copied as-is into a fresh MP4 with no metadata -- needs no
  *  decoder, so it works on clips this browser can't decode (HEVC on some
  *  Androids). The last resort before uploading a raw file with its GPS. */
+// Above this the copy isn't worth the risk: the remux holds the whole output
+// in memory, and a multi-hundred-MB clip can get the tab killed on iOS.
+const REMUX_MAX_BYTES = 200 * 1024 * 1024;
+
 async function remuxWithoutMetadata(blob: Blob): Promise<Blob> {
+  if (blob.size > REMUX_MAX_BYTES) return blob;
   try {
     const { Input, Output, Conversion, ALL_FORMATS, BlobSource, BufferTarget, Mp4OutputFormat } =
       await import("mediabunny");
@@ -102,7 +107,7 @@ async function shrinkVideo(blob: Blob): Promise<Blob> {
     const input = new Input({ source: new BlobSource(blob), formats: ALL_FORMATS });
     const track = await input.getPrimaryVideoTrack();
     const duration = await input.computeDuration();
-    if (!track || !(duration > 0)) return blob;
+    if (!track || !(duration > 0)) return remuxWithoutMetadata(blob);
     const w = track.displayWidth;
     const h = track.displayHeight;
     const shortEdge = Math.min(w, h);

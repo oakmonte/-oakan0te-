@@ -154,7 +154,9 @@ async function runJob(job: Job) {
   job.phase = "uploading";
   setState({ status: "uploading", kind: job.kind, preview: job.preview });
   try {
-    const cover = await coverOf(job.fd);
+    // A retry that already has its publish form needs no cover: the poster
+    // was uploaded the first time round and the preview is still held.
+    const cover = job.publishForm ? { blob: null, isPoster: false } : await coverOf(job.fd);
     if (!job.preview && cover.blob) {
       job.preview = URL.createObjectURL(cover.blob);
       setState({ status: "uploading", kind: job.kind, preview: job.preview });

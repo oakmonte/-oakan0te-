@@ -1256,6 +1256,9 @@ function CreatePage() {
       if (kind === "video") {
         setRecordingLocked(true);
         startRecording();
+        // It can decline (camera not ready, recorder refused): don't leave
+        // the shutter showing a stop square over nothing.
+        if (!recordingBusyRef.current) setRecordingLocked(false);
       } else if (isMultiCellActive) captureIntoActiveCell();
       else capturePhoto();
     },
