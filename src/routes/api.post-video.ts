@@ -12,7 +12,7 @@ import { getRequestUser } from "@/lib/server-auth";
  * never leaves the server: the signature is sha256(library + key + expiry +
  * videoId), so it can't be reused for any other video.
  *
- * POST, no body. Returns { libraryId, videoId, expires, signature }.
+ * POST, no body. Returns { libraryId, videoId, title, expires, signature }.
  */
 
 const SIGNATURE_TTL_SECONDS = 6 * 60 * 60;
@@ -36,10 +36,14 @@ export const Route = createFileRoute("/api/post-video")({
         const user = await getRequestUser(request);
         if (!user) return Response.json({ error: "Not signed in" }, { status: 401 });
 
+        // The title is how /api/posts knows this video is the caller's. The
+        // client must send this exact title in its TUS metadata: Bunny
+        // overwrites the video's title with whatever the upload says.
+        const title = `${user.id}/${crypto.randomUUID()}`;
         const res = await fetch(`https://video.bunnycdn.com/library/${libraryId}/videos`, {
           method: "POST",
           headers: { AccessKey: apiKey, "Content-Type": "application/json" },
-          body: JSON.stringify({ title: `${user.id}/${crypto.randomUUID()}` }),
+          body: JSON.stringify({ title }),
         });
         if (!res.ok) {
           const text = await res.text().catch(() => "");
@@ -50,7 +54,7 @@ export const Route = createFileRoute("/api/post-video")({
 
         const expires = Math.floor(Date.now() / 1000) + SIGNATURE_TTL_SECONDS;
         const signature = await sha256Hex(`${libraryId}${apiKey}${expires}${guid}`);
-        return Response.json({ libraryId, videoId: guid, expires, signature });
+        return Response.json({ libraryId, videoId: guid, title, expires, signature });
       },
     },
   },

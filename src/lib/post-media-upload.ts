@@ -50,9 +50,10 @@ export async function uploadPostVideo(
 ): Promise<{ videoId: string; bytes: number }> {
   const res = await authedFetch("/api/post-video", { method: "POST" });
   if (!res.ok) throw await errorFrom(res, "Could not start the video upload");
-  const { libraryId, videoId, expires, signature } = (await res.json()) as {
+  const { libraryId, videoId, title, expires, signature } = (await res.json()) as {
     libraryId: string;
     videoId: string;
+    title: string;
     expires: number;
     signature: string;
   };
@@ -70,7 +71,7 @@ export async function uploadPostVideo(
     headers: {
       ...auth,
       "Upload-Length": String(blob.size),
-      "Upload-Metadata": `filetype ${b64(blob.type || "video/mp4")},title ${b64(videoId)}`,
+      "Upload-Metadata": `filetype ${b64(blob.type || "video/mp4")},title ${b64(title)}`,
     },
   });
   const location = create.headers.get("Location");
