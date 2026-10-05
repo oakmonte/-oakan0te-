@@ -36,6 +36,9 @@ export type InventoryValues = {
 
 type StoreLocationOption = { id: string; name: string };
 
+/** How many of a store's locations start ticked on a fresh Inventory sheet. */
+const DEFAULT_TICKED_LOCATIONS = 3;
+
 /** Per-SKU inventory editor -- one product_variants row's worth of stock
  *  (a "regular" product has exactly one implicit variant, so this same sheet
  *  covers both the base product page and each row in the variant matrix).
@@ -111,7 +114,17 @@ export function InventorySheet({
           setLocations([]);
           return;
         }
-        setLocations(data ?? []);
+        const loaded = data ?? [];
+        setLocations(loaded);
+        // Start with the store's first few locations already ticked at 0, so
+        // a seller isn't sent through "Edit locations" on every product just
+        // to stock the place they already have. Only when nothing is chosen
+        // yet; a product that already has stock rows keeps exactly those.
+        setLocationQuantities((prev) =>
+          Object.keys(prev).length > 0
+            ? prev
+            : Object.fromEntries(loaded.slice(0, DEFAULT_TICKED_LOCATIONS).map((l) => [l.id, 0])),
+        );
       });
     return () => {
       cancelled = true;
