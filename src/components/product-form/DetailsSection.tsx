@@ -39,7 +39,7 @@ export function DetailsSection({
         onChange={(e) => setTitle(e.target.value)}
         placeholder="Product title"
         autoFocus
-        className="w-full text-2xl font-semibold text-gray-900 placeholder:text-gray-600 outline-none pb-3 border-b border-gray-100"
+        className="w-full text-[28px] leading-tight font-semibold text-gray-900 placeholder:text-gray-600 outline-none pt-3 pb-6 border-b border-gray-100"
       />
 
       <button

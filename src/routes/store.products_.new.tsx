@@ -526,9 +526,8 @@ function NewProduct() {
 
       {error && <p className="px-4 pt-3 text-sm text-sd-danger-ink">{error}</p>}
 
-      {/* Basic info: photo(s), title, description, category, price -- one
-          card, same fields and order as before, just framed together. */}
-      <div className="mx-4 mt-4 rounded-3xl border border-gray-200 bg-white overflow-hidden divide-y divide-gray-100">
+      {/* Photos get their own card, apart from the fields below. */}
+      <div className="mx-4 mt-4 rounded-3xl border border-gray-200 bg-white overflow-hidden">
         <MediaSection
           mainImageUrl={mainImageUrl}
           onChange={setMainImageUrl}
@@ -536,7 +535,10 @@ function NewProduct() {
           onAdditionalChange={setAdditionalImageUrls}
           noDivider
         />
+      </div>
 
+      {/* Basic info: title, description, category, price -- one card. */}
+      <div className="mx-4 mt-4 rounded-3xl border border-gray-200 bg-white overflow-hidden divide-y divide-gray-100">
         <DetailsSection
           title={title}
           setTitle={setTitle}
