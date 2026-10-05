@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 
 import { compileFilter, applyCompiledFilter, IDENTITY_FILTER } from "@/lib/canvas-filter";
+import { applyFilterToContext, GlFilterRenderer } from "@/lib/gl-filter";
 import { setPendingCapture } from "@/lib/capture-handoff";
 import { getLastNonCreateRoute } from "@/lib/last-visited-route";
 import { useFilterThumbnail } from "@/lib/filter-thumbnail";
@@ -291,6 +292,10 @@ function CreatePage() {
   // Stops the recording canvas's per-frame draw, whichever scheduler it used
   // (requestVideoFrameCallback or requestAnimationFrame).
   const stopRecordDrawRef = useRef<(() => void) | null>(null);
+  // The GPU renderer recordings draw through, made on the first recording
+  // and kept for the page's life. null = WebGL2 unavailable (CPU fallback);
+  // undefined = not tried yet.
+  const recordGlRef = useRef<GlFilterRenderer | null | undefined>(undefined);
   const mirrorCanvasStreamRef = useRef<MediaStream | null>(null);
   // `applyConstraints` replaces the whole `advanced` set rather than merging
   // it, so the torch effect and applyZoom's hardware-zoom branch — two
@@ -651,7 +656,17 @@ function CreatePage() {
   const resolveCaptureFilter = useCallback(() => {
     const graded = compileGrade(activeFilter, filterIntensity);
     if (!screenFlashActive) return graded;
-    return { ops: [...graded.ops, ...compileFilter("brightness(1.25)").ops] };
+    // The grade's intensity is applied mid-chain, so it scales the grade
+    // only. Building a fresh { ops } without it used to drop the intensity
+    // entirely whenever screen flash was on.
+    const amount = graded.amount ?? 1;
+    const flash = compileFilter("brightness(1.25)").ops;
+    return {
+      ops:
+        amount < 1
+          ? [...graded.ops, { kind: "blendOriginal" as const, amount }, ...flash]
+          : [...graded.ops, ...flash],
+    };
   }, [activeFilter, filterIntensity, screenFlashActive]);
 
   const applyZoom = useCallback(
@@ -755,12 +770,7 @@ function CreatePage() {
 
     ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
 
-    const compiled = resolveCaptureFilter();
-    if (compiled !== IDENTITY_FILTER) {
-      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      applyCompiledFilter(imgData, compiled);
-      ctx.putImageData(imgData, 0, 0);
-    }
+    applyFilterToContext(ctx, resolveCaptureFilter(), canvas.width, canvas.height);
 
     canvas.toBlob(
       (blob) => {
@@ -809,12 +819,7 @@ function CreatePage() {
       }
       ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
 
-      const compiled = resolveCaptureFilter();
-      if (compiled !== IDENTITY_FILTER) {
-        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        applyCompiledFilter(imgData, compiled);
-        ctx.putImageData(imgData, 0, 0);
-      }
+      applyFilterToContext(ctx, resolveCaptureFilter(), canvas.width, canvas.height);
       return canvas;
     },
     [facing, resolveCaptureFilter, targetAspect, cssZoomScale],
@@ -917,13 +922,16 @@ function CreatePage() {
 
     let recordingStream: MediaStream = stream;
 
-    // A filter with a true LUT grade is deliberately NOT baked live below
-    // (see resolveCaptureFilter's doc) — recording stays raw/unfiltered at
-    // 30fps, and recorder.onstop further down runs the true grade once as a
-    // post-process instead. A filter without a grade already IS its own
-    // matrix at full accuracy, so those still bake live exactly as before:
-    // no post-process, no extra encode generation, no change.
-    const needsPostGrade = !!activeFilter.grade && filterIntensity > 0;
+    // On the GPU (gl-filter.ts) every frame gets the TRUE grade live, LUT
+    // included -- what the shutter would bake into a photo -- along with the
+    // crop, zoom and mirror, in one draw per camera frame. Without WebGL2 it
+    // falls back to the old CPU behaviour: a true LUT grade is NOT baked
+    // live (too slow per frame), recording stays raw and recorder.onstop
+    // runs the grade once as a post-process; a matrix-only filter is cheap
+    // enough to bake live on the CPU.
+    if (recordGlRef.current === undefined) recordGlRef.current = GlFilterRenderer.create();
+    const gpu = recordGlRef.current?.usable ? recordGlRef.current : null;
+    const needsPostGrade = !gpu && !!activeFilter.grade && filterIntensity > 0;
     const gradeFilter = activeFilter;
     const gradeIntensity = filterIntensity;
 
@@ -934,9 +942,11 @@ function CreatePage() {
       // crop narrowed by the zoom at that moment and scales it up to fill.
       const baseCrop = getCropRect(sourceWidth, sourceHeight, RATIO_ASPECT[ratio]);
       const { sx, sy, sw, sh } = baseCrop;
-      const compiledFilterAtStart = needsPostGrade
-        ? IDENTITY_FILTER
-        : compileFilter(currentFilterCss);
+      const compiledFilterAtStart = gpu
+        ? resolveCaptureFilter()
+        : needsPostGrade
+          ? IDENTITY_FILTER
+          : compileFilter(currentFilterCss);
       const shouldMirror = facing === "user";
       const cropIsNoop = sx === 0 && sy === 0 && sw === sourceWidth && sh === sourceHeight;
       // Digital zoom is a crop, so it needs the canvas. Only the back camera
@@ -946,17 +956,34 @@ function CreatePage() {
         cropIsNoop && zoomIsHardware && !shouldMirror && compiledFilterAtStart === IDENTITY_FILTER;
 
       if (!canUseNativeStream) {
-        const recordCanvas = document.createElement("canvas");
         // Downscaled to RECORD_SHORT_EDGE (even dimensions, which H.264
-        // needs): drawing and encoding 1080x1920 per frame was more than a
-        // phone sustains at 30fps once a filter runs too.
+        // needs): encoding 1080x1920 buys nothing on a phone screen.
         const scale = Math.min(1, RECORD_SHORT_EDGE / Math.min(sw, sh));
-        recordCanvas.width = Math.round((sw * scale) / 2) * 2;
-        recordCanvas.height = Math.round((sh * scale) / 2) * 2;
-        const rctx = recordCanvas.getContext("2d");
+        const outW = Math.round((sw * scale) / 2) * 2;
+        const outH = Math.round((sh * scale) / 2) * 2;
+        if (gpu) gpu.setSize(outW, outH);
+        const recordCanvas = gpu ? gpu.canvas : document.createElement("canvas");
+        if (!gpu) {
+          recordCanvas.width = outW;
+          recordCanvas.height = outH;
+        }
+        const rctx = gpu ? null : recordCanvas.getContext("2d");
 
-        if (rctx) {
+        if (gpu || rctx) {
           const drawFrame = () => {
+            if (gpu) {
+              gpu.render(
+                video,
+                sourceWidth,
+                sourceHeight,
+                compiledFilterAtStart,
+                applyZoomToCrop(baseCrop, cssZoomRef.current),
+                shouldMirror,
+              );
+              schedule();
+              return;
+            }
+            if (!rctx) return;
             rctx.save();
             if (shouldMirror) {
               rctx.translate(recordCanvas.width, 0);
@@ -1079,6 +1106,7 @@ function CreatePage() {
     filterIntensity,
     stopMirrorDrawLoop,
     ratio,
+    resolveCaptureFilter,
   ]);
 
   const stopRecording = useCallback(() => {

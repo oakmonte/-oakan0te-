@@ -12,7 +12,8 @@ import {
   QUALITY_HIGH,
   getFirstEncodableVideoCodec,
 } from "mediabunny";
-import { applyCompiledFilter, compileFilter, type CompiledFilter } from "@/lib/canvas-filter";
+import { compileFilter, type CompiledFilter } from "@/lib/canvas-filter";
+import { applyFilterToContext } from "@/lib/gl-filter";
 import { drawVignette } from "@/lib/vignette";
 import { compileGrade, isNoopFilter, type CameraFilter } from "@/components/camera/filter-data";
 import { drawLayers, preloadStickers } from "@/lib/layer-bake";
@@ -64,10 +65,8 @@ function drawFilteredFrame(
   width: number,
   height: number,
 ) {
-  if (compiled.ops.length === 0) return;
-  const frame = ctx.getImageData(0, 0, width, height);
-  applyCompiledFilter(frame, compiled);
-  ctx.putImageData(frame, 0, 0);
+  // On the GPU per frame (gl-filter.ts), CPU fallback inside.
+  applyFilterToContext(ctx, compiled, width, height);
 }
 
 export async function exportPhoto(

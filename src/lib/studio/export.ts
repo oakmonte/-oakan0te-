@@ -25,12 +25,8 @@ import {
   getFirstEncodableVideoCodec,
   getFirstEncodableAudioCodec,
 } from "mediabunny";
-import {
-  compileFilter,
-  applyCompiledFilter,
-  IDENTITY_FILTER,
-  type CompiledFilter,
-} from "@/lib/canvas-filter";
+import { compileFilter, IDENTITY_FILTER, type CompiledFilter } from "@/lib/canvas-filter";
+import { applyFilterToContext } from "@/lib/gl-filter";
 import { drawLayers, preloadStickers } from "@/lib/layer-bake";
 import { trimVideo } from "@/lib/video-trim";
 import { combinedFilterCss } from "./adjustments";
@@ -288,13 +284,10 @@ function gradeInto(
   ctx.clearRect(0, 0, width, height);
   if (image) drawFitted(ctx, image, sourceW, sourceH, width, height, fitMode, NEUTRAL_TRANSFORM);
 
-  if (compiled !== IDENTITY_FILTER) {
-    // applyCompiledFilter leaves alpha alone, so transparent bars stay
-    // transparent however far the matrix pushes their RGB.
-    const frame = ctx.getImageData(0, 0, width, height);
-    applyCompiledFilter(frame, compiled);
-    ctx.putImageData(frame, 0, 0);
-  }
+  // On the GPU per frame (gl-filter.ts), CPU fallback inside. Both leave
+  // alpha alone, so transparent bars stay transparent however far the matrix
+  // pushes their RGB.
+  applyFilterToContext(ctx, compiled, width, height);
 
   ctx.save();
   ctx.globalCompositeOperation = "destination-over";

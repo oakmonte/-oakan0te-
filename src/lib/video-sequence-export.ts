@@ -13,7 +13,8 @@ import {
   getFirstEncodableVideoCodec,
   getFirstEncodableAudioCodec,
 } from "mediabunny";
-import { applyCompiledFilter, compileFilter, type CompiledFilter } from "@/lib/canvas-filter";
+import { compileFilter, type CompiledFilter } from "@/lib/canvas-filter";
+import { applyFilterToContext } from "@/lib/gl-filter";
 import { compileGrade, CAMERA_FILTERS } from "@/components/camera/filter-data";
 import { drawLayers, preloadStickers } from "@/lib/layer-bake";
 import { drawVignette } from "@/lib/vignette";
@@ -56,10 +57,8 @@ function drawFilteredFrame(
   width: number,
   height: number,
 ) {
-  if (compiled.ops.length === 0) return;
-  const frame = ctx.getImageData(0, 0, width, height);
-  applyCompiledFilter(frame, compiled);
-  ctx.putImageData(frame, 0, 0);
+  // On the GPU per frame (gl-filter.ts), CPU fallback inside.
+  applyFilterToContext(ctx, compiled, width, height);
 }
 
 /** The clip's grade plus its manual tone adjustments, as ONE compiled filter —
