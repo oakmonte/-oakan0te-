@@ -51,6 +51,70 @@ function gallery(main: string | null, extra: string[] | null): string[] {
   );
 }
 
+type ProductRowWithVariants = {
+  id: string;
+  title: string | null;
+  product_variants:
+    | {
+        main_image_url: string | null;
+        additional_image_urls: string[] | null;
+        price: number | null;
+        compare_at_price: number | null;
+      }[]
+    | null;
+};
+
+const PRODUCT_TILE_SELECT =
+  "id, title, product_variants(main_image_url, additional_image_urls, price, compare_at_price)";
+
+function productTile(p: ProductRowWithVariants): PreviewTile {
+  const variants = p.product_variants ?? [];
+  // Deliberately NOT de-duplicated across variants. A size run repeats one
+  // photo across every row, so swiping can advance the variant counter
+  // without the picture changing — the counter tracks variants, and
+  // collapsing identical photo sets would skip variants that exist.
+  const photos: TilePhoto[] = [];
+  let variant = 0;
+  for (const v of variants) {
+    const urls = gallery(v.main_image_url, v.additional_image_urls);
+    if (urls.length === 0) continue;
+    for (const url of urls) photos.push({ url, variant });
+    variant += 1;
+  }
+  return {
+    id: p.id,
+    title: p.title ?? "Untitled",
+    photos,
+    variantCount: variant,
+    price: variants[0]?.price ?? null,
+    compareAtPrice: variants[0]?.compare_at_price ?? null,
+  };
+}
+
+/** Everything a storefront's collection page shows: the collection's own
+ *  description, and every ACTIVE product in it, newest first. Drafts stay
+ *  out here too -- this is the public storefront. */
+export async function loadCollectionPage(
+  collectionId: string,
+): Promise<{ description: string | null; products: PreviewTile[] }> {
+  const [col, prods] = await Promise.all([
+    supabase.from("collections").select("description").eq("id", collectionId).maybeSingle(),
+    supabase
+      .from("products")
+      .select(`${PRODUCT_TILE_SELECT}, product_collections!inner(collection_id)`)
+      .eq("product_collections.collection_id", collectionId)
+      .eq("status", "active")
+      .order("created_at", { ascending: false })
+      .order("created_at", { referencedTable: "product_variants", ascending: true }),
+  ]);
+  if (col.error) console.error("collection page: collection", col.error);
+  if (prods.error) console.error("collection page: products", prods.error);
+  return {
+    description: col.data?.description ?? null,
+    products: (prods.data ?? []).map((p) => productTile(p)),
+  };
+}
+
 async function fetchCatalog(storeId: string): Promise<StorefrontCatalog> {
   // Everything here feeds the PUBLIC storefront, so drafts stay out on both
   // sides. Collections are few, so all of them come back (for the count);
@@ -96,30 +160,7 @@ async function fetchCatalog(storeId: string): Promise<StorefrontCatalog> {
     const byId = new Map((data ?? []).map((p) => [p.id, p]));
     products = shownIds.flatMap((id) => {
       const p = byId.get(id);
-      if (!p) return [];
-      const variants = p.product_variants ?? [];
-      // Deliberately NOT de-duplicated across variants. A size run repeats
-      // one photo across every row, so swiping can advance the variant
-      // counter without the picture changing — the counter tracks variants,
-      // and collapsing identical photo sets would skip variants that exist.
-      const photos: TilePhoto[] = [];
-      let variant = 0;
-      for (const v of variants) {
-        const urls = gallery(v.main_image_url, v.additional_image_urls);
-        if (urls.length === 0) continue;
-        for (const url of urls) photos.push({ url, variant });
-        variant += 1;
-      }
-      return [
-        {
-          id: p.id,
-          title: p.title ?? "Untitled",
-          photos,
-          variantCount: variant,
-          price: variants[0]?.price ?? null,
-          compareAtPrice: variants[0]?.compare_at_price ?? null,
-        },
-      ];
+      return p ? [productTile(p)] : [];
     });
   }
 

@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronLeft, ImageIcon, MoreHorizontal, Plus } from "lucide-react";
 import { BackButton } from "@/components/BackButton";
 import { supabase } from "@/lib/integrations/my-supabase/client";
@@ -10,6 +10,7 @@ import { setPendingNewCollectionId } from "@/lib/product-draft-handoff";
 import { ProductsSheet } from "@/components/product-form/ProductsSheet";
 import { CollectionActionsSheet } from "@/components/product-form/CollectionActionsSheet";
 import { StatusPicker } from "@/components/product-form/StatusPicker";
+import { MediaSection } from "@/components/product-form/MediaSection";
 
 export const Route = createFileRoute("/store/collections_/$id")({
   component: CollectionDetail,
@@ -19,6 +20,7 @@ type CollectionInfo = {
   id: string;
   title: string;
   image_url: string | null;
+  additional_image_urls: string[] | null;
   status: string;
 };
 
@@ -42,6 +44,48 @@ function CollectionDetail() {
   // edit page, rather than a bare trash icon in this page's own header.
   const [actionsSheetOpen, setActionsSheetOpen] = useState(false);
   const [statusError, setStatusError] = useState("");
+  const [photosError, setPhotosError] = useState("");
+
+  // Photos are edited right here, saved as they change -- this page has no
+  // Save button. The first is the cover; the rest are the storefront tile's
+  // slideshow. Collections used to get their photos only at creation, so an
+  // existing one could never gain a second image.
+  const photos = collection
+    ? [collection.image_url, ...(collection.additional_image_urls ?? [])].filter(
+        (u): u is string => !!u,
+      )
+    : [];
+  const photosKey = photos.join("|");
+  const savedPhotosKey = useRef<string | null>(null);
+  useEffect(() => {
+    if (!collection || !storeId) return;
+    // The first load is what's saved already.
+    if (savedPhotosKey.current === null) {
+      savedPhotosKey.current = photosKey;
+      return;
+    }
+    if (photosKey === savedPhotosKey.current) return;
+    // A photo still uploading is a blob: preview; wait for its real URL
+    // (MediaSection swaps it in), never save the preview.
+    if (photos.some((u) => u.startsWith("blob:"))) return;
+    const t = setTimeout(async () => {
+      const [cover, ...rest] = photos;
+      const { error } = await supabase
+        .from("collections")
+        .update({ image_url: cover ?? null, additional_image_urls: rest.length > 0 ? rest : null })
+        .eq("id", id)
+        .eq("store_id", storeId);
+      if (error) {
+        setPhotosError("Couldn't save the photos — try again.");
+        return;
+      }
+      savedPhotosKey.current = photosKey;
+      setPhotosError("");
+    }, 400);
+    return () => clearTimeout(t);
+    // photos is derived from photosKey; the key is the real dependency.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [photosKey, collection?.id, storeId, id]);
 
   // Saved on tap, like Add products below -- this page has no Save button.
   // Optimistic, rolled back if the write fails.
@@ -64,7 +108,7 @@ function CollectionDetail() {
   const fetchCollection = useCallback(async () => {
     const { data } = await supabase
       .from("collections")
-      .select("id, title, image_url, status")
+      .select("id, title, image_url, additional_image_urls, status")
       .eq("id", id)
       .maybeSingle();
     setCollection(data ?? null);
@@ -175,6 +219,19 @@ function CollectionDetail() {
           </p>
         </div>
       </div>
+
+      <div className="mx-4 mt-4 overflow-hidden rounded-2xl border border-sd-ink/25 bg-sd-surface">
+        <MediaSection
+          mainImageUrl={collection.image_url ?? ""}
+          onChange={(url) => setCollection((c) => (c ? { ...c, image_url: url || null } : c))}
+          additionalImageUrls={collection.additional_image_urls ?? []}
+          onAdditionalChange={(urls) =>
+            setCollection((c) => (c ? { ...c, additional_image_urls: urls } : c))
+          }
+          noDivider
+        />
+      </div>
+      {photosError && <p className="mx-4 mt-2 text-sm text-sd-danger-ink">{photosError}</p>}
 
       <div className="px-4 pt-4">
         <StatusPicker

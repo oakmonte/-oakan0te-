@@ -30,6 +30,8 @@ import { ThemeText } from "./EditableText";
 import { MAX_SLIDESHOW_IMAGES, type CropPosition, type ThemeEditingProps } from "./edit-types";
 import { formatCommunityCount, useStoreCommunityCounts } from "./useStoreCommunityCounts";
 import { useStorefrontCatalog, type PreviewTile, type TilePhoto } from "./storefront-catalog";
+import { CollectionPage } from "./CollectionPage";
+import { readStorefrontLook, type StorefrontLook } from "./storefront-look";
 import { readableTextColor } from "./colors";
 import { alpha, isDark } from "./theme-spec";
 import { GLASS_RIM, glassClear } from "@/lib/liquid-glass";
@@ -319,9 +321,12 @@ function CatalogTile({
   accent,
   editing,
   onTap,
+  onOpen,
 }: {
   tile: PreviewTile;
   mode: "collections" | "products";
+  /** Collections: opens the collection's own page (the glass button). */
+  onOpen?: () => void;
   textColor: string;
   mutedColor: string;
   tileBg: string;
@@ -453,14 +458,18 @@ function CatalogTile({
 
         {loop && <CarouselDots total={total} index={index} />}
 
-        {/* Products only, and never in edit mode — the crop handle lives in
-            this same corner, and the seller needs that far more than a shopper
-            control while they are framing photos. */}
-        {mode === "products" && !isEditing && (
+        {/* Never in edit mode — the crop handle lives in this same corner,
+            and the seller needs that far more than a shopper control while
+            they are framing photos. On a collection it opens the
+            collection's page. */}
+        {(mode === "products" || onOpen) && !isEditing && (
           <button
             type="button"
-            aria-label={`More about ${tile.title}`}
-            onClick={(e) => e.stopPropagation()}
+            aria-label={mode === "collections" ? `Open ${tile.title}` : `More about ${tile.title}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpen?.();
+            }}
             className={`absolute bottom-2 right-2 flex h-[36px] w-[36px] items-center justify-center rounded-full text-white ${GLASS_RIM}`}
             style={glassClear}
           >
@@ -1139,6 +1148,20 @@ export function CollectionsGrid({
   // drawn at all (storefront-catalog.ts).
   const { catalog, loading } = useStorefrontCatalog(storeId);
   const columns = editing?.columns ?? 2;
+  // A collection opened as its own page, with the storefront's look read off
+  // this grid at the moment it opened (see readStorefrontLook).
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [opened, setOpened] = useState<{ tile: PreviewTile; look: StorefrontLook } | null>(null);
+  function openCollection(tile: PreviewTile) {
+    if (editing?.isEditing) {
+      editing.onTileTapBlocked();
+      return;
+    }
+    setOpened({
+      tile,
+      look: readStorefrontLook(rootRef.current, { textColor, mutedColor, tileBg, accent }),
+    });
+  }
   const gridClass = `mt-2.5 grid gap-1.5 ${columns === 1 ? "grid-cols-1" : "grid-cols-2"}`;
 
   function handleTileTap() {
@@ -1192,7 +1215,8 @@ export function CollectionsGrid({
             tileBg={tileBg}
             accent={accent}
             editing={editing}
-            onTap={handleTileTap}
+            onTap={kind === "collections" ? () => openCollection(tile) : handleTileTap}
+            onOpen={kind === "collections" ? () => openCollection(tile) : undefined}
           />
         ))}
       </div>
@@ -1201,10 +1225,28 @@ export function CollectionsGrid({
 
   if (!demo) {
     return (
-      <>
+      <div ref={rootRef}>
         {realCollections.length > 0 && realSection("collections", realCollections)}
         {realProducts.length > 0 && realSection("products", realProducts)}
-      </>
+        {opened && (
+          <CollectionPage
+            collection={opened.tile}
+            look={opened.look}
+            onClose={() => setOpened(null)}
+            renderTile={(tile) => (
+              <CatalogTile
+                tile={tile}
+                mode="products"
+                textColor={opened.look.textColor}
+                mutedColor={opened.look.mutedColor}
+                tileBg={opened.look.tileBg}
+                accent={opened.look.accent}
+                onTap={() => {}}
+              />
+            )}
+          />
+        )}
+      </div>
     );
   }
 
