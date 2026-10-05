@@ -1,4 +1,5 @@
 import { authedFetch } from "@/lib/authed-fetch";
+import { fitForUpload } from "@/lib/upload-image-file";
 
 // Gets a post's media into Bunny BEFORE the post is created, one file at a
 // time, so no single request is anywhere near Vercel's 4.5 MB body limit:
@@ -11,8 +12,6 @@ import { authedFetch } from "@/lib/authed-fetch";
 //
 // /api/posts then gets only URLs and video ids (see post-upload.ts).
 
-/** Under /api/post-media's 4 MB cap with room for the multipart envelope. */
-const PHOTO_MAX_BYTES = 3.8 * 1024 * 1024;
 const TUS_ENDPOINT = "https://video.bunnycdn.com/tusupload";
 const TUS_CHUNK_BYTES = 5 * 1024 * 1024;
 const TUS_ATTEMPTS = 4;
@@ -22,42 +21,17 @@ async function errorFrom(res: Response, fallback: string): Promise<Error> {
   return new Error(body.error || fallback);
 }
 
-/** Re-encodes a photo that's over the cap: long edge to 2560px, then lower
- *  JPEG quality / size until it fits. Photos already under it go untouched. */
-async function shrinkPhoto(blob: Blob): Promise<Blob> {
-  const okType = ["image/jpeg", "image/png", "image/webp"].includes(blob.type);
-  if (okType && blob.size <= PHOTO_MAX_BYTES) return blob;
-
-  const bitmap = await createImageBitmap(blob);
-  let edge = Math.min(2560, Math.max(bitmap.width, bitmap.height));
-  let quality = 0.86;
-  for (let i = 0; i < 8; i++) {
-    const scale = edge / Math.max(bitmap.width, bitmap.height);
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.round(bitmap.width * scale);
-    canvas.height = Math.round(bitmap.height * scale);
-    canvas.getContext("2d")!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-    const out = await new Promise<Blob | null>((r) => canvas.toBlob(r, "image/jpeg", quality));
-    if (out && out.size <= PHOTO_MAX_BYTES) {
-      bitmap.close();
-      return out;
-    }
-    if (quality > 0.7) quality -= 0.08;
-    else edge = Math.round(edge * 0.8);
-  }
-  bitmap.close();
-  throw new Error("That photo is too large to upload");
-}
-
 /** Stores one photo (or the poster frame) and returns its URL. */
 export async function uploadPostPhoto(
   blob: Blob,
   uploadId: string,
   name: string,
 ): Promise<{ url: string; bytes: number }> {
-  const file = await shrinkPhoto(blob);
+  // Same shrink-to-fit the product and theme image uploads use: anything
+  // over 4 MB (or not JPEG/PNG/WEBP/GIF) is downscaled and re-encoded.
+  const file = await fitForUpload(new File([blob], `${name}.jpg`, { type: blob.type }));
   const fd = new FormData();
-  fd.set("file", file, `${name}.jpg`);
+  fd.set("file", file);
   fd.set("uploadId", uploadId);
   fd.set("name", name);
   const res = await authedFetch("/api/post-media", { method: "POST", body: fd });

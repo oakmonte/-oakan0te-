@@ -12,19 +12,21 @@ import { getRequestUser } from "@/lib/server-auth";
  * request" publish failed for any real video and for big carousels. Videos
  * don't come here at all -- they go straight from the phone to Bunny Stream
  * (see api.post-video.ts). The client shrinks a photo to under MAX_BYTES
- * before sending (post-upload.ts).
+ * before sending (fitForUpload, via post-media-upload.ts).
  *
  * POST multipart/form-data:
- *   file      the image (JPEG/PNG/WEBP)       (required)
+ *   file      the image (JPEG/PNG/WEBP/GIF)   (required)
  *   uploadId  uuid shared by one post's files (required)
  *   name      e.g. "media-0" or "thumbnail"   (required)
  */
 
+// Matches fitForUpload (upload-image-file.ts), which shrinks to 4,000,000.
 const MAX_BYTES = 4 * 1024 * 1024;
 const EXT_BY_TYPE: Record<string, string> = {
   "image/jpeg": "jpg",
   "image/png": "png",
   "image/webp": "webp",
+  "image/gif": "gif",
 };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const NAME = /^(media-\d{1,2}|thumbnail)$/;

@@ -20,7 +20,7 @@ const SENDABLE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/
  *  transparent PNG logo keeps its transparency and a GIF keeps animating. Only
  *  an oversized photo, or one the routes would reject (HEIC from a desktop
  *  picker), is downscaled and re-encoded as JPEG. */
-async function fitForUpload(file: File): Promise<File> {
+export async function fitForUpload(file: File): Promise<File> {
   if (file.size <= MAX_UPLOAD_BYTES && SENDABLE_TYPES.has(file.type)) return file;
 
   let prepared: PreparedImage;
