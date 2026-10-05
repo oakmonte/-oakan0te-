@@ -30,6 +30,7 @@ import { ThemeText } from "./EditableText";
 import { MAX_SLIDESHOW_IMAGES, type CropPosition, type ThemeEditingProps } from "./edit-types";
 import { formatCommunityCount, useStoreCommunityCounts } from "./useStoreCommunityCounts";
 import { useStorefrontCatalog, type PreviewTile, type TilePhoto } from "./storefront-catalog";
+import { SalesLockedNotice } from "./SalesLockedNotice";
 import { CollectionPage } from "./CollectionPage";
 import { readStorefrontLook, type StorefrontLook } from "./storefront-look";
 import { readableTextColor } from "./colors";
@@ -1152,6 +1153,15 @@ export function CollectionsGrid({
   // this grid at the moment it opened (see readStorefrontLook).
   const rootRef = useRef<HTMLDivElement>(null);
   const [opened, setOpened] = useState<{ tile: PreviewTile; look: StorefrontLook } | null>(null);
+  // Checkout isn't open before launch: a product tap explains that instead.
+  const [salesLocked, setSalesLocked] = useState(false);
+  function openProduct() {
+    if (editing?.isEditing) {
+      editing.onTileTapBlocked();
+      return;
+    }
+    setSalesLocked(true);
+  }
   function openCollection(tile: PreviewTile) {
     if (editing?.isEditing) {
       editing.onTileTapBlocked();
@@ -1215,7 +1225,7 @@ export function CollectionsGrid({
             tileBg={tileBg}
             accent={accent}
             editing={editing}
-            onTap={kind === "collections" ? () => openCollection(tile) : handleTileTap}
+            onTap={kind === "collections" ? () => openCollection(tile) : openProduct}
             onOpen={kind === "collections" ? () => openCollection(tile) : undefined}
           />
         ))}
@@ -1241,11 +1251,12 @@ export function CollectionsGrid({
                 mutedColor={opened.look.mutedColor}
                 tileBg={opened.look.tileBg}
                 accent={opened.look.accent}
-                onTap={() => {}}
+                onTap={openProduct}
               />
             )}
           />
         )}
+        {salesLocked && <SalesLockedNotice onClose={() => setSalesLocked(false)} />}
       </div>
     );
   }
