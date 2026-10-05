@@ -87,6 +87,22 @@ function setState(next: ProductSaveState) {
   listeners.forEach((l) => l());
 }
 
+/** Resolves once no product save is in flight. The edit page awaits this
+ *  before loading: opening a product that is still being written read it
+ *  half-built, showed a blank form, and a save from there overwrote the real
+ *  data with nothing. */
+export function whenProductSaveSettled(): Promise<void> {
+  if (state?.status !== "saving") return Promise.resolve();
+  return new Promise((resolve) => {
+    const off = subscribeProductSave(() => {
+      if (state?.status !== "saving") {
+        off();
+        resolve();
+      }
+    });
+  });
+}
+
 export function subscribeProductSave(listener: () => void): () => void {
   listeners.add(listener);
   return () => listeners.delete(listener);
@@ -186,9 +202,15 @@ async function runCreate(
       title: payload.title.trim(),
       description_short: payload.descriptionShort.trim() || null,
       product_type: payload.categoryName || null,
-      status: payload.status,
+      // Created as an incomplete draft and only promoted to its real status
+      // once every child row is written (see the end of runCreate). The
+      // product row lands first and its variant a few round trips later; a
+      // product list loaded in that gap used to show "Active · No price · 0 in
+      // stock", and opening it then loaded a blank form that the seller had to
+      // save a second time. A half-written product must never look finished.
+      status: "draft",
       source_platform: "manual",
-      is_complete: computeIsComplete(completenessInput(payload)),
+      is_complete: false,
       pass_fees_to_buyer: payload.passFeesToBuyer,
       manual_size_value: payload.manualSize?.value ?? null,
       manual_size_system: payload.manualSize?.system ?? null,
@@ -372,6 +394,16 @@ async function runCreate(
     );
     if (linksErr) throw new Error(`post_product_tags: ${linksErr.message}`);
   }
+
+  // Everything is written: now it becomes the product the seller asked for.
+  const finalRes = await supabase
+    .from("products")
+    .update({
+      status: payload.status,
+      is_complete: computeIsComplete(completenessInput(payload)),
+    })
+    .eq("id", product.id);
+  if (finalRes.error) throw new Error(`products: ${finalRes.error.message}`);
 }
 
 async function runUpdate(payload: Extract<ProductSavePayload, { mode: "update" }>) {

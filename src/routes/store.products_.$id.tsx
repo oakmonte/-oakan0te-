@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { BackButton } from "@/components/BackButton";
 import { supabase } from "@/lib/integrations/my-supabase/client";
-import { startProductSave } from "@/lib/product-save";
+import { startProductSave, whenProductSaveSettled } from "@/lib/product-save";
 import { hasPendingUploads } from "@/lib/background-upload";
 import { CategoryNode, categoryPathFromProductType, productTypeForPath } from "@/lib/categories";
 import { StubRow } from "@/components/product-form/ui";
@@ -379,6 +379,10 @@ function EditProduct() {
     let cancelled = false;
 
     (async () => {
+      // A product the seller just saved may still be mid-write in the
+      // background; loading it now reads it half-built.
+      await whenProductSaveSettled();
+      if (cancelled) return;
       const { data, error: loadErr } = await supabase
         .from("products")
         .select(

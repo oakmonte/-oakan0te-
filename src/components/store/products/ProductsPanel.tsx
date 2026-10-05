@@ -5,6 +5,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { CreateProductTypeModal } from "@/components/product-form/CreateProductTypeModal";
 import { useActiveStoreId } from "@/hooks/use-own-store";
 import { useLongPress } from "@/hooks/use-long-press";
+import { subscribeProductSave, getProductSaveSnapshot } from "@/lib/product-save";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -121,6 +122,20 @@ export function ProductsPanel({ checklist }: { checklist?: boolean }) {
 
   useEffect(() => {
     fetchProducts();
+  }, [fetchProducts]);
+
+  // A product saved from the form finishes writing in the background, after
+  // this list has already loaded -- so reload it the moment that save lands.
+  useEffect(() => {
+    let wasSaving = getProductSaveSnapshot()?.status === "saving";
+    return subscribeProductSave(() => {
+      const status = getProductSaveSnapshot()?.status;
+      if (status === "saving") wasSaving = true;
+      else if (wasSaving && status === "success") {
+        wasSaving = false;
+        void fetchProducts();
+      }
+    });
   }, [fetchProducts]);
 
   function toggleSelected(id: string) {
