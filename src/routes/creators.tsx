@@ -869,7 +869,21 @@ const CSS = `
 .oak-creators .logo .word{font:400 26px/1 Inter,ui-sans-serif,system-ui,sans-serif;letter-spacing:-.01em;color:var(--ink)}
 .oak-creators .logo small{margin-left:16px;font:500 9px Inter,sans-serif;letter-spacing:.16em;color:var(--blue);transform:translateY(-2px);white-space:nowrap}
 @media (max-width:640px){.oak-creators .logo small{margin-left:10px;font-size:7px;letter-spacing:.1em}.oak-creators header .btn{padding:8px 14px;font-size:13px;white-space:nowrap}}
-@media (max-width:350px){.oak-creators .logo small{display:none}}
+@media (max-width:480px){.oak-creators .logo small{display:none}.oak-creators .nav-end{gap:4px}}
+/* Slim phones: the logo gives way before the Sign in button can touch it. */
+@media (max-width:400px){
+  .oak-creators .wrap{padding:0 16px}
+  .oak-creators .logo-o{height:36px}
+  .oak-creators .logo .word{font-size:21px}
+  .oak-creators header .btn{padding:7px 12px;font-size:12px}
+  .oak-creators .menu-btn{width:34px}
+  .oak-creators .menu-btn span{left:7px;right:7px}
+}
+@media (max-width:340px){
+  .oak-creators .logo-o{height:30px}
+  .oak-creators .logo .word{font-size:18px}
+  .oak-creators header .btn{padding:6px 10px;font-size:11px}
+}
 
 .oak-creators .links{display:flex;gap:32px;margin-left:auto;margin-right:28px;font-weight:600;font-size:15px}
 .oak-creators .links a{text-decoration:none;color:var(--mut);transition:color .2s}

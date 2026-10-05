@@ -710,6 +710,38 @@ const CSS = `
   .oak-sellers .footer-bottom span:last-child{width:100%}
 }
 
+/* Phones: the logo, "Start selling" and the menu button share one 76px bar.
+   Tighten the gap between them and let the logo and button give way as the
+   screen narrows, so nothing ever touches. */
+@media (max-width:520px){
+  .oak-sellers .nav-actions{gap:8px}
+  .oak-sellers .nav-actions .pill-button{padding:9px 14px;gap:6px;font-size:11px;white-space:nowrap}
+  .oak-sellers .wordmark{min-width:0}
+}
+@media (max-width:400px){
+  .oak-sellers .site-nav{padding:0 4vw}
+  .oak-sellers .wordmark-logo{height:36px;transform:translateY(3px)}
+  .oak-sellers .wordmark-word{font-size:21px}
+  .oak-sellers .nav-actions{gap:4px}
+  .oak-sellers .nav-actions .pill-button{padding:8px 11px}
+  .oak-sellers .nav-actions .pill-button svg{display:none}
+  /* Display headlines have a 49-70px floor that a 320px screen cannot hold
+     a long word at. Let them scale down with the screen instead. */
+  .oak-sellers .hero h1{font-size:clamp(40px,15.5vw,125px)}
+  .oak-sellers .manifesto h2{font-size:clamp(38px,13vw,126px)}
+  .oak-sellers .feature-intro h2,.oak-sellers .studio-copy h2,.oak-sellers .manufacturer-section h2,.oak-sellers .free-panel h2{font-size:clamp(38px,12vw,95px)}
+  .oak-sellers .footer-cta h2{font-size:clamp(44px,15vw,145px)}
+  .oak-sellers .feature-panel-inner p{padding:0 8px 22px 40px}
+  .oak-sellers .studio-window{grid-template-columns:72px 1fr}
+  .oak-sellers .window-nav{width:72px;padding:24px 10px}
+  .oak-sellers .window-main{padding:26px 16px}
+}
+@media (max-width:340px){
+  .oak-sellers .wordmark-logo{height:30px}
+  .oak-sellers .wordmark-word{font-size:18px}
+  .oak-sellers .nav-actions .pill-button{padding:7px 9px;font-size:10px}
+}
+
 @media (prefers-reduced-motion:reduce){
   .oak-sellers .marquee-track,.oak-sellers .hero-orbit,.oak-sellers .hero-grid,.oak-sellers .studio-card,.oak-sellers .chart i,.oak-sellers .wordmark-word,.oak-sellers .pill-button::after,.oak-sellers .hero-orbit::after{animation:none}
   .oak-sellers .hero-copy,.oak-sellers .hero h1,.oak-sellers .hero-copy p,.oak-sellers .hero-buttons{animation:none}
