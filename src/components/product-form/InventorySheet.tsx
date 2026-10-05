@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { X, ChevronLeft, ChevronRight, Check, Plus } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/lib/integrations/my-supabase/client";
@@ -24,6 +24,11 @@ export type InventoryValues = {
   // once it's been picked in "Edit locations" -- absence means not stocked
   // at that location, not zero-and-tracked.
   locationQuantities: Record<string, number>;
+  // "Apply to all" bulk sheet only: true when locationQuantities is still
+  // exactly the default pre-ticked locations, untouched. Apply then adds
+  // them only to variants with no locations yet, instead of overwriting
+  // every variant's real stock with zeros (VariantCombinationsSheet).
+  defaultsOnly?: boolean;
   // Both per-SKU tracking identifiers, same as everything else in this
   // sheet -- live alongside stock rather than as their own top-level
   // sections, since they're all facets of "how this SKU is tracked."
@@ -88,6 +93,11 @@ export function InventorySheet({
   const [locationQuantities, setLocationQuantities] = useState<Record<string, number>>(
     initial.locationQuantities,
   );
+  // The default pick this sheet seeded (or was reopened with, still
+  // untouched) -- see InventoryValues.defaultsOnly.
+  const seededRef = useRef<Record<string, number> | null>(
+    initial.defaultsOnly ? initial.locationQuantities : null,
+  );
   const [sku, setSku] = useState(initial.sku);
   const [barcodes, setBarcodes] = useState<BarcodeEntry[]>(initial.barcodes);
   const [barcodesSheetOpen, setBarcodesSheetOpen] = useState(false);
@@ -119,15 +129,18 @@ export function InventorySheet({
         // Start with the store's first few locations already ticked at 0, so
         // a seller isn't sent through "Edit locations" on every product just
         // to stock the place they already have. Only when nothing is chosen
-        // yet; a product that already has stock rows keeps exactly those. Not
-        // for the "apply to all variants" bulk sheet (hideIdentifiers): there
-        // an empty pick means "leave every row's stock alone", and seeding it
-        // would make merely opening and closing the sheet overwrite them.
-        setLocationQuantities((prev) =>
-          hideIdentifiers || Object.keys(prev).length > 0
-            ? prev
-            : Object.fromEntries(loaded.slice(0, DEFAULT_TICKED_LOCATIONS).map((l) => [l.id, 0])),
-        );
+        // yet; a product that already has stock rows keeps exactly those.
+        // The "apply to all" bulk sheet seeds them too, but reports an
+        // untouched seed as defaultsOnly, so merely opening and closing it
+        // can't overwrite every variant's real stock with zeros.
+        setLocationQuantities((prev) => {
+          if (Object.keys(prev).length > 0) return prev;
+          const seed = Object.fromEntries(
+            loaded.slice(0, DEFAULT_TICKED_LOCATIONS).map((l) => [l.id, 0]),
+          );
+          seededRef.current = seed;
+          return seed;
+        });
       });
     return () => {
       cancelled = true;
@@ -152,6 +165,21 @@ export function InventorySheet({
     });
   }
 
+  function values(): InventoryValues {
+    const seed = seededRef.current;
+    const untouched =
+      !!seed &&
+      Object.keys(seed).length === Object.keys(locationQuantities).length &&
+      Object.entries(seed).every(([id, q]) => locationQuantities[id] === q);
+    return {
+      continueSellingOutOfStock,
+      locationQuantities,
+      sku,
+      barcodes,
+      defaultsOnly: hideIdentifiers && untouched,
+    };
+  }
+
   function handleSave() {
     if (selectedLocations.length === 0) {
       setGuardDialog("no-locations");
@@ -161,12 +189,12 @@ export function InventorySheet({
       setGuardDialog("zero-stock");
       return;
     }
-    onSave({ continueSellingOutOfStock, locationQuantities, sku, barcodes });
+    onSave(values());
   }
 
   function confirmSaveAnyway() {
     setGuardDialog(null);
-    onSave({ continueSellingOutOfStock, locationQuantities, sku, barcodes });
+    onSave(values());
   }
 
   return (

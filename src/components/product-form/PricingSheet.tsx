@@ -25,6 +25,7 @@ export function PricingSheet({
   onChangeCostPrice,
   onChangePassFeesToBuyer,
   onClose,
+  focusField = "price",
 }: {
   price: string;
   compareAtPrice: string;
@@ -36,6 +37,9 @@ export function PricingSheet({
   onChangeCostPrice: (v: string) => void;
   onChangePassFeesToBuyer: (v: boolean) => void;
   onClose: () => void;
+  /** Which box gets the cursor on open -- "cost" when the sheet was opened
+   *  from a Cost price button, so the seller lands where they tapped. */
+  focusField?: "price" | "cost";
 }) {
   useLockedViewport();
 
@@ -94,7 +98,7 @@ export function PricingSheet({
           label={passFeesToBuyer ? "You receive" : "Price"}
           value={price}
           onChange={onChangePrice}
-          autoFocus
+          autoFocus={focusField === "price"}
           onFocus={() => setFieldFocused(true)}
           onBlur={() => setFieldFocused(false)}
         />
@@ -126,6 +130,7 @@ export function PricingSheet({
           label="Cost price"
           value={costPrice}
           onChange={onChangeCostPrice}
+          autoFocus={focusField === "cost"}
           onFocus={() => setFieldFocused(true)}
           onBlur={() => setFieldFocused(false)}
         />

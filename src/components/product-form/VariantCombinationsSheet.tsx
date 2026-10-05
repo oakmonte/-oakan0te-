@@ -85,6 +85,8 @@ export function VariantCombinationsSheet({
   const [bulkCompareAtPrice, setBulkCompareAtPrice] = useState("");
   const [bulkCostPrice, setBulkCostPrice] = useState("");
   const [bulkPriceOpen, setBulkPriceOpen] = useState(false);
+  // Which box the pricing sheet opens on: the Cost price buttons land on cost.
+  const [priceFocus, setPriceFocus] = useState<"price" | "cost">("price");
   const [bulkWeight, setBulkWeight] = useState("");
   // null = untouched this session (nothing to apply). Holds a real
   // InventoryValues rather than a bare number -- the seller picks actual
@@ -209,7 +211,12 @@ export function VariantCombinationsSheet({
         // force-clearing a row's real locationQuantities to {} -- only a
         // genuine location pick does that.
         if (bulkInventory) {
-          if (hasBulkLocationPick)
+          // An untouched default pick only fills in variants that have no
+          // locations yet; it never replaces stock a variant already has.
+          if (
+            hasBulkLocationPick &&
+            (!bulkInventory.defaultsOnly || Object.keys(r.locationQuantities).length === 0)
+          )
             next.locationQuantities = { ...bulkInventory.locationQuantities };
           if (hasBulkInventoryPick)
             next.continueSellingOutOfStock = bulkInventory.continueSellingOutOfStock;
@@ -368,7 +375,10 @@ export function VariantCombinationsSheet({
                 <PriceMiniButton
                   label="Price"
                   value={bulkPrice}
-                  onOpen={() => setBulkPriceOpen(true)}
+                  onOpen={() => {
+                    setPriceFocus("price");
+                    setBulkPriceOpen(true);
+                  }}
                 />
                 <label className="flex flex-col gap-1">
                   <span className="text-xs text-gray-400">Inventory</span>
@@ -383,7 +393,10 @@ export function VariantCombinationsSheet({
                 <PriceMiniButton
                   label="Cost price"
                   value={bulkCostPrice}
-                  onOpen={() => setBulkPriceOpen(true)}
+                  onOpen={() => {
+                    setPriceFocus("cost");
+                    setBulkPriceOpen(true);
+                  }}
                 />
                 {weightFromOptions ? (
                   <LockedField label="Weight" value="From options" />
@@ -439,7 +452,10 @@ export function VariantCombinationsSheet({
                   <PriceMiniButton
                     label="Price *"
                     value={row.price}
-                    onOpen={() => setPriceKey(row.key)}
+                    onOpen={() => {
+                      setPriceFocus("price");
+                      setPriceKey(row.key);
+                    }}
                     error={showPriceErrors && !row.price.trim()}
                   />
                   <label className="flex flex-col gap-1">
@@ -455,7 +471,10 @@ export function VariantCombinationsSheet({
                   <PriceMiniButton
                     label="Cost price"
                     value={row.costPrice}
-                    onOpen={() => setPriceKey(row.key)}
+                    onOpen={() => {
+                      setPriceFocus("cost");
+                      setPriceKey(row.key);
+                    }}
                   />
                   {weightVolumeValueOf(row.options) ? (
                     <LockedField
@@ -634,6 +653,7 @@ export function VariantCombinationsSheet({
               passFeesToBuyer={passFeesToBuyer}
               onChangePassFeesToBuyer={onChangePassFeesToBuyer}
               onClose={() => setPriceKey(null)}
+              focusField={priceFocus}
             />
           );
         })()}
@@ -649,6 +669,7 @@ export function VariantCombinationsSheet({
           passFeesToBuyer={passFeesToBuyer}
           onChangePassFeesToBuyer={onChangePassFeesToBuyer}
           onClose={() => setBulkPriceOpen(false)}
+          focusField={priceFocus}
         />
       )}
     </div>
