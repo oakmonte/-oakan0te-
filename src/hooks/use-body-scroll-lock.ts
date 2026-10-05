@@ -44,7 +44,11 @@ function releaseLock() {
     style.width = savedStyle.width;
     style.overflow = savedStyle.overflow;
     savedStyle = null;
-    window.scrollTo(0, savedScrollY);
+    // "instant", not the default: styles.css sets html{scroll-behavior:smooth},
+    // and with it this restore played as a visible scroll down from the top of
+    // the page (the body had just un-fixed itself back to y=0). Closing a sheet
+    // must land exactly where the page was, with no scrolling effect.
+    window.scrollTo({ top: savedScrollY, behavior: "instant" });
   }
 }
 

@@ -63,7 +63,9 @@ function releaseLock() {
   if (lockCount === 0) {
     document.body.classList.remove("oak-locked-viewport");
     document.body.style.top = "";
-    window.scrollTo(0, savedScrollY);
+    // "instant" for the same reason as use-body-scroll-lock.ts: html has
+    // scroll-behavior:smooth, which turned this restore into a visible scroll.
+    window.scrollTo({ top: savedScrollY, behavior: "instant" });
     const meta = document.querySelector('meta[name="viewport"]');
     if (meta && originalMetaContent !== null) meta.setAttribute("content", originalMetaContent);
     originalMetaContent = null;

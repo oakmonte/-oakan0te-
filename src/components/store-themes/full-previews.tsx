@@ -52,6 +52,7 @@ import {
   LAYOUT_PRESETS,
   blocksBelowGrid,
   resolveStickyBottom,
+  stickyOptionAvailable,
   type ArrangeableBlockId,
 } from "./layout-presets";
 import { useStoreCatalogReadiness } from "@/hooks/use-store-catalog-readiness";
@@ -1405,7 +1406,7 @@ export function ThemePreviewSheet({
   const [stickPrompt, setStickPrompt] = useState<null | { then?: () => void }>(null);
   const liveDrop = useStoreLiveDrop(storeId);
   // For "(current)" in the stick-to-page prompt: with no choice made yet,
-  // what the storefront is doing right now is the 12-item default.
+  // what the storefront is doing right now is the 10-item default.
   const catalog = useStoreCatalogReadiness(storeId);
 
   // Text commits on blur, and on iOS tapping a button does not reliably blur
@@ -1453,6 +1454,13 @@ export function ThemePreviewSheet({
   function runSave(then?: () => void, stick?: boolean) {
     if (
       stick === undefined &&
+      // Only asked when the store has more than 10 products (or collections,
+      // whichever its storefront shows) -- below that there's nothing to stick.
+      stickyOptionAvailable(
+        stateRef.current.collectionsMode === "products"
+          ? catalog.productCount
+          : catalog.collectionCount,
+      ) &&
       blocksBelowGrid(stateRef.current.layoutId, stateRef.current.hiddenBlocks, liveDrop !== null)
         .length > 0
     ) {

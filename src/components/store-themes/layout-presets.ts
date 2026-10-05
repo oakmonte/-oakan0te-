@@ -53,9 +53,18 @@ export function blocksBelowGrid(
 }
 
 /** Above this many items in the grid, stick-to-page turns itself on for a
- *  seller who hasn't chosen. At 12 or fewer the blocks below the grid are
+ *  seller who hasn't chosen. At 10 or fewer the blocks below the grid are
  *  only a short scroll away, and pinning them would just cover the grid. */
-export const AUTO_STICK_MIN_ITEMS = 12;
+export const AUTO_STICK_MIN_ITEMS = 10;
+
+/** Whether the stick-to-page choice is worth offering at all: only when the
+ *  grid holds more than AUTO_STICK_MIN_ITEMS of whatever the store shows
+ *  (products, or collections -- pass the count for the one it's using). A
+ *  small store has nothing to stick past, and an unknown (still loading)
+ *  count reads as "not yet", so the toggle never flashes in and out. */
+export function stickyOptionAvailable(itemCount: number | null): boolean {
+  return itemCount !== null && itemCount > AUTO_STICK_MIN_ITEMS;
+}
 
 /** Whether the blocks below the grid actually stick. The seller's own choice
  *  (the save prompt or the theme card's toggle) always wins. With no choice

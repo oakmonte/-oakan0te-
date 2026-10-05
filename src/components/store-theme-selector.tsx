@@ -10,7 +10,12 @@ import { ThemePreviewSheet } from "./store-themes/full-previews";
 import { useStoreTheme } from "./store-themes/useStoreTheme";
 import { readableTextColor } from "./store-themes/colors";
 import { searchThemes } from "./store-themes/theme-search";
-import { blocksBelowGrid, resolveStickyBottom, type LayoutId } from "./store-themes/layout-presets";
+import {
+  blocksBelowGrid,
+  resolveStickyBottom,
+  stickyOptionAvailable,
+  type LayoutId,
+} from "./store-themes/layout-presets";
 import { useStoreCatalogReadiness } from "@/hooks/use-store-catalog-readiness";
 import { useStoreLiveDrop } from "@/hooks/use-store-live-drop";
 
@@ -325,12 +330,14 @@ export function StoreThemeSelector() {
     if (blocksBelowGrid(row.layoutId, row.hiddenBlocks, liveDrop !== null).length === 0) {
       return null;
     }
+    // Only offered once the store lists more than 10 of whatever its
+    // storefront shows (products or collections, per collectionsMode).
+    const count =
+      row.collectionsMode === "products" ? catalog.productCount : catalog.collectionCount;
+    if (!stickyOptionAvailable(count)) return null;
     // Shown as what the storefront actually does: with no choice saved,
-    // that's the 12-item default.
-    return resolveStickyBottom(
-      row.sticky,
-      row.collectionsMode === "products" ? catalog.productCount : catalog.collectionCount,
-    );
+    // that's the 10-item default.
+    return resolveStickyBottom(row.sticky, count);
   }
 
   // Writes only sticky_bottom: on an existing row the upsert updates just
