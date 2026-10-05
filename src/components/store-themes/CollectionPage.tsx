@@ -104,8 +104,10 @@ export function CollectionPage({
           type="button"
           onClick={close}
           aria-label="Back"
-          className={`absolute left-4 z-10 flex h-10 w-10 items-center justify-center rounded-full text-white transition-transform duration-150 active:scale-95 ${GLASS_RIM}`}
-          style={{ ...glassClear, top: "calc(env(safe-area-inset-top) + 12px)" }}
+          className={`absolute z-10 flex h-10 w-10 items-center justify-center rounded-full text-white transition-transform duration-150 active:scale-95 ${GLASS_RIM}`}
+          // Sits inside the hero card's corner, inset by the same 12px the
+          // card is inset from the screen.
+          style={{ ...glassClear, top: "calc(env(safe-area-inset-top) + 24px)", left: 24 }}
         >
           <ChevronLeft size={22} strokeWidth={2.5} />
         </button>
@@ -171,9 +173,16 @@ function Hero({ collection, accent }: { collection: PreviewTile; accent: string 
   const [index, setIndex] = useState(0);
   const photos = collection.photos;
   return (
+    // A contained card rather than a full-bleed photo: inset 12px like the
+    // product grid below it, so the hero and the tiles share one edge.
+    // isolate + the radius on this element keeps the rounded clip on iOS
+    // while the slideshow inside scrolls.
     <div
-      className="relative aspect-[4/5] w-full overflow-hidden"
-      style={{ background: `${accent}22` }}
+      className="relative isolate mx-3 aspect-[4/5] overflow-hidden rounded-[22px]"
+      style={{
+        background: `${accent}22`,
+        marginTop: "calc(env(safe-area-inset-top) + 12px)",
+      }}
     >
       {photos.length > 0 && (
         <div
