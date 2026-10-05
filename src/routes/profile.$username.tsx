@@ -69,6 +69,10 @@ import {
 } from "@/lib/queries/profile";
 
 export const Route = createFileRoute("/profile/$username")({
+  // ?tab=store opens straight onto the storefront (the theme picker's
+  // "Next: see your storefront" lands here).
+  validateSearch: (search: Record<string, unknown>): { tab?: "store" } =>
+    search.tab === "store" ? { tab: "store" } : {},
   // Fire-and-forget: starts this fetch as early as `intent` preload allows
   // (hover/touch-start on a Link to this route — see router.tsx) without
   // making navigation wait on it. The component below still reads the same
@@ -161,7 +165,8 @@ function ProfilePage() {
         sold_items_count: stats?.sold_items_count ?? 0,
       }
     : null;
-  const [activeTab, setActiveTab] = useState<TabKey>("posts");
+  const { tab: initialTab } = Route.useSearch();
+  const [activeTab, setActiveTab] = useState<TabKey>(initialTab ?? "posts");
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);

@@ -1173,16 +1173,7 @@ export function CollectionsGrid({
             textColor={textColor}
             onChange={editing.onColumnsChange}
           />
-        ) : (
-          !editing?.isEditing && (
-            <span
-              className="flex items-center gap-0.5 text-[12px] font-medium"
-              style={{ color: accent }}
-            >
-              View all <ChevronRight size={14} />
-            </span>
-          )
-        )}
+        ) : null}
       </div>
     );
   };
