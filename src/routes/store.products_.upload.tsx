@@ -75,19 +75,26 @@ function JobBanner({ job, onDismiss }: { job: JobStatus; onDismiss: () => void }
   );
 }
 
-// Numbers the two paths inside an expanded Shopify/Bumpa section — "connect"
-// and "upload a CSV" read as one continuous block without this, and a seller
-// skimming past the first button can miss that a second, actually-working
-// option sits right below it.
-function OptionLabel({ n, children }: { n: number; children: React.ReactNode }) {
+// Inside an expanded Shopify/Bumpa section, "connect" and "upload a CSV" are
+// two separate ways to do the same job. Each gets its own card with an "or"
+// between them, so a seller skimming past the first can't miss that a second,
+// actually-working option sits right below it.
+function OptionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-2 mb-2">
-      <span className="w-5 h-5 rounded-full bg-sd-ink text-sd-bg text-[11px] font-medium flex items-center justify-center shrink-0">
-        {n}
-      </span>
-      <span className="text-xs font-medium text-sd-ink-muted uppercase tracking-wide">
-        {children}
-      </span>
+    <p className="mb-3 text-xs font-medium text-sd-ink-muted uppercase tracking-wide">{children}</p>
+  );
+}
+
+function OptionCard({ children }: { children: React.ReactNode }) {
+  return <div className="rounded-xl border border-sd-line bg-sd-elevated p-4">{children}</div>;
+}
+
+function OrDivider() {
+  return (
+    <div className="flex items-center gap-3" aria-hidden>
+      <span className="h-px flex-1 bg-sd-line" />
+      <span className="text-xs font-medium uppercase tracking-wide text-sd-ink-muted">or</span>
+      <span className="h-px flex-1 bg-sd-line" />
     </div>
   );
 }
@@ -321,9 +328,9 @@ function ProductsUpload() {
               />
             </button>
             {openSection === "shopify" && (
-              <div className="border-t border-sd-line px-4 py-4 flex flex-col gap-5 animate-in fade-in slide-in-from-top-2 duration-200 ease-out">
-                <div>
-                  <OptionLabel n={1}>Connect directly</OptionLabel>
+              <div className="border-t border-sd-line px-4 py-4 flex flex-col gap-3 animate-in fade-in slide-in-from-top-2 duration-200 ease-out">
+                <OptionCard>
+                  <OptionLabel>Connect directly</OptionLabel>
                   <label className="flex flex-col gap-1">
                     <span className="text-xs text-sd-ink-faint">Shop domain</span>
                     <input
@@ -354,9 +361,10 @@ function ProductsUpload() {
                   <p className="text-[11px] text-sd-ink-faint mt-1.5">
                     Already connected? Tap import — no need to connect again.
                   </p>
-                </div>
-                <div className="border-t border-sd-line pt-4">
-                  <OptionLabel n={2}>Upload a CSV</OptionLabel>
+                </OptionCard>
+                <OrDivider />
+                <OptionCard>
+                  <OptionLabel>Upload a CSV</OptionLabel>
                   <button
                     type="button"
                     onClick={async () => {
@@ -371,7 +379,7 @@ function ProductsUpload() {
                   <p className="text-[11px] text-sd-ink-faint mt-1.5">
                     From Shopify admin: Products → Export.
                   </p>
-                </div>
+                </OptionCard>
               </div>
             )}
           </div>
@@ -398,9 +406,9 @@ function ProductsUpload() {
               />
             </button>
             {openSection === "bumpa" && (
-              <div className="border-t border-sd-line px-4 py-4 flex flex-col gap-5 animate-in fade-in slide-in-from-top-2 duration-200 ease-out">
-                <div>
-                  <OptionLabel n={1}>Connect directly</OptionLabel>
+              <div className="border-t border-sd-line px-4 py-4 flex flex-col gap-3 animate-in fade-in slide-in-from-top-2 duration-200 ease-out">
+                <OptionCard>
+                  <OptionLabel>Connect directly</OptionLabel>
                   <label className="flex flex-col gap-1">
                     <span className="text-xs text-sd-ink-faint">Bumpa API key</span>
                     <input
@@ -438,9 +446,10 @@ function ProductsUpload() {
                       Found in your Bumpa dashboard under API settings.
                     </p>
                   )}
-                </div>
-                <div className="border-t border-sd-line pt-4">
-                  <OptionLabel n={2}>Upload a CSV</OptionLabel>
+                </OptionCard>
+                <OrDivider />
+                <OptionCard>
+                  <OptionLabel>Upload a CSV</OptionLabel>
                   <button
                     type="button"
                     onClick={async () => {
@@ -452,7 +461,7 @@ function ProductsUpload() {
                   >
                     Upload Bumpa CSV export
                   </button>
-                </div>
+                </OptionCard>
               </div>
             )}
           </div>
