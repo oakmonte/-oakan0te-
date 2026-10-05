@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import { isInAppBrowser, androidChromeIntentUrl } from "@/lib/in-app-browser";
 import { isStandalone } from "@/lib/standalone";
 import logoO from "@/assets/logo-o.png";
 import streetwear from "@/assets/streetwear-summerstyle.jpeg";
@@ -238,7 +239,7 @@ function CountUp({ value, suffix }: { value: number; suffix: string }) {
 }
 
 /* ---------------- Header menus ---------------- */
-type MenuKey = "product" | "solutions" | "resources";
+type MenuKey = "product" | "solutions" | "resources" | "blog";
 
 const MENUS: Record<
   MenuKey,
@@ -306,7 +307,7 @@ const MENUS: Record<
     ],
   },
   resources: {
-    label: "Rescources",
+    label: "Resources",
     items: [
       { title: "Docs", desc: "Integration guides for sellers and creators.", href: "#resources" },
       {
@@ -321,15 +322,31 @@ const MENUS: Record<
       },
     ],
   },
+  blog: {
+    label: "Blog",
+    items: [
+      { title: "Journal", desc: "Editorial fashion features and style curation.", href: "/blog" },
+      {
+        title: "Creator Spotlights",
+        desc: "Stories from creators building on Oakmonte.",
+        href: "/blog",
+      },
+      {
+        title: "Style Guides",
+        desc: "Curated collections from our style curators.",
+        href: "/blog",
+      },
+    ],
+  },
 };
 
 const NAV: { label: string; href: string; key?: MenuKey }[] = [
   { label: "Product", href: "#product", key: "product" },
-  { label: "Sellers", href: "/sellers" },
+  { label: "Story", href: "#story" },
   { label: "Solutions", href: "#solutions", key: "solutions" },
   { label: "FAQ", href: "#faq" },
-  { label: "Creators", href: "/creators" },
-  { label: "Rescources", href: "#resources", key: "resources" },
+  { label: "Blog", href: "/blog", key: "blog" },
+  { label: "Resources", href: "#resources", key: "resources" },
 ];
 
 /* ---------------- Page ---------------- */
@@ -410,6 +427,42 @@ function OakmonteLanding() {
   const [scrolled, setScrolled] = useState(false);
   const [activeNav, setActiveNav] = useState("PRODUCT");
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // False on the server and on first client render (matches SSR output, then
+  // corrects itself right after hydration) -- there's no user agent to check
+  // until we're in the browser.
+  const [inAppBrowser, setInAppBrowser] = useState(false);
+  // Only Android gets a real "Open in Chrome" link (see androidChromeIntentUrl)
+  // -- iOS has no API for a web page to hand off to Safari, so it keeps the
+  // manual "tap ••• / Share" instructions instead.
+  const [androidChromeUrl, setAndroidChromeUrl] = useState<string | null>(null);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
+  const showBanner = inAppBrowser && !bannerDismissed;
+  // Measured, not hardcoded -- the copy wraps to 2-3 lines on a narrow phone
+  // (exactly the device this actually shows on, opened from an Instagram/
+  // TikTok bio link), and a fixed height there would clip the text or
+  // overlap the header instead of pushing it down.
+  const bannerRef = useRef<HTMLDivElement>(null);
+  const [bannerHeight, setBannerHeight] = useState(0);
+
+  useEffect(() => {
+    if (!isInAppBrowser(navigator.userAgent)) return;
+    setInAppBrowser(true);
+    if (/Android/.test(navigator.userAgent)) {
+      setAndroidChromeUrl(androidChromeIntentUrl(window.location.href));
+    }
+  }, []);
+
+  useEffect(() => {
+    const el = bannerRef.current;
+    if (!showBanner || !el) {
+      setBannerHeight(0);
+      return;
+    }
+    const ro = new ResizeObserver(([entry]) => setBannerHeight(entry.contentRect.height));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [showBanner]);
+
   const openWithKey = (key: MenuKey) => {
     if (closeTimer.current) {
       clearTimeout(closeTimer.current);
@@ -438,13 +491,46 @@ function OakmonteLanding() {
   );
 
   return (
-    <div className="oak" style={{ paddingTop: 76 }}>
+    <div className="oak" style={{ paddingTop: 76 + bannerHeight }}>
       <style>{CSS}</style>
+
+      {showBanner && (
+        <div ref={bannerRef} className="in-app-banner">
+          <span className="in-app-banner-icon" aria-hidden="true">
+            !
+          </span>
+          <span className="in-app-banner-text">
+            <strong>Open this in your real browser</strong>
+            {androidChromeUrl ? (
+              <span>
+                Camera and uploads don't work in this in-app view.{" "}
+                <a href={androidChromeUrl} className="in-app-banner-cta">
+                  Open in Chrome
+                </a>
+              </span>
+            ) : (
+              <span>
+                Camera and uploads don't work in this in-app view — tap{" "}
+                <strong>••• or Share</strong> above, then <strong>Open in Browser</strong>.
+              </span>
+            )}
+          </span>
+          <button
+            type="button"
+            aria-label="Dismiss"
+            onClick={() => setBannerDismissed(true)}
+            className="in-app-banner-close"
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       <header
         id="site-header"
         style={{
           boxShadow: scrolled ? "0 1px 0 rgba(0,0,0,.06)" : "none",
+          top: bannerHeight,
         }}
       >
         <div className="wrap">
@@ -794,7 +880,7 @@ function OakmonteLanding() {
                   only releases once your customer's happy. No chargeback roulette.
                 </p>
                 <Link to="/sellers" className="cta-btn on-black">
-                  See more
+                  See more 
                 </Link>
                 <p className="stars-line">
                   <span className="stars">★★★★★</span>Loved by our early sellers
@@ -821,8 +907,8 @@ function OakmonteLanding() {
                   Tag products in your fits, reviews, and hauls. When your audience buys through
                   your content, you earn — no invoices, no chasing brands, no middlemen.
                 </p>
-                <Link to="/creators" className="cta-btn">
-                  See more
+                <Link to="/become-a-creator" className="cta-btn">
+                  Start creating!
                 </Link>
                 <p className="stars-line">
                   <span className="stars">★★★★★</span>Loved by our early creators
@@ -1021,7 +1107,7 @@ function OakmonteLanding() {
           </div>
         </section>
 
-        <footer>
+        <footer id="resources">
           <div className="wrap footer-row">
             <div className="footer-brand">
               <img src={IMG_LOGO} alt="Oakmonte" className="footer-mark" />
@@ -1067,13 +1153,24 @@ const CSS = `
 .oak .reveal-delay-2.in-view{transition-delay:.2s;}
 .oak .reveal-delay-3.in-view{transition-delay:.3s;}
 
+.oak .in-app-banner{position:fixed;top:0;left:0;right:0;width:100%;z-index:110;display:flex;align-items:flex-start;gap:14px;background:var(--black);color:#fff;padding:16px 18px;text-align:left;}
+.oak .in-app-banner-icon{flex:none;display:grid;place-items:center;width:26px;height:26px;border-radius:999px;background:#6E8CFF;color:#0a0a0a;font-size:15px;font-weight:800;margin-top:1px;}
+.oak .in-app-banner-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;}
+.oak .in-app-banner-text > strong{font-size:15px;line-height:1.3;font-weight:700;color:#fff;}
+.oak .in-app-banner-text > span{font-size:13px;line-height:1.5;color:rgba(255,255,255,.8);}
 /* These name the exact label to look for in the host app's own menu -- a
    pill, not blue link-colored text, so nobody mistakes them for a tappable
    link on OUR page (which they aren't; the real "Open in Browser" lives in
    Instagram/Snapchat's own share sheet). */
+.oak .in-app-banner-text > span strong{display:inline-block;background:rgba(255,255,255,.16);color:#fff;font-weight:700;padding:1px 7px;border-radius:6px;}
 /* Android only (see androidChromeIntentUrl) -- this one really is a link, so
    it gets real button chrome instead of the instructional pill above it. */
-.oak header{position:fixed;top:0;left:0;right:0;width:100%;height:76px;z-index:100;background:rgba(255,255,255,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);transition:box-shadow .3s ease;}
+.oak .in-app-banner-cta{display:inline-block;margin-top:8px;background:#fff;color:#0a0a0a;font-weight:700;font-size:13px;padding:8px 16px;border-radius:999px;}
+.oak .in-app-banner-close{flex:none;width:32px;height:32px;display:grid;place-items:center;font-size:22px;line-height:1;color:rgba(255,255,255,.6);border-radius:999px;margin:-4px -6px 0 0;}
+.oak .in-app-banner-close:hover{color:#fff;background:rgba(255,255,255,.08);}
+@media (min-width:640px){.oak .in-app-banner{align-items:center;justify-content:center;text-align:center;}
+.oak .in-app-banner-text{flex-direction:row;align-items:baseline;gap:8px;justify-content:center;}}
+.oak header{position:fixed;left:0;right:0;width:100%;height:76px;z-index:100;background:rgba(255,255,255,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);transition:box-shadow .3s ease,top .3s ease;}
 .oak .header-row{position:relative;z-index:101;display:flex;align-items:flex-end;justify-content:space-between;height:76px;padding-bottom:10px;}
 .oak .brand{display:flex;align-items:baseline;gap:0;}
 .oak .brand-o{height:44px;width:auto;flex:none;display:inline-block;transform:translateY(4px);}
@@ -1113,11 +1210,6 @@ const CSS = `
 .oak .cta-btn.big{padding:18px 38px;font-size:15px;}
 .oak .cta-btn.on-black{background:var(--blue);}
 .oak .cta-btn.on-black:hover{background:var(--white);color:var(--black);}
-.oak .offer-card.blue .cta-btn.on-black::after{content:"";position:absolute;inset:0;}
-.oak .offer-card.blue .cta-btn.on-black:hover{transform:none;}
-.oak .offer-card.accent-border .cta-btn::after{content:"";position:absolute;inset:0;}
-.oak .offer-card.accent-border .cta-btn:hover{transform:none;}
-.oak .offer-card.blue,.oak .offer-card.accent-border{cursor:pointer;}
 .oak .offer-card.blue .cta-btn.on-black{background:var(--white);color:var(--black);}
 .oak .offer-card.blue .cta-btn.on-black:hover{background:var(--black);color:var(--white);}
 .oak .offer-card.accent-border .cta-btn{background:var(--blue);}
