@@ -125,8 +125,9 @@ function NewProduct() {
   // Regular-mode state
   const [price, setPrice] = useState(initialDraft?.price ?? "");
   // Product-level pricing policy: when true the price fields above mean "what
-  // I want to receive" and product-save grosses them up before writing.
-  const [passFeesToBuyer, setPassFeesToBuyer] = useState(initialDraft?.passFeesToBuyer ?? false);
+  // I want to receive" and product-save grosses them up before writing. On by
+  // default for a new product; an existing one keeps whatever it was saved with.
+  const [passFeesToBuyer, setPassFeesToBuyer] = useState(initialDraft?.passFeesToBuyer ?? true);
   const [compareAtPrice, setCompareAtPrice] = useState(initialDraft?.compareAtPrice ?? "");
   const [costPrice, setCostPrice] = useState(initialDraft?.costPrice ?? "");
   const [regularContinueSellingOutOfStock, setRegularContinueSellingOutOfStock] = useState(
