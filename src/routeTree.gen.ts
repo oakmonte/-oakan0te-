@@ -21,6 +21,7 @@ import { Route as CreatePasswordRouteImport } from './routes/create-password'
 import { Route as CreatorsRouteImport } from './routes/creators'
 import { Route as EditProfileRouteImport } from './routes/edit-profile'
 import { Route as FindYourFitRouteImport } from './routes/find-your-fit'
+import { Route as GetTheWebappRouteImport } from './routes/get-the-webapp'
 import { Route as HomeRouteImport } from './routes/home'
 import { Route as MessagesRouteImport } from './routes/messages'
 import { Route as NameYourStoreRouteImport } from './routes/name-your-store'
@@ -156,6 +157,11 @@ const EditProfileRoute = EditProfileRouteImport.update({
 const FindYourFitRoute = FindYourFitRouteImport.update({
   id: '/find-your-fit',
   path: '/find-your-fit',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GetTheWebappRoute = GetTheWebappRouteImport.update({
+  id: '/get-the-webapp',
+  path: '/get-the-webapp',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HomeRoute = HomeRouteImport.update({
@@ -555,6 +561,7 @@ export interface FileRoutesByFullPath {
   '/creators': typeof CreatorsRoute
   '/edit-profile': typeof EditProfileRoute
   '/find-your-fit': typeof FindYourFitRoute
+  '/get-the-webapp': typeof GetTheWebappRoute
   '/home': typeof HomeRoute
   '/messages': typeof MessagesRoute
   '/name-your-store': typeof NameYourStoreRoute
@@ -644,6 +651,7 @@ export interface FileRoutesByTo {
   '/creators': typeof CreatorsRoute
   '/edit-profile': typeof EditProfileRoute
   '/find-your-fit': typeof FindYourFitRoute
+  '/get-the-webapp': typeof GetTheWebappRoute
   '/home': typeof HomeRoute
   '/messages': typeof MessagesRoute
   '/name-your-store': typeof NameYourStoreRoute
@@ -733,6 +741,7 @@ export interface FileRoutesById {
   '/creators': typeof CreatorsRoute
   '/edit-profile': typeof EditProfileRoute
   '/find-your-fit': typeof FindYourFitRoute
+  '/get-the-webapp': typeof GetTheWebappRoute
   '/home': typeof HomeRoute
   '/messages': typeof MessagesRoute
   '/name-your-store': typeof NameYourStoreRoute
@@ -825,6 +834,7 @@ export interface FileRouteTypes {
     | '/creators'
     | '/edit-profile'
     | '/find-your-fit'
+    | '/get-the-webapp'
     | '/home'
     | '/messages'
     | '/name-your-store'
@@ -914,6 +924,7 @@ export interface FileRouteTypes {
     | '/creators'
     | '/edit-profile'
     | '/find-your-fit'
+    | '/get-the-webapp'
     | '/home'
     | '/messages'
     | '/name-your-store'
@@ -1002,6 +1013,7 @@ export interface FileRouteTypes {
     | '/creators'
     | '/edit-profile'
     | '/find-your-fit'
+    | '/get-the-webapp'
     | '/home'
     | '/messages'
     | '/name-your-store'
@@ -1093,6 +1105,7 @@ export interface RootRouteChildren {
   CreatorsRoute: typeof CreatorsRoute
   EditProfileRoute: typeof EditProfileRoute
   FindYourFitRoute: typeof FindYourFitRoute
+  GetTheWebappRoute: typeof GetTheWebappRoute
   HomeRoute: typeof HomeRoute
   MessagesRoute: typeof MessagesRoute
   NameYourStoreRoute: typeof NameYourStoreRoute
@@ -1224,6 +1237,13 @@ declare module '@tanstack/react-router' {
       path: '/find-your-fit'
       fullPath: '/find-your-fit'
       preLoaderRoute: typeof FindYourFitRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/get-the-webapp': {
+      id: '/get-the-webapp'
+      path: '/get-the-webapp'
+      fullPath: '/get-the-webapp'
+      preLoaderRoute: typeof GetTheWebappRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/home': {
@@ -1863,6 +1883,7 @@ const rootRouteChildren: RootRouteChildren = {
   CreatorsRoute: CreatorsRoute,
   EditProfileRoute: EditProfileRoute,
   FindYourFitRoute: FindYourFitRoute,
+  GetTheWebappRoute: GetTheWebappRoute,
   HomeRoute: HomeRoute,
   MessagesRoute: MessagesRoute,
   NameYourStoreRoute: NameYourStoreRoute,

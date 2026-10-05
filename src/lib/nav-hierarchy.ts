@@ -140,6 +140,8 @@ export function parentOf(
     // is actually behind us in the stack.
     case "/edit-profile":
       return ownProfile(ctx);
+    // Opened from the profile's "get the app" prompt; going up is the profile.
+    case "/get-the-webapp":
     case "/activity":
     case "/studio":
     case "/offline-videos":

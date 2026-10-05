@@ -102,11 +102,21 @@ function GetTheWebappPage() {
 
       {!videoFailed && (
         <div
-          className={`mb-6 overflow-hidden rounded-2xl bg-sd-soft ${ios ? "mx-auto max-w-[200px]" : ""}`}
+          className={
+            ios
+              ? // iPhone 12 Pro Max recording, 1284x2778: the frame takes that exact
+                // ratio and has no background, so its edge is the video's edge.
+                "mx-auto mb-6 w-[min(100%,250px)] overflow-hidden rounded-[26px]"
+              : "mb-6 overflow-hidden rounded-2xl bg-sd-soft"
+          }
         >
           <video
             src={ios ? iosExplainerSrc : ANDROID_EXPLAINER_SRC}
-            className="h-auto w-auto max-h-[320px] max-w-full"
+            className={
+              ios
+                ? "block aspect-[1284/2778] w-full object-cover"
+                : "h-auto w-auto max-h-[320px] max-w-full"
+            }
             autoPlay
             loop
             playsInline
@@ -135,7 +145,7 @@ function GetTheWebappPage() {
           <div className="flex items-center gap-2 mb-4">
             <Smartphone size={16} className="text-sd-ink-muted" />
             <p className="text-sm font-medium text-sd-ink">
-              {ios ? "On iPhone, in Safari" : "In your browser menu"}
+              {ios ? "On iPhone or iPad" : "In your browser menu"}
             </p>
           </div>
           <ol className="flex flex-col gap-3">
@@ -143,7 +153,7 @@ function GetTheWebappPage() {
               <>
                 <Step n={1}>
                   Tap the <Share size={13} className="inline -mt-0.5 mx-0.5" /> share button at the
-                  bottom of the screen.
+                  top or bottom of the screen.
                 </Step>
                 <Step n={2}>
                   Scroll down and tap <span className="font-medium">Add to Home Screen</span>.

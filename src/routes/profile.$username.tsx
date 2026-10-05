@@ -38,6 +38,10 @@ import { useGoRoot } from "@/hooks/use-back";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useSession } from "@/hooks/use-session";
 import { useOwnStores } from "@/hooks/use-own-store";
+import { useOwnAccountType } from "@/hooks/use-own-account-type";
+import { hasInstalledApp } from "@/lib/installed-app";
+import { isStandalone } from "@/lib/standalone";
+import { isInstallablePhone } from "@/lib/platform";
 import { useStoreSetupStatus } from "@/hooks/use-store-setup-status";
 import { useStoreCatalogReadiness, isStorefrontVisible } from "@/hooks/use-store-catalog-readiness";
 import { useBodyScrollLock } from "@/hooks/use-body-scroll-lock";
@@ -102,6 +106,26 @@ function knownSetupDone(userId: string) {
     return localStorage.getItem(`${STORE_SETUP_DONE_KEY}:${userId}`) === "1";
   } catch {
     return false;
+  }
+}
+
+const APP_PROMPT_SEEN_KEY = "oak-profile-app-prompt-seen";
+
+// Once per browser session, so "Not now" means not now rather than never --
+// and never a nag on every visit to the profile within one sitting.
+function hasSeenAppPrompt(userId: string) {
+  try {
+    return sessionStorage.getItem(`${APP_PROMPT_SEEN_KEY}:${userId}`) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function markAppPromptSeen(userId: string) {
+  try {
+    sessionStorage.setItem(`${APP_PROMPT_SEEN_KEY}:${userId}`, "1");
+  } catch {
+    return;
   }
 }
 
@@ -229,6 +253,8 @@ function ProfilePage() {
   // yet, so this is visual/session-only, not persisted.
   const [notifyEnabled, setNotifyEnabled] = useState(false);
   const [sellerPromptOpen, setSellerPromptOpen] = useState(false);
+  const [appPromptOpen, setAppPromptOpen] = useState(false);
+  const accountType = useOwnAccountType();
   // Briefly lights the hamburger menu's "Oakmonte Store" row during the
   // guided walkthrough below, as if it had just been tapped.
   const [storeRowLit, setStoreRowLit] = useState(false);
@@ -272,6 +298,21 @@ function ProfilePage() {
     storeSetupStatus.failed,
     user,
   ]);
+
+  // Creators and curators get the "put it on your home screen" offer. Sellers
+  // are excluded -- they have the store prompt above and their own install step
+  // in the setup checklist -- and so is anyone already in the installed app,
+  // anyone whose account has opened it before, and any device that can't install
+  // (a laptop).
+  useEffect(() => {
+    if (!ownershipKnown || !isOwnProfile || !user) return;
+    if (accountType !== "creator" && accountType !== "curator") return;
+    if (ownedStoresLoading || ownedStores.length > 0) return;
+    if (isStandalone() || !isInstallablePhone() || hasInstalledApp(user)) return;
+    if (hasSeenAppPrompt(user.id)) return;
+    markAppPromptSeen(user.id);
+    setAppPromptOpen(true);
+  }, [accountType, isOwnProfile, ownedStores, ownedStoresLoading, ownershipKnown, user]);
 
   // Shared with TabPager so the tab strip animates off the same value the
   // content does, frame for frame.
@@ -1129,6 +1170,41 @@ function ProfilePage() {
               className="oak-motion-control w-full rounded-full bg-black py-4 text-[15px] font-semibold text-white active:scale-[0.98]"
             >
               Finish store set up
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={appPromptOpen} onOpenChange={setAppPromptOpen}>
+        <DialogContent className="left-0 top-auto bottom-0 w-full max-w-none translate-x-0 translate-y-0 gap-0 rounded-t-[28px] rounded-b-none border-0 bg-white p-6 pb-[calc(env(safe-area-inset-bottom)+24px)] text-gray-900 shadow-[0_-20px_60px_rgba(0,0,0,0.18)] duration-300 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom data-[state=closed]:zoom-out-100 data-[state=open]:zoom-in-100 sm:left-[50%] sm:max-w-sm sm:translate-x-[-50%] sm:rounded-t-[28px] sm:rounded-b-none">
+          <DialogHeader className="text-left">
+            <DialogTitle className="text-[20px] tracking-[-0.02em]">
+              Get the Oakmonte app
+            </DialogTitle>
+            <DialogDescription className="pt-1.5 text-sm leading-5 text-gray-500">
+              Put Oakmonte on your home screen for a faster, full-screen experience.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-5 flex flex-col gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setAppPromptOpen(false);
+                navigate({
+                  to: "/get-the-webapp",
+                  search: { intent: accountType === "curator" ? "curator" : "creator" },
+                });
+              }}
+              className="oak-motion-control w-full rounded-full bg-black py-4 text-[15px] font-semibold text-white active:scale-[0.98]"
+            >
+              Get the app
+            </button>
+            <button
+              type="button"
+              onClick={() => setAppPromptOpen(false)}
+              className="oak-motion-control w-full rounded-full py-3 text-[15px] font-medium text-gray-500"
+            >
+              Not now
             </button>
           </div>
         </DialogContent>
