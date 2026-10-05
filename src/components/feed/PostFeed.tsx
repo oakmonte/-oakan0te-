@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode,
+  type RefObject,
+} from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, animate, motion, useMotionValue, useTransform } from "framer-motion";
 import {
@@ -11,6 +19,7 @@ import {
   Plus,
   Check,
   Play,
+  Loader2,
   ChevronLeft,
   Link2,
   MapPin,
@@ -482,7 +491,56 @@ export function PostFeed({
  *  thinking about it. Nothing here is destructive, so acting on contact is
  *  safe. `touchAction: manipulation` keeps the browser from holding the event
  *  back for a double-tap-to-zoom it will never get. */
-/** A post's carousel: horizontal snap-scroll, with dots.
+/** True while `ref`'s video is on screen and should be playing but has no
+ *  frames to show yet (first load, or stalled mid-play). Drives the spinner
+ *  over the poster, so a slow connection reads as "loading", not as a
+ *  broken black post. */
+function useVideoBuffering(ref: RefObject<HTMLVideoElement | null>, active: boolean): boolean {
+  const [buffering, setBuffering] = useState(true);
+  useEffect(() => {
+    const v = ref.current;
+    if (!v) return;
+    const check = () => setBuffering(v.readyState < 3);
+    const on = () => setBuffering(true);
+    const off = () => setBuffering(false);
+    v.addEventListener("waiting", on);
+    v.addEventListener("stalled", check);
+    v.addEventListener("playing", off);
+    v.addEventListener("canplay", off);
+    v.addEventListener("loadeddata", check);
+    // A broken file shouldn't spin forever; the poster is what's left.
+    v.addEventListener("error", off);
+    check();
+    return () => {
+      v.removeEventListener("waiting", on);
+      v.removeEventListener("stalled", check);
+      v.removeEventListener("playing", off);
+      v.removeEventListener("canplay", off);
+      v.removeEventListener("loadeddata", check);
+      v.removeEventListener("error", off);
+    };
+  }, [ref]);
+  return active && buffering;
+}
+
+function BufferingSpinner() {
+  return (
+    <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+      <span className="grid h-14 w-14 place-items-center rounded-full bg-black/40 backdrop-blur-sm">
+        <Loader2 size={28} className="animate-spin text-white" />
+      </span>
+    </div>
+  );
+}
+
+type TapHandlers = {
+  onPointerDown: (e: ReactPointerEvent) => void;
+  onPointerUp: (e: ReactPointerEvent) => void;
+};
+
+/** A post's carousel: horizontal snap-scroll. The dots and the "2/4" count
+ *  are drawn by the card (they sit with the caption and the top chrome), fed
+ *  by onIndexChange.
  *
  *  Native scrolling rather than a hand-built pager, for the same reason the
  *  video editor's timeline scrubs by scrolling — momentum, rubber-banding and
@@ -490,74 +548,162 @@ export function PostFeed({
  *  `data-post-carousel` is what the swipe-to-dismiss handler looks for when
  *  deciding whether a rightward swipe belongs to this or to the feed.
  *
- *  Items are laid out with `contain`, not `cover`. A carousel is very often a
- *  mix of shapes, and cropping each one to fill a 9:16 frame is how you lose
- *  the top of somebody's outfit. */
+ *  It takes the card's tap handlers itself: the card's full-size tap layer
+ *  used to sit ON TOP of the carousel, so every swipe landed on that layer
+ *  and the carousel never moved. Taps still pause and double-tap still
+ *  likes; a swipe turns into a scroll, which cancels the pointer, so it never
+ *  counts as a tap.
+ *
+ *  Items are laid out with `contain` in the profile viewer: a carousel is
+ *  very often a mix of shapes, and cropping each one to fill a 9:16 frame is
+ *  how you lose the top of somebody's outfit. */
 function PostCarousel({
   media,
+  fit,
+  playing,
+  tap,
+  onIndexChange,
 }: {
   media: { url: string; type: string; thumbnail: string | null }[];
+  fit: string;
+  /** The card is on screen and not paused: the visible slide's video plays. */
+  playing: boolean;
+  tap: TapHandlers;
+  onIndexChange: (index: number) => void;
 }) {
   const [index, setIndex] = useState(0);
   const scrollerRef = useRef<HTMLDivElement>(null);
+  const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
 
   const handleScroll = useCallback(() => {
     const el = scrollerRef.current;
     if (!el || el.clientWidth === 0) return;
-    setIndex(Math.round(el.scrollLeft / el.clientWidth));
-  }, []);
+    const next = Math.min(
+      media.length - 1,
+      Math.max(0, Math.round(el.scrollLeft / el.clientWidth)),
+    );
+    setIndex((cur) => (cur === next ? cur : next));
+  }, [media.length]);
+
+  useEffect(() => onIndexChange(index), [index, onIndexChange]);
+
+  // Only the visible slide's video plays; the rest pause and rewind, so
+  // swiping back to one starts it over.
+  useEffect(() => {
+    videoRefs.current.forEach((v, i) => {
+      if (!v) return;
+      if (i === index && playing) {
+        void v.play().catch(() => {});
+      } else {
+        v.pause();
+        if (i !== index) v.currentTime = 0;
+      }
+    });
+  }, [index, playing]);
 
   return (
-    <div className="absolute inset-0">
-      <div
-        ref={scrollerRef}
-        data-post-carousel
-        onScroll={handleScroll}
-        className="no-scrollbar flex h-full w-full overflow-x-auto overflow-y-hidden"
-        style={{ scrollSnapType: "x mandatory", overscrollBehaviorX: "contain" }}
-      >
-        {media.map((item, i) => (
-          <div
-            key={`${item.url}-${i}`}
-            className="relative h-full w-full shrink-0"
-            style={{ scrollSnapAlign: "start" }}
-          >
-            {item.type === "video" ? (
-              <video
-                src={item.url}
-                poster={item.thumbnail ?? undefined}
-                loop
-                muted
-                playsInline
-                disablePictureInPicture
-                disableRemotePlayback
-                preload="metadata"
-                className="h-full w-full object-contain"
-              />
-            ) : (
-              <img
-                src={item.url}
-                alt=""
-                // Only the first item is worth blocking the post's first paint
-                // on; the rest load as the reader gets to them.
-                loading={i === 0 ? "eager" : "lazy"}
-                className="h-full w-full object-contain"
-              />
-            )}
-          </div>
-        ))}
-      </div>
+    <div
+      ref={scrollerRef}
+      data-post-carousel
+      onScroll={handleScroll}
+      onPointerDown={tap.onPointerDown}
+      onPointerUp={tap.onPointerUp}
+      className="no-scrollbar absolute inset-0 flex overflow-x-auto overflow-y-hidden"
+      style={{ scrollSnapType: "x mandatory", overscrollBehaviorX: "contain" }}
+    >
+      {media.map((item, i) => (
+        <div
+          key={`${item.url}-${i}`}
+          className="relative h-full w-full shrink-0"
+          style={{ scrollSnapAlign: "start", scrollSnapStop: "always" }}
+        >
+          {item.type === "video" ? (
+            <CarouselVideo
+              item={item}
+              fit={fit}
+              active={i === index && playing}
+              videoRef={(el) => {
+                videoRefs.current[i] = el;
+              }}
+            />
+          ) : (
+            <img
+              src={item.url}
+              alt=""
+              draggable={false}
+              // The first two are worth fetching now (the one on screen and
+              // the one a swipe reveals); the rest load as they come up.
+              loading={i < 2 ? "eager" : "lazy"}
+              className={`h-full w-full select-none ${fit}`}
+            />
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
 
-      <div className="pointer-events-none absolute inset-x-0 top-3 flex items-center justify-center gap-1.5">
-        {media.map((item, i) => (
-          <span
-            key={`${item.url}-dot-${i}`}
-            className={`h-1.5 rounded-full transition-all ${
-              i === index ? "w-4 bg-white" : "w-1.5 bg-white/45"
-            }`}
-          />
-        ))}
-      </div>
+function CarouselVideo({
+  item,
+  fit,
+  active,
+  videoRef,
+}: {
+  item: { url: string; thumbnail: string | null };
+  fit: string;
+  active: boolean;
+  videoRef: (el: HTMLVideoElement | null) => void;
+}) {
+  const ref = useRef<HTMLVideoElement | null>(null);
+  const buffering = useVideoBuffering(ref, active);
+  return (
+    <>
+      <video
+        ref={(el) => {
+          ref.current = el;
+          videoRef(el);
+        }}
+        src={item.url}
+        poster={item.thumbnail ?? undefined}
+        loop
+        muted
+        playsInline
+        disablePictureInPicture
+        disableRemotePlayback
+        preload="metadata"
+        className={`h-full w-full ${fit}`}
+      />
+      {buffering && <BufferingSpinner />}
+    </>
+  );
+}
+
+/** "2/4" in the top corner and a dot per slide above the caption, as on
+ *  TikTok. Rendered by the card so they sit with its own chrome. */
+function CarouselCount({ index, total, top }: { index: number; total: number; top: string }) {
+  return (
+    <span
+      className="pointer-events-none absolute right-4 z-10 rounded-full bg-black/45 px-2.5 py-1 text-[12px] font-semibold tabular-nums text-white backdrop-blur-sm"
+      style={{ top }}
+    >
+      {index + 1}/{total}
+    </span>
+  );
+}
+
+function CarouselDots({ index, total }: { index: number; total: number }) {
+  return (
+    // The caption block is inset 16px left and 72px right (the rail), so its
+    // centre is 28px left of the screen's; shifted back to screen centre.
+    <div className="pointer-events-none mb-2.5 flex translate-x-[28px] justify-center gap-1.5">
+      {Array.from({ length: total }, (_, i) => (
+        <span
+          key={i}
+          className={`h-1.5 w-1.5 rounded-full transition-colors duration-200 ${
+            i === index ? "bg-white" : "bg-white/40"
+          }`}
+        />
+      ))}
     </div>
   );
 }
@@ -660,6 +806,8 @@ function FeedPostCard({
   // link, and re-running the whole query to move one chip would jump the
   // scroller off the post you're standing on.
   const [tags, setTags] = useState<TaggedProduct[]>(post.tags);
+  const [slide, setSlide] = useState(0);
+  const isCarousel = post.media.length > 1;
   const isOwnPost = viewerId === post.user_id;
   const isVideo = post.media_type === "video";
   // A sound chosen on the publish screen. It plays INSTEAD of the media's own
@@ -786,6 +934,7 @@ function FeedPostCard({
   // not to feel laggy and long enough that a real double tap lands inside it.
   const tapTimer = useRef<number | null>(null);
   const tapStart = useRef({ x: 0, y: 0 });
+  const singleVideoBuffering = useVideoBuffering(videoRef, onScreen && !userPaused);
   useEffect(
     () => () => {
       if (tapTimer.current) clearTimeout(tapTimer.current);
@@ -818,6 +967,17 @@ function FeedPostCard({
     },
     [],
   );
+
+  const tapHandlers: TapHandlers = {
+    onPointerDown: (e) => {
+      tapStart.current = { x: e.clientX, y: e.clientY };
+    },
+    onPointerUp: (e) => {
+      const dx = e.clientX - tapStart.current.x;
+      const dy = e.clientY - tapStart.current.y;
+      if (Math.hypot(dx, dy) < 10) handleTap();
+    },
+  };
 
   function handleTap() {
     if (tapTimer.current !== null) {
@@ -894,21 +1054,30 @@ function FeedPostCard({
         </div>
       )}
 
-      {post.media.length > 1 ? (
-        <PostCarousel media={post.media} />
-      ) : isVideo ? (
-        <video
-          ref={videoRef}
-          src={post.media_url}
-          poster={post.thumbnail_url ?? undefined}
-          loop
-          muted
-          playsInline
-          disablePictureInPicture
-          disableRemotePlayback
-          preload="metadata"
-          className={`absolute inset-0 w-full h-full ${mediaFit}`}
+      {isCarousel ? (
+        <PostCarousel
+          media={post.media}
+          fit={mediaFit}
+          playing={onScreen && !userPaused}
+          tap={tapHandlers}
+          onIndexChange={setSlide}
         />
+      ) : isVideo ? (
+        <>
+          <video
+            ref={videoRef}
+            src={post.media_url}
+            poster={post.thumbnail_url ?? undefined}
+            loop
+            muted
+            playsInline
+            disablePictureInPicture
+            disableRemotePlayback
+            preload="metadata"
+            className={`absolute inset-0 w-full h-full ${mediaFit}`}
+          />
+          {singleVideoBuffering && <BufferingSpinner />}
+        </>
       ) : (
         <img src={post.media_url} alt="" className={`absolute inset-0 w-full h-full ${mediaFit}`} />
       )}
@@ -934,17 +1103,16 @@ function FeedPostCard({
           — and so a photo post is tappable for the double-tap like too. The
           movement guard keeps a scroll that ends with a lift from registering
           as a tap. */}
-      <div
-        className="absolute inset-0"
-        onPointerDown={(e) => {
-          tapStart.current = { x: e.clientX, y: e.clientY };
-        }}
-        onPointerUp={(e) => {
-          const dx = e.clientX - tapStart.current.x;
-          const dy = e.clientY - tapStart.current.y;
-          if (Math.hypot(dx, dy) < 10) handleTap();
-        }}
-      />
+      {/* A carousel takes these handlers itself (see PostCarousel): a layer
+          over it would swallow every swipe. */}
+      {!isCarousel && <div className="absolute inset-0" {...tapHandlers} />}
+      {isCarousel && (
+        <CarouselCount
+          index={slide}
+          total={post.media.length}
+          top={`calc(env(safe-area-inset-top) + ${isProfileViewer ? 14 : 64}px)`}
+        />
+      )}
 
       {/* Pause glyph, only for a deliberate pause. It used to show whenever
           the video wasn't playing, which — now that playback starts on its
@@ -1103,6 +1271,7 @@ function FeedPostCard({
       </div>
 
       <div className="absolute left-4 right-[72px]" style={{ bottom: chromeBottom }}>
+        {isCarousel && <CarouselDots index={slide} total={post.media.length} />}
         <p className="text-[14px] font-semibold truncate text-white">
           {post.authorDisplayName ?? "User"}
         </p>
