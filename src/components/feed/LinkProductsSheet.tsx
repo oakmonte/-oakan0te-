@@ -24,7 +24,7 @@ import {
  *  product chips under the caption and what a viewer's Listed items tab reads.
  *
  *  Three screens behind one sheet, because they're one task:
- *   - `mine`         your own products, searchable and filterable by status
+ *   - `mine`         your own ACTIVE products, searchable, filterable by collection
  *   - `stores`       a directory of other stores to link from
  *   - `store`        one of those stores' products
  *
@@ -32,7 +32,7 @@ import {
  *  `postId` null: the post doesn't exist yet, so nothing is written here and
  *  the picks travel with the publish request instead.
  *
- *  Collections show as filter chips after the status ones: pick one to see
+ *  Collections show as filter chips after All: pick one to see
  *  just its products, and "Link all" links every one of them at once.
  *
  *  The other-stores screens are locked for now -- the Store button shows a
@@ -48,14 +48,6 @@ import {
 type View = "mine" | "stores" | "store";
 
 type OwnProduct = TaggedProduct & { status: string };
-
-const STATUS_FILTERS = [
-  { key: "all", label: "All" },
-  { key: "active", label: "Active" },
-  { key: "draft", label: "Draft" },
-] as const;
-
-type StatusFilterKey = (typeof STATUS_FILTERS)[number]["key"];
 
 export function LinkProductsSheet({
   open,
@@ -80,7 +72,6 @@ export function LinkProductsSheet({
   const [view, setView] = useState<View>("mine");
   const [openStore, setOpenStore] = useState<FakeStore | null>(null);
   const [query, setQuery] = useState("");
-  const [status, setStatus] = useState<StatusFilterKey>("all");
   const [storeFilter, setStoreFilter] = useState<StoreFilterKey>("all");
   const [collections, setCollections] = useState<{ id: string; title: string }[]>([]);
   // product id -> the collection ids it's in
@@ -105,7 +96,6 @@ export function LinkProductsSheet({
     setView("mine");
     setOpenStore(null);
     setQuery("");
-    setStatus("all");
     setStoreFilter("all");
     setCollectionId(null);
   }, [open]);
@@ -122,6 +112,8 @@ export function LinkProductsSheet({
       .from("collections")
       .select("id, title, product_collections(product_id)")
       .in("store_id", storeIds)
+      // Draft collections aren't on the storefront, so they aren't offered.
+      .eq("status", "active")
       .order("created_at", { ascending: false })
       .then(({ data, error }) => {
         if (cancelled) return;
@@ -136,13 +128,13 @@ export function LinkProductsSheet({
         setCollections((data ?? []).map((c) => ({ id: c.id, title: c.title })));
         setMembership(map);
       });
-    // Every status, filtered on the client: the filter chips need drafts in
-    // hand, and a seller's catalogue is small enough that refetching per chip
-    // would only add latency.
+    // Active products only. A draft isn't on the storefront, so linking one
+    // would put a product on a post that a shopper can't open or buy.
     supabase
       .from("products")
       .select("id, title, status, product_variants(price, main_image_url)")
       .in("store_id", storeIds)
+      .eq("status", "active")
       .order("created_at", { ascending: false })
       .then(({ data, error }) => {
         if (cancelled) return;
@@ -171,11 +163,10 @@ export function LinkProductsSheet({
     const q = query.trim().toLowerCase();
     return products.filter(
       (p) =>
-        (status === "all" || p.status === status) &&
         (!collectionId || membership.get(p.id)?.has(collectionId)) &&
         (q === "" || p.title.toLowerCase().includes(q)),
     );
-  }, [products, query, status, collectionId, membership]);
+  }, [products, query, collectionId, membership]);
 
   const visibleStores = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -393,14 +384,12 @@ export function LinkProductsSheet({
                 >
                   {view === "mine"
                     ? [
-                        ...STATUS_FILTERS.map((f) => (
-                          <FilterChip
-                            key={f.key}
-                            label={f.label}
-                            active={status === f.key}
-                            onClick={() => setStatus(f.key)}
-                          />
-                        )),
+                        <FilterChip
+                          key="all"
+                          label="All"
+                          active={collectionId === null}
+                          onClick={() => setCollectionId(null)}
+                        />,
                         ...collections.map((c) => (
                           <FilterChip
                             key={c.id}
@@ -536,7 +525,7 @@ function OwnProductList({
       <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
         <p className="max-w-[240px] text-[13px] text-white/50">
           {hasStore
-            ? "You have no listed products to link yet."
+            ? "You have no active products to link yet. Drafts can't be linked."
             : "Set up your store before you can link products to a post."}
         </p>
         <button
@@ -571,7 +560,6 @@ function OwnProductList({
               <p className="truncate text-[13px] font-medium">{p.title}</p>
               <p className="text-[12px] text-white/45">
                 {p.price != null ? `₦${p.price.toLocaleString()}` : "No price"}
-                {p.status !== "active" && ` · ${p.status}`}
               </p>
             </div>
             <span
