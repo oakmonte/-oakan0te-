@@ -50,6 +50,12 @@ import {
 
 /** How far up a held clip has to be pulled to be over the bin. */
 const BIN_PULL = 40;
+/** A clip's width while the track is in reorder mode: square, the track's
+ *  own height, whatever the clip's duration. */
+const SQUARE = VIDEO_TRACK_H;
+/** Near either edge a held clip scrolls the strip. */
+const EDGE_ZONE = 48;
+const EDGE_SPEED = 7;
 
 // The reference's timeline, rebuilt: a playhead welded to the centre of the
 // screen with the tracks scrolling underneath it.
@@ -85,8 +91,6 @@ type Props = {
   onReorder: (clipId: string, toIndex: number) => void;
   /** A held clip let go of over the bin. */
   onDeleteClip: (clipId: string) => void;
-  /** Slide a clip into the free space around it, opening or closing a gap. */
-  onSlide: (clipId: string, gapBefore: number) => void;
   onCloseGap: (clipId: string) => void;
   onMoveAudio: (audioId: string, timelineStart: number) => void;
   onTrimAudio: (audioId: string, edge: "in" | "out", sourceTime: number) => void;
@@ -112,7 +116,6 @@ function StudioTimeline({
   onTrim,
   onReorder,
   onDeleteClip,
-  onSlide,
   onCloseGap,
   onMoveAudio,
   onTrimAudio,
@@ -282,24 +285,66 @@ function StudioTimeline({
   );
 
   // --- clip select + long-press reorder ------------------------------------
+  //
+  // Holding a clip collapses the video track into equal squares and hides the
+  // other tracks. At timeline scale a long clip is wider than the screen, so
+  // moving one past another meant dragging further than a thumb can reach;
+  // as squares the edit fits on screen and every swap is the same short step.
+  // `startX` is the screen x of the held clip's square centre, and the clip
+  // is drawn `lastX - startX` away from it, so it stays under the finger.
+  //
+  // Opening a gap by pulling a clip away belonged to the old full-scale drag
+  // and doesn't survive the squares; gaps a project already has are kept on
+  // the clips they belong to.
   const pressRef = useRef<{
     clipId: string;
     startX: number;
     startY: number;
+    lastX: number;
     timer: number | null;
     active: boolean;
     moved: boolean;
-    /** The clip's gap when the drag (or the last swap) began. */
-    baseGap: number;
-    /** Set by a swap: re-read baseGap/startX on the next move, once the
-     *  reordered project has rendered. */
-    rebase: boolean;
+    /** A swap has been asked for and not rendered yet. */
+    swapPending: boolean;
     /** Pulled up over the bin; letting go deletes the clip. */
     overBin: boolean;
   } | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [overBin, setOverBin] = useState(false);
   const [dragOffset, setDragOffset] = useState(0);
+  const compact = draggingId !== null;
+  const clipsRef = useRef(project.clips);
+  clipsRef.current = project.clips;
+  /** Where the strip scrolls to as it turns into squares. */
+  const enterLeft = useRef<number | null>(null);
+  /** The clip just let go of, whose new start the playhead returns to. */
+  const settleId = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (pressRef.current) pressRef.current.swapPending = false;
+  }, [project.clips]);
+
+  const stepSquares = useCallback(() => {
+    const press = pressRef.current;
+    if (!press || !press.active) return;
+    if (!press.overBin && !press.swapPending) {
+      const clips = clipsRef.current;
+      const index = clips.findIndex((c) => c.id === press.clipId);
+      const dx = press.lastX - press.startX;
+      if (index >= 0 && dx > SQUARE / 2 && index < clips.length - 1) {
+        press.swapPending = true;
+        press.startX += SQUARE;
+        onReorder(press.clipId, index + 1);
+        navigator.vibrate?.(6);
+      } else if (index > 0 && -dx > SQUARE / 2) {
+        press.swapPending = true;
+        press.startX -= SQUARE;
+        onReorder(press.clipId, index - 1);
+        navigator.vibrate?.(6);
+      }
+    }
+    setDragOffset(press.lastX - press.startX);
+  }, [onReorder]);
 
   const startClipPress = useCallback(
     (clip: VideoClip) => (e: ReactPointerEvent) => {
@@ -312,6 +357,22 @@ function StudioTimeline({
         // pointerdown would steal every scrub that merely began on a clip.
         target.setPointerCapture?.(e.pointerId);
         gestureRef.current = true;
+        // Scroll so the held clip's square lands under the finger. Written by
+        // the layout effect once the squares exist: a strip of short clips
+        // can be narrower than its squares, and writing now would clamp.
+        const el = scrollRef.current;
+        const index = clipsRef.current.findIndex((c) => c.id === clip.id);
+        if (el && index >= 0) {
+          const rect = el.getBoundingClientRect();
+          const centre = el.clientWidth / 2 + index * SQUARE + SQUARE / 2;
+          const left = Math.min(
+            clipsRef.current.length * SQUARE,
+            Math.max(0, centre - (press.lastX - rect.left)),
+          );
+          enterLeft.current = left;
+          press.startX = rect.left + centre - left;
+          setDragOffset(press.lastX - press.startX);
+        }
         setDraggingId(clip.id);
         beginHistoryGroup();
         navigator.vibrate?.(8);
@@ -320,11 +381,11 @@ function StudioTimeline({
         clipId: clip.id,
         startX: e.clientX,
         startY: e.clientY,
+        lastX: e.clientX,
         timer,
         active: false,
         moved: false,
-        baseGap: clip.gapBefore ?? 0,
-        rebase: false,
+        swapPending: false,
         overBin: false,
       };
     },
@@ -335,12 +396,15 @@ function StudioTimeline({
     (e: ReactPointerEvent) => {
       const press = pressRef.current;
       if (!press) return;
-      const dx = e.clientX - press.startX;
+      press.lastX = e.clientX;
 
       if (!press.active) {
         // Movement before the hold completes means the user is scrubbing, not
         // rearranging — disarm rather than hijack the scroll.
-        if (Math.abs(dx) > TAP_SLOP || Math.abs(e.clientY - press.startY) > TAP_SLOP) {
+        if (
+          Math.abs(e.clientX - press.startX) > TAP_SLOP ||
+          Math.abs(e.clientY - press.startY) > TAP_SLOP
+        ) {
           press.moved = true;
           if (press.timer !== null) window.clearTimeout(press.timer);
           press.timer = null;
@@ -358,66 +422,65 @@ function StudioTimeline({
         setOverBin(over);
         if (over) navigator.vibrate?.(10);
       }
-      if (over) return;
-
-      const clips = project.clips;
-      const index = clips.findIndex((c) => c.id === press.clipId);
-      if (index < 0) return;
-      if (press.rebase) {
-        press.rebase = false;
-        press.startX = e.clientX;
-        press.baseGap = clips[index].gapBefore ?? 0;
-      }
-      const moveX = e.clientX - press.startX;
-      const last = clips.length - 1;
-
-      // A held clip SLIDES first: into the empty space in front of it, or out
-      // into new space behind it, leaving black where it was — so after a
-      // split the second half (or the last clip) can simply be pulled away.
-      // Its free space is its own gap plus the next clip's; the first clip
-      // has none (black before the video starts is never wanted). Only once
-      // the finger pushes past that space by half a neighbour does it swap
-      // with the neighbour, which is the old reorder.
-      const gap = clips[index].gapBefore ?? 0;
-      const nextGap = index < last ? (clips[index + 1].gapBefore ?? 0) : 0;
-      const room = index === 0 ? 0 : index < last ? gap + nextGap : Infinity;
-      const desired = index === 0 ? 0 : press.baseGap + moveX / pps;
-      const base = index === 0 ? 0 : press.baseGap;
-
-      let overflowPx = 0;
-      if (desired < 0) {
-        overflowPx = moveX + base * pps; // how far past the left edge (negative)
-      } else if (desired > room) {
-        overflowPx = (desired - room) * pps;
-      }
-      if (index > 0) {
-        const slid = Math.min(room, Math.max(0, desired));
-        if (Math.abs(slid - gap) > 0.001) onSlide(press.clipId, slid);
-      } else {
-        overflowPx = moveX;
-      }
-      setDragOffset(overflowPx);
-
-      if (overflowPx > 0 && index < last) {
-        const next = clipDuration(clips[index + 1]) * pps;
-        if (overflowPx > next / 2) {
-          onReorder(press.clipId, index + 1);
-          navigator.vibrate?.(6);
-          press.rebase = true;
-          setDragOffset(0);
-        }
-      } else if (overflowPx < 0 && index > 0) {
-        const prev = clipDuration(clips[index - 1]) * pps;
-        if (-overflowPx > prev / 2) {
-          onReorder(press.clipId, index - 1);
-          navigator.vibrate?.(6);
-          press.rebase = true;
-          setDragOffset(0);
-        }
-      }
+      stepSquares();
     },
-    [onReorder, onSlide, pps, project.clips],
+    [stepSquares],
   );
+
+  // Edge scroll while a clip is held, so a long edit can be reordered in one
+  // gesture. Moving the strip moves the held clip's square on screen by the
+  // same amount, so its origin follows and it stays under the finger while
+  // its neighbours stream past.
+  useEffect(() => {
+    if (!draggingId) return;
+    let frame = requestAnimationFrame(function tick() {
+      const press = pressRef.current;
+      const el = scrollRef.current;
+      if (press?.active && el && !press.overBin) {
+        const r = el.getBoundingClientRect();
+        const v =
+          press.lastX < r.left + EDGE_ZONE
+            ? -EDGE_SPEED
+            : press.lastX > r.right - EDGE_ZONE
+              ? EDGE_SPEED
+              : 0;
+        if (v !== 0) {
+          const before = el.scrollLeft;
+          el.scrollLeft = before + v;
+          const moved = el.scrollLeft - before;
+          if (moved !== 0) {
+            press.startX -= moved;
+            stepSquares();
+          }
+        }
+      }
+      frame = requestAnimationFrame(tick);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [draggingId, stepSquares]);
+
+  // Into squares: scroll the held clip under the finger. Out of squares: the
+  // scroll position from square-land means nothing, so put the playhead on
+  // the start of the clip that was moved.
+  useLayoutEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    if (draggingId) {
+      if (enterLeft.current !== null) el.scrollLeft = enterLeft.current;
+      enterLeft.current = null;
+      return;
+    }
+    const id = settleId.current;
+    settleId.current = null;
+    if (!id) return;
+    const index = project.clips.findIndex((c) => c.id === id);
+    if (index < 0) return;
+    const t = starts[index];
+    el.scrollLeft = t * pps;
+    seek(t);
+    // Only on entering and leaving a hold; the rest change for other reasons.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draggingId]);
 
   const endClipPress = useCallback(
     (e: ReactPointerEvent) => {
@@ -431,6 +494,7 @@ function StudioTimeline({
         // was before the hold — slides and all. Only a real release deletes;
         // pointercancel is the browser taking the gesture away.
         if (press.overBin && e.type === "pointerup") onDeleteClip(press.clipId);
+        else settleId.current = press.clipId;
         endHistoryGroup();
       } else if (!press.moved) {
         // Selection happens on RELEASE. On pointerdown it meant that resting a
@@ -553,20 +617,33 @@ function StudioTimeline({
         onPointerMove={onPointerMoveZoom}
         onPointerUp={onPointerUpZoom}
         onPointerCancel={onPointerUpZoom}
+        // A long press is how a clip is picked up, and both browsers have
+        // their own idea of what one means: Android opens an image menu, iOS a
+        // Save/Share callout over the frames. Neither belongs on a timeline.
+        onContextMenu={(e) => e.preventDefault()}
         className="absolute inset-0 overflow-x-auto overflow-y-hidden [&::-webkit-scrollbar]:hidden"
         style={{
+          WebkitTouchCallout: "none",
+          WebkitUserSelect: "none",
+          userSelect: "none",
           scrollbarWidth: "none",
           overscrollBehaviorX: "contain",
           touchAction: lockScroll ? "none" : "pan-x",
         }}
       >
         <div style={{ paddingLeft: halfWidth, paddingRight: halfWidth, width: "max-content" }}>
-          <div className="relative" style={{ width: contentWidth, paddingTop: TRACK_TOP_PAD }}>
+          <div
+            className="relative"
+            style={{
+              width: compact ? project.clips.length * SQUARE : contentWidth,
+              paddingTop: TRACK_TOP_PAD,
+            }}
+          >
             {/* ---------------- ruler ---------------- */}
             {/* Without a scale, a 23x zoom range leaves you with no idea where
                 you are — and this editor asks you to land cuts on a beat. */}
             <div className="relative" style={{ height: RULER_H }}>
-              {Array.from({ length: tickCount }, (_, i) => {
+              {Array.from({ length: compact ? 0 : tickCount }, (_, i) => {
                 const t = i * tickStep;
                 return (
                   <div
@@ -588,7 +665,7 @@ function StudioTimeline({
 
             {/* Beat markers sit under everything, so they read as a grid rather
                 than as another object competing with the clips. */}
-            {beats.map((t, i) => (
+            {(compact ? [] : beats).map((t, i) => (
               <div
                 key={i}
                 className="absolute bottom-0 w-px pointer-events-none"
@@ -602,7 +679,7 @@ function StudioTimeline({
                   drawn as a dark hole rather than left see-through. */}
               {project.clips.map((clip, index) => {
                 const gap = clip.gapBefore ?? 0;
-                if (gap <= 0) return null;
+                if (gap <= 0 || compact) return null;
                 const width = gap * pps - CLIP_GAP;
                 if (width <= 0) return null;
                 return (
@@ -641,8 +718,9 @@ function StudioTimeline({
                 // Inset by half the gap on each side — see CLIP_GAP. Only the
                 // drawing moves; starts[] and the cut buttons stay on the
                 // true timeline positions.
-                const width = Math.max(6, duration * pps - CLIP_GAP);
-                const isSelected = selection?.kind === "clip" && selection.id === clip.id;
+                const width = compact ? SQUARE - CLIP_GAP : Math.max(6, duration * pps - CLIP_GAP);
+                const isSelected =
+                  !compact && selection?.kind === "clip" && selection.id === clip.id;
                 const isDragging = draggingId === clip.id;
                 return (
                   <div
@@ -653,11 +731,12 @@ function StudioTimeline({
                     onPointerCancel={endClipPress}
                     className="absolute top-0 overflow-hidden"
                     style={{
-                      left: starts[index] * pps + CLIP_GAP / 2,
+                      left: (compact ? index * SQUARE : starts[index] * pps) + CLIP_GAP / 2,
                       width,
                       height: VIDEO_TRACK_H,
                       borderRadius: 6,
-                      transform: isDragging ? `translateX(${dragOffset}px) scale(1.04)` : undefined,
+                      opacity: isDragging && overBin ? 0.4 : 1,
+                      transform: isDragging ? `translateX(${dragOffset}px) scale(1.08)` : undefined,
                       zIndex: isDragging ? 5 : isSelected ? 3 : 1,
                       boxShadow: isDragging ? "0 8px 22px rgba(0,0,0,0.55)" : undefined,
                       outline: isSelected ? "2px solid #fff" : "1px solid rgba(255,255,255,0.10)",
@@ -689,7 +768,10 @@ function StudioTimeline({
                       </span>
                     )}
 
-                    <div className="absolute inset-x-0 bottom-0 flex items-center gap-1 px-1 pb-0.5">
+                    <div
+                      className="absolute inset-x-0 bottom-0 flex items-center gap-1 px-1 pb-0.5"
+                      hidden={compact}
+                    >
                       {(clip.muted || project.masterMuted) && (
                         <Badge>
                           <VolumeX size={10} aria-label="Muted" />
@@ -728,6 +810,7 @@ function StudioTimeline({
               {/* Transition buttons live ON the cut — the cut is the thing being
                   changed, not either clip. */}
               {project.clips.slice(1).map((clip, i) =>
+                compact ||
                 (clip.gapBefore ?? 0) > 0 ||
                 // Steps aside while either neighbour is selected: that is
                 // when the trim handles need these same pixels, and a 44px
@@ -759,7 +842,7 @@ function StudioTimeline({
 
             {/* ---------------- audio track ---------------- */}
             <div className="relative" style={{ height: AUDIO_TRACK_H, marginTop: TRACK_GAP }}>
-              {project.audio.map((audio) => {
+              {(compact ? [] : project.audio).map((audio) => {
                 const source = sources[audio.sourceId];
                 const width = Math.max(24, audioDuration(audio) * pps);
                 const isSelected = selection?.kind === "audio" && selection.id === audio.id;
@@ -820,7 +903,7 @@ function StudioTimeline({
 
             {/* ---------------- caption / tag track ---------------- */}
             <div className="relative" style={{ height: LAYER_TRACK_H, marginTop: TRACK_GAP }}>
-              {project.layers.map((layer) => (
+              {(compact ? [] : project.layers).map((layer) => (
                 <LayerChip
                   key={layer.id}
                   layer={layer}

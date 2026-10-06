@@ -351,11 +351,6 @@ function StudioEditor({
     [dispatch],
   );
 
-  const handleSlide = useCallback(
-    (clipId: string, gapBefore: number) => dispatch({ type: "slideClip", id: clipId, gapBefore }),
-    [dispatch],
-  );
-
   const handleCloseGap = useCallback(
     (clipId: string) => dispatch({ type: "closeGap", id: clipId }),
     [dispatch],
@@ -1039,7 +1034,6 @@ function StudioEditor({
               dispatch({ type: "deleteClip", id });
               setSelection(null);
             }}
-            onSlide={handleSlide}
             onCloseGap={handleCloseGap}
             onMoveAudio={handleMoveAudio}
             onTrimAudio={handleTrimAudio}
@@ -1076,7 +1070,7 @@ function StudioEditor({
           style={{ top: "calc(env(safe-area-inset-top) + 64px)" }}
         >
           <HintBubble onDismiss={dismissGestureHint}>
-            Hold a clip to move it. Pinch the timeline to zoom.
+            Hold a clip to move it, or pull it up to delete. Pinch the timeline to zoom.
           </HintBubble>
         </div>
       )}

@@ -40,8 +40,10 @@ Never use `ctx.filter` — see the root `CLAUDE.md`.
 
 - The **video track is ordered, and gapless unless you ask for a gap**. A clip stores no absolute
   start; its position is the sum of every earlier clip's on-timeline length plus each clip's
-  optional `gapBefore` (`clipStarts`). Trimming clip 1 cannot open a hole in front of clip 2 — the
-  only way to get one is to long-press a clip and slide it away from its neighbour (`slideClip`).
+  optional `gapBefore` (`clipStarts`). Trimming clip 1 cannot open a hole in front of clip 2.
+  Long-press used to slide a clip away from its neighbour to open one (`slideClip`); since the
+  long-press became square-tile reorder mode nothing in the UI dispatches `slideClip`, so gaps only
+  survive on projects that already had them. The reducer action is kept for when a gap tool returns.
   A gap is **black** in the preview and the export, never has a transition across it, can't be
   split inside, and the first clip never has one (which keeps the single-clip export fast paths
   valid). Reordering moves clips, not the gaps between them. `normalise()` in `project.ts` enforces
