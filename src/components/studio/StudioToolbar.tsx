@@ -18,6 +18,7 @@ import {
   Volume2,
   Blend,
   Sticker as StickerIcon,
+  ZoomIn,
 } from "lucide-react";
 import { ToolButton } from "./controls";
 
@@ -34,6 +35,7 @@ export type ClipTool =
   | "separate"
   | "filters"
   | "adjust"
+  | "zoom"
   | "transition"
   | "moveLeft"
   | "moveRight"
@@ -113,6 +115,7 @@ export function ClipToolbar({
         icon={<SlidersHorizontal size={18} />}
         onClick={() => onPick("adjust")}
       />
+      <ToolButton label="Zoom" icon={<ZoomIn size={18} />} onClick={() => onPick("zoom")} />
       <ToolButton
         label="Transition"
         icon={<Sparkles size={18} />}

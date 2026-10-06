@@ -5,6 +5,7 @@ import LayerOverlay from "@/components/camera/LayerOverlay";
 import { useLayerRenderer } from "@/components/camera/aftershot/use-layer-renderer";
 import { combinedFilterCss } from "@/lib/studio/adjustments";
 import {
+  clipZoomAt,
   transformCss,
   transitionFrame,
   transitionStateAt,
@@ -137,6 +138,14 @@ export default function StudioPreview({
           const opacity = transition ? t.opacity : index === liveIndex && !inGap ? 1 : 0;
           const filterId =
             filterPreviewId && clip.id === gradeClipId ? filterPreviewId : clip.filterId;
+          // The clip's zoom at this moment, on the media element only — the
+          // wrapper carries the transition's own transform, and the vignette
+          // stays put, exactly as gradeInto() draws it.
+          const zoom = clipZoomAt(
+            clip,
+            clip.inPoint + Math.max(0, time - starts[index]) * clip.speed,
+          );
+          const zoomCss = zoom === 1 ? undefined : `scale(${zoom.toFixed(4)})`;
 
           return (
             <div
@@ -161,7 +170,11 @@ export default function StudioPreview({
                   alt=""
                   draggable={false}
                   className="absolute inset-0 w-full h-full"
-                  style={{ objectFit, filter: combinedFilterCss(filterId, clip.adjustments) }}
+                  style={{
+                    objectFit,
+                    filter: combinedFilterCss(filterId, clip.adjustments),
+                    transform: zoomCss,
+                  }}
                 />
               ) : (
                 <video
@@ -172,7 +185,11 @@ export default function StudioPreview({
                   disableRemotePlayback
                   preload="auto"
                   className="absolute inset-0 w-full h-full"
-                  style={{ objectFit, filter: combinedFilterCss(filterId, clip.adjustments) }}
+                  style={{
+                    objectFit,
+                    filter: combinedFilterCss(filterId, clip.adjustments),
+                    transform: zoomCss,
+                  }}
                 />
               )}
               {clip.adjustments.vignette > 0 && (

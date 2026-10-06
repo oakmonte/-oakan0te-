@@ -34,6 +34,7 @@ import { trimVideo } from "@/lib/video-trim";
 import { combinedFilterCss } from "./adjustments";
 import { decodeSourceAudio } from "./audio";
 import {
+  clipZoomAt,
   drawFitted,
   drawPins,
   drawVignette,
@@ -158,7 +159,8 @@ function clipIsPlain(clip: VideoClip): boolean {
     !clip.audioDetached &&
     combinedFilterCss(clip.filterId, clip.adjustments) === "none" &&
     isNeutral(clip.adjustments) &&
-    clip.transitionIn.kind === "none"
+    clip.transitionIn.kind === "none" &&
+    !clip.zoom
   );
 }
 
@@ -280,6 +282,8 @@ function gradeInto(
   sourceW: number,
   sourceH: number,
   fitMode: StudioProject["fitMode"],
+  /** The clip's zoom at this frame — see clipZoomAt. */
+  zoom = 1,
 ): void {
   // Start transparent, not black. In "fit" mode the letterbox bars would
   // otherwise be real black PIXELS by the time the colour matrix runs, and any
@@ -288,7 +292,10 @@ function gradeInto(
   // black. The picture is composited over black AFTER grading instead, so both
   // sides letterbox with the same untouched black.
   ctx.clearRect(0, 0, width, height);
-  if (image) drawFitted(ctx, image, sourceW, sourceH, width, height, fitMode, NEUTRAL_TRANSFORM);
+  if (image) {
+    const transform = zoom === 1 ? NEUTRAL_TRANSFORM : { ...NEUTRAL_TRANSFORM, scale: zoom };
+    drawFitted(ctx, image, sourceW, sourceH, width, height, fitMode, transform);
+  }
 
   // On the GPU per frame (gl-filter.ts), CPU fallback inside. Both leave
   // alpha alone, so transparent bars stay transparent however far the matrix
@@ -578,6 +585,7 @@ export async function exportTimeline(
         source.width,
         source.height,
         project.fitMode,
+        clipZoomAt(clip, at === "in" ? clip.inPoint : clip.outPoint),
       );
     } else {
       const track = await getInput(source).getPrimaryVideoTrack();
@@ -603,6 +611,7 @@ export async function exportTimeline(
           width,
           height,
           project.fitMode,
+          clipZoomAt(clip, at2),
         );
       }
     }
@@ -708,18 +717,26 @@ export async function exportTimeline(
 
       if (source.kind === "image") {
         const img = images.get(source.id) ?? null;
-        gradeInto(
-          liveCtx,
-          width,
-          height,
-          clip,
-          compiled,
-          img,
-          source.width,
-          source.height,
-          project.fitMode,
-        );
-        for (let i = run.from; i <= run.to; i++) await composeAndEncode(frames[i]);
+        // A still is graded once — unless it moves, in which case every frame
+        // is a different crop of it.
+        const moving = !!clip.zoom && clip.zoom.from !== clip.zoom.to;
+        for (let i = run.from; i <= run.to; i++) {
+          if (i === run.from || moving) {
+            gradeInto(
+              liveCtx,
+              width,
+              height,
+              clip,
+              compiled,
+              img,
+              source.width,
+              source.height,
+              project.fitMode,
+              clipZoomAt(clip, frames[i].liveSourceTime),
+            );
+          }
+          await composeAndEncode(frames[i]);
+        }
         continue;
       }
 
@@ -753,6 +770,7 @@ export async function exportTimeline(
             width,
             height,
             project.fitMode,
+            clipZoomAt(clip, plan.liveSourceTime),
           );
         }
         await composeAndEncode(plan);
@@ -805,6 +823,7 @@ export async function exportCover(
       source.width,
       source.height,
       project.fitMode,
+      clipZoomAt(clip, resolved.sourceTime),
     );
   } else {
     const input = new Input({ source: new BlobSource(source.blob), formats: ALL_FORMATS });
@@ -828,6 +847,7 @@ export async function exportCover(
       width,
       height,
       project.fitMode,
+      clipZoomAt(clip, resolved.sourceTime),
     );
   }
 

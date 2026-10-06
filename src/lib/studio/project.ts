@@ -43,6 +43,7 @@ export type StudioAction =
   | { type: "splitAt"; time: number }
   | { type: "trimClip"; id: string; inPoint?: number; outPoint?: number; limit?: number }
   | { type: "setSpeed"; id: string; speed: number }
+  | { type: "setZoom"; id: string; zoom?: { from: number; to: number } }
   | { type: "setVolume"; id: string; volume: number }
   | { type: "toggleClipMute"; id: string }
   | { type: "detachAudio"; id: string }
@@ -262,6 +263,9 @@ function reduce(project: StudioProject, action: StudioAction): StudioProject {
         }),
       );
     }
+
+    case "setZoom":
+      return mapClip(project, action.id, (clip) => ({ ...clip, zoom: action.zoom }));
 
     case "setSpeed": {
       const speed = Math.min(MAX_SPEED, Math.max(MIN_SPEED, action.speed));

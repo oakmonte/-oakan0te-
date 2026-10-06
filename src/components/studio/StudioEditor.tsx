@@ -30,6 +30,7 @@ import { TextPanel } from "@/components/studio/panels/TextPanel";
 import { PinPanel } from "@/components/studio/panels/PinPanel";
 import { OverlayPanel } from "@/components/studio/panels/OverlayPanel";
 import { VoiceoverPanel } from "@/components/studio/panels/VoiceoverPanel";
+import { ZoomPanel } from "@/components/studio/panels/ZoomPanel";
 import SoundLibrarySheet from "@/components/camera/SoundLibrarySheet";
 import { fetchLibraryTrack } from "@/lib/sound-fetch";
 import {
@@ -85,7 +86,8 @@ type PanelId =
   | "canvas"
   | "cover"
   | "audio"
-  | "voiceover";
+  | "voiceover"
+  | "zoom";
 
 /** What a finished edit hands to the screen that opened the studio. */
 export type StudioDone = {
@@ -880,6 +882,15 @@ export default function StudioEditor({
             targetClip && dispatch({ type: "setSpeed", id: targetClip.id, speed })
           }
           onRevealRamp={() => dispatch({ type: "revealRamp", time: playback.timeRef.current })}
+          onDone={() => setPanel(null)}
+        />
+      );
+    }
+    if (panel === "zoom") {
+      return (
+        <ZoomPanel
+          clip={targetClip}
+          onZoom={(zoom) => targetClip && dispatch({ type: "setZoom", id: targetClip.id, zoom })}
           onDone={() => setPanel(null)}
         />
       );

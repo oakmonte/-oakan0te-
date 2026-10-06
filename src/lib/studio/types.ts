@@ -137,6 +137,10 @@ export type VideoClip = {
    *  incoming transition — there is nothing adjacent to transition from. See
    *  normalise() in project.ts, which enforces both. */
   gapBefore?: number;
+  /** Scale over the clip, from its first frame to its last: equal values are
+   *  a fixed close-up, different ones a slow push or pull (Ken Burns).
+   *  Absent is no zoom. See clipZoomAt in render.ts. */
+  zoom?: { from: number; to: number };
 };
 
 export type AudioClipKind = "detached" | "music" | "sfx" | "voiceover";
