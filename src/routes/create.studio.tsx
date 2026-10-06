@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ChevronLeft, FileVideo, FolderOpen, Images, Loader2 } from "lucide-react";
+import { ChevronLeft, FileVideo, FolderOpen, History, Images, Loader2 } from "lucide-react";
 import StudioEditor, { type StudioDone, type StudioPark } from "@/components/studio/StudioEditor";
 import { DraftImagePickerSheet } from "@/components/product-form/DraftImagePickerSheet";
 import { PostImagePickerSheet } from "@/components/product-form/PostImagePickerSheet";
@@ -11,6 +11,7 @@ import type { SoundCredit } from "@/lib/sound-library";
 import { projectFrom } from "@/lib/studio/boot";
 import { combineCredits } from "@/lib/studio/credits";
 import { discardStudioSession, parkStudioSession, takeStudioSession } from "@/lib/studio/session";
+import { autosaveStudio, autosavedAt, clearAutosave, loadAutosave } from "@/lib/studio/autosave";
 import { STUDIO_ACCEPT, fileLabel, loadSource } from "@/lib/studio/sources";
 import type { SourceMap, StudioProject, StudioSource } from "@/lib/studio/types";
 
@@ -110,10 +111,21 @@ function NewVideoRoute() {
 
   if (boot) return <NewVideoStudio boot={boot} />;
 
+  const resume = () =>
+    void (async () => {
+      setLoading(true);
+      setError(null);
+      const saved = await loadAutosave();
+      setLoading(false);
+      if (saved) setBoot(saved);
+      else setError("That edit couldn't be opened. Start a new one.");
+    })();
+
   return (
     <StartScreen
       loading={loading}
       error={error}
+      onResume={resume}
       onBack={() => void navigate({ to: "/create", search: { tab: "create" } })}
       onFiles={(files) =>
         void startFrom(() =>
@@ -182,9 +194,32 @@ function NewVideoStudio({ boot }: { boot: Boot }) {
     [boot.inheritedCredit, navigate],
   );
 
+  // Saved to the device a moment after each change, so a reload or a killed
+  // tab doesn't take the edit with it — see autosave.ts.
+  const saveTimer = useRef<number | null>(null);
+  const handleChange = useCallback(
+    (state: { project: StudioProject; sources: SourceMap }) => {
+      if (saveTimer.current !== null) window.clearTimeout(saveTimer.current);
+      saveTimer.current = window.setTimeout(() => {
+        saveTimer.current = null;
+        if (!leaving.current) {
+          void autosaveStudio(state.project, state.sources, boot.inheritedCredit);
+        }
+      }, 1500);
+    },
+    [boot.inheritedCredit],
+  );
+  useEffect(
+    () => () => {
+      if (saveTimer.current !== null) window.clearTimeout(saveTimer.current);
+    },
+    [],
+  );
+
   const handleLeave = useCallback(() => {
     leaving.current = true;
     discardStudioSession();
+    void clearAutosave();
     void navigate({ to: "/create", search: { tab: "create" } });
   }, [navigate]);
 
@@ -195,6 +230,7 @@ function NewVideoStudio({ boot }: { boot: Boot }) {
       onDone={handleDone}
       onLeave={handleLeave}
       park={handlePark}
+      onChange={handleChange}
       doneLabel="Next"
     />
   );
@@ -204,18 +240,24 @@ function NewVideoStudio({ boot }: { boot: Boot }) {
 function StartScreen({
   loading,
   error,
+  onResume,
   onBack,
   onFiles,
   onPicked,
 }: {
   loading: boolean;
   error: string | null;
+  onResume: () => void;
   onBack: () => void;
   onFiles: (files: FileList) => void;
   onPicked: (picked: PickedMedia[]) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [sheet, setSheet] = useState<"drafts" | "posts" | null>(null);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+  useEffect(() => {
+    void autosavedAt().then(setSavedAt);
+  }, []);
 
   const pick = (items: PickedMedia[]) => {
     setSheet(null);
@@ -244,6 +286,22 @@ function StartScreen({
           </div>
         ) : (
           <>
+            {savedAt !== null && (
+              <button
+                type="button"
+                onClick={onResume}
+                className="mb-3 flex h-14 items-center justify-center gap-2 rounded-2xl bg-white px-5 text-[16px] font-semibold text-black active:scale-[0.99]"
+              >
+                <History size={20} /> Resume your last edit
+                <span className="text-[13px] font-normal text-black/55">
+                  {new Date(savedAt).toLocaleString(undefined, {
+                    weekday: "short",
+                    hour: "numeric",
+                    minute: "2-digit",
+                  })}
+                </span>
+              </button>
+            )}
             <p className="pb-2 text-center text-[15px] text-white/70">
               Pick the photos and videos to put together.
             </p>

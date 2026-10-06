@@ -119,6 +119,7 @@ export default function StudioEditor({
   onDone,
   onLeave,
   park,
+  onChange,
   doneLabel = "Done",
 }: {
   initialProject: StudioProject;
@@ -132,6 +133,8 @@ export default function StudioEditor({
    *  of its object URLs, so they aren't revoked — that's how "New video"
    *  keeps the edit alive across a trip to publish and back. */
   park?: (state: StudioPark) => boolean;
+  /** Told about every edit, for a host that saves as you go. */
+  onChange?: (state: { project: StudioProject; sources: SourceMap }) => void;
   /** "Done" back to the after-shot screen; "Next" on to publish. */
   doneLabel?: string;
 }) {
@@ -167,6 +170,11 @@ export default function StudioEditor({
   parkRef.current = park;
 
   const [sources, setSources] = useState<SourceMap>(initialSources);
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+  useEffect(() => {
+    onChangeRef.current?.({ project, sources });
+  }, [project, sources]);
   const playback = usePlayback(project);
   const [selection, setSelection] = useState<StudioSelection>(null);
   const [panel, setPanel] = useState<PanelId | null>(null);

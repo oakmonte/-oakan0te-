@@ -21,6 +21,7 @@ import { useSession } from "@/hooks/use-session";
 import { startPostUpload } from "@/lib/post-upload";
 import { discardVideoEditorSession } from "@/lib/video-editor-session";
 import { discardStudioSession } from "@/lib/studio/session";
+import { clearAutosave } from "@/lib/studio/autosave";
 import { discardPhotoEditorSession } from "@/lib/photo-carousel";
 import { blockedContentMessage, findBlockedContent } from "@/lib/content-policy";
 import CameraPanel from "@/components/camera/CameraPanel";
@@ -178,6 +179,9 @@ function PublishPage() {
       // edit instead of an empty one.
       discardVideoEditorSession();
       discardStudioSession();
+      // The device copy of a New video edit goes once THAT edit is posted —
+      // not when some other post goes out while it waits to be resumed.
+      if (media.origin === "video-editor") void clearAutosave();
       discardPhotoEditorSession();
 
       // FormData already holds the Blobs themselves (not the object URLs),
