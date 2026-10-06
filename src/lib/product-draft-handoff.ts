@@ -46,6 +46,7 @@ export type ProductDraft = {
   regularBarcodes?: BarcodeEntry[];
   regularMaterialFeel?: string | null;
   regularLegacyStockQty?: number;
+  regularColors?: string[];
 };
 
 let pendingDraft: ProductDraft | null = null;

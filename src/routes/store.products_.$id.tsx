@@ -97,6 +97,7 @@ type LoadedProduct = {
     cost_price: number | null;
     stock_qty: number | null;
     material: string | null;
+    colors: string[] | null;
     main_image_url: string | null;
     material_feel: string | null;
     weight_grams: number | null;
@@ -354,6 +355,9 @@ function EditProduct() {
   const [tagsSheetOpen, setTagsSheetOpen] = useState(false);
   const [tagIds, setTagIds] = useState<string[]>(initialDraft?.tagIds ?? []);
   const [linkedPostIds, setLinkedPostIds] = useState<string[]>(initialDraft?.linkedPostIds ?? []);
+  // A regular product's colour(s) (product_variants.colors); a variant
+  // product's colour is its Color option axis instead.
+  const [regularColors, setRegularColors] = useState<string[]>(initialDraft?.regularColors ?? []);
   const [necessitiesSheetOpen, setNecessitiesSheetOpen] = useState(false);
   const [necessitiesWarningOpen, setNecessitiesWarningOpen] = useState(false);
   const hasOwnContent = useHasOwnContent();
@@ -394,7 +398,7 @@ function EditProduct() {
         .from("products")
         .select(
           `id, title, description_short, product_type, status, manual_size_value, manual_size_system, pass_fees_to_buyer,
-           product_variants(id, sku, price, compare_at_price, cost_price, stock_qty, material, main_image_url, barcode, material_feel, weight_grams, additional_image_urls, continue_selling_out_of_stock, option1_value, option2_value, option3_value, product_variant_options(variant_id, option_id, value_id), product_variant_stock(location_id, quantity), product_variant_barcodes(type, value, position)),
+           product_variants(id, sku, price, compare_at_price, cost_price, stock_qty, material, colors, main_image_url, barcode, material_feel, weight_grams, additional_image_urls, continue_selling_out_of_stock, option1_value, option2_value, option3_value, product_variant_options(variant_id, option_id, value_id), product_variant_stock(location_id, quantity), product_variant_barcodes(type, value, position)),
            product_options(id, name, position, product_option_values(id, value, position)),
            product_collections(collection_id),
            product_tags(tag_id),
@@ -575,6 +579,7 @@ function EditProduct() {
         setCompareAtPrice(v?.compare_at_price != null ? String(v.compare_at_price) : "");
         setCostPrice(v?.cost_price != null ? String(v.cost_price) : "");
         setMaterial(v?.material ?? "");
+        setRegularColors(v?.colors ?? []);
         setMainImageUrl(v?.main_image_url ?? "");
         setRegularBarcodes(v ? toBarcodeEntries(v.product_variant_barcodes, v.barcode) : []);
         setRegularSku(v?.sku ?? "");
@@ -666,6 +671,7 @@ function EditProduct() {
       manualSize,
       tagIds,
       linkedPostIds,
+      regularColors,
       regularLegacyStockQty,
     };
   }
@@ -860,6 +866,7 @@ function EditProduct() {
         linkedPostIds,
         status,
         hasOwnContent,
+        regularColors,
       );
     if (!necessitiesOk) {
       setError("");
@@ -964,6 +971,7 @@ function EditProduct() {
       collectionIds,
       tagIds,
       linkedPostIds,
+      regularColors,
     });
     // Same reasoning as the new-product page's performSave: cleared here,
     // synchronously, rather than left to product-save.ts's own deferred
@@ -1268,6 +1276,8 @@ function EditProduct() {
           onChangeRegularWeightGrams={setRegularWeightGrams}
           linkedPostIds={linkedPostIds}
           onChangeLinkedPostIds={setLinkedPostIds}
+          regularColors={regularColors}
+          onChangeRegularColors={setRegularColors}
           onClose={() => setNecessitiesSheetOpen(false)}
         />
       )}

@@ -49,12 +49,9 @@ export const NECESSITY_CATEGORY_IDS = Object.keys(NECESSITY_PARAMS);
 const UNIVERSAL_PARAMS: NecessityParam[] = ["Weight", "Link content"];
 
 // Every param this list can return, for a given category + product kind.
-// "Color" is dropped for a regular (non-variant) product: unlike Material,
-// there is no `color` column anywhere for one — only product_variants has a
-// dedicated field for it via option values, so a regular product structurally
-// cannot satisfy it. Listing an unsatisfiable necessity would be worse than
-// not listing it at all (a permanently-empty row with no action that could
-// ever fill it), so it's excluded rather than shown-but-impossible.
+// A regular product answers Color with product_variants.colors on its one
+// variant row (see the 20261006120000 migration); a variant product answers
+// it with a Color option axis.
 export function paramsForCategory(
   categoryPath: CategoryNode[],
   kind: "regular" | "variant",
@@ -71,7 +68,10 @@ export function paramsForCategory(
     }
   }
   params ??= [...UNIVERSAL_PARAMS];
-  return kind === "regular" ? params.filter((p) => p !== "Color") : params;
+  // Both kinds get the same list now that a regular product can hold a
+  // colour too; `kind` stays in the signature for its many callers.
+  void kind;
+  return params;
 }
 
 export type FillState = "empty" | "partial" | "filled";
@@ -149,6 +149,7 @@ export function paramFillState(
   rows: VariantRow[],
   regularWeightGrams: number | null,
   linkedPostIds: string[],
+  regularColors: string[] = [],
 ): FillState {
   if (param === "Link content") return linkedPostIds.length > 0 ? "filled" : "empty";
 
@@ -202,9 +203,7 @@ export function paramFillState(
     }
     return "empty";
   }
-  // Color has no regular-product field at all -- paramsForCategory never
-  // hands this branch "Color" for kind === "regular", so only Material
-  // reaches here in practice.
+  if (param === "Color") return regularColors.length > 0 ? "filled" : "empty";
   return param === "Material" && material.trim().length > 0 ? "filled" : "empty";
 }
 
@@ -235,6 +234,7 @@ export function allNecessitiesFilled(
   // false when the seller has no posts or drafts at all (useHasOwnContent):
   // there's nothing to link, so it can't count as missing either way.
   hasOwnContent: boolean | null = null,
+  regularColors: string[] = [],
 ): boolean {
   const allParams = paramsForCategory(categoryPath, kind);
   if (allParams.length === 0) return true;
@@ -256,6 +256,7 @@ export function allNecessitiesFilled(
         rows,
         regularWeightGrams,
         linkedPostIds,
+        regularColors,
       ) === "filled",
   );
 }

@@ -232,6 +232,9 @@ function NewProduct() {
   const [tagsSheetOpen, setTagsSheetOpen] = useState(false);
   const [tagIds, setTagIds] = useState<string[]>(initialDraft?.tagIds ?? []);
   const [linkedPostIds, setLinkedPostIds] = useState<string[]>(initialDraft?.linkedPostIds ?? []);
+  // A regular product's colour(s) (product_variants.colors); a variant
+  // product's colour is its Color option axis instead.
+  const [regularColors, setRegularColors] = useState<string[]>(initialDraft?.regularColors ?? []);
   const [necessitiesSheetOpen, setNecessitiesSheetOpen] = useState(false);
   const [necessitiesWarningOpen, setNecessitiesWarningOpen] = useState(false);
   const hasOwnContent = useHasOwnContent();
@@ -272,6 +275,7 @@ function NewProduct() {
       manualSize,
       tagIds,
       linkedPostIds,
+      regularColors,
     };
   }
 
@@ -428,6 +432,7 @@ function NewProduct() {
         linkedPostIds,
         status,
         hasOwnContent,
+        regularColors,
       );
     if (!necessitiesOk) {
       setError("");
@@ -485,6 +490,7 @@ function NewProduct() {
       collectionIds,
       tagIds,
       linkedPostIds,
+      regularColors,
     });
     // Cleared here, synchronously, not left to product-save.ts's own
     // deferred clearAutosavedDraft (which only runs once the background
@@ -753,6 +759,8 @@ function NewProduct() {
           onChangeRegularWeightGrams={setRegularWeightGrams}
           linkedPostIds={linkedPostIds}
           onChangeLinkedPostIds={setLinkedPostIds}
+          regularColors={regularColors}
+          onChangeRegularColors={setRegularColors}
           onClose={() => setNecessitiesSheetOpen(false)}
         />
       )}

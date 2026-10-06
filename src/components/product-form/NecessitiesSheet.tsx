@@ -46,6 +46,8 @@ export function NecessitiesSheet({
   onChangeRegularWeightGrams,
   linkedPostIds,
   onChangeLinkedPostIds,
+  regularColors,
+  onChangeRegularColors,
   onClose,
 }: {
   categoryPath: CategoryNode[];
@@ -74,6 +76,10 @@ export function NecessitiesSheet({
   onChangeRegularWeightGrams: (g: number | null) => void;
   linkedPostIds: string[];
   onChangeLinkedPostIds: (ids: string[]) => void;
+  // A regular product's colour(s): product_variants.colors on its one row.
+  // A variant product uses the Color option axis instead (saveColors).
+  regularColors: string[];
+  onChangeRegularColors: (colors: string[]) => void;
   onClose: () => void;
 }) {
   const params = paramsForCategory(categoryPath, kind);
@@ -124,6 +130,11 @@ export function NecessitiesSheet({
   const variantColors = findOption(options, "Color")?.values ?? [];
 
   function saveColors(colors: string[]) {
+    if (kind === "regular") {
+      onChangeRegularColors(colors);
+      setColorSheetOpen(false);
+      return;
+    }
     onChangeOptions((prev) => {
       const idx = prev.findIndex((o) => normalizeOptionName(o.name) === "color");
       if (colors.length === 0) return idx === -1 ? prev : prev.filter((_, i) => i !== idx);
@@ -233,6 +244,7 @@ export function NecessitiesSheet({
               rows,
               regularWeightGrams,
               linkedPostIds,
+              regularColors,
             );
             // With nothing posted or drafted there's nothing to link: the row
             // ticks once the seller has opened it and seen that, never before.
@@ -363,7 +375,7 @@ export function NecessitiesSheet({
       {colorSheetOpen &&
         createPortal(
           <ColorSheet
-            initial={variantColors}
+            initial={kind === "regular" ? regularColors : variantColors}
             onSave={saveColors}
             onClose={() => setColorSheetOpen(false)}
           />,

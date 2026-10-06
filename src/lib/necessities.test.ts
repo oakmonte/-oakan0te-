@@ -50,8 +50,10 @@ function fillState(
 }
 
 describe("paramsForCategory", () => {
-  test("a regular product is never asked for Color — it has no column for one", () => {
-    expect(paramsForCategory(clothing, "regular")).not.toContain("Color");
+  // A regular product's colour lives in product_variants.colors, so both
+  // kinds are asked for it.
+  test("both product kinds are asked for Color", () => {
+    expect(paramsForCategory(clothing, "regular")).toContain("Color");
     expect(paramsForCategory(clothing, "variant")).toContain("Color");
   });
 
@@ -69,6 +71,13 @@ describe("Color", () => {
 
   test("accepts the seller's own spelling of the axis", () => {
     expect(fillState("Color", { options: [opt("Colour", "Black")] })).toBe("filled");
+  });
+
+  test("a regular product is filled by its own colours, not an axis", () => {
+    const args = (colors: string[]) =>
+      paramFillState("Color", "regular", [], "", [], {}, null, [], null, [], colors);
+    expect(args(["Navy"])).toBe("filled");
+    expect(args([])).toBe("empty");
   });
 });
 

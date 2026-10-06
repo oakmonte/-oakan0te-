@@ -71,6 +71,8 @@ export type ProductSavePayload = {
   // sheet) reads and writes — so a link made from either side shows up
   // immediately on the other.
   linkedPostIds: string[];
+  /** Regular products only; see product_variants.colors. */
+  regularColors: string[];
 } & ({ mode: "create" } | { mode: "update"; productId: string });
 
 let state: ProductSaveState = null;
@@ -237,6 +239,7 @@ async function runCreate(
         stock_qty: regularStockQty,
         continue_selling_out_of_stock: payload.regularContinueSellingOutOfStock,
         material: payload.material.trim() || null,
+        colors: payload.regularColors.length > 0 ? payload.regularColors : null,
         weight_grams: payload.regularWeightGrams,
         sku: payload.regularSku.trim() || null,
         main_image_url: payload.mainImageUrl.trim() || null,
@@ -453,6 +456,7 @@ async function runUpdate(payload: Extract<ProductSavePayload, { mode: "update" }
         cost_price: payload.costPrice ? Number(payload.costPrice) : null,
         stock_qty: regularStockQty,
         material: payload.material.trim() || null,
+        colors: payload.regularColors.length > 0 ? payload.regularColors : null,
         main_image_url: payload.mainImageUrl.trim() || null,
         sku: payload.regularSku.trim() || null,
         continue_selling_out_of_stock: payload.regularContinueSellingOutOfStock,

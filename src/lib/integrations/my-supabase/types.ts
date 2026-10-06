@@ -1374,6 +1374,7 @@ export type Database = {
         Row: {
           additional_image_urls: string[] | null
           barcode: string | null
+          colors: string[] | null
           compare_at_price: number | null
           continue_selling_out_of_stock: boolean
           cost_price: number | null
@@ -1397,6 +1398,7 @@ export type Database = {
         Insert: {
           additional_image_urls?: string[] | null
           barcode?: string | null
+          colors?: string[] | null
           compare_at_price?: number | null
           continue_selling_out_of_stock?: boolean
           cost_price?: number | null
@@ -1420,6 +1422,7 @@ export type Database = {
         Update: {
           additional_image_urls?: string[] | null
           barcode?: string | null
+          colors?: string[] | null
           compare_at_price?: number | null
           continue_selling_out_of_stock?: boolean
           cost_price?: number | null
