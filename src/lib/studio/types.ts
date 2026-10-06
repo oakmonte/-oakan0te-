@@ -7,6 +7,7 @@
 // the actual media, its decoded audio, its filmstrip — live in the source
 // registry (sources.ts) and are looked up by id.
 import type { Layer } from "@/lib/after-shot-layers";
+import type { SoundCredit } from "@/lib/sound-library";
 
 // ---------------------------------------------------------------------------
 // Sources
@@ -33,6 +34,9 @@ export type StudioSource = {
   fps: number;
   /** Human label for the audio chip — "original", a filename. */
   name: string;
+  /** Set when the sound came from the library: what the post has to say
+   *  about it. See credits.ts. */
+  credit?: SoundCredit;
 };
 
 export type SourceMap = Record<StudioSourceId, StudioSource>;
@@ -135,7 +139,7 @@ export type VideoClip = {
   gapBefore?: number;
 };
 
-export type AudioClipKind = "detached" | "music" | "voiceover";
+export type AudioClipKind = "detached" | "music" | "sfx" | "voiceover";
 
 /** Audio floats: it stores its own absolute timeline position, so detaching a
  *  clip's sound and then sliding it half a second late is just a number change. */

@@ -31,18 +31,16 @@ import { CanvasPanel, CoverPanel } from "@/components/studio/panels/CanvasPanel"
 import { TextPanel } from "@/components/studio/panels/TextPanel";
 import { PinPanel } from "@/components/studio/panels/PinPanel";
 import { OverlayPanel } from "@/components/studio/panels/OverlayPanel";
+import SoundLibrarySheet from "@/components/camera/SoundLibrarySheet";
+import { fetchLibraryTrack } from "@/lib/sound-fetch";
+import { creditFor, type LibraryTrack, type SoundKind } from "@/lib/sound-library";
+import { combineCredits, creditsInMix } from "@/lib/studio/credits";
 import { useStudioProject } from "@/lib/studio/project";
 import { usePlayback } from "@/lib/studio/use-playback";
 import { exportCover, exportTimeline, outputSize, timelineFps } from "@/lib/studio/export";
 import { cachedBeats, clearAudioCache, decodeSourceAudio, estimateBpm } from "@/lib/studio/audio";
 import { clearFilmstripCache } from "@/lib/studio/filmstrip";
-import {
-  DEFAULT_IMAGE_DURATION,
-  STUDIO_ACCEPT,
-  STUDIO_AUDIO_ACCEPT,
-  fileLabel,
-  loadSource,
-} from "@/lib/studio/sources";
+import { DEFAULT_IMAGE_DURATION, STUDIO_ACCEPT, fileLabel, loadSource } from "@/lib/studio/sources";
 import { TIMELINE_HEIGHT } from "@/lib/studio/layout";
 import ConfirmDiscard from "@/components/editor/ConfirmDiscard";
 import { HintBubble } from "@/components/editor/OneTimeHint";
@@ -270,7 +268,6 @@ function StudioEditor({
   }, [error]);
 
   const clipInputRef = useRef<HTMLInputElement>(null);
-  const audioInputRef = useRef<HTMLInputElement>(null);
   const stickerInputRef = useRef<HTMLInputElement>(null);
 
   const filmstrips = useFilmstrips(sources);
@@ -463,7 +460,57 @@ function StudioEditor({
   );
 
   const handleAddClips = useCallback(() => clipInputRef.current?.click(), []);
-  const handleAddMusic = useCallback(() => audioInputRef.current?.click(), []);
+  // Music and effects come from the library, never the phone: a sound on a
+  // post is Oakmonte distributing it, and only catalogue sounds come with a
+  // licence that allows that — see POSTPONED 0.2 and SoundLibrarySheet. The
+  // studio used to open a device file picker here.
+  const [library, setLibrary] = useState<SoundKind | null>(null);
+  const [soundLoading, setSoundLoading] = useState(false);
+  const handleAddMusic = useCallback(() => setLibrary("music"), []);
+  const handleAddEffect = useCallback(() => setLibrary("sfx"), []);
+
+  /** A library pick, downloaded and dropped at the playhead with its credit
+   *  on the source, so the export can say what the video contains. */
+  const addLibrarySound = useCallback(
+    async (track: LibraryTrack, kind: SoundKind) => {
+      setSoundLoading(true);
+      setError(null);
+      try {
+        const file = await fetchLibraryTrack(track);
+        const loaded = await loadSource(file, track.title);
+        const source = { ...loaded, credit: creditFor(track) };
+        const timelineEnd = projectDuration(project);
+        const effect = kind === "sfx";
+        setSources((prev) => ({ ...prev, [source.id]: source }));
+        dispatch({
+          type: "addAudio",
+          clip: {
+            id: uid("audio"),
+            sourceId: source.id,
+            kind: effect ? "sfx" : "music",
+            label: track.title,
+            timelineStart: Math.min(playback.timeRef.current, timelineEnd),
+            inPoint: 0,
+            outPoint: source.duration,
+            speed: 1,
+            // Music sits under the clips, where a seller talking about the
+            // fit can still be heard; an effect is the moment, at full level
+            // and with no fade-in to blunt its attack.
+            volume: effect ? 1 : 0.8,
+            muted: false,
+            fadeIn: effect ? 0 : 0.15,
+            fadeOut: effect ? 0.05 : 0.4,
+          },
+        });
+      } catch (err) {
+        console.error("Studio: could not add library sound", err);
+        setError("Couldn't get that sound. Check your connection and try another.");
+      } finally {
+        setSoundLoading(false);
+      }
+    },
+    [dispatch, playback.timeRef, project],
+  );
 
   const handleToggleMasterMute = useCallback(
     () => dispatch({ type: "toggleMasterMute" }),
@@ -692,9 +739,31 @@ function StudioEditor({
       // The cover is the studio's own pick or none — the old one is a frame
       // of the old cut.
       const { audio, ...rest } = media;
+      // Library sounds are inside the file now. The post carries their
+      // credit with no bytes — `bakedIn`, as the video editor does — or the
+      // feed would show a CC BY track with nobody named.
+      const credit = combineCredits(creditsInMix(project, sources));
+      const baked = credit
+        ? {
+            audio: {
+              blob: null,
+              url: "",
+              name: project.audio
+                .filter((a) => sources[a.sourceId]?.credit)
+                .map((a) => a.label)
+                .filter((label, i, all) => all.indexOf(label) === i)
+                .join(" · ")
+                .slice(0, 100),
+              credit,
+              bakedIn: true,
+            },
+          }
+        : audio && project.audio.length === 0
+          ? { audio }
+          : {};
       setMedia({
         ...rest,
-        ...(audio && project.audio.length === 0 ? { audio } : {}),
+        ...baked,
         type: "video",
         blob,
         url,
@@ -915,6 +984,8 @@ function StudioEditor({
           clip={targetClip}
           canDetach={canDetach}
           onAddMusic={handleAddMusic}
+          onAddEffect={handleAddEffect}
+          loading={soundLoading}
           onDetach={() => targetClip && dispatch({ type: "detachAudio", id: targetClip.id })}
           onDetectBeats={detectBeats}
           onCutToBeats={cutToBeats}
@@ -1268,15 +1339,12 @@ function StudioEditor({
           e.target.value = "";
         }}
       />
-      <input
-        ref={audioInputRef}
-        type="file"
-        accept={STUDIO_AUDIO_ACCEPT}
-        className="hidden"
-        onChange={(e) => {
-          void ingest(e.target.files, "audio");
-          e.target.value = "";
-        }}
+      <SoundLibrarySheet
+        open={library !== null}
+        withEffects
+        initialKind={library ?? "music"}
+        onClose={() => setLibrary(null)}
+        onPick={(track, kind) => void addLibrarySound(track, kind)}
       />
     </div>
   );

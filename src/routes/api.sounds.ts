@@ -25,7 +25,13 @@
 
 import { createFileRoute } from "@tanstack/react-router";
 import { getRequestUser } from "@/lib/server-auth";
-import { type LibraryTrack, isLicenceUsable, isUsableTrack } from "@/lib/sound-library";
+import {
+  type LibraryTrack,
+  type SoundKind,
+  isLicenceUsable,
+  isLikelySoundEffect,
+  isUsableTrack,
+} from "@/lib/sound-library";
 import { activeProviders, interleave } from "@/lib/sound-providers";
 
 /** Upstream is a third party we don't control; a slow day there must not
@@ -48,15 +54,18 @@ export const Route = createFileRoute("/api/sounds")({
         const genre = url.searchParams.get("genre") ?? undefined;
         const text = (url.searchParams.get("q") ?? "").slice(0, MAX_TEXT_LENGTH);
         const offset = Math.max(0, Number(url.searchParams.get("offset") ?? 0) || 0);
+        // Music unless effects are asked for by name — every existing caller
+        // sends no `kind` and must keep getting songs.
+        const kind: SoundKind = url.searchParams.get("kind") === "sfx" ? "sfx" : "music";
 
-        const providers = activeProviders();
+        const providers = activeProviders().filter((p) => kind === "music" || p.hasEffects);
 
         // All sources at once, and one slow or broken source must not take the
         // others down with it — hence allSettled and a per-request timeout
         // rather than a single await chain.
         const settled = await Promise.allSettled(
           providers.map(async (provider) => {
-            const res = await fetch(provider.buildSearchUrl({ genre, text, offset }), {
+            const res = await fetch(provider.buildSearchUrl({ genre, text, offset, kind }), {
               headers: { "User-Agent": provider.userAgent, Accept: "application/json" },
               signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
             });
@@ -74,7 +83,12 @@ export const Route = createFileRoute("/api/sounds")({
           }
           reachedIds.push(providers[i].id);
           lists.push(
-            result.value.filter((track) => isUsableTrack(track) && isLicenceUsable(track.licence)),
+            result.value.filter(
+              (track) =>
+                isUsableTrack(track, kind) &&
+                isLicenceUsable(track.licence) &&
+                (kind === "music" || isLikelySoundEffect(track)),
+            ),
           );
         });
 

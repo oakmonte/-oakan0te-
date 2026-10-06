@@ -116,8 +116,8 @@ export async function loadSource(blob: Blob, name: string): Promise<StudioSource
 
 /** Files the gallery picker is allowed to hand back. */
 export const STUDIO_ACCEPT = "video/*,image/*";
-/** Files the Sound tool accepts. */
-export const STUDIO_AUDIO_ACCEPT = "audio/*";
+// No audio picker: studio sound comes from the library, which carries the
+// licence a post needs (see SoundLibrarySheet).
 
 export function fileLabel(file: File): string {
   const base = file.name.replace(/\.[^.]+$/, "");

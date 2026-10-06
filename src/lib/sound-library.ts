@@ -106,11 +106,70 @@ export const MIN_TRACK_SECONDS = 20;
  *  past the first verse. */
 export const MAX_TRACK_SECONDS = 12 * 60;
 
-export function isUsableTrack(track: LibraryTrack): boolean {
+/** What the picker is looking for: a song to run under the video, or a
+ *  sound effect to drop on a moment of it. They are the same kind of file
+ *  from the same archives; what differs is how long one should be. */
+export type SoundKind = "music" | "sfx";
+
+/** A sound effect is a moment, not a track: a door, a coin, a notification
+ *  ping. Under a third of a second is a click nobody hears; over fifteen it
+ *  is an ambience or a song, and belongs in Music. */
+export const SFX_MIN_SECONDS = 0.3;
+export const SFX_MAX_SECONDS = 15;
+
+export function isUsableTrack(track: LibraryTrack, kind: SoundKind = "music"): boolean {
   if (!track.streamUrl || !track.title.trim()) return false;
   if (!Number.isFinite(track.durationSeconds)) return false;
-  return track.durationSeconds >= MIN_TRACK_SECONDS && track.durationSeconds <= MAX_TRACK_SECONDS;
+  const [min, max] =
+    kind === "sfx" ? [SFX_MIN_SECONDS, SFX_MAX_SECONDS] : [MIN_TRACK_SECONDS, MAX_TRACK_SECONDS];
+  return track.durationSeconds >= min && track.durationSeconds <= max;
 }
+
+/** Whether a short Commons file is a sound effect rather than the thing the
+ *  archive is mostly full of at that length.
+ *
+ *  `MIN_TRACK_SECONDS` keeps music clean by refusing anything short — which
+ *  is exactly what an effect is, so effects need their own filter. Short
+ *  audio on Commons is dominated by two things that are not effects:
+ *  pronunciation recordings ("LL-Q1860 (eng)-Arlo Barnes-whoosh.wav",
+ *  "En-us-applause.ogg", "De-Ns.ogg" — a language code, a hyphen, a word) and
+ *  MIDI examples from music-theory articles. Both are named that way by
+ *  convention, so the filename is enough to drop them. */
+export function isLikelySoundEffect(track: LibraryTrack): boolean {
+  let name: string;
+  try {
+    name = decodeURIComponent(new URL(track.sourceUrl).pathname.split("/").pop() ?? "");
+  } catch {
+    return false;
+  }
+  name = name.replace(/^File:/, "").replace(/_/g, " ");
+  if (/\.midi?$/i.test(name)) return false;
+  if (/^LL-Q\d+/i.test(name)) return false;
+  if (/^[A-Za-z]{2,3}(-[A-Za-z]{2,4})?-\S/.test(name)) return false;
+  return true;
+}
+
+/** The chips on the Effects tab, and the word each one searches for.
+ *
+ *  "All" browses the Gravity Sound pack on Commons — close to a thousand
+ *  CC BY 4.0 effects, recorded and named as effects, which is the most
+ *  reliable seam of them in the archive. The rest are free-text searches that
+ *  returned real effects when measured on 2026-10-06; words that returned only
+ *  pronunciations (whoosh, pop, swoosh, camera) are left out rather than
+ *  offered as chips that come back empty. */
+export const SOUND_EFFECT_TAGS: { id: string; label: string; query: string | null }[] = [
+  { id: "all", label: "All", query: null },
+  { id: "notification", label: "Notification", query: "notification" },
+  { id: "bell", label: "Bell", query: "bell" },
+  { id: "applause", label: "Applause", query: "applause" },
+  { id: "cash", label: "Cash register", query: "cash register" },
+  { id: "coins", label: "Coins", query: "coins" },
+  { id: "door", label: "Door", query: "door" },
+  { id: "hit", label: "Hit", query: "hit" },
+  { id: "glass", label: "Glass", query: "glass" },
+  { id: "water", label: "Water", query: "water" },
+  { id: "drum", label: "Drums", query: "kick drum" },
+];
 
 /** Licences we will not put on a post, matched loosely on the stated name.
  *

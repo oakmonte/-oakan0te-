@@ -205,7 +205,8 @@ breach — nothing republishes without its credit, which is what makes it safe t
   back it up. Use the sound catalogue (`sound-providers/`) instead; if voiceover or
   brand-owned audio comes back, build it as in-app recording, not a file picker.
 - **A device-audio picker anywhere in the create flow.** Same reasoning as above — removed
-  from the camera, photo editor and video editor.
+  from the camera, photo editor, video editor and (2026-10-06) the studio, whose Sound tool
+  now opens the library's Music / Effects sheet instead.
 - **Mixed photo/video carousels.** A carousel is photos-only. The video editor already exists
   to weld multiple clips into one MP4; a second, worse way to combine clips would compete
   with it, and the feed can't decide whether a mixed post is swiped or watched.

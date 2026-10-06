@@ -63,6 +63,7 @@ import ConfirmDiscard from "@/components/editor/ConfirmDiscard";
 import { HintBubble } from "@/components/editor/OneTimeHint";
 import { useOneTimeHint } from "@/hooks/use-one-time-hint";
 import SoundLibrarySheet from "@/components/camera/SoundLibrarySheet";
+import { fetchLibraryTrack } from "@/lib/sound-fetch";
 import { authedFetch } from "@/lib/authed-fetch";
 import { type LibraryTrack, type SoundCredit, creditFor } from "@/lib/sound-library";
 import {
@@ -1020,23 +1021,7 @@ function VideoEditor() {
       setSoundLoading(true);
       setSoundError(null);
       try {
-        // The access stamp travels with the track from `/api/sounds`. Without
-        // it the proxy refuses — it only serves URLs the catalogue issued, so a
-        // track assembled anywhere else cannot be laundered through it.
-        const query = new URLSearchParams({ url: track.streamUrl });
-        if (track.access) {
-          query.set("sig", track.access.sig);
-          query.set("exp", String(track.access.exp));
-        }
-        const res = await authedFetch(`/api/sound-file?${query.toString()}`);
-        if (!res.ok) {
-          const body = await res.json().catch(() => null);
-          throw new Error(body?.error ?? "Couldn't load that sound");
-        }
-        const blob = await res.blob();
-        // A name for the mixer, not for the seller — the credit is what the post
-        // shows. The extension keeps `decodeAudioData` from having to guess.
-        const file = new File([blob], "track.mp3", { type: blob.type || "audio/mpeg" });
+        const file = await fetchLibraryTrack(track);
         const next: EditorMusic = {
           file,
           name: track.title,
