@@ -1,5 +1,10 @@
 import { test, expect, describe } from "bun:test";
-import { paramsForCategory, paramFillState, allNecessitiesFilled } from "./necessities";
+import {
+  paramsForCategory,
+  paramFillState,
+  allNecessitiesFilled,
+  carryColorsAcrossKinds,
+} from "./necessities";
 import type { CategoryNode } from "./categories";
 import type { VariantOption, VariantRow } from "@/components/product-form/VariantMatrixBuilder";
 
@@ -167,5 +172,23 @@ describe("allNecessitiesFilled", () => {
     expect(allNecessitiesFilled([], "variant", [], "", {}, null, [], null, [], "active")).toBe(
       true,
     );
+  });
+});
+
+describe("carryColorsAcrossKinds", () => {
+  test("regular to variant: the colours become a Color option", () => {
+    const out = carryColorsAcrossKinds("variant", [], ["Navy"]);
+    expect(out.options).toEqual([{ name: "Color", values: ["Navy"] }]);
+  });
+
+  test("variant to regular: the Color option's values become the colours", () => {
+    const out = carryColorsAcrossKinds("regular", [{ name: "Colour", values: ["Red"] }], []);
+    expect(out.regularColors).toEqual(["Red"]);
+  });
+
+  test("never overwrites a colour the other kind already has", () => {
+    const axis = [{ name: "Color", values: ["Red"] }];
+    expect(carryColorsAcrossKinds("variant", axis, ["Navy"]).options).toBe(axis);
+    expect(carryColorsAcrossKinds("regular", axis, ["Navy"]).regularColors).toEqual(["Navy"]);
   });
 });

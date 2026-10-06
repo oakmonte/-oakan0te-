@@ -260,3 +260,25 @@ export function allNecessitiesFilled(
       ) === "filled",
   );
 }
+
+/** A product's colour survives switching between regular and variant.
+ *
+ *  The two kinds keep colour in different places -- a regular product in
+ *  product_variants.colors, a variant product as a Color option axis -- so
+ *  the switch copies it across rather than leaving it behind. Only into an
+ *  empty slot: a colour the other kind already has is never overwritten, and
+ *  the source is left in place so switching back loses nothing. */
+export function carryColorsAcrossKinds(
+  next: "regular" | "variant",
+  options: VariantOption[],
+  regularColors: string[],
+): { options: VariantOption[]; regularColors: string[] } {
+  const axis = findOption(options, "Color");
+  if (next === "variant" && regularColors.length > 0 && !axis) {
+    return { options: [...options, { name: "Color", values: regularColors }], regularColors };
+  }
+  if (next === "regular" && regularColors.length === 0 && axis && axis.values.length > 0) {
+    return { options, regularColors: axis.values };
+  }
+  return { options, regularColors };
+}

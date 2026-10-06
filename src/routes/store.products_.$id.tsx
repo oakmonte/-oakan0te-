@@ -25,7 +25,11 @@ import { NecessitiesSheet } from "@/components/product-form/NecessitiesSheet";
 import { NecessitiesWarningDialog } from "@/components/product-form/NecessitiesWarningDialog";
 import { useHasOwnContent } from "@/lib/own-content";
 import { DraftWarningDialog } from "@/components/product-form/DraftWarningDialog";
-import { allNecessitiesFilled, normalizeOptionName } from "@/lib/necessities";
+import {
+  allNecessitiesFilled,
+  normalizeOptionName,
+  carryColorsAcrossKinds,
+} from "@/lib/necessities";
 import { PricingSheet } from "@/components/product-form/PricingSheet";
 import { InventorySection } from "@/components/product-form/InventorySection";
 import { InventorySheet, type InventoryValues } from "@/components/product-form/InventorySheet";
@@ -782,6 +786,11 @@ function EditProduct() {
 
   function handleTypeSwitch(next: ProductKind) {
     setTypeSwitchOpen(false);
+    // The colour comes along: regular keeps it on the variant row, variant
+    // as a Color option (see carryColorsAcrossKinds).
+    const carried = carryColorsAcrossKinds(next, options, regularColors);
+    if (carried.options !== options) setOptions(carried.options);
+    if (carried.regularColors !== regularColors) setRegularColors(carried.regularColors);
     setKind(next);
   }
 
