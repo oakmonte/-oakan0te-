@@ -202,6 +202,10 @@ function VideoEditor() {
   // True when `error` is a failed export, which gets a Try again button. The
   // other errors are about one clip and have nothing to retry.
   const [errorIsExport, setErrorIsExport] = useState(false);
+  // The underlying reason for a failed export, shown small under the message.
+  // A phone-only failure can't be reproduced on a computer, and without this
+  // the real cause was thrown away with nothing to go on.
+  const [errorDetail, setErrorDetail] = useState<string | null>(null);
   const [confirmLeave, setConfirmLeave] = useState(false);
 
   const stageRef = useRef<HTMLDivElement>(null);
@@ -905,19 +909,26 @@ function VideoEditor() {
     setPlaying(false);
     setError(null);
     setErrorIsExport(false);
+    setErrorDetail(null);
     setBusy("Making your video…");
     setProgress(0);
     try {
       // Park the live stack first, or the clip currently on screen would
       // export without the caption you can see on it.
       if (current) layersByClip.current[current.id] = layers;
-      const { blob, musicIncluded } = await exportSequence(
-        clips,
-        layersByClip.current,
-        ratio,
-        music,
-        setProgress,
-      );
+      // One automatic retry at lighter encoder settings before giving up:
+      // a phone's hardware encoder can refuse the high setting at 1080x1920.
+      let exported: Awaited<ReturnType<typeof exportSequence>>;
+      try {
+        exported = await exportSequence(clips, layersByClip.current, ratio, music, setProgress);
+      } catch (first) {
+        console.warn("VideoEditor: export failed, retrying at medium quality", first);
+        setProgress(0);
+        exported = await exportSequence(clips, layersByClip.current, ratio, music, setProgress, {
+          safe: true,
+        });
+      }
+      const { blob, musicIncluded } = exported;
       // A track was chosen and the mixer could not decode it. Going on would
       // hand the seller a silent video they believe has music, and they would
       // find out in the feed. Stopping here costs a re-export if they try
@@ -980,6 +991,7 @@ function VideoEditor() {
     } catch (err) {
       console.error("VideoEditor: export failed", err);
       setErrorIsExport(true);
+      setErrorDetail(err instanceof Error ? err.message : String(err));
       setError("Couldn't make your video.");
     } finally {
       setBusy(null);
@@ -1615,7 +1627,12 @@ function VideoEditor() {
               role="alert"
               className="mx-4 mb-2 flex items-center gap-3 rounded-xl bg-black/80 py-1.5 pl-4 pr-1.5"
             >
-              <p className="min-w-0 flex-1 text-[13px] leading-snug text-red-300">{error}</p>
+              <p className="min-w-0 flex-1 text-[13px] leading-snug text-red-300">
+                {error}
+                {errorIsExport && errorDetail && (
+                  <span className="mt-0.5 block text-[11px] text-white/50">{errorDetail}</span>
+                )}
+              </p>
               {errorIsExport && (
                 <button
                   type="button"

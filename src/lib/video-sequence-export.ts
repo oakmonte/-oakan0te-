@@ -112,6 +112,10 @@ export async function exportSequence(
   ratio: ProjectRatio,
   music: MusicTrack | null,
   onProgress?: SequenceProgress,
+  /** A second attempt after a failure: a fixed 5 Mbps instead of the
+   *  quality tier, which some phones' hardware encoders accept where they
+   *  reject the high setting at this frame size. Same 1080-wide H.264. */
+  { safe = false }: { safe?: boolean } = {},
 ): Promise<SequenceExport> {
   if (clips.length === 0) throw new Error("Nothing on the timeline yet");
 
@@ -128,14 +132,19 @@ export async function exportSequence(
 
   // Only ask for codecs this container can actually hold — VP8-in-MP4 gets you
   // a file nothing will play.
+  // The fallback names a plain bitrate rather than a lower quality tier:
+  // QUALITY_MEDIUM came out at about a third of the bits and visibly softer.
+  // mediabunny marks `bitrate` deprecated in favour of `quality`, but a
+  // Quality is a tier, not a number, and the number is the point here.
+  const rate = safe ? { bitrate: 5_000_000 } : { quality: QUALITY_HIGH };
   const videoCodec = await getFirstEncodableVideoCodec(format.getSupportedVideoCodecs(), {
     width,
     height,
-    quality: QUALITY_HIGH,
+    ...rate,
   });
   if (!videoCodec) throw new Error("No encodable video codec available on this device");
 
-  const canvasSource = new CanvasSource(canvas, { codec: videoCodec, quality: QUALITY_HIGH });
+  const canvasSource = new CanvasSource(canvas, { codec: videoCodec, ...rate });
   output.addVideoTrack(canvasSource);
 
   // The whole soundtrack, mixed before anything is encoded — see
