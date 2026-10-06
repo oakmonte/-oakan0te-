@@ -418,6 +418,9 @@ export function OptionEditorSheet({
       updateValues((prev) => prev.filter((x) => x !== v));
     } else {
       addValue(v);
+      // Picked from a search: clear it, so the full list is back for the
+      // next pick and the new value is visible up top with the others.
+      setValueDraft("");
     }
   }
 
