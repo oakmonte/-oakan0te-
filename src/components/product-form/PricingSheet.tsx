@@ -248,7 +248,12 @@ export function PricingSheet({
         )}
       </div>
 
-      <div className="shrink-0 bg-white/95 backdrop-blur border-t border-gray-300 px-4 pt-3 oak-safe-bottom">
+      <div
+        className="shrink-0 bg-white/95 backdrop-blur border-t border-gray-300 px-4 pt-3 oak-safe-bottom"
+        // The home-bar inset is under the keyboard while it is up, so
+        // keeping it would float Save a strip above the keyboard.
+        style={viewport.keyboardHeight > 0 ? { paddingBottom: "0.75rem" } : undefined}
+      >
         <button
           type="button"
           onClick={onClose}

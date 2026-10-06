@@ -375,7 +375,12 @@ export function InventorySheet({
         />
       )}
 
-      <div className="px-4 pt-3 oak-safe-bottom border-t border-gray-100 bg-white shrink-0">
+      <div
+        className="px-4 pt-3 oak-safe-bottom border-t border-gray-100 bg-white shrink-0"
+        // The home-bar inset is under the keyboard while it is up, so
+        // keeping it would float Save a strip above the keyboard.
+        style={viewport.keyboardHeight > 0 ? { paddingBottom: "0.75rem" } : undefined}
+      >
         <button
           type="button"
           onClick={handleSave}

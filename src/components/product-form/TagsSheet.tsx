@@ -172,7 +172,12 @@ export function TagsSheet({
         )}
       </div>
 
-      <div className="px-3 pt-2 oak-safe-bottom shrink-0">
+      <div
+        className="px-3 pt-2 oak-safe-bottom shrink-0"
+        // The home-bar inset is under the keyboard while it is up, so
+        // keeping it would float Save a strip above the keyboard.
+        style={viewport.keyboardHeight > 0 ? { paddingBottom: "0.75rem" } : undefined}
+      >
         <div className="bg-black text-white rounded-full px-4 h-12 flex items-center justify-between shadow-lg">
           <span className="text-sm text-gray-300">{selectedIds.length} selected</span>
           <div className="flex items-center gap-2">
