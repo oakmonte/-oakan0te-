@@ -19,7 +19,13 @@ export function useFilePicker(accept: string, capture?: "user" | "environment") 
       type="file"
       accept={accept}
       capture={capture}
-      className="hidden"
+      // Visually hidden, NOT display:none: some Android WebViews (the
+      // in-app browsers of Instagram, TikTok and others) silently ignore a
+      // programmatic click() on a display:none file input, so the tap did
+      // nothing at all -- no picker, no error.
+      className="sr-only"
+      tabIndex={-1}
+      aria-hidden="true"
       onChange={(e) => {
         const file = e.target.files?.[0] ?? null;
         e.target.value = "";
@@ -52,7 +58,13 @@ export function useMultiFilePicker(accept: string, multiple = true) {
       type="file"
       accept={accept}
       multiple={multiple}
-      className="hidden"
+      // Visually hidden, NOT display:none: some Android WebViews (the
+      // in-app browsers of Instagram, TikTok and others) silently ignore a
+      // programmatic click() on a display:none file input, so the tap did
+      // nothing at all -- no picker, no error.
+      className="sr-only"
+      tabIndex={-1}
+      aria-hidden="true"
       onChange={(e) => {
         const files = Array.from(e.target.files ?? []);
         e.target.value = "";

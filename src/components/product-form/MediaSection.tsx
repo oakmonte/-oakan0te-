@@ -6,6 +6,7 @@ import type { PickedMedia } from "./MediaPickerSheet";
 import { ImageSourceSheet, type ImageSource } from "./ImageSourceSheet";
 import { useMultiFilePicker } from "@/hooks/use-file-picker";
 import { startBackgroundUpload, onBackgroundUploadDone } from "@/lib/background-upload";
+import { androidChromeIntentUrl, isInAppBrowser } from "@/lib/in-app-browser";
 
 export function MediaSection({
   mainImageUrl,
@@ -34,6 +35,19 @@ export function MediaSection({
   const [draftsOpen, setDraftsOpen] = useState(false);
   const [postsOpen, setPostsOpen] = useState(false);
   const filePicker = useMultiFilePicker("image/*", supportsGallery);
+  // Inside another app's browser (Instagram, TikTok, WhatsApp...), some
+  // Android versions never open the photo picker at all: the tap just does
+  // nothing. The picker is still tried -- many in-app browsers do work --
+  // but the seller is told why it might not, with a way out.
+  const [inAppBrowser, setInAppBrowser] = useState<{ chromeUrl: string | null } | null>(null);
+  useEffect(() => {
+    if (!isInAppBrowser(navigator.userAgent)) return;
+    setInAppBrowser({
+      chromeUrl: /Android/.test(navigator.userAgent)
+        ? androidChromeIntentUrl(window.location.href)
+        : null,
+    });
+  }, []);
   const addButtonRef = useRef<HTMLButtonElement>(null);
 
   const images = mainImageUrl ? [mainImageUrl, ...additionalImageUrls] : additionalImageUrls;
@@ -125,6 +139,19 @@ export function MediaSection({
         onAddTap={openSourceSheet}
         addButtonRef={addButtonRef}
       />
+
+      {inAppBrowser && (
+        <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2.5 text-[12px] leading-snug text-amber-900">
+          Photos not uploading? You're in another app's browser, which can block them.{" "}
+          {inAppBrowser.chromeUrl ? (
+            <a href={inAppBrowser.chromeUrl} className="font-semibold underline">
+              Open in Chrome
+            </a>
+          ) : (
+            <>Open this page in Safari from the ••• menu.</>
+          )}
+        </p>
+      )}
 
       {sourceSheetOpen && (
         <ImageSourceSheet
