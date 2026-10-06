@@ -10,6 +10,7 @@ import type { PickedMedia } from "./MediaPickerSheet";
 import { ImageSourceSheet, type ImageSource } from "./ImageSourceSheet";
 import { InventorySheet, type InventoryValues } from "./InventorySheet";
 import { WeightSheet } from "./WeightSheet";
+import { VariantName } from "./VariantName";
 import { PricingSheet } from "./PricingSheet";
 import { useMultiFilePicker } from "@/hooks/use-file-picker";
 import { startBackgroundUpload, onBackgroundUploadDone } from "@/lib/background-upload";
@@ -331,7 +332,7 @@ export function VariantCombinationsSheet({
                           row.selected ? "text-gray-900" : "text-gray-300"
                         }`}
                       >
-                        {o.value}
+                        <VariantName options={[o]} />
                       </td>
                     ))}
                   </tr>
@@ -443,8 +444,8 @@ export function VariantCombinationsSheet({
             {selected.map((row) => (
               <div key={row.key} className="border border-gray-200 rounded-xl p-3">
                 <div className="flex items-start justify-between gap-2 mb-2">
-                  <p className="text-sm font-medium text-gray-900">
-                    {row.options.map((o) => o.value).join(" / ")}
+                  <p className="min-w-0 text-sm font-medium text-gray-900">
+                    <VariantName options={row.options} />
                   </p>
                   <button
                     type="button"

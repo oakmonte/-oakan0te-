@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { VariantName } from "./VariantName";
 import type { WeightEstimate } from "@/lib/weight-estimate";
 import { ChevronRight, X } from "lucide-react";
 import type { VariantRow } from "./VariantMatrixBuilder";
@@ -65,7 +66,9 @@ export function VariantWeightsSheet({
                 onClick={() => setEditingKey(row.key)}
                 className="w-full flex items-center justify-between px-4 py-4 border-b border-gray-50 text-left oak-motion-control"
               >
-                <span className="text-[15px] text-gray-900 truncate pr-3">{rowLabel(row)}</span>
+                <span className="flex min-w-0 pr-3 text-[15px] text-gray-900">
+                  <VariantName options={row.options} />
+                </span>
                 <span className="flex items-center gap-2 shrink-0">
                   <span
                     className={`text-[15px] ${
