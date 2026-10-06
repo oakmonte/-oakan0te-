@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { X } from "lucide-react";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
-import { useKeyboardInset } from "@/hooks/use-keyboard-inset";
+import { useVisibleViewport } from "@/hooks/use-visible-viewport";
 import type { WeightEstimate } from "@/lib/weight-estimate";
 
 /** Per-SKU shipping weight editor -- same split as InventorySheet (a
@@ -36,8 +36,8 @@ export function WeightSheet({
   useLockedViewport();
   // See PricingSheet's identical comment -- keeps the sticky Save button
   // reachable above the keyboard instead of covered by it.
-  const [fieldFocused, setFieldFocused] = useState(false);
-  const keyboardInset = useKeyboardInset(fieldFocused);
+  // Sized to the keyboard-free band and pinned to its top (see PricingSheet).
+  const viewport = useVisibleViewport(true);
   const [value, setValue] = useState(initial != null ? String(initial) : "");
   const [blocked, setBlocked] = useState<string | null>(null);
   const isEstimate = estimate.grams != null && value === String(estimate.grams);
@@ -58,8 +58,11 @@ export function WeightSheet({
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-white flex flex-col min-h-dvh animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
-      style={{ paddingBottom: keyboardInset }}
+      className="fixed inset-x-0 top-0 z-50 bg-white flex flex-col animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
+      style={{
+        transform: viewport.top ? `translateY(${viewport.top}px)` : undefined,
+        height: viewport.height || "100dvh",
+      }}
     >
       <div className="bg-white/95 backdrop-blur border-b border-gray-100 px-4 pt-4 pb-3 flex flex-col items-center shrink-0 relative">
         <button
@@ -84,8 +87,6 @@ export function WeightSheet({
             min={0}
             value={value}
             onChange={(e) => setValue(e.target.value)}
-            onFocus={() => setFieldFocused(true)}
-            onBlur={() => setFieldFocused(false)}
             placeholder="0"
             className="flex-1 text-2xl font-semibold text-gray-900 outline-none min-w-0"
           />

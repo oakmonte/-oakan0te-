@@ -161,22 +161,22 @@ export function PricingSheet({
         </div>
         <div className="-mx-4 h-2 bg-gray-50 mb-4" />
 
-        {/* When fees are passed on, what the customer pays is the number that
-            moved and the one worth checking, so it leads. */}
-        {passFeesToBuyer && (
-          <div className="border border-gray-900 rounded-xl p-3 mb-3">
-            <p className="text-xs text-gray-500 mb-1">Customer pays</p>
-            <p className="text-[22px] font-semibold text-gray-900 leading-tight tabular-nums">
-              {charged !== null ? formatNaira(charged) : "–"}
+        {/* Always shown, whichever way the toggle is: the customer's number is
+            the one a seller most wants to check. With fees passed on it's the
+            price plus fees; without, it's simply the price itself. */}
+        <div className="border border-gray-900 rounded-xl p-3 mb-3">
+          <p className="text-xs text-gray-500 mb-1">Customer pays</p>
+          <p className="text-[22px] font-semibold text-gray-900 leading-tight tabular-nums">
+            {charged !== null ? formatNaira(charged) : "–"}
+          </p>
+          {charged !== null && fees && (
+            <p className="text-[11px] text-gray-500 mt-1">
+              {passFeesToBuyer
+                ? `${formatNaira(charged - (youReceive ?? 0))} of fees added to your ${formatNaira(numPrice)}`
+                : "Your price. Fees come out of what you receive."}
             </p>
-            {charged !== null && fees && (
-              <p className="text-[11px] text-gray-500 mt-1">
-                {formatNaira(charged - (youReceive ?? 0))} of fees added to your{" "}
-                {formatNaira(numPrice)}
-              </p>
-            )}
-          </div>
-        )}
+          )}
+        </div>
 
         <div className="border border-gray-300 rounded-xl overflow-hidden grid grid-cols-2 divide-x divide-gray-300">
           <div className="p-3">

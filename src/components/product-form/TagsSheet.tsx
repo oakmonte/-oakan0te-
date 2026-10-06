@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { ArrowUpDown, Check, MoreHorizontal, Search, X } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
-import { useKeyboardInset } from "@/hooks/use-keyboard-inset";
+import { useVisibleViewport } from "@/hooks/use-visible-viewport";
 
 type TagRow = { id: string; title: string };
 
@@ -24,8 +24,8 @@ export function TagsSheet({
   // See PricingSheet's identical comment -- keeps the sticky selection pill
   // (View selected / More actions) reachable above the keyboard while
   // searching, instead of covered by it.
-  const [fieldFocused, setFieldFocused] = useState(false);
-  const keyboardInset = useKeyboardInset(fieldFocused);
+  // Sized to the keyboard-free band and pinned to its top (see PricingSheet).
+  const viewport = useVisibleViewport(true);
 
   const [tags, setTags] = useState<TagRow[] | null>(null); // null = loading
   const [query, setQuery] = useState("");
@@ -89,8 +89,11 @@ export function TagsSheet({
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-white flex flex-col min-h-dvh animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
-      style={{ paddingBottom: keyboardInset }}
+      className="fixed inset-x-0 top-0 z-50 bg-white flex flex-col animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
+      style={{
+        transform: viewport.top ? `translateY(${viewport.top}px)` : undefined,
+        height: viewport.height || "100dvh",
+      }}
     >
       <div className="shrink-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
         <button onClick={onClose} type="button" className="p-1 -ml-1">
@@ -120,8 +123,6 @@ export function TagsSheet({
                 createTag();
               }
             }}
-            onFocus={() => setFieldFocused(true)}
-            onBlur={() => setFieldFocused(false)}
             placeholder="Search or add tags"
             className="bg-transparent text-base flex-1 outline-none min-w-0"
           />

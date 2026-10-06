@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { X, Search, ImageIcon, Check, Plus } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
-import { useKeyboardInset } from "@/hooks/use-keyboard-inset";
+import { useVisibleViewport } from "@/hooks/use-visible-viewport";
 
 type ProductRow = {
   id: string;
@@ -42,8 +42,8 @@ export function ProductsSheet({
   useLockedViewport();
   // See PricingSheet's identical comment -- keeps the sticky "N selected /
   // Done" bar reachable above the keyboard while searching.
-  const [fieldFocused, setFieldFocused] = useState(false);
-  const keyboardInset = useKeyboardInset(fieldFocused);
+  // Sized to the keyboard-free band and pinned to its top (see PricingSheet).
+  const viewport = useVisibleViewport(true);
 
   const [products, setProducts] = useState<ProductRow[] | null>(null); // null = loading
   const [selected, setSelected] = useState<Set<string>>(new Set(selectedIds));
@@ -91,8 +91,11 @@ export function ProductsSheet({
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-white flex flex-col min-h-dvh animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
-      style={{ paddingBottom: keyboardInset }}
+      className="fixed inset-x-0 top-0 z-50 bg-white flex flex-col animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
+      style={{
+        transform: viewport.top ? `translateY(${viewport.top}px)` : undefined,
+        height: viewport.height || "100dvh",
+      }}
     >
       <div className="shrink-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
         <button onClick={onClose} type="button" className="p-1 -ml-1">
@@ -138,8 +141,6 @@ export function ProductsSheet({
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                onFocus={() => setFieldFocused(true)}
-                onBlur={() => setFieldFocused(false)}
                 placeholder="Search products"
                 className="bg-transparent text-base flex-1 outline-none"
               />
