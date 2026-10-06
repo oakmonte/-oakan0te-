@@ -63,22 +63,29 @@ export function buildFragmentShader(ops: readonly Op[], withAmount: boolean): st
       body.push(`  c = texture(uL${i}, (c.bgr * (uN${i} - 1.0) + 0.5) / uN${i}).rgb;`);
     } else {
       decls.push(`uniform float uB${i};`);
-      body.push(`  c = mix(src.rgb, c, uB${i});`);
+      body.push(`  c = mix(base, c, uB${i});`);
     }
   });
   if (withAmount) {
     decls.push("uniform float uAmount;");
-    body.push("  c = mix(src.rgb, c, uAmount);");
+    body.push("  c = mix(base, c, uAmount);");
   }
   return `#version 300 es
 precision highp float;
 in vec2 vUv;
 uniform sampler2D uSrc;
+// Low-light lift (GlFilterRenderer.lift): a gamma exponent of 1 or less.
+// Lifts shadows and midtones while black stays black and white stays white,
+// so unlike a brightness gain it can't clip highlights. Applied before the
+// filter, so a filter grades the lifted picture, and "blend back to the
+// original" means the lifted original.
+uniform float uGamma;
 ${decls.join("\n")}
 out vec4 outColor;
 void main() {
   vec4 src = texture(uSrc, vUv);
-  vec3 c = src.rgb;
+  vec3 base = pow(src.rgb, vec3(uGamma));
+  vec3 c = base;
 ${body.join("\n")}
   outColor = vec4(clamp(c, 0.0, 1.0), src.a);
 }`;
@@ -96,6 +103,10 @@ export class GlFilterRenderer {
   private luts = new WeakMap<LutTable, WebGLTexture>();
   private srcTexture: WebGLTexture;
   private lost = false;
+  /** Gamma exponent applied to every frame before the filter: 1 is off,
+   *  below 1 brightens shadows and midtones (see uGamma). Set by the
+   *  recorder's light meter. */
+  lift = 1;
   private readonly maxTextureSize: number;
 
   /** null when WebGL2 isn't available. `opaque` for a renderer whose output
@@ -230,6 +241,7 @@ export class GlFilterRenderer {
       (r.sy + r.sh) / sourceHeight,
     );
     gl.uniform1f(prog.uniforms.get("uMirror")!, mirror ? 1 : 0);
+    gl.uniform1f(prog.uniforms.get("uGamma")!, this.lift);
 
     let unit = 1;
     ops.forEach((op, i) => {
@@ -280,7 +292,7 @@ export class GlFilterRenderer {
     if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
       throw new Error(`shader link failed: ${gl.getProgramInfoLog(program)}`);
     }
-    const names = ["uSrc", "uCrop", "uMirror", "uAmount"];
+    const names = ["uSrc", "uCrop", "uMirror", "uAmount", "uGamma"];
     ops.forEach((op, i) => {
       if (op.kind === "matrix") names.push(`uM${i}`, `uO${i}`);
       else if (op.kind === "lut") names.push(`uL${i}`, `uN${i}`);

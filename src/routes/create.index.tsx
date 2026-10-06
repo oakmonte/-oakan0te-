@@ -28,6 +28,7 @@ import {
 
 import { compileFilter, applyCompiledFilter, IDENTITY_FILTER } from "@/lib/canvas-filter";
 import { applyFilterToContext, GlFilterRenderer, warmFilter } from "@/lib/gl-filter";
+import { createLightMeter, liftForMean } from "@/lib/light-meter";
 import { setPendingCapture } from "@/lib/capture-handoff";
 import { getLastNonCreateRoute } from "@/lib/last-visited-route";
 import { useFilterThumbnail } from "@/lib/filter-thumbnail";
@@ -212,13 +213,13 @@ const HOLD_TO_RECORD_MS = 250;
 // swipe, not a press.
 const HOLD_SLOP_PX = 10;
 const MAX_RECORD_SECONDS = 60;
-// Recorded video is 720p on its short edge at ~5 Mbps H.264. Snapchat- and
-// Instagram-grade for a phone screen, and what the feed plays as-is (the
-// original file is served, not a re-encode -- see api.posts.ts). The camera
-// still runs at 1080p for the preview and for photos; recording downscales,
-// which also comes out sharper than capturing at 720p natively.
-const RECORD_SHORT_EDGE = 720;
-const RECORD_BITRATE = 5_000_000;
+// Recorded video is 1080p on its short edge at ~8 Mbps H.264 -- what the feed
+// plays as-is (the original file is served, not a re-encode; see
+// api.posts.ts). 720p was stretched ~1.6x to fill a modern phone's 1170px-wide
+// screen and read as soft; 1080 is what Snapchat and Instagram record. The
+// bitrate rises with it so the extra detail isn't lost to compression.
+const RECORD_SHORT_EDGE = 1080;
+const RECORD_BITRATE = 8_000_000;
 const RECORD_FPS = 30;
 // H.264 in MP4 first: every iPhone and modern Android encodes it in hardware,
 // so it's smooth and small. VP9 (which Safari also offers) is a SOFTWARE
@@ -963,8 +964,7 @@ function CreatePage() {
       const baseCrop = getCropRect(sourceWidth, sourceHeight, RATIO_ASPECT[ratio]);
       const { sx, sy, sw, sh } = baseCrop;
       const trueGrade = resolveCaptureFilter();
-      // Downscaled to RECORD_SHORT_EDGE (even dimensions, which H.264
-      // needs): encoding 1080x1920 buys nothing on a phone screen.
+      // Capped at RECORD_SHORT_EDGE, with even dimensions (H.264 needs them).
       const scale = Math.min(1, RECORD_SHORT_EDGE / Math.min(sw, sh));
       const outW = Math.round((sw * scale) / 2) * 2;
       const outH = Math.round((sh * scale) / 2) * 2;
@@ -991,8 +991,14 @@ function CreatePage() {
       // Digital zoom is a crop, so it needs the canvas. Only the back camera
       // with zoom hardware (applyZoom's first branch) zooms the stream itself.
       const zoomIsHardware = facing === "environment" && zoomCapabilitiesRef.current !== null;
+      // The GPU path always records through the canvas: that's where the
+      // low-light lift (below) is applied, which the raw stream can't have.
       const canUseNativeStream =
-        cropIsNoop && zoomIsHardware && !shouldMirror && compiledFilterAtStart === IDENTITY_FILTER;
+        !gpu &&
+        cropIsNoop &&
+        zoomIsHardware &&
+        !shouldMirror &&
+        compiledFilterAtStart === IDENTITY_FILTER;
 
       if (!canUseNativeStream) {
         const recordCanvas = gpu ? gpu.canvas : document.createElement("canvas");
@@ -1003,8 +1009,25 @@ function CreatePage() {
         const rctx = gpu ? null : recordCanvas.getContext("2d");
 
         if (gpu || rctx) {
+          // Low-light lift (light-meter.ts): measured now so the first frame
+          // is already right, then re-measured every 15 frames (~0.5s) and
+          // eased toward per frame, so it follows a change of scene without
+          // visibly pumping.
+          const meter = gpu ? createLightMeter() : null;
+          let liftTarget = 1;
+          let frameCount = 0;
+          if (gpu && meter) {
+            const mean = meter(video);
+            liftTarget = mean == null ? 1 : liftForMean(mean);
+            gpu.lift = liftTarget;
+          }
           const drawFrame = () => {
             if (gpu) {
+              if (meter && ++frameCount % 15 === 0) {
+                const mean = meter(video);
+                if (mean != null) liftTarget = liftForMean(mean);
+              }
+              gpu.lift += (liftTarget - gpu.lift) * 0.08;
               try {
                 gpu.render(
                   video,
