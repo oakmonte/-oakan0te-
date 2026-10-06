@@ -190,8 +190,13 @@ function AuthPanelInner({ intent, title, subtitle, defaultMode = "code" }: Props
     }
   };
 
+  // Shown under the passkey button itself, not the email form: on /sign-in
+  // the email form now sits below, and a failure message down there read as
+  // a complaint about the email fields.
+  const [passkeyError, setPasskeyError] = useState<string | null>(null);
   const handlePasskey = async () => {
     setError(null);
+    setPasskeyError(null);
     setBusy("passkey");
     try {
       const { data, error: passkeyError } = await signInWithPasskey();
@@ -199,13 +204,13 @@ function AuthPanelInner({ intent, title, subtitle, defaultMode = "code" }: Props
         // Covers a cancelled sheet and "no passkey on this device" alike --
         // neither is worth a scary message, and both leave the email form
         // sitting right there.
-        setError("No passkey found on this device. Use your email instead.");
+        setPasskeyError("No passkey found on this device. Use your email instead.");
         setBusy(null);
         return;
       }
       await finish(data.session.user.id);
     } catch {
-      setError("That didn't work. Use your email instead.");
+      setPasskeyError("That didn't work. Use your email instead.");
       setBusy(null);
     }
   };
@@ -305,6 +310,12 @@ function AuthPanelInner({ intent, title, subtitle, defaultMode = "code" }: Props
   // app) keeps its own existing order untouched; this is specifically about
   // the browser sign-in page.
   const appleAbovePasskey = passkeyReady && appleFirst && !emailFirst;
+
+  // /sign-in (returning users) has one fixed order everywhere, the installed
+  // app included: Apple and Google first, then Face ID / fingerprint, then
+  // email and password with forgot-password and create-account under it.
+  // The signup pages keep the platform-dependent order above.
+  const signInOrder = intent === null;
 
   const dividerWith = (label: string) => (
     <div className="flex items-center gap-4 my-8">
@@ -457,7 +468,25 @@ function AuthPanelInner({ intent, title, subtitle, defaultMode = "code" }: Props
             <p className="mt-3 text-sm text-[#0A0A0A]/70">{subtitle}</p>
           </div>
 
-          {appleAbovePasskey ? (
+          {signInOrder ? (
+            <>
+              {providerButtons}
+              {passkeyReady ? (
+                <>
+                  {dividerWith("or")}
+                  {passkeyButton}
+                  {passkeyError && (
+                    <div className="mt-3">
+                      <FormError>{passkeyError}</FormError>
+                    </div>
+                  )}
+                  {dividerWith("or sign in with email")}
+                </>
+              ) : (
+                dividerWith("or sign in with email")
+              )}
+            </>
+          ) : appleAbovePasskey ? (
             <>
               <div className="flex flex-col gap-3">
                 {appleButton}
@@ -697,7 +726,7 @@ function AuthPanelInner({ intent, title, subtitle, defaultMode = "code" }: Props
             </Link>
           )}
 
-          {emailFirst && (
+          {emailFirst && !signInOrder && (
             <>
               {dividerWith(APPLE_SIGN_IN_ENABLED ? "or" : "or continue with Google")}
               {providerButtons}

@@ -244,6 +244,9 @@ function StoreSection() {
   const [personalOnly, setPersonalOnly] = useState<boolean | null>(null);
   const [storeOnly, setStoreOnly] = useState(false);
   const [saving, setSaving] = useState(false);
+  // Set once during onboarding (seller-type); changeable here afterwards.
+  const [customOrders, setCustomOrders] = useState(false);
+  const [savingCustom, setSavingCustom] = useState(false);
   // Per OWNER (profiles.hide_store_stats), not per store: hides the star badges
   // and Sold Items on the personal profile.
   const [hideStats, setHideStats] = useState<boolean | null>(null);
@@ -294,7 +297,7 @@ function StoreSection() {
     let cancelled = false;
     supabase
       .from("stores")
-      .select("personal_storefront_only, store_profile_only")
+      .select("personal_storefront_only, store_profile_only, offers_custom_orders")
       .eq("id", storeId)
       .maybeSingle()
       .then(({ data, error }) => {
@@ -302,6 +305,7 @@ function StoreSection() {
         if (error) console.error("StoreSection: failed to load store", error);
         setPersonalOnly(data?.personal_storefront_only ?? false);
         setStoreOnly(data?.store_profile_only ?? false);
+        setCustomOrders(data?.offers_custom_orders ?? false);
       });
     return () => {
       cancelled = true;
@@ -336,6 +340,22 @@ function StoreSection() {
     void queryClient.invalidateQueries({ queryKey: ["profile-stores"], refetchType: "all" });
   }
 
+  async function toggleCustomOrders() {
+    if (!storeId || savingCustom) return;
+    const next = !customOrders;
+    setSavingCustom(true);
+    setCustomOrders(next);
+    const { error } = await supabase
+      .from("stores")
+      .update({ offers_custom_orders: next })
+      .eq("id", storeId);
+    setSavingCustom(false);
+    if (error) {
+      console.error("StoreSection: failed to save offers_custom_orders", error);
+      setCustomOrders(!next);
+    }
+  }
+
   if (storeLoading || !storeId || personalOnly === null) return null;
 
   return (
@@ -343,7 +363,21 @@ function StoreSection() {
       <Panel>
         <div className="flex items-center justify-between gap-3 px-4 py-3.5">
           <span className="text-[14px] text-white/70">
-            Only sell from my personal page
+            I offer custom orders
+            <span className="block text-[12px] text-white/40 mt-0.5">
+              Lets shoppers know you take made-to-order requests.
+            </span>
+          </span>
+          <Switch
+            checked={customOrders}
+            label="I offer custom orders"
+            onClick={toggleCustomOrders}
+            disabled={savingCustom}
+          />
+        </div>
+        <div className="flex items-center justify-between gap-3 px-4 py-3.5 border-t border-white/10">
+          <span className="text-[14px] text-white/70">
+            Only sell from my personal page{" "}
             <span className="block text-[12px] text-white/40 mt-0.5">
               No separate store page — your listings live on your profile's Store tab instead.
             </span>
