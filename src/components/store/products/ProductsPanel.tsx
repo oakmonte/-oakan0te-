@@ -231,7 +231,7 @@ export function ProductsPanel({ checklist }: { checklist?: boolean }) {
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`oak-tap shrink-0 pb-3 -mb-px border-b-2 font-medium transition-colors duration-200 ${activeTab === tab ? "border-sd-ink font-semibold text-sd-ink" : "border-transparent text-sd-ink-faint"}`}
+            className={`oak-tap shrink-0 pb-3 -mb-px border-b-2 font-medium transition-colors duration-200 ${activeTab === tab ? "border-sd-ink font-semibold text-sd-ink" : "border-transparent text-sd-ink-muted"}`}
           >
             {tab}
           </button>

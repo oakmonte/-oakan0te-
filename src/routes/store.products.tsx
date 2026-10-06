@@ -52,7 +52,7 @@ function StoreProducts() {
             onClick={() => setTopTab(t)}
             aria-current={topTab === t ? "page" : undefined}
             className={`oak-tap flex-1 py-3 text-center text-[15px] transition-colors duration-200 ${
-              topTab === t ? "font-semibold text-sd-ink" : "font-medium text-sd-ink-faint"
+              topTab === t ? "font-semibold text-sd-ink" : "font-medium text-sd-ink-muted"
             }`}
           >
             {t}
