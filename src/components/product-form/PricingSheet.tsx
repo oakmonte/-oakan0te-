@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { X, ChevronDown, XCircle } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
-import { useKeyboardInset } from "@/hooks/use-keyboard-inset";
+import { useVisibleViewport } from "@/hooks/use-visible-viewport";
 import { cleanPriceDigits, displayPriceWithCommas, padPriceOnBlur } from "@/lib/format-price-input";
 import {
   computeFees,
@@ -43,16 +43,14 @@ export function PricingSheet({
 }) {
   useLockedViewport();
 
-  // useLockedViewport stops the keyboard from pushing this fixed sheet up the
-  // screen (good — that's what made the media box on the camera pages jump),
-  // but it also means nothing here resizes for the keyboard on its own: a
-  // field or the Save button below it just ends up covered. This measures
-  // the actual covered height via visualViewport and adds it as bottom
-  // padding, so the sheet's own content area shrinks to fit above the
-  // keyboard instead -- the "grow/shrink in place" behavior, not a shove.
-  // Same pattern already used by the studio's text/pin panels.
-  const [fieldFocused, setFieldFocused] = useState(false);
-  const keyboardInset = useKeyboardInset(fieldFocused);
+  // The sheet is sized to the band of screen the keyboard leaves visible
+  // and pinned to its top, the same fix as DescriptionSheet. iOS ignores
+  // useLockedViewport's meta tag and pans the visual viewport up to show a
+  // focused field; following that pan keeps the sheet where the eye expects
+  // it. The old version padded the bottom only while a field was focused,
+  // so tapping from one box to the next dropped the padding for a frame and
+  // the whole sheet jumped.
+  const viewport = useVisibleViewport(true);
 
   const [breakdownOpen, setBreakdownOpen] = useState(false);
 
@@ -79,8 +77,11 @@ export function PricingSheet({
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-white flex flex-col min-h-dvh animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
-      style={{ paddingBottom: keyboardInset }}
+      className="fixed inset-x-0 top-0 z-50 bg-white flex flex-col animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
+      style={{
+        transform: viewport.top ? `translateY(${viewport.top}px)` : undefined,
+        height: viewport.height || "100dvh",
+      }}
     >
       <div className="shrink-0 bg-white/95 backdrop-blur border-b border-gray-300 px-4 h-14 flex items-center justify-between">
         <button onClick={onClose} type="button" className="p-1 -ml-1">
@@ -99,8 +100,6 @@ export function PricingSheet({
           value={price}
           onChange={onChangePrice}
           autoFocus={focusField === "price"}
-          onFocus={() => setFieldFocused(true)}
-          onBlur={() => setFieldFocused(false)}
         />
         <p className="text-xs text-gray-400 mt-1.5 mb-5">
           {passFeesToBuyer
@@ -112,8 +111,6 @@ export function PricingSheet({
           label="Compare-at price"
           value={compareAtPrice}
           onChange={onChangeCompareAtPrice}
-          onFocus={() => setFieldFocused(true)}
-          onBlur={() => setFieldFocused(false)}
         />
         <p className="text-xs text-gray-400 mt-1.5">
           What the product would've cost without a discount — shown crossed out next to your actual
@@ -131,8 +128,6 @@ export function PricingSheet({
           value={costPrice}
           onChange={onChangeCostPrice}
           autoFocus={focusField === "cost"}
-          onFocus={() => setFieldFocused(true)}
-          onBlur={() => setFieldFocused(false)}
         />
         <p className="text-xs text-gray-400 mt-1.5 mb-5">
           Type in how much this product/variant cost you in order to measure your profit, customers
@@ -271,16 +266,20 @@ function PriceBox({
   value,
   onChange,
   autoFocus,
-  onFocus,
-  onBlur,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   autoFocus?: boolean;
-  onFocus?: () => void;
-  onBlur?: () => void;
 }) {
+  // Focused with preventScroll rather than the autoFocus attribute: autoFocus
+  // lets iOS scroll the page to "reveal" a field that is already on screen,
+  // which is the shove this sheet is avoiding.
+  const inputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (autoFocus) inputRef.current?.focus({ preventScroll: true });
+  }, [autoFocus]);
+
   return (
     <label className="block border border-gray-400 bg-gray-50 rounded-xl px-3 py-2.5 mb-3">
       <span className="block text-xs text-gray-500 mb-1">{label}</span>
@@ -291,12 +290,10 @@ function PriceBox({
           inputMode="decimal"
           value={displayPriceWithCommas(value)}
           onChange={(e) => onChange(cleanPriceDigits(e.target.value))}
-          onFocus={onFocus}
+          ref={inputRef}
           onBlur={() => {
             if (value) onChange(padPriceOnBlur(value));
-            onBlur?.();
           }}
-          autoFocus={autoFocus}
           placeholder="0.00"
           className="text-base flex-1 outline-none min-w-0 bg-transparent"
         />
