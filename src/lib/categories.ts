@@ -28,6 +28,8 @@ const FASHION: CategoryNode = {
             { id: "t-shirts", name: "T-Shirts" },
             { id: "short-sleeve-shirts", name: "Short-Sleeve Shirts" },
             { id: "shirts", name: "Shirts" },
+            { id: "dress-shirts", name: "Dress Shirts" },
+            { id: "short-sleeve-dress-shirts", name: "Short-Sleeve Dress Shirts" },
             { id: "polos", name: "Polos" },
             { id: "henley-shirts", name: "Henley Shirts" },
             { id: "blouses", name: "Blouses" },

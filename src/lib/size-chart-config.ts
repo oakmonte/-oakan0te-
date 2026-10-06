@@ -449,6 +449,8 @@ const CHARTS_BY_CATEGORY: Record<string, SizeChartDefinition> = {
   "t-shirts": STANDARD_TSHIRT,
   "short-sleeve-shirts": SHORT_SLEEVE_SHIRT,
   shirts: DRESS_SHIRT,
+  "dress-shirts": DRESS_SHIRT,
+  "short-sleeve-dress-shirts": SHORT_SLEEVE_SHIRT,
   polos: POLO_SHIRT,
   "henley-shirts": HENLEY,
   "tank-tops": TANK_TOP,
