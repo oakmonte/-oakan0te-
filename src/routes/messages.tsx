@@ -1,7 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Archive, ChevronLeft, MessageCircleOff, Search, SquarePen, X } from "lucide-react";
+import { Archive, ChevronLeft, Lock, MessageCircleOff, Search, SquarePen, X } from "lucide-react";
+import { useLockedBanner } from "@/components/LockedBanner";
 import { useOverlayHistory } from "@/hooks/use-overlay-history";
 import { useSession } from "@/hooks/use-session";
 import { useOwnUsername } from "@/hooks/use-own-username";
@@ -66,6 +67,7 @@ function MessagesPage() {
   const [query, setQuery] = useState("");
   const [showArchived, setShowArchived] = useState(false);
   const [newChatOpen, setNewChatOpen] = useState(false);
+  const { banner: lockedBanner, showLocked } = useLockedBanner();
   const [actionsFor, setActionsFor] = useState<Chat | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Chat | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -373,6 +375,7 @@ function MessagesPage() {
       onTouchEnd={onTouchEnd}
       onTouchCancel={() => (touchStart.current = null)}
     >
+      {lockedBanner}
       <div className="mx-auto w-full max-w-[560px] md:border-x md:border-chat-border">
         {/* ---------- header ---------- */}
         <header className="sticky top-0 z-20 bg-chat-bg/90 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
@@ -395,11 +398,16 @@ function MessagesPage() {
                 {!signedOut && !dmUnavailable && (
                   <button
                     type="button"
-                    onClick={() => setNewChatOpen(true)}
-                    aria-label="New message"
-                    className="-mr-1 flex h-12 w-12 items-center justify-center rounded-full text-chat-text active:bg-chat-text/10"
+                    // Locked until messaging other members opens; the
+                    // padlock says so before the tap does.
+                    onClick={() => showLocked("New chats are unavailable for now")}
+                    aria-label="New message (unavailable)"
+                    className="relative -mr-1 flex h-12 w-12 items-center justify-center rounded-full text-chat-text/45 active:bg-chat-text/10"
                   >
                     <SquarePen size={25} />
+                    <span className="absolute right-1.5 bottom-1.5 grid h-[18px] w-[18px] place-items-center rounded-full bg-chat-text text-chat-bg">
+                      <Lock size={10} strokeWidth={3} />
+                    </span>
                   </button>
                 )}
               </>

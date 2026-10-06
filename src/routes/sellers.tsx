@@ -207,7 +207,7 @@ function SellersLanding() {
           </p>
           <div className="hero-buttons">
             <Link className="pill-button pill-button-acid" to="/set-up-store">
-              Set up my store <ArrowUpRight size={16} />
+              Set up my store <ArrowUpRight size={20} />
             </Link>
             <Link className="text-link hero-link" to="/sign-in">
               Login <ArrowUpRight size={15} />
@@ -555,6 +555,8 @@ const CSS = `
 .oak-sellers .hero h1 em,.oak-sellers .manifesto h2 em,.oak-sellers .feature-intro h2 em,.oak-sellers .studio-copy h2 em,.oak-sellers .manufacturer-section h2 em,.oak-sellers .free-panel h2 em,.oak-sellers .footer-cta h2 em{font-family:Georgia,serif;font-weight:400;color:var(--accent-blue)}
 .oak-sellers .hero-copy p{max-width:440px;color:#475467;line-height:1.55;font-size:16px;animation:oakSellersRise .9s .35s ease both}
 .oak-sellers .hero-buttons{display:flex;align-items:center;gap:27px;margin-top:32px;animation:oakSellersRise .9s .5s ease both}
+/* The hero's one real call to action: larger than the header and section pills. */
+.oak-sellers .hero-buttons .pill-button{padding:19px 32px;font-size:15px;gap:12px;min-height:58px}
 .oak-sellers .text-link{display:inline-flex;align-items:center;gap:8px;font:11px 'DM Mono',monospace;transition:color var(--duration-fast) var(--ease-out)}
 .oak-sellers .hero-link{color:#344054}
 .oak-sellers .hero-side-note{position:absolute;right:7vw;bottom:calc(min(30.7vw,436px) + 171px);z-index:1;display:flex;flex-direction:column;gap:16px;color:#667085;font:10px 'DM Mono',monospace}

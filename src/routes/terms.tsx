@@ -1,6 +1,6 @@
-import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { LegalHeader } from "@/components/LegalHeader";
 import { useEffect, useState } from "react";
-import { ArrowLeft } from "lucide-react";
 
 export const Route = createFileRoute("/terms")({
   head: () => ({
@@ -45,15 +45,6 @@ const SECTIONS: { id: string; n: number; title: string }[] = [
 ];
 
 function TermsPage() {
-  const router = useRouter();
-  const navigate = useNavigate();
-  // Reachable from the landing footer, Settings and shared links, so there is
-  // no single parent to go "up" to. Pop if there is somewhere to pop to,
-  // otherwise (deep link, fresh tab) land on the front page.
-  const goBack = () => {
-    if (window.history.length > 1) router.history.back();
-    else void navigate({ to: "/", replace: true });
-  };
   const [active, setActive] = useState<string>(SECTIONS[0].id);
 
   useEffect(() => {
@@ -75,33 +66,7 @@ function TermsPage() {
 
   return (
     <div className="min-h-screen bg-brand-bg text-brand-text">
-      {/* Header */}
-      <header className="px-4 sm:px-6 lg:px-8 py-6 border-b border-brand-text/10 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={goBack}
-            aria-label="Back"
-            className="-ml-2 flex h-9 w-9 items-center justify-center print:hidden"
-          >
-            <ArrowLeft size={22} />
-          </button>
-          <Link to="/" className="flex items-center">
-            <img src="/favicon.png" alt="Oakmonte" className="h-9 w-auto" />
-          </Link>
-        </div>
-        <div className="flex gap-6 text-[11px] uppercase tracking-widest">
-          <Link to="/" className="opacity-70 hover:opacity-100 transition-opacity">
-            Home
-          </Link>
-          <button
-            onClick={() => typeof window !== "undefined" && window.print()}
-            className="opacity-70 hover:opacity-100 transition-opacity print:hidden"
-          >
-            Print / PDF
-          </button>
-        </div>
-      </header>
+      <LegalHeader />
 
       <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
         {/* Title */}

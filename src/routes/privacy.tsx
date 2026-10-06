@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { LegalHeader } from "@/components/LegalHeader";
 import { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/privacy")({
@@ -63,22 +64,7 @@ function PrivacyPage() {
 
   return (
     <div className="min-h-screen bg-brand-bg text-brand-text">
-      <header className="px-4 sm:px-6 lg:px-8 py-6 border-b border-brand-text/10 flex items-center justify-between">
-        <Link to="/" className="flex items-center">
-          <img src="/favicon.png" alt="Oakmonte" className="h-9 w-auto" />
-        </Link>
-        <div className="flex gap-6 text-[11px] uppercase tracking-widest">
-          <Link to="/" className="opacity-70 hover:opacity-100 transition-opacity">
-            Home
-          </Link>
-          <button
-            onClick={() => typeof window !== "undefined" && window.print()}
-            className="opacity-70 hover:opacity-100 transition-opacity print:hidden"
-          >
-            Print / PDF
-          </button>
-        </div>
-      </header>
+      <LegalHeader />
 
       <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
         <div className="mb-10">
