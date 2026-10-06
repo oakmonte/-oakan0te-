@@ -12,7 +12,7 @@ import {
   X,
 } from "lucide-react";
 import { useAfterShotContext } from "@/lib/after-shot-context";
-import { useAfterShotLayers } from "@/lib/after-shot-layers";
+import { useAfterShotLayers, type Layer } from "@/lib/after-shot-layers";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
 import StudioPreview from "@/components/studio/StudioPreview";
 import StudioTimeline from "@/components/studio/StudioTimeline";
@@ -30,6 +30,7 @@ import { SoundPanel } from "@/components/studio/panels/SoundPanel";
 import { CanvasPanel, CoverPanel } from "@/components/studio/panels/CanvasPanel";
 import { TextPanel } from "@/components/studio/panels/TextPanel";
 import { PinPanel } from "@/components/studio/panels/PinPanel";
+import { OverlayPanel } from "@/components/studio/panels/OverlayPanel";
 import { useStudioProject } from "@/lib/studio/project";
 import { usePlayback } from "@/lib/studio/use-playback";
 import { exportCover, exportTimeline, outputSize, timelineFps } from "@/lib/studio/export";
@@ -94,6 +95,7 @@ type PanelId =
   | "transition"
   | "sound"
   | "text"
+  | "overlay"
   | "tags"
   | "canvas"
   | "cover"
@@ -200,10 +202,39 @@ function StudioEditor({
   useLockedViewport();
   const navigate = useNavigate();
   const { media, setMedia } = useAfterShotContext();
-  const { layers: inheritedLayers } = useAfterShotLayers();
+  const { layers: afterShotLayers, replaceLayers } = useAfterShotLayers();
+
+  // Captions, stickers and drawings made on the after-shot screen come in as
+  // ordinary timed layers spanning the whole video, so they're on the
+  // timeline, can be trimmed to a stretch of it, and are baked by THIS export.
+  // They used to sit over the preview as a read-only overlay and get baked a
+  // second time back on the after-shot screen — a second encode of the whole
+  // video, and the studio's cover was grabbed without them.
+  //
+  // The after-shot screen's copy is emptied while the studio has them and put
+  // back if the studio is left without exporting; see the effect below.
+  const [inherited] = useState<Layer[]>(() => afterShotLayers);
+  const [startProject] = useState<StudioProject>(() => {
+    if (inherited.length === 0) return initialProject;
+    const end = Math.max(0.1, projectDuration(initialProject));
+    const timed: TimedLayer[] = inherited.map((layer) => ({
+      ...layer,
+      startTime: 0,
+      endTime: end,
+    }));
+    return { ...initialProject, layers: [...timed, ...initialProject.layers] };
+  });
+  const exportedRef = useRef(false);
+  useEffect(() => {
+    if (inherited.length === 0) return;
+    replaceLayers([]);
+    return () => {
+      if (!exportedRef.current) replaceLayers(inherited);
+    };
+  }, [inherited, replaceLayers]);
 
   const { project, dispatch, undo, redo, canUndo, canRedo, beginHistoryGroup, endHistoryGroup } =
-    useStudioProject(initialProject);
+    useStudioProject(startProject);
 
   const [sources, setSources] = useState<SourceMap>(initialSources);
   const playback = usePlayback(project);
@@ -240,12 +271,19 @@ function StudioEditor({
 
   const clipInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
+  const stickerInputRef = useRef<HTMLInputElement>(null);
 
   const filmstrips = useFilmstrips(sources);
   const waveforms = useWaveforms(sources);
 
   const duration = projectDuration(project);
   const starts = useMemo(() => clipStarts(project.clips), [project.clips]);
+
+  // Sticker images picked inside the studio are object URLs this screen owns.
+  // So are the after-shot's, once an export has baked them into the video —
+  // nothing else will ever draw them again. If the studio is left without
+  // exporting, those go back to the after-shot screen and stay alive.
+  const stickerUrls = useRef<string[]>([]);
 
   // Every object URL the studio minted is revoked on the way out. The blob handed
   // back to the after-shot screen gets its own fresh URL, so this can't pull the
@@ -263,6 +301,8 @@ function StudioEditor({
   const mountedRef = useRef(true);
   useEffect(() => {
     mountedRef.current = true;
+    // The array itself, filled in as stickers are added; read at unmount.
+    const minted = stickerUrls.current;
     return () => {
       mountedRef.current = false;
       const urls = Object.values(sourcesRef.current).map((s) => s.url);
@@ -270,6 +310,14 @@ function StudioEditor({
       setTimeout(() => {
         if (mountedRef.current) return;
         for (const url of urls) URL.revokeObjectURL(url);
+        for (const url of minted) URL.revokeObjectURL(url);
+        if (exportedRef.current) {
+          for (const layer of inherited) {
+            if (layer.kind === "sticker" && layer.assetUrl.startsWith("blob:")) {
+              URL.revokeObjectURL(layer.assetUrl);
+            }
+          }
+        }
         // These are module-level Maps, so they outlive the route unless someone
         // empties them. A decoded 60s stereo AudioBuffer is ~23MB and the
         // filmstrip holds dozens of base64 frames per source — enough, across a
@@ -279,7 +327,7 @@ function StudioEditor({
         clearFilmstripCache();
       }, 0);
     };
-  }, []);
+  }, [inherited]);
 
   // ---- selection helpers ---------------------------------------------------
 
@@ -315,12 +363,16 @@ function StudioEditor({
   const targetSource = targetClip ? sources[targetClip.sourceId] : undefined;
   const canDetach = Boolean(targetSource?.hasAudio) && !targetClip?.audioDetached;
 
+  const layersRef = useRef(project.layers);
+  layersRef.current = project.layers;
   const handleSelect = useCallback((next: StudioSelection) => {
     setSelection(next);
     if (!next) return setPanel(null);
     if (next.kind === "audio") setPanel("audio");
-    else if (next.kind === "layer") setPanel("text");
-    else if (next.kind === "pin") setPanel("tags");
+    else if (next.kind === "layer") {
+      const layer = layersRef.current.find((l) => l.id === next.id);
+      setPanel(layer && layer.kind !== "text" ? "overlay" : "text");
+    } else if (next.kind === "pin") setPanel("tags");
     else setPanel(null);
   }, []);
 
@@ -422,6 +474,45 @@ function StudioEditor({
     setSelection({ kind: "clip", id: clipId });
     setPanel("transition");
   }, []);
+
+  /** Gallery pictures dropped on the frame from the playhead to the end of
+   *  the video, each on a free sticker lane. Slightly above centre so it
+   *  doesn't land exactly on a caption. */
+  const handleStickerFiles = useCallback(
+    (files: FileList | null) => {
+      if (!files) return;
+      const end = Math.max(0.1, projectDuration(project));
+      const now = playback.timeRef.current;
+      // From the start when the playhead is parked at (or near) the end, or
+      // the sticker would be a sliver nobody can see.
+      const start = now > end - 0.5 ? 0 : now;
+      let lastId: string | null = null;
+      for (const file of Array.from(files)) {
+        if (!file.type.startsWith("image/")) continue;
+        const url = URL.createObjectURL(file);
+        stickerUrls.current.push(url);
+        const layer: TimedLayer = {
+          id: uid("layer"),
+          kind: "sticker",
+          assetUrl: url,
+          x: 0.5,
+          y: 0.42,
+          scale: 1,
+          rotation: 0,
+          zIndex: 0,
+          startTime: start,
+          endTime: end,
+        };
+        dispatch({ type: "addLayer", layer });
+        lastId = layer.id;
+      }
+      if (lastId) {
+        setSelection({ kind: "layer", id: lastId });
+        setPanel("overlay");
+      }
+    },
+    [dispatch, playback.timeRef, project],
+  );
 
   const handleUpdateLayer = useCallback(
     (id: string, patch: Partial<TimedLayer>) => dispatch({ type: "updateLayer", id, patch }),
@@ -609,6 +700,7 @@ function StudioEditor({
         url,
         poster,
       });
+      exportedRef.current = true;
       navigate({ to: "/create/after-shot" });
     } catch (err) {
       console.error("Studio export failed:", err);
@@ -625,7 +717,7 @@ function StudioEditor({
   const hasWork =
     project.clips.length > 1 ||
     project.audio.length > 0 ||
-    project.layers.length > 0 ||
+    project.layers.length > inherited.length ||
     project.pins.length > 0 ||
     canUndo;
 
@@ -646,6 +738,10 @@ function StudioEditor({
 
   const handlePrimary = useCallback(
     (tool: PrimaryTool) => {
+      if (tool === "sticker") {
+        stickerInputRef.current?.click();
+        return;
+      }
       if (tool === "edit") {
         // The clip under the playhead — or, when the playhead is parked in a
         // gap, the nearest one. Doing nothing there left Edit looking broken.
@@ -829,6 +925,22 @@ function StudioEditor({
         />
       );
     }
+    if (panel === "overlay") {
+      return (
+        <OverlayPanel
+          layer={selectedLayer}
+          currentTime={playback.time}
+          onPatch={(patch) => selectedLayer && handleUpdateLayer(selectedLayer.id, patch)}
+          onDelete={() => {
+            if (!selectedLayer) return;
+            dispatch({ type: "deleteLayer", id: selectedLayer.id });
+            setSelection(null);
+            setPanel(null);
+          }}
+          onDone={() => setPanel(null)}
+        />
+      );
+    }
     if (panel === "text") {
       return (
         <TextPanel
@@ -974,7 +1086,6 @@ function StudioEditor({
         onSelect={handleSelect}
         onUpdateLayer={handleUpdateLayer}
         onUpdatePin={handleUpdatePin}
-        inheritedLayers={inheritedLayers}
         showGuides={showGuides}
         filterPreviewId={filterPreviewId}
         gradeClipId={targetClip?.id ?? null}
@@ -1141,6 +1252,19 @@ function StudioEditor({
         className="hidden"
         onChange={(e) => {
           void ingest(e.target.files, "clip");
+          e.target.value = "";
+        }}
+      />
+      {/* Several at once, like the after-shot picker: three stickers shouldn't
+          mean opening the gallery three times. */}
+      <input
+        ref={stickerInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={(e) => {
+          handleStickerFiles(e.target.files);
           e.target.value = "";
         }}
       />

@@ -36,7 +36,6 @@ type Props = {
   /** Read-only captions and drawings carried in from the after-shot screen.
    *  Shown so the framing is honest, never baked here — after-shot-export.ts
    *  still owns them. */
-  inheritedLayers: Layer[];
   showGuides: boolean;
   /** Auditioning a filter grades the preview without committing, exactly like
    *  the after-shot screen's filter list. */
@@ -56,7 +55,6 @@ export default function StudioPreview({
   onSelect,
   onUpdateLayer,
   onUpdatePin,
-  inheritedLayers,
   showGuides,
   filterPreviewId,
   gradeClipId,
@@ -208,20 +206,6 @@ export default function StudioPreview({
         })}
 
         {showGuides && <FramingGuides />}
-
-        {/* Captions carried over from the after-shot screen — inert here. */}
-        {inheritedLayers.length > 0 && (
-          <div className="absolute inset-0 pointer-events-none opacity-90">
-            <LayerOverlay
-              containerRef={boxRef}
-              layers={inheritedLayers}
-              updateLayer={() => {}}
-              selectedLayerId={null}
-              setSelectedLayerId={() => {}}
-              renderLayerContent={renderLayerContent}
-            />
-          </div>
-        )}
 
         <LayerOverlay
           containerRef={boxRef}

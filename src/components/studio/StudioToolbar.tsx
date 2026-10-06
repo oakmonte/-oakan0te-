@@ -17,6 +17,7 @@ import {
   Unlink,
   Volume2,
   Blend,
+  Sticker as StickerIcon,
 } from "lucide-react";
 import { ToolButton } from "./controls";
 
@@ -25,7 +26,7 @@ import { ToolButton } from "./controls";
 // wrapping — an editor toolbar that reflows onto two lines moves every button
 // under your thumb the moment a new one appears.
 
-export type PrimaryTool = "edit" | "sound" | "text" | "tags" | "canvas" | "cover";
+export type PrimaryTool = "edit" | "sound" | "text" | "sticker" | "tags" | "canvas" | "cover";
 export type ClipTool =
   | "split"
   | "speed"
@@ -50,6 +51,11 @@ export function PrimaryToolbar({ onPick }: { onPick: (tool: PrimaryTool) => void
       <ToolButton label="Edit" icon={<SquarePen size={18} />} onClick={() => onPick("edit")} />
       <ToolButton label="Sound" icon={<Music2 size={18} />} onClick={() => onPick("sound")} />
       <ToolButton label="Text" icon={<Type size={18} />} onClick={() => onPick("text")} />
+      <ToolButton
+        label="Stickers"
+        icon={<StickerIcon size={18} />}
+        onClick={() => onPick("sticker")}
+      />
       <ToolButton label="Product tag" icon={<Tag size={18} />} onClick={() => onPick("tags")} />
       <ToolButton label="Canvas" icon={<Crop size={18} />} onClick={() => onPick("canvas")} />
       <ToolButton label="Cover" icon={<ImageIcon size={18} />} onClick={() => onPick("cover")} />
