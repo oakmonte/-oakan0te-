@@ -1,4 +1,4 @@
-import { Trash2 } from "lucide-react";
+import { Copy, Scissors, Trash2 } from "lucide-react";
 import { Pill, StudioSheet } from "../controls";
 import type { TimedLayer } from "@/lib/studio/types";
 
@@ -13,12 +13,21 @@ export function OverlayPanel({
   currentTime,
   onPatch,
   onDelete,
+  canSplit,
+  onSplit,
+  onDuplicate,
   onDone,
 }: {
   layer: TimedLayer | null;
   currentTime: number;
   onPatch: (patch: Partial<TimedLayer>) => void;
   onDelete: () => void;
+  /** The playhead is far enough inside it for both halves to be usable. */
+  canSplit: boolean;
+  /** Cut it in two at the playhead. */
+  onSplit: () => void;
+  /** A copy straight after it. */
+  onDuplicate: () => void;
   onDone: () => void;
 }) {
   const title = layer?.kind === "draw" ? "Drawing" : "Sticker";
@@ -43,6 +52,16 @@ export function OverlayPanel({
             }
           >
             End here
+          </Pill>
+          <Pill onClick={onSplit} disabled={!canSplit}>
+            <span className="flex items-center gap-1">
+              <Scissors size={13} /> Split
+            </span>
+          </Pill>
+          <Pill onClick={onDuplicate}>
+            <span className="flex items-center gap-1">
+              <Copy size={13} /> Duplicate
+            </span>
           </Pill>
           <Pill tone="danger" onClick={onDelete}>
             <span className="flex items-center gap-1">

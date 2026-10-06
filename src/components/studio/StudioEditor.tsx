@@ -39,6 +39,7 @@ import {
 } from "@/lib/sound-library";
 import { creditsInMix } from "@/lib/studio/credits";
 import { makeClip } from "@/lib/studio/boot";
+import { canSplitAt, duplicateAfter, splitAt } from "@/lib/studio/overlay-edit";
 import { useStudioProject } from "@/lib/studio/project";
 import { usePlayback } from "@/lib/studio/use-playback";
 import { exportCover, exportTimeline, outputSize, timelineFps } from "@/lib/studio/export";
@@ -499,6 +500,37 @@ export default function StudioEditor({
     [dispatch, playback.timeRef, project],
   );
 
+  // Split and duplicate for captions, stickers, drawings and pins. A split is
+  // two reducer actions, grouped so one undo puts the item back whole.
+  const splitLayer = (layer: TimedLayer) => {
+    const halves = splitAt(layer, playback.timeRef.current, uid("layer"));
+    if (!halves) return;
+    beginHistoryGroup();
+    dispatch({ type: "updateLayer", id: layer.id, patch: { endTime: halves[0].endTime } });
+    dispatch({ type: "addLayer", layer: { ...halves[1], lane: undefined } });
+    endHistoryGroup();
+    setSelection({ kind: "layer", id: halves[1].id });
+  };
+  const duplicateLayer = (layer: TimedLayer) => {
+    const copy = duplicateAfter(layer, uid("layer"), projectDuration(project));
+    dispatch({ type: "addLayer", layer: copy });
+    setSelection({ kind: "layer", id: copy.id });
+  };
+  const splitPin = (pin: ProductPin) => {
+    const halves = splitAt(pin, playback.timeRef.current, uid("pin"));
+    if (!halves) return;
+    beginHistoryGroup();
+    dispatch({ type: "updatePin", id: pin.id, patch: { endTime: halves[0].endTime } });
+    dispatch({ type: "addPin", pin: { ...halves[1], lane: undefined } });
+    endHistoryGroup();
+    setSelection({ kind: "pin", id: halves[1].id });
+  };
+  const duplicatePin = (pin: ProductPin) => {
+    const copy = duplicateAfter(pin, uid("pin"), projectDuration(project));
+    dispatch({ type: "addPin", pin: copy });
+    setSelection({ kind: "pin", id: copy.id });
+  };
+
   const handleUpdateLayer = useCallback(
     (id: string, patch: Partial<TimedLayer>) => dispatch({ type: "updateLayer", id, patch }),
     [dispatch],
@@ -915,6 +947,9 @@ export default function StudioEditor({
           layer={selectedLayer}
           currentTime={playback.time}
           onPatch={(patch) => selectedLayer && handleUpdateLayer(selectedLayer.id, patch)}
+          canSplit={!!selectedLayer && canSplitAt(selectedLayer, playback.time)}
+          onSplit={() => selectedLayer && splitLayer(selectedLayer)}
+          onDuplicate={() => selectedLayer && duplicateLayer(selectedLayer)}
           onDelete={() => {
             if (!selectedLayer) return;
             dispatch({ type: "deleteLayer", id: selectedLayer.id });
@@ -946,6 +981,9 @@ export default function StudioEditor({
             setSelection({ kind: "layer", id: layer.id });
           }}
           onPatch={(patch) => selectedLayer && handleUpdateLayer(selectedLayer.id, patch)}
+          canSplit={!!selectedLayer && canSplitAt(selectedLayer, playback.time)}
+          onSplit={() => selectedLayer && splitLayer(selectedLayer)}
+          onDuplicate={() => selectedLayer && duplicateLayer(selectedLayer)}
           onDelete={() => {
             if (!selectedLayer) return;
             dispatch({ type: "deleteLayer", id: selectedLayer.id });
@@ -978,6 +1016,9 @@ export default function StudioEditor({
             setSelection({ kind: "pin", id: pin.id });
           }}
           onPatch={(patch) => selectedPin && handleUpdatePin(selectedPin.id, patch)}
+          canSplit={!!selectedPin && canSplitAt(selectedPin, playback.time)}
+          onSplit={() => selectedPin && splitPin(selectedPin)}
+          onDuplicate={() => selectedPin && duplicatePin(selectedPin)}
           onDelete={() => {
             if (!selectedPin) return;
             dispatch({ type: "deletePin", id: selectedPin.id });
