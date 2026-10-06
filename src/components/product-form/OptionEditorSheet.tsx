@@ -326,8 +326,10 @@ export function OptionEditorSheet({
         : systemValues(name, activeSystem);
 
   // Every chosen value pins to the top regardless of which system it came
-  // from; the pool below only lists what's left to pick.
-  const chosen = values.filter(matches);
+  // from, ABOVE the search box and never filtered by it: searching for one
+  // more value used to hide the ones already picked, which read as them
+  // having been dropped. The pool below the box lists what's left to pick.
+  const chosen = values;
   // Seller-typed values (Weight/Volume's numeric row) pin above the regular
   // pool, same shelf position a chosen value gets among chosen ones -- newest
   // typed value first, so "20.56" lands above the default-first "25 g".
@@ -587,6 +589,42 @@ export function OptionEditorSheet({
               )}
             </div>
 
+            {chosen.length > 0 && (
+              <div className="flex flex-col gap-2 mb-3">
+                {chosen.map((v) => (
+                  <ValueRow
+                    key={v}
+                    label={v}
+                    selected
+                    swatch={isColorOption ? <ColorSwatch name={v} /> : null}
+                    onToggle={() => toggleValue(v)}
+                    onRemove={() => removeValue(v)}
+                  />
+                ))}
+
+                {/* Demarcation between what's chosen and what's still pickable — also
+                  the checkpoint a seller must clear before switching option names. */}
+                {hasChosen && (
+                  <div className="flex items-center gap-2 pt-1 pb-4">
+                    <button
+                      type="button"
+                      onClick={confirmValues}
+                      className="flex-1 bg-black text-white text-sm font-medium rounded-lg py-2.5"
+                    >
+                      {confirmed ? <Check size={16} className="mx-auto" /> : "Save"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={cancelValues}
+                      className="flex-1 border border-gray-200 text-sm font-medium text-gray-600 rounded-lg py-2.5"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
             {isWeightVolume ? (
               <>
                 {systems && (
@@ -700,38 +738,6 @@ export function OptionEditorSheet({
                 </button>
               )}
 
-              {chosen.map((v) => (
-                <ValueRow
-                  key={v}
-                  label={v}
-                  selected
-                  swatch={isColorOption ? <ColorSwatch name={v} /> : null}
-                  onToggle={() => toggleValue(v)}
-                  onRemove={() => removeValue(v)}
-                />
-              ))}
-
-              {/* Demarcation between what's chosen and what's still pickable — also
-                  the checkpoint a seller must clear before switching option names. */}
-              {hasChosen && (
-                <div className="flex items-center gap-2 pt-1 pb-4">
-                  <button
-                    type="button"
-                    onClick={confirmValues}
-                    className="flex-1 bg-black text-white text-sm font-medium rounded-lg py-2.5"
-                  >
-                    {confirmed ? <Check size={16} className="mx-auto" /> : "Save"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={cancelValues}
-                    className="flex-1 border border-gray-200 text-sm font-medium text-gray-600 rounded-lg py-2.5"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              )}
-
               {remaining.map((v) => (
                 <ValueRow
                   key={v}
@@ -742,12 +748,12 @@ export function OptionEditorSheet({
                 />
               ))}
 
-              {!canCreate && chosen.length === 0 && remaining.length === 0 && (
+              {!canCreate && remaining.length === 0 && (
                 <p className="text-sm text-gray-400 py-6 text-center">
-                  {pool.length === 0
-                    ? "Type a value above to add your first one."
-                    : query
-                      ? "No values match your search."
+                  {query
+                    ? "No values match your search."
+                    : pool.length === 0 && chosen.length === 0
+                      ? "Type a value above to add your first one."
                       : "You've added every preset value."}
                 </p>
               )}
