@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { LiveStorefrontContext } from "./live-storefront";
 import {
   ArrowLeft,
   BadgeCheck,
@@ -1228,7 +1229,9 @@ export function PublicStorefront({ storeId }: { storeId: string }) {
   return (
     // overflow-x-clip: same sideways-drag guard as ThemePreviewSheet's frame.
     <div className="min-h-full overflow-x-clip pb-24" style={{ background }}>
-      <FullPreview themeId={themeId} editing={editing} storeId={storeId} brandName={brandName} />
+      <LiveStorefrontContext.Provider value={true}>
+        <FullPreview themeId={themeId} editing={editing} storeId={storeId} brandName={brandName} />
+      </LiveStorefrontContext.Provider>
     </div>
   );
 }

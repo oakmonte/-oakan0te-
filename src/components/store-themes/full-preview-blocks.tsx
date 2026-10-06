@@ -1,5 +1,6 @@
 import {
   Fragment,
+  useContext,
   useEffect,
   useRef,
   useState,
@@ -31,6 +32,7 @@ import { MAX_SLIDESHOW_IMAGES, type CropPosition, type ThemeEditingProps } from 
 import { formatCommunityCount, useStoreCommunityCounts } from "./useStoreCommunityCounts";
 import { useStorefrontCatalog, type PreviewTile, type TilePhoto } from "./storefront-catalog";
 import { SalesLockedNotice } from "./SalesLockedNotice";
+import { LiveStorefrontContext } from "./live-storefront";
 import { CollectionPage } from "./CollectionPage";
 import { readStorefrontLook, type StorefrontLook } from "./storefront-look";
 import { readableTextColor } from "./colors";
@@ -1155,12 +1157,14 @@ export function CollectionsGrid({
   const [opened, setOpened] = useState<{ tile: PreviewTile; look: StorefrontLook } | null>(null);
   // Checkout isn't open before launch: a product tap explains that instead.
   const [salesLocked, setSalesLocked] = useState(false);
+  const live = useContext(LiveStorefrontContext);
   function openProduct() {
     if (editing?.isEditing) {
       editing.onTileTapBlocked();
       return;
     }
-    setSalesLocked(true);
+    // Only on the real storefront; previews and the editor stay quiet.
+    if (live) setSalesLocked(true);
   }
   function openCollection(tile: PreviewTile) {
     if (editing?.isEditing) {
