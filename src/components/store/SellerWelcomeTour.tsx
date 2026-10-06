@@ -7,7 +7,7 @@ import { markSellerWelcomeSeen } from "./seller-welcome";
  * A new seller's first look at their storefront, then a three-stop tour of
  * where everything lives.
  *
- *   1. Seven seconds after the storefront opens (sooner if they close it), a
+ *   1. Ten seconds after the storefront opens (sooner if they close it), a
  *      card asks for notification permission with a real switch. Browsers
  *      only show the permission prompt from a tap, which is what the switch
  *      is. Where notifications can't be asked for (iOS outside the installed
@@ -24,7 +24,7 @@ import { markSellerWelcomeSeen } from "./seller-welcome";
  */
 
 const PUSH = "cubic-bezier(0.32, 0.72, 0, 1)";
-const NOTIFY_DELAY_MS = 7000;
+const NOTIFY_DELAY_MS = 10000;
 
 type Stop = { target: string; title: string; body: string; cta: string };
 
@@ -65,7 +65,7 @@ export function SellerWelcomeTour({
   openMenuWithStoreLit,
 }: {
   userId: string;
-  /** Whether the storefront sheet is up; the 7s clock runs while it is. */
+  /** Whether the storefront sheet is up; the 10s clock runs while it is. */
   storefrontOpen: boolean;
   closeStorefront: () => void;
   /** Opens the hamburger menu with the Oakmonte Store row highlighted. */
@@ -73,7 +73,7 @@ export function SellerWelcomeTour({
 }) {
   const [phase, setPhase] = useState<Phase>("waiting");
 
-  // The prompt comes 7s into the storefront, or right away if they close it
+  // The prompt comes 10s into the storefront, or right away if they close it
   // first -- they've finished looking, so there's nothing to wait for.
   const startTour = useCallback(() => {
     closeStorefront();
