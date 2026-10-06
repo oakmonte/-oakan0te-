@@ -35,16 +35,19 @@ import {
   TRACK_TOP_PAD,
   VIDEO_TRACK_CENTER,
   VIDEO_TRACK_H,
+  LANE_GAP,
   laneTop,
   timelineLayout,
   type TrackKind,
 } from "@/lib/studio/layout";
-import { isTextLayer, laneCount } from "@/lib/studio/lanes";
+import { isTextLayer, laneCount, placeLane } from "@/lib/studio/lanes";
+import { SNAP_PX, snapSpan, snapTime } from "@/lib/studio/snap";
 import {
   audioDuration,
   clipDuration,
   clipStarts,
   formatTimecode,
+  projectDuration,
   timelineExtent,
   type AudioClip,
   type SourceMap,
@@ -54,6 +57,8 @@ import {
   type VideoClip,
 } from "@/lib/studio/types";
 
+/** The shortest a caption, sticker or pin can be trimmed to. */
+const MIN_OVERLAY_SECONDS = 0.3;
 /** A clip's width while the track is in reorder mode: square, the track's
  *  own height, whatever the clip's duration. */
 const SQUARE = VIDEO_TRACK_H;
@@ -94,7 +99,13 @@ type Props = {
   onTrim: (clipId: string, edge: "in" | "out", sourceTime: number) => void;
   onReorder: (clipId: string, toIndex: number) => void;
   onCloseGap: (clipId: string) => void;
-  onMoveAudio: (audioId: string, timelineStart: number) => void;
+  onMoveAudio: (audioId: string, timelineStart: number, lane: number) => void;
+  /** Move or trim a caption, sticker or pin: timeline seconds, and its lane. */
+  onRetimeOverlay: (
+    kind: "layer" | "pin",
+    id: string,
+    patch: { startTime?: number; endTime?: number; lane?: number },
+  ) => void;
   onTrimAudio: (audioId: string, edge: "in" | "out", sourceTime: number) => void;
   onAddClips: () => void;
   onToggleMasterMute: () => void;
@@ -119,6 +130,7 @@ function StudioTimeline({
   onReorder,
   onCloseGap,
   onMoveAudio,
+  onRetimeOverlay,
   onTrimAudio,
   onAddClips,
   onToggleMasterMute,
@@ -494,63 +506,193 @@ function StudioTimeline({
     [endHistoryGroup, onSelect],
   );
 
-  // --- audio move + trim ---------------------------------------------------
-  const audioRef = useRef<{
+  // --- chips: audio, captions, stickers, pins --------------------------------
+  //
+  // Select first, then drag. The first tap on a chip only selects it, and the
+  // strip still scrolls under a finger that lands on an unselected one — with
+  // a dozen chips stacked under the clips, grabbing whatever the thumb landed
+  // on made every scrub move something by accident. Once a chip is selected,
+  // dragging its body moves it in time and between lanes, and its white end
+  // bars trim it. Edges snap to cuts, the playhead, beats and the other
+  // chips' edges, with a guide line to say so.
+  type ChipKind = "audio" | "layer" | "pin";
+  const projectRef = useRef(project);
+  projectRef.current = project;
+  const beatsRef = useRef(beats);
+  beatsRef.current = beats;
+  const chipRef = useRef<{
+    kind: ChipKind;
     id: string;
     mode: "move" | "in" | "out";
     startX: number;
-    startValue: number;
+    startY: number;
+    /** The chip's timeline span and lane when the gesture began. */
+    start: number;
+    end: number;
+    lane: number;
+    laneH: number;
+    /** Audio only: the source point under the chip's start, and its rate. */
+    inPoint: number;
     speed: number;
+    /** The rest of the chip's own track, for lane collisions. */
+    others: { start: number; end: number; lane: number }[];
+    targets: number[];
     moved: boolean;
   } | null>(null);
+  const [snapLine, setSnapLine] = useState<number | null>(null);
 
-  const startAudio = useCallback(
-    (audio: AudioClip, mode: "move" | "in" | "out") => (e: ReactPointerEvent) => {
+  const startChip = useCallback(
+    (kind: ChipKind, id: string, mode: "move" | "in" | "out") => (e: ReactPointerEvent) => {
+      const p = projectRef.current;
+      type Spanned = { id: string; start: number; end: number; lane: number };
+      const audioSpans: Spanned[] = p.audio.map((a) => ({
+        id: a.id,
+        start: a.timelineStart,
+        end: a.timelineStart + audioDuration(a),
+        lane: a.lane ?? 0,
+      }));
+      const layerSpans = (text: boolean): Spanned[] =>
+        p.layers
+          .filter((l) => isTextLayer(l) === text)
+          .map((l) => ({ id: l.id, start: l.startTime, end: l.endTime, lane: l.lane ?? 0 }));
+      const pinSpans: Spanned[] = p.pins.map((pin) => ({
+        id: pin.id,
+        start: pin.startTime,
+        end: pin.endTime,
+        lane: pin.lane ?? 0,
+      }));
+      const layer = kind === "layer" ? p.layers.find((l) => l.id === id) : undefined;
+      const track =
+        kind === "audio"
+          ? audioSpans
+          : kind === "pin"
+            ? pinSpans
+            : layerSpans(layer ? isTextLayer(layer) : true);
+      const self = track.find((s) => s.id === id);
+      if (!self) return;
+      const audio = kind === "audio" ? p.audio.find((a) => a.id === id) : undefined;
+
       e.stopPropagation();
       (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
-      gestureRef.current = true;
-      beginHistoryGroup();
-      audioRef.current = {
-        id: audio.id,
+
+      const clipStartsAt = clipStarts(p.clips);
+      const targets = [
+        timeRef.current,
+        0,
+        ...p.clips.flatMap((c, i) => [clipStartsAt[i], clipStartsAt[i] + clipDuration(c)]),
+        ...[...audioSpans, ...layerSpans(true), ...layerSpans(false), ...pinSpans]
+          .filter((s) => s.id !== id)
+          .flatMap((s) => [s.start, s.end]),
+        ...beatsRef.current,
+      ];
+      chipRef.current = {
+        kind,
+        id,
         mode,
         startX: e.clientX,
-        startValue:
-          mode === "move" ? audio.timelineStart : mode === "in" ? audio.inPoint : audio.outPoint,
-        speed: audio.speed,
+        startY: e.clientY,
+        start: self.start,
+        end: self.end,
+        lane: self.lane,
+        laneH: kind === "audio" ? AUDIO_TRACK_H : LAYER_TRACK_H,
+        inPoint: audio?.inPoint ?? 0,
+        speed: audio?.speed ?? 1,
+        others: track.filter((s) => s.id !== id),
+        targets,
         moved: false,
       };
     },
-    [beginHistoryGroup],
+    [timeRef],
   );
 
-  const moveAudio = useCallback(
+  const moveChip = useCallback(
     (e: ReactPointerEvent) => {
-      const drag = audioRef.current;
+      const drag = chipRef.current;
       if (!drag) return;
       e.stopPropagation();
-      const dxPx = e.clientX - drag.startX;
-      if (Math.abs(dxPx) > TAP_SLOP) drag.moved = true;
+      const dx = e.clientX - drag.startX;
+      const dy = e.clientY - drag.startY;
+      if (!drag.moved) {
+        if (Math.abs(dx) <= TAP_SLOP && Math.abs(dy) <= TAP_SLOP) return;
+        drag.moved = true;
+        gestureRef.current = true;
+        beginHistoryGroup();
+      }
+
+      const threshold = SNAP_PX / pps;
+      const length = drag.end - drag.start;
+      // Overlays live on the picture, so they stop where the video does;
+      // audio may hang past the end (it's cut off there) — see projectDuration.
+      const maxEnd =
+        drag.kind === "audio" ? Infinity : Math.max(projectDuration(projectRef.current), drag.end);
+
       if (drag.mode === "move") {
-        onMoveAudio(drag.id, Math.max(0, drag.startValue + dxPx / pps));
+        const raw = Math.min(Math.max(0, drag.start + dx / pps), maxEnd - length);
+        const snapped = snapSpan(raw, length, drag.targets, threshold);
+        const start = Math.min(Math.max(0, snapped.start), maxEnd - length);
+        const wantLane = drag.lane + Math.round(dy / (drag.laneH + LANE_GAP));
+        const lane = placeLane(drag.others, start, start + length, wantLane);
+        setSnapLine(snapped.target);
+        if (drag.kind === "audio") onMoveAudio(drag.id, start, lane);
+        else
+          onRetimeOverlay(drag.kind, drag.id, { startTime: start, endTime: start + length, lane });
+        return;
+      }
+
+      const minLength = drag.kind === "audio" ? 0.1 : MIN_OVERLAY_SECONDS;
+      if (drag.mode === "in") {
+        const raw = Math.min(Math.max(0, drag.start + dx / pps), drag.end - minLength);
+        const snapped = snapTime(raw, drag.targets, threshold);
+        const start = Math.min(Math.max(0, snapped.time), drag.end - minLength);
+        setSnapLine(snapped.target);
+        if (drag.kind === "audio") {
+          onTrimAudio(drag.id, "in", drag.inPoint + (start - drag.start) * drag.speed);
+        } else {
+          onRetimeOverlay(drag.kind, drag.id, { startTime: start });
+        }
+        return;
+      }
+
+      const raw = Math.max(drag.start + minLength, Math.min(maxEnd, drag.end + dx / pps));
+      const snapped = snapTime(raw, drag.targets, threshold);
+      const end = Math.max(drag.start + minLength, Math.min(maxEnd, snapped.time));
+      setSnapLine(snapped.target);
+      if (drag.kind === "audio") {
+        onTrimAudio(drag.id, "out", drag.inPoint + (end - drag.start) * drag.speed);
       } else {
-        onTrimAudio(drag.id, drag.mode, drag.startValue + (dxPx / pps) * drag.speed);
+        onRetimeOverlay(drag.kind, drag.id, { endTime: end });
       }
     },
-    [onMoveAudio, onTrimAudio, pps],
+    [beginHistoryGroup, onMoveAudio, onRetimeOverlay, onTrimAudio, pps],
   );
 
-  const endAudio = useCallback(
-    (audioId: string) => (e: ReactPointerEvent) => {
-      const drag = audioRef.current;
+  const endChip = useCallback(
+    (e: ReactPointerEvent) => {
+      const drag = chipRef.current;
       if (!drag) return;
+      e.stopPropagation();
       (e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId);
-      gestureRef.current = false;
-      audioRef.current = null;
-      endHistoryGroup();
-      if (!drag.moved) onSelect({ kind: "audio", id: audioId });
+      chipRef.current = null;
+      setSnapLine(null);
+      if (drag.moved) {
+        gestureRef.current = false;
+        endHistoryGroup();
+      }
     },
-    [endHistoryGroup, onSelect],
+    [endHistoryGroup],
   );
+
+  /** Pointer handlers for a chip's body: live once it's selected, absent
+   *  before, so an unselected chip is just part of the strip you scroll. */
+  const chipBody = (kind: ChipKind, id: string, selected: boolean) =>
+    selected
+      ? {
+          onPointerDown: startChip(kind, id, "move"),
+          onPointerMove: moveChip,
+          onPointerUp: endChip,
+          onPointerCancel: endChip,
+        }
+      : {};
 
   // Stop the strip panning under a held clip. `touchAction` can't: a browser
   // latches it when the touch STARTS, so flipping it to "none" when the hold
@@ -564,7 +706,9 @@ function StudioTimeline({
     const el = scrollRef.current;
     if (!el) return;
     const block = (e: TouchEvent) => {
-      if (pressRef.current?.active && e.cancelable) e.preventDefault();
+      if ((pressRef.current?.active || chipRef.current?.moved) && e.cancelable) {
+        e.preventDefault();
+      }
     };
     el.addEventListener("touchmove", block, { passive: false });
     return () => el.removeEventListener("touchmove", block);
@@ -872,10 +1016,10 @@ function StudioTimeline({
                 return (
                   <div
                     key={audio.id}
-                    onPointerDown={startAudio(audio, "move")}
-                    onPointerMove={moveAudio}
-                    onPointerUp={endAudio(audio.id)}
-                    onPointerCancel={endAudio(audio.id)}
+                    {...chipBody("audio", audio.id, isSelected)}
+                    onClick={() => {
+                      if (!isSelected) onSelect({ kind: "audio", id: audio.id });
+                    }}
                     className="absolute flex items-center gap-1 overflow-hidden px-1.5"
                     style={{
                       top: laneTop(audio.lane ?? 0, AUDIO_TRACK_H),
@@ -886,7 +1030,10 @@ function StudioTimeline({
                       background: audio.muted ? "rgba(99,102,241,0.35)" : "#6366F1",
                       outline: isSelected ? "2px solid #fff" : "none",
                       outlineOffset: -1,
-                      touchAction: "none",
+                      // Latched at touchstart, which is fine here: a chip is
+                      // selected by an earlier tap, so by the time a finger
+                      // lands to drag it this is already "none".
+                      touchAction: isSelected ? "none" : "pan-x pan-y",
                     }}
                   >
                     <Music2 size={11} className="shrink-0 text-white" />
@@ -907,16 +1054,16 @@ function StudioTimeline({
                         <TrimHandle
                           side="left"
                           compact
-                          onPointerDown={startAudio(audio, "in")}
-                          onPointerMove={moveAudio}
-                          onPointerUp={endAudio(audio.id)}
+                          onPointerDown={startChip("audio", audio.id, "in")}
+                          onPointerMove={moveChip}
+                          onPointerUp={endChip}
                         />
                         <TrimHandle
                           side="right"
                           compact
-                          onPointerDown={startAudio(audio, "out")}
-                          onPointerMove={moveAudio}
-                          onPointerUp={endAudio(audio.id)}
+                          onPointerDown={startChip("audio", audio.id, "out")}
+                          onPointerMove={moveChip}
+                          onPointerUp={endChip}
                         />
                       </>
                     )}
@@ -924,6 +1071,14 @@ function StudioTimeline({
                 );
               })}
             </div>
+
+            {snapLine !== null && (
+              <div
+                aria-hidden
+                className="pointer-events-none absolute top-0 bottom-0"
+                style={{ left: snapLine * pps, width: 1, background: "#FACC15", zIndex: 6 }}
+              />
+            )}
 
             {/* ---------------- overlay tracks ---------------- */}
             {/* Text, then stickers and drawings, then product pins — each its
@@ -941,6 +1096,15 @@ function StudioTimeline({
                   pps={pps}
                   selected={selection?.kind === "layer" && selection.id === layer.id}
                   onSelect={() => onSelect({ kind: "layer", id: layer.id })}
+                  body={chipBody(
+                    "layer",
+                    layer.id,
+                    selection?.kind === "layer" && selection.id === layer.id,
+                  )}
+                  onTrimStart={startChip("layer", layer.id, "in")}
+                  onTrimEnd={startChip("layer", layer.id, "out")}
+                  onTrimMove={moveChip}
+                  onTrimUp={endChip}
                 />
               ))}
             </OverlayTrack>
@@ -963,6 +1127,15 @@ function StudioTimeline({
                     pps={pps}
                     selected={selection?.kind === "layer" && selection.id === layer.id}
                     onSelect={() => onSelect({ kind: "layer", id: layer.id })}
+                    body={chipBody(
+                      "layer",
+                      layer.id,
+                      selection?.kind === "layer" && selection.id === layer.id,
+                    )}
+                    onTrimStart={startChip("layer", layer.id, "in")}
+                    onTrimEnd={startChip("layer", layer.id, "out")}
+                    onTrimMove={moveChip}
+                    onTrimUp={endChip}
                   />
                 ))}
               </OverlayTrack>
@@ -980,6 +1153,15 @@ function StudioTimeline({
                     pps={pps}
                     selected={selection?.kind === "pin" && selection.id === pin.id}
                     onSelect={() => onSelect({ kind: "pin", id: pin.id })}
+                    body={chipBody(
+                      "pin",
+                      pin.id,
+                      selection?.kind === "pin" && selection.id === pin.id,
+                    )}
+                    onTrimStart={startChip("pin", pin.id, "in")}
+                    onTrimEnd={startChip("pin", pin.id, "out")}
+                    onTrimMove={moveChip}
+                    onTrimUp={endChip}
                   />
                 ))}
               </OverlayTrack>
@@ -1062,12 +1244,15 @@ function Badge({ children }: { children: React.ReactNode }) {
 function TrimHandle({
   side,
   compact,
+  dark,
   onPointerDown,
   onPointerMove,
   onPointerUp,
 }: {
   side: "left" | "right";
   compact?: boolean;
+  /** For a chip that is itself white when selected. */
+  dark?: boolean;
   onPointerDown: (e: ReactPointerEvent) => void;
   onPointerMove: (e: ReactPointerEvent) => void;
   onPointerUp: (e: ReactPointerEvent) => void;
@@ -1082,14 +1267,21 @@ function TrimHandle({
       style={{
         [side]: 0,
         width: compact ? HANDLE_W - 3 : HANDLE_W,
-        background: "#fff",
+        background: dark ? "#111" : "#fff",
         borderRadius: side === "left" ? "6px 0 0 6px" : "0 6px 6px 0",
         cursor: "ew-resize",
         touchAction: "none",
         zIndex: 4,
       }}
     >
-      <span style={{ width: 2, height: 14, borderRadius: 1, background: "rgba(0,0,0,0.55)" }} />
+      <span
+        style={{
+          width: 2,
+          height: 14,
+          borderRadius: 1,
+          background: dark ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.55)",
+        }}
+      />
       {/* The grab area reaches inward past the drawn 14px bar — into the clip,
           never outward over its neighbour, and never outside the clip's own
           overflow clip, which would cut it off anyway. */}
@@ -1168,8 +1360,11 @@ function OverlayTrack({ height, children }: { height: number; children: React.Re
   );
 }
 
+type PointerHandler = (e: ReactPointerEvent) => void;
+
 /** A caption, sticker, drawing or pin on its track: where it starts, how
- *  long it stays, and which lane it sits in. */
+ *  long it stays, and which lane it sits in. Selected, its body drags and its
+ *  ends trim — see "chips" in the timeline. */
 function OverlayChip({
   icon,
   label,
@@ -1179,6 +1374,11 @@ function OverlayChip({
   pps,
   selected,
   onSelect,
+  body,
+  onTrimStart,
+  onTrimEnd,
+  onTrimMove,
+  onTrimUp,
 }: {
   icon: React.ReactNode;
   label: string;
@@ -1188,24 +1388,67 @@ function OverlayChip({
   pps: number;
   selected: boolean;
   onSelect: () => void;
+  body: Partial<
+    Record<"onPointerDown" | "onPointerMove" | "onPointerUp" | "onPointerCancel", PointerHandler>
+  >;
+  onTrimStart: PointerHandler;
+  onTrimEnd: PointerHandler;
+  onTrimMove: PointerHandler;
+  onTrimUp: PointerHandler;
 }) {
+  const width = Math.max(28, (end - start) * pps);
   return (
-    <button
-      onClick={onSelect}
-      className="absolute flex items-center gap-1 overflow-hidden px-1.5"
+    <div
+      role="button"
+      tabIndex={0}
+      aria-pressed={selected}
+      aria-label={label}
+      {...body}
+      onClick={() => {
+        if (!selected) onSelect();
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") onSelect();
+      }}
+      className="absolute flex items-center gap-1 overflow-hidden"
       style={{
         top: laneTop(lane, LAYER_TRACK_H),
         left: start * pps,
-        width: Math.max(28, (end - start) * pps),
+        width,
         height: LAYER_TRACK_H,
         borderRadius: 5,
+        // Room for the trim bars when selected, so they don't sit on the label.
+        paddingLeft: selected ? HANDLE_W : 6,
+        paddingRight: selected ? HANDLE_W : 6,
         background: selected ? "#fff" : "rgba(255,255,255,0.16)",
         color: selected ? "#000" : "#fff",
+        zIndex: selected ? 3 : 1,
+        touchAction: selected ? "none" : "pan-x pan-y",
       }}
     >
       {icon}
       <span className="truncate text-[11px] font-medium">{label}</span>
-    </button>
+      {selected && (
+        <>
+          <TrimHandle
+            side="left"
+            compact
+            dark
+            onPointerDown={onTrimStart}
+            onPointerMove={onTrimMove}
+            onPointerUp={onTrimUp}
+          />
+          <TrimHandle
+            side="right"
+            compact
+            dark
+            onPointerDown={onTrimEnd}
+            onPointerMove={onTrimMove}
+            onPointerUp={onTrimUp}
+          />
+        </>
+      )}
+    </div>
   );
 }
 

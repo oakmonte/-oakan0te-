@@ -357,8 +357,20 @@ function StudioEditor({
   );
 
   const handleMoveAudio = useCallback(
-    (audioId: string, timelineStart: number) =>
-      dispatch({ type: "updateAudio", id: audioId, patch: { timelineStart } }),
+    (audioId: string, timelineStart: number, lane: number) =>
+      dispatch({ type: "updateAudio", id: audioId, patch: { timelineStart, lane } }),
+    [dispatch],
+  );
+
+  const handleRetimeOverlay = useCallback(
+    (
+      kind: "layer" | "pin",
+      id: string,
+      patch: { startTime?: number; endTime?: number; lane?: number },
+    ) =>
+      dispatch(
+        kind === "layer" ? { type: "updateLayer", id, patch } : { type: "updatePin", id, patch },
+      ),
     [dispatch],
   );
 
@@ -1032,6 +1044,7 @@ function StudioEditor({
             onReorder={handleReorder}
             onCloseGap={handleCloseGap}
             onMoveAudio={handleMoveAudio}
+            onRetimeOverlay={handleRetimeOverlay}
             onTrimAudio={handleTrimAudio}
             onAddClips={handleAddClips}
             onToggleMasterMute={handleToggleMasterMute}

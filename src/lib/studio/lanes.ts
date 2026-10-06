@@ -116,3 +116,19 @@ export function withLanes(project: StudioProject): StudioProject {
   }
   return { ...project, audio, layers, pins };
 }
+
+/** The lane a dragged item lands in: the one the finger asked for when it's
+ *  free there, otherwise the lowest free one. `others` is the rest of the
+ *  track, without the item itself. */
+export function placeLane(
+  others: (Span & { lane: number })[],
+  start: number,
+  end: number,
+  want: number,
+  max = MAX_LANES,
+): number {
+  const lane = Math.min(max - 1, Math.max(0, want));
+  const span = { start, end };
+  if (!others.some((o) => o.lane === lane && overlaps(o, span))) return lane;
+  return firstFreeLane(others, start, end, max);
+}
