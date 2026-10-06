@@ -821,10 +821,10 @@ function CreatorsLanding() {
 
       <div className="wrap">
         <footer>
-          <span>© 2026 Oakmonte Collective</span>
+          <span>© 2026 Oakmonte Multiglobal Limited</span>
           <span>
             <Link to="/terms">Terms</Link> · <Link to="/privacy">Privacy</Link> ·{" "}
-            <a href="mailto:contact@oakmonte.com">contact@oakmonte.com</a>
+            <a href="mailto:contact@oakmonte.store">contact@oakmonte.store</a>
           </span>
         </footer>
       </div>

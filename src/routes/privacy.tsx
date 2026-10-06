@@ -1,22 +1,17 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { LegalHeader } from "@/components/LegalHeader";
-import { useEffect, useState } from "react";
+import { B, LegalPage, List, Mail, type LegalSection } from "@/components/legal/LegalPage";
+import { COMPANY_NAME, LEGAL_UPDATED } from "@/components/legal/legal-facts";
+
+const DESCRIPTION =
+  "How Oakmonte collects, uses, shares and protects personal data, and the rights you have over it.";
 
 export const Route = createFileRoute("/privacy")({
   head: () => ({
     meta: [
       { title: "Privacy Policy — Oakmonte" },
-      {
-        name: "description",
-        content:
-          "How Oakmonte collects, uses, shares, and protects the data of buyers, sellers, and creators on our content-driven fashion marketplace.",
-      },
+      { name: "description", content: DESCRIPTION },
       { property: "og:title", content: "Privacy Policy — Oakmonte" },
-      {
-        property: "og:description",
-        content:
-          "How Oakmonte collects, uses, shares, and protects the data of buyers, sellers, and creators on our content-driven fashion marketplace.",
-      },
+      { property: "og:description", content: DESCRIPTION },
       { property: "og:type", content: "article" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -24,400 +19,343 @@ export const Route = createFileRoute("/privacy")({
   component: PrivacyPage,
 });
 
-const LAST_UPDATED = "July 19, 2026";
-
-const SECTIONS: { id: string; n: number; title: string }[] = [
-  { id: "introduction", n: 1, title: "Introduction" },
-  { id: "what-we-collect", n: 2, title: "What We Collect" },
-  { id: "how-we-use", n: 3, title: "How We Use It" },
-  { id: "sharing", n: 4, title: "Who We Share Data With" },
-  { id: "cookies", n: 5, title: "Cookies & Tracking" },
-  { id: "minors", n: 6, title: "Children & Minors" },
-  { id: "retention", n: 7, title: "Data Retention" },
-  { id: "rights", n: 8, title: "Your Rights" },
-  { id: "security", n: 9, title: "Data Security" },
-  { id: "storage", n: 10, title: "Where Data Is Stored" },
-  { id: "third-parties", n: 11, title: "Third-Party Services" },
-  { id: "changes", n: 12, title: "Changes to This Policy" },
-  { id: "contact", n: 13, title: "Contact" },
+// Keep "Who we share it with" in step with the services the code actually
+// calls (process.env in src/). Adding analytics, ads or a new processor means
+// adding it here before it ships.
+const SECTIONS: LegalSection[] = [
+  {
+    id: "who-we-are",
+    title: "Who We Are",
+    body: (
+      <>
+        <p>
+          {COMPANY_NAME} ("Oakmonte", "we", "us") runs the Oakmonte marketplace. We are the data
+          controller for the personal data described in this policy, under the Nigeria Data
+          Protection Act 2023 (NDPA).
+        </p>
+        <p>
+          For anything about your data, including requests to our data protection contact, email{" "}
+          <Mail />.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: "what-we-collect",
+    title: "What We Collect",
+    body: (
+      <>
+        <p>
+          <B>Information you give us</B>
+        </p>
+        <List>
+          <li>
+            <B>Account details:</B> email address, display name, username (handle), date of birth,
+            account type, and, if you choose to give them, gender and a profile photo. If you sign
+            in with Google, we receive your name, email address and profile photo from Google.
+          </li>
+          <li>
+            <B>Store details (sellers):</B> brand name, logo, store locations and addresses,
+            storefront design choices, and your product listings, prices and stock.
+          </li>
+          <li>
+            <B>Payout details (sellers):</B> bank name, account number and account name. Account
+            numbers are encrypted before we store them.
+          </li>
+          <li>
+            <B>Content:</B> photos, videos, captions and the products you link to your posts.
+          </li>
+          <li>
+            <B>Messages:</B> messages you send to other members and to Oakmonte Support. Message
+            text is encrypted before we store it.
+          </li>
+          <li>
+            <B>Orders (once checkout opens):</B> delivery address, phone number, the items you buy
+            or sell, and order history.
+          </li>
+          <li>
+            <B>Connected accounts:</B> if you import products from Instagram or Shopify, we store an
+            access token for that account (encrypted) and the product details we import.
+          </li>
+        </List>
+        <p>
+          <B>Information collected when you use Oakmonte</B>
+        </p>
+        <List>
+          <li>
+            <B>Activity:</B> what you post, like, follow, save and view, used to run your feed and
+            recommendations.
+          </li>
+          <li>
+            <B>Technical data:</B> IP address, browser and device type, and server logs, used to
+            keep the service working and secure.
+          </li>
+          <li>
+            <B>Settings stored on your device:</B> preferences such as whether you have seen a tip,
+            kept in your browser's storage.
+          </li>
+        </List>
+        <p>
+          <B>Camera, microphone and location</B>
+        </p>
+        <List>
+          <li>
+            The camera and microphone are used only while you are using Oakmonte's camera.
+            Recording, filters and editing happen on your device. Only what you choose to post is
+            uploaded.
+          </li>
+          <li>
+            Your device's location is only read if you tap "use my current location" when adding a
+            store location. We never track your location in the background.
+          </li>
+        </List>
+        <p>
+          <B>Payment cards:</B> card payments are handled by Paystack. We never see or store your
+          full card details.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: "how-we-use",
+    title: "How We Use It, and Why",
+    body: (
+      <>
+        <p>The NDPA requires a lawful basis for each use of your data. Ours are:</p>
+        <List>
+          <li>
+            <B>To provide Oakmonte (contract):</B> running your account, storefront, posts,
+            messages, orders, payments, payouts and deliveries.
+          </li>
+          <li>
+            <B>To keep Oakmonte safe (legitimate interests):</B> preventing fraud, fake accounts,
+            fake reviews and abuse; securing the service; and enforcing our{" "}
+            <Link to="/terms" className="underline underline-offset-2">
+              Terms
+            </Link>
+            .
+          </li>
+          <li>
+            <B>To improve Oakmonte (legitimate interests):</B> personalising your feed and
+            recommendations, and understanding which features work.
+          </li>
+          <li>
+            <B>To meet legal duties (legal obligation):</B> tax, accounting, consumer protection and
+            responding to lawful requests from authorities.
+          </li>
+          <li>
+            <B>With your consent:</B> push notifications, marketing messages and reading your
+            device's location. You can withdraw consent at any time, and doing so does not affect
+            anything done before.
+          </li>
+        </List>
+        <p>
+          We do not sell your personal data, and we do not show third-party advertising based on it.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: "sharing",
+    title: "Who We Share It With",
+    body: (
+      <>
+        <p>
+          <B>Other users.</B> Your profile, storefront, posts and listings are public. When you
+          order, the seller receives your name, delivery address and phone number so they can
+          deliver it.
+        </p>
+        <p>
+          <B>Service providers</B> who process data for us, under contracts that require them to
+          protect it and use it only for the services they provide:
+        </p>
+        <List>
+          <li>
+            <B>Supabase</B> — database, sign-in and file storage.
+          </li>
+          <li>
+            <B>Vercel</B> — website and app hosting.
+          </li>
+          <li>
+            <B>Bunny.net</B> — storage and delivery of photos and videos.
+          </li>
+          <li>
+            <B>Paystack</B> — payments, payouts and bank account verification.
+          </li>
+          <li>
+            <B>Shipbubble</B> — delivery quotes and shipping (receives delivery details for orders).
+          </li>
+          <li>
+            <B>Google</B> — sign-in, if you choose "Continue with Google".
+          </li>
+          <li>
+            <B>Instagram (Meta) and Shopify</B> — only if you connect them to import products.
+          </li>
+        </List>
+        <p>
+          <B>Authorities and legal claims.</B> We share data where the law requires it, or where
+          needed to protect people's safety or rights, or to establish or defend legal claims.
+        </p>
+        <p>
+          <B>Business transfer.</B> If Oakmonte is merged or sold, your data may pass to the new
+          owner, who must protect it under this policy.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: "transfers",
+    title: "International Transfers",
+    body: (
+      <p>
+        Some of our service providers store or process data outside Nigeria, including in the
+        European Union and the United States. Where data leaves Nigeria, we rely on the safeguards
+        the NDPA allows, such as contracts requiring an adequate level of protection. You can ask us
+        for more detail at <Mail />.
+      </p>
+    ),
+  },
+  {
+    id: "cookies",
+    title: "Cookies and Device Storage",
+    body: (
+      <p>
+        Oakmonte uses only the cookies and browser storage needed to keep you signed in, keep the
+        service secure and remember your settings. We do not use advertising cookies or third-party
+        analytics trackers. If we ever add them, we will update this policy and ask for your consent
+        first where the law requires it.
+      </p>
+    ),
+  },
+  {
+    id: "children",
+    title: "Children",
+    body: (
+      <List>
+        <li>Oakmonte is not for children under 13, and they must not create an account.</li>
+        <li>
+          Users aged 13 to 17 may only use Oakmonte with the permission of a parent or guardian. You
+          must be 16 or over to buy, and 18 or over to sell or receive payouts.
+        </li>
+        <li>
+          If you believe a child under 13, or a minor without a parent's or guardian's permission,
+          has given us personal data, contact <Mail /> and we will delete it.
+        </li>
+      </List>
+    ),
+  },
+  {
+    id: "retention",
+    title: "How Long We Keep It",
+    body: (
+      <>
+        <p>
+          We keep your data for as long as your account is open. When you delete your account, we
+          delete or anonymise your personal data within 30 days, except:
+        </p>
+        <List>
+          <li>
+            records of orders, payments and payouts, which we keep for 6 years after the transaction
+            to meet Nigerian tax and accounting rules;
+          </li>
+          <li>
+            data needed for an ongoing dispute, investigation or legal claim, kept until it is
+            resolved;
+          </li>
+          <li>copies in backups, which are overwritten within 90 days.</li>
+        </List>
+      </>
+    ),
+  },
+  {
+    id: "rights",
+    title: "Your Rights",
+    body: (
+      <>
+        <p>Under the NDPA you have the right to:</p>
+        <List>
+          <li>be told how your data is used (this policy);</li>
+          <li>get a copy of your personal data;</li>
+          <li>have inaccurate data corrected;</li>
+          <li>have your data deleted;</li>
+          <li>restrict or object to how we use your data;</li>
+          <li>receive your data in a portable format;</li>
+          <li>withdraw consent at any time where we rely on it;</li>
+          <li>
+            not be subject to decisions made solely by automated processing that significantly
+            affect you.
+          </li>
+        </List>
+        <p>
+          You can edit most of your details in the app and delete your account in Settings. For
+          anything else, email <Mail />. We will respond within 30 days and may need to confirm your
+          identity first.
+        </p>
+        <p>
+          If you are unhappy with how we handle your data, please tell us first. You also have the
+          right to complain to the Nigeria Data Protection Commission (NDPC).
+        </p>
+      </>
+    ),
+  },
+  {
+    id: "security",
+    title: "How We Protect It",
+    body: (
+      <>
+        <p>
+          Data is encrypted in transit. Messages, payout account numbers and connected-account
+          tokens are additionally encrypted before they are stored. Access to personal data inside
+          Oakmonte is limited to what each part of the service needs.
+        </p>
+        <p>
+          No system is perfectly secure. If a data breach is likely to put your rights at risk, we
+          will notify the NDPC and, where required, you, as the NDPA requires.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: "changes",
+    title: "Changes to This Policy",
+    body: (
+      <p>
+        We will update this policy when our practices change. For important changes we will tell you
+        in the app or by email before they take effect. The date at the top shows when it was last
+        updated.
+      </p>
+    ),
+  },
+  {
+    id: "contact",
+    title: "Contact",
+    body: (
+      <p>
+        {COMPANY_NAME}, Nigeria. Email: <Mail />.
+      </p>
+    ),
+  },
 ];
 
 function PrivacyPage() {
-  const [active, setActive] = useState<string>(SECTIONS[0].id);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((e) => e.isIntersecting)
-          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
-        if (visible) setActive(visible.target.id);
-      },
-      { rootMargin: "-20% 0px -70% 0px", threshold: 0 },
-    );
-    SECTIONS.forEach((s) => {
-      const el = document.getElementById(s.id);
-      if (el) observer.observe(el);
-    });
-    return () => observer.disconnect();
-  }, []);
-
   return (
-    <div className="min-h-screen bg-brand-bg text-brand-text">
-      <LegalHeader />
-
-      <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
-        <div className="mb-10">
-          <p className="text-[10px] uppercase tracking-[0.25em] opacity-50 mb-4">Legal</p>
-          <h1 className="font-display text-5xl md:text-7xl leading-none tracking-tight">
-            Privacy Policy
-          </h1>
-          <p className="mt-6 text-xs uppercase tracking-widest opacity-60">
-            Last updated: {LAST_UPDATED}
+    <LegalPage
+      title="Privacy Policy"
+      updated={LEGAL_UPDATED}
+      summary={
+        <>
+          <p>
+            We collect what we need to run Oakmonte: your account, what you post, your messages,
+            and, once checkout opens, your orders. Messages and bank details are encrypted.
           </p>
-        </div>
-
-        <div className="border border-brand-text/15 bg-brand-muted/30 p-6 md:p-8 mb-12 max-w-3xl">
-          <p className="text-[10px] uppercase tracking-[0.25em] opacity-60 mb-3">
-            In plain language
+          <p>
+            We don't sell your data, we don't run ad trackers, and we only share what's needed with
+            the services that run Oakmonte and the sellers who deliver your orders. You can see,
+            correct or delete your data at any time.
           </p>
-          <p className="text-sm md:text-base leading-relaxed">
-            We collect what's needed to run your account, verify sellers and buyers, and deliver
-            orders. We don't sell your data. Location is only accessed when you actively use a
-            location-based feature. Full details are below.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-12 lg:gap-16">
-          <aside className="lg:sticky lg:top-8 lg:self-start print:hidden">
-            <p className="text-[10px] uppercase tracking-[0.25em] opacity-50 mb-4">Contents</p>
-            <nav className="flex flex-col gap-2 text-sm">
-              {SECTIONS.map((s) => (
-                <a
-                  key={s.id}
-                  href={`#${s.id}`}
-                  className={`transition-colors border-l-2 pl-3 py-1 ${
-                    active === s.id
-                      ? "border-brand-accent text-brand-text"
-                      : "border-transparent opacity-60 hover:opacity-100 hover:border-brand-text/30"
-                  }`}
-                >
-                  <span className="opacity-60 mr-2">{s.n}.</span>
-                  {s.title}
-                </a>
-              ))}
-            </nav>
-          </aside>
-
-          <article className="max-w-2xl text-sm md:text-[15px] leading-relaxed space-y-14">
-            <Section id="introduction" n={1} title="Introduction">
-              <p>
-                This Privacy Policy explains how Oakmonte handles the personal information of
-                everyone who uses the platform — buyers, sellers, and creators. By using Oakmonte,
-                you agree to the practices described here.
-              </p>
-              <p>
-                We've tried to write this plainly. Where a section refers to a specific rule that
-                hasn't been finalized yet, we've marked it clearly rather than leave it vague.
-              </p>
-            </Section>
-
-            <Section id="what-we-collect" n={2} title="What We Collect">
-              <p>We collect the following categories of information:</p>
-              <ul className="list-disc pl-5 space-y-2 marker:text-brand-accent">
-                <li>
-                  <span className="font-medium">Account data</span> — name, email, and phone number.
-                  These are collected specifically for checkout and review verification, and are not
-                  required simply to browse the platform.
-                </li>
-                <li>
-                  <span className="font-medium">Location data</span> — collected only when you
-                  actively use a "use current location" feature. This is opt-in per use. Oakmonte
-                  does not track your location passively in the background.
-                </li>
-                <li>
-                  <span className="font-medium">Delivery information</span> — the shipping address
-                  you provide at checkout. It is shared only with the relevant seller and delivery
-                  partner, and only for the fulfillment of that order.
-                </li>
-                <li>
-                  <span className="font-medium">Content uploads</span> — photos, videos, and
-                  listings posted by sellers and creators through the platform.
-                </li>
-                <li>
-                  <span className="font-medium">Payment information</span> — Oakmonte does not store
-                  your full card or payment credentials. Payments are handled by
-                  <Placeholder>name the payment processor once selected</Placeholder>. We retain
-                  only transaction records (amount, date, order reference), not raw payment details.
-                </li>
-                <li>
-                  <span className="font-medium">Usage data</span> — pages viewed, products browsed,
-                  and general interaction with the app, used for recommendations and platform
-                  improvement.
-                </li>
-                <li>
-                  <span className="font-medium">Verification data</span> — information collected
-                  during seller and creator vetting. The specific inputs vary depending on the type
-                  of account and evolve as our vetting process matures.
-                </li>
-              </ul>
-            </Section>
-
-            <Section id="how-we-use" n={3} title="How We Use It">
-              <ul className="list-disc pl-5 space-y-2 marker:text-brand-accent">
-                <li>
-                  To operate the marketplace — processing orders, running escrow, and connecting
-                  buyers to sellers and creators.
-                </li>
-                <li>
-                  To verify identity at checkout and before reviews, in order to reduce fraud and
-                  prevent fake reviews.
-                </li>
-                <li>To deliver location-based features when you opt in to them.</li>
-                <li>To improve recommendations and the overall shopping experience.</li>
-                <li>
-                  To communicate order updates and account notices, and — only if you've opted in —
-                  marketing messages.
-                </li>
-              </ul>
-            </Section>
-
-            <Section id="sharing" n={4} title="Who We Share Data With">
-              <ul className="list-disc pl-5 space-y-2 marker:text-brand-accent">
-                <li>
-                  <span className="font-medium">Sellers</span> receive your delivery information
-                  only for orders you place with them — not full access to your account.
-                </li>
-                <li>
-                  <span className="font-medium">Delivery and logistics partners</span> receive what
-                  they need to fulfill shipping for a specific order.
-                </li>
-                <li>
-                  <span className="font-medium">Payment processor</span> receives what is required
-                  to process the transaction itself.
-                </li>
-                <li>
-                  Oakmonte does not sell personal data to third parties for advertising purposes.{" "}
-                  <Placeholder>
-                    Confirm this remains true before publishing — disclose any ad-network or
-                    third-party analytics data-sharing here if present
-                  </Placeholder>
-                  .
-                </li>
-                <li>
-                  <span className="font-medium">Legal disclosure</span> — data may be shared where
-                  required by law, or where necessary to protect the platform and its users from
-                  fraud or abuse.
-                </li>
-              </ul>
-            </Section>
-
-            <Section id="cookies" n={5} title="Cookies & Tracking">
-              <p>
-                Oakmonte uses cookies and similar technologies to keep you signed in, remember your
-                preferences, and understand how the platform is used.
-              </p>
-              <p>
-                Analytics provider:{" "}
-                <Placeholder>
-                  name the analytics tool in use, e.g. Plausible, Google Analytics, PostHog
-                </Placeholder>
-                .
-              </p>
-              <p>
-                You can opt out of non-essential cookies through
-                <Placeholder>
-                  describe the opt-out mechanism — cookie banner, in-app setting, or browser
-                  controls
-                </Placeholder>
-                . Essential cookies (those needed for sign-in, checkout, and security) cannot be
-                disabled without breaking core functionality.
-              </p>
-            </Section>
-
-            <Section id="minors" n={6} title="Children & Minors">
-              <ul className="list-disc pl-5 space-y-2 marker:text-brand-accent">
-                <li>
-                  Minimum age to hold an Oakmonte account:{" "}
-                  <Placeholder>
-                    state minimum age — must match the age policy in the Terms of Service
-                  </Placeholder>
-                  .
-                </li>
-                <li>
-                  If accounts are permitted below 18:{" "}
-                  <Placeholder>
-                    describe the parental involvement or consent process required
-                  </Placeholder>
-                  .
-                </li>
-                <li>
-                  If Oakmonte becomes aware that it has collected personal data from a user below
-                  the stated minimum age, that account and its associated data will be removed. If
-                  you believe a minor has provided us data, contact us using the details in Section
-                  13 so we can act on it.
-                </li>
-              </ul>
-            </Section>
-
-            <Section id="retention" n={7} title="Data Retention">
-              <ul className="list-disc pl-5 space-y-2 marker:text-brand-accent">
-                <li>
-                  Account, order, and content data is retained for
-                  <Placeholder>
-                    state retention period — often tied to Nigerian tax/transaction record
-                    requirements
-                  </Placeholder>{" "}
-                  after account closure.
-                </li>
-                <li>
-                  When you delete your account, your profile is removed and your uploaded content is
-                  unpublished. Records tied to completed transactions (order history, payout
-                  records, tax records) are retained for the period above, as required for legal and
-                  financial compliance.
-                </li>
-              </ul>
-            </Section>
-
-            <Section id="rights" n={8} title="Your Rights">
-              <p>
-                Under the Nigeria Data Protection Act (NDPA) and comparable frameworks, you
-                generally have the right to:
-              </p>
-              <ul className="list-disc pl-5 space-y-2 marker:text-brand-accent">
-                <li>Access the personal data Oakmonte holds about you.</li>
-                <li>Request correction of information that is inaccurate or out of date.</li>
-                <li>
-                  Request deletion of your data, subject to legal retention requirements (such as
-                  transaction records).
-                </li>
-                <li>
-                  Withdraw consent for optional data uses like marketing communications or location
-                  features.
-                </li>
-              </ul>
-              <p>
-                To exercise any of these rights, email us at
-                <Placeholder>privacy contact email</Placeholder> or use the in-app request flow in
-                your account settings. We aim to respond within a reasonable window and may need to
-                verify your identity before acting on a request.
-              </p>
-            </Section>
-
-            <Section id="security" n={9} title="Data Security">
-              <p>
-                We protect user data using standard industry practices, including encryption in
-                transit, restricted internal access, and authentication controls on administrative
-                systems. No online service can guarantee absolute security, but we treat the trust
-                placed in the platform as central to how it is built.
-              </p>
-              <p>
-                Oakmonte does not currently claim any specific external security certification. If
-                that changes, this section will be updated with the specifics.
-              </p>
-            </Section>
-
-            <Section id="storage" n={10} title="Where Data Is Stored / International Transfer">
-              <p>
-                User data is hosted on
-                <Placeholder>
-                  name hosting infrastructure and region — e.g. Supabase EU/US region
-                </Placeholder>
-                .
-              </p>
-              <p>
-                Where personal data is transferred outside of Nigeria, we do so in accordance with
-                the cross-border transfer requirements of the NDPA — including using providers with
-                appropriate safeguards in place.
-                <Placeholder>
-                  Confirm and describe the specific transfer basis once finalized
-                </Placeholder>
-                .
-              </p>
-            </Section>
-
-            <Section id="third-parties" n={11} title="Third-Party Services">
-              <p>
-                Oakmonte relies on third-party infrastructure providers to host, build, and operate
-                the platform (including hosting, payment processing, analytics, and communications
-                tools). We select providers with reasonable security and privacy practices, and
-                share only what each provider needs to perform its function.
-              </p>
-              <p>
-                If you have a question about a specific vendor, reach out via the contact details in
-                Section 13 and we'll respond directly.
-              </p>
-            </Section>
-
-            <Section id="changes" n={12} title="Changes to This Policy">
-              <p>
-                We may update this Privacy Policy from time to time. When we do, the updated version
-                will be posted here with a new "last updated" date. For material changes — anything
-                that meaningfully affects your rights or how data is handled — we will notify
-                affected users directly (for example, by email) rather than rely on a silent update.
-              </p>
-            </Section>
-
-            <Section id="contact" n={13} title="Contact">
-              <p>
-                Questions about this policy, or want to exercise your data rights? Reach us at
-                <Placeholder>privacy contact email</Placeholder>.
-              </p>
-              <p>
-                Data Protection contact:{" "}
-                <Placeholder>
-                  name the designated DPO or compliance contact role, if any, under NDPA
-                </Placeholder>
-                .
-              </p>
-            </Section>
-          </article>
-        </div>
-      </div>
-
-      <footer className="py-12 px-4 sm:px-6 lg:px-8 border-t border-brand-text/5 flex flex-col md:flex-row gap-6 justify-between items-start md:items-center text-[10px] uppercase tracking-widest opacity-50 print:hidden">
-        <div>© 2026 Oakmonte Collective</div>
-        <div className="flex gap-8">
-          <Link to="/terms">Terms of Service</Link>
-          <Link to="/privacy">Privacy Policy</Link>
-          <a href="#">Manifesto</a>
-        </div>
-      </footer>
-    </div>
-  );
-}
-
-function Section({
-  id,
-  n,
-  title,
-  children,
-}: {
-  id: string;
-  n: number;
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section id={id} className="scroll-mt-24">
-      <a href={`#${id}`} className="group block mb-4 no-underline">
-        <p className="text-[10px] uppercase tracking-[0.25em] opacity-50 mb-2">Section {n}</p>
-        <h2 className="font-display text-2xl md:text-3xl tracking-tight leading-tight">
-          {title}
-          <span className="ml-2 opacity-0 group-hover:opacity-40 transition-opacity text-brand-accent text-lg align-middle">
-            #
-          </span>
-        </h2>
-      </a>
-      <div className="space-y-4">{children}</div>
-    </section>
-  );
-}
-
-function Placeholder({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="inline bg-brand-accent/10 text-brand-accent border border-brand-accent/30 px-1.5 py-0.5 text-[12px] rounded-sm mx-0.5 align-baseline">
-      [{children}]
-    </span>
+        </>
+      }
+      sections={SECTIONS}
+    />
   );
 }

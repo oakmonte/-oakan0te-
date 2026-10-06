@@ -1,22 +1,17 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { LegalHeader } from "@/components/LegalHeader";
-import { useEffect, useState } from "react";
+import { B, LegalPage, List, Mail, type LegalSection } from "@/components/legal/LegalPage";
+import { COMPANY_NAME, LEGAL_UPDATED } from "@/components/legal/legal-facts";
+
+const DESCRIPTION =
+  "The Terms of Service for Oakmonte, a content-driven fashion marketplace connecting buyers, sellers and creators.";
 
 export const Route = createFileRoute("/terms")({
   head: () => ({
     meta: [
       { title: "Terms of Service — Oakmonte" },
-      {
-        name: "description",
-        content:
-          "The Terms of Service that govern use of Oakmonte — a content-driven fashion marketplace connecting buyers, vetted sellers, and creators.",
-      },
+      { name: "description", content: DESCRIPTION },
       { property: "og:title", content: "Terms of Service — Oakmonte" },
-      {
-        property: "og:description",
-        content:
-          "The Terms of Service that govern use of Oakmonte — a content-driven fashion marketplace connecting buyers, vetted sellers, and creators.",
-      },
+      { property: "og:description", content: DESCRIPTION },
       { property: "og:type", content: "article" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -24,401 +19,482 @@ export const Route = createFileRoute("/terms")({
   component: TermsPage,
 });
 
-const LAST_UPDATED = "July 19, 2026";
-
-const SECTIONS: { id: string; n: number; title: string }[] = [
-  { id: "acceptance", n: 1, title: "Acceptance of Terms" },
-  { id: "what-oakmonte-is", n: 2, title: "What Oakmonte Is" },
-  { id: "eligibility", n: 3, title: "Eligibility" },
-  { id: "verification", n: 4, title: "Account Verification" },
-  { id: "buyer-terms", n: 5, title: "Buyer Terms" },
-  { id: "seller-terms", n: 6, title: "Seller Terms" },
-  { id: "creator-terms", n: 7, title: "Creator Terms" },
-  { id: "prohibited", n: 8, title: "Prohibited Conduct" },
-  { id: "payments-escrow", n: 9, title: "Payments & Escrow" },
-  { id: "ip", n: 10, title: "Intellectual Property" },
-  { id: "termination", n: 11, title: "Termination" },
-  { id: "liability", n: 12, title: "Limitation of Liability" },
-  { id: "disputes", n: 13, title: "Dispute Resolution" },
-  { id: "changes", n: 14, title: "Changes to These Terms" },
-  { id: "contact", n: 15, title: "Contact" },
+// Pricing facts mirror src/lib/pricing-fees.ts (COMMISSION_RATE and the
+// Paystack constants). Change them there and here together.
+const SECTIONS: LegalSection[] = [
+  {
+    id: "about",
+    title: "About These Terms",
+    body: (
+      <>
+        <p>
+          These Terms of Service ("Terms") are an agreement between you and {COMPANY_NAME}, a
+          company being incorporated in the Federal Republic of Nigeria ("Oakmonte", "we", "us" or
+          "our"). They govern your use of the Oakmonte website, web app and related services (the
+          "Platform").
+        </p>
+        <p>
+          By creating an account or using the Platform, you agree to these Terms and to our{" "}
+          <Link to="/privacy" className="underline underline-offset-2">
+            Privacy Policy
+          </Link>
+          . If you do not agree, do not use the Platform. If you use Oakmonte on behalf of a
+          business, you confirm you are authorised to bind that business to these Terms.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: "pre-launch",
+    title: "Before Full Launch",
+    body: (
+      <>
+        <p>
+          Oakmonte is in an early-access period. During this period, checkout and payments are
+          switched off, and some features (including the cart, messaging other members, drops and
+          linking other stores' products) are marked as unavailable. No purchase can be made and no
+          money changes hands on the Platform until we announce full launch.
+        </p>
+        <p>
+          Features may change, be added or be removed while we prepare for launch. The sections of
+          these Terms about buying, selling and payments apply from the moment those features are
+          switched on.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: "what-oakmonte-is",
+    title: "What Oakmonte Is",
+    body: (
+      <>
+        <p>Oakmonte is a marketplace where people discover fashion through content:</p>
+        <List>
+          <li>
+            <B>Buyers</B> discover products through posts and storefronts and buy them.
+          </li>
+          <li>
+            <B>Sellers</B> run storefronts and list and fulfil their own products.
+          </li>
+          <li>
+            <B>Creators</B> post content and link it to products listed on the Platform.
+          </li>
+        </List>
+        <p>
+          Oakmonte provides the marketplace. We are not the manufacturer, owner or seller of the
+          products listed by sellers. When you buy a product, the contract of sale is between you
+          and the seller. Sellers are responsible for their listings, products and deliveries.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: "accounts",
+    title: "Eligibility and Accounts",
+    body: (
+      <>
+        <List>
+          <li>You must be at least 13 years old to create an account.</li>
+          <li>
+            If you are under 18, you may only use Oakmonte with the permission of a parent or
+            guardian, who agrees to these Terms on your behalf.
+          </li>
+          <li>You must be at least 16 years old to buy on Oakmonte.</li>
+          <li>You must be at least 18 years old to open a store, sell, or receive payouts.</li>
+          <li>
+            You must give accurate information when you register and keep it up to date. You are
+            responsible for everything that happens on your account, and for keeping your sign-in
+            details secure. Tell us straight away at <Mail /> if you think your account has been
+            accessed without your permission.
+          </li>
+          <li>
+            A seller account comes with two profiles: a personal profile for the owner and a profile
+            for the store. Both are covered by these Terms, and the seller is responsible for
+            activity on both.
+          </li>
+        </List>
+      </>
+    ),
+  },
+  {
+    id: "content",
+    title: "Your Content",
+    body: (
+      <>
+        <p>
+          You keep ownership of the photos, videos, text and other material you post ("your
+          content").
+        </p>
+        <p>
+          By posting, you give Oakmonte a worldwide, non-exclusive, royalty-free licence to host,
+          store, copy, adapt (for example resizing, cropping or converting formats), display and
+          distribute your content on the Platform, and to show it in promotion of the Platform. This
+          licence ends when you delete the content or your account, except for copies kept in
+          backups for a limited time, copies we must keep by law, and content other users have
+          already shared within the Platform.
+        </p>
+        <p>
+          You confirm that you own your content or have every permission needed to post it,
+          including the rights of anyone who appears in it and of any music, images or other
+          material within it, and that it does not break the law or these Terms. We may remove
+          content, or limit who can see it, if we believe it breaks these Terms or the law.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: "buying",
+    title: "Buying",
+    body: (
+      <>
+        <List>
+          <li>
+            Prices are set by sellers and shown in Nigerian Naira (NGN). The price and any delivery
+            charge are shown before you pay.
+          </li>
+          <li>
+            Payment is taken when you place an order and held until the order is complete (see
+            Payments and Held Funds). Payments are processed by Paystack. Oakmonte does not see or
+            store your full card details.
+          </li>
+          <li>You are responsible for giving a correct delivery address and contact details.</li>
+          <li>
+            <B>Returns.</B> If an item arrives damaged, is the wrong item, or is materially
+            different from its listing, you may request a return within 7 days of delivery. In those
+            cases the seller pays for return delivery, and once the seller receives the item back
+            you are refunded to your original payment method. Returns for a change of mind are only
+            available where the seller's own listing offers them.
+          </li>
+          <li>
+            Nothing in these Terms limits the rights you have as a consumer under the Federal
+            Competition and Consumer Protection Act 2018 or any other law that cannot be excluded by
+            agreement.
+          </li>
+        </List>
+      </>
+    ),
+  },
+  {
+    id: "selling",
+    title: "Selling",
+    body: (
+      <>
+        <List>
+          <li>
+            Listings must be accurate and honest, including photos, descriptions, sizes, condition,
+            price and availability.
+          </li>
+          <li>
+            You may only sell genuine products that you have the right to sell. Counterfeit, replica
+            or stolen goods are forbidden.
+          </li>
+          <li>
+            You must ship orders on time, use the delivery details provided, and respond to buyers
+            and to Oakmonte about your orders.
+          </li>
+          <li>
+            <B>Fees.</B> Oakmonte charges a commission of 4.5% of the price paid for each item sold.
+            Paystack's payment processing fee is also deducted from the sale: currently 1.5% of the
+            amount paid plus ₦100 (the ₦100 is waived on amounts under ₦2,500), capped at ₦2,000 per
+            transaction. The amount you will receive is shown when you set your price. We will give
+            you at least 14 days' notice before changing our commission.
+          </li>
+          <li>Payouts are made to a Nigerian bank account in your name or your business's name.</li>
+          <li>
+            You are responsible for your own taxes, and for complying with the laws that apply to
+            your products and your business.
+          </li>
+          <li>
+            You may not ask buyers to pay you outside Oakmonte for a sale that began on the
+            Platform.
+          </li>
+          <li>
+            We may hold back a payout while an order is disputed, or if we reasonably suspect fraud
+            or a breach of these Terms. Accounts with repeated late, cancelled or disputed orders
+            may be shown less prominently, suspended or closed.
+          </li>
+        </List>
+      </>
+    ),
+  },
+  {
+    id: "creators",
+    title: "Creators",
+    body: (
+      <List>
+        <li>
+          Creators may link their posts to products listed on Oakmonte. How creators are paid for
+          sales through their content will be set out in a separate creator policy before that
+          feature launches.
+        </li>
+        <li>
+          If you are paid or given anything to feature a product, you must say so clearly in the
+          post, as required by Nigerian advertising and consumer protection rules.
+        </li>
+        <li>
+          You may not link your content to products in a way that misleads people about the product
+          or about your relationship with the seller.
+        </li>
+      </List>
+    ),
+  },
+  {
+    id: "prohibited",
+    title: "Prohibited Conduct and Items",
+    body: (
+      <>
+        <p>You must not use Oakmonte to:</p>
+        <List>
+          <li>break any law, or help anyone else to;</li>
+          <li>
+            sell or promote counterfeit goods, stolen goods, weapons, drugs, alcohol or tobacco
+            products, sexually explicit material, or anything else that is illegal to sell in
+            Nigeria;
+          </li>
+          <li>
+            post content that is sexual involving anyone under 18, hateful, harassing, threatening,
+            violent, or that invades someone's privacy;
+          </li>
+          <li>impersonate any person, brand or store, or misrepresent your connection to them;</li>
+          <li>
+            post fake reviews, buy or fake likes, followers, comments or shares, or invent scarcity;
+          </li>
+          <li>take payments outside the Platform for sales that began on it;</li>
+          <li>post content you do not have the rights to;</li>
+          <li>
+            send spam, collect other users' personal information without permission, or use bots,
+            scrapers or automated tools on the Platform;
+          </li>
+          <li>
+            interfere with, probe or try to get around the Platform's security or features,
+            including features marked as unavailable.
+          </li>
+        </List>
+      </>
+    ),
+  },
+  {
+    id: "payments",
+    title: "Payments and Held Funds",
+    body: (
+      <>
+        <p>
+          Payments are processed by Paystack, a licensed payment service provider. Oakmonte is not a
+          bank. Paystack's own terms also apply to your payments.
+        </p>
+        <p>
+          When a buyer pays, the funds are held until the order is complete. They are released to
+          the seller, less the fees in the Selling section, 72 hours after the buyer confirms
+          delivery, or 7 days after delivery if the buyer neither confirms delivery nor raises a
+          problem in that time. If the buyer raises a problem, the funds stay held until it is
+          resolved.
+        </p>
+        <p>
+          If a payment is reversed by the buyer's bank or card issuer, or found to be fraudulent, we
+          may recover the amount from the seller's future payouts.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: "disputes-between-users",
+    title: "Problems with an Order",
+    body: (
+      <>
+        <p>
+          If something goes wrong with an order, the buyer and seller should first try to sort it
+          out between them. If they cannot, either can ask Oakmonte to review it. We may ask both
+          sides for evidence such as order details, delivery tracking, photos and messages.
+        </p>
+        <p>
+          We will decide in good faith whether held funds go to the seller or are refunded to the
+          buyer. This decides only what happens to funds we hold; it does not stop either person
+          from using any legal rights they have against the other.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: "ip",
+    title: "Intellectual Property and Takedowns",
+    body: (
+      <>
+        <p>
+          The Oakmonte name, logo, Platform design, themes and software belong to {COMPANY_NAME} and
+          may not be used without our written permission.
+        </p>
+        <p>
+          If you believe something on Oakmonte infringes your copyright, trade mark or other rights,
+          email <Mail /> with: your contact details, the work or mark you own, a link to the content
+          you are reporting, and a statement that you believe in good faith the use is not
+          authorised. We will review it promptly and may remove the content. We close the accounts
+          of people who repeatedly infringe others' rights.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: "communications",
+    title: "Messages and Notifications",
+    body: (
+      <List>
+        <li>
+          We will send you messages about your account and orders. These are part of the service.
+          Marketing messages are only sent if you agree to them, and you can stop them at any time.
+        </li>
+        <li>
+          Push notifications are only sent if you turn them on, and you can turn them off in your
+          device or browser settings.
+        </li>
+        <li>
+          Messages you send through Oakmonte are stored encrypted. We may review messages that are
+          reported to us, or where we need to in order to investigate fraud or abuse or comply with
+          the law.
+        </li>
+      </List>
+    ),
+  },
+  {
+    id: "termination",
+    title: "Suspension and Closing Accounts",
+    body: (
+      <List>
+        <li>
+          You can delete your account at any time in Settings. Orders already placed still need to
+          be completed, refunded or resolved under these Terms.
+        </li>
+        <li>
+          We may suspend or close an account, remove content, or withhold access to features if we
+          reasonably believe the account has broken these Terms or the law, or puts other users or
+          Oakmonte at risk. Where it is safe and lawful to do so, we will tell you why and give you
+          a chance to respond.
+        </li>
+      </List>
+    ),
+  },
+  {
+    id: "disclaimers",
+    title: "Disclaimers",
+    body: (
+      <p>
+        We work hard to keep Oakmonte running well, but the Platform is provided "as is" and "as
+        available". To the extent the law allows, we do not promise that it will always be available
+        or free of errors, and we are not responsible for the products sellers list, what users
+        post, or what users do. Estimates the Platform gives you, such as suggested product weights
+        or delivery costs, are guides only and should be checked.
+      </p>
+    ),
+  },
+  {
+    id: "liability",
+    title: "Limitation of Liability",
+    body: (
+      <>
+        <p>To the extent the law allows:</p>
+        <List>
+          <li>
+            Oakmonte is not liable for any indirect or consequential loss, or for loss of profit,
+            revenue, business, goodwill or data.
+          </li>
+          <li>
+            Our total liability to you for all claims connected with the Platform in any 12-month
+            period is limited to the greater of the fees you paid to Oakmonte in that period or
+            ₦50,000.
+          </li>
+        </List>
+        <p>
+          Nothing in these Terms limits liability for fraud, for death or personal injury caused by
+          negligence, or for anything else that cannot be limited by law.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: "indemnity",
+    title: "Your Responsibility to Us",
+    body: (
+      <p>
+        If someone makes a claim against Oakmonte because of your content, your products, your
+        breach of these Terms or your breach of the law, you agree to cover the reasonable losses
+        and costs we incur as a result.
+      </p>
+    ),
+  },
+  {
+    id: "governing-law",
+    title: "Governing Law and Disputes",
+    body: (
+      <>
+        <p>These Terms are governed by the laws of the Federal Republic of Nigeria.</p>
+        <p>
+          If you have a dispute with Oakmonte, please contact us first at <Mail />. We will try to
+          resolve it with you within 30 days. If we cannot, the dispute will be decided by the
+          courts of Lagos State, Nigeria, unless the law gives you the right to bring it elsewhere.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: "changes",
+    title: "Changes to These Terms",
+    body: (
+      <p>
+        We may update these Terms. For important changes we will tell you in the app or by email at
+        least 14 days before they take effect. Changes needed for legal or security reasons may take
+        effect sooner. If you keep using Oakmonte after a change takes effect, you accept the
+        updated Terms. If you do not agree, you can delete your account.
+      </p>
+    ),
+  },
+  {
+    id: "general",
+    title: "General",
+    body: (
+      <List>
+        <li>
+          These Terms and the Privacy Policy are the whole agreement between you and Oakmonte about
+          the Platform.
+        </li>
+        <li>If any part of these Terms is found to be unenforceable, the rest still applies.</li>
+        <li>If we do not enforce a right straight away, we can still enforce it later.</li>
+        <li>
+          You may not transfer your rights under these Terms. We may transfer ours to a company that
+          takes over the Platform, and will tell you if we do.
+        </li>
+      </List>
+    ),
+  },
+  {
+    id: "contact",
+    title: "Contact",
+    body: (
+      <p>
+        {COMPANY_NAME}, Nigeria. Email: <Mail />. You can also message Oakmonte Support from the
+        Messages page in the app.
+      </p>
+    ),
+  },
 ];
 
 function TermsPage() {
-  const [active, setActive] = useState<string>(SECTIONS[0].id);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((e) => e.isIntersecting)
-          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
-        if (visible) setActive(visible.target.id);
-      },
-      { rootMargin: "-20% 0px -70% 0px", threshold: 0 },
-    );
-    SECTIONS.forEach((s) => {
-      const el = document.getElementById(s.id);
-      if (el) observer.observe(el);
-    });
-    return () => observer.disconnect();
-  }, []);
-
   return (
-    <div className="min-h-screen bg-brand-bg text-brand-text">
-      <LegalHeader />
-
-      <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
-        {/* Title */}
-        <div className="mb-10">
-          <p className="text-[10px] uppercase tracking-[0.25em] opacity-50 mb-4">Legal</p>
-          <h1 className="font-display text-5xl md:text-7xl leading-none tracking-tight">
-            Terms of Service
-          </h1>
-          <p className="mt-6 text-xs uppercase tracking-widest opacity-60">
-            Last updated: {LAST_UPDATED}
+    <LegalPage
+      title="Terms of Service"
+      updated={LEGAL_UPDATED}
+      summary={
+        <>
+          <p>
+            Oakmonte is a marketplace: sellers sell their own products, creators link their posts to
+            them, and buyers buy from the seller. When checkout opens, payments are held until the
+            order is complete, and Oakmonte takes a 4.5% commission from sellers.
           </p>
-        </div>
-
-        {/* Plain-language summary */}
-        <div className="border border-brand-text/15 bg-brand-muted/30 p-6 md:p-8 mb-12 max-w-3xl">
-          <p className="text-[10px] uppercase tracking-[0.25em] opacity-60 mb-3">
-            In plain language
+          <p>
+            You keep ownership of what you post. Be honest, sell genuine products, and don't take
+            payments off the Platform. Checkout is locked until full launch.
           </p>
-          <p className="text-sm md:text-base leading-relaxed">
-            Oakmonte connects verified sellers, creators, and buyers through content-driven fashion
-            shopping. Payments are held in escrow until delivery is confirmed. Sellers and creators
-            are independent — we vet them, but we don't manufacture or own the products sold. Full
-            terms are below; read them before you use the platform.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-12 lg:gap-16">
-          {/* Table of contents */}
-          <aside className="lg:sticky lg:top-8 lg:self-start print:hidden">
-            <p className="text-[10px] uppercase tracking-[0.25em] opacity-50 mb-4">Contents</p>
-            <nav className="flex flex-col gap-2 text-sm">
-              {SECTIONS.map((s) => (
-                <a
-                  key={s.id}
-                  href={`#${s.id}`}
-                  className={`transition-colors border-l-2 pl-3 py-1 ${
-                    active === s.id
-                      ? "border-brand-accent text-brand-text"
-                      : "border-transparent opacity-60 hover:opacity-100 hover:border-brand-text/30"
-                  }`}
-                >
-                  <span className="opacity-60 mr-2">{s.n}.</span>
-                  {s.title}
-                </a>
-              ))}
-            </nav>
-          </aside>
-
-          {/* Body */}
-          <article className="max-w-2xl text-sm md:text-[15px] leading-relaxed space-y-14">
-            <Section id="acceptance" n={1} title="Acceptance of Terms">
-              <p>
-                By creating an account, browsing, or otherwise using Oakmonte, you agree to these
-                Terms of Service and any policies referenced within them. If you do not agree with
-                any part of these terms, you should not use the platform.
-              </p>
-            </Section>
-
-            <Section id="what-oakmonte-is" n={2} title="What Oakmonte Is">
-              <p>
-                Oakmonte is a content-first fashion marketplace built around three types of users:
-              </p>
-              <ul className="list-disc pl-5 space-y-2 marker:text-brand-accent">
-                <li>
-                  <span className="font-medium">Buyers</span> — discover fashion through content and
-                  purchase directly from it.
-                </li>
-                <li>
-                  <span className="font-medium">Sellers</span> — vetted brands and vendors who list
-                  and fulfill products.
-                </li>
-                <li>
-                  <span className="font-medium">Creators</span> — individuals who post content and
-                  link it to listed products, earning through collaborations.
-                </li>
-              </ul>
-              <p>
-                Oakmonte is a marketplace facilitator. We are not the manufacturer, owner, or
-                merchant of record for products sold by sellers on the platform. Sellers are
-                independent parties and are responsible for their own listings, product quality, and
-                order fulfillment.
-              </p>
-            </Section>
-
-            <Section id="eligibility" n={3} title="Eligibility">
-              <ul className="list-disc pl-5 space-y-2 marker:text-brand-accent">
-                <li>
-                  Minimum age to hold an account:{" "}
-                  <Placeholder>
-                    decide 13+/16+/18+ policy, including any parental consent handling for younger
-                    users
-                  </Placeholder>
-                  .
-                </li>
-                <li>You must provide accurate registration information and keep it current.</li>
-                <li>
-                  Oakmonte reserves the right to refuse, suspend, or terminate accounts that violate
-                  these terms.
-                </li>
-              </ul>
-            </Section>
-
-            <Section id="verification" n={4} title="Account Verification">
-              <ul className="list-disc pl-5 space-y-2 marker:text-brand-accent">
-                <li>
-                  Browsing and light interaction — liking, following, saving — require no
-                  verification.
-                </li>
-                <li>
-                  Phone verification is required at checkout and before publishing a review. This
-                  exists to reduce fraud and protect the integrity of reviews on the platform, not
-                  as an arbitrary hurdle.
-                </li>
-                <li>
-                  Sellers and creators go through an additional vetting step before they may list
-                  products or link content to listings. Our vetting process evolves over time and is
-                  applied at Oakmonte's discretion.
-                </li>
-              </ul>
-            </Section>
-
-            <Section id="buyer-terms" n={5} title="Buyer Terms">
-              <ul className="list-disc pl-5 space-y-2 marker:text-brand-accent">
-                <li>
-                  Purchases are made directly through content or product listings on the platform.
-                </li>
-                <li>
-                  Payment is held in escrow and released to the seller only after delivery is
-                  confirmed{" "}
-                  <Placeholder>
-                    define exact escrow release rule: confirmation event and any satisfaction window
-                  </Placeholder>
-                  .
-                </li>
-                <li>
-                  Refund and return eligibility:{" "}
-                  <Placeholder>
-                    define return window, condition requirements, and who pays return shipping
-                  </Placeholder>
-                  .
-                </li>
-                <li>Buyers are responsible for providing accurate delivery information.</li>
-              </ul>
-            </Section>
-
-            <Section id="seller-terms" n={6} title="Seller Terms">
-              <ul className="list-disc pl-5 space-y-2 marker:text-brand-accent">
-                <li>Sellers must accurately represent products, pricing, and availability.</li>
-                <li>Sellers are responsible for fulfillment and timely shipping.</li>
-                <li>
-                  Payment for a sale is released from escrow according to Oakmonte's release policy
-                  (see Section 5). Sellers do not receive funds until that condition is met.
-                </li>
-                <li>
-                  Platform fee / commission structure:{" "}
-                  <Placeholder>state actual fee percentage and whether flat or tiered</Placeholder>.
-                </li>
-                <li>
-                  Sellers may not solicit buyers to complete transactions outside Oakmonte to avoid
-                  fees or escrow protection. This is a prohibited practice — it undermines the trust
-                  model the platform is built on.
-                </li>
-                <li>
-                  Repeated unresponsiveness or unfulfilled orders may result in reduced visibility
-                  or account suspension, at Oakmonte's discretion.
-                </li>
-              </ul>
-            </Section>
-
-            <Section id="creator-terms" n={7} title="Creator Terms">
-              <ul className="list-disc pl-5 space-y-2 marker:text-brand-accent">
-                <li>Creators retain ownership of the content they post.</li>
-                <li>
-                  By posting, creators grant Oakmonte a non-exclusive, worldwide, royalty-free
-                  license to display, distribute, and link that content to product listings on the
-                  platform. This license is revocable upon deletion of the content.
-                </li>
-                <li>
-                  Creators may link their content to listed products for collaboration-based
-                  monetization. The specific payout structure is described in the
-                  <Placeholder>Creator Payout Policy — link once published</Placeholder>.
-                </li>
-                <li>
-                  Creators are responsible for ensuring they have rights to any content they post —
-                  including their own likeness, footage, music, and any third-party material.
-                </li>
-              </ul>
-            </Section>
-
-            <Section id="prohibited" n={8} title="Prohibited Conduct">
-              <p>
-                The following are prohibited on Oakmonte and may result in content removal,
-                suspension, or termination:
-              </p>
-              <ul className="list-disc pl-5 space-y-2 marker:text-brand-accent">
-                <li>
-                  Fake reviews, fake likes, fake comments or shares, and manufactured scarcity
-                  claims.
-                </li>
-                <li>Circumventing escrow by arranging off-platform payment.</li>
-                <li>Uploading content you do not have the rights to.</li>
-                <li>Harassment, hate speech, or abusive behavior toward other users.</li>
-                <li>
-                  Attempting to extract other users' contact information through watermark removal,
-                  embedded text, or similar workarounds.
-                </li>
-                <li>Impersonating another seller, creator, or brand.</li>
-              </ul>
-            </Section>
-
-            <Section id="payments-escrow" n={9} title="Payments & Escrow">
-              <p>
-                Funds are collected at the point of purchase and held by Oakmonte, through its
-                third-party payment processor{" "}
-                <Placeholder>name the actual payment processor once selected</Placeholder>, until
-                the release condition described in Section 5 is met. Once the condition is met,
-                funds are released to the seller net of applicable fees.
-              </p>
-              <p>
-                Payments are processed by a third-party payment processor. Oakmonte is not itself a
-                bank or a licensed financial institution
-                <Placeholder>confirm actual regulatory status before publishing</Placeholder>.
-              </p>
-              <p>
-                Currency: <Placeholder>state supported currency or currencies</Placeholder>.
-              </p>
-            </Section>
-
-            <Section id="ip" n={10} title="Intellectual Property">
-              <ul className="list-disc pl-5 space-y-2 marker:text-brand-accent">
-                <li>The Oakmonte name, logo, and platform design are owned by Oakmonte.</li>
-                <li>
-                  User-generated content remains owned by the user who posted it, subject to the
-                  license granted in Section 7.
-                </li>
-                <li>
-                  To report intellectual property infringement, contact us at
-                  <Placeholder>IP takedown contact address</Placeholder> with a description of the
-                  content in question and evidence of your rights. We review takedown requests in
-                  good faith.
-                </li>
-              </ul>
-            </Section>
-
-            <Section id="termination" n={11} title="Termination">
-              <ul className="list-disc pl-5 space-y-2 marker:text-brand-accent">
-                <li>Oakmonte may suspend or terminate accounts for violations of these terms.</li>
-                <li>
-                  Users may close their own accounts at any time. Pending orders continue through
-                  fulfillment and escrow release under these terms; escrowed funds are released or
-                  refunded according to the outcome of each pending order.
-                </li>
-              </ul>
-            </Section>
-
-            <Section id="liability" n={12} title="Limitation of Liability">
-              <p>
-                Oakmonte facilitates transactions between buyers, sellers, and creators. We are not
-                liable for product quality, seller conduct, or delivery delays beyond our stated
-                vetting and escrow processes.
-              </p>
-              <p>
-                The platform is provided on an "as-is" and "as-available" basis, without warranties
-                of any kind, whether express or implied, to the extent permitted by applicable law.
-              </p>
-              <p>
-                <Placeholder>
-                  Have counsel draft the enforceable liability cap and disclaimer language for your
-                  jurisdiction — do not publish without legal review
-                </Placeholder>
-                .
-              </p>
-            </Section>
-
-            <Section id="disputes" n={13} title="Dispute Resolution">
-              <p>
-                Buyer/seller disputes are handled through Oakmonte's internal resolution process
-                before escrowed funds are released or refunded. Both parties may be asked to provide
-                evidence — order details, delivery confirmation, photos, or correspondence — as part
-                of the review.
-              </p>
-              <p>
-                Governing law and jurisdiction:{" "}
-                <Placeholder>
-                  confirm governing jurisdiction (e.g. Nigeria) and whether disputes proceed through
-                  courts or a named arbitration process
-                </Placeholder>
-                .
-              </p>
-            </Section>
-
-            <Section id="changes" n={14} title="Changes to These Terms">
-              <p>
-                Oakmonte may update these terms from time to time. When we do, we will post the
-                updated version on this page with a new "last updated" date. Continued use of the
-                platform after an update constitutes acceptance of the revised terms.
-              </p>
-            </Section>
-
-            <Section id="contact" n={15} title="Contact">
-              <p>
-                Questions about these terms? Reach us at
-                <Placeholder>real support email or address</Placeholder>.
-              </p>
-            </Section>
-          </article>
-        </div>
-      </div>
-
-      <footer className="py-12 px-4 sm:px-6 lg:px-8 border-t border-brand-text/5 flex flex-col md:flex-row gap-6 justify-between items-start md:items-center text-[10px] uppercase tracking-widest opacity-50 print:hidden">
-        <div>© 2026 Oakmonte Collective</div>
-        <div className="flex gap-8">
-          <Link to="/terms">Terms of Service</Link>
-          <Link to="/privacy">Privacy Policy</Link>
-          <a href="#">Manifesto</a>
-        </div>
-      </footer>
-    </div>
-  );
-}
-
-function Section({
-  id,
-  n,
-  title,
-  children,
-}: {
-  id: string;
-  n: number;
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section id={id} className="scroll-mt-24">
-      <a href={`#${id}`} className="group block mb-4 no-underline">
-        <p className="text-[10px] uppercase tracking-[0.25em] opacity-50 mb-2">Section {n}</p>
-        <h2 className="font-display text-2xl md:text-3xl tracking-tight leading-tight">
-          {title}
-          <span className="ml-2 opacity-0 group-hover:opacity-40 transition-opacity text-brand-accent text-lg align-middle">
-            #
-          </span>
-        </h2>
-      </a>
-      <div className="space-y-4">{children}</div>
-    </section>
-  );
-}
-
-function Placeholder({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="inline bg-brand-accent/10 text-brand-accent border border-brand-accent/30 px-1.5 py-0.5 text-[12px] rounded-sm mx-0.5 align-baseline">
-      [{children}]
-    </span>
+        </>
+      }
+      sections={SECTIONS}
+    />
   );
 }

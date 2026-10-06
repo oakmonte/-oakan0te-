@@ -1027,10 +1027,10 @@ function OakmonteLanding() {
               <img src={IMG_LOGO} alt="Oakmonte" className="footer-mark" />
               <span className="tag">CREATED TO CREATE.</span>
             </div>
-            <a href="mailto:contact@oakmonte.com">CONTACT US →</a>
+            <a href="mailto:contact@oakmonte.store">CONTACT US →</a>
           </div>
           <div className="wrap footer-legal">
-            <div>© 2026 Oakmonte Collective</div>
+            <div>© 2026 Oakmonte Multiglobal Limited</div>
             <div className="footer-legal-links">
               <a href="/terms">TERMS OF SERVICE</a>
               <a href="/privacy">PRIVACY POLICY</a>
