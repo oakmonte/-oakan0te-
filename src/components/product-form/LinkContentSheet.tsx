@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Check, ImageIcon, Play, X } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useSession } from "@/hooks/use-session";
+import { markEmptyContentSeen } from "@/lib/own-content";
 
 // Product-side counterpart to LinkProductsSheet.tsx (the post-side "link
 // products" sheet) — both write to post_product_tags, so a link made here
@@ -68,6 +69,12 @@ export function LinkContentSheet({
       cancelled = true;
     };
   }, [user, sessionLoading]);
+
+  // Nothing posted or drafted: the checklist may tick Link content once the
+  // seller has looked in here and seen that for themselves.
+  useEffect(() => {
+    if (posts && drafts && posts.length === 0 && drafts.length === 0) markEmptyContentSeen();
+  }, [posts, drafts]);
 
   function toggle(id: string) {
     setSelected((prev) => {

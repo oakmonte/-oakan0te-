@@ -13,6 +13,7 @@ import { CollectionsSheet } from "@/components/product-form/CollectionsSheet";
 import { TagsSheet } from "@/components/product-form/TagsSheet";
 import { NecessitiesSheet } from "@/components/product-form/NecessitiesSheet";
 import { NecessitiesWarningDialog } from "@/components/product-form/NecessitiesWarningDialog";
+import { useHasOwnContent } from "@/lib/own-content";
 import { DraftWarningDialog } from "@/components/product-form/DraftWarningDialog";
 import { allNecessitiesFilled, normalizeOptionName } from "@/lib/necessities";
 import { PricingSheet } from "@/components/product-form/PricingSheet";
@@ -233,6 +234,7 @@ function NewProduct() {
   const [linkedPostIds, setLinkedPostIds] = useState<string[]>(initialDraft?.linkedPostIds ?? []);
   const [necessitiesSheetOpen, setNecessitiesSheetOpen] = useState(false);
   const [necessitiesWarningOpen, setNecessitiesWarningOpen] = useState(false);
+  const hasOwnContent = useHasOwnContent();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [showRestoredBanner, setShowRestoredBanner] = useState(restoredFromAutosave);
@@ -425,6 +427,7 @@ function NewProduct() {
         regularWeightGrams,
         linkedPostIds,
         status,
+        hasOwnContent,
       );
     if (!necessitiesOk) {
       setError("");

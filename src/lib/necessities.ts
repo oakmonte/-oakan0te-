@@ -232,10 +232,16 @@ export function allNecessitiesFilled(
   regularWeightGrams: number | null,
   linkedPostIds: string[],
   status: "draft" | "active",
+  // false when the seller has no posts or drafts at all (useHasOwnContent):
+  // there's nothing to link, so it can't count as missing either way.
+  hasOwnContent: boolean | null = null,
 ): boolean {
   const allParams = paramsForCategory(categoryPath, kind);
   if (allParams.length === 0) return true;
-  const params = status === "draft" ? allParams.filter((p) => p !== "Link content") : allParams;
+  const params =
+    status === "draft" || hasOwnContent === false
+      ? allParams.filter((p) => p !== "Link content")
+      : allParams;
   const variantSizeValues = findOption(options, "Size")?.values ?? [];
   return params.every(
     (p) =>

@@ -25,6 +25,7 @@ import { VariantWeightsSheet } from "@/components/product-form/VariantWeightsShe
 import { LinkContentSheet } from "@/components/product-form/LinkContentSheet";
 import { MaterialSheet } from "@/components/product-form/MaterialSheet";
 import { ColorSheet } from "@/components/product-form/ColorSheet";
+import { hasSeenEmptyContent, useHasOwnContent } from "@/lib/own-content";
 
 export function NecessitiesSheet({
   categoryPath,
@@ -76,6 +77,7 @@ export function NecessitiesSheet({
   onClose: () => void;
 }) {
   const params = paramsForCategory(categoryPath, kind);
+  const hasOwnContent = useHasOwnContent();
   const [sizeSheetOpen, setSizeSheetOpen] = useState(false);
   const [weightSheetOpen, setWeightSheetOpen] = useState(false);
   const [linkContentOpen, setLinkContentOpen] = useState(false);
@@ -220,7 +222,7 @@ export function NecessitiesSheet({
           </p>
         ) : (
           params.map((p) => {
-            const state = paramFillState(
+            const rawState = paramFillState(
               p,
               kind,
               options,
@@ -232,6 +234,15 @@ export function NecessitiesSheet({
               regularWeightGrams,
               linkedPostIds,
             );
+            // With nothing posted or drafted there's nothing to link: the row
+            // ticks once the seller has opened it and seen that, never before.
+            const state =
+              p === "Link content" &&
+              rawState !== "filled" &&
+              hasOwnContent === false &&
+              hasSeenEmptyContent()
+                ? "filled"
+                : rawState;
             // Color and Material can each already be answered as a real
             // variant option axis, in which case this row reports that
             // instead of opening a second editor over the same values.
