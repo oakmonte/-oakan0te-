@@ -257,7 +257,7 @@ function ChooseUsernamePage() {
       step={step}
     >
       <form onSubmit={handleSubmit} className="space-y-3 text-left" noValidate>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="space-y-3">
           <div>
             <label htmlFor="display-name" className="sr-only">
               Display name
