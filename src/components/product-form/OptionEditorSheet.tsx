@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { Check, Plus } from "lucide-react";
 import { SystemMenu, ValueRow } from "./value-picker";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
+import { useVisibleViewport } from "@/hooks/use-visible-viewport";
 import type { VariantOption } from "./VariantMatrixBuilder";
 import { MATERIAL_SYSTEMS, DEFAULT_MATERIAL_SYSTEM } from "@/lib/material-options";
 import { COLOR_PRESETS, colorSwatchStyle, colorFamilyMembers } from "@/lib/color-options";
@@ -278,6 +279,7 @@ export function OptionEditorSheet({
   // Keyboard should overlay this sheet, not resize/push it — same fix already
   // used on the camera/after-shot routes for the identical iOS Safari behavior.
   useLockedViewport();
+  const viewport = useVisibleViewport(true);
 
   const values = valuesByName[name] ?? [];
   // Starts unconfirmed whenever there's anything to lose — including pre-existing
@@ -518,7 +520,16 @@ export function OptionEditorSheet({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-white flex flex-col min-h-dvh animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]">
+    <div
+      className="fixed inset-x-0 top-0 z-50 bg-white flex flex-col animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
+      // Sized to the keyboard-free band and pinned to its top (see
+      // PricingSheet): iOS pans the screen up to show a focused field, and
+      // following that pan keeps this sheet where the eye expects it.
+      style={{
+        transform: viewport.top ? `translateY(${viewport.top}px)` : undefined,
+        height: viewport.height || "100dvh",
+      }}
+    >
       <div className="shrink-0 z-10 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
         <button onClick={onClose} type="button" className="text-sm text-gray-500">
           Cancel

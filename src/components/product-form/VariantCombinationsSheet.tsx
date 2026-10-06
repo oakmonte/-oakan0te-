@@ -14,6 +14,7 @@ import { PricingSheet } from "./PricingSheet";
 import { useMultiFilePicker } from "@/hooks/use-file-picker";
 import { startBackgroundUpload, onBackgroundUploadDone } from "@/lib/background-upload";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
+import { useVisibleViewport } from "@/hooks/use-visible-viewport";
 import { cleanPriceDigits, displayPriceWithCommas, padPriceOnBlur } from "@/lib/format-price-input";
 import type { VariantInventoryContext } from "@/lib/product-draft-handoff";
 
@@ -80,6 +81,7 @@ export function VariantCombinationsSheet({
   // fixed sheet upward instead of overlaying it. Missing here was the actual
   // "variant popups pushing up" bug.
   useLockedViewport();
+  const viewport = useVisibleViewport(true);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkPrice, setBulkPrice] = useState("");
   const [bulkCompareAtPrice, setBulkCompareAtPrice] = useState("");
@@ -234,7 +236,16 @@ export function VariantCombinationsSheet({
   }
 
   return (
-    <div className="fixed inset-0 z-40 bg-white flex flex-col min-h-dvh">
+    <div
+      className="fixed inset-x-0 top-0 z-40 bg-white flex flex-col"
+      // Sized to the keyboard-free band and pinned to its top (see
+      // PricingSheet): iOS pans the screen up to show a focused field, and
+      // following that pan keeps this sheet where the eye expects it.
+      style={{
+        transform: viewport.top ? `translateY(${viewport.top}px)` : undefined,
+        height: viewport.height || "100dvh",
+      }}
+    >
       <div className="shrink-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
         <button
           onClick={onBack}
