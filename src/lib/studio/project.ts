@@ -10,6 +10,7 @@
 // beginHistoryGroup()/endHistoryGroup(): one snapshot at the start, silent
 // updates until the finger lifts.
 import { useCallback, useReducer } from "react";
+import { withLanes } from "./lanes";
 import {
   MIN_CLIP_DURATION,
   MIN_SPEED,
@@ -129,7 +130,14 @@ function mapClip(
   return { ...project, clips: project.clips.map((c) => (c.id === id ? fn(c) : c)) };
 }
 
+/** Every edit, then lanes: whatever an action did to timing — add, trim,
+ *  move, split, delete — overlapping audio and overlays end up on rows of
+ *  their own. */
 export function studioReducer(project: StudioProject, action: StudioAction): StudioProject {
+  return withLanes(reduce(project, action));
+}
+
+function reduce(project: StudioProject, action: StudioAction): StudioProject {
   switch (action.type) {
     case "addClips": {
       const at = action.atIndex ?? project.clips.length;
@@ -532,7 +540,7 @@ export type StudioStore = {
 export function useStudioProject(initial: StudioProject): StudioStore {
   const [state, send] = useReducer(historyReducer, {
     past: [],
-    present: initial,
+    present: withLanes(initial),
     future: [],
     grouping: false,
   });

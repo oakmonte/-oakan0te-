@@ -155,6 +155,9 @@ export type AudioClip = {
   fadeOut: number; // seconds
   /** Set for kind === "detached": which video clip it was lifted from. */
   linkedClipId?: string;
+  /** Row within the audio track, so overlapping sounds stack instead of
+   *  hiding each other. Written by lanes.ts; absent until it has run. */
+  lane?: number;
 };
 
 export function audioDuration(a: AudioClip): number {
@@ -168,7 +171,12 @@ export function audioDuration(a: AudioClip): number {
 /** An after-shot Layer that only exists between two timeline instants. The base
  *  Layer union is untouched — a TimedLayer[] is assignable to Layer[], so
  *  LayerOverlay and layer-bake.ts both take these unchanged. */
-export type TimedLayer = Layer & { startTime: number; endTime: number };
+export type TimedLayer = Layer & {
+  startTime: number;
+  endTime: number;
+  /** Row within its track (text, or stickers and drawings). See lanes.ts. */
+  lane?: number;
+};
 
 /** Everything a studio caption needs except its id, text and timing. Centred and
  *  sized in the same fractional units the after-shot layer system uses, so a
@@ -201,6 +209,8 @@ export type ProductPin = {
   endTime: number;
   /** Which side the pill hangs off the dot, so a pin near the right edge stays on screen. */
   side: "left" | "right";
+  /** Row within the pins track. See lanes.ts. */
+  lane?: number;
 };
 
 // ---------------------------------------------------------------------------

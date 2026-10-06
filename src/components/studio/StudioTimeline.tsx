@@ -6,7 +6,10 @@ import {
   Volume2,
   VolumeX,
   Type as TypeIcon,
+  PenLine,
   Sparkles,
+  Sticker as StickerIcon,
+  Tag,
   Unlink,
   X,
 } from "lucide-react";
@@ -32,7 +35,11 @@ import {
   TRACK_TOP_PAD,
   VIDEO_TRACK_CENTER,
   VIDEO_TRACK_H,
+  laneTop,
+  timelineLayout,
+  type TrackKind,
 } from "@/lib/studio/layout";
+import { isTextLayer, laneCount } from "@/lib/studio/lanes";
 import {
   audioDuration,
   clipDuration,
@@ -563,6 +570,23 @@ function StudioTimeline({
     return () => el.removeEventListener("touchmove", block);
   }, []);
 
+  // Tracks under the video row, each as many lanes deep as its overlaps need.
+  const layout = useMemo(
+    () =>
+      timelineLayout({
+        audio: laneCount(project.audio),
+        text: laneCount(project.layers.filter(isTextLayer)),
+        sticker: laneCount(project.layers.filter((l) => !isTextLayer(l))),
+        pin: laneCount(project.pins),
+      }),
+    [project.audio, project.layers, project.pins],
+  );
+  const track = (kind: TrackKind) => layout.tracks.find((t) => t.kind === kind);
+  const audioTrack = track("audio");
+  const textTrack = track("text");
+  const stickerTrack = track("sticker");
+  const pinTrack = track("pin");
+
   const contentWidth = Math.max(extent * pps, 1);
   const lockScroll = draggingId !== null;
   const tickStep = useMemo(
@@ -573,7 +597,14 @@ function StudioTimeline({
   const tickCount = Math.max(1, Math.ceil(extent / tickStep) + 1);
 
   return (
-    <div className="relative w-full select-none" style={{ height: TIMELINE_HEIGHT }}>
+    // Grows with its lanes, up to a share of the screen; past that the lanes
+    // scroll under a ruler and video row that stay put.
+    <div
+      className="relative w-full select-none"
+      style={{
+        height: `max(${TIMELINE_HEIGHT}px, min(${layout.height}px, 38svh))`,
+      }}
+    >
       <div
         ref={scrollRef}
         onScroll={handleScroll}
@@ -585,14 +616,14 @@ function StudioTimeline({
         // their own idea of what one means: Android opens an image menu, iOS a
         // Save/Share callout over the frames. Neither belongs on a timeline.
         onContextMenu={(e) => e.preventDefault()}
-        className="absolute inset-0 overflow-x-auto overflow-y-hidden [&::-webkit-scrollbar]:hidden"
+        className="absolute inset-0 overflow-auto [&::-webkit-scrollbar]:hidden"
         style={{
           WebkitTouchCallout: "none",
           WebkitUserSelect: "none",
           userSelect: "none",
           scrollbarWidth: "none",
-          overscrollBehaviorX: "contain",
-          touchAction: lockScroll ? "none" : "pan-x",
+          overscrollBehavior: "contain",
+          touchAction: lockScroll ? "none" : "pan-x pan-y",
         }}
       >
         <div style={{ paddingLeft: halfWidth, paddingRight: halfWidth, width: "max-content" }}>
@@ -600,211 +631,240 @@ function StudioTimeline({
             className="relative"
             style={{
               width: compact ? project.clips.length * SQUARE : contentWidth,
-              paddingTop: TRACK_TOP_PAD,
+              paddingBottom: 10,
             }}
           >
-            {/* ---------------- ruler ---------------- */}
-            {/* Without a scale, a 23x zoom range leaves you with no idea where
-                you are — and this editor asks you to land cuts on a beat. */}
-            <div className="relative" style={{ height: RULER_H }}>
-              {Array.from({ length: compact ? 0 : tickCount }, (_, i) => {
-                const t = i * tickStep;
-                return (
-                  <div
-                    key={i}
-                    className="absolute top-0 flex items-start gap-1"
-                    style={{ left: t * pps }}
-                  >
-                    <span style={{ width: 1, height: 5, background: "rgba(255,255,255,0.28)" }} />
-                    <span
-                      className="text-[8px] leading-none"
-                      style={{ color: "rgba(255,255,255,0.4)" }}
-                    >
-                      {formatTimecode(t, tickStep < 1)}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Beat markers sit under everything, so they read as a grid rather
-                than as another object competing with the clips. */}
+            {/* Beat lines down the lanes. The ruler and video row draw their
+                own, inside the sticky header that covers these. */}
             {(compact ? [] : beats).map((t, i) => (
               <div
                 key={i}
                 className="absolute bottom-0 w-px pointer-events-none"
-                style={{ left: t * pps, top: RULER_H, background: "rgba(255,255,255,0.16)" }}
+                style={{
+                  left: t * pps,
+                  top: TRACK_TOP_PAD + RULER_H + VIDEO_TRACK_H,
+                  background: "rgba(255,255,255,0.16)",
+                }}
               />
             ))}
 
-            {/* ---------------- video track ---------------- */}
-            <div className="relative" style={{ height: VIDEO_TRACK_H }}>
-              {/* Empty space between clips. Black in the finished video, so
-                  drawn as a dark hole rather than left see-through. */}
-              {project.clips.map((clip, index) => {
-                const gap = clip.gapBefore ?? 0;
-                if (gap <= 0 || compact) return null;
-                const width = gap * pps - CLIP_GAP;
-                if (width <= 0) return null;
-                return (
-                  <div
-                    key={`gap-${clip.id}`}
-                    className="absolute top-0 flex items-center justify-center"
-                    style={{
-                      left: (starts[index] - gap) * pps + CLIP_GAP / 2,
-                      width,
-                      height: VIDEO_TRACK_H,
-                      borderRadius: 6,
-                      background: "#050505",
-                      border: "1px dashed rgba(255,255,255,0.16)",
-                      zIndex: 0,
-                    }}
-                  >
-                    {width > 30 && (
-                      <button
-                        type="button"
-                        onPointerDown={(e) => e.stopPropagation()}
-                        onClick={() => onCloseGap(clip.id)}
-                        aria-label="Close gap"
-                        className="oak-hit flex h-7 w-7 items-center justify-center rounded-full active:scale-90"
-                        style={{ background: "rgba(255,255,255,0.12)", color: "#fff" }}
-                      >
-                        <X size={12} />
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-
-              {project.clips.map((clip, index) => {
-                const source = sources[clip.sourceId];
-                const duration = clipDuration(clip);
-                // Inset by half the gap on each side — see CLIP_GAP. Only the
-                // drawing moves; starts[] and the cut buttons stay on the
-                // true timeline positions.
-                const width = compact ? SQUARE - CLIP_GAP : Math.max(6, duration * pps - CLIP_GAP);
-                const isSelected =
-                  !compact && selection?.kind === "clip" && selection.id === clip.id;
-                const isDragging = draggingId === clip.id;
-                return (
-                  <div
-                    key={clip.id}
-                    onPointerDown={startClipPress(clip)}
-                    onPointerMove={moveClipPress}
-                    onPointerUp={endClipPress}
-                    onPointerCancel={endClipPress}
-                    className="absolute top-0 overflow-hidden"
-                    style={{
-                      left: (compact ? index * SQUARE : starts[index] * pps) + CLIP_GAP / 2,
-                      width,
-                      height: VIDEO_TRACK_H,
-                      borderRadius: 6,
-                      transform: isDragging ? `translateX(${dragOffset}px) scale(1.08)` : undefined,
-                      zIndex: isDragging ? 5 : isSelected ? 3 : 1,
-                      boxShadow: isDragging ? "0 8px 22px rgba(0,0,0,0.55)" : undefined,
-                      outline: isSelected ? "2px solid #fff" : "1px solid rgba(255,255,255,0.10)",
-                      outlineOffset: -1,
-                      background: "#151515",
-                    }}
-                  >
-                    <ClipTiles
-                      frames={source ? filmstrips[source.id] : undefined}
-                      fallbackUrl={source?.kind === "image" ? source.url : undefined}
-                      inPoint={clip.inPoint}
-                      outPoint={clip.outPoint}
-                      width={width}
-                    />
-
-                    {/* Live length of the selected clip, so a trim can be
-                        judged in seconds rather than by eye. */}
-                    {isSelected && width > 40 && (
-                      <span
-                        className="pointer-events-none absolute top-0.5 rounded px-1 text-[11px] font-semibold leading-[15px] tabular-nums"
-                        style={{
-                          left: HANDLE_W + 2,
-                          background: "rgba(0,0,0,0.68)",
-                          color: "#fff",
-                          zIndex: 5,
-                        }}
-                      >
-                        {duration < 10 ? duration.toFixed(1) : Math.round(duration)}s
-                      </span>
-                    )}
-
+            {/* Ruler and video row: sticky, so when the lanes outgrow the
+                timeline and scroll, the clips stay in view — and the pinned
+                mute and + buttons stay level with them. */}
+            <div
+              className="sticky top-0"
+              style={{ zIndex: 4, background: "#000", paddingTop: TRACK_TOP_PAD }}
+            >
+              {/* ---------------- ruler ---------------- */}
+              {/* Without a scale, a 23x zoom range leaves you with no idea where
+                you are — and this editor asks you to land cuts on a beat. */}
+              <div className="relative" style={{ height: RULER_H }}>
+                {Array.from({ length: compact ? 0 : tickCount }, (_, i) => {
+                  const t = i * tickStep;
+                  return (
                     <div
-                      className="absolute inset-x-0 bottom-0 flex items-center gap-1 px-1 pb-0.5"
-                      hidden={compact}
+                      key={i}
+                      className="absolute top-0 flex items-start gap-1"
+                      style={{ left: t * pps }}
                     >
-                      {(clip.muted || project.masterMuted) && (
-                        <Badge>
-                          <VolumeX size={10} aria-label="Muted" />
-                        </Badge>
-                      )}
-                      {/* The same glyph as Detach audio in the toolbar. It used to
-                          say "split", the name of a different tool. */}
-                      {clip.audioDetached && (
-                        <Badge>
-                          <Unlink size={10} aria-label="Audio detached" />
-                        </Badge>
-                      )}
-                      {clip.speed !== 1 && <Badge>{clip.speed}x</Badge>}
+                      <span style={{ width: 1, height: 5, background: "rgba(255,255,255,0.28)" }} />
+                      <span
+                        className="text-[8px] leading-none"
+                        style={{ color: "rgba(255,255,255,0.4)" }}
+                      >
+                        {formatTimecode(t, tickStep < 1)}
+                      </span>
                     </div>
+                  );
+                })}
+              </div>
 
-                    {isSelected && (
-                      <>
-                        <TrimHandle
-                          side="left"
-                          onPointerDown={startTrim(clip, "in")}
-                          onPointerMove={moveTrim}
-                          onPointerUp={endTrim}
-                        />
-                        <TrimHandle
-                          side="right"
-                          onPointerDown={startTrim(clip, "out")}
-                          onPointerMove={moveTrim}
-                          onPointerUp={endTrim}
-                        />
-                      </>
-                    )}
-                  </div>
-                );
-              })}
+              {/* Beat markers sit under everything, so they read as a grid rather
+                than as another object competing with the clips. */}
+              {(compact ? [] : beats).map((t, i) => (
+                <div
+                  key={i}
+                  className="absolute bottom-0 w-px pointer-events-none"
+                  style={{ left: t * pps, top: RULER_H, background: "rgba(255,255,255,0.16)" }}
+                />
+              ))}
 
-              {/* Transition buttons live ON the cut — the cut is the thing being
+              {/* ---------------- video track ---------------- */}
+              <div className="relative" style={{ height: VIDEO_TRACK_H }}>
+                {/* Empty space between clips. Black in the finished video, so
+                  drawn as a dark hole rather than left see-through. */}
+                {project.clips.map((clip, index) => {
+                  const gap = clip.gapBefore ?? 0;
+                  if (gap <= 0 || compact) return null;
+                  const width = gap * pps - CLIP_GAP;
+                  if (width <= 0) return null;
+                  return (
+                    <div
+                      key={`gap-${clip.id}`}
+                      className="absolute top-0 flex items-center justify-center"
+                      style={{
+                        left: (starts[index] - gap) * pps + CLIP_GAP / 2,
+                        width,
+                        height: VIDEO_TRACK_H,
+                        borderRadius: 6,
+                        background: "#050505",
+                        border: "1px dashed rgba(255,255,255,0.16)",
+                        zIndex: 0,
+                      }}
+                    >
+                      {width > 30 && (
+                        <button
+                          type="button"
+                          onPointerDown={(e) => e.stopPropagation()}
+                          onClick={() => onCloseGap(clip.id)}
+                          aria-label="Close gap"
+                          className="oak-hit flex h-7 w-7 items-center justify-center rounded-full active:scale-90"
+                          style={{ background: "rgba(255,255,255,0.12)", color: "#fff" }}
+                        >
+                          <X size={12} />
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {project.clips.map((clip, index) => {
+                  const source = sources[clip.sourceId];
+                  const duration = clipDuration(clip);
+                  // Inset by half the gap on each side — see CLIP_GAP. Only the
+                  // drawing moves; starts[] and the cut buttons stay on the
+                  // true timeline positions.
+                  const width = compact
+                    ? SQUARE - CLIP_GAP
+                    : Math.max(6, duration * pps - CLIP_GAP);
+                  const isSelected =
+                    !compact && selection?.kind === "clip" && selection.id === clip.id;
+                  const isDragging = draggingId === clip.id;
+                  return (
+                    <div
+                      key={clip.id}
+                      onPointerDown={startClipPress(clip)}
+                      onPointerMove={moveClipPress}
+                      onPointerUp={endClipPress}
+                      onPointerCancel={endClipPress}
+                      className="absolute top-0 overflow-hidden"
+                      style={{
+                        left: (compact ? index * SQUARE : starts[index] * pps) + CLIP_GAP / 2,
+                        width,
+                        height: VIDEO_TRACK_H,
+                        borderRadius: 6,
+                        transform: isDragging
+                          ? `translateX(${dragOffset}px) scale(1.08)`
+                          : undefined,
+                        zIndex: isDragging ? 5 : isSelected ? 3 : 1,
+                        boxShadow: isDragging ? "0 8px 22px rgba(0,0,0,0.55)" : undefined,
+                        outline: isSelected ? "2px solid #fff" : "1px solid rgba(255,255,255,0.10)",
+                        outlineOffset: -1,
+                        background: "#151515",
+                      }}
+                    >
+                      <ClipTiles
+                        frames={source ? filmstrips[source.id] : undefined}
+                        fallbackUrl={source?.kind === "image" ? source.url : undefined}
+                        inPoint={clip.inPoint}
+                        outPoint={clip.outPoint}
+                        width={width}
+                      />
+
+                      {/* Live length of the selected clip, so a trim can be
+                        judged in seconds rather than by eye. */}
+                      {isSelected && width > 40 && (
+                        <span
+                          className="pointer-events-none absolute top-0.5 rounded px-1 text-[11px] font-semibold leading-[15px] tabular-nums"
+                          style={{
+                            left: HANDLE_W + 2,
+                            background: "rgba(0,0,0,0.68)",
+                            color: "#fff",
+                            zIndex: 5,
+                          }}
+                        >
+                          {duration < 10 ? duration.toFixed(1) : Math.round(duration)}s
+                        </span>
+                      )}
+
+                      <div
+                        className="absolute inset-x-0 bottom-0 flex items-center gap-1 px-1 pb-0.5"
+                        hidden={compact}
+                      >
+                        {(clip.muted || project.masterMuted) && (
+                          <Badge>
+                            <VolumeX size={10} aria-label="Muted" />
+                          </Badge>
+                        )}
+                        {/* The same glyph as Detach audio in the toolbar. It used to
+                          say "split", the name of a different tool. */}
+                        {clip.audioDetached && (
+                          <Badge>
+                            <Unlink size={10} aria-label="Audio detached" />
+                          </Badge>
+                        )}
+                        {clip.speed !== 1 && <Badge>{clip.speed}x</Badge>}
+                      </div>
+
+                      {isSelected && (
+                        <>
+                          <TrimHandle
+                            side="left"
+                            onPointerDown={startTrim(clip, "in")}
+                            onPointerMove={moveTrim}
+                            onPointerUp={endTrim}
+                          />
+                          <TrimHandle
+                            side="right"
+                            onPointerDown={startTrim(clip, "out")}
+                            onPointerMove={moveTrim}
+                            onPointerUp={endTrim}
+                          />
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {/* Transition buttons live ON the cut — the cut is the thing being
                   changed, not either clip. */}
-              {project.clips.slice(1).map((clip, i) =>
-                compact ||
-                (clip.gapBefore ?? 0) > 0 ||
-                // Steps aside while either neighbour is selected: that is
-                // when the trim handles need these same pixels, and a 44px
-                // target sitting on the cut would swallow both of them. The
-                // clip toolbar's Transition button covers the selected clip.
-                (selection?.kind === "clip" &&
-                  (selection.id === clip.id || selection.id === project.clips[i].id)) ? null : (
-                  <button
-                    key={`cut-${clip.id}`}
-                    onClick={() => onOpenTransition(clip.id)}
-                    aria-label="Change transition"
-                    className="oak-hit absolute flex items-center justify-center rounded-[4px]"
-                    style={{
-                      left: starts[i + 1] * pps - 9,
-                      top: VIDEO_TRACK_H / 2 - 9,
-                      width: 18,
-                      height: 18,
-                      zIndex: 6,
-                      background: clip.transitionIn.kind === "none" ? "rgba(0,0,0,0.72)" : "#fff",
-                      color: clip.transitionIn.kind === "none" ? "#fff" : "#000",
-                      border: "1px solid rgba(255,255,255,0.5)",
-                    }}
-                  >
-                    <Sparkles size={10} />
-                  </button>
-                ),
-              )}
+                {project.clips.slice(1).map((clip, i) =>
+                  compact ||
+                  (clip.gapBefore ?? 0) > 0 ||
+                  // Steps aside while either neighbour is selected: that is
+                  // when the trim handles need these same pixels, and a 44px
+                  // target sitting on the cut would swallow both of them. The
+                  // clip toolbar's Transition button covers the selected clip.
+                  (selection?.kind === "clip" &&
+                    (selection.id === clip.id || selection.id === project.clips[i].id)) ? null : (
+                    <button
+                      key={`cut-${clip.id}`}
+                      onClick={() => onOpenTransition(clip.id)}
+                      aria-label="Change transition"
+                      className="oak-hit absolute flex items-center justify-center rounded-[4px]"
+                      style={{
+                        left: starts[i + 1] * pps - 9,
+                        top: VIDEO_TRACK_H / 2 - 9,
+                        width: 18,
+                        height: 18,
+                        zIndex: 6,
+                        background: clip.transitionIn.kind === "none" ? "rgba(0,0,0,0.72)" : "#fff",
+                        color: clip.transitionIn.kind === "none" ? "#fff" : "#000",
+                        border: "1px solid rgba(255,255,255,0.5)",
+                      }}
+                    >
+                      <Sparkles size={10} />
+                    </button>
+                  ),
+                )}
+              </div>
             </div>
 
             {/* ---------------- audio track ---------------- */}
-            <div className="relative" style={{ height: AUDIO_TRACK_H, marginTop: TRACK_GAP }}>
+            <div
+              className="relative"
+              style={{ height: audioTrack?.height ?? AUDIO_TRACK_H, marginTop: TRACK_GAP }}
+            >
               {(compact ? [] : project.audio).map((audio) => {
                 const source = sources[audio.sourceId];
                 const width = Math.max(24, audioDuration(audio) * pps);
@@ -816,8 +876,9 @@ function StudioTimeline({
                     onPointerMove={moveAudio}
                     onPointerUp={endAudio(audio.id)}
                     onPointerCancel={endAudio(audio.id)}
-                    className="absolute top-0 flex items-center gap-1 overflow-hidden px-1.5"
+                    className="absolute flex items-center gap-1 overflow-hidden px-1.5"
                     style={{
+                      top: laneTop(audio.lane ?? 0, AUDIO_TRACK_H),
                       left: audio.timelineStart * pps,
                       width,
                       height: AUDIO_TRACK_H,
@@ -864,18 +925,65 @@ function StudioTimeline({
               })}
             </div>
 
-            {/* ---------------- caption / tag track ---------------- */}
-            <div className="relative" style={{ height: LAYER_TRACK_H, marginTop: TRACK_GAP }}>
-              {(compact ? [] : project.layers).map((layer) => (
-                <LayerChip
+            {/* ---------------- overlay tracks ---------------- */}
+            {/* Text, then stickers and drawings, then product pins — each its
+                own track, so a caption and a sticker on screen together are
+                two chips you can both reach. */}
+            <OverlayTrack height={textTrack?.height ?? LAYER_TRACK_H}>
+              {(compact ? [] : project.layers.filter(isTextLayer)).map((layer) => (
+                <OverlayChip
                   key={layer.id}
-                  layer={layer}
+                  icon={<TypeIcon size={11} className="shrink-0" />}
+                  label={layer.kind === "text" ? layer.content || "Text" : "Text"}
+                  start={layer.startTime}
+                  end={layer.endTime}
+                  lane={layer.lane ?? 0}
                   pps={pps}
                   selected={selection?.kind === "layer" && selection.id === layer.id}
                   onSelect={() => onSelect({ kind: "layer", id: layer.id })}
                 />
               ))}
-            </div>
+            </OverlayTrack>
+            {stickerTrack && (
+              <OverlayTrack height={stickerTrack.height}>
+                {(compact ? [] : project.layers.filter((l) => !isTextLayer(l))).map((layer) => (
+                  <OverlayChip
+                    key={layer.id}
+                    icon={
+                      layer.kind === "draw" ? (
+                        <PenLine size={11} className="shrink-0" />
+                      ) : (
+                        <StickerIcon size={11} className="shrink-0" />
+                      )
+                    }
+                    label={layer.kind === "draw" ? "Drawing" : "Sticker"}
+                    start={layer.startTime}
+                    end={layer.endTime}
+                    lane={layer.lane ?? 0}
+                    pps={pps}
+                    selected={selection?.kind === "layer" && selection.id === layer.id}
+                    onSelect={() => onSelect({ kind: "layer", id: layer.id })}
+                  />
+                ))}
+              </OverlayTrack>
+            )}
+            {pinTrack && (
+              <OverlayTrack height={pinTrack.height}>
+                {(compact ? [] : project.pins).map((pin) => (
+                  <OverlayChip
+                    key={pin.id}
+                    icon={<Tag size={11} className="shrink-0" />}
+                    label={pin.title || "Product"}
+                    start={pin.startTime}
+                    end={pin.endTime}
+                    lane={pin.lane ?? 0}
+                    pps={pps}
+                    selected={selection?.kind === "pin" && selection.id === pin.id}
+                    onSelect={() => onSelect({ kind: "pin", id: pin.id })}
+                  />
+                ))}
+              </OverlayTrack>
+            )}
           </div>
         </div>
       </div>
@@ -1052,13 +1160,31 @@ function Waveform({ peaks }: { peaks: number[] }) {
   );
 }
 
-function LayerChip({
-  layer,
+function OverlayTrack({ height, children }: { height: number; children: React.ReactNode }) {
+  return (
+    <div className="relative" style={{ height, marginTop: TRACK_GAP }}>
+      {children}
+    </div>
+  );
+}
+
+/** A caption, sticker, drawing or pin on its track: where it starts, how
+ *  long it stays, and which lane it sits in. */
+function OverlayChip({
+  icon,
+  label,
+  start,
+  end,
+  lane,
   pps,
   selected,
   onSelect,
 }: {
-  layer: TimedLayer;
+  icon: React.ReactNode;
+  label: string;
+  start: number;
+  end: number;
+  lane: number;
   pps: number;
   selected: boolean;
   onSelect: () => void;
@@ -1066,20 +1192,19 @@ function LayerChip({
   return (
     <button
       onClick={onSelect}
-      className="absolute top-0 flex items-center gap-1 overflow-hidden px-1.5"
+      className="absolute flex items-center gap-1 overflow-hidden px-1.5"
       style={{
-        left: layer.startTime * pps,
-        width: Math.max(28, (layer.endTime - layer.startTime) * pps),
+        top: laneTop(lane, LAYER_TRACK_H),
+        left: start * pps,
+        width: Math.max(28, (end - start) * pps),
         height: LAYER_TRACK_H,
         borderRadius: 5,
         background: selected ? "#fff" : "rgba(255,255,255,0.16)",
         color: selected ? "#000" : "#fff",
       }}
     >
-      <TypeIcon size={11} className="shrink-0" />
-      <span className="truncate text-[11px] font-medium">
-        {layer.kind === "text" ? layer.content || "Text" : "Overlay"}
-      </span>
+      {icon}
+      <span className="truncate text-[11px] font-medium">{label}</span>
     </button>
   );
 }

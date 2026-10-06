@@ -49,3 +49,50 @@ export const TAP_SLOP = 6;
  *  spacing clears MIN_TICK_PX wins. */
 export const RULER_STEPS = [0.1, 0.25, 0.5, 1, 2, 5, 10, 15, 30, 60, 120];
 export const MIN_TICK_PX = 52;
+
+/** Space between stacked lanes inside one track. */
+export const LANE_GAP = 2;
+
+export type TrackKind = "audio" | "text" | "sticker" | "pin";
+
+export type TrackRow = {
+  kind: TrackKind;
+  /** From the top of the timeline, like VIDEO_TRACK_CENTER. */
+  top: number;
+  lanes: number;
+  laneH: number;
+  height: number;
+};
+
+/** Top of a lane, measured from the top of its track. */
+export function laneTop(lane: number, laneH: number): number {
+  return lane * (laneH + LANE_GAP);
+}
+
+/** The tracks under the video row and how tall the whole timeline wants to
+ *  be. Audio and text always show (the empty audio row carries the "add a
+ *  track" hint, and text is the commonest overlay); stickers and pins only
+ *  once there is one, so a plain edit keeps the same short timeline as
+ *  before. With one lane each this comes out at exactly TIMELINE_HEIGHT —
+ *  the minimum the route reserves. */
+export function timelineLayout(lanes: Record<TrackKind, number>): {
+  tracks: TrackRow[];
+  height: number;
+} {
+  const order: [TrackKind, number, boolean][] = [
+    ["audio", AUDIO_TRACK_H, true],
+    ["text", LAYER_TRACK_H, true],
+    ["sticker", LAYER_TRACK_H, lanes.sticker > 0],
+    ["pin", LAYER_TRACK_H, lanes.pin > 0],
+  ];
+  const tracks: TrackRow[] = [];
+  let top = TRACK_TOP_PAD + RULER_H + VIDEO_TRACK_H + TRACK_GAP;
+  for (const [kind, laneH, show] of order) {
+    if (!show) continue;
+    const count = Math.max(1, lanes[kind]);
+    const height = count * laneH + (count - 1) * LANE_GAP;
+    tracks.push({ kind, top, lanes: count, laneH, height });
+    top += height + TRACK_GAP;
+  }
+  return { tracks, height: top - TRACK_GAP + 10 };
+}
