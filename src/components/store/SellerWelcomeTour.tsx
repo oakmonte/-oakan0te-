@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Bell, Check, Sparkles } from "lucide-react";
+import { Bell, Check } from "lucide-react";
 import { markSellerWelcomeSeen } from "./seller-welcome";
 
 /**
@@ -11,7 +11,7 @@ import { markSellerWelcomeSeen } from "./seller-welcome";
  *      card asks for notification permission with a real switch. Browsers
  *      only show the permission prompt from a tap, which is what the switch
  *      is. Where notifications can't be asked for (iOS outside the installed
- *      app, or already decided) the card becomes a plain "quick tour" intro.
+ *      app, or already decided) there is no card: the tour simply begins.
  *   2. The storefront slides away and the page darkens. A spotlight lands on
  *      the switch-profile button, glides down to Create in the bottom nav,
  *      then up to the menu. Each stop has a short callout.
@@ -75,20 +75,27 @@ export function SellerWelcomeTour({
 
   // The prompt comes 7s into the storefront, or right away if they close it
   // first -- they've finished looking, so there's nothing to wait for.
-  useEffect(() => {
-    if (phase !== "waiting") return;
-    if (!storefrontOpen) {
-      setPhase("prompt");
-      return;
-    }
-    const t = setTimeout(() => setPhase("prompt"), NOTIFY_DELAY_MS);
-    return () => clearTimeout(t);
-  }, [phase, storefrontOpen]);
-
   const startTour = useCallback(() => {
     closeStorefront();
     setPhase("tour");
   }, [closeStorefront]);
+
+  // Nothing announces the tour: with no permission to ask for, the
+  // storefront just slides away into it.
+  const afterStorefront = useCallback(() => {
+    if (notificationState() === "ask") setPhase("prompt");
+    else startTour();
+  }, [startTour]);
+
+  useEffect(() => {
+    if (phase !== "waiting") return;
+    if (!storefrontOpen) {
+      afterStorefront();
+      return;
+    }
+    const t = setTimeout(afterStorefront, NOTIFY_DELAY_MS);
+    return () => clearTimeout(t);
+  }, [phase, storefrontOpen, afterStorefront]);
 
   const finish = useCallback(
     (openMenu: boolean) => {
@@ -109,7 +116,6 @@ export function SellerWelcomeTour({
 /* ------------------------------------------------------------------------ */
 
 function NotifyPrompt({ onContinue }: { onContinue: () => void }) {
-  const [initial] = useState(notificationState);
   const [on, setOn] = useState(false);
   const [asking, setAsking] = useState(false);
   const [blocked, setBlocked] = useState(false);
@@ -150,7 +156,6 @@ function NotifyPrompt({ onContinue }: { onContinue: () => void }) {
     }
   }
 
-  const asks = initial === "ask";
   return (
     // No tap-outside dismissal, same as the checklist's Next prompt: the only
     // ways on are the buttons.
@@ -174,7 +179,7 @@ function NotifyPrompt({ onContinue }: { onContinue: () => void }) {
       >
         <div className="relative mx-auto h-14 w-14">
           {/* Two soft rings breathe out from the icon while it waits. */}
-          {asks && !on && (
+          {!on && (
             <>
               <span className="oak-welcome-ring absolute inset-0 rounded-[18px] bg-black/10" />
               <span
@@ -187,11 +192,7 @@ function NotifyPrompt({ onContinue }: { onContinue: () => void }) {
             className="relative grid h-14 w-14 place-items-center rounded-[18px] bg-black text-white transition-transform duration-300"
             style={{ transform: on ? "rotate(-12deg) scale(1.05)" : undefined }}
           >
-            {asks ? (
-              <Bell size={24} strokeWidth={2.25} />
-            ) : (
-              <Sparkles size={24} strokeWidth={2.25} />
-            )}
+            <Bell size={24} strokeWidth={2.25} />
           </span>
         </div>
 
@@ -199,46 +200,42 @@ function NotifyPrompt({ onContinue }: { onContinue: () => void }) {
           id="welcome-title"
           className="mt-5 text-center text-[22px] font-bold leading-tight tracking-[-0.02em]"
         >
-          {asks ? "Know the moment you make a sale" : "Your store is live"}
+          Know the moment you make a sale
         </h2>
         <p className="mx-auto mt-2 max-w-[19rem] text-center text-[15px] leading-relaxed text-black/60">
-          {asks
-            ? "Turn on notifications for new orders, messages and followers."
-            : "Here's a 20-second tour of where everything is."}
+          Turn on notifications for new orders, messages and followers.
         </p>
 
-        {asks && (
-          <button
-            type="button"
-            role="switch"
-            aria-checked={on}
-            onClick={toggle}
-            className="mt-6 flex w-full items-center justify-between rounded-2xl bg-black/[0.05] px-4 py-3.5 text-left transition-transform duration-150 active:scale-[0.98]"
+        <button
+          type="button"
+          role="switch"
+          aria-checked={on}
+          onClick={toggle}
+          className="mt-6 flex w-full items-center justify-between rounded-2xl bg-black/[0.05] px-4 py-3.5 text-left transition-transform duration-150 active:scale-[0.98]"
+        >
+          <span className="text-[16px] font-semibold">Notifications</span>
+          <span
+            className="relative h-[31px] w-[51px] shrink-0 rounded-full transition-colors duration-200"
+            style={{ background: on ? "#34C759" : "rgba(0,0,0,0.16)" }}
           >
-            <span className="text-[16px] font-semibold">Notifications</span>
             <span
-              className="relative h-[31px] w-[51px] shrink-0 rounded-full transition-colors duration-200"
-              style={{ background: on ? "#34C759" : "rgba(0,0,0,0.16)" }}
+              className="absolute top-[2px] left-[2px] grid h-[27px] w-[27px] place-items-center rounded-full bg-white shadow-[0_3px_8px_rgba(0,0,0,0.18)]"
+              style={{
+                transform: on ? "translateX(20px)" : "translateX(0)",
+                transition: `transform 260ms ${PUSH}`,
+              }}
             >
-              <span
-                className="absolute top-[2px] left-[2px] grid h-[27px] w-[27px] place-items-center rounded-full bg-white shadow-[0_3px_8px_rgba(0,0,0,0.18)]"
-                style={{
-                  transform: on ? "translateX(20px)" : "translateX(0)",
-                  transition: `transform 260ms ${PUSH}`,
-                }}
-              >
-                {on && !asking && <Check size={14} strokeWidth={3} className="text-[#34C759]" />}
-              </span>
+              {on && !asking && <Check size={14} strokeWidth={3} className="text-[#34C759]" />}
             </span>
-          </button>
-        )}
+          </span>
+        </button>
         {blocked && (
           <p className="mt-2 text-center text-[13px] leading-snug text-black/50">
             No problem. You can allow them later in your browser settings.
           </p>
         )}
 
-        {asks && !blocked ? (
+        {!blocked ? (
           <button
             type="button"
             onClick={leave}
@@ -252,7 +249,7 @@ function NotifyPrompt({ onContinue }: { onContinue: () => void }) {
             onClick={leave}
             className="mt-5 h-[52px] w-full rounded-full bg-black text-[16px] font-semibold text-white transition-transform duration-150 active:scale-[0.97]"
           >
-            {asks ? "Continue" : "Start the tour"}
+            Continue
           </button>
         )}
       </div>
