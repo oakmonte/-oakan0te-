@@ -3,6 +3,7 @@ import { Copy, Scissors, Trash2 } from "lucide-react";
 import { useKeyboardInset } from "@/hooks/use-keyboard-inset";
 import { blockedContentMessage, findBlockedContent } from "@/lib/content-policy";
 import { EmptyHint, Pill, StudioSheet, StudioSlider } from "../controls";
+import { AnimRow } from "./AnimRow";
 import type { TextLayer } from "@/lib/after-shot-layers";
 import type { TimedLayer } from "@/lib/studio/types";
 
@@ -187,6 +188,11 @@ export function TextPanel({
               />
             </div>
 
+            <AnimRow
+              value={text.anim}
+              withTypewriter
+              onChange={(anim) => onPatch({ anim } as Partial<TimedLayer>)}
+            />
             <div className="flex gap-2 overflow-x-auto py-2 [&::-webkit-scrollbar]:hidden">
               <Pill
                 onClick={() =>

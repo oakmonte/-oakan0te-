@@ -12,6 +12,7 @@
 // fast paths below whenever the timeline hasn't actually done anything a remux
 // couldn't do.
 import { ducks, scheduleDucking, voiceSpans } from "./ducking";
+import { animateLayer } from "./layer-anim";
 import {
   Input,
   Output,
@@ -677,9 +678,9 @@ export async function exportTimeline(
 
       // Overlays go on last and ungraded — a caption or a price tag must never
       // pick up the clip's filter, exactly as after-shot-export.ts orders it.
-      const visibleLayers = project.layers.filter(
-        (l) => plan.time >= l.startTime && plan.time <= l.endTime,
-      );
+      const visibleLayers = project.layers
+        .filter((l) => plan.time >= l.startTime && plan.time <= l.endTime)
+        .map((l) => animateLayer(l, plan.time));
       if (visibleLayers.length) drawLayers(outCtx, visibleLayers, width, height, stickers);
       if (project.pins.length) drawPins(outCtx, project.pins, plan.time, width, height);
 
@@ -831,7 +832,9 @@ export async function exportCover(
   }
 
   const stickers = await preloadStickers(project.layers);
-  const visible = project.layers.filter((l) => time >= l.startTime && time <= l.endTime);
+  const visible = project.layers
+    .filter((l) => time >= l.startTime && time <= l.endTime)
+    .map((l) => animateLayer(l, time));
   if (visible.length) drawLayers(ctx, visible, width, height, stickers);
   if (project.pins.length) drawPins(ctx, project.pins, time, width, height);
 

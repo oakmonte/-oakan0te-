@@ -180,6 +180,8 @@ export type TimedLayer = Layer & {
   endTime: number;
   /** Row within its track (text, or stickers and drawings). See lanes.ts. */
   lane?: number;
+  /** How it arrives. See layer-anim.ts. */
+  anim?: "pop" | "slide" | "typewriter";
 };
 
 /** Everything a studio caption needs except its id, text and timing. Centred and

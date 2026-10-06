@@ -1,4 +1,5 @@
 import { useMemo, useRef } from "react";
+import { animateLayer } from "@/lib/studio/layer-anim";
 import { useFittedSize } from "@/hooks/use-fitted-size";
 import LayerOverlay from "@/components/camera/LayerOverlay";
 import { useLayerRenderer } from "@/components/camera/aftershot/use-layer-renderer";
@@ -33,9 +34,6 @@ type Props = {
   onSelect: (selection: StudioSelection) => void;
   onUpdateLayer: (id: string, patch: Partial<TimedLayer>) => void;
   onUpdatePin: (id: string, patch: Partial<ProductPin>) => void;
-  /** Read-only captions and drawings carried in from the after-shot screen.
-   *  Shown so the framing is honest, never baked here — after-shot-export.ts
-   *  still owns them. */
   showGuides: boolean;
   /** Auditioning a filter grades the preview without committing, exactly like
    *  the after-shot screen's filter list. */
@@ -110,7 +108,12 @@ export default function StudioPreview({
     return { ...NEUTRAL, opacity: 0 };
   };
 
-  const visibleLayers = project.layers.filter((l) => time >= l.startTime && time <= l.endTime);
+  // Entrances animate only while playing. Paused, a layer shows at rest, so
+  // dragging it on the preview moves its real position — not a frame of its
+  // pop or slide, which would be written back as where it lives.
+  const visibleLayers = project.layers
+    .filter((l) => time >= l.startTime && time <= l.endTime)
+    .map((l) => (playback.playing ? animateLayer(l, time) : l));
   const objectFit = project.fitMode === "fill" ? "cover" : "contain";
 
   return (

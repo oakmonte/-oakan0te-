@@ -1,5 +1,6 @@
 import { Copy, Scissors, Trash2 } from "lucide-react";
 import { Pill, StudioSheet } from "../controls";
+import { AnimRow } from "./AnimRow";
 import type { TimedLayer } from "@/lib/studio/types";
 
 // A sticker or drawing on the timeline. There is nothing to type, so this is
@@ -33,6 +34,13 @@ export function OverlayPanel({
   const title = layer?.kind === "draw" ? "Drawing" : "Sticker";
   return (
     <StudioSheet title={title} onDone={onDone}>
+      {layer && (
+        <AnimRow
+          value={layer.anim}
+          withTypewriter={false}
+          onChange={(anim) => onPatch({ anim } as Partial<TimedLayer>)}
+        />
+      )}
       {layer && (
         <div className="flex gap-2 overflow-x-auto py-2 [&::-webkit-scrollbar]:hidden">
           <Pill
