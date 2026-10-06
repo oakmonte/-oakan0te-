@@ -2170,7 +2170,7 @@ function CreatePage() {
           onClose={handleBack}
           draftCount={draftCount}
           onPhotoEditor={() => navigate({ to: "/create/photo-editor" })}
-          onNewVideo={() => navigate({ to: "/create/video-editor" })}
+          onNewVideo={() => navigate({ to: "/create/studio" })}
           onDrafts={() => navigate({ to: "/create/drafts" })}
         />
       )}

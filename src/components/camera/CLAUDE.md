@@ -7,6 +7,10 @@ directory and `aftershot/`.
 `.studio.tsx` is the multi-clip **video editor** and is a world of its own — its components live in
 `src/components/studio/`, its logic in `src/lib/studio/`, and it does NOT follow the CameraPanel
 shape (see `src/lib/studio/README.md`). It replaced the old single-clip `.edit.tsx` trim screen.
+The editor itself is `components/studio/StudioEditor.tsx`; two routes host it — this one (after a
+capture, result back to after-shot) and `create.studio.tsx` ("New video", result to publish, edit
+parked in `lib/studio/session.ts`). `create.video-editor.tsx` is the old editor, redirected to
+`/create/studio` unless `?legacy=1`, due for deletion.
 
 - **Control surfaces are panels**, one per tool, following `CameraPanel.tsx` — match that shape
   (`FilterPanel`, `FlashPanel`, `RatioPanel`, `TimerPanel`, `LayoutPanel`, `aftershot/DrawPanel`,

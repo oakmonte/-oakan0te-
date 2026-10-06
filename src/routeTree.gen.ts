@@ -53,6 +53,7 @@ import { Route as CreateAfterShotRouteImport } from './routes/create.after-shot'
 import { Route as CreateDraftsRouteImport } from './routes/create.drafts'
 import { Route as CreatePhotoEditorRouteImport } from './routes/create.photo-editor'
 import { Route as CreateStorePieceRouteImport } from './routes/create.store-piece'
+import { Route as CreateStudioRouteImport } from './routes/create.studio'
 import { Route as CreateVideoEditorRouteImport } from './routes/create.video-editor'
 import { Route as ProfileUsernameRouteImport } from './routes/profile.$username'
 import { Route as StoreProfileStoreUsernameRouteImport } from './routes/store-profile.$storeUsername'
@@ -319,6 +320,11 @@ const CreatePhotoEditorRoute = CreatePhotoEditorRouteImport.update({
 const CreateStorePieceRoute = CreateStorePieceRouteImport.update({
   id: '/store-piece',
   path: '/store-piece',
+  getParentRoute: () => CreateRoute,
+} as any)
+const CreateStudioRoute = CreateStudioRouteImport.update({
+  id: '/studio',
+  path: '/studio',
   getParentRoute: () => CreateRoute,
 } as any)
 const CreateVideoEditorRoute = CreateVideoEditorRouteImport.update({
@@ -604,6 +610,7 @@ export interface FileRoutesByFullPath {
   '/create/drafts': typeof CreateDraftsRoute
   '/create/photo-editor': typeof CreatePhotoEditorRoute
   '/create/store-piece': typeof CreateStorePieceRoute
+  '/create/studio': typeof CreateStudioRoute
   '/create/video-editor': typeof CreateVideoEditorRoute
   '/profile/$username': typeof ProfileUsernameRoute
   '/store-profile/$storeUsername': typeof StoreProfileStoreUsernameRoute
@@ -694,6 +701,7 @@ export interface FileRoutesByTo {
   '/create/drafts': typeof CreateDraftsRoute
   '/create/photo-editor': typeof CreatePhotoEditorRoute
   '/create/store-piece': typeof CreateStorePieceRoute
+  '/create/studio': typeof CreateStudioRoute
   '/create/video-editor': typeof CreateVideoEditorRoute
   '/profile/$username': typeof ProfileUsernameRoute
   '/store-profile/$storeUsername': typeof StoreProfileStoreUsernameRoute
@@ -788,6 +796,7 @@ export interface FileRoutesById {
   '/create/drafts': typeof CreateDraftsRoute
   '/create/photo-editor': typeof CreatePhotoEditorRoute
   '/create/store-piece': typeof CreateStorePieceRoute
+  '/create/studio': typeof CreateStudioRoute
   '/create/video-editor': typeof CreateVideoEditorRoute
   '/profile/$username': typeof ProfileUsernameRoute
   '/store-profile/$storeUsername': typeof StoreProfileStoreUsernameRoute
@@ -883,6 +892,7 @@ export interface FileRouteTypes {
     | '/create/drafts'
     | '/create/photo-editor'
     | '/create/store-piece'
+    | '/create/studio'
     | '/create/video-editor'
     | '/profile/$username'
     | '/store-profile/$storeUsername'
@@ -973,6 +983,7 @@ export interface FileRouteTypes {
     | '/create/drafts'
     | '/create/photo-editor'
     | '/create/store-piece'
+    | '/create/studio'
     | '/create/video-editor'
     | '/profile/$username'
     | '/store-profile/$storeUsername'
@@ -1066,6 +1077,7 @@ export interface FileRouteTypes {
     | '/create/drafts'
     | '/create/photo-editor'
     | '/create/store-piece'
+    | '/create/studio'
     | '/create/video-editor'
     | '/profile/$username'
     | '/store-profile/$storeUsername'
@@ -1489,6 +1501,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CreateStorePieceRouteImport
       parentRoute: typeof CreateRoute
     }
+    '/create/studio': {
+      id: '/create/studio'
+      path: '/studio'
+      fullPath: '/create/studio'
+      preLoaderRoute: typeof CreateStudioRouteImport
+      parentRoute: typeof CreateRoute
+    }
     '/create/video-editor': {
       id: '/create/video-editor'
       path: '/video-editor'
@@ -1842,6 +1861,7 @@ interface CreateRouteChildren {
   CreateDraftsRoute: typeof CreateDraftsRoute
   CreatePhotoEditorRoute: typeof CreatePhotoEditorRoute
   CreateStorePieceRoute: typeof CreateStorePieceRoute
+  CreateStudioRoute: typeof CreateStudioRoute
   CreateVideoEditorRoute: typeof CreateVideoEditorRoute
   CreateIndexRoute: typeof CreateIndexRoute
 }
@@ -1851,6 +1871,7 @@ const CreateRouteChildren: CreateRouteChildren = {
   CreateDraftsRoute: CreateDraftsRoute,
   CreatePhotoEditorRoute: CreatePhotoEditorRoute,
   CreateStorePieceRoute: CreateStorePieceRoute,
+  CreateStudioRoute: CreateStudioRoute,
   CreateVideoEditorRoute: CreateVideoEditorRoute,
   CreateIndexRoute: CreateIndexRoute,
 }

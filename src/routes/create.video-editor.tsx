@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowRight,
@@ -85,7 +85,15 @@ import {
   type ProjectRatio,
 } from "@/lib/video-sequence";
 
+// Replaced by the studio (/create/studio). Kept reachable with `?legacy=1`
+// for one release, in case the studio turns up something sellers still need
+// from here; everything else — bookmarks, old links — goes to the studio.
 export const Route = createFileRoute("/create/video-editor")({
+  validateSearch: (search: Record<string, unknown>): { legacy?: 1 } =>
+    search.legacy === 1 || search.legacy === "1" ? { legacy: 1 } : {},
+  beforeLoad: ({ search }) => {
+    if (!search.legacy) throw redirect({ to: "/create/studio", replace: true });
+  },
   head: () => ({ meta: [{ title: "New video — Oakmonte" }] }),
   component: VideoEditorRoute,
 });

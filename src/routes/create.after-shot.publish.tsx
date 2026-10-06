@@ -20,6 +20,7 @@ import { useLockedViewport } from "@/hooks/use-locked-viewport";
 import { useSession } from "@/hooks/use-session";
 import { startPostUpload } from "@/lib/post-upload";
 import { discardVideoEditorSession } from "@/lib/video-editor-session";
+import { discardStudioSession } from "@/lib/studio/session";
 import { discardPhotoEditorSession } from "@/lib/photo-carousel";
 import { blockedContentMessage, findBlockedContent } from "@/lib/content-policy";
 import CameraPanel from "@/components/camera/CameraPanel";
@@ -176,6 +177,7 @@ function PublishPage() {
       // finished with. Left behind, the next "New video" would open onto this
       // edit instead of an empty one.
       discardVideoEditorSession();
+      discardStudioSession();
       discardPhotoEditorSession();
 
       // FormData already holds the Blobs themselves (not the object URLs),
@@ -239,7 +241,7 @@ function PublishPage() {
             navigate({
               to:
                 media.origin === "video-editor"
-                  ? "/create/video-editor"
+                  ? "/create/studio"
                   : media.origin === "photo-editor"
                     ? "/create/photo-editor"
                     : "/create/after-shot",

@@ -5,6 +5,7 @@ import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useSession } from "@/hooks/use-session";
 import { setPendingDraft } from "@/lib/draft-handoff";
 import { discardVideoEditorSession } from "@/lib/video-editor-session";
+import { discardStudioSession } from "@/lib/studio/session";
 
 export const Route = createFileRoute("/create/drafts")({
   head: () => ({ meta: [{ title: "Drafts — Oakmonte" }] }),
@@ -44,10 +45,10 @@ type SortKey = "recent" | "size";
  *  column landed this is a lookup rather than a guess. Older rows have no
  *  value and fall back to the old inference — right for everything the app
  *  could make at the time, which is exactly the set of rows that can be null. */
-function editorFor(draft: Draft): "/create/video-editor" | "/create/photo-editor" {
-  if (draft.created_with === "video-editor") return "/create/video-editor";
+function editorFor(draft: Draft): "/create/studio" | "/create/photo-editor" {
+  if (draft.created_with === "video-editor") return "/create/studio";
   if (draft.created_with === "photo-editor") return "/create/photo-editor";
-  return draft.media_type === "video" ? "/create/video-editor" : "/create/photo-editor";
+  return draft.media_type === "video" ? "/create/studio" : "/create/photo-editor";
 }
 
 function formatBytes(bytes: number): string {
@@ -157,6 +158,7 @@ function DraftsPage() {
       // previous one is finished with — otherwise the video editor would
       // restore that instead of loading this.
       discardVideoEditorSession();
+      discardStudioSession();
       setPendingDraft({
         url: draft.media_url,
         kind: draft.media_type === "video" ? "video" : "photo",
