@@ -1,4 +1,4 @@
-import { Loader2, Music4, Scissors, Sparkle, Unlink, Waves } from "lucide-react";
+import { Loader2, Mic, Music4, Scissors, Sparkle, Unlink, Waves } from "lucide-react";
 import { EmptyHint, Pill, StudioSheet } from "../controls";
 import type { VideoClip } from "@/lib/studio/types";
 
@@ -7,6 +7,7 @@ export function SoundPanel({
   canDetach,
   onAddMusic,
   onAddEffect,
+  onVoiceover,
   loading,
   onDetach,
   onDetectBeats,
@@ -20,6 +21,7 @@ export function SoundPanel({
   canDetach: boolean;
   onAddMusic: () => void;
   onAddEffect: () => void;
+  onVoiceover: () => void;
   /** A library sound is downloading; it lands at the playhead when done. */
   loading: boolean;
   onDetach: () => void;
@@ -41,6 +43,11 @@ export function SoundPanel({
         <Pill onClick={onAddEffect} disabled={loading}>
           <span className="flex items-center gap-1.5">
             <Sparkle size={13} /> Add effect
+          </span>
+        </Pill>
+        <Pill onClick={onVoiceover}>
+          <span className="flex items-center gap-1.5">
+            <Mic size={13} /> Voiceover
           </span>
         </Pill>
         <Pill onClick={onDetach} disabled={!clip || !canDetach || clip.audioDetached}>

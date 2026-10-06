@@ -8,6 +8,7 @@
 // toward where the timeline says it should be. Elements are left alone while
 // they are within DRIFT_TOLERANCE, because seeking a playing video is the one
 // thing guaranteed to stutter.
+import { duckAt, ducks, voiceSpans } from "./ducking";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   audioDuration,
@@ -38,6 +39,9 @@ export type PlaybackApi = {
    *  where the element is deregistered. */
   clipRef: (clipId: string) => (el: HTMLVideoElement | null) => void;
   audioRef: (audioId: string) => (el: HTMLAudioElement | null) => void;
+  /** Silence every element without touching the project — while a voiceover
+   *  records, the timeline plays as a guide but must not bleed into the mic. */
+  setSilenced: (silenced: boolean) => void;
   /** Fires every frame with the current time — for imperative consumers (the
    *  timeline's scroll position) that must not re-render at 60fps. */
   subscribe: (fn: (time: number) => void) => () => void;
@@ -64,6 +68,7 @@ export function usePlayback(project: StudioProject): PlaybackApi {
 
   const clipEls = useRef(new Map<string, HTMLVideoElement>());
   const audioEls = useRef(new Map<string, HTMLAudioElement>());
+  const silencedRef = useRef(false);
   const listeners = useRef(new Set<(t: number) => void>());
   const rafRef = useRef<number | null>(null);
   const lastTickRef = useRef(0);
@@ -138,7 +143,7 @@ export function usePlayback(project: StudioProject): PlaybackApi {
       else if (state && state.incomingIndex === i) target = state.incomingSourceTime;
       else target = clipSourceTime(clip, starts[i], t);
 
-      const muted = current.masterMuted || clip.muted || clip.audioDetached;
+      const muted = silencedRef.current || current.masterMuted || clip.muted || clip.audioDetached;
       if (el.muted !== muted) el.muted = muted;
       applyGain(el, clip.volume);
 
@@ -161,6 +166,7 @@ export function usePlayback(project: StudioProject): PlaybackApi {
       }
     }
 
+    const voice = voiceSpans(current);
     for (const audio of current.audio) {
       const el = audioEls.current.get(audio.id);
       if (!el) continue;
@@ -169,9 +175,9 @@ export function usePlayback(project: StudioProject): PlaybackApi {
       const inRange = t >= start && t < end;
       const target = audioSourceTime(audio, t);
 
-      const muted = current.masterMuted || audio.muted;
+      const muted = silencedRef.current || current.masterMuted || audio.muted;
       if (el.muted !== muted) el.muted = muted;
-      applyGain(el, audio.volume * fadeGain(audio, t));
+      applyGain(el, audio.volume * fadeGain(audio, t) * (ducks(audio) ? duckAt(voice, t) : 1));
 
       if (inRange && isPlaying) {
         if (el.playbackRate !== audio.speed) el.playbackRate = audio.speed;
@@ -313,6 +319,10 @@ export function usePlayback(project: StudioProject): PlaybackApi {
     };
   }, []);
 
+  const setSilenced = useCallback((silenced: boolean) => {
+    silencedRef.current = silenced;
+  }, []);
+
   return {
     time,
     timeRef,
@@ -325,6 +335,7 @@ export function usePlayback(project: StudioProject): PlaybackApi {
     clipRef,
     audioRef,
     subscribe,
+    setSilenced,
   };
 }
 

@@ -11,6 +11,7 @@
 // and worth keeping), and this module hands control straight back to it via two
 // fast paths below whenever the timeline hasn't actually done anything a remux
 // couldn't do.
+import { ducks, scheduleDucking, voiceSpans } from "./ducking";
 import {
   Input,
   Output,
@@ -348,9 +349,12 @@ async function mixAudio(
     volume: number;
     fadeIn: number;
     fadeOut: number;
+    /** Music that drops under a voiceover — see ducking.ts. */
+    duck: boolean;
   };
 
   const scheduled: Scheduled[] = [];
+  const voice = voiceSpans(project);
   const starts = clipStarts(project.clips);
 
   for (let i = 0; i < project.clips.length; i++) {
@@ -369,6 +373,7 @@ async function mixAudio(
       volume: clip.volume,
       fadeIn: 0,
       fadeOut: 0,
+      duck: false,
     });
   }
 
@@ -387,6 +392,7 @@ async function mixAudio(
       volume: audio.volume,
       fadeIn: audio.fadeIn,
       fadeOut: audio.fadeOut,
+      duck: ducks(audio) && voice.length > 0,
     });
   }
 
@@ -434,7 +440,14 @@ async function mixAudio(
     }
 
     node.connect(gain);
-    gain.connect(limiter);
+    if (item.duck) {
+      const duck = offline.createGain();
+      scheduleDucking(duck.gain, voice);
+      gain.connect(duck);
+      duck.connect(limiter);
+    } else {
+      gain.connect(limiter);
+    }
     node.start(start, item.offset);
     node.stop(end);
   }

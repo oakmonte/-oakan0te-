@@ -29,6 +29,7 @@ import { CanvasPanel, CoverPanel } from "@/components/studio/panels/CanvasPanel"
 import { TextPanel } from "@/components/studio/panels/TextPanel";
 import { PinPanel } from "@/components/studio/panels/PinPanel";
 import { OverlayPanel } from "@/components/studio/panels/OverlayPanel";
+import { VoiceoverPanel } from "@/components/studio/panels/VoiceoverPanel";
 import SoundLibrarySheet from "@/components/camera/SoundLibrarySheet";
 import { fetchLibraryTrack } from "@/lib/sound-fetch";
 import {
@@ -83,7 +84,8 @@ type PanelId =
   | "tags"
   | "canvas"
   | "cover"
-  | "audio";
+  | "audio"
+  | "voiceover";
 
 /** What a finished edit hands to the screen that opened the studio. */
 export type StudioDone = {
@@ -407,6 +409,37 @@ export default function StudioEditor({
   const [soundLoading, setSoundLoading] = useState(false);
   const handleAddMusic = useCallback(() => setLibrary("music"), []);
   const handleAddEffect = useCallback(() => setLibrary("sfx"), []);
+
+  /** A recorded take, as a voiceover chip where recording began. */
+  const addVoiceover = useCallback(
+    async (blob: Blob, startTime: number) => {
+      try {
+        const source = await loadSource(blob, "Voiceover");
+        setSources((prev) => ({ ...prev, [source.id]: source }));
+        dispatch({
+          type: "addAudio",
+          clip: {
+            id: uid("audio"),
+            sourceId: source.id,
+            kind: "voiceover",
+            label: "Voiceover",
+            timelineStart: startTime,
+            inPoint: 0,
+            outPoint: source.duration,
+            speed: 1,
+            volume: 1,
+            muted: false,
+            fadeIn: 0.05,
+            fadeOut: 0.1,
+          },
+        });
+      } catch (err) {
+        console.error("Studio: could not add voiceover", err);
+        setError("Couldn't use that recording. Try again.");
+      }
+    },
+    [dispatch],
+  );
 
   /** A library pick, downloaded and dropped at the playhead with its credit
    *  on the source, so the export can say what the video contains. */
@@ -930,6 +963,7 @@ export default function StudioEditor({
           canDetach={canDetach}
           onAddMusic={handleAddMusic}
           onAddEffect={handleAddEffect}
+          onVoiceover={() => setPanel("voiceover")}
           loading={soundLoading}
           onDetach={() => targetClip && dispatch({ type: "detachAudio", id: targetClip.id })}
           onDetectBeats={detectBeats}
@@ -938,6 +972,24 @@ export default function StudioEditor({
           bpm={bpm}
           detecting={detecting}
           onDone={() => setPanel(null)}
+        />
+      );
+    }
+    if (panel === "voiceover") {
+      return (
+        <VoiceoverPanel
+          playing={playback.playing}
+          currentTime={playback.time}
+          onStart={() => {
+            playback.setSilenced(true);
+            playback.play();
+          }}
+          onStop={() => {
+            playback.pause();
+            playback.setSilenced(false);
+          }}
+          onRecorded={(blob, startTime) => void addVoiceover(blob, startTime)}
+          onDone={() => setPanel("sound")}
         />
       );
     }
