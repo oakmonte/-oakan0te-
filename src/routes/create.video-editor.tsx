@@ -744,9 +744,13 @@ function VideoEditor() {
 
   function handleDelete() {
     const target = selected ?? current;
-    if (!target) return;
-    delete layersByClip.current[target.id];
-    const next = clips.filter((c) => c.id !== target.id);
+    if (target) deleteClip(target.id);
+  }
+
+  /** Also reached by letting a held clip go over the timeline's bin. */
+  function deleteClip(id: string) {
+    delete layersByClip.current[id];
+    const next = clips.filter((c) => c.id !== id);
     commit(next);
     setSelectedId(null);
     // The clip the toolbar was about is gone, so the toolbar goes too. Falling
@@ -1598,6 +1602,7 @@ function VideoEditor() {
               }}
               onTrim={handleTrim}
               onReorder={handleReorder}
+              onDelete={deleteClip}
               onAdd={openSource}
               onSplit={handleSplit}
               onToggleMute={(id) => {
@@ -1700,7 +1705,7 @@ function VideoEditor() {
         >
           {reorderHint ? (
             <HintBubble onDismiss={dismissReorderHint}>
-              Hold a clip to drag it into place
+              Hold a clip to move it — or pull it up to delete
             </HintBubble>
           ) : (
             <HintBubble onDismiss={dismissLayerHint}>

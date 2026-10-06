@@ -1035,6 +1035,10 @@ function StudioEditor({
             beats={beatsOnTimeline}
             onTrim={handleTrim}
             onReorder={handleReorder}
+            onDeleteClip={(id) => {
+              dispatch({ type: "deleteClip", id });
+              setSelection(null);
+            }}
             onSlide={handleSlide}
             onCloseGap={handleCloseGap}
             onMoveAudio={handleMoveAudio}
