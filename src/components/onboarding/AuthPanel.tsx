@@ -319,9 +319,9 @@ function AuthPanelInner({ intent, title, subtitle, defaultMode = "code" }: Props
 
   const dividerWith = (label: string) => (
     <div className="flex items-center gap-4 my-8">
-      <div className="flex-1 h-px bg-[#0A0A0A]/15" />
+      <div className="flex-1 h-px bg-[#0A0A0A]/35" />
       <span className="text-[11px] uppercase tracking-widest text-[#0A0A0A]/50">{label}</span>
-      <div className="flex-1 h-px bg-[#0A0A0A]/15" />
+      <div className="flex-1 h-px bg-[#0A0A0A]/35" />
     </div>
   );
 
