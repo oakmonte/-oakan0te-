@@ -7,7 +7,6 @@ import {
   VolumeX,
   Type as TypeIcon,
   Sparkles,
-  Trash2,
   Unlink,
   X,
 } from "lucide-react";
@@ -48,8 +47,6 @@ import {
   type VideoClip,
 } from "@/lib/studio/types";
 
-/** How far up a held clip has to be pulled to be over the bin. */
-const BIN_PULL = 40;
 /** A clip's width while the track is in reorder mode: square, the track's
  *  own height, whatever the clip's duration. */
 const SQUARE = VIDEO_TRACK_H;
@@ -89,8 +86,6 @@ type Props = {
   beats: number[];
   onTrim: (clipId: string, edge: "in" | "out", sourceTime: number) => void;
   onReorder: (clipId: string, toIndex: number) => void;
-  /** A held clip let go of over the bin. */
-  onDeleteClip: (clipId: string) => void;
   onCloseGap: (clipId: string) => void;
   onMoveAudio: (audioId: string, timelineStart: number) => void;
   onTrimAudio: (audioId: string, edge: "in" | "out", sourceTime: number) => void;
@@ -115,7 +110,6 @@ function StudioTimeline({
   beats,
   onTrim,
   onReorder,
-  onDeleteClip,
   onCloseGap,
   onMoveAudio,
   onTrimAudio,
@@ -306,11 +300,8 @@ function StudioTimeline({
     moved: boolean;
     /** A swap has been asked for and not rendered yet. */
     swapPending: boolean;
-    /** Pulled up over the bin; letting go deletes the clip. */
-    overBin: boolean;
   } | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
-  const [overBin, setOverBin] = useState(false);
   const [dragOffset, setDragOffset] = useState(0);
   const compact = draggingId !== null;
   const clipsRef = useRef(project.clips);
@@ -327,7 +318,7 @@ function StudioTimeline({
   const stepSquares = useCallback(() => {
     const press = pressRef.current;
     if (!press || !press.active) return;
-    if (!press.overBin && !press.swapPending) {
+    if (!press.swapPending) {
       const clips = clipsRef.current;
       const index = clips.findIndex((c) => c.id === press.clipId);
       const dx = press.lastX - press.startX;
@@ -386,7 +377,6 @@ function StudioTimeline({
         active: false,
         moved: false,
         swapPending: false,
-        overBin: false,
       };
     },
     [beginHistoryGroup],
@@ -414,14 +404,6 @@ function StudioTimeline({
 
       e.stopPropagation();
 
-      // Pulled up off the track and onto the bin. While it's there the clip
-      // holds still — a delete shouldn't reshuffle the timeline on the way up.
-      const over = e.clientY - press.startY < -BIN_PULL;
-      if (over !== press.overBin) {
-        press.overBin = over;
-        setOverBin(over);
-        if (over) navigator.vibrate?.(10);
-      }
       stepSquares();
     },
     [stepSquares],
@@ -436,7 +418,7 @@ function StudioTimeline({
     let frame = requestAnimationFrame(function tick() {
       const press = pressRef.current;
       const el = scrollRef.current;
-      if (press?.active && el && !press.overBin) {
+      if (press?.active && el) {
         const r = el.getBoundingClientRect();
         const v =
           press.lastX < r.left + EDGE_ZONE
@@ -490,11 +472,7 @@ function StudioTimeline({
       if (press.active) {
         (e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId);
         gestureRef.current = false;
-        // Inside the history group, so one undo puts the clip back where it
-        // was before the hold — slides and all. Only a real release deletes;
-        // pointercancel is the browser taking the gesture away.
-        if (press.overBin && e.type === "pointerup") onDeleteClip(press.clipId);
-        else settleId.current = press.clipId;
+        settleId.current = press.clipId;
         endHistoryGroup();
       } else if (!press.moved) {
         // Selection happens on RELEASE. On pointerdown it meant that resting a
@@ -505,9 +483,8 @@ function StudioTimeline({
       pressRef.current = null;
       setDraggingId(null);
       setDragOffset(0);
-      setOverBin(false);
     },
-    [endHistoryGroup, onDeleteClip, onSelect],
+    [endHistoryGroup, onSelect],
   );
 
   // --- audio move + trim ---------------------------------------------------
@@ -597,19 +574,6 @@ function StudioTimeline({
 
   return (
     <div className="relative w-full select-none" style={{ height: TIMELINE_HEIGHT }}>
-      {draggingId && (
-        // Over the ruler, directly above the clips: one short pull up from a
-        // held clip, and nowhere near the sideways drag that reorders.
-        <div
-          aria-hidden
-          className={`pointer-events-none absolute top-0 left-1/2 z-40 flex h-8 -translate-x-1/2 items-center gap-1.5 rounded-full px-3 text-[11px] font-semibold transition-[background-color,transform] ${
-            overBin ? "scale-110 bg-red-500 text-white" : "bg-neutral-800 text-white/85"
-          }`}
-        >
-          <Trash2 size={13} />
-          {overBin ? "Release to delete" : "Drag up to delete"}
-        </div>
-      )}
       <div
         ref={scrollRef}
         onScroll={handleScroll}
@@ -735,7 +699,6 @@ function StudioTimeline({
                       width,
                       height: VIDEO_TRACK_H,
                       borderRadius: 6,
-                      opacity: isDragging && overBin ? 0.4 : 1,
                       transform: isDragging ? `translateX(${dragOffset}px) scale(1.08)` : undefined,
                       zIndex: isDragging ? 5 : isSelected ? 3 : 1,
                       boxShadow: isDragging ? "0 8px 22px rgba(0,0,0,0.55)" : undefined,

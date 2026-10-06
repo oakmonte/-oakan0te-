@@ -85,6 +85,15 @@ export function ClipToolbar({
       </div>
       <ToolButton label="Split" icon={<Scissors size={18} />} onClick={() => onPick("split")} />
       <ToolButton label="Speed" icon={<Gauge size={18} />} onClick={() => onPick("speed")} />
+      {/* Third, not last: at the end of a scrolling row it was the one action
+          people looked for and couldn't find. */}
+      <ToolButton
+        label="Delete"
+        icon={<Trash2 size={18} />}
+        onClick={() => onPick("delete")}
+        disabled={!canDelete}
+        tone="danger"
+      />
       <ToolButton label="Volume" icon={<Volume2 size={18} />} onClick={() => onPick("volume")} />
       <ToolButton
         label="Detach audio"
@@ -120,13 +129,6 @@ export function ClipToolbar({
         disabled={!canMoveRight}
       />
       <ToolButton label="Duplicate" icon={<Copy size={18} />} onClick={() => onPick("duplicate")} />
-      <ToolButton
-        label="Delete"
-        icon={<Trash2 size={18} />}
-        onClick={() => onPick("delete")}
-        disabled={!canDelete}
-        tone="danger"
-      />
     </div>
   );
 }

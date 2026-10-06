@@ -1030,10 +1030,6 @@ function StudioEditor({
             beats={beatsOnTimeline}
             onTrim={handleTrim}
             onReorder={handleReorder}
-            onDeleteClip={(id) => {
-              dispatch({ type: "deleteClip", id });
-              setSelection(null);
-            }}
             onCloseGap={handleCloseGap}
             onMoveAudio={handleMoveAudio}
             onTrimAudio={handleTrimAudio}
@@ -1070,7 +1066,7 @@ function StudioEditor({
           style={{ top: "calc(env(safe-area-inset-top) + 64px)" }}
         >
           <HintBubble onDismiss={dismissGestureHint}>
-            Hold a clip to move it, or pull it up to delete. Pinch the timeline to zoom.
+            Hold a clip to move it. Tap one to edit it. Pinch the timeline to zoom.
           </HintBubble>
         </div>
       )}

@@ -748,13 +748,9 @@ function VideoEditor() {
 
   function handleDelete() {
     const target = selected ?? current;
-    if (target) deleteClip(target.id);
-  }
-
-  /** Also reached by letting a held clip go over the timeline's bin. */
-  function deleteClip(id: string) {
-    delete layersByClip.current[id];
-    const next = clips.filter((c) => c.id !== id);
+    if (!target) return;
+    delete layersByClip.current[target.id];
+    const next = clips.filter((c) => c.id !== target.id);
     commit(next);
     setSelectedId(null);
     // The clip the toolbar was about is gone, so the toolbar goes too. Falling
@@ -1140,6 +1136,9 @@ function VideoEditor() {
             setSourceOpen(true);
           },
         },
+        // Third, not last: at the end of a scrolling row it was the one action
+        // people looked for and couldn't find.
+        { id: "delete", label: "Delete", icon: Trash2, run: handleDelete },
         {
           id: "speed",
           label: editTarget.kind === "photo" ? "Duration" : "Speed",
@@ -1208,7 +1207,6 @@ function VideoEditor() {
             ]
           : []),
         { id: "duplicate", label: "Duplicate", icon: Copy, run: handleDuplicate },
-        { id: "delete", label: "Delete", icon: Trash2, run: handleDelete },
       ]
     : [];
 
@@ -1607,14 +1605,19 @@ function VideoEditor() {
               selectedId={selectedId}
               time={time}
               playing={playing}
-              onSelect={setSelectedId}
+              // Tapping a clip is asking to edit it, so the clip's own toolbar
+              // comes up with it; tapping it again puts the whole-video tools
+              // back.
+              onSelect={(id) => {
+                setSelectedId(id);
+                setClipEditing(id !== null);
+              }}
               onSeek={(t) => {
                 setPlaying(false);
                 setTime(t);
               }}
               onTrim={handleTrim}
               onReorder={handleReorder}
-              onDelete={deleteClip}
               onAdd={openSource}
               onSplit={handleSplit}
               onToggleMute={(id) => {
@@ -1722,7 +1725,7 @@ function VideoEditor() {
         >
           {reorderHint ? (
             <HintBubble onDismiss={dismissReorderHint}>
-              Hold a clip to move it — or pull it up to delete
+              Hold a clip to move it, tap one to edit it
             </HintBubble>
           ) : (
             <HintBubble onDismiss={dismissLayerHint}>

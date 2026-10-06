@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ImageIcon, Plus, Split, Trash2, Volume2, VolumeX } from "lucide-react";
+import { ImageIcon, Plus, Split, Volume2, VolumeX } from "lucide-react";
 import {
   clipDuration,
   clipStarts,
@@ -41,9 +41,6 @@ const TRACK_HEIGHT = 62;
 /** How far a finger may drift during a press-and-hold before it counts as a
  *  drag instead. A thumb on a phone moves several pixels without meaning to. */
 const HOLD_SLOP = 12;
-/** How far up a held clip has to be pulled to be over the bin: half the strip
- *  plus a margin, which puts the finger in the controls row above it. */
-const BIN_PULL = 40;
 /** A clip's size while the strip is in reorder mode: every clip the same
  *  square, so the whole edit fits on screen and each swap is the same short
  *  step no matter how long the clips are. */
@@ -94,7 +91,6 @@ export default function VideoTimeline({
   onSeek,
   onTrim,
   onReorder,
-  onDelete,
   onAdd,
   onSplit,
   onToggleMute,
@@ -109,8 +105,6 @@ export default function VideoTimeline({
   onSeek: (t: number) => void;
   onTrim: (id: string, patch: TrimPatch) => void;
   onReorder: (from: number, to: number) => void;
-  /** A held clip let go of over the bin. */
-  onDelete: (id: string) => void;
   onAdd: (e: React.MouseEvent<HTMLElement>) => void;
   onSplit: () => void;
   onToggleMute: (id: string) => void;
@@ -121,8 +115,6 @@ export default function VideoTimeline({
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [pad, setPad] = useState(0);
   const [dragging, setDragging] = useState<string | null>(null);
-  /** The held clip has been pulled up over the bin; letting go deletes it. */
-  const [overBin, setOverBin] = useState(false);
   /** Set the instant a hold fires, ahead of the render `dragging` waits for:
    *  the scroll handler and the touchmove blocker both need it right away. */
   const draggingRef = useRef(false);
@@ -384,15 +376,12 @@ export default function VideoTimeline({
     lastY: number;
     /** A swap has been asked for and not rendered yet. */
     swapPending: boolean;
-    overBin: boolean;
   } | null>(null);
   const [dragOffset, setDragOffset] = useState(0);
   const clipsRef = useRef(clips);
   clipsRef.current = clips;
   const onReorderRef = useRef(onReorder);
   onReorderRef.current = onReorder;
-  const onDeleteRef = useRef(onDelete);
-  onDeleteRef.current = onDelete;
   /** The clip just let go of, whose new start the playhead returns to once
    *  the strip is back to durations. */
   const settleId = useRef<string | null>(null);
@@ -406,16 +395,7 @@ export default function VideoTimeline({
   const step = useCallback(() => {
     const d = drag.current;
     if (!d) return;
-    // Pulled up out of the strip and into the row the bin sits in. While
-    // it's over the bin the clip holds its place — a delete shouldn't
-    // reshuffle the timeline on the way up.
-    const over = d.lastY - d.originY < -BIN_PULL;
-    if (over !== d.overBin) {
-      d.overBin = over;
-      setOverBin(over);
-      if (over) navigator.vibrate?.(10);
-    }
-    if (!over && !d.swapPending) {
+    if (!d.swapPending) {
       const list = clipsRef.current;
       const at = list.findIndex((c) => c.id === d.id);
       const dx = d.lastX - d.originX;
@@ -459,7 +439,6 @@ export default function VideoTimeline({
       lastX: x,
       lastY: y,
       swapPending: false,
-      overBin: false,
     };
     setDragOffset(x - slot);
     setDragging(id);
@@ -476,21 +455,14 @@ export default function VideoTimeline({
       d.lastY = e.clientY;
       step();
     };
-    // Only a real release over the bin deletes. pointercancel is the browser
-    // taking the gesture away, not the user letting go.
-    const end = (release: boolean) => {
+    const end = () => {
       const d = drag.current;
       drag.current = null;
       draggingRef.current = false;
-      setOverBin(false);
       setDragOffset(0);
       setDragging(null);
-      if (!d) return;
-      if (release && d.overBin) onDeleteRef.current(d.id);
-      else settleId.current = d.id;
+      if (d) settleId.current = d.id;
     };
-    const onUp = () => end(true);
-    const onCancel = () => end(false);
 
     // Edge scroll. Moving the strip moves the held clip's slot on screen by
     // the same amount, so the origin follows and the clip stays put under the
@@ -498,7 +470,7 @@ export default function VideoTimeline({
     let frame = requestAnimationFrame(function tick() {
       const d = drag.current;
       const el = scrollerRef.current;
-      if (d && el && !d.overBin) {
+      if (d && el) {
         const r = el.getBoundingClientRect();
         const v =
           d.lastX < r.left + EDGE_ZONE
@@ -520,13 +492,13 @@ export default function VideoTimeline({
     });
 
     window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
-    window.addEventListener("pointercancel", onCancel);
+    window.addEventListener("pointerup", end);
+    window.addEventListener("pointercancel", end);
     return () => {
       cancelAnimationFrame(frame);
       window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-      window.removeEventListener("pointercancel", onCancel);
+      window.removeEventListener("pointerup", end);
+      window.removeEventListener("pointercancel", end);
     };
   }, [dragging, step]);
 
@@ -573,20 +545,6 @@ export default function VideoTimeline({
           you're deciding about. Split is centred because that's where the cut
           lands: directly under the playhead. */}
       <div className="relative flex items-center px-4" style={{ height: GUTTER }}>
-        {dragging && (
-          // The bin takes over the controls row while a clip is held, because
-          // that row is directly above the strip: deleting is one short pull
-          // up, and a sideways drag — the reorder — never comes near it.
-          <div
-            aria-hidden
-            className={`absolute left-1/2 z-40 flex h-8 -translate-x-1/2 items-center gap-1.5 rounded-full px-3 text-[11px] font-semibold transition-[background-color,transform] ${
-              overBin ? "scale-110 bg-red-500 text-white" : "bg-white/[0.14] text-white/85"
-            }`}
-          >
-            <Trash2 size={13} />
-            {overBin ? "Release to delete" : "Drag up to delete"}
-          </div>
-        )}
         {!dragging && selected?.kind === "video" && (
           <button
             type="button"
@@ -650,7 +608,6 @@ export default function VideoTimeline({
               isDragging={clip.id === dragging}
               compact={dragging !== null}
               offset={clip.id === dragging ? dragOffset : 0}
-              binned={clip.id === dragging && overBin}
               width={clipDuration(clip) * PX_PER_SECOND}
               // The marker between two clips says "there's a cut here". It
               // steps aside the moment either neighbour is selected, because
@@ -802,7 +759,6 @@ function ClipTile({
   isDragging,
   compact,
   offset,
-  binned,
   width,
   showBoundary,
   onSelect,
@@ -816,8 +772,6 @@ function ClipTile({
   compact: boolean;
   /** How far the held tile has been pulled from its slot. */
   offset: number;
-  /** The held tile is over the bin. */
-  binned: boolean;
   width: number;
   showBoundary: boolean;
   onSelect: (id: string | null) => void;
@@ -857,7 +811,6 @@ function ClipTile({
     clearHold();
     holdTimer.current = window.setTimeout(() => {
       holdTimer.current = null;
-      onSelect(clip.id);
       onHold(clip.id, last.current.x, last.current.y);
       navigator.vibrate?.(8);
     }, 280);
@@ -926,9 +879,7 @@ function ClipTile({
         // mid-transition would clamp it. No transform transition while held
         // either — easing the translate makes the clip trail the finger.
         className={`relative shrink-0 overflow-hidden ${
-          isDragging
-            ? `z-30 ${binned ? "opacity-40" : "opacity-90"}`
-            : "transition-[opacity,transform]"
+          isDragging ? "z-30 opacity-90" : "transition-[opacity,transform]"
         }`}
         style={{
           width: tileWidth,
