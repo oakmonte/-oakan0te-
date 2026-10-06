@@ -715,7 +715,7 @@ export function OptionEditorSheet({
                     }
                   }}
                   placeholder="Add or search a value"
-                  className="w-full text-base border border-gray-200 rounded-xl px-4 py-4 outline-none focus:border-gray-400"
+                  className="w-full text-[17px] border border-gray-300 rounded-2xl px-5 py-[22px] outline-none focus:border-gray-500"
                 />
                 {systems && (
                   <div className="mt-3">
