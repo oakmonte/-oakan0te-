@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ImageIcon, Plus, Split, Volume2, VolumeX } from "lucide-react";
+import { ImageIcon, Plus, Split, Trash2, Volume2, VolumeX } from "lucide-react";
 import {
   clipDuration,
   clipStarts,
@@ -41,6 +41,9 @@ const TRACK_HEIGHT = 62;
 /** How far a finger may drift during a press-and-hold before it counts as a
  *  drag instead. A thumb on a phone moves several pixels without meaning to. */
 const HOLD_SLOP = 12;
+/** How far up a held clip has to be pulled to be over the bin: half the strip
+ *  plus a margin, which puts the finger in the controls row above it. */
+const BIN_PULL = 40;
 /** The row above the strip holding the selected clip's controls. */
 const GUTTER = 32;
 /** How long after the last scroll event the strip counts as stopped.
@@ -83,6 +86,7 @@ export default function VideoTimeline({
   onSeek,
   onTrim,
   onReorder,
+  onDelete,
   onAdd,
   onSplit,
   onToggleMute,
@@ -97,6 +101,8 @@ export default function VideoTimeline({
   onSeek: (t: number) => void;
   onTrim: (id: string, patch: TrimPatch) => void;
   onReorder: (from: number, to: number) => void;
+  /** A held clip let go of over the bin. */
+  onDelete: (id: string) => void;
   onAdd: (e: React.MouseEvent<HTMLElement>) => void;
   onSplit: () => void;
   onToggleMute: (id: string) => void;
@@ -107,6 +113,8 @@ export default function VideoTimeline({
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [pad, setPad] = useState(0);
   const [dragging, setDragging] = useState<string | null>(null);
+  /** The held clip has been pulled up over the bin; letting go deletes it. */
+  const [overBin, setOverBin] = useState(false);
   const [trimming, setTrimming] = useState<string | null>(null);
   const [trimPadLeft, setTrimPadLeft] = useState(0);
   const trimPad = useRef(0);
@@ -325,19 +333,27 @@ export default function VideoTimeline({
 
   // Stop the strip scrolling under a clip that has been picked up.
   //
-  // This is what `touch-action` could not do — see the note on the scroller.
-  // `preventDefault` on a non-passive touchmove DOES stop a native pan, but
-  // only while the browser has not already started one, which is exactly the
-  // situation here: a hold takes 280ms of stillness to fire, so at the moment
-  // this listener attaches the finger has not moved and no scroll is running.
-  // React's own onTouchMove is passive, so it has to be bound by hand.
+  // This is what `touch-action` could not do — see the note on the scroller —
+  // and the listener has to be there BEFORE the finger lands, not added when
+  // the hold fires. Chrome and WebKit decide at touchstart whether a touch
+  // sequence must wait on the page: with no blocking touchmove listener under
+  // the finger at that moment, every touchmove that follows is dispatched as
+  // uncancelable, a `preventDefault` attached 280ms later is ignored, the
+  // strip pans, the browser fires pointercancel, and the clip is dropped the
+  // instant it moves. So the listener is permanent and only DECIDES late.
+  // It costs nothing once a scrub is under way: both engines stop waiting on
+  // touchmove as soon as a scroll has started.
+  const draggingRef = useRef(false);
+  draggingRef.current = dragging !== null;
   useEffect(() => {
     const el = scrollerRef.current;
-    if (!el || !dragging) return;
-    const block = (e: TouchEvent) => e.preventDefault();
+    if (!el) return;
+    const block = (e: TouchEvent) => {
+      if (draggingRef.current && e.cancelable) e.preventDefault();
+    };
     el.addEventListener("touchmove", block, { passive: false });
     return () => el.removeEventListener("touchmove", block);
-  }, [dragging]);
+  }, []);
 
   // `trimPadLeft` has to be added by hand. An absolutely positioned child is
   // laid out against its ancestor's PADDING BOX, whose origin sits before the
@@ -354,7 +370,21 @@ export default function VideoTimeline({
           you're deciding about. Split is centred because that's where the cut
           lands: directly under the playhead. */}
       <div className="relative flex items-center px-4" style={{ height: GUTTER }}>
-        {selected?.kind === "video" && (
+        {dragging && (
+          // The bin takes over the controls row while a clip is held, because
+          // that row is directly above the strip: deleting is one short pull
+          // up, and a sideways drag — the reorder — never comes near it.
+          <div
+            aria-hidden
+            className={`absolute left-1/2 z-40 flex h-8 -translate-x-1/2 items-center gap-1.5 rounded-full px-3 text-[11px] font-semibold transition-[background-color,transform] ${
+              overBin ? "scale-110 bg-red-500 text-white" : "bg-white/[0.14] text-white/85"
+            }`}
+          >
+            <Trash2 size={13} />
+            {overBin ? "Release to delete" : "Drag up to delete"}
+          </div>
+        )}
+        {!dragging && selected?.kind === "video" && (
           <button
             type="button"
             onClick={() => onToggleMute(selected.id)}
@@ -365,7 +395,7 @@ export default function VideoTimeline({
             {selected.muted ? "Muted" : "Sound on"}
           </button>
         )}
-        {canSplit && (
+        {!dragging && canSplit && (
           <button
             type="button"
             onClick={onSplit}
@@ -409,6 +439,8 @@ export default function VideoTimeline({
               isSelected={clip.id === selectedId}
               isDragging={clip.id === dragging}
               width={clipDuration(clip) * PX_PER_SECOND}
+              prevWidth={i > 0 ? clipDuration(clips[i - 1]) * PX_PER_SECOND : 0}
+              nextWidth={i < clips.length - 1 ? clipDuration(clips[i + 1]) * PX_PER_SECOND : 0}
               // The marker between two clips says "there's a cut here". It
               // steps aside the moment either neighbour is selected, because
               // that is when the trim bars need the same few pixels — and a
@@ -417,11 +449,15 @@ export default function VideoTimeline({
               showBoundary={i > 0 && selectedIndex !== i && selectedIndex !== i - 1}
               onSelect={onSelect}
               onReorder={onReorder}
+              onDelete={onDelete}
+              onOverBinChange={setOverBin}
               onDragStateChange={setDragging}
             />
           ))}
 
-          {selected && (
+          {/* Hidden while a clip is held: the frame sits on the clip's slot,
+              and the clip itself is off following the finger. */}
+          {selected && !dragging && (
             <div
               className="pointer-events-none absolute top-0 z-20 h-full"
               style={{ left: selectionLeft, width: selectionWidth }}
@@ -557,9 +593,13 @@ function ClipTile({
   isSelected,
   isDragging,
   width,
+  prevWidth,
+  nextWidth,
   showBoundary,
   onSelect,
   onReorder,
+  onDelete,
+  onOverBinChange,
   onDragStateChange,
 }: {
   clip: Clip;
@@ -567,13 +607,21 @@ function ClipTile({
   isSelected: boolean;
   isDragging: boolean;
   width: number;
+  /** Widths of the neighbours, 0 at either end. A held clip swaps with one
+   *  once it has been pushed halfway across it. */
+  prevWidth: number;
+  nextWidth: number;
   showBoundary: boolean;
   onSelect: (id: string | null) => void;
   onReorder: (from: number, to: number) => void;
+  onDelete: (id: string) => void;
+  onOverBinChange: (over: boolean) => void;
   onDragStateChange: (id: string | null) => void;
 }) {
   const holdTimer = useRef<number | null>(null);
   const origin = useRef(0);
+  const originY = useRef(0);
+  const overBin = useRef(false);
   const moved = useRef(false);
 
   const clearHold = () => {
@@ -591,6 +639,7 @@ function ClipTile({
   // which is what made picking a clip up feel like it mostly didn't work.
   function handlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
     origin.current = e.clientX;
+    originY.current = e.clientY;
     moved.current = false;
     clearHold();
     holdTimer.current = window.setTimeout(() => {
@@ -616,6 +665,23 @@ function ClipTile({
     if (!moved.current) onSelect(isSelected ? null : clip.id);
   }
 
+  // How far the held clip has been pulled from its slot, drawn as a
+  // translate so it stays under the finger instead of sitting still until a
+  // swap happens.
+  const [offset, setOffset] = useState(0);
+  const [binned, setBinned] = useState(false);
+
+  // The neighbours' widths and this clip's index change under a drag — every
+  // swap moves it — and a pointermove can land before React has rendered the
+  // last swap. Reading them through a ref, and refusing a second swap until
+  // the first has rendered, keeps one push from skipping two places.
+  const live = useRef({ index, prevWidth, nextWidth });
+  live.current = { index, prevWidth, nextWidth };
+  const swapPending = useRef(false);
+  useEffect(() => {
+    swapPending.current = false;
+  }, [index]);
+
   // Once the clip is picked up the gesture belongs to the WINDOW, not to this
   // tile.
   //
@@ -624,29 +690,68 @@ function ClipTile({
   // to whatever is under the finger, so a tile listening only to itself stops
   // hearing about the drag one tile in, and the reorder dies halfway. Same
   // reasoning, and the same fix, as the trim gesture higher up this file.
+  //
+  // The swap point is half the NEIGHBOUR's width, not a fraction of this
+  // clip's own: moving a ten-second clip past a one-second one used to need a
+  // 370px drag — more than the screen — while a short clip leapt over a long
+  // neighbour after 40px. After a swap the origin moves by the width jumped,
+  // so the clip lands under the finger rather than snapping back to its slot.
   useEffect(() => {
-    if (!isDragging) return;
-    const onMove = (e: PointerEvent) => {
-      const delta = e.clientX - origin.current;
-      // One whole tile of travel commits one position. Anything finer and the
-      // list churns under the finger.
-      const steps = Math.trunc(delta / Math.max(40, width * 0.6));
-      if (steps !== 0) {
-        onReorder(index, index + steps);
-        navigator.vibrate?.(6);
-        origin.current = e.clientX;
-      }
+    if (!isDragging) {
+      overBin.current = false;
+      setOffset(0);
+      setBinned(false);
+      return;
+    }
+    const setOver = (over: boolean) => {
+      if (overBin.current === over) return;
+      overBin.current = over;
+      setBinned(over);
+      onOverBinChange(over);
+      if (over) navigator.vibrate?.(10);
     };
-    const onEnd = () => onDragStateChange(null);
+    const onMove = (e: PointerEvent) => {
+      // Pulled up out of the strip and into the row the bin sits in. While
+      // it's over the bin the clip holds its place — a delete shouldn't
+      // reshuffle the timeline on the way up.
+      setOver(e.clientY - originY.current < -BIN_PULL);
+      if (overBin.current) return;
+      const dx = e.clientX - origin.current;
+      const { index: at, prevWidth: prev, nextWidth: next } = live.current;
+      if (!swapPending.current && next > 0 && dx > next / 2) {
+        swapPending.current = true;
+        origin.current += next;
+        onReorder(at, at + 1);
+        navigator.vibrate?.(6);
+      } else if (!swapPending.current && prev > 0 && -dx > prev / 2) {
+        swapPending.current = true;
+        origin.current -= prev;
+        onReorder(at, at - 1);
+        navigator.vibrate?.(6);
+      }
+      setOffset(e.clientX - origin.current);
+    };
+    // Only a real release over the bin deletes. pointercancel is the browser
+    // taking the gesture away, not the user letting go.
+    const onUp = () => {
+      const remove = overBin.current;
+      setOver(false);
+      onDragStateChange(null);
+      if (remove) onDelete(clip.id);
+    };
+    const onCancel = () => {
+      setOver(false);
+      onDragStateChange(null);
+    };
     window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onEnd);
-    window.addEventListener("pointercancel", onEnd);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onCancel);
     return () => {
       window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onEnd);
-      window.removeEventListener("pointercancel", onEnd);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onCancel);
     };
-  }, [isDragging, index, width, onReorder, onDragStateChange]);
+  }, [isDragging, clip.id, onReorder, onDelete, onOverBinChange, onDragStateChange]);
 
   return (
     <>
@@ -683,11 +788,17 @@ function ClipTile({
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") onSelect(isSelected ? null : clip.id);
         }}
-        className={`relative shrink-0 overflow-hidden transition-[opacity,transform] ${
-          isDragging ? "scale-[1.04] opacity-80" : ""
+        // No transform transition while held: easing the translate would make
+        // the clip trail the finger. It still eases back into its slot on
+        // release.
+        className={`relative shrink-0 overflow-hidden ${
+          isDragging
+            ? `z-30 ${binned ? "opacity-40" : "opacity-80"}`
+            : "transition-[opacity,transform]"
         }`}
         style={{
           width: Math.max(24, width),
+          transform: isDragging ? `translateX(${offset}px) scale(1.04)` : undefined,
           clipPath: `inset(0 ${CLIP_GAP / 2}px round 7px)`,
         }}
       >

@@ -268,12 +268,24 @@ export function videoThumbnail(
     video.preload = "metadata";
     video.crossOrigin = "anonymous";
 
-    const fail = () => reject(new Error("Couldn't read that video"));
     let settled = false;
+    const fail = () => {
+      settled = true;
+      window.clearTimeout(timer);
+      reject(new Error("Couldn't read that video"));
+    };
+    // A detached <video> on iOS isn't guaranteed to fire loadedmetadata or
+    // seeked at all, and every caller awaits this on the way to something
+    // else — the video editor's Next sat on "Making your video…" forever.
+    // Every caller already copes with a rejection, so give up instead.
+    const timer = window.setTimeout(() => {
+      if (!settled) fail();
+    }, 5000);
 
     const grab = () => {
       if (settled) return;
       settled = true;
+      window.clearTimeout(timer);
       try {
         const canvas = document.createElement("canvas");
         const w = video.videoWidth;

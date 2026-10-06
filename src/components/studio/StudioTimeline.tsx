@@ -7,6 +7,7 @@ import {
   VolumeX,
   Type as TypeIcon,
   Sparkles,
+  Trash2,
   Unlink,
   X,
 } from "lucide-react";
@@ -47,6 +48,9 @@ import {
   type VideoClip,
 } from "@/lib/studio/types";
 
+/** How far up a held clip has to be pulled to be over the bin. */
+const BIN_PULL = 40;
+
 // The reference's timeline, rebuilt: a playhead welded to the centre of the
 // screen with the tracks scrolling underneath it.
 //
@@ -79,6 +83,8 @@ type Props = {
   beats: number[];
   onTrim: (clipId: string, edge: "in" | "out", sourceTime: number) => void;
   onReorder: (clipId: string, toIndex: number) => void;
+  /** A held clip let go of over the bin. */
+  onDeleteClip: (clipId: string) => void;
   /** Slide a clip into the free space around it, opening or closing a gap. */
   onSlide: (clipId: string, gapBefore: number) => void;
   onCloseGap: (clipId: string) => void;
@@ -105,6 +111,7 @@ function StudioTimeline({
   beats,
   onTrim,
   onReorder,
+  onDeleteClip,
   onSlide,
   onCloseGap,
   onMoveAudio,
@@ -287,8 +294,11 @@ function StudioTimeline({
     /** Set by a swap: re-read baseGap/startX on the next move, once the
      *  reordered project has rendered. */
     rebase: boolean;
+    /** Pulled up over the bin; letting go deletes the clip. */
+    overBin: boolean;
   } | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [overBin, setOverBin] = useState(false);
   const [dragOffset, setDragOffset] = useState(0);
 
   const startClipPress = useCallback(
@@ -315,6 +325,7 @@ function StudioTimeline({
         moved: false,
         baseGap: clip.gapBefore ?? 0,
         rebase: false,
+        overBin: false,
       };
     },
     [beginHistoryGroup],
@@ -338,6 +349,16 @@ function StudioTimeline({
       }
 
       e.stopPropagation();
+
+      // Pulled up off the track and onto the bin. While it's there the clip
+      // holds still — a delete shouldn't reshuffle the timeline on the way up.
+      const over = e.clientY - press.startY < -BIN_PULL;
+      if (over !== press.overBin) {
+        press.overBin = over;
+        setOverBin(over);
+        if (over) navigator.vibrate?.(10);
+      }
+      if (over) return;
 
       const clips = project.clips;
       const index = clips.findIndex((c) => c.id === press.clipId);
@@ -406,6 +427,10 @@ function StudioTimeline({
       if (press.active) {
         (e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId);
         gestureRef.current = false;
+        // Inside the history group, so one undo puts the clip back where it
+        // was before the hold — slides and all. Only a real release deletes;
+        // pointercancel is the browser taking the gesture away.
+        if (press.overBin && e.type === "pointerup") onDeleteClip(press.clipId);
         endHistoryGroup();
       } else if (!press.moved) {
         // Selection happens on RELEASE. On pointerdown it meant that resting a
@@ -416,8 +441,9 @@ function StudioTimeline({
       pressRef.current = null;
       setDraggingId(null);
       setDragOffset(0);
+      setOverBin(false);
     },
-    [endHistoryGroup, onSelect],
+    [endHistoryGroup, onDeleteClip, onSelect],
   );
 
   // --- audio move + trim ---------------------------------------------------
@@ -478,6 +504,24 @@ function StudioTimeline({
     [endHistoryGroup, onSelect],
   );
 
+  // Stop the strip panning under a held clip. `touchAction` can't: a browser
+  // latches it when the touch STARTS, so flipping it to "none" when the hold
+  // fires 280ms in applies to the next touch, never this one — the pan won,
+  // pointercancel fired, and the clip dropped the moment it moved. Nor can a
+  // touchmove listener added at that point: Chrome and WebKit decide at
+  // touchstart whether a sequence's touchmoves may be cancelled at all, and
+  // with no blocking listener under the finger then, they can't. So the
+  // listener is permanent and decides late, from the press itself.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const block = (e: TouchEvent) => {
+      if (pressRef.current?.active && e.cancelable) e.preventDefault();
+    };
+    el.addEventListener("touchmove", block, { passive: false });
+    return () => el.removeEventListener("touchmove", block);
+  }, []);
+
   const contentWidth = Math.max(extent * pps, 1);
   const lockScroll = draggingId !== null;
   const tickStep = useMemo(
@@ -489,6 +533,19 @@ function StudioTimeline({
 
   return (
     <div className="relative w-full select-none" style={{ height: TIMELINE_HEIGHT }}>
+      {draggingId && (
+        // Over the ruler, directly above the clips: one short pull up from a
+        // held clip, and nowhere near the sideways drag that reorders.
+        <div
+          aria-hidden
+          className={`pointer-events-none absolute top-0 left-1/2 z-40 flex h-8 -translate-x-1/2 items-center gap-1.5 rounded-full px-3 text-[11px] font-semibold transition-[background-color,transform] ${
+            overBin ? "scale-110 bg-red-500 text-white" : "bg-neutral-800 text-white/85"
+          }`}
+        >
+          <Trash2 size={13} />
+          {overBin ? "Release to delete" : "Drag up to delete"}
+        </div>
+      )}
       <div
         ref={scrollRef}
         onScroll={handleScroll}
