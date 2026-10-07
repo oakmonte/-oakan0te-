@@ -181,6 +181,8 @@ function CheckoutPage() {
   const [ratesError, setRatesError] = useState("");
   const [requestToken, setRequestToken] = useState<string | null>(null);
   const [chosen, setChosen] = useState<string | null>(null);
+  const [placing, setPlacing] = useState(false);
+  const [placeError, setPlaceError] = useState("");
 
   useEffect(() => {
     void loadAllStates();
@@ -352,6 +354,44 @@ function CheckoutPage() {
     .filter(Boolean)
     .join(", ");
   const bad = (cond: boolean) => (showErrors && cond ? "!border-red-400/70" : "");
+  async function placeOrder() {
+    if (!validated || !pick) return;
+    setPlaceError("");
+    setPlacing(true);
+    try {
+      const res = await authedFetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          productId,
+          variantId: variant,
+          serviceCode: pick.serviceCode,
+          addressCode: validated.addressCode,
+          name: name.trim(),
+          phone: phone.trim(),
+          email: email.trim(),
+          address: validated.formattedAddress || fullAddress,
+          lat: validated.lat,
+          lng: validated.lng,
+        }),
+      });
+      const body = (await res.json().catch(() => null)) as {
+        orderUrl?: string;
+        authorizationUrl?: string | null;
+        error?: string;
+      } | null;
+      if (!res.ok || !body?.orderUrl) {
+        setPlaceError(body?.error ?? "Couldn't place your order. Try again.");
+        return;
+      }
+      // Paystack's hosted page takes the payment and returns to the order page;
+      // with no keys configured yet the order page itself is the next stop.
+      window.location.assign(body.authorizationUrl ?? body.orderUrl);
+    } finally {
+      setPlacing(false);
+    }
+  }
+
   const pick = couriers?.find((c) => c.serviceCode === chosen) ?? null;
 
   const field =
@@ -603,11 +643,13 @@ function CheckoutPage() {
             )}
             <button
               type="button"
-              disabled={!pick || !requestToken}
+              disabled={!pick || !requestToken || placing}
+              onClick={() => void placeOrder()}
               className="mt-1 h-14 rounded-2xl bg-white text-[17px] font-semibold text-black disabled:opacity-40"
             >
-              Place order
+              {placing ? "Placing order…" : "Place order and pay"}
             </button>
+            {placeError && <p className="text-[14px] text-red-400">{placeError}</p>}
           </div>
         )}
       </div>
