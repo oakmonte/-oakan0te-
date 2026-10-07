@@ -35,7 +35,11 @@ create index buyer_addresses_user_idx on public.buyer_addresses(user_id);
 
 create table public.orders (
   id uuid primary key default gen_random_uuid(),
-  buyer_id uuid not null references auth.users(id),
+  -- Null for a guest checkout; a guest finds their order again with guest_token
+  -- (the link we give them), never by listing rows.
+  buyer_id uuid references auth.users(id),
+  guest_email text,
+  guest_token uuid not null default gen_random_uuid(),
   store_id uuid not null references public.stores(id),
   status text not null default 'awaiting_acceptance' check (status in (
     'awaiting_acceptance', 'awaiting_payment', 'paid', 'shipped',
