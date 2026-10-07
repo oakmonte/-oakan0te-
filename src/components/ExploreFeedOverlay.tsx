@@ -6,7 +6,10 @@ import { PostFeed, type ActivePost, type TaggedProduct } from "@/components/feed
 import { useDarkOverlay } from "@/lib/dark-overlay";
 import { useSession } from "@/hooks/use-session";
 
-type FeedTab = "following" | "for-you" | "listed-items" | "profile";
+// "listed-left" is the same Listed items page, parked to the LEFT of Following so
+// both feeds have it one swipe away (Following swipes right into it, For you
+// swipes left into the other one). It has no header label of its own.
+type FeedTab = "listed-left" | "following" | "for-you" | "listed-items" | "profile";
 
 // One order, and it is the order you can see. Swiping left moves the content
 // left, which brings in the tab to the RIGHT of the current one — the same
@@ -15,6 +18,7 @@ type FeedTab = "following" | "for-you" | "listed-items" | "profile";
 // match the profile pager but did the opposite of it, so every swipe here ran
 // backwards: dragging left walked toward Following.
 const TABS: { key: FeedTab; label: string }[] = [
+  { key: "listed-left", label: "Listed items" },
   { key: "following", label: "Following" },
   { key: "for-you", label: "For you" },
   { key: "listed-items", label: "Listed items" },
@@ -76,13 +80,15 @@ export function ExploreFeedOverlay({
           <ChevronLeft size={24} />
         </button>
         <div className="flex items-center gap-4 text-[13px] font-medium text-white/50 overflow-x-auto no-scrollbar">
-          {TABS.map((t) => (
+          {TABS.filter((t) => t.key !== "listed-left").map((t) => (
             <button
               key={t.key}
               type="button"
               onClick={() => setActive(t.key)}
               className={`whitespace-nowrap pb-1 ${
-                active === t.key ? "text-white font-semibold underline underline-offset-4" : ""
+                active === t.key || (t.key === "listed-items" && active === "listed-left")
+                  ? "text-white font-semibold underline underline-offset-4"
+                  : ""
               }`}
             >
               {t.label}
@@ -118,7 +124,7 @@ export function ExploreFeedOverlay({
             transition={{ duration: 0.15, ease: "easeOut" }}
             className="w-full h-full"
           >
-            {active === "listed-items" ? (
+            {active === "listed-items" || active === "listed-left" ? (
               <ListedItemsPage items={activePost?.tags ?? []} />
             ) : active === "profile" ? (
               <ProfileTeaserPage />

@@ -1312,7 +1312,7 @@ function FeedPostCard({
           {!asStore && (
             <RailAction
               label="Add tagged items to cart"
-              caption="Cart"
+              caption="+Cart"
               onPress={() => showLocked("Cart is unavailable for now")}
             >
               <ShoppingBag size={28} />
