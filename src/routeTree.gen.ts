@@ -48,6 +48,7 @@ import { Route as ApiPostsRouteImport } from './routes/api.posts'
 import { Route as ApiSoundFileRouteImport } from './routes/api.sound-file'
 import { Route as ApiSoundsRouteImport } from './routes/api.sounds'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
+import { Route as CheckoutProductIdRouteImport } from './routes/checkout.$productId'
 import { Route as CreateIndexRouteImport } from './routes/create.index'
 import { Route as CreateAfterShotRouteImport } from './routes/create.after-shot'
 import { Route as CreateDraftsRouteImport } from './routes/create.drafts'
@@ -79,6 +80,8 @@ import { Route as ApiInstagramCallbackRouteImport } from './routes/api.instagram
 import { Route as ApiInstagramConnectRouteImport } from './routes/api.instagram.connect'
 import { Route as ApiProductsUploadImageRouteImport } from './routes/api.products.upload-image'
 import { Route as ApiShipbubblePingRouteImport } from './routes/api.shipbubble.ping'
+import { Route as ApiShippingAddressRouteImport } from './routes/api.shipping.address'
+import { Route as ApiShippingReverseGeocodeRouteImport } from './routes/api.shipping.reverse-geocode'
 import { Route as ApiShopifyCallbackRouteImport } from './routes/api.shopify.callback'
 import { Route as ApiShopifyInstallRouteImport } from './routes/api.shopify.install'
 import { Route as ApiStorePiecesUploadImageRouteImport } from './routes/api.store-pieces.upload-image'
@@ -297,6 +300,11 @@ const AuthCallbackRoute = AuthCallbackRouteImport.update({
   path: '/auth/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CheckoutProductIdRoute = CheckoutProductIdRouteImport.update({
+  id: '/checkout/$productId',
+  path: '/checkout/$productId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CreateIndexRoute = CreateIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -453,6 +461,17 @@ const ApiShipbubblePingRoute = ApiShipbubblePingRouteImport.update({
   path: '/api/shipbubble/ping',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiShippingAddressRoute = ApiShippingAddressRouteImport.update({
+  id: '/api/shipping/address',
+  path: '/api/shipping/address',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiShippingReverseGeocodeRoute =
+  ApiShippingReverseGeocodeRouteImport.update({
+    id: '/api/shipping/reverse-geocode',
+    path: '/api/shipping/reverse-geocode',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiShopifyCallbackRoute = ApiShopifyCallbackRouteImport.update({
   id: '/api/shopify/callback',
   path: '/api/shopify/callback',
@@ -606,6 +625,7 @@ export interface FileRoutesByFullPath {
   '/api/sound-file': typeof ApiSoundFileRoute
   '/api/sounds': typeof ApiSoundsRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/checkout/$productId': typeof CheckoutProductIdRoute
   '/create/after-shot': typeof CreateAfterShotRouteWithChildren
   '/create/drafts': typeof CreateDraftsRoute
   '/create/photo-editor': typeof CreatePhotoEditorRoute
@@ -637,6 +657,8 @@ export interface FileRoutesByFullPath {
   '/api/instagram/connect': typeof ApiInstagramConnectRoute
   '/api/products/upload-image': typeof ApiProductsUploadImageRoute
   '/api/shipbubble/ping': typeof ApiShipbubblePingRoute
+  '/api/shipping/address': typeof ApiShippingAddressRoute
+  '/api/shipping/reverse-geocode': typeof ApiShippingReverseGeocodeRoute
   '/api/shopify/callback': typeof ApiShopifyCallbackRoute
   '/api/shopify/install': typeof ApiShopifyInstallRoute
   '/api/store-pieces/upload-image': typeof ApiStorePiecesUploadImageRoute
@@ -698,6 +720,7 @@ export interface FileRoutesByTo {
   '/api/sound-file': typeof ApiSoundFileRoute
   '/api/sounds': typeof ApiSoundsRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/checkout/$productId': typeof CheckoutProductIdRoute
   '/create/drafts': typeof CreateDraftsRoute
   '/create/photo-editor': typeof CreatePhotoEditorRoute
   '/create/store-piece': typeof CreateStorePieceRoute
@@ -728,6 +751,8 @@ export interface FileRoutesByTo {
   '/api/instagram/connect': typeof ApiInstagramConnectRoute
   '/api/products/upload-image': typeof ApiProductsUploadImageRoute
   '/api/shipbubble/ping': typeof ApiShipbubblePingRoute
+  '/api/shipping/address': typeof ApiShippingAddressRoute
+  '/api/shipping/reverse-geocode': typeof ApiShippingReverseGeocodeRoute
   '/api/shopify/callback': typeof ApiShopifyCallbackRoute
   '/api/shopify/install': typeof ApiShopifyInstallRoute
   '/api/store-pieces/upload-image': typeof ApiStorePiecesUploadImageRoute
@@ -792,6 +817,7 @@ export interface FileRoutesById {
   '/api/sound-file': typeof ApiSoundFileRoute
   '/api/sounds': typeof ApiSoundsRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/checkout/$productId': typeof CheckoutProductIdRoute
   '/create/after-shot': typeof CreateAfterShotRouteWithChildren
   '/create/drafts': typeof CreateDraftsRoute
   '/create/photo-editor': typeof CreatePhotoEditorRoute
@@ -823,6 +849,8 @@ export interface FileRoutesById {
   '/api/instagram/connect': typeof ApiInstagramConnectRoute
   '/api/products/upload-image': typeof ApiProductsUploadImageRoute
   '/api/shipbubble/ping': typeof ApiShipbubblePingRoute
+  '/api/shipping/address': typeof ApiShippingAddressRoute
+  '/api/shipping/reverse-geocode': typeof ApiShippingReverseGeocodeRoute
   '/api/shopify/callback': typeof ApiShopifyCallbackRoute
   '/api/shopify/install': typeof ApiShopifyInstallRoute
   '/api/store-pieces/upload-image': typeof ApiStorePiecesUploadImageRoute
@@ -888,6 +916,7 @@ export interface FileRouteTypes {
     | '/api/sound-file'
     | '/api/sounds'
     | '/auth/callback'
+    | '/checkout/$productId'
     | '/create/after-shot'
     | '/create/drafts'
     | '/create/photo-editor'
@@ -919,6 +948,8 @@ export interface FileRouteTypes {
     | '/api/instagram/connect'
     | '/api/products/upload-image'
     | '/api/shipbubble/ping'
+    | '/api/shipping/address'
+    | '/api/shipping/reverse-geocode'
     | '/api/shopify/callback'
     | '/api/shopify/install'
     | '/api/store-pieces/upload-image'
@@ -980,6 +1011,7 @@ export interface FileRouteTypes {
     | '/api/sound-file'
     | '/api/sounds'
     | '/auth/callback'
+    | '/checkout/$productId'
     | '/create/drafts'
     | '/create/photo-editor'
     | '/create/store-piece'
@@ -1010,6 +1042,8 @@ export interface FileRouteTypes {
     | '/api/instagram/connect'
     | '/api/products/upload-image'
     | '/api/shipbubble/ping'
+    | '/api/shipping/address'
+    | '/api/shipping/reverse-geocode'
     | '/api/shopify/callback'
     | '/api/shopify/install'
     | '/api/store-pieces/upload-image'
@@ -1073,6 +1107,7 @@ export interface FileRouteTypes {
     | '/api/sound-file'
     | '/api/sounds'
     | '/auth/callback'
+    | '/checkout/$productId'
     | '/create/after-shot'
     | '/create/drafts'
     | '/create/photo-editor'
@@ -1104,6 +1139,8 @@ export interface FileRouteTypes {
     | '/api/instagram/connect'
     | '/api/products/upload-image'
     | '/api/shipbubble/ping'
+    | '/api/shipping/address'
+    | '/api/shipping/reverse-geocode'
     | '/api/shopify/callback'
     | '/api/shopify/install'
     | '/api/store-pieces/upload-image'
@@ -1168,6 +1205,7 @@ export interface RootRouteChildren {
   ApiSoundFileRoute: typeof ApiSoundFileRoute
   ApiSoundsRoute: typeof ApiSoundsRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
+  CheckoutProductIdRoute: typeof CheckoutProductIdRoute
   ProfileUsernameRoute: typeof ProfileUsernameRoute
   StoreProfileStoreUsernameRoute: typeof StoreProfileStoreUsernameRoute
   ApiAccountDeleteRoute: typeof ApiAccountDeleteRoute
@@ -1181,6 +1219,8 @@ export interface RootRouteChildren {
   ApiInstagramConnectRoute: typeof ApiInstagramConnectRoute
   ApiProductsUploadImageRoute: typeof ApiProductsUploadImageRoute
   ApiShipbubblePingRoute: typeof ApiShipbubblePingRoute
+  ApiShippingAddressRoute: typeof ApiShippingAddressRoute
+  ApiShippingReverseGeocodeRoute: typeof ApiShippingReverseGeocodeRoute
   ApiShopifyCallbackRoute: typeof ApiShopifyCallbackRoute
   ApiShopifyInstallRoute: typeof ApiShopifyInstallRoute
   ApiStorePiecesUploadImageRoute: typeof ApiStorePiecesUploadImageRoute
@@ -1466,6 +1506,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/checkout/$productId': {
+      id: '/checkout/$productId'
+      path: '/checkout/$productId'
+      fullPath: '/checkout/$productId'
+      preLoaderRoute: typeof CheckoutProductIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/create/': {
       id: '/create/'
       path: '/'
@@ -1681,6 +1728,20 @@ declare module '@tanstack/react-router' {
       path: '/api/shipbubble/ping'
       fullPath: '/api/shipbubble/ping'
       preLoaderRoute: typeof ApiShipbubblePingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/shipping/address': {
+      id: '/api/shipping/address'
+      path: '/api/shipping/address'
+      fullPath: '/api/shipping/address'
+      preLoaderRoute: typeof ApiShippingAddressRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/shipping/reverse-geocode': {
+      id: '/api/shipping/reverse-geocode'
+      path: '/api/shipping/reverse-geocode'
+      fullPath: '/api/shipping/reverse-geocode'
+      preLoaderRoute: typeof ApiShippingReverseGeocodeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/shopify/callback': {
@@ -1971,6 +2032,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiSoundFileRoute: ApiSoundFileRoute,
   ApiSoundsRoute: ApiSoundsRoute,
   AuthCallbackRoute: AuthCallbackRoute,
+  CheckoutProductIdRoute: CheckoutProductIdRoute,
   ProfileUsernameRoute: ProfileUsernameRoute,
   StoreProfileStoreUsernameRoute: StoreProfileStoreUsernameRoute,
   ApiAccountDeleteRoute: ApiAccountDeleteRoute,
@@ -1984,6 +2046,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiInstagramConnectRoute: ApiInstagramConnectRoute,
   ApiProductsUploadImageRoute: ApiProductsUploadImageRoute,
   ApiShipbubblePingRoute: ApiShipbubblePingRoute,
+  ApiShippingAddressRoute: ApiShippingAddressRoute,
+  ApiShippingReverseGeocodeRoute: ApiShippingReverseGeocodeRoute,
   ApiShopifyCallbackRoute: ApiShopifyCallbackRoute,
   ApiShopifyInstallRoute: ApiShopifyInstallRoute,
   ApiStorePiecesUploadImageRoute: ApiStorePiecesUploadImageRoute,

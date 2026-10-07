@@ -265,7 +265,13 @@ export function ProductPage({
               <button
                 type="button"
                 disabled={soldOut}
-                onClick={onAction}
+                onClick={() =>
+                  void navigate({
+                    to: "/checkout/$productId",
+                    params: { productId: tile.id },
+                    search: { variant: variant?.id },
+                  })
+                }
                 className="h-14 min-w-0 flex-1 rounded-2xl text-[18px] font-semibold disabled:opacity-40"
                 style={btn}
               >
