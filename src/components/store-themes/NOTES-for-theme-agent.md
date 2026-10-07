@@ -20,3 +20,9 @@ keep or adjust; nothing else in this folder was touched.
    Cause was `html { scroll-behavior: smooth }` (styles.css) making the scroll restore in
    `src/hooks/use-body-scroll-lock.ts` animate from the top. Both lock hooks now restore with
    `behavior: "instant"`. Shared hooks, so every sheet using them benefits.
+
+## Product page (orders branch, 2026-10-07)
+`ProductPage.tsx` is new: tapping a real product on the live storefront now opens it (push-in,
+same pattern as `CollectionPage`) instead of the "sales locked" card. `CollectionsGrid` in
+`full-preview-blocks.tsx` gained `openedProduct` state; `openProduct` now takes the tile. The
+locked notice still shows from the page's Buy/Offer/Bag buttons until checkout is live.

@@ -34,6 +34,7 @@ import { useStorefrontCatalog, type PreviewTile, type TilePhoto } from "./storef
 import { SalesLockedNotice } from "./SalesLockedNotice";
 import { LiveStorefrontContext } from "./live-storefront";
 import { CollectionPage } from "./CollectionPage";
+import { ProductPage } from "./ProductPage";
 import { readStorefrontLook, type StorefrontLook } from "./storefront-look";
 import { readableTextColor } from "./colors";
 import { alpha, isDark } from "./theme-spec";
@@ -1158,13 +1159,21 @@ export function CollectionsGrid({
   // Checkout isn't open before launch: a product tap explains that instead.
   const [salesLocked, setSalesLocked] = useState(false);
   const live = useContext(LiveStorefrontContext);
-  function openProduct() {
+  const [openedProduct, setOpenedProduct] = useState<{
+    tile: PreviewTile;
+    look: StorefrontLook;
+  } | null>(null);
+  function openProduct(tile: PreviewTile) {
     if (editing?.isEditing) {
       editing.onTileTapBlocked();
       return;
     }
     // Only on the real storefront; previews and the editor stay quiet.
-    if (live) setSalesLocked(true);
+    if (!live) return;
+    setOpenedProduct({
+      tile,
+      look: readStorefrontLook(rootRef.current, { textColor, mutedColor, tileBg, accent }),
+    });
   }
   function openCollection(tile: PreviewTile) {
     if (editing?.isEditing) {
@@ -1229,7 +1238,7 @@ export function CollectionsGrid({
             tileBg={tileBg}
             accent={accent}
             editing={editing}
-            onTap={kind === "collections" ? () => openCollection(tile) : openProduct}
+            onTap={kind === "collections" ? () => openCollection(tile) : () => openProduct(tile)}
             onOpen={kind === "collections" ? () => openCollection(tile) : undefined}
           />
         ))}
@@ -1255,9 +1264,17 @@ export function CollectionsGrid({
                 mutedColor={opened.look.mutedColor}
                 tileBg={opened.look.tileBg}
                 accent={opened.look.accent}
-                onTap={openProduct}
+                onTap={() => openProduct(tile)}
               />
             )}
+          />
+        )}
+        {openedProduct && (
+          <ProductPage
+            tile={openedProduct.tile}
+            look={openedProduct.look}
+            onClose={() => setOpenedProduct(null)}
+            onAction={() => setSalesLocked(true)}
           />
         )}
         {salesLocked && <SalesLockedNotice onClose={() => setSalesLocked(false)} />}
