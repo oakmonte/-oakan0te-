@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
-import { ChevronLeft, ShieldCheck } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
+import { ChevronLeft, Send, ShieldCheck } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useOverlayHistory } from "@/hooks/use-overlay-history";
 import type { PreviewTile } from "./storefront-catalog";
@@ -27,6 +28,8 @@ type ProductData = {
   description: string | null;
   variants: Variant[];
   store: { brand_name: string; logo_url: string | null } | null;
+  /** The owner's personal username, which /messages?to= resolves. */
+  ownerUsername: string | null;
 };
 
 async function loadProduct(productId: string): Promise<ProductData | null> {
@@ -45,14 +48,22 @@ async function loadProduct(productId: string): Promise<ProductData | null> {
   }
   const { data: store } = await supabase
     .from("stores")
-    .select("brand_name, logo_url")
+    .select("brand_name, logo_url, owner_id")
     .eq("id", data.store_id)
     .maybeSingle();
+  const { data: owner } = store
+    ? await supabase
+        .from("profiles")
+        .select("personal_username")
+        .eq("id", store.owner_id)
+        .maybeSingle()
+    : { data: null };
   return {
     title: data.title ?? "Untitled",
     description: data.description_long?.trim() || data.description_short?.trim() || null,
     variants: (data.product_variants ?? []) as Variant[],
-    store: store ?? null,
+    store: store ? { brand_name: store.brand_name, logo_url: store.logo_url } : null,
+    ownerUsername: owner?.personal_username ?? null,
   };
 }
 
@@ -75,6 +86,7 @@ export function ProductPage({
   onClose: () => void;
   onAction: () => void;
 }) {
+  const navigate = useNavigate();
   const [shown, setShown] = useState(false);
   const [closing, setClosing] = useState(false);
   const [data, setData] = useState<ProductData | null | undefined>(undefined);
@@ -248,15 +260,33 @@ export function ProductPage({
           </p>
 
           <div className="mt-4 grid grid-cols-2 gap-2.5">
-            <button
-              type="button"
-              disabled={soldOut}
-              onClick={onAction}
-              className="col-span-2 h-14 rounded-2xl text-[18px] font-semibold disabled:opacity-40"
-              style={btn}
-            >
-              {soldOut ? "Sold out" : "Buy Now"}
-            </button>
+            <div className="col-span-2 flex gap-2.5">
+              <button
+                type="button"
+                disabled={soldOut}
+                onClick={onAction}
+                className="h-14 min-w-0 flex-1 rounded-2xl text-[18px] font-semibold disabled:opacity-40"
+                style={btn}
+              >
+                {soldOut ? "Sold out" : "Buy Now"}
+              </button>
+              {data && (
+                <button
+                  type="button"
+                  aria-label="Message the seller"
+                  onClick={() =>
+                    void navigate({
+                      to: "/messages",
+                      search: data.ownerUsername ? { to: data.ownerUsername } : {},
+                    })
+                  }
+                  className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl"
+                  style={btn}
+                >
+                  <Send size={22} />
+                </button>
+              )}
+            </div>
             <button
               type="button"
               onClick={onAction}
@@ -282,7 +312,8 @@ export function ProductPage({
           >
             <ShieldCheck size={28} className="mt-0.5 shrink-0" />
             <p className="text-[14px] leading-snug">
-              Every purchase on Oakmonte is covered. If something goes wrong, you get refunded.
+              ALL purchases in Oakmonte are covered by us. (it is physically impossible to be
+              scammed here and one in a trillion situations WILL be refunded)
             </p>
           </div>
 
@@ -295,12 +326,18 @@ export function ProductPage({
           {data?.description && (
             <div className="mt-5 border-t pt-4" style={{ borderColor: look.tileBg }}>
               <p className="text-[16px] font-medium">Description</p>
-              <p
-                className="mt-1.5 whitespace-pre-line text-[15px] leading-relaxed"
+              <ul
+                className="mt-1.5 list-disc space-y-1 pl-5 text-[15px] leading-relaxed"
                 style={{ color: look.mutedColor }}
               >
-                {data.description}
-              </p>
+                {data.description
+                  .split(String.fromCharCode(10))
+                  .map((line) => line.replace(/^\s*[-•*]\s*/, "").trim())
+                  .filter(Boolean)
+                  .map((line, i) => (
+                    <li key={i}>{line}</li>
+                  ))}
+              </ul>
             </div>
           )}
           {data?.store && (
