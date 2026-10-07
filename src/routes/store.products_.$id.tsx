@@ -444,7 +444,9 @@ function EditProduct() {
       // product_variants.price always stores what the CUSTOMER pays. If the
       // seller chose to pass the fees on, the form has to show them their own
       // asking price again, not the grossed-up one.
-      const passesFees = product.pass_fees_to_buyer;
+      // 0% commission: show the stored price as is, even on products saved with the flag on.
+      // const passesFees = product.pass_fees_to_buyer;
+      const passesFees = false;
       setPassFeesToBuyer(passesFees);
       const shownPrice = (stored: number | null) =>
         stored == null ? "" : String(passesFees ? sellerEntryFromCharged(stored) : stored);

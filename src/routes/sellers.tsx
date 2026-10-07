@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { ogImageMeta } from "@/lib/og-image";
 import { useEffect, useRef, useState } from "react";
 import { ArrowUpRight, Check, ChevronDown, Menu, X } from "lucide-react";
 import logoO from "@/assets/logo-o.png";
@@ -9,20 +10,21 @@ export const Route = createFileRoute("/sellers")({
       // White page, so the iOS status strip must be white too — see the
       // theme-color note in __root.tsx.
       { name: "theme-color", content: "#ffffff" },
-      { title: "Sell on Oakmonte — Build the unmissable." },
+      { title: "Sell on Oakmonte — Start something remarkable." },
       {
         name: "description",
         content:
           "Oakmonte gives honest sellers a fully customizable storefront and every tool and resource they need to set themselves apart — at whatever scale they choose to sell.",
       },
-      { property: "og:title", content: "Sell on Oakmonte — Build the unmissable." },
+      { property: "og:title", content: "Sell on Oakmonte — Start something remarkable." },
       {
         property: "og:description",
         content:
-          "A personal storefront, escrow-protected payments, and manufacturing support — everything free to start.",
+          "A fully customizable storefront, escrow-protected payments and every tool you need to stand out — free to start.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      ...ogImageMeta("sellers", "Sell on Oakmonte: Start something remarkable."),
     ],
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },

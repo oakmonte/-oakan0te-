@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/integrations/my-supabase/client";
-import { grossUpForNet } from "@/lib/pricing-fees";
+// import { grossUpForNet } from "@/lib/pricing-fees"; // 0% commission
 import { clearAutosavedDraft } from "@/lib/product-draft-handoff";
 import { stockTotal } from "@/components/product-form/variant-stock";
 import type { VariantOption, VariantRow } from "@/components/product-form/VariantMatrixBuilder";
@@ -136,7 +136,10 @@ async function insertBarcodes(rows: ReturnType<typeof barcodeInsertRows>) {
  */
 function chargedPrice(entered: string, passFeesToBuyer: boolean): number {
   const value = Number(entered);
-  return passFeesToBuyer ? grossUpForNet(value) : value;
+  // 0% commission: no gross-up, whatever the saved flag says. The price typed is the price charged.
+  // return passFeesToBuyer ? grossUpForNet(value) : value;
+  void passFeesToBuyer;
+  return value;
 }
 
 /** Maps a save payload onto the shared completeness rule.
