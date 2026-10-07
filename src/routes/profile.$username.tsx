@@ -1,3 +1,4 @@
+import { PaperPlaneTilt, UserCheck, UserPlus } from "@/components/icons/phosphor";
 import { createFileRoute, useNavigate, useParams, useRouter } from "@tanstack/react-router";
 import { useOverlayHistory } from "@/hooks/use-overlay-history";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -30,7 +31,6 @@ import {
   X,
   Bell,
   BellRing,
-  Send,
   UserRound,
 } from "lucide-react";
 import { BackButton } from "@/components/BackButton";
@@ -831,10 +831,11 @@ function ProfilePage() {
                 // status to wait on when nobody's signed in; the tap should just
                 // take them to sign-in, which toggleFollow already does.
                 disabled={followBusy || (!!user && followPending)}
-                className={`min-w-[110px] rounded-full px-6 py-2 text-[13px] font-bold transition-colors active:scale-95 disabled:opacity-60 ${
+                className={`flex h-11 min-w-[130px] items-center justify-center gap-2 rounded-full px-6 text-[15px] font-semibold transition-colors active:scale-95 disabled:opacity-60 ${
                   isFollowing ? "bg-chat-text/10 text-chat-text" : "bg-chat-text text-chat-inverse"
                 }`}
               >
+                {isFollowing ? <UserCheck size={18} /> : <UserPlus size={18} />}
                 {isFollowing ? "Following" : "Follow"}
               </button>
               <button
@@ -851,9 +852,10 @@ function ProfilePage() {
                   });
                 }}
                 aria-label="Message"
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-chat-text text-chat-inverse transition-transform active:scale-90"
+                className="flex h-11 items-center justify-center gap-2 rounded-full bg-chat-text/10 px-5 text-[15px] font-semibold text-chat-text transition-transform active:scale-95"
               >
-                <Send size={15} />
+                <PaperPlaneTilt size={18} />
+                Message
               </button>
             </div>
           )}

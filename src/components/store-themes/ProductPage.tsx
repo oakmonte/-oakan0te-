@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "@tanstack/react-router";
-import { ChevronLeft, Send, ShieldCheck } from "lucide-react";
+import { ChevronLeft, ShieldCheck } from "lucide-react";
+import { PaperPlaneTilt } from "@/components/icons/phosphor";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useOverlayHistory } from "@/hooks/use-overlay-history";
 import type { PreviewTile } from "./storefront-catalog";
@@ -308,7 +309,7 @@ export function ProductPage({
                       className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl"
                       style={btn}
                     >
-                      <Send size={22} />
+                      <PaperPlaneTilt size={24} />
                     </button>
                   )}
                 </div>
