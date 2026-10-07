@@ -197,7 +197,7 @@ function CheckoutPage() {
             <h2 className="text-[20px] font-semibold">Where should we deliver?</h2>
             <input
               className={field}
-              placeholder="Account name"
+              placeholder="Your bank account name"
               autoComplete="name"
               value={name}
               onChange={(e) => setName(e.target.value)}

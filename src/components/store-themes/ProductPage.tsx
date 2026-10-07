@@ -88,6 +88,7 @@ export function ProductPage({
 }) {
   const navigate = useNavigate();
   const [askAccount, setAskAccount] = useState(false);
+  const [confirmGuest, setConfirmGuest] = useState(false);
   function goCheckout() {
     void navigate({
       to: "/checkout/$productId",
@@ -100,7 +101,10 @@ export function ProductPage({
   async function buyNow() {
     const { data: sess } = await supabase.auth.getSession();
     if (sess.session) goCheckout();
-    else setAskAccount(true);
+    else {
+      setConfirmGuest(false);
+      setAskAccount(true);
+    }
   }
   const [shown, setShown] = useState(false);
   const [closing, setClosing] = useState(false);
@@ -396,26 +400,34 @@ export function ProductPage({
               className="absolute inset-x-3 rounded-[26px] bg-white px-6 pb-5 pt-7 text-center text-black shadow-[0_20px_60px_rgba(0,0,0,0.35)]"
               style={{ bottom: "calc(env(safe-area-inset-bottom) + 12px)" }}
             >
-              <h2 className="text-[20px] font-bold leading-tight">Get the best experience</h2>
+              <h2 className="text-[20px] font-bold leading-tight">
+                {confirmGuest ? "Are you sure?" : "Get the best experience"}
+              </h2>
               <p className="mt-2 text-[15px] leading-relaxed text-black/60">
-                Sign in or create an account to track your order, message sellers and make offers.
+                {confirmGuest
+                  ? "Without an account you can't track this order in the app, message the seller or make offers. We'll email your updates instead."
+                  : "Sign in or create an account to track your order, message sellers and make offers."}
               </p>
               <button
                 type="button"
                 onClick={() => void navigate({ to: "/sign-in" })}
                 className="mt-6 h-12 w-full rounded-full bg-black text-[15px] font-semibold text-white"
               >
-                Sign in or create an account
+                {confirmGuest ? "Create an account" : "Sign in or create an account"}
               </button>
               <button
                 type="button"
                 onClick={() => {
+                  if (!confirmGuest) {
+                    setConfirmGuest(true);
+                    return;
+                  }
                   setAskAccount(false);
                   goCheckout();
                 }}
                 className="mt-2 h-11 w-full rounded-full text-[15px] font-semibold text-black/60"
               >
-                Continue without an account
+                {confirmGuest ? "Yes, continue as a guest" : "Continue without an account"}
               </button>
             </div>
           </div>,
