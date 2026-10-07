@@ -283,7 +283,13 @@ export function ProductPage({
                   className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl"
                   style={btn}
                 >
-                  <Send size={22} />
+                  <Send
+                    size={22}
+                    fill="currentColor"
+                    strokeWidth={3}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
                 </button>
               )}
             </div>
