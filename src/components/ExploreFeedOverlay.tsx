@@ -24,9 +24,12 @@ const TABS: { key: FeedTab; label: string }[] = [
 export function ExploreFeedOverlay({
   ownUsername,
   onClose,
+  initialPostId,
 }: {
   ownUsername?: string;
   onClose: () => void;
+  /** Scroll the For you feed to this post on open (a tapped grid tile). */
+  initialPostId?: string;
 }) {
   const [active, setActive] = useState<FeedTab>("for-you");
   // Held HERE, not in the feed, because the feed unmounts the moment you swipe
@@ -122,6 +125,7 @@ export function ExploreFeedOverlay({
             ) : (
               <PostFeed
                 mode="embedded"
+                initialPostId={active === "for-you" ? initialPostId : undefined}
                 onActivePost={setActivePost}
                 onSwipePastEnd={() => go(1)}
                 scope={

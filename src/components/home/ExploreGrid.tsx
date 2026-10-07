@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Copy, Play } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
-import { PostFeed } from "@/components/feed/PostFeed";
+import { AnimatePresence } from "framer-motion";
+import { ExploreFeedOverlay } from "@/components/ExploreFeedOverlay";
 
 type ExplorePost = {
   id: string;
@@ -70,7 +71,7 @@ function Tile({ post, ratio, onOpen }: { post: ExplorePost; ratio: string; onOpe
 /** The Explore tab: a two-column wall of every published post, newest first.
  *  Tapping one opens the same full-screen swipeable viewer the profile grids
  *  use, scoped to the For You feed and scrolled to the tapped post. */
-export function ExploreGrid() {
+export function ExploreGrid({ ownUsername }: { ownUsername?: string }) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const { data: posts, isPending } = useQuery({
     queryKey: ["home-explore-posts"],
@@ -128,13 +129,16 @@ export function ExploreGrid() {
           ))}
         </div>
       </div>
-      {activeId && (
-        <PostFeed
-          scope={{ type: "for-you" }}
-          initialPostId={activeId}
-          onClose={() => setActiveId(null)}
-        />
-      )}
+      <AnimatePresence>
+        {activeId && (
+          <ExploreFeedOverlay
+            key="explore-overlay"
+            ownUsername={ownUsername}
+            initialPostId={activeId}
+            onClose={() => setActiveId(null)}
+          />
+        )}
+      </AnimatePresence>
     </>
   );
 }

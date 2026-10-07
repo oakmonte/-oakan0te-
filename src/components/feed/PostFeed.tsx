@@ -763,12 +763,15 @@ function CarouselDots({ index, total }: { index: number; total: number }) {
 function RailAction({
   label,
   count,
+  caption,
   pressed,
   onPress,
   children,
 }: {
   label: string;
   count?: number;
+  /** Words under the icon ("Likes", "Cart") instead of a number. */
+  caption?: string;
   pressed?: boolean;
   onPress?: () => void;
   children: ReactNode;
@@ -794,6 +797,11 @@ function RailAction({
       {count !== undefined && (
         <span className="text-[12px] font-semibold leading-none tabular-nums [text-shadow:0_1px_2px_rgba(0,0,0,0.6)]">
           {formatCount(count)}
+        </span>
+      )}
+      {caption && (
+        <span className="text-[11px] font-semibold leading-none [text-shadow:0_1px_2px_rgba(0,0,0,0.6)]">
+          {caption}
         </span>
       )}
     </button>
@@ -1244,7 +1252,7 @@ function FeedPostCard({
         <div className="flex flex-col items-center gap-2.5">
           <RailAction
             label={liked ? "Unlike" : "Like"}
-            count={likeCount}
+            caption="Likes"
             pressed={liked}
             onPress={() => setLiked((v) => !v)}
           >
@@ -1265,13 +1273,13 @@ function FeedPostCard({
             </motion.span>
           </RailAction>
 
-          <RailAction label="Comments" count={0} onPress={() => setCommentsOpen(true)}>
+          <RailAction label="Comments" caption="Comments" onPress={() => setCommentsOpen(true)}>
             <MessageCircle size={28} />
           </RailAction>
 
           <RailAction
             label={saved ? "Remove from favourites" : "Add to favourites"}
-            count={saveCount}
+            caption="Wishlist"
             pressed={saved}
             onPress={handleSave}
           >
@@ -1304,7 +1312,7 @@ function FeedPostCard({
           {!asStore && (
             <RailAction
               label="Add tagged items to cart"
-              count={tags.length}
+              caption="Cart"
               onPress={() => showLocked("Cart is unavailable for now")}
             >
               <ShoppingBag size={28} />
@@ -1316,7 +1324,7 @@ function FeedPostCard({
               are what draw the chips under the caption and what a stranger
               swiping to Listed items on this post ends up looking at. */}
           {isOwnerView && (
-            <RailAction label="Link products" count={tags.length} onPress={() => setLinkOpen(true)}>
+            <RailAction label="Link products" caption="Link" onPress={() => setLinkOpen(true)}>
               <Link2 size={28} />
             </RailAction>
           )}
@@ -1331,7 +1339,7 @@ function FeedPostCard({
               <MoreHorizontal size={28} />
             </RailAction>
           ) : (
-            <RailAction label="Share" count={0}>
+            <RailAction label="Share">
               <Send size={28} strokeLinecap="round" strokeLinejoin="round" />
             </RailAction>
           )}

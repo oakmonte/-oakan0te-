@@ -52,7 +52,7 @@ function HomePage() {
         />
       </div>
 
-      {tab === "shop" ? <ShopFeed /> : <ExploreGrid />}
+      {tab === "shop" ? <ShopFeed /> : <ExploreGrid ownUsername={ownUsername} />}
 
       <BottomNav active="home" ownUsername={ownUsername} />
     </div>
