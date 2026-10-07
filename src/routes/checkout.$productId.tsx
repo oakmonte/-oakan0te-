@@ -63,7 +63,8 @@ function CheckoutPage() {
   const { variant } = Route.useSearch();
   const navigate = useNavigate();
   const [summary, setSummary] = useState<Summary | null | undefined>(undefined);
-  const [signedIn, setSignedIn] = useState<boolean | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
@@ -75,7 +76,9 @@ function CheckoutPage() {
 
   useEffect(() => {
     void loadSummary(productId, variant).then(setSummary);
-    void supabase.auth.getSession().then(({ data }) => setSignedIn(!!data.session));
+    void supabase.auth
+      .getSession()
+      .then(({ data }) => setUserEmail(data.session?.user.email ?? null));
   }, [productId, variant]);
 
   function back() {
@@ -116,7 +119,12 @@ function CheckoutPage() {
 
   async function confirmAddress() {
     setError("");
-    if (!name.trim() || !phone.trim() || address.trim().length < 8) {
+    if (
+      !name.trim() ||
+      !phone.trim() ||
+      address.trim().length < 8 ||
+      (!userEmail && !email.trim())
+    ) {
       setError("Add your account name, phone number and full address.");
       return;
     }
@@ -128,6 +136,7 @@ function CheckoutPage() {
         body: JSON.stringify({
           name: name.trim(),
           phone: phone.trim(),
+          email: email.trim(),
           address: address.trim(),
           lat: coords?.lat,
           lng: coords?.lng,
@@ -183,20 +192,7 @@ function CheckoutPage() {
           </div>
         )}
 
-        {signedIn === false && (
-          <div className="mt-6 rounded-2xl bg-white/[0.06] p-4">
-            <p className="text-[15px]">Sign in to buy this.</p>
-            <button
-              type="button"
-              onClick={() => void navigate({ to: "/sign-in" })}
-              className="mt-3 h-12 w-full rounded-2xl bg-white text-[16px] font-semibold text-black"
-            >
-              Sign in
-            </button>
-          </div>
-        )}
-
-        {signedIn && !validated && (
+        {!validated && (
           <div className="mt-6 flex flex-col gap-3">
             <h2 className="text-[20px] font-semibold">Where should we deliver?</h2>
             <input
@@ -206,6 +202,17 @@ function CheckoutPage() {
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
+            {!userEmail && (
+              <input
+                className={field}
+                placeholder="Email (for order updates)"
+                type="email"
+                autoComplete="email"
+                inputMode="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            )}
             <input
               className={field}
               placeholder="Phone number"
@@ -246,7 +253,7 @@ function CheckoutPage() {
           </div>
         )}
 
-        {signedIn && validated && (
+        {validated && (
           <div className="mt-6 flex flex-col gap-3">
             <h2 className="text-[20px] font-semibold">Delivering to</h2>
             <div className="rounded-2xl bg-white/[0.06] p-4 text-[15px]">

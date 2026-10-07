@@ -7,12 +7,25 @@ import { getRequestUser } from "@/lib/server-auth";
 // Free tier, one lookup per tap, signed-in callers only.
 const NO_STORE = { "Cache-Control": "no-store, private", Vary: "Authorization" } as const;
 
+// Open to guests (guest checkout); per-caller window so it cannot be looped.
+const hits = new Map<string, number[]>();
+function limited(key: string) {
+  const now = Date.now();
+  const recent = (hits.get(key) ?? []).filter((t) => now - t < 60_000);
+  recent.push(now);
+  hits.set(key, recent);
+  return recent.length > 10;
+}
+
 export const Route = createFileRoute("/api/shipping/reverse-geocode")({
   server: {
     handlers: {
       POST: async ({ request }: { request: Request }) => {
         const user = await getRequestUser(request);
-        if (!user) return Response.json({ error: "Not signed in" }, { status: 401 });
+        const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+        if (limited(user?.id ?? ip)) {
+          return Response.json({ error: "Too many tries" }, { status: 429 });
+        }
 
         const body = (await request.json().catch(() => null)) as {
           lat?: unknown;
