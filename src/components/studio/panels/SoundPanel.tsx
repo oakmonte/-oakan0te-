@@ -1,4 +1,4 @@
-import { Music4, Scissors, Unlink, Waves } from "lucide-react";
+import { Loader2, Mic, Music4, Scissors, Sparkle, Unlink, Waves } from "lucide-react";
 import { EmptyHint, Pill, StudioSheet } from "../controls";
 import type { VideoClip } from "@/lib/studio/types";
 
@@ -6,6 +6,9 @@ export function SoundPanel({
   clip,
   canDetach,
   onAddMusic,
+  onAddEffect,
+  onVoiceover,
+  loading,
   onDetach,
   onDetectBeats,
   onCutToBeats,
@@ -17,6 +20,10 @@ export function SoundPanel({
   clip: VideoClip | null;
   canDetach: boolean;
   onAddMusic: () => void;
+  onAddEffect: () => void;
+  onVoiceover: () => void;
+  /** A library sound is downloading; it lands at the playhead when done. */
+  loading: boolean;
   onDetach: () => void;
   onDetectBeats: () => void;
   onCutToBeats: () => void;
@@ -28,9 +35,19 @@ export function SoundPanel({
   return (
     <StudioSheet title="Sound" onDone={onDone}>
       <div className="flex gap-2 overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden">
-        <Pill onClick={onAddMusic}>
+        <Pill onClick={onAddMusic} disabled={loading}>
           <span className="flex items-center gap-1.5">
-            <Music4 size={13} /> Add track
+            <Music4 size={13} /> Add music
+          </span>
+        </Pill>
+        <Pill onClick={onAddEffect} disabled={loading}>
+          <span className="flex items-center gap-1.5">
+            <Sparkle size={13} /> Add effect
+          </span>
+        </Pill>
+        <Pill onClick={onVoiceover}>
+          <span className="flex items-center gap-1.5">
+            <Mic size={13} /> Voiceover
           </span>
         </Pill>
         <Pill onClick={onDetach} disabled={!clip || !canDetach || clip.audioDetached}>
@@ -49,6 +66,12 @@ export function SoundPanel({
           </span>
         </Pill>
       </div>
+
+      {loading && (
+        <p className="flex items-center gap-2 pb-3 text-[12px] text-white/70">
+          <Loader2 size={13} className="animate-spin" /> Getting the sound…
+        </p>
+      )}
 
       {beatCount > 0 ? (
         <p className="pb-3 text-[12px] text-white/60">

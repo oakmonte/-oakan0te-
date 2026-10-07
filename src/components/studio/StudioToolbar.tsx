@@ -17,6 +17,8 @@ import {
   Unlink,
   Volume2,
   Blend,
+  Sticker as StickerIcon,
+  ZoomIn,
 } from "lucide-react";
 import { ToolButton } from "./controls";
 
@@ -25,7 +27,7 @@ import { ToolButton } from "./controls";
 // wrapping — an editor toolbar that reflows onto two lines moves every button
 // under your thumb the moment a new one appears.
 
-export type PrimaryTool = "edit" | "sound" | "text" | "tags" | "canvas" | "cover";
+export type PrimaryTool = "edit" | "sound" | "text" | "sticker" | "tags" | "canvas" | "cover";
 export type ClipTool =
   | "split"
   | "speed"
@@ -33,6 +35,7 @@ export type ClipTool =
   | "separate"
   | "filters"
   | "adjust"
+  | "zoom"
   | "transition"
   | "moveLeft"
   | "moveRight"
@@ -50,6 +53,11 @@ export function PrimaryToolbar({ onPick }: { onPick: (tool: PrimaryTool) => void
       <ToolButton label="Edit" icon={<SquarePen size={18} />} onClick={() => onPick("edit")} />
       <ToolButton label="Sound" icon={<Music2 size={18} />} onClick={() => onPick("sound")} />
       <ToolButton label="Text" icon={<Type size={18} />} onClick={() => onPick("text")} />
+      <ToolButton
+        label="Stickers"
+        icon={<StickerIcon size={18} />}
+        onClick={() => onPick("sticker")}
+      />
       <ToolButton label="Product tag" icon={<Tag size={18} />} onClick={() => onPick("tags")} />
       <ToolButton label="Canvas" icon={<Crop size={18} />} onClick={() => onPick("canvas")} />
       <ToolButton label="Cover" icon={<ImageIcon size={18} />} onClick={() => onPick("cover")} />
@@ -85,6 +93,15 @@ export function ClipToolbar({
       </div>
       <ToolButton label="Split" icon={<Scissors size={18} />} onClick={() => onPick("split")} />
       <ToolButton label="Speed" icon={<Gauge size={18} />} onClick={() => onPick("speed")} />
+      {/* Third, not last: at the end of a scrolling row it was the one action
+          people looked for and couldn't find. */}
+      <ToolButton
+        label="Delete"
+        icon={<Trash2 size={18} />}
+        onClick={() => onPick("delete")}
+        disabled={!canDelete}
+        tone="danger"
+      />
       <ToolButton label="Volume" icon={<Volume2 size={18} />} onClick={() => onPick("volume")} />
       <ToolButton
         label="Detach audio"
@@ -98,6 +115,7 @@ export function ClipToolbar({
         icon={<SlidersHorizontal size={18} />}
         onClick={() => onPick("adjust")}
       />
+      <ToolButton label="Zoom" icon={<ZoomIn size={18} />} onClick={() => onPick("zoom")} />
       <ToolButton
         label="Transition"
         icon={<Sparkles size={18} />}
@@ -120,13 +138,6 @@ export function ClipToolbar({
         disabled={!canMoveRight}
       />
       <ToolButton label="Duplicate" icon={<Copy size={18} />} onClick={() => onPick("duplicate")} />
-      <ToolButton
-        label="Delete"
-        icon={<Trash2 size={18} />}
-        onClick={() => onPick("delete")}
-        disabled={!canDelete}
-        tone="danger"
-      />
     </div>
   );
 }

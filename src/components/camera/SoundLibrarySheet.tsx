@@ -2,7 +2,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2, Pause, Play, Search } from "lucide-react";
 import CameraPanel from "@/components/camera/CameraPanel";
 import { authedFetch } from "@/lib/authed-fetch";
-import { type LibraryTrack, SOUND_GENRES, formatDuration } from "@/lib/sound-library";
+import {
+  type LibraryTrack,
+  type SoundKind,
+  SOUND_EFFECT_TAGS,
+  SOUND_GENRES,
+  formatDuration,
+} from "@/lib/sound-library";
 
 // Pick a track from the catalogue.
 //
@@ -26,11 +32,36 @@ const SEARCH_DEBOUNCE_MS = 350;
 type Props = {
   open: boolean;
   onClose: () => void;
-  onPick: (track: LibraryTrack) => void;
+  onPick: (track: LibraryTrack, kind: SoundKind) => void;
+  /** Offer a Music / Effects switch. Only an editor that mixes several
+   *  sounds into the video has a use for effects; everywhere else a post has
+   *  one sound, and it is a song. */
+  withEffects?: boolean;
+  /** Which tab to open on, when `withEffects`. */
+  initialKind?: SoundKind;
 };
 
-export default function SoundLibrarySheet({ open, onClose, onPick }: Props) {
-  const [genre, setGenre] = useState<string>(SOUND_GENRES[0].id);
+export default function SoundLibrarySheet({
+  open,
+  onClose,
+  onPick,
+  withEffects = false,
+  initialKind = "music",
+}: Props) {
+  const [kind, setKind] = useState<SoundKind>(withEffects ? initialKind : "music");
+  // Each tab remembers its own chip, so flipping to Effects and back doesn't
+  // lose the genre you were browsing.
+  const [genres, setGenres] = useState<Record<SoundKind, string>>({
+    music: SOUND_GENRES[0].id,
+    sfx: SOUND_EFFECT_TAGS[0].id,
+  });
+  const genre = genres[kind];
+  const setGenre = (id: string) => setGenres((prev) => ({ ...prev, [kind]: id }));
+  const chips = kind === "sfx" ? SOUND_EFFECT_TAGS : SOUND_GENRES;
+
+  useEffect(() => {
+    if (open && withEffects) setKind(initialKind);
+  }, [open, withEffects, initialKind]);
   const [text, setText] = useState("");
   const [tracks, setTracks] = useState<LibraryTrack[]>([]);
   const [loading, setLoading] = useState(false);
@@ -45,13 +76,14 @@ export default function SoundLibrarySheet({ open, onClose, onPick }: Props) {
   // like the filter is broken.
   const requestRef = useRef(0);
 
-  const load = useCallback(async (nextGenre: string, nextText: string) => {
+  const load = useCallback(async (nextGenre: string, nextText: string, nextKind: SoundKind) => {
     const id = ++requestRef.current;
     setLoading(true);
     setError(null);
     try {
       const params = new URLSearchParams({ genre: nextGenre });
       if (nextText.trim()) params.set("q", nextText.trim());
+      if (nextKind === "sfx") params.set("kind", "sfx");
       const res = await authedFetch(`/api/sounds?${params.toString()}`);
       const body = await res.json();
       if (id !== requestRef.current) return;
@@ -72,12 +104,12 @@ export default function SoundLibrarySheet({ open, onClose, onPick }: Props) {
   useEffect(() => {
     if (!open) return;
     if (!text.trim()) {
-      void load(genre, "");
+      void load(genre, "", kind);
       return;
     }
-    const timer = setTimeout(() => void load(genre, text), SEARCH_DEBOUNCE_MS);
+    const timer = setTimeout(() => void load(genre, text, kind), SEARCH_DEBOUNCE_MS);
     return () => clearTimeout(timer);
-  }, [open, genre, text, load]);
+  }, [open, genre, text, kind, load]);
 
   // Nothing should still be playing behind a closed sheet.
   useEffect(() => {
@@ -110,7 +142,7 @@ export default function SoundLibrarySheet({ open, onClose, onPick }: Props) {
   function choose(track: LibraryTrack) {
     audioRef.current?.pause();
     setPlayingId(null);
-    onPick(track);
+    onPick(track, kind);
     onClose();
   }
 
@@ -124,6 +156,29 @@ export default function SoundLibrarySheet({ open, onClose, onPick }: Props) {
       // than dragging the controls up into the sheet's header with them.
       toolbar={
         <>
+          {withEffects && (
+            <div className="mb-3 flex rounded-full bg-white/[0.08] p-1" role="tablist">
+              {(
+                [
+                  ["music", "Music"],
+                  ["sfx", "Effects"],
+                ] as const
+              ).map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  role="tab"
+                  aria-selected={kind === id}
+                  onClick={() => setKind(id)}
+                  className={`flex-1 rounded-full py-2 text-[14px] font-semibold transition-colors ${
+                    kind === id ? "bg-white text-black" : "text-white/70"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
           <div className="relative mb-3">
             <Search
               size={17}
@@ -132,7 +187,7 @@ export default function SoundLibrarySheet({ open, onClose, onPick }: Props) {
             <input
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder="Search for a sound"
+              placeholder={kind === "sfx" ? "Search for an effect" : "Search for a sound"}
               className="w-full rounded-xl bg-white/[0.08] py-3 pl-11 pr-3.5 text-[15px] text-white outline-none placeholder:text-white/35 focus:bg-white/[0.12]"
             />
           </div>
@@ -141,7 +196,7 @@ export default function SoundLibrarySheet({ open, onClose, onPick }: Props) {
               a catalogue they have never seen, and the honest answer to "what is
               in here" is a row of things to tap. */}
           <div className="no-scrollbar -mx-6 mb-3 flex gap-2 overflow-x-auto px-6 pb-1">
-            {SOUND_GENRES.map((g) => (
+            {chips.map((g) => (
               <button
                 key={g.id}
                 type="button"

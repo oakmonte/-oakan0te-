@@ -1,9 +1,11 @@
 import { useMemo, useRef } from "react";
+import { animateLayer } from "@/lib/studio/layer-anim";
 import { useFittedSize } from "@/hooks/use-fitted-size";
 import LayerOverlay from "@/components/camera/LayerOverlay";
 import { useLayerRenderer } from "@/components/camera/aftershot/use-layer-renderer";
 import { combinedFilterCss } from "@/lib/studio/adjustments";
 import {
+  clipZoomAt,
   transformCss,
   transitionFrame,
   transitionStateAt,
@@ -33,10 +35,6 @@ type Props = {
   onSelect: (selection: StudioSelection) => void;
   onUpdateLayer: (id: string, patch: Partial<TimedLayer>) => void;
   onUpdatePin: (id: string, patch: Partial<ProductPin>) => void;
-  /** Read-only captions and drawings carried in from the after-shot screen.
-   *  Shown so the framing is honest, never baked here — after-shot-export.ts
-   *  still owns them. */
-  inheritedLayers: Layer[];
   showGuides: boolean;
   /** Auditioning a filter grades the preview without committing, exactly like
    *  the after-shot screen's filter list. */
@@ -56,7 +54,6 @@ export default function StudioPreview({
   onSelect,
   onUpdateLayer,
   onUpdatePin,
-  inheritedLayers,
   showGuides,
   filterPreviewId,
   gradeClipId,
@@ -112,7 +109,12 @@ export default function StudioPreview({
     return { ...NEUTRAL, opacity: 0 };
   };
 
-  const visibleLayers = project.layers.filter((l) => time >= l.startTime && time <= l.endTime);
+  // Entrances animate only while playing. Paused, a layer shows at rest, so
+  // dragging it on the preview moves its real position — not a frame of its
+  // pop or slide, which would be written back as where it lives.
+  const visibleLayers = project.layers
+    .filter((l) => time >= l.startTime && time <= l.endTime)
+    .map((l) => (playback.playing ? animateLayer(l, time) : l));
   const objectFit = project.fitMode === "fill" ? "cover" : "contain";
 
   return (
@@ -136,6 +138,14 @@ export default function StudioPreview({
           const opacity = transition ? t.opacity : index === liveIndex && !inGap ? 1 : 0;
           const filterId =
             filterPreviewId && clip.id === gradeClipId ? filterPreviewId : clip.filterId;
+          // The clip's zoom at this moment, on the media element only — the
+          // wrapper carries the transition's own transform, and the vignette
+          // stays put, exactly as gradeInto() draws it.
+          const zoom = clipZoomAt(
+            clip,
+            clip.inPoint + Math.max(0, time - starts[index]) * clip.speed,
+          );
+          const zoomCss = zoom === 1 ? undefined : `scale(${zoom.toFixed(4)})`;
 
           return (
             <div
@@ -160,7 +170,11 @@ export default function StudioPreview({
                   alt=""
                   draggable={false}
                   className="absolute inset-0 w-full h-full"
-                  style={{ objectFit, filter: combinedFilterCss(filterId, clip.adjustments) }}
+                  style={{
+                    objectFit,
+                    filter: combinedFilterCss(filterId, clip.adjustments),
+                    transform: zoomCss,
+                  }}
                 />
               ) : (
                 <video
@@ -171,7 +185,11 @@ export default function StudioPreview({
                   disableRemotePlayback
                   preload="auto"
                   className="absolute inset-0 w-full h-full"
-                  style={{ objectFit, filter: combinedFilterCss(filterId, clip.adjustments) }}
+                  style={{
+                    objectFit,
+                    filter: combinedFilterCss(filterId, clip.adjustments),
+                    transform: zoomCss,
+                  }}
                 />
               )}
               {clip.adjustments.vignette > 0 && (
@@ -208,20 +226,6 @@ export default function StudioPreview({
         })}
 
         {showGuides && <FramingGuides />}
-
-        {/* Captions carried over from the after-shot screen — inert here. */}
-        {inheritedLayers.length > 0 && (
-          <div className="absolute inset-0 pointer-events-none opacity-90">
-            <LayerOverlay
-              containerRef={boxRef}
-              layers={inheritedLayers}
-              updateLayer={() => {}}
-              selectedLayerId={null}
-              setSelectedLayerId={() => {}}
-              renderLayerContent={renderLayerContent}
-            />
-          </div>
-        )}
 
         <LayerOverlay
           containerRef={boxRef}

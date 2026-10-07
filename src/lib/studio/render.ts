@@ -137,6 +137,38 @@ export function transitionFrame(kind: TransitionKind, progress: number): Transit
 }
 
 /** CSS for a preview layer. Kept next to transitionFrame so the two never drift. */
+export type ClipZoom = { from: number; to: number };
+
+export const ZOOM_PRESETS: { id: string; label: string; zoom: ClipZoom | undefined }[] = [
+  { id: "none", label: "None", zoom: undefined },
+  { id: "in", label: "Zoom in", zoom: { from: 1, to: 1.2 } },
+  { id: "out", label: "Zoom out", zoom: { from: 1.2, to: 1 } },
+  { id: "close", label: "Close-up", zoom: { from: 1.35, to: 1.35 } },
+];
+
+export function zoomPresetOf(zoom: ClipZoom | undefined): string {
+  if (!zoom) return "none";
+  return (
+    ZOOM_PRESETS.find((p) => p.zoom && p.zoom.from === zoom.from && p.zoom.to === zoom.to)?.id ??
+    "none"
+  );
+}
+
+/** A clip's scale at a point in its SOURCE time. Eased, so a push in starts
+ *  and settles gently rather than at a constant crawl. Preview and export
+ *  both read this, so the file moves exactly as the editor showed. */
+export function clipZoomAt(
+  clip: { inPoint: number; outPoint: number; zoom?: ClipZoom },
+  sourceTime: number,
+): number {
+  const zoom = clip.zoom;
+  if (!zoom) return 1;
+  if (zoom.from === zoom.to) return zoom.from;
+  const length = clip.outPoint - clip.inPoint;
+  const progress = length > 0 ? Math.min(1, Math.max(0, (sourceTime - clip.inPoint) / length)) : 0;
+  return zoom.from + (zoom.to - zoom.from) * easeInOut(progress);
+}
+
 export function transformCss(t: LayerTransform): string {
   return `translateX(${(t.offsetX * 100).toFixed(3)}%) scale(${t.scale.toFixed(4)})`;
 }

@@ -8,6 +8,7 @@ import {
   formatDuration,
   isLicenceUsable,
   isTrustedAudioSource,
+  isLikelySoundEffect,
   isUsableTrack,
   plainText,
   stripTracking,
@@ -230,5 +231,27 @@ describe("formatDuration", () => {
     expect(formatDuration(65)).toBe("1:05");
     expect(formatDuration(9)).toBe("0:09");
     expect(formatDuration(600)).toBe("10:00");
+  });
+});
+
+describe("sound effects", () => {
+  const page = (file: string) =>
+    `https://commons.wikimedia.org/wiki/File:${encodeURIComponent(file)}`;
+
+  test("effects have their own length window", () => {
+    expect(isUsableTrack(track({ durationSeconds: 2 }), "sfx")).toBe(true);
+    expect(isUsableTrack(track({ durationSeconds: 2 }))).toBe(false);
+    expect(isUsableTrack(track({ durationSeconds: 0.1 }), "sfx")).toBe(false);
+    expect(isUsableTrack(track({ durationSeconds: 120 }), "sfx")).toBe(false);
+  });
+
+  test("drops pronunciation recordings and MIDI examples, keeps real effects", () => {
+    const effect = (file: string) => isLikelySoundEffect(track({ sourceUrl: page(file) }));
+    expect(effect("Notification 4 (Gravity Sound).wav")).toBe(true);
+    expect(effect("Squeaky door.ogg")).toBe(true);
+    expect(effect("LL-Q1860 (eng)-Arlo Barnes-whoosh.wav")).toBe(false);
+    expect(effect("En-us-applause.ogg")).toBe(false);
+    expect(effect("De-Ns.ogg")).toBe(false);
+    expect(effect("Upper neighbor note example 1.mid")).toBe(false);
   });
 });

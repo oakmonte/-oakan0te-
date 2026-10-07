@@ -15,7 +15,9 @@
 // honoured in exactly one place.
 
 import {
+  SOUND_EFFECT_TAGS,
   type LibraryTrack,
+  type SoundKind,
   type TrackLicence,
   plainText,
   stripTracking,
@@ -73,7 +75,7 @@ const GENRE_CATEGORY: Record<string, string> = {
   international: FMA("International"), // 35
 };
 
-export type SoundQuery = { genre?: string; text?: string; offset?: number };
+export type SoundQuery = { genre?: string; text?: string; offset?: number; kind?: SoundKind };
 
 /** Typed text, reduced to something CirrusSearch will read as words.
  *
@@ -103,8 +105,18 @@ function quoteSafe(value: string): string {
  *  A genre browses its category; free text searches everything; both together
  *  searches within the genre, which is what a genre chip plus a typed word
  *  should obviously do. */
-export function buildSearchExpression({ genre, text }: SoundQuery): string {
+export function buildSearchExpression({ genre, text, kind }: SoundQuery): string {
   const parts = ["filetype:audio"];
+  // Effects: `genre` is an effect chip. Its word is searched for; "All" with
+  // nothing typed browses the Gravity Sound pack. See SOUND_EFFECT_TAGS.
+  if (kind === "sfx") {
+    const tag = SOUND_EFFECT_TAGS.find((t) => t.id === genre);
+    const typed = quoteSafe(text ?? "");
+    if (tag?.query) parts.push(quoteSafe(tag.query));
+    if (typed) parts.push(typed);
+    if (!tag?.query && !typed) parts.push('intitle:"Gravity Sound"');
+    return parts.join(" ");
+  }
   const category = genre ? GENRE_CATEGORY[genre] : undefined;
   if (category) parts.push(`incategory:"${category}"`);
   const typed = quoteSafe(text ?? "");

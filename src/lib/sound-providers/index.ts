@@ -7,12 +7,12 @@
 // may be fetched from — those live in sound-library.ts precisely so a second
 // source cannot answer them differently from the first.
 
-import type { LibraryTrack, SoundProviderId } from "@/lib/sound-library";
+import type { LibraryTrack, SoundKind, SoundProviderId } from "@/lib/sound-library";
 import * as ccmixter from "./ccmixter";
 import * as jamendo from "./jamendo";
 import * as wikimedia from "./wikimedia";
 
-export type SoundQuery = { genre?: string; text?: string; offset?: number };
+export type SoundQuery = { genre?: string; text?: string; offset?: number; kind?: SoundKind };
 
 export type SoundProvider = {
   id: SoundProviderId;
@@ -28,6 +28,10 @@ export type SoundProvider = {
    *  for it, and a request that identifies itself is easier for them to
    *  whitelist than one that doesn't. */
   userAgent: string;
+  /** Whether this catalogue has sound effects worth searching. Only Commons
+   *  does: ccMixter and Jamendo are music sites, and asking them for a door
+   *  slam returns songs with "door" in the title. */
+  hasEffects?: boolean;
 };
 
 const UA = "Oakmonte/1.0 (https://oakmonte.com; oakmonte.store@gmail.com) sound-library";
@@ -39,6 +43,7 @@ export const PROVIDERS: SoundProvider[] = [
     parseSearchResponse: wikimedia.parseSearchResponse,
     pageSize: wikimedia.OVERFETCH,
     userAgent: UA,
+    hasEffects: true,
   },
   {
     id: "ccmixter",

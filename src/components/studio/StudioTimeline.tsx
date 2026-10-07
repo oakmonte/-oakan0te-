@@ -6,8 +6,10 @@ import {
   Volume2,
   VolumeX,
   Type as TypeIcon,
+  PenLine,
   Sparkles,
-  Trash2,
+  Sticker as StickerIcon,
+  Tag,
   Unlink,
   X,
 } from "lucide-react";
@@ -33,12 +35,19 @@ import {
   TRACK_TOP_PAD,
   VIDEO_TRACK_CENTER,
   VIDEO_TRACK_H,
+  LANE_GAP,
+  laneTop,
+  timelineLayout,
+  type TrackKind,
 } from "@/lib/studio/layout";
+import { isTextLayer, laneCount, placeLane } from "@/lib/studio/lanes";
+import { SNAP_PX, snapSpan, snapTime } from "@/lib/studio/snap";
 import {
   audioDuration,
   clipDuration,
   clipStarts,
   formatTimecode,
+  projectDuration,
   timelineExtent,
   type AudioClip,
   type SourceMap,
@@ -48,8 +57,14 @@ import {
   type VideoClip,
 } from "@/lib/studio/types";
 
-/** How far up a held clip has to be pulled to be over the bin. */
-const BIN_PULL = 40;
+/** The shortest a caption, sticker or pin can be trimmed to. */
+const MIN_OVERLAY_SECONDS = 0.3;
+/** A clip's width while the track is in reorder mode: square, the track's
+ *  own height, whatever the clip's duration. */
+const SQUARE = VIDEO_TRACK_H;
+/** Near either edge a held clip scrolls the strip. */
+const EDGE_ZONE = 48;
+const EDGE_SPEED = 7;
 
 // The reference's timeline, rebuilt: a playhead welded to the centre of the
 // screen with the tracks scrolling underneath it.
@@ -83,12 +98,14 @@ type Props = {
   beats: number[];
   onTrim: (clipId: string, edge: "in" | "out", sourceTime: number) => void;
   onReorder: (clipId: string, toIndex: number) => void;
-  /** A held clip let go of over the bin. */
-  onDeleteClip: (clipId: string) => void;
-  /** Slide a clip into the free space around it, opening or closing a gap. */
-  onSlide: (clipId: string, gapBefore: number) => void;
   onCloseGap: (clipId: string) => void;
-  onMoveAudio: (audioId: string, timelineStart: number) => void;
+  onMoveAudio: (audioId: string, timelineStart: number, lane: number) => void;
+  /** Move or trim a caption, sticker or pin: timeline seconds, and its lane. */
+  onRetimeOverlay: (
+    kind: "layer" | "pin",
+    id: string,
+    patch: { startTime?: number; endTime?: number; lane?: number },
+  ) => void;
   onTrimAudio: (audioId: string, edge: "in" | "out", sourceTime: number) => void;
   onAddClips: () => void;
   onToggleMasterMute: () => void;
@@ -111,10 +128,9 @@ function StudioTimeline({
   beats,
   onTrim,
   onReorder,
-  onDeleteClip,
-  onSlide,
   onCloseGap,
   onMoveAudio,
+  onRetimeOverlay,
   onTrimAudio,
   onAddClips,
   onToggleMasterMute,
@@ -282,24 +298,63 @@ function StudioTimeline({
   );
 
   // --- clip select + long-press reorder ------------------------------------
+  //
+  // Holding a clip collapses the video track into equal squares and hides the
+  // other tracks. At timeline scale a long clip is wider than the screen, so
+  // moving one past another meant dragging further than a thumb can reach;
+  // as squares the edit fits on screen and every swap is the same short step.
+  // `startX` is the screen x of the held clip's square centre, and the clip
+  // is drawn `lastX - startX` away from it, so it stays under the finger.
+  //
+  // Opening a gap by pulling a clip away belonged to the old full-scale drag
+  // and doesn't survive the squares; gaps a project already has are kept on
+  // the clips they belong to.
   const pressRef = useRef<{
     clipId: string;
     startX: number;
     startY: number;
+    lastX: number;
     timer: number | null;
     active: boolean;
     moved: boolean;
-    /** The clip's gap when the drag (or the last swap) began. */
-    baseGap: number;
-    /** Set by a swap: re-read baseGap/startX on the next move, once the
-     *  reordered project has rendered. */
-    rebase: boolean;
-    /** Pulled up over the bin; letting go deletes the clip. */
-    overBin: boolean;
+    /** A swap has been asked for and not rendered yet. */
+    swapPending: boolean;
   } | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
-  const [overBin, setOverBin] = useState(false);
   const [dragOffset, setDragOffset] = useState(0);
+  const compact = draggingId !== null;
+  const clipsRef = useRef(project.clips);
+  clipsRef.current = project.clips;
+  /** Where the strip scrolls to as it turns into squares. */
+  const enterLeft = useRef<number | null>(null);
+  /** The clip just let go of, whose new start the playhead returns to. */
+  const settleId = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (pressRef.current) pressRef.current.swapPending = false;
+  }, [project.clips]);
+
+  const stepSquares = useCallback(() => {
+    const press = pressRef.current;
+    if (!press || !press.active) return;
+    if (!press.swapPending) {
+      const clips = clipsRef.current;
+      const index = clips.findIndex((c) => c.id === press.clipId);
+      const dx = press.lastX - press.startX;
+      if (index >= 0 && dx > SQUARE / 2 && index < clips.length - 1) {
+        press.swapPending = true;
+        press.startX += SQUARE;
+        onReorder(press.clipId, index + 1);
+        navigator.vibrate?.(6);
+      } else if (index > 0 && -dx > SQUARE / 2) {
+        press.swapPending = true;
+        press.startX -= SQUARE;
+        onReorder(press.clipId, index - 1);
+        navigator.vibrate?.(6);
+      }
+    }
+    setDragOffset(press.lastX - press.startX);
+  }, [onReorder]);
 
   const startClipPress = useCallback(
     (clip: VideoClip) => (e: ReactPointerEvent) => {
@@ -312,6 +367,22 @@ function StudioTimeline({
         // pointerdown would steal every scrub that merely began on a clip.
         target.setPointerCapture?.(e.pointerId);
         gestureRef.current = true;
+        // Scroll so the held clip's square lands under the finger. Written by
+        // the layout effect once the squares exist: a strip of short clips
+        // can be narrower than its squares, and writing now would clamp.
+        const el = scrollRef.current;
+        const index = clipsRef.current.findIndex((c) => c.id === clip.id);
+        if (el && index >= 0) {
+          const rect = el.getBoundingClientRect();
+          const centre = el.clientWidth / 2 + index * SQUARE + SQUARE / 2;
+          const left = Math.min(
+            clipsRef.current.length * SQUARE,
+            Math.max(0, centre - (press.lastX - rect.left)),
+          );
+          enterLeft.current = left;
+          press.startX = rect.left + centre - left;
+          setDragOffset(press.lastX - press.startX);
+        }
         setDraggingId(clip.id);
         beginHistoryGroup();
         navigator.vibrate?.(8);
@@ -320,12 +391,11 @@ function StudioTimeline({
         clipId: clip.id,
         startX: e.clientX,
         startY: e.clientY,
+        lastX: e.clientX,
         timer,
         active: false,
         moved: false,
-        baseGap: clip.gapBefore ?? 0,
-        rebase: false,
-        overBin: false,
+        swapPending: false,
       };
     },
     [beginHistoryGroup],
@@ -335,12 +405,15 @@ function StudioTimeline({
     (e: ReactPointerEvent) => {
       const press = pressRef.current;
       if (!press) return;
-      const dx = e.clientX - press.startX;
+      press.lastX = e.clientX;
 
       if (!press.active) {
         // Movement before the hold completes means the user is scrubbing, not
         // rearranging — disarm rather than hijack the scroll.
-        if (Math.abs(dx) > TAP_SLOP || Math.abs(e.clientY - press.startY) > TAP_SLOP) {
+        if (
+          Math.abs(e.clientX - press.startX) > TAP_SLOP ||
+          Math.abs(e.clientY - press.startY) > TAP_SLOP
+        ) {
           press.moved = true;
           if (press.timer !== null) window.clearTimeout(press.timer);
           press.timer = null;
@@ -350,74 +423,65 @@ function StudioTimeline({
 
       e.stopPropagation();
 
-      // Pulled up off the track and onto the bin. While it's there the clip
-      // holds still — a delete shouldn't reshuffle the timeline on the way up.
-      const over = e.clientY - press.startY < -BIN_PULL;
-      if (over !== press.overBin) {
-        press.overBin = over;
-        setOverBin(over);
-        if (over) navigator.vibrate?.(10);
-      }
-      if (over) return;
-
-      const clips = project.clips;
-      const index = clips.findIndex((c) => c.id === press.clipId);
-      if (index < 0) return;
-      if (press.rebase) {
-        press.rebase = false;
-        press.startX = e.clientX;
-        press.baseGap = clips[index].gapBefore ?? 0;
-      }
-      const moveX = e.clientX - press.startX;
-      const last = clips.length - 1;
-
-      // A held clip SLIDES first: into the empty space in front of it, or out
-      // into new space behind it, leaving black where it was — so after a
-      // split the second half (or the last clip) can simply be pulled away.
-      // Its free space is its own gap plus the next clip's; the first clip
-      // has none (black before the video starts is never wanted). Only once
-      // the finger pushes past that space by half a neighbour does it swap
-      // with the neighbour, which is the old reorder.
-      const gap = clips[index].gapBefore ?? 0;
-      const nextGap = index < last ? (clips[index + 1].gapBefore ?? 0) : 0;
-      const room = index === 0 ? 0 : index < last ? gap + nextGap : Infinity;
-      const desired = index === 0 ? 0 : press.baseGap + moveX / pps;
-      const base = index === 0 ? 0 : press.baseGap;
-
-      let overflowPx = 0;
-      if (desired < 0) {
-        overflowPx = moveX + base * pps; // how far past the left edge (negative)
-      } else if (desired > room) {
-        overflowPx = (desired - room) * pps;
-      }
-      if (index > 0) {
-        const slid = Math.min(room, Math.max(0, desired));
-        if (Math.abs(slid - gap) > 0.001) onSlide(press.clipId, slid);
-      } else {
-        overflowPx = moveX;
-      }
-      setDragOffset(overflowPx);
-
-      if (overflowPx > 0 && index < last) {
-        const next = clipDuration(clips[index + 1]) * pps;
-        if (overflowPx > next / 2) {
-          onReorder(press.clipId, index + 1);
-          navigator.vibrate?.(6);
-          press.rebase = true;
-          setDragOffset(0);
-        }
-      } else if (overflowPx < 0 && index > 0) {
-        const prev = clipDuration(clips[index - 1]) * pps;
-        if (-overflowPx > prev / 2) {
-          onReorder(press.clipId, index - 1);
-          navigator.vibrate?.(6);
-          press.rebase = true;
-          setDragOffset(0);
-        }
-      }
+      stepSquares();
     },
-    [onReorder, onSlide, pps, project.clips],
+    [stepSquares],
   );
+
+  // Edge scroll while a clip is held, so a long edit can be reordered in one
+  // gesture. Moving the strip moves the held clip's square on screen by the
+  // same amount, so its origin follows and it stays under the finger while
+  // its neighbours stream past.
+  useEffect(() => {
+    if (!draggingId) return;
+    let frame = requestAnimationFrame(function tick() {
+      const press = pressRef.current;
+      const el = scrollRef.current;
+      if (press?.active && el) {
+        const r = el.getBoundingClientRect();
+        const v =
+          press.lastX < r.left + EDGE_ZONE
+            ? -EDGE_SPEED
+            : press.lastX > r.right - EDGE_ZONE
+              ? EDGE_SPEED
+              : 0;
+        if (v !== 0) {
+          const before = el.scrollLeft;
+          el.scrollLeft = before + v;
+          const moved = el.scrollLeft - before;
+          if (moved !== 0) {
+            press.startX -= moved;
+            stepSquares();
+          }
+        }
+      }
+      frame = requestAnimationFrame(tick);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [draggingId, stepSquares]);
+
+  // Into squares: scroll the held clip under the finger. Out of squares: the
+  // scroll position from square-land means nothing, so put the playhead on
+  // the start of the clip that was moved.
+  useLayoutEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    if (draggingId) {
+      if (enterLeft.current !== null) el.scrollLeft = enterLeft.current;
+      enterLeft.current = null;
+      return;
+    }
+    const id = settleId.current;
+    settleId.current = null;
+    if (!id) return;
+    const index = project.clips.findIndex((c) => c.id === id);
+    if (index < 0) return;
+    const t = starts[index];
+    el.scrollLeft = t * pps;
+    seek(t);
+    // Only on entering and leaving a hold; the rest change for other reasons.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draggingId]);
 
   const endClipPress = useCallback(
     (e: ReactPointerEvent) => {
@@ -427,10 +491,7 @@ function StudioTimeline({
       if (press.active) {
         (e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId);
         gestureRef.current = false;
-        // Inside the history group, so one undo puts the clip back where it
-        // was before the hold — slides and all. Only a real release deletes;
-        // pointercancel is the browser taking the gesture away.
-        if (press.overBin && e.type === "pointerup") onDeleteClip(press.clipId);
+        settleId.current = press.clipId;
         endHistoryGroup();
       } else if (!press.moved) {
         // Selection happens on RELEASE. On pointerdown it meant that resting a
@@ -441,68 +502,197 @@ function StudioTimeline({
       pressRef.current = null;
       setDraggingId(null);
       setDragOffset(0);
-      setOverBin(false);
-    },
-    [endHistoryGroup, onDeleteClip, onSelect],
-  );
-
-  // --- audio move + trim ---------------------------------------------------
-  const audioRef = useRef<{
-    id: string;
-    mode: "move" | "in" | "out";
-    startX: number;
-    startValue: number;
-    speed: number;
-    moved: boolean;
-  } | null>(null);
-
-  const startAudio = useCallback(
-    (audio: AudioClip, mode: "move" | "in" | "out") => (e: ReactPointerEvent) => {
-      e.stopPropagation();
-      (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
-      gestureRef.current = true;
-      beginHistoryGroup();
-      audioRef.current = {
-        id: audio.id,
-        mode,
-        startX: e.clientX,
-        startValue:
-          mode === "move" ? audio.timelineStart : mode === "in" ? audio.inPoint : audio.outPoint,
-        speed: audio.speed,
-        moved: false,
-      };
-    },
-    [beginHistoryGroup],
-  );
-
-  const moveAudio = useCallback(
-    (e: ReactPointerEvent) => {
-      const drag = audioRef.current;
-      if (!drag) return;
-      e.stopPropagation();
-      const dxPx = e.clientX - drag.startX;
-      if (Math.abs(dxPx) > TAP_SLOP) drag.moved = true;
-      if (drag.mode === "move") {
-        onMoveAudio(drag.id, Math.max(0, drag.startValue + dxPx / pps));
-      } else {
-        onTrimAudio(drag.id, drag.mode, drag.startValue + (dxPx / pps) * drag.speed);
-      }
-    },
-    [onMoveAudio, onTrimAudio, pps],
-  );
-
-  const endAudio = useCallback(
-    (audioId: string) => (e: ReactPointerEvent) => {
-      const drag = audioRef.current;
-      if (!drag) return;
-      (e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId);
-      gestureRef.current = false;
-      audioRef.current = null;
-      endHistoryGroup();
-      if (!drag.moved) onSelect({ kind: "audio", id: audioId });
     },
     [endHistoryGroup, onSelect],
   );
+
+  // --- chips: audio, captions, stickers, pins --------------------------------
+  //
+  // Select first, then drag. The first tap on a chip only selects it, and the
+  // strip still scrolls under a finger that lands on an unselected one — with
+  // a dozen chips stacked under the clips, grabbing whatever the thumb landed
+  // on made every scrub move something by accident. Once a chip is selected,
+  // dragging its body moves it in time and between lanes, and its white end
+  // bars trim it. Edges snap to cuts, the playhead, beats and the other
+  // chips' edges, with a guide line to say so.
+  type ChipKind = "audio" | "layer" | "pin";
+  const projectRef = useRef(project);
+  projectRef.current = project;
+  const beatsRef = useRef(beats);
+  beatsRef.current = beats;
+  const chipRef = useRef<{
+    kind: ChipKind;
+    id: string;
+    mode: "move" | "in" | "out";
+    startX: number;
+    startY: number;
+    /** The chip's timeline span and lane when the gesture began. */
+    start: number;
+    end: number;
+    lane: number;
+    laneH: number;
+    /** Audio only: the source point under the chip's start, and its rate. */
+    inPoint: number;
+    speed: number;
+    /** The rest of the chip's own track, for lane collisions. */
+    others: { start: number; end: number; lane: number }[];
+    targets: number[];
+    moved: boolean;
+  } | null>(null);
+  const [snapLine, setSnapLine] = useState<number | null>(null);
+
+  const startChip = useCallback(
+    (kind: ChipKind, id: string, mode: "move" | "in" | "out") => (e: ReactPointerEvent) => {
+      const p = projectRef.current;
+      type Spanned = { id: string; start: number; end: number; lane: number };
+      const audioSpans: Spanned[] = p.audio.map((a) => ({
+        id: a.id,
+        start: a.timelineStart,
+        end: a.timelineStart + audioDuration(a),
+        lane: a.lane ?? 0,
+      }));
+      const layerSpans = (text: boolean): Spanned[] =>
+        p.layers
+          .filter((l) => isTextLayer(l) === text)
+          .map((l) => ({ id: l.id, start: l.startTime, end: l.endTime, lane: l.lane ?? 0 }));
+      const pinSpans: Spanned[] = p.pins.map((pin) => ({
+        id: pin.id,
+        start: pin.startTime,
+        end: pin.endTime,
+        lane: pin.lane ?? 0,
+      }));
+      const layer = kind === "layer" ? p.layers.find((l) => l.id === id) : undefined;
+      const track =
+        kind === "audio"
+          ? audioSpans
+          : kind === "pin"
+            ? pinSpans
+            : layerSpans(layer ? isTextLayer(layer) : true);
+      const self = track.find((s) => s.id === id);
+      if (!self) return;
+      const audio = kind === "audio" ? p.audio.find((a) => a.id === id) : undefined;
+
+      e.stopPropagation();
+      (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+
+      const clipStartsAt = clipStarts(p.clips);
+      const targets = [
+        timeRef.current,
+        0,
+        ...p.clips.flatMap((c, i) => [clipStartsAt[i], clipStartsAt[i] + clipDuration(c)]),
+        ...[...audioSpans, ...layerSpans(true), ...layerSpans(false), ...pinSpans]
+          .filter((s) => s.id !== id)
+          .flatMap((s) => [s.start, s.end]),
+        ...beatsRef.current,
+      ];
+      chipRef.current = {
+        kind,
+        id,
+        mode,
+        startX: e.clientX,
+        startY: e.clientY,
+        start: self.start,
+        end: self.end,
+        lane: self.lane,
+        laneH: kind === "audio" ? AUDIO_TRACK_H : LAYER_TRACK_H,
+        inPoint: audio?.inPoint ?? 0,
+        speed: audio?.speed ?? 1,
+        others: track.filter((s) => s.id !== id),
+        targets,
+        moved: false,
+      };
+    },
+    [timeRef],
+  );
+
+  const moveChip = useCallback(
+    (e: ReactPointerEvent) => {
+      const drag = chipRef.current;
+      if (!drag) return;
+      e.stopPropagation();
+      const dx = e.clientX - drag.startX;
+      const dy = e.clientY - drag.startY;
+      if (!drag.moved) {
+        if (Math.abs(dx) <= TAP_SLOP && Math.abs(dy) <= TAP_SLOP) return;
+        drag.moved = true;
+        gestureRef.current = true;
+        beginHistoryGroup();
+      }
+
+      const threshold = SNAP_PX / pps;
+      const length = drag.end - drag.start;
+      // Overlays live on the picture, so they stop where the video does;
+      // audio may hang past the end (it's cut off there) — see projectDuration.
+      const maxEnd =
+        drag.kind === "audio" ? Infinity : Math.max(projectDuration(projectRef.current), drag.end);
+
+      if (drag.mode === "move") {
+        const raw = Math.min(Math.max(0, drag.start + dx / pps), maxEnd - length);
+        const snapped = snapSpan(raw, length, drag.targets, threshold);
+        const start = Math.min(Math.max(0, snapped.start), maxEnd - length);
+        const wantLane = drag.lane + Math.round(dy / (drag.laneH + LANE_GAP));
+        const lane = placeLane(drag.others, start, start + length, wantLane);
+        setSnapLine(snapped.target);
+        if (drag.kind === "audio") onMoveAudio(drag.id, start, lane);
+        else
+          onRetimeOverlay(drag.kind, drag.id, { startTime: start, endTime: start + length, lane });
+        return;
+      }
+
+      const minLength = drag.kind === "audio" ? 0.1 : MIN_OVERLAY_SECONDS;
+      if (drag.mode === "in") {
+        const raw = Math.min(Math.max(0, drag.start + dx / pps), drag.end - minLength);
+        const snapped = snapTime(raw, drag.targets, threshold);
+        const start = Math.min(Math.max(0, snapped.time), drag.end - minLength);
+        setSnapLine(snapped.target);
+        if (drag.kind === "audio") {
+          onTrimAudio(drag.id, "in", drag.inPoint + (start - drag.start) * drag.speed);
+        } else {
+          onRetimeOverlay(drag.kind, drag.id, { startTime: start });
+        }
+        return;
+      }
+
+      const raw = Math.max(drag.start + minLength, Math.min(maxEnd, drag.end + dx / pps));
+      const snapped = snapTime(raw, drag.targets, threshold);
+      const end = Math.max(drag.start + minLength, Math.min(maxEnd, snapped.time));
+      setSnapLine(snapped.target);
+      if (drag.kind === "audio") {
+        onTrimAudio(drag.id, "out", drag.inPoint + (end - drag.start) * drag.speed);
+      } else {
+        onRetimeOverlay(drag.kind, drag.id, { endTime: end });
+      }
+    },
+    [beginHistoryGroup, onMoveAudio, onRetimeOverlay, onTrimAudio, pps],
+  );
+
+  const endChip = useCallback(
+    (e: ReactPointerEvent) => {
+      const drag = chipRef.current;
+      if (!drag) return;
+      e.stopPropagation();
+      (e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId);
+      chipRef.current = null;
+      setSnapLine(null);
+      if (drag.moved) {
+        gestureRef.current = false;
+        endHistoryGroup();
+      }
+    },
+    [endHistoryGroup],
+  );
+
+  /** Pointer handlers for a chip's body: live once it's selected, absent
+   *  before, so an unselected chip is just part of the strip you scroll. */
+  const chipBody = (kind: ChipKind, id: string, selected: boolean) =>
+    selected
+      ? {
+          onPointerDown: startChip(kind, id, "move"),
+          onPointerMove: moveChip,
+          onPointerUp: endChip,
+          onPointerCancel: endChip,
+        }
+      : {};
 
   // Stop the strip panning under a held clip. `touchAction` can't: a browser
   // latches it when the touch STARTS, so flipping it to "none" when the hold
@@ -516,11 +706,30 @@ function StudioTimeline({
     const el = scrollRef.current;
     if (!el) return;
     const block = (e: TouchEvent) => {
-      if (pressRef.current?.active && e.cancelable) e.preventDefault();
+      if ((pressRef.current?.active || chipRef.current?.moved) && e.cancelable) {
+        e.preventDefault();
+      }
     };
     el.addEventListener("touchmove", block, { passive: false });
     return () => el.removeEventListener("touchmove", block);
   }, []);
+
+  // Tracks under the video row, each as many lanes deep as its overlaps need.
+  const layout = useMemo(
+    () =>
+      timelineLayout({
+        audio: laneCount(project.audio),
+        text: laneCount(project.layers.filter(isTextLayer)),
+        sticker: laneCount(project.layers.filter((l) => !isTextLayer(l))),
+        pin: laneCount(project.pins),
+      }),
+    [project.audio, project.layers, project.pins],
+  );
+  const track = (kind: TrackKind) => layout.tracks.find((t) => t.kind === kind);
+  const audioTrack = track("audio");
+  const textTrack = track("text");
+  const stickerTrack = track("sticker");
+  const pinTrack = track("pin");
 
   const contentWidth = Math.max(extent * pps, 1);
   const lockScroll = draggingId !== null;
@@ -532,20 +741,14 @@ function StudioTimeline({
   const tickCount = Math.max(1, Math.ceil(extent / tickStep) + 1);
 
   return (
-    <div className="relative w-full select-none" style={{ height: TIMELINE_HEIGHT }}>
-      {draggingId && (
-        // Over the ruler, directly above the clips: one short pull up from a
-        // held clip, and nowhere near the sideways drag that reorders.
-        <div
-          aria-hidden
-          className={`pointer-events-none absolute top-0 left-1/2 z-40 flex h-8 -translate-x-1/2 items-center gap-1.5 rounded-full px-3 text-[11px] font-semibold transition-[background-color,transform] ${
-            overBin ? "scale-110 bg-red-500 text-white" : "bg-neutral-800 text-white/85"
-          }`}
-        >
-          <Trash2 size={13} />
-          {overBin ? "Release to delete" : "Drag up to delete"}
-        </div>
-      )}
+    // Grows with its lanes, up to a share of the screen; past that the lanes
+    // scroll under a ruler and video row that stay put.
+    <div
+      className="relative w-full select-none"
+      style={{
+        height: `max(${TIMELINE_HEIGHT}px, min(${layout.height}px, 38svh))`,
+      }}
+    >
       <div
         ref={scrollRef}
         onScroll={handleScroll}
@@ -553,225 +756,273 @@ function StudioTimeline({
         onPointerMove={onPointerMoveZoom}
         onPointerUp={onPointerUpZoom}
         onPointerCancel={onPointerUpZoom}
-        className="absolute inset-0 overflow-x-auto overflow-y-hidden [&::-webkit-scrollbar]:hidden"
+        // A long press is how a clip is picked up, and both browsers have
+        // their own idea of what one means: Android opens an image menu, iOS a
+        // Save/Share callout over the frames. Neither belongs on a timeline.
+        onContextMenu={(e) => e.preventDefault()}
+        className="absolute inset-0 overflow-auto [&::-webkit-scrollbar]:hidden"
         style={{
+          WebkitTouchCallout: "none",
+          WebkitUserSelect: "none",
+          userSelect: "none",
           scrollbarWidth: "none",
-          overscrollBehaviorX: "contain",
-          touchAction: lockScroll ? "none" : "pan-x",
+          overscrollBehavior: "contain",
+          touchAction: lockScroll ? "none" : "pan-x pan-y",
         }}
       >
         <div style={{ paddingLeft: halfWidth, paddingRight: halfWidth, width: "max-content" }}>
-          <div className="relative" style={{ width: contentWidth, paddingTop: TRACK_TOP_PAD }}>
-            {/* ---------------- ruler ---------------- */}
-            {/* Without a scale, a 23x zoom range leaves you with no idea where
-                you are — and this editor asks you to land cuts on a beat. */}
-            <div className="relative" style={{ height: RULER_H }}>
-              {Array.from({ length: tickCount }, (_, i) => {
-                const t = i * tickStep;
-                return (
-                  <div
-                    key={i}
-                    className="absolute top-0 flex items-start gap-1"
-                    style={{ left: t * pps }}
-                  >
-                    <span style={{ width: 1, height: 5, background: "rgba(255,255,255,0.28)" }} />
-                    <span
-                      className="text-[8px] leading-none"
-                      style={{ color: "rgba(255,255,255,0.4)" }}
-                    >
-                      {formatTimecode(t, tickStep < 1)}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Beat markers sit under everything, so they read as a grid rather
-                than as another object competing with the clips. */}
-            {beats.map((t, i) => (
+          <div
+            className="relative"
+            style={{
+              width: compact ? project.clips.length * SQUARE : contentWidth,
+              paddingBottom: 10,
+            }}
+          >
+            {/* Beat lines down the lanes. The ruler and video row draw their
+                own, inside the sticky header that covers these. */}
+            {(compact ? [] : beats).map((t, i) => (
               <div
                 key={i}
                 className="absolute bottom-0 w-px pointer-events-none"
-                style={{ left: t * pps, top: RULER_H, background: "rgba(255,255,255,0.16)" }}
+                style={{
+                  left: t * pps,
+                  top: TRACK_TOP_PAD + RULER_H + VIDEO_TRACK_H,
+                  background: "rgba(255,255,255,0.16)",
+                }}
               />
             ))}
 
-            {/* ---------------- video track ---------------- */}
-            <div className="relative" style={{ height: VIDEO_TRACK_H }}>
-              {/* Empty space between clips. Black in the finished video, so
-                  drawn as a dark hole rather than left see-through. */}
-              {project.clips.map((clip, index) => {
-                const gap = clip.gapBefore ?? 0;
-                if (gap <= 0) return null;
-                const width = gap * pps - CLIP_GAP;
-                if (width <= 0) return null;
-                return (
-                  <div
-                    key={`gap-${clip.id}`}
-                    className="absolute top-0 flex items-center justify-center"
-                    style={{
-                      left: (starts[index] - gap) * pps + CLIP_GAP / 2,
-                      width,
-                      height: VIDEO_TRACK_H,
-                      borderRadius: 6,
-                      background: "#050505",
-                      border: "1px dashed rgba(255,255,255,0.16)",
-                      zIndex: 0,
-                    }}
-                  >
-                    {width > 30 && (
-                      <button
-                        type="button"
-                        onPointerDown={(e) => e.stopPropagation()}
-                        onClick={() => onCloseGap(clip.id)}
-                        aria-label="Close gap"
-                        className="oak-hit flex h-7 w-7 items-center justify-center rounded-full active:scale-90"
-                        style={{ background: "rgba(255,255,255,0.12)", color: "#fff" }}
-                      >
-                        <X size={12} />
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-
-              {project.clips.map((clip, index) => {
-                const source = sources[clip.sourceId];
-                const duration = clipDuration(clip);
-                // Inset by half the gap on each side — see CLIP_GAP. Only the
-                // drawing moves; starts[] and the cut buttons stay on the
-                // true timeline positions.
-                const width = Math.max(6, duration * pps - CLIP_GAP);
-                const isSelected = selection?.kind === "clip" && selection.id === clip.id;
-                const isDragging = draggingId === clip.id;
-                return (
-                  <div
-                    key={clip.id}
-                    onPointerDown={startClipPress(clip)}
-                    onPointerMove={moveClipPress}
-                    onPointerUp={endClipPress}
-                    onPointerCancel={endClipPress}
-                    className="absolute top-0 overflow-hidden"
-                    style={{
-                      left: starts[index] * pps + CLIP_GAP / 2,
-                      width,
-                      height: VIDEO_TRACK_H,
-                      borderRadius: 6,
-                      transform: isDragging ? `translateX(${dragOffset}px) scale(1.04)` : undefined,
-                      zIndex: isDragging ? 5 : isSelected ? 3 : 1,
-                      boxShadow: isDragging ? "0 8px 22px rgba(0,0,0,0.55)" : undefined,
-                      outline: isSelected ? "2px solid #fff" : "1px solid rgba(255,255,255,0.10)",
-                      outlineOffset: -1,
-                      background: "#151515",
-                    }}
-                  >
-                    <ClipTiles
-                      frames={source ? filmstrips[source.id] : undefined}
-                      fallbackUrl={source?.kind === "image" ? source.url : undefined}
-                      inPoint={clip.inPoint}
-                      outPoint={clip.outPoint}
-                      width={width}
-                    />
-
-                    {/* Live length of the selected clip, so a trim can be
-                        judged in seconds rather than by eye. */}
-                    {isSelected && width > 40 && (
+            {/* Ruler and video row: sticky, so when the lanes outgrow the
+                timeline and scroll, the clips stay in view — and the pinned
+                mute and + buttons stay level with them. */}
+            <div
+              className="sticky top-0"
+              style={{ zIndex: 4, background: "#000", paddingTop: TRACK_TOP_PAD }}
+            >
+              {/* ---------------- ruler ---------------- */}
+              {/* Without a scale, a 23x zoom range leaves you with no idea where
+                you are — and this editor asks you to land cuts on a beat. */}
+              <div className="relative" style={{ height: RULER_H }}>
+                {Array.from({ length: compact ? 0 : tickCount }, (_, i) => {
+                  const t = i * tickStep;
+                  return (
+                    <div
+                      key={i}
+                      className="absolute top-0 flex items-start gap-1"
+                      style={{ left: t * pps }}
+                    >
+                      <span style={{ width: 1, height: 5, background: "rgba(255,255,255,0.28)" }} />
                       <span
-                        className="pointer-events-none absolute top-0.5 rounded px-1 text-[11px] font-semibold leading-[15px] tabular-nums"
-                        style={{
-                          left: HANDLE_W + 2,
-                          background: "rgba(0,0,0,0.68)",
-                          color: "#fff",
-                          zIndex: 5,
-                        }}
+                        className="text-[8px] leading-none"
+                        style={{ color: "rgba(255,255,255,0.4)" }}
                       >
-                        {duration < 10 ? duration.toFixed(1) : Math.round(duration)}s
+                        {formatTimecode(t, tickStep < 1)}
                       </span>
-                    )}
-
-                    <div className="absolute inset-x-0 bottom-0 flex items-center gap-1 px-1 pb-0.5">
-                      {(clip.muted || project.masterMuted) && (
-                        <Badge>
-                          <VolumeX size={10} aria-label="Muted" />
-                        </Badge>
-                      )}
-                      {/* The same glyph as Detach audio in the toolbar. It used to
-                          say "split", the name of a different tool. */}
-                      {clip.audioDetached && (
-                        <Badge>
-                          <Unlink size={10} aria-label="Audio detached" />
-                        </Badge>
-                      )}
-                      {clip.speed !== 1 && <Badge>{clip.speed}x</Badge>}
                     </div>
+                  );
+                })}
+              </div>
 
-                    {isSelected && (
-                      <>
-                        <TrimHandle
-                          side="left"
-                          onPointerDown={startTrim(clip, "in")}
-                          onPointerMove={moveTrim}
-                          onPointerUp={endTrim}
-                        />
-                        <TrimHandle
-                          side="right"
-                          onPointerDown={startTrim(clip, "out")}
-                          onPointerMove={moveTrim}
-                          onPointerUp={endTrim}
-                        />
-                      </>
-                    )}
-                  </div>
-                );
-              })}
+              {/* Beat markers sit under everything, so they read as a grid rather
+                than as another object competing with the clips. */}
+              {(compact ? [] : beats).map((t, i) => (
+                <div
+                  key={i}
+                  className="absolute bottom-0 w-px pointer-events-none"
+                  style={{ left: t * pps, top: RULER_H, background: "rgba(255,255,255,0.16)" }}
+                />
+              ))}
 
-              {/* Transition buttons live ON the cut — the cut is the thing being
+              {/* ---------------- video track ---------------- */}
+              <div className="relative" style={{ height: VIDEO_TRACK_H }}>
+                {/* Empty space between clips. Black in the finished video, so
+                  drawn as a dark hole rather than left see-through. */}
+                {project.clips.map((clip, index) => {
+                  const gap = clip.gapBefore ?? 0;
+                  if (gap <= 0 || compact) return null;
+                  const width = gap * pps - CLIP_GAP;
+                  if (width <= 0) return null;
+                  return (
+                    <div
+                      key={`gap-${clip.id}`}
+                      className="absolute top-0 flex items-center justify-center"
+                      style={{
+                        left: (starts[index] - gap) * pps + CLIP_GAP / 2,
+                        width,
+                        height: VIDEO_TRACK_H,
+                        borderRadius: 6,
+                        background: "#050505",
+                        border: "1px dashed rgba(255,255,255,0.16)",
+                        zIndex: 0,
+                      }}
+                    >
+                      {width > 30 && (
+                        <button
+                          type="button"
+                          onPointerDown={(e) => e.stopPropagation()}
+                          onClick={() => onCloseGap(clip.id)}
+                          aria-label="Close gap"
+                          className="oak-hit flex h-7 w-7 items-center justify-center rounded-full active:scale-90"
+                          style={{ background: "rgba(255,255,255,0.12)", color: "#fff" }}
+                        >
+                          <X size={12} />
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {project.clips.map((clip, index) => {
+                  const source = sources[clip.sourceId];
+                  const duration = clipDuration(clip);
+                  // Inset by half the gap on each side — see CLIP_GAP. Only the
+                  // drawing moves; starts[] and the cut buttons stay on the
+                  // true timeline positions.
+                  const width = compact
+                    ? SQUARE - CLIP_GAP
+                    : Math.max(6, duration * pps - CLIP_GAP);
+                  const isSelected =
+                    !compact && selection?.kind === "clip" && selection.id === clip.id;
+                  const isDragging = draggingId === clip.id;
+                  return (
+                    <div
+                      key={clip.id}
+                      onPointerDown={startClipPress(clip)}
+                      onPointerMove={moveClipPress}
+                      onPointerUp={endClipPress}
+                      onPointerCancel={endClipPress}
+                      className="absolute top-0 overflow-hidden"
+                      style={{
+                        left: (compact ? index * SQUARE : starts[index] * pps) + CLIP_GAP / 2,
+                        width,
+                        height: VIDEO_TRACK_H,
+                        borderRadius: 6,
+                        transform: isDragging
+                          ? `translateX(${dragOffset}px) scale(1.08)`
+                          : undefined,
+                        zIndex: isDragging ? 5 : isSelected ? 3 : 1,
+                        boxShadow: isDragging ? "0 8px 22px rgba(0,0,0,0.55)" : undefined,
+                        outline: isSelected ? "2px solid #fff" : "1px solid rgba(255,255,255,0.10)",
+                        outlineOffset: -1,
+                        background: "#151515",
+                      }}
+                    >
+                      <ClipTiles
+                        frames={source ? filmstrips[source.id] : undefined}
+                        fallbackUrl={source?.kind === "image" ? source.url : undefined}
+                        inPoint={clip.inPoint}
+                        outPoint={clip.outPoint}
+                        width={width}
+                      />
+
+                      {/* Live length of the selected clip, so a trim can be
+                        judged in seconds rather than by eye. */}
+                      {isSelected && width > 40 && (
+                        <span
+                          className="pointer-events-none absolute top-0.5 rounded px-1 text-[11px] font-semibold leading-[15px] tabular-nums"
+                          style={{
+                            left: HANDLE_W + 2,
+                            background: "rgba(0,0,0,0.68)",
+                            color: "#fff",
+                            zIndex: 5,
+                          }}
+                        >
+                          {duration < 10 ? duration.toFixed(1) : Math.round(duration)}s
+                        </span>
+                      )}
+
+                      <div
+                        className="absolute inset-x-0 bottom-0 flex items-center gap-1 px-1 pb-0.5"
+                        hidden={compact}
+                      >
+                        {(clip.muted || project.masterMuted) && (
+                          <Badge>
+                            <VolumeX size={10} aria-label="Muted" />
+                          </Badge>
+                        )}
+                        {/* The same glyph as Detach audio in the toolbar. It used to
+                          say "split", the name of a different tool. */}
+                        {clip.audioDetached && (
+                          <Badge>
+                            <Unlink size={10} aria-label="Audio detached" />
+                          </Badge>
+                        )}
+                        {clip.speed !== 1 && <Badge>{clip.speed}x</Badge>}
+                      </div>
+
+                      {isSelected && (
+                        <>
+                          <TrimHandle
+                            side="left"
+                            onPointerDown={startTrim(clip, "in")}
+                            onPointerMove={moveTrim}
+                            onPointerUp={endTrim}
+                          />
+                          <TrimHandle
+                            side="right"
+                            onPointerDown={startTrim(clip, "out")}
+                            onPointerMove={moveTrim}
+                            onPointerUp={endTrim}
+                          />
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {/* Transition buttons live ON the cut — the cut is the thing being
                   changed, not either clip. */}
-              {project.clips.slice(1).map((clip, i) =>
-                (clip.gapBefore ?? 0) > 0 ||
-                // Steps aside while either neighbour is selected: that is
-                // when the trim handles need these same pixels, and a 44px
-                // target sitting on the cut would swallow both of them. The
-                // clip toolbar's Transition button covers the selected clip.
-                (selection?.kind === "clip" &&
-                  (selection.id === clip.id || selection.id === project.clips[i].id)) ? null : (
-                  <button
-                    key={`cut-${clip.id}`}
-                    onClick={() => onOpenTransition(clip.id)}
-                    aria-label="Change transition"
-                    className="oak-hit absolute flex items-center justify-center rounded-[4px]"
-                    style={{
-                      left: starts[i + 1] * pps - 9,
-                      top: VIDEO_TRACK_H / 2 - 9,
-                      width: 18,
-                      height: 18,
-                      zIndex: 6,
-                      background: clip.transitionIn.kind === "none" ? "rgba(0,0,0,0.72)" : "#fff",
-                      color: clip.transitionIn.kind === "none" ? "#fff" : "#000",
-                      border: "1px solid rgba(255,255,255,0.5)",
-                    }}
-                  >
-                    <Sparkles size={10} />
-                  </button>
-                ),
-              )}
+                {project.clips.slice(1).map((clip, i) =>
+                  compact ||
+                  (clip.gapBefore ?? 0) > 0 ||
+                  // Steps aside while either neighbour is selected: that is
+                  // when the trim handles need these same pixels, and a 44px
+                  // target sitting on the cut would swallow both of them. The
+                  // clip toolbar's Transition button covers the selected clip.
+                  (selection?.kind === "clip" &&
+                    (selection.id === clip.id || selection.id === project.clips[i].id)) ? null : (
+                    <button
+                      key={`cut-${clip.id}`}
+                      onClick={() => onOpenTransition(clip.id)}
+                      aria-label="Change transition"
+                      className="oak-hit absolute flex items-center justify-center rounded-[4px]"
+                      style={{
+                        left: starts[i + 1] * pps - 9,
+                        top: VIDEO_TRACK_H / 2 - 9,
+                        width: 18,
+                        height: 18,
+                        zIndex: 6,
+                        background: clip.transitionIn.kind === "none" ? "rgba(0,0,0,0.72)" : "#fff",
+                        color: clip.transitionIn.kind === "none" ? "#fff" : "#000",
+                        border: "1px solid rgba(255,255,255,0.5)",
+                      }}
+                    >
+                      <Sparkles size={10} />
+                    </button>
+                  ),
+                )}
+              </div>
             </div>
 
             {/* ---------------- audio track ---------------- */}
-            <div className="relative" style={{ height: AUDIO_TRACK_H, marginTop: TRACK_GAP }}>
-              {project.audio.map((audio) => {
+            <div
+              className="relative"
+              style={{ height: audioTrack?.height ?? AUDIO_TRACK_H, marginTop: TRACK_GAP }}
+            >
+              {(compact ? [] : project.audio).map((audio) => {
                 const source = sources[audio.sourceId];
                 const width = Math.max(24, audioDuration(audio) * pps);
                 const isSelected = selection?.kind === "audio" && selection.id === audio.id;
                 return (
                   <div
                     key={audio.id}
-                    onPointerDown={startAudio(audio, "move")}
-                    onPointerMove={moveAudio}
-                    onPointerUp={endAudio(audio.id)}
-                    onPointerCancel={endAudio(audio.id)}
-                    className="absolute top-0 flex items-center gap-1 overflow-hidden px-1.5"
+                    {...chipBody("audio", audio.id, isSelected)}
+                    onClick={() => {
+                      if (!isSelected) onSelect({ kind: "audio", id: audio.id });
+                    }}
+                    className="absolute flex items-center gap-1 overflow-hidden px-1.5"
                     style={{
+                      top: laneTop(audio.lane ?? 0, AUDIO_TRACK_H),
                       left: audio.timelineStart * pps,
                       width,
                       height: AUDIO_TRACK_H,
@@ -779,7 +1030,10 @@ function StudioTimeline({
                       background: audio.muted ? "rgba(99,102,241,0.35)" : "#6366F1",
                       outline: isSelected ? "2px solid #fff" : "none",
                       outlineOffset: -1,
-                      touchAction: "none",
+                      // Latched at touchstart, which is fine here: a chip is
+                      // selected by an earlier tap, so by the time a finger
+                      // lands to drag it this is already "none".
+                      touchAction: isSelected ? "none" : "pan-x pan-y",
                     }}
                   >
                     <Music2 size={11} className="shrink-0 text-white" />
@@ -800,16 +1054,16 @@ function StudioTimeline({
                         <TrimHandle
                           side="left"
                           compact
-                          onPointerDown={startAudio(audio, "in")}
-                          onPointerMove={moveAudio}
-                          onPointerUp={endAudio(audio.id)}
+                          onPointerDown={startChip("audio", audio.id, "in")}
+                          onPointerMove={moveChip}
+                          onPointerUp={endChip}
                         />
                         <TrimHandle
                           side="right"
                           compact
-                          onPointerDown={startAudio(audio, "out")}
-                          onPointerMove={moveAudio}
-                          onPointerUp={endAudio(audio.id)}
+                          onPointerDown={startChip("audio", audio.id, "out")}
+                          onPointerMove={moveChip}
+                          onPointerUp={endChip}
                         />
                       </>
                     )}
@@ -818,18 +1072,100 @@ function StudioTimeline({
               })}
             </div>
 
-            {/* ---------------- caption / tag track ---------------- */}
-            <div className="relative" style={{ height: LAYER_TRACK_H, marginTop: TRACK_GAP }}>
-              {project.layers.map((layer) => (
-                <LayerChip
+            {snapLine !== null && (
+              <div
+                aria-hidden
+                className="pointer-events-none absolute top-0 bottom-0"
+                style={{ left: snapLine * pps, width: 1, background: "#FACC15", zIndex: 6 }}
+              />
+            )}
+
+            {/* ---------------- overlay tracks ---------------- */}
+            {/* Text, then stickers and drawings, then product pins — each its
+                own track, so a caption and a sticker on screen together are
+                two chips you can both reach. */}
+            <OverlayTrack height={textTrack?.height ?? LAYER_TRACK_H}>
+              {(compact ? [] : project.layers.filter(isTextLayer)).map((layer) => (
+                <OverlayChip
                   key={layer.id}
-                  layer={layer}
+                  icon={<TypeIcon size={11} className="shrink-0" />}
+                  label={layer.kind === "text" ? layer.content || "Text" : "Text"}
+                  start={layer.startTime}
+                  end={layer.endTime}
+                  lane={layer.lane ?? 0}
                   pps={pps}
                   selected={selection?.kind === "layer" && selection.id === layer.id}
                   onSelect={() => onSelect({ kind: "layer", id: layer.id })}
+                  body={chipBody(
+                    "layer",
+                    layer.id,
+                    selection?.kind === "layer" && selection.id === layer.id,
+                  )}
+                  onTrimStart={startChip("layer", layer.id, "in")}
+                  onTrimEnd={startChip("layer", layer.id, "out")}
+                  onTrimMove={moveChip}
+                  onTrimUp={endChip}
                 />
               ))}
-            </div>
+            </OverlayTrack>
+            {stickerTrack && (
+              <OverlayTrack height={stickerTrack.height}>
+                {(compact ? [] : project.layers.filter((l) => !isTextLayer(l))).map((layer) => (
+                  <OverlayChip
+                    key={layer.id}
+                    icon={
+                      layer.kind === "draw" ? (
+                        <PenLine size={11} className="shrink-0" />
+                      ) : (
+                        <StickerIcon size={11} className="shrink-0" />
+                      )
+                    }
+                    label={layer.kind === "draw" ? "Drawing" : "Sticker"}
+                    start={layer.startTime}
+                    end={layer.endTime}
+                    lane={layer.lane ?? 0}
+                    pps={pps}
+                    selected={selection?.kind === "layer" && selection.id === layer.id}
+                    onSelect={() => onSelect({ kind: "layer", id: layer.id })}
+                    body={chipBody(
+                      "layer",
+                      layer.id,
+                      selection?.kind === "layer" && selection.id === layer.id,
+                    )}
+                    onTrimStart={startChip("layer", layer.id, "in")}
+                    onTrimEnd={startChip("layer", layer.id, "out")}
+                    onTrimMove={moveChip}
+                    onTrimUp={endChip}
+                  />
+                ))}
+              </OverlayTrack>
+            )}
+            {pinTrack && (
+              <OverlayTrack height={pinTrack.height}>
+                {(compact ? [] : project.pins).map((pin) => (
+                  <OverlayChip
+                    key={pin.id}
+                    icon={<Tag size={11} className="shrink-0" />}
+                    label={pin.title || "Product"}
+                    start={pin.startTime}
+                    end={pin.endTime}
+                    lane={pin.lane ?? 0}
+                    pps={pps}
+                    selected={selection?.kind === "pin" && selection.id === pin.id}
+                    onSelect={() => onSelect({ kind: "pin", id: pin.id })}
+                    body={chipBody(
+                      "pin",
+                      pin.id,
+                      selection?.kind === "pin" && selection.id === pin.id,
+                    )}
+                    onTrimStart={startChip("pin", pin.id, "in")}
+                    onTrimEnd={startChip("pin", pin.id, "out")}
+                    onTrimMove={moveChip}
+                    onTrimUp={endChip}
+                  />
+                ))}
+              </OverlayTrack>
+            )}
           </div>
         </div>
       </div>
@@ -908,12 +1244,15 @@ function Badge({ children }: { children: React.ReactNode }) {
 function TrimHandle({
   side,
   compact,
+  dark,
   onPointerDown,
   onPointerMove,
   onPointerUp,
 }: {
   side: "left" | "right";
   compact?: boolean;
+  /** For a chip that is itself white when selected. */
+  dark?: boolean;
   onPointerDown: (e: ReactPointerEvent) => void;
   onPointerMove: (e: ReactPointerEvent) => void;
   onPointerUp: (e: ReactPointerEvent) => void;
@@ -928,14 +1267,21 @@ function TrimHandle({
       style={{
         [side]: 0,
         width: compact ? HANDLE_W - 3 : HANDLE_W,
-        background: "#fff",
+        background: dark ? "#111" : "#fff",
         borderRadius: side === "left" ? "6px 0 0 6px" : "0 6px 6px 0",
         cursor: "ew-resize",
         touchAction: "none",
         zIndex: 4,
       }}
     >
-      <span style={{ width: 2, height: 14, borderRadius: 1, background: "rgba(0,0,0,0.55)" }} />
+      <span
+        style={{
+          width: 2,
+          height: 14,
+          borderRadius: 1,
+          background: dark ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.55)",
+        }}
+      />
       {/* The grab area reaches inward past the drawn 14px bar — into the clip,
           never outward over its neighbour, and never outside the clip's own
           overflow clip, which would cut it off anyway. */}
@@ -1006,35 +1352,103 @@ function Waveform({ peaks }: { peaks: number[] }) {
   );
 }
 
-function LayerChip({
-  layer,
+function OverlayTrack({ height, children }: { height: number; children: React.ReactNode }) {
+  return (
+    <div className="relative" style={{ height, marginTop: TRACK_GAP }}>
+      {children}
+    </div>
+  );
+}
+
+type PointerHandler = (e: ReactPointerEvent) => void;
+
+/** A caption, sticker, drawing or pin on its track: where it starts, how
+ *  long it stays, and which lane it sits in. Selected, its body drags and its
+ *  ends trim — see "chips" in the timeline. */
+function OverlayChip({
+  icon,
+  label,
+  start,
+  end,
+  lane,
   pps,
   selected,
   onSelect,
+  body,
+  onTrimStart,
+  onTrimEnd,
+  onTrimMove,
+  onTrimUp,
 }: {
-  layer: TimedLayer;
+  icon: React.ReactNode;
+  label: string;
+  start: number;
+  end: number;
+  lane: number;
   pps: number;
   selected: boolean;
   onSelect: () => void;
+  body: Partial<
+    Record<"onPointerDown" | "onPointerMove" | "onPointerUp" | "onPointerCancel", PointerHandler>
+  >;
+  onTrimStart: PointerHandler;
+  onTrimEnd: PointerHandler;
+  onTrimMove: PointerHandler;
+  onTrimUp: PointerHandler;
 }) {
+  const width = Math.max(28, (end - start) * pps);
   return (
-    <button
-      onClick={onSelect}
-      className="absolute top-0 flex items-center gap-1 overflow-hidden px-1.5"
+    <div
+      role="button"
+      tabIndex={0}
+      aria-pressed={selected}
+      aria-label={label}
+      {...body}
+      onClick={() => {
+        if (!selected) onSelect();
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") onSelect();
+      }}
+      className="absolute flex items-center gap-1 overflow-hidden"
       style={{
-        left: layer.startTime * pps,
-        width: Math.max(28, (layer.endTime - layer.startTime) * pps),
+        top: laneTop(lane, LAYER_TRACK_H),
+        left: start * pps,
+        width,
         height: LAYER_TRACK_H,
         borderRadius: 5,
+        // Room for the trim bars when selected, so they don't sit on the label.
+        paddingLeft: selected ? HANDLE_W : 6,
+        paddingRight: selected ? HANDLE_W : 6,
         background: selected ? "#fff" : "rgba(255,255,255,0.16)",
         color: selected ? "#000" : "#fff",
+        zIndex: selected ? 3 : 1,
+        touchAction: selected ? "none" : "pan-x pan-y",
       }}
     >
-      <TypeIcon size={11} className="shrink-0" />
-      <span className="truncate text-[11px] font-medium">
-        {layer.kind === "text" ? layer.content || "Text" : "Overlay"}
-      </span>
-    </button>
+      {icon}
+      <span className="truncate text-[11px] font-medium">{label}</span>
+      {selected && (
+        <>
+          <TrimHandle
+            side="left"
+            compact
+            dark
+            onPointerDown={onTrimStart}
+            onPointerMove={onTrimMove}
+            onPointerUp={onTrimUp}
+          />
+          <TrimHandle
+            side="right"
+            compact
+            dark
+            onPointerDown={onTrimEnd}
+            onPointerMove={onTrimMove}
+            onPointerUp={onTrimUp}
+          />
+        </>
+      )}
+    </div>
   );
 }
 

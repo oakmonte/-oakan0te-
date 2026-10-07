@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowRight,
@@ -63,6 +63,7 @@ import ConfirmDiscard from "@/components/editor/ConfirmDiscard";
 import { HintBubble } from "@/components/editor/OneTimeHint";
 import { useOneTimeHint } from "@/hooks/use-one-time-hint";
 import SoundLibrarySheet from "@/components/camera/SoundLibrarySheet";
+import { fetchLibraryTrack } from "@/lib/sound-fetch";
 import { authedFetch } from "@/lib/authed-fetch";
 import { type LibraryTrack, type SoundCredit, creditFor } from "@/lib/sound-library";
 import {
@@ -84,7 +85,15 @@ import {
   type ProjectRatio,
 } from "@/lib/video-sequence";
 
+// Replaced by the studio (/create/studio). Kept reachable with `?legacy=1`
+// for one release, in case the studio turns up something sellers still need
+// from here; everything else — bookmarks, old links — goes to the studio.
 export const Route = createFileRoute("/create/video-editor")({
+  validateSearch: (search: Record<string, unknown>): { legacy?: 1 } =>
+    search.legacy === 1 || search.legacy === "1" ? { legacy: 1 } : {},
+  beforeLoad: ({ search }) => {
+    if (!search.legacy) throw redirect({ to: "/create/studio", replace: true });
+  },
   head: () => ({ meta: [{ title: "New video — Oakmonte" }] }),
   component: VideoEditorRoute,
 });
@@ -748,13 +757,9 @@ function VideoEditor() {
 
   function handleDelete() {
     const target = selected ?? current;
-    if (target) deleteClip(target.id);
-  }
-
-  /** Also reached by letting a held clip go over the timeline's bin. */
-  function deleteClip(id: string) {
-    delete layersByClip.current[id];
-    const next = clips.filter((c) => c.id !== id);
+    if (!target) return;
+    delete layersByClip.current[target.id];
+    const next = clips.filter((c) => c.id !== target.id);
     commit(next);
     setSelectedId(null);
     // The clip the toolbar was about is gone, so the toolbar goes too. Falling
@@ -1024,23 +1029,7 @@ function VideoEditor() {
       setSoundLoading(true);
       setSoundError(null);
       try {
-        // The access stamp travels with the track from `/api/sounds`. Without
-        // it the proxy refuses — it only serves URLs the catalogue issued, so a
-        // track assembled anywhere else cannot be laundered through it.
-        const query = new URLSearchParams({ url: track.streamUrl });
-        if (track.access) {
-          query.set("sig", track.access.sig);
-          query.set("exp", String(track.access.exp));
-        }
-        const res = await authedFetch(`/api/sound-file?${query.toString()}`);
-        if (!res.ok) {
-          const body = await res.json().catch(() => null);
-          throw new Error(body?.error ?? "Couldn't load that sound");
-        }
-        const blob = await res.blob();
-        // A name for the mixer, not for the seller — the credit is what the post
-        // shows. The extension keeps `decodeAudioData` from having to guess.
-        const file = new File([blob], "track.mp3", { type: blob.type || "audio/mpeg" });
+        const file = await fetchLibraryTrack(track);
         const next: EditorMusic = {
           file,
           name: track.title,
@@ -1140,6 +1129,9 @@ function VideoEditor() {
             setSourceOpen(true);
           },
         },
+        // Third, not last: at the end of a scrolling row it was the one action
+        // people looked for and couldn't find.
+        { id: "delete", label: "Delete", icon: Trash2, run: handleDelete },
         {
           id: "speed",
           label: editTarget.kind === "photo" ? "Duration" : "Speed",
@@ -1208,7 +1200,6 @@ function VideoEditor() {
             ]
           : []),
         { id: "duplicate", label: "Duplicate", icon: Copy, run: handleDuplicate },
-        { id: "delete", label: "Delete", icon: Trash2, run: handleDelete },
       ]
     : [];
 
@@ -1607,14 +1598,19 @@ function VideoEditor() {
               selectedId={selectedId}
               time={time}
               playing={playing}
-              onSelect={setSelectedId}
+              // Tapping a clip is asking to edit it, so the clip's own toolbar
+              // comes up with it; tapping it again puts the whole-video tools
+              // back.
+              onSelect={(id) => {
+                setSelectedId(id);
+                setClipEditing(id !== null);
+              }}
               onSeek={(t) => {
                 setPlaying(false);
                 setTime(t);
               }}
               onTrim={handleTrim}
               onReorder={handleReorder}
-              onDelete={deleteClip}
               onAdd={openSource}
               onSplit={handleSplit}
               onToggleMute={(id) => {
@@ -1722,7 +1718,7 @@ function VideoEditor() {
         >
           {reorderHint ? (
             <HintBubble onDismiss={dismissReorderHint}>
-              Hold a clip to move it — or pull it up to delete
+              Hold a clip to move it, tap one to edit it
             </HintBubble>
           ) : (
             <HintBubble onDismiss={dismissLayerHint}>

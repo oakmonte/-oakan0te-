@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Tag, Trash2 } from "lucide-react";
+import { Copy, Scissors, Tag, Trash2 } from "lucide-react";
 import { useKeyboardInset } from "@/hooks/use-keyboard-inset";
 import { EmptyHint, Pill, StudioSheet, StudioSlider } from "../controls";
 import type { ProductPin } from "@/lib/studio/types";
@@ -22,6 +22,9 @@ export function PinPanel({
   onAdd,
   onPatch,
   onDelete,
+  canSplit,
+  onSplit,
+  onDuplicate,
   onDone,
   group,
 }: {
@@ -31,6 +34,12 @@ export function PinPanel({
   onAdd: (title: string, price: string) => void;
   onPatch: (patch: Partial<ProductPin>) => void;
   onDelete: () => void;
+  /** The playhead is far enough inside it for both halves to be usable. */
+  canSplit: boolean;
+  /** Cut it in two at the playhead. */
+  onSplit: () => void;
+  /** A copy straight after it. */
+  onDuplicate: () => void;
   onDone: () => void;
   group: { begin: () => void; end: () => void };
 }) {
@@ -142,6 +151,16 @@ export function PinPanel({
                 onClick={() => onPatch({ endTime: Math.max(currentTime, pin.startTime + 0.1) })}
               >
                 End here
+              </Pill>
+              <Pill onClick={onSplit} disabled={!canSplit}>
+                <span className="flex items-center gap-1">
+                  <Scissors size={13} /> Split
+                </span>
+              </Pill>
+              <Pill onClick={onDuplicate}>
+                <span className="flex items-center gap-1">
+                  <Copy size={13} /> Duplicate
+                </span>
               </Pill>
               <Pill tone="danger" onClick={onDelete}>
                 <span className="flex items-center gap-1">

@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Trash2 } from "lucide-react";
+import { Copy, Scissors, Trash2 } from "lucide-react";
 import { useKeyboardInset } from "@/hooks/use-keyboard-inset";
 import { blockedContentMessage, findBlockedContent } from "@/lib/content-policy";
 import { EmptyHint, Pill, StudioSheet, StudioSlider } from "../controls";
+import { AnimRow } from "./AnimRow";
 import type { TextLayer } from "@/lib/after-shot-layers";
 import type { TimedLayer } from "@/lib/studio/types";
 
@@ -27,6 +28,9 @@ export function TextPanel({
   onAdd,
   onPatch,
   onDelete,
+  canSplit,
+  onSplit,
+  onDuplicate,
   onDone,
   group,
 }: {
@@ -36,6 +40,12 @@ export function TextPanel({
   onAdd: (content: string) => void;
   onPatch: (patch: Partial<TimedLayer>) => void;
   onDelete: () => void;
+  /** The playhead is far enough inside it for both halves to be usable. */
+  canSplit: boolean;
+  /** Cut it in two at the playhead. */
+  onSplit: () => void;
+  /** A copy straight after it. */
+  onDuplicate: () => void;
   onDone: () => void;
   group: { begin: () => void; end: () => void };
 }) {
@@ -178,6 +188,11 @@ export function TextPanel({
               />
             </div>
 
+            <AnimRow
+              value={text.anim}
+              withTypewriter
+              onChange={(anim) => onPatch({ anim } as Partial<TimedLayer>)}
+            />
             <div className="flex gap-2 overflow-x-auto py-2 [&::-webkit-scrollbar]:hidden">
               <Pill
                 onClick={() =>
@@ -196,6 +211,16 @@ export function TextPanel({
                 }
               >
                 End here
+              </Pill>
+              <Pill onClick={onSplit} disabled={!canSplit}>
+                <span className="flex items-center gap-1">
+                  <Scissors size={13} /> Split
+                </span>
+              </Pill>
+              <Pill onClick={onDuplicate}>
+                <span className="flex items-center gap-1">
+                  <Copy size={13} /> Duplicate
+                </span>
               </Pill>
               <Pill tone="danger" onClick={onDelete}>
                 <span className="flex items-center gap-1">

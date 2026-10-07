@@ -7,6 +7,7 @@
 // the actual media, its decoded audio, its filmstrip — live in the source
 // registry (sources.ts) and are looked up by id.
 import type { Layer } from "@/lib/after-shot-layers";
+import type { SoundCredit } from "@/lib/sound-library";
 
 // ---------------------------------------------------------------------------
 // Sources
@@ -33,6 +34,9 @@ export type StudioSource = {
   fps: number;
   /** Human label for the audio chip — "original", a filename. */
   name: string;
+  /** Set when the sound came from the library: what the post has to say
+   *  about it. See credits.ts. */
+  credit?: SoundCredit;
 };
 
 export type SourceMap = Record<StudioSourceId, StudioSource>;
@@ -133,9 +137,13 @@ export type VideoClip = {
    *  incoming transition — there is nothing adjacent to transition from. See
    *  normalise() in project.ts, which enforces both. */
   gapBefore?: number;
+  /** Scale over the clip, from its first frame to its last: equal values are
+   *  a fixed close-up, different ones a slow push or pull (Ken Burns).
+   *  Absent is no zoom. See clipZoomAt in render.ts. */
+  zoom?: { from: number; to: number };
 };
 
-export type AudioClipKind = "detached" | "music" | "voiceover";
+export type AudioClipKind = "detached" | "music" | "sfx" | "voiceover";
 
 /** Audio floats: it stores its own absolute timeline position, so detaching a
  *  clip's sound and then sliding it half a second late is just a number change. */
@@ -155,6 +163,9 @@ export type AudioClip = {
   fadeOut: number; // seconds
   /** Set for kind === "detached": which video clip it was lifted from. */
   linkedClipId?: string;
+  /** Row within the audio track, so overlapping sounds stack instead of
+   *  hiding each other. Written by lanes.ts; absent until it has run. */
+  lane?: number;
 };
 
 export function audioDuration(a: AudioClip): number {
@@ -168,7 +179,14 @@ export function audioDuration(a: AudioClip): number {
 /** An after-shot Layer that only exists between two timeline instants. The base
  *  Layer union is untouched — a TimedLayer[] is assignable to Layer[], so
  *  LayerOverlay and layer-bake.ts both take these unchanged. */
-export type TimedLayer = Layer & { startTime: number; endTime: number };
+export type TimedLayer = Layer & {
+  startTime: number;
+  endTime: number;
+  /** Row within its track (text, or stickers and drawings). See lanes.ts. */
+  lane?: number;
+  /** How it arrives. See layer-anim.ts. */
+  anim?: "pop" | "slide" | "typewriter";
+};
 
 /** Everything a studio caption needs except its id, text and timing. Centred and
  *  sized in the same fractional units the after-shot layer system uses, so a
@@ -201,6 +219,8 @@ export type ProductPin = {
   endTime: number;
   /** Which side the pill hangs off the dot, so a pin near the right edge stays on screen. */
   side: "left" | "right";
+  /** Row within the pins track. See lanes.ts. */
+  lane?: number;
 };
 
 // ---------------------------------------------------------------------------
