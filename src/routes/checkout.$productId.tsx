@@ -266,7 +266,7 @@ function CheckoutPage() {
     setError("");
     setShowErrors(true);
     if (
-      !name.trim() ||
+      name.trim().split(/\s+/).filter(Boolean).length < 2 ||
       phoneDigits.length < 10 ||
       phoneDigits.length > 15 ||
       !addressLineOk(addressLine) ||
@@ -441,8 +441,8 @@ function CheckoutPage() {
           <div className="mt-6 flex flex-col gap-3">
             <h2 className="text-[20px] font-semibold">Where should we deliver?</h2>
             <input
-              className={`${field} ${bad(!name.trim())}`}
-              placeholder="Your bank account name"
+              className={`${field} ${bad(name.trim().split(/\s+/).filter(Boolean).length < 2)}`}
+              placeholder="Your bank account name (first and last)"
               autoComplete="name"
               value={name}
               onChange={(e) => setName(e.target.value)}

@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { getRequestUser } from "@/lib/server-auth";
+import { shipbubbleName } from "@/lib/shipping.server";
 
 // Validates a buyer's delivery address through Shipbubble and returns the
 // address_code the rates call needs. It spends the project's
@@ -38,7 +39,11 @@ export const Route = createFileRoute("/api/shipping/address")({
         } catch {
           return json({ error: "Bad request" }, 400);
         }
-        const name = typeof body.name === "string" ? body.name.trim() : "";
+        const rawName = typeof body.name === "string" ? body.name.trim() : "";
+        const name = shipbubbleName(rawName);
+        if (rawName.split(/\s+/).filter(Boolean).length < 2) {
+          return json({ error: "Enter your first and last name." }, 400);
+        }
         const phone = typeof body.phone === "string" ? body.phone.trim() : "";
         const address = typeof body.address === "string" ? body.address.trim() : "";
         const lat = typeof body.lat === "number" && Number.isFinite(body.lat) ? body.lat : null;

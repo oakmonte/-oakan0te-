@@ -9,6 +9,19 @@ const DEFAULT_WEIGHT_KG = 0.5;
 // Boxed clothing; a per-seller package size comes with the shipping settings.
 const DEFAULT_BOX_CM = { length: 30, width: 25, height: 10 };
 
+/** Shipbubble only takes a full name: at least two words, letters only ("John
+ *  Doe"). A store called "Pami's world" or "Atelier 9" is cleaned to fit, and a
+ *  single word gets "Store" appended so a one-word brand still validates. */
+export function shipbubbleName(raw: string): string {
+  const words = raw
+    .replace(/[^\p{L}\s-]/gu, " ")
+    .split(/\s+/)
+    .filter(Boolean);
+  if (words.length === 0) return "Oakmonte Seller";
+  if (words.length === 1) words.push("Store");
+  return words.slice(0, 4).join(" ");
+}
+
 export class ShippingError extends Error {
   constructor(
     message: string,
@@ -109,7 +122,7 @@ export async function fetchRates(input: {
   const sender = await shipbubble("/shipping/address/validate", {
     method: "POST",
     body: JSON.stringify({
-      name: store.brand_name,
+      name: shipbubbleName(store.brand_name),
       email: store.business_email ?? "orders@oakmonte.store",
       phone: store.business_phone ?? "08000000000",
       address: senderAddress,
