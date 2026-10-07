@@ -1,6 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { ChevronLeft, LocateFixed } from "lucide-react";
+import { ChevronLeft, ChevronRight, LocateFixed, X } from "lucide-react";
+import {
+  allStatesReady,
+  countryCodeForName,
+  getCountries,
+  getStates,
+  loadAllStates,
+  subscribeToStates,
+} from "@/lib/region-data";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { authedFetch } from "@/lib/authed-fetch";
 
@@ -66,6 +74,85 @@ function getPosition(): Promise<GeolocationPosition> {
   });
 }
 
+type PickItem = { code: string; name: string };
+
+// A dark full-screen list for country / state, fed by the same region data the
+// seller's location form uses. (That form's own picker is styled with the
+// seller-dashboard tokens, which don't exist out here.)
+function ListPicker({
+  title,
+  items,
+  allowCustom,
+  onSelect,
+  onClose,
+}: {
+  title: string;
+  items: PickItem[];
+  allowCustom?: boolean;
+  onSelect: (item: PickItem) => void;
+  onClose: () => void;
+}) {
+  const [q, setQ] = useState("");
+  const query = q.trim().toLowerCase();
+  const shown = query
+    ? items.filter((i) => i.name.toLowerCase().includes(query))
+    : items.slice(0, 200);
+  const exact = items.some((i) => i.name.toLowerCase() === query);
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col bg-black text-white">
+      <div className="flex items-center gap-3 px-3 pb-2 pt-[calc(env(safe-area-inset-top)+0.5rem)]">
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          className="grid h-10 w-10 place-items-center rounded-full bg-white/10"
+        >
+          <X size={20} />
+        </button>
+        <span className="text-[17px] font-semibold">{title}</span>
+      </div>
+      <div className="px-4 pb-2">
+        <input
+          autoFocus
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder={`Search ${title.toLowerCase()}`}
+          className="w-full rounded-2xl border border-white/15 bg-white/[0.06] px-4 py-3 text-[16px] outline-none placeholder:text-white/35"
+        />
+      </div>
+      <div className="flex-1 overflow-y-auto">
+        {allowCustom && query && !exact && (
+          <button
+            type="button"
+            onClick={() => onSelect({ code: "", name: q.trim() })}
+            className="w-full border-b border-white/10 px-4 py-3.5 text-left text-[16px]"
+          >
+            Use &ldquo;{q.trim()}&rdquo;
+          </button>
+        )}
+        {shown.map((i) => (
+          <button
+            key={i.code + i.name}
+            type="button"
+            onClick={() => onSelect(i)}
+            className="w-full border-b border-white/10 px-4 py-3.5 text-left text-[16px]"
+          >
+            {i.name}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// "12" or "Lekki" alone isn't an address a rider can use: it needs at least two
+// spaced words, one with letters. A house number is common but not universal,
+// so a missing one only nudges (see the hint under the field).
+function addressLineOk(v: string) {
+  const words = v.trim().split(/\s+/).filter(Boolean);
+  return words.length >= 2 && /[a-zA-Z]/.test(v);
+}
+
 function CheckoutPage() {
   const { productId } = Route.useParams();
   const { variant } = Route.useSearch();
@@ -75,7 +162,16 @@ function CheckoutPage() {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [address, setAddress] = useState("");
+  const [addressLine, setAddressLine] = useState("");
+  const [addressLine2, setAddressLine2] = useState("");
+  const [country, setCountry] = useState("Nigeria");
+  const [countryCode, setCountryCode] = useState(() => countryCodeForName("Nigeria"));
+  const [stateName, setStateName] = useState("");
+  const [, setStateCode] = useState("");
+  const [city, setCity] = useState("");
+  const [postalCode, setPostalCode] = useState("");
+  const [pickerOpen, setPickerOpen] = useState<"country" | "state" | null>(null);
+  const [showErrors, setShowErrors] = useState(false);
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [locating, setLocating] = useState(false);
   const [error, setError] = useState("");
@@ -85,6 +181,21 @@ function CheckoutPage() {
   const [ratesError, setRatesError] = useState("");
   const [requestToken, setRequestToken] = useState<string | null>(null);
   const [chosen, setChosen] = useState<string | null>(null);
+
+  useEffect(() => {
+    void loadAllStates();
+  }, []);
+  const statesReady = useSyncExternalStore(subscribeToStates, allStatesReady, () => false);
+  const countryItems = useMemo(
+    () => [...getCountries()].sort((a, b) => a.name.localeCompare(b.name)),
+    [],
+  );
+  const stateItems = useMemo(
+    () => [...getStates(countryCode)].sort((a, b) => a.name.localeCompare(b.name)),
+    // statesReady is a dep so the list refreshes when the full dataset lands.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [countryCode, statesReady],
+  );
 
   useEffect(() => {
     void loadSummary(productId, variant).then(setSummary);
@@ -114,9 +225,29 @@ function CheckoutPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ lat, lng }),
       });
-      const body = (await res.json().catch(() => null)) as { address?: string | null } | null;
-      if (body?.address) setAddress(body.address);
-      else setError("Got your location but no street name. Add your house number and street.");
+      const body = (await res.json().catch(() => null)) as {
+        line1?: string | null;
+        city?: string | null;
+        state?: string | null;
+        country?: string | null;
+        postalCode?: string | null;
+      } | null;
+      if (!body || (!body.line1 && !body.city && !body.state)) {
+        setError("Got your location but no street name. Fill in your address below.");
+      } else {
+        if (body.country) {
+          const code = countryCodeForName(body.country);
+          setCountry(body.country);
+          setCountryCode(code);
+          const match = body.state ? getStates(code).find((s) => s.name === body.state) : undefined;
+          setStateName(body.state ?? "");
+          setStateCode(match?.code ?? "");
+        }
+        if (body.line1) setAddressLine(body.line1);
+        if (body.city) setCity(body.city);
+        if (body.postalCode) setPostalCode(body.postalCode);
+        if (!body.line1) setError("Check the details below and add your street and house number.");
+      }
     } catch (e) {
       const denied = (e as GeolocationPositionError)?.code === 1;
       setError(
@@ -131,13 +262,19 @@ function CheckoutPage() {
 
   async function confirmAddress() {
     setError("");
+    setShowErrors(true);
     if (
       !name.trim() ||
-      !phone.trim() ||
-      address.trim().length < 8 ||
+      phoneDigits.length < 10 ||
+      phoneDigits.length > 15 ||
+      !addressLineOk(addressLine) ||
+      !country.trim() ||
+      !stateName.trim() ||
+      !city.trim() ||
+      !postalCode.trim() ||
       (!userEmail && !email.trim())
     ) {
-      setError("Add your account name, phone number and full address.");
+      setError("Fix the highlighted fields.");
       return;
     }
     setChecking(true);
@@ -149,7 +286,7 @@ function CheckoutPage() {
           name: name.trim(),
           phone: phone.trim(),
           email: email.trim(),
-          address: address.trim(),
+          address: fullAddress,
           lat: coords?.lat,
           lng: coords?.lng,
         }),
@@ -209,6 +346,12 @@ function CheckoutPage() {
     };
   }, [validated, productId, variant]);
 
+  const phoneDigits = phone.replace(/\D/g, "");
+  const fullAddress = [addressLine, addressLine2, city, stateName, postalCode, country]
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .join(", ");
+  const bad = (cond: boolean) => (showErrors && cond ? "!border-red-400/70" : "");
   const pick = couriers?.find((c) => c.serviceCode === chosen) ?? null;
 
   const field =
@@ -254,7 +397,7 @@ function CheckoutPage() {
           <div className="mt-6 flex flex-col gap-3">
             <h2 className="text-[20px] font-semibold">Where should we deliver?</h2>
             <input
-              className={field}
+              className={`${field} ${bad(!name.trim())}`}
               placeholder="Your bank account name"
               autoComplete="name"
               value={name}
@@ -262,7 +405,7 @@ function CheckoutPage() {
             />
             {!userEmail && (
               <input
-                className={field}
+                className={`${field} ${bad(!email.trim())}`}
                 placeholder="Email (for order updates)"
                 type="email"
                 autoComplete="email"
@@ -272,24 +415,19 @@ function CheckoutPage() {
               />
             )}
             <input
-              className={field}
+              className={`${field} ${bad(phoneDigits.length < 10 || phoneDigits.length > 15)}`}
               placeholder="Phone number"
               type="tel"
               autoComplete="tel"
               inputMode="tel"
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              onChange={(e) => setPhone(e.target.value.replace(/[^0-9+\s-]/g, ""))}
             />
-            <textarea
-              className={`${field} min-h-[96px] resize-none`}
-              placeholder="Delivery address: house number, street, area, city"
-              autoComplete="street-address"
-              value={address}
-              onChange={(e) => {
-                setAddress(e.target.value);
-                setCoords(null);
-              }}
-            />
+            {showErrors && (phoneDigits.length < 10 || phoneDigits.length > 15) && (
+              <p className="-mt-1 text-[13px] text-red-400">
+                Enter a valid phone number (digits only).
+              </p>
+            )}
             <button
               type="button"
               onClick={() => void locateMe()}
@@ -299,6 +437,91 @@ function CheckoutPage() {
               <LocateFixed size={18} />
               {locating ? "Finding you…" : "Use my current location"}
             </button>
+            <input
+              className={`${field} ${bad(!addressLineOk(addressLine))}`}
+              placeholder="Address line 1"
+              autoComplete="address-line1"
+              value={addressLine}
+              onChange={(e) => setAddressLine(e.target.value)}
+            />
+            {showErrors && !addressLineOk(addressLine) && (
+              <p className="-mt-1 text-[13px] text-red-400">
+                Enter your street address, like &ldquo;12 Allen Avenue&rdquo;: house number and
+                street name, separated by spaces.
+              </p>
+            )}
+            {addressLineOk(addressLine) && !/\d/.test(addressLine) && (
+              <p className="-mt-1 text-[13px] text-white/50">
+                No house number? That&apos;s fine if your address doesn&apos;t have one.
+              </p>
+            )}
+            <input
+              className={field}
+              placeholder="Address line 2: apartment, landmark (optional)"
+              autoComplete="address-line2"
+              value={addressLine2}
+              onChange={(e) => setAddressLine2(e.target.value)}
+            />
+            <button
+              type="button"
+              onClick={() => setPickerOpen("country")}
+              className={`${field} flex items-center justify-between text-left ${bad(!country.trim())}`}
+            >
+              <span className={country ? "" : "text-white/35"}>{country || "Country"}</span>
+              <ChevronRight size={16} className="text-white/40" />
+            </button>
+            <button
+              type="button"
+              onClick={() => countryCode && setPickerOpen("state")}
+              disabled={!countryCode}
+              className={`${field} flex items-center justify-between text-left disabled:opacity-50 ${bad(!stateName.trim())}`}
+            >
+              <span className={stateName ? "" : "text-white/35"}>
+                {stateName || "State/Province/Region"}
+              </span>
+              <ChevronRight size={16} className="text-white/40" />
+            </button>
+            <input
+              className={`${field} ${bad(!city.trim())}`}
+              placeholder="City"
+              autoComplete="address-level2"
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+            />
+            <input
+              className={`${field} ${bad(!postalCode.trim())}`}
+              placeholder="ZIP/Postal code"
+              autoComplete="postal-code"
+              value={postalCode}
+              onChange={(e) => setPostalCode(e.target.value)}
+            />
+            {pickerOpen === "country" && (
+              <ListPicker
+                title="Country"
+                items={countryItems}
+                onSelect={(item) => {
+                  setCountry(item.name);
+                  setCountryCode(item.code);
+                  setStateName("");
+                  setStateCode("");
+                  setPickerOpen(null);
+                }}
+                onClose={() => setPickerOpen(null)}
+              />
+            )}
+            {pickerOpen === "state" && (
+              <ListPicker
+                title="State/Province/Region"
+                items={stateItems}
+                allowCustom
+                onSelect={(item) => {
+                  setStateName(item.name);
+                  setStateCode(item.code);
+                  setPickerOpen(null);
+                }}
+                onClose={() => setPickerOpen(null)}
+              />
+            )}
             {error && <p className="text-[14px] text-red-400">{error}</p>}
             <button
               type="button"

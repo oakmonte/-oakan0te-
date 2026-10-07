@@ -52,8 +52,23 @@ export const Route = createFileRoute("/api/shipping/reverse-geocode")({
           },
         );
         if (!res.ok) return Response.json({ address: null }, { headers: NO_STORE });
-        const data = (await res.json()) as { display_name?: string };
-        return Response.json({ address: data.display_name ?? null }, { headers: NO_STORE });
+        const data = (await res.json()) as {
+          display_name?: string;
+          address?: Record<string, string>;
+        };
+        const a = data.address ?? {};
+        const line1 = [a.house_number, a.road].filter(Boolean).join(" ");
+        return Response.json(
+          {
+            address: data.display_name ?? null,
+            line1: line1 || null,
+            city: a.city || a.town || a.village || a.suburb || a.county || null,
+            state: a.state || null,
+            country: a.country || null,
+            postalCode: a.postcode || null,
+          },
+          { headers: NO_STORE },
+        );
       },
     },
   },
