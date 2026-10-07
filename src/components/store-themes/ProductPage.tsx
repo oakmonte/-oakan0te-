@@ -87,6 +87,21 @@ export function ProductPage({
   onAction: () => void;
 }) {
   const navigate = useNavigate();
+  const [askAccount, setAskAccount] = useState(false);
+  function goCheckout() {
+    void navigate({
+      to: "/checkout/$productId",
+      params: { productId: tile.id },
+      search: { variant: variant?.id },
+    });
+  }
+  // Signed-in buyers go straight through; everyone else is invited to sign in
+  // or create an account, but can carry on as a guest.
+  async function buyNow() {
+    const { data: sess } = await supabase.auth.getSession();
+    if (sess.session) goCheckout();
+    else setAskAccount(true);
+  }
   const [shown, setShown] = useState(false);
   const [closing, setClosing] = useState(false);
   const [data, setData] = useState<ProductData | null | undefined>(undefined);
@@ -163,215 +178,249 @@ export function ProductPage({
   const btn: CSSProperties = { background: look.textColor, color: look.background || "#000" };
 
   if (typeof document === "undefined") return null;
-  return createPortal(
-    <div className="fixed inset-0 z-[90] overflow-y-auto overscroll-contain" style={pageStyle}>
-      <div
-        className="sticky top-0 z-10 px-3 pb-2 pt-[calc(env(safe-area-inset-top)+0.5rem)]"
-        style={{ background: look.background || undefined }}
-      >
-        <button
-          type="button"
-          onClick={close}
-          aria-label="Back"
-          className="grid h-10 w-10 place-items-center rounded-full bg-black/45 text-white"
-        >
-          <ChevronLeft size={22} />
-        </button>
-      </div>
-
-      <div className="mx-auto max-w-[520px] pb-[calc(env(safe-area-inset-bottom)+2rem)]">
-        <div className="mx-3 overflow-hidden rounded-3xl" style={{ background: look.tileBg }}>
-          {photos.length > 0 ? (
-            <div
-              className="flex snap-x snap-mandatory overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-              onScroll={(e) => {
-                const el = e.currentTarget;
-                setPhotoIdx(Math.round(el.scrollLeft / el.clientWidth));
-              }}
+  return (
+    <>
+      {createPortal(
+        <div className="fixed inset-0 z-[90] overflow-y-auto overscroll-contain" style={pageStyle}>
+          <div
+            className="sticky top-0 z-10 px-3 pb-2 pt-[calc(env(safe-area-inset-top)+0.5rem)]"
+            style={{ background: look.background || undefined }}
+          >
+            <button
+              type="button"
+              onClick={close}
+              aria-label="Back"
+              className="grid h-10 w-10 place-items-center rounded-full bg-black/45 text-white"
             >
-              {photos.map((u, i) => (
-                <img
-                  key={u + i}
-                  src={u}
-                  alt={i === 0 ? tile.title : ""}
-                  className="aspect-[4/5] w-full shrink-0 snap-center object-cover"
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="aspect-[4/5] w-full" />
-          )}
-        </div>
-        {photos.length > 1 && (
-          <div className="mt-2 flex justify-center gap-1.5">
-            {photos.map((_, i) => (
-              <span
-                key={i}
-                className="h-1.5 w-1.5 rounded-full"
-                style={{ background: look.textColor, opacity: i === photoIdx ? 1 : 0.3 }}
-              />
-            ))}
+              <ChevronLeft size={22} />
+            </button>
           </div>
-        )}
 
-        <div className="px-4 pt-4">
-          <h1 className="text-[22px] font-medium leading-tight">{data?.title ?? tile.title}</h1>
-
-          {hasChoice && (
-            <div className="mt-3">
-              <p className="text-[14px]" style={{ color: look.mutedColor }}>
-                {sizeName}
-              </p>
-              <div className="mt-1.5 flex flex-wrap gap-2">
-                {variants.map((v) => {
-                  const active = v.id === variant?.id;
-                  const out = !inStock(v);
-                  return (
-                    <button
-                      key={v.id}
-                      type="button"
-                      onClick={() => {
-                        setVariantId(v.id);
-                        setPhotoIdx(0);
-                      }}
-                      className="rounded-full border px-3.5 py-1.5 text-[14px]"
-                      style={{
-                        borderColor: look.textColor,
-                        background: active ? look.textColor : "transparent",
-                        color: active ? look.background || "#000" : look.textColor,
-                        opacity: out ? 0.4 : 1,
-                        textDecoration: out ? "line-through" : undefined,
-                      }}
-                    >
-                      {v.option1_value}
-                    </button>
-                  );
-                })}
-              </div>
+          <div className="mx-auto max-w-[520px] pb-[calc(env(safe-area-inset-bottom)+2rem)]">
+            <div className="mx-3 overflow-hidden rounded-3xl" style={{ background: look.tileBg }}>
+              {photos.length > 0 ? (
+                <div
+                  className="flex snap-x snap-mandatory overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                  onScroll={(e) => {
+                    const el = e.currentTarget;
+                    setPhotoIdx(Math.round(el.scrollLeft / el.clientWidth));
+                  }}
+                >
+                  {photos.map((u, i) => (
+                    <img
+                      key={u + i}
+                      src={u}
+                      alt={i === 0 ? tile.title : ""}
+                      className="aspect-[4/5] w-full shrink-0 snap-center object-cover"
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="aspect-[4/5] w-full" />
+              )}
             </div>
-          )}
-
-          <p className="mt-3 text-[17px]">
-            {price != null ? `₦${price.toLocaleString()}` : ""}
-            {compareAt != null && price != null && compareAt > price && (
-              <span className="ml-2 text-[14px] line-through" style={{ color: look.mutedColor }}>
-                ₦{compareAt.toLocaleString()}
-              </span>
+            {photos.length > 1 && (
+              <div className="mt-2 flex justify-center gap-1.5">
+                {photos.map((_, i) => (
+                  <span
+                    key={i}
+                    className="h-1.5 w-1.5 rounded-full"
+                    style={{ background: look.textColor, opacity: i === photoIdx ? 1 : 0.3 }}
+                  />
+                ))}
+              </div>
             )}
-          </p>
 
-          <div className="mt-4 grid grid-cols-2 gap-2.5">
-            <div className="col-span-2 flex gap-2.5">
-              <button
-                type="button"
-                disabled={soldOut}
-                onClick={() =>
-                  void navigate({
-                    to: "/checkout/$productId",
-                    params: { productId: tile.id },
-                    search: { variant: variant?.id },
-                  })
-                }
-                className="h-14 min-w-0 flex-1 rounded-2xl text-[18px] font-semibold disabled:opacity-40"
-                style={btn}
-              >
-                {soldOut ? "Sold out" : "Buy Now"}
-              </button>
-              {data && (
+            <div className="px-4 pt-4">
+              <h1 className="text-[22px] font-medium leading-tight">{data?.title ?? tile.title}</h1>
+
+              {hasChoice && (
+                <div className="mt-3">
+                  <p className="text-[14px]" style={{ color: look.mutedColor }}>
+                    {sizeName}
+                  </p>
+                  <div className="mt-1.5 flex flex-wrap gap-2">
+                    {variants.map((v) => {
+                      const active = v.id === variant?.id;
+                      const out = !inStock(v);
+                      return (
+                        <button
+                          key={v.id}
+                          type="button"
+                          onClick={() => {
+                            setVariantId(v.id);
+                            setPhotoIdx(0);
+                          }}
+                          className="rounded-full border px-3.5 py-1.5 text-[14px]"
+                          style={{
+                            borderColor: look.textColor,
+                            background: active ? look.textColor : "transparent",
+                            color: active ? look.background || "#000" : look.textColor,
+                            opacity: out ? 0.4 : 1,
+                            textDecoration: out ? "line-through" : undefined,
+                          }}
+                        >
+                          {v.option1_value}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              <p className="mt-3 text-[17px]">
+                {price != null ? `₦${price.toLocaleString()}` : ""}
+                {compareAt != null && price != null && compareAt > price && (
+                  <span
+                    className="ml-2 text-[14px] line-through"
+                    style={{ color: look.mutedColor }}
+                  >
+                    ₦{compareAt.toLocaleString()}
+                  </span>
+                )}
+              </p>
+
+              <div className="mt-4 grid grid-cols-2 gap-2.5">
+                <div className="col-span-2 flex gap-2.5">
+                  <button
+                    type="button"
+                    disabled={soldOut}
+                    onClick={() => void buyNow()}
+                    className="h-14 min-w-0 flex-1 rounded-2xl text-[18px] font-semibold disabled:opacity-40"
+                    style={btn}
+                  >
+                    {soldOut ? "Sold out" : "Buy Now"}
+                  </button>
+                  {data && (
+                    <button
+                      type="button"
+                      aria-label="Message the seller"
+                      onClick={() =>
+                        void navigate({
+                          to: "/messages",
+                          search: data.ownerUsername ? { to: data.ownerUsername } : {},
+                        })
+                      }
+                      className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl"
+                      style={btn}
+                    >
+                      <Send size={22} />
+                    </button>
+                  )}
+                </div>
                 <button
                   type="button"
-                  aria-label="Message the seller"
-                  onClick={() =>
-                    void navigate({
-                      to: "/messages",
-                      search: data.ownerUsername ? { to: data.ownerUsername } : {},
-                    })
-                  }
-                  className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl"
+                  onClick={onAction}
+                  className="h-14 rounded-2xl text-[16px] font-semibold"
                   style={btn}
                 >
-                  <Send size={22} />
+                  Make Offer
                 </button>
-              )}
-            </div>
-            <button
-              type="button"
-              onClick={onAction}
-              className="h-14 rounded-2xl text-[16px] font-semibold"
-              style={btn}
-            >
-              Make Offer
-            </button>
-            <button
-              type="button"
-              disabled={soldOut}
-              onClick={onAction}
-              className="h-14 rounded-2xl text-[16px] font-semibold disabled:opacity-40"
-              style={btn}
-            >
-              Add to Bag
-            </button>
-          </div>
-
-          <div
-            className="mt-5 flex items-start gap-3 border-t pt-4"
-            style={{ borderColor: look.tileBg }}
-          >
-            <ShieldCheck size={28} className="mt-0.5 shrink-0" />
-            <p className="text-[14px] leading-snug">
-              ALL purchases in Oakmonte are covered by us. (it is physically impossible to be
-              scammed here and one in a trillion situations WILL be refunded)
-            </p>
-          </div>
-
-          {data === undefined && <div className="mt-6 h-24" />}
-          {data === null && (
-            <p className="mt-6 text-[14px]" style={{ color: look.mutedColor }}>
-              This product isn&apos;t available right now.
-            </p>
-          )}
-          {data?.description && (
-            <div className="mt-5 border-t pt-4" style={{ borderColor: look.tileBg }}>
-              <p className="text-[16px] font-medium">Description</p>
-              <ul
-                className="mt-1.5 list-disc space-y-1 pl-5 text-[15px] leading-relaxed"
-                style={{ color: look.mutedColor }}
-              >
-                {data.description
-                  .split(String.fromCharCode(10))
-                  .map((line) => line.replace(/^\s*[-•*]\s*/, "").trim())
-                  .filter(Boolean)
-                  .map((line, i) => (
-                    <li key={i}>{line}</li>
-                  ))}
-              </ul>
-            </div>
-          )}
-          {data?.store && (
-            <div
-              className="mt-5 flex items-center gap-3 border-t pt-4"
-              style={{ borderColor: look.tileBg }}
-            >
-              {data.store.logo_url ? (
-                <img
-                  src={data.store.logo_url}
-                  alt=""
-                  className="h-11 w-11 rounded-full object-cover"
-                />
-              ) : (
-                <span
-                  className="grid h-11 w-11 place-items-center rounded-full text-[16px]"
-                  style={{ background: look.tileBg }}
+                <button
+                  type="button"
+                  disabled={soldOut}
+                  onClick={onAction}
+                  className="h-14 rounded-2xl text-[16px] font-semibold disabled:opacity-40"
+                  style={btn}
                 >
-                  {data.store.brand_name.slice(0, 1).toUpperCase()}
-                </span>
+                  Add to Bag
+                </button>
+              </div>
+
+              <div
+                className="mt-5 flex items-start gap-3 border-t pt-4"
+                style={{ borderColor: look.tileBg }}
+              >
+                <ShieldCheck size={28} className="mt-0.5 shrink-0" />
+                <p className="text-[14px] leading-snug">
+                  ALL purchases in Oakmonte are covered by us. (it is physically impossible to be
+                  scammed here and one in a trillion situations WILL be refunded)
+                </p>
+              </div>
+
+              {data === undefined && <div className="mt-6 h-24" />}
+              {data === null && (
+                <p className="mt-6 text-[14px]" style={{ color: look.mutedColor }}>
+                  This product isn&apos;t available right now.
+                </p>
               )}
-              <p className="text-[15px] font-medium">{data.store.brand_name}</p>
+              {data?.description && (
+                <div className="mt-5 border-t pt-4" style={{ borderColor: look.tileBg }}>
+                  <p className="text-[16px] font-medium">Description</p>
+                  <ul
+                    className="mt-1.5 list-disc space-y-1 pl-5 text-[15px] leading-relaxed"
+                    style={{ color: look.mutedColor }}
+                  >
+                    {data.description
+                      .split(String.fromCharCode(10))
+                      .map((line) => line.replace(/^\s*[-•*]\s*/, "").trim())
+                      .filter(Boolean)
+                      .map((line, i) => (
+                        <li key={i}>{line}</li>
+                      ))}
+                  </ul>
+                </div>
+              )}
+              {data?.store && (
+                <div
+                  className="mt-5 flex items-center gap-3 border-t pt-4"
+                  style={{ borderColor: look.tileBg }}
+                >
+                  {data.store.logo_url ? (
+                    <img
+                      src={data.store.logo_url}
+                      alt=""
+                      className="h-11 w-11 rounded-full object-cover"
+                    />
+                  ) : (
+                    <span
+                      className="grid h-11 w-11 place-items-center rounded-full text-[16px]"
+                      style={{ background: look.tileBg }}
+                    >
+                      {data.store.brand_name.slice(0, 1).toUpperCase()}
+                    </span>
+                  )}
+                  <p className="text-[15px] font-medium">{data.store.brand_name}</p>
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      </div>
-    </div>,
-    document.body,
+          </div>
+        </div>,
+        document.body,
+      )}
+      {askAccount &&
+        createPortal(
+          <div className="fixed inset-0 z-[200]" role="dialog" aria-modal="true">
+            <div className="absolute inset-0 bg-black/40" onClick={() => setAskAccount(false)} />
+            <div
+              className="absolute inset-x-3 rounded-[26px] bg-white px-6 pb-5 pt-7 text-center text-black shadow-[0_20px_60px_rgba(0,0,0,0.35)]"
+              style={{ bottom: "calc(env(safe-area-inset-bottom) + 12px)" }}
+            >
+              <h2 className="text-[20px] font-bold leading-tight">Get the best experience</h2>
+              <p className="mt-2 text-[15px] leading-relaxed text-black/60">
+                Sign in or create an account to track your order, message sellers and make offers.
+              </p>
+              <button
+                type="button"
+                onClick={() => void navigate({ to: "/sign-in" })}
+                className="mt-6 h-12 w-full rounded-full bg-black text-[15px] font-semibold text-white"
+              >
+                Sign in or create an account
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setAskAccount(false);
+                  goCheckout();
+                }}
+                className="mt-2 h-11 w-full rounded-full text-[15px] font-semibold text-black/60"
+              >
+                Continue without an account
+              </button>
+            </div>
+          </div>,
+          document.body,
+        )}
+    </>
   );
 }
