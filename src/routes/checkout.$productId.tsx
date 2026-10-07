@@ -289,6 +289,10 @@ function CheckoutPage() {
           phone: phone.trim(),
           email: email.trim(),
           address: fullAddress,
+          looseAddress: [addressLine, city, stateName, country]
+            .map((x) => x.trim())
+            .filter(Boolean)
+            .join(", "),
           lat: coords?.lat,
           lng: coords?.lng,
         }),

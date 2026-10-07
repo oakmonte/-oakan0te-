@@ -54,24 +54,35 @@ export const Route = createFileRoute("/api/shipping/address")({
         }
         const email = user?.email ?? (typedEmail || "orders@oakmonte.store");
 
-        const res = await fetch("https://api.shipbubble.com/v1/shipping/address/validate", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${process.env.SHIPBUBBLE_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            name,
-            email,
-            phone,
-            address,
-            ...(lat !== null && lng !== null ? { latitude: lat, longitude: lng } : {}),
-          }),
-        });
-        const payload = (await res.json().catch(() => null)) as {
-          data?: Record<string, unknown>;
-          message?: string;
-        } | null;
+        // A wrong postal code or a long landmark tail ("off ... LCDA") makes
+        // Shipbubble reject an address it would otherwise find, so when the full
+        // text fails, try once more with street, city, state and country only.
+        const loose = typeof body.looseAddress === "string" ? body.looseAddress.trim() : "";
+        async function validate(text: string) {
+          const r = await fetch("https://api.shipbubble.com/v1/shipping/address/validate", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${process.env.SHIPBUBBLE_API_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              name,
+              email,
+              phone,
+              address: text,
+              ...(lat !== null && lng !== null ? { latitude: lat, longitude: lng } : {}),
+            }),
+          });
+          const pl = (await r.json().catch(() => null)) as {
+            data?: Record<string, unknown>;
+            message?: string;
+          } | null;
+          return { res: r, payload: pl };
+        }
+        let { res, payload } = await validate(address);
+        if (res.status === 400 && loose && loose !== address && loose.length >= 8) {
+          ({ res, payload } = await validate(loose));
+        }
         if (!res.ok || !payload?.data) {
           console.error("Shipbubble address validate failed:", res.status, payload);
           // 401/403/5xx are OUR problem (key, quota, outage), not the buyer's
