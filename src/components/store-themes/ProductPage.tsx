@@ -111,7 +111,14 @@ export function ProductPage({
     },
     [],
   );
-  useOverlayHistory(!closing, close);
+  // Armed a beat after mount: under StrictMode (dev) the hook's history
+  // effect runs twice and its own cleanup pop would close the page at once.
+  const [armed, setArmed] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setArmed(true), 80);
+    return () => clearTimeout(t);
+  }, []);
+  useOverlayHistory(armed && !closing, close);
 
   const variants = data?.variants ?? [];
   const variant = variants.find((v) => v.id === variantId) ?? variants[0];
