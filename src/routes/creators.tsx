@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { ogImageMeta } from "@/lib/og-image";
 import { useEffect, useRef, useState } from "react";
 import type { CSSProperties, KeyboardEvent, ReactNode } from "react";
 import logoO from "@/assets/logo-o.png";
@@ -19,6 +20,7 @@ export const Route = createFileRoute("/creators")({
       { property: "og:description", content: DESCRIPTION },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      ...ogImageMeta("creators", "Oakmonte for creators: Tag the fit. Get paid for the sale."),
     ],
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },

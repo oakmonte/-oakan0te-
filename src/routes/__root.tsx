@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ogImageMeta } from "@/lib/og-image";
 import {
   Outlet,
   Link,
@@ -168,23 +169,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
       { name: "twitter:title", content: "Oakmonte — Share your style" },
       {
         name: "twitter:description",
         content:
           "Oakmonte is an ecosystem for vetted sellers, honest creators and style curators — a content-driven fashion marketplace.",
       },
-      {
-        property: "og:image",
-        content:
-          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/f8681243-4127-4116-ad0f-6a2b00b242ff/id-preview-d738abaa--20ab012d-c075-4dc0-92ec-39b0c7e4fbaa.lovable.app-1784296325715.png",
-      },
-      {
-        name: "twitter:image",
-        content:
-          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/f8681243-4127-4116-ad0f-6a2b00b242ff/id-preview-d738abaa--20ab012d-c075-4dc0-92ec-39b0c7e4fbaa.lovable.app-1784296325715.png",
-      },
+      ...ogImageMeta("home", "Oakmonte: Share your style. Safely."),
     ],
     links: [
       {

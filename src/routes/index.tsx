@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { ogImageMeta } from "@/lib/og-image";
 import { useEffect, useRef, useState } from "react";
 import { isStandalone } from "@/lib/standalone";
 import logoO from "@/assets/logo-o.png";
@@ -39,6 +40,7 @@ export const Route = createFileRoute("/")({
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      ...ogImageMeta("home", "Oakmonte: Share your style. Safely."),
       // The landing page is white again, so it must say so: without its own
       // value it inherits the root's #000000 and iOS paints a black status
       // strip above a white page (see the theme-color note in __root.tsx).
