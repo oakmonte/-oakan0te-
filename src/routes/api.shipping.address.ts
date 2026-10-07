@@ -47,10 +47,12 @@ export const Route = createFileRoute("/api/shipping/address")({
           return json({ error: "Add your name, phone number and full address." }, 400);
         }
         const typedEmail = typeof body.email === "string" ? body.email.trim() : "";
-        const email = user?.email ?? typedEmail;
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-          return json({ error: "Add a valid email so we can send your order updates." }, 400);
+        // Email is optional for buyers; Shipbubble insists on one, so a blank
+        // falls back to Oakmonte's orders inbox. A typed one must be valid.
+        if (typedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(typedEmail)) {
+          return json({ error: "That email doesn't look right." }, 400);
         }
+        const email = user?.email ?? (typedEmail || "orders@oakmonte.store");
 
         const res = await fetch("https://api.shipbubble.com/v1/shipping/address/validate", {
           method: "POST",
@@ -72,6 +74,14 @@ export const Route = createFileRoute("/api/shipping/address")({
         } | null;
         if (!res.ok || !payload?.data) {
           console.error("Shipbubble address validate failed:", res.status, payload);
+          // 401/403/5xx are OUR problem (key, quota, outage), not the buyer's
+          // address; blaming the address sends them rewriting a good one.
+          if (res.status === 401 || res.status === 403 || res.status >= 500) {
+            return json(
+              { error: "Address checking is unavailable right now. Try again soon." },
+              503,
+            );
+          }
           return json(
             { error: "We couldn't find that address. Add the street, area and city." },
             422,

@@ -272,7 +272,7 @@ function CheckoutPage() {
       !stateName.trim() ||
       !city.trim() ||
       !postalCode.trim() ||
-      (!userEmail && !email.trim())
+      (!userEmail && email.trim() !== "" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()))
     ) {
       setError("Fix the highlighted fields.");
       return;
@@ -405,8 +405,8 @@ function CheckoutPage() {
             />
             {!userEmail && (
               <input
-                className={`${field} ${bad(!email.trim())}`}
-                placeholder="Email (for order updates)"
+                className={`${field} ${bad(email.trim() !== "" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()))}`}
+                placeholder="Email (optional, for order updates)"
                 type="email"
                 autoComplete="email"
                 inputMode="email"
@@ -428,7 +428,13 @@ function CheckoutPage() {
                 Enter a valid phone number (digits only).
               </p>
             )}
-            <div className="my-3 border-t border-white/25" />
+            <div className="my-7 flex items-center gap-3">
+              <div className="h-px flex-1 bg-white/30" />
+              <span className="text-[13px] font-semibold uppercase tracking-[0.14em] text-white/70">
+                Address
+              </span>
+              <div className="h-px flex-1 bg-white/30" />
+            </div>
             <button
               type="button"
               onClick={() => void locateMe()}
