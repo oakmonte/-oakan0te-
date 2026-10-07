@@ -165,21 +165,22 @@ export function ProductPage({
   if (typeof document === "undefined") return null;
   return createPortal(
     <div className="fixed inset-0 z-[90] overflow-y-auto overscroll-contain" style={pageStyle}>
-      <button
-        type="button"
-        onClick={close}
-        aria-label="Back"
-        className="fixed left-3 top-3 z-10 grid h-10 w-10 place-items-center rounded-full bg-black/45 text-white"
-        style={{ marginTop: "env(safe-area-inset-top)" }}
+      <div
+        className="sticky top-0 z-10 px-3 pb-2 pt-[calc(env(safe-area-inset-top)+0.5rem)]"
+        style={{ background: look.background || undefined }}
       >
-        <ChevronLeft size={22} />
-      </button>
+        <button
+          type="button"
+          onClick={close}
+          aria-label="Back"
+          className="grid h-10 w-10 place-items-center rounded-full bg-black/45 text-white"
+        >
+          <ChevronLeft size={22} />
+        </button>
+      </div>
 
       <div className="mx-auto max-w-[520px] pb-[calc(env(safe-area-inset-bottom)+2rem)]">
-        <div
-          className="mx-3 mt-[calc(env(safe-area-inset-top)+0.75rem)] overflow-hidden rounded-3xl"
-          style={{ background: look.tileBg }}
-        >
+        <div className="mx-3 overflow-hidden rounded-3xl" style={{ background: look.tileBg }}>
           {photos.length > 0 ? (
             <div
               className="flex snap-x snap-mandatory overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
