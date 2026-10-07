@@ -428,6 +428,7 @@ function CheckoutPage() {
                 Enter a valid phone number (digits only).
               </p>
             )}
+            <div className="my-3 border-t border-white/25" />
             <button
               type="button"
               onClick={() => void locateMe()}
