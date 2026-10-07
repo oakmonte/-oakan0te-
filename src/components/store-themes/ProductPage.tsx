@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "@tanstack/react-router";
-import { ChevronLeft, Send, ShieldCheck } from "lucide-react";
+import { ChevronLeft, ShieldCheck } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useOverlayHistory } from "@/hooks/use-overlay-history";
 import type { PreviewTile } from "./storefront-catalog";
@@ -283,13 +283,22 @@ export function ProductPage({
                   className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl"
                   style={btn}
                 >
-                  <Send
-                    size={22}
-                    fill="currentColor"
-                    strokeWidth={3}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
+                  <svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true">
+                    <path
+                      d="M20 4 L4.5 10.5 L10.5 13.5 L13.5 19.5 Z"
+                      fill="currentColor"
+                      stroke="currentColor"
+                      strokeWidth="2.4"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M10.5 13.5 L20 4"
+                      fill="none"
+                      stroke={look.textColor}
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                    />
+                  </svg>
                 </button>
               )}
             </div>
