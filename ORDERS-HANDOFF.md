@@ -65,3 +65,13 @@ Response envelope `{status, message, data, errors}`.
 - Wallet: `GET /shipping/wallet/balance`; `POST /shipping/wallet/fund` {amount} -> Paystack payment_url (prod key only).
 - Webhooks: shipment.label.created / status.changed / cancelled / cod.remitted / sla.updated / waybill.updated, wallet.*; verify header `x-ship-signature` = HMAC-SHA512 of body keyed with API key. Sandbox simulator `POST /shipping/labels/webhooks/:order_id` {status_code}.
 Statuses: pending, confirmed, picked_up, in_transit, completed, cancelled.
+
+## Status 2026-10-07 (late)
+- Orders migration APPLIED to the live DB (guest orders supported: `buyer_id` nullable,
+  `guest_token`). Types regenerated on this branch.
+- Decision: build straight for **Paystack** (no manual-transfer screens). Impatient sellers get
+  a stand-alone site later (separate domain, not `*.oakmonte.store`), out of scope for now.
+- Built: product page, checkout address step (guest-friendly, location-style form), live courier
+  rates (`/api/shipping/{address,rates,reverse-geocode}`), Buy Now sign-in nudge.
+- Needs Diadem: the Shipbubble sandbox key in the local env file of this worktree, Paystack test
+  keys, Oakmonte's bank details, CAC progress.

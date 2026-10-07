@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      buyer_addresses: {
+        Row: {
+          address_input: string
+          city: string | null
+          created_at: string
+          formatted_address: string | null
+          id: string
+          lat: number | null
+          lng: number | null
+          name: string
+          phone: string
+          postal_code: string | null
+          shipbubble_address_code: number | null
+          state: string | null
+          user_id: string
+        }
+        Insert: {
+          address_input: string
+          city?: string | null
+          created_at?: string
+          formatted_address?: string | null
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          name: string
+          phone: string
+          postal_code?: string | null
+          shipbubble_address_code?: number | null
+          state?: string | null
+          user_id: string
+        }
+        Update: {
+          address_input?: string
+          city?: string | null
+          created_at?: string
+          formatted_address?: string | null
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          name?: string
+          phone?: string
+          postal_code?: string | null
+          shipbubble_address_code?: number | null
+          state?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       collections: {
         Row: {
           additional_image_urls: string[] | null
@@ -935,6 +983,228 @@ export type Database = {
           },
         ]
       }
+      order_items: {
+        Row: {
+          id: string
+          image_url: string | null
+          order_id: string
+          product_id: string | null
+          quantity: number
+          title: string
+          unit_price_kobo: number
+          variant_id: string | null
+          variant_label: string | null
+          weight_grams: number | null
+        }
+        Insert: {
+          id?: string
+          image_url?: string | null
+          order_id: string
+          product_id?: string | null
+          quantity: number
+          title: string
+          unit_price_kobo: number
+          variant_id?: string | null
+          variant_label?: string | null
+          weight_grams?: number | null
+        }
+        Update: {
+          id?: string
+          image_url?: string | null
+          order_id?: string
+          product_id?: string | null
+          quantity?: number
+          title?: string
+          unit_price_kobo?: number
+          variant_id?: string | null
+          variant_label?: string | null
+          weight_grams?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_payments: {
+        Row: {
+          amount_kobo: number
+          confirmed_at: string | null
+          confirmed_by: string | null
+          created_at: string
+          id: string
+          method: string
+          order_id: string
+          reference: string | null
+          status: string
+        }
+        Insert: {
+          amount_kobo: number
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          id?: string
+          method: string
+          order_id: string
+          reference?: string | null
+          status?: string
+        }
+        Update: {
+          amount_kobo?: number
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          id?: string
+          method?: string
+          order_id?: string
+          reference?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_payments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          buyer_id: string | null
+          courier_id: string | null
+          courier_name: string | null
+          courier_service_code: string | null
+          created_at: string
+          decline_reason: string | null
+          delivery_fee_kobo: number
+          delivery_method: string
+          guest_email: string | null
+          guest_token: string
+          id: string
+          items_total_kobo: number
+          platform_fee_kobo: number
+          ship_to: Json | null
+          shipbubble_order_id: string | null
+          shipbubble_request_token: string | null
+          status: string
+          store_id: string
+          total_kobo: number
+          tracking_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          buyer_id?: string | null
+          courier_id?: string | null
+          courier_name?: string | null
+          courier_service_code?: string | null
+          created_at?: string
+          decline_reason?: string | null
+          delivery_fee_kobo?: number
+          delivery_method?: string
+          guest_email?: string | null
+          guest_token?: string
+          id?: string
+          items_total_kobo: number
+          platform_fee_kobo?: number
+          ship_to?: Json | null
+          shipbubble_order_id?: string | null
+          shipbubble_request_token?: string | null
+          status?: string
+          store_id: string
+          total_kobo: number
+          tracking_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          buyer_id?: string | null
+          courier_id?: string | null
+          courier_name?: string | null
+          courier_service_code?: string | null
+          created_at?: string
+          decline_reason?: string | null
+          delivery_fee_kobo?: number
+          delivery_method?: string
+          guest_email?: string | null
+          guest_token?: string
+          id?: string
+          items_total_kobo?: number
+          platform_fee_kobo?: number
+          ship_to?: Json | null
+          shipbubble_order_id?: string | null
+          shipbubble_request_token?: string | null
+          status?: string
+          store_id?: string
+          total_kobo?: number
+          tracking_url?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payout_ledger: {
+        Row: {
+          amount_kobo: number
+          created_at: string
+          id: string
+          kind: string
+          note: string | null
+          order_id: string
+          paid_at: string | null
+          status: string
+          store_id: string | null
+        }
+        Insert: {
+          amount_kobo: number
+          created_at?: string
+          id?: string
+          kind: string
+          note?: string | null
+          order_id: string
+          paid_at?: string | null
+          status?: string
+          store_id?: string | null
+        }
+        Update: {
+          amount_kobo?: number
+          created_at?: string
+          id?: string
+          kind?: string
+          note?: string | null
+          order_id?: string
+          paid_at?: string | null
+          status?: string
+          store_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payout_ledger_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payout_ledger_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       post_media: {
         Row: {
           created_at: string
@@ -1749,6 +2019,57 @@ export type Database = {
             foreignKeyName: "store_pieces_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      store_shipping_settings: {
+        Row: {
+          default_weight_kg: number
+          flat_rate_kobo: number | null
+          local_pickup: boolean
+          location_rates: Json
+          pickup_location_id: string | null
+          shipbubble_sender_address_code: number | null
+          store_id: string
+          strategy: string
+          updated_at: string
+        }
+        Insert: {
+          default_weight_kg?: number
+          flat_rate_kobo?: number | null
+          local_pickup?: boolean
+          location_rates?: Json
+          pickup_location_id?: string | null
+          shipbubble_sender_address_code?: number | null
+          store_id: string
+          strategy?: string
+          updated_at?: string
+        }
+        Update: {
+          default_weight_kg?: number
+          flat_rate_kobo?: number | null
+          local_pickup?: boolean
+          location_rates?: Json
+          pickup_location_id?: string | null
+          shipbubble_sender_address_code?: number | null
+          store_id?: string
+          strategy?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_shipping_settings_pickup_location_id_fkey"
+            columns: ["pickup_location_id"]
+            isOneToOne: false
+            referencedRelation: "store_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_shipping_settings_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: true
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },

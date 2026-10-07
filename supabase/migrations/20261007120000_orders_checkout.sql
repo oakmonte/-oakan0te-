@@ -1,4 +1,4 @@
--- Orders / checkout / delivery. DRAFT, NOT APPLIED. Apply to a Supabase branch first.
+-- Orders / checkout / delivery. Additive only: new tables, no existing table touched.
 -- All writes go through server routes with the service role; clients only read
 -- their own rows, so no insert/update/delete policies are defined (RLS denies them).
 
@@ -77,7 +77,7 @@ create table public.order_items (
 );
 create index order_items_order_idx on public.order_items(order_id);
 
--- Gateway-agnostic: 'transfer' now (manually confirmed), 'paystack' later.
+-- Gateway-agnostic: Paystack is the plan; 'transfer' stays for manual confirmation.
 create table public.order_payments (
   id uuid primary key default gen_random_uuid(),
   order_id uuid not null references public.orders(id) on delete cascade,
@@ -90,6 +90,8 @@ create table public.order_payments (
   created_at timestamptz not null default now()
 );
 create index order_payments_order_idx on public.order_payments(order_id);
+-- A gateway reference can only ever settle one payment (webhook replays are no-ops).
+create unique index order_payments_method_reference_idx on public.order_payments(method, reference) where reference is not null;
 
 -- Money Oakmonte owes out: seller proceeds, courier/rider costs. Manual payout ledger.
 create table public.payout_ledger (

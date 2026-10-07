@@ -161,6 +161,17 @@ unwired on purpose, and why — check it before wiring more.
 
 ---
 
+### 2.x Orders tables are live, ahead of the code (2026-10-07)
+
+`supabase/migrations/20261007120000_orders_checkout.sql` was applied to the **live** project
+by Diadem's explicit say-so (Supabase branching needs the Pro plan, so there was no test copy).
+Additive only: `store_shipping_settings`, `buyer_addresses`, `orders`, `order_items`,
+`order_payments`, `payout_ledger`, all RLS-on, reads scoped to the buyer/seller, **no write
+policies** (every write goes through a server route on the service role). Nothing in `main`
+reads or writes them yet; the code is on `feature/orders-checkout`. `my-supabase/types.ts` was
+regenerated on that branch to include them. If `main` regenerates types first, resolve the merge
+by regenerating, not by hand. Payments are planned for Paystack (see `ORDERS-HANDOFF.md`).
+
 ## 3. Small, unblocked
 
 ### 3.1 Fonts don't match the landing
