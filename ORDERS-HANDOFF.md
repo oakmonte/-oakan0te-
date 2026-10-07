@@ -75,3 +75,19 @@ Statuses: pending, confirmed, picked_up, in_transit, completed, cancelled.
   rates (`/api/shipping/{address,rates,reverse-geocode}`), Buy Now sign-in nudge.
 - Needs Diadem: the Shipbubble sandbox key in the local env file of this worktree, Paystack test
   keys, Oakmonte's bank details, CAC progress.
+
+## Built so far on this branch (all untested against live Shipbubble/Paystack: no keys yet)
+- `/checkout/$productId` -> guest-friendly address + courier choice -> "Place order and pay".
+- `POST /api/orders` re-prices item + delivery server-side, inserts order/items/payment, starts
+  Paystack (`PAYSTACK_SECRET_KEY`); without the key it still creates the order and lands on the
+  order page.
+- `POST /api/paystack/webhook` (signature-verified) and the order page's verify both call
+  `settlePaystackPayment` (idempotent, amount-checked, takes stock out).
+- `/order/$orderId?t=<guest_token>` buyer status page. `/store/orders` seller list with
+  "Book courier and ship" (`/api/store/orders/$orderId/ship`, Shipbubble wallet).
+- `POST /api/shipbubble/webhook` marks delivered on `completed` (payload shape guessed from
+  the docs; confirm against a sandbox event).
+
+## Not built yet
+Paystack subaccount/split + 6% platform fee, seller bank verification, refunds/declines, seller
+shipping settings page, cart (Add to Bag), Make Offer, payout ledger use, order emails.

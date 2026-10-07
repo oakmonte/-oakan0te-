@@ -84,6 +84,7 @@ import { Route as ApiOrdersOrderIdRouteImport } from './routes/api.orders.$order
 import { Route as ApiPaystackWebhookRouteImport } from './routes/api.paystack.webhook'
 import { Route as ApiProductsUploadImageRouteImport } from './routes/api.products.upload-image'
 import { Route as ApiShipbubblePingRouteImport } from './routes/api.shipbubble.ping'
+import { Route as ApiShipbubbleWebhookRouteImport } from './routes/api.shipbubble.webhook'
 import { Route as ApiShippingAddressRouteImport } from './routes/api.shipping.address'
 import { Route as ApiShippingRatesRouteImport } from './routes/api.shipping.rates'
 import { Route as ApiShippingReverseGeocodeRouteImport } from './routes/api.shipping.reverse-geocode'
@@ -91,6 +92,7 @@ import { Route as ApiShopifyCallbackRouteImport } from './routes/api.shopify.cal
 import { Route as ApiShopifyInstallRouteImport } from './routes/api.shopify.install'
 import { Route as ApiStorePiecesUploadImageRouteImport } from './routes/api.store-pieces.upload-image'
 import { Route as ApiStoreThemeUploadImageRouteImport } from './routes/api.store-theme.upload-image'
+import { Route as ApiStoreOrdersRouteImport } from './routes/api.store.orders'
 import { Route as ApiStorePayoutRouteImport } from './routes/api.store.payout'
 import { Route as ApiSupportMessagesMineRouteImport } from './routes/api.support-messages.mine'
 import { Route as ApiSupportMessagesReplyRouteImport } from './routes/api.support-messages.reply'
@@ -109,6 +111,7 @@ import { Route as StoreProductsIdRouteImport } from './routes/store.products_.$i
 import { Route as StoreProductsNewRouteImport } from './routes/store.products_.new'
 import { Route as StoreProductsNewcomerRouteImport } from './routes/store.products_.newcomer'
 import { Route as StoreProductsUploadRouteImport } from './routes/store.products_.upload'
+import { Route as ApiStoreOrdersOrderIdShipRouteImport } from './routes/api.store.orders.$orderId.ship'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -486,6 +489,11 @@ const ApiShipbubblePingRoute = ApiShipbubblePingRouteImport.update({
   path: '/api/shipbubble/ping',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiShipbubbleWebhookRoute = ApiShipbubbleWebhookRouteImport.update({
+  id: '/api/shipbubble/webhook',
+  path: '/api/shipbubble/webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiShippingAddressRoute = ApiShippingAddressRouteImport.update({
   id: '/api/shipping/address',
   path: '/api/shipping/address',
@@ -524,6 +532,11 @@ const ApiStoreThemeUploadImageRoute =
     path: '/api/store-theme/upload-image',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiStoreOrdersRoute = ApiStoreOrdersRouteImport.update({
+  id: '/api/store/orders',
+  path: '/api/store/orders',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiStorePayoutRoute = ApiStorePayoutRouteImport.update({
   id: '/api/store/payout',
   path: '/api/store/payout',
@@ -614,6 +627,12 @@ const StoreProductsUploadRoute = StoreProductsUploadRouteImport.update({
   path: '/products/upload',
   getParentRoute: () => StoreRoute,
 } as any)
+const ApiStoreOrdersOrderIdShipRoute =
+  ApiStoreOrdersOrderIdShipRouteImport.update({
+    id: '/$orderId/ship',
+    path: '/$orderId/ship',
+    getParentRoute: () => ApiStoreOrdersRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -691,6 +710,7 @@ export interface FileRoutesByFullPath {
   '/api/paystack/webhook': typeof ApiPaystackWebhookRoute
   '/api/products/upload-image': typeof ApiProductsUploadImageRoute
   '/api/shipbubble/ping': typeof ApiShipbubblePingRoute
+  '/api/shipbubble/webhook': typeof ApiShipbubbleWebhookRoute
   '/api/shipping/address': typeof ApiShippingAddressRoute
   '/api/shipping/rates': typeof ApiShippingRatesRoute
   '/api/shipping/reverse-geocode': typeof ApiShippingReverseGeocodeRoute
@@ -698,6 +718,7 @@ export interface FileRoutesByFullPath {
   '/api/shopify/install': typeof ApiShopifyInstallRoute
   '/api/store-pieces/upload-image': typeof ApiStorePiecesUploadImageRoute
   '/api/store-theme/upload-image': typeof ApiStoreThemeUploadImageRoute
+  '/api/store/orders': typeof ApiStoreOrdersRouteWithChildren
   '/api/store/payout': typeof ApiStorePayoutRoute
   '/api/support-messages/mine': typeof ApiSupportMessagesMineRoute
   '/api/support-messages/reply': typeof ApiSupportMessagesReplyRoute
@@ -716,6 +737,7 @@ export interface FileRoutesByFullPath {
   '/store/products/upload': typeof StoreProductsUploadRoute
   '/create/after-shot/': typeof CreateAfterShotIndexRoute
   '/store/playlists/': typeof StorePlaylistsIndexRoute
+  '/api/store/orders/$orderId/ship': typeof ApiStoreOrdersOrderIdShipRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -790,6 +812,7 @@ export interface FileRoutesByTo {
   '/api/paystack/webhook': typeof ApiPaystackWebhookRoute
   '/api/products/upload-image': typeof ApiProductsUploadImageRoute
   '/api/shipbubble/ping': typeof ApiShipbubblePingRoute
+  '/api/shipbubble/webhook': typeof ApiShipbubbleWebhookRoute
   '/api/shipping/address': typeof ApiShippingAddressRoute
   '/api/shipping/rates': typeof ApiShippingRatesRoute
   '/api/shipping/reverse-geocode': typeof ApiShippingReverseGeocodeRoute
@@ -797,6 +820,7 @@ export interface FileRoutesByTo {
   '/api/shopify/install': typeof ApiShopifyInstallRoute
   '/api/store-pieces/upload-image': typeof ApiStorePiecesUploadImageRoute
   '/api/store-theme/upload-image': typeof ApiStoreThemeUploadImageRoute
+  '/api/store/orders': typeof ApiStoreOrdersRouteWithChildren
   '/api/store/payout': typeof ApiStorePayoutRoute
   '/api/support-messages/mine': typeof ApiSupportMessagesMineRoute
   '/api/support-messages/reply': typeof ApiSupportMessagesReplyRoute
@@ -815,6 +839,7 @@ export interface FileRoutesByTo {
   '/store/products/upload': typeof StoreProductsUploadRoute
   '/create/after-shot': typeof CreateAfterShotIndexRoute
   '/store/playlists': typeof StorePlaylistsIndexRoute
+  '/api/store/orders/$orderId/ship': typeof ApiStoreOrdersOrderIdShipRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -893,6 +918,7 @@ export interface FileRoutesById {
   '/api/paystack/webhook': typeof ApiPaystackWebhookRoute
   '/api/products/upload-image': typeof ApiProductsUploadImageRoute
   '/api/shipbubble/ping': typeof ApiShipbubblePingRoute
+  '/api/shipbubble/webhook': typeof ApiShipbubbleWebhookRoute
   '/api/shipping/address': typeof ApiShippingAddressRoute
   '/api/shipping/rates': typeof ApiShippingRatesRoute
   '/api/shipping/reverse-geocode': typeof ApiShippingReverseGeocodeRoute
@@ -900,6 +926,7 @@ export interface FileRoutesById {
   '/api/shopify/install': typeof ApiShopifyInstallRoute
   '/api/store-pieces/upload-image': typeof ApiStorePiecesUploadImageRoute
   '/api/store-theme/upload-image': typeof ApiStoreThemeUploadImageRoute
+  '/api/store/orders': typeof ApiStoreOrdersRouteWithChildren
   '/api/store/payout': typeof ApiStorePayoutRoute
   '/api/support-messages/mine': typeof ApiSupportMessagesMineRoute
   '/api/support-messages/reply': typeof ApiSupportMessagesReplyRoute
@@ -918,6 +945,7 @@ export interface FileRoutesById {
   '/store/products_/upload': typeof StoreProductsUploadRoute
   '/create/after-shot/': typeof CreateAfterShotIndexRoute
   '/store/playlists/': typeof StorePlaylistsIndexRoute
+  '/api/store/orders/$orderId/ship': typeof ApiStoreOrdersOrderIdShipRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -997,6 +1025,7 @@ export interface FileRouteTypes {
     | '/api/paystack/webhook'
     | '/api/products/upload-image'
     | '/api/shipbubble/ping'
+    | '/api/shipbubble/webhook'
     | '/api/shipping/address'
     | '/api/shipping/rates'
     | '/api/shipping/reverse-geocode'
@@ -1004,6 +1033,7 @@ export interface FileRouteTypes {
     | '/api/shopify/install'
     | '/api/store-pieces/upload-image'
     | '/api/store-theme/upload-image'
+    | '/api/store/orders'
     | '/api/store/payout'
     | '/api/support-messages/mine'
     | '/api/support-messages/reply'
@@ -1022,6 +1052,7 @@ export interface FileRouteTypes {
     | '/store/products/upload'
     | '/create/after-shot/'
     | '/store/playlists/'
+    | '/api/store/orders/$orderId/ship'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -1096,6 +1127,7 @@ export interface FileRouteTypes {
     | '/api/paystack/webhook'
     | '/api/products/upload-image'
     | '/api/shipbubble/ping'
+    | '/api/shipbubble/webhook'
     | '/api/shipping/address'
     | '/api/shipping/rates'
     | '/api/shipping/reverse-geocode'
@@ -1103,6 +1135,7 @@ export interface FileRouteTypes {
     | '/api/shopify/install'
     | '/api/store-pieces/upload-image'
     | '/api/store-theme/upload-image'
+    | '/api/store/orders'
     | '/api/store/payout'
     | '/api/support-messages/mine'
     | '/api/support-messages/reply'
@@ -1121,6 +1154,7 @@ export interface FileRouteTypes {
     | '/store/products/upload'
     | '/create/after-shot'
     | '/store/playlists'
+    | '/api/store/orders/$orderId/ship'
   id:
     | '__root__'
     | '/'
@@ -1198,6 +1232,7 @@ export interface FileRouteTypes {
     | '/api/paystack/webhook'
     | '/api/products/upload-image'
     | '/api/shipbubble/ping'
+    | '/api/shipbubble/webhook'
     | '/api/shipping/address'
     | '/api/shipping/rates'
     | '/api/shipping/reverse-geocode'
@@ -1205,6 +1240,7 @@ export interface FileRouteTypes {
     | '/api/shopify/install'
     | '/api/store-pieces/upload-image'
     | '/api/store-theme/upload-image'
+    | '/api/store/orders'
     | '/api/store/payout'
     | '/api/support-messages/mine'
     | '/api/support-messages/reply'
@@ -1223,6 +1259,7 @@ export interface FileRouteTypes {
     | '/store/products_/upload'
     | '/create/after-shot/'
     | '/store/playlists/'
+    | '/api/store/orders/$orderId/ship'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1282,6 +1319,7 @@ export interface RootRouteChildren {
   ApiPaystackWebhookRoute: typeof ApiPaystackWebhookRoute
   ApiProductsUploadImageRoute: typeof ApiProductsUploadImageRoute
   ApiShipbubblePingRoute: typeof ApiShipbubblePingRoute
+  ApiShipbubbleWebhookRoute: typeof ApiShipbubbleWebhookRoute
   ApiShippingAddressRoute: typeof ApiShippingAddressRoute
   ApiShippingRatesRoute: typeof ApiShippingRatesRoute
   ApiShippingReverseGeocodeRoute: typeof ApiShippingReverseGeocodeRoute
@@ -1289,6 +1327,7 @@ export interface RootRouteChildren {
   ApiShopifyInstallRoute: typeof ApiShopifyInstallRoute
   ApiStorePiecesUploadImageRoute: typeof ApiStorePiecesUploadImageRoute
   ApiStoreThemeUploadImageRoute: typeof ApiStoreThemeUploadImageRoute
+  ApiStoreOrdersRoute: typeof ApiStoreOrdersRouteWithChildren
   ApiStorePayoutRoute: typeof ApiStorePayoutRoute
   ApiSupportMessagesMineRoute: typeof ApiSupportMessagesMineRoute
   ApiSupportMessagesReplyRoute: typeof ApiSupportMessagesReplyRoute
@@ -1822,6 +1861,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiShipbubblePingRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/shipbubble/webhook': {
+      id: '/api/shipbubble/webhook'
+      path: '/api/shipbubble/webhook'
+      fullPath: '/api/shipbubble/webhook'
+      preLoaderRoute: typeof ApiShipbubbleWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/shipping/address': {
       id: '/api/shipping/address'
       path: '/api/shipping/address'
@@ -1869,6 +1915,13 @@ declare module '@tanstack/react-router' {
       path: '/api/store-theme/upload-image'
       fullPath: '/api/store-theme/upload-image'
       preLoaderRoute: typeof ApiStoreThemeUploadImageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/store/orders': {
+      id: '/api/store/orders'
+      path: '/api/store/orders'
+      fullPath: '/api/store/orders'
+      preLoaderRoute: typeof ApiStoreOrdersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/store/payout': {
@@ -1997,6 +2050,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StoreProductsUploadRouteImport
       parentRoute: typeof StoreRoute
     }
+    '/api/store/orders/$orderId/ship': {
+      id: '/api/store/orders/$orderId/ship'
+      path: '/$orderId/ship'
+      fullPath: '/api/store/orders/$orderId/ship'
+      preLoaderRoute: typeof ApiStoreOrdersOrderIdShipRouteImport
+      parentRoute: typeof ApiStoreOrdersRoute
+    }
   }
 }
 
@@ -2103,6 +2163,18 @@ const ApiOrdersRouteWithChildren = ApiOrdersRoute._addFileChildren(
   ApiOrdersRouteChildren,
 )
 
+interface ApiStoreOrdersRouteChildren {
+  ApiStoreOrdersOrderIdShipRoute: typeof ApiStoreOrdersOrderIdShipRoute
+}
+
+const ApiStoreOrdersRouteChildren: ApiStoreOrdersRouteChildren = {
+  ApiStoreOrdersOrderIdShipRoute: ApiStoreOrdersOrderIdShipRoute,
+}
+
+const ApiStoreOrdersRouteWithChildren = ApiStoreOrdersRoute._addFileChildren(
+  ApiStoreOrdersRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   InfoRoute: InfoRoute,
@@ -2160,6 +2232,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPaystackWebhookRoute: ApiPaystackWebhookRoute,
   ApiProductsUploadImageRoute: ApiProductsUploadImageRoute,
   ApiShipbubblePingRoute: ApiShipbubblePingRoute,
+  ApiShipbubbleWebhookRoute: ApiShipbubbleWebhookRoute,
   ApiShippingAddressRoute: ApiShippingAddressRoute,
   ApiShippingRatesRoute: ApiShippingRatesRoute,
   ApiShippingReverseGeocodeRoute: ApiShippingReverseGeocodeRoute,
@@ -2167,6 +2240,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiShopifyInstallRoute: ApiShopifyInstallRoute,
   ApiStorePiecesUploadImageRoute: ApiStorePiecesUploadImageRoute,
   ApiStoreThemeUploadImageRoute: ApiStoreThemeUploadImageRoute,
+  ApiStoreOrdersRoute: ApiStoreOrdersRouteWithChildren,
   ApiStorePayoutRoute: ApiStorePayoutRoute,
   ApiSupportMessagesMineRoute: ApiSupportMessagesMineRoute,
   ApiSupportMessagesReplyRoute: ApiSupportMessagesReplyRoute,
