@@ -81,6 +81,7 @@ import { Route as ApiInstagramConnectRouteImport } from './routes/api.instagram.
 import { Route as ApiProductsUploadImageRouteImport } from './routes/api.products.upload-image'
 import { Route as ApiShipbubblePingRouteImport } from './routes/api.shipbubble.ping'
 import { Route as ApiShippingAddressRouteImport } from './routes/api.shipping.address'
+import { Route as ApiShippingRatesRouteImport } from './routes/api.shipping.rates'
 import { Route as ApiShippingReverseGeocodeRouteImport } from './routes/api.shipping.reverse-geocode'
 import { Route as ApiShopifyCallbackRouteImport } from './routes/api.shopify.callback'
 import { Route as ApiShopifyInstallRouteImport } from './routes/api.shopify.install'
@@ -466,6 +467,11 @@ const ApiShippingAddressRoute = ApiShippingAddressRouteImport.update({
   path: '/api/shipping/address',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiShippingRatesRoute = ApiShippingRatesRouteImport.update({
+  id: '/api/shipping/rates',
+  path: '/api/shipping/rates',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiShippingReverseGeocodeRoute =
   ApiShippingReverseGeocodeRouteImport.update({
     id: '/api/shipping/reverse-geocode',
@@ -658,6 +664,7 @@ export interface FileRoutesByFullPath {
   '/api/products/upload-image': typeof ApiProductsUploadImageRoute
   '/api/shipbubble/ping': typeof ApiShipbubblePingRoute
   '/api/shipping/address': typeof ApiShippingAddressRoute
+  '/api/shipping/rates': typeof ApiShippingRatesRoute
   '/api/shipping/reverse-geocode': typeof ApiShippingReverseGeocodeRoute
   '/api/shopify/callback': typeof ApiShopifyCallbackRoute
   '/api/shopify/install': typeof ApiShopifyInstallRoute
@@ -752,6 +759,7 @@ export interface FileRoutesByTo {
   '/api/products/upload-image': typeof ApiProductsUploadImageRoute
   '/api/shipbubble/ping': typeof ApiShipbubblePingRoute
   '/api/shipping/address': typeof ApiShippingAddressRoute
+  '/api/shipping/rates': typeof ApiShippingRatesRoute
   '/api/shipping/reverse-geocode': typeof ApiShippingReverseGeocodeRoute
   '/api/shopify/callback': typeof ApiShopifyCallbackRoute
   '/api/shopify/install': typeof ApiShopifyInstallRoute
@@ -850,6 +858,7 @@ export interface FileRoutesById {
   '/api/products/upload-image': typeof ApiProductsUploadImageRoute
   '/api/shipbubble/ping': typeof ApiShipbubblePingRoute
   '/api/shipping/address': typeof ApiShippingAddressRoute
+  '/api/shipping/rates': typeof ApiShippingRatesRoute
   '/api/shipping/reverse-geocode': typeof ApiShippingReverseGeocodeRoute
   '/api/shopify/callback': typeof ApiShopifyCallbackRoute
   '/api/shopify/install': typeof ApiShopifyInstallRoute
@@ -949,6 +958,7 @@ export interface FileRouteTypes {
     | '/api/products/upload-image'
     | '/api/shipbubble/ping'
     | '/api/shipping/address'
+    | '/api/shipping/rates'
     | '/api/shipping/reverse-geocode'
     | '/api/shopify/callback'
     | '/api/shopify/install'
@@ -1043,6 +1053,7 @@ export interface FileRouteTypes {
     | '/api/products/upload-image'
     | '/api/shipbubble/ping'
     | '/api/shipping/address'
+    | '/api/shipping/rates'
     | '/api/shipping/reverse-geocode'
     | '/api/shopify/callback'
     | '/api/shopify/install'
@@ -1140,6 +1151,7 @@ export interface FileRouteTypes {
     | '/api/products/upload-image'
     | '/api/shipbubble/ping'
     | '/api/shipping/address'
+    | '/api/shipping/rates'
     | '/api/shipping/reverse-geocode'
     | '/api/shopify/callback'
     | '/api/shopify/install'
@@ -1220,6 +1232,7 @@ export interface RootRouteChildren {
   ApiProductsUploadImageRoute: typeof ApiProductsUploadImageRoute
   ApiShipbubblePingRoute: typeof ApiShipbubblePingRoute
   ApiShippingAddressRoute: typeof ApiShippingAddressRoute
+  ApiShippingRatesRoute: typeof ApiShippingRatesRoute
   ApiShippingReverseGeocodeRoute: typeof ApiShippingReverseGeocodeRoute
   ApiShopifyCallbackRoute: typeof ApiShopifyCallbackRoute
   ApiShopifyInstallRoute: typeof ApiShopifyInstallRoute
@@ -1737,6 +1750,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiShippingAddressRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/shipping/rates': {
+      id: '/api/shipping/rates'
+      path: '/api/shipping/rates'
+      fullPath: '/api/shipping/rates'
+      preLoaderRoute: typeof ApiShippingRatesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/shipping/reverse-geocode': {
       id: '/api/shipping/reverse-geocode'
       path: '/api/shipping/reverse-geocode'
@@ -2047,6 +2067,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiProductsUploadImageRoute: ApiProductsUploadImageRoute,
   ApiShipbubblePingRoute: ApiShipbubblePingRoute,
   ApiShippingAddressRoute: ApiShippingAddressRoute,
+  ApiShippingRatesRoute: ApiShippingRatesRoute,
   ApiShippingReverseGeocodeRoute: ApiShippingReverseGeocodeRoute,
   ApiShopifyCallbackRoute: ApiShopifyCallbackRoute,
   ApiShopifyInstallRoute: ApiShopifyInstallRoute,

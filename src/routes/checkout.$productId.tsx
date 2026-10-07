@@ -19,6 +19,14 @@ type Summary = {
   image: string | null;
 };
 
+type Courier = {
+  courierId: string;
+  serviceCode: string;
+  name: string;
+  price: number;
+  eta: string | null;
+};
+
 type Validated = {
   addressCode: number;
   formattedAddress: string;
@@ -73,6 +81,10 @@ function CheckoutPage() {
   const [error, setError] = useState("");
   const [checking, setChecking] = useState(false);
   const [validated, setValidated] = useState<Validated | null>(null);
+  const [couriers, setCouriers] = useState<Courier[] | null>(null);
+  const [ratesError, setRatesError] = useState("");
+  const [requestToken, setRequestToken] = useState<string | null>(null);
+  const [chosen, setChosen] = useState<string | null>(null);
 
   useEffect(() => {
     void loadSummary(productId, variant).then(setSummary);
@@ -152,6 +164,52 @@ function CheckoutPage() {
       setChecking(false);
     }
   }
+
+  // Prices come back for the validated address; re-run if it changes.
+  useEffect(() => {
+    if (!validated) {
+      setCouriers(null);
+      setChosen(null);
+      return;
+    }
+    let cancelled = false;
+    setCouriers(null);
+    setRatesError("");
+    void (async () => {
+      try {
+        const res = await fetch("/api/shipping/rates", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            productId,
+            variantId: variant,
+            addressCode: validated.addressCode,
+          }),
+        });
+        const body = (await res.json().catch(() => null)) as {
+          couriers?: Courier[];
+          requestToken?: string;
+          error?: string;
+        } | null;
+        if (cancelled) return;
+        if (!res.ok || !body?.couriers) {
+          setRatesError(body?.error ?? "Couldn't get delivery prices.");
+          return;
+        }
+        setCouriers(body.couriers);
+        setRequestToken(body.requestToken ?? null);
+        const cheapest = [...body.couriers].sort((a, b) => a.price - b.price)[0];
+        setChosen(cheapest ? cheapest.serviceCode : null);
+      } catch {
+        if (!cancelled) setRatesError("Couldn't get delivery prices.");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [validated, productId, variant]);
+
+  const pick = couriers?.find((c) => c.serviceCode === chosen) ?? null;
 
   const field =
     "w-full rounded-2xl border border-white/15 bg-white/[0.06] px-4 py-3.5 text-[16px] text-white outline-none placeholder:text-white/35 focus:border-white/40";
@@ -268,9 +326,58 @@ function CheckoutPage() {
             >
               Change address
             </button>
-            <p className="text-[13px] text-white/50">
-              Next: delivery options and payment (building now).
-            </p>
+            <h2 className="mt-3 text-[20px] font-semibold">Delivery</h2>
+            {couriers === null && !ratesError && (
+              <p className="text-[14px] text-white/55">Getting live delivery prices…</p>
+            )}
+            {ratesError && <p className="text-[14px] text-red-400">{ratesError}</p>}
+            {couriers && (
+              <div className="flex flex-col gap-2">
+                {[...couriers]
+                  .sort((a, b) => a.price - b.price)
+                  .map((c) => (
+                    <button
+                      key={c.serviceCode}
+                      type="button"
+                      onClick={() => setChosen(c.serviceCode)}
+                      className={`flex items-center justify-between rounded-2xl border px-4 py-3.5 text-left ${
+                        chosen === c.serviceCode
+                          ? "border-white bg-white/10"
+                          : "border-white/15 bg-white/[0.04]"
+                      }`}
+                    >
+                      <span>
+                        <span className="block text-[15px] font-medium">{c.name}</span>
+                        {c.eta && <span className="block text-[13px] text-white/55">{c.eta}</span>}
+                      </span>
+                      <span className="text-[15px]">₦{c.price.toLocaleString()}</span>
+                    </button>
+                  ))}
+              </div>
+            )}
+            {pick && summary?.price != null && (
+              <div className="mt-1 flex flex-col gap-1 rounded-2xl bg-white/[0.06] p-4 text-[15px]">
+                <div className="flex justify-between text-white/70">
+                  <span>Item</span>
+                  <span>₦{summary.price.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-white/70">
+                  <span>Delivery ({pick.name})</span>
+                  <span>₦{pick.price.toLocaleString()}</span>
+                </div>
+                <div className="mt-1 flex justify-between border-t border-white/10 pt-2 font-semibold">
+                  <span>Total</span>
+                  <span>₦{(summary.price + pick.price).toLocaleString()}</span>
+                </div>
+              </div>
+            )}
+            <button
+              type="button"
+              disabled={!pick || !requestToken}
+              className="mt-1 h-14 rounded-2xl bg-white text-[17px] font-semibold text-black disabled:opacity-40"
+            >
+              Place order
+            </button>
           </div>
         )}
       </div>
