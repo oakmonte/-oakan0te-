@@ -1,9 +1,10 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { BottomNav } from "@/components/BottomNav";
 import { TopToggleNav } from "@/components/TopToggleNav";
-import { Lock, Search } from "lucide-react";
-import { ExplorePreview, ShopPreview } from "@/components/home/LockedPreview";
+import { Search } from "lucide-react";
+import { ExploreGrid } from "@/components/home/ExploreGrid";
+import { ShopFeed } from "@/components/home/ShopFeed";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useSession } from "@/hooks/use-session";
 
@@ -51,41 +52,7 @@ function HomePage() {
         />
       </div>
 
-      <div className="relative">
-        <div className="pointer-events-none select-none" aria-hidden>
-          {tab === "shop" ? <ShopPreview /> : <ExplorePreview />}
-        </div>
-
-        <div className="fixed inset-x-0 top-[30vh] z-40 flex flex-col items-center gap-2 px-8 text-center">
-          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-chat-text/10 text-chat-text">
-            <Lock size={24} />
-          </span>
-          <p className="text-[20px] font-bold text-chat-text">
-            {tab === "shop" ? "Shopping" : "Explore"} opens at full launch
-          </p>
-          <p className="text-[15px] font-medium text-chat-text/85">
-            {tab === "shop"
-              ? "Browse shelves from every store and check out in a tap."
-              : "Scroll looks, then shop every piece in them straight from the post."}
-          </p>
-          <div className="mt-3 flex gap-2">
-            <Link
-              to="/create"
-              className="h-10 rounded-full bg-chat-text px-5 text-[14px] font-semibold leading-10 text-chat-inverse"
-            >
-              Post a look
-            </Link>
-            {isSeller && (
-              <Link
-                to="/set-up-store"
-                className="h-10 rounded-full border border-chat-border px-5 text-[14px] font-semibold leading-10 text-chat-text"
-              >
-                Set up a store
-              </Link>
-            )}
-          </div>
-        </div>
-      </div>
+      {tab === "shop" ? <ShopFeed /> : <ExploreGrid />}
 
       <BottomNav active="home" ownUsername={ownUsername} />
     </div>
