@@ -83,7 +83,7 @@ function CheckoutPage() {
     else void navigate({ to: "/home" });
   }
 
-  async function useMyLocation() {
+  async function locateMe() {
     if (!("geolocation" in navigator)) {
       setError("Location isn't available on this device. Type your address instead.");
       return;
@@ -227,7 +227,7 @@ function CheckoutPage() {
             />
             <button
               type="button"
-              onClick={() => void useMyLocation()}
+              onClick={() => void locateMe()}
               disabled={locating}
               className="flex h-12 items-center justify-center gap-2 rounded-2xl border border-white/20 text-[15px] disabled:opacity-60"
             >
