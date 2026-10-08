@@ -2,8 +2,8 @@
  *
  *  The app is black almost everywhere — the feed, the camera, the studio,
  *  the public storefront. Four areas are deliberately not: the seller
- *  dashboard and the publish screen; /home, /messages, /cart and /profile/*, which follow
- *  the phone's light/dark setting (the "social" surface); and the fixed-white
+ *  dashboard and the publish screen; /home, /messages, /cart, /profile/* and a buyer's
+ *  orders, which follow the phone's light/dark setting (the "social" surface); and the fixed-white
  *  marketing pages (the "marketing" surface). That distinction drives three things that
  *  used to be decided in three different places and could drift apart:
  *
@@ -43,6 +43,10 @@ export function surfaceForPathname(pathname: string): Surface {
   // Personal profiles too (not /store-profile/*, the public storefront, which
   // paints its own theme colours).
   if (pathname.startsWith("/profile/")) return "social";
+  // A buyer's orders: the list and one order's page (written in chat-*
+  // tokens). Exact "/orders", and "/order/" with its slash, so neither
+  // sweeps in a future route that merely shares the letters.
+  if (pathname === "/orders" || pathname.startsWith("/order/")) return "social";
   // The marketing landing page and the seller pitch page: always white,
   // never phone-following. Each already declares #ffffff in its own head(),
   // but that alone only fixes the status-bar chrome -- the page background

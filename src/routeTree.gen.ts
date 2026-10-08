@@ -27,6 +27,7 @@ import { Route as MessagesRouteImport } from './routes/messages'
 import { Route as NameYourStoreRouteImport } from './routes/name-your-store'
 import { Route as NoAccountRouteImport } from './routes/no-account'
 import { Route as OfflineVideosRouteImport } from './routes/offline-videos'
+import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as PasskeyRouteImport } from './routes/passkey'
 import { Route as PreviousIndexRouteImport } from './routes/previous-index'
 import { Route as PrivacyRouteImport } from './routes/privacy'
@@ -82,6 +83,7 @@ import { Route as ApiImportStatusRouteImport } from './routes/api.import.status'
 import { Route as ApiInstagramCallbackRouteImport } from './routes/api.instagram.callback'
 import { Route as ApiInstagramConnectRouteImport } from './routes/api.instagram.connect'
 import { Route as ApiOrdersOrderIdRouteImport } from './routes/api.orders.$orderId'
+import { Route as ApiOrdersMineRouteImport } from './routes/api.orders.mine'
 import { Route as ApiPaystackWebhookRouteImport } from './routes/api.paystack.webhook'
 import { Route as ApiProductsUploadImageRouteImport } from './routes/api.products.upload-image'
 import { Route as ApiShipbubblePingRouteImport } from './routes/api.shipbubble.ping'
@@ -106,12 +108,15 @@ import { Route as StoreCollectionsNewRouteImport } from './routes/store.collecti
 import { Route as StoreDropsIdRouteImport } from './routes/store.drops_.$id'
 import { Route as StoreDropsNewRouteImport } from './routes/store.drops_.new'
 import { Route as StoreLocationsNewRouteImport } from './routes/store.locations_.new'
+import { Route as StoreOrdersOrderIdRouteImport } from './routes/store.orders_.$orderId'
 import { Route as StorePlaylistsIndexRouteImport } from './routes/store.playlists.index'
 import { Route as StorePlaylistsIdRouteImport } from './routes/store.playlists.$id'
 import { Route as StoreProductsIdRouteImport } from './routes/store.products_.$id'
 import { Route as StoreProductsNewRouteImport } from './routes/store.products_.new'
 import { Route as StoreProductsNewcomerRouteImport } from './routes/store.products_.newcomer'
 import { Route as StoreProductsUploadRouteImport } from './routes/store.products_.upload'
+import { Route as ApiStoreOrdersOrderIdRouteImport } from './routes/api.store.orders.$orderId'
+import { Route as ApiStoreOrdersOrderIdDeclineRouteImport } from './routes/api.store.orders.$orderId.decline'
 import { Route as ApiStoreOrdersOrderIdShipRouteImport } from './routes/api.store.orders.$orderId.ship'
 
 const IndexRoute = IndexRouteImport.update({
@@ -202,6 +207,11 @@ const NoAccountRoute = NoAccountRouteImport.update({
 const OfflineVideosRoute = OfflineVideosRouteImport.update({
   id: '/offline-videos',
   path: '/offline-videos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OrdersRoute = OrdersRouteImport.update({
+  id: '/orders',
+  path: '/orders',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PasskeyRoute = PasskeyRouteImport.update({
@@ -480,6 +490,11 @@ const ApiOrdersOrderIdRoute = ApiOrdersOrderIdRouteImport.update({
   path: '/$orderId',
   getParentRoute: () => ApiOrdersRoute,
 } as any)
+const ApiOrdersMineRoute = ApiOrdersMineRouteImport.update({
+  id: '/mine',
+  path: '/mine',
+  getParentRoute: () => ApiOrdersRoute,
+} as any)
 const ApiPaystackWebhookRoute = ApiPaystackWebhookRouteImport.update({
   id: '/api/paystack/webhook',
   path: '/api/paystack/webhook',
@@ -603,6 +618,11 @@ const StoreLocationsNewRoute = StoreLocationsNewRouteImport.update({
   path: '/locations/new',
   getParentRoute: () => StoreRoute,
 } as any)
+const StoreOrdersOrderIdRoute = StoreOrdersOrderIdRouteImport.update({
+  id: '/orders_/$orderId',
+  path: '/orders/$orderId',
+  getParentRoute: () => StoreRoute,
+} as any)
 const StorePlaylistsIndexRoute = StorePlaylistsIndexRouteImport.update({
   id: '/playlists/',
   path: '/playlists/',
@@ -633,11 +653,22 @@ const StoreProductsUploadRoute = StoreProductsUploadRouteImport.update({
   path: '/products/upload',
   getParentRoute: () => StoreRoute,
 } as any)
+const ApiStoreOrdersOrderIdRoute = ApiStoreOrdersOrderIdRouteImport.update({
+  id: '/$orderId',
+  path: '/$orderId',
+  getParentRoute: () => ApiStoreOrdersRoute,
+} as any)
+const ApiStoreOrdersOrderIdDeclineRoute =
+  ApiStoreOrdersOrderIdDeclineRouteImport.update({
+    id: '/decline',
+    path: '/decline',
+    getParentRoute: () => ApiStoreOrdersOrderIdRoute,
+  } as any)
 const ApiStoreOrdersOrderIdShipRoute =
   ApiStoreOrdersOrderIdShipRouteImport.update({
-    id: '/$orderId/ship',
-    path: '/$orderId/ship',
-    getParentRoute: () => ApiStoreOrdersRoute,
+    id: '/ship',
+    path: '/ship',
+    getParentRoute: () => ApiStoreOrdersOrderIdRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -659,6 +690,7 @@ export interface FileRoutesByFullPath {
   '/name-your-store': typeof NameYourStoreRoute
   '/no-account': typeof NoAccountRoute
   '/offline-videos': typeof OfflineVideosRoute
+  '/orders': typeof OrdersRoute
   '/passkey': typeof PasskeyRoute
   '/previous-index': typeof PreviousIndexRoute
   '/privacy': typeof PrivacyRoute
@@ -714,6 +746,7 @@ export interface FileRoutesByFullPath {
   '/api/instagram/callback': typeof ApiInstagramCallbackRoute
   '/api/instagram/connect': typeof ApiInstagramConnectRoute
   '/api/orders/$orderId': typeof ApiOrdersOrderIdRoute
+  '/api/orders/mine': typeof ApiOrdersMineRoute
   '/api/paystack/webhook': typeof ApiPaystackWebhookRoute
   '/api/products/upload-image': typeof ApiProductsUploadImageRoute
   '/api/shipbubble/ping': typeof ApiShipbubblePingRoute
@@ -737,6 +770,7 @@ export interface FileRoutesByFullPath {
   '/store/drops/$id': typeof StoreDropsIdRoute
   '/store/drops/new': typeof StoreDropsNewRoute
   '/store/locations/new': typeof StoreLocationsNewRoute
+  '/store/orders/$orderId': typeof StoreOrdersOrderIdRoute
   '/store/playlists/$id': typeof StorePlaylistsIdRoute
   '/store/products/$id': typeof StoreProductsIdRoute
   '/store/products/new': typeof StoreProductsNewRoute
@@ -744,6 +778,8 @@ export interface FileRoutesByFullPath {
   '/store/products/upload': typeof StoreProductsUploadRoute
   '/create/after-shot/': typeof CreateAfterShotIndexRoute
   '/store/playlists/': typeof StorePlaylistsIndexRoute
+  '/api/store/orders/$orderId': typeof ApiStoreOrdersOrderIdRouteWithChildren
+  '/api/store/orders/$orderId/decline': typeof ApiStoreOrdersOrderIdDeclineRoute
   '/api/store/orders/$orderId/ship': typeof ApiStoreOrdersOrderIdShipRoute
 }
 export interface FileRoutesByTo {
@@ -764,6 +800,7 @@ export interface FileRoutesByTo {
   '/name-your-store': typeof NameYourStoreRoute
   '/no-account': typeof NoAccountRoute
   '/offline-videos': typeof OfflineVideosRoute
+  '/orders': typeof OrdersRoute
   '/passkey': typeof PasskeyRoute
   '/previous-index': typeof PreviousIndexRoute
   '/privacy': typeof PrivacyRoute
@@ -817,6 +854,7 @@ export interface FileRoutesByTo {
   '/api/instagram/callback': typeof ApiInstagramCallbackRoute
   '/api/instagram/connect': typeof ApiInstagramConnectRoute
   '/api/orders/$orderId': typeof ApiOrdersOrderIdRoute
+  '/api/orders/mine': typeof ApiOrdersMineRoute
   '/api/paystack/webhook': typeof ApiPaystackWebhookRoute
   '/api/products/upload-image': typeof ApiProductsUploadImageRoute
   '/api/shipbubble/ping': typeof ApiShipbubblePingRoute
@@ -840,6 +878,7 @@ export interface FileRoutesByTo {
   '/store/drops/$id': typeof StoreDropsIdRoute
   '/store/drops/new': typeof StoreDropsNewRoute
   '/store/locations/new': typeof StoreLocationsNewRoute
+  '/store/orders/$orderId': typeof StoreOrdersOrderIdRoute
   '/store/playlists/$id': typeof StorePlaylistsIdRoute
   '/store/products/$id': typeof StoreProductsIdRoute
   '/store/products/new': typeof StoreProductsNewRoute
@@ -847,6 +886,8 @@ export interface FileRoutesByTo {
   '/store/products/upload': typeof StoreProductsUploadRoute
   '/create/after-shot': typeof CreateAfterShotIndexRoute
   '/store/playlists': typeof StorePlaylistsIndexRoute
+  '/api/store/orders/$orderId': typeof ApiStoreOrdersOrderIdRouteWithChildren
+  '/api/store/orders/$orderId/decline': typeof ApiStoreOrdersOrderIdDeclineRoute
   '/api/store/orders/$orderId/ship': typeof ApiStoreOrdersOrderIdShipRoute
 }
 export interface FileRoutesById {
@@ -869,6 +910,7 @@ export interface FileRoutesById {
   '/name-your-store': typeof NameYourStoreRoute
   '/no-account': typeof NoAccountRoute
   '/offline-videos': typeof OfflineVideosRoute
+  '/orders': typeof OrdersRoute
   '/passkey': typeof PasskeyRoute
   '/previous-index': typeof PreviousIndexRoute
   '/privacy': typeof PrivacyRoute
@@ -924,6 +966,7 @@ export interface FileRoutesById {
   '/api/instagram/callback': typeof ApiInstagramCallbackRoute
   '/api/instagram/connect': typeof ApiInstagramConnectRoute
   '/api/orders/$orderId': typeof ApiOrdersOrderIdRoute
+  '/api/orders/mine': typeof ApiOrdersMineRoute
   '/api/paystack/webhook': typeof ApiPaystackWebhookRoute
   '/api/products/upload-image': typeof ApiProductsUploadImageRoute
   '/api/shipbubble/ping': typeof ApiShipbubblePingRoute
@@ -947,6 +990,7 @@ export interface FileRoutesById {
   '/store/drops_/$id': typeof StoreDropsIdRoute
   '/store/drops_/new': typeof StoreDropsNewRoute
   '/store/locations_/new': typeof StoreLocationsNewRoute
+  '/store/orders_/$orderId': typeof StoreOrdersOrderIdRoute
   '/store/playlists/$id': typeof StorePlaylistsIdRoute
   '/store/products_/$id': typeof StoreProductsIdRoute
   '/store/products_/new': typeof StoreProductsNewRoute
@@ -954,6 +998,8 @@ export interface FileRoutesById {
   '/store/products_/upload': typeof StoreProductsUploadRoute
   '/create/after-shot/': typeof CreateAfterShotIndexRoute
   '/store/playlists/': typeof StorePlaylistsIndexRoute
+  '/api/store/orders/$orderId': typeof ApiStoreOrdersOrderIdRouteWithChildren
+  '/api/store/orders/$orderId/decline': typeof ApiStoreOrdersOrderIdDeclineRoute
   '/api/store/orders/$orderId/ship': typeof ApiStoreOrdersOrderIdShipRoute
 }
 export interface FileRouteTypes {
@@ -977,6 +1023,7 @@ export interface FileRouteTypes {
     | '/name-your-store'
     | '/no-account'
     | '/offline-videos'
+    | '/orders'
     | '/passkey'
     | '/previous-index'
     | '/privacy'
@@ -1032,6 +1079,7 @@ export interface FileRouteTypes {
     | '/api/instagram/callback'
     | '/api/instagram/connect'
     | '/api/orders/$orderId'
+    | '/api/orders/mine'
     | '/api/paystack/webhook'
     | '/api/products/upload-image'
     | '/api/shipbubble/ping'
@@ -1055,6 +1103,7 @@ export interface FileRouteTypes {
     | '/store/drops/$id'
     | '/store/drops/new'
     | '/store/locations/new'
+    | '/store/orders/$orderId'
     | '/store/playlists/$id'
     | '/store/products/$id'
     | '/store/products/new'
@@ -1062,6 +1111,8 @@ export interface FileRouteTypes {
     | '/store/products/upload'
     | '/create/after-shot/'
     | '/store/playlists/'
+    | '/api/store/orders/$orderId'
+    | '/api/store/orders/$orderId/decline'
     | '/api/store/orders/$orderId/ship'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -1082,6 +1133,7 @@ export interface FileRouteTypes {
     | '/name-your-store'
     | '/no-account'
     | '/offline-videos'
+    | '/orders'
     | '/passkey'
     | '/previous-index'
     | '/privacy'
@@ -1135,6 +1187,7 @@ export interface FileRouteTypes {
     | '/api/instagram/callback'
     | '/api/instagram/connect'
     | '/api/orders/$orderId'
+    | '/api/orders/mine'
     | '/api/paystack/webhook'
     | '/api/products/upload-image'
     | '/api/shipbubble/ping'
@@ -1158,6 +1211,7 @@ export interface FileRouteTypes {
     | '/store/drops/$id'
     | '/store/drops/new'
     | '/store/locations/new'
+    | '/store/orders/$orderId'
     | '/store/playlists/$id'
     | '/store/products/$id'
     | '/store/products/new'
@@ -1165,6 +1219,8 @@ export interface FileRouteTypes {
     | '/store/products/upload'
     | '/create/after-shot'
     | '/store/playlists'
+    | '/api/store/orders/$orderId'
+    | '/api/store/orders/$orderId/decline'
     | '/api/store/orders/$orderId/ship'
   id:
     | '__root__'
@@ -1186,6 +1242,7 @@ export interface FileRouteTypes {
     | '/name-your-store'
     | '/no-account'
     | '/offline-videos'
+    | '/orders'
     | '/passkey'
     | '/previous-index'
     | '/privacy'
@@ -1241,6 +1298,7 @@ export interface FileRouteTypes {
     | '/api/instagram/callback'
     | '/api/instagram/connect'
     | '/api/orders/$orderId'
+    | '/api/orders/mine'
     | '/api/paystack/webhook'
     | '/api/products/upload-image'
     | '/api/shipbubble/ping'
@@ -1264,6 +1322,7 @@ export interface FileRouteTypes {
     | '/store/drops_/$id'
     | '/store/drops_/new'
     | '/store/locations_/new'
+    | '/store/orders_/$orderId'
     | '/store/playlists/$id'
     | '/store/products_/$id'
     | '/store/products_/new'
@@ -1271,6 +1330,8 @@ export interface FileRouteTypes {
     | '/store/products_/upload'
     | '/create/after-shot/'
     | '/store/playlists/'
+    | '/api/store/orders/$orderId'
+    | '/api/store/orders/$orderId/decline'
     | '/api/store/orders/$orderId/ship'
   fileRoutesById: FileRoutesById
 }
@@ -1293,6 +1354,7 @@ export interface RootRouteChildren {
   NameYourStoreRoute: typeof NameYourStoreRoute
   NoAccountRoute: typeof NoAccountRoute
   OfflineVideosRoute: typeof OfflineVideosRoute
+  OrdersRoute: typeof OrdersRoute
   PasskeyRoute: typeof PasskeyRoute
   PreviousIndexRoute: typeof PreviousIndexRoute
   PrivacyRoute: typeof PrivacyRoute
@@ -1473,6 +1535,13 @@ declare module '@tanstack/react-router' {
       path: '/offline-videos'
       fullPath: '/offline-videos'
       preLoaderRoute: typeof OfflineVideosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/orders': {
+      id: '/orders'
+      path: '/orders'
+      fullPath: '/orders'
+      preLoaderRoute: typeof OrdersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/passkey': {
@@ -1860,6 +1929,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiOrdersOrderIdRouteImport
       parentRoute: typeof ApiOrdersRoute
     }
+    '/api/orders/mine': {
+      id: '/api/orders/mine'
+      path: '/mine'
+      fullPath: '/api/orders/mine'
+      preLoaderRoute: typeof ApiOrdersMineRouteImport
+      parentRoute: typeof ApiOrdersRoute
+    }
     '/api/paystack/webhook': {
       id: '/api/paystack/webhook'
       path: '/api/paystack/webhook'
@@ -2028,6 +2104,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StoreLocationsNewRouteImport
       parentRoute: typeof StoreRoute
     }
+    '/store/orders_/$orderId': {
+      id: '/store/orders_/$orderId'
+      path: '/orders/$orderId'
+      fullPath: '/store/orders/$orderId'
+      preLoaderRoute: typeof StoreOrdersOrderIdRouteImport
+      parentRoute: typeof StoreRoute
+    }
     '/store/playlists/': {
       id: '/store/playlists/'
       path: '/playlists'
@@ -2070,12 +2153,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StoreProductsUploadRouteImport
       parentRoute: typeof StoreRoute
     }
+    '/api/store/orders/$orderId': {
+      id: '/api/store/orders/$orderId'
+      path: '/$orderId'
+      fullPath: '/api/store/orders/$orderId'
+      preLoaderRoute: typeof ApiStoreOrdersOrderIdRouteImport
+      parentRoute: typeof ApiStoreOrdersRoute
+    }
+    '/api/store/orders/$orderId/decline': {
+      id: '/api/store/orders/$orderId/decline'
+      path: '/decline'
+      fullPath: '/api/store/orders/$orderId/decline'
+      preLoaderRoute: typeof ApiStoreOrdersOrderIdDeclineRouteImport
+      parentRoute: typeof ApiStoreOrdersOrderIdRoute
+    }
     '/api/store/orders/$orderId/ship': {
       id: '/api/store/orders/$orderId/ship'
-      path: '/$orderId/ship'
+      path: '/ship'
       fullPath: '/api/store/orders/$orderId/ship'
       preLoaderRoute: typeof ApiStoreOrdersOrderIdShipRouteImport
-      parentRoute: typeof ApiStoreOrdersRoute
+      parentRoute: typeof ApiStoreOrdersOrderIdRoute
     }
   }
 }
@@ -2136,6 +2233,7 @@ interface StoreRouteChildren {
   StoreDropsIdRoute: typeof StoreDropsIdRoute
   StoreDropsNewRoute: typeof StoreDropsNewRoute
   StoreLocationsNewRoute: typeof StoreLocationsNewRoute
+  StoreOrdersOrderIdRoute: typeof StoreOrdersOrderIdRoute
   StorePlaylistsIdRoute: typeof StorePlaylistsIdRoute
   StoreProductsIdRoute: typeof StoreProductsIdRoute
   StoreProductsNewRoute: typeof StoreProductsNewRoute
@@ -2161,6 +2259,7 @@ const StoreRouteChildren: StoreRouteChildren = {
   StoreDropsIdRoute: StoreDropsIdRoute,
   StoreDropsNewRoute: StoreDropsNewRoute,
   StoreLocationsNewRoute: StoreLocationsNewRoute,
+  StoreOrdersOrderIdRoute: StoreOrdersOrderIdRoute,
   StorePlaylistsIdRoute: StorePlaylistsIdRoute,
   StoreProductsIdRoute: StoreProductsIdRoute,
   StoreProductsNewRoute: StoreProductsNewRoute,
@@ -2173,22 +2272,39 @@ const StoreRouteWithChildren = StoreRoute._addFileChildren(StoreRouteChildren)
 
 interface ApiOrdersRouteChildren {
   ApiOrdersOrderIdRoute: typeof ApiOrdersOrderIdRoute
+  ApiOrdersMineRoute: typeof ApiOrdersMineRoute
 }
 
 const ApiOrdersRouteChildren: ApiOrdersRouteChildren = {
   ApiOrdersOrderIdRoute: ApiOrdersOrderIdRoute,
+  ApiOrdersMineRoute: ApiOrdersMineRoute,
 }
 
 const ApiOrdersRouteWithChildren = ApiOrdersRoute._addFileChildren(
   ApiOrdersRouteChildren,
 )
 
-interface ApiStoreOrdersRouteChildren {
+interface ApiStoreOrdersOrderIdRouteChildren {
+  ApiStoreOrdersOrderIdDeclineRoute: typeof ApiStoreOrdersOrderIdDeclineRoute
   ApiStoreOrdersOrderIdShipRoute: typeof ApiStoreOrdersOrderIdShipRoute
 }
 
-const ApiStoreOrdersRouteChildren: ApiStoreOrdersRouteChildren = {
+const ApiStoreOrdersOrderIdRouteChildren: ApiStoreOrdersOrderIdRouteChildren = {
+  ApiStoreOrdersOrderIdDeclineRoute: ApiStoreOrdersOrderIdDeclineRoute,
   ApiStoreOrdersOrderIdShipRoute: ApiStoreOrdersOrderIdShipRoute,
+}
+
+const ApiStoreOrdersOrderIdRouteWithChildren =
+  ApiStoreOrdersOrderIdRoute._addFileChildren(
+    ApiStoreOrdersOrderIdRouteChildren,
+  )
+
+interface ApiStoreOrdersRouteChildren {
+  ApiStoreOrdersOrderIdRoute: typeof ApiStoreOrdersOrderIdRouteWithChildren
+}
+
+const ApiStoreOrdersRouteChildren: ApiStoreOrdersRouteChildren = {
+  ApiStoreOrdersOrderIdRoute: ApiStoreOrdersOrderIdRouteWithChildren,
 }
 
 const ApiStoreOrdersRouteWithChildren = ApiStoreOrdersRoute._addFileChildren(
@@ -2214,6 +2330,7 @@ const rootRouteChildren: RootRouteChildren = {
   NameYourStoreRoute: NameYourStoreRoute,
   NoAccountRoute: NoAccountRoute,
   OfflineVideosRoute: OfflineVideosRoute,
+  OrdersRoute: OrdersRoute,
   PasskeyRoute: PasskeyRoute,
   PreviousIndexRoute: PreviousIndexRoute,
   PrivacyRoute: PrivacyRoute,

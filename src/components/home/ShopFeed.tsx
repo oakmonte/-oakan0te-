@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { ProductPage } from "@/components/store-themes/ProductPage";
 import { CatalogTile } from "@/components/store-themes/full-preview-blocks";
+import { GRID_COLS } from "@/lib/grid-columns";
 import { SalesLockedNotice } from "@/components/store-themes/SalesLockedNotice";
 import type { PreviewTile } from "@/components/store-themes/storefront-catalog";
 import { readStorefrontLook, type StorefrontLook } from "@/components/store-themes/storefront-look";
@@ -185,7 +186,7 @@ export function ShopFeed() {
       {rest.length > 10 && (
         <section className="mt-6 px-4">
           <h2 className="text-[22px] font-bold tracking-[-0.02em] text-chat-text">All pieces</h2>
-          <div className="mt-2.5 grid grid-cols-2 gap-3">
+          <div className={`mt-2.5 grid gap-3 ${GRID_COLS}`}>
             {rest.slice(10).map((it) => (
               <Card key={it.tile.id} item={it} onOpen={() => open(it)} />
             ))}

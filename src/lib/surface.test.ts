@@ -74,6 +74,15 @@ describe("surfaceForPathname", () => {
     expect(surfaceForPathname("/checkout/cart")).toBe(null);
   });
 
+  test("a buyer's order list and order page follow the phone too", () => {
+    expect(surfaceForPathname("/orders")).toBe("social");
+    expect(surfaceForPathname("/order/7d3f2a90-1c1e-4c1b-9a55-0b1f6d7e2c11")).toBe("social");
+    // The seller's side of the same orders is the dashboard.
+    expect(surfaceForPathname("/store/orders")).toBe("store");
+    expect(surfaceForPathname("/orders-archive")).toBe(null);
+    expect(surfaceForPathname("/order")).toBe(null);
+  });
+
   // Exact matches only — a prefix match would sweep in unrelated routes.
   test("routes that merely start with home or messages are not social", () => {
     expect(surfaceForPathname("/homepage")).toBe(null);
