@@ -24,6 +24,7 @@ import { BackgroundUploadToast } from "../components/BackgroundUploadToast";
 import { setLastNonCreateRoute } from "../lib/last-visited-route";
 import { attachNavStack } from "@/lib/nav-stack";
 import { EdgeSwipeBack } from "@/components/EdgeSwipeBack";
+import { jsonLdScript, organizationJsonLd } from "@/lib/seo";
 import { isHeldLight, surfaceForPathname } from "@/lib/surface";
 import { useDarkOverlayActive } from "@/lib/dark-overlay";
 
@@ -177,6 +178,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       ...ogImageMeta("home", "Oakmonte: Share your style. Safely."),
     ],
+    scripts: [jsonLdScript(organizationJsonLd)],
     links: [
       {
         rel: "stylesheet",

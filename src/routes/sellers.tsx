@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ogImageMeta } from "@/lib/og-image";
+import { canonicalLink } from "@/lib/seo";
 import { useEffect, useRef, useState } from "react";
 import { ArrowUpRight, Check, ChevronDown, Menu, X } from "lucide-react";
 import logoO from "@/assets/logo-o.png";
@@ -27,6 +28,7 @@ export const Route = createFileRoute("/sellers")({
       ...ogImageMeta("sellers", "Sell on Oakmonte: Start something remarkable."),
     ],
     links: [
+      canonicalLink("/sellers"),
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {

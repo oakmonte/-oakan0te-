@@ -87,8 +87,10 @@ export function ClipToolbar({
   return (
     <div className={ROW}>
       {/* First and pinned, like the video editor's: the one button in this row
-          that isn't about the clip, where a thumb finds it without reading. */}
-      <div className="sticky left-0 z-10 -ml-3 shrink-0 bg-black pl-3">
+          that isn't about the clip, where a thumb finds it without reading.
+          Sticky insets measure from inside the row's padding, so left-0 would
+          park this 12px in; -left-3 cancels the px-3 and pins it to the edge. */}
+      <div className="sticky -left-3 z-10 -ml-3 shrink-0 bg-black pl-3">
         <ToolButton label="Done" icon={<ChevronDown size={18} />} onClick={onDone} />
       </div>
       <ToolButton label="Split" icon={<Scissors size={18} />} onClick={() => onPick("split")} />
