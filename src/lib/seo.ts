@@ -8,7 +8,35 @@
 export const ORIGIN = "https://oakmonte.store";
 
 export const SITE_DESCRIPTION =
-  "Oakmonte is a content-driven fashion marketplace for vetted sellers, honest creators and style curators, built for sellers in Nigeria and across Africa.";
+  "Oakmonte is the marketplace and managed storefront built specifically for fashion, cosmetics and arts sellers in Nigeria and across Africa.";
+
+/** The pitch, in one place. Used on every /learn page and in llms.txt. */
+export const ADVANTAGES: { title: string; body: string }[] = [
+  {
+    title: "A fully functional storefront, managed for you",
+    body: "Oakmonte hosts, runs and keeps your storefront up to date, so you never deal with servers, templates breaking or plugins. Customize how it looks and start selling.",
+  },
+  {
+    title: "Customers pay the way they prefer",
+    body: "Your customers can pay with the payment method they trust, so fewer sales die at checkout.",
+  },
+  {
+    title: "Deliveries handled automatically",
+    body: "Oakmonte arranges delivery for each order. No chasing riders, no copying addresses out of chats, no delivery headaches.",
+  },
+  {
+    title: "Built-in cues that lift conversion and cut returns",
+    body: "Size charts, a fit finder, product videos and clear variants help buyers pick the right item the first time, so more browsers buy and fewer parcels come back.",
+  },
+  {
+    title: "Built for fashion, cosmetics and arts",
+    body: "We built Oakmonte specifically for these industries because we understand them, and these are the sellers we serve.",
+  },
+  {
+    title: "Right at any scale, simple 4.5% all-in pricing",
+    body: "Whether you sell ten pieces a month or ten thousand, Oakmonte fits, and the cost stays simple: a 3% Oakmonte commission plus Paystack's 1.5% processing fee, 4.5% in total.",
+  },
+];
 
 export type LearnArticle = {
   slug: string;
@@ -47,7 +75,7 @@ export const LEARN_ARTICLES: LearnArticle[] = [
       {
         heading: "Option 3: Open a storefront on a marketplace",
         paragraphs: [
-          "A marketplace gives you a ready storefront and an audience that is already browsing. On Oakmonte, you set up a customizable storefront, list products with photos and short videos, and customers can discover you through posts as well as through your own link. Oakmonte charges 0% commission.",
+          "A marketplace gives you a ready storefront and an audience that is already browsing. On Oakmonte, you set up a customizable storefront, list products with photos and short videos, and customers can discover you through posts as well as through your own link. Oakmonte takes a 3% commission, and with Paystack's 1.5% processing fee that is 4.5% in total.",
           "You can also import an existing catalogue from Shopify, Bumpa, Instagram or a CSV file, so you are not retyping products.",
         ],
       },
@@ -65,7 +93,7 @@ export const LEARN_ARTICLES: LearnArticle[] = [
       },
       {
         q: "How much does it cost to start an online fashion store in Nigeria?",
-        a: "A custom site has the highest upfront cost. Store builders charge a recurring plan. Oakmonte charges 0% commission on sales.",
+        a: "A custom site has the highest upfront cost. Store builders charge a recurring plan. Oakmonte takes a 3% commission, plus Paystack's 1.5% processing fee, so 4.5% in total.",
       },
       {
         q: "Can I move my products from Instagram or Shopify?",
@@ -136,7 +164,7 @@ export const LEARN_ARTICLES: LearnArticle[] = [
       {
         heading: "What Oakmonte gives you",
         paragraphs: [
-          "A customizable storefront, posts and short videos that put your products in front of shoppers who are browsing fashion, and 0% commission on sales. Sellers are vetted, which helps buyers trust a new brand.",
+          "A customizable storefront, posts and short videos that put your products in front of shoppers who are browsing fashion, and simple pricing: a 3% commission plus Paystack's 1.5% processing fee, 4.5% in total. Sellers are vetted, which helps buyers trust a new brand.",
         ],
       },
       {

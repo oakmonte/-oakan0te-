@@ -1,6 +1,6 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { ogImageMeta } from "@/lib/og-image";
-import { articleJsonLd, canonicalLink, getArticle, jsonLdScript } from "@/lib/seo";
+import { ADVANTAGES, articleJsonLd, canonicalLink, getArticle, jsonLdScript } from "@/lib/seo";
 
 export const Route = createFileRoute("/learn/$slug")({
   loader: ({ params }) => {
@@ -51,6 +51,17 @@ function LearnArticlePage() {
             ))}
           </section>
         ))}
+        <section className="mt-10 rounded-2xl bg-neutral-50 p-5">
+          <h2 className="text-xl font-bold">Why sellers choose Oakmonte</h2>
+          <ul className="mt-3 space-y-3">
+            {ADVANTAGES.map((adv) => (
+              <li key={adv.title}>
+                <p className="font-semibold">{adv.title}</p>
+                <p className="text-sm text-neutral-700">{adv.body}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
         <section className="mt-10">
           <h2 className="text-xl font-bold">Frequently asked questions</h2>
           <dl className="mt-3 space-y-4">
@@ -66,7 +77,7 @@ function LearnArticlePage() {
       <div className="mt-10 rounded-2xl bg-neutral-900 p-5 text-white">
         <p className="font-bold">Open your Oakmonte storefront</p>
         <p className="mt-1 text-sm text-neutral-300">
-          Customizable, no website to build, 0% commission.
+          Customizable, no website to build, 4.5% all-in (3% Oakmonte + 1.5% Paystack).
         </p>
         <Link
           to="/sellers"

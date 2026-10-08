@@ -48,7 +48,7 @@ function LearnIndex() {
       <div className="mt-10 rounded-2xl bg-neutral-900 p-5 text-white">
         <p className="font-bold">Ready to sell?</p>
         <p className="mt-1 text-sm text-neutral-300">
-          Open a customizable storefront on Oakmonte. 0% commission.
+          Open a customizable storefront on Oakmonte. 4.5% all-in (3% Oakmonte + 1.5% Paystack).
         </p>
         <Link
           to="/sellers"
