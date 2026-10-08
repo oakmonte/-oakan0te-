@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { Check, Download, MoreVertical, Share, Smartphone } from "lucide-react";
+import { Check, Download, MoreVertical, Play, Share, Smartphone } from "lucide-react";
 import { BackButton } from "@/components/BackButton";
 import { OpenInBrowserGate } from "@/components/onboarding/OpenInBrowserGate";
 import { OnboardingChecking } from "@/components/onboarding/OnboardingShell";
@@ -81,6 +81,7 @@ function GetTheWebappInner() {
   const [installed, setInstalled] = useState(false);
   const [installable, setInstallable] = useState(true);
   const [videoFailed, setVideoFailed] = useState(false);
+  const [showVideo, setShowVideo] = useState(false);
   const [installing, setInstalling] = useState(false);
 
   // Chrome's offer can arrive after this page has rendered, so subscribe to it
@@ -151,30 +152,6 @@ function GetTheWebappInner() {
             </h1>
             <p className="mt-3 mb-6 text-sm leading-relaxed text-brand-text/70">{lead}</p>
 
-            {!videoFailed && (
-              <div
-                className={
-                  ios
-                    ? // iPhone 12 Pro Max recording, 1284x2778: the frame takes that
-                      // exact ratio and has no background, so its edge is the video's.
-                      "mx-auto mb-6 w-[min(100%,250px)] overflow-hidden rounded-[26px]"
-                    : "mb-6 overflow-hidden rounded-2xl bg-brand-text/[0.04]"
-                }
-              >
-                <video
-                  src={ios ? iosExplainerSrc : ANDROID_EXPLAINER_SRC}
-                  className={ios ? "block aspect-[1284/2778] w-full object-cover" : "w-full"}
-                  autoPlay
-                  loop
-                  playsInline
-                  muted
-                  disablePictureInPicture
-                  disableRemotePlayback
-                  onError={() => setVideoFailed(true)}
-                />
-              </div>
-            )}
-
             {canInstall ? (
               <button
                 type="button"
@@ -231,6 +208,40 @@ function GetTheWebappInner() {
                 ? "It starts you signed out the first time — that's normal. Sign in with Face ID or Apple and you're back where you left off."
                 : "You'll already be signed in."}
             </p>
+
+            {/* The steps come first; the clip is opt-in. Only iPhone has one --
+                Android's doesn't exist yet, and a button that reveals nothing
+                is worse than no button. Drop the `ios` condition once it lands. */}
+            {ios && !videoFailed && (
+              <div className="mt-6">
+                {showVideo ? (
+                  // iPhone 12 Pro Max recording, 1284x2778: the frame takes that
+                  // exact ratio and has no background, so its edge is the video's.
+                  <div className="mx-auto w-[min(100%,250px)] overflow-hidden rounded-[26px]">
+                    <video
+                      src={ios ? iosExplainerSrc : ANDROID_EXPLAINER_SRC}
+                      className="block aspect-[1284/2778] w-full object-cover"
+                      autoPlay
+                      loop
+                      playsInline
+                      muted
+                      disablePictureInPicture
+                      disableRemotePlayback
+                      onError={() => setVideoFailed(true)}
+                    />
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setShowVideo(true)}
+                    className="flex w-full items-center justify-center gap-2 rounded-full border border-brand-text/20 py-3.5 text-sm font-medium active:scale-[0.98] transition-transform"
+                  >
+                    <Play size={14} />
+                    See Safari install video
+                  </button>
+                )}
+              </div>
+            )}
           </>
         )}
       </main>
