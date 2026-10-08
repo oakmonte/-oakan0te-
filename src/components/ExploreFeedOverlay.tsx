@@ -1,6 +1,9 @@
 import { useRef, useState } from "react";
-import { motion, AnimatePresence, type PanInfo } from "framer-motion";
-import { ChevronLeft, Bookmark, Lock, Search, ShoppingBag } from "lucide-react";
+import { motion, AnimatePresence, useReducedMotion, type PanInfo } from "framer-motion";
+import { useNavigate } from "@tanstack/react-router";
+import { useLockedBanner } from "@/components/LockedBanner";
+import { GLASS_RIM, glassClear } from "@/lib/liquid-glass";
+import { ChevronLeft, Bookmark, Search, ShoppingBag } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { PostFeed, type ActivePost, type TaggedProduct } from "@/components/feed/PostFeed";
 import { useDarkOverlay } from "@/lib/dark-overlay";
@@ -164,6 +167,12 @@ export function ExploreFeedOverlay({
  *  how a post becomes shoppable, so this list is only ever about ONE post: the
  *  one that was filling the screen when you swiped away from it. */
 function ListedItemsPage({ items }: { items: TaggedProduct[] }) {
+  const navigate = useNavigate();
+  const { user } = useSession();
+  const reduceMotion = useReducedMotion();
+  const [saved, setSaved] = useState<Record<string, boolean>>({});
+  const { banner, showLocked } = useLockedBanner();
+
   if (items.length === 0) {
     return (
       <div className="w-full h-full flex flex-col items-center justify-center px-10 text-center gap-1.5">
@@ -176,59 +185,113 @@ function ListedItemsPage({ items }: { items: TaggedProduct[] }) {
   }
 
   return (
-    <div className="w-full h-full overflow-y-auto px-4 pb-28">
-      <div className="flex flex-col gap-3">
-        {items.map((item) => (
-          <div
+    <div className="w-full h-full overflow-y-auto pb-28">
+      {/* One row per linked piece: photo left, the buying controls right, a
+          hairline between rows -- a shelf you can act on without opening each
+          product. Rows cascade in (40ms apart) so a long list reads as one
+          motion instead of popping in as a block; reduced motion just fades. */}
+      <ul className="divide-y divide-white/10 border-y border-white/10">
+        {items.map((item, i) => (
+          <motion.li
             key={item.id}
-            className="flex items-center gap-3 border border-white/10 rounded-xl p-2.5"
+            initial={reduceMotion ? { opacity: 0 } : { opacity: 0, transform: "translateY(10px)" }}
+            animate={reduceMotion ? { opacity: 1 } : { opacity: 1, transform: "translateY(0px)" }}
+            transition={{
+              duration: 0.32,
+              ease: [0.23, 1, 0.32, 1],
+              delay: Math.min(i, 8) * 0.04,
+            }}
+            className="flex gap-3 px-3 py-3"
           >
-            {item.image ? (
-              <img
-                src={item.image}
-                alt=""
-                className="w-14 h-14 rounded-lg object-cover bg-white/5 shrink-0"
-              />
-            ) : (
-              <div className="w-14 h-14 rounded-lg bg-white/5 flex items-center justify-center shrink-0">
-                <ShoppingBag size={20} className="text-white/30" />
-              </div>
-            )}
-            <div className="min-w-0 flex-1">
-              <p className="text-[13px] font-semibold">
-                {item.price != null ? `₦${item.price.toLocaleString()}` : "—"}
-              </p>
-              <p className="text-[11px] text-white/50 truncate">{item.title}</p>
+            <div className="relative h-[124px] w-[124px] shrink-0 overflow-hidden rounded-[10px] bg-white">
+              {item.image ? (
+                <img
+                  src={item.image}
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center bg-white/5">
+                  <ShoppingBag size={24} className="text-black/25" />
+                </div>
+              )}
+              <button
+                type="button"
+                aria-label={saved[item.id] ? "Remove from wishlist" : "Save to wishlist"}
+                aria-pressed={!!saved[item.id]}
+                onClick={() => setSaved((s) => ({ ...s, [item.id]: !s[item.id] }))}
+                className={`absolute bottom-1.5 right-1.5 flex h-8 w-8 items-center justify-center rounded-full text-white transition-transform duration-150 ease-out active:scale-90 ${GLASS_RIM}`}
+                style={glassClear}
+              >
+                <motion.span
+                  key={saved[item.id] ? "on" : "off"}
+                  initial={{ scale: saved[item.id] && !reduceMotion ? 0.6 : 1 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", duration: 0.35, bounce: 0.4 }}
+                  className="block"
+                >
+                  <Bookmark
+                    size={15}
+                    strokeWidth={2.25}
+                    fill={saved[item.id] ? "#f5c518" : "none"}
+                    className={saved[item.id] ? "text-[#f5c518]" : "text-white"}
+                  />
+                </motion.span>
+              </button>
             </div>
-            <button
-              type="button"
-              aria-label="Save"
-              className="p-2 rounded-full bg-white/5 text-white/60 shrink-0"
-            >
-              <Bookmark size={15} />
-            </button>
-            <button
-              type="button"
-              className="text-[11px] font-semibold bg-white text-black rounded-full px-3 py-2 shrink-0 whitespace-nowrap"
-            >
-              Buy Now
-            </button>
-            <button
-              type="button"
-              className="text-[11px] font-medium border border-white/20 text-white rounded-full px-3 py-2 shrink-0 whitespace-nowrap"
-            >
-              Make Offer
-            </button>
-            <button
-              type="button"
-              aria-label="Locked"
-              className="p-2 rounded-full bg-white/5 text-white/30 shrink-0"
-            >
-              <Lock size={15} />
-            </button>
-          </div>
+
+            <div className="flex min-w-0 flex-1 flex-col justify-between py-1">
+              <div className="min-w-0">
+                <p className="text-[15px] font-bold tracking-[-0.01em] text-white">
+                  {item.price != null ? `₦${item.price.toLocaleString()}` : "Price on request"}
+                </p>
+                <p className="mt-0.5 line-clamp-2 text-[12px] leading-snug text-white/60">
+                  {item.title}
+                </p>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() =>
+                    void navigate({
+                      to: "/checkout/$productId",
+                      params: { productId: item.id },
+                    })
+                  }
+                  className="h-9 rounded-full bg-white px-3.5 text-[12px] font-semibold text-black transition-transform duration-150 ease-out active:scale-[0.96]"
+                >
+                  Buy Now
+                </button>
+                <button
+                  type="button"
+                  // Offers are a signed-in conversation with the seller; the
+                  // offer flow itself isn't built yet, so this goes to sign-in
+                  // for guests and says so honestly for everyone else.
+                  onClick={() =>
+                    user
+                      ? showLocked("Offers open soon. Message the seller meanwhile.")
+                      : void navigate({ to: "/sign-in" })
+                  }
+                  className="h-9 rounded-full bg-white/12 px-3.5 text-[12px] font-semibold text-white ring-1 ring-white/15 transition-transform duration-150 ease-out active:scale-[0.96]"
+                >
+                  Make Offer
+                </button>
+                <button
+                  type="button"
+                  aria-label="Add to bag"
+                  onClick={() => showLocked("The bag opens with the cart update")}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-black transition-transform duration-150 ease-out active:scale-[0.92]"
+                >
+                  <ShoppingBag size={15} strokeWidth={2.25} />
+                </button>
+              </div>
+            </div>
+          </motion.li>
         ))}
-      </div>
+      </ul>
+      {banner}
     </div>
   );
 }
