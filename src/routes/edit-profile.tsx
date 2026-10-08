@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Camera, ChevronRight } from "lucide-react";
 import { BackButton } from "@/components/BackButton";
+import { AvatarCropper } from "@/components/profile/AvatarCropper";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useBack } from "@/hooks/use-back";
 import { setOwnUsername } from "@/hooks/use-own-username";
@@ -44,6 +45,7 @@ function EditProfilePage() {
   const [originalUsername, setOriginalUsername] = useState("");
   const [bio, setBio] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [cropFile, setCropFile] = useState<File | null>(null);
   // What was loaded, so Save only lights up when something actually changed.
   const original = useRef({ displayName: "", bio: "", avatarUrl: null as string | null });
 
@@ -135,18 +137,25 @@ function EditProfilePage() {
     }
 
     setError(null);
+    // Reposition first; the upload happens from the cropper's Done.
+    setCropFile(file);
+  };
+
+  const uploadAvatar = async (blob: Blob) => {
+    setCropFile(null);
+    if (!userId) return;
     setUploading(true);
-    // Show the pick straight away; the upload catches up behind it.
-    const preview = URL.createObjectURL(file);
+    // Show the framed photo straight away; the upload catches up behind it.
+    const preview = URL.createObjectURL(blob);
     const previous = avatarUrl;
     setAvatarUrl(preview);
 
-    const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
-    const path = `${userId}/avatar.${ext}`;
+    // The cropper always hands back a JPEG.
+    const path = `${userId}/avatar.jpg`;
 
     const { error: uploadError } = await supabase.storage
       .from("avatars")
-      .upload(path, file, { upsert: true, contentType: file.type });
+      .upload(path, blob, { upsert: true, contentType: "image/jpeg" });
 
     setUploading(false);
     URL.revokeObjectURL(preview);
@@ -392,6 +401,14 @@ function EditProfilePage() {
           </button>
         </div>
       </form>
+
+      {cropFile && (
+        <AvatarCropper
+          file={cropFile}
+          onCancel={() => setCropFile(null)}
+          onDone={(blob) => void uploadAvatar(blob)}
+        />
+      )}
     </div>
   );
 }

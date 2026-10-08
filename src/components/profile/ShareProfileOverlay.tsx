@@ -1,7 +1,16 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Link2, Send, MessageCircle, MessageSquare, Check, UserRound } from "lucide-react";
+import {
+  X,
+  Link2,
+  Send,
+  MessageCircle,
+  MessageSquare,
+  Check,
+  UserRound,
+  Camera,
+} from "lucide-react";
 
 /** Full-screen "Share profile" view, opened by tapping the profile photo.
  *
@@ -23,10 +32,13 @@ export function ShareProfileOverlay({
   avatarUrl,
   shareUrl,
   title = "Share profile",
+  onEditPhoto,
 }: {
   open: boolean;
   onClose: () => void;
   avatarUrl: string | null;
+  // Owner only: with no photo yet, the empty circle offers a way to add one.
+  onEditPhoto?: () => void;
   shareUrl: string;
   // The seller dashboard reuses this for a STORE link, where "Share profile"
   // names the wrong thing. Defaults to the original copy for the profile page.
@@ -78,7 +90,7 @@ export function ShareProfileOverlay({
 
           {/* The avatar is the whole point of this screen — big, centred,
               and circular so it reads as the thing being shared. */}
-          <div className="flex flex-1 items-center justify-center px-10">
+          <div className="flex flex-1 flex-col items-center justify-center gap-8 px-10">
             <motion.div
               className="aspect-square w-full max-w-[300px] overflow-hidden rounded-full bg-white/10"
               initial={{ scale: 0.9 }}
@@ -93,8 +105,19 @@ export function ShareProfileOverlay({
                 </div>
               )}
             </motion.div>
+            {!avatarUrl && onEditPhoto && (
+              <button
+                type="button"
+                onClick={onEditPhoto}
+                className="flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-semibold text-black active:scale-[0.97] transition-transform"
+              >
+                <Camera size={16} />
+                Edit profile picture
+              </button>
+            )}
           </div>
 
+          {/* Share title + share targets hidden for now (Diadem) -- kept, not deleted.
           <div
             className="px-2 pt-2"
             style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 28px)" }}
@@ -116,6 +139,7 @@ export function ShareProfileOverlay({
               ))}
             </div>
           </div>
+          */}
         </motion.div>
       )}
     </AnimatePresence>,
