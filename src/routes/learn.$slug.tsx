@@ -77,7 +77,7 @@ function LearnArticlePage() {
       <div className="mt-10 rounded-2xl bg-neutral-900 p-5 text-white">
         <p className="font-bold">Open your Oakmonte storefront</p>
         <p className="mt-1 text-sm text-neutral-300">
-          Customizable, no website to build, 0% commission.
+          Customizable, no website to build, 4.5% all-in (3% Oakmonte + 1.5% Paystack).
         </p>
         <Link
           to="/sellers"

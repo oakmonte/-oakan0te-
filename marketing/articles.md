@@ -31,7 +31,7 @@ understand how these businesses sell, and these are the sellers we serve.
 - **Cues that help people buy and keep what they buy.** Size charts, a fit finder, product videos
   and clear variants help a customer choose the right item the first time. That means more
   browsers become buyers and fewer parcels come back.
-- **Any scale.** Ten orders a month or ten thousand, it fits. And Oakmonte takes 0% commission.
+- **Any scale.** Ten orders a month or ten thousand, it fits. And the pricing is simple: a 3% Oakmonte commission plus Paystack's 1.5% processing fee, 4.5% in total.
 - **Bring your catalogue with you.** Import from Shopify, Bumpa, Instagram or a CSV so you are
   not retyping a single product.
 
@@ -52,7 +52,7 @@ then the DMs, account numbers and riders eat the day.
 
 We are building Oakmonte for exactly this, for fashion, cosmetics and art sellers only. It gives
 you a storefront we manage, lets customers pay the way they prefer, and handles delivery
-automatically so you can focus on making and selling. 0% commission, and you can import from
+automatically so you can focus on making and selling. simple 4.5% all-in pricing (3% Oakmonte + 1.5% Paystack), and you can import from
 Shopify, Bumpa or Instagram.
 
 It's early and I'd like feedback from people who actually sell. What is the biggest headache in
@@ -70,7 +70,7 @@ You don't need to build one. Open a storefront on a platform made for your indus
 
 Oakmonte is built specifically for fashion, cosmetics and arts sellers in Nigeria and Africa. You
 get a fully managed storefront, customers pay the way they prefer, and delivery is arranged
-automatically, so you can concentrate on the product. There is no commission on sales, and it
+automatically, so you can concentrate on the product. Pricing is simple: 3% Oakmonte commission plus Paystack's 1.5% fee, 4.5% in total. It
 includes size charts and a fit finder to help buyers pick correctly and keep returns down.
 
 Full walkthrough: [LINK]/learn/how-to-get-a-website-for-your-fashion-brand-in-nigeria

@@ -10,7 +10,7 @@
 // a plain number and not kobo.
 
 /** Oakmonte's cut. */
-export const COMMISSION_RATE = 0.045;
+export const COMMISSION_RATE = 0.03;
 
 // Paystack's standard Nigerian local-card pricing. VERIFY AGAINST THE LIVE
 // PAYSTACK DASHBOARD BEFORE LAUNCH — these are the published rates, and
@@ -67,9 +67,9 @@ function roundUpToKobo(n: number): number {
  * up short. It has to be solved.
  *
  * Three regimes, because Paystack's fee is piecewise:
- *   A  charged < ₦2,500          no flat fee      net = 0.940·charged
- *   B  flat fee applies, uncapped                 net = 0.940·charged − 100
- *   C  Paystack's fee is capped                   net = 0.955·charged − 2,000
+ *   A  charged < ₦2,500          no flat fee      net = 0.955·charged
+ *   B  flat fee applies, uncapped                 net = 0.955·charged − 100
+ *   C  Paystack's fee is capped                   net = 0.97·charged − 2,000
  *
  * Each is inverted directly, then every candidate is checked with the FORWARD
  * calculation and the cheapest survivor wins. Taking the first survivor is not

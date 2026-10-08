@@ -12,7 +12,7 @@ function build(): string {
     "",
     "Oakmonte lets fashion sellers open a customizable storefront without building a website.",
     "Sellers list products with photos and short videos, customers discover them through posts,",
-    "and Oakmonte charges 0% commission. Catalogues can be imported from Shopify, Bumpa,",
+    "and Oakmonte takes a 3% commission (4.5% in total with Paystack's 1.5% processing fee). Catalogues can be imported from Shopify, Bumpa,",
     "Instagram or a CSV file. It works as a mobile web app, with nothing to download from an app store.",
     "",
     "## Why sellers choose Oakmonte",

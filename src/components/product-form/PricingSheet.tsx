@@ -1,24 +1,29 @@
 import { useEffect, useRef, useState } from "react";
 import { X, ChevronDown, XCircle } from "lucide-react";
-// import { Switch } from "@/components/ui/switch"; // fee toggle removed: 0% commission
+import { Switch } from "@/components/ui/switch";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
 import { useVisibleViewport } from "@/hooks/use-visible-viewport";
 import { cleanPriceDigits, displayPriceWithCommas, padPriceOnBlur } from "@/lib/format-price-input";
-import { formatNaira } from "@/lib/pricing-fees";
-// 0% commission: the fee maths is commented out below, not deleted, so it can come back.
-// import { computeFees, grossUpForNet, COMMISSION_RATE, PAYSTACK_RATE } from "@/lib/pricing-fees";
-// const COMMISSION_PCT = `${(COMMISSION_RATE * 100).toFixed(1)}%`;
-// const PAYSTACK_PCT = `${(PAYSTACK_RATE * 100).toFixed(1)}%`;
+import {
+  computeFees,
+  formatNaira,
+  grossUpForNet,
+  COMMISSION_RATE,
+  PAYSTACK_RATE,
+} from "@/lib/pricing-fees";
+
+const COMMISSION_PCT = `${(COMMISSION_RATE * 100).toFixed(1)}%`;
+const PAYSTACK_PCT = `${(PAYSTACK_RATE * 100).toFixed(1)}%`;
 
 export function PricingSheet({
   price,
   compareAtPrice,
   costPrice,
-  // passFeesToBuyer,
+  passFeesToBuyer,
   onChangePrice,
   onChangeCompareAtPrice,
   onChangeCostPrice,
-  // onChangePassFeesToBuyer,
+  onChangePassFeesToBuyer,
   onClose,
   focusField = "price",
 }: {
@@ -26,11 +31,11 @@ export function PricingSheet({
   compareAtPrice: string;
   costPrice: string;
   /** Product-level pricing policy — see the note on the toggle below. */
-  passFeesToBuyer?: boolean;
+  passFeesToBuyer: boolean;
   onChangePrice: (v: string) => void;
   onChangeCompareAtPrice: (v: string) => void;
   onChangeCostPrice: (v: string) => void;
-  onChangePassFeesToBuyer?: (v: boolean) => void;
+  onChangePassFeesToBuyer: (v: boolean) => void;
   onClose: () => void;
   /** Which box gets the cursor on open -- "cost" when the sheet was opened
    *  from a Cost price button, so the seller lands where they tapped. */
@@ -47,7 +52,7 @@ export function PricingSheet({
   // the whole sheet jumped.
   const viewport = useVisibleViewport(true);
 
-  // const [breakdownOpen, setBreakdownOpen] = useState(false);
+  const [breakdownOpen, setBreakdownOpen] = useState(false);
 
   const numPrice = parseFloat(price);
   const numCompareAt = parseFloat(compareAtPrice);
@@ -57,12 +62,9 @@ export function PricingSheet({
 
   // What the seller typed means one of two things, so everything downstream
   // has to be derived rather than read straight off the field.
-  // const charged = hasPrice ? (passFeesToBuyer ? grossUpForNet(numPrice) : numPrice) : null;
-  // const fees = charged !== null ? computeFees(charged) : null;
-  // const youReceive = charged !== null && fees ? charged - fees.total : null;
-  // With no fees, the price the customer pays is exactly what the seller receives.
-  const charged = hasPrice ? numPrice : null;
-  const youReceive = charged;
+  const charged = hasPrice ? (passFeesToBuyer ? grossUpForNet(numPrice) : numPrice) : null;
+  const fees = charged !== null ? computeFees(charged) : null;
+  const youReceive = charged !== null && fees ? charged - fees.total : null;
   const profit = youReceive !== null && hasCost ? youReceive - numCost : null;
   // Margin is against what the customer actually pays, which is the number the
   // seller is setting either way.
@@ -94,13 +96,15 @@ export function PricingSheet({
             Leaving it as "Price" while it quietly means "your take" is how a
             seller ends up listing at a number they never intended. */}
         <PriceBox
-          label="Price"
+          label={passFeesToBuyer ? "You receive" : "Price"}
           value={price}
           onChange={onChangePrice}
           autoFocus={focusField === "price"}
         />
         <p className="text-xs text-gray-400 mt-1.5 mb-5">
-          That's all you need — everything below is optional.
+          {passFeesToBuyer
+            ? "What lands in your account. The customer is charged this plus the fees."
+            : "That's all you need — everything below is optional."}
         </p>
 
         <PriceBox
@@ -130,9 +134,8 @@ export function PricingSheet({
           won't see this.
         </p>
 
-        {/* Fee toggle and "Customer pays" card removed (0% commission), kept for reference:
         {/* Its own block, like the inventory sheet's toggle — this is a policy
-            decision, not another amount to type. * /}
+            decision, not another amount to type. */}
         <div className="-mx-4 h-2 bg-gray-50" />
         <div className="py-4">
           <div className="flex items-start justify-between gap-4">
@@ -160,7 +163,7 @@ export function PricingSheet({
 
         {/* Always shown, whichever way the toggle is: the customer's number is
             the one a seller most wants to check. With fees passed on it's the
-            price plus fees; without, it's simply the price itself. * /}
+            price plus fees; without, it's simply the price itself. */}
         <div className="border border-gray-900 rounded-xl p-3 mb-3">
           <p className="text-xs text-gray-500 mb-1">Customer pays</p>
           <p className="text-[22px] font-semibold text-gray-900 leading-tight tabular-nums">
@@ -174,15 +177,14 @@ export function PricingSheet({
             </p>
           )}
         </div>
-        */}
 
-        <div className="border border-gray-300 rounded-xl overflow-hidden grid grid-cols-1">
-          {/* <div className="p-3">
+        <div className="border border-gray-300 rounded-xl overflow-hidden grid grid-cols-2 divide-x divide-gray-300">
+          <div className="p-3">
             <p className="text-xs text-gray-500 mb-1">You'll receive</p>
             <p className="text-[15px] font-medium text-gray-900 tabular-nums">
               {youReceive !== null ? formatNaira(youReceive) : "–"}
             </p>
-          </div> */}
+          </div>
           <div className="p-3">
             <p className="text-xs text-gray-500 mb-1">Profit</p>
             {profit !== null ? (
@@ -200,7 +202,6 @@ export function PricingSheet({
           </div>
         </div>
 
-        {/* "See where your money goes" fee breakdown removed (0% commission):
         {charged !== null && fees && (
           <div className="mt-3">
             <button
@@ -217,7 +218,7 @@ export function PricingSheet({
             {breakdownOpen && (
               <div className="mt-2 border border-gray-300 rounded-lg p-3 flex flex-col gap-2 animate-in fade-in slide-in-from-top-2 duration-200 ease-out">
                 {/* Always starts from what the customer is charged — that is
-                    what both fees are actually taken from. * /}
+                    what both fees are actually taken from. */}
                 <FeeLine
                   label={passFeesToBuyer ? "Customer pays" : "Price"}
                   value={formatNaira(charged)}
@@ -245,7 +246,6 @@ export function PricingSheet({
             )}
           </div>
         )}
-        */}
       </div>
 
       <div

@@ -33,8 +33,8 @@ export const ADVANTAGES: { title: string; body: string }[] = [
     body: "We built Oakmonte specifically for these industries because we understand them, and these are the sellers we serve.",
   },
   {
-    title: "Right at any scale, 0% commission",
-    body: "Whether you sell ten pieces a month or ten thousand, Oakmonte fits, and it takes no commission on your sales.",
+    title: "Right at any scale, simple 4.5% all-in pricing",
+    body: "Whether you sell ten pieces a month or ten thousand, Oakmonte fits, and the cost stays simple: a 3% Oakmonte commission plus Paystack's 1.5% processing fee, 4.5% in total.",
   },
 ];
 
@@ -75,7 +75,7 @@ export const LEARN_ARTICLES: LearnArticle[] = [
       {
         heading: "Option 3: Open a storefront on a marketplace",
         paragraphs: [
-          "A marketplace gives you a ready storefront and an audience that is already browsing. On Oakmonte, you set up a customizable storefront, list products with photos and short videos, and customers can discover you through posts as well as through your own link. Oakmonte charges 0% commission.",
+          "A marketplace gives you a ready storefront and an audience that is already browsing. On Oakmonte, you set up a customizable storefront, list products with photos and short videos, and customers can discover you through posts as well as through your own link. Oakmonte takes a 3% commission, and with Paystack's 1.5% processing fee that is 4.5% in total.",
           "You can also import an existing catalogue from Shopify, Bumpa, Instagram or a CSV file, so you are not retyping products.",
         ],
       },
@@ -93,7 +93,7 @@ export const LEARN_ARTICLES: LearnArticle[] = [
       },
       {
         q: "How much does it cost to start an online fashion store in Nigeria?",
-        a: "A custom site has the highest upfront cost. Store builders charge a recurring plan. Oakmonte charges 0% commission on sales.",
+        a: "A custom site has the highest upfront cost. Store builders charge a recurring plan. Oakmonte takes a 3% commission, plus Paystack's 1.5% processing fee, so 4.5% in total.",
       },
       {
         q: "Can I move my products from Instagram or Shopify?",
@@ -164,7 +164,7 @@ export const LEARN_ARTICLES: LearnArticle[] = [
       {
         heading: "What Oakmonte gives you",
         paragraphs: [
-          "A customizable storefront, posts and short videos that put your products in front of shoppers who are browsing fashion, and 0% commission on sales. Sellers are vetted, which helps buyers trust a new brand.",
+          "A customizable storefront, posts and short videos that put your products in front of shoppers who are browsing fashion, and simple pricing: a 3% commission plus Paystack's 1.5% processing fee, 4.5% in total. Sellers are vetted, which helps buyers trust a new brand.",
         ],
       },
       {
