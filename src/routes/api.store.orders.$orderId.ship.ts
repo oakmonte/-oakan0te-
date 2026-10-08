@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/lib/integrations/my-supabase/client.server";
 import { requireOwnStore } from "@/lib/server-auth";
 import { shipbubble } from "@/lib/shipping.server";
+import { recordOrderEvent } from "@/lib/order-events.server";
 
 // Books the courier for a paid order, from Oakmonte's Shipbubble wallet. Only
 // the owning store can do it, only while the order is paid and not yet booked,
@@ -44,7 +45,7 @@ export const Route = createFileRoute("/api/store/orders/$orderId/ship")({
               courier_id: order.courier_id,
             }),
           });
-          const { error } = await supabaseAdmin
+          const { data: shipped, error } = await supabaseAdmin
             .from("orders")
             .update({
               status: "shipped",
@@ -53,8 +54,22 @@ export const Route = createFileRoute("/api/store/orders/$orderId/ship")({
               updated_at: new Date().toISOString(),
             })
             .eq("id", order.id)
-            .eq("status", "paid");
+            .eq("status", "paid")
+            .select("id");
           if (error) throw error;
+          if (shipped?.length) {
+            // Kept separately because updated_at moves on again at delivery;
+            // this is the only record of when it shipped.
+            await recordOrderEvent(order.id, "shipped", String(label.order_id ?? "") || null);
+          } else {
+            // The order left "paid" (declined) while the label was being
+            // bought. The courier is booked and paid for regardless.
+            console.error(
+              "courier booked for an order that is no longer paid",
+              order.id,
+              label.order_id,
+            );
+          }
           return Response.json({ ok: true }, { headers: PRIVATE });
         } catch (err) {
           console.error("ship order failed", err);
