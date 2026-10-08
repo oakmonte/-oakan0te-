@@ -10,9 +10,7 @@ export const ORIGIN = "https://oakmonte.store";
 export const SITE_DESCRIPTION =
   "Oakmonte is the marketplace and managed storefront built specifically for fashion, cosmetics and arts sellers in Nigeria and across Africa.";
 
-/** The pitch, in one place. Used on every /learn page and in llms.txt.
- *  Payments and automatic delivery are not connected yet (POSTPONED.md 1.3):
- *  do not ship this to production until they are, or reword those two. */
+/** The pitch, in one place. Used on every /learn page and in llms.txt. */
 export const ADVANTAGES: { title: string; body: string }[] = [
   {
     title: "A fully functional storefront, managed for you",

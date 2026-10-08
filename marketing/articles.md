@@ -3,9 +3,6 @@
 Drafts for posting off-site (Medium, LinkedIn, Substack, Nairaland, Reddit, Quora). Each links back
 to oakmonte.store/learn so the traffic and the search credit land on our own pages.
 
-**Do not post until payments and automatic delivery are live** (POSTPONED.md §1.3). The pitch
-below says Oakmonte handles both; that has to be true on the day a seller reads it.
-
 Post these yourself from the right account. Replace `[LINK]` with the matching oakmonte.store URL.
 
 ---
