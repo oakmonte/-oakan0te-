@@ -26,3 +26,8 @@ keep or adjust; nothing else in this folder was touched.
 same pattern as `CollectionPage`) instead of the "sales locked" card. `CollectionsGrid` in
 `full-preview-blocks.tsx` gained `openedProduct` state; `openProduct` now takes the tile. The
 locked notice still shows from the page's Buy/Offer/Bag buttons until checkout is live.
+
+## CatalogTile is exported (orders branch, 2026-10-08)
+The Home Shop feed (`src/components/home/ShopFeed.tsx`) renders products with the same
+`CatalogTile` (swipeable photos, dots, glass "..." button), so it is now exported. Only the
+`export` keyword changed. Changing its props or look changes Home's shop cards too.

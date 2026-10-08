@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { ProductPage } from "@/components/store-themes/ProductPage";
+import { CatalogTile } from "@/components/store-themes/full-preview-blocks";
 import { SalesLockedNotice } from "@/components/store-themes/SalesLockedNotice";
 import type { PreviewTile } from "@/components/store-themes/storefront-catalog";
 import { readStorefrontLook, type StorefrontLook } from "@/components/store-themes/storefront-look";
@@ -63,42 +64,24 @@ async function fetchShopProducts(): Promise<ShopProduct[]> {
   );
 }
 
+// Same tile as a storefront: swipe between photos, dots, the glass "..."
+// button bottom right. Home is the app's own surface, so it takes the chat-*
+// colours; the accent must be a literal colour (the tile computes readable
+// text against it).
 function Card({ item, onOpen, wide }: { item: ShopProduct; onOpen: () => void; wide?: boolean }) {
-  const { tile } = item;
-  const onSale =
-    tile.compareAtPrice != null && tile.price != null && tile.compareAtPrice > tile.price;
   return (
-    <button
-      type="button"
-      onClick={onOpen}
-      className={`block shrink-0 text-left oak-motion-control active:scale-[0.98] ${wide ? "w-[190px]" : "w-full"}`}
-    >
-      <div className="relative aspect-[4/5] w-full overflow-hidden rounded-[14px] bg-chat-soft">
-        <img
-          src={tile.photos[0].url}
-          alt=""
-          loading="lazy"
-          decoding="async"
-          className="absolute inset-0 h-full w-full object-cover"
-        />
-        {onSale && (
-          <span className="absolute left-2 top-2 rounded-full bg-chat-text px-2 py-0.5 text-[11px] font-semibold text-chat-inverse">
-            Sale
-          </span>
-        )}
-      </div>
-      <p className="mt-1.5 truncate text-[14px] font-semibold text-chat-text">{tile.title}</p>
-      {tile.price != null && (
-        <p className="text-[14px] text-chat-text">
-          ₦{tile.price.toLocaleString()}
-          {onSale && (
-            <span className="ml-1.5 text-[12px] text-chat-muted line-through">
-              ₦{tile.compareAtPrice!.toLocaleString()}
-            </span>
-          )}
-        </p>
-      )}
-    </button>
+    <div className={wide ? "w-[190px] shrink-0" : "w-full"}>
+      <CatalogTile
+        tile={item.tile}
+        mode="products"
+        textColor="var(--color-chat-text)"
+        mutedColor="var(--color-chat-muted)"
+        tileBg="transparent"
+        accent="#7596ff"
+        onTap={onOpen}
+        onOpen={onOpen}
+      />
+    </div>
   );
 }
 

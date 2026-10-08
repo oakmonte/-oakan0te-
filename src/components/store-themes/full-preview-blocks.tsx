@@ -316,7 +316,7 @@ function CarouselDots({ total, index }: { total: number; index: number }) {
 // Each slide carries its own crop position (keyed by url, since a seller can
 // reorder photos) rather than one position for the whole tile: photo 2 framed
 // by photo 1's focal point is almost always wrong.
-function CatalogTile({
+export function CatalogTile({
   tile,
   mode,
   textColor,

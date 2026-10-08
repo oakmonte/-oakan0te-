@@ -39,7 +39,15 @@ const RIGHT_RATIOS = ["1/1", "3/4", "4/5", "2/3", "5/6"];
 // screen: dozens of videos decoding at once saturates a phone, so each tile
 // watches itself and starts or stops with its visibility. The source is only
 // attached once the tile is near the viewport.
-function TileVideo({ src, poster }: { src: string; poster: string | null }) {
+function TileVideo({
+  src,
+  poster,
+  onRatio,
+}: {
+  src: string;
+  poster: string | null;
+  onRatio: (r: string) => void;
+}) {
   const ref = useRef<HTMLVideoElement>(null);
   const [near, setNear] = useState(false);
   const [visible, setVisible] = useState(false);
@@ -88,6 +96,10 @@ function TileVideo({ src, poster }: { src: string; poster: string | null }) {
       loop
       playsInline
       preload="metadata"
+      onLoadedMetadata={(e) => {
+        const v = e.currentTarget;
+        if (v.videoWidth && v.videoHeight) onRatio(`${v.videoWidth}/${v.videoHeight}`);
+      }}
       // A play() asked for before any data is loaded can be dropped; ask again
       // once there is a frame, if the tile is still on screen.
       onLoadedData={(e) => {
@@ -100,7 +112,18 @@ function TileVideo({ src, poster }: { src: string; poster: string | null }) {
   );
 }
 
-function Tile({ post, ratio, onOpen }: { post: ExplorePost; ratio: string; onOpen: () => void }) {
+function Tile({
+  post,
+  ratio: guess,
+  onOpen,
+}: {
+  post: ExplorePost;
+  ratio: string;
+  onOpen: () => void;
+}) {
+  // Each card takes the shape of its own photo or video once it is known; the
+  // guess only holds the space until then.
+  const [ratio, setRatio] = useState(guess);
   const isCarousel = (post.post_media?.[0]?.count ?? 0) > 1;
   const isVideo = post.media_type === "video";
   return (
@@ -112,13 +135,19 @@ function Tile({ post, ratio, onOpen }: { post: ExplorePost; ratio: string; onOpe
         style={{ aspectRatio: ratio }}
       >
         {isVideo ? (
-          <TileVideo src={post.media_url} poster={post.thumbnail_url} />
+          <TileVideo src={post.media_url} poster={post.thumbnail_url} onRatio={setRatio} />
         ) : (
           <img
             src={post.thumbnail_url || post.media_url}
             alt=""
             loading="lazy"
             decoding="async"
+            onLoad={(e) => {
+              const img = e.currentTarget;
+              if (img.naturalWidth && img.naturalHeight) {
+                setRatio(`${img.naturalWidth}/${img.naturalHeight}`);
+              }
+            }}
             className="absolute inset-0 h-full w-full object-cover"
           />
         )}
