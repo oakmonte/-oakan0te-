@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { GRID_COLS, useColumnCount } from "@/lib/grid-columns";
 import { useQuery } from "@tanstack/react-query";
 import { Copy, MoreHorizontal } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
@@ -174,6 +175,7 @@ function Tile({
  *  use, scoped to the For You feed and scrolled to the tapped post. */
 export function ExploreGrid({ ownUsername }: { ownUsername?: string }) {
   const [activeId, setActiveId] = useState<string | null>(null);
+  const columnCount = useColumnCount();
   const { data: posts, isPending } = useQuery({
     queryKey: ["home-explore-posts"],
     queryFn: fetchExplorePosts,
@@ -182,7 +184,7 @@ export function ExploreGrid({ ownUsername }: { ownUsername?: string }) {
 
   if (isPending) {
     return (
-      <div className="grid grid-cols-2 gap-2 px-2 pt-24">
+      <div className={`grid gap-2 px-2 pt-24 ${GRID_COLS}`}>
         {Array.from({ length: 8 }).map((_, i) => (
           <div
             key={i}
@@ -204,31 +206,32 @@ export function ExploreGrid({ ownUsername }: { ownUsername?: string }) {
     );
   }
 
-  const left = posts.filter((_, i) => i % 2 === 0);
-  const right = posts.filter((_, i) => i % 2 === 1);
+  // Round-robin into the columns so the newest posts sit along the top row,
+  // whatever the column count.
+  const columns = Array.from({ length: columnCount }, (_, c) =>
+    posts.filter((_, i) => i % columnCount === c),
+  );
   return (
     <>
-      <div className="grid grid-cols-2 items-start gap-2 px-2 pt-24">
-        <div className="flex flex-col gap-2">
-          {left.map((p, i) => (
-            <Tile
-              key={p.id}
-              post={p}
-              ratio={LEFT_RATIOS[i % LEFT_RATIOS.length]}
-              onOpen={() => setActiveId(p.id)}
-            />
-          ))}
-        </div>
-        <div className="flex flex-col gap-2">
-          {right.map((p, i) => (
-            <Tile
-              key={p.id}
-              post={p}
-              ratio={RIGHT_RATIOS[i % RIGHT_RATIOS.length]}
-              onOpen={() => setActiveId(p.id)}
-            />
-          ))}
-        </div>
+      <div
+        className="grid items-start gap-2 px-2 pt-24"
+        style={{ gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))` }}
+      >
+        {columns.map((col, c) => {
+          const ratios = c % 2 === 0 ? LEFT_RATIOS : RIGHT_RATIOS;
+          return (
+            <div key={c} className="flex flex-col gap-2">
+              {col.map((p, i) => (
+                <Tile
+                  key={p.id}
+                  post={p}
+                  ratio={ratios[i % ratios.length]}
+                  onOpen={() => setActiveId(p.id)}
+                />
+              ))}
+            </div>
+          );
+        })}
       </div>
       <AnimatePresence>
         {activeId && (
