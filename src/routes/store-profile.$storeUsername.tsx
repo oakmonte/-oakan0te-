@@ -287,8 +287,19 @@ function StoreProfilePage() {
             </button>
             {ownerUsername && (
               <button
-                onClick={() => setSwitchOpen(true)}
-                aria-label="Switch to personal profile"
+                // Visitors go straight to the person behind the store; the
+                // owner gets the switch sheet, as before.
+                onClick={() =>
+                  isOwnStoreProfile
+                    ? setSwitchOpen(true)
+                    : void navigate({
+                        to: "/profile/$username",
+                        params: { username: ownerUsername },
+                      })
+                }
+                aria-label={
+                  isOwnStoreProfile ? "Switch to personal profile" : "View personal profile"
+                }
                 className="transition-transform duration-200 active:scale-90"
               >
                 <span className="flex h-[26px] w-[26px] items-center justify-center overflow-hidden rounded-full border border-white/60 bg-white/10">

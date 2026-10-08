@@ -726,26 +726,35 @@ export function ProfileView({
             >
               <Search size={22} className={searchOpen ? "text-[#FF7300]" : "text-chat-text"} />
             </button>
-            {ownershipKnown &&
-              isOwnProfile &&
-              store &&
-              storeIsSetUp &&
-              !store.personal_storefront_only && (
-                <button
-                  onClick={() => setStorePickerOpen(true)}
-                  aria-label="Switch to store profile"
-                  data-tour="switch-profile"
-                  className="transition-transform duration-200 active:scale-90"
-                >
-                  <span className="flex h-[26px] w-[26px] items-center justify-center overflow-hidden rounded-full border border-white/60 bg-chat-soft">
-                    {storeLogoUrl ? (
-                      <img src={storeLogoUrl} alt="" className="h-full w-full object-cover" />
-                    ) : (
-                      <UserRound size={16} strokeWidth={1.5} className="text-chat-muted" />
-                    )}
-                  </span>
-                </button>
-              )}
+            {/* Owners switch identity here; visitors use the same button to go
+                and look at the seller's store profile (and the store profile
+                has the matching button back). One store skips the picker. */}
+            {ownershipKnown && store && storeIsSetUp && !store.personal_storefront_only && (
+              <button
+                onClick={() => {
+                  const viewable = stores.filter((s) => !s.personal_storefront_only);
+                  if (!isOwnProfile && viewable.length === 1) {
+                    void navigate({
+                      to: "/store-profile/$storeUsername",
+                      params: { storeUsername: viewable[0].store_username },
+                    });
+                    return;
+                  }
+                  setStorePickerOpen(true);
+                }}
+                aria-label={isOwnProfile ? "Switch to store profile" : "View store profile"}
+                data-tour="switch-profile"
+                className="transition-transform duration-200 active:scale-90"
+              >
+                <span className="flex h-[26px] w-[26px] items-center justify-center overflow-hidden rounded-full border border-white/60 bg-chat-soft">
+                  {storeLogoUrl ? (
+                    <img src={storeLogoUrl} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <UserRound size={16} strokeWidth={1.5} className="text-chat-muted" />
+                  )}
+                </span>
+              </button>
+            )}
             {ownershipKnown && isOwnProfile && (
               <button
                 onClick={() => setMenuOpen(true)}
@@ -1138,7 +1147,7 @@ export function ProfileView({
             <div className="h-1 w-9 rounded-full bg-chat-text/25" />
           </div>
           <p className="px-5 pt-2 pb-1 text-[11px] font-semibold text-chat-text/40 uppercase tracking-wide">
-            Switch to
+            {isOwnProfile ? "Switch to" : "Store profiles"}
           </p>
           <div className="pb-4">
             {stores
