@@ -148,9 +148,28 @@ function rememberSetupDone(userId: string) {
 }
 
 function ProfilePage() {
+  const { username } = useParams({ from: "/profile/$username" });
+  const { tab, welcome } = Route.useSearch();
+  return <ProfileView username={username} initialTab={tab} welcome={welcome} />;
+}
+
+/** The whole profile page for `username`. The route renders it from the URL;
+ *  Explore's Profile tab renders it `embedded` for the author of the post you
+ *  just swiped past, so it is literally the same page, without a second
+ *  bottom nav (Explore has its own). */
+export function ProfileView({
+  username,
+  initialTab,
+  welcome,
+  embedded = false,
+}: {
+  username: string;
+  initialTab?: "store";
+  welcome?: true;
+  embedded?: boolean;
+}) {
   const navigate = useNavigate();
   const router = useRouter();
-  const { username } = useParams({ from: "/profile/$username" });
   const goRoot = useGoRoot();
   const { user, loading: sessionLoading } = useSession();
   const { stores: ownedStores, loading: ownedStoresLoading } = useOwnStores();
@@ -171,7 +190,6 @@ function ProfilePage() {
         sold_items_count: stats?.sold_items_count ?? 0,
       }
     : null;
-  const { tab: initialTab, welcome } = Route.useSearch();
   const [activeTab, setActiveTab] = useState<TabKey>(initialTab ?? "posts");
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -408,6 +426,13 @@ function ProfilePage() {
   useEffect(() => {
     const el = avatarRef.current;
     if (!el) return;
+    // Embedded in Explore the page scrolls inside its own container, not the
+    // window, so a profile scrolled down puts the avatar above the screen and
+    // the sheet would cover everything. Bring it back to the top as Store
+    // opens, the way the standalone page looks when you tap Store.
+    if (embedded && activeTab === "store") {
+      el.closest<HTMLElement>("[data-embedded-profile]")?.scrollTo({ top: 0 });
+    }
     const update = () => {
       const rect = el.getBoundingClientRect();
       // A fifth of the way down the avatar, not its middle: the sheet sat a
@@ -429,7 +454,7 @@ function ProfilePage() {
     // every frame of a scroll, and was the main reason scrolling here felt
     // heavy. The value only matters at the moment the sheet rises, and the
     // page is scroll-locked while it's up, so it can't drift underneath.
-  }, [profile?.id, activeTab]);
+  }, [profile?.id, activeTab, embedded]);
 
   // --- TikTok-style scroll ----------------------------------------------------
   // The header (avatar, name, stats, bio) scrolls away; the top bar and the tab
@@ -1160,7 +1185,7 @@ function ProfilePage() {
           bottom rows with nothing gating it out -- a seller with more than
           one store could open "Switch to" and find its last row cut off
           behind the floating nav pill. */}
-      {isOwnProfile && !storeSheetOpen && !storePickerOpen && (
+      {isOwnProfile && !storeSheetOpen && !storePickerOpen && !embedded && (
         <BottomNav active="profile" ownUsername={profile?.personal_username || username} />
       )}
 

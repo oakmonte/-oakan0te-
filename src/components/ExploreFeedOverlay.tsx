@@ -4,7 +4,7 @@ import { ChevronLeft, Bookmark, Lock, Search, ShoppingBag } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { PostFeed, type ActivePost, type TaggedProduct } from "@/components/feed/PostFeed";
 import { useDarkOverlay } from "@/lib/dark-overlay";
-import { AuthorProfilePage } from "@/components/feed/AuthorProfilePage";
+import { ProfileView } from "@/routes/profile.$username";
 import { useSession } from "@/hooks/use-session";
 
 // "listed-left" is the same Listed items page, parked to the LEFT of Following so
@@ -128,7 +128,15 @@ export function ExploreFeedOverlay({
             {active === "listed-items" || active === "listed-left" ? (
               <ListedItemsPage items={activePost?.tags ?? []} />
             ) : active === "profile" ? (
-              <AuthorProfilePage username={activePost?.authorUsername ?? null} />
+              activePost?.authorUsername ? (
+                <div data-embedded-profile className="h-full w-full overflow-y-auto">
+                  <ProfileView username={activePost.authorUsername} embedded />
+                </div>
+              ) : (
+                <div className="flex h-full w-full items-center justify-center px-10 text-center text-[14px] text-white/50">
+                  Swipe through a post first, and its creator shows up here.
+                </div>
+              )
             ) : (
               <PostFeed
                 mode="embedded"

@@ -1,3 +1,4 @@
+import { useNavigate } from "@tanstack/react-router";
 import {
   useCallback,
   useEffect,
@@ -847,6 +848,7 @@ function FeedPostCard({
    *  Stores don't buy, so the add-to-cart bag is hidden. */
   asStore: boolean;
 }) {
+  const navigate = useNavigate();
   const cardRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -1087,7 +1089,13 @@ function FeedPostCard({
   }
 
   async function toggleFollow() {
-    if (!viewerId || followPending) return;
+    // Signed out: the + is still shown (it is how people learn they can
+    // follow), and tapping it is the way in.
+    if (!viewerId) {
+      void navigate({ to: "/sign-in" });
+      return;
+    }
+    if (followPending) return;
     const next = !following;
     setFollowing(next);
     setFollowPending(true);
@@ -1243,7 +1251,7 @@ function FeedPostCard({
               <img src={post.authorAvatar} alt="" className="w-full h-full object-cover" />
             )}
           </div>
-          {!isOwnPost && viewerId && (
+          {!isOwnPost && (
             <button
               type="button"
               onClick={toggleFollow}
