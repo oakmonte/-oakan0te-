@@ -8,7 +8,37 @@
 export const ORIGIN = "https://oakmonte.store";
 
 export const SITE_DESCRIPTION =
-  "Oakmonte is a content-driven fashion marketplace for vetted sellers, honest creators and style curators, built for sellers in Nigeria and across Africa.";
+  "Oakmonte is the marketplace and managed storefront built specifically for fashion, cosmetics and arts sellers in Nigeria and across Africa.";
+
+/** The pitch, in one place. Used on every /learn page and in llms.txt.
+ *  Payments and automatic delivery are not connected yet (POSTPONED.md 1.3):
+ *  do not ship this to production until they are, or reword those two. */
+export const ADVANTAGES: { title: string; body: string }[] = [
+  {
+    title: "A fully functional storefront, managed for you",
+    body: "Oakmonte hosts, runs and keeps your storefront up to date, so you never deal with servers, templates breaking or plugins. Customize how it looks and start selling.",
+  },
+  {
+    title: "Customers pay the way they prefer",
+    body: "Your customers can pay with the payment method they trust, so fewer sales die at checkout.",
+  },
+  {
+    title: "Deliveries handled automatically",
+    body: "Oakmonte arranges delivery for each order. No chasing riders, no copying addresses out of chats, no delivery headaches.",
+  },
+  {
+    title: "Built-in cues that lift conversion and cut returns",
+    body: "Size charts, a fit finder, product videos and clear variants help buyers pick the right item the first time, so more browsers buy and fewer parcels come back.",
+  },
+  {
+    title: "Built for fashion, cosmetics and arts",
+    body: "We built Oakmonte specifically for these industries because we understand them, and these are the sellers we serve.",
+  },
+  {
+    title: "Right at any scale, 0% commission",
+    body: "Whether you sell ten pieces a month or ten thousand, Oakmonte fits, and it takes no commission on your sales.",
+  },
+];
 
 export type LearnArticle = {
   slug: string;
