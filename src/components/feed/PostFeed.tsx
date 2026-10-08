@@ -56,7 +56,12 @@ export type TaggedProduct = {
 /** The post currently filling the screen, reported up so a caller can show
  *  something about it beside the feed — Explore's Listed items tab reads this
  *  to list the products linked to whatever you're looking at. */
-export type ActivePost = { id: string; tags: TaggedProduct[] };
+export type ActivePost = {
+  id: string;
+  tags: TaggedProduct[];
+  /** Who posted it, for Explore's Profile tab. */
+  authorUsername: string | null;
+};
 
 type FeedPost = Pick<
   Tables<"posts">,
@@ -72,6 +77,7 @@ type FeedPost = Pick<
   | "audio_attribution"
 > & {
   authorDisplayName: string | null;
+  authorUsername: string | null;
   authorAvatar: string | null;
   authorIsFollowed: boolean;
   tags: TaggedProduct[];
@@ -178,6 +184,7 @@ async function fetchFeed(scope: FeedScope, viewerId: string | null): Promise<Fee
     audio_attribution: p.audio_attribution,
     authorDisplayName:
       p.public_profiles?.display_name ?? p.public_profiles?.personal_username ?? null,
+    authorUsername: p.public_profiles?.personal_username ?? null,
     authorAvatar: p.public_profiles?.avatar_url ?? null,
     authorIsFollowed: followedAuthorIds.has(p.user_id),
     tags: tagsByPost.get(p.id) ?? [],
@@ -919,8 +926,8 @@ function FeedPostCard({
   }, []);
 
   useEffect(() => {
-    if (onScreen) onActive({ id: post.id, tags });
-  }, [onScreen, post.id, tags, onActive]);
+    if (onScreen) onActive({ id: post.id, tags, authorUsername: post.authorUsername });
+  }, [onScreen, post.id, tags, onActive, post.authorUsername]);
 
   useEffect(() => {
     const v = videoRef.current;

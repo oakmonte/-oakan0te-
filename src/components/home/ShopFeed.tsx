@@ -88,7 +88,6 @@ function Card({ item, onOpen, wide }: { item: ShopProduct; onOpen: () => void; w
         )}
       </div>
       <p className="mt-1.5 truncate text-[14px] font-semibold text-chat-text">{tile.title}</p>
-      <p className="truncate text-[12px] text-chat-muted">{item.brand}</p>
       {tile.price != null && (
         <p className="text-[14px] text-chat-text">
           ₦{tile.price.toLocaleString()}

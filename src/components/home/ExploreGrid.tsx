@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Copy, Play } from "lucide-react";
+import { Copy, MoreHorizontal } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { AnimatePresence } from "framer-motion";
 import { ExploreFeedOverlay } from "@/components/ExploreFeedOverlay";
@@ -35,36 +35,108 @@ async function fetchExplorePosts(): Promise<ExplorePost[]> {
 const LEFT_RATIOS = ["4/5", "1/1", "3/4", "5/6", "2/3"];
 const RIGHT_RATIOS = ["1/1", "3/4", "4/5", "2/3", "5/6"];
 
-function Tile({ post, ratio, onOpen }: { post: ExplorePost; ratio: string; onOpen: () => void }) {
-  const src = post.thumbnail_url || post.media_url;
-  const isCarousel = (post.post_media?.[0]?.count ?? 0) > 1;
-  const isClip = post.media_type === "video" && post.created_with !== "photo-editor";
+// A grid video plays on its own, muted and looping, but only while it is on
+// screen: dozens of videos decoding at once saturates a phone, so each tile
+// watches itself and starts or stops with its visibility. The source is only
+// attached once the tile is near the viewport.
+function TileVideo({ src, poster }: { src: string; poster: string | null }) {
+  const ref = useRef<HTMLVideoElement>(null);
+  const [near, setNear] = useState(false);
+  const [visible, setVisible] = useState(false);
+  const visibleRef = useRef(false);
+  visibleRef.current = visible;
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    // Two watchers: one attaches the source a little before the tile scrolls
+    // in, the other decides playing. A shared rootMargin would count a tile
+    // just above the screen as "visible" and keep it playing off-screen.
+    const nearObs = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) setNear(true);
+      },
+      { rootMargin: "200px 0px" },
+    );
+    const visibleObs = new IntersectionObserver(
+      ([entry]) => setVisible(entry.intersectionRatio >= 0.5),
+      { threshold: [0, 0.5] },
+    );
+    nearObs.observe(el);
+    visibleObs.observe(el);
+    return () => {
+      nearObs.disconnect();
+      visibleObs.disconnect();
+    };
+  }, []);
+
+  // Driven by state, not called from the observer: the first "visible" can
+  // arrive before the source is attached, and a play() then is lost.
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || !near) return;
+    if (visible) void el.play().catch(() => {});
+    else el.pause();
+  }, [near, visible]);
+
   return (
-    <button
-      type="button"
-      onClick={onOpen}
-      className="relative block w-full overflow-hidden rounded-[14px] bg-chat-soft oak-motion-control active:scale-[0.98]"
-      style={{ aspectRatio: ratio }}
-    >
-      <img
-        src={src}
-        alt=""
-        loading="lazy"
-        decoding="async"
-        className="absolute inset-0 h-full w-full object-cover"
-      />
-      {isCarousel ? (
-        <span className="absolute right-2 top-2 drop-shadow">
-          <Copy size={15} className="text-white" strokeWidth={2.5} />
-        </span>
-      ) : (
-        isClip && (
+    <video
+      ref={ref}
+      src={near ? src : undefined}
+      poster={poster ?? undefined}
+      muted
+      loop
+      playsInline
+      preload="metadata"
+      // A play() asked for before any data is loaded can be dropped; ask again
+      // once there is a frame, if the tile is still on screen.
+      onLoadedData={(e) => {
+        if (visibleRef.current) void e.currentTarget.play().catch(() => {});
+      }}
+      disablePictureInPicture
+      disableRemotePlayback
+      className="absolute inset-0 h-full w-full object-cover"
+    />
+  );
+}
+
+function Tile({ post, ratio, onOpen }: { post: ExplorePost; ratio: string; onOpen: () => void }) {
+  const isCarousel = (post.post_media?.[0]?.count ?? 0) > 1;
+  const isVideo = post.media_type === "video";
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={onOpen}
+        className="relative block w-full overflow-hidden rounded-[14px] bg-chat-soft oak-motion-control active:scale-[0.98]"
+        style={{ aspectRatio: ratio }}
+      >
+        {isVideo ? (
+          <TileVideo src={post.media_url} poster={post.thumbnail_url} />
+        ) : (
+          <img
+            src={post.thumbnail_url || post.media_url}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        )}
+        {isCarousel && (
           <span className="absolute right-2 top-2 drop-shadow">
-            <Play size={14} className="fill-white text-white" />
+            <Copy size={15} className="text-white" strokeWidth={2.5} />
           </span>
-        )
-      )}
-    </button>
+        )}
+      </button>
+      {/* Just the dots: no glass, no background. */}
+      <button
+        type="button"
+        aria-label="More"
+        className="flex h-8 w-10 items-center justify-start px-1 text-chat-text active:opacity-60"
+      >
+        <MoreHorizontal size={20} />
+      </button>
+    </div>
   );
 }
 

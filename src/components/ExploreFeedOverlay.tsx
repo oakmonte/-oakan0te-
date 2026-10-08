@@ -1,9 +1,10 @@
 import { useRef, useState } from "react";
 import { motion, AnimatePresence, type PanInfo } from "framer-motion";
-import { ChevronLeft, Bookmark, Lock, Search, ShoppingBag, User, UserPlus } from "lucide-react";
+import { ChevronLeft, Bookmark, Lock, Search, ShoppingBag } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { PostFeed, type ActivePost, type TaggedProduct } from "@/components/feed/PostFeed";
 import { useDarkOverlay } from "@/lib/dark-overlay";
+import { AuthorProfilePage } from "@/components/feed/AuthorProfilePage";
 import { useSession } from "@/hooks/use-session";
 
 // "listed-left" is the same Listed items page, parked to the LEFT of Following so
@@ -127,7 +128,7 @@ export function ExploreFeedOverlay({
             {active === "listed-items" || active === "listed-left" ? (
               <ListedItemsPage items={activePost?.tags ?? []} />
             ) : active === "profile" ? (
-              <ProfileTeaserPage />
+              <AuthorProfilePage username={activePost?.authorUsername ?? null} />
             ) : (
               <PostFeed
                 mode="embedded"
@@ -220,25 +221,6 @@ function ListedItemsPage({ items }: { items: TaggedProduct[] }) {
           </div>
         ))}
       </div>
-    </div>
-  );
-}
-
-function ProfileTeaserPage() {
-  return (
-    <div className="w-full h-full flex flex-col items-center pt-10 px-8 text-center">
-      <div className="w-24 h-24 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
-        <User size={36} className="text-white/30" />
-      </div>
-      <p className="mt-4 text-[16px] font-bold">@seller_handle</p>
-      <p className="mt-1 text-[13px] text-white/50">142 posts · 3.2k followers</p>
-      <button
-        type="button"
-        className="mt-5 flex items-center gap-1.5 bg-white text-black text-[13px] font-semibold rounded-full px-5 py-2.5"
-      >
-        <UserPlus size={14} />
-        Follow
-      </button>
     </div>
   );
 }
