@@ -66,6 +66,12 @@ describe("surfaceForPathname", () => {
     expect(surfaceForPathname("/home")).toBe("social");
     expect(surfaceForPathname("/messages")).toBe("social");
     expect(surfaceForPathname("/profile/diadem")).toBe("social");
+    expect(surfaceForPathname("/cart")).toBe("social");
+  });
+
+  // The bag's checkout stays black like Buy Now's, not phone-following.
+  test("checkout is not social", () => {
+    expect(surfaceForPathname("/checkout/cart")).toBe(null);
   });
 
   // Exact matches only — a prefix match would sweep in unrelated routes.

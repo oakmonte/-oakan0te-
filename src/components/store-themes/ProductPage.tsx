@@ -5,6 +5,9 @@ import { ChevronLeft, ShieldCheck } from "lucide-react";
 import { PaperPlaneTilt } from "@/components/icons/phosphor";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useOverlayHistory } from "@/hooks/use-overlay-history";
+import { useBagToast } from "@/components/cart/BagToast";
+import { addToCart } from "@/lib/cart";
+import { MAX_LINE_QTY, stockCeiling, variantLabelOf } from "@/lib/order-lines";
 import type { PreviewTile } from "./storefront-catalog";
 import type { StorefrontLook } from "./storefront-look";
 
@@ -20,6 +23,8 @@ type Variant = {
   continue_selling_out_of_stock: boolean;
   option1_name: string | null;
   option1_value: string | null;
+  option2_value: string | null;
+  option3_value: string | null;
   main_image_url: string | null;
   additional_image_urls: string[] | null;
 };
@@ -28,6 +33,7 @@ type ProductData = {
   title: string;
   description: string | null;
   variants: Variant[];
+  storeId: string;
   store: { brand_name: string; logo_url: string | null } | null;
   /** The owner's personal username, which /messages?to= resolves. */
   ownerUsername: string | null;
@@ -37,7 +43,7 @@ async function loadProduct(productId: string): Promise<ProductData | null> {
   const { data, error } = await supabase
     .from("products")
     .select(
-      "title, description_long, description_short, store_id, product_variants(id, price, compare_at_price, stock_qty, continue_selling_out_of_stock, option1_name, option1_value, main_image_url, additional_image_urls)",
+      "title, description_long, description_short, store_id, product_variants(id, price, compare_at_price, stock_qty, continue_selling_out_of_stock, option1_name, option1_value, option2_value, option3_value, main_image_url, additional_image_urls)",
     )
     .eq("id", productId)
     .eq("status", "active")
@@ -63,6 +69,7 @@ async function loadProduct(productId: string): Promise<ProductData | null> {
     title: data.title ?? "Untitled",
     description: data.description_long?.trim() || data.description_short?.trim() || null,
     variants: (data.product_variants ?? []) as Variant[],
+    storeId: data.store_id,
     store: store ? { brand_name: store.brand_name, logo_url: store.logo_url } : null,
     ownerUsername: owner?.personal_username ?? null,
   };
@@ -74,8 +81,9 @@ function inStock(v: Variant) {
 
 /** A storefront product opened as its own page: photos, name, size picker,
  *  price, the buy actions, the buyer-protection note, description and the
- *  seller. Pushes in from the right like CollectionPage. Checkout isn't live
- *  yet, so the three actions call onAction (the storefront's notice). */
+ *  seller. Pushes in from the right like CollectionPage. Buy Now goes to
+ *  checkout and Add to Bag fills the bag; Make Offer isn't built yet, so it
+ *  calls onAction (the storefront's notice). */
 export function ProductPage({
   tile,
   look,
@@ -107,6 +115,7 @@ export function ProductPage({
       setAskAccount(true);
     }
   }
+  const { toast: bagToast, showBagToast } = useBagToast();
   const [shown, setShown] = useState(false);
   const [closing, setClosing] = useState(false);
   const [data, setData] = useState<ProductData | null | undefined>(undefined);
@@ -167,6 +176,42 @@ export function ProductPage({
   const price = variant?.price ?? tile.price;
   const compareAt = variant?.compare_at_price ?? tile.compareAtPrice;
   const soldOut = variant ? !inStock(variant) : false;
+
+  // The selected variant, exactly as it will be bought. Prices and stock here
+  // are what this page loaded; the bag re-checks them when it opens and the
+  // server re-prices at checkout.
+  function addToBag() {
+    // No price (null or an unset 0) can't be ordered; the server refuses it.
+    if (!data || !variant || !variant.price) return;
+    const label = variantLabelOf(variant, variants.length);
+    const ceiling = stockCeiling(variant);
+    const added = addToCart({
+      productId: tile.id,
+      variantId: variant.id,
+      title: data.title,
+      variantLabel: label,
+      imageUrl: photos[0] ?? null,
+      unitPrice: variant.price,
+      storeId: data.storeId,
+      storeName: data.store?.brand_name ?? "Store",
+      maxQuantity: ceiling,
+    });
+    showBagToast({
+      // Nothing goes in only when the line is already full: every one in
+      // stock, or as many as one order can carry.
+      title: added > 0 ? "Added to your bag" : "Already in your bag",
+      detail:
+        added > 0
+          ? label
+            ? `${data.title} · ${label}`
+            : data.title
+          : ceiling !== null && ceiling < MAX_LINE_QTY
+            ? "You have all the ones that are left."
+            : `That's the most one order can take (${MAX_LINE_QTY}).`,
+      image: photos[0] ?? null,
+      viewBag: true,
+    });
+  }
 
   const pageStyle: CSSProperties = {
     background: look.background,
@@ -323,8 +368,8 @@ export function ProductPage({
                 </button>
                 <button
                   type="button"
-                  disabled={soldOut}
-                  onClick={onAction}
+                  disabled={soldOut || !data || !variant?.price}
+                  onClick={addToBag}
                   className="h-14 rounded-2xl text-[16px] font-semibold disabled:opacity-40"
                   style={btn}
                 >
@@ -434,6 +479,7 @@ export function ProductPage({
           </div>,
           document.body,
         )}
+      {bagToast}
     </>
   );
 }

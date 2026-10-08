@@ -1,4 +1,5 @@
 import { supabaseAdmin } from "@/lib/integrations/my-supabase/client.server";
+import { packageItems, priceLines, type OrderLine, type PricedLine } from "@/lib/order-lines";
 
 // Server-only Shipbubble helpers shared by the rates route and order creation.
 // Order creation re-prices delivery through the same function the checkout page
@@ -66,45 +67,56 @@ export type Courier = {
   eta: string | null;
 };
 
-export type PricedItem = {
-  productId: string;
-  variantId: string;
-  storeId: string;
-  title: string;
-  variantLabel: string | null;
-  imageUrl: string | null;
-  unitPrice: number;
-  weightGrams: number | null;
-};
+/** One priced order line. Kept under its original name for the callers that
+ *  still read a single `item`. */
+export type PricedItem = PricedLine;
 
-export async function fetchRates(input: {
-  productId: string;
-  variantId: string | null;
-  addressCode: number;
-}): Promise<{ item: PricedItem; requestToken: string; couriers: Courier[] }> {
-  const { data: product } = await supabaseAdmin
+export type RatesInput = { addressCode: number } & (
+  | { productId: string; variantId: string | null }
+  | { lines: OrderLine[]; legacy?: boolean }
+);
+
+/** Prices every line from the database, then asks Shipbubble what delivering
+ *  the whole parcel from the seller's pickup address costs.
+ *
+ *  Accepts one product (the Buy Now page) or a bag's lines for ONE store; a
+ *  bag spanning stores is refused, since one courier pickup is one address.
+ *  `item` is the first line, for callers written before the bag existed. */
+export async function fetchRates(input: RatesInput): Promise<{
+  item: PricedItem;
+  items: PricedItem[];
+  storeId: string;
+  requestToken: string;
+  couriers: Courier[];
+}> {
+  const legacy = "productId" in input ? true : (input.legacy ?? false);
+  const lines: OrderLine[] =
+    "productId" in input
+      ? [{ productId: input.productId, variantId: input.variantId, quantity: 1 }]
+      : input.lines;
+  if (lines.length === 0) throw new ShippingError("There's nothing to check out.", 400);
+
+  const { data: products } = await supabaseAdmin
     .from("products")
     .select(
-      "title, store_id, status, product_variants(id, price, weight_grams, option1_value, main_image_url)",
+      "id, title, store_id, status, product_variants(id, price, weight_grams, option1_value, option2_value, option3_value, main_image_url, stock_qty, continue_selling_out_of_stock)",
     )
-    .eq("id", input.productId)
-    .eq("status", "active")
-    .maybeSingle();
-  if (!product) throw new ShippingError("This product isn't available.", 404);
-  const variants = product.product_variants ?? [];
-  const variant = variants.find((v) => v.id === input.variantId) ?? variants[0];
-  if (!variant?.price) throw new ShippingError("This product has no price.", 422);
+    .in("id", [...new Set(lines.map((l) => l.productId))])
+    .eq("status", "active");
+  const priced = priceLines(lines, products ?? [], legacy);
+  if (!priced.ok) throw new ShippingError(priced.error, priced.status);
+  const { items, storeId } = priced;
 
   const [{ data: store }, { data: loc }] = await Promise.all([
     supabaseAdmin
       .from("stores")
       .select("brand_name, business_email, business_phone")
-      .eq("id", product.store_id)
+      .eq("id", storeId)
       .maybeSingle(),
     supabaseAdmin
       .from("store_locations")
       .select("address_line, address_line2, city, state, country, lat, lng")
-      .eq("store_id", product.store_id)
+      .eq("store_id", storeId)
       .order("created_at", { ascending: true })
       .limit(1)
       .maybeSingle(),
@@ -136,7 +148,6 @@ export async function fetchRates(input: {
   }[];
   const category = cats.find((c) => /fashion|cloth|apparel|wear/i.test(c.category)) ?? cats[0];
 
-  const weightKg = variant.weight_grams ? variant.weight_grams / 1000 : DEFAULT_WEIGHT_KG;
   const rates = await shipbubble("/shipping/fetch_rates", {
     method: "POST",
     body: JSON.stringify({
@@ -144,15 +155,7 @@ export async function fetchRates(input: {
       reciever_address_code: input.addressCode,
       pickup_date: pickupDate(),
       category_id: category.category_id,
-      package_items: [
-        {
-          name: product.title ?? "Item",
-          description: product.title ?? "Item",
-          unit_weight: String(weightKg),
-          unit_amount: String(variant.price),
-          quantity: "1",
-        },
-      ],
+      package_items: packageItems(items, DEFAULT_WEIGHT_KG),
       package_dimension: DEFAULT_BOX_CM,
     }),
   });
@@ -173,16 +176,9 @@ export async function fetchRates(input: {
     throw new ShippingError("No couriers can deliver to that address right now.", 422);
   }
   return {
-    item: {
-      productId: input.productId,
-      variantId: variant.id,
-      storeId: product.store_id,
-      title: product.title ?? "Item",
-      variantLabel: variants.length > 1 ? (variant.option1_value ?? null) : null,
-      imageUrl: variant.main_image_url ?? null,
-      unitPrice: variant.price,
-      weightGrams: variant.weight_grams ?? null,
-    },
+    item: items[0],
+    items,
+    storeId,
     requestToken: String(rates.request_token),
     couriers,
   };

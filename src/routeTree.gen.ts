@@ -50,6 +50,7 @@ import { Route as ApiSoundFileRouteImport } from './routes/api.sound-file'
 import { Route as ApiSoundsRouteImport } from './routes/api.sounds'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as CheckoutProductIdRouteImport } from './routes/checkout.$productId'
+import { Route as CheckoutCartRouteImport } from './routes/checkout.cart'
 import { Route as CreateIndexRouteImport } from './routes/create.index'
 import { Route as CreateAfterShotRouteImport } from './routes/create.after-shot'
 import { Route as CreateDraftsRouteImport } from './routes/create.drafts'
@@ -316,6 +317,11 @@ const AuthCallbackRoute = AuthCallbackRouteImport.update({
 const CheckoutProductIdRoute = CheckoutProductIdRouteImport.update({
   id: '/checkout/$productId',
   path: '/checkout/$productId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CheckoutCartRoute = CheckoutCartRouteImport.update({
+  id: '/checkout/cart',
+  path: '/checkout/cart',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CreateIndexRoute = CreateIndexRouteImport.update({
@@ -676,6 +682,7 @@ export interface FileRoutesByFullPath {
   '/api/sounds': typeof ApiSoundsRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/checkout/$productId': typeof CheckoutProductIdRoute
+  '/checkout/cart': typeof CheckoutCartRoute
   '/create/after-shot': typeof CreateAfterShotRouteWithChildren
   '/create/drafts': typeof CreateDraftsRoute
   '/create/photo-editor': typeof CreatePhotoEditorRoute
@@ -779,6 +786,7 @@ export interface FileRoutesByTo {
   '/api/sounds': typeof ApiSoundsRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/checkout/$productId': typeof CheckoutProductIdRoute
+  '/checkout/cart': typeof CheckoutCartRoute
   '/create/drafts': typeof CreateDraftsRoute
   '/create/photo-editor': typeof CreatePhotoEditorRoute
   '/create/store-piece': typeof CreateStorePieceRoute
@@ -884,6 +892,7 @@ export interface FileRoutesById {
   '/api/sounds': typeof ApiSoundsRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/checkout/$productId': typeof CheckoutProductIdRoute
+  '/checkout/cart': typeof CheckoutCartRoute
   '/create/after-shot': typeof CreateAfterShotRouteWithChildren
   '/create/drafts': typeof CreateDraftsRoute
   '/create/photo-editor': typeof CreatePhotoEditorRoute
@@ -991,6 +1000,7 @@ export interface FileRouteTypes {
     | '/api/sounds'
     | '/auth/callback'
     | '/checkout/$productId'
+    | '/checkout/cart'
     | '/create/after-shot'
     | '/create/drafts'
     | '/create/photo-editor'
@@ -1094,6 +1104,7 @@ export interface FileRouteTypes {
     | '/api/sounds'
     | '/auth/callback'
     | '/checkout/$productId'
+    | '/checkout/cart'
     | '/create/drafts'
     | '/create/photo-editor'
     | '/create/store-piece'
@@ -1198,6 +1209,7 @@ export interface FileRouteTypes {
     | '/api/sounds'
     | '/auth/callback'
     | '/checkout/$productId'
+    | '/checkout/cart'
     | '/create/after-shot'
     | '/create/drafts'
     | '/create/photo-editor'
@@ -1304,6 +1316,7 @@ export interface RootRouteChildren {
   ApiSoundsRoute: typeof ApiSoundsRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
   CheckoutProductIdRoute: typeof CheckoutProductIdRoute
+  CheckoutCartRoute: typeof CheckoutCartRoute
   OrderOrderIdRoute: typeof OrderOrderIdRoute
   ProfileUsernameRoute: typeof ProfileUsernameRoute
   StoreProfileStoreUsernameRoute: typeof StoreProfileStoreUsernameRoute
@@ -1621,6 +1634,13 @@ declare module '@tanstack/react-router' {
       path: '/checkout/$productId'
       fullPath: '/checkout/$productId'
       preLoaderRoute: typeof CheckoutProductIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/checkout/cart': {
+      id: '/checkout/cart'
+      path: '/checkout/cart'
+      fullPath: '/checkout/cart'
+      preLoaderRoute: typeof CheckoutCartRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/create/': {
@@ -2217,6 +2237,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiSoundsRoute: ApiSoundsRoute,
   AuthCallbackRoute: AuthCallbackRoute,
   CheckoutProductIdRoute: CheckoutProductIdRoute,
+  CheckoutCartRoute: CheckoutCartRoute,
   OrderOrderIdRoute: OrderOrderIdRoute,
   ProfileUsernameRoute: ProfileUsernameRoute,
   StoreProfileStoreUsernameRoute: StoreProfileStoreUsernameRoute,

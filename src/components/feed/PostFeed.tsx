@@ -32,7 +32,8 @@ import { useSession } from "@/hooks/use-session";
 import { CommentSheet } from "@/components/feed/CommentSheet";
 import { SaveToast } from "@/components/feed/SaveToast";
 import { LinkProductsSheet } from "@/components/feed/LinkProductsSheet";
-import { useLockedBanner } from "@/components/LockedBanner";
+import { useBagToast } from "@/components/cart/BagToast";
+import { addProductsToCart } from "@/lib/cart-quote";
 import { claimMediaSession, releaseMediaSession } from "@/lib/media-session";
 
 // Bare icons over the media — no chip behind them and no drop shadow either.
@@ -871,12 +872,59 @@ function FeedPostCard({
   const [burst, setBurst] = useState(0);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
-  const { banner: lockedBanner, showLocked } = useLockedBanner();
+  const { toast: bagToast, showBagToast } = useBagToast();
   // Local so linking a product updates the chips under the caption straight
   // away — the feed's post list is fetched once and isn't refetched on a
   // link, and re-running the whole query to move one chip would jump the
   // scroller off the post you're standing on.
   const [tags, setTags] = useState<TaggedProduct[]>(post.tags);
+  // One lookup at a time: a second tap mid-request would add everything twice.
+  const addingToBag = useRef(false);
+  async function addTaggedToBag() {
+    if (tags.length === 0) {
+      showBagToast({
+        title: "Nothing tagged here",
+        detail: "This post has no pieces linked to it yet.",
+      });
+      return;
+    }
+    if (addingToBag.current) return;
+    addingToBag.current = true;
+    try {
+      const r = await addProductsToCart(tags.map((t) => t.id));
+      const skipped = r.unavailable + r.atLimit;
+      if (r.added === 0) {
+        showBagToast({
+          title:
+            r.atLimit > 0 && r.unavailable === 0 ? "Already in your bag" : "Couldn't add these",
+          detail:
+            r.atLimit > 0 && r.unavailable === 0
+              ? "You already have as many as you can add."
+              : "The pieces on this post are sold out or no longer listed.",
+          viewBag: r.atLimit > 0,
+        });
+        return;
+      }
+      const details = [
+        r.needChoice > 0 &&
+          `Pick ${r.needChoice === 1 ? "a size" : "sizes"} in your bag before checkout.`,
+        skipped > 0 && `${skipped} couldn't be added.`,
+      ].filter(Boolean);
+      showBagToast({
+        title: r.added === 1 ? "Added to your bag" : `Added ${r.added} pieces to your bag`,
+        detail: details.join(" ") || undefined,
+        image: tags[0]?.image ?? null,
+        viewBag: true,
+      });
+    } catch {
+      showBagToast({
+        title: "Couldn't add to your bag",
+        detail: "Check your connection and try again.",
+      });
+    } finally {
+      addingToBag.current = false;
+    }
+  }
   const [slide, setSlide] = useState(0);
   const isCarousel = post.media.length > 1;
   const carouselVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -1319,16 +1367,13 @@ function FeedPostCard({
               identity doesn't buy, so it never sees the bag. Browsing as
               yourself you always see it — including on your own posts and
               your own store's, because owning a shop doesn't stop you buying
-              from it. There's no cart table or /cart route anywhere in the
-              app yet (BottomNav already links to a /cart route that doesn't
-              exist), so wiring this for real means standing up a whole cart
-              subsystem first, not something to improvise as a side effect
-              of a feed icon. */}
+              from it. The bag is local to the device (lib/cart.ts), so this
+              works signed out too. */}
           {!asStore && (
             <RailAction
               label="Add tagged items to cart"
               caption="+Cart"
-              onPress={() => showLocked("Cart is unavailable for now")}
+              onPress={() => void addTaggedToBag()}
             >
               <ShoppingBag size={28} />
             </RailAction>
@@ -1429,7 +1474,7 @@ function FeedPostCard({
       />
 
       <CommentSheet open={commentsOpen} onClose={() => setCommentsOpen(false)} />
-      {lockedBanner}
+      {bagToast}
       {isOwnerView && (
         <LinkProductsSheet
           open={linkOpen}

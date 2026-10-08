@@ -1,10 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { fetchRates, ShippingError } from "@/lib/shipping.server";
+import { itemsTotalKobo, parseOrderLines } from "@/lib/order-lines";
 
-// Live courier prices for one product to a validated buyer address. Open to
-// guests (guest checkout), so it is rate-limited per IP. Price, weight and the
-// seller's pickup address come from the database: the client only says which
-// product/variant and which validated address_code.
+// Live courier prices for one product, or one store's lines from the bag, to a
+// validated buyer address. Open to guests (guest checkout), so it is
+// rate-limited per IP. Price, weight and the seller's pickup address come from
+// the database: the client only says which products/variants, how many, and
+// which validated address_code.
 const NO_STORE = { "Cache-Control": "no-store, private" } as const;
 
 const hits = new Map<string, number[]>();
@@ -27,23 +29,21 @@ export const Route = createFileRoute("/api/shipping/rates")({
         const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
         if (limited(ip)) return json({ error: "Too many tries. Wait a minute." }, 429);
 
-        const body = (await request.json().catch(() => null)) as {
-          productId?: unknown;
-          variantId?: unknown;
-          addressCode?: unknown;
-        } | null;
-        const productId = typeof body?.productId === "string" ? body.productId : "";
-        const variantId = typeof body?.variantId === "string" ? body.variantId : null;
+        const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
+        const parsed = body ? parseOrderLines(body) : null;
         const addressCode = Number(body?.addressCode);
-        if (!productId || !Number.isFinite(addressCode)) return json({ error: "Bad request" }, 400);
+        if (!parsed || !Number.isFinite(addressCode)) return json({ error: "Bad request" }, 400);
+        if (!parsed.ok) return json({ error: parsed.error }, 400);
 
         try {
-          const { requestToken, couriers } = await fetchRates({
-            productId,
-            variantId,
+          const { items, requestToken, couriers } = await fetchRates({
+            lines: parsed.lines,
+            legacy: parsed.legacy,
             addressCode,
           });
-          return json({ requestToken, couriers });
+          // The items figure the order will be charged, so the checkout page
+          // can show the server's number rather than its own sum.
+          return json({ requestToken, couriers, itemsTotalKobo: itemsTotalKobo(items) });
         } catch (err) {
           if (err instanceof ShippingError && err.status !== 502) {
             return json({ error: err.message }, err.status);

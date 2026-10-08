@@ -3,13 +3,15 @@ import { supabaseAdmin } from "@/lib/integrations/my-supabase/client.server";
 import { getRequestUser } from "@/lib/server-auth";
 import { fetchRates, ShippingError } from "@/lib/shipping.server";
 import { initializeTransaction, paystackConfigured } from "@/lib/paystack.server";
+import { itemsTotalKobo, parseOrderLines, stockProblem, unitKobo } from "@/lib/order-lines";
 
 // Creates an order and starts its Paystack payment. Open to guests: a guest is
 // identified afterwards only by the guest_token in the link we hand back.
 //
-// Nothing money-shaped is taken from the browser. Item price, weight and the
+// Nothing money-shaped is taken from the browser. Item prices, weights and the
 // delivery fee are all re-read / re-priced here; the client only says which
-// product, which validated address and which courier service it picked.
+// products and how many (one product from Buy Now, or one store's lines from
+// the bag), which validated address and which courier service it picked.
 const NO_STORE = { "Cache-Control": "no-store, private", Vary: "Authorization" } as const;
 
 const hits = new Map<string, number[]>();
@@ -38,22 +40,15 @@ export const Route = createFileRoute("/api/orders")({
         const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
         if (!body) return json({ error: "Bad request" }, 400);
 
-        const productId = str(body.productId, 64);
-        const variantId = str(body.variantId, 64) || null;
+        const parsed = parseOrderLines(body);
         const serviceCode = str(body.serviceCode, 120);
         const addressCode = Number(body.addressCode);
         const name = str(body.name, 120);
         const phone = str(body.phone, 30);
         const address = str(body.address, 400);
         const email = str(body.email, 200);
-        if (
-          !productId ||
-          !serviceCode ||
-          !Number.isFinite(addressCode) ||
-          !name ||
-          !phone ||
-          !address
-        ) {
+        if (!parsed.ok) return json({ error: parsed.error }, 400);
+        if (!serviceCode || !Number.isFinite(addressCode) || !name || !phone || !address) {
           return json({ error: "Missing order details." }, 400);
         }
         if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -61,25 +56,20 @@ export const Route = createFileRoute("/api/orders")({
         }
 
         try {
-          const { item, requestToken, couriers } = await fetchRates({
-            productId,
-            variantId,
+          const { items, storeId, requestToken, couriers } = await fetchRates({
+            lines: parsed.lines,
+            legacy: parsed.legacy,
             addressCode,
           });
           const courier = couriers.find((c) => c.serviceCode === serviceCode);
           if (!courier) return json({ error: "That delivery option is no longer available." }, 409);
 
-          // Out-of-stock check, unless the seller sells past zero.
-          const { data: v } = await supabaseAdmin
-            .from("product_variants")
-            .select("stock_qty, continue_selling_out_of_stock")
-            .eq("id", item.variantId)
-            .maybeSingle();
-          if (v && !v.continue_selling_out_of_stock && (v.stock_qty ?? 0) < 1) {
-            return json({ error: "Sorry, that item just sold out." }, 409);
-          }
+          // Out-of-stock check per line, unless the seller sells past zero.
+          // Stock is read in the same query that priced the lines, moments ago.
+          const shortfall = stockProblem(items, parsed.legacy);
+          if (shortfall) return json({ error: shortfall }, 409);
 
-          const itemsKobo = Math.round(item.unitPrice * 100);
+          const itemsKobo = itemsTotalKobo(items);
           const deliveryKobo = Math.round(courier.price * 100);
           const totalKobo = itemsKobo + deliveryKobo;
 
@@ -88,7 +78,7 @@ export const Route = createFileRoute("/api/orders")({
             .insert({
               buyer_id: user?.id ?? null,
               guest_email: user ? null : email || null,
-              store_id: item.storeId,
+              store_id: storeId,
               status: "awaiting_payment",
               items_total_kobo: itemsKobo,
               delivery_fee_kobo: deliveryKobo,
@@ -116,17 +106,19 @@ export const Route = createFileRoute("/api/orders")({
             return json({ error: "Couldn't create your order. Try again." }, 500);
           }
 
-          const { error: itemErr } = await supabaseAdmin.from("order_items").insert({
-            order_id: order.id,
-            product_id: item.productId,
-            variant_id: item.variantId,
-            title: item.title,
-            variant_label: item.variantLabel,
-            image_url: item.imageUrl,
-            unit_price_kobo: itemsKobo,
-            quantity: 1,
-            weight_grams: item.weightGrams,
-          });
+          const { error: itemErr } = await supabaseAdmin.from("order_items").insert(
+            items.map((item) => ({
+              order_id: order.id,
+              product_id: item.productId,
+              variant_id: item.variantId,
+              title: item.title,
+              variant_label: item.variantLabel,
+              image_url: item.imageUrl,
+              unit_price_kobo: unitKobo(item.unitPrice),
+              quantity: item.quantity,
+              weight_grams: item.weightGrams,
+            })),
+          );
           if (itemErr) {
             console.error("order item insert failed", itemErr);
             await supabaseAdmin.from("orders").delete().eq("id", order.id);
