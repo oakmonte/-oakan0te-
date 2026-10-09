@@ -11,6 +11,7 @@ import { authedFetch } from "@/lib/authed-fetch";
 import {
   CHAT_MEDIA_BUCKET,
   chatDb,
+  getChatClient,
   isMissingSchema,
   type InboxRow,
   type MemberRow,
@@ -41,10 +42,11 @@ function fail(error: { message: string; code?: string } | null, fallback: string
 async function chatRequest<T>(path: string, fallback: string, init?: RequestInit): Promise<T> {
   let response: Response;
   try {
-    response = await authedFetch(path, {
-      ...init,
-      headers: { "Content-Type": "application/json", ...init?.headers },
-    });
+    response = await authedFetch(
+      path,
+      { ...init, headers: { "Content-Type": "application/json", ...init?.headers } },
+      getChatClient(),
+    );
   } catch {
     throw new ChatError(fallback);
   }

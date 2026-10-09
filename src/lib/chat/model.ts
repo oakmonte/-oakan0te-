@@ -56,6 +56,17 @@ export type MediaMeta = {
   duration?: number;
   /** 0..1 amplitudes, ~40 bars, for the voice-note waveform. */
   waveform?: number[];
+  /** A product enquiry from a storefront: the piece the buyer is asking about,
+   *  shown as a card above their caption. */
+  product?: EnquiryProduct;
+};
+
+export type EnquiryProduct = {
+  id: string;
+  title: string;
+  /** Naira, as the buyer saw it. */
+  price: number | null;
+  images: string[];
 };
 
 export type ChatMessage = {
@@ -89,6 +100,17 @@ export function parseMeta(value: Json | null | undefined): MediaMeta {
   if (Array.isArray(record.waveform)) {
     meta.waveform = record.waveform.filter((n): n is number => typeof n === "number");
   }
+  const p = record.product as Record<string, unknown> | undefined;
+  if (p && typeof p === "object" && typeof p.id === "string" && typeof p.title === "string") {
+    meta.product = {
+      id: p.id,
+      title: p.title,
+      price: typeof p.price === "number" ? p.price : null,
+      images: Array.isArray(p.images)
+        ? p.images.filter((u): u is string => typeof u === "string").slice(0, 8)
+        : [],
+    };
+  }
   return meta;
 }
 
@@ -109,11 +131,20 @@ export function fromMessageRow(row: MessageRow): ChatMessage {
   };
 }
 
+/** How a buyer without an account shows up to a seller: stable per buyer,
+ *  short enough to read, and obviously not a chosen name. */
+export function customerName(userId: string): string {
+  return `customer-${userId.replace(/-/g, "").slice(0, 6)}`;
+}
+
 export function fromInboxRow(row: InboxRow, me: string): Chat {
   const self = row.kind === "self";
   const name = self
     ? "Me"
-    : row.other_display_name?.trim() || row.other_username || "Oakmonte user";
+    : row.other_display_name?.trim() ||
+      row.other_username ||
+      // No profile at all: an anonymous buyer from a storefront.
+      (row.other_user_id ? customerName(row.other_user_id) : "Oakmonte user");
   return {
     id: row.conversation_id,
     kind: row.kind,

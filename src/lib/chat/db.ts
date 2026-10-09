@@ -220,7 +220,27 @@ export type MessagingDatabase = Database & {
   };
 };
 
-export const chatDb = supabase as unknown as SupabaseClient<MessagingDatabase>;
+/** The client chat runs on. Normally the app's own session; a storefront
+ *  swaps in its buyer identity while it's on screen (buyer-session.ts), so a
+ *  seller previewing their own website chats as an anonymous buyer without
+ *  being signed out of their store. Only one chat surface is ever mounted at
+ *  a time, which is what makes a single switch safe. */
+let activeClient: SupabaseClient = supabase as unknown as SupabaseClient;
+
+export function setChatClient(client: SupabaseClient | null) {
+  activeClient = client ?? (supabase as unknown as SupabaseClient);
+}
+
+export function getChatClient(): SupabaseClient {
+  return activeClient;
+}
+
+export const chatDb = new Proxy({} as SupabaseClient<MessagingDatabase>, {
+  get(_, prop) {
+    const value = Reflect.get(activeClient, prop, activeClient);
+    return typeof value === "function" ? value.bind(activeClient) : value;
+  },
+});
 
 export const CHAT_MEDIA_BUCKET = "chat-media";
 

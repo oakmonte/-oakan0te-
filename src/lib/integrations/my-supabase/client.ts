@@ -22,10 +22,13 @@ function createSupabaseFetch(key: string): typeof fetch {
   };
 }
 
-function createMySupabaseClient() {
+/** `storageKey` gives a client its own session, separate from the app's --
+ *  the storefront's buyer identity (lib/buyer-session.ts) uses one. */
+export function createMySupabaseClient(storageKey?: string) {
   return createClient<Database>(MY_SUPABASE_URL, MY_SUPABASE_PUBLISHABLE_KEY, {
     global: { fetch: createSupabaseFetch(MY_SUPABASE_PUBLISHABLE_KEY) },
     auth: {
+      ...(storageKey ? { storageKey } : {}),
       storage: typeof window !== "undefined" ? window.localStorage : undefined,
       persistSession: true,
       autoRefreshToken: true,

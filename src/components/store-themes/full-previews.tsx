@@ -4,6 +4,8 @@ import { usePaintChrome } from "@/lib/paint-chrome";
 import { StorefrontNav, type StorefrontTab } from "./StorefrontNav";
 import { StorefrontFeed } from "./StorefrontFeed";
 import { StorefrontMessages } from "./StorefrontMessages";
+import { AnonymousBuyerBanner } from "./AnonymousBuyerBanner";
+import { StorefrontChatContext, useStorefrontBuyer } from "@/lib/buyer-session";
 import {
   ArrowLeft,
   BadgeCheck,
@@ -1197,6 +1199,11 @@ export function PublicStorefront({
     };
   }, [storeId]);
 
+  // Who's chatting from this storefront (see buyer-session.ts). Started here,
+  // before the loading return below, so it's signed in by the time anyone
+  // taps Messages or a product's message button.
+  const buyer = useStorefrontBuyer(ownerId);
+
   if (themeLoading || savedLoading || brandName === null) {
     // min-h-full so the sheet holds a consistent shape while data is still
     // in flight, same as the loaded return below -- there's no real
@@ -1262,7 +1269,15 @@ export function PublicStorefront({
 
   return (
     // overflow-x-clip: same sideways-drag guard as ThemePreviewSheet's frame.
-    <>
+    <StorefrontChatContext.Provider
+      value={{
+        ...buyer,
+        ownerId,
+        storeName: brandName || null,
+        openMessages: () => setTab("messages"),
+      }}
+    >
+      {preview && buyer.anonymous && <AnonymousBuyerBanner />}
       {tab === "messages" ? (
         <div className="bg-chat-bg" style={{ minHeight: "100dvh" }}>
           <StorefrontMessages storeId={storeId} onThreadOpenChange={setThreadOpen} />
@@ -1296,7 +1311,7 @@ export function PublicStorefront({
           preview={preview}
         />
       )}
-    </>
+    </StorefrontChatContext.Provider>
   );
 }
 

@@ -1,0 +1,40 @@
+import { useEffect, useState } from "react";
+import { UserRound } from "lucide-react";
+import { GLASS_RIM, glassDark } from "@/lib/liquid-glass";
+
+/** Shown when a seller opens the preview of their own website: they're
+ *  browsing (and messaging) as an anonymous buyer, exactly as a customer
+ *  would. Drops in on arrival and leaves after a few seconds, so it never
+ *  sits over their storefront's own header. */
+export function AnonymousBuyerBanner() {
+  const [shown, setShown] = useState(false);
+
+  useEffect(() => {
+    const enter = requestAnimationFrame(() => setShown(true));
+    const leave = setTimeout(() => setShown(false), 4200);
+    return () => {
+      cancelAnimationFrame(enter);
+      clearTimeout(leave);
+    };
+  }, []);
+
+  return (
+    <div
+      role="status"
+      className="pointer-events-none fixed inset-x-0 z-50 flex justify-center px-4"
+      style={{ top: "calc(env(safe-area-inset-top) + 10px)" }}
+    >
+      <div
+        className={`${GLASS_RIM} flex items-center gap-2 rounded-full px-4 py-2.5 text-[13.5px] font-semibold text-white transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]`}
+        style={{
+          ...glassDark,
+          opacity: shown ? 1 : 0,
+          transform: shown ? "translateY(0)" : "translateY(-12px)",
+        }}
+      >
+        <UserRound size={16} strokeWidth={2.4} />
+        You&apos;re logged in as an anonymous buyer
+      </div>
+    </div>
+  );
+}

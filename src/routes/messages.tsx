@@ -69,13 +69,18 @@ export type SellerOnly = {
 export function MessagesView({
   sellerOnly,
   onThreadOpenChange,
+  buyer,
 }: {
   sellerOnly?: SellerOnly;
   /** Lets a host hide its own chrome while a chat is open. */
   onThreadOpenChange?: (open: boolean) => void;
+  /** A storefront's buyer identity (buyer-session.ts), used instead of the
+   *  app's session. undefined = use the app's session. */
+  buyer?: { me: string | null; ready: boolean };
 } = {}) {
-  const { user, loading: sessionLoading } = useSession();
-  const me = user?.id ?? null;
+  const { user, loading: appSessionLoading } = useSession();
+  const me = buyer ? buyer.me : (user?.id ?? null);
+  const sessionLoading = buyer ? !buyer.ready : appSessionLoading;
   const ownUsername = useOwnUsername();
   // Not Route.useSearch(): a storefront renders this on another route.
   const search = useSearch({ strict: false }) as { to?: string };

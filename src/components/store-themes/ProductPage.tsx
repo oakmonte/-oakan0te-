@@ -10,6 +10,8 @@ import { addToCart } from "@/lib/cart";
 import { MAX_LINE_QTY, stockCeiling, variantLabelOf } from "@/lib/order-lines";
 import type { PreviewTile } from "./storefront-catalog";
 import type { StorefrontLook } from "./storefront-look";
+import { EnquirySheet } from "./EnquirySheet";
+import { useStorefrontChat } from "@/lib/buyer-session";
 
 const PUSH = "cubic-bezier(0.32, 0.72, 0, 1)";
 const OPEN_MS = 380;
@@ -116,6 +118,10 @@ export function ProductPage({
     }
   }
   const { toast: bagToast, showBagToast } = useBagToast();
+  // On a store's website the message button opens an enquiry about this
+  // piece (EnquirySheet); anywhere else it falls back to plain Messages.
+  const storefrontChat = useStorefrontChat();
+  const [enquiryOpen, setEnquiryOpen] = useState(false);
   const [shown, setShown] = useState(false);
   const [closing, setClosing] = useState(false);
   const [data, setData] = useState<ProductData | null | undefined>(undefined);
@@ -348,10 +354,12 @@ export function ProductPage({
                       type="button"
                       aria-label="Message the seller"
                       onClick={() =>
-                        void navigate({
-                          to: "/messages",
-                          search: data.ownerUsername ? { to: data.ownerUsername } : {},
-                        })
+                        storefrontChat
+                          ? setEnquiryOpen(true)
+                          : void navigate({
+                              to: "/messages",
+                              search: data.ownerUsername ? { to: data.ownerUsername } : {},
+                            })
                       }
                       className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl"
                       style={btn}
@@ -482,6 +490,22 @@ export function ProductPage({
           document.body,
         )}
       {bagToast}
+      {enquiryOpen && data && (
+        <EnquirySheet
+          product={{
+            id: tile.id,
+            title: data.title,
+            price: variant?.price ?? null,
+            images: photos.slice(0, 6),
+          }}
+          onClose={() => setEnquiryOpen(false)}
+          onSent={() => {
+            setEnquiryOpen(false);
+            storefrontChat?.openMessages();
+            close();
+          }}
+        />
+      )}
     </>
   );
 }

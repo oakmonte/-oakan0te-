@@ -22,6 +22,7 @@ import {
 } from "@/lib/chat/model";
 import { useMediaUrl } from "./use-media-url";
 import { VoiceNote } from "./VoiceNote";
+import type { EnquiryProduct } from "@/lib/chat/model";
 
 /** Where a bubble sits in a run of same-sender messages: decides which
  *  corners are tight, like WhatsApp and iMessage. */
@@ -487,19 +488,22 @@ export const MessageBubble = memo(function MessageBubble({
                   />
                 </div>
               ) : (
-                <p className="whitespace-pre-wrap break-words text-[15.5px] leading-[1.35]">
-                  <HighlightedText text={message.body ?? ""} query={highlight} />
-                  {/* Reserves room on the last line so the stamp never sits on
+                <>
+                  {message.meta.product && <ProductCard product={message.meta.product} />}
+                  <p className="whitespace-pre-wrap break-words text-[15.5px] leading-[1.35]">
+                    <HighlightedText text={message.body ?? ""} query={highlight} />
+                    {/* Reserves room on the last line so the stamp never sits on
                       top of text; the stamp itself is pinned bottom-right. */}
-                  <span
-                    className="inline-block"
-                    style={{ width: message.editedAt ? 104 : mine ? 66 : 46 }}
-                    aria-hidden
-                  />
-                  <span className="absolute bottom-[6px] right-3">
-                    <Stamp message={message} tick={tick} mine={mine} />
-                  </span>
-                </p>
+                    <span
+                      className="inline-block"
+                      style={{ width: message.editedAt ? 104 : mine ? 66 : 46 }}
+                      aria-hidden
+                    />
+                    <span className="absolute bottom-[6px] right-3">
+                      <Stamp message={message} tick={tick} mine={mine} />
+                    </span>
+                  </p>
+                </>
               )}
             </div>
           </motion.div>
@@ -537,3 +541,31 @@ export const MessageBubble = memo(function MessageBubble({
     </div>
   );
 });
+
+/** A storefront enquiry's subject: the piece's photos (swipeable when there
+ *  are several), title and price, above the buyer's question. */
+function ProductCard({ product }: { product: EnquiryProduct }) {
+  return (
+    <div className="-mx-1 mb-1.5 w-[236px] overflow-hidden rounded-[14px] bg-black/20">
+      {product.images.length > 0 && (
+        <div className="flex snap-x snap-mandatory overflow-x-auto no-scrollbar">
+          {product.images.map((src) => (
+            <img
+              key={src}
+              src={src}
+              alt=""
+              loading="lazy"
+              className="aspect-[4/5] w-full shrink-0 snap-center object-cover"
+            />
+          ))}
+        </div>
+      )}
+      <div className="px-2.5 py-2">
+        <p className="truncate text-[14px] font-semibold">{product.title}</p>
+        {product.price != null && (
+          <p className="text-[13.5px] opacity-80">₦{product.price.toLocaleString()}</p>
+        )}
+      </div>
+    </div>
+  );
+}

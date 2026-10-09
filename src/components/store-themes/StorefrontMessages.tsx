@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { MessagesView, type SellerOnly } from "@/routes/messages";
+import { useStorefrontChat } from "@/lib/buyer-session";
 
 /** The storefront's Messages tab: the app's Messages page, scoped to the one
  *  person a buyer on this website needs -- the seller. Everything else about
@@ -14,6 +15,7 @@ export function StorefrontMessages({
   onThreadOpenChange: (open: boolean) => void;
 }) {
   const [seller, setSeller] = useState<SellerOnly | null>(null);
+  const chat = useStorefrontChat();
 
   useEffect(() => {
     let cancelled = false;
@@ -44,5 +46,11 @@ export function StorefrontMessages({
   }, [storeId]);
 
   if (!seller) return <div className="min-h-full bg-chat-bg" />;
-  return <MessagesView sellerOnly={seller} onThreadOpenChange={onThreadOpenChange} />;
+  return (
+    <MessagesView
+      sellerOnly={seller}
+      onThreadOpenChange={onThreadOpenChange}
+      buyer={chat ? { me: chat.me, ready: chat.ready } : undefined}
+    />
+  );
 }
