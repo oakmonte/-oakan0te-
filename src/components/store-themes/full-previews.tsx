@@ -1278,7 +1278,7 @@ export function PublicStorefront({
         openMessages: () => setTab("messages"),
       }}
     >
-      {preview && buyer.anonymous && <AnonymousBuyerBanner />}
+      {preview && <AnonymousBuyerBanner anonymous={buyer.anonymous} />}
       {tab === "messages" ? (
         <div className="bg-chat-bg" style={{ minHeight: "100dvh" }}>
           <StorefrontMessages storeId={storeId} onThreadOpenChange={setThreadOpen} />

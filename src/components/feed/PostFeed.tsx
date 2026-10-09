@@ -35,6 +35,8 @@ import { LinkProductsSheet } from "@/components/feed/LinkProductsSheet";
 import { useBagToast } from "@/components/cart/BagToast";
 import { addProductsToCart } from "@/lib/cart-quote";
 import { claimMediaSession, releaseMediaSession } from "@/lib/media-session";
+import { useLockedBanner } from "@/components/LockedBanner";
+import { SHARING_LOCKED } from "@/lib/launch-locks";
 
 // Bare icons over the media — no chip behind them and no drop shadow either.
 // The shadow was there so they'd survive a light photo, but it read as grubby
@@ -885,6 +887,7 @@ function FeedPostCard({
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
   const { toast: bagToast, showBagToast } = useBagToast();
+  const { banner: lockedBanner, showLocked } = useLockedBanner();
   // Local so linking a product updates the chips under the caption straight
   // away — the feed's post list is fetched once and isn't refetched on a
   // link, and re-running the whole query to move one chip would jump the
@@ -962,8 +965,10 @@ function FeedPostCard({
   // button lines up with the last line of the caption, as on TikTok. Against
   // the safe-area inset rather than a bare number: installed on an iPhone the
   // home indicator takes ~34px, and a fixed offset sat the caption on it.
-  // 88px over the nav clears its 60px pill plus its gap.
-  const chromeBottom = `calc(env(safe-area-inset-bottom) + ${overNav ? 88 : 20}px)`;
+  // 88px over the nav clears its 60px pill plus its gap. A storefront's bar
+  // is taller (glass round buttons either side of the pill) and the rail sat
+  // on top of it, so the storefront feed lifts its chrome further.
+  const chromeBottom = `calc(env(safe-area-inset-bottom) + ${storefront ? 150 : overNav ? 88 : 20}px)`;
   const mediaFit = fitContain ? "object-contain" : "object-cover";
   const firstMedia = post.media[0];
   const backdropUrl =
@@ -1417,7 +1422,12 @@ function FeedPostCard({
               <MoreHorizontal size={28} />
             </RailAction>
           ) : (
-            <RailAction label="Share">
+            <RailAction
+              label="Share"
+              onPress={
+                storefront && SHARING_LOCKED ? () => showLocked("Sharing unavailable") : undefined
+              }
+            >
               <Send size={28} strokeLinecap="round" strokeLinejoin="round" />
             </RailAction>
           )}
@@ -1493,6 +1503,7 @@ function FeedPostCard({
 
       <CommentSheet open={commentsOpen} onClose={() => setCommentsOpen(false)} />
       {bagToast}
+      {lockedBanner}
       {isOwnerView && (
         <LinkProductsSheet
           open={linkOpen}
