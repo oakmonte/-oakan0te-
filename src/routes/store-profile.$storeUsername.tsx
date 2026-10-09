@@ -18,6 +18,7 @@ import { StorePiecesGrid, StorePiecesEmptyState } from "@/components/profile/Sto
 import { TabPager } from "@/components/profile/TabPager";
 import { PostsGrid } from "@/components/profile/PostsGrid";
 import { ProfileTabStrip } from "@/components/profile/ProfileTabStrip";
+import { StoreLogoViewer } from "@/components/store/StoreLogoViewer";
 
 export const Route = createFileRoute("/store-profile/$storeUsername")({
   head: () => ({ meta: [{ title: "Store — Oakmonte" }] }),
@@ -48,6 +49,7 @@ function StoreProfilePage() {
   const { storeUsername } = useParams({ from: "/store-profile/$storeUsername" });
   const { user, loading: sessionLoading } = useSession();
   const [store, setStore] = useState<StoreRow | null>(null);
+  const [logoOpen, setLogoOpen] = useState(false);
   const [storeLoading, setStoreLoading] = useState(true);
   const [ownerUsername, setOwnerUsername] = useState<string | null>(null);
   const [ownerAvatarUrl, setOwnerAvatarUrl] = useState<string | null>(null);
@@ -64,7 +66,7 @@ function StoreProfilePage() {
   // See profile.$username.tsx for why this is tracked continuously rather
   // than only captured on the tap that opens the sheet — and why it targets
   // the avatar circle, not the whole info block.
-  const avatarRef = useRef<HTMLDivElement>(null);
+  const avatarRef = useRef<HTMLButtonElement>(null);
   const [sheetTop, setSheetTop] = useState(0);
   // Which tab was active right before Store was opened — see
   // profile.$username.tsx.
@@ -272,9 +274,8 @@ function StoreProfilePage() {
       >
         {/* Top bar */}
         <div className="flex items-center justify-between px-6 pt-4 pb-2">
-          <div className="w-[22px]">
-            <BackButton />
-          </div>
+          {/* No back button: the store profile is a tab root (Profile). */}
+          <div className="w-[22px]" />
           <div className="flex items-center gap-5">
             <button aria-label="Share">
               <Share2 size={20} />
@@ -302,9 +303,12 @@ function StoreProfilePage() {
 
         {/* Store info */}
         <div className="flex flex-col items-center gap-4 px-6 mt-2">
-          <div
+          <button
+            type="button"
             ref={avatarRef}
-            className="flex h-[110px] w-[110px] items-center justify-center overflow-hidden rounded-full border-[3px] border-white bg-white/10"
+            onClick={() => setLogoOpen(true)}
+            aria-label="View store picture"
+            className="flex h-[110px] w-[110px] items-center justify-center overflow-hidden rounded-full border-[3px] border-white bg-white/10 active:scale-[0.97] transition-transform duration-150"
           >
             {store?.logo_url ? (
               <img
@@ -321,7 +325,7 @@ function StoreProfilePage() {
                 aria-label={storeUsername}
               />
             )}
-          </div>
+          </button>
           <div className="text-center">
             <div className="text-[15px] font-bold">
               {storeLoading ? "…" : store?.brand_name || storeUsername}
@@ -566,6 +570,17 @@ function StoreProfilePage() {
           </div>
         </div>
       </div>
+
+      {logoOpen && store && (
+        <StoreLogoViewer
+          storeId={store.id}
+          url={store.logo_url}
+          name={store.brand_name}
+          canEdit={isOwnStoreProfile}
+          onClose={() => setLogoOpen(false)}
+          onChange={(url) => setStore((prev) => (prev ? { ...prev, logo_url: url } : prev))}
+        />
+      )}
 
       {/* Bottom nav — shown only when viewing your own store profile, and
           hidden while the Store sheet or the switch sheet is up. */}

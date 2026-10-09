@@ -70,6 +70,7 @@ import { useActiveStore } from "@/hooks/use-own-store";
 import { useBodyScrollLock } from "@/hooks/use-body-scroll-lock";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { startBackgroundUpload, onBackgroundUploadDone } from "@/lib/background-upload";
+import { saveStoreLogoUrl } from "@/lib/store-logo";
 
 function noop() {}
 
@@ -1181,12 +1182,15 @@ export function PublicStorefront({
   // state.text/logoMode below), same as any other field.
   const [brandName, setBrandName] = useState<string | null>(null);
   const [ownerId, setOwnerId] = useState<string | null>(null);
+  // The one store picture (stores.logo_url), shared by the profile, the
+  // dashboard and the theme editor; the theme's own logo is only a fallback.
+  const [storeLogo, setStoreLogo] = useState<string | null>(null);
   useEffect(() => {
     let cancelled = false;
     setBrandName(null);
     supabase
       .from("stores")
-      .select("brand_name, owner_id")
+      .select("brand_name, owner_id, logo_url")
       .eq("id", storeId)
       .maybeSingle()
       .then(({ data, error }) => {
@@ -1194,6 +1198,7 @@ export function PublicStorefront({
         if (error) console.error("PublicStorefront: failed to load brand name", error);
         setBrandName(data?.brand_name ?? "");
         setOwnerId(data?.owner_id ?? null);
+        setStoreLogo(data?.logo_url ?? null);
       });
     return () => {
       cancelled = true;
@@ -1228,7 +1233,7 @@ export function PublicStorefront({
     isEditing: false,
     logoMode: state.logoMode,
     onLogoModeChange: noop,
-    logoImage: state.logoImage,
+    logoImage: storeLogo ?? state.logoImage,
     onLogoChange: noop,
     slideshowImages: state.slideshowImages,
     onAddSlideshowImages: noop,
@@ -1336,6 +1341,26 @@ export function ThemePreviewSheet({
   initialMode?: "view" | "edit";
 }) {
   const { store, storeId } = useActiveStore();
+  // The one store picture (stores.logo_url): shown in the editor and written
+  // by its logo picker, so it stays the same picture everywhere.
+  const [storeLogo, setStoreLogo] = useState<string | null>(null);
+  useEffect(() => {
+    if (!storeId) return;
+    let cancelled = false;
+    // stores.logo_url only -- not the theme fallback, which belongs to
+    // whichever theme is applied, not the one being previewed here.
+    void supabase
+      .from("stores")
+      .select("logo_url")
+      .eq("id", storeId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!cancelled) setStoreLogo((current) => current ?? data?.logo_url ?? null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [storeId]);
   // The real store name, same default-not-override rule as PublicStorefront
   // — falls back to the theme's own fictional demo brand only in the sliver
   // of time before useActiveStore resolves.
@@ -1611,16 +1636,25 @@ export function ThemePreviewSheet({
       onLogoModeChange: (logoMode) => {
         mutate((s) => ({ ...s, logoMode }));
       },
-      logoImage: state.logoImage,
+      logoImage: storeLogo ?? state.logoImage,
       onLogoChange: (file) => {
         const { id, previewUrl } = startBackgroundUpload(file, "store-theme-image", "theme logo");
         mutate((s) => ({ ...s, logoImage: previewUrl }));
+        setStoreLogo(previewUrl);
         setPendingUploadIds((prev) => new Set(prev).add(id));
         onBackgroundUploadDone(id, (u) => {
           markUploadDone(id);
           if (u.status !== "success" || !u.url) return; // shared toast offers Retry
           const url = u.url;
           patchSilently((s) => (s.logoImage === previewUrl ? { ...s, logoImage: url } : s));
+          // Also the store's own picture, so the profile, dashboard and
+          // storefront all change with it.
+          setStoreLogo(url);
+          if (storeId) {
+            saveStoreLogoUrl(storeId, url).catch((err) =>
+              console.error("theme editor: could not save the store picture", err),
+            );
+          }
         });
       },
       slideshowImages: state.slideshowImages,
