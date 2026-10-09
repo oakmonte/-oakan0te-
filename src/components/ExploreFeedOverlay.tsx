@@ -157,7 +157,7 @@ export function ExploreFeedOverlay({
         </AnimatePresence>
       </motion.div>
 
-      <BottomNav active="home" ownUsername={ownUsername} />
+      <BottomNav active="website" ownUsername={ownUsername} />
     </motion.div>
   );
 }

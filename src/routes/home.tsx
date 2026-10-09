@@ -77,7 +77,7 @@ function HomePage() {
         </div>
       )}
 
-      <BottomNav active="home" ownUsername={ownUsername} />
+      <BottomNav active="website" ownUsername={ownUsername} />
     </div>
   );
 }

@@ -18,6 +18,7 @@ import {
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useSession } from "@/hooks/use-session";
 import { useActiveStore } from "@/hooks/use-own-store";
+import { BottomNav } from "@/components/BottomNav";
 import { StoreHeaderProvider } from "@/context/store-header-provider";
 import { useStoreHeader } from "@/hooks/use-store-header";
 
@@ -153,9 +154,12 @@ function StoreLayoutInner() {
         <div className="flex items-center justify-end min-w-[28px]">{rightAction}</div>
       </div>
 
-      <div className="pt-14">
+      {/* The dashboard's main screen is the Store tab, so it carries the tab
+          bar; screens deeper in /store/* don't, like any tab's inner pages. */}
+      <div className={pathname === "/store" ? "pt-14 pb-28" : "pt-14"}>
         <Outlet />
       </div>
+      {pathname === "/store" && <BottomNav active="store" ownUsername={username ?? undefined} />}
 
       {drawerOpen && (
         <div className="fixed inset-0 z-40">

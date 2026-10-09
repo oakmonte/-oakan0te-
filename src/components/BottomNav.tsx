@@ -4,13 +4,15 @@ import { GLASS_RIM, glassLens, glassLight } from "@/lib/liquid-glass";
 import { isStandalone } from "@/lib/standalone";
 import { useGoRoot } from "@/hooks/use-back";
 import type { NavTarget } from "@/lib/nav-hierarchy";
-import homeIcon from "@/assets/Home.svg";
+import websiteIcon from "@/assets/website.svg";
 import messagesIcon from "@/assets/messages.svg";
 import createIcon from "@/assets/create.svg";
 import storeIcon from "@/assets/Store.svg";
 import profileIcon from "@/assets/profile.svg";
 
-type NavKey = "home" | "messages" | "create" | "store" | "profile";
+// Sellers-only: the seller's store dashboard is the first tab, their live
+// website (the storefront preview on /home) the second.
+type NavKey = "store" | "website" | "create" | "messages" | "profile";
 
 type BottomNavProps = {
   active: NavKey;
@@ -80,10 +82,10 @@ export function BottomNav({ active, ownUsername }: BottomNavProps) {
     to: string;
     params?: Record<string, string>;
   }[] = [
-    { key: "home", label: "Home", icon: homeIcon, to: "/home" },
-    { key: "messages", label: "Messages", icon: messagesIcon, to: "/messages" },
-    { key: "create", label: "Create", icon: createIcon, to: "/create" },
     { key: "store", label: "Store", icon: storeIcon, to: "/store" },
+    { key: "website", label: "Website", icon: websiteIcon, to: "/home" },
+    { key: "create", label: "Create", icon: createIcon, to: "/create" },
+    { key: "messages", label: "Messages", icon: messagesIcon, to: "/messages" },
     {
       key: "profile",
       label: "Profile",
