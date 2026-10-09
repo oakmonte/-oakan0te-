@@ -29,8 +29,8 @@ preview. Keep both branches' code identical; never lock or unlock by editing cod
 The social side is removed **bit by bit, as Diadem walks through it** — don't strip features
 ahead of that. Half-built lanes are WIP on `feature/lane-{discounts,insights,activity,offline}`.
 
-This branch, `sellers-only`, is version 2. It started from `oakmonte-master-piece`, so checkout,
-orders and cart are already here.
+`sellers-only`, `sellers-only-locked` and `main` share the same code (they started from
+`oakmonte-master-piece`, so checkout, orders and cart are here); only the launch-lock switch differs.
 
 ## Multiple agents share this repo
 
