@@ -147,10 +147,61 @@ function rememberSetupDone(userId: string) {
   }
 }
 
+// Sellers-only: personal profiles aren't shown any more -- the store profile
+// is the profile. Any /profile/<username> (an old link, a stray button, the
+// back stack) goes to that person's store profile instead. Usernames and
+// display names are still collected; ProfileView stays for master-piece.
 function ProfilePage() {
   const { username } = useParams({ from: "/profile/$username" });
-  const { tab, welcome } = Route.useSearch();
-  return <ProfileView username={username} initialTab={tab} welcome={welcome} />;
+  const navigate = useNavigate();
+  const { user, loading } = useSession();
+  const [noStore, setNoStore] = useState<"own" | "other" | null>(null);
+
+  useEffect(() => {
+    if (loading) return;
+    let cancelled = false;
+    void (async () => {
+      const { data: person } = await supabase
+        .from("public_profiles")
+        .select("id")
+        .eq("personal_username", username)
+        .maybeSingle();
+      const { data: store } = person?.id
+        ? await supabase
+            .from("stores")
+            .select("store_username")
+            .eq("owner_id", person.id)
+            .order("created_at", { ascending: true })
+            .limit(1)
+            .maybeSingle()
+        : { data: null };
+      if (cancelled) return;
+      if (store) {
+        void navigate({
+          to: "/store-profile/$storeUsername",
+          params: { storeUsername: store.store_username },
+          replace: true,
+        });
+      } else if (person?.id && person.id === user?.id) {
+        void navigate({ to: "/store", replace: true });
+      } else {
+        setNoStore(person?.id === user?.id ? "own" : "other");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [username, loading, user?.id, navigate]);
+
+  if (noStore === "other") {
+    return (
+      <div className="flex min-h-dvh flex-col items-center justify-center bg-black px-10 text-center text-white">
+        <p className="text-[20px] font-bold">This profile isn&apos;t available</p>
+        <p className="mt-2 text-[14.5px] text-white/55">Only stores have profiles on Oakmonte.</p>
+      </div>
+    );
+  }
+  return <div className="min-h-dvh bg-black" />;
 }
 
 /** The whole profile page for `username`. The route renders it from the URL;

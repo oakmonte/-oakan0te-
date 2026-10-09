@@ -2193,7 +2193,7 @@ function CreatePage() {
           className="uppercase text-sm font-bold tracking-wide"
           style={{ opacity: section === "create" ? 1 : 0.5 }}
         >
-          CREATE
+          EDIT
         </button>
       </div>
 
