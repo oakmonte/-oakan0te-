@@ -71,6 +71,8 @@ import { useBodyScrollLock } from "@/hooks/use-body-scroll-lock";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { startBackgroundUpload, onBackgroundUploadDone } from "@/lib/background-upload";
 import { saveStoreLogoUrl } from "@/lib/store-logo";
+import { prefetchStoreFeed } from "@/components/feed/PostFeed";
+import { useSession } from "@/hooks/use-session";
 
 function noop() {}
 
@@ -1209,6 +1211,12 @@ export function PublicStorefront({
   // before the loading return below, so it's signed in by the time anyone
   // taps Messages or a product's message button.
   const buyer = useStorefrontBuyer(ownerId);
+  // Start the Home feed (posts, then the first video) loading as soon as the
+  // storefront knows whose it is, so tapping Home is close to instant.
+  const { user: feedViewer } = useSession();
+  useEffect(() => {
+    if (ownerId) prefetchStoreFeed(ownerId, feedViewer?.id ?? null);
+  }, [ownerId, feedViewer?.id]);
 
   if (themeLoading || savedLoading || brandName === null) {
     // min-h-full so the sheet holds a consistent shape while data is still

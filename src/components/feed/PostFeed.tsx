@@ -111,6 +111,49 @@ function scopeKey(scope: FeedScope): string {
   return `user:${scope.userId}:${scope.status}`;
 }
 
+/** Feeds already fetched (or on their way), per scope + viewer, for the life
+ *  of the tab. A storefront starts its feed loading the moment it opens
+ *  (prefetchStoreFeed), so tapping Home shows posts at once instead of
+ *  starting the request then; going back to a feed shows it immediately and
+ *  refreshes behind it. */
+const feedCache = new Map<string, FeedPost[]>();
+const feedInflight = new Map<string, Promise<FeedPost[]>>();
+
+function loadFeed(scope: FeedScope, viewerId: string | null): Promise<FeedPost[]> {
+  const k = `${scopeKey(scope)}|${viewerId ?? ""}`;
+  const pending = feedInflight.get(k);
+  if (pending) return pending;
+  const run = fetchFeed(scope, viewerId)
+    .then((rows) => {
+      feedCache.set(k, rows);
+      return rows;
+    })
+    .finally(() => feedInflight.delete(k));
+  feedInflight.set(k, run);
+  return run;
+}
+
+// Kept so the warmed first video isn't garbage-collected before it's used.
+const warmedVideos = new Map<string, HTMLVideoElement>();
+
+/** Starts a store's feed loading before anyone opens it: the post list, then
+ *  the first video's opening seconds, so it can play the moment Home is
+ *  tapped. */
+export function prefetchStoreFeed(ownerId: string, viewerId: string | null) {
+  void loadFeed({ type: "author", userId: ownerId }, viewerId)
+    .then((rows) => {
+      const first = rows[0]?.media[0];
+      if (!first || first.type !== "video" || warmedVideos.has(first.url)) return;
+      const v = document.createElement("video");
+      v.muted = true;
+      v.preload = "auto";
+      v.src = first.url;
+      v.load();
+      warmedVideos.set(first.url, v);
+    })
+    .catch(() => undefined);
+}
+
 async function fetchFeed(scope: FeedScope, viewerId: string | null): Promise<FeedPost[]> {
   // public_profiles, not profiles: profiles' SELECT policy is auth.uid() = id,
   // so embedding it returns a row for your OWN posts and null for everybody
@@ -266,20 +309,23 @@ export function PostFeed({
    *  carousel owns horizontal swipes, so this is its hand-off. */
   onSwipePastEnd?: () => void;
 }) {
-  const [posts, setPosts] = useState<FeedPost[] | null>(null);
-  const hasPosts = posts !== null && posts.length > 0;
-  const containerRef = useRef<HTMLDivElement>(null);
   const key = scopeKey(scope);
   const { user: viewer } = useSession();
   const viewerId = viewer?.id ?? null;
+  const [posts, setPosts] = useState<FeedPost[] | null>(
+    () => feedCache.get(`${key}|${viewerId ?? ""}`) ?? null,
+  );
+  const hasPosts = posts !== null && posts.length > 0;
+  const containerRef = useRef<HTMLDivElement>(null);
   // Stable, so the card's "I'm on screen" effect doesn't re-run every render
   // of the feed.
   const handleActive = useCallback((active: ActivePost) => onActivePost?.(active), [onActivePost]);
 
   useEffect(() => {
     let cancelled = false;
-    setPosts(null);
-    fetchFeed(scope, viewerId).then((rows) => {
+    // A cached feed stays on screen while it refreshes.
+    setPosts(feedCache.get(`${key}|${viewerId ?? ""}`) ?? null);
+    loadFeed(scope, viewerId).then((rows) => {
       if (!cancelled) setPosts(rows);
     });
     return () => {

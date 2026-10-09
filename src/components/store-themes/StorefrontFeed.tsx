@@ -79,7 +79,8 @@ export function StorefrontFeed({
   return (
     <div ref={containerRef} className="relative h-full w-full overflow-hidden bg-black text-white">
       <div
-        className="absolute inset-x-0 top-0 z-20 flex justify-center gap-6 pb-2 text-[14px] font-medium text-white/55"
+        // The fade keeps the white labels readable over a pale video.
+        className="absolute inset-x-0 top-0 z-20 flex justify-center gap-6 bg-gradient-to-b from-black/45 to-transparent pb-6 text-[14px] font-medium text-white/70"
         style={{ paddingTop: "calc(env(safe-area-inset-top) + 14px)" }}
       >
         {(
