@@ -183,7 +183,7 @@ export function NextSteps() {
           <Link to="/store/playlists" className={cls}>
             {body(playlist)}
           </Link>
-          <Link to="/store/products/new" className={cls}>
+          <Link to="/store/products" className={cls}>
             {body(products)}
           </Link>
         </SnapRow>
