@@ -1,7 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { useSession } from "@/hooks/use-session";
 import { ChevronRight } from "lucide-react";
 import { setAccountPassword, signInWithPassword, signOut } from "@/lib/auth";
 import { authedFetch } from "@/lib/authed-fetch";
@@ -237,74 +235,28 @@ function MessagesSection({ userId }: { userId: string }) {
 /** Only rendered for accounts that actually have a store — creators/curators
  *  with no stores row see no "Store" section at all, same as how the rest of
  *  this page only shows what applies to the signed-in account. */
+// Sellers-only: the store is the account, so the old dual-account switches
+// (sell only from personal / store page, hide store from profile) are gone.
 function StoreSection() {
   const { storeId, loading: storeLoading } = useActiveStore();
-  const { user } = useSession();
-  const queryClient = useQueryClient();
-  const [personalOnly, setPersonalOnly] = useState<boolean | null>(null);
-  const [storeOnly, setStoreOnly] = useState(false);
-  const [saving, setSaving] = useState(false);
   // Set once during onboarding (seller-type); changeable here afterwards.
-  const [customOrders, setCustomOrders] = useState(false);
+  const [customOrders, setCustomOrders] = useState<boolean | null>(null);
   const [savingCustom, setSavingCustom] = useState(false);
-  // Per OWNER (profiles.hide_store_stats), not per store: hides the star badges
-  // and Sold Items on the personal profile.
-  const [hideStats, setHideStats] = useState<boolean | null>(null);
-  const [savingHide, setSavingHide] = useState(false);
-
-  useEffect(() => {
-    if (!user) return;
-    let cancelled = false;
-    supabase
-      .from("profiles")
-      .select("hide_store_stats")
-      .eq("id", user.id)
-      .maybeSingle()
-      .then(({ data, error }) => {
-        if (cancelled) return;
-        if (error) console.error("StoreSection: failed to load hide_store_stats", error);
-        setHideStats(data?.hide_store_stats ?? false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [user]);
-
-  async function toggleHideStats() {
-    if (!user || hideStats === null || savingHide) return;
-    const next = !hideStats;
-    setSavingHide(true);
-    setHideStats(next);
-    const { error } = await supabase
-      .from("profiles")
-      .update({ hide_store_stats: next })
-      .eq("id", user.id);
-    setSavingHide(false);
-    if (error) {
-      console.error("StoreSection: failed to save hide_store_stats", error);
-      setHideStats(!next);
-      return;
-    }
-    // The profile page reads this through the cached public_profiles query; refetch now so it is already fresh when you go back.
-    void queryClient.invalidateQueries({ queryKey: ["public-profile"], refetchType: "all" });
-  }
 
   useEffect(() => {
     if (!storeId) {
-      setPersonalOnly(null);
+      setCustomOrders(null);
       return;
     }
     let cancelled = false;
     supabase
       .from("stores")
-      .select("personal_storefront_only, store_profile_only, offers_custom_orders")
+      .select("offers_custom_orders")
       .eq("id", storeId)
       .maybeSingle()
       .then(({ data, error }) => {
         if (cancelled) return;
         if (error) console.error("StoreSection: failed to load store", error);
-        setPersonalOnly(data?.personal_storefront_only ?? false);
-        setStoreOnly(data?.store_profile_only ?? false);
         setCustomOrders(data?.offers_custom_orders ?? false);
       });
     return () => {
@@ -312,36 +264,8 @@ function StoreSection() {
     };
   }, [storeId]);
 
-  // The two "only" options are mutually exclusive (the database enforces it
-  // too): turning one on turns the other off in the same write, so a store is
-  // never left with nowhere to sell from.
-  async function setSurface(surface: "personal" | "store", on: boolean) {
-    if (!storeId || personalOnly === null || saving) return;
-    const prev = { personal: personalOnly, store: storeOnly };
-    const next = {
-      personal: surface === "personal" ? on : on ? false : prev.personal,
-      store: surface === "store" ? on : on ? false : prev.store,
-    };
-    setSaving(true);
-    setPersonalOnly(next.personal);
-    setStoreOnly(next.store);
-    const { error } = await supabase
-      .from("stores")
-      .update({ personal_storefront_only: next.personal, store_profile_only: next.store })
-      .eq("id", storeId);
-    setSaving(false);
-    if (error) {
-      console.error("StoreSection: failed to save toggle", error);
-      setPersonalOnly(prev.personal);
-      setStoreOnly(prev.store);
-      return;
-    }
-    // The profile page reads these through the cached profile-stores query.
-    void queryClient.invalidateQueries({ queryKey: ["profile-stores"], refetchType: "all" });
-  }
-
   async function toggleCustomOrders() {
-    if (!storeId || savingCustom) return;
+    if (!storeId || savingCustom || customOrders === null) return;
     const next = !customOrders;
     setSavingCustom(true);
     setCustomOrders(next);
@@ -356,7 +280,7 @@ function StoreSection() {
     }
   }
 
-  if (storeLoading || !storeId || personalOnly === null) return null;
+  if (storeLoading || !storeId || customOrders === null) return null;
 
   return (
     <Section title="Store">
@@ -375,51 +299,6 @@ function StoreSection() {
             disabled={savingCustom}
           />
         </div>
-        <div className="flex items-center justify-between gap-3 px-4 py-3.5 border-t border-white/10">
-          <span className="text-[14px] text-white/70">
-            Only sell from my personal page{" "}
-            <span className="block text-[12px] text-white/40 mt-0.5">
-              No separate store page — your listings live on your profile's Store tab instead.
-            </span>
-          </span>
-          <Switch
-            checked={personalOnly}
-            label="Only sell from my personal page"
-            onClick={() => setSurface("personal", !personalOnly)}
-            disabled={saving}
-          />
-        </div>
-        <div className="flex items-center justify-between gap-3 px-4 py-3.5 border-t border-white/10">
-          <span className="text-[14px] text-white/70">
-            Only sell from my store page
-            <span className="block text-[12px] text-white/40 mt-0.5">
-              Your personal profile stays free of store content — no Store tab. Your store page does
-              the selling.
-            </span>
-          </span>
-          <Switch
-            checked={storeOnly}
-            label="Only sell from my store page"
-            onClick={() => setSurface("store", !storeOnly)}
-            disabled={saving}
-          />
-        </div>
-        {hideStats !== null && (
-          <div className="flex items-center justify-between gap-3 px-4 py-3.5 border-t border-white/10">
-            <span className="text-[14px] text-white/70">
-              Hide my store from my profile
-              <span className="block text-[12px] text-white/40 mt-0.5">
-                Removes your star badges and Sold Items from your profile.
-              </span>
-            </span>
-            <Switch
-              checked={hideStats}
-              label="Hide my store from my profile"
-              onClick={toggleHideStats}
-              disabled={savingHide}
-            />
-          </div>
-        )}
       </Panel>
     </Section>
   );

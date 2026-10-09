@@ -765,7 +765,14 @@ const DEFAULT_ASPECT_RATIO = 4 / 5;
 const MIN_SLIDESHOW_ASPECT = 0.5;
 const MAX_SLIDESHOW_ASPECT = 1.91;
 
-export function HeroSlideshow({
+/** While the live storefront's search bar has text, the slideshow steps
+ *  aside so the filtered products sit right under the search bar. */
+export function HeroSlideshow(props: Parameters<typeof HeroSlideshowInner>[0]) {
+  const searching = !!useContext(StorefrontSearchContext)?.query.trim();
+  return searching ? null : <HeroSlideshowInner {...props} />;
+}
+
+function HeroSlideshowInner({
   images,
   intervalMs = 3200,
   ink,

@@ -25,6 +25,7 @@ import {
   Link2,
   MapPin,
   Music,
+  Forward,
 } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import type { Tables } from "@/lib/integrations/my-supabase/types";
@@ -37,6 +38,7 @@ import { addProductsToCart } from "@/lib/cart-quote";
 import { claimMediaSession, releaseMediaSession } from "@/lib/media-session";
 import { useLockedBanner } from "@/components/LockedBanner";
 import { SHARING_LOCKED } from "@/lib/launch-locks";
+import { BagPlus } from "@/components/icons/BagPlus";
 
 // Bare icons over the media — no chip behind them and no drop shadow either.
 // The shadow was there so they'd survive a light photo, but it read as grubby
@@ -1310,25 +1312,33 @@ function FeedPostCard({
             the follow +/check badge is conditional on not being your own post.
             Sized well above the 26px icons below it: at 36px it read as just
             another item in the rail rather than the head of it. */}
-        <div className="relative mb-5">
-          <div className="w-12 h-12 rounded-full overflow-hidden bg-white/20 border-2 border-white shadow-[0_1px_4px_rgba(0,0,0,0.35)]">
-            {post.authorAvatar && (
-              <img src={post.authorAvatar} alt="" className="w-full h-full object-cover" />
+        {/* A storefront's feed is the store's, not a person's: no avatar or
+            follow. */}
+        {!storefront && (
+          <div className="relative mb-5">
+            <div className="w-12 h-12 rounded-full overflow-hidden bg-white/20 border-2 border-white shadow-[0_1px_4px_rgba(0,0,0,0.35)]">
+              {post.authorAvatar && (
+                <img src={post.authorAvatar} alt="" className="w-full h-full object-cover" />
+              )}
+            </div>
+            {!isOwnPost && (
+              <button
+                type="button"
+                onClick={toggleFollow}
+                aria-label={following ? "Unfollow" : "Follow"}
+                // A 21px dot is too small to hit reliably; the ::before pads
+                // the touch target out to 40px without changing what's drawn.
+                className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 flex items-center justify-center w-[22px] h-[22px] rounded-full bg-[#fe2c55] text-white active:scale-90 before:absolute before:-inset-[9px] before:content-['']"
+              >
+                {following ? (
+                  <Check size={13} strokeWidth={3} />
+                ) : (
+                  <Plus size={13} strokeWidth={3} />
+                )}
+              </button>
             )}
           </div>
-          {!isOwnPost && (
-            <button
-              type="button"
-              onClick={toggleFollow}
-              aria-label={following ? "Unfollow" : "Follow"}
-              // A 21px dot is too small to hit reliably; the ::before pads
-              // the touch target out to 40px without changing what's drawn.
-              className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 flex items-center justify-center w-[22px] h-[22px] rounded-full bg-[#fe2c55] text-white active:scale-90 before:absolute before:-inset-[9px] before:content-['']"
-            >
-              {following ? <Check size={13} strokeWidth={3} /> : <Plus size={13} strokeWidth={3} />}
-            </button>
-          )}
-        </div>
+        )}
         <div className="flex flex-col items-center gap-2.5">
           {/* A storefront's feed is for shopping: no likes, comments or
               wishlist, just the pieces and the way to the seller. */}
@@ -1398,7 +1408,7 @@ function FeedPostCard({
               caption="+Cart"
               onPress={() => void addTaggedToBag()}
             >
-              <ShoppingBag size={28} />
+              <BagPlus size={28} />
             </RailAction>
           )}
 
@@ -1428,7 +1438,7 @@ function FeedPostCard({
                 storefront && SHARING_LOCKED ? () => showLocked("Sharing unavailable") : undefined
               }
             >
-              <Send size={28} strokeLinecap="round" strokeLinejoin="round" />
+              <Forward size={28} />
             </RailAction>
           )}
         </div>
@@ -1436,9 +1446,11 @@ function FeedPostCard({
 
       <div className="absolute left-4 right-[72px]" style={{ bottom: chromeBottom }}>
         {isCarousel && <CarouselDots index={slide} total={post.media.length} />}
-        <p className="text-[14px] font-semibold truncate text-white">
-          {post.authorDisplayName ?? "User"}
-        </p>
+        {!storefront && (
+          <p className="text-[14px] font-semibold truncate text-white">
+            {post.authorDisplayName ?? "User"}
+          </p>
+        )}
         {post.caption && <p className="text-[13px] text-white/80 mt-0.5">{post.caption}</p>}
         {post.location && (
           <p className="text-[12px] text-white/50 flex items-center gap-1 mt-1">

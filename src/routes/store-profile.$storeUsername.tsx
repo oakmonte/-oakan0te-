@@ -512,20 +512,9 @@ function StoreProfilePage() {
             <ArrowLeft size={20} />
           </button>
 
-          <div className="text-[11px] uppercase tracking-wide text-white/40 mb-2">Store</div>
-          <MenuRow label="Manage store" onClick={() => navigate({ to: "/store" })} />
-          {ownerUsername && (
-            <MenuRow
-              label="Return to personal profile"
-              onClick={() =>
-                navigate({ to: "/profile/$username", params: { username: ownerUsername } })
-              }
-            />
-          )}
-
-          <div className="mt-6 pt-4 border-t border-white/10">
-            <MenuRow label="Settings and privacy" onClick={() => navigate({ to: "/settings" })} />
-          </div>
+          {/* Sellers-only: the dashboard is the Home tab and personal profiles
+              are gone, so settings is the one thing this menu still holds. */}
+          <MenuRow label="Settings and privacy" onClick={() => navigate({ to: "/settings" })} />
         </div>
       </div>
 
