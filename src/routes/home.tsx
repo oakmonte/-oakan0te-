@@ -47,7 +47,7 @@ function HomePage() {
       {loading ? null : store ? (
         <>
           <div className="pb-28">
-            <PublicStorefront storeId={store.id} />
+            <PublicStorefront storeId={store.id} paintChrome />
           </div>
           <Link
             to="/store-profile/$storeUsername"

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { LiveStorefrontContext } from "./live-storefront";
+import { usePaintChrome } from "@/lib/paint-chrome";
 import {
   ArrowLeft,
   BadgeCheck,
@@ -1136,8 +1137,22 @@ export function FullPreview({
 // font picker, drag-to-crop) only render when `isEditing` is true, so none
 // of them can ever actually fire here — no need for real mutate/undo/save
 // wiring on a page that can't edit.
-export function PublicStorefront({ storeId }: { storeId: string }) {
+export function PublicStorefront({
+  storeId,
+  paintChrome = false,
+}: {
+  storeId: string;
+  /** Pour the theme's background into the phone's top strip while shown.
+   *  For a storefront that owns the screen (Home's preview, the website's
+   *  sheet), not one embedded in a page that has its own top. */
+  paintChrome?: boolean;
+}) {
   const { themeId, loading: themeLoading } = useStoreTheme(storeId);
+  usePaintChrome(
+    paintChrome && !themeLoading
+      ? (THEMES.find((t) => t.id === themeId)?.background ?? specForTheme(themeId).bg)
+      : null,
+  );
   const { saved, loading: savedLoading } = useThemeCustomization(themeId, storeId);
   // The real name the seller picked at onboarding (stores.brand_name) is the
   // default brand text/logo everywhere below — never each theme's own

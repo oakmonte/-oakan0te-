@@ -514,7 +514,7 @@ function StoreProfilePage() {
                 gesture as the product tiles own photo carousels. Inside the
                 sheet, left/right belongs to those carousels alone. */}
             <div className="flex-1 overflow-y-auto overscroll-contain">
-              {store && <PublicStorefront storeId={store.id} />}
+              {store && <PublicStorefront storeId={store.id} paintChrome />}
             </div>
           </motion.div>
         )}
