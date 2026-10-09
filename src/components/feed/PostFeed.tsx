@@ -46,7 +46,10 @@ const SETTLE_SPRING = { type: "spring" as const, stiffness: 400, damping: 40 };
 export type FeedScope =
   | { type: "for-you" }
   | { type: "following"; viewerId: string }
-  | { type: "user"; userId: string; status: "published" | "draft" };
+  | { type: "user"; userId: string; status: "published" | "draft" }
+  /** One account's published posts as a feed rather than a profile viewer:
+   *  the storefront's Home tab. */
+  | { type: "author"; userId: string };
 
 export type TaggedProduct = {
   id: string;
@@ -93,6 +96,7 @@ const FEED_LIMIT = 30;
 function scopeKey(scope: FeedScope): string {
   if (scope.type === "for-you") return "for-you";
   if (scope.type === "following") return `following:${scope.viewerId}`;
+  if (scope.type === "author") return `author:${scope.userId}`;
   return `user:${scope.userId}:${scope.status}`;
 }
 
@@ -114,6 +118,8 @@ async function fetchFeed(scope: FeedScope, viewerId: string | null): Promise<Fee
     // finds, and capping here meant tapping anything past the cap scrolled to
     // a post that wasn't in the feed and silently landed on the first one.
     query = query.eq("user_id", scope.userId).eq("status", scope.status);
+  } else if (scope.type === "author") {
+    query = query.eq("user_id", scope.userId).eq("status", "published").limit(FEED_LIMIT);
   } else {
     query = query.limit(FEED_LIMIT);
     query = query.eq("status", "published");

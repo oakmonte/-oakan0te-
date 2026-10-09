@@ -9,7 +9,8 @@ import shopIcon from "@/assets/Store.svg";
 import homeIcon from "@/assets/Home.svg";
 import messagesIcon from "@/assets/messages.svg";
 
-type Tab = "shop" | "home" | "messages";
+export type StorefrontTab = "shop" | "home";
+type Tab = StorefrontTab | "messages";
 
 /** The storefront's own bottom bar: Shop, Home, Messages in a glass pill.
  *  Rendered by PublicStorefront, so the seller's preview (Home tab) and the
@@ -18,17 +19,18 @@ type Tab = "shop" | "home" | "messages";
  *  either -- it is the website. */
 export function StorefrontNav({
   storeId,
-  rootRef,
+  active,
+  onSelect,
   preview,
 }: {
   storeId: string;
-  /** The storefront's outer element, for Home's scroll-to-top. */
-  rootRef: React.RefObject<HTMLDivElement | null>;
+  /** Shop is the storefront page, Home the store's content feed. */
+  active: StorefrontTab;
+  onSelect: (tab: StorefrontTab) => void;
   preview: boolean;
 }) {
   const navigate = useNavigate();
   const { back } = useBack({ to: "/store" });
-  const [active, setActive] = useState<Tab>("home");
   const [ids, setIds] = useState<{ storeUsername: string; ownerUsername: string | null } | null>(
     null,
   );
@@ -60,15 +62,8 @@ export function StorefrontNav({
   }, [storeId]);
 
   function press(tab: Tab) {
-    setActive(tab);
-    if (tab === "home") {
-      rootRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    } else if (tab === "shop") {
-      // The theme's Products (or Collections) heading; see full-preview-blocks.
-      const section =
-        rootRef.current?.querySelector('[data-storefront-section="products"]') ??
-        rootRef.current?.querySelector('[data-storefront-section="collections"]');
-      section?.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (tab !== "messages") {
+      onSelect(tab);
     } else {
       void navigate({
         to: "/messages",

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { LiveStorefrontContext } from "./live-storefront";
 import { usePaintChrome } from "@/lib/paint-chrome";
-import { StorefrontNav } from "./StorefrontNav";
+import { StorefrontNav, type StorefrontTab } from "./StorefrontNav";
+import { StorefrontFeed } from "./StorefrontFeed";
 import {
   ArrowLeft,
   BadgeCheck,
@@ -1153,11 +1154,16 @@ export function PublicStorefront({
   paintChrome?: boolean;
 }) {
   const { themeId, loading: themeLoading } = useStoreTheme(storeId);
+  // Home (the store's content feed) is what a visitor lands on; Shop is the
+  // storefront page.
+  const [tab, setTab] = useState<StorefrontTab>("home");
   const rootRef = useRef<HTMLDivElement>(null);
   usePaintChrome(
-    paintChrome && !themeLoading
-      ? (THEMES.find((t) => t.id === themeId)?.background ?? specForTheme(themeId).bg)
-      : null,
+    !paintChrome || themeLoading
+      ? null
+      : tab === "home"
+        ? "#000000"
+        : (THEMES.find((t) => t.id === themeId)?.background ?? specForTheme(themeId).bg),
   );
   const { saved, loading: savedLoading } = useThemeCustomization(themeId, storeId);
   // The real name the seller picked at onboarding (stores.brand_name) is the
@@ -1166,18 +1172,20 @@ export function PublicStorefront({
   // seller who's typed their own headline or logo text keeps that (see
   // state.text/logoMode below), same as any other field.
   const [brandName, setBrandName] = useState<string | null>(null);
+  const [ownerId, setOwnerId] = useState<string | null>(null);
   useEffect(() => {
     let cancelled = false;
     setBrandName(null);
     supabase
       .from("stores")
-      .select("brand_name")
+      .select("brand_name, owner_id")
       .eq("id", storeId)
       .maybeSingle()
       .then(({ data, error }) => {
         if (cancelled) return;
         if (error) console.error("PublicStorefront: failed to load brand name", error);
         setBrandName(data?.brand_name ?? "");
+        setOwnerId(data?.owner_id ?? null);
       });
     return () => {
       cancelled = true;
@@ -1249,12 +1257,35 @@ export function PublicStorefront({
 
   return (
     // overflow-x-clip: same sideways-drag guard as ThemePreviewSheet's frame.
-    <div ref={rootRef} className="min-h-full overflow-x-clip pb-28" style={{ background }}>
-      <LiveStorefrontContext.Provider value={true}>
-        <FullPreview themeId={themeId} editing={editing} storeId={storeId} brandName={brandName} />
-      </LiveStorefrontContext.Provider>
-      <StorefrontNav storeId={storeId} rootRef={rootRef} preview={preview} />
-    </div>
+    <>
+      {tab === "home" && ownerId ? (
+        // One screen tall: 100dvh on a page (Home preview), clamped to the
+        // sheet's height inside the website's storefront sheet.
+        <div style={{ height: "100dvh", maxHeight: "100%" }}>
+          <StorefrontFeed ownerId={ownerId} />
+        </div>
+      ) : (
+        <div ref={rootRef} className="min-h-full overflow-x-clip pb-28" style={{ background }}>
+          <LiveStorefrontContext.Provider value={true}>
+            <FullPreview
+              themeId={themeId}
+              editing={editing}
+              storeId={storeId}
+              brandName={brandName}
+            />
+          </LiveStorefrontContext.Provider>
+        </div>
+      )}
+      <StorefrontNav
+        storeId={storeId}
+        active={tab}
+        onSelect={(next) => {
+          setTab(next);
+          rootRef.current?.scrollIntoView({ block: "start" });
+        }}
+        preview={preview}
+      />
+    </>
   );
 }
 

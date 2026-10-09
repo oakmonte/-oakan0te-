@@ -166,7 +166,7 @@ export function ExploreFeedOverlay({
  *  half of the post viewer's link-products rail. Swiping here from For you is
  *  how a post becomes shoppable, so this list is only ever about ONE post: the
  *  one that was filling the screen when you swiped away from it. */
-function ListedItemsPage({ items }: { items: TaggedProduct[] }) {
+export function ListedItemsPage({ items }: { items: TaggedProduct[] }) {
   const navigate = useNavigate();
   const { user } = useSession();
   const reduceMotion = useReducedMotion();
