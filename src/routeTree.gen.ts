@@ -42,6 +42,7 @@ import { Route as TermsRouteImport } from './routes/terms'
 import { Route as WelcomeRouteImport } from './routes/welcome'
 import { Route as WhatsYourStyleRouteImport } from './routes/whats-your-style'
 import { Route as WhereDidYouHearAboutUsRouteImport } from './routes/where-did-you-hear-about-us'
+import { Route as ApiActivityRouteImport } from './routes/api.activity'
 import { Route as ApiOrdersRouteImport } from './routes/api.orders'
 import { Route as ApiPostMediaRouteImport } from './routes/api.post-media'
 import { Route as ApiPostVideoRouteImport } from './routes/api.post-video'
@@ -276,6 +277,11 @@ const WhatsYourStyleRoute = WhatsYourStyleRouteImport.update({
 const WhereDidYouHearAboutUsRoute = WhereDidYouHearAboutUsRouteImport.update({
   id: '/where-did-you-hear-about-us',
   path: '/where-did-you-hear-about-us',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiActivityRoute = ApiActivityRouteImport.update({
+  id: '/api/activity',
+  path: '/api/activity',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiOrdersRoute = ApiOrdersRouteImport.update({
@@ -668,6 +674,7 @@ export interface FileRoutesByFullPath {
   '/welcome': typeof WelcomeRoute
   '/whats-your-style': typeof WhatsYourStyleRoute
   '/where-did-you-hear-about-us': typeof WhereDidYouHearAboutUsRoute
+  '/api/activity': typeof ApiActivityRoute
   '/api/orders': typeof ApiOrdersRouteWithChildren
   '/api/post-media': typeof ApiPostMediaRoute
   '/api/post-video': typeof ApiPostVideoRoute
@@ -771,6 +778,7 @@ export interface FileRoutesByTo {
   '/welcome': typeof WelcomeRoute
   '/whats-your-style': typeof WhatsYourStyleRoute
   '/where-did-you-hear-about-us': typeof WhereDidYouHearAboutUsRoute
+  '/api/activity': typeof ApiActivityRoute
   '/api/orders': typeof ApiOrdersRouteWithChildren
   '/api/post-media': typeof ApiPostMediaRoute
   '/api/post-video': typeof ApiPostVideoRoute
@@ -876,6 +884,7 @@ export interface FileRoutesById {
   '/welcome': typeof WelcomeRoute
   '/whats-your-style': typeof WhatsYourStyleRoute
   '/where-did-you-hear-about-us': typeof WhereDidYouHearAboutUsRoute
+  '/api/activity': typeof ApiActivityRoute
   '/api/orders': typeof ApiOrdersRouteWithChildren
   '/api/post-media': typeof ApiPostMediaRoute
   '/api/post-video': typeof ApiPostVideoRoute
@@ -983,6 +992,7 @@ export interface FileRouteTypes {
     | '/welcome'
     | '/whats-your-style'
     | '/where-did-you-hear-about-us'
+    | '/api/activity'
     | '/api/orders'
     | '/api/post-media'
     | '/api/post-video'
@@ -1086,6 +1096,7 @@ export interface FileRouteTypes {
     | '/welcome'
     | '/whats-your-style'
     | '/where-did-you-hear-about-us'
+    | '/api/activity'
     | '/api/orders'
     | '/api/post-media'
     | '/api/post-video'
@@ -1190,6 +1201,7 @@ export interface FileRouteTypes {
     | '/welcome'
     | '/whats-your-style'
     | '/where-did-you-hear-about-us'
+    | '/api/activity'
     | '/api/orders'
     | '/api/post-media'
     | '/api/post-video'
@@ -1296,6 +1308,7 @@ export interface RootRouteChildren {
   WelcomeRoute: typeof WelcomeRoute
   WhatsYourStyleRoute: typeof WhatsYourStyleRoute
   WhereDidYouHearAboutUsRoute: typeof WhereDidYouHearAboutUsRoute
+  ApiActivityRoute: typeof ApiActivityRoute
   ApiOrdersRoute: typeof ApiOrdersRouteWithChildren
   ApiPostMediaRoute: typeof ApiPostMediaRoute
   ApiPostVideoRoute: typeof ApiPostVideoRoute
@@ -1565,6 +1578,13 @@ declare module '@tanstack/react-router' {
       path: '/where-did-you-hear-about-us'
       fullPath: '/where-did-you-hear-about-us'
       preLoaderRoute: typeof WhereDidYouHearAboutUsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/activity': {
+      id: '/api/activity'
+      path: '/api/activity'
+      fullPath: '/api/activity'
+      preLoaderRoute: typeof ApiActivityRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/orders': {
@@ -2209,6 +2229,7 @@ const rootRouteChildren: RootRouteChildren = {
   WelcomeRoute: WelcomeRoute,
   WhatsYourStyleRoute: WhatsYourStyleRoute,
   WhereDidYouHearAboutUsRoute: WhereDidYouHearAboutUsRoute,
+  ApiActivityRoute: ApiActivityRoute,
   ApiOrdersRoute: ApiOrdersRouteWithChildren,
   ApiPostMediaRoute: ApiPostMediaRoute,
   ApiPostVideoRoute: ApiPostVideoRoute,

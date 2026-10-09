@@ -2,7 +2,7 @@
  *
  *  The app is black almost everywhere — the feed, the camera, the studio,
  *  the public storefront. Four areas are deliberately not: the seller
- *  dashboard and the publish screen; /home, /messages and /profile/*, which follow the
+ *  dashboard and the publish screen; /home, /messages, /activity and /profile/*, which follow the
  *  phone's light/dark setting (the "social" surface); and the fixed-white
  *  marketing pages (the "marketing" surface). That distinction drives three things that
  *  used to be decided in three different places and could drift apart:
@@ -36,6 +36,10 @@ export function surfaceForPathname(pathname: string): Surface {
   // the same route and paints its own black, and nothing nested under either
   // path is part of this.
   if (pathname === "/home" || pathname === "/messages") return "social";
+  // The activity centre is written in the same chat-* tokens and is reached
+  // from the profile, so it follows the phone too rather than flashing black
+  // between two light screens.
+  if (pathname === "/activity") return "social";
   // Personal profiles too (not /store-profile/*, the public storefront, which
   // paints its own theme colours).
   if (pathname.startsWith("/profile/")) return "social";

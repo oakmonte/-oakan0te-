@@ -66,12 +66,14 @@ describe("surfaceForPathname", () => {
     expect(surfaceForPathname("/home")).toBe("social");
     expect(surfaceForPathname("/messages")).toBe("social");
     expect(surfaceForPathname("/profile/diadem")).toBe("social");
+    expect(surfaceForPathname("/activity")).toBe("social");
   });
 
   // Exact matches only — a prefix match would sweep in unrelated routes.
   test("routes that merely start with home or messages are not social", () => {
     expect(surfaceForPathname("/homepage")).toBe(null);
     expect(surfaceForPathname("/messages/archive")).toBe(null);
+    expect(surfaceForPathname("/activity-log")).toBe(null);
   });
 });
 
