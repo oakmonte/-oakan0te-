@@ -1,19 +1,10 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { Check, Download, MoreVertical, Share, Smartphone } from "lucide-react";
+import { Check, Download, MoreVertical, Play, Share, Smartphone } from "lucide-react";
 import { isIOS } from "@/lib/platform";
 import { isStandalone } from "@/lib/standalone";
 import { canPromptInstall, promptInstall, subscribeInstallPrompt } from "@/lib/installed-app";
 import iosExplainerSrc from "@/assets/webapp-screen-record/ios-add-to-home-screen.mp4";
-
-// Android's clip doesn't exist yet -- a plain public-directory path,
-// deliberately not an `import`. An unresolved import of a missing asset fails
-// `bun run build` -- which on Vercel is a failed deploy -- while typecheck,
-// lint and test all stay green. A string path just 404s, and `onError` below
-// hides the player, so the page still reads correctly until that clip is
-// dropped into /public. The iOS clip is a real recording (imported above), so
-// it gets the normal bundled-asset treatment instead.
-const ANDROID_EXPLAINER_SRC = "/get-the-webapp.mp4";
 
 export const Route = createFileRoute("/store/get-the-webapp")({
   validateSearch: (search: Record<string, unknown>): { checklist?: boolean } => ({
@@ -42,6 +33,7 @@ function GetTheWebappPage() {
   const [ios, setIos] = useState(false);
   const [installed, setInstalled] = useState(false);
   const [videoFailed, setVideoFailed] = useState(false);
+  const [showVideo, setShowVideo] = useState(false);
   const [installing, setInstalling] = useState(false);
 
   // Chrome's offer can arrive after this page has already rendered, so the
@@ -99,34 +91,6 @@ function GetTheWebappPage() {
         Put Oakmonte on your home screen. Everything after this — your orders, your camera, your
         payouts — is faster from there, and the camera stops asking permission every single time.
       </p>
-
-      {!videoFailed && (
-        <div
-          className={
-            ios
-              ? // iPhone 12 Pro Max recording, 1284x2778: the frame takes that exact
-                // ratio and has no background, so its edge is the video's edge.
-                "mx-auto mb-6 w-[min(100%,250px)] overflow-hidden rounded-[26px]"
-              : "mb-6 overflow-hidden rounded-2xl bg-sd-soft"
-          }
-        >
-          <video
-            src={ios ? iosExplainerSrc : ANDROID_EXPLAINER_SRC}
-            className={
-              ios
-                ? "block aspect-[1284/2778] w-full object-cover"
-                : "h-auto w-auto max-h-[320px] max-w-full"
-            }
-            autoPlay
-            loop
-            playsInline
-            muted
-            disablePictureInPicture
-            disableRemotePlayback
-            onError={() => setVideoFailed(true)}
-          />
-        </div>
-      )}
 
       {canInstall && (
         <button
@@ -186,6 +150,39 @@ function GetTheWebappPage() {
           ? "It starts you signed out the first time — that's normal. Sign in with Face ID and this step ticks itself."
           : "You'll already be signed in, and this step ticks itself."}
       </p>
+
+      {/* Steps first, the clip on request -- same as /get-the-webapp. Only
+          iPhone has a recording; drop the `ios` condition once Android's lands. */}
+      {ios && !videoFailed && (
+        <div className="mt-6">
+          {showVideo ? (
+            // iPhone 12 Pro Max recording, 1284x2778: the frame takes that exact
+            // ratio and has no background, so its edge is the video's edge.
+            <div className="mx-auto w-[min(100%,250px)] overflow-hidden rounded-[26px] animate-in fade-in duration-300">
+              <video
+                src={iosExplainerSrc}
+                className="block aspect-[1284/2778] w-full object-cover"
+                autoPlay
+                loop
+                playsInline
+                muted
+                disablePictureInPicture
+                disableRemotePlayback
+                onError={() => setVideoFailed(true)}
+              />
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowVideo(true)}
+              className="flex w-full items-center justify-center gap-2 rounded-full border border-sd-line py-3.5 text-sm font-medium text-sd-ink oak-motion-control active:scale-[0.98]"
+            >
+              <Play size={14} />
+              See Safari install video
+            </button>
+          )}
+        </div>
+      )}
 
       {checklist && (
         <button
