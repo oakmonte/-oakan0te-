@@ -47,6 +47,7 @@ const UNMANAGED_PATHS = new Set([
   // Without this the default "up" is /home -- the signed-in feed -- which is
   // wrong for someone who has never had an account.
   "/sellers",
+  "/real-index",
   "/creators",
   "/sign-in",
   "/no-account",

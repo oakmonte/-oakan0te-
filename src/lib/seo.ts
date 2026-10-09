@@ -193,8 +193,7 @@ export function getArticle(slug: string): LearnArticle | undefined {
 
 /** Static pages that belong in the sitemap and llms.txt. */
 export const PUBLIC_PAGES: { path: string; label: string; blurb: string }[] = [
-  { path: "/", label: "Oakmonte home", blurb: "What Oakmonte is." },
-  { path: "/sellers", label: "Sell on Oakmonte", blurb: "Open a storefront and start selling." },
+  { path: "/", label: "Sell on Oakmonte", blurb: "Open a storefront and start selling." },
   {
     path: "/creators",
     label: "Become a creator",

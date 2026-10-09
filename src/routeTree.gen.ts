@@ -32,9 +32,9 @@ import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as PasskeyRouteImport } from './routes/passkey'
 import { Route as PreviousIndexRouteImport } from './routes/previous-index'
 import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as RealIndexRouteImport } from './routes/real-index'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as SellerTypeRouteImport } from './routes/seller-type'
-import { Route as SellersRouteImport } from './routes/sellers'
 import { Route as SetUpStoreRouteImport } from './routes/set-up-store'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SignInRouteImport } from './routes/sign-in'
@@ -239,6 +239,11 @@ const PrivacyRoute = PrivacyRouteImport.update({
   path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RealIndexRoute = RealIndexRouteImport.update({
+  id: '/real-index',
+  path: '/real-index',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
   id: '/robots.txt',
   path: '/robots.txt',
@@ -247,11 +252,6 @@ const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
 const SellerTypeRoute = SellerTypeRouteImport.update({
   id: '/seller-type',
   path: '/seller-type',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SellersRoute = SellersRouteImport.update({
-  id: '/sellers',
-  path: '/sellers',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SetUpStoreRoute = SetUpStoreRouteImport.update({
@@ -725,9 +725,9 @@ export interface FileRoutesByFullPath {
   '/passkey': typeof PasskeyRoute
   '/previous-index': typeof PreviousIndexRoute
   '/privacy': typeof PrivacyRoute
+  '/real-index': typeof RealIndexRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/seller-type': typeof SellerTypeRoute
-  '/sellers': typeof SellersRoute
   '/set-up-store': typeof SetUpStoreRoute
   '/settings': typeof SettingsRoute
   '/sign-in': typeof SignInRoute
@@ -840,9 +840,9 @@ export interface FileRoutesByTo {
   '/passkey': typeof PasskeyRoute
   '/previous-index': typeof PreviousIndexRoute
   '/privacy': typeof PrivacyRoute
+  '/real-index': typeof RealIndexRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/seller-type': typeof SellerTypeRoute
-  '/sellers': typeof SellersRoute
   '/set-up-store': typeof SetUpStoreRoute
   '/settings': typeof SettingsRoute
   '/sign-in': typeof SignInRoute
@@ -955,9 +955,9 @@ export interface FileRoutesById {
   '/passkey': typeof PasskeyRoute
   '/previous-index': typeof PreviousIndexRoute
   '/privacy': typeof PrivacyRoute
+  '/real-index': typeof RealIndexRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/seller-type': typeof SellerTypeRoute
-  '/sellers': typeof SellersRoute
   '/set-up-store': typeof SetUpStoreRoute
   '/settings': typeof SettingsRoute
   '/sign-in': typeof SignInRoute
@@ -1073,9 +1073,9 @@ export interface FileRouteTypes {
     | '/passkey'
     | '/previous-index'
     | '/privacy'
+    | '/real-index'
     | '/robots.txt'
     | '/seller-type'
-    | '/sellers'
     | '/set-up-store'
     | '/settings'
     | '/sign-in'
@@ -1188,9 +1188,9 @@ export interface FileRouteTypes {
     | '/passkey'
     | '/previous-index'
     | '/privacy'
+    | '/real-index'
     | '/robots.txt'
     | '/seller-type'
-    | '/sellers'
     | '/set-up-store'
     | '/settings'
     | '/sign-in'
@@ -1302,9 +1302,9 @@ export interface FileRouteTypes {
     | '/passkey'
     | '/previous-index'
     | '/privacy'
+    | '/real-index'
     | '/robots.txt'
     | '/seller-type'
-    | '/sellers'
     | '/set-up-store'
     | '/settings'
     | '/sign-in'
@@ -1419,9 +1419,9 @@ export interface RootRouteChildren {
   PasskeyRoute: typeof PasskeyRoute
   PreviousIndexRoute: typeof PreviousIndexRoute
   PrivacyRoute: typeof PrivacyRoute
+  RealIndexRoute: typeof RealIndexRoute
   RobotsDottxtRoute: typeof RobotsDottxtRoute
   SellerTypeRoute: typeof SellerTypeRoute
-  SellersRoute: typeof SellersRoute
   SetUpStoreRoute: typeof SetUpStoreRoute
   SettingsRoute: typeof SettingsRoute
   SignInRoute: typeof SignInRoute
@@ -1637,6 +1637,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/real-index': {
+      id: '/real-index'
+      path: '/real-index'
+      fullPath: '/real-index'
+      preLoaderRoute: typeof RealIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/robots.txt': {
       id: '/robots.txt'
       path: '/robots.txt'
@@ -1649,13 +1656,6 @@ declare module '@tanstack/react-router' {
       path: '/seller-type'
       fullPath: '/seller-type'
       preLoaderRoute: typeof SellerTypeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sellers': {
-      id: '/sellers'
-      path: '/sellers'
-      fullPath: '/sellers'
-      preLoaderRoute: typeof SellersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/set-up-store': {
@@ -2435,9 +2435,9 @@ const rootRouteChildren: RootRouteChildren = {
   PasskeyRoute: PasskeyRoute,
   PreviousIndexRoute: PreviousIndexRoute,
   PrivacyRoute: PrivacyRoute,
+  RealIndexRoute: RealIndexRoute,
   RobotsDottxtRoute: RobotsDottxtRoute,
   SellerTypeRoute: SellerTypeRoute,
-  SellersRoute: SellersRoute,
   SetUpStoreRoute: SetUpStoreRoute,
   SettingsRoute: SettingsRoute,
   SignInRoute: SignInRoute,

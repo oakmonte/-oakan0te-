@@ -722,7 +722,7 @@ function CreatorsLanding() {
               <Link to="/" onClick={() => setMenuOpen(false)}>
                 Main
               </Link>
-              <Link to="/sellers" onClick={() => setMenuOpen(false)}>
+              <Link to="/" onClick={() => setMenuOpen(false)}>
                 Sellers
               </Link>
             </div>
@@ -776,7 +776,7 @@ function CreatorsLanding() {
               ))}
             </div>
             <div className="more">
-              <Link className="btn" to="/sellers">
+              <Link className="btn" to="/">
                 See more about sellers
               </Link>
             </div>

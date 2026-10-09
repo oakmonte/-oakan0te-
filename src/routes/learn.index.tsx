@@ -51,7 +51,7 @@ function LearnIndex() {
           Open a customizable storefront on Oakmonte. 4.5% all-in (3% Oakmonte + 1.5% Paystack).
         </p>
         <Link
-          to="/sellers"
+          to="/"
           className="mt-3 inline-block rounded-full bg-white px-4 py-2 text-sm font-semibold text-neutral-900"
         >
           Sell on Oakmonte
