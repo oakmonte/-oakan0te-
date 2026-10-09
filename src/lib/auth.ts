@@ -51,6 +51,7 @@ export function getDisplayNameFromUser(
 }
 
 export type PostAuthRedirect =
+  | { to: "/store" }
   | { to: "/profile/$username"; params: { username: string } }
   | { to: "/choose-username" }
   | { to: "/seller-type" }
@@ -64,9 +65,7 @@ export type PostAuthRedirect =
 
 /** Where this user's own profile lives, or the home page if they somehow have
  *  no profile row yet. Used to end every onboarding flow in the same place. */
-export async function ownProfileRedirect(
-  userId: string,
-): Promise<{ to: "/profile/$username"; params: { username: string } } | { to: "/" }> {
+export async function ownProfileRedirect(userId: string): Promise<{ to: "/store" } | { to: "/" }> {
   const { data, error } = await supabase
     .from("profiles")
     .select("personal_username")
@@ -75,9 +74,9 @@ export async function ownProfileRedirect(
 
   if (error) console.error("ownProfileRedirect: failed to read profile", error);
 
-  return data?.personal_username
-    ? ({ to: "/profile/$username", params: { username: data.personal_username } } as const)
-    : ({ to: "/" } as const);
+  // Sellers-only: the app opens on the store dashboard (the Home tab), not a
+  // profile.
+  return data?.personal_username ? ({ to: "/store" } as const) : ({ to: "/" } as const);
 }
 
 // Each role's identity table — a row's existence is that role's durable
@@ -264,7 +263,8 @@ export async function resolvePostAuthRedirect(
   // needsPasskeyForInstall. Putting it back in the auth path would re-ask at
   // the worst moment: between signing up and finally seeing the app, where it
   // reads as a nag and gets skipped on reflex.
-  return { to: "/profile/$username", params: { username: profile.personal_username } } as const;
+  // Sellers-only: land on the store dashboard (the Home tab), not a profile.
+  return { to: "/store" } as const;
 }
 
 /** True when this account signs in by email and has no password set yet, so it

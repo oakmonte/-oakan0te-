@@ -76,7 +76,7 @@ function WelcomePage() {
   useEffect(() => {
     if (!username) return;
     const id = window.setTimeout(() => {
-      void router.preloadRoute({ to: "/profile/$username", params: { username } }).catch(() => {});
+      void router.preloadRoute({ to: "/store" }).catch(() => {});
     }, 0);
     return () => window.clearTimeout(id);
   }, [router, username]);
@@ -107,7 +107,8 @@ function WelcomePage() {
     // the way and gets skipped on reflex. It now runs once, from the seller
     // checklist right after the payout step, where it reads as part of setting
     // up a business -- see needsPasskeyForInstall in src/lib/auth.ts.
-    navigate({ to: "/profile/$username", params: { username }, replace: true });
+    // Sellers-only: the app opens on the store dashboard (the Home tab).
+    navigate({ to: "/store", replace: true });
   }, [loaded, typedOut, username, navigate]);
 
   return (
