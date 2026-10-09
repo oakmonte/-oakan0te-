@@ -2,6 +2,7 @@ import { createFileRoute, notFound } from "@tanstack/react-router";
 import { useState } from "react";
 import { Play } from "lucide-react";
 import { CURATED_PLAYLISTS, thumbUrl } from "@/lib/curated-playlists";
+import { BackButton } from "@/components/BackButton";
 
 export const Route = createFileRoute("/store/playlists/$id")({
   loader: ({ params }) => {
@@ -15,7 +16,15 @@ export const Route = createFileRoute("/store/playlists/$id")({
 function PlaylistPage() {
   const playlist = Route.useLoaderData();
   return (
-    <div className="flex flex-col gap-5 px-4 pb-[calc(env(safe-area-inset-bottom)+2.5rem)] pt-5 font-normal">
+    <div className="flex flex-col gap-5 px-4 pb-[calc(env(safe-area-inset-bottom)+2.5rem)] pt-3 font-normal">
+      <BackButton
+        icon="chevron"
+        size={18}
+        label="Playlists"
+        to={{ to: "/store/playlists" }}
+        alwaysShow
+        className="-ml-1 -mb-2 flex h-11 w-fit items-center gap-0.5 text-sm text-sd-ink-muted"
+      />
       <header>
         <h1 className="sd-editorial text-[24px] leading-[1.1] tracking-[-0.02em] text-sd-ink">
           {playlist.title}

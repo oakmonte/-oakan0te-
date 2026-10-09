@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ChevronRight } from "lucide-react";
 import { CURATED_PLAYLISTS, thumbUrl } from "@/lib/curated-playlists";
+import { BackButton } from "@/components/BackButton";
 
 export const Route = createFileRoute("/store/playlists/")({
   component: PlaylistsIndex,
@@ -8,7 +9,15 @@ export const Route = createFileRoute("/store/playlists/")({
 
 function PlaylistsIndex() {
   return (
-    <div className="flex flex-col gap-6 px-4 pb-[calc(env(safe-area-inset-bottom)+2.5rem)] pt-5 font-normal">
+    <div className="flex flex-col gap-6 px-4 pb-[calc(env(safe-area-inset-bottom)+2.5rem)] pt-3 font-normal">
+      <BackButton
+        icon="chevron"
+        size={18}
+        label="Home"
+        to={{ to: "/store" }}
+        alwaysShow
+        className="-ml-1 -mb-2 flex h-11 w-fit items-center gap-0.5 text-sm text-sd-ink-muted"
+      />
       <header>
         <h1 className="sd-editorial text-[26px] leading-[1.1] tracking-[-0.02em] text-sd-ink">
           Curated playlists
