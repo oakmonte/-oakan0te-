@@ -1,4 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react";
+import { PageSheet } from "@/components/PageSheet";
 import { Check, ChevronLeft, ChevronRight, Plus, Search } from "lucide-react";
 import {
   CategoryNode,
@@ -6,7 +7,6 @@ import {
   customCategoryNode,
   findCategoryByName,
 } from "@/lib/categories";
-import { useLockedViewport } from "@/hooks/use-locked-viewport";
 
 type FlatEntry = {
   node: CategoryNode;
@@ -105,8 +105,6 @@ export function CategoryPicker({
   onSelect: (path: CategoryNode[]) => void;
   onClose: () => void;
 }) {
-  useLockedViewport();
-
   const [stack, setStack] = useState<CategoryNode[]>([ROOT_CATEGORY]);
   const [search, setSearch] = useState("");
   const [creating, setCreating] = useState(false);
@@ -182,8 +180,11 @@ export function CategoryPicker({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-white flex flex-col min-h-dvh animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]">
-      <div className="shrink-0 bg-white/95 backdrop-blur border-b border-gray-200 px-4 h-14 flex items-center gap-3">
+    <PageSheet
+      onClose={goBack}
+      className="bg-white flex flex-col animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
+    >
+      <div className="sticky top-0 z-20 shrink-0 bg-white/95 backdrop-blur border-b border-gray-200 px-4 h-14 flex items-center gap-3">
         <button onClick={goBack} className="p-2 -ml-2" type="button" aria-label="Back">
           <ChevronLeft size={24} className="text-gray-950" />
         </button>
@@ -250,7 +251,7 @@ export function CategoryPicker({
           </>
         )}
       </div>
-    </div>
+    </PageSheet>
   );
 }
 
@@ -288,8 +289,6 @@ function CreateCategorySheet({
   onCancel: () => void;
   onCreate: (path: CategoryNode[]) => void;
 }) {
-  useLockedViewport();
-
   const [name, setName] = useState(initialName);
   const [parent, setParent] = useState<CategoryNode | null>(initialParent);
   // The screen the seller came from stays on offer even when it's deeper
@@ -310,8 +309,11 @@ function CreateCategorySheet({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-white flex flex-col min-h-dvh animate-in fade-in slide-in-from-bottom-4 duration-[var(--duration-fast)] ease-[var(--ease-smooth-out)]">
-      <div className="shrink-0 border-b border-gray-200 px-4 h-14 flex items-center">
+    <PageSheet
+      onClose={onCancel}
+      className="bg-white flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-[var(--duration-fast)] ease-[var(--ease-smooth-out)]"
+    >
+      <div className="sticky top-0 z-20 shrink-0 border-b border-gray-200 px-4 h-14 flex items-center">
         <button type="button" onClick={onCancel} className="text-[15px] text-gray-700 py-2 pr-2">
           Cancel
         </button>
@@ -375,6 +377,6 @@ function CreateCategorySheet({
           })}
         </div>
       </div>
-    </div>
+    </PageSheet>
   );
 }

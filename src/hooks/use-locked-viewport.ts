@@ -13,12 +13,9 @@ import { useLayoutEffect } from "react";
 // This hook does NOT touch element height/transform — that was the
 // regression that broke the aspect-ratio box on the after-shot page.
 //
-// Used far more widely than "a route" now suggests: every product-form sheet
-// with a text input calls this too (per this project's product-form
-// conventions), and those are modals opened from partway down a genuinely
-// long, scrollable product-form page -- not routes with their own
-// already-fixed layout the way the camera/after-shot screens are. That
-// mismatch is exactly what the scrollY save/restore below is for. See
+// Product-form editors used to call this too; they're PageSheets now (see
+// src/components/PageSheet.tsx) and don't. Any fixed layer opened from partway
+// down a scrollable page still needs the scrollY save/restore below. See
 // styles.css's .oak-locked-viewport for why the lock must use overflow: clip
 // -- a scrollable locked body is what displaced sheets' headers and footers.
 

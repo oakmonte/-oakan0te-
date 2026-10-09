@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { PageSheet } from "@/components/PageSheet";
 import {
   Bold,
   Italic,
@@ -10,8 +11,6 @@ import {
   ListOrdered,
   ChevronDown,
 } from "lucide-react";
-import { useLockedViewport } from "@/hooks/use-locked-viewport";
-import { useVisibleViewport } from "@/hooks/use-visible-viewport";
 import { sanitizeDescriptionHtml } from "@/lib/sanitize-html";
 import { findBlockedContent, blockedContentMessage } from "@/lib/content-policy";
 
@@ -200,20 +199,6 @@ export function DescriptionSheet({
   const [openGroup, setOpenGroup] = useState<ToolbarGroup>(null);
   const [policyError, setPolicyError] = useState<string | null>(null);
 
-  // Stops iOS from scrolling the document to reveal the focused field (which
-  // drags position:fixed elements with it) — necessary but not sufficient on
-  // its own; see useVisibleViewport below for what actually keeps the
-  // toolbar glued above the keyboard instead of sliding out of view under it.
-  useLockedViewport();
-
-  // The toolbar used to be `sticky bottom-0`, which anchors to the LAYOUT
-  // viewport — full screen height, since interactive-widget=overlays-content
-  // means the keyboard covers content rather than resizing it. That put the
-  // toolbar behind the keyboard instead of above it. Sizing this sheet to the
-  // keyboard-free band (same fix as the camera's TextPanel) means the
-  // non-scrolling toolbar, as the last flex child, lands exactly at its edge.
-  const viewport = useVisibleViewport(true);
-
   useEffect(() => {
     const el = editorRef.current;
     if (!el) return;
@@ -335,7 +320,10 @@ export function DescriptionSheet({
   const activeAlign = ALIGN_OPTIONS.find((o) => formats[o.command]) ?? ALIGN_OPTIONS[0];
 
   return (
-    <div className="fixed inset-0 z-50 bg-white flex flex-col animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]">
+    <PageSheet
+      onClose={onClose}
+      className="bg-white flex flex-col animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
+    >
       <style>{`
         .oak-description-editor:empty:before {
           content: attr(data-placeholder);
@@ -346,13 +334,11 @@ export function DescriptionSheet({
         .oak-description-editor a { color: #2563EB; text-decoration: underline; }
       `}</style>
 
-      {/* Sized to the keyboard-free band, not the full sheet — the outer div
-          above is always full-screen white, so if this estimate undershoots
-          (Safari's visualViewport doesn't reliably account for its own
-          "Prev/Next/Done" accessory bar), what shows below is blank white
-          from the outer div, never the form page underneath. */}
-      <div className="flex flex-col min-h-0" style={{ height: viewport.height || "100%" }}>
-        <div className="shrink-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
+      {/* Header and toolbar stick together at the top. The toolbar used to
+          sit on the keyboard, sized from visualViewport; on a plain page the
+          keyboard would cover it there, and up here nothing can. */}
+      <div className="sticky top-0 z-20 bg-white/95 backdrop-blur">
+        <div className="border-b border-gray-100 px-4 h-14 flex items-center justify-between">
           <button onClick={onClose} type="button" className="text-sm text-gray-500">
             Cancel
           </button>
@@ -363,26 +349,7 @@ export function DescriptionSheet({
             Save
           </button>
         </div>
-
-        {policyError && (
-          <p className="shrink-0 px-4 py-2 text-xs text-red-500 bg-red-50 border-b border-red-100">
-            {policyError}
-          </p>
-        )}
-
-        <div
-          ref={editorRef}
-          contentEditable
-          suppressContentEditableWarning
-          onInput={() => {
-            setFormats(readFormats());
-            setPolicyError(null);
-          }}
-          data-placeholder={placeholder}
-          className="oak-description-editor flex-1 min-h-0 overflow-y-auto px-4 py-5 text-base text-gray-900 outline-none"
-        />
-
-        <div className="shrink-0 bg-white/95 backdrop-blur border-t border-gray-100 px-2 pt-1.5 pb-[30px] flex items-center gap-0.5 overflow-x-auto">
+        <div className="border-b border-gray-100 px-2 py-1.5 flex items-center gap-0.5 overflow-x-auto">
           <ToolbarButton label="Bold" level={formats.bold} onClick={cycleBold}>
             <Bold size={18} />
           </ToolbarButton>
@@ -443,7 +410,25 @@ export function DescriptionSheet({
           )}
         </div>
       </div>
-    </div>
+
+      {policyError && (
+        <p className="shrink-0 px-4 py-2 text-xs text-red-500 bg-red-50 border-b border-red-100">
+          {policyError}
+        </p>
+      )}
+
+      <div
+        ref={editorRef}
+        contentEditable
+        suppressContentEditableWarning
+        onInput={() => {
+          setFormats(readFormats());
+          setPolicyError(null);
+        }}
+        data-placeholder={placeholder}
+        className="oak-description-editor flex-1 min-h-[60dvh] px-4 py-5 text-base text-gray-900 outline-none"
+      />
+    </PageSheet>
   );
 }
 

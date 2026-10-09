@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
+import { PageSheet } from "@/components/PageSheet";
 import { X, Search, ImageIcon, Check, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
-import { useLockedViewport } from "@/hooks/use-locked-viewport";
-import { useVisibleViewport } from "@/hooks/use-visible-viewport";
 import { CollectionProductsViewSheet } from "./CollectionProductsViewSheet";
 
 type CollectionRow = {
@@ -27,12 +26,6 @@ export function CollectionsSheet({
   onClose: () => void;
   onCreateNew: () => void;
 }) {
-  useLockedViewport();
-  // See PricingSheet's identical comment -- keeps the sticky "N selected /
-  // Done" pill reachable above the keyboard while searching.
-  // Sized to the keyboard-free band and pinned to its top (see PricingSheet).
-  const viewport = useVisibleViewport(true);
-
   const [collections, setCollections] = useState<CollectionRow[] | null>(null); // null = loading
   const [selected, setSelected] = useState<Set<string>>(new Set(selectedIds));
   const [query, setQuery] = useState("");
@@ -110,14 +103,11 @@ export function CollectionsSheet({
   );
 
   return (
-    <div
-      className="fixed inset-x-0 top-0 z-50 bg-white flex flex-col animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
-      style={{
-        transform: viewport.top ? `translateY(${viewport.top}px)` : undefined,
-        height: viewport.height || "100dvh",
-      }}
+    <PageSheet
+      onClose={onClose}
+      className="bg-white flex flex-col animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
     >
-      <div className="shrink-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
+      <div className="sticky top-0 z-20 shrink-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
         <button onClick={onClose} type="button" className="p-1 -ml-1">
           <X size={20} className="text-gray-500" />
         </button>
@@ -241,7 +231,7 @@ export function CollectionsSheet({
               gap below it (and fades the list out behind it) while staying
               sticky, so the pill never sits flush against the phone's
               bottom edge or the browser toolbar under it. */}
-          <div className="shrink-0 px-3 pt-3 pb-[calc(env(safe-area-inset-bottom)+1.25rem)] bg-gradient-to-t from-white via-white/95 to-transparent">
+          <div className="sticky bottom-0 z-20 shrink-0 px-3 pt-3 pb-[calc(env(safe-area-inset-bottom)+1.25rem)] bg-gradient-to-t from-white via-white/95 to-transparent">
             <div className="bg-black text-white rounded-full h-[60px] pl-6 pr-2 flex items-center justify-between shadow-lg shadow-black/20">
               <span className="text-sm">{selected.size} selected</span>
               <button
@@ -263,6 +253,6 @@ export function CollectionsSheet({
           onClose={() => setViewingCollection(null)}
         />
       )}
-    </div>
+    </PageSheet>
   );
 }

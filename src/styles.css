@@ -576,6 +576,13 @@ input:-webkit-autofill:active {
   height: 100%;
 }
 
+/* A PageSheet (src/components/PageSheet.tsx) is the page while it's open:
+   the app underneath is taken out of the document so it can't scroll, show
+   through, or be what iOS scrolls when the keyboard opens. */
+body.oak-page-sheet-open [data-app-root] {
+  display: none;
+}
+
 /* `no-scrollbar` is used on a handful of horizontally-scrolling rows (profile
    tabs, home) that rely on native touch scrolling for the gesture but don't
    want the scrollbar track visible. Only Tailwind's *utility* classes are

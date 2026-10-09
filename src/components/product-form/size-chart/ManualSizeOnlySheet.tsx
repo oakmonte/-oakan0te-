@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import { PageSheet } from "@/components/PageSheet";
 import { Check, ChevronLeft, Plus, Trash2, X } from "lucide-react";
-import { useLockedViewport } from "@/hooks/use-locked-viewport";
 import type { ManualSize, SizeMeasurements } from "@/lib/size-chart-config";
 import { SHOE_SIZE_SYSTEMS, SIZE_SYSTEMS } from "@/components/product-form/OptionEditorSheet";
 import { SizePicker } from "./SizeChartSheet";
@@ -41,8 +41,6 @@ export function ManualSizeOnlySheet({
   onSave: (measurements: SizeMeasurements, manualSize: ManualSize | null) => void;
   onClose: () => void;
 }) {
-  useLockedViewport();
-
   const isVariantMode = variantSizeValues.length > 0;
   const sizeSystems = isFootwear ? SHOE_SIZE_SYSTEMS : SIZE_SYSTEMS;
 
@@ -157,8 +155,11 @@ export function ManualSizeOnlySheet({
       : "Save size";
 
   return (
-    <div className="fixed inset-0 z-50 bg-white flex flex-col min-h-dvh animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]">
-      <div className="bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between shrink-0">
+    <PageSheet
+      onClose={onClose}
+      className="bg-white flex flex-col animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
+    >
+      <div className="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between shrink-0">
         <button onClick={onClose} type="button" className="p-1 -ml-1">
           <X size={20} className="text-gray-500" />
         </button>
@@ -285,7 +286,7 @@ export function ManualSizeOnlySheet({
       </div>
 
       {(isVariantMode || pickedSize) && (
-        <div className="px-4 pt-3 oak-safe-bottom border-t border-gray-100 bg-white shrink-0 flex gap-3">
+        <div className="sticky bottom-0 z-20 px-4 pt-3 oak-safe-bottom border-t border-gray-100 bg-white shrink-0 flex gap-3">
           {isVariantMode && index > 0 && (
             <button
               type="button"
@@ -309,7 +310,7 @@ export function ManualSizeOnlySheet({
           </button>
         </div>
       )}
-    </div>
+    </PageSheet>
   );
 }
 

@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
+import { PageSheet } from "@/components/PageSheet";
 import { X, Search, ImageIcon, Check } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
-import { useLockedViewport } from "@/hooks/use-locked-viewport";
-import { useVisibleViewport } from "@/hooks/use-visible-viewport";
 
 type CollectionRow = {
   id: string;
@@ -27,12 +26,6 @@ export function CollectionPickerSheet({
   onDone: (id: string | null) => void;
   onClose: () => void;
 }) {
-  useLockedViewport();
-  // See PricingSheet's identical comment -- keeps the sticky "selected /
-  // Done" bar reachable above the keyboard while searching.
-  // Sized to the keyboard-free band and pinned to its top (see PricingSheet).
-  const viewport = useVisibleViewport(true);
-
   const [collections, setCollections] = useState<CollectionRow[] | null>(null); // null = loading
   const [selected, setSelected] = useState<string | null>(selectedId);
   const [query, setQuery] = useState("");
@@ -58,14 +51,11 @@ export function CollectionPickerSheet({
   );
 
   return (
-    <div
-      className="fixed inset-x-0 top-0 z-50 bg-white flex flex-col animate-in fade-in slide-in-from-bottom-6 duration-300 ease-out"
-      style={{
-        transform: viewport.top ? `translateY(${viewport.top}px)` : undefined,
-        height: viewport.height || "100dvh",
-      }}
+    <PageSheet
+      onClose={onClose}
+      className="bg-white flex flex-col animate-in fade-in slide-in-from-bottom-6 duration-300 ease-out"
     >
-      <div className="shrink-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
+      <div className="sticky top-0 z-20 shrink-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
         <button onClick={onClose} type="button" className="p-1 -ml-1">
           <X size={20} className="text-gray-500" />
         </button>
@@ -131,7 +121,7 @@ export function CollectionPickerSheet({
             )}
           </div>
 
-          <div className="bg-black text-white px-4 min-h-14 pb-[env(safe-area-inset-bottom)] flex items-center justify-between shrink-0">
+          <div className="sticky bottom-0 z-20 bg-black text-white px-4 min-h-14 pb-[env(safe-area-inset-bottom)] flex items-center justify-between shrink-0">
             <span className="text-sm">{selected ? "1 selected" : "None selected"}</span>
             <button
               type="button"
@@ -143,6 +133,6 @@ export function CollectionPickerSheet({
           </div>
         </>
       )}
-    </div>
+    </PageSheet>
   );
 }

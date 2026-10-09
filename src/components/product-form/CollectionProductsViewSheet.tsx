@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { PageSheet } from "@/components/PageSheet";
 import { ChevronLeft, ImageIcon } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 
@@ -57,8 +58,11 @@ export function CollectionProductsViewSheet({
   }, [collectionId]);
 
   return (
-    <div className="fixed inset-0 z-[60] bg-white flex flex-col min-h-dvh animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]">
-      <div className="shrink-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
+    <PageSheet
+      onClose={onClose}
+      className="bg-white flex flex-col animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
+    >
+      <div className="sticky top-0 z-20 shrink-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
         <button
           onClick={onClose}
           className="text-sm text-gray-500 flex items-center gap-0.5 -ml-1"
@@ -98,6 +102,6 @@ export function CollectionProductsViewSheet({
           ))}
         </div>
       )}
-    </div>
+    </PageSheet>
   );
 }

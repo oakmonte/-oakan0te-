@@ -1,6 +1,6 @@
 import { useState } from "react";
+import { PageSheet } from "@/components/PageSheet";
 import { X, Plus, Trash2, ScanBarcode, ChevronsUpDown, Check } from "lucide-react";
-import { useLockedViewport } from "@/hooks/use-locked-viewport";
 import {
   BARCODE_TYPES,
   BARCODE_TYPE_LABELS,
@@ -25,7 +25,6 @@ export function BarcodesSheet({
   initial: BarcodeEntry[];
   onClose: (barcodes: BarcodeEntry[]) => void;
 }) {
-  useLockedViewport();
   const [rows, setRows] = useState<BarcodeEntry[]>(
     initial.length > 0 ? initial : [{ type: "custom", value: "" }],
   );
@@ -57,8 +56,11 @@ export function BarcodesSheet({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-white flex flex-col min-h-dvh animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]">
-      <div className="bg-white/95 backdrop-blur border-b border-gray-100 px-4 pt-4 pb-3 flex flex-col items-center shrink-0 relative">
+    <PageSheet
+      onClose={handleClose}
+      className="bg-white flex flex-col animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
+    >
+      <div className="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-gray-100 px-4 pt-4 pb-3 flex flex-col items-center shrink-0 relative">
         <button
           onClick={handleClose}
           type="button"
@@ -182,6 +184,6 @@ export function BarcodesSheet({
           onClose={() => setScanIndex(null)}
         />
       )}
-    </div>
+    </PageSheet>
   );
 }

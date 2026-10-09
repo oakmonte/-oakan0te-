@@ -16,13 +16,16 @@ bg-gray-50` plus a filled black check. There is no accent color anywhere in this
   `-mx-4 h-2 bg-gray-50` to split segments inside a full-screen sheet.
 - **Always offer one-tap _and_ typing** in the same view — curated presets plus a free-text input, no
   mode toggle. Typed values pin above the presets so they survive a preset-list swap.
-- **Full-screen sheets**, not bottom drawers: `fixed inset-0 z-50 bg-white flex flex-col min-h-dvh`
-  with a Cancel / title / Save header. Header and any bottom action bar are plain `shrink-0` flex
-  children around a `flex-1 overflow-y-auto` body — **never `sticky`**: inside these fixed sheets it
-  does nothing useful, and on iPhone it displaced headers down the screen and footers up it.
-- **Any sheet containing a text input must call `useLockedViewport()`** (`@/hooks/use-locked-viewport`)
-  so the mobile keyboard overlays the page instead of pushing it up. Easy to forget on new sheets;
-  see `OptionEditorSheet.tsx`.
+- **Full-screen editors are pages, not fixed layers.** Wrap them in `PageSheet`
+  (`@/components/PageSheet`): it hides the app underneath while open, so the editor _is_ the page
+  and scrolls like one, gives it a history entry (the back gesture closes it), and restores the
+  form's scroll on close. Inside: Cancel / title / Save header `sticky top-0 z-20`, a `flex-1`
+  body, and any action bar `sticky bottom-0 z-20`. Don't use `useLockedViewport` /
+  `useVisibleViewport` in them, and don't go back to `fixed inset-0` — a fixed layer over a
+  scrolling page is what the iPhone keyboard kept breaking. Small bottom menus without text input
+  (status, actions, confirm dialogs) stay fixed overlays.
+- Keep controls the seller needs while typing at the top (DescriptionSheet's toolbar sits under its
+  header): iOS keyboards cover a page's bottom edge, sticky or not.
 
 Variants are built and working: `VariantMatrixBuilder.tsx` owns the options list and generated matrix
 (with "Apply to all" bulk price/stock); `OptionEditorSheet.tsx` is the full-screen option editor

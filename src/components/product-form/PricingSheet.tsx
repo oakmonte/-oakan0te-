@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from "react";
+import { PageSheet } from "@/components/PageSheet";
 import { X, ChevronDown, XCircle } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
-import { useLockedViewport } from "@/hooks/use-locked-viewport";
-import { useVisibleViewport } from "@/hooks/use-visible-viewport";
 import { cleanPriceDigits, displayPriceWithCommas, padPriceOnBlur } from "@/lib/format-price-input";
 import {
   computeFees,
@@ -41,17 +40,6 @@ export function PricingSheet({
    *  from a Cost price button, so the seller lands where they tapped. */
   focusField?: "price" | "cost";
 }) {
-  useLockedViewport();
-
-  // The sheet is sized to the band of screen the keyboard leaves visible
-  // and pinned to its top, the same fix as DescriptionSheet. iOS ignores
-  // useLockedViewport's meta tag and pans the visual viewport up to show a
-  // focused field; following that pan keeps the sheet where the eye expects
-  // it. The old version padded the bottom only while a field was focused,
-  // so tapping from one box to the next dropped the padding for a frame and
-  // the whole sheet jumped.
-  const viewport = useVisibleViewport(true);
-
   const [breakdownOpen, setBreakdownOpen] = useState(false);
 
   const numPrice = parseFloat(price);
@@ -76,14 +64,11 @@ export function PricingSheet({
   const compareAtTooLow = charged !== null && !isNaN(numCompareAt) && numCompareAt < charged;
 
   return (
-    <div
-      className="fixed inset-x-0 top-0 z-50 bg-white flex flex-col animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
-      style={{
-        transform: viewport.top ? `translateY(${viewport.top}px)` : undefined,
-        height: viewport.height || "100dvh",
-      }}
+    <PageSheet
+      onClose={onClose}
+      className="bg-white flex flex-col animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
     >
-      <div className="shrink-0 bg-white/95 backdrop-blur border-b border-gray-300 px-4 h-14 flex items-center justify-between">
+      <div className="sticky top-0 z-20 shrink-0 bg-white/95 backdrop-blur border-b border-gray-300 px-4 h-14 flex items-center justify-between">
         <button onClick={onClose} type="button" className="p-1 -ml-1">
           <X size={20} className="text-gray-500" />
         </button>
@@ -248,12 +233,7 @@ export function PricingSheet({
         )}
       </div>
 
-      <div
-        className="shrink-0 bg-white/95 backdrop-blur border-t border-gray-300 px-4 pt-3 oak-safe-bottom"
-        // The home-bar inset is under the keyboard while it is up, so
-        // keeping it would float Save a strip above the keyboard.
-        style={viewport.keyboardHeight > 0 ? { paddingBottom: "0.75rem" } : undefined}
-      >
+      <div className="sticky bottom-0 z-20 shrink-0 bg-white/95 backdrop-blur border-t border-gray-300 px-4 pt-3 oak-safe-bottom">
         <button
           type="button"
           onClick={onClose}
@@ -262,7 +242,7 @@ export function PricingSheet({
           Save
         </button>
       </div>
-    </div>
+    </PageSheet>
   );
 }
 

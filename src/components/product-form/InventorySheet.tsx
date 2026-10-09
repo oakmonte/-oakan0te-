@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from "react";
+import { PageSheet } from "@/components/PageSheet";
 import { X, ChevronLeft, ChevronRight, Check, Plus } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/lib/integrations/my-supabase/client";
-import { useLockedViewport } from "@/hooks/use-locked-viewport";
-import { useVisibleViewport } from "@/hooks/use-visible-viewport";
 import { Code128Barcode } from "./Code128Barcode";
 import { BarcodesSheet } from "./BarcodesSheet";
 import type { BarcodeEntry } from "@/lib/barcode-types";
@@ -80,13 +79,6 @@ export function InventorySheet({
   // variant, so there's nothing sensible to show or bulk-apply here.
   hideIdentifiers?: boolean;
 }) {
-  useLockedViewport();
-  // See PricingSheet's identical comment -- useLockedViewport alone leaves
-  // the sticky Save button (and the SKU/quantity fields above it) covered
-  // by the keyboard instead of reachable above it.
-  // Sized to the keyboard-free band and pinned to its top (see PricingSheet).
-  const viewport = useVisibleViewport(true);
-
   const [continueSellingOutOfStock, setContinueSellingOutOfStock] = useState(
     initial.continueSellingOutOfStock,
   );
@@ -198,14 +190,11 @@ export function InventorySheet({
   }
 
   return (
-    <div
-      className="fixed inset-x-0 top-0 z-50 bg-white flex flex-col animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
-      style={{
-        transform: viewport.top ? `translateY(${viewport.top}px)` : undefined,
-        height: viewport.height || "100dvh",
-      }}
+    <PageSheet
+      onClose={handleSave}
+      className="bg-white flex flex-col animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
     >
-      <div className="bg-white/95 backdrop-blur border-b border-gray-100 px-4 pt-4 pb-3 flex flex-col items-center shrink-0 relative">
+      <div className="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-gray-100 px-4 pt-4 pb-3 flex flex-col items-center shrink-0 relative">
         <button
           // Commits, doesn't discard: BarcodesSheet and "Edit locations" both
           // now apply on their own X/Save (the seller sees "3 barcodes" the
@@ -375,12 +364,7 @@ export function InventorySheet({
         />
       )}
 
-      <div
-        className="px-4 pt-3 oak-safe-bottom border-t border-gray-100 bg-white shrink-0"
-        // The home-bar inset is under the keyboard while it is up, so
-        // keeping it would float Save a strip above the keyboard.
-        style={viewport.keyboardHeight > 0 ? { paddingBottom: "0.75rem" } : undefined}
-      >
+      <div className="sticky bottom-0 z-20 px-4 pt-3 oak-safe-bottom border-t border-gray-100 bg-white shrink-0">
         <button
           type="button"
           onClick={handleSave}
@@ -415,7 +399,7 @@ export function InventorySheet({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PageSheet>
   );
 }
 
@@ -436,8 +420,11 @@ function InventoryLocationsPicker({
   onCreateLocation: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 bg-white flex flex-col min-h-dvh animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]">
-      <div className="bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between shrink-0">
+    <PageSheet
+      onClose={onClose}
+      className="bg-white flex flex-col animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
+    >
+      <div className="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between shrink-0">
         <button
           onClick={onClose}
           className="p-1 -ml-1 transition-transform duration-150 active:scale-90"
@@ -495,7 +482,7 @@ function InventoryLocationsPicker({
       </div>
 
       {locations.length > 0 && (
-        <div className="px-4 pt-3 oak-safe-bottom border-t border-gray-100 bg-white shrink-0">
+        <div className="sticky bottom-0 z-20 px-4 pt-3 oak-safe-bottom border-t border-gray-100 bg-white shrink-0">
           <button
             type="button"
             onClick={onClose}
@@ -505,6 +492,6 @@ function InventoryLocationsPicker({
           </button>
         </div>
       )}
-    </div>
+    </PageSheet>
   );
 }

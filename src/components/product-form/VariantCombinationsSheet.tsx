@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { PageSheet } from "@/components/PageSheet";
 import type { WeightEstimate } from "@/lib/weight-estimate";
 import { Check, ChevronLeft, ImageIcon, X } from "lucide-react";
 import type { VariantOption, VariantRow } from "./VariantMatrixBuilder";
@@ -14,8 +15,6 @@ import { VariantName } from "./VariantName";
 import { PricingSheet } from "./PricingSheet";
 import { useMultiFilePicker } from "@/hooks/use-file-picker";
 import { startBackgroundUpload, onBackgroundUploadDone } from "@/lib/background-upload";
-import { useLockedViewport } from "@/hooks/use-locked-viewport";
-import { useVisibleViewport } from "@/hooks/use-visible-viewport";
 import { cleanPriceDigits, displayPriceWithCommas, padPriceOnBlur } from "@/lib/format-price-input";
 import type { VariantInventoryContext } from "@/lib/product-draft-handoff";
 
@@ -77,12 +76,6 @@ export function VariantCombinationsSheet({
   const baseImages = mainImageUrl
     ? [mainImageUrl, ...additionalImageUrls.filter((u) => u !== mainImageUrl)]
     : additionalImageUrls;
-  // Has its own SKU input (per-row), so — like every other full-screen sheet
-  // with a text field — needs this to stop the keyboard from dragging the
-  // fixed sheet upward instead of overlaying it. Missing here was the actual
-  // "variant popups pushing up" bug.
-  useLockedViewport();
-  const viewport = useVisibleViewport(true);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkPrice, setBulkPrice] = useState("");
   const [bulkCompareAtPrice, setBulkCompareAtPrice] = useState("");
@@ -237,17 +230,8 @@ export function VariantCombinationsSheet({
   }
 
   return (
-    <div
-      className="fixed inset-x-0 top-0 z-40 bg-white flex flex-col"
-      // Sized to the keyboard-free band and pinned to its top (see
-      // PricingSheet): iOS pans the screen up to show a focused field, and
-      // following that pan keeps this sheet where the eye expects it.
-      style={{
-        transform: viewport.top ? `translateY(${viewport.top}px)` : undefined,
-        height: viewport.height || "100dvh",
-      }}
-    >
-      <div className="shrink-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
+    <PageSheet onClose={onBack} className="bg-white flex flex-col">
+      <div className="sticky top-0 z-20 shrink-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
         <button
           onClick={onBack}
           type="button"
@@ -684,7 +668,7 @@ export function VariantCombinationsSheet({
           focusField={priceFocus}
         />
       )}
-    </div>
+    </PageSheet>
   );
 }
 

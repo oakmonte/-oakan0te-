@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { PageSheet } from "@/components/PageSheet";
 import { createPortal } from "react-dom";
 import type { WeightEstimate } from "@/lib/weight-estimate";
 import { Check, ChevronRight, Loader2, X } from "lucide-react";
@@ -202,8 +203,11 @@ export function NecessitiesSheet({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-white flex flex-col min-h-dvh animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]">
-      <div className="shrink-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
+    <PageSheet
+      onClose={onClose}
+      className="bg-white flex flex-col animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
+    >
+      <div className="sticky top-0 z-20 shrink-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
         <button onClick={onClose} type="button" className="p-1 -ml-1">
           <X size={20} className="text-gray-500" />
         </button>
@@ -381,6 +385,6 @@ export function NecessitiesSheet({
           />,
           document.body,
         )}
-    </div>
+    </PageSheet>
   );
 }

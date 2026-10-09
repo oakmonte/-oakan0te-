@@ -304,7 +304,8 @@ export function EdgeSwipeBack({ children }: { children: ReactNode }) {
           pointerEvents: "none",
         }}
       />
-      <div ref={outerRef}>
+      {/* data-app-root: hidden while a PageSheet is the page. */}
+      <div ref={outerRef} data-app-root="">
         <div ref={innerRef}>{children}</div>
       </div>
     </>

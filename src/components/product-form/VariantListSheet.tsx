@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { PageSheet } from "@/components/PageSheet";
 import { ChevronLeft, Pencil, Plus, Trash2 } from "lucide-react";
 import type { VariantOption } from "./VariantMatrixBuilder";
 import {
@@ -34,8 +35,8 @@ export function VariantListSheet({
   const removeTarget = removeIndex !== null ? options[removeIndex] : null;
 
   return (
-    <div className="fixed inset-0 z-40 bg-white flex flex-col min-h-dvh">
-      <div className="shrink-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center">
+    <PageSheet onClose={onBack} className="bg-white flex flex-col">
+      <div className="sticky top-0 z-20 shrink-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center">
         <button
           onClick={onBack}
           type="button"
@@ -100,7 +101,7 @@ export function VariantListSheet({
         </div>
       </div>
 
-      <div className="shrink-0 bg-white/95 backdrop-blur border-t border-gray-100 px-4 pt-3 oak-safe-bottom">
+      <div className="sticky bottom-0 z-20 shrink-0 bg-white/95 backdrop-blur border-t border-gray-100 px-4 pt-3 oak-safe-bottom">
         <button
           type="button"
           onClick={onContinue}
@@ -136,6 +137,6 @@ export function VariantListSheet({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PageSheet>
   );
 }

@@ -1,7 +1,6 @@
 import { useState } from "react";
+import { PageSheet } from "@/components/PageSheet";
 import { X } from "lucide-react";
-import { useLockedViewport } from "@/hooks/use-locked-viewport";
-import { useVisibleViewport } from "@/hooks/use-visible-viewport";
 import type { WeightEstimate } from "@/lib/weight-estimate";
 
 /** Per-SKU shipping weight editor -- same split as InventorySheet (a
@@ -33,11 +32,6 @@ export function WeightSheet({
   onSave: (grams: number | null) => void;
   onClose: () => void;
 }) {
-  useLockedViewport();
-  // See PricingSheet's identical comment -- keeps the sticky Save button
-  // reachable above the keyboard instead of covered by it.
-  // Sized to the keyboard-free band and pinned to its top (see PricingSheet).
-  const viewport = useVisibleViewport(true);
   const [value, setValue] = useState(initial != null ? String(initial) : "");
   const [blocked, setBlocked] = useState<string | null>(null);
   const isEstimate = estimate.grams != null && value === String(estimate.grams);
@@ -57,14 +51,11 @@ export function WeightSheet({
   }
 
   return (
-    <div
-      className="fixed inset-x-0 top-0 z-50 bg-white flex flex-col animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
-      style={{
-        transform: viewport.top ? `translateY(${viewport.top}px)` : undefined,
-        height: viewport.height || "100dvh",
-      }}
+    <PageSheet
+      onClose={onClose}
+      className="bg-white flex flex-col animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
     >
-      <div className="bg-white/95 backdrop-blur border-b border-gray-100 px-4 pt-4 pb-3 flex flex-col items-center shrink-0 relative">
+      <div className="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-gray-100 px-4 pt-4 pb-3 flex flex-col items-center shrink-0 relative">
         <button
           onClick={onClose}
           type="button"
@@ -112,12 +103,7 @@ export function WeightSheet({
         )}
       </div>
 
-      <div
-        className="px-4 pt-3 oak-safe-bottom border-t border-gray-100 bg-white shrink-0"
-        // The home-bar inset is under the keyboard while it is up, so
-        // keeping it would float Save a strip above the keyboard.
-        style={viewport.keyboardHeight > 0 ? { paddingBottom: "0.75rem" } : undefined}
-      >
+      <div className="sticky bottom-0 z-20 px-4 pt-3 oak-safe-bottom border-t border-gray-100 bg-white shrink-0">
         <button
           type="button"
           onClick={handleSave}
@@ -126,6 +112,6 @@ export function WeightSheet({
           Save
         </button>
       </div>
-    </div>
+    </PageSheet>
   );
 }

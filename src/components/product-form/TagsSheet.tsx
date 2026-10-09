@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
+import { PageSheet } from "@/components/PageSheet";
 import { ArrowUpDown, Check, MoreHorizontal, Search, X } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
-import { useLockedViewport } from "@/hooks/use-locked-viewport";
-import { useVisibleViewport } from "@/hooks/use-visible-viewport";
 
 type TagRow = { id: string; title: string };
 
@@ -20,13 +19,6 @@ export function TagsSheet({
   onToggle: (id: string) => void;
   onClose: () => void;
 }) {
-  useLockedViewport();
-  // See PricingSheet's identical comment -- keeps the sticky selection pill
-  // (View selected / More actions) reachable above the keyboard while
-  // searching, instead of covered by it.
-  // Sized to the keyboard-free band and pinned to its top (see PricingSheet).
-  const viewport = useVisibleViewport(true);
-
   const [tags, setTags] = useState<TagRow[] | null>(null); // null = loading
   const [query, setQuery] = useState("");
   const [sortDesc, setSortDesc] = useState(false);
@@ -88,14 +80,11 @@ export function TagsSheet({
   }
 
   return (
-    <div
-      className="fixed inset-x-0 top-0 z-50 bg-white flex flex-col animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
-      style={{
-        transform: viewport.top ? `translateY(${viewport.top}px)` : undefined,
-        height: viewport.height || "100dvh",
-      }}
+    <PageSheet
+      onClose={onClose}
+      className="bg-white flex flex-col animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
     >
-      <div className="shrink-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
+      <div className="sticky top-0 z-20 shrink-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
         <button onClick={onClose} type="button" className="p-1 -ml-1">
           <X size={20} className="text-gray-500" />
         </button>
@@ -172,12 +161,7 @@ export function TagsSheet({
         )}
       </div>
 
-      <div
-        className="px-3 pt-2 oak-safe-bottom shrink-0"
-        // The home-bar inset is under the keyboard while it is up, so
-        // keeping it would float Save a strip above the keyboard.
-        style={viewport.keyboardHeight > 0 ? { paddingBottom: "0.75rem" } : undefined}
-      >
+      <div className="sticky bottom-0 z-20 px-3 pt-2 oak-safe-bottom shrink-0">
         <div className="bg-black text-white rounded-full px-4 h-12 flex items-center justify-between shadow-lg">
           <span className="text-sm text-gray-300">{selectedIds.length} selected</span>
           <div className="flex items-center gap-2">
@@ -261,6 +245,6 @@ export function TagsSheet({
           </div>
         </div>
       )}
-    </div>
+    </PageSheet>
   );
 }

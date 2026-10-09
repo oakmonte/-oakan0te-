@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { PageSheet } from "@/components/PageSheet";
 import { Plus, Search, X } from "lucide-react";
 import {
   MATERIAL_SYSTEMS,
@@ -7,7 +8,6 @@ import {
 } from "@/lib/material-options";
 import { fuzzyFilter, normalizeForSearch } from "@/lib/fuzzy-search";
 import { SystemMenu, ValueRow } from "./value-picker";
-import { useLockedViewport } from "@/hooks/use-locked-viewport";
 
 // Material fill-in for a REGULAR (non-variant) product, and for a variant
 // product's per-row material. Variant products can also carry Material as a
@@ -31,8 +31,6 @@ export function MaterialSheet({
   onSave: (material: string) => void;
   onClose: () => void;
 }) {
-  useLockedViewport();
-
   const [value, setValue] = useState(initial);
   const [query, setQuery] = useState("");
   // Genres are shelves in one vocabulary, not rival scales, so this never
@@ -73,8 +71,11 @@ export function MaterialSheet({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-white flex flex-col min-h-dvh animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]">
-      <div className="bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between shrink-0">
+    <PageSheet
+      onClose={onClose}
+      className="bg-white flex flex-col animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
+    >
+      <div className="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between shrink-0">
         <button onClick={onClose} type="button" className="p-1 -ml-1">
           <X size={20} className="text-gray-500" />
         </button>
@@ -159,6 +160,6 @@ export function MaterialSheet({
           )}
         </div>
       </div>
-    </div>
+    </PageSheet>
   );
 }
