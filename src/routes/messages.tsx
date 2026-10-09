@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Archive, ChevronLeft, MessageCircleOff, Search, X } from "lucide-react";
 import { useOverlayHistory } from "@/hooks/use-overlay-history";
@@ -297,6 +297,12 @@ function MessagesPage() {
   const dmUnavailable = inbox.status === "unavailable";
   const loading = inbox.status === "loading" || sessionLoading;
 
+  // Support and Me are the app's own chats; the note sits under the last of
+  // them, only in the plain All view.
+  const isSystemChat = (c: (typeof visible)[number]) => c.kind === "support" || c.kind === "self";
+  const lastSystemIndex = visible.reduce((last, c, i) => (isSystemChat(c) ? i : last), -1);
+  const showBuyerNote = folder === "all" && !needle && !showArchived;
+
   const list = (
     <div className="pb-4">
       {!showArchived && archived.length > 0 && !needle && folder === "all" && (
@@ -319,19 +325,30 @@ function MessagesPage() {
         </button>
       )}
 
-      {visible.map((chat) => (
-        <ConversationRow
-          key={chat.id}
-          chat={chat}
-          query={needle}
-          typing={inbox.typingIn(chat.id)}
-          onOpen={() => openThread(chat)}
-          onLongPress={() => setActionsFor(chat)}
-          onToggleRead={() => toggleRead(chat)}
-          onToggleMute={() => toggleMute(chat)}
-          onTogglePin={() => togglePin(chat)}
-          onToggleArchive={() => toggleArchive(chat)}
-        />
+      {visible.map((chat, i) => (
+        <Fragment key={chat.id}>
+          <ConversationRow
+            chat={chat}
+            query={needle}
+            typing={inbox.typingIn(chat.id)}
+            onOpen={() => openThread(chat)}
+            onLongPress={() => setActionsFor(chat)}
+            onToggleRead={() => toggleRead(chat)}
+            onToggleMute={() => toggleMute(chat)}
+            onTogglePin={() => togglePin(chat)}
+            onToggleArchive={() => toggleArchive(chat)}
+          />
+          {i === lastSystemIndex && showBuyerNote && (
+            // Sellers-only: under Support and Me, where buyers' chats will land.
+            <div className="mx-4 mt-5 flex items-center gap-3">
+              <span className="h-px flex-1 bg-chat-border" />
+              <span className="text-[12.5px] font-semibold uppercase tracking-[0.08em] text-chat-muted">
+                Buyers&apos; messages will appear here
+              </span>
+              <span className="h-px flex-1 bg-chat-border" />
+            </div>
+          )}
+        </Fragment>
       ))}
 
       {visible.length === 0 && (
