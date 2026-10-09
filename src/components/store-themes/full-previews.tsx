@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { LiveStorefrontContext } from "./live-storefront";
+import { LiveStorefrontContext, StorefrontSearchContext } from "./live-storefront";
 import { usePaintChrome } from "@/lib/paint-chrome";
 import { StorefrontNav, type StorefrontTab } from "./StorefrontNav";
 import { StorefrontFeed } from "./StorefrontFeed";
@@ -1162,6 +1162,7 @@ export function PublicStorefront({
   const [tab, setTab] = useState<StorefrontTab>("shop");
   // A chat opened from the Messages tab has its own composer at the bottom.
   const [threadOpen, setThreadOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const rootRef = useRef<HTMLDivElement>(null);
   usePaintChrome(
     !paintChrome || themeLoading
@@ -1291,12 +1292,16 @@ export function PublicStorefront({
       ) : (
         <div ref={rootRef} className="min-h-full overflow-x-clip pb-28" style={{ background }}>
           <LiveStorefrontContext.Provider value={true}>
-            <FullPreview
-              themeId={themeId}
-              editing={editing}
-              storeId={storeId}
-              brandName={brandName}
-            />
+            <StorefrontSearchContext.Provider
+              value={{ query: searchQuery, setQuery: setSearchQuery }}
+            >
+              <FullPreview
+                themeId={themeId}
+                editing={editing}
+                storeId={storeId}
+                brandName={brandName}
+              />
+            </StorefrontSearchContext.Provider>
           </LiveStorefrontContext.Provider>
         </div>
       )}

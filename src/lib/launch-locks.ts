@@ -16,3 +16,7 @@ export const SALES_LOCKED = !unlocked;
 /** The preview's Open website button shows "Website visits are not available
  *  for now" instead of opening /shop/$storeUsername. */
 export const WEBSITE_VISITS_LOCKED = !unlocked;
+
+/** The storefront header's share button shows "Sharing unavailable". (Its cart
+ *  button follows SALES_LOCKED: "Carts unavailable".) */
+export const SHARING_LOCKED = !unlocked;

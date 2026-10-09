@@ -48,6 +48,10 @@ import {
   type ArrangeableBlockId,
 } from "./layout-presets";
 import { useStoreCatalogReadiness } from "@/hooks/use-store-catalog-readiness";
+import { StorefrontSearchContext, LiveStorefrontContext as LiveCtx } from "./live-storefront";
+import { SALES_LOCKED, SHARING_LOCKED } from "@/lib/launch-locks";
+import { useLockedBanner } from "@/components/LockedBanner";
+import { useNavigate as useStorefrontNavigate } from "@tanstack/react-router";
 
 function clamp(v: number, min: number, max: number) {
   return Math.min(max, Math.max(min, v));
@@ -579,6 +583,13 @@ export function PhoneHeader({
   ink?: string;
   editing?: ThemeEditingProps;
 }) {
+  // Only the real storefront's icons do anything; in the editor and theme
+  // previews they're decoration.
+  const live = useContext(LiveCtx) && !editing?.isEditing;
+  const search = useContext(StorefrontSearchContext);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const { banner: lockedBanner, showLocked } = useLockedBanner();
+  const navigate = useStorefrontNavigate();
   const logo = editing?.logoImage;
   const logoMode = editing?.logoMode ?? "image";
   const lightGround = ink != null && isDark(ink);
@@ -644,33 +655,94 @@ export function PhoneHeader({
   );
 
   return (
-    <div className="flex items-start justify-between gap-3 px-4 py-3">
-      <div className="min-w-0">
-        {logoMode === "text" ? (
-          textLogo
-        ) : editing?.isEditing ? (
-          <label className="cursor-pointer">
-            {imageChip}
-            <input type="file" accept="image/*" className="hidden" onChange={handleFile} />
-          </label>
-        ) : (
-          imageChip
-        )}
-        {editing?.isEditing && (
-          <LogoModeSwitch mode={logoMode} onChange={(m) => editing.onLogoModeChange(m)} />
-        )}
+    <>
+      <div className="flex items-start justify-between gap-3 px-4 py-3">
+        <div className="min-w-0">
+          {logoMode === "text" ? (
+            textLogo
+          ) : editing?.isEditing ? (
+            <label className="cursor-pointer">
+              {imageChip}
+              <input type="file" accept="image/*" className="hidden" onChange={handleFile} />
+            </label>
+          ) : (
+            imageChip
+          )}
+          {editing?.isEditing && (
+            <LogoModeSwitch mode={logoMode} onChange={(m) => editing.onLogoModeChange(m)} />
+          )}
+        </div>
+        <div
+          // Centred on the logo beside it: (56 - 20) / 2 for the image chip,
+          // (40 - 20) / 2 for the text one.
+          className={`flex shrink-0 items-center gap-5 ${logoMode === "text" ? "pt-2.5" : "pt-[18px]"}`}
+          style={{ color: mutedColor }}
+        >
+          {live ? (
+            <>
+              <button
+                type="button"
+                aria-label="Search products"
+                onClick={() => {
+                  setSearchOpen((v) => !v);
+                  if (searchOpen) search?.setQuery("");
+                }}
+                className="active:scale-90 transition-transform duration-150"
+              >
+                <Search size={20} strokeWidth={1.8} />
+              </button>
+              <button
+                type="button"
+                aria-label="Cart"
+                onClick={() =>
+                  SALES_LOCKED ? showLocked("Carts unavailable") : void navigate({ to: "/cart" })
+                }
+                className="active:scale-90 transition-transform duration-150"
+              >
+                <ShoppingBag size={20} strokeWidth={1.8} />
+              </button>
+              <button
+                type="button"
+                aria-label="Share"
+                onClick={() => {
+                  if (SHARING_LOCKED) return showLocked("Sharing unavailable");
+                  void navigator.share?.({ url: window.location.href }).catch(() => {});
+                }}
+                className="active:scale-90 transition-transform duration-150"
+              >
+                <Share2 size={20} strokeWidth={1.8} />
+              </button>
+            </>
+          ) : (
+            <>
+              <Search size={20} strokeWidth={1.8} />
+              <ShoppingBag size={20} strokeWidth={1.8} />
+              <Share2 size={20} strokeWidth={1.8} />
+            </>
+          )}
+        </div>
+        {lockedBanner}
       </div>
-      <div
-        // Centred on the logo beside it: (56 - 20) / 2 for the image chip,
-        // (40 - 20) / 2 for the text one.
-        className={`flex shrink-0 items-center gap-5 ${logoMode === "text" ? "pt-2.5" : "pt-[18px]"}`}
-        style={{ color: mutedColor }}
-      >
-        <Search size={20} strokeWidth={1.8} />
-        <ShoppingBag size={20} strokeWidth={1.8} />
-        <Share2 size={20} strokeWidth={1.8} />
-      </div>
-    </div>
+      {live && searchOpen && (
+        <div className="px-4 pb-3">
+          <div
+            className="flex h-11 items-center gap-2 rounded-xl border px-3"
+            style={{ borderColor: mutedColor, color: ink ?? "#fff" }}
+          >
+            <Search size={18} strokeWidth={2} style={{ color: mutedColor }} />
+            <input
+              autoFocus
+              value={search?.query ?? ""}
+              onChange={(e) => search?.setQuery(e.target.value)}
+              placeholder="Search this store"
+              aria-label="Search this store"
+              className="min-w-0 flex-1 bg-transparent text-[16px] outline-none"
+              style={{ color: ink ?? "#fff" }}
+            />
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -1151,6 +1223,7 @@ export function CollectionsGrid({
   // that aren't in a collection, and a section with nothing in it isn't
   // drawn at all (storefront-catalog.ts).
   const { catalog, loading } = useStorefrontCatalog(storeId);
+  const searchQuery = useContext(StorefrontSearchContext)?.query ?? "";
   const columns = editing?.columns ?? 2;
   // A collection opened as its own page, with the storefront's look read off
   // this grid at the moment it opened (see readStorefrontLook).
@@ -1228,27 +1301,45 @@ export function CollectionsGrid({
     );
   };
 
-  const realSection = (kind: "collections" | "products", tiles: PreviewTile[]) => (
-    <div key={kind} className="mt-5 px-4">
-      {header(kind === "collections" ? "Collections" : "Products")}
-      <div className={gridClass}>
-        {tiles.map((tile) => (
-          <CatalogTile
-            key={tile.id}
-            tile={tile}
-            mode={kind}
-            textColor={textColor}
-            mutedColor={mutedColor}
-            tileBg={tileBg}
-            accent={accent}
-            editing={editing}
-            onTap={kind === "collections" ? () => openCollection(tile) : () => openProduct(tile)}
-            onOpen={kind === "collections" ? () => openCollection(tile) : undefined}
-          />
-        ))}
+  const realSection = (kind: "collections" | "products", allTiles: PreviewTile[]) => {
+    // The header's search bar (live storefront only) narrows by title.
+    const needle = searchQuery.trim().toLowerCase();
+    const tiles = needle
+      ? allTiles.filter((t) => t.title.toLowerCase().includes(needle))
+      : allTiles;
+    if (needle && tiles.length === 0) {
+      return kind === "products" ? (
+        <p
+          key={kind}
+          className="mt-8 px-4 text-center text-[14px]"
+          style={{ color: textColor, opacity: 0.6 }}
+        >
+          No products match "{searchQuery.trim()}"
+        </p>
+      ) : null;
+    }
+    return (
+      <div key={kind} className="mt-5 px-4">
+        {header(kind === "collections" ? "Collections" : "Products")}
+        <div className={gridClass}>
+          {tiles.map((tile) => (
+            <CatalogTile
+              key={tile.id}
+              tile={tile}
+              mode={kind}
+              textColor={textColor}
+              mutedColor={mutedColor}
+              tileBg={tileBg}
+              accent={accent}
+              editing={editing}
+              onTap={kind === "collections" ? () => openCollection(tile) : () => openProduct(tile)}
+              onOpen={kind === "collections" ? () => openCollection(tile) : undefined}
+            />
+          ))}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   if (!demo) {
     return (
