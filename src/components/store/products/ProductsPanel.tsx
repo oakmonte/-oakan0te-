@@ -221,33 +221,6 @@ export function ProductsPanel({ checklist }: { checklist?: boolean }) {
 
   return (
     <div>
-      <div className="flex items-center gap-2 mb-4">
-        <div className="flex-1 min-w-0 flex h-11 items-center gap-2 rounded-full bg-sd-soft px-4">
-          <Search size={17} className="text-sd-ink-faint shrink-0" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search products"
-            className="w-full min-w-0 bg-transparent text-base outline-none"
-          />
-        </div>
-        <button
-          onClick={() => navigate({ to: "/store/products/upload" })}
-          aria-label="Upload products"
-          className="oak-tap grid h-11 w-11 shrink-0 place-items-center rounded-full bg-sd-soft text-sd-ink oak-motion-control active:scale-90"
-        >
-          <Upload size={18} />
-        </button>
-        <button
-          onClick={() => setCreateTypeOpen(true)}
-          aria-label="Add product"
-          className="oak-tap grid h-11 w-11 shrink-0 place-items-center rounded-full bg-sd-ink text-sd-bg oak-motion-control active:scale-90"
-        >
-          <Plus size={18} />
-        </button>
-      </div>
-
       {createTypeOpen && (
         <CreateProductTypeModal
           onClose={() => setCreateTypeOpen(false)}
@@ -261,42 +234,73 @@ export function ProductsPanel({ checklist }: { checklist?: boolean }) {
         />
       )}
 
-      <div className="flex items-center gap-5 mb-6 border-b border-sd-line text-[14px] overflow-x-auto">
-        {TABS.map((tab) => (
+      {/* Search and filters stay put under the Products/Collections/Drops
+          row (sticky top-14, ~48px tall) while the list scrolls under them. */}
+      <div className="sticky top-[103px] z-10 -mx-4 -mt-5 bg-sd-bg px-4 pt-5">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="flex-1 min-w-0 flex h-11 items-center gap-2 rounded-full bg-sd-soft px-4">
+            <Search size={17} className="text-sd-ink-faint shrink-0" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search products"
+              className="w-full min-w-0 bg-transparent text-base outline-none"
+            />
+          </div>
           <button
-            key={tab}
-            onClick={() => {
-              setActiveTab(tab);
-              // Opening Collection lands on the first one, so there's
-              // always something to look at.
-              if (tab === "Collection" && !collectionId)
-                setCollectionId(collections[0]?.id ?? null);
-            }}
-            className={`oak-tap shrink-0 pb-3 -mb-px border-b-2 font-medium transition-colors duration-200 ${activeTab === tab ? "border-sd-ink font-semibold text-sd-ink" : "border-transparent text-sd-ink-muted"}`}
+            onClick={() => navigate({ to: "/store/products/upload" })}
+            aria-label="Upload products"
+            className="oak-tap grid h-11 w-11 shrink-0 place-items-center rounded-full bg-sd-soft text-sd-ink oak-motion-control active:scale-90"
           >
-            {tab}
+            <Upload size={18} />
           </button>
-        ))}
-        {activeTab === "Collection" &&
-          (collections.length === 0 ? (
-            <span className="shrink-0 pb-3 text-sd-ink-faint animate-in fade-in slide-in-from-left-2 duration-200">
-              No collections yet
-            </span>
-          ) : (
-            collections.map((c, i) => (
-              <button
-                key={c.id}
-                onClick={() => setCollectionId(c.id)}
-                // Springs out of the Collection tab, one after another.
-                style={{ animationDelay: `${Math.min(i, 8) * 40}ms`, animationFillMode: "both" }}
-                className={`oak-tap shrink-0 mb-2 rounded-full px-3 py-1 text-[13px] font-medium animate-in fade-in slide-in-from-left-3 duration-300 ${
-                  collectionId === c.id ? "bg-sd-ink text-sd-bg" : "bg-sd-soft text-sd-ink-muted"
-                }`}
-              >
-                {c.title}
-              </button>
-            ))
+          <button
+            onClick={() => setCreateTypeOpen(true)}
+            aria-label="Add product"
+            className="oak-tap grid h-11 w-11 shrink-0 place-items-center rounded-full bg-sd-ink text-sd-bg oak-motion-control active:scale-90"
+          >
+            <Plus size={18} />
+          </button>
+        </div>
+
+        <div className="flex items-center gap-5 mb-6 border-b border-sd-line text-[14px] overflow-x-auto">
+          {TABS.map((tab) => (
+            <button
+              key={tab}
+              onClick={() => {
+                setActiveTab(tab);
+                // Opening Collection lands on the first one, so there's
+                // always something to look at.
+                if (tab === "Collection" && !collectionId)
+                  setCollectionId(collections[0]?.id ?? null);
+              }}
+              className={`oak-tap shrink-0 pb-3 -mb-px border-b-2 font-medium transition-colors duration-200 ${activeTab === tab ? "border-sd-ink font-semibold text-sd-ink" : "border-transparent text-sd-ink-muted"}`}
+            >
+              {tab}
+            </button>
           ))}
+          {activeTab === "Collection" &&
+            (collections.length === 0 ? (
+              <span className="shrink-0 pb-3 text-sd-ink-faint animate-in fade-in slide-in-from-left-2 duration-200">
+                No collections yet
+              </span>
+            ) : (
+              collections.map((c, i) => (
+                <button
+                  key={c.id}
+                  onClick={() => setCollectionId(c.id)}
+                  // Springs out of the Collection tab, one after another.
+                  style={{ animationDelay: `${Math.min(i, 8) * 40}ms`, animationFillMode: "both" }}
+                  className={`oak-tap shrink-0 mb-2 rounded-full px-3 py-1 text-[13px] font-medium animate-in fade-in slide-in-from-left-3 duration-300 ${
+                    collectionId === c.id ? "bg-sd-ink text-sd-bg" : "bg-sd-soft text-sd-ink-muted"
+                  }`}
+                >
+                  {c.title}
+                </button>
+              ))
+            ))}
+        </div>
       </div>
 
       {listLoading ? (

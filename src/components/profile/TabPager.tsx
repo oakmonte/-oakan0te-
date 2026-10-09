@@ -155,7 +155,10 @@ export function TabPager({
   return (
     <div
       ref={viewportRef}
-      className="overflow-hidden"
+      // Clips sideways only. `overflow: hidden` would also make this the
+      // scroll container for everything inside, which stops a page's
+      // sticky header (the Products filters) from sticking to the window.
+      className="overflow-x-clip"
       style={{ height, minHeight }}
       onScroll={handleScroll}
     >

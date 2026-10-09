@@ -39,7 +39,9 @@ function StoreProducts() {
 
   return (
     <div className="pt-5 pb-24">
-      <div className="relative flex border-b border-sd-line px-4">
+      {/* Sticks under the dashboard's 56px header; the panels' own filters
+          stick under this, so only the lists scroll. */}
+      <div className="sticky top-14 z-20 flex border-b border-sd-line bg-sd-bg px-4">
         <motion.span
           aria-hidden
           className="absolute bottom-0 h-[2.5px] rounded-full bg-sd-ink"
