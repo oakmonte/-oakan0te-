@@ -1902,6 +1902,7 @@ export type Database = {
         Row: {
           address_line: string | null
           address_line2: string | null
+          address_verified_at: string | null
           city: string | null
           country: string | null
           created_at: string
@@ -1909,13 +1910,16 @@ export type Database = {
           lat: number | null
           lng: number | null
           name: string
+          notes: string | null
           postal_code: string | null
           state: string | null
           store_id: string
+          verified_address: string | null
         }
         Insert: {
           address_line?: string | null
           address_line2?: string | null
+          address_verified_at?: string | null
           city?: string | null
           country?: string | null
           created_at?: string
@@ -1923,13 +1927,16 @@ export type Database = {
           lat?: number | null
           lng?: number | null
           name: string
+          notes?: string | null
           postal_code?: string | null
           state?: string | null
           store_id: string
+          verified_address?: string | null
         }
         Update: {
           address_line?: string | null
           address_line2?: string | null
+          address_verified_at?: string | null
           city?: string | null
           country?: string | null
           created_at?: string
@@ -1937,9 +1944,11 @@ export type Database = {
           lat?: number | null
           lng?: number | null
           name?: string
+          notes?: string | null
           postal_code?: string | null
           state?: string | null
           store_id?: string
+          verified_address?: string | null
         }
         Relationships: [
           {
@@ -2307,6 +2316,8 @@ export type Database = {
           body: string
           created_at: string
           id: string
+          media_meta: Json | null
+          media_path: string | null
           sender: string
           user_id: string
         }
@@ -2314,6 +2325,8 @@ export type Database = {
           body: string
           created_at?: string
           id?: string
+          media_meta?: Json | null
+          media_path?: string | null
           sender?: string
           user_id: string
         }
@@ -2321,6 +2334,8 @@ export type Database = {
           body?: string
           created_at?: string
           id?: string
+          media_meta?: Json | null
+          media_path?: string | null
           sender?: string
           user_id?: string
         }
@@ -2533,6 +2548,13 @@ export type Database = {
         }[]
       }
       my_read_receipts_enabled: { Args: never; Returns: boolean }
+      owns_collection: { Args: { cid: string }; Returns: boolean }
+      owns_location: { Args: { lid: string }; Returns: boolean }
+      owns_option: { Args: { oid: string }; Returns: boolean }
+      owns_product: { Args: { pid: string }; Returns: boolean }
+      owns_store: { Args: { sid: string }; Returns: boolean }
+      owns_tag: { Args: { tid: string }; Returns: boolean }
+      owns_variant: { Args: { vid: string }; Returns: boolean }
       read_receipts_enabled: { Args: { uid: string }; Returns: boolean }
       start_direct_conversation: {
         Args: { other_user: string }

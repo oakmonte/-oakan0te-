@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { X, MapPin, Plus, ChevronRight } from "lucide-react";
-import { useLockedViewport } from "@/hooks/use-locked-viewport";
+import { X, MapPin, Plus, ChevronRight, BadgeCheck } from "lucide-react";
+import { PageSheet } from "@/components/PageSheet";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { LocationSheet, type StoreLocationValues } from "./LocationSheet";
 
@@ -15,6 +15,8 @@ type Row = {
   postalCode: string;
   lat: number | null;
   lng: number | null;
+  notes: string;
+  verifiedAddress: string | null;
 };
 
 function toValues(row: Row): StoreLocationValues {
@@ -43,7 +45,6 @@ export function LocationsListSheet({
    *  dead end back to "just close it" the way it did before. */
   fromChecklist?: boolean;
 }) {
-  useLockedViewport();
   const [rows, setRows] = useState<Row[] | null>(null);
   const [editing, setEditing] = useState<StoreLocationValues | null | "new">(null);
   // How many variant-stock rows sit at the location currently being edited --
@@ -81,7 +82,9 @@ export function LocationsListSheet({
     let cancelled = false;
     supabase
       .from("store_locations")
-      .select("id, name, address_line, address_line2, city, state, country, postal_code, lat, lng")
+      .select(
+        "id, name, address_line, address_line2, city, state, country, postal_code, lat, lng, notes, verified_address",
+      )
       .eq("store_id", storeId)
       .order("created_at", { ascending: true })
       .then(({ data, error }) => {
@@ -103,6 +106,8 @@ export function LocationsListSheet({
             postalCode: r.postal_code ?? "",
             lat: r.lat,
             lng: r.lng,
+            notes: r.notes ?? "",
+            verifiedAddress: r.verified_address,
           })),
         );
       });
@@ -128,6 +133,9 @@ export function LocationsListSheet({
       postal_code: values.postalCode || null,
       lat: values.lat,
       lng: values.lng,
+      notes: values.notes || null,
+      verified_address: values.verifiedAddress,
+      address_verified_at: values.verifiedAddress ? new Date().toISOString() : null,
     };
 
     if (values.id) {
@@ -166,8 +174,11 @@ export function LocationsListSheet({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-sd-surface flex flex-col min-h-dvh animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]">
-      <div className="bg-sd-surface/95 backdrop-blur border-b border-sd-line px-4 h-14 flex items-center justify-between shrink-0">
+    <PageSheet
+      onClose={onClose}
+      className="bg-sd-surface flex flex-col animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
+    >
+      <div className="sticky top-0 z-20 bg-sd-surface/95 backdrop-blur border-b border-sd-line px-4 h-14 flex items-center justify-between shrink-0">
         <button onClick={onClose} type="button" className="p-1 -ml-1">
           <X size={20} className="text-sd-ink-muted" />
         </button>
@@ -177,7 +188,7 @@ export function LocationsListSheet({
         <span className="w-5" />
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-5">
+      <div className="flex-1 px-4 py-5">
         <p className="text-xs text-sd-ink-muted mb-5">
           Add a location for every store or warehouse you dispatch from. If you have more than one,
           riders can be sent to whichever one has the product.
@@ -203,8 +214,18 @@ export function LocationsListSheet({
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-sd-ink">{row.name}</p>
                   <p className="text-xs text-sd-ink-muted mt-0.5 truncate">
-                    {[row.addressLine, row.city, row.state].filter(Boolean).join(", ")}
+                    {row.verifiedAddress ??
+                      [row.addressLine, row.city, row.state].filter(Boolean).join(", ")}
                   </p>
+                  {row.verifiedAddress ? (
+                    <p className="mt-1 flex items-center gap-1 text-[11px] text-sd-ink-muted">
+                      <BadgeCheck size={12} className="text-sd-ink" /> Checked by Shipbubble
+                    </p>
+                  ) : (
+                    <p className="mt-1 text-[11px] text-sd-danger-ink">
+                      Not checked yet — open and save to check it
+                    </p>
+                  )}
                 </div>
                 <ChevronRight size={16} className="text-sd-ink-faint shrink-0 mt-1.5" />
               </button>
@@ -227,7 +248,7 @@ export function LocationsListSheet({
       </div>
 
       {fromChecklist && (
-        <div className="px-4 pt-3 oak-safe-bottom border-t border-sd-line bg-sd-surface shrink-0">
+        <div className="sticky bottom-0 z-20 px-4 pt-3 oak-safe-bottom border-t border-sd-line bg-sd-surface shrink-0">
           <button
             type="button"
             onClick={onClose}
@@ -240,6 +261,7 @@ export function LocationsListSheet({
 
       {editing && (
         <LocationSheet
+          storeId={storeId}
           initial={editing === "new" ? null : editing}
           onSave={handleSave}
           onDelete={handleDelete}
@@ -247,6 +269,6 @@ export function LocationsListSheet({
           affectedStockCount={affectedStockCount}
         />
       )}
-    </div>
+    </PageSheet>
   );
 }

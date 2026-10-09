@@ -123,6 +123,7 @@ import { Route as StoreProductsIdRouteImport } from './routes/store.products_.$i
 import { Route as StoreProductsNewRouteImport } from './routes/store.products_.new'
 import { Route as StoreProductsNewcomerRouteImport } from './routes/store.products_.newcomer'
 import { Route as StoreProductsUploadRouteImport } from './routes/store.products_.upload'
+import { Route as ApiStoreLocationsVerifyRouteImport } from './routes/api.store.locations.verify'
 import { Route as ApiStoreOrdersOrderIdRouteImport } from './routes/api.store.orders.$orderId'
 import { Route as ApiStoreOrdersOrderIdDeclineRouteImport } from './routes/api.store.orders.$orderId.decline'
 import { Route as ApiStoreOrdersOrderIdShipRouteImport } from './routes/api.store.orders.$orderId.ship'
@@ -701,6 +702,11 @@ const StoreProductsUploadRoute = StoreProductsUploadRouteImport.update({
   path: '/products/upload',
   getParentRoute: () => StoreRoute,
 } as any)
+const ApiStoreLocationsVerifyRoute = ApiStoreLocationsVerifyRouteImport.update({
+  id: '/api/store/locations/verify',
+  path: '/api/store/locations/verify',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiStoreOrdersOrderIdRoute = ApiStoreOrdersOrderIdRouteImport.update({
   id: '/$orderId',
   path: '/$orderId',
@@ -834,6 +840,7 @@ export interface FileRoutesByFullPath {
   '/store/products/upload': typeof StoreProductsUploadRoute
   '/create/after-shot/': typeof CreateAfterShotIndexRoute
   '/store/playlists/': typeof StorePlaylistsIndexRoute
+  '/api/store/locations/verify': typeof ApiStoreLocationsVerifyRoute
   '/api/store/orders/$orderId': typeof ApiStoreOrdersOrderIdRouteWithChildren
   '/api/store/orders/$orderId/decline': typeof ApiStoreOrdersOrderIdDeclineRoute
   '/api/store/orders/$orderId/ship': typeof ApiStoreOrdersOrderIdShipRoute
@@ -950,6 +957,7 @@ export interface FileRoutesByTo {
   '/store/products/upload': typeof StoreProductsUploadRoute
   '/create/after-shot': typeof CreateAfterShotIndexRoute
   '/store/playlists': typeof StorePlaylistsIndexRoute
+  '/api/store/locations/verify': typeof ApiStoreLocationsVerifyRoute
   '/api/store/orders/$orderId': typeof ApiStoreOrdersOrderIdRouteWithChildren
   '/api/store/orders/$orderId/decline': typeof ApiStoreOrdersOrderIdDeclineRoute
   '/api/store/orders/$orderId/ship': typeof ApiStoreOrdersOrderIdShipRoute
@@ -1070,6 +1078,7 @@ export interface FileRoutesById {
   '/store/products_/upload': typeof StoreProductsUploadRoute
   '/create/after-shot/': typeof CreateAfterShotIndexRoute
   '/store/playlists/': typeof StorePlaylistsIndexRoute
+  '/api/store/locations/verify': typeof ApiStoreLocationsVerifyRoute
   '/api/store/orders/$orderId': typeof ApiStoreOrdersOrderIdRouteWithChildren
   '/api/store/orders/$orderId/decline': typeof ApiStoreOrdersOrderIdDeclineRoute
   '/api/store/orders/$orderId/ship': typeof ApiStoreOrdersOrderIdShipRoute
@@ -1191,6 +1200,7 @@ export interface FileRouteTypes {
     | '/store/products/upload'
     | '/create/after-shot/'
     | '/store/playlists/'
+    | '/api/store/locations/verify'
     | '/api/store/orders/$orderId'
     | '/api/store/orders/$orderId/decline'
     | '/api/store/orders/$orderId/ship'
@@ -1307,6 +1317,7 @@ export interface FileRouteTypes {
     | '/store/products/upload'
     | '/create/after-shot'
     | '/store/playlists'
+    | '/api/store/locations/verify'
     | '/api/store/orders/$orderId'
     | '/api/store/orders/$orderId/decline'
     | '/api/store/orders/$orderId/ship'
@@ -1426,6 +1437,7 @@ export interface FileRouteTypes {
     | '/store/products_/upload'
     | '/create/after-shot/'
     | '/store/playlists/'
+    | '/api/store/locations/verify'
     | '/api/store/orders/$orderId'
     | '/api/store/orders/$orderId/decline'
     | '/api/store/orders/$orderId/ship'
@@ -1511,6 +1523,7 @@ export interface RootRouteChildren {
   ApiSupportMessagesMineRoute: typeof ApiSupportMessagesMineRoute
   ApiSupportMessagesReplyRoute: typeof ApiSupportMessagesReplyRoute
   ApiSupportMessagesStaffRoute: typeof ApiSupportMessagesStaffRoute
+  ApiStoreLocationsVerifyRoute: typeof ApiStoreLocationsVerifyRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -2313,6 +2326,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StoreProductsUploadRouteImport
       parentRoute: typeof StoreRoute
     }
+    '/api/store/locations/verify': {
+      id: '/api/store/locations/verify'
+      path: '/api/store/locations/verify'
+      fullPath: '/api/store/locations/verify'
+      preLoaderRoute: typeof ApiStoreLocationsVerifyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/store/orders/$orderId': {
       id: '/api/store/orders/$orderId'
       path: '/$orderId'
@@ -2551,6 +2571,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiSupportMessagesMineRoute: ApiSupportMessagesMineRoute,
   ApiSupportMessagesReplyRoute: ApiSupportMessagesReplyRoute,
   ApiSupportMessagesStaffRoute: ApiSupportMessagesStaffRoute,
+  ApiStoreLocationsVerifyRoute: ApiStoreLocationsVerifyRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

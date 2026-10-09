@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
-import { X, MapPin, LocateFixed, ChevronRight, Check } from "lucide-react";
+import { X, MapPin, LocateFixed, ChevronRight, Check, BadgeCheck } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,7 +27,8 @@ import {
   loadAllStates,
   subscribeToStates,
 } from "@/lib/region-data";
-import { useLockedViewport } from "@/hooks/use-locked-viewport";
+import { PageSheet } from "@/components/PageSheet";
+import { authedFetch } from "@/lib/authed-fetch";
 import { LocationListPicker, type LocationListItem } from "./LocationListPicker";
 
 export type StoreLocationValues = {
@@ -41,28 +42,30 @@ export type StoreLocationValues = {
   postalCode: string;
   lat: number | null;
   lng: number | null;
+  /** Directions for riders that don't belong in the address itself. */
+  notes: string;
+  /** Shipbubble's version of the address when it last checked out; null when
+   *  it was never checked (older rows, or Shipbubble was down at save). */
+  verifiedAddress: string | null;
 };
 
-// No paid geocoding provider is wired up yet (no Mapbox/Google Maps key in
-// env) -- Nominatim's free reverse endpoint is a placeholder that's fine at
-// this volume (one lookup per seller tap, not bulk/automated) but should
-// move to a paid provider before this needs to hold up at scale. Street-level
-// guesses (house number/road) are unreliable enough for informal Nigerian
-// addressing that we don't even use them -- only city/state/country plus the
-// exact lat/lng pin are trustworthy enough to autofill.
+// GPS pin -> address through the server (api.shipping.reverse-geocode, the
+// same lookup checkout uses): it can send the identifying User-Agent the free
+// geocoder asks for, and returns street and postal code as well.
 async function reverseGeocode(lat: number, lng: number) {
-  const res = await fetch(
-    `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`,
-    { headers: { Accept: "application/json" } },
-  );
+  const res = await authedFetch("/api/shipping/reverse-geocode", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ lat, lng }),
+  });
   if (!res.ok) return null;
-  const data = await res.json();
-  const addr = data.address ?? {};
-  return {
-    city: addr.city || addr.town || addr.village || addr.county || "",
-    state: addr.state || "",
-    country: addr.country || "",
-  };
+  return (await res.json().catch(() => null)) as {
+    line1?: string | null;
+    city?: string | null;
+    state?: string | null;
+    country?: string | null;
+    postalCode?: string | null;
+  } | null;
 }
 
 /** Full-screen sheet for adding or editing one of the store's pickup/dispatch
@@ -71,12 +74,14 @@ async function reverseGeocode(lat: number, lng: number) {
  *  just fills the same fields (still editable) and captures the exact
  *  lat/lng pin riders need, it never replaces manual entry. */
 export function LocationSheet({
+  storeId,
   initial,
   onSave,
   onDelete,
   onClose,
   affectedStockCount,
 }: {
+  storeId: string;
   initial: StoreLocationValues | null;
   onSave: (values: StoreLocationValues) => Promise<void>;
   onDelete?: (id: string) => Promise<void>;
@@ -87,7 +92,6 @@ export function LocationSheet({
   // never deletes), null while the caller is still counting.
   affectedStockCount?: number | null;
 }) {
-  useLockedViewport();
   const isEditing = !!initial?.id;
 
   const [name, setName] = useState(initial?.name ?? "");
@@ -99,6 +103,19 @@ export function LocationSheet({
   const [postalCode, setPostalCode] = useState(initial?.postalCode ?? "");
   const [lat, setLat] = useState<number | null>(initial?.lat ?? null);
   const [lng, setLng] = useState<number | null>(initial?.lng ?? null);
+  const [notes, setNotes] = useState(initial?.notes ?? "");
+  const [checkError, setCheckError] = useState("");
+  // What Shipbubble found for the typed address, waiting for the seller to
+  // say "yes, that's it". Any edit to the address throws it away.
+  const [match, setMatch] = useState<{
+    address: string;
+    lat: number | null;
+    lng: number | null;
+  } | null>(null);
+  useEffect(() => {
+    setMatch(null);
+    setCheckError("");
+  }, [addressLine, addressLine2, city, state, country, postalCode]);
 
   // isoCodes drive the country -> state -> city cascade; the saved values
   // stay plain names (matches existing DB rows and avoids a schema change).
@@ -199,11 +216,12 @@ export function LocationSheet({
         setLat(latitude);
         setLng(longitude);
         const geocoded = await reverseGeocode(latitude, longitude).catch(() => null);
-        if (geocoded && !country) {
+        // Fills only what's still empty -- never overwrites what the seller typed.
+        if (geocoded?.country && !country) {
           const matchedCountryCode = countryCodeForName(geocoded.country);
           setCountry(geocoded.country);
           setCountryCode(matchedCountryCode);
-          if (!state && matchedCountryCode) {
+          if (!state && matchedCountryCode && geocoded.state) {
             // May be empty if this country's states are still loading; the
             // re-match effect above picks the code up when they land.
             const matchedState = getStates(matchedCountryCode).find(
@@ -212,8 +230,10 @@ export function LocationSheet({
             setState(geocoded.state);
             setStateCode(matchedState?.code ?? "");
           }
-          if (!city) setCity(geocoded.city);
         }
+        if (geocoded?.line1 && !addressLine) setAddressLine(geocoded.line1);
+        if (geocoded?.city && !city) setCity(geocoded.city);
+        if (geocoded?.postalCode && !postalCode) setPostalCode(geocoded.postalCode);
         setLocating(false);
         setLocated(true);
       },
@@ -237,25 +257,82 @@ export function LocationSheet({
     country.trim().length > 0 &&
     postalCode.trim().length > 0;
 
-  async function handleSave() {
+  function values(verifiedAddress: string | null, pin: { lat: number | null; lng: number | null }) {
+    return {
+      id: initial?.id,
+      name: name.trim(),
+      addressLine: addressLine.trim(),
+      addressLine2: addressLine2.trim(),
+      city: city.trim(),
+      state: state.trim(),
+      country: country.trim(),
+      postalCode: postalCode.trim(),
+      lat: pin.lat,
+      lng: pin.lng,
+      notes: notes.trim(),
+      verifiedAddress,
+    };
+  }
+
+  // Step 1: Shipbubble looks the address up and shows what it found. An
+  // address couriers can't find would otherwise only surface when a buyer
+  // tries to check out and delivery can't be priced.
+  async function handleCheck() {
     if (!valid) {
       setShowErrors(true);
       return;
     }
     setSaving(true);
+    setCheckError("");
     try {
-      await onSave({
-        id: initial?.id,
-        name: name.trim(),
-        addressLine: addressLine.trim(),
-        addressLine2: addressLine2.trim(),
-        city: city.trim(),
-        state: state.trim(),
-        country: country.trim(),
-        postalCode: postalCode.trim(),
-        lat,
-        lng,
-      });
+      const addressText = [addressLine, addressLine2, city, state, country, postalCode]
+        .map((v) => v.trim())
+        .filter(Boolean)
+        .join(", ");
+      const looseText = [addressLine, city, state, country]
+        .map((v) => v.trim())
+        .filter(Boolean)
+        .join(", ");
+      const res = await authedFetch("/api/store/locations/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ storeId, address: addressText, looseAddress: looseText, lat, lng }),
+      }).catch(() => null);
+      const body = (await res?.json().catch(() => null)) as {
+        formattedAddress?: string;
+        lat?: number | null;
+        lng?: number | null;
+        error?: string;
+      } | null;
+      if (res?.ok && body?.formattedAddress) {
+        // The seller's own GPS pin beats a geocoded one.
+        const usePin = lat == null && body.lat != null && body.lng != null;
+        setMatch({
+          address: body.formattedAddress,
+          lat: usePin ? body.lat! : lat,
+          lng: usePin ? body.lng! : lng,
+        });
+        return;
+      }
+      if (res && res.status !== 503 && body?.error) {
+        setCheckError(body.error);
+        return;
+      }
+      // No response, or Shipbubble itself is down: save unchecked rather than
+      // strand the seller; checkout checks it again anyway, and the list
+      // shows it as not checked yet.
+      await onSave(values(null, { lat, lng }));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  // Step 2: the seller confirms Shipbubble's version.
+  async function handleConfirm() {
+    if (!match) return;
+    setSaving(true);
+    try {
+      await onSave(values(match.address, { lat: match.lat, lng: match.lng }));
     } finally {
       setSaving(false);
     }
@@ -273,8 +350,11 @@ export function LocationSheet({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-sd-surface flex flex-col min-h-dvh animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]">
-      <div className="bg-sd-surface/95 backdrop-blur border-b border-sd-line px-4 h-14 flex items-center justify-between shrink-0">
+    <PageSheet
+      onClose={onClose}
+      className="bg-sd-surface flex flex-col animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
+    >
+      <div className="sticky top-0 z-20 bg-sd-surface/95 backdrop-blur border-b border-sd-line px-4 h-14 flex items-center justify-between shrink-0">
         <button onClick={onClose} type="button" className="p-1 -ml-1">
           <X size={20} className="text-sd-ink-muted" />
         </button>
@@ -284,7 +364,7 @@ export function LocationSheet({
         <span className="w-5" />
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-5 flex flex-col gap-6">
+      <div className="flex-1 px-4 py-5 flex flex-col gap-6">
         {promptVisible && (
           <div className="border border-sd-line rounded-3xl p-5 flex items-start gap-3.5 bg-sd-elevated animate-in fade-in slide-in-from-top-2 duration-300">
             <div className="p-2 rounded-full bg-sd-surface border border-sd-line shrink-0">
@@ -293,8 +373,8 @@ export function LocationSheet({
             <div className="flex-1 min-w-0">
               <p className="text-[15px] font-semibold text-sd-ink">Use my current location</p>
               <p className="text-xs text-sd-ink-muted mt-0.5">
-                Fills in city, state and country, and saves the exact pin riders use to find you —
-                you'll still enter the street address yourself.
+                Fills in what it can of your address and saves the exact pin riders use to find you.
+                Check the street before you save.
               </p>
               {locateError && <p className="text-xs text-sd-danger-ink mt-1.5">{locateError}</p>}
               <div className="flex items-center gap-3 mt-3.5">
@@ -419,6 +499,32 @@ export function LocationSheet({
           </div>
         )}
 
+        {initial?.verifiedAddress && (
+          <div className="flex items-start gap-2 text-xs text-sd-ink-muted">
+            <BadgeCheck size={14} className="text-sd-ink shrink-0 mt-px" />
+            <span>
+              Checked by Shipbubble: <span className="text-sd-ink">{initial.verifiedAddress}</span>
+            </span>
+          </div>
+        )}
+
+        <div>
+          <p className="text-[17px] font-semibold text-sd-ink mb-1">
+            Additional information{" "}
+            <span className="text-xs font-normal text-sd-ink-faint">(optional)</span>
+          </p>
+          <p className="text-xs text-sd-ink-muted mb-3">
+            Anything that helps a rider find you — gate colour, landmark, which floor, when to call.
+          </p>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value.slice(0, 500))}
+            rows={3}
+            placeholder="e.g. Blue gate opposite the church. Call when you arrive."
+            className="w-full resize-none text-base border border-sd-line rounded-xl px-4 py-3 outline-none focus:border-sd-ink-faint transition-colors duration-150 placeholder:text-sd-ink-faint"
+          />
+        </div>
+
         <p className="text-xs text-sd-ink-muted flex items-start gap-1.5">
           <ChevronRight size={13} className="text-sd-ink-faint shrink-0 mt-0.5" />
           Only riders dispatching your orders (and you, at checkout as a buyer) see this. Curators
@@ -467,15 +573,44 @@ export function LocationSheet({
         </div>
       </div>
 
-      <div className="px-4 pt-3 oak-safe-bottom border-t border-sd-line bg-sd-surface shrink-0">
-        <button
-          type="button"
-          onClick={handleSave}
-          disabled={saving}
-          className="w-full bg-sd-ink text-sd-bg text-sm font-medium rounded-full py-3.5 disabled:opacity-50"
-        >
-          {saving ? "Saving…" : isEditing ? "Save changes" : "Add location"}
-        </button>
+      <div className="sticky bottom-0 z-20 px-4 pt-3 oak-safe-bottom border-t border-sd-line bg-sd-surface shrink-0">
+        {checkError && <p className="text-xs text-sd-danger-ink mb-2.5">{checkError}</p>}
+        {match ? (
+          <div className="animate-in fade-in slide-in-from-bottom-2 duration-200">
+            <p className="flex items-center gap-1.5 text-xs text-sd-ink-muted">
+              <BadgeCheck size={14} className="text-sd-ink shrink-0" />
+              Shipbubble found this address. Is it right?
+            </p>
+            <p className="mt-1.5 text-[15px] font-medium text-sd-ink">{match.address}</p>
+            <div className="mt-3 flex gap-2.5">
+              <button
+                type="button"
+                onClick={() => setMatch(null)}
+                disabled={saving}
+                className="flex-1 border border-sd-line text-sd-ink text-sm font-medium rounded-full py-3.5 disabled:opacity-50"
+              >
+                Edit
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirm}
+                disabled={saving}
+                className="flex-[2] bg-sd-ink text-sd-bg text-sm font-medium rounded-full py-3.5 disabled:opacity-50"
+              >
+                {saving ? "Saving…" : "Yes, save it"}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={handleCheck}
+            disabled={saving}
+            className="w-full bg-sd-ink text-sd-bg text-sm font-medium rounded-full py-3.5 disabled:opacity-50"
+          >
+            {saving ? "Checking address…" : isEditing ? "Check and save" : "Check address"}
+          </button>
+        )}
       </div>
 
       <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
@@ -502,6 +637,6 @@ export function LocationSheet({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PageSheet>
   );
 }

@@ -42,6 +42,9 @@ function NewLocation() {
         postal_code: values.postalCode || null,
         lat: values.lat,
         lng: values.lng,
+        notes: values.notes || null,
+        verified_address: values.verifiedAddress,
+        address_verified_at: values.verifiedAddress ? new Date().toISOString() : null,
       })
       .select("id")
       .single();
@@ -64,6 +67,11 @@ function NewLocation() {
   }
 
   return (
-    <LocationSheet initial={null} onSave={handleSave} onClose={() => navigate({ to: returnTo })} />
+    <LocationSheet
+      storeId={storeId ?? ""}
+      initial={null}
+      onSave={handleSave}
+      onClose={() => navigate({ to: returnTo })}
+    />
   );
 }
