@@ -229,7 +229,7 @@ function SellersLanding() {
           </p>
           <div className="hero-buttons">
             <Link className="pill-button pill-button-acid" to="/set-up-store">
-              Set up my store <ArrowUpRight size={20} />
+              Claim your free store <ArrowUpRight size={20} />
             </Link>
             <Link className="text-link hero-link" to="/sign-in">
               Login <ArrowUpRight size={15} />
