@@ -484,6 +484,7 @@ export function PostFeed({
                 post={post}
                 viewerId={viewerId}
                 isProfileViewer={scope.type === "user"}
+                storefront={scope.type === "author"}
                 overNav={mode === "embedded"}
                 asStore={asStore}
                 onActive={handleActive}
@@ -833,12 +834,15 @@ function FeedPostCard({
   post,
   viewerId,
   isProfileViewer,
+  storefront,
   overNav,
   asStore,
   onActive,
   onSwipePastEnd,
 }: {
   post: FeedPost;
+  /** A storefront's Home feed (the "author" scope): the social actions go. */
+  storefront: boolean;
   onSwipePastEnd?: () => void;
   /** True when the app's floating BottomNav pill is drawn over this feed
    *  (Explore, embedded mode). The rail and caption then sit above the pill
@@ -1319,53 +1323,59 @@ function FeedPostCard({
           )}
         </div>
         <div className="flex flex-col items-center gap-2.5">
-          <RailAction
-            label={liked ? "Unlike" : "Like"}
-            caption="Likes"
-            pressed={liked}
-            onPress={() => setLiked((v) => !v)}
-          >
-            {/* Keyed on `liked` so the icon remounts and replays its pop on
+          {/* A storefront's feed is for shopping: no likes, comments or
+              wishlist, just the pieces and the way to the seller. */}
+          {!storefront && (
+            <>
+              <RailAction
+                label={liked ? "Unlike" : "Like"}
+                caption="Likes"
+                pressed={liked}
+                onPress={() => setLiked((v) => !v)}
+              >
+                {/* Keyed on `liked` so the icon remounts and replays its pop on
                 every change — the state itself is already synchronous. */}
-            <motion.span
-              key={liked ? "on" : "off"}
-              initial={{ scale: liked ? 0.6 : 1 }}
-              animate={{ scale: 1 }}
-              transition={{ type: "spring", stiffness: 800, damping: 18 }}
-              className="block"
-            >
-              <Heart
-                size={28}
-                className={liked ? "text-[#fe2c55]" : "text-white"}
-                fill={liked ? "#fe2c55" : "none"}
-              />
-            </motion.span>
-          </RailAction>
+                <motion.span
+                  key={liked ? "on" : "off"}
+                  initial={{ scale: liked ? 0.6 : 1 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", stiffness: 800, damping: 18 }}
+                  className="block"
+                >
+                  <Heart
+                    size={28}
+                    className={liked ? "text-[#fe2c55]" : "text-white"}
+                    fill={liked ? "#fe2c55" : "none"}
+                  />
+                </motion.span>
+              </RailAction>
 
-          <RailAction label="Comments" caption="Comments" onPress={() => setCommentsOpen(true)}>
-            <MessageCircle size={28} />
-          </RailAction>
+              <RailAction label="Comments" caption="Comments" onPress={() => setCommentsOpen(true)}>
+                <MessageCircle size={28} />
+              </RailAction>
 
-          <RailAction
-            label={saved ? "Remove from favourites" : "Add to favourites"}
-            caption="Wishlist"
-            pressed={saved}
-            onPress={handleSave}
-          >
-            <motion.span
-              key={saved ? "on" : "off"}
-              initial={{ scale: saved ? 0.6 : 1 }}
-              animate={{ scale: 1 }}
-              transition={{ type: "spring", stiffness: 800, damping: 18 }}
-              className="block"
-            >
-              <Bookmark
-                size={28}
-                className={saved ? "text-[#f5c518]" : "text-white"}
-                fill={saved ? "#f5c518" : "none"}
-              />
-            </motion.span>
-          </RailAction>
+              <RailAction
+                label={saved ? "Remove from favourites" : "Add to favourites"}
+                caption="Wishlist"
+                pressed={saved}
+                onPress={handleSave}
+              >
+                <motion.span
+                  key={saved ? "on" : "off"}
+                  initial={{ scale: saved ? 0.6 : 1 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", stiffness: 800, damping: 18 }}
+                  className="block"
+                >
+                  <Bookmark
+                    size={28}
+                    className={saved ? "text-[#f5c518]" : "text-white"}
+                    fill={saved ? "#f5c518" : "none"}
+                  />
+                </motion.span>
+              </RailAction>
+            </>
+          )}
 
           {/* Add-to-cart: adds every product tagged on this post at once so
               the viewer can keep scrolling without leaving the feed.

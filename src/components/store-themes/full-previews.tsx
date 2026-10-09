@@ -1154,9 +1154,9 @@ export function PublicStorefront({
   paintChrome?: boolean;
 }) {
   const { themeId, loading: themeLoading } = useStoreTheme(storeId);
-  // Home (the store's content feed) is what a visitor lands on; Shop is the
-  // storefront page.
-  const [tab, setTab] = useState<StorefrontTab>("home");
+  // The storefront (Shop) is what a visitor lands on; Home, the store's
+  // content feed, is one tap away.
+  const [tab, setTab] = useState<StorefrontTab>("shop");
   const rootRef = useRef<HTMLDivElement>(null);
   usePaintChrome(
     !paintChrome || themeLoading
