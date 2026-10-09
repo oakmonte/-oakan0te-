@@ -107,20 +107,41 @@ export async function placeAddress(
   if (!p) return null;
   const parts = p.addressComponents ?? [];
   const get = (type: string) => parts.find((c) => c.types?.includes(type))?.longText ?? "";
+  const city =
+    get("locality") ||
+    get("sublocality") ||
+    get("administrative_area_level_2") ||
+    get("postal_town");
+  const state = get("administrative_area_level_1");
+  const country = get("country");
+  const postalCode = get("postal_code");
+  // Line 1 is the formatted address minus its city/state/country tail.
+  // Nigerian addresses lean on plot numbers, estates and "off X road" that
+  // street_number + route drop ("Plot 2, Kayode Animashaun Street, Off
+  // Admiralty Wy, Lekki Phase 1" vs just "Off Admiralty Way").
+  const tail = [city, state, country].filter(Boolean).map((t) => t.toLowerCase());
+  const segments = (p.formattedAddress ?? "").split(",").map((t) => t.trim());
+  while (segments.length > 1) {
+    const last = segments[segments.length - 1].toLowerCase();
+    const isTail =
+      tail.some((t) => last === t || last.startsWith(`${t} `)) ||
+      (!!postalCode && last.includes(postalCode.toLowerCase()));
+    if (!isTail) break;
+    segments.pop();
+  }
   const street = [get("street_number"), get("route")].filter(Boolean).join(" ");
-  // A landmark or business pick ("Ikeja City Mall") has no street number; its
-  // name is the most useful line 1 then.
-  const line1 = street || p.displayName?.text || get("neighborhood") || get("sublocality");
+  const fromFormatted = segments.join(", ");
+  const line1 =
+    (fromFormatted && fromFormatted.length >= street.length ? fromFormatted : street) ||
+    p.displayName?.text ||
+    get("neighborhood") ||
+    "";
   return {
     line1,
-    city:
-      get("locality") ||
-      get("sublocality") ||
-      get("administrative_area_level_2") ||
-      get("postal_town"),
-    state: get("administrative_area_level_1"),
-    country: get("country"),
-    postalCode: get("postal_code"),
+    city,
+    state,
+    country,
+    postalCode,
     lat: p.location?.latitude ?? null,
     lng: p.location?.longitude ?? null,
     formatted: p.formattedAddress ?? "",
