@@ -169,6 +169,12 @@ export const TABS: {
   { key: "drafts", label: "Drafts", Icon: DraftsIcon },
 ];
 
+/** Sellers-only pivot: likes, reposts and wishlist are social features, so
+ *  neither profile shows them. The personal profile also drops its Store tab
+ *  (the storefront); the store profile keeps it, it's the shop. */
+const SOCIAL_TABS: TabKey[] = ["reposts", "wishlist", "likedVideos"];
+export const PERSONAL_TABS = TABS.filter((t) => t.key !== "store" && !SOCIAL_TABS.includes(t.key));
+
 /** The store profile's tabs. A store still gets the wardrobe/gallery slot —
  *  unlike a personal profile it can't literally own clothes, but it can show
  *  pieces that aren't for sale, backed by `store_pieces` (store_id, not
@@ -178,7 +184,7 @@ export const TABS: {
  *  profile shapes still read as siblings. */
 export function storeTabsFor(storeType: string | null): typeof TABS {
   const isArtist = storeType === "Artist";
-  return TABS.map((t) =>
+  return TABS.filter((t) => !SOCIAL_TABS.includes(t.key)).map((t) =>
     t.key === "wardrobe" ? { ...t, label: isArtist ? "Gallery" : "Wardrobe" } : t,
   );
 }

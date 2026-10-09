@@ -3,15 +3,14 @@ import { animate, motion, useMotionValue, useTransform, useVelocity } from "fram
 import { GLASS_RIM, glassLens, glassLight } from "@/lib/liquid-glass";
 import { isStandalone } from "@/lib/standalone";
 import { useGoRoot } from "@/hooks/use-back";
-import { useCartCount } from "@/lib/cart";
 import type { NavTarget } from "@/lib/nav-hierarchy";
 import homeIcon from "@/assets/Home.svg";
 import messagesIcon from "@/assets/messages.svg";
 import createIcon from "@/assets/create.svg";
-import cartIcon from "@/assets/cart.svg";
+import storeIcon from "@/assets/Store.svg";
 import profileIcon from "@/assets/profile.svg";
 
-type NavKey = "home" | "messages" | "create" | "cart" | "profile";
+type NavKey = "home" | "messages" | "create" | "store" | "profile";
 
 type BottomNavProps = {
   active: NavKey;
@@ -73,13 +72,6 @@ export function BottomNav({ active, ownUsername }: BottomNavProps) {
   // bar is five entries deep and the back gesture can never leave the app —
   // which is what every native tab bar does at its root.
   const goRoot = useGoRoot();
-  // Units in the bag. 0 through SSR and hydration (the bag lives in this
-  // device's storage), so the badge appears a beat after the nav, never as a
-  // hydration mismatch.
-  const cartCount = useCartCount();
-  // Every screen mounts its own nav, so a pop on mount would bounce the badge
-  // on every tab switch. Only a count that changes while this nav is up pops.
-  const [cartCountAtMount] = useState(cartCount);
 
   const items: {
     key: NavKey;
@@ -91,7 +83,7 @@ export function BottomNav({ active, ownUsername }: BottomNavProps) {
     { key: "home", label: "Home", icon: homeIcon, to: "/home" },
     { key: "messages", label: "Messages", icon: messagesIcon, to: "/messages" },
     { key: "create", label: "Create", icon: createIcon, to: "/create" },
-    { key: "cart", label: "Cart", icon: cartIcon, to: "/cart" },
+    { key: "store", label: "Store", icon: storeIcon, to: "/store" },
     {
       key: "profile",
       label: "Profile",
@@ -260,11 +252,7 @@ export function BottomNav({ active, ownUsername }: BottomNavProps) {
                 heading = { index: i, at: now() };
                 goRoot({ to, params } as NavTarget);
               }}
-              aria-label={
-                key === "cart" && cartCount > 0
-                  ? `${label}, ${cartCount} ${cartCount === 1 ? "item" : "items"}`
-                  : label
-              }
+              aria-label={label}
               data-tour={key}
               aria-current={isActive ? "page" : undefined}
               className="relative flex-1 flex items-center justify-center"
@@ -305,21 +293,6 @@ export function BottomNav({ active, ownUsername }: BottomNavProps) {
                   willChange: "transform, opacity",
                 }}
               />
-              {key === "cart" && cartCount > 0 && (
-                // Keyed on the count so each add pops it. Black on the light
-                // glass, like the icons, rather than an alert red: a full bag
-                // isn't something to clear.
-                <motion.span
-                  key={cartCount}
-                  aria-hidden
-                  initial={cartCount === cartCountAtMount ? false : { scale: 0.5 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: "spring", stiffness: 600, damping: 18 }}
-                  className="pointer-events-none absolute left-1/2 top-[7px] ml-[3px] grid h-[17px] min-w-[17px] place-items-center rounded-full bg-black px-[4px] text-[10.5px] font-bold leading-none text-white"
-                >
-                  {cartCount > 9 ? "9+" : cartCount}
-                </motion.span>
-              )}
             </button>
           );
         })}

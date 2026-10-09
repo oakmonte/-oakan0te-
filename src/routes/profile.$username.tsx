@@ -52,7 +52,7 @@ import { ProfileTabEmptyState } from "@/components/ProfileTabEmptyState";
 import { PostsGrid } from "@/components/profile/PostsGrid";
 import { PublicStorefront } from "@/components/store-themes/full-previews";
 import { Stat, MenuRow } from "@/components/profile/profile-chrome";
-import { TABS, type TabKey } from "@/components/profile/profile-tabs";
+import { PERSONAL_TABS, type TabKey } from "@/components/profile/profile-tabs";
 import { TabPager } from "@/components/profile/TabPager";
 import { ProfileTabStrip } from "@/components/profile/ProfileTabStrip";
 import { ShareProfileOverlay } from "@/components/profile/ShareProfileOverlay";
@@ -353,10 +353,8 @@ export function ProfileView({
   // An owner who sells from the store profile only (stores.store_profile_only)
   // gets no Store tab here, which leaves their personal profile free of store
   // content. The switch button still reaches the store profile.
-  const profileTabs = useMemo(
-    () => (store?.store_profile_only ? TABS.filter((t) => t.key !== "store") : TABS),
-    [store?.store_profile_only],
-  );
+  // No Store tab at all since the sellers-only pivot (see PERSONAL_TABS).
+  const profileTabs = PERSONAL_TABS;
   const tabIndex = Math.max(
     0,
     profileTabs.findIndex((t) => t.key === activeTab),

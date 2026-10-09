@@ -42,13 +42,15 @@ export function ProfileTabStrip({
    *  paging over or the indicator won't line up. */
   tabs?: typeof TABS;
 }) {
-  const slotWidth = pageWidth ? pageWidth / VISIBLE_TABS : 0;
+  // Fewer tabs than fit spread across the full width instead of bunching left.
+  const visible = Math.min(VISIBLE_TABS, tabs.length);
+  const slotWidth = pageWidth ? pageWidth / visible : 0;
   const trackWidth = slotWidth * tabs.length;
 
   // Widths are percentages so the strip lays out correctly on the very first
   // paint, before the pager has measured itself. Only the transforms below
   // need a real pageWidth, and they sit at 0 until one arrives.
-  const trackPercent = (tabs.length / VISIBLE_TABS) * 100;
+  const trackPercent = (tabs.length / visible) * 100;
 
   const trackX = useTransform(pagerX, (v) => {
     if (!pageWidth) return 0;

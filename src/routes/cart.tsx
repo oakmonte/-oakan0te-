@@ -199,7 +199,7 @@ function CartPage() {
         )}
       </div>
 
-      <BottomNav active="cart" ownUsername={ownUsername} />
+      <BottomNav active="store" ownUsername={ownUsername} />
     </div>
   );
 }
