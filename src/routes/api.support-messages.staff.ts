@@ -32,7 +32,18 @@ export const Route = createFileRoute("/api/support-messages/staff")({
         if (!userId || !UUID.test(userId)) return chatError("user_id must be a valid UUID", 400);
 
         try {
-          const messages = await fetchSupportThread(supabaseAdmin as unknown as ChatDb, userId);
+          const rows = await fetchSupportThread(supabaseAdmin as unknown as ChatDb, userId);
+          // Photos sit in the private chat-media bucket; staff get an
+          // hour-long link to each.
+          const messages = await Promise.all(
+            rows.map(async (m) => {
+              if (!m.media_path) return m;
+              const { data } = await supabaseAdmin.storage
+                .from("chat-media")
+                .createSignedUrl(m.media_path, 3600);
+              return { ...m, media_url: data?.signedUrl ?? null };
+            }),
+          );
           return privateJson({ messages });
         } catch (err) {
           return failure(err, "Could not load the thread");

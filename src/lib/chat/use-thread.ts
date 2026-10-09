@@ -564,14 +564,18 @@ function upsert(list: ChatMessage[], message: ChatMessage): ChatMessage[] {
 const NOOP = async () => undefined;
 
 function fromSupportRow(row: SupportMessageRow, me: string): ChatMessage {
+  const media = row.media_meta as { width?: unknown; height?: unknown } | null | undefined;
   return {
     id: row.id,
     conversationId: "support",
     senderId: row.sender === "user" ? me : "support",
-    kind: "text",
-    body: row.body,
-    mediaPath: null,
-    meta: {},
+    kind: row.media_path ? "image" : "text",
+    body: row.body || null,
+    mediaPath: row.media_path ?? null,
+    meta: {
+      ...(typeof media?.width === "number" ? { width: media.width } : {}),
+      ...(typeof media?.height === "number" ? { height: media.height } : {}),
+    },
     replyToId: null,
     forwarded: false,
     editedAt: null,
@@ -580,8 +584,9 @@ function fromSupportRow(row: SupportMessageRow, me: string): ChatMessage {
   };
 }
 
-/** support_messages carries text only, and only staff can reply (through
- *  api.support-messages.reply), so everything but sending is switched off. */
+/** support_messages carries text and photos, and only staff can reply
+ *  (through api.support-messages.reply), so everything but sending is
+ *  switched off. */
 export function useSupportThread(
   open: boolean,
   me: string | null,
@@ -702,6 +707,45 @@ export function useSupportThread(
     [me, send],
   );
 
+  // Photos: shown at once from the local file, then swapped for the saved
+  // message. The first photo carries the caption.
+  const sendImages = useCallback(
+    async (files: File[], caption: string) => {
+      if (!me) return;
+      for (const [index, file] of files.entries()) {
+        const id = `local-${crypto.randomUUID()}`;
+        const body = index === 0 ? caption.trim() : "";
+        const optimistic: ChatMessage = {
+          ...fromSupportRow(
+            { id, user_id: me, body, sender: "user", created_at: new Date().toISOString() },
+            me,
+          ),
+          kind: "image",
+          localUrl: URL.createObjectURL(file),
+          status: "sending",
+        };
+        setMessages((current) => [...current, optimistic]);
+        try {
+          const prepared = await prepareImage(file);
+          const saved = await api.sendSupportPhoto(me, prepared.blob, prepared.extension, body, {
+            width: prepared.width,
+            height: prepared.height,
+          });
+          const message = fromSupportRow(saved, me);
+          setMessages((current) =>
+            current.filter((m) => m.id !== message.id).map((m) => (m.id === id ? message : m)),
+          );
+        } catch {
+          setMessages((current) =>
+            current.map((m) => (m.id === id ? { ...m, status: "failed" } : m)),
+          );
+          optionsRef.current.onError?.("Your photo could not be sent. Please try again.");
+        }
+      }
+    },
+    [me],
+  );
+
   return {
     messages,
     reactions: {},
@@ -711,7 +755,7 @@ export function useSupportThread(
     hasMore: false,
     loadingOlder: false,
     capabilities: {
-      media: false,
+      media: true,
       voice: false,
       react: false,
       reply: false,
@@ -724,7 +768,7 @@ export function useSupportThread(
     loadOlder: NOOP,
     loadAll: NOOP,
     sendText,
-    sendImages: NOOP,
+    sendImages,
     sendVoice: NOOP,
     retry: async (id) => {
       const text = pending.current.get(id);

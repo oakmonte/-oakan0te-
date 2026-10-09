@@ -208,7 +208,7 @@ export async function isSupportTool(request: Request): Promise<boolean> {
   return !!configured && !!provided && (await hasMatchingSecret(provided, configured));
 }
 
-const SUPPORT_COLUMNS = "id, user_id, body, sender, created_at";
+const SUPPORT_COLUMNS = "id, user_id, body, sender, created_at, media_path, media_meta";
 
 export async function fetchSupportThread(
   db: ChatDb,
@@ -228,7 +228,13 @@ export async function fetchSupportThread(
 /** Writes one support message. */
 export async function insertSupportMessage(
   db: ChatDb,
-  input: { userId: string; body: string; sender: "user" | "support" },
+  input: {
+    userId: string;
+    body: string;
+    sender: "user" | "support";
+    mediaPath?: string | null;
+    mediaMeta?: Json | null;
+  },
 ): Promise<SupportMessageRow> {
   const { data, error } = await db
     .from("support_messages")
@@ -236,6 +242,8 @@ export async function insertSupportMessage(
       user_id: input.userId,
       body: input.body,
       sender: input.sender,
+      media_path: input.mediaPath ?? null,
+      media_meta: input.mediaMeta ?? null,
     })
     .select(SUPPORT_COLUMNS)
     .single();

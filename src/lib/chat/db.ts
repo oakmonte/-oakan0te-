@@ -82,6 +82,9 @@ export type SupportMessageRow = {
   body: string;
   sender: "user" | "support";
   created_at: string;
+  /** A photo in chat-media under support/<user id>/, when there is one. */
+  media_path?: string | null;
+  media_meta?: Json | null;
 };
 
 export type InboxRow = {
@@ -201,7 +204,9 @@ type MessagingTables = {
   >;
   support_messages: Table<
     SupportMessageRow,
-    Pick<SupportMessageRow, "user_id" | "body" | "sender"> & { id?: string },
+    Pick<SupportMessageRow, "user_id" | "body" | "sender" | "media_path" | "media_meta"> & {
+      id?: string;
+    },
     Partial<Pick<SupportMessageRow, "body" | "sender">>
   >;
 };

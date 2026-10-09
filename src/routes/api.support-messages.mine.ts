@@ -8,6 +8,7 @@ import {
   requireCaller,
   validateBody,
 } from "@/lib/chat/chat.server";
+import type { Json } from "@/lib/integrations/my-supabase/types";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -18,7 +19,8 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
  * and that they can only write as `sender = 'user'`.
  *
  * GET  ?latest=1 (inbox preview) | ?id= (a realtime insert) | all, oldest-first
- * POST { body }
+ * POST { body, mediaPath?, meta? } -- mediaPath must be in the caller's own
+ *      support/<user id>/ folder; a photo may have no caption.
  */
 export const Route = createFileRoute("/api/support-messages/mine")({
   server: {
@@ -43,21 +45,29 @@ export const Route = createFileRoute("/api/support-messages/mine")({
       POST: async ({ request }: { request: Request }) => {
         const caller = await requireCaller(request);
         if (!caller.ok) return caller.response;
-        let input: { body?: unknown };
+        let input: { body?: unknown; mediaPath?: unknown; meta?: unknown };
         try {
           input = await request.json();
         } catch {
           return chatError("Request body must be JSON", 400);
         }
-        const check = validateBody(input?.body, true);
-        if (!check.ok || !check.body)
+        const mediaPath = typeof input?.mediaPath === "string" ? input.mediaPath : null;
+        // Only a photo in the caller's own support folder (storage RLS also
+        // stops them uploading anywhere else).
+        if (mediaPath && !mediaPath.startsWith(`support/${caller.value.me}/`))
+          return chatError("Invalid photo", 400);
+        const check = validateBody(input?.body, !mediaPath);
+        if (!check.ok || (!check.body && !mediaPath))
           return chatError(check.ok ? "Message is empty" : check.error, 400);
-        const body = check.body;
+        const body = check.body ?? "";
+        const meta = input?.meta && typeof input.meta === "object" ? (input.meta as Json) : null;
         try {
           const message = await insertSupportMessage(caller.value.db, {
             userId: caller.value.me,
             body,
             sender: "user",
+            mediaPath,
+            mediaMeta: meta,
           });
           return privateJson({ message }, { status: 201 });
         } catch (err) {

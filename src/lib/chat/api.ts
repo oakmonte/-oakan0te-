@@ -368,6 +368,28 @@ type ReactionInsert = {
   conversation_id: string;
 };
 
+/** A photo for Oakmonte Support: uploaded into the sender's own
+ *  support/<user id>/ folder, then posted like a text message. */
+export async function sendSupportPhoto(
+  me: string,
+  blob: Blob,
+  extension: string,
+  caption: string,
+  meta: MediaMeta,
+): Promise<SupportMessageRow> {
+  const path = `support/${me}/${crypto.randomUUID()}.${extension}`;
+  const { error } = await chatDb.storage
+    .from(CHAT_MEDIA_BUCKET)
+    .upload(path, blob, { contentType: blob.type, cacheControl: "31536000", upsert: false });
+  if (error) throw new ChatError(error.message || "Upload failed");
+  const { message } = await chatRequest<{ message: SupportMessageRow }>(
+    "/api/support-messages/mine",
+    "Your photo could not be sent. Please try again.",
+    { method: "POST", body: JSON.stringify({ body: caption, mediaPath: path, meta }) },
+  );
+  return message;
+}
+
 /* ---------- media ---------- */
 
 export async function uploadMedia(
