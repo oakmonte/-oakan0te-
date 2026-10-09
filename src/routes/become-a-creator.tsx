@@ -1,7 +1,12 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { AuthPanel } from "@/components/onboarding/AuthPanel";
 
 export const Route = createFileRoute("/become-a-creator")({
+  // Sellers-only: no creator or curator sign-up for now; every way into an
+  // account goes to store setup.
+  beforeLoad: () => {
+    throw redirect({ to: "/set-up-store" });
+  },
   head: () => ({
     meta: [
       // White page, so the iOS status strip must be white too — the root

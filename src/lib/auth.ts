@@ -155,7 +155,11 @@ export async function resolvePostAuthRedirect(
   // creator intent was dropped. Falling back to storage here, once, fixes it
   // for every caller instead of requiring each call site to remember to pass
   // a hint.
-  const hint = intentHint ?? readIntent();
+  // Sellers-only: whatever brought them here, they're setting up a store
+  // (no creators or curators for now), so nobody is asked to choose a role.
+  void intentHint;
+  void readIntent;
+  const hint: Intent = "seller";
 
   if (!profile?.personal_username) {
     // No profile yet. If they came through one of the three entry points we

@@ -1,6 +1,11 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/no-account")({
+  // Sellers-only: no creator or curator sign-up for now; every way into an
+  // account goes to store setup.
+  beforeLoad: () => {
+    throw redirect({ to: "/set-up-store" });
+  },
   head: () => ({
     // White page, so the iOS status strip must be white too — the root
     // default is #000000 and would otherwise paint a black band above it.
