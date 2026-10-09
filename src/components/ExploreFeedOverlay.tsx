@@ -3,12 +3,13 @@ import { motion, AnimatePresence, useReducedMotion, type PanInfo } from "framer-
 import { useNavigate } from "@tanstack/react-router";
 import { useLockedBanner } from "@/components/LockedBanner";
 import { GLASS_RIM, glassClear } from "@/lib/liquid-glass";
-import { ChevronLeft, Bookmark, Search, ShoppingBag } from "lucide-react";
+import { ChevronLeft, Search, ShoppingBag } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { PostFeed, type ActivePost, type TaggedProduct } from "@/components/feed/PostFeed";
 import { useDarkOverlay } from "@/lib/dark-overlay";
 import { ProfileView } from "@/routes/profile.$username";
 import { useSession } from "@/hooks/use-session";
+import { BagPlus } from "@/components/icons/BagPlus";
 
 // "listed-left" is the same Listed items page, parked to the LEFT of Following so
 // both feeds have it one swipe away (Following swipes right into it, For you
@@ -170,7 +171,6 @@ export function ListedItemsPage({ items }: { items: TaggedProduct[] }) {
   const navigate = useNavigate();
   const { user } = useSession();
   const reduceMotion = useReducedMotion();
-  const [saved, setSaved] = useState<Record<string, boolean>>({});
   const { banner, showLocked } = useLockedBanner();
 
   if (items.length === 0) {
@@ -217,29 +217,6 @@ export function ListedItemsPage({ items }: { items: TaggedProduct[] }) {
                   <ShoppingBag size={24} className="text-black/25" />
                 </div>
               )}
-              <button
-                type="button"
-                aria-label={saved[item.id] ? "Remove from wishlist" : "Save to wishlist"}
-                aria-pressed={!!saved[item.id]}
-                onClick={() => setSaved((s) => ({ ...s, [item.id]: !s[item.id] }))}
-                className={`absolute bottom-1.5 right-1.5 flex h-8 w-8 items-center justify-center rounded-full text-white transition-transform duration-150 ease-out active:scale-90 ${GLASS_RIM}`}
-                style={glassClear}
-              >
-                <motion.span
-                  key={saved[item.id] ? "on" : "off"}
-                  initial={{ scale: saved[item.id] && !reduceMotion ? 0.6 : 1 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: "spring", duration: 0.35, bounce: 0.4 }}
-                  className="block"
-                >
-                  <Bookmark
-                    size={15}
-                    strokeWidth={2.25}
-                    fill={saved[item.id] ? "#f5c518" : "none"}
-                    className={saved[item.id] ? "text-[#f5c518]" : "text-white"}
-                  />
-                </motion.span>
-              </button>
             </div>
 
             <div className="flex min-w-0 flex-1 flex-col justify-between py-1">
@@ -284,7 +261,7 @@ export function ListedItemsPage({ items }: { items: TaggedProduct[] }) {
                   onClick={() => showLocked("The bag opens with the cart update")}
                   className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-black transition-transform duration-150 ease-out active:scale-[0.92]"
                 >
-                  <ShoppingBag size={15} strokeWidth={2.25} />
+                  <BagPlus size={17} />
                 </button>
               </div>
             </div>

@@ -92,11 +92,20 @@ export function ProductPage({
   look,
   onClose,
   onAction,
+  embedded = false,
+  visible = true,
 }: {
   tile: PreviewTile;
   look: StorefrontLook;
   onClose: () => void;
   onAction: () => void;
+  /** Drawn inside a host pane (a store feed's Listed items with one linked
+   *  piece) instead of sliding over the screen: no back button, no claim on
+   *  the phone's back gesture. */
+  embedded?: boolean;
+  /** For an embedded page: whether its pane is on screen. The sales-locked
+   *  notice waits for that rather than firing while it's off to the side. */
+  visible?: boolean;
 }) {
   const navigate = useNavigate();
   const [askAccount, setAskAccount] = useState(false);
@@ -126,10 +135,10 @@ export function ProductPage({
   // reads the buttons as live (lib/launch-locks.ts). Once per opening.
   const announcedLock = useRef(false);
   useEffect(() => {
-    if (!SALES_LOCKED || announcedLock.current) return;
+    if (!SALES_LOCKED || !visible || announcedLock.current) return;
     announcedLock.current = true;
     onAction();
-  }, [onAction]);
+  }, [onAction, visible]);
   const [enquiryOpen, setEnquiryOpen] = useState(false);
   const [shown, setShown] = useState(false);
   const [closing, setClosing] = useState(false);
@@ -174,7 +183,7 @@ export function ProductPage({
     const t = setTimeout(() => setArmed(true), 80);
     return () => clearTimeout(t);
   }, []);
-  useOverlayHistory(armed && !closing, close);
+  useOverlayHistory(!embedded && armed && !closing, close);
 
   const variants = data?.variants ?? [];
   const variant = variants.find((v) => v.id === variantId) ?? variants[0];
@@ -245,218 +254,233 @@ export function ProductPage({
   if (typeof document === "undefined") return null;
   return (
     <>
-      {createPortal(
-        <div className="fixed inset-0 z-[90] overflow-y-auto overscroll-contain" style={pageStyle}>
+      {(() => {
+        const page = (
           <div
-            className="sticky top-0 z-10 px-3 pb-2 pt-[calc(env(safe-area-inset-top)+0.5rem)]"
-            style={{ background: look.background || undefined }}
+            className={
+              embedded
+                ? "h-full overflow-y-auto overscroll-contain"
+                : "fixed inset-0 z-[90] overflow-y-auto overscroll-contain"
+            }
+            style={
+              embedded ? { ...pageStyle, transform: undefined, boxShadow: undefined } : pageStyle
+            }
           >
-            <button
-              type="button"
-              onClick={close}
-              aria-label="Back"
-              className="grid h-10 w-10 place-items-center rounded-full bg-black/45 text-white"
-            >
-              <ChevronLeft size={22} />
-            </button>
-          </div>
-
-          <div className="mx-auto max-w-[520px] pb-[calc(env(safe-area-inset-bottom)+2rem)]">
-            <div className="mx-3 overflow-hidden rounded-3xl" style={{ background: look.tileBg }}>
-              {photos.length > 0 ? (
-                <div
-                  className="flex snap-x snap-mandatory overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-                  onScroll={(e) => {
-                    const el = e.currentTarget;
-                    setPhotoIdx(Math.round(el.scrollLeft / el.clientWidth));
-                  }}
+            {!embedded && (
+              <div
+                className="sticky top-0 z-10 px-3 pb-2 pt-[calc(env(safe-area-inset-top)+0.5rem)]"
+                style={{ background: look.background || undefined }}
+              >
+                <button
+                  type="button"
+                  onClick={close}
+                  aria-label="Back"
+                  className="grid h-10 w-10 place-items-center rounded-full bg-black/45 text-white"
                 >
-                  {photos.map((u, i) => (
-                    <img
-                      key={u + i}
-                      src={u}
-                      alt={i === 0 ? tile.title : ""}
-                      className="aspect-[4/5] w-full shrink-0 snap-center object-cover"
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="aspect-[4/5] w-full" />
-              )}
-            </div>
-            {photos.length > 1 && (
-              <div className="mt-2 flex justify-center gap-1.5">
-                {photos.map((_, i) => (
-                  <span
-                    key={i}
-                    className="h-1.5 w-1.5 rounded-full"
-                    style={{ background: look.textColor, opacity: i === photoIdx ? 1 : 0.3 }}
-                  />
-                ))}
+                  <ChevronLeft size={22} />
+                </button>
               </div>
             )}
 
-            <div className="px-4 pt-4">
-              <h1 className="text-[22px] font-medium leading-tight">{data?.title ?? tile.title}</h1>
-
-              {hasChoice && (
-                <div className="mt-3">
-                  <p className="text-[14px]" style={{ color: look.mutedColor }}>
-                    {sizeName}
-                  </p>
-                  <div className="mt-1.5 flex flex-wrap gap-2">
-                    {variants.map((v) => {
-                      const active = v.id === variant?.id;
-                      const out = !inStock(v);
-                      return (
-                        <button
-                          key={v.id}
-                          type="button"
-                          onClick={() => {
-                            setVariantId(v.id);
-                            setPhotoIdx(0);
-                          }}
-                          className="rounded-full border px-3.5 py-1.5 text-[14px]"
-                          style={{
-                            borderColor: look.textColor,
-                            background: active ? look.textColor : "transparent",
-                            color: active ? look.background || "#000" : look.textColor,
-                            opacity: out ? 0.4 : 1,
-                            textDecoration: out ? "line-through" : undefined,
-                          }}
-                        >
-                          {v.option1_value}
-                        </button>
-                      );
-                    })}
+            <div className="mx-auto max-w-[520px] pb-[calc(env(safe-area-inset-bottom)+2rem)]">
+              <div className="mx-3 overflow-hidden rounded-3xl" style={{ background: look.tileBg }}>
+                {photos.length > 0 ? (
+                  <div
+                    className="flex snap-x snap-mandatory overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                    onScroll={(e) => {
+                      const el = e.currentTarget;
+                      setPhotoIdx(Math.round(el.scrollLeft / el.clientWidth));
+                    }}
+                  >
+                    {photos.map((u, i) => (
+                      <img
+                        key={u + i}
+                        src={u}
+                        alt={i === 0 ? tile.title : ""}
+                        className="aspect-[4/5] w-full shrink-0 snap-center object-cover"
+                      />
+                    ))}
                   </div>
-                </div>
-              )}
-
-              <p className="mt-3 text-[17px]">
-                {price != null ? `₦${price.toLocaleString()}` : ""}
-                {compareAt != null && price != null && compareAt > price && (
-                  <span
-                    className="ml-2 text-[14px] line-through"
-                    style={{ color: look.mutedColor }}
-                  >
-                    ₦{compareAt.toLocaleString()}
-                  </span>
+                ) : (
+                  <div className="aspect-[4/5] w-full" />
                 )}
-              </p>
-
-              <div className="mt-4 grid grid-cols-2 gap-2.5">
-                <div className="col-span-2 flex gap-2.5">
-                  <button
-                    type="button"
-                    disabled={soldOut}
-                    // Until Paystack is live: the same "Sales are still locked
-                    // until full launch" notice as on main (lib/launch-locks.ts).
-                    onClick={SALES_LOCKED ? onAction : () => void buyNow()}
-                    className="h-14 min-w-0 flex-1 rounded-2xl text-[18px] font-semibold disabled:opacity-40"
-                    style={btn}
-                  >
-                    {soldOut ? "Sold out" : "Buy Now"}
-                  </button>
-                  {data && (
-                    <button
-                      type="button"
-                      aria-label="Message the seller"
-                      onClick={() =>
-                        storefrontChat
-                          ? setEnquiryOpen(true)
-                          : void navigate({
-                              to: "/messages",
-                              search: data.ownerUsername ? { to: data.ownerUsername } : {},
-                            })
-                      }
-                      className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl"
-                      style={btn}
-                    >
-                      <PaperPlaneTilt size={24} />
-                    </button>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  onClick={onAction}
-                  className="h-14 rounded-2xl text-[16px] font-semibold"
-                  style={btn}
-                >
-                  Make Offer
-                </button>
-                <button
-                  type="button"
-                  disabled={soldOut || !data || !variant?.price}
-                  onClick={addToBag}
-                  className="h-14 rounded-2xl text-[16px] font-semibold disabled:opacity-40"
-                  style={btn}
-                >
-                  Add to Bag
-                </button>
               </div>
-
-              <div
-                className="mt-5 flex items-start gap-3 border-t pt-4"
-                style={{ borderColor: look.tileBg }}
-              >
-                <ShieldCheck size={28} className="mt-0.5 shrink-0" />
-                <p className="text-[14px] leading-snug">
-                  ALL purchases in Oakmonte are covered by us. (it is physically impossible to be
-                  scammed here and one in a trillion situations WILL be refunded)
-                </p>
-              </div>
-
-              {data === undefined && <div className="mt-6 h-24" />}
-              {data === null && (
-                <p className="mt-6 text-[14px]" style={{ color: look.mutedColor }}>
-                  This product isn&apos;t available right now.
-                </p>
-              )}
-              {data?.description && (
-                <div className="mt-5 border-t pt-4" style={{ borderColor: look.tileBg }}>
-                  <p className="text-[16px] font-medium">Description</p>
-                  <ul
-                    className="mt-1.5 list-disc space-y-1 pl-5 text-[15px] leading-relaxed"
-                    style={{ color: look.mutedColor }}
-                  >
-                    {data.description
-                      .split(String.fromCharCode(10))
-                      .map((line) => line.replace(/^\s*[-•*]\s*/, "").trim())
-                      .filter(Boolean)
-                      .map((line, i) => (
-                        <li key={i}>{line}</li>
-                      ))}
-                  </ul>
-                </div>
-              )}
-              {data?.store && (
-                <div
-                  className="mt-5 flex items-center gap-3 border-t pt-4"
-                  style={{ borderColor: look.tileBg }}
-                >
-                  {data.store.logo_url ? (
-                    <img
-                      src={data.store.logo_url}
-                      alt=""
-                      className="h-11 w-11 rounded-full object-cover"
-                    />
-                  ) : (
+              {photos.length > 1 && (
+                <div className="mt-2 flex justify-center gap-1.5">
+                  {photos.map((_, i) => (
                     <span
-                      className="grid h-11 w-11 place-items-center rounded-full text-[16px]"
-                      style={{ background: look.tileBg }}
+                      key={i}
+                      className="h-1.5 w-1.5 rounded-full"
+                      style={{ background: look.textColor, opacity: i === photoIdx ? 1 : 0.3 }}
+                    />
+                  ))}
+                </div>
+              )}
+
+              <div className="px-4 pt-4">
+                <h1 className="text-[22px] font-medium leading-tight">
+                  {data?.title ?? tile.title}
+                </h1>
+
+                {hasChoice && (
+                  <div className="mt-3">
+                    <p className="text-[14px]" style={{ color: look.mutedColor }}>
+                      {sizeName}
+                    </p>
+                    <div className="mt-1.5 flex flex-wrap gap-2">
+                      {variants.map((v) => {
+                        const active = v.id === variant?.id;
+                        const out = !inStock(v);
+                        return (
+                          <button
+                            key={v.id}
+                            type="button"
+                            onClick={() => {
+                              setVariantId(v.id);
+                              setPhotoIdx(0);
+                            }}
+                            className="rounded-full border px-3.5 py-1.5 text-[14px]"
+                            style={{
+                              borderColor: look.textColor,
+                              background: active ? look.textColor : "transparent",
+                              color: active ? look.background || "#000" : look.textColor,
+                              opacity: out ? 0.4 : 1,
+                              textDecoration: out ? "line-through" : undefined,
+                            }}
+                          >
+                            {v.option1_value}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                <p className="mt-3 text-[17px]">
+                  {price != null ? `₦${price.toLocaleString()}` : ""}
+                  {compareAt != null && price != null && compareAt > price && (
+                    <span
+                      className="ml-2 text-[14px] line-through"
+                      style={{ color: look.mutedColor }}
                     >
-                      {data.store.brand_name.slice(0, 1).toUpperCase()}
+                      ₦{compareAt.toLocaleString()}
                     </span>
                   )}
-                  <p className="text-[15px] font-medium">{data.store.brand_name}</p>
+                </p>
+
+                <div className="mt-4 grid grid-cols-2 gap-2.5">
+                  <div className="col-span-2 flex gap-2.5">
+                    <button
+                      type="button"
+                      disabled={soldOut}
+                      // Until Paystack is live: the same "Sales are still locked
+                      // until full launch" notice as on main (lib/launch-locks.ts).
+                      onClick={SALES_LOCKED ? onAction : () => void buyNow()}
+                      className="h-14 min-w-0 flex-1 rounded-2xl text-[18px] font-semibold disabled:opacity-40"
+                      style={btn}
+                    >
+                      {soldOut ? "Sold out" : "Buy Now"}
+                    </button>
+                    {data && (
+                      <button
+                        type="button"
+                        aria-label="Message the seller"
+                        onClick={() =>
+                          storefrontChat
+                            ? setEnquiryOpen(true)
+                            : void navigate({
+                                to: "/messages",
+                                search: data.ownerUsername ? { to: data.ownerUsername } : {},
+                              })
+                        }
+                        className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl"
+                        style={btn}
+                      >
+                        <PaperPlaneTilt size={24} />
+                      </button>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={onAction}
+                    className="h-14 rounded-2xl text-[16px] font-semibold"
+                    style={btn}
+                  >
+                    Make Offer
+                  </button>
+                  <button
+                    type="button"
+                    disabled={soldOut || !data || !variant?.price}
+                    onClick={addToBag}
+                    className="h-14 rounded-2xl text-[16px] font-semibold disabled:opacity-40"
+                    style={btn}
+                  >
+                    Add to Bag
+                  </button>
                 </div>
-              )}
+
+                <div
+                  className="mt-5 flex items-start gap-3 border-t pt-4"
+                  style={{ borderColor: look.tileBg }}
+                >
+                  <ShieldCheck size={28} className="mt-0.5 shrink-0" />
+                  <p className="text-[14px] leading-snug">
+                    ALL purchases in Oakmonte are covered by us. (it is physically impossible to be
+                    scammed here and one in a trillion situations WILL be refunded)
+                  </p>
+                </div>
+
+                {data === undefined && <div className="mt-6 h-24" />}
+                {data === null && (
+                  <p className="mt-6 text-[14px]" style={{ color: look.mutedColor }}>
+                    This product isn&apos;t available right now.
+                  </p>
+                )}
+                {data?.description && (
+                  <div className="mt-5 border-t pt-4" style={{ borderColor: look.tileBg }}>
+                    <p className="text-[16px] font-medium">Description</p>
+                    <ul
+                      className="mt-1.5 list-disc space-y-1 pl-5 text-[15px] leading-relaxed"
+                      style={{ color: look.mutedColor }}
+                    >
+                      {data.description
+                        .split(String.fromCharCode(10))
+                        .map((line) => line.replace(/^\s*[-•*]\s*/, "").trim())
+                        .filter(Boolean)
+                        .map((line, i) => (
+                          <li key={i}>{line}</li>
+                        ))}
+                    </ul>
+                  </div>
+                )}
+                {data?.store && (
+                  <div
+                    className="mt-5 flex items-center gap-3 border-t pt-4"
+                    style={{ borderColor: look.tileBg }}
+                  >
+                    {data.store.logo_url ? (
+                      <img
+                        src={data.store.logo_url}
+                        alt=""
+                        className="h-11 w-11 rounded-full object-cover"
+                      />
+                    ) : (
+                      <span
+                        className="grid h-11 w-11 place-items-center rounded-full text-[16px]"
+                        style={{ background: look.tileBg }}
+                      >
+                        {data.store.brand_name.slice(0, 1).toUpperCase()}
+                      </span>
+                    )}
+                    <p className="text-[15px] font-medium">{data.store.brand_name}</p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </div>,
-        document.body,
-      )}
+        );
+        return embedded ? page : createPortal(page, document.body);
+      })()}
       {askAccount &&
         createPortal(
           <div className="fixed inset-0 z-[200]" role="dialog" aria-modal="true">

@@ -2,8 +2,23 @@ import { useEffect, useRef, useState } from "react";
 import { animate, motion, useMotionValue, type PanInfo } from "framer-motion";
 import { PostFeed, type ActivePost } from "@/components/feed/PostFeed";
 import { ListedItemsPage } from "@/components/ExploreFeedOverlay";
+import { ProductPage } from "./ProductPage";
+import { SalesLockedNotice } from "./SalesLockedNotice";
+import type { StorefrontLook } from "./storefront-look";
 
 type Tab = "for-you" | "listed-items";
+
+// The Listed items pane is black like the feed, so an embedded product page
+// takes the same dark look rather than the storefront theme's.
+const FEED_LOOK: StorefrontLook = {
+  background: "#000",
+  backgroundImage: "none",
+  fontFamily: "inherit",
+  textColor: "#fff",
+  mutedColor: "rgba(255,255,255,0.6)",
+  tileBg: "rgba(255,255,255,0.06)",
+  accent: "#fff",
+};
 const TABS: Tab[] = ["for-you", "listed-items"];
 
 // Same settle as the app's other pagers: quick, no bounce.
@@ -59,6 +74,7 @@ export function StorefrontFeed({
   }
 
   const items = activePost?.tags ?? [];
+  const [salesLocked, setSalesLocked] = useState(false);
 
   return (
     <div ref={containerRef} className="relative h-full w-full overflow-hidden bg-black text-white">
@@ -109,6 +125,27 @@ export function StorefrontFeed({
             <div className="flex h-full w-full items-center justify-center px-10 text-center">
               <p className="text-[15px] font-semibold text-white/70">No linked products</p>
             </div>
+          ) : items.length === 1 ? (
+            // One linked piece: its product page, right here. The list is
+            // for posts that link several.
+            <div className="h-full w-full pt-14">
+              <ProductPage
+                key={items[0].id}
+                embedded
+                visible={tab === "listed-items"}
+                tile={{
+                  id: items[0].id,
+                  title: items[0].title,
+                  photos: items[0].image ? [{ url: items[0].image, variant: 0 }] : [],
+                  variantCount: 1,
+                  price: items[0].price,
+                  compareAtPrice: null,
+                }}
+                look={FEED_LOOK}
+                onClose={() => setTab("for-you")}
+                onAction={() => setSalesLocked(true)}
+              />
+            </div>
           ) : (
             <div className="h-full w-full pt-14">
               <ListedItemsPage items={items} />
@@ -116,6 +153,7 @@ export function StorefrontFeed({
           )}
         </div>
       </motion.div>
+      {salesLocked && <SalesLockedNotice onClose={() => setSalesLocked(false)} />}
     </div>
   );
 }
