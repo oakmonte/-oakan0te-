@@ -25,7 +25,7 @@ export function QuickActions({ onOpenLocations }: { onOpenLocations: () => void 
   const navigate = useNavigate();
 
   const actions: Action[] = [
-    { label: "Add product", icon: Plus, run: () => navigate({ to: "/store/products/new" }) },
+    { label: "Add product", icon: Plus, run: () => navigate({ to: "/store/products" }) },
     {
       label: "Import catalogue",
       icon: Download,
