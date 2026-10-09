@@ -7,7 +7,7 @@ import type { NavTarget } from "@/lib/nav-hierarchy";
 import websiteIcon from "@/assets/website.svg";
 import messagesIcon from "@/assets/messages.svg";
 import createIcon from "@/assets/create.svg";
-import storeIcon from "@/assets/Store.svg";
+import storeIcon from "@/assets/Home.svg";
 import profileIcon from "@/assets/profile.svg";
 
 // Sellers-only: the seller's store dashboard is the first tab, their live
