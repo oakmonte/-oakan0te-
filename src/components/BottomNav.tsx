@@ -3,6 +3,8 @@ import { animate, motion, useMotionValue, useTransform, useVelocity } from "fram
 import { GLASS_RIM, glassLens, glassLight } from "@/lib/liquid-glass";
 import { isStandalone } from "@/lib/standalone";
 import { useGoRoot } from "@/hooks/use-back";
+import { useSession } from "@/hooks/use-session";
+import { supabase } from "@/lib/integrations/my-supabase/client";
 import type { NavTarget } from "@/lib/nav-hierarchy";
 import websiteIcon from "@/assets/website.svg";
 import messagesIcon from "@/assets/messages.svg";
@@ -68,7 +70,40 @@ function freshHeading() {
 // than a bounce.
 const LENS_SPRING = { type: "spring", stiffness: 420, damping: 32, mass: 0.9 } as const;
 
+// Sellers-only: Profile is the seller's STORE profile. Personal usernames and
+// display names are still saved, just not shown. Looked up once per account
+// and kept here, because every screen mounts its own nav.
+let ownStoreCache: { userId: string; storeUsername: string | null } | null = null;
+
+function useOwnStoreUsername(): string | null | undefined {
+  const { user } = useSession();
+  const cached =
+    user && ownStoreCache?.userId === user.id ? ownStoreCache.storeUsername : undefined;
+  const [storeUsername, setStoreUsername] = useState<string | null | undefined>(cached);
+  useEffect(() => {
+    if (!user || cached !== undefined) return;
+    let cancelled = false;
+    supabase
+      .from("stores")
+      .select("store_username")
+      .eq("owner_id", user.id)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (error || cancelled) return;
+        ownStoreCache = { userId: user.id, storeUsername: data?.store_username ?? null };
+        setStoreUsername(ownStoreCache.storeUsername);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user, cached]);
+  return cached ?? storeUsername;
+}
+
 export function BottomNav({ active, ownUsername }: BottomNavProps) {
+  const ownStoreUsername = useOwnStoreUsername();
   // Tabs REPLACE rather than push, and unwind the stack on the way, so a root
   // always ends up at history index 0. Without this, five taps around the tab
   // bar is five entries deep and the back gesture can never leave the app —
@@ -86,13 +121,23 @@ export function BottomNav({ active, ownUsername }: BottomNavProps) {
     { key: "website", label: "Website", icon: websiteIcon, to: "/home" },
     { key: "create", label: "Create", icon: createIcon, to: "/create" },
     { key: "messages", label: "Messages", icon: messagesIcon, to: "/messages" },
-    {
-      key: "profile",
-      label: "Profile",
-      icon: profileIcon,
-      to: "/profile/$username",
-      params: ownUsername ? { username: ownUsername } : undefined,
-    },
+    // The store profile once there's a store; the personal profile only for
+    // an account that hasn't made one yet.
+    ownStoreUsername
+      ? {
+          key: "profile",
+          label: "Profile",
+          icon: profileIcon,
+          to: "/store-profile/$storeUsername",
+          params: { storeUsername: ownStoreUsername },
+        }
+      : {
+          key: "profile",
+          label: "Profile",
+          icon: profileIcon,
+          to: "/profile/$username",
+          params: ownUsername ? { username: ownUsername } : undefined,
+        },
   ];
 
   const trackRef = useRef<HTMLDivElement>(null);

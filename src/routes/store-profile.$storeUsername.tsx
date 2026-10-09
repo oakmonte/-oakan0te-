@@ -285,32 +285,8 @@ function StoreProfilePage() {
             >
               <Search size={22} className={searchOpen ? "text-[#FF7300]" : "text-white"} />
             </button>
-            {ownerUsername && (
-              <button
-                // Visitors go straight to the person behind the store; the
-                // owner gets the switch sheet, as before.
-                onClick={() =>
-                  isOwnStoreProfile
-                    ? setSwitchOpen(true)
-                    : void navigate({
-                        to: "/profile/$username",
-                        params: { username: ownerUsername },
-                      })
-                }
-                aria-label={
-                  isOwnStoreProfile ? "Switch to personal profile" : "View personal profile"
-                }
-                className="transition-transform duration-200 active:scale-90"
-              >
-                <span className="flex h-[26px] w-[26px] items-center justify-center overflow-hidden rounded-full border border-white/60 bg-white/10">
-                  {ownerAvatarUrl ? (
-                    <img src={ownerAvatarUrl} alt="" className="h-full w-full object-cover" />
-                  ) : (
-                    <UserRound size={16} strokeWidth={1.5} className="text-white/60" />
-                  )}
-                </span>
-              </button>
-            )}
+            {/* Sellers-only: no personal-profile button -- the store profile is
+                the whole profile now. */}
             {isOwnStoreProfile && (
               <button
                 onClick={() => setMenuOpen(true)}
