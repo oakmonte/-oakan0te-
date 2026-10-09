@@ -21,7 +21,9 @@ import {
 // source_platform isn't "manual" (csv/shopify/bumpa import), regardless of
 // draft/active. Filtered separately below rather than folded into the status
 // column.
-const TABS = ["All", "Active", "Draft", "Archived", "Uploaded"] as const;
+// "Collection" isn't a filter on its own: tapping it lays the store's
+// collections out beside it, and picking one shows that collection's products.
+const TABS = ["All", "Active", "Draft", "Uploaded", "Collection"] as const;
 
 type ProductRow = {
   id: string;
@@ -85,6 +87,8 @@ export function ProductsPanel({ checklist }: { checklist?: boolean }) {
 
   const [activeTab, setActiveTab] = useState<(typeof TABS)[number]>("All");
   const [search, setSearch] = useState("");
+  const [collections, setCollections] = useState<{ id: string; title: string }[]>([]);
+  const [collectionId, setCollectionId] = useState<string | null>(null);
   const [products, setProducts] = useState<ProductRow[]>([]);
   const [listLoading, setListLoading] = useState(true);
   const [createTypeOpen, setCreateTypeOpen] = useState(false);
@@ -106,7 +110,21 @@ export function ProductsPanel({ checklist }: { checklist?: boolean }) {
       .order("created_at", { ascending: false });
 
     if (activeTab === "Uploaded") query = query.not("source_platform", "eq", "manual");
-    else if (activeTab !== "All") query = query.eq("status", activeTab.toLowerCase());
+    else if (activeTab === "Collection") {
+      if (!collectionId) {
+        setProducts([]);
+        setListLoading(false);
+        return;
+      }
+      const { data: links } = await supabase
+        .from("product_collections")
+        .select("product_id")
+        .eq("collection_id", collectionId);
+      query = query.in(
+        "id",
+        (links ?? []).map((l) => l.product_id),
+      );
+    } else if (activeTab !== "All") query = query.eq("status", activeTab.toLowerCase());
     if (search.trim()) query = query.ilike("title", `%${search.trim()}%`);
 
     const { data, error } = await query;
@@ -118,11 +136,28 @@ export function ProductsPanel({ checklist }: { checklist?: boolean }) {
     // elsewhere) is reconciled at delete time instead -- see handleBulkDelete.
     if (!error && data) setProducts(data as ProductRow[]);
     setListLoading(false);
-  }, [storeId, activeTab, search]);
+  }, [storeId, activeTab, search, collectionId]);
 
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
+
+  // The store's collections, for the row the Collection tab opens.
+  useEffect(() => {
+    if (!storeId) return;
+    let cancelled = false;
+    supabase
+      .from("collections")
+      .select("id, title")
+      .eq("store_id", storeId)
+      .order("created_at", { ascending: true })
+      .then(({ data }) => {
+        if (!cancelled) setCollections(data ?? []);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [storeId]);
 
   // A product saved from the form finishes writing in the background, after
   // this list has already loaded -- so reload it the moment that save lands.
@@ -230,12 +265,38 @@ export function ProductsPanel({ checklist }: { checklist?: boolean }) {
         {TABS.map((tab) => (
           <button
             key={tab}
-            onClick={() => setActiveTab(tab)}
+            onClick={() => {
+              setActiveTab(tab);
+              // Opening Collection lands on the first one, so there's
+              // always something to look at.
+              if (tab === "Collection" && !collectionId)
+                setCollectionId(collections[0]?.id ?? null);
+            }}
             className={`oak-tap shrink-0 pb-3 -mb-px border-b-2 font-medium transition-colors duration-200 ${activeTab === tab ? "border-sd-ink font-semibold text-sd-ink" : "border-transparent text-sd-ink-muted"}`}
           >
             {tab}
           </button>
         ))}
+        {activeTab === "Collection" &&
+          (collections.length === 0 ? (
+            <span className="shrink-0 pb-3 text-sd-ink-faint animate-in fade-in slide-in-from-left-2 duration-200">
+              No collections yet
+            </span>
+          ) : (
+            collections.map((c, i) => (
+              <button
+                key={c.id}
+                onClick={() => setCollectionId(c.id)}
+                // Springs out of the Collection tab, one after another.
+                style={{ animationDelay: `${Math.min(i, 8) * 40}ms`, animationFillMode: "both" }}
+                className={`oak-tap shrink-0 mb-2 rounded-full px-3 py-1 text-[13px] font-medium animate-in fade-in slide-in-from-left-3 duration-300 ${
+                  collectionId === c.id ? "bg-sd-ink text-sd-bg" : "bg-sd-soft text-sd-ink-muted"
+                }`}
+              >
+                {c.title}
+              </button>
+            ))
+          ))}
       </div>
 
       {listLoading ? (
