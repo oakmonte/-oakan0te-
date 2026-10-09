@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useVisibleViewport } from "@/hooks/use-visible-viewport";
 import { PageSheet } from "@/components/PageSheet";
 import {
   Bold,
@@ -9,7 +10,6 @@ import {
   AlignRight,
   List,
   ListOrdered,
-  ChevronDown,
 } from "lucide-react";
 import { sanitizeDescriptionHtml } from "@/lib/sanitize-html";
 import { findBlockedContent, blockedContentMessage } from "@/lib/content-policy";
@@ -40,8 +40,6 @@ const LIST_OPTIONS = [
   { command: "insertUnorderedList", label: "Bulleted list", Icon: List },
   { command: "insertOrderedList", label: "Numbered list", Icon: ListOrdered },
 ] as const;
-
-type ToolbarGroup = "align" | "list" | null;
 
 // Which of the two levels applies at the current selection/cursor, if any.
 // queryCommandState only knows "is there a <b>/<strong> ancestor at all" --
@@ -196,7 +194,14 @@ export function DescriptionSheet({
     insertUnorderedList: false,
     insertOrderedList: false,
   });
-  const [openGroup, setOpenGroup] = useState<ToolbarGroup>(null);
+  const toolbarRef = useRef<HTMLDivElement>(null);
+  // The toolbar is the one fixed thing on this page: pinned to the bottom,
+  // and lifted to sit on the keyboard while it's up.
+  const viewport = useVisibleViewport(true);
+  const keyboardUp = viewport.keyboardHeight > 0;
+  // Hidden while the page scrolls. iPhones report the keyboard's position a
+  // frame or two behind a scroll, so a toolbar shown mid-scroll trails it.
+  const [scrolling, setScrolling] = useState(false);
   const [policyError, setPolicyError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -222,6 +227,38 @@ export function DescriptionSheet({
   }, []);
 
   useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const onScroll = () => {
+      setScrolling(true);
+      clearTimeout(timer);
+      timer = setTimeout(() => setScrolling(false), 180);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.visualViewport?.addEventListener("scroll", onScroll);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("scroll", onScroll);
+      window.visualViewport?.removeEventListener("scroll", onScroll);
+    };
+  }, []);
+
+  // Typing at the bottom: the browser scrolls the caret just into view,
+  // which is behind the toolbar. Nudge it the rest of the way.
+  function keepCaretAboveToolbar() {
+    const sel = window.getSelection();
+    const bar = toolbarRef.current;
+    if (!sel || sel.rangeCount === 0 || !bar) return;
+    const range = sel.getRangeAt(0);
+    const node = range.startContainer;
+    const rect =
+      range.getClientRects()[0] ??
+      (node instanceof Element ? node : node.parentElement)?.getBoundingClientRect();
+    if (!rect) return;
+    const overlap = rect.bottom + 12 - bar.getBoundingClientRect().top;
+    if (overlap > 0) window.scrollBy({ top: overlap, behavior: "instant" });
+  }
+
+  useEffect(() => {
     const handler = () => setFormats(readFormats());
     document.addEventListener("selectionchange", handler);
     return () => document.removeEventListener("selectionchange", handler);
@@ -231,11 +268,6 @@ export function DescriptionSheet({
     editorRef.current?.focus();
     document.execCommand(command, false, arg);
     setFormats(readFormats());
-  }
-
-  function applyAndCollapse(command: string) {
-    exec(command);
-    setOpenGroup(null);
   }
 
   // Turning OFF from a collapsed cursor needs the escape hatch (see
@@ -317,8 +349,6 @@ export function DescriptionSheet({
     onSave(sanitizeDescriptionHtml(html));
   }
 
-  const activeAlign = ALIGN_OPTIONS.find((o) => formats[o.command]) ?? ALIGN_OPTIONS[0];
-
   return (
     <PageSheet
       onClose={onClose}
@@ -334,81 +364,16 @@ export function DescriptionSheet({
         .oak-description-editor a { color: #2563EB; text-decoration: underline; }
       `}</style>
 
-      {/* Header and toolbar stick together at the top. The toolbar used to
-          sit on the keyboard, sized from visualViewport; on a plain page the
-          keyboard would cover it there, and up here nothing can. */}
-      <div className="sticky top-0 z-20 bg-white/95 backdrop-blur">
-        <div className="border-b border-gray-100 px-4 h-14 flex items-center justify-between">
-          <button onClick={onClose} type="button" className="text-sm text-gray-500">
-            Cancel
-          </button>
-          <span className="font-semibold text-[15px] absolute left-1/2 -translate-x-1/2">
-            Description
-          </span>
-          <button onClick={handleSave} type="button" className="text-sm font-medium text-black">
-            Save
-          </button>
-        </div>
-        <div className="border-b border-gray-100 px-2 py-1.5 flex items-center gap-0.5 overflow-x-auto">
-          <ToolbarButton label="Bold" level={formats.bold} onClick={cycleBold}>
-            <Bold size={18} />
-          </ToolbarButton>
-          <ToolbarButton label="Italic" active={formats.italic} onClick={toggleItalic}>
-            <Italic size={18} />
-          </ToolbarButton>
-          <ToolbarButton label="Underline" active={formats.underline} onClick={toggleUnderline}>
-            <Underline size={18} />
-          </ToolbarButton>
-
-          {openGroup === "align" ? (
-            ALIGN_OPTIONS.map(({ command, label, Icon }, i) => (
-              <ToolbarButton
-                key={command}
-                label={label}
-                active={formats[command]}
-                onClick={() => applyAndCollapse(command)}
-                style={{ animationDelay: `${i * 40}ms` }} /* --duration-stagger */
-                className="animate-in fade-in slide-in-from-left-2 duration-200 ease-out fill-mode-both"
-              >
-                <Icon size={18} />
-              </ToolbarButton>
-            ))
-          ) : (
-            <ToolbarButton
-              label="Alignment"
-              onClick={() => setOpenGroup((g) => (g === "align" ? null : "align"))}
-              className="animate-in fade-in duration-200 ease-out"
-            >
-              <activeAlign.Icon size={18} />
-              <ChevronDown size={12} className="text-gray-400" />
-            </ToolbarButton>
-          )}
-
-          {openGroup === "list" ? (
-            LIST_OPTIONS.map(({ command, label, Icon }, i) => (
-              <ToolbarButton
-                key={command}
-                label={label}
-                active={formats[command]}
-                onClick={() => applyAndCollapse(command)}
-                style={{ animationDelay: `${i * 40}ms` }} /* --duration-stagger */
-                className="animate-in fade-in slide-in-from-left-2 duration-200 ease-out fill-mode-both"
-              >
-                <Icon size={18} />
-              </ToolbarButton>
-            ))
-          ) : (
-            <ToolbarButton
-              label="List"
-              active={formats.insertUnorderedList || formats.insertOrderedList}
-              onClick={() => setOpenGroup((g) => (g === "list" ? null : "list"))}
-              className="animate-in fade-in duration-200 ease-out"
-            >
-              <List size={18} />
-              <ChevronDown size={12} className="text-gray-400" />
-            </ToolbarButton>
-          )}
-        </div>
+      <div className="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
+        <button onClick={onClose} type="button" className="text-sm text-gray-500">
+          Cancel
+        </button>
+        <span className="font-semibold text-[15px] absolute left-1/2 -translate-x-1/2">
+          Description
+        </span>
+        <button onClick={handleSave} type="button" className="text-sm font-medium text-black">
+          Save
+        </button>
       </div>
 
       {policyError && (
@@ -424,10 +389,60 @@ export function DescriptionSheet({
         onInput={() => {
           setFormats(readFormats());
           setPolicyError(null);
+          keepCaretAboveToolbar();
         }}
         data-placeholder={placeholder}
         className="oak-description-editor flex-1 min-h-[60dvh] px-4 py-5 text-base text-gray-900 outline-none"
       />
+      {/* Room to scroll the last lines up past the toolbar and keyboard. */}
+      <div aria-hidden className="shrink-0" style={{ height: viewport.keyboardHeight + 72 }} />
+
+      {/* One fixed row -- every button always there, nothing expands or
+          slides, so a tap never moves the button next to it. */}
+      <div
+        ref={toolbarRef}
+        className={`fixed inset-x-0 bottom-0 z-30 border-t border-gray-100 bg-white/95 backdrop-blur px-2 pt-1.5 transition-opacity duration-150 ${
+          scrolling ? "opacity-0 pointer-events-none" : "opacity-100"
+        }`}
+        style={{
+          transform: keyboardUp ? `translateY(-${viewport.keyboardHeight}px)` : undefined,
+          paddingBottom: keyboardUp ? "0.375rem" : "calc(env(safe-area-inset-bottom) + 0.375rem)",
+        }}
+      >
+        <div className="mx-auto flex max-w-[560px] items-center justify-between">
+          <ToolbarButton label="Bold" level={formats.bold} onClick={cycleBold}>
+            <Bold size={18} />
+          </ToolbarButton>
+          <ToolbarButton label="Italic" active={formats.italic} onClick={toggleItalic}>
+            <Italic size={18} />
+          </ToolbarButton>
+          <ToolbarButton label="Underline" active={formats.underline} onClick={toggleUnderline}>
+            <Underline size={18} />
+          </ToolbarButton>
+          <span aria-hidden className="h-5 w-px bg-gray-200" />
+          {ALIGN_OPTIONS.map(({ command, label, Icon }) => (
+            <ToolbarButton
+              key={command}
+              label={label}
+              active={formats[command]}
+              onClick={() => exec(command)}
+            >
+              <Icon size={18} />
+            </ToolbarButton>
+          ))}
+          <span aria-hidden className="h-5 w-px bg-gray-200" />
+          {LIST_OPTIONS.map(({ command, label, Icon }) => (
+            <ToolbarButton
+              key={command}
+              label={label}
+              active={formats[command]}
+              onClick={() => exec(command)}
+            >
+              <Icon size={18} />
+            </ToolbarButton>
+          ))}
+        </div>
+      </div>
     </PageSheet>
   );
 }
@@ -438,8 +453,6 @@ function ToolbarButton({
   level,
   onClick,
   children,
-  className = "",
-  style,
 }: {
   label: string;
   active?: boolean;
@@ -449,8 +462,6 @@ function ToolbarButton({
   level?: BoldLevel;
   onClick: () => void;
   children: React.ReactNode;
-  className?: string;
-  style?: React.CSSProperties;
 }) {
   const stateClass =
     level === 2
@@ -468,11 +479,13 @@ function ToolbarButton({
       // Keeps the editor's selection alive when tapping a toolbar button —
       // without this, focus moves to the button and execCommand has nothing
       // to apply to.
+      // pointerdown too: on a phone the tap otherwise takes focus off the
+      // text, and the keyboard drops between taps.
+      onPointerDown={(e) => e.preventDefault()}
       onMouseDown={(e) => e.preventDefault()}
       onClick={onClick}
       aria-label={label}
       aria-pressed={level !== undefined ? level > 0 : active}
-      style={style}
       // `border` is always present (border-box sizing, so it doesn't shift
       // any button's rendered size) — only its color changes, so level 1's
       // outline doesn't nudge anything relative to its siblings.
@@ -482,7 +495,7 @@ function ToolbarButton({
       // these buttons sit gap-0.5 (2px) apart, so a much bigger expansion
       // would have neighboring buttons' hit zones overlap deep into each
       // other rather than just closing the dead space between them.
-      className={`relative shrink-0 h-9 px-2.5 rounded-lg border flex items-center gap-0.5 transition-colors duration-150 before:content-[''] before:absolute before:-inset-1.5 ${stateClass} ${className}`}
+      className={`relative shrink-0 h-9 min-w-9 px-2 justify-center rounded-lg border flex items-center gap-0.5 transition-colors duration-150 before:content-[''] before:absolute before:-inset-1.5 ${stateClass}`}
     >
       {children}
     </button>

@@ -24,8 +24,9 @@ bg-gray-50` plus a filled black check. There is no accent color anywhere in this
   `useVisibleViewport` in them, and don't go back to `fixed inset-0` — a fixed layer over a
   scrolling page is what the iPhone keyboard kept breaking. Small bottom menus without text input
   (status, actions, confirm dialogs) stay fixed overlays.
-- Keep controls the seller needs while typing at the top (DescriptionSheet's toolbar sits under its
-  header): iOS keyboards cover a page's bottom edge, sticky or not.
+- The one exception is a bar that must ride on the keyboard (DescriptionSheet's toolbar): fixed to
+  the bottom, lifted by `useVisibleViewport().keyboardHeight`, hidden while the page scrolls (iOS
+  reports the keyboard a frame late, so it trails mid-scroll). Only that bar is fixed, never the page.
 
 Variants are built and working: `VariantMatrixBuilder.tsx` owns the options list and generated matrix
 (with "Apply to all" bulk price/stock); `OptionEditorSheet.tsx` is the full-screen option editor
