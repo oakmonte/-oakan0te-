@@ -689,7 +689,9 @@ export function PhoneHeader({
                 }}
                 className="active:scale-90 transition-transform duration-150"
               >
-                <Search size={20} strokeWidth={1.8} />
+                {/* Filled while the search bar is open: a state shown by shape, not
+                    colour, so it reads on every theme. */}
+                <Search size={20} strokeWidth={1.8} fill={searchOpen ? "currentColor" : "none"} />
               </button>
               <button
                 type="button"
