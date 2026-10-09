@@ -3,6 +3,9 @@ import { useEffect, useState } from "react";
 import {
   APPLE_SIGN_IN_ENABLED,
   checkEmailRegistered,
+  clearOAuthAttempts,
+  markOAuthStarted,
+  takeOAuthFailure,
   resolvePostAuthRedirect,
   sendEmailCode,
   isPasskeySupported,
@@ -65,6 +68,11 @@ function AuthPanelInner({ intent, title, subtitle, defaultMode = "code" }: Props
   const [notice, setNotice] = useState<string | null>(null);
   const [checkingSession, setCheckingSession] = useState(true);
   const [emailStatus, setEmailStatus] = useState<EmailStatus>("idle");
+  // Apple/Google round trips that came back without a sign-in, this tab.
+  const [oauthFail, setOauthFail] = useState<{ fails: number; provider: string | null }>({
+    fails: 0,
+    provider: null,
+  });
 
   // Someone who is already signed in used to be shown the sign-in form again,
   // most visibly when /no-account sent them back here to pick an intent.
@@ -74,6 +82,7 @@ function AuthPanelInner({ intent, title, subtitle, defaultMode = "code" }: Props
     supabase.auth.getSession().then(async ({ data }) => {
       if (cancelled) return;
       if (!data.session) {
+        setOauthFail(takeOAuthFailure());
         setCheckingSession(false);
         return;
       }
@@ -157,6 +166,7 @@ function AuthPanelInner({ intent, title, subtitle, defaultMode = "code" }: Props
   }, [intent]);
 
   const finish = async (userId: string) => {
+    clearOAuthAttempts();
     const redirect = await resolvePostAuthRedirect(userId, intent);
     navigate({ ...redirect, replace: true });
   };
@@ -170,6 +180,7 @@ function AuthPanelInner({ intent, title, subtitle, defaultMode = "code" }: Props
     else clearIntent();
     setError(null);
     setBusy("google");
+    markOAuthStarted("google");
     const { error: oauthError } = await signInWithGoogle();
     if (oauthError) {
       setError(oauthError.message);
@@ -183,6 +194,7 @@ function AuthPanelInner({ intent, title, subtitle, defaultMode = "code" }: Props
     else clearIntent();
     setError(null);
     setBusy("apple");
+    markOAuthStarted("apple");
     const { error: oauthError } = await signInWithApple();
     if (oauthError) {
       setError(oauthError.message);
@@ -467,6 +479,21 @@ function AuthPanelInner({ intent, title, subtitle, defaultMode = "code" }: Props
             </h1>
             <p className="mt-3 text-sm text-[#0A0A0A]/70">{subtitle}</p>
           </div>
+
+          {/* From the third Apple/Google round trip that came back signed out:
+              one miss is noise, three is a pattern worth naming. */}
+          {oauthFail.fails >= 3 && (
+            <div
+              role="status"
+              className="mb-5 rounded-2xl border border-[#0A0A0A]/10 bg-[#0A0A0A]/[0.03] px-4 py-3 text-left animate-in fade-in duration-300"
+            >
+              <p className="text-sm font-medium text-[#0A0A0A]">Didn&rsquo;t work? Try again.</p>
+              <p className="mt-0.5 text-[13px] leading-relaxed text-[#0A0A0A]/60">
+                {oauthFail.provider === "apple" ? "Apple" : "Google"} sign-in didn&rsquo;t go
+                through. Give it another go, or use your email below — it&rsquo;s just as quick.
+              </p>
+            </div>
+          )}
 
           {signInOrder ? (
             <>

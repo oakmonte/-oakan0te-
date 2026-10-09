@@ -128,16 +128,23 @@ export async function resolvePostAuthRedirect(
   // Central password gate. isPasswordResetPending covers the forgot-password
   // route, where the account already has a password so needsPassword is false
   // but the user has just been promised the chance to set a new one.
-  const { data: userData } = await supabase.auth.getUser();
+  //
+  // The three lookups run together, not one after another: this sits between
+  // an OAuth return and the first screen, and on a phone network each round
+  // trip is a few hundred ms. The store count is only read on the seller path,
+  // but it's one cheap head request -- cheaper than a fourth sequential wait.
+  const [{ data: userData }, { data: profile, error }, storeCheck] = await Promise.all([
+    supabase.auth.getUser(),
+    supabase
+      .from("profiles")
+      .select("personal_username, account_type, referral_source")
+      .eq("id", userId)
+      .maybeSingle(),
+    supabase.from("stores").select("id", { count: "exact", head: true }).eq("owner_id", userId),
+  ]);
   if (needsPassword(userData.user) || isPasswordResetPending()) {
     return { to: "/create-password" } as const;
   }
-
-  const { data: profile, error } = await supabase
-    .from("profiles")
-    .select("personal_username, account_type, referral_source")
-    .eq("id", userId)
-    .maybeSingle();
 
   if (error) {
     console.error("resolvePostAuthRedirect: failed to check profile", error);
@@ -203,10 +210,7 @@ export async function resolvePostAuthRedirect(
   }
 
   if (intent === "seller") {
-    const { count, error: storeError } = await supabase
-      .from("stores")
-      .select("id", { count: "exact", head: true })
-      .eq("owner_id", userId);
+    const { count, error: storeError } = storeCheck;
 
     if (storeError) console.error("resolvePostAuthRedirect: failed to check store", storeError);
     if (!storeError && !count) return { to: "/name-your-store" } as const;
@@ -497,4 +501,47 @@ export async function registerPasskey() {
  *  authenticates it in the same gesture. */
 export async function signInWithPasskey() {
   return supabase.auth.signInWithPasskey();
+}
+
+// ---- OAuth attempts that never came back --------------------------------
+// Apple (and sometimes Google) can leave someone on its own pages, and they
+// come back to the sign-in screen still signed out. One miss is noise; from
+// the third, AuthPanel says so and points at email instead of letting them
+// keep tapping the same button. sessionStorage: per tab, gone when it closes.
+
+const OAUTH_PENDING_KEY = "oak-oauth-pending";
+const OAUTH_FAILS_KEY = "oak-oauth-fails";
+
+export function markOAuthStarted(provider: "apple" | "google") {
+  try {
+    sessionStorage.setItem(OAUTH_PENDING_KEY, provider);
+  } catch {
+    // Storage blocked: no counting, nothing else lost.
+  }
+}
+
+/** Called when the sign-in screen mounts. A start with no sign-in since is a
+ *  failed attempt. Returns the failures so far and the provider involved. */
+export function takeOAuthFailure(): { fails: number; provider: string | null } {
+  try {
+    const provider = sessionStorage.getItem(OAUTH_PENDING_KEY);
+    let fails = Number(sessionStorage.getItem(OAUTH_FAILS_KEY) ?? 0) || 0;
+    if (provider) {
+      fails += 1;
+      sessionStorage.setItem(OAUTH_FAILS_KEY, String(fails));
+      sessionStorage.removeItem(OAUTH_PENDING_KEY);
+    }
+    return { fails, provider };
+  } catch {
+    return { fails: 0, provider: null };
+  }
+}
+
+export function clearOAuthAttempts() {
+  try {
+    sessionStorage.removeItem(OAUTH_PENDING_KEY);
+    sessionStorage.removeItem(OAUTH_FAILS_KEY);
+  } catch {
+    // As above.
+  }
 }

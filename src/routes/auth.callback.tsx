@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
-import { resolvePostAuthRedirect } from "@/lib/auth";
+import { clearOAuthAttempts, resolvePostAuthRedirect } from "@/lib/auth";
 
 export const Route = createFileRoute("/auth/callback")({
   head: () => ({ meta: [{ title: "Signing you in — Oakmonte" }] }),
@@ -24,6 +24,7 @@ function AuthCallback() {
     }
 
     const finishSignIn = async (userId: string) => {
+      clearOAuthAttempts();
       const redirect = await resolvePostAuthRedirect(userId);
       navigate({ ...redirect, replace: true });
     };
