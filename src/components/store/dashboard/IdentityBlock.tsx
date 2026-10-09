@@ -212,14 +212,16 @@ export function IdentityBlock({
           Visit store up here competed with it as a second primary. 44px tall,
           and no-wrap so a larger text size shrinks the gap before it breaks a
           label across two lines inside a pill. */}
-      <div className="grid grid-cols-3 gap-2">
-        <Link
-          to="/shop/$storeUsername"
-          params={{ storeUsername: store.store_username }}
-          className="oak-tap grid h-11 place-items-center whitespace-nowrap rounded-full border border-sd-line bg-sd-surface px-2 text-[13px] font-semibold text-sd-ink oak-motion-control active:scale-[0.97]"
-        >
-          Visit store
-        </Link>
+      <div className="grid grid-cols-2 gap-2">
+        {/* Visit store: hidden for now (sellers-only launch). Restore with
+            grid-cols-3 above.
+            <Link
+            to="/shop/$storeUsername"
+            params={{ storeUsername: store.store_username }}
+            className="oak-tap grid h-11 place-items-center whitespace-nowrap rounded-full border border-sd-line bg-sd-surface px-2 text-[13px] font-semibold text-sd-ink oak-motion-control active:scale-[0.97]"
+            >
+            Visit store
+            </Link> */}
         <button
           type="button"
           onClick={onShare}
