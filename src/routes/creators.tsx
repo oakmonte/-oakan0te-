@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ogImageMeta } from "@/lib/og-image";
+import { canonicalLink } from "@/lib/seo";
 import { useEffect, useRef, useState } from "react";
 import type { CSSProperties, KeyboardEvent, ReactNode } from "react";
 import logoO from "@/assets/logo-o.png";
@@ -23,6 +24,7 @@ export const Route = createFileRoute("/creators")({
       ...ogImageMeta("creators", "Oakmonte for creators: Tag the fit. Get paid for the sale."),
     ],
     links: [
+      canonicalLink("/creators"),
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {

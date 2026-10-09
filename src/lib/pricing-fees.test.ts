@@ -13,7 +13,7 @@ describe("computeFees", () => {
   test("no flat fee below the threshold", () => {
     const fees = computeFees(2000);
     expect(fees.hasFlatFee).toBe(false);
-    expect(fees.commission).toBeCloseTo(90);
+    expect(fees.commission).toBeCloseTo(60);
     expect(fees.paystackFee).toBeCloseTo(30);
   });
 
@@ -28,7 +28,7 @@ describe("computeFees", () => {
     expect(fees.isCapped).toBe(true);
     expect(fees.paystackFee).toBe(PAYSTACK_FEE_CAP);
     // The commission is uncapped, so the total keeps climbing past it.
-    expect(fees.commission).toBeCloseTo(45_000);
+    expect(fees.commission).toBeCloseTo(30_000);
   });
 });
 

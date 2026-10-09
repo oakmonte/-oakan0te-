@@ -23,6 +23,7 @@ import { Route as EditProfileRouteImport } from './routes/edit-profile'
 import { Route as FindYourFitRouteImport } from './routes/find-your-fit'
 import { Route as GetTheWebappRouteImport } from './routes/get-the-webapp'
 import { Route as HomeRouteImport } from './routes/home'
+import { Route as LlmsDottxtRouteImport } from './routes/llms[.]txt'
 import { Route as MessagesRouteImport } from './routes/messages'
 import { Route as NameYourStoreRouteImport } from './routes/name-your-store'
 import { Route as NoAccountRouteImport } from './routes/no-account'
@@ -31,11 +32,13 @@ import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as PasskeyRouteImport } from './routes/passkey'
 import { Route as PreviousIndexRouteImport } from './routes/previous-index'
 import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as SellerTypeRouteImport } from './routes/seller-type'
 import { Route as SellersRouteImport } from './routes/sellers'
 import { Route as SetUpStoreRouteImport } from './routes/set-up-store'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SignInRouteImport } from './routes/sign-in'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as StoreRouteImport } from './routes/store'
 import { Route as StudioRouteImport } from './routes/studio'
 import { Route as SwitchingRolesRouteImport } from './routes/switching-roles'
@@ -59,6 +62,8 @@ import { Route as CreatePhotoEditorRouteImport } from './routes/create.photo-edi
 import { Route as CreateStorePieceRouteImport } from './routes/create.store-piece'
 import { Route as CreateStudioRouteImport } from './routes/create.studio'
 import { Route as CreateVideoEditorRouteImport } from './routes/create.video-editor'
+import { Route as LearnIndexRouteImport } from './routes/learn.index'
+import { Route as LearnSlugRouteImport } from './routes/learn.$slug'
 import { Route as OrderOrderIdRouteImport } from './routes/order.$orderId'
 import { Route as ProfileUsernameRouteImport } from './routes/profile.$username'
 import { Route as StoreProfileStoreUsernameRouteImport } from './routes/store-profile.$storeUsername'
@@ -189,6 +194,11 @@ const HomeRoute = HomeRouteImport.update({
   path: '/home',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LlmsDottxtRoute = LlmsDottxtRouteImport.update({
+  id: '/llms.txt',
+  path: '/llms.txt',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MessagesRoute = MessagesRouteImport.update({
   id: '/messages',
   path: '/messages',
@@ -229,6 +239,11 @@ const PrivacyRoute = PrivacyRouteImport.update({
   path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
+  id: '/robots.txt',
+  path: '/robots.txt',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SellerTypeRoute = SellerTypeRouteImport.update({
   id: '/seller-type',
   path: '/seller-type',
@@ -252,6 +267,11 @@ const SettingsRoute = SettingsRouteImport.update({
 const SignInRoute = SignInRouteImport.update({
   id: '/sign-in',
   path: '/sign-in',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StoreRoute = StoreRouteImport.update({
@@ -368,6 +388,16 @@ const CreateVideoEditorRoute = CreateVideoEditorRouteImport.update({
   id: '/video-editor',
   path: '/video-editor',
   getParentRoute: () => CreateRoute,
+} as any)
+const LearnIndexRoute = LearnIndexRouteImport.update({
+  id: '/learn/',
+  path: '/learn/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LearnSlugRoute = LearnSlugRouteImport.update({
+  id: '/learn/$slug',
+  path: '/learn/$slug',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const OrderOrderIdRoute = OrderOrderIdRouteImport.update({
   id: '/order/$orderId',
@@ -686,6 +716,7 @@ export interface FileRoutesByFullPath {
   '/find-your-fit': typeof FindYourFitRoute
   '/get-the-webapp': typeof GetTheWebappRoute
   '/home': typeof HomeRoute
+  '/llms.txt': typeof LlmsDottxtRoute
   '/messages': typeof MessagesRoute
   '/name-your-store': typeof NameYourStoreRoute
   '/no-account': typeof NoAccountRoute
@@ -694,11 +725,13 @@ export interface FileRoutesByFullPath {
   '/passkey': typeof PasskeyRoute
   '/previous-index': typeof PreviousIndexRoute
   '/privacy': typeof PrivacyRoute
+  '/robots.txt': typeof RobotsDottxtRoute
   '/seller-type': typeof SellerTypeRoute
   '/sellers': typeof SellersRoute
   '/set-up-store': typeof SetUpStoreRoute
   '/settings': typeof SettingsRoute
   '/sign-in': typeof SignInRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/store': typeof StoreRouteWithChildren
   '/studio': typeof StudioRoute
   '/switching-roles': typeof SwitchingRolesRoute
@@ -721,6 +754,7 @@ export interface FileRoutesByFullPath {
   '/create/store-piece': typeof CreateStorePieceRoute
   '/create/studio': typeof CreateStudioRoute
   '/create/video-editor': typeof CreateVideoEditorRoute
+  '/learn/$slug': typeof LearnSlugRoute
   '/order/$orderId': typeof OrderOrderIdRoute
   '/profile/$username': typeof ProfileUsernameRoute
   '/store-profile/$storeUsername': typeof StoreProfileStoreUsernameRoute
@@ -735,6 +769,7 @@ export interface FileRoutesByFullPath {
   '/store/products': typeof StoreProductsRoute
   '/store/theme': typeof StoreThemeRoute
   '/create/': typeof CreateIndexRoute
+  '/learn/': typeof LearnIndexRoute
   '/store/': typeof StoreIndexRoute
   '/api/account/delete': typeof ApiAccountDeleteRoute
   '/api/bumpa/connect': typeof ApiBumpaConnectRoute
@@ -796,6 +831,7 @@ export interface FileRoutesByTo {
   '/find-your-fit': typeof FindYourFitRoute
   '/get-the-webapp': typeof GetTheWebappRoute
   '/home': typeof HomeRoute
+  '/llms.txt': typeof LlmsDottxtRoute
   '/messages': typeof MessagesRoute
   '/name-your-store': typeof NameYourStoreRoute
   '/no-account': typeof NoAccountRoute
@@ -804,11 +840,13 @@ export interface FileRoutesByTo {
   '/passkey': typeof PasskeyRoute
   '/previous-index': typeof PreviousIndexRoute
   '/privacy': typeof PrivacyRoute
+  '/robots.txt': typeof RobotsDottxtRoute
   '/seller-type': typeof SellerTypeRoute
   '/sellers': typeof SellersRoute
   '/set-up-store': typeof SetUpStoreRoute
   '/settings': typeof SettingsRoute
   '/sign-in': typeof SignInRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/studio': typeof StudioRoute
   '/switching-roles': typeof SwitchingRolesRoute
   '/terms': typeof TermsRoute
@@ -829,6 +867,7 @@ export interface FileRoutesByTo {
   '/create/store-piece': typeof CreateStorePieceRoute
   '/create/studio': typeof CreateStudioRoute
   '/create/video-editor': typeof CreateVideoEditorRoute
+  '/learn/$slug': typeof LearnSlugRoute
   '/order/$orderId': typeof OrderOrderIdRoute
   '/profile/$username': typeof ProfileUsernameRoute
   '/store-profile/$storeUsername': typeof StoreProfileStoreUsernameRoute
@@ -843,6 +882,7 @@ export interface FileRoutesByTo {
   '/store/products': typeof StoreProductsRoute
   '/store/theme': typeof StoreThemeRoute
   '/create': typeof CreateIndexRoute
+  '/learn': typeof LearnIndexRoute
   '/store': typeof StoreIndexRoute
   '/api/account/delete': typeof ApiAccountDeleteRoute
   '/api/bumpa/connect': typeof ApiBumpaConnectRoute
@@ -906,6 +946,7 @@ export interface FileRoutesById {
   '/find-your-fit': typeof FindYourFitRoute
   '/get-the-webapp': typeof GetTheWebappRoute
   '/home': typeof HomeRoute
+  '/llms.txt': typeof LlmsDottxtRoute
   '/messages': typeof MessagesRoute
   '/name-your-store': typeof NameYourStoreRoute
   '/no-account': typeof NoAccountRoute
@@ -914,11 +955,13 @@ export interface FileRoutesById {
   '/passkey': typeof PasskeyRoute
   '/previous-index': typeof PreviousIndexRoute
   '/privacy': typeof PrivacyRoute
+  '/robots.txt': typeof RobotsDottxtRoute
   '/seller-type': typeof SellerTypeRoute
   '/sellers': typeof SellersRoute
   '/set-up-store': typeof SetUpStoreRoute
   '/settings': typeof SettingsRoute
   '/sign-in': typeof SignInRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/store': typeof StoreRouteWithChildren
   '/studio': typeof StudioRoute
   '/switching-roles': typeof SwitchingRolesRoute
@@ -941,6 +984,7 @@ export interface FileRoutesById {
   '/create/store-piece': typeof CreateStorePieceRoute
   '/create/studio': typeof CreateStudioRoute
   '/create/video-editor': typeof CreateVideoEditorRoute
+  '/learn/$slug': typeof LearnSlugRoute
   '/order/$orderId': typeof OrderOrderIdRoute
   '/profile/$username': typeof ProfileUsernameRoute
   '/store-profile/$storeUsername': typeof StoreProfileStoreUsernameRoute
@@ -955,6 +999,7 @@ export interface FileRoutesById {
   '/store/products': typeof StoreProductsRoute
   '/store/theme': typeof StoreThemeRoute
   '/create/': typeof CreateIndexRoute
+  '/learn/': typeof LearnIndexRoute
   '/store/': typeof StoreIndexRoute
   '/api/account/delete': typeof ApiAccountDeleteRoute
   '/api/bumpa/connect': typeof ApiBumpaConnectRoute
@@ -1019,6 +1064,7 @@ export interface FileRouteTypes {
     | '/find-your-fit'
     | '/get-the-webapp'
     | '/home'
+    | '/llms.txt'
     | '/messages'
     | '/name-your-store'
     | '/no-account'
@@ -1027,11 +1073,13 @@ export interface FileRouteTypes {
     | '/passkey'
     | '/previous-index'
     | '/privacy'
+    | '/robots.txt'
     | '/seller-type'
     | '/sellers'
     | '/set-up-store'
     | '/settings'
     | '/sign-in'
+    | '/sitemap.xml'
     | '/store'
     | '/studio'
     | '/switching-roles'
@@ -1054,6 +1102,7 @@ export interface FileRouteTypes {
     | '/create/store-piece'
     | '/create/studio'
     | '/create/video-editor'
+    | '/learn/$slug'
     | '/order/$orderId'
     | '/profile/$username'
     | '/store-profile/$storeUsername'
@@ -1068,6 +1117,7 @@ export interface FileRouteTypes {
     | '/store/products'
     | '/store/theme'
     | '/create/'
+    | '/learn/'
     | '/store/'
     | '/api/account/delete'
     | '/api/bumpa/connect'
@@ -1129,6 +1179,7 @@ export interface FileRouteTypes {
     | '/find-your-fit'
     | '/get-the-webapp'
     | '/home'
+    | '/llms.txt'
     | '/messages'
     | '/name-your-store'
     | '/no-account'
@@ -1137,11 +1188,13 @@ export interface FileRouteTypes {
     | '/passkey'
     | '/previous-index'
     | '/privacy'
+    | '/robots.txt'
     | '/seller-type'
     | '/sellers'
     | '/set-up-store'
     | '/settings'
     | '/sign-in'
+    | '/sitemap.xml'
     | '/studio'
     | '/switching-roles'
     | '/terms'
@@ -1162,6 +1215,7 @@ export interface FileRouteTypes {
     | '/create/store-piece'
     | '/create/studio'
     | '/create/video-editor'
+    | '/learn/$slug'
     | '/order/$orderId'
     | '/profile/$username'
     | '/store-profile/$storeUsername'
@@ -1176,6 +1230,7 @@ export interface FileRouteTypes {
     | '/store/products'
     | '/store/theme'
     | '/create'
+    | '/learn'
     | '/store'
     | '/api/account/delete'
     | '/api/bumpa/connect'
@@ -1238,6 +1293,7 @@ export interface FileRouteTypes {
     | '/find-your-fit'
     | '/get-the-webapp'
     | '/home'
+    | '/llms.txt'
     | '/messages'
     | '/name-your-store'
     | '/no-account'
@@ -1246,11 +1302,13 @@ export interface FileRouteTypes {
     | '/passkey'
     | '/previous-index'
     | '/privacy'
+    | '/robots.txt'
     | '/seller-type'
     | '/sellers'
     | '/set-up-store'
     | '/settings'
     | '/sign-in'
+    | '/sitemap.xml'
     | '/store'
     | '/studio'
     | '/switching-roles'
@@ -1273,6 +1331,7 @@ export interface FileRouteTypes {
     | '/create/store-piece'
     | '/create/studio'
     | '/create/video-editor'
+    | '/learn/$slug'
     | '/order/$orderId'
     | '/profile/$username'
     | '/store-profile/$storeUsername'
@@ -1287,6 +1346,7 @@ export interface FileRouteTypes {
     | '/store/products'
     | '/store/theme'
     | '/create/'
+    | '/learn/'
     | '/store/'
     | '/api/account/delete'
     | '/api/bumpa/connect'
@@ -1350,6 +1410,7 @@ export interface RootRouteChildren {
   FindYourFitRoute: typeof FindYourFitRoute
   GetTheWebappRoute: typeof GetTheWebappRoute
   HomeRoute: typeof HomeRoute
+  LlmsDottxtRoute: typeof LlmsDottxtRoute
   MessagesRoute: typeof MessagesRoute
   NameYourStoreRoute: typeof NameYourStoreRoute
   NoAccountRoute: typeof NoAccountRoute
@@ -1358,11 +1419,13 @@ export interface RootRouteChildren {
   PasskeyRoute: typeof PasskeyRoute
   PreviousIndexRoute: typeof PreviousIndexRoute
   PrivacyRoute: typeof PrivacyRoute
+  RobotsDottxtRoute: typeof RobotsDottxtRoute
   SellerTypeRoute: typeof SellerTypeRoute
   SellersRoute: typeof SellersRoute
   SetUpStoreRoute: typeof SetUpStoreRoute
   SettingsRoute: typeof SettingsRoute
   SignInRoute: typeof SignInRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   StoreRoute: typeof StoreRouteWithChildren
   StudioRoute: typeof StudioRoute
   SwitchingRolesRoute: typeof SwitchingRolesRoute
@@ -1379,9 +1442,11 @@ export interface RootRouteChildren {
   AuthCallbackRoute: typeof AuthCallbackRoute
   CheckoutProductIdRoute: typeof CheckoutProductIdRoute
   CheckoutCartRoute: typeof CheckoutCartRoute
+  LearnSlugRoute: typeof LearnSlugRoute
   OrderOrderIdRoute: typeof OrderOrderIdRoute
   ProfileUsernameRoute: typeof ProfileUsernameRoute
   StoreProfileStoreUsernameRoute: typeof StoreProfileStoreUsernameRoute
+  LearnIndexRoute: typeof LearnIndexRoute
   ApiAccountDeleteRoute: typeof ApiAccountDeleteRoute
   ApiBumpaConnectRoute: typeof ApiBumpaConnectRoute
   ApiChatInboxRoute: typeof ApiChatInboxRoute
@@ -1509,6 +1574,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HomeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/llms.txt': {
+      id: '/llms.txt'
+      path: '/llms.txt'
+      fullPath: '/llms.txt'
+      preLoaderRoute: typeof LlmsDottxtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/messages': {
       id: '/messages'
       path: '/messages'
@@ -1565,6 +1637,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/robots.txt': {
+      id: '/robots.txt'
+      path: '/robots.txt'
+      fullPath: '/robots.txt'
+      preLoaderRoute: typeof RobotsDottxtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/seller-type': {
       id: '/seller-type'
       path: '/seller-type'
@@ -1598,6 +1677,13 @@ declare module '@tanstack/react-router' {
       path: '/sign-in'
       fullPath: '/sign-in'
       preLoaderRoute: typeof SignInRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/store': {
@@ -1760,6 +1846,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/create/video-editor'
       preLoaderRoute: typeof CreateVideoEditorRouteImport
       parentRoute: typeof CreateRoute
+    }
+    '/learn/': {
+      id: '/learn/'
+      path: '/learn'
+      fullPath: '/learn/'
+      preLoaderRoute: typeof LearnIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/learn/$slug': {
+      id: '/learn/$slug'
+      path: '/learn/$slug'
+      fullPath: '/learn/$slug'
+      preLoaderRoute: typeof LearnSlugRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/order/$orderId': {
       id: '/order/$orderId'
@@ -2326,6 +2426,7 @@ const rootRouteChildren: RootRouteChildren = {
   FindYourFitRoute: FindYourFitRoute,
   GetTheWebappRoute: GetTheWebappRoute,
   HomeRoute: HomeRoute,
+  LlmsDottxtRoute: LlmsDottxtRoute,
   MessagesRoute: MessagesRoute,
   NameYourStoreRoute: NameYourStoreRoute,
   NoAccountRoute: NoAccountRoute,
@@ -2334,11 +2435,13 @@ const rootRouteChildren: RootRouteChildren = {
   PasskeyRoute: PasskeyRoute,
   PreviousIndexRoute: PreviousIndexRoute,
   PrivacyRoute: PrivacyRoute,
+  RobotsDottxtRoute: RobotsDottxtRoute,
   SellerTypeRoute: SellerTypeRoute,
   SellersRoute: SellersRoute,
   SetUpStoreRoute: SetUpStoreRoute,
   SettingsRoute: SettingsRoute,
   SignInRoute: SignInRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   StoreRoute: StoreRouteWithChildren,
   StudioRoute: StudioRoute,
   SwitchingRolesRoute: SwitchingRolesRoute,
@@ -2355,9 +2458,11 @@ const rootRouteChildren: RootRouteChildren = {
   AuthCallbackRoute: AuthCallbackRoute,
   CheckoutProductIdRoute: CheckoutProductIdRoute,
   CheckoutCartRoute: CheckoutCartRoute,
+  LearnSlugRoute: LearnSlugRoute,
   OrderOrderIdRoute: OrderOrderIdRoute,
   ProfileUsernameRoute: ProfileUsernameRoute,
   StoreProfileStoreUsernameRoute: StoreProfileStoreUsernameRoute,
+  LearnIndexRoute: LearnIndexRoute,
   ApiAccountDeleteRoute: ApiAccountDeleteRoute,
   ApiBumpaConnectRoute: ApiBumpaConnectRoute,
   ApiChatInboxRoute: ApiChatInboxRoute,

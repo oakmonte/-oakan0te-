@@ -6,6 +6,15 @@ native-only APIs.
 
 Don't rewrite pushed history (force push / rebase / amend / squash) — the remote is shared.
 
+## This branch is the master-piece (2026-10-09 pivot)
+
+`oakmonte-master-piece` is the full platform — social feed, profiles, messages, orders, cart,
+checkout, prepared for Paystack — kept safe while Oakmonte pivots to **sellers-only** (stores
+with a video feed of linked products) on `main`. Low priority, not abandoned: when the
+half-built lanes (discounts, insights, activity; not offline videos) are finished on the
+sellers-only work, they're merged in here too. Never merge `main` into this branch wholesale —
+`main` removes the social side. Tag `master-piece-2026-10-09` marks the version as it stood at the pivot.
+
 ## Multiple agents share this repo
 
 A shared checkout is the cause of most merge/push trouble here. Give each agent its own worktree:

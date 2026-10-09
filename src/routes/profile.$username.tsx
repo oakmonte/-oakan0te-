@@ -1202,6 +1202,14 @@ export function ProfileView({
         open={shareOpen}
         onClose={() => setShareOpen(false)}
         avatarUrl={profile?.avatar_url ?? null}
+        onEditPhoto={
+          isOwnProfile
+            ? () => {
+                setShareOpen(false);
+                void navigate({ to: "/edit-profile" });
+              }
+            : undefined
+        }
         shareUrl={
           typeof window !== "undefined"
             ? `${window.location.origin}/profile/${profile?.personal_username || username}`

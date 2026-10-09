@@ -193,7 +193,7 @@ const SECTIONS: LegalSection[] = [
             and to Oakmonte about your orders.
           </li>
           <li>
-            <B>Fees.</B> Oakmonte charges a commission of 4.5% of the price paid for each item sold.
+            <B>Fees.</B> Oakmonte charges a commission of 3% of the price paid for each item sold.
             Paystack's payment processing fee is also deducted from the sale: currently 1.5% of the
             amount paid plus ₦100 (the ₦100 is waived on amounts under ₦2,500), capped at ₦2,000 per
             transaction. The amount you will receive is shown when you set your price. We will give
@@ -486,7 +486,7 @@ function TermsPage() {
           <p>
             Oakmonte is a marketplace: sellers sell their own products, creators link their posts to
             them, and buyers buy from the seller. When checkout opens, payments are held until the
-            order is complete, and Oakmonte takes a 4.5% commission from sellers.
+            order is complete, and Oakmonte takes a 3% commission from sellers.
           </p>
           <p>
             You keep ownership of what you post. Be honest, sell genuine products, and don't take
