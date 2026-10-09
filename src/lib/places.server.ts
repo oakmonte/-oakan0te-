@@ -107,6 +107,17 @@ export async function placeAddress(
   if (!p) return null;
   const parts = p.addressComponents ?? [];
   const get = (type: string) => parts.find((c) => c.types?.includes(type))?.longText ?? "";
+  return {
+    ...addressFrom(get, p.formattedAddress ?? "", p.displayName?.text ?? ""),
+    lat: p.location?.latitude ?? null,
+    lng: p.location?.longitude ?? null,
+    formatted: p.formattedAddress ?? "",
+  };
+}
+
+// Shared by a picked suggestion and a GPS lookup: Google's address parts ->
+// the form's fields.
+function addressFrom(get: (type: string) => string, formatted: string, name: string) {
   const city =
     get("locality") ||
     get("sublocality") ||
@@ -120,7 +131,7 @@ export async function placeAddress(
   // street_number + route drop ("Plot 2, Kayode Animashaun Street, Off
   // Admiralty Wy, Lekki Phase 1" vs just "Off Admiralty Way").
   const tail = [city, state, country].filter(Boolean).map((t) => t.toLowerCase());
-  const segments = (p.formattedAddress ?? "").split(",").map((t) => t.trim());
+  const segments = formatted.split(",").map((t) => t.trim());
   while (segments.length > 1) {
     const last = segments[segments.length - 1].toLowerCase();
     const isTail =
@@ -132,17 +143,49 @@ export async function placeAddress(
   const fromFormatted = segments.join(", ");
   const line1 =
     (fromFormatted && fromFormatted.length >= street.length ? fromFormatted : street) ||
-    p.displayName?.text ||
+    name ||
     get("neighborhood") ||
     "";
+  return { line1, city, state, country, postalCode };
+}
+
+/** GPS pin -> address with Google's Geocoding API (needs "Geocoding API"
+ *  enabled on the key). Null when there's no key or Google has nothing, so
+ *  the caller can fall back. Prefers a precise street-level result over the
+ *  area-level ones Google also returns. */
+export async function reverseGeocodeGoogle(lat: number, lng: number) {
+  const key = KEY();
+  if (!key) return null;
+  const res = await fetch(
+    `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${key}`,
+  );
+  const body = (await res.json().catch(() => null)) as {
+    status?: string;
+    error_message?: string;
+    results?: {
+      formatted_address?: string;
+      types?: string[];
+      address_components?: { long_name?: string; types?: string[] }[];
+    }[];
+  } | null;
+  if (!res.ok || body?.status !== "OK" || !body.results?.length) {
+    if (body?.status !== "ZERO_RESULTS") {
+      console.error(
+        "Google reverse geocode failed:",
+        res.status,
+        body?.status,
+        body?.error_message,
+      );
+    }
+    return null;
+  }
+  const precise = ["street_address", "premise", "subpremise", "route", "establishment"];
+  const best =
+    body.results.find((r) => r.types?.some((t) => precise.includes(t))) ?? body.results[0];
+  const parts = best.address_components ?? [];
+  const get = (type: string) => parts.find((c) => c.types?.includes(type))?.long_name ?? "";
   return {
-    line1,
-    city,
-    state,
-    country,
-    postalCode,
-    lat: p.location?.latitude ?? null,
-    lng: p.location?.longitude ?? null,
-    formatted: p.formattedAddress ?? "",
+    ...addressFrom(get, best.formatted_address ?? "", ""),
+    formatted: best.formatted_address ?? "",
   };
 }

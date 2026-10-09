@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { getRequestUser } from "@/lib/server-auth";
+import { reverseGeocodeGoogle } from "@/lib/places.server";
 
 // "Use my current location" at checkout: turns coordinates into a readable
 // address. Server-side so the browser never calls Nominatim itself (their
@@ -42,6 +43,22 @@ export const Route = createFileRoute("/api/shipping/reverse-geocode")({
           return Response.json({ error: "Bad coordinates" }, { status: 400 });
         }
 
+        // Google first (much better on Nigerian streets); the free
+        // OpenStreetMap lookup below stays as the fallback.
+        const google = await reverseGeocodeGoogle(lat, lng).catch(() => null);
+        if (google) {
+          return Response.json(
+            {
+              address: google.formatted || null,
+              line1: google.line1 || null,
+              city: google.city || null,
+              state: google.state || null,
+              country: google.country || null,
+              postalCode: google.postalCode || null,
+            },
+            { headers: NO_STORE },
+          );
+        }
         const res = await fetch(
           `https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&lat=${lat}&lon=${lng}`,
           {
