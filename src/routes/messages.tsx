@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Archive, ChevronLeft, MessageCircleOff, Search, X } from "lucide-react";
@@ -41,8 +41,12 @@ export const Route = createFileRoute("/messages")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  component: MessagesPage,
+  component: MessagesRoute,
 });
+
+function MessagesRoute() {
+  return <MessagesView />;
+}
 
 type Folder = "all" | "unread" | "offers" | "orders";
 
@@ -53,11 +57,28 @@ const FOLDERS: { key: Folder; label: string }[] = [
   { key: "orders", label: "Orders" },
 ];
 
-function MessagesPage() {
+/** A storefront's Messages tab: the same page, listing only the
+ *  conversation with that store's seller (no Support, no Me). */
+export type SellerOnly = {
+  ownerId: string;
+  ownerUsername: string | null;
+  name: string;
+  avatarUrl: string | null;
+};
+
+export function MessagesView({
+  sellerOnly,
+  onThreadOpenChange,
+}: {
+  sellerOnly?: SellerOnly;
+  /** Lets a host hide its own chrome while a chat is open. */
+  onThreadOpenChange?: (open: boolean) => void;
+} = {}) {
   const { user, loading: sessionLoading } = useSession();
   const me = user?.id ?? null;
   const ownUsername = useOwnUsername();
-  const search = Route.useSearch();
+  // Not Route.useSearch(): a storefront renders this on another route.
+  const search = useSearch({ strict: false }) as { to?: string };
   const navigate = useNavigate();
 
   const inbox = useInbox(me, sessionLoading);
@@ -84,7 +105,19 @@ function MessagesPage() {
   const report = useCallback((message: string) => setToast(message), []);
 
   /* ---------- all chats: support pinned on top ---------- */
-  const allChats = useMemo(() => [inbox.support, ...inbox.chats], [inbox.support, inbox.chats]);
+  // A seller looking at their own store has no conversation with themselves.
+  const viewingOwnStore = !!sellerOnly && me === sellerOnly.ownerId;
+  const allChats = useMemo(
+    () =>
+      sellerOnly
+        ? viewingOwnStore
+          ? []
+          : inbox.chats.filter(
+              (chat) => chat.kind === "direct" && chat.peer?.id === sellerOnly.ownerId,
+            )
+        : [inbox.support, ...inbox.chats],
+    [inbox.support, inbox.chats, sellerOnly, viewingOwnStore],
+  );
   const active = allChats.filter((chat) => !chat.archivedAt);
   const archived = allChats.filter((chat) => chat.archivedAt);
 
@@ -175,7 +208,7 @@ function MessagesPage() {
   /* ---------- deep link: /messages?to=<username> (the profile "Message" button) ---------- */
   const handledDeepLink = useRef<string | null>(null);
   useEffect(() => {
-    if (!search.to || !me || inbox.status !== "ready") return;
+    if (sellerOnly || !search.to || !me || inbox.status !== "ready") return;
     if (handledDeepLink.current === search.to) return;
     handledDeepLink.current = search.to;
     const username = search.to;
@@ -196,7 +229,11 @@ function MessagesPage() {
         report((reason as Error).message);
       }
     })();
-  }, [search.to, me, inbox.status, navigate, openThread, report, startWith]);
+  }, [sellerOnly, search.to, me, inbox.status, navigate, openThread, report, startWith]);
+
+  useEffect(() => {
+    onThreadOpenChange?.(openId !== null);
+  }, [openId, onThreadOpenChange]);
 
   /* ---------- filtering ---------- */
   const needle = query.trim().toLowerCase();
@@ -301,7 +338,23 @@ function MessagesPage() {
   // them, only in the plain All view.
   const isSystemChat = (c: (typeof visible)[number]) => c.kind === "support" || c.kind === "self";
   const lastSystemIndex = visible.reduce((last, c, i) => (isSystemChat(c) ? i : last), -1);
-  const showBuyerNote = folder === "all" && !needle && !showArchived;
+  const showBuyerNote = !sellerOnly && folder === "all" && !needle && !showArchived;
+  // Storefront mode before any chat with the seller exists: the seller is
+  // still listed, as a row that starts the conversation (or, on your own
+  // store, a row you can't open).
+  const sellerStarter =
+    !!sellerOnly && visible.length === 0 && folder === "all" && !needle && !showArchived;
+  const startSellerChat = async () => {
+    if (!sellerOnly?.ownerUsername || viewingOwnStore) return;
+    try {
+      const person = await api.findPersonByUsername(sellerOnly.ownerUsername);
+      if (!person) return report("This seller can't be messaged right now");
+      const chat = await startWith(person);
+      if (chat) openThread(chat);
+    } catch (reason) {
+      report((reason as Error).message);
+    }
+  };
 
   const list = (
     <div className="pb-4">
@@ -351,7 +404,35 @@ function MessagesPage() {
         </Fragment>
       ))}
 
-      {visible.length === 0 && (
+      {sellerStarter && sellerOnly && (
+        <button
+          type="button"
+          disabled={viewingOwnStore}
+          onClick={() => void startSellerChat()}
+          className="flex w-full items-center gap-3 px-4 py-[3px] text-left active:bg-chat-text/[0.06] disabled:active:bg-transparent"
+        >
+          <Avatar
+            kind="direct"
+            name={sellerOnly.name}
+            src={sellerOnly.avatarUrl}
+            seed={sellerOnly.ownerId}
+            size={54}
+          />
+          <span className="min-w-0 flex-1 border-b border-chat-border py-[14px]">
+            <span className="block truncate text-[16px] font-semibold text-chat-text">
+              {sellerOnly.name}
+              {viewingOwnStore && <span className="font-normal text-chat-muted"> (you)</span>}
+            </span>
+            <span className="block truncate text-[14.5px] text-chat-muted">
+              {viewingOwnStore
+                ? "Buyers on your website message you here."
+                : "Ask about sizes, delivery, anything."}
+            </span>
+          </span>
+        </button>
+      )}
+
+      {visible.length === 0 && !sellerStarter && (
         <div className="px-10 pt-16 text-center">
           <p className="text-[17px] font-semibold text-chat-text">
             {needle
@@ -456,7 +537,7 @@ function MessagesPage() {
           <>
             {!showArchived && (
               <>
-                {rail.length > 0 && !needle && folder === "all" && (
+                {!sellerOnly && rail.length > 0 && !needle && folder === "all" && (
                   <div
                     data-swipe-owner
                     className="flex gap-3 overflow-x-auto px-4 pb-1 pt-2 no-scrollbar"
@@ -639,7 +720,7 @@ function MessagesPage() {
         )}
       </AnimatePresence>
 
-      {!openId && <BottomNav active="messages" ownUsername={ownUsername} />}
+      {!openId && !sellerOnly && <BottomNav active="messages" ownUsername={ownUsername} />}
     </div>
   );
 }

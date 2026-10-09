@@ -1158,13 +1158,17 @@ export function PublicStorefront({
   // The storefront (Shop) is what a visitor lands on; Home, the store's
   // content feed, is one tap away.
   const [tab, setTab] = useState<StorefrontTab>("shop");
+  // A chat opened from the Messages tab has its own composer at the bottom.
+  const [threadOpen, setThreadOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   usePaintChrome(
     !paintChrome || themeLoading
       ? null
-      : tab !== "shop"
-        ? "#000000"
-        : (THEMES.find((t) => t.id === themeId)?.background ?? specForTheme(themeId).bg),
+      : tab === "messages"
+        ? null // Messages paints in the app's chat colours, like /messages.
+        : tab === "home"
+          ? "#000000"
+          : (THEMES.find((t) => t.id === themeId)?.background ?? specForTheme(themeId).bg),
   );
   const { saved, loading: savedLoading } = useThemeCustomization(themeId, storeId);
   // The real name the seller picked at onboarding (stores.brand_name) is the
@@ -1260,8 +1264,8 @@ export function PublicStorefront({
     // overflow-x-clip: same sideways-drag guard as ThemePreviewSheet's frame.
     <>
       {tab === "messages" ? (
-        <div className="bg-black" style={{ height: "100dvh", maxHeight: "100%" }}>
-          <StorefrontMessages storeId={storeId} />
+        <div className="bg-chat-bg" style={{ minHeight: "100dvh" }}>
+          <StorefrontMessages storeId={storeId} onThreadOpenChange={setThreadOpen} />
         </div>
       ) : tab === "home" && ownerId ? (
         // One screen tall: 100dvh on a page (Home preview), clamped to the
@@ -1281,15 +1285,17 @@ export function PublicStorefront({
           </LiveStorefrontContext.Provider>
         </div>
       )}
-      <StorefrontNav
-        storeId={storeId}
-        active={tab}
-        onSelect={(next) => {
-          setTab(next);
-          rootRef.current?.scrollIntoView({ block: "start" });
-        }}
-        preview={preview}
-      />
+      {!threadOpen && (
+        <StorefrontNav
+          storeId={storeId}
+          active={tab}
+          onSelect={(next) => {
+            setTab(next);
+            rootRef.current?.scrollIntoView({ block: "start" });
+          }}
+          preview={preview}
+        />
+      )}
     </>
   );
 }

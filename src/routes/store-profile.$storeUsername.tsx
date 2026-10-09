@@ -331,15 +331,6 @@ function StoreProfilePage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-8">
-            {/* A store follow relationship doesn't exist in the schema yet
-              (`follows` only links profile to profile) — these sit at 0 as
-              placeholders, same as sold_items_count/rating on profile_stats
-              until that's wired up. */}
-            <Stat value="0" label="Followers" />
-            <Stat value="0" label="Sold Items" />
-          </div>
-
           {store?.bio && <p className="text-[14px] font-bold text-center">{store.bio}</p>}
         </div>
 

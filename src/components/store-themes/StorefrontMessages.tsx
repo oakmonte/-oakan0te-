@@ -1,24 +1,19 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
-import { ChevronRight } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
-import { useSession } from "@/hooks/use-session";
+import { MessagesView, type SellerOnly } from "@/routes/messages";
 
-type Seller = {
-  ownerId: string;
-  ownerUsername: string | null;
-  brandName: string;
-  logoUrl: string | null;
-};
-
-/** The storefront's Messages tab. A buyer on a store's website only ever
- *  needs one person -- the seller -- so this lists exactly that one contact,
- *  and tapping it opens the real chat with them. The seller looking at their
- *  own store sees themselves here too, but can't open a chat with themselves. */
-export function StorefrontMessages({ storeId }: { storeId: string }) {
-  const navigate = useNavigate();
-  const { user } = useSession();
-  const [seller, setSeller] = useState<Seller | null>(null);
+/** The storefront's Messages tab: the app's Messages page, scoped to the one
+ *  person a buyer on this website needs -- the seller. Everything else about
+ *  the page (search, folders, rows, the chat itself) is the real thing. The
+ *  seller looking at their own store sees themselves but can't open a chat. */
+export function StorefrontMessages({
+  storeId,
+  onThreadOpenChange,
+}: {
+  storeId: string;
+  onThreadOpenChange: (open: boolean) => void;
+}) {
+  const [seller, setSeller] = useState<SellerOnly | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -39,8 +34,8 @@ export function StorefrontMessages({ storeId }: { storeId: string }) {
       setSeller({
         ownerId: store.owner_id,
         ownerUsername: owner?.personal_username ?? null,
-        brandName: store.brand_name,
-        logoUrl: store.logo_url,
+        name: store.brand_name,
+        avatarUrl: store.logo_url,
       });
     })();
     return () => {
@@ -48,44 +43,6 @@ export function StorefrontMessages({ storeId }: { storeId: string }) {
     };
   }, [storeId]);
 
-  const isSelf = !!user && !!seller && user.id === seller.ownerId;
-
-  return (
-    <div
-      className="min-h-full bg-black px-4 pb-32 text-white"
-      style={{ paddingTop: "calc(env(safe-area-inset-top) + 16px)" }}
-    >
-      <h1 className="text-[28px] font-bold tracking-[-0.02em]">Messages</h1>
-      {seller && (
-        <button
-          type="button"
-          disabled={isSelf || !seller.ownerUsername}
-          onClick={() =>
-            void navigate({ to: "/messages", search: { to: seller.ownerUsername ?? undefined } })
-          }
-          className="mt-4 flex w-full items-center gap-3 rounded-[18px] bg-white/[0.07] px-3 py-3 text-left transition-transform duration-150 active:scale-[0.98] disabled:active:scale-100"
-        >
-          <span className="grid h-[54px] w-[54px] shrink-0 place-items-center overflow-hidden rounded-full bg-white/10 text-[20px] font-bold">
-            {seller.logoUrl ? (
-              <img src={seller.logoUrl} alt="" className="h-full w-full object-cover" />
-            ) : (
-              seller.brandName.slice(0, 1).toUpperCase()
-            )}
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block truncate text-[16px] font-semibold">
-              {seller.brandName}
-              {isSelf && <span className="font-normal text-white/50"> (you)</span>}
-            </span>
-            <span className="block text-[14px] leading-snug text-white/55">
-              {isSelf
-                ? "Buyers on your website message you here."
-                : "Ask about sizes, delivery, anything."}
-            </span>
-          </span>
-          {!isSelf && <ChevronRight size={20} className="shrink-0 text-white/40" />}
-        </button>
-      )}
-    </div>
-  );
+  if (!seller) return <div className="min-h-full bg-chat-bg" />;
+  return <MessagesView sellerOnly={seller} onThreadOpenChange={onThreadOpenChange} />;
 }
