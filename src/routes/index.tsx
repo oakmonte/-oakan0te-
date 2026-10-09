@@ -1,7 +1,9 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ogImageMeta } from "@/lib/og-image";
 import { canonicalLink } from "@/lib/seo";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { isStandalone } from "@/lib/standalone";
+import { supabase } from "@/lib/integrations/my-supabase/client";
 import { ArrowUpRight, Check, ChevronDown, Menu, X } from "lucide-react";
 import logoO from "@/assets/logo-o.png";
 
@@ -155,6 +157,22 @@ function Reveal({
 function SellersLanding() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [openFeature, setOpenFeature] = useState(0);
+  const navigate = useNavigate();
+  // The installed app is the product, never the sales pitch. iOS saves
+  // whatever page Add to Home Screen was tapped on (it doesn't reliably honour
+  // the manifest's start_url), so an app saved from here would open here.
+  // Layout effect: decided before the first paint, so the landing never
+  // flashes up inside the app.
+  const [inApp, setInApp] = useState(false);
+  useLayoutEffect(() => {
+    if (!isStandalone()) return;
+    setInApp(true);
+    void supabase.auth.getSession().then(({ data }) => {
+      navigate({ to: data.session ? "/store" : "/sign-in", replace: true });
+    });
+  }, [navigate]);
+
+  if (inApp) return null;
 
   return (
     <main className="oak-sellers">
