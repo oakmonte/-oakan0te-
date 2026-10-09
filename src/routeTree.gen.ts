@@ -75,6 +75,7 @@ import { Route as ApiAccountDeleteRouteImport } from './routes/api.account.delet
 import { Route as ApiBumpaConnectRouteImport } from './routes/api.bumpa.connect'
 import { Route as ApiChatInboxRouteImport } from './routes/api.chat.inbox'
 import { Route as ApiChatMessagesRouteImport } from './routes/api.chat.messages'
+import { Route as ApiDiscountsValidateRouteImport } from './routes/api.discounts.validate'
 import { Route as ApiImportCsvRouteImport } from './routes/api.import.csv'
 import { Route as ApiImportStartRouteImport } from './routes/api.import.start'
 import { Route as ApiImportStatusRouteImport } from './routes/api.import.status'
@@ -92,6 +93,7 @@ import { Route as ApiShopifyCallbackRouteImport } from './routes/api.shopify.cal
 import { Route as ApiShopifyInstallRouteImport } from './routes/api.shopify.install'
 import { Route as ApiStorePiecesUploadImageRouteImport } from './routes/api.store-pieces.upload-image'
 import { Route as ApiStoreThemeUploadImageRouteImport } from './routes/api.store-theme.upload-image'
+import { Route as ApiStoreDiscountsRouteImport } from './routes/api.store.discounts'
 import { Route as ApiStoreOrdersRouteImport } from './routes/api.store.orders'
 import { Route as ApiStorePayoutRouteImport } from './routes/api.store.payout'
 import { Route as ApiSupportMessagesMineRouteImport } from './routes/api.support-messages.mine'
@@ -444,6 +446,11 @@ const ApiChatMessagesRoute = ApiChatMessagesRouteImport.update({
   path: '/api/chat/messages',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiDiscountsValidateRoute = ApiDiscountsValidateRouteImport.update({
+  id: '/api/discounts/validate',
+  path: '/api/discounts/validate',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiImportCsvRoute = ApiImportCsvRouteImport.update({
   id: '/api/import/csv',
   path: '/api/import/csv',
@@ -532,6 +539,11 @@ const ApiStoreThemeUploadImageRoute =
     path: '/api/store-theme/upload-image',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiStoreDiscountsRoute = ApiStoreDiscountsRouteImport.update({
+  id: '/api/store/discounts',
+  path: '/api/store/discounts',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiStoreOrdersRoute = ApiStoreOrdersRouteImport.update({
   id: '/api/store/orders',
   path: '/api/store/orders',
@@ -701,6 +713,7 @@ export interface FileRoutesByFullPath {
   '/api/bumpa/connect': typeof ApiBumpaConnectRoute
   '/api/chat/inbox': typeof ApiChatInboxRoute
   '/api/chat/messages': typeof ApiChatMessagesRoute
+  '/api/discounts/validate': typeof ApiDiscountsValidateRoute
   '/api/import/csv': typeof ApiImportCsvRoute
   '/api/import/start': typeof ApiImportStartRoute
   '/api/import/status': typeof ApiImportStatusRoute
@@ -718,6 +731,7 @@ export interface FileRoutesByFullPath {
   '/api/shopify/install': typeof ApiShopifyInstallRoute
   '/api/store-pieces/upload-image': typeof ApiStorePiecesUploadImageRoute
   '/api/store-theme/upload-image': typeof ApiStoreThemeUploadImageRoute
+  '/api/store/discounts': typeof ApiStoreDiscountsRoute
   '/api/store/orders': typeof ApiStoreOrdersRouteWithChildren
   '/api/store/payout': typeof ApiStorePayoutRoute
   '/api/support-messages/mine': typeof ApiSupportMessagesMineRoute
@@ -803,6 +817,7 @@ export interface FileRoutesByTo {
   '/api/bumpa/connect': typeof ApiBumpaConnectRoute
   '/api/chat/inbox': typeof ApiChatInboxRoute
   '/api/chat/messages': typeof ApiChatMessagesRoute
+  '/api/discounts/validate': typeof ApiDiscountsValidateRoute
   '/api/import/csv': typeof ApiImportCsvRoute
   '/api/import/start': typeof ApiImportStartRoute
   '/api/import/status': typeof ApiImportStatusRoute
@@ -820,6 +835,7 @@ export interface FileRoutesByTo {
   '/api/shopify/install': typeof ApiShopifyInstallRoute
   '/api/store-pieces/upload-image': typeof ApiStorePiecesUploadImageRoute
   '/api/store-theme/upload-image': typeof ApiStoreThemeUploadImageRoute
+  '/api/store/discounts': typeof ApiStoreDiscountsRoute
   '/api/store/orders': typeof ApiStoreOrdersRouteWithChildren
   '/api/store/payout': typeof ApiStorePayoutRoute
   '/api/support-messages/mine': typeof ApiSupportMessagesMineRoute
@@ -909,6 +925,7 @@ export interface FileRoutesById {
   '/api/bumpa/connect': typeof ApiBumpaConnectRoute
   '/api/chat/inbox': typeof ApiChatInboxRoute
   '/api/chat/messages': typeof ApiChatMessagesRoute
+  '/api/discounts/validate': typeof ApiDiscountsValidateRoute
   '/api/import/csv': typeof ApiImportCsvRoute
   '/api/import/start': typeof ApiImportStartRoute
   '/api/import/status': typeof ApiImportStatusRoute
@@ -926,6 +943,7 @@ export interface FileRoutesById {
   '/api/shopify/install': typeof ApiShopifyInstallRoute
   '/api/store-pieces/upload-image': typeof ApiStorePiecesUploadImageRoute
   '/api/store-theme/upload-image': typeof ApiStoreThemeUploadImageRoute
+  '/api/store/discounts': typeof ApiStoreDiscountsRoute
   '/api/store/orders': typeof ApiStoreOrdersRouteWithChildren
   '/api/store/payout': typeof ApiStorePayoutRoute
   '/api/support-messages/mine': typeof ApiSupportMessagesMineRoute
@@ -1016,6 +1034,7 @@ export interface FileRouteTypes {
     | '/api/bumpa/connect'
     | '/api/chat/inbox'
     | '/api/chat/messages'
+    | '/api/discounts/validate'
     | '/api/import/csv'
     | '/api/import/start'
     | '/api/import/status'
@@ -1033,6 +1052,7 @@ export interface FileRouteTypes {
     | '/api/shopify/install'
     | '/api/store-pieces/upload-image'
     | '/api/store-theme/upload-image'
+    | '/api/store/discounts'
     | '/api/store/orders'
     | '/api/store/payout'
     | '/api/support-messages/mine'
@@ -1118,6 +1138,7 @@ export interface FileRouteTypes {
     | '/api/bumpa/connect'
     | '/api/chat/inbox'
     | '/api/chat/messages'
+    | '/api/discounts/validate'
     | '/api/import/csv'
     | '/api/import/start'
     | '/api/import/status'
@@ -1135,6 +1156,7 @@ export interface FileRouteTypes {
     | '/api/shopify/install'
     | '/api/store-pieces/upload-image'
     | '/api/store-theme/upload-image'
+    | '/api/store/discounts'
     | '/api/store/orders'
     | '/api/store/payout'
     | '/api/support-messages/mine'
@@ -1223,6 +1245,7 @@ export interface FileRouteTypes {
     | '/api/bumpa/connect'
     | '/api/chat/inbox'
     | '/api/chat/messages'
+    | '/api/discounts/validate'
     | '/api/import/csv'
     | '/api/import/start'
     | '/api/import/status'
@@ -1240,6 +1263,7 @@ export interface FileRouteTypes {
     | '/api/shopify/install'
     | '/api/store-pieces/upload-image'
     | '/api/store-theme/upload-image'
+    | '/api/store/discounts'
     | '/api/store/orders'
     | '/api/store/payout'
     | '/api/support-messages/mine'
@@ -1311,6 +1335,7 @@ export interface RootRouteChildren {
   ApiBumpaConnectRoute: typeof ApiBumpaConnectRoute
   ApiChatInboxRoute: typeof ApiChatInboxRoute
   ApiChatMessagesRoute: typeof ApiChatMessagesRoute
+  ApiDiscountsValidateRoute: typeof ApiDiscountsValidateRoute
   ApiImportCsvRoute: typeof ApiImportCsvRoute
   ApiImportStartRoute: typeof ApiImportStartRoute
   ApiImportStatusRoute: typeof ApiImportStatusRoute
@@ -1327,6 +1352,7 @@ export interface RootRouteChildren {
   ApiShopifyInstallRoute: typeof ApiShopifyInstallRoute
   ApiStorePiecesUploadImageRoute: typeof ApiStorePiecesUploadImageRoute
   ApiStoreThemeUploadImageRoute: typeof ApiStoreThemeUploadImageRoute
+  ApiStoreDiscountsRoute: typeof ApiStoreDiscountsRoute
   ApiStoreOrdersRoute: typeof ApiStoreOrdersRouteWithChildren
   ApiStorePayoutRoute: typeof ApiStorePayoutRoute
   ApiSupportMessagesMineRoute: typeof ApiSupportMessagesMineRoute
@@ -1798,6 +1824,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiChatMessagesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/discounts/validate': {
+      id: '/api/discounts/validate'
+      path: '/api/discounts/validate'
+      fullPath: '/api/discounts/validate'
+      preLoaderRoute: typeof ApiDiscountsValidateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/import/csv': {
       id: '/api/import/csv'
       path: '/api/import/csv'
@@ -1915,6 +1948,13 @@ declare module '@tanstack/react-router' {
       path: '/api/store-theme/upload-image'
       fullPath: '/api/store-theme/upload-image'
       preLoaderRoute: typeof ApiStoreThemeUploadImageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/store/discounts': {
+      id: '/api/store/discounts'
+      path: '/api/store/discounts'
+      fullPath: '/api/store/discounts'
+      preLoaderRoute: typeof ApiStoreDiscountsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/store/orders': {
@@ -2224,6 +2264,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiBumpaConnectRoute: ApiBumpaConnectRoute,
   ApiChatInboxRoute: ApiChatInboxRoute,
   ApiChatMessagesRoute: ApiChatMessagesRoute,
+  ApiDiscountsValidateRoute: ApiDiscountsValidateRoute,
   ApiImportCsvRoute: ApiImportCsvRoute,
   ApiImportStartRoute: ApiImportStartRoute,
   ApiImportStatusRoute: ApiImportStatusRoute,
@@ -2240,6 +2281,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiShopifyInstallRoute: ApiShopifyInstallRoute,
   ApiStorePiecesUploadImageRoute: ApiStorePiecesUploadImageRoute,
   ApiStoreThemeUploadImageRoute: ApiStoreThemeUploadImageRoute,
+  ApiStoreDiscountsRoute: ApiStoreDiscountsRoute,
   ApiStoreOrdersRoute: ApiStoreOrdersRouteWithChildren,
   ApiStorePayoutRoute: ApiStorePayoutRoute,
   ApiSupportMessagesMineRoute: ApiSupportMessagesMineRoute,
