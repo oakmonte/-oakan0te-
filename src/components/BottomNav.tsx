@@ -11,6 +11,7 @@ import messagesIcon from "@/assets/messages.svg";
 import createIcon from "@/assets/create.svg";
 import storeIcon from "@/assets/Home.svg";
 import profileIcon from "@/assets/profile.svg";
+import { prefetchInbox } from "@/lib/chat/use-inbox";
 
 // Sellers-only: the seller's store dashboard is the first tab, their live
 // website (the storefront preview on /home) the second.
@@ -104,6 +105,12 @@ function useOwnStoreUsername(): string | null | undefined {
 
 export function BottomNav({ active, ownUsername }: BottomNavProps) {
   const ownStoreUsername = useOwnStoreUsername();
+  // Warm the Messages inbox in the background as soon as the app knows who's
+  // signed in, so opening Messages doesn't start from a loading screen.
+  const { user: navUser } = useSession();
+  useEffect(() => {
+    if (navUser) void prefetchInbox(navUser.id);
+  }, [navUser]);
   // Tabs REPLACE rather than push, and unwind the stack on the way, so a root
   // always ends up at history index 0. Without this, five taps around the tab
   // bar is five entries deep and the back gesture can never leave the app —

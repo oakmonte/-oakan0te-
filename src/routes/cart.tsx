@@ -1,9 +1,8 @@
+import { useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { RefreshCw, ShoppingBag } from "lucide-react";
-import { BottomNav } from "@/components/BottomNav";
+import { ChevronLeft, RefreshCw, ShoppingBag } from "lucide-react";
 import { CartLine } from "@/components/cart/CartLine";
 import { useFreshCart } from "@/components/cart/use-fresh-cart";
-import { useOwnUsername } from "@/hooks/use-own-username";
 import { useSession } from "@/hooks/use-session";
 import { useGoRoot } from "@/hooks/use-back";
 import {
@@ -15,6 +14,8 @@ import {
   useCartReady,
   type LineStatus,
 } from "@/lib/cart";
+import { SALES_LOCKED } from "@/lib/launch-locks";
+import { SalesLockedNotice } from "@/components/store-themes/SalesLockedNotice";
 
 export const Route = createFileRoute("/cart")({
   // No theme-color here: /cart is on the "social" surface (lib/surface.ts),
@@ -46,7 +47,7 @@ function blockedReason(statuses: LineStatus[], failed: boolean): string | null {
 // The "social" surface, like /home and /messages: chat-* tokens follow the
 // phone's light/dark setting.
 function CartPage() {
-  const ownUsername = useOwnUsername();
+  const [salesLocked, setSalesLocked] = useState(false);
   const navigate = useNavigate();
   const goRoot = useGoRoot();
   const { user, loading: sessionLoading } = useSession();
@@ -66,6 +67,16 @@ function CartPage() {
       <div className="mx-auto w-full max-w-[560px]">
         <header className="sticky top-0 z-20 bg-chat-bg/90 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
           <div className="flex h-[56px] items-center gap-2 px-4">
+            {/* The bag is a shopper's page, reached from a storefront, so it
+                has no seller tab bar -- just a way back to the store. */}
+            <button
+              type="button"
+              onClick={() => window.history.back()}
+              aria-label="Back"
+              className="-ml-2 grid h-11 w-11 shrink-0 place-items-center rounded-full active:bg-chat-text/10"
+            >
+              <ChevronLeft size={28} />
+            </button>
             <h1 className="flex-1 text-[28px] font-bold tracking-[-0.02em]">Bag</h1>
             {ready && count > 0 && (
               <span className="text-[14px] text-chat-muted">
@@ -176,7 +187,9 @@ function CartPage() {
                       type="button"
                       disabled={!!reason}
                       onClick={() =>
-                        void navigate({ to: "/checkout/cart", search: { store: g.storeId } })
+                        SALES_LOCKED
+                          ? setSalesLocked(true)
+                          : void navigate({ to: "/checkout/cart", search: { store: g.storeId } })
                       }
                       className="mt-3 h-12 w-full rounded-full bg-chat-text text-[16px] font-semibold text-chat-inverse active:scale-[0.98] disabled:opacity-40 disabled:active:scale-100"
                     >
@@ -198,8 +211,7 @@ function CartPage() {
           </>
         )}
       </div>
-
-      <BottomNav active="store" ownUsername={ownUsername} />
+      {salesLocked && <SalesLockedNotice onClose={() => setSalesLocked(false)} />}
     </div>
   );
 }

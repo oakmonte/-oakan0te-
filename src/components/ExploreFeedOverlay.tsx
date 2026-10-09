@@ -10,6 +10,8 @@ import { useDarkOverlay } from "@/lib/dark-overlay";
 import { ProfileView } from "@/routes/profile.$username";
 import { useSession } from "@/hooks/use-session";
 import { BagPlus } from "@/components/icons/BagPlus";
+import { SALES_LOCKED } from "@/lib/launch-locks";
+import { SalesLockedNotice } from "@/components/store-themes/SalesLockedNotice";
 
 // "listed-left" is the same Listed items page, parked to the LEFT of Following so
 // both feeds have it one swipe away (Following swipes right into it, For you
@@ -168,6 +170,7 @@ export function ExploreFeedOverlay({
  *  how a post becomes shoppable, so this list is only ever about ONE post: the
  *  one that was filling the screen when you swiped away from it. */
 export function ListedItemsPage({ items }: { items: TaggedProduct[] }) {
+  const [salesLocked, setSalesLocked] = useState(false);
   const navigate = useNavigate();
   const { user } = useSession();
   const reduceMotion = useReducedMotion();
@@ -232,10 +235,12 @@ export function ListedItemsPage({ items }: { items: TaggedProduct[] }) {
                 <button
                   type="button"
                   onClick={() =>
-                    void navigate({
-                      to: "/checkout/$productId",
-                      params: { productId: item.id },
-                    })
+                    SALES_LOCKED
+                      ? setSalesLocked(true)
+                      : void navigate({
+                          to: "/checkout/$productId",
+                          params: { productId: item.id },
+                        })
                   }
                   className="h-9 rounded-full bg-white px-3.5 text-[12px] font-semibold text-black transition-transform duration-150 ease-out active:scale-[0.96]"
                 >
@@ -269,6 +274,7 @@ export function ListedItemsPage({ items }: { items: TaggedProduct[] }) {
         ))}
       </ul>
       {banner}
+      {salesLocked && <SalesLockedNotice onClose={() => setSalesLocked(false)} />}
     </div>
   );
 }

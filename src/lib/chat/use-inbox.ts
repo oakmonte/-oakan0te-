@@ -53,10 +53,34 @@ function supportChat(last: SupportMessageRow | null, me: string | null): Chat {
   };
 }
 
+/** The last inbox each account loaded, kept for the life of the tab. Opening
+ *  Messages again shows it at once and refreshes behind it, instead of a
+ *  loading screen and a fresh server round-trip every visit. */
+const inboxCache = new Map<string, Chat[]>();
+const inboxInflight = new Map<string, Promise<void>>();
+
+/** Loads the inbox into the cache ahead of time (the app calls this once it
+ *  knows who's signed in), so the first visit to Messages is usually instant
+ *  too. Safe to call repeatedly: one request at a time per account. */
+export function prefetchInbox(me: string): Promise<void> {
+  const existing = inboxInflight.get(me);
+  if (existing) return existing;
+  const run = api
+    .listInbox(me)
+    .then((chats) => {
+      inboxCache.set(me, chats);
+    })
+    .catch(() => undefined)
+    .finally(() => inboxInflight.delete(me));
+  inboxInflight.set(me, run);
+  return run;
+}
+
 export function useInbox(me: string | null, sessionLoading: boolean) {
-  const [chats, setChats] = useState<Chat[]>([]);
+  const cached = me ? inboxCache.get(me) : undefined;
+  const [chats, setChats] = useState<Chat[]>(() => cached ?? []);
   const [support, setSupport] = useState<Chat>(() => supportChat(null, null));
-  const [status, setStatus] = useState<InboxStatus>("loading");
+  const [status, setStatus] = useState<InboxStatus>(cached ? "ready" : "loading");
   const [typing, setTyping] = useState<Record<string, number>>({});
   const reloadTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const ensuredSelf = useRef(false);
@@ -70,6 +94,7 @@ export function useInbox(me: string | null, sessionLoading: boolean) {
         await api.startSelfConversation();
         next = await api.listInbox(me);
       }
+      inboxCache.set(me, next);
       setChats(next);
       setStatus("ready");
     } catch (error) {
@@ -102,7 +127,14 @@ export function useInbox(me: string | null, sessionLoading: boolean) {
       setStatus("signed-out");
       return;
     }
-    setStatus("loading");
+    // A cached inbox stays on screen while the fresh one loads.
+    const warm = inboxCache.get(me);
+    if (warm) {
+      setChats(warm);
+      setStatus("ready");
+    } else {
+      setStatus("loading");
+    }
     void load();
     void loadSupport();
     void api.touchPresence().catch(() => undefined);

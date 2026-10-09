@@ -1,11 +1,17 @@
 import { useEffect, useState } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, redirect } from "@tanstack/react-router";
 import { ChevronLeft } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { CheckoutShell } from "@/components/checkout/CheckoutShell";
 import { DeliveryCheckout } from "@/components/checkout/DeliveryCheckout";
+import { SALES_LOCKED } from "@/lib/launch-locks";
 
 export const Route = createFileRoute("/checkout/$productId")({
+  // Until launch there's no checkout to reach, even by typing the address
+  // (lib/launch-locks.ts).
+  beforeLoad: () => {
+    if (SALES_LOCKED) throw redirect({ to: "/" });
+  },
   validateSearch: (s: Record<string, unknown>): { variant?: string } => ({
     variant: typeof s.variant === "string" && s.variant ? s.variant : undefined,
   }),
