@@ -31,7 +31,7 @@ export const Route = createFileRoute("/sitemap.xml")({
             .limit(5000);
           if (error) throw error;
           for (const s of data ?? []) {
-            entries.push(url(`/store-profile/${encodeURIComponent(s.store_username)}`));
+            entries.push(url(`/shop/${encodeURIComponent(s.store_username)}`));
           }
         } catch (err) {
           console.error("sitemap: failed to load stores", err);

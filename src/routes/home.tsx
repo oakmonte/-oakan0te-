@@ -12,7 +12,7 @@ export const Route = createFileRoute("/home")({
 });
 
 // Sellers-only pivot: Home is the seller's own storefront, live. It renders
-// the same PublicStorefront the public site (/store-profile/$storeUsername)
+// the same PublicStorefront the public site (/shop/$storeUsername)
 // does, from the same saved theme, so any change to the store shows up here
 // and on the website at once -- there's no separate preview copy to drift.
 function HomePage() {

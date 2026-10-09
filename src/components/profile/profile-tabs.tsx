@@ -184,7 +184,9 @@ export const PERSONAL_TABS = TABS.filter((t) => t.key !== "store" && !SOCIAL_TAB
  *  profile shapes still read as siblings. */
 export function storeTabsFor(storeType: string | null): typeof TABS {
   const isArtist = storeType === "Artist";
-  return TABS.filter((t) => !SOCIAL_TABS.includes(t.key)).map((t) =>
+  // No Store tab either: the storefront is the website (/shop/$storeUsername)
+  // and the seller's Website tab, not part of the profile.
+  return TABS.filter((t) => t.key !== "store" && !SOCIAL_TABS.includes(t.key)).map((t) =>
     t.key === "wardrobe" ? { ...t, label: isArtist ? "Gallery" : "Wardrobe" } : t,
   );
 }

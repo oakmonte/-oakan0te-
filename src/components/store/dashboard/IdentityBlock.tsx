@@ -214,7 +214,7 @@ export function IdentityBlock({
           label across two lines inside a pill. */}
       <div className="grid grid-cols-3 gap-2">
         <Link
-          to="/store-profile/$storeUsername"
+          to="/shop/$storeUsername"
           params={{ storeUsername: store.store_username }}
           className="oak-tap grid h-11 place-items-center whitespace-nowrap rounded-full border border-sd-line bg-sd-surface px-2 text-[13px] font-semibold text-sd-ink oak-motion-control active:scale-[0.97]"
         >

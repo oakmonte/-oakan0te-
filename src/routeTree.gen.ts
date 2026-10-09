@@ -66,6 +66,7 @@ import { Route as LearnIndexRouteImport } from './routes/learn.index'
 import { Route as LearnSlugRouteImport } from './routes/learn.$slug'
 import { Route as OrderOrderIdRouteImport } from './routes/order.$orderId'
 import { Route as ProfileUsernameRouteImport } from './routes/profile.$username'
+import { Route as ShopStoreUsernameRouteImport } from './routes/shop.$storeUsername'
 import { Route as StoreProfileStoreUsernameRouteImport } from './routes/store-profile.$storeUsername'
 import { Route as StoreIndexRouteImport } from './routes/store.index'
 import { Route as StoreCollectionsRouteImport } from './routes/store.collections'
@@ -407,6 +408,11 @@ const OrderOrderIdRoute = OrderOrderIdRouteImport.update({
 const ProfileUsernameRoute = ProfileUsernameRouteImport.update({
   id: '/profile/$username',
   path: '/profile/$username',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ShopStoreUsernameRoute = ShopStoreUsernameRouteImport.update({
+  id: '/shop/$storeUsername',
+  path: '/shop/$storeUsername',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StoreProfileStoreUsernameRoute =
@@ -757,6 +763,7 @@ export interface FileRoutesByFullPath {
   '/learn/$slug': typeof LearnSlugRoute
   '/order/$orderId': typeof OrderOrderIdRoute
   '/profile/$username': typeof ProfileUsernameRoute
+  '/shop/$storeUsername': typeof ShopStoreUsernameRoute
   '/store-profile/$storeUsername': typeof StoreProfileStoreUsernameRoute
   '/store/collections': typeof StoreCollectionsRoute
   '/store/content': typeof StoreContentRoute
@@ -870,6 +877,7 @@ export interface FileRoutesByTo {
   '/learn/$slug': typeof LearnSlugRoute
   '/order/$orderId': typeof OrderOrderIdRoute
   '/profile/$username': typeof ProfileUsernameRoute
+  '/shop/$storeUsername': typeof ShopStoreUsernameRoute
   '/store-profile/$storeUsername': typeof StoreProfileStoreUsernameRoute
   '/store/collections': typeof StoreCollectionsRoute
   '/store/content': typeof StoreContentRoute
@@ -987,6 +995,7 @@ export interface FileRoutesById {
   '/learn/$slug': typeof LearnSlugRoute
   '/order/$orderId': typeof OrderOrderIdRoute
   '/profile/$username': typeof ProfileUsernameRoute
+  '/shop/$storeUsername': typeof ShopStoreUsernameRoute
   '/store-profile/$storeUsername': typeof StoreProfileStoreUsernameRoute
   '/store/collections': typeof StoreCollectionsRoute
   '/store/content': typeof StoreContentRoute
@@ -1105,6 +1114,7 @@ export interface FileRouteTypes {
     | '/learn/$slug'
     | '/order/$orderId'
     | '/profile/$username'
+    | '/shop/$storeUsername'
     | '/store-profile/$storeUsername'
     | '/store/collections'
     | '/store/content'
@@ -1218,6 +1228,7 @@ export interface FileRouteTypes {
     | '/learn/$slug'
     | '/order/$orderId'
     | '/profile/$username'
+    | '/shop/$storeUsername'
     | '/store-profile/$storeUsername'
     | '/store/collections'
     | '/store/content'
@@ -1334,6 +1345,7 @@ export interface FileRouteTypes {
     | '/learn/$slug'
     | '/order/$orderId'
     | '/profile/$username'
+    | '/shop/$storeUsername'
     | '/store-profile/$storeUsername'
     | '/store/collections'
     | '/store/content'
@@ -1445,6 +1457,7 @@ export interface RootRouteChildren {
   LearnSlugRoute: typeof LearnSlugRoute
   OrderOrderIdRoute: typeof OrderOrderIdRoute
   ProfileUsernameRoute: typeof ProfileUsernameRoute
+  ShopStoreUsernameRoute: typeof ShopStoreUsernameRoute
   StoreProfileStoreUsernameRoute: typeof StoreProfileStoreUsernameRoute
   LearnIndexRoute: typeof LearnIndexRoute
   ApiAccountDeleteRoute: typeof ApiAccountDeleteRoute
@@ -1873,6 +1886,13 @@ declare module '@tanstack/react-router' {
       path: '/profile/$username'
       fullPath: '/profile/$username'
       preLoaderRoute: typeof ProfileUsernameRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/shop/$storeUsername': {
+      id: '/shop/$storeUsername'
+      path: '/shop/$storeUsername'
+      fullPath: '/shop/$storeUsername'
+      preLoaderRoute: typeof ShopStoreUsernameRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/store-profile/$storeUsername': {
@@ -2461,6 +2481,7 @@ const rootRouteChildren: RootRouteChildren = {
   LearnSlugRoute: LearnSlugRoute,
   OrderOrderIdRoute: OrderOrderIdRoute,
   ProfileUsernameRoute: ProfileUsernameRoute,
+  ShopStoreUsernameRoute: ShopStoreUsernameRoute,
   StoreProfileStoreUsernameRoute: StoreProfileStoreUsernameRoute,
   LearnIndexRoute: LearnIndexRoute,
   ApiAccountDeleteRoute: ApiAccountDeleteRoute,

@@ -111,7 +111,7 @@ export function StorefrontNav({
 
       {preview && storeUsername ? (
         <Link
-          to="/store-profile/$storeUsername"
+          to="/shop/$storeUsername"
           params={{ storeUsername }}
           aria-label="Open website"
           className={`${GLASS_RIM} ${round}`}
