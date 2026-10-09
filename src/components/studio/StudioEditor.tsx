@@ -200,6 +200,9 @@ export default function StudioEditor({
   // message here that must still be on screen when the seller looks back, and
   // it comes with a way to try again.
   const [exportError, setExportError] = useState<string | null>(null);
+  // What actually failed, shown small under the message: without it a failed
+  // export on someone's phone is a dead end nobody can diagnose.
+  const [exportDetail, setExportDetail] = useState<string | null>(null);
 
   // "No beats inside this clip" is worth saying once, not worth parking over the
   // toolbar until something unrelated happens to clear it.
@@ -739,8 +742,11 @@ export default function StudioEditor({
     setProgress(0);
     setError(null);
     setExportError(null);
+    setExportDetail(null);
+    let stage = "encode";
     try {
       const blob = await exportTimeline(project, sources, setProgress);
+      stage = "handoff";
       const url = URL.createObjectURL(blob);
       const poster = coverBlob
         ? { blob: coverBlob, url: URL.createObjectURL(coverBlob) }
@@ -760,8 +766,11 @@ export default function StudioEditor({
         hasOwnAudio: project.audio.length > 0,
       });
     } catch (err) {
-      console.error("Studio export failed:", err);
+      console.error("Studio export failed:", stage, err);
       setExportError("Couldn't make your video.");
+      setExportDetail(
+        `${stage}: ${err instanceof Error ? `${err.name}: ${err.message}` : String(err)}`,
+      );
     } finally {
       setExporting(false);
     }
@@ -1302,7 +1311,14 @@ export default function StudioEditor({
           role="alert"
           className="absolute inset-x-4 bottom-28 z-40 flex items-center gap-3 rounded-xl bg-black/90 py-2 pl-4 pr-2"
         >
-          <p className="min-w-0 flex-1 text-[13px] text-red-300">{exportError}</p>
+          <div className="min-w-0 flex-1">
+            <p className="text-[13px] text-red-300">{exportError}</p>
+            {exportDetail && (
+              <p className="mt-0.5 select-text break-words text-[11px] leading-snug text-white/45">
+                {exportDetail}
+              </p>
+            )}
+          </div>
           <button
             onClick={() => void handleExport()}
             className="h-9 shrink-0 rounded-full bg-white px-4 text-[13px] font-semibold text-black active:scale-95"
