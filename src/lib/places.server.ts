@@ -124,8 +124,7 @@ export async function placeAddress(
   while (segments.length > 1) {
     const last = segments[segments.length - 1].toLowerCase();
     const isTail =
-      tail.some((t) => last === t || last.startsWith(`${t} `)) ||
-      (!!postalCode && last.includes(postalCode.toLowerCase()));
+      tail.some((t) => last === t) || (!!postalCode && last.includes(postalCode.toLowerCase()));
     if (!isTail) break;
     segments.pop();
   }
