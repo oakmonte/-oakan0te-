@@ -1,7 +1,11 @@
-/** A shopping bag with a plus inside: "add to bag". Drawn on lucide's own
- *  shopping-bag outline (same 24px grid, 2px round stroke) so it sits beside
- *  lucide icons without looking borrowed; lucide has no bag-plus of its own. */
+import { useId } from "react";
+
+/** "Add to bag": master-piece's Cart tab bag (src/assets/cart.svg, a filled
+ *  bag with its handle and strap holes) with a plus cut out of its body, so
+ *  the video shows through the plus like it does through the holes. */
 export function BagPlus({ size = 24, className }: { size?: number; className?: string }) {
+  // Unique per instance: every card in the feed draws one.
+  const mask = `bag-plus-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -9,17 +13,25 @@ export function BagPlus({ size = 24, className }: { size?: number; className?: s
       height={size}
       viewBox="0 0 24 24"
       fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
       className={className}
       aria-hidden="true"
     >
-      <path d="M3.103 6.034h17.794" />
-      <path d="M3.4 5.467a2 2 0 0 0-.4 1.2V20a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6.667a2 2 0 0 0-.4-1.2l-2-2.667A2 2 0 0 0 17 2H7a2 2 0 0 0-1.6.8z" />
-      <path d="M12 10.5v7" />
-      <path d="M8.5 14h7" />
+      <defs>
+        <mask id={mask}>
+          <rect width="24" height="24" fill="white" />
+          <path
+            d="M12 13.4v5.6M9.2 16.2h5.6"
+            stroke="black"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+        </mask>
+      </defs>
+      <path
+        mask={`url(#${mask})`}
+        fill="currentColor"
+        d="M12.0049 0.999756C14.7663 0.999756 17.0049 3.23833 17.0049 5.99975V7.99975H20.0049C20.5572 7.99975 21.0049 8.44747 21.0049 8.99975V20.9998C21.0049 21.5521 20.5572 21.9998 20.0049 21.9998H4.00488C3.4526 21.9998 3.00488 21.5521 3.00488 20.9998V8.99975C3.00488 8.44747 3.4526 7.99975 4.00488 7.99975H7.00488V5.99975C7.00488 3.23833 9.24346 0.999756 12.0049 0.999756ZM17.0049 10.9998H15.0049V11.9998C15.0049 12.5521 15.4526 12.9998 16.0049 12.9998C16.5177 12.9998 16.9404 12.6138 16.9982 12.1164L17.0049 11.9998V10.9998ZM9.00488 10.9998H7.00488V11.9998C7.00488 12.5521 7.4526 12.9998 8.00488 12.9998C8.51772 12.9998 8.94039 12.6138 8.99815 12.1164L9.00488 11.9998V10.9998ZM12.0049 2.99975C10.4072 2.99975 9.10122 4.24867 9.00998 5.82348L9.00488 5.99975V7.99975H15.0049V5.99975C15.0049 4.40207 13.756 3.09609 12.1812 3.00485L12.0049 2.99975Z"
+      />
     </svg>
   );
 }

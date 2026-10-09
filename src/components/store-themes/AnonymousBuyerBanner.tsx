@@ -7,10 +7,25 @@ import { GLASS_RIM, glassDark } from "@/lib/liquid-glass";
  *  messaging as an anonymous buyer, exactly as a customer would. Drops in on
  *  arrival and leaves after a few seconds, so it never sits over their
  *  storefront's own header. */
+// How many times the preview has shown these, on this device. After the
+// fourth the seller knows, and they'd only be in the way.
+const SEEN_KEY = "oakmonte:preview-banners-seen";
+const SHOW_TIMES = 4;
+
 export function AnonymousBuyerBanner({ anonymous }: { anonymous: boolean }) {
   const [shown, setShown] = useState(false);
+  const [retired, setRetired] = useState(true);
 
   useEffect(() => {
+    let seen = 0;
+    try {
+      seen = Number(localStorage.getItem(SEEN_KEY)) || 0;
+      if (seen < SHOW_TIMES) localStorage.setItem(SEEN_KEY, String(seen + 1));
+    } catch {
+      // Storage blocked: show them, never count.
+    }
+    if (seen >= SHOW_TIMES) return;
+    setRetired(false);
     const enter = requestAnimationFrame(() => setShown(true));
     const leave = setTimeout(() => setShown(false), 4200);
     return () => {
@@ -18,6 +33,8 @@ export function AnonymousBuyerBanner({ anonymous }: { anonymous: boolean }) {
       clearTimeout(leave);
     };
   }, []);
+
+  if (retired) return null;
 
   return (
     <div

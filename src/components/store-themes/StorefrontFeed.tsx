@@ -17,7 +17,13 @@ const SETTLE = { type: "spring", stiffness: 420, damping: 40 } as const;
  *  finger left/right, then settles on one. Up/down is the feed's own native
  *  scroll -- the track only claims horizontal drags (direction-locked), so a
  *  vertical swipe never nudges it sideways and a sideways one never scrolls. */
-export function StorefrontFeed({ ownerId }: { ownerId: string }) {
+export function StorefrontFeed({
+  ownerId,
+  storePicture,
+}: {
+  ownerId: string;
+  storePicture: string | null;
+}) {
   const [tab, setTab] = useState<Tab>("for-you");
   // Held here so Listed items knows which post you were on.
   const [activePost, setActivePost] = useState<ActivePost | null>(null);
@@ -95,6 +101,7 @@ export function StorefrontFeed({ ownerId }: { ownerId: string }) {
             scope={{ type: "author", userId: ownerId }}
             onActivePost={setActivePost}
             onSwipePastEnd={() => setTab("listed-items")}
+            storePicture={storePicture}
           />
         </div>
         <div className="h-full" style={{ width: `${100 / TABS.length}%` }}>

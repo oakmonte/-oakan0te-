@@ -1292,7 +1292,7 @@ export function PublicStorefront({
         // One screen tall: 100dvh on a page (Home preview), clamped to the
         // sheet's height inside the website's storefront sheet.
         <div style={{ height: "100dvh", maxHeight: "100%" }}>
-          <StorefrontFeed ownerId={ownerId} />
+          <StorefrontFeed ownerId={ownerId} storePicture={storeLogo} />
         </div>
       ) : (
         <div ref={rootRef} className="min-h-full overflow-x-clip pb-28" style={{ background }}>

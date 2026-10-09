@@ -236,8 +236,12 @@ export function PostFeed({
   asStore = false,
   onActivePost,
   onSwipePastEnd,
+  storePicture,
 }: {
   scope: FeedScope;
+  /** A storefront's feed shows the store's picture on the rail, not the
+   *  poster's personal one. */
+  storePicture?: string | null;
   initialPostId?: string;
   onClose?: () => void;
   mode?: "embedded" | "standalone";
@@ -491,6 +495,7 @@ export function PostFeed({
                 viewerId={viewerId}
                 isProfileViewer={scope.type === "user"}
                 storefront={scope.type === "author"}
+                storePicture={storePicture ?? null}
                 overNav={mode === "embedded"}
                 asStore={asStore}
                 onActive={handleActive}
@@ -841,6 +846,7 @@ function FeedPostCard({
   viewerId,
   isProfileViewer,
   storefront,
+  storePicture,
   overNav,
   asStore,
   onActive,
@@ -849,6 +855,7 @@ function FeedPostCard({
   post: FeedPost;
   /** A storefront's Home feed (the "author" scope): the social actions go. */
   storefront: boolean;
+  storePicture: string | null;
   onSwipePastEnd?: () => void;
   /** True when the app's floating BottomNav pill is drawn over this feed
    *  (Explore, embedded mode). The rail and caption then sit above the pill
@@ -1312,33 +1319,34 @@ function FeedPostCard({
             the follow +/check badge is conditional on not being your own post.
             Sized well above the 26px icons below it: at 36px it read as just
             another item in the rail rather than the head of it. */}
-        {/* A storefront's feed is the store's, not a person's: no avatar or
-            follow. */}
-        {!storefront && (
-          <div className="relative mb-5">
-            <div className="w-12 h-12 rounded-full overflow-hidden bg-white/20 border-2 border-white shadow-[0_1px_4px_rgba(0,0,0,0.35)]">
-              {post.authorAvatar && (
-                <img src={post.authorAvatar} alt="" className="w-full h-full object-cover" />
+        {/* On a storefront the picture is the store's and there's no follow:
+            the feed is the store's, not a person's. */}
+        {(() => {
+          const picture = storefront ? storePicture : post.authorAvatar;
+          return (
+            <div className="relative mb-5">
+              <div className="w-12 h-12 rounded-full overflow-hidden bg-white/20 border-2 border-white shadow-[0_1px_4px_rgba(0,0,0,0.35)]">
+                {picture && <img src={picture} alt="" className="w-full h-full object-cover" />}
+              </div>
+              {!storefront && !isOwnPost && (
+                <button
+                  type="button"
+                  onClick={toggleFollow}
+                  aria-label={following ? "Unfollow" : "Follow"}
+                  // A 21px dot is too small to hit reliably; the ::before pads
+                  // the touch target out to 40px without changing what's drawn.
+                  className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 flex items-center justify-center w-[22px] h-[22px] rounded-full bg-[#fe2c55] text-white active:scale-90 before:absolute before:-inset-[9px] before:content-['']"
+                >
+                  {following ? (
+                    <Check size={13} strokeWidth={3} />
+                  ) : (
+                    <Plus size={13} strokeWidth={3} />
+                  )}
+                </button>
               )}
             </div>
-            {!isOwnPost && (
-              <button
-                type="button"
-                onClick={toggleFollow}
-                aria-label={following ? "Unfollow" : "Follow"}
-                // A 21px dot is too small to hit reliably; the ::before pads
-                // the touch target out to 40px without changing what's drawn.
-                className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 flex items-center justify-center w-[22px] h-[22px] rounded-full bg-[#fe2c55] text-white active:scale-90 before:absolute before:-inset-[9px] before:content-['']"
-              >
-                {following ? (
-                  <Check size={13} strokeWidth={3} />
-                ) : (
-                  <Plus size={13} strokeWidth={3} />
-                )}
-              </button>
-            )}
-          </div>
-        )}
+          );
+        })()}
         <div className="flex flex-col items-center gap-2.5">
           {/* A storefront's feed is for shopping: no likes, comments or
               wishlist, just the pieces and the way to the seller. */}
