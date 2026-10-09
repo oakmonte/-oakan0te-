@@ -122,6 +122,14 @@ export function ProductPage({
   // On a store's website the message button opens an enquiry about this
   // piece (EnquirySheet); anywhere else it falls back to plain Messages.
   const storefrontChat = useStorefrontChat();
+  // Until launch, say up front that this can't be bought yet, so nobody
+  // reads the buttons as live (lib/launch-locks.ts). Once per opening.
+  const announcedLock = useRef(false);
+  useEffect(() => {
+    if (!SALES_LOCKED || announcedLock.current) return;
+    announcedLock.current = true;
+    onAction();
+  }, [onAction]);
   const [enquiryOpen, setEnquiryOpen] = useState(false);
   const [shown, setShown] = useState(false);
   const [closing, setClosing] = useState(false);

@@ -117,9 +117,16 @@ export function MessagesView({
       sellerOnly
         ? viewingOwnStore
           ? []
-          : inbox.chats.filter(
-              (chat) => chat.kind === "direct" && chat.peer?.id === sellerOnly.ownerId,
-            )
+          : inbox.chats
+              .filter((chat) => chat.kind === "direct" && chat.peer?.id === sellerOnly.ownerId)
+              // On a storefront the seller is the store: its name and logo,
+              // never the owner's personal name or photo.
+              .map((chat) => ({
+                ...chat,
+                title: sellerOnly.name,
+                handle: null,
+                peer: chat.peer && { ...chat.peer, avatarUrl: sellerOnly.avatarUrl },
+              }))
         : [inbox.support, ...inbox.chats],
     [inbox.support, inbox.chats, sellerOnly, viewingOwnStore],
   );
