@@ -3,6 +3,7 @@ import { LiveStorefrontContext } from "./live-storefront";
 import { usePaintChrome } from "@/lib/paint-chrome";
 import { StorefrontNav, type StorefrontTab } from "./StorefrontNav";
 import { StorefrontFeed } from "./StorefrontFeed";
+import { StorefrontMessages } from "./StorefrontMessages";
 import {
   ArrowLeft,
   BadgeCheck,
@@ -1161,7 +1162,7 @@ export function PublicStorefront({
   usePaintChrome(
     !paintChrome || themeLoading
       ? null
-      : tab === "home"
+      : tab !== "shop"
         ? "#000000"
         : (THEMES.find((t) => t.id === themeId)?.background ?? specForTheme(themeId).bg),
   );
@@ -1258,7 +1259,11 @@ export function PublicStorefront({
   return (
     // overflow-x-clip: same sideways-drag guard as ThemePreviewSheet's frame.
     <>
-      {tab === "home" && ownerId ? (
+      {tab === "messages" ? (
+        <div className="bg-black" style={{ height: "100dvh", maxHeight: "100%" }}>
+          <StorefrontMessages storeId={storeId} />
+        </div>
+      ) : tab === "home" && ownerId ? (
         // One screen tall: 100dvh on a page (Home preview), clamped to the
         // sheet's height inside the website's storefront sheet.
         <div style={{ height: "100dvh", maxHeight: "100%" }}>

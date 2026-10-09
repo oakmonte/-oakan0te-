@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { ChevronLeft, ExternalLink } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
@@ -9,8 +9,7 @@ import shopIcon from "@/assets/Store.svg";
 import homeIcon from "@/assets/Home.svg";
 import messagesIcon from "@/assets/messages.svg";
 
-export type StorefrontTab = "shop" | "home";
-type Tab = StorefrontTab | "messages";
+export type StorefrontTab = "shop" | "home" | "messages";
 
 /** The storefront's own bottom bar: Shop, Home, Messages in a glass pill.
  *  Rendered by PublicStorefront, so the seller's preview (Home tab) and the
@@ -24,58 +23,34 @@ export function StorefrontNav({
   preview,
 }: {
   storeId: string;
-  /** Shop is the storefront page, Home the store's content feed. */
+  /** Shop is the storefront page, Home the store's content feed, Messages
+   *  the one contact a buyer needs (StorefrontMessages). */
   active: StorefrontTab;
   onSelect: (tab: StorefrontTab) => void;
   preview: boolean;
 }) {
-  const navigate = useNavigate();
   const { back } = useBack({ to: "/store" });
-  const [ids, setIds] = useState<{ storeUsername: string; ownerUsername: string | null } | null>(
-    null,
-  );
+  const [storeUsername, setStoreUsername] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
       const { data: store } = await supabase
         .from("stores")
-        .select("store_username, owner_id")
+        .select("store_username")
         .eq("id", storeId)
         .maybeSingle();
-      if (!store || cancelled) return;
-      const { data: owner } = await supabase
-        .from("profiles")
-        .select("personal_username")
-        .eq("id", store.owner_id)
-        .maybeSingle();
-      if (!cancelled) {
-        setIds({
-          storeUsername: store.store_username,
-          ownerUsername: owner?.personal_username ?? null,
-        });
-      }
+      if (store && !cancelled) setStoreUsername(store.store_username);
     })();
     return () => {
       cancelled = true;
     };
   }, [storeId]);
 
-  function press(tab: Tab) {
-    if (tab !== "messages") {
-      onSelect(tab);
-    } else {
-      void navigate({
-        to: "/messages",
-        search: ids?.ownerUsername ? { to: ids.ownerUsername } : {},
-      });
-    }
-  }
-
-  const tabs: { key: Tab; label: string; icon: string }[] = [
+  const tabs: { key: StorefrontTab; label: string; icon: string }[] = [
     { key: "shop", label: "Shop", icon: shopIcon },
     { key: "home", label: "Home", icon: homeIcon },
-    { key: "messages", label: "Message the store", icon: messagesIcon },
+    { key: "messages", label: "Messages", icon: messagesIcon },
   ];
 
   const round =
@@ -108,7 +83,7 @@ export function StorefrontNav({
           <button
             key={key}
             type="button"
-            onClick={() => press(key)}
+            onClick={() => onSelect(key)}
             aria-label={label}
             aria-current={active === key ? "page" : undefined}
             className="relative grid h-full w-[62px] place-items-center"
@@ -134,10 +109,10 @@ export function StorefrontNav({
         ))}
       </div>
 
-      {preview && ids ? (
+      {preview && storeUsername ? (
         <Link
           to="/store-profile/$storeUsername"
-          params={{ storeUsername: ids.storeUsername }}
+          params={{ storeUsername }}
           aria-label="Open website"
           className={`${GLASS_RIM} ${round}`}
           style={glassLight}
