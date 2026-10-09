@@ -92,6 +92,7 @@ import { Route as ApiInstagramConnectRouteImport } from './routes/api.instagram.
 import { Route as ApiOrdersOrderIdRouteImport } from './routes/api.orders.$orderId'
 import { Route as ApiOrdersMineRouteImport } from './routes/api.orders.mine'
 import { Route as ApiPaystackWebhookRouteImport } from './routes/api.paystack.webhook'
+import { Route as ApiPlacesAutocompleteRouteImport } from './routes/api.places.autocomplete'
 import { Route as ApiProductsUploadImageRouteImport } from './routes/api.products.upload-image'
 import { Route as ApiShipbubblePingRouteImport } from './routes/api.shipbubble.ping'
 import { Route as ApiShipbubbleWebhookRouteImport } from './routes/api.shipbubble.webhook'
@@ -544,6 +545,11 @@ const ApiPaystackWebhookRoute = ApiPaystackWebhookRouteImport.update({
   path: '/api/paystack/webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPlacesAutocompleteRoute = ApiPlacesAutocompleteRouteImport.update({
+  id: '/api/places/autocomplete',
+  path: '/api/places/autocomplete',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiProductsUploadImageRoute = ApiProductsUploadImageRouteImport.update({
   id: '/api/products/upload-image',
   path: '/api/products/upload-image',
@@ -809,6 +815,7 @@ export interface FileRoutesByFullPath {
   '/api/orders/$orderId': typeof ApiOrdersOrderIdRoute
   '/api/orders/mine': typeof ApiOrdersMineRoute
   '/api/paystack/webhook': typeof ApiPaystackWebhookRoute
+  '/api/places/autocomplete': typeof ApiPlacesAutocompleteRoute
   '/api/products/upload-image': typeof ApiProductsUploadImageRoute
   '/api/shipbubble/ping': typeof ApiShipbubblePingRoute
   '/api/shipbubble/webhook': typeof ApiShipbubbleWebhookRoute
@@ -926,6 +933,7 @@ export interface FileRoutesByTo {
   '/api/orders/$orderId': typeof ApiOrdersOrderIdRoute
   '/api/orders/mine': typeof ApiOrdersMineRoute
   '/api/paystack/webhook': typeof ApiPaystackWebhookRoute
+  '/api/places/autocomplete': typeof ApiPlacesAutocompleteRoute
   '/api/products/upload-image': typeof ApiProductsUploadImageRoute
   '/api/shipbubble/ping': typeof ApiShipbubblePingRoute
   '/api/shipbubble/webhook': typeof ApiShipbubbleWebhookRoute
@@ -1047,6 +1055,7 @@ export interface FileRoutesById {
   '/api/orders/$orderId': typeof ApiOrdersOrderIdRoute
   '/api/orders/mine': typeof ApiOrdersMineRoute
   '/api/paystack/webhook': typeof ApiPaystackWebhookRoute
+  '/api/places/autocomplete': typeof ApiPlacesAutocompleteRoute
   '/api/products/upload-image': typeof ApiProductsUploadImageRoute
   '/api/shipbubble/ping': typeof ApiShipbubblePingRoute
   '/api/shipbubble/webhook': typeof ApiShipbubbleWebhookRoute
@@ -1169,6 +1178,7 @@ export interface FileRouteTypes {
     | '/api/orders/$orderId'
     | '/api/orders/mine'
     | '/api/paystack/webhook'
+    | '/api/places/autocomplete'
     | '/api/products/upload-image'
     | '/api/shipbubble/ping'
     | '/api/shipbubble/webhook'
@@ -1286,6 +1296,7 @@ export interface FileRouteTypes {
     | '/api/orders/$orderId'
     | '/api/orders/mine'
     | '/api/paystack/webhook'
+    | '/api/places/autocomplete'
     | '/api/products/upload-image'
     | '/api/shipbubble/ping'
     | '/api/shipbubble/webhook'
@@ -1406,6 +1417,7 @@ export interface FileRouteTypes {
     | '/api/orders/$orderId'
     | '/api/orders/mine'
     | '/api/paystack/webhook'
+    | '/api/places/autocomplete'
     | '/api/products/upload-image'
     | '/api/shipbubble/ping'
     | '/api/shipbubble/webhook'
@@ -1507,6 +1519,7 @@ export interface RootRouteChildren {
   ApiInstagramCallbackRoute: typeof ApiInstagramCallbackRoute
   ApiInstagramConnectRoute: typeof ApiInstagramConnectRoute
   ApiPaystackWebhookRoute: typeof ApiPaystackWebhookRoute
+  ApiPlacesAutocompleteRoute: typeof ApiPlacesAutocompleteRoute
   ApiProductsUploadImageRoute: typeof ApiProductsUploadImageRoute
   ApiShipbubblePingRoute: typeof ApiShipbubblePingRoute
   ApiShipbubbleWebhookRoute: typeof ApiShipbubbleWebhookRoute
@@ -2109,6 +2122,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPaystackWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/places/autocomplete': {
+      id: '/api/places/autocomplete'
+      path: '/api/places/autocomplete'
+      fullPath: '/api/places/autocomplete'
+      preLoaderRoute: typeof ApiPlacesAutocompleteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/products/upload-image': {
       id: '/api/products/upload-image'
       path: '/api/products/upload-image'
@@ -2555,6 +2575,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiInstagramCallbackRoute: ApiInstagramCallbackRoute,
   ApiInstagramConnectRoute: ApiInstagramConnectRoute,
   ApiPaystackWebhookRoute: ApiPaystackWebhookRoute,
+  ApiPlacesAutocompleteRoute: ApiPlacesAutocompleteRoute,
   ApiProductsUploadImageRoute: ApiProductsUploadImageRoute,
   ApiShipbubblePingRoute: ApiShipbubblePingRoute,
   ApiShipbubbleWebhookRoute: ApiShipbubbleWebhookRoute,

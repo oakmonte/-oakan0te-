@@ -28,6 +28,7 @@ import {
   subscribeToStates,
 } from "@/lib/region-data";
 import { PageSheet } from "@/components/PageSheet";
+import { AddressAutocomplete, type PickedAddress } from "@/components/AddressAutocomplete";
 import { authedFetch } from "@/lib/authed-fetch";
 import { LocationListPicker, type LocationListItem } from "./LocationListPicker";
 
@@ -201,6 +202,26 @@ export function LocationSheet({
   useEffect(() => {
     void loadAllStates();
   }, []);
+
+  // A picked suggestion fills the whole address; the seller can still edit it.
+  function applyPicked(a: PickedAddress) {
+    if (a.country) {
+      const code = countryCodeForName(a.country);
+      setCountry(a.country);
+      setCountryCode(code);
+      const match = a.state ? getStates(code).find((s) => s.name === a.state) : undefined;
+      setState(a.state);
+      setStateCode(match?.code ?? "");
+    }
+    setAddressLine(a.line1);
+    if (a.city) setCity(a.city);
+    if (a.postalCode) setPostalCode(a.postalCode);
+    // A GPS pin the seller took on the spot stays; otherwise use Google's.
+    if (lat == null && a.lat != null && a.lng != null) {
+      setLat(a.lat);
+      setLng(a.lng);
+    }
+  }
 
   function useCurrentLocation() {
     if (!("geolocation" in navigator)) {
@@ -403,10 +424,13 @@ export function LocationSheet({
         <div>
           <p className="text-[17px] font-semibold text-sd-ink mb-3">Address</p>
           <div className="flex flex-col gap-3">
-            <input
+            <AddressAutocomplete
+              tone="dashboard"
               value={addressLine}
-              onChange={(e) => setAddressLine(e.target.value)}
-              placeholder="Address line 1"
+              onChange={setAddressLine}
+              onPick={applyPicked}
+              regionCode={countryCode || undefined}
+              placeholder="Start typing your address"
               className={`w-full text-base border rounded-xl px-4 py-3 outline-none focus:border-sd-ink-faint transition-colors duration-150 ${
                 showErrors && !addressLine.trim() ? "border-sd-danger-mark/50" : "border-sd-line"
               }`}

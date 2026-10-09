@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { AddressAutocomplete, type PickedAddress } from "@/components/AddressAutocomplete";
 import { ChevronRight, LocateFixed } from "lucide-react";
 import {
   allStatesReady,
@@ -138,6 +139,22 @@ export function DeliveryCheckout({
     window.addEventListener("pageshow", onShow);
     return () => window.removeEventListener("pageshow", onShow);
   }, []);
+
+  // A picked suggestion fills the whole address; the buyer can still edit it.
+  function applyPicked(a: PickedAddress) {
+    if (a.country) {
+      const code = countryCodeForName(a.country);
+      setCountry(a.country);
+      setCountryCode(code);
+      const match = a.state ? getStates(code).find((s) => s.name === a.state) : undefined;
+      setStateName(a.state);
+      setStateCode(match?.code ?? "");
+    }
+    setAddressLine(a.line1);
+    if (a.city) setCity(a.city);
+    if (a.postalCode) setPostalCode(a.postalCode);
+    if (a.lat != null && a.lng != null) setCoords({ lat: a.lat, lng: a.lng });
+  }
 
   async function locateMe() {
     if (!("geolocation" in navigator)) {
@@ -391,12 +408,13 @@ export function DeliveryCheckout({
             <LocateFixed size={18} />
             {locating ? "Finding you…" : "Use my current location"}
           </button>
-          <input
-            className={`${field} ${bad(!addressLineOk(addressLine))}`}
-            placeholder="Address line 1"
-            autoComplete="address-line1"
+          <AddressAutocomplete
+            className={`${field} w-full ${bad(!addressLineOk(addressLine))}`}
+            placeholder="Start typing your address"
             value={addressLine}
-            onChange={(e) => setAddressLine(e.target.value)}
+            onChange={setAddressLine}
+            onPick={applyPicked}
+            regionCode={countryCode || undefined}
           />
           {showErrors && !addressLineOk(addressLine) && (
             <p className="-mt-1 text-[13px] text-red-400">
