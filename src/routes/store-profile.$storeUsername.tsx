@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router"
 import { useOverlayHistory } from "@/hooks/use-overlay-history";
 import { useCallback, useState, useRef, useEffect, useMemo } from "react";
 import { motion, AnimatePresence, useDragControls, useMotionValue } from "framer-motion";
-import { ArrowLeft, Share2, Search, Menu, Star, UserRound, X } from "lucide-react";
+import { ArrowLeft, Share2, Search, Menu, UserRound, X } from "lucide-react";
 import { BackButton } from "@/components/BackButton";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { fetchStoreLogoUrl } from "@/lib/store-logo";
@@ -16,6 +16,7 @@ import { Stat, MenuRow } from "@/components/profile/profile-chrome";
 import { storeTabsFor, type TabKey } from "@/components/profile/profile-tabs";
 import { StorePiecesGrid, StorePiecesEmptyState } from "@/components/profile/StorePiecesGrid";
 import { TabPager } from "@/components/profile/TabPager";
+import { PostsGrid } from "@/components/profile/PostsGrid";
 import { ProfileTabStrip } from "@/components/profile/ProfileTabStrip";
 
 export const Route = createFileRoute("/store-profile/$storeUsername")({
@@ -328,14 +329,6 @@ function StoreProfilePage() {
             <div className="text-[11px] font-bold text-[#B0ADAD] mt-0.5">
               @{store?.store_username || storeUsername}
             </div>
-            <div className="flex items-center justify-center gap-1.5 mt-1.5">
-              <div className="flex items-center gap-[2px]">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Star key={i} size={13} className="fill-[#FF7300] text-[#FF7300]" />
-                ))}
-              </div>
-              <span className="text-[11px] font-medium">(0)</span>
-            </div>
           </div>
 
           <div className="flex items-center gap-8">
@@ -343,7 +336,6 @@ function StoreProfilePage() {
               (`follows` only links profile to profile) — these sit at 0 as
               placeholders, same as sold_items_count/rating on profile_stats
               until that's wired up. */}
-            <Stat value="0" label="Following" />
             <Stat value="0" label="Followers" />
             <Stat value="0" label="Sold Items" />
           </div>
@@ -402,7 +394,24 @@ function StoreProfilePage() {
               >
                 {storeTabs.map(({ key }) => (
                   <div key={key} className="px-1 pt-4">
-                    {key === "wardrobe" && store ? (
+                    {key === "posts" && store ? (
+                      // Sellers-only: posts belong to the person, and the store
+                      // profile is the only profile now, so it shows the
+                      // owner's posts (the same ones the storefront feed plays).
+                      <PostsGrid
+                        userId={store.owner_id}
+                        status="published"
+                        emptyState={
+                          <ProfileTabEmptyState tab={key} isOwnProfile={isOwnStoreProfile} />
+                        }
+                      />
+                    ) : key === "drafts" && store && isOwnStoreProfile ? (
+                      <PostsGrid
+                        userId={store.owner_id}
+                        status="draft"
+                        emptyState={<ProfileTabEmptyState tab={key} isOwnProfile />}
+                      />
+                    ) : key === "wardrobe" && store ? (
                       <StorePiecesGrid
                         storeId={store.id}
                         storeUsername={store.store_username}
