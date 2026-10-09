@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { LiveStorefrontContext } from "./live-storefront";
 import { usePaintChrome } from "@/lib/paint-chrome";
+import { StorefrontNav } from "./StorefrontNav";
 import {
   ArrowLeft,
   BadgeCheck,
@@ -1140,14 +1141,19 @@ export function FullPreview({
 export function PublicStorefront({
   storeId,
   paintChrome = false,
+  preview = false,
 }: {
   storeId: string;
+  /** The seller's own preview (Home tab): its bottom bar adds Back and Open
+   *  website. The public website leaves this off. */
+  preview?: boolean;
   /** Pour the theme's background into the phone's top strip while shown.
    *  For a storefront that owns the screen (Home's preview, the website's
    *  sheet), not one embedded in a page that has its own top. */
   paintChrome?: boolean;
 }) {
   const { themeId, loading: themeLoading } = useStoreTheme(storeId);
+  const rootRef = useRef<HTMLDivElement>(null);
   usePaintChrome(
     paintChrome && !themeLoading
       ? (THEMES.find((t) => t.id === themeId)?.background ?? specForTheme(themeId).bg)
@@ -1243,10 +1249,11 @@ export function PublicStorefront({
 
   return (
     // overflow-x-clip: same sideways-drag guard as ThemePreviewSheet's frame.
-    <div className="min-h-full overflow-x-clip pb-24" style={{ background }}>
+    <div ref={rootRef} className="min-h-full overflow-x-clip pb-28" style={{ background }}>
       <LiveStorefrontContext.Provider value={true}>
         <FullPreview themeId={themeId} editing={editing} storeId={storeId} brandName={brandName} />
       </LiveStorefrontContext.Provider>
+      <StorefrontNav storeId={storeId} rootRef={rootRef} preview={preview} />
     </div>
   );
 }

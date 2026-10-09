@@ -1,6 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ArrowUpRight } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { PublicStorefront } from "@/components/store-themes/full-previews";
 import { supabase } from "@/lib/integrations/my-supabase/client";
@@ -45,19 +44,9 @@ function HomePage() {
       style={{ fontFamily: "'SF Pro', system-ui, sans-serif" }}
     >
       {loading ? null : store ? (
-        <>
-          <div className="pb-28">
-            <PublicStorefront storeId={store.id} paintChrome />
-          </div>
-          <Link
-            to="/store-profile/$storeUsername"
-            params={{ storeUsername: store.store_username }}
-            className="fixed right-4 top-[calc(env(safe-area-inset-top)+12px)] z-50 flex h-9 items-center gap-1 rounded-full bg-black/55 pl-3.5 pr-3 text-[13.5px] font-semibold text-white backdrop-blur-xl active:scale-[0.97]"
-          >
-            Open website
-            <ArrowUpRight size={15} />
-          </Link>
-        </>
+        // The storefront brings its own bottom bar (StorefrontNav, with Back
+        // and Open website in preview mode), so no app nav here.
+        <PublicStorefront storeId={store.id} paintChrome preview />
       ) : (
         <div className="flex min-h-screen flex-col items-center justify-center px-10 pb-28 text-center">
           <p className="text-[20px] font-bold">
@@ -77,7 +66,7 @@ function HomePage() {
         </div>
       )}
 
-      <BottomNav active="website" ownUsername={ownUsername} />
+      {!store && <BottomNav active="website" ownUsername={ownUsername} />}
     </div>
   );
 }

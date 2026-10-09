@@ -1208,7 +1208,11 @@ export function CollectionsGrid({
     const showToggle = !!editing?.isEditing && !toggleShown;
     toggleShown ||= showToggle;
     return (
-      <div className="flex items-center justify-between gap-2">
+      <div
+        // StorefrontNav's Shop button scrolls here.
+        data-storefront-section={title.toLowerCase()}
+        className="flex items-center justify-between gap-2"
+      >
         <span className="text-[15px] font-semibold" style={{ color: textColor }}>
           {title}
         </span>
