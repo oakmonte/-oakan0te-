@@ -6,6 +6,25 @@ native-only APIs.
 
 Don't rewrite pushed history (force push / rebase / amend / squash) — the remote is shared.
 
+## Pivot: sellers-only (2026-10-09)
+
+The full social platform was too much to market. Oakmonte is becoming a store builder
+(Shopify/Bumpa/Labeld territory) with one distinction: each seller's site has a **video feed**
+buyers scroll endlessly, with the linked products on every video. Camera, editors, themes and
+checkout all carry over. Smart size chart ships as a beta selling point.
+
+Three versions:
+
+1. **`oakmonte-master-piece`** (branch; tag `master-piece-2026-10-09`) — the full platform, kept
+   safe. Low priority. Finished lane work (discounts, insights, activity — not offline videos)
+   is merged in there too.
+2. **Sellers-only** (a preview branch) — built toward Paystack going live.
+3. **Sellers-only locked** (`main` = production) — same code, with buying blocked by a "not until
+   launch" pop-up until Paystack is ready. Production-ready for incoming sellers.
+
+The social side is removed **bit by bit, as Diadem walks through it** — don't strip features
+ahead of that. Half-built lanes are WIP on `feature/lane-{discounts,insights,activity,offline}`.
+
 ## Multiple agents share this repo
 
 A shared checkout is the cause of most merge/push trouble here. Give each agent its own worktree:
