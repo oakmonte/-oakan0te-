@@ -452,7 +452,9 @@ export function PostFeed({
         <p className="text-[13px] text-white/50 max-w-[220px]">
           {scope.type === "following"
             ? "Follow people to see their posts here."
-            : "Nothing to show yet."}
+            : scope.type === "author"
+              ? "No posted content yet."
+              : "Nothing to show yet."}
         </p>
       </div>
     );

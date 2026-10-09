@@ -21,6 +21,7 @@ import { useActiveStore } from "@/hooks/use-own-store";
 import { BottomNav } from "@/components/BottomNav";
 import { StoreHeaderProvider } from "@/context/store-header-provider";
 import { useStoreHeader } from "@/hooks/use-store-header";
+import { useLockedBanner } from "@/components/LockedBanner";
 
 export const Route = createFileRoute("/store")({
   // theme-color is NOT declared here any more. The dashboard needs a different
@@ -117,6 +118,7 @@ function StoreLayoutInner() {
   const [username, setUsername] = useState<string | null>(null);
   const { store, stores, setActiveId } = useActiveStore();
   const { rightAction } = useStoreHeader();
+  const { banner: lockedBanner, showLocked } = useLockedBanner();
 
   useEffect(() => {
     if (!user) return;
@@ -159,6 +161,7 @@ function StoreLayoutInner() {
       <div className={pathname === "/store" ? "pt-14 pb-28" : "pt-14"}>
         <Outlet />
       </div>
+      {lockedBanner}
       {pathname === "/store" && <BottomNav active="store" ownUsername={username ?? undefined} />}
 
       {drawerOpen && (
@@ -236,16 +239,16 @@ function StoreLayoutInner() {
                 with it. oak-safe-bottom keeps it clear of the home indicator in
                 the installed app, where this panel runs to the physical edge. */}
             <div className="shrink-0 mt-3 pt-3 border-t border-white/10 oak-safe-bottom">
-              {username && (
-                <Link
-                  to="/profile/$username"
-                  params={{ username }}
-                  className="flex items-center gap-3.5 px-3 py-4 rounded-xl hover:bg-white/10 text-base text-gray-300 transition-colors duration-150"
-                >
-                  <ArrowLeftCircle size={20} />
-                  Return to profile
-                </Link>
-              )}
+              {/* Sellers-only: the rest of Oakmonte (the shopper side) isn't
+                  open yet, so this only says so. */}
+              <button
+                type="button"
+                onClick={() => showLocked("Not yet authorised")}
+                className="flex w-full items-center gap-3.5 px-3 py-4 rounded-xl hover:bg-white/10 text-base text-gray-300 transition-colors duration-150"
+              >
+                <ArrowLeftCircle size={20} />
+                Return to Oakmonte
+              </button>
             </div>
           </div>
         </div>

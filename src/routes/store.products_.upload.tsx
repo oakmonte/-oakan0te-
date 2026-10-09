@@ -5,6 +5,7 @@ import { BackButton } from "@/components/BackButton";
 import { authedFetch } from "@/lib/authed-fetch";
 import { useActiveStoreId } from "@/hooks/use-own-store";
 import { Spinner } from "@/components/spinner";
+import { csvFileProblem } from "@/lib/csv-file-check";
 
 export const Route = createFileRoute("/store/products_/upload")({
   component: ProductsUpload,
@@ -167,6 +168,13 @@ function ProductsUpload() {
   async function uploadCsv(file: File, platform: "csv" | "bumpa", profile?: string) {
     if (!storeId) {
       setError("No store found on this account");
+      return;
+    }
+    // Checked here so a wrong file says so straight away, not as a failed
+    // import a minute later (the server checks again).
+    const problem = await csvFileProblem(file);
+    if (problem) {
+      setError(problem);
       return;
     }
     setBusy(true);

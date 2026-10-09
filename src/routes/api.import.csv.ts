@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { requireStoreOwner } from "@/lib/server-auth";
 import type { Json } from "@/lib/integrations/my-supabase/types";
+import { csvFileProblem } from "@/lib/csv-file-check";
 
 /**
  * Accepts a CSV upload, parks it on Bunny Storage, and enqueues an import job
@@ -71,6 +72,8 @@ export const Route = createFileRoute("/api/import/csv")({
         if (file.size === 0) {
           return Response.json({ error: "File is empty" }, { status: 400 });
         }
+        const notCsv = await csvFileProblem(file);
+        if (notCsv) return Response.json({ error: notCsv }, { status: 400 });
         if (file.size > MAX_BYTES) {
           return Response.json(
             {
