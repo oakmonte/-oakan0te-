@@ -263,7 +263,7 @@ export function ListedItemsPage({ items }: { items: TaggedProduct[] }) {
                 <button
                   type="button"
                   aria-label="Add to bag"
-                  onClick={() => showLocked("The bag opens with the cart update")}
+                  onClick={() => showLocked("Add to cart is unavailable")}
                   className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-black transition-transform duration-150 ease-out active:scale-[0.92]"
                 >
                   <BagPlus size={17} />

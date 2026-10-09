@@ -37,7 +37,7 @@ import { useBagToast } from "@/components/cart/BagToast";
 import { addProductsToCart } from "@/lib/cart-quote";
 import { claimMediaSession, releaseMediaSession } from "@/lib/media-session";
 import { useLockedBanner } from "@/components/LockedBanner";
-import { SHARING_LOCKED } from "@/lib/launch-locks";
+import { SALES_LOCKED, SHARING_LOCKED } from "@/lib/launch-locks";
 import { BagPlus } from "@/components/icons/BagPlus";
 
 // Bare icons over the media — no chip behind them and no drop shadow either.
@@ -1464,7 +1464,12 @@ function FeedPostCard({
               from it. The bag is local to the device (lib/cart.ts), so this
               works signed out too. */}
           {!asStore && (
-            <RailAction label="Add tagged items to cart" onPress={() => void addTaggedToBag()}>
+            <RailAction
+              label="Add tagged items to cart"
+              onPress={() =>
+                SALES_LOCKED ? showLocked("Add to cart is unavailable") : void addTaggedToBag()
+              }
+            >
               <BagPlus size={28} />
             </RailAction>
           )}
