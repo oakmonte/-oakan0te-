@@ -1187,8 +1187,14 @@ export default function StudioEditor({
         gradeClipId={targetClip?.id ?? null}
       />
 
-      {/* Transport row — timecode, play, history, fullscreen. */}
-      <div className="flex shrink-0 items-center px-2 py-0.5">
+      {/* Transport row — timecode, play, history, fullscreen. In fullscreen it's
+          the last row on screen, so it keeps clear of the home indicator. */}
+      <div
+        className="flex shrink-0 items-center px-2 py-0.5"
+        style={
+          fullscreen ? { paddingBottom: "calc(env(safe-area-inset-bottom) + 20px)" } : undefined
+        }
+      >
         <span className="w-[132px] text-[12px] tabular-nums text-white/65">
           <span className="text-white">{formatTimecode(playback.time)}</span>
           <span className="text-white/60">/{formatTimecode(duration)}</span>
@@ -1265,7 +1271,7 @@ export default function StudioEditor({
       {!fullscreen && (
         <div
           className="shrink-0"
-          style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 4px)" }}
+          style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 14px)" }}
         >
           {bottom()}
         </div>
