@@ -12,6 +12,7 @@ import type { PreviewTile } from "./storefront-catalog";
 import type { StorefrontLook } from "./storefront-look";
 import { EnquirySheet } from "./EnquirySheet";
 import { useStorefrontChat } from "@/lib/buyer-session";
+import { SALES_LOCKED } from "@/lib/launch-locks";
 
 const PUSH = "cubic-bezier(0.32, 0.72, 0, 1)";
 const OPEN_MS = 380;
@@ -341,9 +342,9 @@ export function ProductPage({
                   <button
                     type="button"
                     disabled={soldOut}
-                    // Locked until Paystack is live: the same "Sales are still
-                    // locked until full launch" notice as on main.
-                    onClick={onAction}
+                    // Until Paystack is live: the same "Sales are still locked
+                    // until full launch" notice as on main (lib/launch-locks.ts).
+                    onClick={SALES_LOCKED ? onAction : () => void buyNow()}
                     className="h-14 min-w-0 flex-1 rounded-2xl text-[18px] font-semibold disabled:opacity-40"
                     style={btn}
                   >

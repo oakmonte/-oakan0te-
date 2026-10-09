@@ -8,6 +8,8 @@ import { useBack } from "@/hooks/use-back";
 import shopIcon from "@/assets/Store.svg";
 import homeIcon from "@/assets/Home.svg";
 import messagesIcon from "@/assets/messages.svg";
+import { WEBSITE_VISITS_LOCKED } from "@/lib/launch-locks";
+import { useLockedBanner } from "@/components/LockedBanner";
 
 export type StorefrontTab = "shop" | "home" | "messages";
 
@@ -31,6 +33,7 @@ export function StorefrontNav({
 }) {
   const { back } = useBack({ to: "/store" });
   const [storeUsername, setStoreUsername] = useState<string | null>(null);
+  const { banner: lockedBanner, showLocked } = useLockedBanner();
 
   useEffect(() => {
     let cancelled = false;
@@ -109,7 +112,17 @@ export function StorefrontNav({
         ))}
       </div>
 
-      {preview && storeUsername ? (
+      {preview && WEBSITE_VISITS_LOCKED ? (
+        <button
+          type="button"
+          onClick={() => showLocked("Website visits are not available for now")}
+          aria-label="Open website"
+          className={`${GLASS_RIM} ${round}`}
+          style={glassLight}
+        >
+          <ExternalLink size={22} strokeWidth={2.3} />
+        </button>
+      ) : preview && storeUsername ? (
         <Link
           to="/shop/$storeUsername"
           params={{ storeUsername }}
@@ -122,6 +135,7 @@ export function StorefrontNav({
       ) : (
         <span className="w-[52px]" />
       )}
+      {lockedBanner}
     </nav>
   );
 }

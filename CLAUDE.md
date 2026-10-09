@@ -22,6 +22,10 @@ Three versions:
 3. **Sellers-only locked** (`main` = production) — same code, with buying blocked by a "not until
    launch" pop-up until Paystack is ready. Production-ready for incoming sellers.
 
+Launch locks (Buy Now, the preview's Open website) live in `src/lib/launch-locks.ts`: locked
+by default, unlocked only by `VITE_LAUNCH_UNLOCKED=true`, set in Vercel for the `sellers-only`
+preview. Keep both branches' code identical; never lock or unlock by editing code on one branch.
+
 The social side is removed **bit by bit, as Diadem walks through it** — don't strip features
 ahead of that. Half-built lanes are WIP on `feature/lane-{discounts,insights,activity,offline}`.
 
