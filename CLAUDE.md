@@ -142,11 +142,14 @@ Mobile-first, often on slow networks.
 
 ## Pre-launch state
 
-Short form here, full detail in `POSTPONED.md` — keep the two in step. Headline blocker: RLS is
-off on the tables the seller dashboard writes to directly from the browser (check
-`mcp__supabase__get_advisors` for the current list rather than trusting a hardcoded count anywhere
-in these docs). Store scoping itself is real (`useActiveStore`); the RLS migration is drafted and
-reviewed but held pending explicit sign-off — see POSTPONED §1.1.
+Short form here, full detail in `POSTPONED.md` — keep the two in step. RLS is **on** for the
+store and catalogue tables (`20261009120000_store_catalogue_rls.sql`, applied 2026-10-09): reads
+public, writes owner-only via the `owns_*` helpers, and `stores`' private columns (contact,
+pickup address, Shopify/Bumpa) have no SELECT grant for anon/authenticated — **the browser must
+never select them**; read them server-side. A new store-scoped table needs RLS + policies in its
+own migration; check `mcp__supabase__get_advisors` after any DDL. Anonymous sign-ins are on:
+anonymous accounts get the `authenticated` role, so any write policy a buyer-side feature adds
+must exclude them (`auth.jwt() ->> 'is_anonymous'`) where they shouldn't act (offers, stores).
 The direct-messages and read-receipts migrations are applied; follow-ups (regenerate types, a
 two-account tick check) are in POSTPONED §1.4.
 Message bodies, third-party tokens and payout account numbers are encrypted at the app layer (not

@@ -12,25 +12,26 @@ Legend: **[BLOCKS LAUNCH]** · **[NEEDS A DECISION]** — schema or money, not m
 
 ## 1. Blocks launch
 
-### 1.1 RLS is off · migration drafted, held
+### 1.1 RLS on the store/catalogue tables · applied 2026-10-09
 
-The tables the seller dashboard writes to directly from the browser have no row-level
-security — the publishable key can read and write every seller's catalogue, not just its
-own. Check `mcp__supabase__get_advisors` for the current table list; it grows as new
-store-scoped tables are added and a hardcoded count here would just drift.
+`supabase/migrations/20261009120000_store_catalogue_rls.sql`, run by Diadem in the SQL editor
+(so it is not in `supabase_migrations` — don't re-run it from the CLI expecting a no-op without
+checking; the `create policy` statements aren't idempotent). The earlier drafted migration was
+never committed and is lost; this one was written fresh against the 2026-10-09 schema.
 
-Store scoping itself is real (`useOwnStores`/`useActiveStore` in `use-own-store.ts`, derived
-from the signed-in session) — that's no longer what's blocking this. A full migration (6
-`SECURITY DEFINER` owner-check helpers + one policy per table) is written and reviewed, but
-held pending explicit sign-off. Ask before applying it — it isn't a "just do it" item even
-though the code is ready.
+- Reads stay public on everything the storefront shows; `store_locations` is owner-only.
+- Writes are owner-only through `owns_store/product/variant/option/collection/tag/location`
+  (SECURITY DEFINER, empty search_path). Server routes and the import worker use the service
+  role and are unaffected.
+- `stores` is public row-wise, but SELECT is granted only on its public columns. The private
+  ones (`business_email`, `business_phone`, `pickup_*`, `shopify_*`, `bumpa_store_id`) are
+  server-only: the browser may write `business_email` but must never select it, and a
+  `select("*")` on `stores` from the browser now fails.
+- Anonymous accounts can't insert a store.
 
-Whoever writes that migration: `stores` is read by unauthenticated viewers too (the public
-storefront at `/store-profile/:username` looks a store up by username), and it holds
-`shopify_access_token`, `business_email` and other columns that can't go behind a public
-policy. It needs the same shape already used for profiles (`public_profiles`, see
-`20260826155813_add_public_profiles_view.sql`): a `public_stores` view exposing only the
-public columns, `logo_url` (added 2026-09-25, see `store-logo.ts`) included.
+Still open: the advisor's `security_definer_view` errors on `public_profiles`/`profile_stats`
+(by design, they're the public-column views) and the `is_email_registered` /
+`is_username_available` RPCs callable signed-out (needed by sign-up).
 
 ### 1.2 Supabase dashboard settings with no API
 
