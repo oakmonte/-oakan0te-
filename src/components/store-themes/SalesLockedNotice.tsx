@@ -27,7 +27,15 @@ export function SalesLockedNotice({ onClose }: { onClose: () => void }) {
     setShown(false);
     setTimeout(onClose, reduceMotion ? 150 : 200);
   }
-  useOverlayHistory(!closing, close);
+  // Armed a beat after mount, as in ProductPage: under StrictMode (dev) the
+  // hook's history effect runs twice and its own cleanup pop would close the
+  // notice the moment it opened.
+  const [armed, setArmed] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setArmed(true), 80);
+    return () => clearTimeout(t);
+  }, []);
+  useOverlayHistory(armed && !closing, close);
 
   if (typeof document === "undefined") return null;
   return createPortal(
