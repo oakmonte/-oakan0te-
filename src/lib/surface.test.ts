@@ -66,6 +66,7 @@ describe("surfaceForPathname", () => {
     expect(surfaceForPathname("/home")).toBe("social");
     expect(surfaceForPathname("/messages")).toBe("social");
     expect(surfaceForPathname("/profile/diadem")).toBe("social");
+    expect(surfaceForPathname("/offline-videos")).toBe("social");
   });
 
   // Exact matches only — a prefix match would sweep in unrelated routes.

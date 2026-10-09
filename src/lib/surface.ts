@@ -39,6 +39,10 @@ export function surfaceForPathname(pathname: string): Surface {
   // Personal profiles too (not /store-profile/*, the public storefront, which
   // paints its own theme colours).
   if (pathname.startsWith("/profile/")) return "social";
+  // Offline videos is opened from the profile menu and is written in the same
+  // chat-* tokens, so it follows the phone too. Its full-screen player is a
+  // dark overlay (dark-overlay.ts), like Explore's on /home.
+  if (pathname === "/offline-videos") return "social";
   // The marketing landing page and the seller pitch page: always white,
   // never phone-following. Each already declares #ffffff in its own head(),
   // but that alone only fixes the status-bar chrome -- the page background

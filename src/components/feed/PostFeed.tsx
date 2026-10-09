@@ -1,5 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import {
+  lazy,
+  Suspense,
   useCallback,
   useEffect,
   useRef,
@@ -34,6 +36,13 @@ import { SaveToast } from "@/components/feed/SaveToast";
 import { LinkProductsSheet } from "@/components/feed/LinkProductsSheet";
 import { useLockedBanner } from "@/components/LockedBanner";
 import { claimMediaSession, releaseMediaSession } from "@/lib/media-session";
+
+// Fetched on the first tap of a share plane. The feed is in the entry chunk,
+// and the sheet plus the offline-download engine behind it are ~18 KB that
+// most sessions never open.
+const PostShareSheet = lazy(() =>
+  import("@/components/feed/PostShareSheet").then((m) => ({ default: m.PostShareSheet })),
+);
 
 // Bare icons over the media — no chip behind them and no drop shadow either.
 // The shadow was there so they'd survive a light photo, but it read as grubby
@@ -214,9 +223,10 @@ async function fetchFeed(scope: FeedScope, viewerId: string | null): Promise<Fee
  *  button, for a caller (ExploreFeedOverlay) that already owns the
  *  fixed-position chrome around it. `mode="standalone"` (default) owns its
  *  own fixed full-screen overlay + close button, for a caller (PostsGrid)
- *  that has nothing like that already. Engagement icons (like/comment/save/
- *  share) are decoration, not wired up — there's no likes/comments schema
- *  yet, and a fake count would be worse than an honest do-nothing button. */
+ *  that has nothing like that already. Engagement icons (like/comment/save)
+ *  are decoration, not wired up — there's no likes/comments schema yet, and a
+ *  fake count would be worse than an honest do-nothing button. Share is real:
+ *  it opens PostShareSheet (copy link, save for offline). */
 export function PostFeed({
   scope,
   initialPostId,
@@ -871,6 +881,9 @@ function FeedPostCard({
   const [burst, setBurst] = useState(0);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
+  // "never" until the first tap, so the lazy sheet isn't fetched for a post
+  // nobody shares; after that it stays mounted and animates open/closed.
+  const [share, setShare] = useState<"never" | "open" | "closed">("never");
   const { banner: lockedBanner, showLocked } = useLockedBanner();
   // Local so linking a product updates the chips under the caption straight
   // away — the feed's post list is fetched once and isn't refetched on a
@@ -1354,7 +1367,7 @@ function FeedPostCard({
               <MoreHorizontal size={28} />
             </RailAction>
           ) : (
-            <RailAction label="Share">
+            <RailAction label="Share" onPress={() => setShare("open")}>
               <Send size={28} strokeLinecap="round" strokeLinejoin="round" />
             </RailAction>
           )}
@@ -1429,6 +1442,26 @@ function FeedPostCard({
       />
 
       <CommentSheet open={commentsOpen} onClose={() => setCommentsOpen(false)} />
+      {/* Copy link + save for offline. Only where the plane is drawn: the
+          owner's profile viewer shows "More" in its place. Every carousel
+          item goes to the offline cache, not just what's on screen. */}
+      {!isOwnerView && share !== "never" && (
+        <Suspense fallback={null}>
+          <PostShareSheet
+            open={share === "open"}
+            onClose={() => setShare("closed")}
+            post={{
+              postId: post.id,
+              caption: post.caption,
+              author: { displayName: post.authorDisplayName, username: post.authorUsername },
+              media: post.media,
+              posterUrl: backdropUrl,
+              audioUrl: post.audio_url,
+              audioLabel: post.audio_attribution ?? post.audio_name,
+            }}
+          />
+        </Suspense>
+      )}
       {lockedBanner}
       {isOwnerView && (
         <LinkProductsSheet
