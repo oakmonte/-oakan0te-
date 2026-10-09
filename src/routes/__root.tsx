@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { scheduleStatusStrip, watchStatusStrip } from "@/lib/status-strip";
 import { ogImageMeta } from "@/lib/og-image";
 import {
   Outlet,
@@ -408,14 +409,14 @@ function RootComponent() {
   // If this turns out not to move the status bar on a real device, the cause is
   // a WebKit limitation rather than this code, and the alternatives are a
   // design decision -- see the status-bar-style note in this file's head().
+  //
+  // Superseded by status-strip.ts, which does that reinsertion too but with
+  // the colour actually painted at the top of the screen rather than the one
+  // each route predicted -- the prediction is what kept leaving black strips
+  // above white screens. The declared values above still set the first paint.
+  useEffect(() => watchStatusStrip(), []);
   useEffect(() => {
-    for (const meta of document.querySelectorAll('meta[name="theme-color"]')) {
-      const parent = meta.parentNode;
-      if (!parent) continue;
-      const next = meta.nextSibling;
-      parent.removeChild(meta);
-      parent.insertBefore(meta, next);
-    }
+    scheduleStatusStrip();
   }, [pathname, darkOverlay]);
 
   return (
