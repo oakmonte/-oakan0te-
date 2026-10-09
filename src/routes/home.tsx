@@ -5,6 +5,8 @@ import { PublicStorefront } from "@/components/store-themes/full-previews";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useSession } from "@/hooks/use-session";
 import { useActiveStore } from "@/hooks/use-own-store";
+import { useStoreSetupStatus } from "@/hooks/use-store-setup-status";
+import { useGoRoot } from "@/hooks/use-back";
 
 export const Route = createFileRoute("/home")({
   head: () => ({ meta: [{ title: "Oakmonte" }] }),
@@ -36,14 +38,37 @@ function HomePage() {
     };
   }, [user]);
 
-  const loading = sessionLoading || (!!user && storeLoading);
+  // The same test /store uses to swap its setup checklist for the dashboard:
+  // until then there's no finished storefront to preview, so this sends the
+  // seller back to the checklist. A failed check doesn't hold the preview
+  // hostage -- it shows the store.
+  const setup = useStoreSetupStatus(store?.id ?? null);
+  const setUp = setup.failed || setup.complete || !!setup.onboardedAt;
+  const goRoot = useGoRoot();
+
+  const loading =
+    sessionLoading || (!!user && storeLoading) || (!!store && setup.loading && !setup.failed);
 
   return (
     <div
       className="min-h-screen bg-chat-bg text-chat-text"
       style={{ fontFamily: "'SF Pro', system-ui, sans-serif" }}
     >
-      {loading ? null : store ? (
+      {loading ? null : store && !setUp ? (
+        <div className="flex min-h-screen flex-col items-center justify-center px-10 pb-28 text-center">
+          <p className="text-[20px] font-bold">Your store isn't ready yet</p>
+          <p className="mt-2 max-w-[290px] text-[14.5px] leading-relaxed text-chat-muted">
+            Finish setting it up and this becomes a live view of your website.
+          </p>
+          <button
+            type="button"
+            onClick={() => goRoot({ to: "/store" })}
+            className="mt-6 flex h-12 items-center rounded-full bg-chat-text px-8 text-[16px] font-semibold text-chat-inverse active:scale-[0.98]"
+          >
+            Set up store
+          </button>
+        </div>
+      ) : store ? (
         // The storefront brings its own bottom bar (StorefrontNav, with Back
         // and Open website in preview mode), so no app nav here.
         <PublicStorefront storeId={store.id} paintChrome preview />
@@ -66,7 +91,7 @@ function HomePage() {
         </div>
       )}
 
-      {!store && <BottomNav active="website" ownUsername={ownUsername} />}
+      {!loading && (!store || !setUp) && <BottomNav active="website" ownUsername={ownUsername} />}
     </div>
   );
 }
