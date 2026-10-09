@@ -142,7 +142,11 @@ export function fromInboxRow(row: InboxRow, me: string): Chat {
   const name = self
     ? "Me"
     : row.other_display_name?.trim() ||
-      row.other_username ||
+      // An anonymous buyer's profile is named customer-<12 hex> (unique);
+      // sellers see the short form.
+      (row.other_username?.startsWith("customer-") && row.other_user_id
+        ? customerName(row.other_user_id)
+        : row.other_username) ||
       // No profile at all: an anonymous buyer from a storefront.
       (row.other_user_id ? customerName(row.other_user_id) : "Oakmonte user");
   return {
