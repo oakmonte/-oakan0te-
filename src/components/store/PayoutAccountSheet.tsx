@@ -317,10 +317,6 @@ export function PayoutAccountSheet({
   const validAccountNumber = accountNumber.trim().length >= 10;
   const valid = bankName.trim().length > 0 && validAccountNumber;
 
-  // Non-blocking: an "invalid" checksum is a nudge to double-check, not a
-  // hard stop -- we only have verified bank codes for a subset of banks, and
-  // a wrong or missing code must never be able to stop a genuine save.
-
   const filteredBanks = useMemo(() => {
     const q = bankName.trim().toLowerCase();
     if (!q) return NIGERIAN_BANKS;
