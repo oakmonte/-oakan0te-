@@ -91,8 +91,16 @@ export function useInbox(me: string | null, sessionLoading: boolean) {
       let next = await api.listInbox(me);
       if (!next.some((chat) => chat.kind === "self") && !ensuredSelf.current) {
         ensuredSelf.current = true;
-        await api.startSelfConversation();
-        next = await api.listInbox(me);
+        // Your "Me" notes chat is a nicety, not the inbox: an account that
+        // can't have one (a storefront's anonymous buyer) must still get its
+        // chats. This used to throw the whole load into "Couldn't load your
+        // chats" until a later reload skipped this step.
+        try {
+          await api.startSelfConversation();
+          next = await api.listInbox(me);
+        } catch {
+          // keep `next` as loaded
+        }
       }
       inboxCache.set(me, next);
       setChats(next);
