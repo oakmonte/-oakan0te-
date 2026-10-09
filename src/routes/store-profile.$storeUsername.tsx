@@ -395,6 +395,7 @@ function StoreProfilePage() {
                       // owner's posts (the same ones the storefront feed plays).
                       <PostsGrid
                         userId={store.owner_id}
+                        storePicture={store.logo_url}
                         status="published"
                         emptyState={
                           <ProfileTabEmptyState tab={key} isOwnProfile={isOwnStoreProfile} />
@@ -403,6 +404,7 @@ function StoreProfilePage() {
                     ) : key === "drafts" && store && isOwnStoreProfile ? (
                       <PostsGrid
                         userId={store.owner_id}
+                        storePicture={store.logo_url}
                         status="draft"
                         emptyState={<ProfileTabEmptyState tab={key} isOwnProfile />}
                       />

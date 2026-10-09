@@ -60,7 +60,10 @@ export function PostsGrid({
   userId,
   status,
   emptyState,
+  storePicture = null,
 }: {
+  /** The store's picture, for the post viewer's rail (sellers-only). */
+  storePicture?: string | null;
   userId: string;
   status: "published" | "draft";
   emptyState: ReactNode;
@@ -192,6 +195,7 @@ export function PostsGrid({
           scope={{ type: "user", userId, status }}
           initialPostId={activeId}
           onClose={closeViewer}
+          storePicture={storePicture}
         />
       )}
     </>

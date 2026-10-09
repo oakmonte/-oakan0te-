@@ -97,6 +97,13 @@ type FeedPost = Pick<
 
 const FEED_LIMIT = 30;
 
+/** Sellers-only: there are no personal profiles, so no feed shows a person --
+ *  no poster name, no follow, no likes/comments/wishlist -- and the rail's
+ *  picture is always the store's (storePicture). Linked products aren't
+ *  chipped onto the video either: Listed items is where they live.
+ *  master-piece keeps all of it. */
+const SOCIAL = false;
+
 function scopeKey(scope: FeedScope): string {
   if (scope.type === "for-you") return "for-you";
   if (scope.type === "following") return `following:${scope.viewerId}`;
@@ -1322,13 +1329,13 @@ function FeedPostCard({
         {/* On a storefront the picture is the store's and there's no follow:
             the feed is the store's, not a person's. */}
         {(() => {
-          const picture = storefront ? storePicture : post.authorAvatar;
+          const picture = SOCIAL ? post.authorAvatar : storePicture;
           return (
             <div className="relative mb-5">
               <div className="w-12 h-12 rounded-full overflow-hidden bg-white/20 border-2 border-white shadow-[0_1px_4px_rgba(0,0,0,0.35)]">
                 {picture && <img src={picture} alt="" className="w-full h-full object-cover" />}
               </div>
-              {!storefront && !isOwnPost && (
+              {SOCIAL && !isOwnPost && (
                 <button
                   type="button"
                   onClick={toggleFollow}
@@ -1350,7 +1357,7 @@ function FeedPostCard({
         <div className="flex flex-col items-center gap-2.5">
           {/* A storefront's feed is for shopping: no likes, comments or
               wishlist, just the pieces and the way to the seller. */}
-          {!storefront && (
+          {SOCIAL && (
             <>
               <RailAction
                 label={liked ? "Unlike" : "Like"}
@@ -1450,7 +1457,7 @@ function FeedPostCard({
 
       <div className="absolute left-4 right-[72px]" style={{ bottom: chromeBottom }}>
         {isCarousel && <CarouselDots index={slide} total={post.media.length} />}
-        {!storefront && (
+        {SOCIAL && (
           <p className="text-[14px] font-semibold truncate text-white">
             {post.authorDisplayName ?? "User"}
           </p>
@@ -1488,7 +1495,8 @@ function FeedPostCard({
             </span>
           </p>
         )}
-        {tags.length > 0 && (
+        {/* Linked products live in Listed items, never on the video. */}
+        {SOCIAL && tags.length > 0 && (
           <div className="flex gap-2 overflow-x-auto pt-2.5" style={{ scrollbarWidth: "none" }}>
             {tags.map((t) => (
               <div
