@@ -78,30 +78,6 @@ export function StorefrontFeed({
 
   return (
     <div ref={containerRef} className="relative h-full w-full overflow-hidden bg-black text-white">
-      <div
-        // The fade keeps the white labels readable over a pale video.
-        className="absolute inset-x-0 top-0 z-20 flex justify-center gap-6 bg-gradient-to-b from-black/45 to-transparent pb-6 text-[14px] font-medium text-white/70"
-        style={{ paddingTop: "calc(env(safe-area-inset-top) + 14px)" }}
-      >
-        {(
-          [
-            ["for-you", "For you"],
-            ["listed-items", "Listed items"],
-          ] as const
-        ).map(([key, label]) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => setTab(key)}
-            className={`whitespace-nowrap pb-1 drop-shadow transition-colors duration-200 ${
-              tab === key ? "font-semibold text-white underline underline-offset-4" : ""
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-
       <motion.div
         drag="x"
         dragDirectionLock
@@ -154,6 +130,37 @@ export function StorefrontFeed({
           )}
         </div>
       </motion.div>
+      <div
+        // The fade keeps the white labels readable over a pale video.
+        className="absolute inset-x-0 top-0 z-30 flex justify-center gap-6 bg-gradient-to-b from-black/45 to-transparent pb-6 text-[14px] font-medium text-white/70"
+        // After the track in the DOM and on its own compositing layer: iOS
+        // Safari paints a playing <video> inside a transformed layer over
+        // earlier siblings regardless of z-index, which hid these labels on
+        // iPhones while they showed fine everywhere else.
+        style={{
+          paddingTop: "calc(env(safe-area-inset-top) + 14px)",
+          transform: "translateZ(0)",
+          WebkitTransform: "translateZ(0)",
+        }}
+      >
+        {(
+          [
+            ["for-you", "For you"],
+            ["listed-items", "Listed items"],
+          ] as const
+        ).map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setTab(key)}
+            className={`whitespace-nowrap pb-1 drop-shadow transition-colors duration-200 ${
+              tab === key ? "font-semibold text-white underline underline-offset-4" : ""
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
       {salesLocked && <SalesLockedNotice onClose={() => setSalesLocked(false)} />}
     </div>
   );

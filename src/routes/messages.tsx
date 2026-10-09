@@ -505,7 +505,8 @@ export function MessagesView({
               </>
             )}
           </div>
-          {!signedOut && (
+          {/* A store's Messages has one contact: nothing to search. */}
+          {!signedOut && !sellerOnly && (
             <div className="px-4 pb-2">
               <div className="flex h-10 items-center gap-2 rounded-[12px] bg-chat-soft px-3 text-chat-muted">
                 <Search size={18} strokeWidth={2.2} />
