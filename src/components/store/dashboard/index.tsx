@@ -5,7 +5,10 @@ import { ComingSoonBanner } from "@/components/ComingSoonBanner";
 import { fetchStoreLogo, type StoreLogo } from "@/lib/store-logo";
 import { IdentityBlock } from "./IdentityBlock";
 import { QuickActions } from "./QuickActions";
-import { NextSteps, SalesAnalytics, StatTiles, WhatsNew } from "./sections";
+import { useStoreInsights } from "@/hooks/use-store-insights";
+import type { Period, SalesResponse } from "@/lib/insights";
+import { NextSteps, StatTiles, WhatsNew } from "./sections";
+import { SalesAnalytics } from "./SalesAnalytics";
 
 /** The seller dashboard: what /store shows once setup is finished.
  *
@@ -46,6 +49,9 @@ function DashboardForStore({
   const [logo, setLogo] = useState<StoreLogo | undefined>(undefined);
   const [locationsOpen, setLocationsOpen] = useState(false);
   const [shareComingSoonOpen, setShareComingSoonOpen] = useState(false);
+  const [period, setPeriod] = useState<Period>("30d");
+  // One request feeds both the chart and the tiles below it; see SalesAnalytics.
+  const sales = useStoreInsights<SalesResponse>(store.id, "sales", { period });
 
   useEffect(() => {
     let cancelled = false;
@@ -79,8 +85,12 @@ function DashboardForStore({
       <NextSteps />
       <div className="flex flex-col gap-6">
         {/* Re-enable <TotalSales onShare={share} /> (and its import) once sellers can take orders. */}
-        <SalesAnalytics />
-        <StatTiles productCount={productCount} payoutVerified={payoutStatus === "verified"} />
+        <SalesAnalytics period={period} onPeriodChange={setPeriod} query={sales} />
+        <StatTiles
+          productCount={productCount}
+          payoutVerified={payoutStatus === "verified"}
+          allTime={sales.data?.allTime ?? null}
+        />
       </div>
       <QuickActions onOpenLocations={() => setLocationsOpen(true)} />
 

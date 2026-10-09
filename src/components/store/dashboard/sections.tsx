@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
+import { formatKobo, formatKoboCompact, type SalesResponse } from "@/lib/insights";
 import {
   Bell,
   ChevronRight,
@@ -7,7 +8,6 @@ import {
   Megaphone,
   PlayCircle,
   Plus,
-  TrendingUp,
   Wallet,
 } from "lucide-react";
 
@@ -235,20 +235,15 @@ export function TotalSales({ onShare }: { onShare: () => void }) {
   );
 }
 
-export function SalesAnalytics() {
-  return (
-    <section aria-labelledby="sd-analytics">
-      {/* The period selector (7D / 30D / 90D) is hidden until there is
-          something to select a period of: a control over an empty chart is
-          three more things that do nothing. And no empty chart frame -- axes
-          and a flat line at zero read as a chart that failed to load. */}
-      <SectionTitle id="sd-analytics">Sales analytics</SectionTitle>
-      <QuietNote icon={TrendingUp}>Your sales chart starts with your first order.</QuietNote>
-    </section>
-  );
-}
-
-function Tile({ label, value, to }: { label: string; value: ReactNode; to?: "/store/products" }) {
+function Tile({
+  label,
+  value,
+  to,
+}: {
+  label: string;
+  value: ReactNode;
+  to?: "/store/products" | "/store/orders" | "/store/customers";
+}) {
   const body = (
     <>
       <p className="text-[13px] font-medium text-sd-ink-muted">{label}</p>
@@ -259,7 +254,7 @@ function Tile({ label, value, to }: { label: string; value: ReactNode; to?: "/st
   );
   const cls = "block rounded-2xl border border-sd-line bg-sd-surface p-4";
   return to ? (
-    // The only real number on the screen should go somewhere when tapped.
+    // A real number should go somewhere when tapped.
     <Link to={to} className={`oak-tap ${cls} oak-motion-control active:scale-[0.98]`}>
       {body}
     </Link>
@@ -271,26 +266,54 @@ function Tile({ label, value, to }: { label: string; value: ReactNode; to?: "/st
 export function StatTiles({
   productCount,
   payoutVerified,
+  allTime,
 }: {
   productCount: number | null;
   payoutVerified: boolean;
+  /** Lifetime numbers from paid orders; null until they load (or if they
+   *  couldn't), which keeps the em-dash rather than guessing a zero. */
+  allTime: SalesResponse["allTime"] | null;
 }) {
-  // Products listed leads because it is the only true number here, which sets
-  // the honesty contract for the three beside it. They show an em-dash, which
-  // cannot be misread as zero. One shared line explains all three rather than
-  // repeating "your first sale" under each tile.
+  // Products listed leads; the other three are real lifetime numbers once the
+  // sales request lands, and an em-dash until then, which cannot be misread as
+  // zero. One shared line explains them rather than a caption under each tile.
+  //
+  // "Sales", not "Net revenue": fees aren't recorded per order until Paystack
+  // splits go live, so a net figure would be a guess presented as a fact.
   const dash = <span className="text-sd-ink-muted">—</span>;
+  const sold = allTime && allTime.orders > 0;
   return (
     <section aria-labelledby="sd-glance">
       <SectionTitle id="sd-glance">At a glance</SectionTitle>
       <div className="mt-3 grid grid-cols-2 gap-3">
         <Tile label="Products listed" value={productCount ?? dash} to="/store/products" />
-        <Tile label="Orders" value={dash} />
-        <Tile label="Net revenue" value={dash} />
-        <Tile label="Customers" value={dash} />
+        <Tile
+          label="Orders"
+          value={allTime ? allTime.orders : dash}
+          to={sold ? "/store/orders" : undefined}
+        />
+        <Tile
+          label="Sales"
+          value={
+            allTime
+              ? // Full naira up to ₦10m; past that the tile's half-width column
+                // can't hold the digits at this size.
+                allTime.revenueKobo < 1_000_000_000
+                ? formatKobo(allTime.revenueKobo)
+                : formatKoboCompact(allTime.revenueKobo)
+              : dash
+          }
+        />
+        <Tile
+          label="Customers"
+          value={allTime ? allTime.customers : dash}
+          to={sold ? "/store/customers" : undefined}
+        />
       </div>
       <p className="mt-2 text-[12px] leading-snug text-sd-ink-muted">
-        Orders, revenue and customers fill in as you start selling.
+        {sold
+          ? "All time, from paid orders. Sales are item totals before fees."
+          : "Orders, sales and customers fill in as you start selling."}
       </p>
       {/* A date plus an amount is a different shape from a single number, so
           this is a row rather than a fifth tile. It also carries the payout

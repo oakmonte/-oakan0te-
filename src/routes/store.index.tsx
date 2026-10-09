@@ -17,10 +17,8 @@ export const Route = createFileRoute("/store/")({
 // sees on their slowest, earliest visits. The dynamic import is what creates the
 // second chunk.
 //
-// The analytics section is currently an honest empty state with no charting
-// library behind it, because there is no orders table to chart; recharts is in
-// package.json and imported by nothing. When that data exists and the chart
-// becomes real, it lands inside this chunk rather than the checklist one.
+// The sales chart is hand-rolled SVG (recharts is in package.json but imported
+// by nothing) and lives inside this chunk rather than the checklist one.
 const loadDashboard = () => import("@/components/store/dashboard");
 const StoreDashboard = lazy(loadDashboard);
 

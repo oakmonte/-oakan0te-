@@ -111,6 +111,11 @@ import { Route as StoreProductsIdRouteImport } from './routes/store.products_.$i
 import { Route as StoreProductsNewRouteImport } from './routes/store.products_.new'
 import { Route as StoreProductsNewcomerRouteImport } from './routes/store.products_.newcomer'
 import { Route as StoreProductsUploadRouteImport } from './routes/store.products_.upload'
+import { Route as ApiStoreInsightsContentRouteImport } from './routes/api.store.insights.content'
+import { Route as ApiStoreInsightsCustomersRouteImport } from './routes/api.store.insights.customers'
+import { Route as ApiStoreInsightsGrowthRouteImport } from './routes/api.store.insights.growth'
+import { Route as ApiStoreInsightsSalesRouteImport } from './routes/api.store.insights.sales'
+import { Route as ApiStoreInsightsCustomersCustomerKeyRouteImport } from './routes/api.store.insights.customers.$customerKey'
 import { Route as ApiStoreOrdersOrderIdShipRouteImport } from './routes/api.store.orders.$orderId.ship'
 
 const IndexRoute = IndexRouteImport.update({
@@ -627,6 +632,33 @@ const StoreProductsUploadRoute = StoreProductsUploadRouteImport.update({
   path: '/products/upload',
   getParentRoute: () => StoreRoute,
 } as any)
+const ApiStoreInsightsContentRoute = ApiStoreInsightsContentRouteImport.update({
+  id: '/api/store/insights/content',
+  path: '/api/store/insights/content',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiStoreInsightsCustomersRoute =
+  ApiStoreInsightsCustomersRouteImport.update({
+    id: '/api/store/insights/customers',
+    path: '/api/store/insights/customers',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiStoreInsightsGrowthRoute = ApiStoreInsightsGrowthRouteImport.update({
+  id: '/api/store/insights/growth',
+  path: '/api/store/insights/growth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiStoreInsightsSalesRoute = ApiStoreInsightsSalesRouteImport.update({
+  id: '/api/store/insights/sales',
+  path: '/api/store/insights/sales',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiStoreInsightsCustomersCustomerKeyRoute =
+  ApiStoreInsightsCustomersCustomerKeyRouteImport.update({
+    id: '/$customerKey',
+    path: '/$customerKey',
+    getParentRoute: () => ApiStoreInsightsCustomersRoute,
+  } as any)
 const ApiStoreOrdersOrderIdShipRoute =
   ApiStoreOrdersOrderIdShipRouteImport.update({
     id: '/$orderId/ship',
@@ -737,6 +769,11 @@ export interface FileRoutesByFullPath {
   '/store/products/upload': typeof StoreProductsUploadRoute
   '/create/after-shot/': typeof CreateAfterShotIndexRoute
   '/store/playlists/': typeof StorePlaylistsIndexRoute
+  '/api/store/insights/content': typeof ApiStoreInsightsContentRoute
+  '/api/store/insights/customers': typeof ApiStoreInsightsCustomersRouteWithChildren
+  '/api/store/insights/growth': typeof ApiStoreInsightsGrowthRoute
+  '/api/store/insights/sales': typeof ApiStoreInsightsSalesRoute
+  '/api/store/insights/customers/$customerKey': typeof ApiStoreInsightsCustomersCustomerKeyRoute
   '/api/store/orders/$orderId/ship': typeof ApiStoreOrdersOrderIdShipRoute
 }
 export interface FileRoutesByTo {
@@ -839,6 +876,11 @@ export interface FileRoutesByTo {
   '/store/products/upload': typeof StoreProductsUploadRoute
   '/create/after-shot': typeof CreateAfterShotIndexRoute
   '/store/playlists': typeof StorePlaylistsIndexRoute
+  '/api/store/insights/content': typeof ApiStoreInsightsContentRoute
+  '/api/store/insights/customers': typeof ApiStoreInsightsCustomersRouteWithChildren
+  '/api/store/insights/growth': typeof ApiStoreInsightsGrowthRoute
+  '/api/store/insights/sales': typeof ApiStoreInsightsSalesRoute
+  '/api/store/insights/customers/$customerKey': typeof ApiStoreInsightsCustomersCustomerKeyRoute
   '/api/store/orders/$orderId/ship': typeof ApiStoreOrdersOrderIdShipRoute
 }
 export interface FileRoutesById {
@@ -945,6 +987,11 @@ export interface FileRoutesById {
   '/store/products_/upload': typeof StoreProductsUploadRoute
   '/create/after-shot/': typeof CreateAfterShotIndexRoute
   '/store/playlists/': typeof StorePlaylistsIndexRoute
+  '/api/store/insights/content': typeof ApiStoreInsightsContentRoute
+  '/api/store/insights/customers': typeof ApiStoreInsightsCustomersRouteWithChildren
+  '/api/store/insights/growth': typeof ApiStoreInsightsGrowthRoute
+  '/api/store/insights/sales': typeof ApiStoreInsightsSalesRoute
+  '/api/store/insights/customers/$customerKey': typeof ApiStoreInsightsCustomersCustomerKeyRoute
   '/api/store/orders/$orderId/ship': typeof ApiStoreOrdersOrderIdShipRoute
 }
 export interface FileRouteTypes {
@@ -1052,6 +1099,11 @@ export interface FileRouteTypes {
     | '/store/products/upload'
     | '/create/after-shot/'
     | '/store/playlists/'
+    | '/api/store/insights/content'
+    | '/api/store/insights/customers'
+    | '/api/store/insights/growth'
+    | '/api/store/insights/sales'
+    | '/api/store/insights/customers/$customerKey'
     | '/api/store/orders/$orderId/ship'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -1154,6 +1206,11 @@ export interface FileRouteTypes {
     | '/store/products/upload'
     | '/create/after-shot'
     | '/store/playlists'
+    | '/api/store/insights/content'
+    | '/api/store/insights/customers'
+    | '/api/store/insights/growth'
+    | '/api/store/insights/sales'
+    | '/api/store/insights/customers/$customerKey'
     | '/api/store/orders/$orderId/ship'
   id:
     | '__root__'
@@ -1259,6 +1316,11 @@ export interface FileRouteTypes {
     | '/store/products_/upload'
     | '/create/after-shot/'
     | '/store/playlists/'
+    | '/api/store/insights/content'
+    | '/api/store/insights/customers'
+    | '/api/store/insights/growth'
+    | '/api/store/insights/sales'
+    | '/api/store/insights/customers/$customerKey'
     | '/api/store/orders/$orderId/ship'
   fileRoutesById: FileRoutesById
 }
@@ -1332,6 +1394,10 @@ export interface RootRouteChildren {
   ApiSupportMessagesMineRoute: typeof ApiSupportMessagesMineRoute
   ApiSupportMessagesReplyRoute: typeof ApiSupportMessagesReplyRoute
   ApiSupportMessagesStaffRoute: typeof ApiSupportMessagesStaffRoute
+  ApiStoreInsightsContentRoute: typeof ApiStoreInsightsContentRoute
+  ApiStoreInsightsCustomersRoute: typeof ApiStoreInsightsCustomersRouteWithChildren
+  ApiStoreInsightsGrowthRoute: typeof ApiStoreInsightsGrowthRoute
+  ApiStoreInsightsSalesRoute: typeof ApiStoreInsightsSalesRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -2050,6 +2116,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StoreProductsUploadRouteImport
       parentRoute: typeof StoreRoute
     }
+    '/api/store/insights/content': {
+      id: '/api/store/insights/content'
+      path: '/api/store/insights/content'
+      fullPath: '/api/store/insights/content'
+      preLoaderRoute: typeof ApiStoreInsightsContentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/store/insights/customers': {
+      id: '/api/store/insights/customers'
+      path: '/api/store/insights/customers'
+      fullPath: '/api/store/insights/customers'
+      preLoaderRoute: typeof ApiStoreInsightsCustomersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/store/insights/growth': {
+      id: '/api/store/insights/growth'
+      path: '/api/store/insights/growth'
+      fullPath: '/api/store/insights/growth'
+      preLoaderRoute: typeof ApiStoreInsightsGrowthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/store/insights/sales': {
+      id: '/api/store/insights/sales'
+      path: '/api/store/insights/sales'
+      fullPath: '/api/store/insights/sales'
+      preLoaderRoute: typeof ApiStoreInsightsSalesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/store/insights/customers/$customerKey': {
+      id: '/api/store/insights/customers/$customerKey'
+      path: '/$customerKey'
+      fullPath: '/api/store/insights/customers/$customerKey'
+      preLoaderRoute: typeof ApiStoreInsightsCustomersCustomerKeyRouteImport
+      parentRoute: typeof ApiStoreInsightsCustomersRoute
+    }
     '/api/store/orders/$orderId/ship': {
       id: '/api/store/orders/$orderId/ship'
       path: '/$orderId/ship'
@@ -2175,6 +2276,21 @@ const ApiStoreOrdersRouteWithChildren = ApiStoreOrdersRoute._addFileChildren(
   ApiStoreOrdersRouteChildren,
 )
 
+interface ApiStoreInsightsCustomersRouteChildren {
+  ApiStoreInsightsCustomersCustomerKeyRoute: typeof ApiStoreInsightsCustomersCustomerKeyRoute
+}
+
+const ApiStoreInsightsCustomersRouteChildren: ApiStoreInsightsCustomersRouteChildren =
+  {
+    ApiStoreInsightsCustomersCustomerKeyRoute:
+      ApiStoreInsightsCustomersCustomerKeyRoute,
+  }
+
+const ApiStoreInsightsCustomersRouteWithChildren =
+  ApiStoreInsightsCustomersRoute._addFileChildren(
+    ApiStoreInsightsCustomersRouteChildren,
+  )
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   InfoRoute: InfoRoute,
@@ -2245,6 +2361,10 @@ const rootRouteChildren: RootRouteChildren = {
   ApiSupportMessagesMineRoute: ApiSupportMessagesMineRoute,
   ApiSupportMessagesReplyRoute: ApiSupportMessagesReplyRoute,
   ApiSupportMessagesStaffRoute: ApiSupportMessagesStaffRoute,
+  ApiStoreInsightsContentRoute: ApiStoreInsightsContentRoute,
+  ApiStoreInsightsCustomersRoute: ApiStoreInsightsCustomersRouteWithChildren,
+  ApiStoreInsightsGrowthRoute: ApiStoreInsightsGrowthRoute,
+  ApiStoreInsightsSalesRoute: ApiStoreInsightsSalesRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
