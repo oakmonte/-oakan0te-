@@ -101,6 +101,7 @@ import { Route as ApiShopifyCallbackRouteImport } from './routes/api.shopify.cal
 import { Route as ApiShopifyInstallRouteImport } from './routes/api.shopify.install'
 import { Route as ApiStorePiecesUploadImageRouteImport } from './routes/api.store-pieces.upload-image'
 import { Route as ApiStoreThemeUploadImageRouteImport } from './routes/api.store-theme.upload-image'
+import { Route as ApiStoreConnectionsRouteImport } from './routes/api.store.connections'
 import { Route as ApiStoreOrdersRouteImport } from './routes/api.store.orders'
 import { Route as ApiStorePayoutRouteImport } from './routes/api.store.payout'
 import { Route as ApiSupportMessagesMineRouteImport } from './routes/api.support-messages.mine'
@@ -589,6 +590,11 @@ const ApiStoreThemeUploadImageRoute =
     path: '/api/store-theme/upload-image',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiStoreConnectionsRoute = ApiStoreConnectionsRouteImport.update({
+  id: '/api/store/connections',
+  path: '/api/store/connections',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiStoreOrdersRoute = ApiStoreOrdersRouteImport.update({
   id: '/api/store/orders',
   path: '/api/store/orders',
@@ -800,6 +806,7 @@ export interface FileRoutesByFullPath {
   '/api/shopify/install': typeof ApiShopifyInstallRoute
   '/api/store-pieces/upload-image': typeof ApiStorePiecesUploadImageRoute
   '/api/store-theme/upload-image': typeof ApiStoreThemeUploadImageRoute
+  '/api/store/connections': typeof ApiStoreConnectionsRoute
   '/api/store/orders': typeof ApiStoreOrdersRouteWithChildren
   '/api/store/payout': typeof ApiStorePayoutRoute
   '/api/support-messages/mine': typeof ApiSupportMessagesMineRoute
@@ -914,6 +921,7 @@ export interface FileRoutesByTo {
   '/api/shopify/install': typeof ApiShopifyInstallRoute
   '/api/store-pieces/upload-image': typeof ApiStorePiecesUploadImageRoute
   '/api/store-theme/upload-image': typeof ApiStoreThemeUploadImageRoute
+  '/api/store/connections': typeof ApiStoreConnectionsRoute
   '/api/store/orders': typeof ApiStoreOrdersRouteWithChildren
   '/api/store/payout': typeof ApiStorePayoutRoute
   '/api/support-messages/mine': typeof ApiSupportMessagesMineRoute
@@ -1032,6 +1040,7 @@ export interface FileRoutesById {
   '/api/shopify/install': typeof ApiShopifyInstallRoute
   '/api/store-pieces/upload-image': typeof ApiStorePiecesUploadImageRoute
   '/api/store-theme/upload-image': typeof ApiStoreThemeUploadImageRoute
+  '/api/store/connections': typeof ApiStoreConnectionsRoute
   '/api/store/orders': typeof ApiStoreOrdersRouteWithChildren
   '/api/store/payout': typeof ApiStorePayoutRoute
   '/api/support-messages/mine': typeof ApiSupportMessagesMineRoute
@@ -1151,6 +1160,7 @@ export interface FileRouteTypes {
     | '/api/shopify/install'
     | '/api/store-pieces/upload-image'
     | '/api/store-theme/upload-image'
+    | '/api/store/connections'
     | '/api/store/orders'
     | '/api/store/payout'
     | '/api/support-messages/mine'
@@ -1265,6 +1275,7 @@ export interface FileRouteTypes {
     | '/api/shopify/install'
     | '/api/store-pieces/upload-image'
     | '/api/store-theme/upload-image'
+    | '/api/store/connections'
     | '/api/store/orders'
     | '/api/store/payout'
     | '/api/support-messages/mine'
@@ -1382,6 +1393,7 @@ export interface FileRouteTypes {
     | '/api/shopify/install'
     | '/api/store-pieces/upload-image'
     | '/api/store-theme/upload-image'
+    | '/api/store/connections'
     | '/api/store/orders'
     | '/api/store/payout'
     | '/api/support-messages/mine'
@@ -1480,6 +1492,7 @@ export interface RootRouteChildren {
   ApiShopifyInstallRoute: typeof ApiShopifyInstallRoute
   ApiStorePiecesUploadImageRoute: typeof ApiStorePiecesUploadImageRoute
   ApiStoreThemeUploadImageRoute: typeof ApiStoreThemeUploadImageRoute
+  ApiStoreConnectionsRoute: typeof ApiStoreConnectionsRoute
   ApiStoreOrdersRoute: typeof ApiStoreOrdersRouteWithChildren
   ApiStorePayoutRoute: typeof ApiStorePayoutRoute
   ApiSupportMessagesMineRoute: typeof ApiSupportMessagesMineRoute
@@ -2133,6 +2146,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiStoreThemeUploadImageRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/store/connections': {
+      id: '/api/store/connections'
+      path: '/api/store/connections'
+      fullPath: '/api/store/connections'
+      preLoaderRoute: typeof ApiStoreConnectionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/store/orders': {
       id: '/api/store/orders'
       path: '/api/store/orders'
@@ -2504,6 +2524,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiShopifyInstallRoute: ApiShopifyInstallRoute,
   ApiStorePiecesUploadImageRoute: ApiStorePiecesUploadImageRoute,
   ApiStoreThemeUploadImageRoute: ApiStoreThemeUploadImageRoute,
+  ApiStoreConnectionsRoute: ApiStoreConnectionsRoute,
   ApiStoreOrdersRoute: ApiStoreOrdersRouteWithChildren,
   ApiStorePayoutRoute: ApiStorePayoutRoute,
   ApiSupportMessagesMineRoute: ApiSupportMessagesMineRoute,

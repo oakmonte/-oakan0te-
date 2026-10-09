@@ -162,7 +162,9 @@ function StoreLayoutInner() {
         <Outlet />
       </div>
       {lockedBanner}
-      {pathname === "/store" && <BottomNav active="store" ownUsername={username ?? undefined} />}
+      {pathname === "/store" && !drawerOpen && (
+        <BottomNav active="store" ownUsername={username ?? undefined} />
+      )}
 
       {drawerOpen && (
         <div className="fixed inset-0 z-40">
@@ -190,7 +192,7 @@ function StoreLayoutInner() {
                 `overscroll-contain` stops a flick at the end of the list
                 scrolling the page underneath. The native scrollbar track is
                 already hidden globally, see styles.css. */}
-            <nav className="flex flex-1 min-h-0 flex-col gap-1 overflow-y-auto overscroll-contain">
+            <nav className="flex min-h-0 shrink flex-col gap-1 overflow-y-auto overscroll-contain">
               {NAV_ITEMS.map(({ label, to, icon: Icon }) => (
                 <Link
                   key={to}
@@ -238,6 +240,8 @@ function StoreLayoutInner() {
             {/* Stays pinned below the scrolling list rather than scrolling away
                 with it. oak-safe-bottom keeps it clear of the home indicator in
                 the installed app, where this panel runs to the physical edge. */}
+            {/* Right after the list at a fixed gap, not pinned to the panel's
+                bottom edge (where the tab bar sat on top of it). */}
             <div className="shrink-0 mt-3 pt-3 border-t border-white/10 oak-safe-bottom">
               {/* Sellers-only: the rest of Oakmonte (the shopper side) isn't
                   open yet, so this only says so. */}

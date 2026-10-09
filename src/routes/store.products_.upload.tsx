@@ -140,6 +140,21 @@ function ProductsUpload() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [connectedNote, setConnectedNote] = useState<"shopify" | "bumpa" | null>(null);
+  // What this store has connected; "Import my … products" only appears once
+  // there's a connection to import from.
+  const [connected, setConnected] = useState({ shopify: false, bumpa: false });
+  useEffect(() => {
+    let cancelled = false;
+    void authedFetch("/api/store/connections")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { shopify?: boolean; bumpa?: boolean } | null) => {
+        if (!cancelled && data) setConnected({ shopify: !!data.shopify, bumpa: !!data.bumpa });
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const [job, setJob] = useState<JobStatus | null>(null);
 
   const shopifyPicker = useFilePicker();
@@ -280,6 +295,7 @@ function ProductsUpload() {
       if (!res.ok) throw new Error(data.error ?? "Could not connect Bumpa");
       setBumpaKey("");
       setConnectedNote("bumpa");
+      setConnected((c) => ({ ...c, bumpa: true }));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not connect Bumpa");
     } finally {
@@ -358,17 +374,21 @@ function ProductsUpload() {
                   >
                     Connect Shopify
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => startImport("shopify")}
-                    disabled={busy}
-                    className="mt-2 w-full border border-sd-line rounded-lg py-2.5 text-sm font-medium text-sd-ink disabled:opacity-40 oak-motion-control"
-                  >
-                    Import my Shopify products
-                  </button>
-                  <p className="text-[11px] text-sd-ink-faint mt-1.5">
-                    Already connected? Tap import — no need to connect again.
-                  </p>
+                  {connected.shopify && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => startImport("shopify")}
+                        disabled={busy}
+                        className="mt-2 w-full border border-sd-line rounded-lg py-2.5 text-sm font-medium text-sd-ink disabled:opacity-40 oak-motion-control"
+                      >
+                        Import my Shopify products
+                      </button>
+                      <p className="text-[11px] text-sd-ink-muted mt-1.5 flex items-center gap-1">
+                        <Check size={12} /> Connected. Tap import to bring products in.
+                      </p>
+                    </>
+                  )}
                 </OptionCard>
                 <OrDivider />
                 <OptionCard>
@@ -437,15 +457,17 @@ function ProductsUpload() {
                   >
                     Connect Bumpa
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => startImport("bumpa-api")}
-                    disabled={busy}
-                    className="mt-2 w-full border border-sd-line rounded-lg py-2.5 text-sm font-medium text-sd-ink disabled:opacity-40 oak-motion-control"
-                  >
-                    Import my Bumpa products
-                  </button>
-                  {connectedNote === "bumpa" ? (
+                  {connected.bumpa && (
+                    <button
+                      type="button"
+                      onClick={() => startImport("bumpa-api")}
+                      disabled={busy}
+                      className="mt-2 w-full border border-sd-line rounded-lg py-2.5 text-sm font-medium text-sd-ink disabled:opacity-40 oak-motion-control"
+                    >
+                      Import my Bumpa products
+                    </button>
+                  )}
+                  {connected.bumpa ? (
                     <p className="text-[11px] text-sd-ink-muted mt-1.5 flex items-center gap-1">
                       <Check size={12} /> Connected. Tap import to bring products in.
                     </p>
