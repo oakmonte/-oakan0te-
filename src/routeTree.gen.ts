@@ -64,6 +64,7 @@ import { Route as CreateStudioRouteImport } from './routes/create.studio'
 import { Route as CreateVideoEditorRouteImport } from './routes/create.video-editor'
 import { Route as LearnIndexRouteImport } from './routes/learn.index'
 import { Route as LearnSlugRouteImport } from './routes/learn.$slug'
+import { Route as MessagesChatIdRouteImport } from './routes/messages_.$chatId'
 import { Route as OrderOrderIdRouteImport } from './routes/order.$orderId'
 import { Route as ProfileUsernameRouteImport } from './routes/profile.$username'
 import { Route as ShopStoreUsernameRouteImport } from './routes/shop.$storeUsername'
@@ -399,6 +400,11 @@ const LearnIndexRoute = LearnIndexRouteImport.update({
 const LearnSlugRoute = LearnSlugRouteImport.update({
   id: '/learn/$slug',
   path: '/learn/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MessagesChatIdRoute = MessagesChatIdRouteImport.update({
+  id: '/messages_/$chatId',
+  path: '/messages/$chatId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OrderOrderIdRoute = OrderOrderIdRouteImport.update({
@@ -767,6 +773,7 @@ export interface FileRoutesByFullPath {
   '/create/studio': typeof CreateStudioRoute
   '/create/video-editor': typeof CreateVideoEditorRoute
   '/learn/$slug': typeof LearnSlugRoute
+  '/messages/$chatId': typeof MessagesChatIdRoute
   '/order/$orderId': typeof OrderOrderIdRoute
   '/profile/$username': typeof ProfileUsernameRoute
   '/shop/$storeUsername': typeof ShopStoreUsernameRoute
@@ -882,6 +889,7 @@ export interface FileRoutesByTo {
   '/create/studio': typeof CreateStudioRoute
   '/create/video-editor': typeof CreateVideoEditorRoute
   '/learn/$slug': typeof LearnSlugRoute
+  '/messages/$chatId': typeof MessagesChatIdRoute
   '/order/$orderId': typeof OrderOrderIdRoute
   '/profile/$username': typeof ProfileUsernameRoute
   '/shop/$storeUsername': typeof ShopStoreUsernameRoute
@@ -1001,6 +1009,7 @@ export interface FileRoutesById {
   '/create/studio': typeof CreateStudioRoute
   '/create/video-editor': typeof CreateVideoEditorRoute
   '/learn/$slug': typeof LearnSlugRoute
+  '/messages_/$chatId': typeof MessagesChatIdRoute
   '/order/$orderId': typeof OrderOrderIdRoute
   '/profile/$username': typeof ProfileUsernameRoute
   '/shop/$storeUsername': typeof ShopStoreUsernameRoute
@@ -1121,6 +1130,7 @@ export interface FileRouteTypes {
     | '/create/studio'
     | '/create/video-editor'
     | '/learn/$slug'
+    | '/messages/$chatId'
     | '/order/$orderId'
     | '/profile/$username'
     | '/shop/$storeUsername'
@@ -1236,6 +1246,7 @@ export interface FileRouteTypes {
     | '/create/studio'
     | '/create/video-editor'
     | '/learn/$slug'
+    | '/messages/$chatId'
     | '/order/$orderId'
     | '/profile/$username'
     | '/shop/$storeUsername'
@@ -1354,6 +1365,7 @@ export interface FileRouteTypes {
     | '/create/studio'
     | '/create/video-editor'
     | '/learn/$slug'
+    | '/messages_/$chatId'
     | '/order/$orderId'
     | '/profile/$username'
     | '/shop/$storeUsername'
@@ -1467,6 +1479,7 @@ export interface RootRouteChildren {
   CheckoutProductIdRoute: typeof CheckoutProductIdRoute
   CheckoutCartRoute: typeof CheckoutCartRoute
   LearnSlugRoute: typeof LearnSlugRoute
+  MessagesChatIdRoute: typeof MessagesChatIdRoute
   OrderOrderIdRoute: typeof OrderOrderIdRoute
   ProfileUsernameRoute: typeof ProfileUsernameRoute
   ShopStoreUsernameRoute: typeof ShopStoreUsernameRoute
@@ -1885,6 +1898,13 @@ declare module '@tanstack/react-router' {
       path: '/learn/$slug'
       fullPath: '/learn/$slug'
       preLoaderRoute: typeof LearnSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/messages_/$chatId': {
+      id: '/messages_/$chatId'
+      path: '/messages/$chatId'
+      fullPath: '/messages/$chatId'
+      preLoaderRoute: typeof MessagesChatIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/order/$orderId': {
@@ -2499,6 +2519,7 @@ const rootRouteChildren: RootRouteChildren = {
   CheckoutProductIdRoute: CheckoutProductIdRoute,
   CheckoutCartRoute: CheckoutCartRoute,
   LearnSlugRoute: LearnSlugRoute,
+  MessagesChatIdRoute: MessagesChatIdRoute,
   OrderOrderIdRoute: OrderOrderIdRoute,
   ProfileUsernameRoute: ProfileUsernameRoute,
   ShopStoreUsernameRoute: ShopStoreUsernameRoute,
