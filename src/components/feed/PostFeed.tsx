@@ -1411,11 +1411,7 @@ function FeedPostCard({
               from it. The bag is local to the device (lib/cart.ts), so this
               works signed out too. */}
           {!asStore && (
-            <RailAction
-              label="Add tagged items to cart"
-              caption="+Cart"
-              onPress={() => void addTaggedToBag()}
-            >
+            <RailAction label="Add tagged items to cart" onPress={() => void addTaggedToBag()}>
               <BagPlus size={28} />
             </RailAction>
           )}
