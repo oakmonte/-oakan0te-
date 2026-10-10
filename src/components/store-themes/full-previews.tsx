@@ -231,6 +231,7 @@ function MotionGridFull({
           blocks={blocks}
           storeId={storeId}
           bg={themeBackground("motion")}
+          brandName={brandName}
         />
       </div>
     </div>
@@ -359,6 +360,7 @@ function ImmersiveBannerFull({
           blocks={blocks}
           storeId={storeId}
           bg={themeBackground("banner")}
+          brandName={brandName}
         />
       </div>
     </div>
@@ -481,6 +483,7 @@ function GalleryEditFull({
           blocks={blocks}
           storeId={storeId}
           bg={themeBackground("atelier")}
+          brandName={brandName}
         />
       </div>
     </div>
@@ -601,6 +604,7 @@ function NeonTerminalFull({
           blocks={blocks}
           storeId={storeId}
           bg={themeBackground("circuit")}
+          brandName={brandName}
         />
       </div>
     </div>
@@ -721,6 +725,7 @@ function VerdantNoirFull({
           blocks={blocks}
           storeId={storeId}
           bg={themeBackground("verdant")}
+          brandName={brandName}
         />
       </div>
     </div>
@@ -844,6 +849,7 @@ function MonochromeFull({
           blocks={blocks}
           storeId={storeId}
           bg={themeBackground("monochrome")}
+          brandName={brandName}
         />
       </div>
     </div>
@@ -965,6 +971,7 @@ function GildedFull({
           blocks={blocks}
           storeId={storeId}
           bg={themeBackground("gilded")}
+          brandName={brandName}
         />
       </div>
     </div>
@@ -1085,6 +1092,7 @@ function ObsidianFull({
           blocks={blocks}
           storeId={storeId}
           bg={themeBackground("obsidian")}
+          brandName={brandName}
         />
       </div>
     </div>

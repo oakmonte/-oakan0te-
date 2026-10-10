@@ -1631,11 +1631,14 @@ export function LayoutBlocks({
   blocks,
   storeId,
   bg,
+  brandName,
 }: {
   editing: ThemeEditingProps | undefined;
   blocks: Partial<Record<ArrangeableBlockId, ReactNode>>;
   storeId: string | null;
   bg: string;
+  /** The store's name, for the closing footer every theme ends with. */
+  brandName?: string;
 }) {
   const drop = useStoreLiveDrop(storeId);
   const layoutId = editing?.layoutId ?? "hero-led";
@@ -1648,7 +1651,14 @@ export function LayoutBlocks({
   const sticky = resolveStickyBottom(editing?.stickyBottom ?? null, catalog.gridItemCount);
 
   const below = blocksBelowGrid(layoutId, editing?.hiddenBlocks ?? [], drop !== null);
-  if (!sticky || below.length === 0) return <>{render(order)}</>;
+  const footer = brandName ? <StoreFooter brandName={brandName} bg={bg} /> : null;
+  if (!sticky || below.length === 0)
+    return (
+      <>
+        {render(order)}
+        {footer}
+      </>
+    );
 
   const above = order.filter((id) => !below.includes(id));
   return (
@@ -1663,6 +1673,43 @@ export function LayoutBlocks({
       >
         {render(below)}
       </div>
+      {footer}
     </>
+  );
+}
+
+/** The close of every storefront, whatever the theme: the store's name, a
+ *  copyright line, and "Built with Oakmonte" as a plain, obvious link home.
+ *  Not one of the arrangeable blocks -- it always comes last and can't be
+ *  hidden or moved. Colours come from the theme's own background, so it reads
+ *  on light and dark themes alike without a per-theme value. After the
+ *  stick-to-page strip, so at the very end of the page the strip scrolls up
+ *  above it rather than covering it. */
+function StoreFooter({ brandName, bg }: { brandName: string; bg: string }) {
+  const dark = isDark(bg);
+  const ink = dark ? "#ffffff" : "#111111";
+  const muted = dark ? "rgba(255,255,255,0.6)" : "rgba(17,17,17,0.55)";
+  const line = dark ? "rgba(255,255,255,0.12)" : "rgba(17,17,17,0.1)";
+  return (
+    <footer className="mx-5 mt-10 border-t pb-12 pt-10" style={{ borderColor: line }}>
+      <p
+        className="text-[22px] font-bold uppercase leading-tight tracking-tight"
+        style={{ color: ink }}
+      >
+        {brandName}
+      </p>
+      <p className="mt-2 text-[14px]" style={{ color: muted }}>
+        &copy; {brandName} &middot; All rights reserved
+      </p>
+      <a
+        href="https://oakmonte.store"
+        target="_blank"
+        rel="noopener"
+        className="mt-5 inline-block text-[12px] font-medium uppercase tracking-[0.12em] underline decoration-1 underline-offset-4"
+        style={{ color: muted }}
+      >
+        Built with Oakmonte
+      </a>
+    </footer>
   );
 }

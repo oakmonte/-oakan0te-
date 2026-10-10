@@ -254,7 +254,13 @@ export function ThemeSpecFull({
           />
         </div>
 
-        <LayoutBlocks editing={editing} blocks={blocks} storeId={storeId} bg={spec.bg} />
+        <LayoutBlocks
+          editing={editing}
+          blocks={blocks}
+          storeId={storeId}
+          bg={spec.bg}
+          brandName={brandName}
+        />
       </div>
     </div>
   );
