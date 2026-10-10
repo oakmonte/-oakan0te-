@@ -103,6 +103,13 @@ parent layout.
   `start.ts`/`__root.tsx` each cover a different failure mode — collapsing them loses coverage.
 - **Camera-to-edit handoff is an in-memory module variable** (`capture-handoff.ts`), not
   session/localStorage. See the `media-export-pipeline` skill for why.
+- **Overlay history (`use-overlay-history.ts`) ignores pops it caused itself.** Every sheet,
+  `PageSheet` and drawer pushes a history entry so the back gesture closes it; a button close calls
+  `history.back()`, which lands **asynchronously**. When one overlay replaces another in the same
+  render (variation list -> combinations, a menu item opening a confirm), that late pop arrives after
+  the new overlay has pushed, and without the `pendingSelfBacks` / `selfPops` guard the new one reads
+  it as a back gesture and closes the instant it opens ("Continue does nothing"). Don't remove the
+  guard, and don't hand-roll `pushState`/`popstate` for an overlay -- use the hook.
 - **`categories.ts`**: on a `CategoryNode`, omitting `children` means true leaf; `children: []`
   means "has children, not filled in yet." Not interchangeable.
 

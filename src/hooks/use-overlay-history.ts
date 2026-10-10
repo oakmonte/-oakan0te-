@@ -21,6 +21,27 @@ import {
   shouldRemoveOverlayEntry,
 } from "@/lib/nav-stack";
 
+// Pops this module triggers itself when an overlay closes by a button. When one
+// overlay replaces another in the same render (variation list -> combinations),
+// the old one's history.back() lands only after the new one has pushed its
+// entry, and the new one would read that pop as a back gesture and close
+// itself. A capture listener added at load runs before every hook's listener
+// and tags those self-made pops so the hooks ignore them.
+let pendingSelfBacks = 0;
+const selfPops = new WeakSet<Event>();
+if (typeof window !== "undefined") {
+  window.addEventListener(
+    "popstate",
+    (event) => {
+      if (pendingSelfBacks > 0) {
+        pendingSelfBacks--;
+        selfPops.add(event);
+      }
+    },
+    true,
+  );
+}
+
 export function useOverlayHistory(open: boolean, onClose: () => void) {
   const router = useRouter();
 
@@ -52,6 +73,7 @@ export function useOverlayHistory(open: boolean, onClose: () => void) {
 
     let poppedByGesture = false;
     const onPop = (event: PopStateEvent) => {
+      if (selfPops.has(event)) return;
       // A pop that only took a sheet stacked above us off is not ours.
       if (!shouldCloseOnPop(openedIndex, readIndex(event.state))) return;
       poppedByGesture = true;
@@ -70,7 +92,10 @@ export function useOverlayHistory(open: boolean, onClose: () => void) {
         hrefAtOpen,
         hrefNow: router.history.location.href,
       });
-      if (remove) window.history.back();
+      if (remove) {
+        pendingSelfBacks++;
+        window.history.back();
+      }
     };
   }, [open, router]);
 }
