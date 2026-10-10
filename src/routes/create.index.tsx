@@ -213,13 +213,14 @@ const HOLD_TO_RECORD_MS = 250;
 // swipe, not a press.
 const HOLD_SLOP_PX = 10;
 const MAX_RECORD_SECONDS = 60;
-// Recorded video is 1080p on its short edge at ~8 Mbps H.264 -- what the feed
+// Recorded video is 720p on its short edge at ~4 Mbps H.264 -- what the feed
 // plays as-is (the original file is served, not a re-encode; see
-// api.posts.ts). 720p was stretched ~1.6x to fill a modern phone's 1170px-wide
-// screen and read as soft; 1080 is what Snapchat and Instagram record. The
-// bitrate rises with it so the extra detail isn't lost to compression.
-const RECORD_SHORT_EDGE = 1080;
-const RECORD_BITRATE = 8_000_000;
+// api.posts.ts). 720p is a product decision (2026-10-10): 1080p at 8 Mbps
+// looked sharper but stalled on Nigerian mobile data, and smooth playback
+// wins. Half the data per video. The camera FEED stays full resolution --
+// photos are taken from it; only the recording is scaled down.
+const RECORD_SHORT_EDGE = 720;
+const RECORD_BITRATE = 4_000_000;
 const RECORD_FPS = 30;
 // H.264 in MP4 first: every iPhone and modern Android encodes it in hardware,
 // so it's smooth and small. VP9 (which Safari also offers) is a SOFTWARE

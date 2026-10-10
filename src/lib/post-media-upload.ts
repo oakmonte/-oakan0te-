@@ -44,9 +44,11 @@ function b64(s: string): string {
 // The uploaded file IS what the feed plays (api.posts.ts serves Bunny's
 // /original, not a re-encode), so it has to be a universally playable,
 // reasonably sized H.264 MP4. The in-app camera already records exactly that
-// (1080p / 8 Mbps, create.index.tsx) and goes up untouched. Anything else --
-// a 4K or HEVC gallery clip, a WebM from an older Android, an oversized
-// bitrate -- is re-encoded here first to H.264 at 1080p on its short edge.
+// (720p / 4 Mbps, create.index.tsx) and goes up untouched. Anything else --
+// a 1080p, 4K or HEVC gallery clip, a WebM from an older Android, an
+// oversized bitrate -- is re-encoded here first to H.264 at 720p on its short
+// edge. 720p everywhere is a product decision (2026-10-10): smooth playback on
+// mobile data over the last bit of sharpness.
 // A second or two on the phone's hardware encoder; any failure uploads the
 // original as-is.
 //
@@ -54,14 +56,13 @@ function b64(s: string): string {
 // re-encoded, near-instant) with the metadata dropped: a phone's gallery
 // clip carries its GPS location in container tags, and viewers download
 // this exact file.
-// Above the in-app camera's own 8 Mbps, so its recordings are never re-encoded.
-const SHRINK_ABOVE_BPS = 10_000_000;
-const TARGET_BPS = 7_500_000;
-const MAX_SHORT_EDGE = 1080;
+// Above the in-app camera's own 4 Mbps, so its recordings are never re-encoded.
+const SHRINK_ABOVE_BPS = 5_000_000;
+const TARGET_BPS = 4_000_000;
+const MAX_SHORT_EDGE = 720;
 /** Short edges up to this aren't re-encoded when nothing else is wrong -- a
- *  1080p back-camera recording plays fine as-is (it's still remuxed, to
- *  drop its metadata). */
-const KEEP_SHORT_EDGE = 1080;
+ *  720p clip plays fine as-is (it's still remuxed, to drop its metadata). */
+const KEEP_SHORT_EDGE = 720;
 
 /** Packets copied as-is into a fresh MP4 with no metadata -- needs no
  *  decoder, so it works on clips this browser can't decode (HEVC on some

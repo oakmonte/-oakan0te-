@@ -69,12 +69,12 @@ const MAX_FPS = 60;
 // all the way up to 48 and double the encode for nothing.
 const FPS_TOLERANCE = 1.02;
 const FALLBACK_FPS = 30;
-// 1080x1920 for a 9:16 edit — the standard for a social master, and what a phone
-// capture already is. outputSize() never upscales past the footage, so a smaller
-// source still exports at its own size; this is only a ceiling. It was 1280,
-// which quietly downscaled every 1080p capture: the seller's hero asset is the
-// last place to be saving encode time.
-const TARGET_LONG_EDGE = 1920;
+// 720x1280 for a 9:16 edit: videos are 720p everywhere (product decision,
+// 2026-10-10 -- smooth playback on mobile data over the last bit of
+// sharpness). outputSize() never upscales past the footage, so a smaller
+// source still exports at its own size; this is only a ceiling. Anything
+// larger would just be scaled down again on upload (post-media-upload.ts).
+const TARGET_LONG_EDGE = 1280;
 const MIN_LONG_EDGE = 480;
 
 const NEUTRAL_TRANSFORM: LayerTransform = { opacity: 1, scale: 1, offsetX: 0 };

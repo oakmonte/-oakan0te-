@@ -90,18 +90,18 @@ export function ratioValue(ratio: ProjectRatio): number {
   return RATIO_OPTIONS.find((r) => r.id === ratio)?.value ?? 9 / 16;
 }
 
-/** Encode size for a project ratio. Capped so the long edge is 1920 — a phone
- *  encoding 4K in a browser tab is how you get a tab the OS kills halfway. */
+/** Encode size for a project ratio: 720p on the short edge, like every other
+ *  video path (product decision, 2026-10-10). */
 export function outputSize(ratio: ProjectRatio): { width: number; height: number } {
   switch (ratio) {
     case "1:1":
-      return { width: 1080, height: 1080 };
+      return { width: 720, height: 720 };
     case "4:5":
-      return { width: 1080, height: 1350 };
+      return { width: 720, height: 900 };
     case "16:9":
-      return { width: 1920, height: 1080 };
+      return { width: 1280, height: 720 };
     default:
-      return { width: 1080, height: 1920 };
+      return { width: 720, height: 1280 };
   }
 }
 

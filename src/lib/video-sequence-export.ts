@@ -114,7 +114,7 @@ export async function exportSequence(
   onProgress?: SequenceProgress,
   /** A second attempt after a failure: a fixed 5 Mbps instead of the
    *  quality tier, which some phones' hardware encoders accept where they
-   *  reject the high setting at this frame size. Same 1080-wide H.264. */
+   *  reject the high setting at this frame size. Same 720p H.264. */
   { safe = false }: { safe?: boolean } = {},
 ): Promise<SequenceExport> {
   if (clips.length === 0) throw new Error("Nothing on the timeline yet");
