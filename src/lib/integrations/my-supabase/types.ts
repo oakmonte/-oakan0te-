@@ -2207,6 +2207,7 @@ export type Database = {
           pickup_postal_code: string | null
           pickup_state: string | null
           product_category: string[] | null
+          shipping_policy: string | null
           shopify_access_token: string | null
           shopify_connected_at: string | null
           shopify_scopes: string | null
@@ -2239,6 +2240,7 @@ export type Database = {
           pickup_postal_code?: string | null
           pickup_state?: string | null
           product_category?: string[] | null
+          shipping_policy?: string | null
           shopify_access_token?: string | null
           shopify_connected_at?: string | null
           shopify_scopes?: string | null
@@ -2271,6 +2273,7 @@ export type Database = {
           pickup_postal_code?: string | null
           pickup_state?: string | null
           product_category?: string[] | null
+          shipping_policy?: string | null
           shopify_access_token?: string | null
           shopify_connected_at?: string | null
           shopify_scopes?: string | null

@@ -242,6 +242,10 @@ function StoreSection() {
   // Set once during onboarding (seller-type); changeable here afterwards.
   const [customOrders, setCustomOrders] = useState<boolean | null>(null);
   const [savingCustom, setSavingCustom] = useState(false);
+  // Shown to buyers from the storefront footer's Shipping Policy pop-up.
+  const [policy, setPolicy] = useState("");
+  const [savedPolicy, setSavedPolicy] = useState("");
+  const [policyState, setPolicyState] = useState<"idle" | "saving" | "saved" | "error">("idle");
 
   useEffect(() => {
     if (!storeId) {
@@ -251,13 +255,15 @@ function StoreSection() {
     let cancelled = false;
     supabase
       .from("stores")
-      .select("offers_custom_orders")
+      .select("offers_custom_orders, shipping_policy")
       .eq("id", storeId)
       .maybeSingle()
       .then(({ data, error }) => {
         if (cancelled) return;
         if (error) console.error("StoreSection: failed to load store", error);
         setCustomOrders(data?.offers_custom_orders ?? false);
+        setPolicy(data?.shipping_policy ?? "");
+        setSavedPolicy(data?.shipping_policy ?? "");
       });
     return () => {
       cancelled = true;
@@ -280,6 +286,24 @@ function StoreSection() {
     }
   }
 
+  async function savePolicy() {
+    if (!storeId) return;
+    const next = policy.trim();
+    setPolicyState("saving");
+    const { error } = await supabase
+      .from("stores")
+      .update({ shipping_policy: next || null })
+      .eq("id", storeId);
+    if (error) {
+      console.error("StoreSection: failed to save shipping_policy", error);
+      setPolicyState("error");
+      return;
+    }
+    setSavedPolicy(next);
+    setPolicy(next);
+    setPolicyState("saved");
+  }
+
   if (storeLoading || !storeId || customOrders === null) return null;
 
   return (
@@ -298,6 +322,41 @@ function StoreSection() {
             onClick={toggleCustomOrders}
             disabled={savingCustom}
           />
+        </div>
+        <div className="px-4 py-3.5">
+          <span className="text-[14px] text-white/70">
+            Shipping policy
+            <span className="block text-[12px] text-white/40 mt-0.5">
+              Shown to shoppers from the bottom of your website. Leave it empty to hide it.
+            </span>
+          </span>
+          <textarea
+            value={policy}
+            onChange={(e) => {
+              setPolicy(e.target.value.slice(0, 2000));
+              setPolicyState("idle");
+            }}
+            rows={4}
+            placeholder="e.g. Orders are processed within 2–3 days. Delivery timelines depend on your location."
+            className={`${inputClass} mt-3 resize-none leading-relaxed`}
+          />
+          <div className="mt-2 flex items-center justify-between gap-3">
+            <span className="text-[12px] text-white/40">
+              {policyState === "saved"
+                ? "Saved"
+                : policyState === "error"
+                  ? "Couldn't save. Try again."
+                  : `${policy.length}/2000`}
+            </span>
+            <button
+              type="button"
+              onClick={() => void savePolicy()}
+              disabled={policyState === "saving" || policy.trim() === savedPolicy.trim()}
+              className="rounded-full bg-white px-5 py-2 text-[13px] font-semibold text-black disabled:opacity-40"
+            >
+              {policyState === "saving" ? "Saving…" : "Save"}
+            </button>
+          </div>
         </div>
       </Panel>
     </Section>

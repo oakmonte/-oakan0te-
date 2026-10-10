@@ -48,6 +48,8 @@ import {
   type ArrangeableBlockId,
 } from "./layout-presets";
 import { useStoreCatalogReadiness } from "@/hooks/use-store-catalog-readiness";
+import { useStoreShippingPolicy } from "@/hooks/use-store-shipping-policy";
+import { ShippingPolicyDialog } from "./ShippingPolicyDialog";
 import { StorefrontSearchContext, LiveStorefrontContext as LiveCtx } from "./live-storefront";
 import { SALES_LOCKED, SHARING_LOCKED } from "@/lib/launch-locks";
 import { useLockedBanner } from "@/components/LockedBanner";
@@ -1651,7 +1653,7 @@ export function LayoutBlocks({
   const sticky = resolveStickyBottom(editing?.stickyBottom ?? null, catalog.gridItemCount);
 
   const below = blocksBelowGrid(layoutId, editing?.hiddenBlocks ?? [], drop !== null);
-  const footer = brandName ? <StoreFooter brandName={brandName} bg={bg} /> : null;
+  const footer = brandName ? <StoreFooter brandName={brandName} bg={bg} storeId={storeId} /> : null;
   if (!sticky || below.length === 0)
     return (
       <>
@@ -1685,7 +1687,18 @@ export function LayoutBlocks({
  *  on light and dark themes alike without a per-theme value. After the
  *  stick-to-page strip, so at the very end of the page the strip scrolls up
  *  above it rather than covering it. */
-function StoreFooter({ brandName, bg }: { brandName: string; bg: string }) {
+function StoreFooter({
+  brandName,
+  bg,
+  storeId,
+}: {
+  brandName: string;
+  bg: string;
+  storeId: string | null;
+}) {
+  // Shipping Policy appears only when the seller has written one (Settings).
+  const { policy, logoUrl } = useStoreShippingPolicy(storeId);
+  const [policyOpen, setPolicyOpen] = useState(false);
   const dark = isDark(bg);
   const ink = dark ? "#ffffff" : "#111111";
   const muted = dark ? "rgba(255,255,255,0.6)" : "rgba(17,17,17,0.55)";
@@ -1701,15 +1714,35 @@ function StoreFooter({ brandName, bg }: { brandName: string; bg: string }) {
       <p className="mt-2 text-[14px]" style={{ color: muted }}>
         &copy; {brandName} &middot; All rights reserved
       </p>
-      <a
-        href="https://oakmonte.store"
-        target="_blank"
-        rel="noopener"
-        className="mt-5 inline-block text-[12px] font-medium uppercase tracking-[0.12em] underline decoration-1 underline-offset-4"
-        style={{ color: muted }}
-      >
-        Built with Oakmonte
-      </a>
+      <div className="mt-5 flex items-center justify-between gap-4">
+        <a
+          href="https://oakmonte.store"
+          target="_blank"
+          rel="noopener"
+          className="inline-block text-[12px] font-medium uppercase tracking-[0.12em] underline decoration-1 underline-offset-4"
+          style={{ color: muted }}
+        >
+          Built with Oakmonte
+        </a>
+        {policy && (
+          <button
+            type="button"
+            onClick={() => setPolicyOpen(true)}
+            className="shrink-0 border-b pb-0.5 text-[13px] font-semibold tracking-[0.08em]"
+            style={{ color: ink, borderColor: line }}
+          >
+            Shipping Policy
+          </button>
+        )}
+      </div>
+      {policyOpen && policy && (
+        <ShippingPolicyDialog
+          brandName={brandName}
+          logoUrl={logoUrl}
+          policy={policy}
+          onClose={() => setPolicyOpen(false)}
+        />
+      )}
     </footer>
   );
 }
