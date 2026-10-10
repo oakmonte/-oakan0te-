@@ -323,10 +323,20 @@ function ChooseUsernamePage() {
         )}
 
         {!asksGenderElsewhere && (
+          // Same labelled divider as Date of birth below, so name, gender and
+          // birthday read as three sections rather than one run of fields.
+          <div className="flex items-center gap-3 pt-6" role="presentation">
+            <span className="h-px flex-1 bg-brand-text/15" />
+            <span className="text-[11px] uppercase tracking-widest text-brand-text/50">Gender</span>
+            <span className="h-px flex-1 bg-brand-text/15" />
+          </div>
+        )}
+
+        {!asksGenderElsewhere && (
           // Tap buttons rather than a native <select>: on Android the system
           // picker is a separate window that jumped to the top of the page when
           // opened, which read as the page breaking.
-          <div role="group" aria-label="Gender (optional)" className="grid grid-cols-2 gap-2 pt-3">
+          <div role="group" aria-label="Gender (optional)" className="grid grid-cols-2 gap-2 pt-1">
             {GENDER_OPTIONS.map((option) => (
               <button
                 key={option}
@@ -347,7 +357,7 @@ function ChooseUsernamePage() {
           </div>
         )}
 
-        <div className="flex items-center gap-3 pt-3" role="presentation">
+        <div className="flex items-center gap-3 pt-6" role="presentation">
           <span className="h-px flex-1 bg-brand-text/15" />
           <span className="text-[11px] uppercase tracking-widest text-brand-text/50">
             Date of birth
