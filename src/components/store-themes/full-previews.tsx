@@ -56,7 +56,9 @@ import {
   type ThemeEditState,
 } from "./edit-types";
 import {
-  LAYOUT_PRESETS,
+  RETIRED_BLOCKS,
+  pickableLayouts,
+  sameLiveOrder,
   blocksBelowGrid,
   resolveStickyBottom,
   stickyOptionAvailable,
@@ -1859,27 +1861,29 @@ export function ThemePreviewSheet({
                   align="end"
                   className="w-64 border-white/10 bg-neutral-900 p-2 text-white"
                 >
-                  {state.hiddenBlocks.length > 0 && (
+                  {state.hiddenBlocks.some((b) => !RETIRED_BLOCKS.includes(b)) && (
                     <div className="mb-1 border-b border-white/10 pb-1.5">
                       <p className="px-3 pb-1 pt-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/40">
                         Hidden sections
                       </p>
-                      {state.hiddenBlocks.map((block) => (
-                        <button
-                          key={block}
-                          type="button"
-                          onClick={() => editingProps.onRestoreBlock(block)}
-                          className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left hover:bg-white/10"
-                        >
-                          <span className="text-[14px] font-medium text-white">
-                            {REMOVABLE_BLOCK_LABELS[block]}
-                          </span>
-                          <Plus size={16} className="shrink-0 text-white/60" />
-                        </button>
-                      ))}
+                      {state.hiddenBlocks
+                        .filter((b) => !RETIRED_BLOCKS.includes(b))
+                        .map((block) => (
+                          <button
+                            key={block}
+                            type="button"
+                            onClick={() => editingProps.onRestoreBlock(block)}
+                            className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left hover:bg-white/10"
+                          >
+                            <span className="text-[14px] font-medium text-white">
+                              {REMOVABLE_BLOCK_LABELS[block]}
+                            </span>
+                            <Plus size={16} className="shrink-0 text-white/60" />
+                          </button>
+                        ))}
                     </div>
                   )}
-                  {LAYOUT_PRESETS.map((preset) => (
+                  {pickableLayouts().map((preset) => (
                     <button
                       key={preset.id}
                       type="button"
@@ -1892,7 +1896,7 @@ export function ThemePreviewSheet({
                         </span>
                         <span className="block text-[12px] text-white/50">{preset.hint}</span>
                       </span>
-                      {state.layoutId === preset.id && (
+                      {sameLiveOrder(state.layoutId, preset.id) && (
                         <CheckIcon size={16} className="shrink-0 text-white/80" />
                       )}
                     </button>

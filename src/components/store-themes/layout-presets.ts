@@ -36,6 +36,37 @@ export const LAYOUT_PRESETS: {
   },
 ];
 
+/** Sellers-only (2026-10-10): the follower count ("watching this space") and
+ *  the community footer ("wearing it") are social-platform pieces, so they're
+ *  switched off for every theme here. Each theme still builds both blocks --
+ *  delete an id from this list to bring it back everywhere, nothing else to
+ *  undo. LayoutBlocks skips them, and the picker, hidden-sections list and
+ *  stick-to-page question all read this so none of them offer a block that
+ *  can't appear. */
+export const RETIRED_BLOCKS: readonly ArrangeableBlockId[] = ["stats", "footer"];
+
+/** A layout's order with the retired blocks taken out. */
+export function liveOrder(layoutId: LayoutId): ArrangeableBlockId[] {
+  const order = LAYOUT_PRESETS.find((p) => p.id === layoutId)?.order ?? LAYOUT_PRESETS[0].order;
+  return order.filter((id) => !RETIRED_BLOCKS.includes(id));
+}
+
+/** The presets still worth offering: with blocks retired, several collapse
+ *  into the same order, so one preset per distinct order is listed -- the
+ *  LAST of each group, whose name and hint still describe it ("Catalog right
+ *  after the hero", "Campaign banner leads the catalog"); the earlier ones
+ *  lean on the follower count. A store that saved another renders
+ *  identically, and the picker ticks it via sameLiveOrder. */
+export function pickableLayouts(): typeof LAYOUT_PRESETS {
+  const byOrder = new Map<string, (typeof LAYOUT_PRESETS)[number]>();
+  for (const p of LAYOUT_PRESETS) byOrder.set(liveOrder(p.id).join(","), p);
+  return [...byOrder.values()];
+}
+
+export function sameLiveOrder(a: LayoutId, b: LayoutId): boolean {
+  return liveOrder(a).join(",") === liveOrder(b).join(",");
+}
+
 /** The blocks a layout puts BELOW the collections/products grid, which are
  *  the ones "stick to page" pins to the bottom of the screen. Shop-first puts
  *  three there and Social proof only one. Hidden blocks don't count, and
@@ -46,7 +77,7 @@ export function blocksBelowGrid(
   hidden: readonly string[],
   hasDrop: boolean,
 ): ArrangeableBlockId[] {
-  const order = LAYOUT_PRESETS.find((p) => p.id === layoutId)?.order ?? LAYOUT_PRESETS[0].order;
+  const order = liveOrder(layoutId);
   return order
     .slice(order.indexOf("collections") + 1)
     .filter((id) => !hidden.includes(id) && (id !== "promo" || hasDrop));

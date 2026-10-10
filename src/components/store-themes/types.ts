@@ -167,7 +167,7 @@ const BASE_THEMES: Omit<Theme, "colors">[] = [
 // spec catalogue. Spec entries are derived from the specs themselves rather
 // than re-typed here, so a theme's card and its storefront can never disagree
 // about its own accent or name.
-export const THEMES: Theme[] = [
+const ALL_THEMES: Theme[] = [
   ...BASE_THEMES,
   ...THEME_SPECS.map((spec) => ({
     id: spec.id,
@@ -186,3 +186,19 @@ export const THEMES: Theme[] = [
   // search for "dark pink" is how that choice is made now.
   colors: [...THEME_COLORS[theme.id], isDark(theme.background) ? "dark" : "light"],
 }));
+
+// Where a theme sits in the picker. Ice leads and Motion Grid is third (a
+// product decision, 2026-10-10); everything else keeps catalogue order.
+const PINNED: { id: ThemeId; index: number }[] = [
+  { id: "ice", index: 0 },
+  { id: "motion", index: 2 },
+];
+
+export const THEMES: Theme[] = (() => {
+  const rest = ALL_THEMES.filter((t) => !PINNED.some((p) => p.id === t.id));
+  for (const { id, index } of PINNED) {
+    const theme = ALL_THEMES.find((t) => t.id === id);
+    if (theme) rest.splice(index, 0, theme);
+  }
+  return rest;
+})();

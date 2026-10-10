@@ -42,7 +42,7 @@ import { GLASS_RIM, glassClear } from "@/lib/liquid-glass";
 import { useStoreLiveDrop } from "@/hooks/use-store-live-drop";
 import { dropCountdown, formatCountdown } from "@/lib/drops";
 import {
-  LAYOUT_PRESETS,
+  liveOrder,
   blocksBelowGrid,
   resolveStickyBottom,
   type ArrangeableBlockId,
@@ -1639,7 +1639,8 @@ export function LayoutBlocks({
 }) {
   const drop = useStoreLiveDrop(storeId);
   const layoutId = editing?.layoutId ?? "hero-led";
-  const order = LAYOUT_PRESETS.find((p) => p.id === layoutId)?.order ?? LAYOUT_PRESETS[0].order;
+  // Retired blocks (layout-presets.ts) are built by every theme but not shown.
+  const order = liveOrder(layoutId);
   const render = (ids: ArrangeableBlockId[]) =>
     ids.map((id) => <Fragment key={id}>{blocks[id]}</Fragment>);
 
