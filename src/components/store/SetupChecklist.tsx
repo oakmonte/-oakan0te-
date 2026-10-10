@@ -149,7 +149,7 @@ export function SetupChecklist({ status }: { status: StoreSetupStatus }) {
   const steps = [
     {
       key: "payout",
-      label: "Get paid",
+      label: "Get your money",
       // No longer repeats "pending verification" -- StatusLabel below now says
       // that, and saying it twice in one row read as an error rather than a
       // state.

@@ -252,7 +252,7 @@ export function useStoreSetupStatus(storeId: string | null): StoreSetupStatus {
   const nextStepLabel = loading
     ? null
     : !payoutSet
-      ? "Get paid"
+      ? "Get your money"
       : !locationCount
         ? "Add a pickup location"
         : !productCount
