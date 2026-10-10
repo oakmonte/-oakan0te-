@@ -710,7 +710,7 @@ export function OptionEditorSheet({
                   className="w-full text-[17px] border border-gray-300 rounded-2xl px-5 py-[22px] outline-none focus:border-gray-500"
                 />
                 {systems && (
-                  <div className="mt-3">
+                  <div className="mt-5 mb-1">
                     <SystemMenu
                       activeSystem={activeSystem}
                       systemKeys={systemKeys}
