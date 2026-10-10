@@ -1,6 +1,57 @@
 import { useEffect, useRef, useState, type InputHTMLAttributes } from "react";
 import { MapPin } from "lucide-react";
 import { authedFetch } from "@/lib/authed-fetch";
+import { requestAutocomplete, requestPlaceAddress } from "@/lib/places-google";
+
+// Public, referrer-restricted key: lets the phone ask Google directly instead
+// of going through our server in Washington (~1s saved per keystroke from
+// Nigeria). Absent, or if a direct call fails, the server route is used.
+const BROWSER_KEY = import.meta.env.VITE_GOOGLE_PLACES_BROWSER_KEY as string | undefined;
+
+// Answers already fetched, per country + text: backspacing or retyping is
+// instant. Module-level so it survives the form closing and reopening.
+const suggestionCache = new Map<string, Suggestion[]>();
+
+async function fetchSuggestions(
+  q: string,
+  sessionToken: string,
+  regionCode: string | undefined,
+  signal: AbortSignal,
+): Promise<Suggestion[]> {
+  if (BROWSER_KEY) {
+    try {
+      return await requestAutocomplete(BROWSER_KEY, q, sessionToken, regionCode ?? null, signal);
+    } catch (err) {
+      if (signal.aborted) throw err;
+      // Fall through to the server route.
+    }
+  }
+  const res = await authedFetch("/api/places/autocomplete", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ input: q, sessionToken, regionCode }),
+    signal,
+  });
+  const body = (await res.json().catch(() => null)) as { suggestions?: Suggestion[] } | null;
+  return body?.suggestions ?? [];
+}
+
+async function fetchAddress(placeId: string, sessionToken: string): Promise<PickedAddress | null> {
+  if (BROWSER_KEY) {
+    try {
+      return await requestPlaceAddress(BROWSER_KEY, placeId, sessionToken);
+    } catch {
+      // Fall through to the server route.
+    }
+  }
+  const res = await authedFetch("/api/places/autocomplete", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ placeId, sessionToken }),
+  }).catch(() => null);
+  const body = (await res?.json().catch(() => null)) as { address?: PickedAddress | null } | null;
+  return body?.address ?? null;
+}
 
 export type PickedAddress = {
   line1: string;
@@ -61,18 +112,25 @@ export function AddressAutocomplete({
       setSuggestions([]);
       return;
     }
-    let cancelled = false;
-    const t = setTimeout(async () => {
-      const res = await authedFetch("/api/places/autocomplete", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ input: q, sessionToken: token.current, regionCode }),
-      }).catch(() => null);
-      const body = (await res?.json().catch(() => null)) as { suggestions?: Suggestion[] } | null;
-      if (!cancelled) setSuggestions(body?.suggestions ?? []);
-    }, 300);
+    const cacheKey = `${regionCode ?? ""}|${q.toLowerCase()}`;
+    const cached = suggestionCache.get(cacheKey);
+    if (cached) {
+      setSuggestions(cached);
+      return;
+    }
+    // A newer keystroke aborts the request in flight, so a slow old answer
+    // can never overwrite a newer one.
+    const controller = new AbortController();
+    const t = setTimeout(() => {
+      fetchSuggestions(q, token.current, regionCode, controller.signal)
+        .then((found) => {
+          suggestionCache.set(cacheKey, found);
+          setSuggestions(found);
+        })
+        .catch(() => {});
+    }, 150);
     return () => {
-      cancelled = true;
+      controller.abort();
       clearTimeout(t);
     };
   }, [value, regionCode]);
@@ -80,15 +138,10 @@ export function AddressAutocomplete({
   async function pick(s: Suggestion) {
     setOpen(false);
     setSuggestions([]);
-    const res = await authedFetch("/api/places/autocomplete", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ placeId: s.placeId, sessionToken: token.current }),
-    }).catch(() => null);
+    const address = await fetchAddress(s.placeId, token.current).catch(() => null);
     token.current = newToken();
-    const body = (await res?.json().catch(() => null)) as { address?: PickedAddress | null } | null;
     picked.current = true;
-    if (body?.address) onPick(body.address);
+    if (address) onPick(address);
     else onChange(s.main);
   }
 
