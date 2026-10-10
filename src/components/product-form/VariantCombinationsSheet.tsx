@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { PageSheet } from "@/components/PageSheet";
 import type { WeightEstimate } from "@/lib/weight-estimate";
-import { Check, ChevronLeft, ImageIcon, X } from "lucide-react";
+import { Check, ChevronLeft, ImageIcon, X, ChevronRight } from "lucide-react";
 import type { VariantOption, VariantRow } from "./VariantMatrixBuilder";
 import { weightVolumeValueOf, hasWeightVolumeAxis } from "./variant-combinations";
 import { stockTotal } from "./variant-stock";
@@ -329,13 +329,19 @@ export function VariantCombinationsSheet({
         {/* Per-variant detail, selected rows only — no point asking for a price
             on a combination the seller just said they don't stock. */}
         <div className="px-4 py-5">
-          <div className="flex justify-end mb-2">
+          <div className="flex justify-end mt-2 mb-5">
             <button
               type="button"
               onClick={() => setBulkOpen((v) => !v)}
-              className="text-xs text-gray-500 border border-gray-200 rounded-full px-3 py-1.5"
+              className="flex items-center gap-3 active:scale-[0.97] transition-transform duration-150"
             >
-              Apply to all
+              <span className="flex items-center gap-1 text-sm text-gray-600">
+                Set parameters for all variants
+                <ChevronRight size={15} className="text-gray-400" />
+              </span>
+              <span className="text-sm font-medium text-gray-900 border border-gray-300 rounded-full px-4 py-2.5">
+                Apply to all
+              </span>
             </button>
           </div>
 
@@ -351,9 +357,9 @@ export function VariantCombinationsSheet({
             // "a variant row you fill once", not a different control -- the
             // grey fill is the only thing marking it as the template rather
             // than a real one.
-            <div className="border border-gray-200 rounded-xl p-3 mb-3 bg-gray-100">
+            <div className="border border-gray-400 rounded-xl p-3 mb-3 bg-gray-100 [&_.border-gray-200]:border-gray-500 [&_.text-gray-400]:text-gray-700 [&_.text-gray-500]:text-gray-800">
               <div className="flex items-start justify-between gap-2 mb-2">
-                <p className="text-sm font-medium text-gray-500">Apply to all</p>
+                <p className="text-sm font-medium text-gray-900">Apply to all</p>
                 <button
                   type="button"
                   onClick={() => setBulkImagePickerOpen(true)}
