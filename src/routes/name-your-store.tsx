@@ -227,7 +227,7 @@ function NameYourStorePage() {
         {/* The handle used to be derived silently, so a name of only symbols
             became "store-x7k2p9" without the user ever seeing it. */}
         <p id="handle-preview" className="text-[11px] text-brand-text/50 px-2 text-left">
-          Your {noun} link: oakmonte.com/{brandName.trim() ? handle : `your-${noun}`}
+          Your {noun} link: oakmonte.store/shop/{brandName.trim() ? handle : `your-${noun}`}
         </p>
 
         <label htmlFor="business-email" className="sr-only">
