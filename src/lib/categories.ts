@@ -937,6 +937,21 @@ const ART_AND_CRAFTS: CategoryNode = {
         { id: "art-books-guides", name: "Art Books & Guides" },
       ],
     },
+    {
+      id: "books-magazines",
+      name: "Books & Magazines",
+      children: [
+        { id: "colouring-books", name: "Colouring Books" },
+        { id: "novels", name: "Novels" },
+        { id: "story-books", name: "Story Books" },
+        { id: "childrens-books", name: "Children's Books" },
+        { id: "comics-graphic-novels", name: "Comics & Graphic Novels" },
+        { id: "poetry", name: "Poetry" },
+        { id: "non-fiction", name: "Non-fiction" },
+        { id: "magazines-zines", name: "Magazines & Zines" },
+        { id: "journals-notebooks", name: "Journals & Notebooks" },
+      ],
+    },
   ],
 };
 
