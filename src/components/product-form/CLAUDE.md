@@ -144,7 +144,7 @@ Colour and material vocabularies live in `lib/color-options.ts` / `lib/material-
 can't move back into that component: a non-component export alongside a component export breaks Fast
 Refresh, and root `CLAUDE.md` caps that warning at exactly 6.
 
-`MATERIAL_GROUPS` is grouped (Fabrics / Nigerian & African / Leather & synthetics / Metals & gemstones
+`MATERIAL_GROUPS` is grouped (Fabrics / Leather & synthetics / Metals & gemstones
 / Art, craft & home) rather than category-scoped, so a slightly-wrong category never hides the right
 word and there's no category→group map to keep in step with `categories.ts`. `MATERIAL_PRESETS` is
 derived from it flat, for `OptionEditorSheet`.

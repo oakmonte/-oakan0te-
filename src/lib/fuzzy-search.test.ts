@@ -53,7 +53,7 @@ describe("fuzzyFilter", () => {
     const first = (q: string) => fuzzyFilter(q, MATERIAL_PRESETS, (m) => m)[0];
     expect(first("cotton")).toBe("Cotton");
     expect(first("cotten")).toBe("Cotton");
-    expect(first("ankara")).toBe("Ankara");
+    expect(first("linen")).toBe("Linen");
     expect(first("sterling")).toBe("Sterling silver");
     expect(first("velvet")).toBe("Velvet");
   });

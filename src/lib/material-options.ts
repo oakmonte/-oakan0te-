@@ -56,25 +56,6 @@ export const MATERIAL_GROUPS: MaterialGroup[] = [
     ],
   },
   {
-    // The market this app is built for. Ankara, Adire and Batik are printed
-    // or dyed cotton and do get a weight estimate; the handwoven and beaded
-    // cloths below deliberately don't (see GSM_KEYWORDS' comment) — they're
-    // here because a seller still needs the right word to tap.
-    label: "Nigerian & African",
-    materials: [
-      "Ankara",
-      "Adire",
-      "Batik",
-      "Guinea brocade",
-      "Damask",
-      "Aso oke",
-      "Kente",
-      "George",
-      "Akwete",
-      "Senator",
-    ],
-  },
-  {
     label: "Leather & synthetics",
     materials: [
       "Leather",
