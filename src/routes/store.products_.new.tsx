@@ -108,7 +108,7 @@ function NewProduct() {
   );
 
   const [kind, setKind] = useState<ProductKind>(initialDraft?.kind ?? intentKind ?? "variant");
-  const [status, setStatus] = useState<"draft" | "active">(initialDraft?.status ?? "draft");
+  const [status, setStatus] = useState<"draft" | "active">(initialDraft?.status ?? "active");
   const [draftWarningOpen, setDraftWarningOpen] = useState(false);
   const [mainImageUrl, setMainImageUrl] = useState(initialDraft?.mainImageUrl ?? "");
   const [additionalImageUrls, setAdditionalImageUrls] = useState<string[]>(
