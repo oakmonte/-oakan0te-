@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { NECESSITIES_ENABLED, TAGS_ENABLED } from "@/lib/product-form-flags";
 import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronDown, ChevronRight, Tag, Hash, ListChecks } from "lucide-react";
 import { BackButton } from "@/components/BackButton";
@@ -443,7 +444,8 @@ function NewProduct() {
         hasOwnContent,
         regularColors,
       );
-    if (!necessitiesOk) {
+    // Off with the rest of Necessities (product-form-flags.ts).
+    if (NECESSITIES_ENABLED && !necessitiesOk) {
       setError("");
       setNecessitiesWarningOpen(true);
       return;
@@ -648,18 +650,23 @@ function NewProduct() {
             </span>
           </button>
         )}
-        <StubRow
-          icon={<Hash size={18} />}
-          label="Tags"
-          isLast
-          onClick={() => setTagsSheetOpen(true)}
-        />
-        <StubRow
-          icon={<ListChecks size={18} />}
-          label="Necessities"
-          isLast
-          onClick={() => setNecessitiesSheetOpen(true)}
-        />
+        {/* Off for now -- see product-form-flags.ts. */}
+        {TAGS_ENABLED && (
+          <StubRow
+            icon={<Hash size={18} />}
+            label="Tags"
+            isLast
+            onClick={() => setTagsSheetOpen(true)}
+          />
+        )}
+        {NECESSITIES_ENABLED && (
+          <StubRow
+            icon={<ListChecks size={18} />}
+            label="Necessities"
+            isLast
+            onClick={() => setNecessitiesSheetOpen(true)}
+          />
+        )}
       </div>
 
       {categoryPickerOpen && (

@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { NECESSITIES_ENABLED, TAGS_ENABLED } from "@/lib/product-form-flags";
 import { sellerEntryFromCharged } from "@/lib/pricing-fees";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -877,7 +878,8 @@ function EditProduct() {
         hasOwnContent,
         regularColors,
       );
-    if (!necessitiesOk) {
+    // Off with the rest of Necessities (product-form-flags.ts).
+    if (NECESSITIES_ENABLED && !necessitiesOk) {
       setError("");
       setNecessitiesWarningOpen(true);
       return;
@@ -1164,13 +1166,18 @@ function EditProduct() {
           <ChevronRight size={16} className="text-sd-ink-faint" />
         </span>
       </button>
-      <StubRow icon={<Hash size={18} />} label="Tags" onClick={() => setTagsSheetOpen(true)} />
-      <StubRow
-        icon={<ListChecks size={18} />}
-        label="Necessities"
-        isLast
-        onClick={() => setNecessitiesSheetOpen(true)}
-      />
+      {/* Off for now -- see product-form-flags.ts. */}
+      {TAGS_ENABLED && (
+        <StubRow icon={<Hash size={18} />} label="Tags" onClick={() => setTagsSheetOpen(true)} />
+      )}
+      {NECESSITIES_ENABLED && (
+        <StubRow
+          icon={<ListChecks size={18} />}
+          label="Necessities"
+          isLast
+          onClick={() => setNecessitiesSheetOpen(true)}
+        />
+      )}
 
       {categoryPickerOpen && (
         <CategoryPicker
