@@ -49,7 +49,18 @@ export function SystemMenu({
             onClick={onToggle}
             className="fixed inset-0 z-10 cursor-default"
           />
-          <div className="absolute right-0 top-9 z-20 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden min-w-28">
+          <div
+            className={`absolute right-0 top-9 z-20 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden ${
+              locked ? "w-60" : "min-w-28"
+            }`}
+          >
+            {/* Greyed-out choices with no reason read as broken. */}
+            {locked && (
+              <p className="px-3 pt-3 pb-2 text-xs leading-relaxed text-gray-500 border-b border-gray-100">
+                You can only use one size type at a time. To switch, unselect your{" "}
+                <span className="font-medium text-gray-700">{activeSystem}</span> values first.
+              </p>
+            )}
             {systemKeys.map((key) => {
               const disabled = locked && key !== activeSystem;
               return (
