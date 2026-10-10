@@ -635,6 +635,7 @@ export function OptionEditorSheet({
                       activeSystem={activeSystem}
                       systemKeys={systemKeys}
                       locked={systemsLocked}
+                      typeName="unit"
                       open={systemMenuOpen}
                       onToggle={() => setSystemMenuOpen((v) => !v)}
                       onSelect={(key) => {
@@ -714,6 +715,7 @@ export function OptionEditorSheet({
                       activeSystem={activeSystem}
                       systemKeys={systemKeys}
                       locked={systemsLocked}
+                      typeName={isWeightVolume ? "unit" : `${name.toLowerCase()} type`}
                       open={systemMenuOpen}
                       onToggle={() => setSystemMenuOpen((v) => !v)}
                       onSelect={(key) => {

@@ -1,4 +1,4 @@
-import { Check, ChevronDown, X } from "lucide-react";
+import { Check, ChevronDown, ChevronRight, X } from "lucide-react";
 
 // The two building blocks of every value picker in the product form: the
 // genre/unit switcher pill, and the full-width selectable row.
@@ -19,8 +19,11 @@ export function SystemMenu({
   open,
   onToggle,
   onSelect,
+  typeName = "type",
 }: {
   activeSystem: string;
+  /** What the systems are, for the copy: "size type", "unit". */
+  typeName?: string;
   systemKeys: string[];
   // Once true, every system but the active one is disabled rather than
   // removed -- visibly still there, but blocked, so switching mid-pick can't
@@ -36,10 +39,16 @@ export function SystemMenu({
       <button
         type="button"
         onClick={onToggle}
-        className="flex items-center gap-1 text-xs text-gray-500 border border-gray-200 rounded-full px-3 py-1.5"
+        className="flex items-center gap-3 active:scale-[0.97] transition-transform duration-150"
       >
-        {activeSystem}
-        <ChevronDown size={13} className="text-gray-400" />
+        <span className="flex items-center gap-1 text-sm text-gray-600">
+          Change {typeName}
+          <ChevronRight size={15} className="text-gray-400" />
+        </span>
+        <span className="flex items-center gap-1.5 text-sm font-medium text-gray-900 border border-gray-300 rounded-full px-4 py-2.5 min-w-20 justify-center">
+          {activeSystem}
+          <ChevronDown size={15} className="text-gray-500" />
+        </span>
       </button>
       {open && (
         <>
@@ -50,14 +59,14 @@ export function SystemMenu({
             className="fixed inset-0 z-10 cursor-default"
           />
           <div
-            className={`absolute right-0 top-9 z-20 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden ${
+            className={`absolute right-0 top-12 z-20 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden ${
               locked ? "w-60" : "min-w-28"
             }`}
           >
             {/* Greyed-out choices with no reason read as broken. */}
             {locked && (
               <p className="px-3 pt-3 pb-2 text-xs leading-relaxed text-gray-500 border-b border-gray-100">
-                You can only use one size type at a time. To switch, unselect your{" "}
+                You can only use one {typeName} at a time. To switch, unselect your{" "}
                 <span className="font-medium text-gray-700">{activeSystem}</span> values first.
               </p>
             )}
