@@ -768,8 +768,14 @@ export default function StudioEditor({
     } catch (err) {
       console.error("Studio export failed:", stage, err);
       setExportError("Couldn't make your video.");
+      // Safari's TypeErrors say only "Type error"; the top of the stack names
+      // the call that threw.
+      const where =
+        err instanceof Error && err.stack
+          ? err.stack.split("\n").slice(0, 2).join(" | ").slice(0, 220)
+          : "";
       setExportDetail(
-        `${stage}: ${err instanceof Error ? `${err.name}: ${err.message}` : String(err)}`,
+        `${stage}: ${err instanceof Error ? `${err.name}: ${err.message}` : String(err)}${where ? ` @ ${where}` : ""}`,
       );
     } finally {
       setExporting(false);

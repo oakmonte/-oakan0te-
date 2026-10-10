@@ -483,6 +483,41 @@ export async function exportTimeline(
     return await trimVideo(sources[clip.sourceId].blob, clip.inPoint, clip.outPoint, onProgress);
   }
 
+  try {
+    return await encodeTimeline(project, sources, onProgress);
+  } catch (err) {
+    // A single clip with nothing baked into it only reaches the full encode
+    // because its shape differs from the chosen aspect (an iPhone screen
+    // recording is narrower than 9:16). If the encoder can't manage it on
+    // this device, post the clip in its own shape rather than not at all.
+    if (!isPlainSingleClip(project, sources)) throw err;
+    console.warn("Studio: full encode failed, posting the clip as recorded", err);
+    const clip = project.clips[0];
+    const source = sources[clip.sourceId];
+    if (clip.inPoint <= 0.001 && clip.outPoint >= source.duration - 0.001) {
+      onProgress?.(1);
+      return source.blob;
+    }
+    return await trimVideo(source.blob, clip.inPoint, clip.outPoint, onProgress);
+  }
+}
+
+/** One clip, nothing baked into it -- trim aside. isTrimOnly without the
+ *  aspect check, for the fallback above. */
+function isPlainSingleClip(project: StudioProject, sources: SourceMap): boolean {
+  if (project.clips.length !== 1) return false;
+  const clip = project.clips[0];
+  const source = sources[clip.sourceId];
+  if (!source || source.kind !== "video") return false;
+  if (project.audio.length || project.layers.length || project.pins.length) return false;
+  return !project.masterMuted && clipIsPlain(clip);
+}
+
+async function encodeTimeline(
+  project: StudioProject,
+  sources: SourceMap,
+  onProgress?: ExportProgress,
+): Promise<Blob> {
   const duration = projectDuration(project);
   const { width, height } = outputSize(project, sources);
   const fps = timelineFps(project, sources);
