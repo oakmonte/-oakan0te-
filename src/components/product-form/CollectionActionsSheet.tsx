@@ -11,11 +11,15 @@ export function CollectionActionsSheet({
   onDeleteOnly,
   onDeleteWithProducts,
   startConfirming = false,
+  withProductsBlocked = null,
 }: {
   productCount: number;
   /** Open straight on the delete question (a bin icon already said "delete"),
    *  where Cancel closes the sheet instead of stepping back to the menu. */
   startConfirming?: boolean;
+  /** Why "delete with products" can't be offered right now (shown in its
+   *  place), or null when it can. */
+  withProductsBlocked?: string | null;
   onClose: () => void;
   onDeleteOnly: () => Promise<void>;
   onDeleteWithProducts: () => Promise<void>;
@@ -59,14 +63,20 @@ export function CollectionActionsSheet({
               >
                 {deleting ? "Deleting…" : "Delete collection only"}
               </button>
-              <button
-                type="button"
-                onClick={() => handleConfirm(onDeleteWithProducts)}
-                disabled={deleting}
-                className="w-full text-center rounded-xl py-3.5 text-sm font-semibold bg-red-600 text-white disabled:opacity-50"
-              >
-                {deleting ? "Deleting…" : "Delete collection and its products"}
-              </button>
+              {withProductsBlocked ? (
+                <p className="rounded-xl bg-gray-100 px-3 py-3 text-xs text-gray-600">
+                  {withProductsBlocked}
+                </p>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => handleConfirm(onDeleteWithProducts)}
+                  disabled={deleting}
+                  className="w-full text-center rounded-xl py-3.5 text-sm font-semibold bg-red-600 text-white disabled:opacity-50"
+                >
+                  {deleting ? "Deleting…" : "Delete collection and its products"}
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => (startConfirming ? onClose() : setConfirming(false))}

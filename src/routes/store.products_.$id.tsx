@@ -1272,6 +1272,7 @@ function EditProduct() {
           }}
           onClose={() => setCollectionsSheetOpen(false)}
           onCreateNew={handleCreateCollection}
+          currentProductId={productId}
         />
       )}
 

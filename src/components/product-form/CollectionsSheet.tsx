@@ -21,12 +21,16 @@ export function CollectionsSheet({
   onDone,
   onClose,
   onCreateNew,
+  currentProductId,
 }: {
   storeId: string;
   selectedIds: string[];
   onDone: (ids: string[]) => void;
   onClose: () => void;
   onCreateNew: () => void;
+  /** The product being edited, if it's already saved: "delete with products"
+   *  is blocked for a collection it's in, or it would delete itself. */
+  currentProductId?: string;
 }) {
   const [collections, setCollections] = useState<CollectionRow[] | null>(null); // null = loading
   const [selected, setSelected] = useState<Set<string>>(new Set(selectedIds));
@@ -83,6 +87,32 @@ export function CollectionsSheet({
   // Deletes the collection everywhere (not just off this product), and its
   // products too if the seller chooses -- same question as the collection's
   // own page. Throws so CollectionActionsSheet shows the error.
+  // Whether the product being edited is saved in the collection about to be
+  // deleted. Checked against the database, not this sheet's ticks: deleting
+  // with products removes what's saved, whatever is ticked right now.
+  const [deleteHitsThisProduct, setDeleteHitsThisProduct] = useState<boolean | null>(null);
+  useEffect(() => {
+    setDeleteHitsThisProduct(null);
+    if (!pendingDeleteId) return;
+    if (!currentProductId) {
+      setDeleteHitsThisProduct(false);
+      return;
+    }
+    let cancelled = false;
+    void supabase
+      .from("product_collections")
+      .select("product_id", { count: "exact", head: true })
+      .eq("collection_id", pendingDeleteId)
+      .eq("product_id", currentProductId)
+      .then(({ count, error }) => {
+        // On error, assume it does: blocking is the safe side.
+        if (!cancelled) setDeleteHitsThisProduct(error ? true : (count ?? 0) > 0);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [pendingDeleteId, currentProductId]);
+
   async function handleDelete(id: string, withProducts: boolean) {
     const { error } = await deleteCollection(id, withProducts);
     if (error) throw new Error(error);
@@ -231,10 +261,15 @@ export function CollectionsSheet({
       {pendingDeleteId &&
         (() => {
           const target = collections?.find((c) => c.id === pendingDeleteId);
-          if (!target) return null;
+          if (!target || deleteHitsThisProduct === null) return null;
           return (
             <CollectionActionsSheet
               startConfirming
+              withProductsBlocked={
+                deleteHitsThisProduct
+                  ? "This product is in this collection, so its products can't be deleted from here. Delete them from the Collections tab instead."
+                  : null
+              }
               productCount={target.count}
               onClose={() => setPendingDeleteId(null)}
               onDeleteOnly={() => handleDelete(target.id, false)}
