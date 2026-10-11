@@ -126,6 +126,9 @@ export function CollectionsSheet({
 
       {collections !== null && collections.length === 0 && (
         <div className="flex-1 flex flex-col items-center justify-center gap-3 px-8 text-center">
+          <p className="mb-14 max-w-[260px] text-[15px] leading-relaxed text-gray-700">
+            You can group products of similar aesthetics into a &ldquo;collection&rdquo;.
+          </p>
           <p className="text-[15px] text-gray-400">No collections yet</p>
           <button
             type="button"
