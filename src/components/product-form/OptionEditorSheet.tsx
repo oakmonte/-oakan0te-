@@ -23,33 +23,6 @@ export const SIZE_SYSTEMS = {
   UK: ["4", "6", "8", "10", "12", "14", "16", "18", "20", "22", "24"],
   EU: ["32", "34", "36", "38", "40", "42", "44", "46", "48", "50", "52"],
   Words: ["Extra Small", "Small", "Medium", "Large", "Extra Large", "2X Large", "3X Large"],
-  // US/UK/EU above are women's dress sizes. Men's tops, shirts and suits are
-  // sized by chest in inches; trousers by waist.
-  "Men's": ["34", "36", "38", "40", "42", "44", "46", "48", "50", "52"],
-  Waist: ["26", "27", "28", "29", "30", "31", "32", "33", "34", "36", "38", "40", "42"],
-  // By age: months for babies, then years -- how children's clothes are
-  // labelled and how parents shop for them.
-  Kids: [
-    "0-3M",
-    "3-6M",
-    "6-9M",
-    "9-12M",
-    "12-18M",
-    "18-24M",
-    "2Y",
-    "3Y",
-    "4Y",
-    "5Y",
-    "6Y",
-    "7Y",
-    "8Y",
-    "9Y",
-    "10Y",
-    "11Y",
-    "12Y",
-    "13Y",
-    "14Y",
-  ],
 } as const;
 
 // Footwear is numbered, not laddered: "M" is not a shoe size, and US 8 in
@@ -102,26 +75,6 @@ export const SHOE_SIZE_SYSTEMS = {
     "12",
   ],
   EU: ["35", "36", "37", "38", "39", "40", "41", "42", "43", "44", "45", "46", "47", "48"],
-  // US children's: C (toddler/little kid) then Y (big kid).
-  Kids: [
-    "4C",
-    "5C",
-    "6C",
-    "7C",
-    "8C",
-    "9C",
-    "10C",
-    "11C",
-    "12C",
-    "13C",
-    "1Y",
-    "2Y",
-    "3Y",
-    "4Y",
-    "5Y",
-    "6Y",
-    "7Y",
-  ],
 } as const;
 
 export const WEIGHT_VOLUME_SYSTEMS = {
@@ -192,7 +145,7 @@ const CUSTOM_SYSTEM = "Custom";
 // Module-level (not closed over the sheet's current `name`) so it can seed
 // `selectedSystems` for EVERY option being reopened, not just whichever one
 // happens to be open right now -- see the selectedSystems initializer below.
-// Sizes repeat across systems ("8" is US and UK; "36" is EU, Men's and Waist),
+// Sizes repeat across systems ("8" is US and UK, "12" is US and UK too),
 // so a value alone doesn't say which one the seller meant. Every value given
 // must belong; `prefer` (the system they were browsing) wins when it fits.
 function ownerSystemForOption(
