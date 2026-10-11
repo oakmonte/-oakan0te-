@@ -319,6 +319,9 @@ export function ProductsPanel({ checklist }: { checklist?: boolean }) {
             >
               List a product
             </button>
+            <p className="mt-8 mb-1 text-[14px] text-sd-ink-muted text-center">
+              Your complete inventory is currently somewhere else?
+            </p>
             <button
               type="button"
               onClick={() => navigate({ to: "/store/products/upload" })}
