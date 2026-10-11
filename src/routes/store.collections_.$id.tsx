@@ -6,7 +6,12 @@ import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useActiveStoreId } from "@/hooks/use-own-store";
 import { useStoreHeader } from "@/hooks/use-store-header";
 import { deleteCollection } from "@/lib/collections";
-import { setPendingNewCollectionId } from "@/lib/product-draft-handoff";
+import {
+  hasPendingProductDraft,
+  peekPendingProductDraftId,
+  setPendingNewCollectionId,
+} from "@/lib/product-draft-handoff";
+import { pathTarget } from "@/lib/nav-hierarchy";
 import { ProductsSheet } from "@/components/product-form/ProductsSheet";
 import { CollectionActionsSheet } from "@/components/product-form/CollectionActionsSheet";
 import { StatusPicker } from "@/components/product-form/StatusPicker";
@@ -37,6 +42,16 @@ function CollectionDetail() {
   const { setRightAction } = useStoreHeader();
 
   const [collection, setCollection] = useState<CollectionInfo | null | undefined>(undefined); // undefined = loading, null = not found
+  // Opened from a product form's Collections sheet (a stashed draft is
+  // waiting): back returns there with the draft intact, not to the list.
+  const editingProductId = peekPendingProductDraftId();
+  const returnTo = hasPendingProductDraft()
+    ? editingProductId
+      ? `/store/products/${editingProductId}`
+      : "/store/products/new"
+    : "/store/collections";
+  const [titleDraft, setTitleDraft] = useState<string | null>(null);
+  const [titleError, setTitleError] = useState("");
   const [products, setProducts] = useState<ProductRow[] | null>(null);
   const [productsSheetOpen, setProductsSheetOpen] = useState(false);
   // Deleting a collection is destructive (and can also delete its products) —
@@ -183,7 +198,27 @@ function CollectionDetail() {
   async function handleDelete(withProducts: boolean) {
     const { error } = await deleteCollection(id, withProducts);
     if (error) throw new Error(error);
-    navigate({ to: "/store/collections" });
+    navigate({ to: returnTo });
+  }
+
+  // Saved when the field loses focus, like the rest of this page.
+  async function saveTitle() {
+    if (titleDraft === null || !collection || !storeId) return;
+    const next = titleDraft.trim();
+    setTitleDraft(null);
+    if (!next || next === collection.title) return;
+    const prev = collection.title;
+    setCollection({ ...collection, title: next });
+    setTitleError("");
+    const { error } = await supabase
+      .from("collections")
+      .update({ title: next })
+      .eq("id", id)
+      .eq("store_id", storeId);
+    if (error) {
+      setCollection((c) => (c ? { ...c, title: prev } : c));
+      setTitleError("Couldn't rename it, try again.");
+    }
   }
 
   if (collection === undefined)
@@ -197,7 +232,8 @@ function CollectionDetail() {
         <BackButton
           icon="chevron"
           size={18}
-          label="Collections"
+          label={returnTo === "/store/collections" ? "Collections" : "Back"}
+          to={pathTarget(returnTo)}
           className="text-sm text-sd-ink-muted flex items-center gap-0.5 -ml-1"
         />
         <span className="font-semibold text-[15px] truncate max-w-[45%]">{collection.title}</span>
@@ -212,8 +248,18 @@ function CollectionDetail() {
             <ImageIcon size={20} className="text-sd-ink-faint" />
           )}
         </div>
-        <div className="min-w-0">
-          <p className="text-lg font-semibold text-sd-ink truncate">{collection.title}</p>
+        <div className="min-w-0 flex-1">
+          <input
+            value={titleDraft ?? collection.title}
+            onChange={(e) => setTitleDraft(e.target.value)}
+            onBlur={() => void saveTitle()}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") e.currentTarget.blur();
+            }}
+            aria-label="Collection name"
+            maxLength={80}
+            className="w-full bg-transparent text-lg font-semibold text-sd-ink outline-none border-b border-dashed border-sd-line focus:border-sd-ink pb-0.5"
+          />
           <p className="text-xs text-sd-ink-muted">
             {products?.length ?? 0} product{(products?.length ?? 0) === 1 ? "" : "s"}
           </p>
@@ -231,6 +277,7 @@ function CollectionDetail() {
           noDivider
         />
       </div>
+      {titleError && <p className="mx-4 mt-2 text-sm text-sd-danger-ink">{titleError}</p>}
       {photosError && <p className="mx-4 mt-2 text-sm text-sd-danger-ink">{photosError}</p>}
 
       <div className="px-4 pt-4">
