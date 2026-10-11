@@ -125,8 +125,8 @@ export function CollectionsPanel() {
       {/* Only while the store has zero collections -- once the first one
           exists, the concept doesn't need re-explaining every visit. */}
       {collections !== null && collections.length === 0 && (
-        <p className="text-[14px] leading-relaxed text-sd-ink-faint text-center mb-4 animate-in fade-in duration-300">
-          Complimentary pieces can be grouped as collections.
+        <p className="mx-auto mt-4 mb-10 max-w-[260px] text-[15px] leading-relaxed text-sd-ink-muted text-center animate-in fade-in duration-300">
+          You can group products of a similar aesthetic into a &ldquo;collection&rdquo;.
         </p>
       )}
 
