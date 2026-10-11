@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { PageSheet } from "@/components/PageSheet";
-import { X, Search, ImageIcon, Check, Plus, Pencil, Trash2 } from "lucide-react";
+import { X, Search, ImageIcon, Check, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { CollectionProductsViewSheet } from "./CollectionProductsViewSheet";
 
@@ -19,16 +19,12 @@ export function CollectionsSheet({
   onDone,
   onClose,
   onCreateNew,
-  onEdit,
 }: {
   storeId: string;
   selectedIds: string[];
   onDone: (ids: string[]) => void;
   onClose: () => void;
   onCreateNew: () => void;
-  /** Opens the collection's own page (rename, photos, products), returning
-   *  to this product with the draft intact. */
-  onEdit?: (id: string) => void;
 }) {
   const [collections, setCollections] = useState<CollectionRow[] | null>(null); // null = loading
   const [selected, setSelected] = useState<Set<string>>(new Set(selectedIds));
@@ -215,26 +211,14 @@ export function CollectionsSheet({
                       </button>
                     </span>
                   ) : (
-                    <>
-                      {onEdit && (
-                        <button
-                          type="button"
-                          onClick={() => onEdit(c.id)}
-                          aria-label={`Edit ${c.title}`}
-                          className="p-3 -mr-2 text-gray-500 shrink-0"
-                        >
-                          <Pencil size={16} />
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => setPendingDeleteId(c.id)}
-                        aria-label={`Delete ${c.title}`}
-                        className="p-3 text-gray-300 shrink-0"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </>
+                    <button
+                      type="button"
+                      onClick={() => setPendingDeleteId(c.id)}
+                      aria-label={`Delete ${c.title}`}
+                      className="p-3 text-gray-300 shrink-0"
+                    >
+                      <Trash2 size={16} />
+                    </button>
                   )}
                 </div>
               );

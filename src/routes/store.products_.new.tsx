@@ -324,17 +324,6 @@ function NewProduct() {
     navigate({ to: "/store/collections/new" });
   }
 
-  // Same side-trip as creating one: the collection page sends the seller back
-  // here (returnTo) with the stashed draft restored.
-  function handleEditCollection(collectionId: string) {
-    if (hasPendingUploads() || hasBlobImagePending()) {
-      alert("Wait for your photos to finish uploading before doing that");
-      return;
-    }
-    stashProductDraft(currentDraft());
-    navigate({ to: "/store/collections/$id", params: { id: collectionId } });
-  }
-
   // `context` is only passed from inside the variant wizard (a specific
   // row's Inventory sheet, or the bulk "Apply to all" one) -- the regular
   // product's own Inventory sheet calls this with `pendingRegular` instead.
@@ -754,7 +743,6 @@ function NewProduct() {
           }}
           onClose={() => setCollectionsSheetOpen(false)}
           onCreateNew={handleCreateCollection}
-          onEdit={handleEditCollection}
         />
       )}
 
