@@ -31,12 +31,16 @@ export function ProductsSheet({
   onDone,
   onClose,
   onCreateNew,
+  excludeId,
 }: {
   storeId: string;
   selectedIds: string[];
   onDone: (ids: string[]) => void;
   onClose: () => void;
   onCreateNew?: () => void;
+  /** Left out of the list: the product being edited when this collection was
+   *  started from its form -- it joins the collection on the way back. */
+  excludeId?: string | null;
 }) {
   const [products, setProducts] = useState<ProductRow[] | null>(null); // null = loading
   const [selected, setSelected] = useState<Set<string>>(new Set(selectedIds));
@@ -78,6 +82,7 @@ export function ProductsSheet({
 
   const filtered = (products ?? []).filter(
     (p) =>
+      p.id !== excludeId &&
       (status === "all" || p.status === status) &&
       (p.title ?? "").toLowerCase().includes(query.trim().toLowerCase()),
   );

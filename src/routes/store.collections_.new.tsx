@@ -311,6 +311,7 @@ function NewCollection() {
             setProductsSheetOpen(false);
           }}
           onClose={() => setProductsSheetOpen(false)}
+          excludeId={editingProductId}
         />
       )}
     </div>
