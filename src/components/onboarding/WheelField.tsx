@@ -55,11 +55,18 @@ export function WheelField({
     [shape],
   );
 
+  // Any way of moving the wheel counts, not just a touch: a mouse wheel,
+  // trackpad or arrow keys turn it without a pointerdown, and it used to stay
+  // dimmed (and the form locked) with a date plainly picked.
+  const engage = () => {
+    if (!engaged) onEngage();
+  };
+
   return (
     <div
-      onPointerDown={() => {
-        if (!engaged) onEngage();
-      }}
+      onPointerDown={engage}
+      onWheel={engage}
+      onKeyDown={engage}
       className={`${WHEEL_WIDTH_CLASS} transition-opacity duration-300 ${engaged ? "opacity-100" : "opacity-50"}`}
     >
       <WheelPickerWrapper className="h-[168px] rounded-2xl border border-brand-text/15">
@@ -70,6 +77,9 @@ export function WheelField({
             value={c.value}
             optionItemHeight={40}
             onValueChange={(v) => {
+              // Before onChange: onEngage commits the shown defaults, and this
+              // column's new value must land after them.
+              engage();
               hapticTick();
               c.onChange(v);
             }}
