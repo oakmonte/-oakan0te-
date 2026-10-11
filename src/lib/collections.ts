@@ -10,9 +10,8 @@ import { supabase } from "@/lib/integrations/my-supabase/client";
 // several -- the bulk multi-select case is a single .in() delete, not N
 // round trips.
 //
-// "Delete with products" only ever targets one collection (the detail
-// page's own action, not a bulk one) -- also deletes every product
-// currently in it. product_tags has no ON DELETE CASCADE on product_id
+// "Delete with products" also deletes every product currently in the
+// collection(s) -- one collection or a bulk selection. product_tags has no ON DELETE CASCADE on product_id
 // (unlike product_variants/product_options/product_collections/
 // product_size_measurements, which all cascade — see
 // store.products_.$id.tsx's handleDeleteProduct), so each product's tags
@@ -21,17 +20,16 @@ export async function deleteCollection(
   collectionId: string | string[],
   withProducts: boolean,
 ): Promise<{ error: string | null }> {
+  const ids = Array.isArray(collectionId) ? collectionId : [collectionId];
   if (withProducts) {
-    if (Array.isArray(collectionId)) {
-      throw new Error("deleteCollection: withProducts only supports a single collection id");
-    }
     const { data: links, error: linksErr } = await supabase
       .from("product_collections")
       .select("product_id")
-      .eq("collection_id", collectionId);
+      .in("collection_id", ids);
     if (linksErr) return { error: linksErr.message };
 
-    const productIds = (links ?? []).map((l) => l.product_id);
+    // A product in two of the selected collections appears twice.
+    const productIds = [...new Set((links ?? []).map((l) => l.product_id))];
     if (productIds.length > 0) {
       const { error: tagsErr } = await supabase
         .from("product_tags")
@@ -44,8 +42,6 @@ export async function deleteCollection(
     }
   }
 
-  const { error } = Array.isArray(collectionId)
-    ? await supabase.from("collections").delete().in("id", collectionId)
-    : await supabase.from("collections").delete().eq("id", collectionId);
+  const { error } = await supabase.from("collections").delete().in("id", ids);
   return { error: error?.message ?? null };
 }

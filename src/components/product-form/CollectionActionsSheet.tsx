@@ -10,13 +10,17 @@ export function CollectionActionsSheet({
   onClose,
   onDeleteOnly,
   onDeleteWithProducts,
+  startConfirming = false,
 }: {
   productCount: number;
+  /** Open straight on the delete question (a bin icon already said "delete"),
+   *  where Cancel closes the sheet instead of stepping back to the menu. */
+  startConfirming?: boolean;
   onClose: () => void;
   onDeleteOnly: () => Promise<void>;
   onDeleteWithProducts: () => Promise<void>;
 }) {
-  const [confirming, setConfirming] = useState(false);
+  const [confirming, setConfirming] = useState(startConfirming);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
 
@@ -65,7 +69,7 @@ export function CollectionActionsSheet({
               </button>
               <button
                 type="button"
-                onClick={() => setConfirming(false)}
+                onClick={() => (startConfirming ? onClose() : setConfirming(false))}
                 disabled={deleting}
                 className="w-full text-center py-2 text-sm text-gray-500 disabled:opacity-50"
               >

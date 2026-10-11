@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { PageSheet } from "@/components/PageSheet";
+import { CollectionActionsSheet } from "./CollectionActionsSheet";
+import { deleteCollection } from "@/lib/collections";
 import { X, Search, ImageIcon, Check, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { CollectionProductsViewSheet } from "./CollectionProductsViewSheet";
@@ -78,16 +80,12 @@ export function CollectionsSheet({
     });
   }
 
-  // Deletes the collection everywhere (not just off this product) -- there
-  // was previously no way for a seller to remove a collection they created
-  // by mistake or no longer use. Cascades to product_collections, so no
-  // separate cleanup needed there.
-  async function handleDelete(id: string) {
-    const { error } = await supabase.from("collections").delete().eq("id", id);
-    if (error) {
-      console.error("CollectionsSheet: failed to delete collection", error);
-      return;
-    }
+  // Deletes the collection everywhere (not just off this product), and its
+  // products too if the seller chooses -- same question as the collection's
+  // own page. Throws so CollectionActionsSheet shows the error.
+  async function handleDelete(id: string, withProducts: boolean) {
+    const { error } = await deleteCollection(id, withProducts);
+    if (error) throw new Error(error);
     setPendingDeleteId(null);
     setCollections((prev) => prev?.filter((c) => c.id !== id) ?? prev);
     setSelected((prev) => {
@@ -193,33 +191,14 @@ export function CollectionsSheet({
                       </span>
                     </span>
                   </button>
-                  {pendingDeleteId === c.id ? (
-                    <span className="flex items-center gap-2 pr-3 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => setPendingDeleteId(null)}
-                        className="text-xs text-gray-500 px-2 py-1.5"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(c.id)}
-                        className="text-xs font-medium text-white bg-red-600 rounded-full px-3 py-1.5"
-                      >
-                        Delete
-                      </button>
-                    </span>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setPendingDeleteId(c.id)}
-                      aria-label={`Delete ${c.title}`}
-                      className="p-3 text-gray-300 shrink-0"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => setPendingDeleteId(c.id)}
+                    aria-label={`Delete ${c.title}`}
+                    className="p-3 text-gray-300 shrink-0"
+                  >
+                    <Trash2 size={16} />
+                  </button>
                 </div>
               );
             })}
@@ -248,6 +227,21 @@ export function CollectionsSheet({
           </div>
         </>
       )}
+
+      {pendingDeleteId &&
+        (() => {
+          const target = collections?.find((c) => c.id === pendingDeleteId);
+          if (!target) return null;
+          return (
+            <CollectionActionsSheet
+              startConfirming
+              productCount={target.count}
+              onClose={() => setPendingDeleteId(null)}
+              onDeleteOnly={() => handleDelete(target.id, false)}
+              onDeleteWithProducts={() => handleDelete(target.id, true)}
+            />
+          );
+        })()}
 
       {viewingCollection && (
         <CollectionProductsViewSheet
