@@ -83,6 +83,33 @@ export function PricingSheet({
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-5">
+        {/* A policy decision, not another amount to type -- its own card. */}
+        <div className="border border-gray-400 rounded-2xl p-4 mb-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-[15px] font-medium text-gray-900">Customer covers the fees</p>
+              {/* The toggle is product-wide, which only needs saying where
+                  there are variants for it to reach. */}
+              {appliesToAllVariants && (
+                <p className="text-[11px] text-gray-500 mt-0.5">
+                  For every variant of this product
+                </p>
+              )}
+              <p className="text-xs text-gray-600 mt-2">
+                This increases the price of the product by adding our {TOTAL_FEE_PCT} to the product
+                price.
+              </p>
+            </div>
+            <div className="pt-0.5 shrink-0">
+              <Switch
+                size="lg"
+                checked={passFeesToBuyer}
+                onCheckedChange={onChangePassFeesToBuyer}
+                aria-label="Customer covers the fees"
+              />
+            </div>
+          </div>
+        </div>
         {/* Price and compare-at in one card: they're the two customer-facing
             numbers and are read together (the crossed-out one next to the real
             one). The divider keeps each explanation attached to its own field. */}
@@ -120,7 +147,7 @@ export function PricingSheet({
           )}
         </div>
 
-        <div className="border border-gray-400 rounded-2xl p-4 mb-4">
+        <div className="border border-gray-400 rounded-2xl p-4 mb-6">
           <p className="text-[15px] font-semibold text-gray-900 mb-3">Calculate profit</p>
           <PriceBox
             label="Cost price"
@@ -134,34 +161,6 @@ export function PricingSheet({
           </p>
         </div>
 
-        {/* A policy decision, not another amount to type -- its own card. */}
-        <div className="border border-gray-400 rounded-2xl p-4">
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <p className="text-[15px] font-medium text-gray-900">Customer covers the fees</p>
-              {/* The toggle is product-wide, which only needs saying where
-                  there are variants for it to reach. */}
-              {appliesToAllVariants && (
-                <p className="text-[11px] text-gray-500 mt-0.5">
-                  For every variant of this product
-                </p>
-              )}
-              <p className="text-xs text-gray-600 mt-2">
-                This increases the price of the product by adding our {TOTAL_FEE_PCT} to the product
-                price.
-              </p>
-            </div>
-            <div className="pt-0.5 shrink-0">
-              <Switch
-                size="lg"
-                checked={passFeesToBuyer}
-                onCheckedChange={onChangePassFeesToBuyer}
-                aria-label="Customer covers the fees"
-              />
-            </div>
-          </div>
-        </div>
-        <div className="mb-5" />
 
         {/* Always shown, whichever way the toggle is: the customer's number is
             the one a seller most wants to check. With fees passed on it's the
