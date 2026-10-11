@@ -139,7 +139,14 @@ export function PricingSheet({
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
               <p className="text-[15px] font-medium text-gray-900">Customer covers the fees</p>
-              <p className="text-xs text-gray-600 mt-1">
+              {/* The toggle is product-wide, which only needs saying where
+                  there are variants for it to reach. */}
+              {appliesToAllVariants && (
+                <p className="text-[11px] text-gray-500 mt-0.5">
+                  For every variant of this product
+                </p>
+              )}
+              <p className="text-xs text-gray-600 mt-2">
                 This increases the price of the product by adding our {TOTAL_FEE_PCT} to the product
                 price.
               </p>
@@ -154,13 +161,6 @@ export function PricingSheet({
             </div>
           </div>
         </div>
-        {/* The toggle is product-wide, which only needs saying where there
-            are variants for it to reach. */}
-        {appliesToAllVariants && (
-          <div className="mt-2 rounded-xl bg-gray-100 border border-gray-300 px-3 py-2.5 text-xs text-gray-700">
-            Applies to every variant of this product.
-          </div>
-        )}
         <div className="mb-5" />
 
         {/* Always shown, whichever way the toggle is: the customer's number is
