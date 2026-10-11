@@ -432,7 +432,10 @@ export function VariantCombinationsSheet({
 
           <div className="flex flex-col gap-3">
             {selected.map((row) => (
-              <div key={row.key} className="border border-gray-300 rounded-xl p-3 [&_.border-gray-200]:border-gray-300 [&_.text-gray-400]:text-gray-600">
+              <div
+                key={row.key}
+                className="border border-gray-300 rounded-xl p-3 [&_.border-gray-200]:border-gray-300 [&_.text-gray-400]:text-gray-600"
+              >
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <p className="min-w-0 text-sm font-medium text-gray-900">
                     <VariantName options={row.options} />
@@ -656,6 +659,7 @@ export function VariantCombinationsSheet({
               onChangePassFeesToBuyer={onChangePassFeesToBuyer}
               onClose={() => setPriceKey(null)}
               focusField={priceFocus}
+              appliesToAllVariants
             />
           );
         })()}
@@ -672,6 +676,7 @@ export function VariantCombinationsSheet({
           onChangePassFeesToBuyer={onChangePassFeesToBuyer}
           onClose={() => setBulkPriceOpen(false)}
           focusField={priceFocus}
+          appliesToAllVariants
         />
       )}
     </PageSheet>
