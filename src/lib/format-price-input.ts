@@ -5,6 +5,10 @@
 /** Keeps at most one decimal point and 2 digits after it, stripping
  *  everything else — this is the raw value handed to onChange (no commas),
  *  so existing Number()/parseFloat() consumers don't need to change. */
+// No real product costs more; past this the number stops fitting the field
+// (and the fee maths) and is always a slipped finger.
+export const MAX_PRICE = 10_000_000_000;
+
 export function cleanPriceDigits(raw: string): string {
   let cleaned = raw.replace(/[^\d.]/g, "");
   const firstDot = cleaned.indexOf(".");
@@ -15,6 +19,8 @@ export function cleanPriceDigits(raw: string): string {
   if (dotIndex !== -1 && cleaned.length - dotIndex - 1 > 2) {
     cleaned = cleaned.slice(0, dotIndex + 3);
   }
+  // Typing past the cap pins the value at it rather than growing.
+  if (Number(cleaned) > MAX_PRICE) return String(MAX_PRICE);
   return cleaned;
 }
 
