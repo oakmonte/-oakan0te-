@@ -821,6 +821,7 @@ function VariantImagePopover({
                 );
               })}
             </div>
+            <p className="mt-1.5 text-xs text-gray-400">Tap to select</p>
           </div>
         )}
 
