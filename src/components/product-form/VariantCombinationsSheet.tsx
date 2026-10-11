@@ -13,6 +13,16 @@ import { InventorySheet, type InventoryValues } from "./InventorySheet";
 import { WeightSheet } from "./WeightSheet";
 import { VariantName } from "./VariantName";
 import { PricingSheet } from "./PricingSheet";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useMultiFilePicker } from "@/hooks/use-file-picker";
 import { startBackgroundUpload, onBackgroundUploadDone } from "@/lib/background-upload";
 import { cleanPriceDigits, displayPriceWithCommas, padPriceOnBlur } from "@/lib/format-price-input";
@@ -124,6 +134,10 @@ export function VariantCombinationsSheet({
   const selected = rows.filter((r) => r.selected);
   const allSelected = rows.length > 0 && selected.length === rows.length;
   const missingPrice = selected.some((r) => !r.price.trim());
+  // A warning, not a block: photos can come later, but a variant without one
+  // shows the product's cover on the storefront, which is easy to miss.
+  const missingImageCount = selected.filter((r) => !r.mainImageUrl.trim()).length;
+  const [noImagesWarningOpen, setNoImagesWarningOpen] = useState(false);
   // An empty locationQuantities isn't "the seller deliberately chose no
   // locations" -- InventorySheet's X button commits the same as Save (its
   // no-locations guard's only way out is "Continue anyway"), so a seller
@@ -249,6 +263,10 @@ export function VariantCombinationsSheet({
               setShowPriceErrors(true);
               return;
             }
+            if (missingImageCount > 0) {
+              setNoImagesWarningOpen(true);
+              return;
+            }
             onDone();
           }}
           type="button"
@@ -333,13 +351,15 @@ export function VariantCombinationsSheet({
             <button
               type="button"
               onClick={() => setBulkOpen((v) => !v)}
-              className="flex items-center gap-3 active:scale-[0.97] transition-transform duration-150"
+              className="flex items-center gap-2 whitespace-nowrap active:scale-[0.97] transition-transform duration-150"
             >
-              <span className="flex items-center gap-1 text-[13px] leading-tight text-gray-600 text-right">
+              {/* Sized off the screen width so a narrow phone shrinks the
+                  row rather than wrapping it onto two lines. */}
+              <span className="flex items-center gap-0.5 text-[clamp(9px,2.85vw,13px)] text-gray-600">
                 Set parameters for all variants at once
-                <ChevronRight size={15} className="text-gray-400" />
+                <ChevronRight className="size-[1.1em] text-gray-400" />
               </span>
-              <span className="text-sm font-medium text-gray-900 border border-gray-300 rounded-full px-4 py-2.5">
+              <span className="text-[clamp(10px,3.1vw,14px)] font-medium text-gray-900 border border-gray-300 rounded-full px-[clamp(10px,3.2vw,16px)] py-[clamp(6px,2.2vw,10px)]">
                 Apply to all
               </span>
             </button>
@@ -364,12 +384,12 @@ export function VariantCombinationsSheet({
                   type="button"
                   onClick={() => setBulkImagePickerOpen(true)}
                   aria-label="Set image for every selected variant"
-                  className="w-10 h-10 rounded-lg bg-gray-200 flex items-center justify-center overflow-hidden shrink-0 transition-transform duration-150 active:scale-90"
+                  className="w-10 h-10 rounded-lg bg-gray-200 border border-gray-500 flex items-center justify-center overflow-hidden shrink-0 transition-transform duration-150 active:scale-90"
                 >
                   {bulkImages[0] ? (
                     <img src={bulkImages[0]} alt="" className="w-full h-full object-cover" />
                   ) : (
-                    <ImageIcon size={16} className="text-gray-400" />
+                    <ImageIcon size={16} className="text-gray-700" />
                   )}
                 </button>
               </div>
@@ -444,12 +464,12 @@ export function VariantCombinationsSheet({
                     type="button"
                     onClick={() => setImagePickerKey(row.key)}
                     aria-label="Set variant image"
-                    className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden shrink-0 transition-transform duration-150 active:scale-90"
+                    className="w-10 h-10 rounded-lg bg-gray-100 border border-gray-400 flex items-center justify-center overflow-hidden shrink-0 transition-transform duration-150 active:scale-90"
                   >
                     {row.mainImageUrl ? (
                       <img src={row.mainImageUrl} alt="" className="w-full h-full object-cover" />
                     ) : (
-                      <ImageIcon size={16} className="text-gray-300" />
+                      <ImageIcon size={16} className="text-gray-600" />
                     )}
                   </button>
                 </div>
@@ -679,6 +699,27 @@ export function VariantCombinationsSheet({
           appliesToAllVariants
         />
       )}
+      <AlertDialog open={noImagesWarningOpen} onOpenChange={setNoImagesWarningOpen}>
+        <AlertDialogContent className="max-w-[92vw] rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {missingImageCount === selected.length
+                ? "None of your variants have a photo"
+                : `${missingImageCount} variant${missingImageCount === 1 ? " has" : "s have"} no photo`}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Buyers will see your product's cover photo instead, which may not match the variant
+              they pick.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-full">Add photos</AlertDialogCancel>
+            <AlertDialogAction onClick={onDone} className="bg-black rounded-full">
+              Continue anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </PageSheet>
   );
 }
