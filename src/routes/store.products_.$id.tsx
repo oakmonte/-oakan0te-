@@ -1057,8 +1057,8 @@ function EditProduct() {
   }
 
   return (
-    <div className="min-h-dvh bg-sd-surface pb-10">
-      <div className="sticky top-14 z-20 bg-sd-surface/95 backdrop-blur border-b border-sd-line px-4 h-14 flex items-center justify-between">
+    <div className="min-h-dvh bg-gray-50 pb-10">
+      <div className="sticky top-14 z-20 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
         <BackButton
           icon="chevron"
           size={18}

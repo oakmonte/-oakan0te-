@@ -78,9 +78,9 @@ export function DetailsSection({
         <button
           type="button"
           onClick={onOpenPriceSheet}
-          className="w-full flex items-center justify-between py-4"
+          className="w-full flex items-center justify-between gap-3 py-4"
         >
-          <span className="text-[15px] text-gray-500">
+          <span className="min-w-0 truncate text-[15px] text-gray-500">
             {compareAtPrice && (
               <span className="line-through mr-2 text-gray-300">
                 ₦{Number(compareAtPrice).toLocaleString()}

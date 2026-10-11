@@ -50,6 +50,11 @@ export const MAX_OPTIONS = 8;
 // The variant-building flow is a small wizard once at least one option
 // exists: the inline row just opens it back up rather than rendering the
 // full option list + combination grid inline in the scrolling product form.
+//
+// Each step opens ON TOP of the one before (list stays mounted under
+// combinations, the editor under nothing else) -- never one sheet unmounting
+// as the next mounts. A swap makes the old sheet's history.back() race the new
+// sheet's pushState, which bounced sellers to the product page or out of it.
 type WizardStep = "list" | "combinations" | null;
 
 export function VariantMatrixBuilder({
@@ -151,7 +156,12 @@ export function VariantMatrixBuilder({
         {options.length === 0 ? (
           <button
             type="button"
-            onClick={() => setEditingIndex(0)}
+            onClick={() => {
+              // The list opens underneath, so saving the editor just reveals
+              // it instead of swapping one sheet for another.
+              setWizardStep("list");
+              setEditingIndex(0);
+            }}
             className="w-full flex items-center justify-between py-4 border-b border-gray-100 text-left"
           >
             <span className="flex items-center gap-3 text-[15px] text-gray-900">
@@ -179,7 +189,7 @@ export function VariantMatrixBuilder({
         )}
       </div>
 
-      {wizardStep === "list" && (
+      {(wizardStep === "list" || wizardStep === "combinations") && (
         <VariantListSheet
           options={options}
           maxOptions={MAX_OPTIONS}
@@ -224,7 +234,11 @@ export function VariantMatrixBuilder({
             // was the very first option or an edit made from inside it.
             setWizardStep("list");
           }}
-          onClose={() => setEditingIndex(null)}
+          onClose={() => {
+            setEditingIndex(null);
+            // Backed out of the very first option: nothing to list.
+            if (options.length === 0) setWizardStep(null);
+          }}
         />
       )}
     </div>

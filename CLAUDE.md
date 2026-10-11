@@ -103,13 +103,15 @@ parent layout.
   `start.ts`/`__root.tsx` each cover a different failure mode — collapsing them loses coverage.
 - **Camera-to-edit handoff is an in-memory module variable** (`capture-handoff.ts`), not
   session/localStorage. See the `media-export-pipeline` skill for why.
-- **Overlay history (`use-overlay-history.ts`) ignores pops it caused itself.** Every sheet,
-  `PageSheet` and drawer pushes a history entry so the back gesture closes it; a button close calls
-  `history.back()`, which lands **asynchronously**. When one overlay replaces another in the same
-  render (variation list -> combinations, a menu item opening a confirm), that late pop arrives after
-  the new overlay has pushed, and without the `pendingSelfBacks` / `selfPops` guard the new one reads
-  it as a back gesture and closes the instant it opens ("Continue does nothing"). Don't remove the
-  guard, and don't hand-roll `pushState`/`popstate` for an overlay -- use the hook.
+- **Overlay history (`use-overlay-history.ts`) orders its own history steps.** Every sheet,
+  `PageSheet` and drawer pushes a history entry so the back gesture closes it; a button close takes it
+  off with a step that lands **asynchronously**. If another overlay pushes before that step lands (one
+  sheet replacing another in the same render), browsers disagree on the result -- iOS Safari pops one
+  entry too many, and the next close leaves the page ("bounced back to the product page / products
+  list"). The hook makes an overlay opening during a pending step wait for it (`settling`), and sums
+  same-render closes into one `go(-n)`. Don't remove that, don't hand-roll `pushState`/`popstate` for
+  an overlay, and for multi-step flows prefer stacking the next step over the previous one (see
+  `VariantMatrixBuilder`) to swapping them.
 - **`categories.ts`**: on a `CategoryNode`, omitting `children` means true leaf; `children: []`
   means "has children, not filled in yet." Not interchangeable.
 
