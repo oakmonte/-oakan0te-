@@ -335,7 +335,7 @@ export function VariantCombinationsSheet({
               onClick={() => setBulkOpen((v) => !v)}
               className="flex items-center gap-3 active:scale-[0.97] transition-transform duration-150"
             >
-              <span className="flex items-center gap-1 text-[13px] text-gray-600 whitespace-nowrap">
+              <span className="flex items-center gap-1 text-[13px] leading-tight text-gray-600 text-right">
                 Set parameters for all variants at once
                 <ChevronRight size={15} className="text-gray-400" />
               </span>
