@@ -194,10 +194,9 @@ const SECTIONS: LegalSection[] = [
           </li>
           <li>
             <B>Fees.</B> Oakmonte charges a commission of 3% of the price paid for each item sold.
-            Paystack's payment processing fee is also deducted from the sale: currently 1.5% of the
-            amount paid plus ₦100 (the ₦100 is waived on amounts under ₦2,500), capped at ₦2,000 per
-            transaction. The amount you will receive is shown when you set your price. We will give
-            you at least 14 days' notice before changing our commission.
+            Paystack's payment processing fee of 1.5% is also deducted from the sale, so the total
+            is 4.5% of the price paid. The amount you will receive is shown when you set your price.
+            We will give you at least 14 days' notice before changing our commission.
           </li>
           <li>Payouts are made to a Nigerian bank account in your name or your business's name.</li>
           <li>

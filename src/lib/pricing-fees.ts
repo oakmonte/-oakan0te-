@@ -12,22 +12,12 @@
 /** Oakmonte's cut. */
 export const COMMISSION_RATE = 0.03;
 
-// Paystack's standard Nigerian local-card pricing. VERIFY AGAINST THE LIVE
-// PAYSTACK DASHBOARD BEFORE LAUNCH — these are the published rates, and
-// Paystack is not actually wired yet (POSTPONED.md §1.5). A negotiated or
-// international rate would change all four numbers.
+/** Paystack's processing fee. Oakmonte + Paystack = a flat 4.5% on every sale. */
 export const PAYSTACK_RATE = 0.015;
-export const PAYSTACK_FLAT_FEE = 100;
-export const PAYSTACK_FLAT_FEE_THRESHOLD = 2500;
-export const PAYSTACK_FEE_CAP = 2000;
 
 export type Fees = {
   commission: number;
   paystackFee: number;
-  /** Whether the ₦100 applied, so the UI can label the rate honestly. */
-  hasFlatFee: boolean;
-  /** Whether Paystack's fee hit its ceiling. */
-  isCapped: boolean;
   total: number;
 };
 
@@ -38,11 +28,8 @@ export function formatNaira(n: number): string {
 /** What comes off an amount of `charged` naira. */
 export function computeFees(charged: number): Fees {
   const commission = charged * COMMISSION_RATE;
-  const hasFlatFee = charged >= PAYSTACK_FLAT_FEE_THRESHOLD;
-  const raw = charged * PAYSTACK_RATE + (hasFlatFee ? PAYSTACK_FLAT_FEE : 0);
-  const isCapped = raw > PAYSTACK_FEE_CAP;
-  const paystackFee = isCapped ? PAYSTACK_FEE_CAP : raw;
-  return { commission, paystackFee, hasFlatFee, isCapped, total: commission + paystackFee };
+  const paystackFee = charged * PAYSTACK_RATE;
+  return { commission, paystackFee, total: commission + paystackFee };
 }
 
 /** What the seller keeps out of an amount of `charged` naira. */
@@ -62,51 +49,14 @@ function roundUpToKobo(n: number): number {
  * seller to receive exactly `net`.
  *
  * This cannot be done by adding `computeFees(net).total` to the price. Both
- * fees are functions of the amount *charged*, not the amount received, so fees
- * computed on the net price are always too small — and the seller quietly ends
- * up short. It has to be solved.
- *
- * Three regimes, because Paystack's fee is piecewise:
- *   A  charged < ₦2,500          no flat fee      net = 0.955·charged
- *   B  flat fee applies, uncapped                 net = 0.955·charged − 100
- *   C  Paystack's fee is capped                   net = 0.97·charged − 2,000
- *
- * Each is inverted directly, then every candidate is checked with the FORWARD
- * calculation and the cheapest survivor wins. Taking the first survivor is not
- * enough: at ₦500,000 the uncapped branch does leave the seller whole, because
- * the real fee turns out lower than that branch assumed — while overcharging
- * the buyer by nearly ₦6,000. The minimum is the only defensible answer, and
- * it also settles the ₦2,500 boundary, where the ₦100 step makes a narrow band
- * of net amounts reachable two ways.
+ * fees are a share of the amount *charged*, not the amount received, so fees
+ * computed on the net price are too small and the seller ends up short:
+ * net = charged × (1 − 4.5%), so charged = net ÷ 0.955.
  */
 export function grossUpForNet(net: number): number {
   if (!(net > 0)) return 0;
-
-  const rateAfterBoth = 1 - COMMISSION_RATE - PAYSTACK_RATE;
-
-  const candidates = [
-    // A — under the flat-fee threshold.
-    net / rateAfterBoth,
-    // B — flat fee applies, still under the cap.
-    (net + PAYSTACK_FLAT_FEE) / rateAfterBoth,
-    // C — Paystack's fee is pinned at the cap, so it behaves as a constant.
-    (net + PAYSTACK_FEE_CAP) / (1 - COMMISSION_RATE),
-  ];
-
-  // Trust the forward calculation, not the algebra: a branch is only a real
-  // answer if charging it actually leaves the seller whole. A kobo of slack
-  // absorbs the rounding up.
-  const viable = candidates
-    .map(roundUpToKobo)
-    .filter((charged) => netFromCharged(charged) >= net - 0.01);
-
-  if (viable.length === 0) {
-    // Unreachable for any positive net, but returning something coherent beats
-    // putting NaN into a price field.
-    return roundUpToKobo(candidates[candidates.length - 1]);
-  }
-
-  return Math.min(...viable);
+  // Rounded up, never down, so the error lands in the seller's favour.
+  return roundUpToKobo(net / (1 - COMMISSION_RATE - PAYSTACK_RATE));
 }
 
 /**

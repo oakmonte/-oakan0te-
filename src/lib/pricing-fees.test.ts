@@ -5,30 +5,20 @@ import {
   grossUpForNet,
   netFromCharged,
   resolvePrice,
-  PAYSTACK_FEE_CAP,
-  PAYSTACK_FLAT_FEE_THRESHOLD,
 } from "./pricing-fees";
 
 describe("computeFees", () => {
-  test("no flat fee below the threshold", () => {
-    const fees = computeFees(2000);
-    expect(fees.hasFlatFee).toBe(false);
-    expect(fees.commission).toBeCloseTo(60);
-    expect(fees.paystackFee).toBeCloseTo(30);
+  test("a flat 4.5%: 3% Oakmonte + 1.5% Paystack, at any price", () => {
+    for (const price of [500, 2000, 2500, 20_000, 1_000_000]) {
+      const fees = computeFees(price);
+      expect(fees.commission).toBeCloseTo(price * 0.03);
+      expect(fees.paystackFee).toBeCloseTo(price * 0.015);
+      expect(fees.total).toBeCloseTo(price * 0.045);
+    }
   });
 
-  test("the flat fee applies from the threshold up", () => {
-    const fees = computeFees(PAYSTACK_FLAT_FEE_THRESHOLD);
-    expect(fees.hasFlatFee).toBe(true);
-    expect(fees.paystackFee).toBeCloseTo(2500 * 0.015 + 100);
-  });
-
-  test("Paystack's fee stops at the cap", () => {
-    const fees = computeFees(1_000_000);
-    expect(fees.isCapped).toBe(true);
-    expect(fees.paystackFee).toBe(PAYSTACK_FEE_CAP);
-    // The commission is uncapped, so the total keeps climbing past it.
-    expect(fees.commission).toBeCloseTo(30_000);
+  test("₦20,000 costs ₦900", () => {
+    expect(computeFees(20_000).total).toBeCloseTo(900);
   });
 });
 
@@ -45,7 +35,7 @@ describe("grossUpForNet", () => {
   });
 
   test("the seller receives at least what they asked for, across the range", () => {
-    for (const net of [100, 999.99, 2_200, 2_350, 2_500, 10_000, 126_000, 200_000, 5_000_000]) {
+    for (const net of [100, 999.99, 2_500, 10_000, 126_000, 5_000_000]) {
       const charged = grossUpForNet(net);
       expect({ net, received: netFromCharged(charged) >= net - 0.01 }).toEqual({
         net,
@@ -55,28 +45,11 @@ describe("grossUpForNet", () => {
   });
 
   test("never overcharges by more than a rounding kobo", () => {
-    for (const net of [100, 2_400, 2_600, 10_000, 500_000]) {
+    for (const net of [100, 2_600, 10_000, 500_000]) {
       // Charging a kobo more than necessary is the accepted cost of rounding
       // in the seller's favour; anything beyond that is a broken solve.
       expect(netFromCharged(grossUpForNet(net)) - net).toBeLessThan(0.02);
     }
-  });
-
-  // Each regime is inverted separately, so each needs to be shown to land in
-  // the regime it assumed. Solving the wrong branch yields a plausible number
-  // that is simply wrong.
-  test("picks the branch that is actually self-consistent", () => {
-    expect(grossUpForNet(1_000)).toBeLessThan(PAYSTACK_FLAT_FEE_THRESHOLD);
-    expect(grossUpForNet(10_000)).toBeGreaterThan(PAYSTACK_FLAT_FEE_THRESHOLD);
-    expect(computeFees(grossUpForNet(5_000_000)).isCapped).toBe(true);
-  });
-
-  // The fee schedule steps by ₦100 at ₦2,500, so a narrow band of net amounts
-  // is reachable either just under the threshold or well over it. The buyer
-  // should be charged the smaller of the two.
-  test("prefers the cheaper charge where two branches both hold", () => {
-    const charged = grossUpForNet(2_300);
-    expect(charged).toBeLessThan(PAYSTACK_FLAT_FEE_THRESHOLD);
   });
 
   test("a non-price is worth nothing, not NaN", () => {
@@ -112,7 +85,7 @@ describe("sellerEntryFromCharged", () => {
   // product_variants.price stores what the CUSTOMER pays, so re-opening the
   // form has to undo the gross-up to show the seller their asking price again.
   test("hands back exactly what the seller typed", () => {
-    for (const net of [100, 2_300, 2_500, 10_000, 126_000, 500_000]) {
+    for (const net of [100, 2_500, 10_000, 126_000, 500_000]) {
       expect({ net, recovered: sellerEntryFromCharged(grossUpForNet(net)) }).toEqual({
         net,
         recovered: net,

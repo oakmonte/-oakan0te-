@@ -229,9 +229,7 @@ export function PricingSheet({
                   value={`– ${formatNaira(fees.commission)}`}
                 />
                 <FeeLine
-                  label={`Paystack Payment Processing (${PAYSTACK_PCT}${
-                    fees.hasFlatFee ? "+₦100" : ""
-                  }${fees.isCapped ? ", capped" : ""})`}
+                  label={`Paystack Payment Processing (${PAYSTACK_PCT})`}
                   value={`– ${formatNaira(fees.paystackFee)}`}
                 />
                 <div className="border-t border-gray-300 pt-2">
