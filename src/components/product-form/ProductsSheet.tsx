@@ -13,7 +13,7 @@ type ProductRow = {
 const STATUS_FILTERS = [
   { key: "all", label: "All" },
   { key: "active", label: "Active" },
-  { key: "draft", label: "Draft" },
+  { key: "draft", label: "Inactive" },
 ] as const;
 
 type StatusFilterKey = (typeof STATUS_FILTERS)[number]["key"];

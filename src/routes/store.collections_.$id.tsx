@@ -289,7 +289,7 @@ function CollectionDetail() {
         {statusError && <p className="mt-2 text-sm text-sd-danger-ink">{statusError}</p>}
         {collection.status === "draft" && (
           <p className="mt-2 text-[13px] text-sd-ink-faint">
-            Drafts don't show on your storefront.
+            Inactive collections don't show on your storefront.
           </p>
         )}
       </div>

@@ -22,7 +22,9 @@ export function StatusSheet({
             onClick={() => onSelect(s)}
             className="w-full flex items-center justify-between py-3 border-b border-gray-50 last:border-0 oak-motion-control"
           >
-            <span className="text-[15px] capitalize text-gray-900">{s}</span>
+            <span className="text-[15px] text-gray-900">
+              {s === "active" ? "Active" : "Inactive"}
+            </span>
             {status === s && <span className="text-black oak-motion-pop">✓</span>}
           </button>
         ))}

@@ -26,10 +26,11 @@ export function DraftWarningDialog({
       <div className="relative w-full bg-white rounded-t-2xl p-5 pb-8 animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]">
         <div className="flex items-center gap-2 mb-1">
           <EyeOff size={18} className="text-amber-500 shrink-0" />
-          <h2 className="font-semibold text-base text-gray-900">Saving as a draft</h2>
+          <h2 className="font-semibold text-base text-gray-900">Saving as inactive</h2>
         </div>
         <p className="text-sm text-gray-500 mb-5">
-          Drafts don't show on your storefront, so shoppers won't see this {noun} until it's active.
+          Inactive items don't show on your storefront, so shoppers won't see this {noun} until it's
+          active.
         </p>
         <div className="flex flex-col gap-2">
           <button
@@ -44,7 +45,7 @@ export function DraftWarningDialog({
             onClick={onKeepDraft}
             className="w-full text-center rounded-xl py-3.5 text-sm font-medium border border-gray-200 text-gray-900"
           >
-            Keep as draft
+            Keep inactive
           </button>
           <button
             type="button"

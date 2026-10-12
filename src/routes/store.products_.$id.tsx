@@ -1386,7 +1386,7 @@ function EditProduct() {
                 : "border-sd-line text-sd-ink-muted"
             }`}
           >
-            Draft
+            Inactive
           </button>
         </div>
       </div>

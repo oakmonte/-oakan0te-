@@ -23,7 +23,8 @@ import {
 // column.
 // "Collection" isn't a filter on its own: tapping it lays the store's
 // collections out beside it, and picking one shows that collection's products.
-const TABS = ["All", "Active", "Draft", "Uploaded", "Collection"] as const;
+// "Inactive" is the label for the "draft" status in the database.
+const TABS = ["All", "Active", "Inactive", "Uploaded", "Collection"] as const;
 
 type ProductRow = {
   id: string;
@@ -124,7 +125,8 @@ export function ProductsPanel({ checklist }: { checklist?: boolean }) {
         "id",
         (links ?? []).map((l) => l.product_id),
       );
-    } else if (activeTab !== "All") query = query.eq("status", activeTab.toLowerCase());
+    } else if (activeTab !== "All")
+      query = query.eq("status", activeTab === "Inactive" ? "draft" : "active");
     if (search.trim()) query = query.ilike("title", `%${search.trim()}%`);
 
     const { data, error } = await query;
@@ -250,7 +252,7 @@ export function ProductsPanel({ checklist }: { checklist?: boolean }) {
           </div>
           <button
             onClick={() => navigate({ to: "/store/products/upload" })}
-            aria-label="Upload products"
+            aria-label="Import products"
             className="oak-tap grid h-11 w-11 shrink-0 place-items-center rounded-full bg-sd-soft text-sd-ink oak-motion-control active:scale-90"
           >
             <Upload size={18} />
@@ -327,7 +329,7 @@ export function ProductsPanel({ checklist }: { checklist?: boolean }) {
               onClick={() => navigate({ to: "/store/products/upload" })}
               className="oak-tap w-full max-w-xs h-12 rounded-full border border-sd-line text-sd-ink text-[15px] font-semibold oak-motion-control active:scale-[0.98]"
             >
-              Upload products
+              Import products
             </button>
           </div>
         ) : (

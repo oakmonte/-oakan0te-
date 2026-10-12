@@ -525,7 +525,7 @@ function OwnProductList({
       <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
         <p className="max-w-[240px] text-[13px] text-white/50">
           {hasStore
-            ? "You have no active products to link yet. Drafts can't be linked."
+            ? "You have no active products to link yet. Inactive products can't be linked."
             : "Set up your store before you can link products to a post."}
         </p>
         <button

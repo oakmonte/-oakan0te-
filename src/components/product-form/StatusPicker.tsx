@@ -24,7 +24,7 @@ export function StatusPicker({
                 : "border-sd-line text-sd-ink-muted"
             }`}
           >
-            {s === "active" ? "Active" : "Draft"}
+            {s === "active" ? "Active" : "Inactive"}
           </button>
         ))}
       </div>

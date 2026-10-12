@@ -313,7 +313,7 @@ function ProductsUpload() {
           className="text-sm text-sd-ink-muted flex items-center gap-0.5 -ml-1"
         />
         <span className="font-semibold text-[15px] absolute left-1/2 -translate-x-1/2">
-          Upload products
+          Import products
         </span>
       </div>
 

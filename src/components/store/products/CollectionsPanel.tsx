@@ -268,7 +268,7 @@ function CollectionListRow({
         {c.title}
       </span>
       <span className="text-[13px] text-sd-ink-faint shrink-0">
-        {c.status === "draft" && "Draft · "}
+        {c.status === "draft" && "Inactive · "}
         {c.count} product{c.count === 1 ? "" : "s"}
       </span>
     </button>
