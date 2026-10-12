@@ -309,7 +309,7 @@ export function BottomNav({ active, ownUsername }: BottomNavProps) {
               aria-label={label}
               data-tour={key}
               aria-current={isActive ? "page" : undefined}
-              className="relative flex-1 flex items-center justify-center"
+              className="relative flex-1 flex items-center justify-center cursor-pointer"
               style={{
                 zIndex: 1,
                 height: "100%",
