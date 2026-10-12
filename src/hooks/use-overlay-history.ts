@@ -21,25 +21,42 @@ import {
   shouldRemoveOverlayEntry,
 } from "@/lib/nav-stack";
 
-// Pops this module triggers itself when an overlay closes by a button. When one
-// overlay replaces another in the same render (variation list -> combinations),
-// the old one's history.back() lands only after the new one has pushed its
-// entry, and the new one would read that pop as a back gesture and close
-// itself. A capture listener added at load runs before every hook's listener
-// and tags those self-made pops so the hooks ignore them.
-let pendingSelfBacks = 0;
-const selfPops = new WeakSet<Event>();
-if (typeof window !== "undefined") {
-  window.addEventListener(
-    "popstate",
-    (event) => {
-      if (pendingSelfBacks > 0) {
-        pendingSelfBacks--;
-        selfPops.add(event);
-      }
-    },
-    true,
-  );
+// Closing an overlay by a button takes its entry off with a history step that
+// lands asynchronously. If another overlay opens in the same render (a menu
+// item opening a confirm, a sheet replacing another) and pushes before that
+// step lands, the two race -- and browsers disagree on the result: Chrome steps
+// back from the new entry, iOS Safari from the old one, which pops one entry
+// too many and sends the next close out of the page entirely. So an overlay
+// opening while a step is pending waits for it to land, then pushes. Order in
+// history is then always open -> close -> open, on every browser.
+//
+// Steps from overlays closing in the same render are summed into one go(-n):
+// separate back() calls in one tick aren't reliably all honoured.
+let batchedBacks = 0;
+let settling: Promise<void> | null = null;
+
+function queueSelfBack() {
+  if (batchedBacks++ > 0) return;
+  settling = new Promise((resolve) => {
+    const done = () => {
+      window.removeEventListener("popstate", done, true);
+      clearTimeout(timer);
+      // After the whole popstate dispatch, so the router has handled the
+      // landed entry before anyone pushes over it.
+      setTimeout(() => {
+        settling = null;
+        resolve();
+      }, 0);
+    };
+    window.addEventListener("popstate", done, true);
+    // A step that never lands must not hold every future overlay hostage.
+    const timer = setTimeout(done, 1000);
+  });
+  queueMicrotask(() => {
+    const steps = batchedBacks;
+    batchedBacks = 0;
+    window.history.go(-steps);
+  });
 }
 
 export function useOverlayHistory(open: boolean, onClose: () => void) {
@@ -53,49 +70,58 @@ export function useOverlayHistory(open: boolean, onClose: () => void) {
   useEffect(() => {
     if (!open) return;
 
-    const openedIndex = readIndex(window.history.state) + 1;
-    const state = {
-      ...(window.history.state ?? {}),
-      __TSR_index: openedIndex,
-      __oakOverlay: true,
+    const setup = () => {
+      const openedIndex = readIndex(window.history.state) + 1;
+      const state = {
+        ...(window.history.state ?? {}),
+        __TSR_index: openedIndex,
+        __oakOverlay: true,
+      };
+      window.history.pushState(state, "");
+      noteExternalPush(window.location.pathname);
+
+      // The router's own href, read AFTER our sentinel goes on — the sentinel
+      // deliberately does not change the URL, so this is still the page's href.
+      // At cleanup we compare against this to tell "dismissed in place" from
+      // "closed because we navigated". It must come from router.history and not
+      // from window: @tanstack/history defers the real pushState to a microtask,
+      // so window.history is still reporting the old entry while the router has
+      // already committed the new one. See shouldRemoveOverlayEntry.
+      const hrefAtOpen = router.history.location.href;
+
+      let poppedByGesture = false;
+      const onPop = (event: PopStateEvent) => {
+        // A pop that only took a sheet stacked above us off is not ours.
+        if (!shouldCloseOnPop(openedIndex, readIndex(event.state))) return;
+        poppedByGesture = true;
+        onCloseRef.current();
+      };
+      window.addEventListener("popstate", onPop);
+
+      return () => {
+        window.removeEventListener("popstate", onPop);
+
+        // A buried entry is harmless — it carries the same pathname as the page
+        // that opened it, so backing onto it renders that page with the overlay
+        // shut, which is where back should land anyway.
+        const remove = shouldRemoveOverlayEntry({
+          poppedByGesture,
+          hrefAtOpen,
+          hrefNow: router.history.location.href,
+        });
+        if (remove) queueSelfBack();
+      };
     };
-    window.history.pushState(state, "");
-    noteExternalPush(window.location.pathname);
 
-    // The router's own href, read AFTER our sentinel goes on — the sentinel
-    // deliberately does not change the URL, so this is still the page's href.
-    // At cleanup we compare against this to tell "dismissed in place" from
-    // "closed because we navigated". It must come from router.history and not
-    // from window: @tanstack/history defers the real pushState to a microtask,
-    // so window.history is still reporting the old entry while the router has
-    // already committed the new one. See shouldRemoveOverlayEntry.
-    const hrefAtOpen = router.history.location.href;
-
-    let poppedByGesture = false;
-    const onPop = (event: PopStateEvent) => {
-      if (selfPops.has(event)) return;
-      // A pop that only took a sheet stacked above us off is not ours.
-      if (!shouldCloseOnPop(openedIndex, readIndex(event.state))) return;
-      poppedByGesture = true;
-      onCloseRef.current();
-    };
-    window.addEventListener("popstate", onPop);
-
+    if (!settling) return setup();
+    let cancelled = false;
+    let teardown: (() => void) | undefined;
+    void settling.then(() => {
+      if (!cancelled) teardown = setup();
+    });
     return () => {
-      window.removeEventListener("popstate", onPop);
-
-      // A buried entry is harmless — it carries the same pathname as the page
-      // that opened it, so backing onto it renders that page with the overlay
-      // shut, which is where back should land anyway.
-      const remove = shouldRemoveOverlayEntry({
-        poppedByGesture,
-        hrefAtOpen,
-        hrefNow: router.history.location.href,
-      });
-      if (remove) {
-        pendingSelfBacks++;
-        window.history.back();
-      }
+      cancelled = true;
+      teardown?.();
     };
   }, [open, router]);
 }

@@ -77,11 +77,11 @@ export function CollectionsPanel() {
     });
   }
 
-  async function handleBulkDelete() {
+  async function handleBulkDelete(withProducts: boolean) {
     setConfirmDeleteOpen(false);
     setDeleting(true);
     setDeleteError("");
-    const { error } = await deleteCollection([...selectedIds], false);
+    const { error } = await deleteCollection([...selectedIds], withProducts);
     setDeleting(false);
     if (error) {
       // Selection stays intact so retrying doesn't require re-picking
@@ -125,8 +125,8 @@ export function CollectionsPanel() {
       {/* Only while the store has zero collections -- once the first one
           exists, the concept doesn't need re-explaining every visit. */}
       {collections !== null && collections.length === 0 && (
-        <p className="text-[14px] leading-relaxed text-sd-ink-faint text-center mb-4 animate-in fade-in duration-300">
-          Complimentary pieces can be grouped as collections.
+        <p className="mx-auto mt-4 mb-10 max-w-[260px] text-[15px] leading-relaxed text-sd-ink-muted text-center animate-in fade-in duration-300">
+          You can group products of a similar aesthetic into a &ldquo;collection&rdquo;.
         </p>
       )}
 
@@ -202,19 +202,25 @@ export function CollectionsPanel() {
               Delete {selectedIds.size} collection{selectedIds.size === 1 ? "" : "s"}?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              The products in them are kept — only the collections themselves are removed. This
-              can't be undone.
+              Should the products inside {selectedIds.size === 1 ? "it" : "them"} be deleted too?
+              This can't be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-full">Cancel</AlertDialogCancel>
+          <div className="flex flex-col gap-2">
             <AlertDialogAction
-              onClick={handleBulkDelete}
+              onClick={() => handleBulkDelete(false)}
               className="bg-sd-ink text-sd-bg rounded-full"
             >
-              Delete
+              Delete collection{selectedIds.size === 1 ? "" : "s"} only
             </AlertDialogAction>
-          </AlertDialogFooter>
+            <AlertDialogAction
+              onClick={() => handleBulkDelete(true)}
+              className="bg-red-600 text-white rounded-full hover:bg-red-600"
+            >
+              Delete with their products
+            </AlertDialogAction>
+            <AlertDialogCancel className="rounded-full mt-0">Cancel</AlertDialogCancel>
+          </div>
         </AlertDialogContent>
       </AlertDialog>
     </div>

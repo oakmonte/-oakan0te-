@@ -1057,8 +1057,8 @@ function EditProduct() {
   }
 
   return (
-    <div className="min-h-dvh bg-sd-surface pb-10">
-      <div className="sticky top-14 z-20 bg-sd-surface/95 backdrop-blur border-b border-sd-line px-4 h-14 flex items-center justify-between">
+    <div className="min-h-dvh bg-gray-50 pb-10">
+      <div className="sticky top-14 z-20 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
         <BackButton
           icon="chevron"
           size={18}
@@ -1121,63 +1121,75 @@ function EditProduct() {
         />
       </div>
 
-      {kind === "regular" ? (
-        <>
-          <InventorySection
-            available={regularStockQty}
-            locationCount={Object.keys(regularLocationQuantities).length}
-            onOpen={() => setInventorySheetOpen(true)}
-          />
-        </>
-      ) : (
-        storeId && (
-          <VariantMatrixBuilder
-            options={options}
-            setOptions={setOptions}
-            rows={rows}
-            setRows={setRows}
-            mainImageUrl={mainImageUrl}
-            additionalImageUrls={regularAdditionalImageUrls ?? []}
-            passFeesToBuyer={passFeesToBuyer}
-            onChangePassFeesToBuyer={setPassFeesToBuyer}
-            storeId={storeId}
-            onCreateLocation={handleCreateLocation}
-            estimateWeightForRow={estimateWeightForRow}
-            initialInventoryContext={initialVariantInventoryContext}
-            initialNewLocationId={initialNewLocationId}
-            onInventoryContextConsumed={() => setInitialVariantInventoryContext(null)}
-          />
-        )
+      {/* Stock and organise, as cards -- same layout as the new-product page. */}
+      {(kind === "regular" || storeId) && (
+        <div className="mx-4 rounded-3xl border border-gray-300 bg-white overflow-hidden">
+          {kind === "regular" ? (
+            <InventorySection
+              available={regularStockQty}
+              locationCount={Object.keys(regularLocationQuantities).length}
+              onOpen={() => setInventorySheetOpen(true)}
+              noDivider
+            />
+          ) : (
+            storeId && (
+              <VariantMatrixBuilder
+                options={options}
+                setOptions={setOptions}
+                rows={rows}
+                setRows={setRows}
+                mainImageUrl={mainImageUrl}
+                additionalImageUrls={regularAdditionalImageUrls ?? []}
+                passFeesToBuyer={passFeesToBuyer}
+                onChangePassFeesToBuyer={setPassFeesToBuyer}
+                storeId={storeId}
+                onCreateLocation={handleCreateLocation}
+                estimateWeightForRow={estimateWeightForRow}
+                initialInventoryContext={initialVariantInventoryContext}
+                initialNewLocationId={initialNewLocationId}
+                onInventoryContextConsumed={() => setInitialVariantInventoryContext(null)}
+                noDivider
+              />
+            )
+          )}
+        </div>
       )}
 
-      <button
-        type="button"
-        onClick={() => setCollectionsSheetOpen(true)}
-        className="w-full flex items-center justify-between px-4 py-4 border-b-8 border-sd-line/50 text-left"
-      >
-        <span className="flex items-center gap-3 text-[15px] text-sd-ink">
-          <Tag size={18} className="text-sd-ink-faint" />
-          Collections
-        </span>
-        <span className="flex items-center gap-2">
-          {collectionIds.length > 0 && (
-            <span className="text-xs text-sd-ink-faint">{collectionIds.length} selected</span>
-          )}
-          <ChevronRight size={16} className="text-sd-ink-faint" />
-        </span>
-      </button>
-      {/* Off for now -- see product-form-flags.ts. */}
-      {TAGS_ENABLED && (
-        <StubRow icon={<Hash size={18} />} label="Tags" onClick={() => setTagsSheetOpen(true)} />
-      )}
-      {NECESSITIES_ENABLED && (
-        <StubRow
-          icon={<ListChecks size={18} />}
-          label="Necessities"
-          isLast
-          onClick={() => setNecessitiesSheetOpen(true)}
-        />
-      )}
+      <div className="mx-4 mt-4 rounded-3xl border border-gray-300 bg-white overflow-hidden divide-y divide-gray-100">
+        <button
+          type="button"
+          onClick={() => setCollectionsSheetOpen(true)}
+          className="w-full flex items-center justify-between px-4 py-4 text-left"
+        >
+          <span className="flex items-center gap-3 text-[15px] text-sd-ink">
+            <Tag size={18} className="text-sd-ink-faint" />
+            Collections
+          </span>
+          <span className="flex items-center gap-2">
+            {collectionIds.length > 0 && (
+              <span className="text-xs text-sd-ink-faint">{collectionIds.length} selected</span>
+            )}
+            <ChevronRight size={16} className="text-sd-ink-faint" />
+          </span>
+        </button>
+        {/* Off for now -- see product-form-flags.ts. */}
+        {TAGS_ENABLED && (
+          <StubRow
+            icon={<Hash size={18} />}
+            label="Tags"
+            isLast
+            onClick={() => setTagsSheetOpen(true)}
+          />
+        )}
+        {NECESSITIES_ENABLED && (
+          <StubRow
+            icon={<ListChecks size={18} />}
+            label="Necessities"
+            isLast
+            onClick={() => setNecessitiesSheetOpen(true)}
+          />
+        )}
+      </div>
 
       {categoryPickerOpen && (
         <CategoryPicker
@@ -1260,6 +1272,7 @@ function EditProduct() {
           }}
           onClose={() => setCollectionsSheetOpen(false)}
           onCreateNew={handleCreateCollection}
+          currentProductId={productId}
         />
       )}
 
@@ -1350,7 +1363,7 @@ function EditProduct() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <div className="px-4 py-5 border-b-8 border-sd-line/50">
+      <div className="mx-4 mt-4 rounded-3xl border border-gray-300 bg-white p-4">
         <p className="text-[15px] font-semibold text-sd-ink mb-3">Product Status</p>
         <div className="flex gap-3">
           <button

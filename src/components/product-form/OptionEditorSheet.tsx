@@ -32,9 +32,49 @@ export const SIZE_SYSTEMS = {
 // keys would offer them when sizing a t-shirt. Only the manual Size necessity
 // (ManualSizeOnlySheet) switches between the two, on category.
 export const SHOE_SIZE_SYSTEMS = {
-  US: ["5", "5.5", "6", "6.5", "7", "7.5", "8", "8.5", "9", "9.5", "10", "11", "12", "13"],
-  UK: ["2.5", "3", "3.5", "4", "4.5", "5", "5.5", "6", "6.5", "7", "8.5", "9.5", "10.5", "11.5"],
-  EU: ["35", "36", "37", "38", "38.5", "39", "40", "41", "42", "43", "44", "45", "46", "47"],
+  // Each a complete ladder in half sizes, not rows of a conversion chart --
+  // a seller picks the sizes they stock in the system they use.
+  US: [
+    "5",
+    "5.5",
+    "6",
+    "6.5",
+    "7",
+    "7.5",
+    "8",
+    "8.5",
+    "9",
+    "9.5",
+    "10",
+    "10.5",
+    "11",
+    "11.5",
+    "12",
+    "12.5",
+    "13",
+  ],
+  UK: [
+    "3",
+    "3.5",
+    "4",
+    "4.5",
+    "5",
+    "5.5",
+    "6",
+    "6.5",
+    "7",
+    "7.5",
+    "8",
+    "8.5",
+    "9",
+    "9.5",
+    "10",
+    "10.5",
+    "11",
+    "11.5",
+    "12",
+  ],
+  EU: ["35", "36", "37", "38", "39", "40", "41", "42", "43", "44", "45", "46", "47", "48"],
 } as const;
 
 export const WEIGHT_VOLUME_SYSTEMS = {
@@ -105,13 +145,21 @@ const CUSTOM_SYSTEM = "Custom";
 // Module-level (not closed over the sheet's current `name`) so it can seed
 // `selectedSystems` for EVERY option being reopened, not just whichever one
 // happens to be open right now -- see the selectedSystems initializer below.
-function ownerSystemForOption(optionName: string, value: string): string | null {
+// Sizes repeat across systems ("8" is US and UK, "12" is US and UK too),
+// so a value alone doesn't say which one the seller meant. Every value given
+// must belong; `prefer` (the system they were browsing) wins when it fits.
+function ownerSystemForOption(
+  optionName: string,
+  values: string | readonly string[],
+  prefer?: string,
+): string | null {
   const systems = OPTION_SYSTEMS[optionName];
   if (!systems) return null;
-  for (const key of Object.keys(systems)) {
-    if ((systems[key] as readonly string[]).includes(value)) return key;
-  }
-  return null;
+  const wanted = typeof values === "string" ? [values] : values;
+  const fits = (key: string) =>
+    wanted.every((v) => (systems[key] as readonly string[]).includes(v));
+  if (prefer && systems[prefer] && fits(prefer)) return prefer;
+  return Object.keys(systems).find(fits) ?? null;
 }
 
 // A Weight/Volume value typed through the numeric row ("275 g") is never a
@@ -266,6 +314,7 @@ export function OptionEditorSheet({
           ? CUSTOM_SYSTEM
           : (DEFAULT_SYSTEM[o.name] ?? Object.keys(OPTION_SYSTEMS[o.name])[0]);
         seeded[o.name] =
+          ownerSystemForOption(o.name, o.values) ??
           ownerSystemForOption(o.name, o.values[0]) ??
           (typedUnit && OPTION_SYSTEMS[o.name][typedUnit] ? typedUnit : fallback);
       }
@@ -380,7 +429,7 @@ export function OptionEditorSheet({
   // US and UK size numbers overlap, so activeSystem alone isn't reliable if
   // a value got picked while searching across every system at once.
   function ownerSystemFor(value: string): string | null {
-    return ownerSystemForOption(name, value);
+    return ownerSystemForOption(name, value, activeSystem);
   }
 
   // Single add path for every way a value can be picked (tapping a preset,

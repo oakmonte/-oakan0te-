@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { PageSheet } from "@/components/PageSheet";
+import { CollectionActionsSheet } from "./CollectionActionsSheet";
+import { deleteCollection } from "@/lib/collections";
 import { X, Search, ImageIcon, Check, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { CollectionProductsViewSheet } from "./CollectionProductsViewSheet";
@@ -19,12 +21,16 @@ export function CollectionsSheet({
   onDone,
   onClose,
   onCreateNew,
+  currentProductId,
 }: {
   storeId: string;
   selectedIds: string[];
   onDone: (ids: string[]) => void;
   onClose: () => void;
   onCreateNew: () => void;
+  /** The product being edited, if it's already saved: "delete with products"
+   *  is blocked for a collection it's in, or it would delete itself. */
+  currentProductId?: string;
 }) {
   const [collections, setCollections] = useState<CollectionRow[] | null>(null); // null = loading
   const [selected, setSelected] = useState<Set<string>>(new Set(selectedIds));
@@ -78,16 +84,38 @@ export function CollectionsSheet({
     });
   }
 
-  // Deletes the collection everywhere (not just off this product) -- there
-  // was previously no way for a seller to remove a collection they created
-  // by mistake or no longer use. Cascades to product_collections, so no
-  // separate cleanup needed there.
-  async function handleDelete(id: string) {
-    const { error } = await supabase.from("collections").delete().eq("id", id);
-    if (error) {
-      console.error("CollectionsSheet: failed to delete collection", error);
+  // Deletes the collection everywhere (not just off this product), and its
+  // products too if the seller chooses -- same question as the collection's
+  // own page. Throws so CollectionActionsSheet shows the error.
+  // Whether the product being edited is saved in the collection about to be
+  // deleted. Checked against the database, not this sheet's ticks: deleting
+  // with products removes what's saved, whatever is ticked right now.
+  const [deleteHitsThisProduct, setDeleteHitsThisProduct] = useState<boolean | null>(null);
+  useEffect(() => {
+    setDeleteHitsThisProduct(null);
+    if (!pendingDeleteId) return;
+    if (!currentProductId) {
+      setDeleteHitsThisProduct(false);
       return;
     }
+    let cancelled = false;
+    void supabase
+      .from("product_collections")
+      .select("product_id", { count: "exact", head: true })
+      .eq("collection_id", pendingDeleteId)
+      .eq("product_id", currentProductId)
+      .then(({ count, error }) => {
+        // On error, assume it does: blocking is the safe side.
+        if (!cancelled) setDeleteHitsThisProduct(error ? true : (count ?? 0) > 0);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [pendingDeleteId, currentProductId]);
+
+  async function handleDelete(id: string, withProducts: boolean) {
+    const { error } = await deleteCollection(id, withProducts);
+    if (error) throw new Error(error);
     setPendingDeleteId(null);
     setCollections((prev) => prev?.filter((c) => c.id !== id) ?? prev);
     setSelected((prev) => {
@@ -126,6 +154,9 @@ export function CollectionsSheet({
 
       {collections !== null && collections.length === 0 && (
         <div className="flex-1 flex flex-col items-center justify-center gap-3 px-8 text-center">
+          <p className="mb-14 max-w-[260px] text-[15px] leading-relaxed text-gray-700">
+            You can group products of a similar aesthetic into a &ldquo;collection&rdquo;.
+          </p>
           <p className="text-[15px] text-gray-400">No collections yet</p>
           <button
             type="button"
@@ -190,33 +221,14 @@ export function CollectionsSheet({
                       </span>
                     </span>
                   </button>
-                  {pendingDeleteId === c.id ? (
-                    <span className="flex items-center gap-2 pr-3 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => setPendingDeleteId(null)}
-                        className="text-xs text-gray-500 px-2 py-1.5"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(c.id)}
-                        className="text-xs font-medium text-white bg-red-600 rounded-full px-3 py-1.5"
-                      >
-                        Delete
-                      </button>
-                    </span>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setPendingDeleteId(c.id)}
-                      aria-label={`Delete ${c.title}`}
-                      className="p-3 text-gray-300 shrink-0"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => setPendingDeleteId(c.id)}
+                    aria-label={`Delete ${c.title}`}
+                    className="p-3 text-gray-300 shrink-0"
+                  >
+                    <Trash2 size={16} />
+                  </button>
                 </div>
               );
             })}
@@ -245,6 +257,26 @@ export function CollectionsSheet({
           </div>
         </>
       )}
+
+      {pendingDeleteId &&
+        (() => {
+          const target = collections?.find((c) => c.id === pendingDeleteId);
+          if (!target || deleteHitsThisProduct === null) return null;
+          return (
+            <CollectionActionsSheet
+              startConfirming
+              withProductsBlocked={
+                deleteHitsThisProduct
+                  ? "This product is in this collection, so its products can't be deleted from here. Delete them from the Collections tab instead."
+                  : null
+              }
+              productCount={target.count}
+              onClose={() => setPendingDeleteId(null)}
+              onDeleteOnly={() => handleDelete(target.id, false)}
+              onDeleteWithProducts={() => handleDelete(target.id, true)}
+            />
+          );
+        })()}
 
       {viewingCollection && (
         <CollectionProductsViewSheet

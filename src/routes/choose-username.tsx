@@ -404,8 +404,7 @@ function ChooseUsernamePage() {
             !displayName.trim() ||
             !username ||
             Boolean(problem) ||
-            availability === "taken" ||
-            !dobEngaged
+            availability === "taken"
           }
           className="w-full rounded-full bg-brand-accent text-brand-bg py-3.5 text-sm font-medium uppercase tracking-widest hover:bg-brand-accent/90 hover:scale-[1.01] transition-all duration-300 disabled:opacity-40"
         >

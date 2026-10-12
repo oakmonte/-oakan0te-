@@ -4,7 +4,6 @@ import { useNavigate, useSearch } from "@tanstack/react-router";
 import { BackButton } from "@/components/BackButton";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useActiveStoreId } from "@/hooks/use-own-store";
-import { useSession } from "@/hooks/use-session";
 import { THEMES, type Theme, type ThemeId } from "./store-themes/types";
 import { ThemePreviewSheet } from "./store-themes/full-previews";
 import { useStoreTheme } from "./store-themes/useStoreTheme";
@@ -200,7 +199,6 @@ function ThemeCard({
 export function StoreThemeSelector() {
   const navigate = useNavigate();
   const { checklist } = useSearch({ from: "/store/theme" });
-  const { user } = useSession();
   const { storeId } = useActiveStoreId();
   const { pickedThemeId, selectTheme } = useStoreTheme();
   const [previewing, setPreviewing] = useState<ThemeId | null>(null);
@@ -231,7 +229,6 @@ export function StoreThemeSelector() {
   // information, so the two could be collapsed — left alone here only to keep
   // this change to the selection bug.
   const [themeIdSet, setThemeIdSet] = useState(false);
-  const [ownUsername, setOwnUsername] = useState<string | undefined>(undefined);
   // Checklist flow only: the "theme's set, go see your storefront" popup.
   // Opens when a theme is picked here, and once on arrival if the store
   // already has one. Replaces a Next bar that sat fixed over the cards.
@@ -273,22 +270,6 @@ export function StoreThemeSelector() {
       cancelled = true;
     };
   }, [storeId, checklist]);
-
-  useEffect(() => {
-    if (!checklist || !user) return;
-    let cancelled = false;
-    supabase
-      .from("profiles")
-      .select("personal_username")
-      .eq("id", user.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (!cancelled && data) setOwnUsername(data.personal_username);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [checklist, user]);
 
   const previewTheme = THEMES.find((t) => t.id === previewing) ?? null;
   const confirmTheme = THEMES.find((t) => t.id === confirmUse) ?? null;
@@ -513,15 +494,7 @@ export function StoreThemeSelector() {
             </p>
             <button
               type="button"
-              disabled={!ownUsername}
-              onClick={() =>
-                ownUsername &&
-                navigate({
-                  to: "/profile/$username",
-                  params: { username: ownUsername },
-                  search: { tab: "store", welcome: true },
-                })
-              }
+              onClick={() => navigate({ to: "/home" })}
               className="oak-tap mt-6 flex h-14 w-full items-center justify-center gap-2 rounded-full bg-sd-ink text-[17px] font-bold text-sd-bg oak-motion-control active:scale-[0.98] disabled:opacity-60"
             >
               Next: see your storefront

@@ -13,6 +13,8 @@ import {
 
 const COMMISSION_PCT = `${(COMMISSION_RATE * 100).toFixed(1)}%`;
 const PAYSTACK_PCT = `${(PAYSTACK_RATE * 100).toFixed(1)}%`;
+// Both percentages together, as one number for the seller ("our 4.5%").
+const TOTAL_FEE_PCT = `${+((COMMISSION_RATE + PAYSTACK_RATE) * 100).toFixed(1)}%`;
 
 export function PricingSheet({
   price,
@@ -25,6 +27,7 @@ export function PricingSheet({
   onChangePassFeesToBuyer,
   onClose,
   focusField = "price",
+  appliesToAllVariants = false,
 }: {
   price: string;
   compareAtPrice: string;
@@ -39,6 +42,9 @@ export function PricingSheet({
   /** Which box gets the cursor on open -- "cost" when the sheet was opened
    *  from a Cost price button, so the seller lands where they tapped. */
   focusField?: "price" | "cost";
+  /** Opened for a variant (or Apply to all): says the fee toggle is
+   *  product-wide. */
+  appliesToAllVariants?: boolean;
 }) {
   const [breakdownOpen, setBreakdownOpen] = useState(false);
 
@@ -77,58 +83,21 @@ export function PricingSheet({
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-5">
-        {/* The field's label changes with the policy, because its meaning does.
-            Leaving it as "Price" while it quietly means "your take" is how a
-            seller ends up listing at a number they never intended. */}
-        <PriceBox
-          label={passFeesToBuyer ? "You receive" : "Price"}
-          value={price}
-          onChange={onChangePrice}
-          autoFocus={focusField === "price"}
-        />
-        <p className="text-xs text-gray-400 mt-1.5 mb-5">
-          {passFeesToBuyer
-            ? "What lands in your account. The customer is charged this plus the fees."
-            : "That's all you need — everything below is optional."}
-        </p>
-
-        <PriceBox
-          label="Compare-at price"
-          value={compareAtPrice}
-          onChange={onChangeCompareAtPrice}
-        />
-        <p className="text-xs text-gray-400 mt-1.5">
-          What the product would've cost without a discount — shown crossed out next to your actual
-          price.
-        </p>
-        {compareAtTooLow && (
-          <p className="text-xs text-amber-600 mt-1">
-            This is lower than the actual price, so it won't read as a discount.
-          </p>
-        )}
-        <div className="mb-5" />
-
-        <PriceBox
-          label="Cost price"
-          value={costPrice}
-          onChange={onChangeCostPrice}
-          autoFocus={focusField === "cost"}
-        />
-        <p className="text-xs text-gray-400 mt-1.5 mb-5">
-          Type in how much this product/variant cost you in order to measure your profit, customers
-          won't see this.
-        </p>
-
-        {/* Its own block, like the inventory sheet's toggle — this is a policy
-            decision, not another amount to type. */}
-        <div className="-mx-4 h-2 bg-gray-50" />
-        <div className="py-4">
+        {/* A policy decision, not another amount to type -- its own card. */}
+        <div className="border border-gray-400 rounded-2xl p-4 mb-4">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
-              <p className="text-[15px] text-gray-900">Customer covers the fees</p>
-              <p className="text-xs text-gray-500 mt-1">
-                Your price stays whole. Oakmonte's {COMMISSION_PCT} and Paystack's {PAYSTACK_PCT}{" "}
-                are added on top instead of coming out of it.
+              <p className="text-[15px] font-medium text-gray-900">Customer covers the fees</p>
+              {/* The toggle is product-wide, which only needs saying where
+                  there are variants for it to reach. */}
+              {appliesToAllVariants && (
+                <p className="text-[11px] text-gray-500 mt-0.5">
+                  For every variant of this product
+                </p>
+              )}
+              <p className="text-xs text-gray-600 mt-2">
+                This increases the price of the product by adding our {TOTAL_FEE_PCT} to the product
+                price.
               </p>
             </div>
             <div className="pt-0.5 shrink-0">
@@ -140,16 +109,63 @@ export function PricingSheet({
               />
             </div>
           </div>
-          <p className="text-[11px] text-gray-400 mt-2">
-            Applies to every variant of this product.
+        </div>
+        {/* Price and compare-at in one card: they're the two customer-facing
+            numbers and are read together (the crossed-out one next to the real
+            one). The divider keeps each explanation attached to its own field. */}
+        <div className="border border-gray-400 rounded-2xl p-4 mb-4">
+          {/* The label changes with the policy, because its meaning does.
+              Leaving it as "Price" while it quietly means "your take" is how a
+              seller ends up listing at a number they never intended. */}
+          <PriceBox
+            label={passFeesToBuyer ? "You receive" : "Price"}
+            value={price}
+            onChange={onChangePrice}
+            autoFocus={focusField === "price"}
+          />
+          <p className="text-xs text-gray-600 mt-2">
+            {passFeesToBuyer
+              ? "What lands in your account. The customer is charged this plus the fees."
+              : "That's all you need — everything below is optional."}
+          </p>
+
+          <div className="my-5 border-t border-gray-300" />
+
+          <PriceBox
+            label="Compare-at price"
+            value={compareAtPrice}
+            onChange={onChangeCompareAtPrice}
+          />
+          <p className="text-xs text-gray-600 mt-2">
+            What the product would've cost without a discount — shown crossed out next to your
+            actual price.
+          </p>
+          {compareAtTooLow && (
+            <p className="text-xs text-amber-700 mt-1.5">
+              This is lower than the actual price, so it won't read as a discount.
+            </p>
+          )}
+        </div>
+
+        <div className="border border-gray-400 rounded-2xl p-4 mb-6">
+          <p className="text-[15px] font-semibold text-gray-900 mb-3">Calculate profit</p>
+          <PriceBox
+            label="Cost price"
+            value={costPrice}
+            onChange={onChangeCostPrice}
+            autoFocus={focusField === "cost"}
+          />
+          <p className="text-xs text-gray-600 mt-2">
+            Type in how much this product/variant cost you in order to measure your profit,
+            customers won't see this.
           </p>
         </div>
-        <div className="-mx-4 h-2 bg-gray-50 mb-4" />
+
 
         {/* Always shown, whichever way the toggle is: the customer's number is
             the one a seller most wants to check. With fees passed on it's the
             price plus fees; without, it's simply the price itself. */}
-        <div className="border border-gray-900 rounded-xl p-3 mb-3">
+        <div className="border border-gray-900 rounded-2xl p-4 mb-3">
           <p className="text-xs text-gray-500 mb-1">Customer pays</p>
           <p className="text-[22px] font-semibold text-gray-900 leading-tight tabular-nums">
             {charged !== null ? formatNaira(charged) : "–"}
@@ -163,7 +179,7 @@ export function PricingSheet({
           )}
         </div>
 
-        <div className="border border-gray-300 rounded-xl overflow-hidden grid grid-cols-2 divide-x divide-gray-300">
+        <div className="border border-gray-400 rounded-2xl overflow-hidden grid grid-cols-2 divide-x divide-gray-400">
           <div className="p-3">
             <p className="text-xs text-gray-500 mb-1">You'll receive</p>
             <p className="text-[15px] font-medium text-gray-900 tabular-nums">
@@ -201,7 +217,7 @@ export function PricingSheet({
               />
             </button>
             {breakdownOpen && (
-              <div className="mt-2 border border-gray-300 rounded-lg p-3 flex flex-col gap-2 animate-in fade-in slide-in-from-top-2 duration-200 ease-out">
+              <div className="mt-2 border border-gray-400 rounded-xl p-3 flex flex-col gap-2 animate-in fade-in slide-in-from-top-2 duration-200 ease-out">
                 {/* Always starts from what the customer is charged — that is
                     what both fees are actually taken from. */}
                 <FeeLine
@@ -264,8 +280,8 @@ function PriceBox({
   }, [autoFocus]);
 
   return (
-    <label className="block border border-gray-400 bg-gray-50 rounded-xl px-3 py-2.5 mb-3">
-      <span className="block text-xs text-gray-500 mb-1">{label}</span>
+    <label className="block border border-gray-500 bg-gray-50 rounded-xl px-3 py-2.5">
+      <span className="block text-xs text-gray-700 mb-1">{label}</span>
       <span className="flex items-center gap-1">
         <span className="text-base text-gray-500">₦</span>
         <input
