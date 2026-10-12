@@ -26,6 +26,10 @@ Launch locks (Buy Now, the preview's Open website) live in `src/lib/launch-locks
 by default, unlocked only by `VITE_LAUNCH_UNLOCKED=true`, set in Vercel for the `sellers-only`
 preview. Keep both branches' code identical; never lock or unlock by editing code on one branch.
 
+**Parked features** (built, hidden to keep things simple) are switches in `src/lib/features.ts`:
+Wardrobe/Gallery (`WARDROBE_ENABLED`) is off. Park the next one there too, as a switch, not by
+deleting or commenting out code.
+
 The social side is removed **bit by bit, as Diadem walks through it** — don't strip features
 ahead of that. Half-built lanes are WIP on `feature/lane-{discounts,insights,activity,offline}`.
 

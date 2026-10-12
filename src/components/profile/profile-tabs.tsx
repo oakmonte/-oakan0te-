@@ -7,6 +7,7 @@
 // this: TABS is a plain data table, not a component, and it needs these
 // icons to build itself. Disabled deliberately, not a baseline exception.
 /* eslint-disable react-refresh/only-export-components */
+import { WARDROBE_ENABLED } from "@/lib/features";
 import type { ReactElement } from "react";
 
 function PostsIcon(props: { className?: string }) {
@@ -172,7 +173,13 @@ export const TABS: {
 /** Sellers-only pivot: likes, reposts and wishlist are social features, so
  *  neither profile shows them. The personal profile also drops its Store tab
  *  (the storefront); the store profile keeps it, it's the shop. */
-const SOCIAL_TABS: TabKey[] = ["reposts", "wishlist", "likedVideos"];
+const SOCIAL_TABS: TabKey[] = [
+  "reposts",
+  "wishlist",
+  "likedVideos",
+  // Parked, not removed: see WARDROBE_ENABLED in lib/features.ts.
+  ...(WARDROBE_ENABLED ? [] : (["wardrobe"] as const)),
+];
 export const PERSONAL_TABS = TABS.filter((t) => t.key !== "store" && !SOCIAL_TABS.includes(t.key));
 
 /** The store profile's tabs. A store still gets the wardrobe/gallery slot —
