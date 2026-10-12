@@ -65,32 +65,21 @@ the wipe bug or drops the deliberate no-location case.
 
 ## Variant "create a location mid-flow" return navigation
 
-Creating a pickup location from inside the variant wizard's Inventory sheet (Edit locations → new
-location → save) has to land back on the _same_ Inventory sheet, not the collapsed product form. The
-handoff (`product-draft-handoff.ts`'s `VariantInventoryContext`) is consumed via an
-`onInventoryContextConsumed` callback that `VariantMatrixBuilder` fires from **its own mount effect** —
-not a `useEffect(..., [])` at the page level. `VariantMatrixBuilder` only mounts once `storeId` resolves
-(an async effect of its own in `use-own-store.ts`), so a page-level effect clearing the handoff fires on
-the page's own first commit, well before the component that needs the value — or the grandchild that
-actually reads it — exists. Got this wrong once already (shipped a version where the whole feature was
-silently dead); if you add a similar side-trip-and-return flow anywhere else in this form, use the same
-child-owns-its-own-consumption pattern, not a parent-level clearing effect.
+Creating a pickup location from inside the variant wizard's Inventory sheet must land back on the
+_same_ Inventory sheet. Two shipped bugs, two rules:
 
-**Gotten wrong a second time, differently**: `InventorySheet`'s own in-progress edits (the toggle,
-whichever locations are checked, SKU, barcodes) only ever reach the page's `rows`/`regular*` state via
-that sheet's own Save button. Tapping "+" to create a new location from inside "Edit locations" does
-**not** go through Save — so `handleCreateLocation`'s `stashProductDraft(currentDraft())` used to
-snapshot the page's stale pre-edit copy of that row, silently dropping everything the seller had just
-toggled/checked (shipped bug: came back from creating a location with only the brand-new one checked,
-any stock already entered gone). Fixed by having `InventorySheet`'s `onCreateLocation` prop pass its
-_current_ uncommitted `InventoryValues` up (`(current: InventoryValues) => void`, not `() => void`),
-carried on `VariantInventoryContext` as `pending` for the row/bulk case, and folded directly into the
-stashed draft's `rows` in `handleCreateLocation` (a plain `pendingRegular` param for the non-variant
-path). It has to be folded in there, synchronously, rather than via a `setRows`/`setRegular*` call made
-just before — both happen inside the same click handler, and React doesn't apply a state update to that
-render's closure until after the handler returns, so a normal commit-then-stash ordering still stashes
-the old value. If you add another field to `InventoryValues`, or another side-trip out of a sheet with
-uncommitted local state, thread it through the same way rather than assuming "it's already in `rows`."
+- **The child that needs the handoff consumes it.** `VariantInventoryContext`
+  (`product-draft-handoff.ts`) is cleared via `onInventoryContextConsumed`, fired from
+  `VariantMatrixBuilder`'s own mount effect. It only mounts once `storeId` resolves, so a page-level
+  `useEffect(..., [])` cleared the handoff before anything could read it (the feature was silently
+  dead). Use the same pattern for any other side-trip-and-return flow.
+- **Uncommitted sheet edits travel with the side-trip.** `InventorySheet`'s edits only reach `rows`
+  via its Save button, and "+" (new location) skips Save. So `onCreateLocation` passes its current
+  `InventoryValues` up (`(current) => void`), carried as `pending` on the context (or
+  `pendingRegular` for non-variant products), and `handleCreateLocation` folds it into the stashed
+  draft synchronously. A `setRows` just before wouldn't work: state updates don't reach that
+  handler's closure. Thread any new `InventoryValues` field, or any new side-trip out of a sheet
+  with local state, the same way.
 
 ## Necessities checklist — where each answer actually lives
 
@@ -142,7 +131,7 @@ Two traps this cost real bugs to learn:
 Colour and material vocabularies live in `lib/color-options.ts` / `lib/material-options.ts`, not in
 `OptionEditorSheet.tsx`, so the Necessities pickers share the exact lists the variant editor uses. They
 can't move back into that component: a non-component export alongside a component export breaks Fast
-Refresh, and root `CLAUDE.md` caps that warning at exactly 6.
+Refresh.
 
 `MATERIAL_GROUPS` is grouped (Fabrics / Leather & synthetics / Metals & gemstones
 / Art, craft & home) rather than category-scoped, so a slightly-wrong category never hides the right
@@ -221,71 +210,39 @@ pattern for any other destructive action added to the form.
 
 ## Barcodes
 
-`barcode-types.ts`'s six `BarcodeType`s (`custom`/`gtin`/`upc`/`ean`/`isbn`/`asin`) are handled uniformly
-end-to-end — verified 2026-09-09 by tracing entry (`BarcodesSheet.tsx`) → save/update
-(`product-save.ts`'s `barcodeInsertRows`, shared by create and the delete-and-rebuild update path) →
-load (`toBarcodeType`, `store.products_.$id.tsx`) — no type-specific branching drops or mishandles any
-of them, and the DB column has no constraint that would block one. The one place types are handled
-_unevenly_, deliberately: `BarcodeScanSheet.tsx`'s camera auto-detection only classifies `ean`/`isbn`
-(by EAN-13 prefix 978/979) and `upc`, because those are the only types with a real scannable symbology.
-`gtin` and `asin` are never auto-picked — they're manual-only in the type dropdown, by design, not a
-gap.
+All six `BarcodeType`s (`barcode-types.ts`) go through entry, save and load uniformly (traced
+2026-09-09). The one deliberate asymmetry: camera auto-detect (`BarcodeScanSheet.tsx`) only picks
+`ean`/`isbn` (978/979 prefix) and `upc`, the types with a scannable symbology. `gtin`/`asin` are
+manual-only by design, not a gap.
 
 ## DescriptionSheet (product + collection description)
 
-Two-level Bold, not a plain toggle: cycles off → 600 (outlined button) → 900 (filled-black button) →
-off. `cycleBold`/`currentBoldLevel` in `DescriptionSheet.tsx`. Inter must have `900` loaded in
-`__root.tsx`'s font link or the heavy level silently renders identical to plain browser-default bold
-(700) — it fell back invisibly once already. Sanitizer allow-list for this lives in `sanitize-html.ts`'s
-`FONT_WEIGHT_STYLE` (exact `600`/`900` only, not a general "allow style" hole).
+Bold cycles off → 600 (outlined) → 900 (filled) → off (`cycleBold`). Inter `900` must stay loaded in
+`__root.tsx` or the heavy level silently renders as 700. The sanitizer allows exactly those two
+weights (`FONT_WEIGHT_STYLE` in `sanitize-html.ts`), not general `style`.
 
-**Every format button is a pure "what happens to text typed from here on" switch — never a retroactive
-edit of text already on the page.** This was gotten wrong once already: the first fix for the
-collapsed-cursor toggle-off bug below _expanded the selection to the whole enclosing element and
-toggled that off_, which silently reformatted already-typed text and left a non-collapsed selection
-behind that the next keystroke would type over — reported back as "if I type underline, I can't switch
-back." Don't reintroduce that shape of fix. The two helpers that replaced it, both in
-`DescriptionSheet.tsx`, only ever move the _caret_, never touch existing nodes:
+**Format buttons only affect text typed from here on; they never reformat existing text.** An
+earlier fix expanded the selection and toggled the whole element off, which reformatted typed text
+and left a selection the next keystroke typed over. Both helpers in `DescriptionSheet.tsx` only move
+the caret:
 
-- `escapeFormatIfCollapsed(tagSelector)` — for turning a format OFF from a collapsed cursor. A plain
-  `execCommand` toggle-off leaves the caret still physically inside the `<u>`/`<i>`/`<b>` element's DOM
-  boundary, so the browser keeps extending that same element for whatever's typed next regardless of
-  the toggled flag (reads as "the button doesn't turn off"). Inserting a plain text node at the caret
-  doesn't fix it either — `Range.insertNode` at that position still lands the node _inside_ the element,
-  which still inherits its style. The only real fix is moving the caret to the element's next **sibling**
-  position, outside its closing tag — via an invisible zero-width-space marker (`ZERO_WIDTH_SPACE`) so
-  the caret has somewhere to land.
-- `insertBoldRunAtCaret(weight)` — for bold specifically, needed because two _on_ levels (600/900) exist
-  and stepping between them means changing a weight, not just toggling a class. Never restyle whatever
-  `<b>`/`<strong>` the caret already happens to be inside — that mutates whatever was typed under the
-  previous level. Always create a brand-new `<b>` with its own explicit inline weight at the caret
-  instead; an inline style always wins over an inherited one, so it's harmless if this ends up nested
-  inside the old wrapper.
+- `escapeFormatIfCollapsed(tagSelector)`: turning a format off from a collapsed cursor. `execCommand`
+  leaves the caret inside the `<u>`/`<i>`/`<b>`, and `Range.insertNode` lands inside it too, so the
+  caret is moved to the element's next sibling via a zero-width-space marker.
+- `insertBoldRunAtCaret(weight)`: always a new `<b>` with an inline weight at the caret, never a
+  restyle of the `<b>` the caret is in (that would change already-typed text).
 
-`cycleBold` drives its 0→1→2→0 sequence off `formats.bold` (the button's own last-known React state),
-never by re-deriving from the DOM mid-cycle — tapping three times with no typing in between often has no
-`<b>` element to inspect yet at all, so a DOM-derived read can't tell level 1 from level 2 in that case.
-A **real** (non-collapsed) selection is the one case where restyling existing text directly
-(`setBoldWeightOnSelection`) is correct — the seller explicitly selected it to act on it.
+`cycleBold` steps off `formats.bold` (React state), not the DOM: three taps with no typing leave no
+`<b>` to inspect. A real (non-collapsed) selection is the one case that restyles existing text
+(`setBoldWeightOnSelection`). `stripEditorArtifacts` removes the markers and empty format tags on
+Save. Route any new toggleable format's off-transition through `escapeFormatIfCollapsed`.
 
-Both marker helpers leave invisible zero-width-space text nodes behind as caret anchors, cleaned up on
-Save by `stripEditorArtifacts` (strips the character, then removes any b/strong/i/em/u left empty by a
-tapped-but-never-typed-into format). If you add another toggleable format here, route its off-transition
-through `escapeFormatIfCollapsed` or it'll have the identical "can't switch back" bug.
+Toolbar buttons expand their hit area with `before:-inset-1.5` only; they sit 2px apart.
 
-Toolbar buttons use an invisible `before:-inset-1.5` hit-area expansion (`ToolbarButton` in
-`DescriptionSheet.tsx`) — kept modest since the buttons sit only `gap-0.5` (2px) apart; a bigger
-expansion makes neighbors' hit zones collide more than it closes real dead space.
+## Autosave clearing: clear synchronously at the Save call site
 
-## Autosave clearing — clear synchronously at the Save call site, not in the background save
-
-`startProductSave` (`product-save.ts`) is fire-and-forget: both `store.products_.new.tsx` and
-`store.products_.$id.tsx`'s `writeProduct` call it without awaiting, then navigate away immediately.
-(`performSave` in front of it is only a gate: it opens `DraftWarningDialog` when the product is still
-a draft.) `product-save.ts`'s own `run()` clears the relevant `localStorage` autosave slot, but only
-once the real DB writes finish — seconds away for a variant product. That's too late: both pages now
-also call `clearAutosavedDraft(...)` directly in `writeProduct`, synchronously, right before
-`navigate()`. Without it, tapping "+" (or reopening the same product) inside that window restores the
-just-saved draft into what should be a blank/fresh form — a real, shipped bug. Keep the synchronous
-call if you touch either `writeProduct`; the deferred one in `product-save.ts` is a harmless backstop,
-not the actual fix.
+`startProductSave` (`product-save.ts`) is fire-and-forget; `writeProduct` on both pages navigates
+away immediately. Its own autosave clear runs only after the DB writes finish, seconds later for a
+variant product, so tapping "+" in that window restored the just-saved draft (shipped bug). Both
+`writeProduct`s call `clearAutosavedDraft(...)` synchronously before `navigate()`. Keep that; the
+deferred clear is only a backstop.

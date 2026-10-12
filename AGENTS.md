@@ -1,12 +1,7 @@
-<!-- LOVABLE:BEGIN -->
+# Agents
 
-> [!IMPORTANT]
-> This project is connected to [Lovable](https://lovable.dev). Avoid rewriting
-> published git history — force pushing, or rebasing/amending/squashing commits
-> that are already pushed — as it rewrites history on Lovable's side and the
-> user will likely lose their project history.
->
-> Commits you push to the connected branch sync back to Lovable and show up in
-> the editor, so keep the branch in a working state.
+Project instructions live in `CLAUDE.md` (root, plus `src/components/product-form/CLAUDE.md` and
+`src/components/camera/CLAUDE.md`). Task skills live in `.claude/skills/`. Read those; there is no
+separate copy for other agents.
 
-<!-- LOVABLE:END -->
+Never rewrite pushed history (force push, rebase, amend, squash) -- the remote is shared.
