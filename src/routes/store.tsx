@@ -7,10 +7,8 @@ import {
   Home,
   ShoppingBag,
   Package,
-  Users,
   TrendingUp,
   Tag,
-  Image as ImageIcon,
   Wallet,
   ArrowLeftCircle,
   Store as StoreIcon,
@@ -77,10 +75,8 @@ const NAV_ITEMS = [
   { label: "Home", to: "/store", icon: Home },
   { label: "Orders", to: "/store/orders", icon: ShoppingBag },
   { label: "Products", to: "/store/products", icon: Package },
-  { label: "Customers", to: "/store/customers", icon: Users },
   { label: "Growth", to: "/store/growth", icon: TrendingUp },
   { label: "Discounts", to: "/store/discounts", icon: Tag },
-  { label: "Content", to: "/store/content", icon: ImageIcon },
   { label: "Finance", to: "/store/finance", icon: Wallet },
   // Store themes and Pickup locations are deliberately NOT here. They belong to
   // the store home only (the Edit store button and Quick actions on the
