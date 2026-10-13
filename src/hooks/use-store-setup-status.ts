@@ -4,6 +4,9 @@ import { supabase } from "@/lib/integrations/my-supabase/client";
 import { hasInstalledApp } from "@/lib/installed-app";
 import { useSession } from "@/hooks/use-session";
 
+/** Published posts the "Post content" step needs before it counts as done. */
+export const POSTS_NEEDED = 2;
+
 export type StoreSetupStatus = {
   // True until every signal below has resolved at least once -- callers that
   // gate a one-time action (like the profile page's seller prompt) on
@@ -27,13 +30,15 @@ export type StoreSetupStatus = {
   payoutStatus: string | null;
   locationCount: number | null;
   productCount: number | null;
+  // Published posts by the store's owner; the step needs POSTS_NEEDED.
+  postCount: number | null;
   themeIdSet: boolean;
   // Whether this account has opened the installed app. The checklist shows a
   // step for it, but see `complete` below -- it is deliberately not one of the
   // signals that add up to a finished store.
   installedApp: boolean;
-  // Mirrors the four *store* steps store.index.tsx's checklist tracks (get
-  // paid, pickup locations, list products, customise storefront) -- kept as one
+  // Mirrors the five *store* steps the checklist tracks (get
+  // paid, pickup locations, list products, post content, customise storefront) -- kept as one
   // shared hook so a "finished onboarding" check elsewhere in the app (e.g.
   // the profile page's seller prompt) can't quietly drift from what the
   // checklist itself considers done.
@@ -45,7 +50,7 @@ export type StoreSetupStatus = {
   // re-nagged by the profile prompt every single session, with no card on
   // screen to explain why.
   complete: boolean;
-  // The first of the four store steps still outstanding, or null once they are
+  // The first of the five store steps still outstanding, or null once they are
   // all done. Lives here rather than in the caller so the profile page's
   // prompt names the same "next thing" the checklist would put them on.
   // Mirrors store.index.tsx's card order -- keep the two in step.
@@ -84,6 +89,7 @@ export function useStoreSetupStatus(storeId: string | null): StoreSetupStatus {
   const [payoutLoaded, setPayoutLoaded] = useState(false);
   const [locationCount, setLocationCount] = useState<number | null>(null);
   const [productCount, setProductCount] = useState<number | null>(null);
+  const [postCount, setPostCount] = useState<number | null>(null);
   const [themeIdSet, setThemeIdSet] = useState(false);
   const [themeLoaded, setThemeLoaded] = useState(false);
   const [onboardedAt, setOnboardedAt] = useState<string | null>(null);
@@ -175,6 +181,28 @@ export function useStoreSetupStatus(storeId: string | null): StoreSetupStatus {
   }, [storeId, attempt]);
 
   useEffect(() => {
+    if (!storeId || !user) return;
+    let cancelled = false;
+    supabase
+      .from("posts")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .eq("status", "published")
+      .then(({ count, error }) => {
+        if (cancelled) return;
+        if (error) {
+          console.error("useStoreSetupStatus: failed to load post count", error);
+          setFailed(true);
+          return;
+        }
+        setPostCount(count ?? 0);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [storeId, user, attempt]);
+
+  useEffect(() => {
     if (!storeId) return;
     let cancelled = false;
     supabase
@@ -209,6 +237,7 @@ export function useStoreSetupStatus(storeId: string | null): StoreSetupStatus {
     !payoutLoaded ||
     locationCount === null ||
     productCount === null ||
+    postCount === null ||
     !themeLoaded;
 
   const retry = useCallback(() => {
@@ -216,7 +245,9 @@ export function useStoreSetupStatus(storeId: string | null): StoreSetupStatus {
     setAttempt((a) => a + 1);
   }, []);
 
-  const complete = !loading && payoutSet && !!locationCount && !!productCount && themeIdSet;
+  const postsDone = (postCount ?? 0) >= POSTS_NEEDED;
+  const complete =
+    !loading && payoutSet && !!locationCount && !!productCount && postsDone && themeIdSet;
 
   // Stamps the one-way graduation the instant this store first finishes
   // setup. Gated on `themeLoaded` (not just `complete`) so this never fires
@@ -257,9 +288,11 @@ export function useStoreSetupStatus(storeId: string | null): StoreSetupStatus {
         ? "Add a pickup location"
         : !productCount
           ? "List your first product"
-          : !themeIdSet
-            ? "Customise your store front"
-            : null;
+          : !postsDone
+            ? "Post content"
+            : !themeIdSet
+              ? "Customise your store front"
+              : null;
 
   return {
     loading,
@@ -267,6 +300,7 @@ export function useStoreSetupStatus(storeId: string | null): StoreSetupStatus {
     payoutStatus,
     locationCount,
     productCount,
+    postCount,
     themeIdSet,
     installedApp: hasInstalledApp(user),
     complete,

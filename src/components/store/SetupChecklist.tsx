@@ -1,8 +1,8 @@
 import { useNavigate } from "@tanstack/react-router";
-import { Palette, Wallet, Package, MapPin, Smartphone, X } from "lucide-react";
+import { Palette, Wallet, Package, MapPin, Smartphone, Clapperboard, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useActiveStoreId } from "@/hooks/use-own-store";
-import type { StoreSetupStatus } from "@/hooks/use-store-setup-status";
+import { POSTS_NEEDED, type StoreSetupStatus } from "@/hooks/use-store-setup-status";
 import { LocationsListSheet } from "@/components/store/LocationsListSheet";
 import { isInstallablePhone } from "@/lib/platform";
 import { isStandalone } from "@/lib/standalone";
@@ -102,6 +102,7 @@ export function SetupChecklist({ status }: { status: StoreSetupStatus }) {
     payoutStatus,
     locationCount,
     productCount,
+    postCount,
     themeIdSet,
     installedApp,
     setLocationCount,
@@ -205,6 +206,18 @@ export function SetupChecklist({ status }: { status: StoreSetupStatus }) {
       done: !!productCount,
       state: plainStepState(!!productCount),
       go: () => navigate({ to: "/store/products", search: { checklist: true } }),
+    },
+    {
+      key: "posts",
+      label: "Post content",
+      description:
+        (postCount ?? 0) >= POSTS_NEEDED
+          ? `${postCount} posts live.`
+          : `Post at least ${POSTS_NEEDED} videos or photos${postCount ? ` (${postCount} so far)` : ""}.`,
+      icon: Clapperboard,
+      done: (postCount ?? 0) >= POSTS_NEEDED,
+      state: plainStepState((postCount ?? 0) >= POSTS_NEEDED),
+      go: () => navigate({ to: "/create" }),
     },
     {
       key: "theme",

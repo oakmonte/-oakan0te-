@@ -24,10 +24,14 @@ type CollectionRow = {
   count: number;
 };
 
+// Collections have no import source, so there's no Uploaded filter here.
+const FILTERS = ["All", "Active", "Inactive"] as const;
+
 export function CollectionsPanel() {
   const navigate = useNavigate();
   const { storeId, loading: storeLoading } = useActiveStoreId();
   const [collections, setCollections] = useState<CollectionRow[] | null>(null);
+  const [filter, setFilter] = useState<(typeof FILTERS)[number]>("All");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const selectMode = selectedIds.size > 0;
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
@@ -101,6 +105,11 @@ export function CollectionsPanel() {
     );
 
   const hasCollections = collections !== null && collections.length > 0;
+  // "Inactive" is the label for the "draft" status in the database.
+  const shown = (collections ?? []).filter(
+    (c) =>
+      filter === "All" || (filter === "Inactive" ? c.status === "draft" : c.status !== "draft"),
+  );
 
   return (
     <div>
@@ -119,6 +128,21 @@ export function CollectionsPanel() {
           >
             <Plus size={18} />
           </button>
+        </div>
+      )}
+
+      {hasCollections && (
+        <div className="flex items-center gap-5 mb-6 border-b border-sd-line text-[14px] overflow-x-auto">
+          {FILTERS.map((f) => (
+            <button
+              key={f}
+              type="button"
+              onClick={() => setFilter(f)}
+              className={`oak-tap shrink-0 pb-3 -mb-px border-b-2 font-medium transition-colors duration-200 ${filter === f ? "border-sd-ink font-semibold text-sd-ink" : "border-transparent text-sd-ink-muted"}`}
+            >
+              {f}
+            </button>
+          ))}
         </div>
       )}
 
@@ -145,7 +169,12 @@ export function CollectionsPanel() {
         </div>
       ) : (
         <div className="flex flex-col gap-3 animate-in fade-in duration-300">
-          {collections.map((c) => (
+          {shown.length === 0 && (
+            <p className="text-[15px] text-sd-ink-faint text-center py-12">
+              No {filter.toLowerCase()} collections.
+            </p>
+          )}
+          {shown.map((c) => (
             <CollectionListRow
               key={c.id}
               collection={c}

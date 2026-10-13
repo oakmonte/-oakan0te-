@@ -1,7 +1,7 @@
 // src/components/ProfileTabEmptyState.tsx
 import { useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { Image as ImageIcon, Instagram } from "lucide-react";
+import { Image as ImageIcon } from "lucide-react";
 import type { TabKey } from "@/components/profile/profile-tabs";
 import { setPendingCapture } from "@/lib/capture-handoff";
 
@@ -90,9 +90,6 @@ export function ProfileTabEmptyState({
                   className="w-full flex items-center justify-center gap-2 rounded-full bg-chat-text/[0.06] py-2.5 text-[13px] font-medium"
                 >
                   <ImageIcon size={15} /> Upload from gallery
-                </button>
-                <button className="w-full flex items-center justify-center gap-2 rounded-full bg-chat-text/[0.06] py-2.5 text-[13px] font-medium">
-                  <Instagram size={15} /> Upload from Instagram
                 </button>
               </div>
             </div>
