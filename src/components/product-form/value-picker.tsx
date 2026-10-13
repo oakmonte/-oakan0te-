@@ -45,7 +45,7 @@ export function SystemMenu({
           Change {typeName}
           <ChevronRight size={15} className="text-gray-400" />
         </span>
-        <span className="flex items-center gap-1.5 text-sm font-medium text-gray-900 border border-gray-300 rounded-full px-4 py-2.5 min-w-20 justify-center">
+        <span className="flex items-center gap-1.5 text-sm font-medium text-gray-900 border border-gray-500 rounded-full px-4 py-2.5 min-w-20 justify-center">
           {activeSystem}
           <ChevronDown size={15} className="text-gray-500" />
         </span>
@@ -59,7 +59,7 @@ export function SystemMenu({
             className="fixed inset-0 z-10 cursor-default"
           />
           <div
-            className={`absolute right-0 top-12 z-20 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden ${
+            className={`absolute right-0 top-12 z-20 bg-white border border-gray-400 rounded-xl shadow-lg overflow-hidden ${
               locked ? "w-60" : "min-w-28"
             }`}
           >
@@ -114,7 +114,7 @@ export function ValueRow({
   return (
     <div
       className={`flex items-center rounded-xl border ${
-        selected ? "border-black bg-gray-50" : "border-gray-200 bg-white"
+        selected ? "border-black bg-gray-50" : "border-gray-400 bg-white"
       }`}
     >
       <button
@@ -126,7 +126,7 @@ export function ValueRow({
         <span className="text-[15px] text-gray-900 truncate">{label}</span>
         <span
           className={`ml-auto w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
-            selected ? "bg-black border-black" : "border-gray-300"
+            selected ? "bg-black border-black" : "border-gray-500"
           }`}
         >
           {selected && <Check size={13} className="text-white" />}

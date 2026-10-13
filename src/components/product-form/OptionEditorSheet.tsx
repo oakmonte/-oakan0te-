@@ -19,9 +19,75 @@ const PRESETS = ["Size", "Color", "Material", "Weight/Volume"] as const;
 // drifted. EU follows the standard EU = US + 32 conversion (EU 32 = US 0).
 export const SIZE_SYSTEMS = {
   XXL: ["XS", "S", "M", "L", "XL", "XXL", "3XL", "4XL", "5XL"],
-  US: ["0", "2", "4", "6", "8", "10", "12", "14", "16", "18", "20"],
-  UK: ["4", "6", "8", "10", "12", "14", "16", "18", "20", "22", "24"],
-  EU: ["32", "34", "36", "38", "40", "42", "44", "46", "48", "50", "52"],
+  US: [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "10",
+    "11",
+    "12",
+    "13",
+    "14",
+    "15",
+    "16",
+    "17",
+    "18",
+    "19",
+    "20",
+  ],
+  UK: [
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "10",
+    "11",
+    "12",
+    "13",
+    "14",
+    "15",
+    "16",
+    "17",
+    "18",
+    "19",
+    "20",
+    "21",
+    "22",
+    "23",
+    "24",
+  ],
+  EU: [
+    "32",
+    "33",
+    "34",
+    "35",
+    "36",
+    "37",
+    "38",
+    "39",
+    "40",
+    "41",
+    "42",
+    "43",
+    "44",
+    "45",
+    "46",
+    "47",
+    "48",
+    "49",
+    "50",
+    "51",
+    "52",
+  ],
   Words: ["Extra Small", "Small", "Medium", "Large", "Extra Large", "2X Large", "3X Large"],
 } as const;
 
@@ -592,7 +658,7 @@ export function OptionEditorSheet({
           onChange={(e) => renameName(e.target.value)}
           placeholder="Option name e.g size, colour... etc"
           autoFocus={!initialName}
-          className="w-full text-lg font-medium text-gray-900 border border-gray-200 rounded-xl px-4 py-4 outline-none focus:border-gray-400 mb-3"
+          className="w-full text-lg font-medium text-gray-900 border border-gray-400 rounded-xl px-4 py-4 outline-none focus:border-gray-400 mb-3"
         />
         <div className="flex flex-wrap gap-2">
           {allPills.map((p) => {
@@ -619,7 +685,7 @@ export function OptionEditorSheet({
                       ? "bg-white text-gray-900 border-blue-500"
                       : disabled
                         ? "bg-white text-gray-300 border-gray-100"
-                        : "bg-white text-gray-700 border-gray-200"
+                        : "bg-white text-gray-700 border-gray-400"
                 }`}
               >
                 {p}
@@ -667,7 +733,7 @@ export function OptionEditorSheet({
                     <button
                       type="button"
                       onClick={cancelValues}
-                      className="flex-1 border border-gray-200 text-sm font-medium text-gray-600 rounded-lg py-2.5"
+                      className="flex-1 border border-gray-400 text-sm font-medium text-gray-600 rounded-lg py-2.5"
                     >
                       Cancel
                     </button>
@@ -702,7 +768,7 @@ export function OptionEditorSheet({
                     has no working Enter/Go key at all, so the keydown
                     handler below is a bonus for keyboards that do send one,
                     never the only way in. */}
-                <div className="flex items-center border border-gray-200 rounded-xl px-4 py-4 focus-within:border-gray-400">
+                <div className="flex items-center border border-gray-400 rounded-xl px-4 py-4 focus-within:border-gray-400">
                   <input
                     value={numericDraft}
                     onChange={(e) => {
@@ -756,7 +822,7 @@ export function OptionEditorSheet({
                     }
                   }}
                   placeholder="Add or search a value"
-                  className="w-full text-[17px] border border-gray-300 rounded-2xl px-5 py-[22px] outline-none focus:border-gray-500"
+                  className="w-full text-[17px] border border-gray-500 rounded-2xl px-5 py-[22px] outline-none focus:border-gray-500"
                 />
                 {systems && (
                   <div className="mt-5 mb-1">
@@ -782,7 +848,7 @@ export function OptionEditorSheet({
                 <button
                   type="button"
                   onClick={createValue}
-                  className="w-full flex items-center gap-3 border border-dashed border-gray-300 rounded-xl px-4 py-3.5 text-left"
+                  className="w-full flex items-center gap-3 border border-dashed border-gray-500 rounded-xl px-4 py-3.5 text-left"
                 >
                   <Plus size={18} className="text-gray-400 shrink-0" />
                   <span className="text-[15px] text-gray-900">
