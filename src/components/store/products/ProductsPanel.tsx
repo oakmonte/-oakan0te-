@@ -462,7 +462,7 @@ function ProductListRow({
       type="button"
       {...longPress}
       style={{ WebkitTouchCallout: "none" }}
-      className="oak-tap w-full flex items-center gap-3 border border-sd-line rounded-2xl p-3.5 text-left select-none oak-motion-control active:scale-[0.99]"
+      className="oak-tap w-full flex items-center gap-3 border border-sd-ink/40 rounded-2xl p-3.5 text-left select-none oak-motion-control active:scale-[0.99]"
     >
       {selectMode && (
         <span
