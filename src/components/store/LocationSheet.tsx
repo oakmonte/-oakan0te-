@@ -430,7 +430,7 @@ export function LocationSheet({
               onChange={setAddressLine}
               onPick={applyPicked}
               regionCode={countryCode || undefined}
-              placeholder="Start typing your address"
+              placeholder="Address line 1"
               className={`w-full text-base border rounded-xl px-4 py-3 outline-none focus:border-sd-ink-faint transition-colors duration-150 ${
                 showErrors && !addressLine.trim() ? "border-sd-danger-mark/50" : "border-sd-line"
               }`}

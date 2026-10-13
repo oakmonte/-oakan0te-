@@ -410,7 +410,7 @@ export function DeliveryCheckout({
           </button>
           <AddressAutocomplete
             className={`${field} w-full ${bad(!addressLineOk(addressLine))}`}
-            placeholder="Start typing your address"
+            placeholder="Address line 1"
             value={addressLine}
             onChange={setAddressLine}
             onPick={applyPicked}
