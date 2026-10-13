@@ -66,6 +66,19 @@ export type PickedAddress = {
 
 type Suggestion = { placeId: string; main: string; secondary: string };
 
+// Opens the connection to Google (DNS + TLS, a few hundred ms on a phone
+// network) when the field is focused, so the first suggestion doesn't pay it.
+let warmed = false;
+function warmUp() {
+  if (warmed || !BROWSER_KEY || typeof document === "undefined") return;
+  warmed = true;
+  const link = document.createElement("link");
+  link.rel = "preconnect";
+  link.href = "https://places.googleapis.com";
+  link.crossOrigin = "anonymous";
+  document.head.appendChild(link);
+}
+
 function newToken() {
   return typeof crypto !== "undefined" && "randomUUID" in crypto
     ? crypto.randomUUID()
@@ -128,7 +141,7 @@ export function AddressAutocomplete({
           setSuggestions(found);
         })
         .catch(() => {});
-    }, 150);
+    }, 90);
     return () => {
       controller.abort();
       clearTimeout(t);
@@ -162,7 +175,10 @@ export function AddressAutocomplete({
           onChange(e.target.value);
           setOpen(true);
         }}
-        onFocus={() => setOpen(true)}
+        onFocus={() => {
+          warmUp();
+          setOpen(true);
+        }}
         // Long enough for a tap on a suggestion to land first.
         onBlur={() => setTimeout(() => setOpen(false), 150)}
         // The browser's own saved-address dropdown would sit on top of ours.
