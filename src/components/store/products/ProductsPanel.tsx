@@ -327,7 +327,7 @@ export function ProductsPanel({ checklist }: { checklist?: boolean }) {
             <button
               type="button"
               onClick={() => navigate({ to: "/store/products/upload" })}
-              className="oak-tap w-full max-w-xs h-12 rounded-full border border-sd-ink-muted text-sd-ink text-[15px] font-semibold oak-motion-control active:scale-[0.98]"
+              className="oak-tap w-full max-w-xs h-12 rounded-full border-[1.5px] border-sd-ink/75 text-sd-ink text-[15px] font-semibold oak-motion-control active:scale-[0.98]"
             >
               Import products
             </button>
