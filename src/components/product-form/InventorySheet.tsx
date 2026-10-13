@@ -297,7 +297,7 @@ export function InventorySheet({
           ) : (
             <div className="flex flex-col">
               <div className="flex items-center justify-between pb-2 border-b border-gray-100">
-                <span className="text-xs text-gray-400">Location</span>
+                <span className="text-xs text-gray-400">Locations</span>
                 <span className="text-xs text-gray-400">Available</span>
               </div>
               {selectedLocations.map((loc) => (
