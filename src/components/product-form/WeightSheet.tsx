@@ -71,7 +71,7 @@ export function WeightSheet({
         <p className="text-xs text-gray-400 mb-3">
           How much this item weighs on its own, for shipping — not the box or packaging.
         </p>
-        <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-4 py-4 focus-within:border-gray-400">
+        <div className="flex items-center gap-2 border border-gray-500 rounded-xl px-4 py-4 focus-within:border-gray-800">
           <input
             type="number"
             inputMode="numeric"
@@ -86,7 +86,7 @@ export function WeightSheet({
         <button
           type="button"
           onClick={applyEstimate}
-          className="mt-3 text-xs font-medium text-gray-900 border border-gray-200 rounded-full px-3 py-1.5 oak-motion-control"
+          className="mt-3 text-xs font-medium text-gray-900 border border-gray-500 rounded-full px-3 py-1.5 oak-motion-control"
         >
           Estimate weight
         </button>

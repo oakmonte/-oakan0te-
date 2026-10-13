@@ -712,12 +712,17 @@ export function VariantCombinationsSheet({
               they pick.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-full">Add photos</AlertDialogCancel>
-            <AlertDialogAction onClick={onDone} className="bg-black rounded-full">
+          <div className="flex flex-col gap-2">
+            <AlertDialogCancel className="m-0 h-12 rounded-full border-0 bg-black text-[15px] font-semibold text-white hover:bg-black hover:text-white">
+              Add photos
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={onDone}
+              className="h-10 rounded-full border border-gray-400 bg-white text-gray-900 shadow-none hover:bg-white"
+            >
               Continue anyway
             </AlertDialogAction>
-          </AlertDialogFooter>
+          </div>
         </AlertDialogContent>
       </AlertDialog>
     </PageSheet>
@@ -818,7 +823,7 @@ function VariantImagePopover({
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl p-4 w-full max-w-xs animate-in fade-in zoom-in-95 duration-200 ease-out"
+        className="bg-white rounded-2xl p-4 w-full max-w-xs max-h-[85dvh] overflow-y-auto overscroll-contain animate-in fade-in zoom-in-95 duration-200 ease-out"
         onClick={(e) => e.stopPropagation()}
       >
         {filePicker.node}
