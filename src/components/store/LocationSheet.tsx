@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
-import { X, MapPin, LocateFixed, ChevronRight, Check, BadgeCheck } from "lucide-react";
+import { X, LocateFixed, ChevronRight, Check, BadgeCheck } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -516,13 +516,6 @@ export function LocationSheet({
             onClose={() => setPickerOpen(null)}
           />
         )}
-        {lat != null && lng != null && (
-          <div className="flex items-center gap-2 text-xs text-sd-ink-muted">
-            <MapPin size={13} className="text-sd-ink-faint shrink-0" />
-            Exact pin saved ({lat.toFixed(5)}, {lng.toFixed(5)}) — riders use this to find you.
-          </div>
-        )}
-
         {initial?.verifiedAddress && (
           <div className="flex items-start gap-2 text-xs text-sd-ink-muted">
             <BadgeCheck size={14} className="text-sd-ink shrink-0 mt-px" />
@@ -532,13 +525,10 @@ export function LocationSheet({
           </div>
         )}
 
-        <div>
-          <p className="text-[17px] font-semibold text-sd-ink mb-1">
+        <div className="border border-sd-line rounded-3xl p-5 bg-sd-elevated">
+          <p className="text-[17px] font-semibold text-sd-ink mb-3">
             Additional information{" "}
             <span className="text-xs font-normal text-sd-ink-faint">(optional)</span>
-          </p>
-          <p className="text-xs text-sd-ink-muted mb-3">
-            Anything that helps a rider find you — gate colour, landmark, which floor, when to call.
           </p>
           <textarea
             value={notes}
@@ -548,12 +538,6 @@ export function LocationSheet({
             className="w-full resize-none text-base border border-sd-line rounded-xl px-4 py-3 outline-none focus:border-sd-ink-faint transition-colors duration-150 placeholder:text-sd-ink-faint"
           />
         </div>
-
-        <p className="text-xs text-sd-ink-muted flex items-start gap-1.5">
-          <ChevronRight size={13} className="text-sd-ink-faint shrink-0 mt-0.5" />
-          Only riders dispatching your orders (and you, at checkout as a buyer) see this. Curators
-          and creators never do.
-        </p>
 
         {isEditing && onDelete && (
           <button
@@ -566,13 +550,9 @@ export function LocationSheet({
           </button>
         )}
 
-        <div>
-          <p className="text-[17px] font-semibold text-sd-ink mb-1">
+        <div className="border border-sd-line rounded-3xl p-5 bg-sd-elevated">
+          <p className="text-[17px] font-semibold text-sd-ink mb-3">
             Location name <span className="text-xs font-normal text-sd-ink-faint">(required)</span>
-          </p>
-          <p className="text-xs text-sd-ink-muted mb-3">
-            So you can tell it apart from your other locations — e.g. "Lekki warehouse" or "Main
-            store".
           </p>
           <div className="relative">
             <input
