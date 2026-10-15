@@ -1,10 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { verifyPaystackSignature } from "@/lib/paystack.server";
 import { settlePaystackPayment } from "@/lib/orders.server";
-import { settleTransfer } from "@/lib/payouts.server";
 
-// Paystack calls this when a charge succeeds, and when a seller payout
-// transfer lands or fails. The body is only trusted after
+// Paystack calls this when a charge succeeds. The body is only trusted after
 // its HMAC-SHA512 signature checks out against our secret key; an unsigned or
 // forged call gets a 401 and changes nothing.
 export const Route = createFileRoute("/api/paystack/webhook")({
@@ -31,14 +29,6 @@ export const Route = createFileRoute("/api/paystack/webhook")({
             currency: String(event.data.currency ?? ""),
           });
           console.log("paystack charge.success", event.data.reference, result);
-        }
-        if (
-          (event.event === "transfer.success" ||
-            event.event === "transfer.failed" ||
-            event.event === "transfer.reversed") &&
-          event.data
-        ) {
-          await settleTransfer(event.event, String(event.data.reference ?? ""));
         }
         // Always 200 for a valid signature so Paystack stops retrying; an
         // unknown reference is logged above, not an error to retry forever.

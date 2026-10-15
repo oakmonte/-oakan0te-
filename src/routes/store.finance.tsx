@@ -17,7 +17,6 @@ import {
 type PayoutAccount = {
   bank_name: string;
   account_number: string;
-  account_name?: string | null;
   status: string;
 };
 
@@ -199,9 +198,6 @@ function FinancePage() {
             <p className="text-lg font-mono tracking-wider">
               {maskAccountNumber(account.account_number)}
             </p>
-            {account.account_name && (
-              <p className="text-sm font-medium mt-1">{account.account_name}</p>
-            )}
             <p className="text-sm text-white/70 mt-1">{account.bank_name}</p>
           </div>
         </button>
@@ -209,8 +205,8 @@ function FinancePage() {
 
       {account && payoutStepState(true, account.status) !== "done" && (
         <p className="text-xs text-sd-ink-faint mt-4 animate-in fade-in duration-300">
-          We couldn&apos;t check this account with your bank yet. Tap the card and save it again
-          later to verify it. Payouts only go to a verified account.
+          Actively verifying your account. If it is verified, this card flips to
+          &quot;Verified&quot; automatically, no re-entry needed.
         </p>
       )}
 

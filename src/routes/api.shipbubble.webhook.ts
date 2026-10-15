@@ -1,12 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/lib/integrations/my-supabase/client.server";
 import { verifyShipbubbleSignature } from "@/lib/paystack.server";
-import { payOutOrder } from "@/lib/payouts.server";
 
 // Shipbubble tells us when a shipment moves. Trusted only after its HMAC-SHA512
 // signature (keyed with our API key) checks out. A completed shipment marks the
-// order delivered and releases the seller's payout (Oakmonte holds the money
-// until then); everything else is acknowledged and ignored for now.
+// order delivered; everything else is acknowledged and ignored for now.
 export const Route = createFileRoute("/api/shipbubble/webhook")({
   server: {
     handlers: {
@@ -29,15 +27,11 @@ export const Route = createFileRoute("/api/shipbubble/webhook")({
         const status = String(data.status ?? "");
         if (event.event === "shipment.status.changed" && shipbubbleOrderId) {
           if (status === "completed") {
-            // Only the call that actually moves shipped -> delivered pays the
-            // seller, so a repeated webhook can't start a second payout.
-            const { data: delivered } = await supabaseAdmin
+            await supabaseAdmin
               .from("orders")
               .update({ status: "delivered", updated_at: new Date().toISOString() })
               .eq("shipbubble_order_id", shipbubbleOrderId)
-              .eq("status", "shipped")
-              .select("id");
-            for (const o of delivered ?? []) await payOutOrder(o.id);
+              .eq("status", "shipped");
           }
           console.log("shipbubble status", shipbubbleOrderId, status);
         }
