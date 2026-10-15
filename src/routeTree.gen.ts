@@ -40,7 +40,6 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as StoreRouteImport } from './routes/store'
-import { Route as StudioRouteImport } from './routes/studio'
 import { Route as SwitchingRolesRouteImport } from './routes/switching-roles'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as WelcomeRouteImport } from './routes/welcome'
@@ -282,11 +281,6 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
 const StoreRoute = StoreRouteImport.update({
   id: '/store',
   path: '/store',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const StudioRoute = StudioRouteImport.update({
-  id: '/studio',
-  path: '/studio',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SwitchingRolesRoute = SwitchingRolesRouteImport.update({
@@ -763,7 +757,6 @@ export interface FileRoutesByFullPath {
   '/sign-in': typeof SignInRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/store': typeof StoreRouteWithChildren
-  '/studio': typeof StudioRoute
   '/switching-roles': typeof SwitchingRolesRoute
   '/terms': typeof TermsRoute
   '/welcome': typeof WelcomeRoute
@@ -882,7 +875,6 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/sign-in': typeof SignInRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/studio': typeof StudioRoute
   '/switching-roles': typeof SwitchingRolesRoute
   '/terms': typeof TermsRoute
   '/welcome': typeof WelcomeRoute
@@ -1003,7 +995,6 @@ export interface FileRoutesById {
   '/sign-in': typeof SignInRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/store': typeof StoreRouteWithChildren
-  '/studio': typeof StudioRoute
   '/switching-roles': typeof SwitchingRolesRoute
   '/terms': typeof TermsRoute
   '/welcome': typeof WelcomeRoute
@@ -1126,7 +1117,6 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sitemap.xml'
     | '/store'
-    | '/studio'
     | '/switching-roles'
     | '/terms'
     | '/welcome'
@@ -1245,7 +1235,6 @@ export interface FileRouteTypes {
     | '/settings'
     | '/sign-in'
     | '/sitemap.xml'
-    | '/studio'
     | '/switching-roles'
     | '/terms'
     | '/welcome'
@@ -1365,7 +1354,6 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sitemap.xml'
     | '/store'
-    | '/studio'
     | '/switching-roles'
     | '/terms'
     | '/welcome'
@@ -1487,7 +1475,6 @@ export interface RootRouteChildren {
   SignInRoute: typeof SignInRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   StoreRoute: typeof StoreRouteWithChildren
-  StudioRoute: typeof StudioRoute
   SwitchingRolesRoute: typeof SwitchingRolesRoute
   TermsRoute: typeof TermsRoute
   WelcomeRoute: typeof WelcomeRoute
@@ -1756,13 +1743,6 @@ declare module '@tanstack/react-router' {
       path: '/store'
       fullPath: '/store'
       preLoaderRoute: typeof StoreRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/studio': {
-      id: '/studio'
-      path: '/studio'
-      fullPath: '/studio'
-      preLoaderRoute: typeof StudioRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/switching-roles': {
@@ -2543,7 +2523,6 @@ const rootRouteChildren: RootRouteChildren = {
   SignInRoute: SignInRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   StoreRoute: StoreRouteWithChildren,
-  StudioRoute: StudioRoute,
   SwitchingRolesRoute: SwitchingRolesRoute,
   TermsRoute: TermsRoute,
   WelcomeRoute: WelcomeRoute,

@@ -2,8 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence, useDragControls } from "framer-motion";
 import { useNavigate } from "@tanstack/react-router";
-import { Check, ChevronLeft, Layers, Lock, Search, Store, X } from "lucide-react";
-import { useLockedBanner } from "@/components/LockedBanner";
+import { Check, ChevronLeft, Layers, Search, X } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useOwnStores } from "@/hooks/use-own-store";
 import type { TaggedProduct } from "@/components/feed/PostFeed";
@@ -77,7 +76,6 @@ export function LinkProductsSheet({
   // product id -> the collection ids it's in
   const [membership, setMembership] = useState<Map<string, Set<string>>>(new Map());
   const [collectionId, setCollectionId] = useState<string | null>(null);
-  const { banner, showLocked } = useLockedBanner();
   const linkedIds = new Set(linked.map((p) => p.id));
 
   useEffect(() => {
@@ -357,23 +355,6 @@ export function LinkProductsSheet({
                       </button>
                     )}
                   </div>
-                  {view === "mine" && (
-                    // Locked until cross-store linking ships: the padlock says
-                    // so before the tap, the banner says it after.
-                    <button
-                      type="button"
-                      onClick={() =>
-                        showLocked("Advertising for other stores is still unavailable")
-                      }
-                      aria-label="Other stores (unavailable)"
-                      className="relative flex h-[36px] w-[36px] shrink-0 items-center justify-center rounded-[10px] bg-white/[0.08] text-white/50 active:scale-90"
-                    >
-                      <Store size={17} />
-                      <span className="absolute -bottom-1 -right-1 grid h-[18px] w-[18px] place-items-center rounded-full bg-white text-black">
-                        <Lock size={10} strokeWidth={3} />
-                      </span>
-                    </button>
-                  )}
                 </div>
               )}
 
@@ -454,7 +435,6 @@ export function LinkProductsSheet({
           </div>
         )}
       </AnimatePresence>
-      {banner}
     </>,
     document.body,
   );

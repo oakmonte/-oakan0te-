@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { useActiveStore, type OwnedStoreSummary } from "@/hooks/use-own-store";
 import { LocationsListSheet } from "@/components/store/LocationsListSheet";
 import { ComingSoonBanner } from "@/components/ComingSoonBanner";
+import { SHARING_LOCKED } from "@/lib/launch-locks";
+import { toast } from "sonner";
 import { fetchStoreLogo, type StoreLogo } from "@/lib/store-logo";
 import { IdentityBlock } from "./IdentityBlock";
 import { QuickActions } from "./QuickActions";
@@ -61,11 +63,17 @@ function DashboardForStore({
     setLogo((prev) => ({ canSaveOwnLogo: prev?.canSaveOwnLogo ?? true, url }));
   }, []);
 
-  // Sharing a store link is held back until official launch -- both share
-  // buttons on this page point here rather than actually invoking the share
-  // sheet, until that's turned back on.
+  // Sharing a store link is held back until official launch (SHARING_LOCKED):
+  // locked builds say so. Unlocked, it opens the phone's share sheet with the
+  // storefront link, or copies it where there is no share sheet.
   function share() {
-    setShareComingSoonOpen(true);
+    if (SHARING_LOCKED) return setShareComingSoonOpen(true);
+    const url = `${window.location.origin}/shop/${store.store_username}`;
+    if (navigator.share) {
+      void navigator.share({ title: store.store_username, url }).catch(() => {});
+    } else {
+      void navigator.clipboard?.writeText(url).then(() => toast("Store link copied"));
+    }
   }
 
   return (

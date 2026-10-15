@@ -1156,7 +1156,6 @@ export function ProfileView({
           <div className="text-[12px] uppercase tracking-wide text-chat-text/40 mb-2">
             Creation &amp; business
           </div>
-          <MenuRow label="Oakmonte Studio" onClick={() => navigate({ to: "/studio" })} />
           <MenuRow
             label="Oakmonte Store"
             onClick={() => navigate({ to: "/store" })}
