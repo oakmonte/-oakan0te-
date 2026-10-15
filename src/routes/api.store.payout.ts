@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin as supabase } from "@/lib/integrations/my-supabase/client.server";
 import { requireOwnStore } from "@/lib/server-auth";
+import { bankCodeFor, paystackConfigured, resolveAccountName } from "@/lib/paystack.server";
 
 // Responses carry a bank account number. Keep them out of the browser's disk
 // cache and out of any shared cache that might key on URL alone.
@@ -15,8 +16,11 @@ function privateJson(body: unknown, init?: ResponseInit) {
 
 // store_payout_accounts has RLS enabled with zero policies, so the browser
 // client can't touch it at all — every read/write goes through here with the
-// service-role key. Paystack isn't connected, so nothing is verified; status
-// is always written as "pending".
+// service-role key. On save, Paystack looks the account up: a match writes the
+// holder's name and "verified" (payouts only go to a verified account); no
+// such account is refused; and when Paystack can't answer (no key, an
+// unknown bank, an outage) it's saved as "pending" rather than blocking the
+// seller.
 //
 // SECURITY: this handler is the only authorization boundary, because the
 // service-role key bypasses RLS. It used to take `storeId` straight off the
@@ -39,7 +43,7 @@ export const Route = createFileRoute("/api/store/payout")({
 
         const { data, error } = await supabase
           .from("store_payout_accounts")
-          .select("bank_name, account_number, status")
+          .select("bank_name, account_number, account_name, status")
           .eq("store_id", auth.value.storeId)
           .maybeSingle();
 
@@ -84,6 +88,20 @@ export const Route = createFileRoute("/api/store/payout")({
           return Response.json({ error: "Bank name is too long" }, { status: 400 });
         }
 
+        let accountName: string | null = null;
+        if (paystackConfigured()) {
+          const bankCode = await bankCodeFor(bankName);
+          if (bankCode) {
+            accountName = await resolveAccountName(accountNumber, bankCode);
+            if (!accountName) {
+              return Response.json(
+                { error: `We couldn't find that account number at ${bankName}. Check both.` },
+                { status: 400 },
+              );
+            }
+          }
+        }
+
         const { data, error } = await supabase
           .from("store_payout_accounts")
           .upsert(
@@ -92,12 +110,13 @@ export const Route = createFileRoute("/api/store/payout")({
               store_id: auth.value.storeId,
               bank_name: bankName,
               account_number: accountNumber,
-              status: "pending",
+              account_name: accountName,
+              status: accountName ? "verified" : "pending",
               updated_at: new Date().toISOString(),
             },
             { onConflict: "store_id" },
           )
-          .select("bank_name, account_number, status")
+          .select("bank_name, account_number, account_name, status")
           .single();
 
         if (error) {

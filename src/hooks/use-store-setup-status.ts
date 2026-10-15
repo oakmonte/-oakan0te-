@@ -22,11 +22,10 @@ export type StoreSetupStatus = {
   // order and `complete` below. `payoutStatus` is "has anyone checked the
   // details yet", and is only ever used to colour a status mark.
   //
-  // Nothing in the app currently writes anything but "pending":
-  // api.store.payout.ts hardcodes it on insert and Paystack is not connected.
-  // So this stays "pending" indefinitely, which is the truth, not a bug. Gate
-  // anything structural on it -- `complete`, or a step's `done` -- and no
-  // seller ever finishes setup.
+  // api.store.payout.ts writes "verified" only when Paystack resolves the
+  // account on save; without a Paystack key (main, until launch) it stays
+  // "pending" indefinitely. Gate anything structural on it -- `complete`, or a
+  // step's `done` -- and no seller on main ever finishes setup.
   payoutStatus: string | null;
   locationCount: number | null;
   productCount: number | null;
