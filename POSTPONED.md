@@ -43,10 +43,17 @@ Have to be clicked by hand — Auth → Policies / Rate Limits:
   auth endpoint with `abc`.
 - Rate limits on the token/OTP endpoints — nothing currently slows down guessing.
 
-### 1.3 Payments are not connected
+### 1.3 Payments: built, waiting on live keys
 
-Paystack isn't wired. `store_payout_accounts.status` is always written `"pending"` because
-nothing verifies an account.
+Checkout charges through Paystack; **Oakmonte holds the money until delivery is confirmed**,
+then pays the seller's share (items less 4.5%) by Paystack transfer (`lib/payouts.server.ts`,
+ledger in `payout_ledger`, the row id is the transfer reference). Bank accounts are checked
+with Paystack on save (`api.store.payout.ts`: name filled in, status "verified"). Before going
+live: enable Transfers on the Paystack account, turn off OTP for API transfers, keep a balance
+to pay from, and point the Paystack webhook at `/api/paystack/webhook` (it also receives the
+transfer results). Open: delivery is only confirmed by Shipbubble's "completed" webhook, so
+pickup and flat-rate orders have no way to release a payout yet; failed transfers stay "owed"
+with a note and need a manual retry.
 
 ### 1.4 Direct messages · applied, follow-ups open
 
@@ -161,17 +168,6 @@ categories stay manual on purpose, not as gaps to close:
 unwired on purpose, and why — check it before wiring more.
 
 ---
-
-### 2.x Orders tables are live, ahead of the code (2026-10-07)
-
-`supabase/migrations/20261007120000_orders_checkout.sql` was applied to the **live** project
-by Diadem's explicit say-so (Supabase branching needs the Pro plan, so there was no test copy).
-Additive only: `store_shipping_settings`, `buyer_addresses`, `orders`, `order_items`,
-`order_payments`, `payout_ledger`, all RLS-on, reads scoped to the buyer/seller, **no write
-policies** (every write goes through a server route on the service role). Nothing in `main`
-reads or writes them yet; the code is on `feature/orders-checkout`. `my-supabase/types.ts` was
-regenerated on that branch to include them. If `main` regenerates types first, resolve the merge
-by regenerating, not by hand. Payments are planned for Paystack (see `ORDERS-HANDOFF.md`).
 
 ## 3. Small, unblocked
 
