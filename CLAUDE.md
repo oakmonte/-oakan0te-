@@ -24,7 +24,14 @@ Three versions:
 
 Launch locks (Buy Now, the preview's Open website) live in `src/lib/launch-locks.ts`: locked
 by default, unlocked only by `VITE_LAUNCH_UNLOCKED=true`, set in Vercel for the `sellers-only`
-preview. Keep both branches' code identical; never lock or unlock by editing code on one branch.
+preview.
+
+**Branch flow (since 2026-10-15): main -> sellers-only, never back.** `main` and
+`sellers-only-locked` stay identical. `sellers-only` gets every main change (merge
+`origin/main` into it often) **plus** work that isn't for production yet: payouts, unlocked
+buying features, desktop themes. Push that work with `git push origin HEAD:sellers-only` only.
+Something meant for both goes to main first, then merges into sellers-only. If main ever
+reverts something sellers-only keeps, revert the revert on sellers-only after merging.
 
 **Parked features** (built, hidden to keep things simple) are switches in `src/lib/features.ts`:
 Wardrobe/Gallery (`WARDROBE_ENABLED`) is off. Park the next one there too, as a switch, not by
@@ -33,8 +40,7 @@ deleting or commenting out code.
 The social side is removed **bit by bit, as Diadem walks through it** — don't strip features
 ahead of that. Half-built lanes are WIP on `feature/lane-{discounts,insights,activity,offline}`.
 
-`sellers-only`, `sellers-only-locked` and `main` share the same code (they started from
-`oakmonte-master-piece`, so checkout, orders and cart are here); only the launch-lock switch differs.
+All three started from `oakmonte-master-piece`, so checkout, orders and cart are in each.
 
 ## Multiple agents share this repo
 
