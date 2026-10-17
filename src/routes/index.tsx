@@ -63,6 +63,8 @@ const FEATURES = [
     title: "Get paid, safely.",
     copy: "Payment sits in escrow until your customer confirms the piece, so a bad-faith return, a chargeback, or a customer who takes the product and refuses to pay doesn't cost you a thing.",
   },
+  // Creator features: hidden while this page markets to sellers only.
+  /*
   {
     number: "04",
     title: "Collaborate with creators.",
@@ -73,8 +75,9 @@ const FEATURES = [
     title: "Customers you didn't chase.",
     copy: "Creators link your pieces right in their own content, so a curator can buy in one swipe — and every seller gets free visibility to curators browsing the app, no ad budget required.",
   },
+  */
   {
-    number: "06",
+    number: "04",
     title: "The operations, handled.",
     copy: "Delivery, tracked riders, website hosting — we absorb the pain points so you can focus on the product. Need a manufacturer too? We can connect you with one.",
   },
@@ -314,7 +317,7 @@ function SellersLanding() {
             <br />
             <em>does for you.</em>
           </h2>
-          <p>Six concrete reasons sellers pick Oakmonte over building alone.</p>
+          <p>Four concrete reasons sellers pick Oakmonte over building alone.</p>
         </Reveal>
         <Reveal delay={1} className="feature-list">
           {FEATURES.map((feature, index) => {
