@@ -7,6 +7,7 @@ import { supabase } from "@/lib/integrations/my-supabase/client";
 import { Check, ChevronDown } from "lucide-react";
 import logoO from "@/assets/logo-o.png";
 import { DashboardDemo } from "@/components/landing/DashboardDemo";
+import { DeliveryDemo } from "@/components/landing/DeliveryDemo";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -501,6 +502,22 @@ function SellersLanding() {
         </Reveal>
       </section>
 
+      <section className="studio-section demo-flip">
+        <Reveal className="studio-copy">
+          <div className="section-kicker">03 / Deliveries</div>
+          <h2>
+            Orders ship.
+            <br />
+            <em>You get paid.</em>
+          </h2>
+          <p>
+            Your customer pays for delivery at checkout. One tap books the courier, the rider is
+            tracked to their door, and your money lands the moment it's delivered.
+          </p>
+        </Reveal>
+        <DeliveryDemo />
+      </section>
+
       <section className="manufacturer-section" id="manufacturers">
         <Reveal>
           <div className="section-kicker">03 / Oakmonte Manufacturers</div>
@@ -760,6 +777,35 @@ const CSS = `
 .oak-sellers .sp-actions span{transition:transform 160ms var(--ease-out),background 200ms ease,color 200ms ease,border-color 200ms ease}
 .oak-sellers .sp-actions .dd-tap{background:#111827;color:#fff;border-color:#111827;animation:oakSellersDemoTap 700ms var(--ease-out)}
 @keyframes oakSellersDemoTap{0%{transform:scale(1)}30%{transform:scale(.92);box-shadow:0 0 0 0 rgba(31,79,255,.45)}100%{transform:scale(1);box-shadow:0 0 0 14px rgba(31,79,255,0)}}
+.oak-sellers .demo-flip{grid-template-columns:.9fr 1.1fr;background:#fff}
+.oak-sellers .dl-order{display:flex;align-items:center;gap:10px;border:1px solid #eaecf0;border-radius:18px;padding:12px}
+.oak-sellers .dl-thumb{display:grid;place-items:center;width:42px;height:42px;flex:none;border-radius:12px;background:#eaf1ff;color:var(--accent-blue)}
+.oak-sellers .dl-order-text{min-width:0;flex:1}
+.oak-sellers .dl-order-text small{display:block;font-size:10.5px;font-weight:600;color:#12b76a}
+.oak-sellers .dl-order-text b{display:block;margin-top:2px;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.oak-sellers .dl-order-text span{display:block;font-size:11px;color:#667085}
+.oak-sellers .dl-order strong{font-size:13px;font-weight:700}
+.oak-sellers .dl-book{display:flex;align-items:center;justify-content:center;gap:7px;height:40px;border-radius:999px;background:#111827;color:#fff;font-size:12.5px;font-weight:600;transition:background 250ms ease,color 250ms ease}
+.oak-sellers .dl-book.is-done{background:#ecfdf3;color:#067647}
+.oak-sellers .dl-book.dd-tap{animation:oakSellersDemoTap 700ms var(--ease-out)}
+.oak-sellers .dl-map{position:relative;height:120px;border-radius:18px;overflow:hidden;background:linear-gradient(135deg,#f2f6ff,#eef2f6);background-image:linear-gradient(#e4e9f2 1px,transparent 1px),linear-gradient(90deg,#e4e9f2 1px,transparent 1px);background-size:22px 22px}
+.oak-sellers .dl-map svg{position:absolute;inset:0;width:100%;height:100%}
+.oak-sellers .dl-route{fill:none;stroke:var(--accent-blue);stroke-width:3;stroke-linecap:round;stroke-dasharray:400;stroke-dashoffset:400;transition:stroke-dashoffset 1100ms var(--ease-out)}
+.oak-sellers .dl-route.is-on{stroke-dashoffset:0}
+.oak-sellers .dl-rider{fill:#111827;stroke:#fff;stroke-width:3}
+.oak-sellers .dl-pin{position:absolute;display:grid;place-items:center;width:24px;height:24px;border-radius:999px;background:#fff;box-shadow:0 2px 8px rgba(17,24,39,.15);color:var(--accent-blue)}
+.oak-sellers .dl-pin-a{left:calc(24 / 280 * 100% - 12px);top:calc(92 / 120 * 100% - 12px)}
+.oak-sellers .dl-pin-b{left:calc(256 / 280 * 100% - 12px);top:calc(24 / 120 * 100% - 12px);color:#12b76a}
+.oak-sellers .dl-steps{display:flex;flex-direction:column;gap:10px;padding:2px 4px}
+.oak-sellers .dl-step{display:flex;align-items:flex-start;gap:10px}
+.oak-sellers .dl-step b{display:block;font-size:12.5px;font-weight:600}
+.oak-sellers .dl-step small{display:block;font-size:11px;color:#667085}
+.oak-sellers .dl-dot{display:grid;place-items:center;width:18px;height:18px;flex:none;margin-top:1px;border-radius:999px;background:var(--accent-blue);color:#fff}
+.oak-sellers .dl-dot.is-done{background:#12b76a}
+.oak-sellers .dl-paid{display:flex;align-items:center;gap:10px;border-radius:18px;background:#ecfdf3;padding:12px}
+.oak-sellers .dl-paid-icon{display:grid;place-items:center;width:32px;height:32px;flex:none;border-radius:999px;background:#12b76a;color:#fff}
+.oak-sellers .dl-paid b{display:block;font-size:13px;font-weight:700;color:#054f31}
+.oak-sellers .dl-paid small{display:block;font-size:11px;color:#067647}
 .oak-sellers .studio-card{border:1px solid #b7c9ed;background:#fff;box-shadow:0 30px 90px rgba(20,85,217,.12);animation:oakSellersFloatCard 5s ease-in-out infinite}
 .oak-sellers .studio-top{display:flex;align-items:center;padding:18px 22px;border-bottom:1px solid var(--border);font:11px 'DM Mono',monospace}
 .oak-sellers .studio-status{margin-left:auto;color:var(--primary);font-size:9px}
