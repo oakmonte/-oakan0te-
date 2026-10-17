@@ -50,13 +50,6 @@ export const Route = createFileRoute("/")({
    product facts, not marketing filler. */
 // "As seen in" ticker. Rendered twice back to back so the loop is seamless.
 const PRESS = [
-  "Fast Company",
-  "Forbes",
-  "VOGUE Business",
-  "WIRED",
-  "Monocle",
-  "TechCrunch",
-  "Business Insider",
   "LinkedIn Articles",
   "Substack",
   "Quora",
@@ -689,7 +682,7 @@ const CSS = `
 .oak-sellers .ticker-section{display:flex;align-items:center;gap:40px;padding:20px 0;overflow:hidden;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
 .oak-sellers .ticker-label{flex:0 0 auto;padding-left:4vw;color:var(--muted);text-transform:uppercase;font:10px 'DM Mono',monospace}
 .oak-sellers .marquee{overflow:hidden;flex:1}
-.oak-sellers .marquee-track{display:flex;gap:65px;width:max-content;color:#344054;font-size:17px;font-weight:700;animation:oakSellersMarquee 40s linear infinite}
+.oak-sellers .marquee-track{display:flex;gap:65px;width:max-content;color:#344054;font-size:17px;font-weight:700;animation:oakSellersMarquee 28s linear infinite}
 .oak-sellers .marquee-track span:nth-child(3n){font:italic 20px Georgia,serif;color:var(--primary)}
 
 /* Scroll reveal -- same convention as routes/index.tsx's .reveal/.reveal-delay-N. */
