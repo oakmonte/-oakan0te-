@@ -508,11 +508,17 @@ export function CatalogTile({
 
       <div className="flex items-end justify-between gap-1.5">
         <button type="button" onClick={onTap} className="min-w-0 flex-1 text-left">
-          <p className="truncate text-[13px] font-medium" style={{ color: textColor }}>
+          <p
+            className="truncate text-[13px] font-medium @3xl:text-[15px]"
+            style={{ color: textColor }}
+          >
             {tile.title}
           </p>
           {mode === "products" && tile.price != null && (
-            <p className="flex items-baseline gap-1 text-[11px]" style={{ color: mutedColor }}>
+            <p
+              className="flex items-baseline gap-1 text-[11px] @3xl:text-[13px]"
+              style={{ color: mutedColor }}
+            >
               <span>₦{tile.price.toLocaleString()}</span>
               {tile.compareAtPrice != null && tile.compareAtPrice > tile.price && (
                 // No extra fade: the strikethrough already says "old price",
@@ -914,7 +920,11 @@ function HeroSlideshowInner({
     <div className="relative w-full">
       <div
         ref={cropBoxRef}
-        className="relative w-full overflow-hidden"
+        // @3xl: a wide, short banner (2:1, never taller than 640px or 72% of the screen) instead of
+        // the phone's tall 4:5 frame, which at laptop width would be a page
+        // tall. The trailing ! beats the seller's inline aspect-ratio; photos
+        // are object-cover, so they re-crop into it.
+        className="relative w-full overflow-hidden @3xl:aspect-[2/1]! @3xl:max-h-[min(640px,72vh)]"
         style={{ aspectRatio: activeRatio }}
       >
         <div
@@ -947,14 +957,23 @@ function HeroSlideshowInner({
           </button>
         )}
 
-        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-1 px-6 text-center [text-shadow:0_2px_10px_rgba(0,0,0,0.6)]">
+        {/* @3xl: headline bottom-left over a soft scrim and much larger, the
+            way a shop's banner reads on a laptop. The scrim only exists when
+            the seller has written something to sit on it. */}
+        <div
+          className={`pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-1 px-6 text-center [text-shadow:0_2px_10px_rgba(0,0,0,0.6)] @3xl:items-start @3xl:justify-end @3xl:gap-2 @3xl:px-12 @3xl:pb-12 @3xl:text-left ${
+            editing?.text?.overlayLine1 || editing?.text?.overlayLine2
+              ? "@3xl:bg-gradient-to-t @3xl:from-black/45 @3xl:via-transparent @3xl:to-transparent"
+              : ""
+          }`}
+        >
           <div className="pointer-events-auto w-full">
             <ThemeText
               editing={editing}
               field="overlayLine1"
               placeholder={isEditing ? "Add a headline" : undefined}
               as="p"
-              className="text-[30px] font-display uppercase leading-[0.9] text-white"
+              className="text-[30px] font-display uppercase leading-[0.9] text-white @3xl:max-w-[760px] @3xl:text-[64px]"
             />
           </div>
           <div className="pointer-events-auto w-full">
@@ -963,7 +982,7 @@ function HeroSlideshowInner({
               field="overlayLine2"
               placeholder={isEditing ? "Add a tagline" : undefined}
               as="p"
-              className="text-[13px] font-medium text-white/85"
+              className="text-[13px] font-medium text-white/85 @3xl:text-[19px]"
             />
           </div>
         </div>
@@ -1290,7 +1309,13 @@ export function CollectionsGrid({
       look: readStorefrontLook(rootRef.current, { textColor, mutedColor, tileBg, accent }),
     });
   }
-  const gridClass = `mt-2.5 grid gap-1.5 ${columns === 1 ? "grid-cols-1" : "grid-cols-2"}`;
+  // The seller's phone column count (1 or 2) still decides how dense the grid
+  // is on a wide screen: 3 then 4 across, or 2 then 3 for the big-tile choice.
+  const gridClass = `mt-2.5 grid gap-1.5 @3xl:mt-5 @3xl:gap-4 ${
+    columns === 1
+      ? "grid-cols-1 @3xl:grid-cols-2 @5xl:grid-cols-3"
+      : "grid-cols-2 @3xl:grid-cols-3 @5xl:grid-cols-4"
+  }`;
 
   function handleTileTap() {
     if (editing?.isEditing) editing.onTileTapBlocked();
@@ -1318,7 +1343,7 @@ export function CollectionsGrid({
         data-storefront-section={title.toLowerCase()}
         className="flex items-center justify-between gap-2"
       >
-        <span className="text-[15px] font-semibold" style={{ color: textColor }}>
+        <span className="text-[15px] font-semibold @3xl:text-[24px]" style={{ color: textColor }}>
           {title}
         </span>
         {showToggle && editing ? (
@@ -1351,7 +1376,7 @@ export function CollectionsGrid({
       ) : null;
     }
     return (
-      <div key={kind} className="mt-5 px-4">
+      <div key={kind} className="mt-5 px-4 @3xl:mt-14 @3xl:px-8">
         {header(kind === "collections" ? "Collections" : "Products")}
         <div className={gridClass}>
           {tiles.map((tile) => (
@@ -1411,7 +1436,7 @@ export function CollectionsGrid({
 
   return (
     <>
-      <div className="mt-5 px-4">
+      <div className="mt-5 px-4 @3xl:mt-14 @3xl:px-8">
         {header("Collections")}
         <div className={gridClass}>
           {fallbackItems.map((it, i) => (
@@ -1438,7 +1463,7 @@ export function CollectionsGrid({
           ))}
         </div>
       </div>
-      <div className="mt-5 px-4">
+      <div className="mt-5 px-4 @3xl:mt-14 @3xl:px-8">
         {header("Products")}
         <div className={gridClass}>
           {/* One photo, so no dots and no variant counter — but the glass
@@ -1522,7 +1547,7 @@ export function PromoBanner({
 
   return (
     <div
-      className="relative mx-4 mt-5 rounded-2xl p-3.5"
+      className="relative mx-4 mt-5 rounded-2xl p-3.5 @3xl:mx-8 @3xl:mt-10 @3xl:p-6"
       style={{ background: cardBg, border: `1px solid ${accent}55` }}
     >
       {editing?.isEditing && (
@@ -1725,7 +1750,10 @@ function StoreFooter({
   const muted = dark ? "rgba(255,255,255,0.6)" : "rgba(17,17,17,0.55)";
   const line = dark ? "rgba(255,255,255,0.12)" : "rgba(17,17,17,0.1)";
   return (
-    <footer className="mx-5 mt-10 border-t pb-12 pt-10" style={{ borderColor: line }}>
+    <footer
+      className="mx-5 mt-10 border-t pb-12 pt-10 @3xl:mx-8 @3xl:mt-24 @3xl:pt-14"
+      style={{ borderColor: line }}
+    >
       <p
         className="text-[22px] font-bold uppercase leading-tight tracking-tight"
         style={{ color: ink }}
