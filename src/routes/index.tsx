@@ -6,6 +6,7 @@ import { isStandalone } from "@/lib/standalone";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { Check, ChevronDown } from "lucide-react";
 import logoO from "@/assets/logo-o.png";
+import { DashboardDemo } from "@/components/landing/DashboardDemo";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -489,6 +490,7 @@ function SellersLanding() {
             </div>
           </div>
         </Reveal> */}
+        <DashboardDemo />
         <Reveal delay={1} className="studio-copy">
           <div className="section-kicker">02 / Seller Studio</div>
           <h2>
@@ -757,6 +759,14 @@ const CSS = `
 .oak-sellers .sp-tiles b{display:block;margin-top:6px;font-size:18px;font-weight:700;letter-spacing:-.02em}
 .oak-sellers .sp-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .oak-sellers .sp-actions span{display:grid;place-items:center;min-height:52px;padding:6px;border:1px solid #eaecf0;border-radius:16px;font-size:10.5px;font-weight:600;text-align:center;line-height:1.25}
+.oak-sellers .studio-phone.dd{animation:none}
+.oak-sellers .dd-in{opacity:0;transform:translateY(12px);transition:opacity 450ms var(--ease-out),transform 450ms var(--ease-out)}
+.oak-sellers .dd-in.is-on{opacity:1;transform:none}
+.oak-sellers .dd-bars i{animation:none;transform:scaleY(0);transition:transform 600ms var(--ease-out)}
+.oak-sellers .dd-bars.is-on i{transform:scaleY(1)}
+.oak-sellers .sp-actions span{transition:transform 160ms var(--ease-out),background 200ms ease,color 200ms ease,border-color 200ms ease}
+.oak-sellers .sp-actions .dd-tap{background:#111827;color:#fff;border-color:#111827;animation:oakSellersDemoTap 700ms var(--ease-out)}
+@keyframes oakSellersDemoTap{0%{transform:scale(1)}30%{transform:scale(.92);box-shadow:0 0 0 0 rgba(31,79,255,.45)}100%{transform:scale(1);box-shadow:0 0 0 14px rgba(31,79,255,0)}}
 .oak-sellers .studio-card{border:1px solid #b7c9ed;background:#fff;box-shadow:0 30px 90px rgba(20,85,217,.12);animation:oakSellersFloatCard 5s ease-in-out infinite}
 .oak-sellers .studio-top{display:flex;align-items:center;padding:18px 22px;border-bottom:1px solid var(--border);font:11px 'DM Mono',monospace}
 .oak-sellers .studio-status{margin-left:auto;color:var(--primary);font-size:9px}
