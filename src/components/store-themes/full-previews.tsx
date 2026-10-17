@@ -1293,53 +1293,68 @@ export function PublicStorefront({
 
   return (
     // overflow-x-clip: same sideways-drag guard as ThemePreviewSheet's frame.
-    <StorefrontChatContext.Provider
-      value={{
-        ...buyer,
-        ownerId,
-        storeName: brandName || null,
-        openMessages: () => setTab("messages"),
-      }}
-    >
-      {preview && <AnonymousBuyerBanner anonymous={buyer.anonymous} />}
-      {tab === "messages" ? (
-        <div className="bg-chat-bg" style={{ minHeight: "100dvh" }}>
-          <StorefrontMessages storeId={storeId} onThreadOpenChange={setThreadOpen} />
-        </div>
-      ) : tab === "home" && ownerId ? (
-        // One screen tall: 100dvh on a page (Home preview), clamped to the
-        // sheet's height inside the website's storefront sheet.
-        <div style={{ height: "100dvh", maxHeight: "100%" }}>
-          <StorefrontFeed ownerId={ownerId} storePicture={storeLogo} />
-        </div>
-      ) : (
-        <div ref={rootRef} className="min-h-full overflow-x-clip pb-28" style={{ background }}>
-          <LiveStorefrontContext.Provider value={true}>
-            <StorefrontSearchContext.Provider
-              value={{ query: searchQuery, setQuery: setSearchQuery }}
-            >
+    // The search context wraps the nav too: on desktop its search box lives in
+    // the top bar, not in the theme's header.
+    <StorefrontSearchContext.Provider value={{ query: searchQuery, setQuery: setSearchQuery }}>
+      <StorefrontChatContext.Provider
+        value={{
+          ...buyer,
+          ownerId,
+          storeName: brandName || null,
+          openMessages: () => setTab("messages"),
+        }}
+      >
+        {preview && <AnonymousBuyerBanner anonymous={buyer.anonymous} />}
+        {/* From md up the nav is a fixed top bar (StorefrontNav), so every tab
+          starts 64px down. Phones have no bar here: the pill sits at the bottom. */}
+        {!threadOpen && <div aria-hidden="true" className="hidden h-16 md:block" />}
+        {tab === "messages" ? (
+          <div className="bg-chat-bg" style={{ minHeight: "100dvh" }}>
+            <StorefrontMessages storeId={storeId} onThreadOpenChange={setThreadOpen} />
+          </div>
+        ) : tab === "home" && ownerId ? (
+          // One screen tall: 100dvh on a page (Home preview), clamped to the
+          // sheet's height inside the website's storefront sheet.
+          <div style={{ height: "100dvh", maxHeight: "100%" }}>
+            <StorefrontFeed ownerId={ownerId} storePicture={storeLogo} />
+          </div>
+        ) : (
+          // @container: the layout below answers to this box's own width, not the
+          // window's, so the theme editor's 430px phone frame (which has no such
+          // ancestor) stays a phone on a laptop. Fixed-position pieces (the nav,
+          // the product and collection pages, notices) all sit outside it or are
+          // portaled to <body>, because a container also contains fixed children.
+          <div
+            ref={rootRef}
+            className="@container min-h-full overflow-x-clip pb-28"
+            style={{ background }}
+          >
+            <LiveStorefrontContext.Provider value={true}>
               <FullPreview
                 themeId={themeId}
                 editing={editing}
                 storeId={storeId}
                 brandName={brandName}
               />
-            </StorefrontSearchContext.Provider>
-          </LiveStorefrontContext.Provider>
-        </div>
-      )}
-      {!threadOpen && (
-        <StorefrontNav
-          storeId={storeId}
-          active={tab}
-          onSelect={(next) => {
-            setTab(next);
-            rootRef.current?.scrollIntoView({ block: "start" });
-          }}
-          preview={preview}
-        />
-      )}
-    </StorefrontChatContext.Provider>
+            </LiveStorefrontContext.Provider>
+          </div>
+        )}
+        {!threadOpen && (
+          <StorefrontNav
+            storeId={storeId}
+            active={tab}
+            onSelect={(next) => {
+              setTab(next);
+              rootRef.current?.scrollIntoView({ block: "start" });
+            }}
+            preview={preview}
+            brandName={brandName}
+            logo={storeLogo}
+            barBg={tab === "shop" ? background : "#000000"}
+          />
+        )}
+      </StorefrontChatContext.Provider>
+    </StorefrontSearchContext.Provider>
   );
 }
 

@@ -201,7 +201,9 @@ export function ThemeSpecFull({
   return (
     <div className="relative pb-2" style={{ background: spec.bg, color: spec.ink }}>
       <Decoration decor={spec.decor} accent={spec.accent} />
-      <div className="relative">
+      {/* @3xl: a centred column up to 1240px on a wide storefront; the
+          background and decoration above still run edge to edge. */}
+      <div className="relative @3xl:mx-auto @3xl:max-w-[1240px]">
         <PhoneHeader
           mutedColor={alpha(spec.ink, 0.65)}
           brandInitial={brandName.charAt(0).toUpperCase()}

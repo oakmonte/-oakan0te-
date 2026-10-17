@@ -658,7 +658,10 @@ export function PhoneHeader({
 
   return (
     <>
-      <div className="flex items-start justify-between gap-3 px-4 py-3">
+      {/* @3xl:hidden -- on a wide live storefront the logo and icons move to
+          StorefrontNav's top bar. Only fires inside PublicStorefront's
+          @container; the editor's phone frame has none. */}
+      <div className="flex items-start justify-between gap-3 px-4 py-3 @3xl:hidden">
         <div className="min-w-0">
           {logoMode === "text" ? (
             textLogo
@@ -728,7 +731,7 @@ export function PhoneHeader({
         {lockedBanner}
       </div>
       {live && searchOpen && (
-        <div className="px-4 pb-3">
+        <div className="px-4 pb-3 @3xl:hidden">
           <div
             className="flex h-11 items-center gap-2 rounded-xl border px-3"
             style={{ borderColor: mutedColor, color: ink ?? "#fff" }}
