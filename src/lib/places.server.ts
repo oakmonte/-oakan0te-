@@ -93,8 +93,14 @@ export async function reverseGeocodeGoogle(lat: number, lng: number) {
     body.results.find((r) => r.types?.some((t) => precise.includes(t))) ?? body.results[0];
   const parts = best.address_components ?? [];
   const get = (type: string) => parts.find((c) => c.types?.includes(type))?.long_name ?? "";
-  return {
-    ...addressFrom(get, best.formatted_address ?? "", ""),
-    formatted: best.formatted_address ?? "",
-  };
+  const address = addressFrom(get, best.formatted_address ?? "", "");
+  // The street-level result often has no postal code (most Nigerian ones
+  // don't); the area-level results for the same pin frequently do.
+  if (!address.postalCode) {
+    address.postalCode =
+      body.results
+        .flatMap((r) => r.address_components ?? [])
+        .find((c) => c.types?.includes("postal_code"))?.long_name ?? "";
+  }
+  return { ...address, formatted: best.formatted_address ?? "" };
 }
