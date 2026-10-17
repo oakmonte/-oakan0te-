@@ -186,7 +186,7 @@ function TypedText({ lines, className = "" }: { lines: string[]; className?: str
 
   useEffect(() => {
     if (!started || count >= full.length) return;
-    const t = setTimeout(() => setCount((c) => c + 1), full[count] === "\n" ? 200 : 14);
+    const t = setTimeout(() => setCount((c) => c + 1), full[count] === "\n" ? 300 : 22);
     return () => clearTimeout(t);
   }, [started, count, full]);
 
