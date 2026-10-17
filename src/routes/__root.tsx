@@ -19,6 +19,8 @@ import { useSession } from "../hooks/use-session";
 import { markStandalone } from "@/lib/standalone";
 import { captureInstallPrompt, stampInstalledApp } from "@/lib/installed-app";
 import { useBuildFreshness } from "../hooks/use-build-freshness";
+import { registerOfflineApp } from "@/lib/offline-app";
+import { OfflineBar } from "@/components/OfflineBar";
 import { PostUploadToast } from "../components/PostUploadToast";
 import { ProductSaveToast } from "../components/ProductSaveToast";
 import { BackgroundUploadToast } from "../components/BackgroundUploadToast";
@@ -316,6 +318,8 @@ function RootComponent() {
   const router = useRouter();
   const { user } = useSession();
   useBuildFreshness();
+  // The app's code saved on the phone, and saved pages offline (public/sw.js).
+  useEffect(registerOfflineApp, []);
 
   // Publishes "installed app or browser tab" onto <html data-standalone>, for
   // the CSS that has to tell them apart — see standalone.ts. Runs once here
@@ -428,6 +432,7 @@ function RootComponent() {
         <Outlet />
       </EdgeSwipeBack>
       <PostUploadToast />
+      <OfflineBar />
       <ProductSaveToast />
       <BackgroundUploadToast />
     </QueryClientProvider>
