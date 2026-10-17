@@ -136,6 +136,57 @@ function useReveal<T extends HTMLElement>() {
   return { ref, className: `reveal${inView ? " in-view" : ""}` };
 }
 
+/** Types its lines out once it scrolls into view. The full text is laid out
+ *  invisibly underneath, so nothing below jumps as it types, and screen
+ *  readers get the whole sentence at once. Reduced motion shows it all. */
+function TypedText({ lines, className = "" }: { lines: string[]; className?: string }) {
+  const ref = useRef<HTMLParagraphElement | null>(null);
+  const full = lines.join("\n");
+  const [count, setCount] = useState(0);
+  const [started, setStarted] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setCount(full.length);
+      return;
+    }
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setStarted(true);
+          io.disconnect();
+        }
+      },
+      { threshold: 0.4 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [full]);
+
+  useEffect(() => {
+    if (!started || count >= full.length) return;
+    const t = setTimeout(() => setCount((c) => c + 1), full[count] === "\n" ? 380 : 32);
+    return () => clearTimeout(t);
+  }, [started, count, full]);
+
+  const render = (text: string) =>
+    text.split("\n").flatMap((line, i) => (i ? [<br key={i} />, line] : [line]));
+
+  return (
+    <p ref={ref} className={`typed ${className}`} aria-label={lines.join(" ")}>
+      <span className="typed-ghost" aria-hidden="true">
+        {render(full)}
+      </span>
+      <span className="typed-live" aria-hidden="true">
+        {render(full.slice(0, count))}
+        {count < full.length && <span className="typed-caret" />}
+      </span>
+    </p>
+  );
+}
+
 function Reveal({
   children,
   delay = 0,
@@ -207,7 +258,7 @@ function SellersLanding() {
           <Link className="nav-login" to="/sign-in">
             Log in
           </Link>
-          <Link className="pill-button pill-button-light" to="/set-up-store">
+          <Link className="pill-button pill-button-light no-shine" to="/set-up-store">
             Start selling <ArrowUpRight size={15} />
           </Link>
           <button
@@ -283,15 +334,17 @@ function SellersLanding() {
         <Reveal>
           <div className="section-kicker">Oakmonte / A better way to begin</div>
           <h2>
-            Not a marketplace.
+            Just another website provider.
             <br />
-            <em>A point of view.</em>
+            <em>Till your eyes open.</em>
           </h2>
-          <p>
-            We believe some realities of starting a brand kills creativity.
-            <br />
-            We absorb those headaches so you stay creative and focus on what matters.
-          </p>
+          <TypedText
+            className="manifesto-typed"
+            lines={[
+              "We believe some realities of starting a brand kills creativity.",
+              "We absorb those headaches so you stay creative and focus on what matters.",
+            ]}
+          />
         </Reveal>
         <Reveal delay={1} className="manifesto-sign">
           OAKMONTE
@@ -527,7 +580,7 @@ function SellersLanding() {
             <img className="wordmark-logo" src={logoO} alt="Oakmonte" />
             <span className="wordmark-word">akmonte</span>
           </a>
-          <span>© 2026 Oakmonte Commerce, Inc.</span>
+          <span>© 2026 Oakmonte Multi-Global LTD</span>
           <span>
             <Link to="/privacy">Privacy</Link> · <Link to="/terms">Terms</Link>
           </span>
@@ -598,7 +651,7 @@ const CSS = `
 .oak-sellers .feature-more{margin-top:32px}
 .oak-sellers .menu-button{display:none;background:none;border:0;cursor:pointer;padding:5px}
 
-.oak-sellers .hero{min-height:750px;height:100vh;position:relative;display:flex;align-items:flex-end;padding:0 7vw 4vw;overflow:hidden;background:linear-gradient(120deg,#fff 0%,#f4f7fb 52%,#eaf1ff 100%)}
+.oak-sellers .hero{min-height:max(750px,100vh);position:relative;display:flex;align-items:flex-end;padding:150px 7vw 4vw;overflow:hidden;background:linear-gradient(120deg,#fff 0%,#f4f7fb 52%,#eaf1ff 100%)}
 .oak-sellers .hero-grid{position:absolute;inset:0;opacity:.5;background-image:linear-gradient(rgba(20,85,217,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(20,85,217,.08) 1px,transparent 1px);background-size:88px 88px;mask-image:linear-gradient(90deg,black,transparent 75%);animation:oakSellersGridPulse 8s ease-in-out infinite}
 .oak-sellers .hero-orbit{position:absolute;border:1px solid rgba(20,85,217,.22);border-radius:50%;transform:rotate(-25deg);animation:oakSellersDrift 13s ease-in-out infinite alternate}
 .oak-sellers .hero-orbit::after{content:'';position:absolute;width:10px;height:10px;border-radius:50%;background:var(--primary);right:12%;top:8%;box-shadow:0 0 0 8px rgba(20,85,217,.08),0 0 24px rgba(20,85,217,.4);animation:oakSellersPulseRing 3s ease-in-out infinite}
@@ -635,6 +688,11 @@ const CSS = `
 .oak-sellers .manifesto .section-kicker{color:#7ba2ff}
 .oak-sellers .manifesto h2{margin:28px 0;font-size:clamp(56px,9vw,126px);line-height:.88;letter-spacing:-.1em;font-weight:600}
 .oak-sellers .manifesto p{max-width:430px;margin-left:40%;color:#c4cad5;line-height:1.6}
+.oak-sellers .manifesto .manifesto-typed{margin-top:110px}
+.oak-sellers .typed{position:relative}
+.oak-sellers .typed-ghost{visibility:hidden}
+.oak-sellers .typed-live{position:absolute;inset:0}
+.oak-sellers .typed-caret{display:inline-block;width:2px;height:1.05em;margin-left:2px;vertical-align:-.15em;background:#7ba2ff;animation:oakSellersBlink 1s steps(1) infinite}
 .oak-sellers .manifesto-sign{margin-top:120px;color:#7ba2ff;font:12px/1.3 'DM Mono',monospace}
 .oak-sellers .manifesto-sign span{font-size:9px;color:#98a2b3}
 
@@ -766,13 +824,14 @@ const CSS = `
   .oak-sellers .nav-menu-login{display:block}
   .oak-sellers .nav-login{display:none}
   .oak-sellers .menu-button{display:block}
-  .oak-sellers .hero{min-height:720px;padding:0 7vw 30px}
+  .oak-sellers .hero{min-height:max(720px,100vh);padding:130px 7vw 30px}
   .oak-sellers .hero h1{font-size:clamp(58px,18vw,125px)}
   .oak-sellers .hero-side-note{right:7vw;top:145px;bottom:auto}
   .oak-sellers .ticker-section{gap:20px}
   .oak-sellers .ticker-label{padding-left:5vw}
   .oak-sellers .manifesto{padding:100px 7vw}
   .oak-sellers .manifesto p{margin-left:0}
+  .oak-sellers .manifesto .manifesto-typed{margin-top:70px}
   .oak-sellers .manifesto-sign{margin-top:70px}
   .oak-sellers .steps-section{padding:70px 7vw}
   .oak-sellers .features-section,.oak-sellers .studio-section,.oak-sellers .manufacturer-section{display:flex;flex-direction:column;gap:55px;padding:85px 7vw}
