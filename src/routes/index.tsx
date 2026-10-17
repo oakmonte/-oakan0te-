@@ -283,11 +283,11 @@ function SellersLanding() {
             <em>Remarkable.</em>
           </h1>
           <p>
-            Get a website that actually optimises your business.
+            Get an online store that actually optimises your business.
             <br />
             At whatever scale you sell at.
             <br />
-            From automatic deliveries to in-web messaging
+            From automatic deliveries to in-web messaging,
             <br />
             We got you.
           </p>
@@ -825,6 +825,7 @@ const CSS = `
   .oak-sellers .nav-login{display:none}
   .oak-sellers .menu-button{display:block}
   .oak-sellers .hero{min-height:max(720px,100vh);padding:130px 7vw 30px}
+  .oak-sellers .hero-copy p{font-size:14px}
   .oak-sellers .hero h1{font-size:clamp(58px,18vw,125px)}
   .oak-sellers .hero-side-note{right:7vw;top:145px;bottom:auto}
   .oak-sellers .ticker-section{gap:20px}
