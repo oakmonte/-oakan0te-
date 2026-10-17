@@ -1330,8 +1330,10 @@ export function PublicStorefront({
           </div>
         ) : tab === "home" && ownerId ? (
           // One screen tall: 100dvh on a page (Home preview), clamped to the
-          // sheet's height inside the website's storefront sheet.
-          <div style={{ height: "100dvh", maxHeight: "100%" }}>
+          // sheet's height inside the website's storefront sheet. From md up the
+          // 64px top bar (and its spacer) sits above, so the feed is that much
+          // shorter: one screen minus the bar.
+          <div className="h-dvh max-h-full md:h-[calc(100dvh-4rem)]">
             <StorefrontFeed ownerId={ownerId} storePicture={storeLogo} />
           </div>
         ) : (
