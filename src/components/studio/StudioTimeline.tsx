@@ -255,13 +255,24 @@ function StudioTimeline({
     startValue: number;
     speed: number;
   } | null>(null);
+  // Clips sit end to end, so trimming a clip's FRONT moves its end in, not its
+  // front: under the finger it looked like cutting from the back. While a front
+  // trim is held, the clip (and everything after it) is drawn shifted by what
+  // was cut, so the front edge follows the finger; it settles on release.
+  const [frontTrim, setFrontTrim] = useState<{ clipId: string; startIn: number } | null>(null);
 
   const startTrim = useCallback(
     (clip: VideoClip, edge: "in" | "out") => (e: ReactPointerEvent) => {
       e.stopPropagation();
       (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
       gestureRef.current = true;
+      // The playhead follows the trimmed edge (see the effect below) without
+      // the timeline scrolling under the finger.
+      ownerRef.current = "user";
+      if (idleTimer.current !== null) window.clearTimeout(idleTimer.current);
+      pause();
       beginHistoryGroup();
+      if (edge === "in") setFrontTrim({ clipId: clip.id, startIn: clip.inPoint });
       trimRef.current = {
         clipId: clip.id,
         edge,
@@ -270,8 +281,19 @@ function StudioTimeline({
         speed: clip.speed,
       };
     },
-    [beginHistoryGroup],
+    [beginHistoryGroup, pause],
   );
+
+  // Show the frame being trimmed to: the first frame for a front trim, the
+  // last for a back trim.
+  useEffect(() => {
+    const trim = trimRef.current;
+    if (!trim) return;
+    const i = project.clips.findIndex((c) => c.id === trim.clipId);
+    if (i < 0) return;
+    const at = trim.edge === "in" ? starts[i] : starts[i] + clipDuration(project.clips[i]) - 0.04;
+    seek(Math.max(0, at));
+  }, [project.clips, starts, seek]);
 
   const moveTrim = useCallback(
     (e: ReactPointerEvent) => {
@@ -292,9 +314,14 @@ function StudioTimeline({
       (e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId);
       trimRef.current = null;
       gestureRef.current = false;
+      setFrontTrim(null);
+      // Settle with the playhead on the cut just made.
+      ownerRef.current = "engine";
+      const el = scrollRef.current;
+      if (el) el.scrollLeft = timeRef.current * pps;
       endHistoryGroup();
     },
-    [endHistoryGroup],
+    [endHistoryGroup, pps, timeRef],
   );
 
   // --- clip select + long-press reorder ------------------------------------
@@ -884,6 +911,15 @@ function StudioTimeline({
                   const isSelected =
                     !compact && selection?.kind === "clip" && selection.id === clip.id;
                   const isDragging = draggingId === clip.id;
+                  const trimIndex = frontTrim
+                    ? project.clips.findIndex((c) => c.id === frontTrim.clipId)
+                    : -1;
+                  const trimShift =
+                    trimIndex >= 0 && index >= trimIndex
+                      ? ((project.clips[trimIndex].inPoint - frontTrim!.startIn) /
+                          project.clips[trimIndex].speed) *
+                        pps
+                      : 0;
                   return (
                     <div
                       key={clip.id}
@@ -893,7 +929,10 @@ function StudioTimeline({
                       onPointerCancel={endClipPress}
                       className="absolute top-0 overflow-hidden"
                       style={{
-                        left: (compact ? index * SQUARE : starts[index] * pps) + CLIP_GAP / 2,
+                        left:
+                          (compact ? index * SQUARE : starts[index] * pps) +
+                          CLIP_GAP / 2 +
+                          trimShift,
                         width,
                         height: VIDEO_TRACK_H,
                         borderRadius: 6,
