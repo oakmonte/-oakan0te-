@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "@tanstack/react-router";
-import { ChevronLeft, ShieldCheck } from "lucide-react";
+// ShieldCheck belongs to the buyer-protection note that is commented out below.
+import { ChevronLeft } from "lucide-react";
 import { PaperPlaneTilt } from "@/components/icons/phosphor";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useOverlayHistory } from "@/hooks/use-overlay-history";
@@ -76,6 +77,27 @@ async function loadProduct(productId: string): Promise<ProductData | null> {
     store: store ? { brand_name: store.brand_name, logo_url: store.logo_url } : null,
     ownerUsername: owner?.personal_username ?? null,
   };
+}
+
+/** A saved description as plain lines. The product form's editor stores rich
+ *  text as HTML (<div style="text-align:right"><span ...>), which showed up on
+ *  this page as literal tags. This page lists the description as bullet lines,
+ *  so the HTML is read for its text only: line breaks (<br> and the end of a
+ *  block) become line breaks and every tag is dropped. Reading textContent
+ *  from an inert parsed document injects nothing into the page, so it needs no
+ *  sanitiser. Plain-text descriptions written before the editor pass through. */
+function descriptionLines(description: string): string[] {
+  let text = description;
+  if (/<[a-z!/]/i.test(description) && typeof DOMParser !== "undefined") {
+    const withBreaks = description
+      .replace(/<br\s*\/?>/gi, "\n")
+      .replace(/<\/(div|p|li|ul|ol)>/gi, "$&\n");
+    text = new DOMParser().parseFromString(withBreaks, "text/html").body.textContent ?? "";
+  }
+  return text
+    .split("\n")
+    .map((line) => line.replace(/^\s*[-•*]\s*/, "").trim())
+    .filter(Boolean);
 }
 
 function inStock(v: Variant) {
@@ -446,6 +468,9 @@ export function ProductPage({
                     </button>
                   </div>
 
+                  {/* Buyer-protection note, switched off (Diadem, 2026-10-17): commented
+                      out, not deleted, so it can come back. Restore the ShieldCheck
+                      import at the top with it.
                   <div
                     className="mt-5 flex items-start gap-3 border-t pt-4"
                     style={{ borderColor: look.tileBg }}
@@ -456,6 +481,7 @@ export function ProductPage({
                       be scammed here and one in a trillion situations WILL be refunded)
                     </p>
                   </div>
+                  */}
 
                   {data === undefined && <div className="mt-6 h-24" />}
                   {data === null && (
@@ -470,13 +496,9 @@ export function ProductPage({
                         className="mt-1.5 list-disc space-y-1 pl-5 text-[15px] leading-relaxed"
                         style={{ color: look.mutedColor }}
                       >
-                        {data.description
-                          .split(String.fromCharCode(10))
-                          .map((line) => line.replace(/^\s*[-•*]\s*/, "").trim())
-                          .filter(Boolean)
-                          .map((line, i) => (
-                            <li key={i}>{line}</li>
-                          ))}
+                        {descriptionLines(data.description).map((line, i) => (
+                          <li key={i}>{line}</li>
+                        ))}
                       </ul>
                     </div>
                   )}
