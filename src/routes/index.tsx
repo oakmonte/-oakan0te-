@@ -258,7 +258,7 @@ function SellersLanding() {
           <Link className="nav-login" to="/sign-in">
             Log in
           </Link>
-          <Link className="pill-button pill-button-light no-shine" to="/set-up-store">
+          <Link className="pill-button pill-button-light" to="/set-up-store">
             Start selling <ArrowUpRight size={15} />
           </Link>
           <button
@@ -292,7 +292,7 @@ function SellersLanding() {
             We got you.
           </p>
           <div className="hero-buttons">
-            <Link className="pill-button pill-button-acid no-shine" to="/set-up-store">
+            <Link className="pill-button pill-button-acid" to="/set-up-store">
               Get your free website <ArrowUpRight size={20} />
             </Link>
             <Link className="text-link hero-link" to="/sign-in">
@@ -639,13 +639,11 @@ const CSS = `
 .oak-sellers .nav-login{display:inline-block;transform:translateY(7px)}
 .oak-sellers .nav-menu-login{display:none}
 .oak-sellers .pill-button{display:inline-flex;align-items:center;justify-content:center;gap:11px;border-radius:999px;padding:14px 20px;font-size:12px;font-weight:800;transition:transform var(--duration-fast) var(--ease-out),box-shadow var(--duration-fast) var(--ease-out),background var(--duration-fast) var(--ease-out);position:relative;overflow:hidden}
-.oak-sellers .pill-button::after{content:'';position:absolute;inset:0;width:35%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.42),transparent);transform:translateX(-140%);animation:oakSellersShimmer 5s 2s ease-in-out infinite}
 @media (hover:hover) and (pointer:fine){
   .oak-sellers .pill-button:hover{transform:translateY(-4px) scale(1.025);box-shadow:0 14px 28px rgba(20,85,217,.2)}
 }
 .oak-sellers .pill-button:active{transform:scale(.97);transition-duration:var(--duration-quick)}
 .oak-sellers .pill-button-light{background:#111827;color:#fff}
-.oak-sellers .pill-button.no-shine::after{display:none}
 .oak-sellers .pill-button-acid{background:var(--accent-blue);color:#fff}
 .oak-sellers .pill-button-dark{background:#111827;color:#fff}
 .oak-sellers .feature-more{margin-top:32px}
