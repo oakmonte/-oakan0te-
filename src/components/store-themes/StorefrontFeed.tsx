@@ -88,7 +88,20 @@ export function StorefrontFeed({
         className="flex h-full"
         style={{ x, width: `${TABS.length * 100}%`, touchAction: "pan-y" }}
       >
-        <div className="h-full" style={{ width: `${100 / TABS.length}%` }}>
+        {/* [&_.overflow-y-auto]:touch-pan-y on both panes: each holds a vertical
+            scroller (the feed, the Listed items list, an embedded product
+            page), and a touch's allowed gestures only inherit up to the nearest
+            scroller -- so the track's own pan-y never reached the video, and the
+            browser claimed a sideways drag as a pan and cancelled the pager's
+            drag (drag="x" runs on pointer events, which stop at that point).
+            pan-y on the scrollers themselves leaves horizontal drags to the
+            pager; vertical scrolling is untouched, and a nested horizontal
+            scroller (a post's photo carousel) is its own scroller, so it keeps
+            its swipe. */}
+        <div
+          className="h-full [&_.overflow-y-auto]:touch-pan-y"
+          style={{ width: `${100 / TABS.length}%` }}
+        >
           <PostFeed
             mode="embedded"
             scope={{ type: "author", userId: ownerId }}
@@ -97,7 +110,10 @@ export function StorefrontFeed({
             storePicture={storePicture}
           />
         </div>
-        <div className="h-full" style={{ width: `${100 / TABS.length}%` }}>
+        <div
+          className="h-full [&_.overflow-y-auto]:touch-pan-y"
+          style={{ width: `${100 / TABS.length}%` }}
+        >
           {items.length === 0 ? (
             <div className="flex h-full w-full items-center justify-center px-10 text-center">
               <p className="text-[15px] font-semibold text-white/70">No linked products</p>
