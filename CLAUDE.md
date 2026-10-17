@@ -18,20 +18,23 @@ Three versions:
 1. **`oakmonte-master-piece`** (branch; tag `master-piece-2026-10-09`) — the full platform, kept
    safe. Low priority. Finished lane work (discounts, insights, activity — not offline videos)
    is merged in there too.
-2. **Sellers-only** (a preview branch) — built toward Paystack going live.
-3. **Sellers-only locked** (`main` = production) — same code, with buying blocked by a "not until
-   launch" pop-up until Paystack is ready. Production-ready for incoming sellers.
+2. **`sellers-only`** = **Vercel production** (since 2026-10-17), with buying locked: Production
+   has no `VITE_LAUNCH_UNLOCKED`. **`sellers-only-test`** is the same code with buying unlocked
+   (a Preview env scoped to that branch: the switch plus Paystack test / Shipbubble sandbox
+   keys) at `oakmonte-git-sellers-only-test-sudo-50b8.vercel.app`. Test checkout there.
+3. **`main` / `sellers-only-locked`**: the older locked code, now only previews.
 
 Launch locks (Buy Now, the preview's Open website) live in `src/lib/launch-locks.ts`: locked
-by default, unlocked only by `VITE_LAUNCH_UNLOCKED=true`, set in Vercel for the `sellers-only`
-preview.
+by default, unlocked only by `VITE_LAUNCH_UNLOCKED=true`. Launch day = add it (and live keys)
+to Production; no code change.
 
-**Branch flow (since 2026-10-15): main -> sellers-only, never back.** `main` and
-`sellers-only-locked` stay identical. `sellers-only` gets every main change (merge
-`origin/main` into it often) **plus** work that isn't for production yet: payouts, unlocked
-buying features, desktop themes. Push that work with `git push origin HEAD:sellers-only` only.
-Something meant for both goes to main first, then merges into sellers-only. If main ever
-reverts something sellers-only keeps, revert the revert on sellers-only after merging.
+**Branch flow: main -> sellers-only, never back.** `main` and `sellers-only-locked` stay
+identical. `sellers-only` gets every main change (merge `origin/main` into it often) **plus**
+its own work (payouts, unlocked buying, desktop themes). Push sellers-only work to both twins
+in one command, so they never drift: `git push origin HEAD:sellers-only HEAD:sellers-only-test`.
+Never push it to main. Something meant for both goes to main first, then merges into
+sellers-only. If main ever reverts something sellers-only keeps, revert the revert on
+sellers-only after merging.
 
 **Parked features** (built, hidden to keep things simple) are switches in `src/lib/features.ts`:
 Wardrobe/Gallery (`WARDROBE_ENABLED`) is off. Park the next one there too, as a switch, not by
