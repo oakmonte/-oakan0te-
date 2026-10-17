@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { recall, remember } from "@/lib/remembered";
 import { Search, Plus, Upload, Check, Trash2, X } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useNavigate } from "@tanstack/react-router";
@@ -101,7 +102,16 @@ export function ProductsPanel({ checklist }: { checklist?: boolean }) {
 
   const fetchProducts = useCallback(async () => {
     if (!storeId) return;
-    setListLoading(true);
+    // The last list this tab showed, at once (and offline); the fetch below
+    // refreshes it. Not for searches, which re-run on every keystroke.
+    const memKey = search.trim() ? null : `products:${storeId}:${activeTab}:${collectionId ?? ""}`;
+    const cached = memKey ? recall<ProductRow[]>(memKey) : null;
+    if (cached) {
+      setProducts(cached);
+      setListLoading(false);
+    } else {
+      setListLoading(true);
+    }
     let query = supabase
       .from("products")
       .select(
@@ -136,7 +146,10 @@ export function ProductsPanel({ checklist }: { checklist?: boolean }) {
     // wipe an in-progress cross-tab/cross-search multi-select on literally
     // every character typed. A selected id that's since gone stale (deleted
     // elsewhere) is reconciled at delete time instead -- see handleBulkDelete.
-    if (!error && data) setProducts(data as ProductRow[]);
+    if (!error && data) {
+      setProducts(data as ProductRow[]);
+      if (memKey) remember(memKey, data);
+    }
     setListLoading(false);
   }, [storeId, activeTab, search, collectionId]);
 
