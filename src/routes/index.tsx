@@ -188,12 +188,13 @@ function SellersLanding() {
           <a href="#sellers" onClick={() => setMenuOpen(false)}>
             For sellers
           </a>
+          {/* Hidden while this page markets to sellers only. Restore when ready.
           <Link to="/creators" onClick={() => setMenuOpen(false)}>
             Creators
           </Link>
           <Link to="/" onClick={() => setMenuOpen(false)}>
             Main
-          </Link>
+          </Link> */}
         </nav>
         <div className="nav-actions">
           <Link className="nav-login" to="/sign-in">
@@ -228,7 +229,7 @@ function SellersLanding() {
             resource they need to set themselves apart — at whatever scale they choose to sell.
           </p>
           <div className="hero-buttons">
-            <Link className="pill-button pill-button-acid" to="/set-up-store">
+            <Link className="pill-button pill-button-acid no-shine" to="/set-up-store">
               Get your free website <ArrowUpRight size={20} />
             </Link>
             <Link className="text-link hero-link" to="/sign-in">
@@ -237,7 +238,6 @@ function SellersLanding() {
           </div>
         </div>
         <div className="hero-side-note">
-          <span>EST. 2026</span>
           <strong>
             The tool
             <br />
@@ -245,6 +245,7 @@ function SellersLanding() {
             <br />
             <em>creatives.</em>
           </strong>
+          <span>EST. 2026</span>
         </div>
       </section>
 
@@ -287,6 +288,7 @@ function SellersLanding() {
         </Reveal>
       </section>
 
+      {/* Steps: hidden for now. Restore when needed.
       <section className="steps-section">
         <Reveal className="steps-list">
           <div>
@@ -302,7 +304,7 @@ function SellersLanding() {
             <strong>We handle the rest!</strong>
           </div>
         </Reveal>
-      </section>
+      </section> */}
 
       <section className="features-section" id="sellers">
         <Reveal className="feature-intro">
@@ -337,33 +339,35 @@ function SellersLanding() {
               </div>
             );
           })}
+          {/* Hidden while this page markets to sellers only. Restore when ready.
           <div className="feature-more">
             <Link className="pill-button pill-button-acid" to="/creators">
               See more about creators <ArrowUpRight size={15} />
             </Link>
-          </div>
+          </div> */}
         </Reveal>
       </section>
 
       <section className="studio-section">
-        <Reveal className="studio-card">
-          <div className="studio-top">
-            <span className="studio-dot" /> Seller Studio{" "}
-            <span className="studio-status">LIVE WORKSPACE</span>
-          </div>
-          <div className="studio-window">
-            <div className="window-nav">
-              <span>Overview</span>
-              <span>Products</span>
-              <span>Orders</span>
-              <span>Audience</span>
-            </div>
-            <div className="window-main">
+        <Reveal className="studio-phone">
+          {/* A picture of the real seller dashboard (store/dashboard): same
+              sections, labels and order. Sample store and figures. */}
+          <div className="sp-screen">
+            <div className="sp-id">
+              <span className="sp-logo">A</span>
               <div>
-                <small>THIS MONTH</small>
-                <strong>$48,920</strong>
-                <span className="up">↗ 24.8%</span>
+                <b>Adaeze Atelier</b>
+                <small>adaeze.oakmonte.store</small>
               </div>
+            </div>
+            <div className="sp-pills">
+              <span>Share link</span>
+              <span>Edit store</span>
+            </div>
+            <div className="sp-title">Sales analytics</div>
+            <div className="sp-chart">
+              <small>This month</small>
+              <strong>₦1,284,500</strong>
               <div className="chart">
                 <i />
                 <i />
@@ -376,17 +380,33 @@ function SellersLanding() {
                 <i />
                 <i />
               </div>
-              <div className="window-rows">
-                <span>
-                  New orders <b>184</b>
-                </span>
-                <span>
-                  Returning customers <b>68%</b>
-                </span>
-                <span>
-                  Products live <b>42</b>
-                </span>
+            </div>
+            <div className="sp-tiles">
+              <div>
+                <small>Products listed</small>
+                <b>42</b>
               </div>
+              <div>
+                <small>Orders</small>
+                <b>184</b>
+              </div>
+              <div>
+                <small>Net revenue</small>
+                <b>₦1.2M</b>
+              </div>
+              <div>
+                <small>Customers</small>
+                <b>126</b>
+              </div>
+            </div>
+            <div className="sp-title">Quick actions</div>
+            <div className="sp-actions">
+              <span>Add product</span>
+              <span>Import products</span>
+              <span>Pickup locations</span>
+              <span>Collections</span>
+              <span>Orders</span>
+              <span>Discounts</span>
             </div>
           </div>
         </Reveal>
@@ -531,7 +551,7 @@ const CSS = `
 .oak-sellers *{box-sizing:border-box}
 .oak-sellers a{color:inherit;text-decoration:none}
 .oak-sellers button{font:inherit;color:inherit}
-.oak-sellers .site-nav{height:76px;padding:0 4vw;position:absolute;z-index:5;width:100%;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(17,24,39,.14);background:rgba(255,255,255,.78);backdrop-filter:blur(16px)}
+.oak-sellers .site-nav{height:76px;padding:0 4vw;position:fixed;top:0;left:0;z-index:60;width:100%;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(17,24,39,.14);background:rgba(255,255,255,.78);backdrop-filter:blur(16px)}
 .oak-sellers .wordmark{display:flex;align-items:baseline;gap:0}
 .oak-sellers .wordmark-logo{height:44px;width:auto;flex:none;display:inline-block;transform:translateY(4px)}
 .oak-sellers .wordmark-word{display:inline-block;font-family:'Inter',ui-sans-serif,system-ui,sans-serif;font-weight:400;font-size:26px;letter-spacing:-.01em;line-height:1;color:var(--foreground);animation:oakSellersWordmarkReveal .8s .15s cubic-bezier(.2,.8,.2,1) both}
@@ -550,7 +570,7 @@ const CSS = `
 /* Desktop: the button's label sits on the same baseline as the links and Log in
    (they are all nudged down 19px to meet the wordmark). translate, not
    transform, so the hover lift above still composes with it. */
-@media (min-width:801px){.oak-sellers .nav-actions .pill-button{padding:10px 20px;translate:0 19px}}
+@media (min-width:801px){.oak-sellers .nav-actions .pill-button{padding:10px 20px;translate:0 7px}}
 .oak-sellers .nav-login{display:inline-block;transform:translateY(19px)}
 .oak-sellers .pill-button{display:inline-flex;align-items:center;justify-content:center;gap:11px;border-radius:999px;padding:14px 20px;font-size:12px;font-weight:800;transition:transform var(--duration-fast) var(--ease-out),box-shadow var(--duration-fast) var(--ease-out),background var(--duration-fast) var(--ease-out);position:relative;overflow:hidden}
 .oak-sellers .pill-button::after{content:'';position:absolute;inset:0;width:35%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.42),transparent);transform:translateX(-140%);animation:oakSellersShimmer 5s 2s ease-in-out infinite}
@@ -559,6 +579,7 @@ const CSS = `
 }
 .oak-sellers .pill-button:active{transform:scale(.97);transition-duration:var(--duration-quick)}
 .oak-sellers .pill-button-light{background:#111827;color:#fff}
+.oak-sellers .pill-button.no-shine::after{display:none}
 .oak-sellers .pill-button-acid{background:var(--accent-blue);color:#fff}
 .oak-sellers .pill-button-dark{background:#111827;color:#fff}
 .oak-sellers .feature-more{margin-top:32px}
@@ -581,7 +602,7 @@ const CSS = `
 .oak-sellers .hero-buttons .pill-button{padding:19px 32px;font-size:15px;gap:12px;min-height:58px}
 .oak-sellers .text-link{display:inline-flex;align-items:center;gap:8px;font:11px 'DM Mono',monospace;transition:color var(--duration-fast) var(--ease-out)}
 .oak-sellers .hero-link{color:#344054}
-.oak-sellers .hero-side-note{position:absolute;right:7vw;bottom:calc(min(30.7vw,436px) + 171px);z-index:1;display:flex;flex-direction:column;gap:16px;color:#667085;font:10px 'DM Mono',monospace}
+.oak-sellers .hero-side-note{position:absolute;right:7vw;bottom:calc(min(30.7vw,436px) + 131px);z-index:1;display:flex;flex-direction:column;gap:16px;color:#667085;font:10px 'DM Mono',monospace}
 .oak-sellers .hero-side-note strong{color:#111827;font:600 24px/1.2 Georgia,serif;letter-spacing:-.05em}
 
 .oak-sellers .ticker-section{display:flex;align-items:center;gap:40px;padding:20px 0;overflow:hidden;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
@@ -633,6 +654,25 @@ const CSS = `
 .oak-sellers .feature-panel-inner p{max-width:440px;margin:0;padding:0 32px 24px 72px;color:var(--muted);font-size:13px;line-height:1.6}
 
 .oak-sellers .studio-section{display:grid;grid-template-columns:1.1fr .9fr;align-items:center;gap:9vw;padding:120px 7vw;background:var(--paper)}
+.oak-sellers .studio-phone{justify-self:center;width:min(100%,340px);padding:12px;border-radius:46px;background:#111827;box-shadow:0 30px 90px rgba(20,85,217,.18);animation:oakSellersFloatCard 5s ease-in-out infinite}
+.oak-sellers .sp-screen{display:flex;flex-direction:column;gap:14px;max-height:640px;overflow:hidden;border-radius:36px;background:#fff;padding:30px 18px 22px;font-family:Inter,system-ui,sans-serif;color:#111827}
+.oak-sellers .sp-id{display:flex;align-items:center;gap:12px}
+.oak-sellers .sp-id b{display:block;font-size:17px;font-weight:700;letter-spacing:-.02em}
+.oak-sellers .sp-id small{display:block;margin-top:2px;font-size:12px;color:#667085}
+.oak-sellers .sp-logo{display:grid;place-items:center;width:48px;height:48px;border-radius:999px;background:#eaf1ff;color:var(--accent-blue);font:400 22px Georgia,serif}
+.oak-sellers .sp-pills{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.oak-sellers .sp-pills span{display:grid;place-items:center;height:38px;border:1px solid #d0d5dd;border-radius:999px;font-size:12px;font-weight:600}
+.oak-sellers .sp-title{margin-top:4px;font-size:14px;font-weight:600;letter-spacing:-.02em}
+.oak-sellers .sp-chart{border:1px solid #eaecf0;border-radius:20px;padding:14px 14px 0}
+.oak-sellers .sp-chart small{font-size:11px;color:#667085}
+.oak-sellers .sp-chart strong{display:block;margin-top:4px;font-size:24px;font-weight:700;letter-spacing:-.03em}
+.oak-sellers .sp-chart .chart{height:64px;margin:12px 0 0;gap:6px;border-bottom:0}
+.oak-sellers .sp-tiles{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.oak-sellers .sp-tiles div{border:1px solid #eaecf0;border-radius:18px;padding:12px}
+.oak-sellers .sp-tiles small{display:block;font-size:11px;font-weight:500;color:#667085}
+.oak-sellers .sp-tiles b{display:block;margin-top:6px;font-size:18px;font-weight:700;letter-spacing:-.02em}
+.oak-sellers .sp-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.oak-sellers .sp-actions span{display:grid;place-items:center;min-height:52px;padding:6px;border:1px solid #eaecf0;border-radius:16px;font-size:10.5px;font-weight:600;text-align:center;line-height:1.25}
 .oak-sellers .studio-card{border:1px solid #b7c9ed;background:#fff;box-shadow:0 30px 90px rgba(20,85,217,.12);animation:oakSellersFloatCard 5s ease-in-out infinite}
 .oak-sellers .studio-top{display:flex;align-items:center;padding:18px 22px;border-bottom:1px solid var(--border);font:11px 'DM Mono',monospace}
 .oak-sellers .studio-status{margin-left:auto;color:var(--primary);font-size:9px}
