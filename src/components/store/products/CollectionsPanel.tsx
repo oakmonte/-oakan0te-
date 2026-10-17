@@ -1,4 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
+import { recall, remember } from "@/lib/remembered";
 import { useEffect, useState } from "react";
 import { Plus, ImageIcon, Check, Trash2, X } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
@@ -41,6 +42,8 @@ export function CollectionsPanel() {
   useEffect(() => {
     if (!storeId) return;
     let cancelled = false;
+    const cached = recall<CollectionRow[]>(`collections:${storeId}`);
+    if (cached) setCollections(cached);
     (async () => {
       const { data: cols } = await supabase
         .from("collections")
@@ -48,6 +51,8 @@ export function CollectionsPanel() {
         .eq("store_id", storeId)
         .order("created_at", { ascending: false });
       if (cancelled) return;
+      // Offline or a blip: keep the remembered list rather than blanking it.
+      if (!cols) return setCollections((prev) => prev ?? []);
 
       const ids = (cols ?? []).map((c) => c.id);
       const { data: links } = ids.length
@@ -68,6 +73,11 @@ export function CollectionsPanel() {
       cancelled = true;
     };
   }, [storeId]);
+
+  // Whatever's on screen (fetched, or after a delete) is what shows next time.
+  useEffect(() => {
+    if (storeId && collections) remember(`collections:${storeId}`, collections);
+  }, [storeId, collections]);
 
   function toggleSelected(id: string) {
     // A stale "Couldn't delete: …" from a previous failed attempt shouldn't

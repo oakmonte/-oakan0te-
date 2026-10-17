@@ -1,4 +1,5 @@
 import type { User } from "@supabase/supabase-js";
+import { forgetRemembered } from "@/lib/remembered";
 import { clearSavedPages } from "@/lib/offline-app";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { isStandalone } from "@/lib/standalone";
@@ -416,6 +417,7 @@ export async function setAccountPassword(password: string) {
 
 export async function signOut() {
   clearSavedPages();
+  forgetRemembered();
   return supabase.auth.signOut();
 }
 

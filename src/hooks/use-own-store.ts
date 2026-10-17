@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { recall, remember } from "@/lib/remembered";
 import { useSession } from "@/hooks/use-session";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 
@@ -38,7 +39,15 @@ export function useOwnStores() {
       return;
     }
     let cancelled = false;
-    setLoading(true);
+    // Last-known stores first (instant, and offline); the fetch refreshes them.
+    const key = `stores:${user.id}`;
+    const cached = recall<OwnedStoreSummary[]>(key);
+    if (cached) {
+      setStores(cached);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
     supabase
       .from("stores")
       .select("id, brand_name, store_username")
@@ -59,6 +68,7 @@ export function useOwnStores() {
           return;
         }
         setStores(data ?? []);
+        remember(key, data ?? []);
         setLoading(false);
       });
     return () => {
