@@ -250,6 +250,11 @@ export function ProductPage({
     boxShadow: "-12px 0 32px rgba(0,0,0,0.25)",
   };
   const btn: CSSProperties = { background: look.textColor, color: look.background || "#000" };
+  // Desktop (md and up) classes apply only to the full-screen page. This page
+  // is portaled to <body>, outside the storefront's @container, so these are
+  // viewport breakpoints; an embedded page lives in a phone-shaped feed pane
+  // and keeps the phone layout whatever the window width.
+  const d = (cls: string) => (embedded ? "" : cls);
 
   if (typeof document === "undefined") return null;
   return (
@@ -268,213 +273,236 @@ export function ProductPage({
           >
             {!embedded && (
               <div
-                className="sticky top-0 z-10 px-3 pb-2 pt-[calc(env(safe-area-inset-top)+0.5rem)]"
+                // md: the bar's padding follows the content column below it
+                // (1200px wide, 32px in), so Back lines up with the photos.
+                className="sticky top-0 z-10 px-3 pb-2 pt-[calc(env(safe-area-inset-top)+0.5rem)] md:px-[max(2rem,calc(50%-568px))] md:pt-4"
                 style={{ background: look.background || undefined }}
               >
                 <button
                   type="button"
                   onClick={close}
                   aria-label="Back"
-                  className="grid h-10 w-10 place-items-center rounded-full bg-black/45 text-white"
+                  className="grid h-10 w-10 place-items-center rounded-full bg-black/45 text-white md:flex md:w-auto md:gap-1 md:pl-2.5 md:pr-4 md:text-[14px] md:font-medium"
                 >
                   <ChevronLeft size={22} />
+                  <span className="hidden md:inline">Back</span>
                 </button>
               </div>
             )}
 
-            <div className="mx-auto max-w-[520px] pb-[calc(env(safe-area-inset-bottom)+2rem)]">
-              <div className="mx-3 overflow-hidden rounded-3xl" style={{ background: look.tileBg }}>
-                {photos.length > 0 ? (
+            <div
+              className={`mx-auto max-w-[520px] pb-[calc(env(safe-area-inset-bottom)+2rem)] ${d("md:max-w-[1200px] md:px-8 md:pt-4")}`}
+            >
+              {/* md: photos on the left, details pinned on the right. */}
+              <div
+                className={d(
+                  "md:grid md:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] md:items-start md:gap-12",
+                )}
+              >
+                <div>
                   <div
-                    className="flex snap-x snap-mandatory overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-                    onScroll={(e) => {
-                      const el = e.currentTarget;
-                      setPhotoIdx(Math.round(el.scrollLeft / el.clientWidth));
-                    }}
+                    className={`mx-3 overflow-hidden rounded-3xl ${d("md:mx-0 md:rounded-2xl")}`}
+                    style={{ background: look.tileBg }}
                   >
-                    {photos.map((u, i) => (
-                      <img
-                        key={u + i}
-                        src={u}
-                        alt={i === 0 ? tile.title : ""}
-                        className="aspect-[4/5] w-full shrink-0 snap-center object-cover"
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="aspect-[4/5] w-full" />
-                )}
-              </div>
-              {photos.length > 1 && (
-                <div className="mt-2 flex justify-center gap-1.5">
-                  {photos.map((_, i) => (
-                    <span
-                      key={i}
-                      className="h-1.5 w-1.5 rounded-full"
-                      style={{ background: look.textColor, opacity: i === photoIdx ? 1 : 0.3 }}
-                    />
-                  ))}
-                </div>
-              )}
-
-              <div className="px-4 pt-4">
-                <h1 className="text-[22px] font-medium leading-tight">
-                  {data?.title ?? tile.title}
-                </h1>
-
-                {hasChoice && (
-                  <div className="mt-3">
-                    <p className="text-[14px]" style={{ color: look.mutedColor }}>
-                      {sizeName}
-                    </p>
-                    <div className="mt-1.5 flex flex-wrap gap-2">
-                      {variants.map((v) => {
-                        const active = v.id === variant?.id;
-                        const out = !inStock(v);
-                        return (
-                          <button
-                            key={v.id}
-                            type="button"
-                            onClick={() => {
-                              setVariantId(v.id);
-                              setPhotoIdx(0);
-                            }}
-                            className="rounded-full border px-3.5 py-1.5 text-[14px]"
-                            style={{
-                              borderColor: look.textColor,
-                              background: active ? look.textColor : "transparent",
-                              color: active ? look.background || "#000" : look.textColor,
-                              opacity: out ? 0.4 : 1,
-                              textDecoration: out ? "line-through" : undefined,
-                            }}
-                          >
-                            {v.option1_value}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                <p className="mt-3 text-[17px]">
-                  {price != null ? `₦${price.toLocaleString()}` : ""}
-                  {compareAt != null && price != null && compareAt > price && (
-                    <span
-                      className="ml-2 text-[14px] line-through"
-                      style={{ color: look.mutedColor }}
-                    >
-                      ₦{compareAt.toLocaleString()}
-                    </span>
-                  )}
-                </p>
-
-                <div className="mt-4 grid grid-cols-2 gap-2.5">
-                  <div className="col-span-2 flex gap-2.5">
-                    <button
-                      type="button"
-                      disabled={soldOut}
-                      // Until Paystack is live: the same "Sales are still locked
-                      // until full launch" notice as on main (lib/launch-locks.ts).
-                      onClick={SALES_LOCKED ? onAction : () => void buyNow()}
-                      className="h-14 min-w-0 flex-1 rounded-2xl text-[18px] font-semibold disabled:opacity-40"
-                      style={btn}
-                    >
-                      {soldOut ? "Sold out" : "Buy Now"}
-                    </button>
-                    {data && (
-                      <button
-                        type="button"
-                        aria-label="Message the seller"
-                        onClick={() =>
-                          storefrontChat
-                            ? setEnquiryOpen(true)
-                            : void navigate({
-                                to: "/messages",
-                                search: data.ownerUsername ? { to: data.ownerUsername } : {},
-                              })
-                        }
-                        className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl"
-                        style={btn}
+                    {photos.length > 0 ? (
+                      <div
+                        // md: no swiping with a mouse, so every photo is laid out
+                        // as a grid instead of a strip; the first spans both columns.
+                        className={`flex snap-x snap-mandatory overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${d("md:grid md:grid-cols-2 md:gap-1.5 md:overflow-visible md:snap-none")}`}
+                        onScroll={(e) => {
+                          const el = e.currentTarget;
+                          setPhotoIdx(Math.round(el.scrollLeft / el.clientWidth));
+                        }}
                       >
-                        <PaperPlaneTilt size={24} />
-                      </button>
+                        {photos.map((u, i) => (
+                          <img
+                            key={u + i}
+                            src={u}
+                            alt={i === 0 ? tile.title : ""}
+                            className={`aspect-[4/5] w-full shrink-0 snap-center object-cover ${d("md:first:col-span-2")}`}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="aspect-[4/5] w-full" />
                     )}
                   </div>
-                  <button
-                    type="button"
-                    onClick={onAction}
-                    className="h-14 rounded-2xl text-[16px] font-semibold"
-                    style={btn}
-                  >
-                    Make Offer
-                  </button>
-                  <button
-                    type="button"
-                    disabled={soldOut || !data || !variant?.price}
-                    onClick={addToBag}
-                    className="h-14 rounded-2xl text-[16px] font-semibold disabled:opacity-40"
-                    style={btn}
-                  >
-                    Add to Bag
-                  </button>
+                  {photos.length > 1 && (
+                    <div className={`mt-2 flex justify-center gap-1.5 ${d("md:hidden")}`}>
+                      {photos.map((_, i) => (
+                        <span
+                          key={i}
+                          className="h-1.5 w-1.5 rounded-full"
+                          style={{ background: look.textColor, opacity: i === photoIdx ? 1 : 0.3 }}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div
-                  className="mt-5 flex items-start gap-3 border-t pt-4"
-                  style={{ borderColor: look.tileBg }}
+                  // md: pinned beside the photos; it scrolls inside itself if a long
+                  // description is taller than the window.
+                  className={`px-4 pt-4 ${d("md:sticky md:top-20 md:max-h-[calc(100dvh-6rem)] md:overflow-y-auto md:px-0 md:pt-0")}`}
                 >
-                  <ShieldCheck size={28} className="mt-0.5 shrink-0" />
-                  <p className="text-[14px] leading-snug">
-                    ALL purchases in Oakmonte are covered by us. (it is physically impossible to be
-                    scammed here and one in a trillion situations WILL be refunded)
-                  </p>
-                </div>
+                  <h1 className={`text-[22px] font-medium leading-tight ${d("md:text-[32px]")}`}>
+                    {data?.title ?? tile.title}
+                  </h1>
 
-                {data === undefined && <div className="mt-6 h-24" />}
-                {data === null && (
-                  <p className="mt-6 text-[14px]" style={{ color: look.mutedColor }}>
-                    This product isn&apos;t available right now.
-                  </p>
-                )}
-                {data?.description && (
-                  <div className="mt-5 border-t pt-4" style={{ borderColor: look.tileBg }}>
-                    <p className="text-[16px] font-medium">Description</p>
-                    <ul
-                      className="mt-1.5 list-disc space-y-1 pl-5 text-[15px] leading-relaxed"
-                      style={{ color: look.mutedColor }}
-                    >
-                      {data.description
-                        .split(String.fromCharCode(10))
-                        .map((line) => line.replace(/^\s*[-•*]\s*/, "").trim())
-                        .filter(Boolean)
-                        .map((line, i) => (
-                          <li key={i}>{line}</li>
-                        ))}
-                    </ul>
-                  </div>
-                )}
-                {data?.store && (
-                  <div
-                    className="mt-5 flex items-center gap-3 border-t pt-4"
-                    style={{ borderColor: look.tileBg }}
-                  >
-                    {data.store.logo_url ? (
-                      <img
-                        src={data.store.logo_url}
-                        alt=""
-                        className="h-11 w-11 rounded-full object-cover"
-                      />
-                    ) : (
+                  {hasChoice && (
+                    <div className="mt-3">
+                      <p className="text-[14px]" style={{ color: look.mutedColor }}>
+                        {sizeName}
+                      </p>
+                      <div className="mt-1.5 flex flex-wrap gap-2">
+                        {variants.map((v) => {
+                          const active = v.id === variant?.id;
+                          const out = !inStock(v);
+                          return (
+                            <button
+                              key={v.id}
+                              type="button"
+                              onClick={() => {
+                                setVariantId(v.id);
+                                setPhotoIdx(0);
+                              }}
+                              className="rounded-full border px-3.5 py-1.5 text-[14px]"
+                              style={{
+                                borderColor: look.textColor,
+                                background: active ? look.textColor : "transparent",
+                                color: active ? look.background || "#000" : look.textColor,
+                                opacity: out ? 0.4 : 1,
+                                textDecoration: out ? "line-through" : undefined,
+                              }}
+                            >
+                              {v.option1_value}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  <p className={`mt-3 text-[17px] ${d("md:mt-4 md:text-[22px]")}`}>
+                    {price != null ? `₦${price.toLocaleString()}` : ""}
+                    {compareAt != null && price != null && compareAt > price && (
                       <span
-                        className="grid h-11 w-11 place-items-center rounded-full text-[16px]"
-                        style={{ background: look.tileBg }}
+                        className="ml-2 text-[14px] line-through"
+                        style={{ color: look.mutedColor }}
                       >
-                        {data.store.brand_name.slice(0, 1).toUpperCase()}
+                        ₦{compareAt.toLocaleString()}
                       </span>
                     )}
-                    <p className="text-[15px] font-medium">{data.store.brand_name}</p>
+                  </p>
+
+                  <div className="mt-4 grid grid-cols-2 gap-2.5">
+                    <div className="col-span-2 flex gap-2.5">
+                      <button
+                        type="button"
+                        disabled={soldOut}
+                        // Until Paystack is live: the same "Sales are still locked
+                        // until full launch" notice as on main (lib/launch-locks.ts).
+                        onClick={SALES_LOCKED ? onAction : () => void buyNow()}
+                        className="h-14 min-w-0 flex-1 rounded-2xl text-[18px] font-semibold disabled:opacity-40"
+                        style={btn}
+                      >
+                        {soldOut ? "Sold out" : "Buy Now"}
+                      </button>
+                      {data && (
+                        <button
+                          type="button"
+                          aria-label="Message the seller"
+                          onClick={() =>
+                            storefrontChat
+                              ? setEnquiryOpen(true)
+                              : void navigate({
+                                  to: "/messages",
+                                  search: data.ownerUsername ? { to: data.ownerUsername } : {},
+                                })
+                          }
+                          className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl"
+                          style={btn}
+                        >
+                          <PaperPlaneTilt size={24} />
+                        </button>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={onAction}
+                      className="h-14 rounded-2xl text-[16px] font-semibold"
+                      style={btn}
+                    >
+                      Make Offer
+                    </button>
+                    <button
+                      type="button"
+                      disabled={soldOut || !data || !variant?.price}
+                      onClick={addToBag}
+                      className="h-14 rounded-2xl text-[16px] font-semibold disabled:opacity-40"
+                      style={btn}
+                    >
+                      Add to Bag
+                    </button>
                   </div>
-                )}
+
+                  <div
+                    className="mt-5 flex items-start gap-3 border-t pt-4"
+                    style={{ borderColor: look.tileBg }}
+                  >
+                    <ShieldCheck size={28} className="mt-0.5 shrink-0" />
+                    <p className="text-[14px] leading-snug">
+                      ALL purchases in Oakmonte are covered by us. (it is physically impossible to
+                      be scammed here and one in a trillion situations WILL be refunded)
+                    </p>
+                  </div>
+
+                  {data === undefined && <div className="mt-6 h-24" />}
+                  {data === null && (
+                    <p className="mt-6 text-[14px]" style={{ color: look.mutedColor }}>
+                      This product isn&apos;t available right now.
+                    </p>
+                  )}
+                  {data?.description && (
+                    <div className="mt-5 border-t pt-4" style={{ borderColor: look.tileBg }}>
+                      <p className="text-[16px] font-medium">Description</p>
+                      <ul
+                        className="mt-1.5 list-disc space-y-1 pl-5 text-[15px] leading-relaxed"
+                        style={{ color: look.mutedColor }}
+                      >
+                        {data.description
+                          .split(String.fromCharCode(10))
+                          .map((line) => line.replace(/^\s*[-•*]\s*/, "").trim())
+                          .filter(Boolean)
+                          .map((line, i) => (
+                            <li key={i}>{line}</li>
+                          ))}
+                      </ul>
+                    </div>
+                  )}
+                  {data?.store && (
+                    <div
+                      className="mt-5 flex items-center gap-3 border-t pt-4"
+                      style={{ borderColor: look.tileBg }}
+                    >
+                      {data.store.logo_url ? (
+                        <img
+                          src={data.store.logo_url}
+                          alt=""
+                          className="h-11 w-11 rounded-full object-cover"
+                        />
+                      ) : (
+                        <span
+                          className="grid h-11 w-11 place-items-center rounded-full text-[16px]"
+                          style={{ background: look.tileBg }}
+                        >
+                          {data.store.brand_name.slice(0, 1).toUpperCase()}
+                        </span>
+                      )}
+                      <p className="text-[15px] font-medium">{data.store.brand_name}</p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -486,7 +514,9 @@ export function ProductPage({
           <div className="fixed inset-0 z-[200]" role="dialog" aria-modal="true">
             <div className="absolute inset-0 bg-black/40" onClick={() => setAskAccount(false)} />
             <div
-              className="absolute inset-x-3 rounded-[26px] bg-white px-6 pb-5 pt-7 text-center text-black shadow-[0_20px_60px_rgba(0,0,0,0.35)]"
+              // md: a centred 440px card instead of a full-width bottom sheet.
+              // bottom-auto! beats the inline safe-area bottom set below.
+              className="absolute inset-x-3 rounded-[26px] bg-white px-6 pb-5 pt-7 text-center text-black shadow-[0_20px_60px_rgba(0,0,0,0.35)] md:inset-x-auto md:bottom-auto! md:left-1/2 md:top-1/2 md:w-[440px] md:-translate-x-1/2 md:-translate-y-1/2"
               style={{ bottom: "calc(env(safe-area-inset-bottom) + 12px)" }}
             >
               <h2 className="text-[20px] font-bold leading-tight">
