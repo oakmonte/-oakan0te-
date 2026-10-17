@@ -236,7 +236,9 @@ function SellersLanding() {
             <br />
             At whatever scale you sell at.
             <br />
-            From automatic deliveries to in-web messaging... we got you.
+            From automatic deliveries to in-web messaging
+            <br />
+            We got you.
           </p>
           <div className="hero-buttons">
             <Link className="pill-button pill-button-acid no-shine" to="/set-up-store">
