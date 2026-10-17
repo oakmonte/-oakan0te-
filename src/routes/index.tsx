@@ -427,9 +427,10 @@ function SellersLanding() {
       </section>
 
       <section className="studio-section">
+        {/* Dashboard phone mock: removed, to be replaced by the three live demos.
         <Reveal className="studio-phone">
-          {/* A picture of the real seller dashboard (store/dashboard): same
-              sections, labels and order. Sample store and figures. */}
+          {/ * A picture of the real seller dashboard (store/dashboard): same
+              sections, labels and order. Sample store and figures. * /}
           <div className="sp-screen">
             <div className="sp-id">
               <span className="sp-logo">A</span>
@@ -487,7 +488,7 @@ function SellersLanding() {
               <span>Discounts</span>
             </div>
           </div>
-        </Reveal>
+        </Reveal> */}
         <Reveal delay={1} className="studio-copy">
           <div className="section-kicker">02 / Seller Studio</div>
           <h2>
