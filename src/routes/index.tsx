@@ -4,7 +4,7 @@ import { canonicalLink } from "@/lib/seo";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { isStandalone } from "@/lib/standalone";
 import { supabase } from "@/lib/integrations/my-supabase/client";
-import { ArrowUpRight, Check, ChevronDown, Menu, X } from "lucide-react";
+import { Check, ChevronDown, Menu, X } from "lucide-react";
 import logoO from "@/assets/logo-o.png";
 
 export const Route = createFileRoute("/")({
@@ -259,7 +259,7 @@ function SellersLanding() {
             Log in
           </Link>
           <Link className="pill-button pill-button-light" to="/set-up-store">
-            Start selling <ArrowUpRight size={15} />
+            Start selling
           </Link>
           <button
             className="menu-button"
@@ -286,17 +286,17 @@ function SellersLanding() {
             Get an online store that actually optimises your business.
             <br />
             At whatever scale you sell at.
-            <br />
+            <span className="hero-gap" />
             From automatic deliveries to in-web messaging,
             <br />
             We got you.
           </p>
           <div className="hero-buttons">
             <Link className="pill-button pill-button-acid" to="/set-up-store">
-              Get your free website <ArrowUpRight size={20} />
+              Get your free website
             </Link>
             <Link className="text-link hero-link" to="/sign-in">
-              Login <ArrowUpRight size={15} />
+              Login
             </Link>
           </div>
         </div>
@@ -407,7 +407,7 @@ function SellersLanding() {
           {/* Hidden while this page markets to sellers only. Restore when ready.
           <div className="feature-more">
             <Link className="pill-button pill-button-acid" to="/creators">
-              See more about creators <ArrowUpRight size={15} />
+              See more about creators
             </Link>
           </div> */}
         </Reveal>
@@ -487,7 +487,7 @@ function SellersLanding() {
             tools stitched together to run your store.
           </p>
           <Link className="text-link" to="/set-up-store">
-            Enter the studio <ArrowUpRight size={15} />
+            Enter the studio
           </Link>
         </Reveal>
       </section>
@@ -506,7 +506,7 @@ function SellersLanding() {
             first run.
           </p>
           <Link className="pill-button pill-button-dark" to="/set-up-store">
-            Meet the makers <ArrowUpRight size={16} />
+            Meet the makers
           </Link>
         </Reveal>
         <Reveal delay={1} className="manufacturer-list">
@@ -558,7 +558,7 @@ function SellersLanding() {
             ))}
           </ul>
           <Link className="pill-button pill-button-acid" to="/set-up-store">
-            Start selling free <ArrowUpRight size={16} />
+            Start selling free
           </Link>
         </Reveal>
       </section>
@@ -572,7 +572,7 @@ function SellersLanding() {
             <em>big move.</em>
           </h2>
           <Link className="pill-button pill-button-acid" to="/set-up-store">
-            Claim your free store <ArrowUpRight size={16} />
+            Claim your free store
           </Link>
         </Reveal>
         <div className="footer-bottom">
@@ -655,6 +655,7 @@ const CSS = `
 .oak-sellers .hero-orbit::after{content:'';position:absolute;width:10px;height:10px;border-radius:50%;background:var(--primary);right:12%;top:8%;box-shadow:0 0 0 8px rgba(20,85,217,.08),0 0 24px rgba(20,85,217,.4);animation:oakSellersPulseRing 3s ease-in-out infinite}
 .oak-sellers .orbit-one{width:780px;height:430px;right:-80px;top:160px}
 .oak-sellers .orbit-two{width:580px;height:260px;right:30px;top:245px;border-color:rgba(17,24,39,.13);animation-duration:17s;animation-direction:alternate-reverse}
+.oak-sellers .hero-gap{display:block;height:14px}
 .oak-sellers .hero-copy{position:relative;z-index:1;max-width:740px;animation:oakSellersRise 1s ease both}
 .oak-sellers .section-kicker{color:var(--primary);text-transform:uppercase;letter-spacing:.06em;font:10px 'DM Mono',monospace}
 .oak-sellers .studio-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--primary);margin-right:8px;box-shadow:0 0 14px rgba(20,85,217,.55);animation:oakSellersBlink 2s ease-in-out infinite}
