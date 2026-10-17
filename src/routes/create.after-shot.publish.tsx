@@ -261,9 +261,10 @@ function PublishPage() {
       </div>
 
       <div className="px-4 pb-40">
-        {/* Cover + caption */}
-        <div className="flex gap-3 pt-2">
-          <div className="w-24 h-32 shrink-0 rounded-xl overflow-hidden bg-gray-100 relative">
+        {/* The post, with Edit cover on it. Caption, location and visibility
+            are hidden for now (commented out below) -- restore when wanted. */}
+        <div className="flex justify-center pt-2">
+          <div className="w-48 h-64 shrink-0 rounded-2xl overflow-hidden bg-gray-100 relative">
             {media.type === "photo" ? (
               <img src={media.url} alt="" className="w-full h-full object-cover" />
             ) : media.poster ? (
@@ -293,13 +294,14 @@ function PublishPage() {
               <button
                 type="button"
                 onClick={() => setCoverOpen(true)}
-                className="oak-motion-control absolute inset-x-0 bottom-0 flex items-center justify-center gap-1 bg-black/55 py-1.5 text-[11px] font-semibold text-white active:scale-95"
+                className="oak-motion-control absolute inset-x-0 bottom-0 flex items-center justify-center gap-1.5 bg-black/55 py-2.5 text-[13px] font-semibold text-white active:scale-95"
               >
-                <ImageIcon size={11} /> Edit cover
+                <ImageIcon size={14} /> Edit cover
               </button>
             )}
           </div>
 
+          {/* Caption: hidden for now.
           <div className="flex-1 flex flex-col min-w-0">
             <textarea
               ref={captionRef}
@@ -319,7 +321,7 @@ function PublishPage() {
               >
                 <Hash size={15} />
               </button>
-              {/* Mentions aren't live yet: padlocked, and a tap says so. */}
+              {/ * Mentions aren't live yet: padlocked, and a tap says so. * /}
               <button
                 type="button"
                 onClick={() => showLocked("Tagging people is unavailable for now")}
@@ -333,7 +335,7 @@ function PublishPage() {
               </button>
               <span className="text-[11px] text-gray-400">{caption.length}/2200</span>
             </div>
-          </div>
+          </div> */}
         </div>
 
         {blockedCaption.length > 0 && (
@@ -342,7 +344,8 @@ function PublishPage() {
           </p>
         )}
 
-        {/* Location */}
+        {/* Location: hidden for now.
+        {/ * Location * /}
         <div className="oak-motion-fade flex items-center gap-2.5 mt-5 rounded-xl border border-gray-200 px-3.5 py-3">
           <MapPin size={17} className="text-gray-400 shrink-0" />
           <input
@@ -356,7 +359,7 @@ function PublishPage() {
               <X size={15} className="text-gray-400" />
             </button>
           )}
-        </div>
+        </div> */}
 
         {/* The sound, when there is one. Read-only here — it is chosen and
             auditioned in the photo editor, and this screen's job is to show
@@ -386,7 +389,7 @@ function PublishPage() {
           <button
             type="button"
             onClick={() => setTagPickerOpen(true)}
-            className="oak-motion-control flex items-center gap-2.5 w-full rounded-xl border border-gray-200 px-3.5 py-3 text-left active:scale-[0.99]"
+            className="oak-motion-control flex items-center gap-2.5 w-full rounded-xl border border-gray-500 px-3.5 py-3 text-left active:scale-[0.99]"
           >
             <Link2 size={17} className="text-gray-400 shrink-0" />
             <span className="flex-1 text-[14px]">
@@ -425,7 +428,8 @@ function PublishPage() {
           )}
         </div>
 
-        {/* Visibility */}
+        {/* Visibility: hidden for now (posts stay at the default).
+        {/ * Visibility * /}
         <button
           type="button"
           onClick={() => setVisibilityOpen(true)}
@@ -434,7 +438,7 @@ function PublishPage() {
           <activeVisibility.Icon size={17} className="text-gray-400 shrink-0" />
           <span className="flex-1 text-[14px]">{activeVisibility.description}</span>
           <span className="text-[12px] text-gray-400">Change</span>
-        </button>
+        </button> */}
       </div>
 
       {/* Footer */}
