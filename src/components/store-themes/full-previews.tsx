@@ -202,37 +202,39 @@ function MotionGridFull({
           editing={editing}
         />
 
-        <div className="px-4 pt-6">
-          <ThemeText
+        <div className="@3xl:mx-auto @3xl:max-w-[1240px]">
+          <div className="px-4 pt-6 @3xl:px-8 @3xl:pt-14">
+            <ThemeText
+              editing={editing}
+              field="hero1"
+              defaultValue="Welcome to"
+              as="p"
+              className="text-[11px] @3xl:text-[13px] font-semibold uppercase tracking-[0.25em] text-[#c9a3ff]"
+            />
+            <ThemeText
+              editing={editing}
+              field="hero2"
+              defaultValue={brandName}
+              as="h2"
+              className="mt-1 font-display text-[38px] @3xl:text-[65px] uppercase leading-[0.85] tracking-[-0.03em]"
+            />
+            <ThemeText
+              editing={editing}
+              field="hero3"
+              defaultValue="Street culture. No filter."
+              as="p"
+              className="mt-2 text-[13px] @3xl:text-[18px] font-medium uppercase tracking-[0.08em] text-white/60"
+            />
+          </div>
+
+          <LayoutBlocks
             editing={editing}
-            field="hero1"
-            defaultValue="Welcome to"
-            as="p"
-            className="text-[11px] font-semibold uppercase tracking-[0.25em] text-[#c9a3ff]"
-          />
-          <ThemeText
-            editing={editing}
-            field="hero2"
-            defaultValue={brandName}
-            as="h2"
-            className="mt-1 font-display text-[38px] uppercase leading-[0.85] tracking-[-0.03em]"
-          />
-          <ThemeText
-            editing={editing}
-            field="hero3"
-            defaultValue="Street culture. No filter."
-            as="p"
-            className="mt-2 text-[13px] font-medium uppercase tracking-[0.08em] text-white/60"
+            blocks={blocks}
+            storeId={storeId}
+            bg={themeBackground("motion")}
+            brandName={brandName}
           />
         </div>
-
-        <LayoutBlocks
-          editing={editing}
-          blocks={blocks}
-          storeId={storeId}
-          bg={themeBackground("motion")}
-          brandName={brandName}
-        />
       </div>
     </div>
   );
@@ -330,38 +332,40 @@ function ImmersiveBannerFull({
           editing={editing}
         />
 
-        <div className="px-4 pt-4 text-center">
-          <ThemeText
+        <div className="@3xl:mx-auto @3xl:max-w-[1240px]">
+          <div className="px-4 pt-4 @3xl:px-8 @3xl:pt-14 text-center">
+            <ThemeText
+              editing={editing}
+              field="hero1"
+              defaultValue="Essentials for a calm life"
+              as="p"
+              className="text-[11px] @3xl:text-[13px] font-semibold uppercase tracking-[0.25em] text-[#695947]"
+            />
+            <ThemeText
+              editing={editing}
+              field="hero2"
+              defaultValue={brandName}
+              as="h2"
+              className="mt-1 font-serif text-[46px] @3xl:text-[78px] leading-none tracking-[-0.04em]"
+            />
+            <div className="mx-auto mt-2.5 h-px w-16 bg-[#a48a68]" />
+            <ThemeText
+              editing={editing}
+              field="hero3"
+              defaultValue="Made to last, made for every day."
+              as="p"
+              className="mx-auto mt-2.5 max-w-[240px] @3xl:max-w-[560px] text-[13px] @3xl:text-[18px] leading-4 @3xl:leading-7 text-[#655747]"
+            />
+          </div>
+
+          <LayoutBlocks
             editing={editing}
-            field="hero1"
-            defaultValue="Essentials for a calm life"
-            as="p"
-            className="text-[11px] font-semibold uppercase tracking-[0.25em] text-[#695947]"
-          />
-          <ThemeText
-            editing={editing}
-            field="hero2"
-            defaultValue={brandName}
-            as="h2"
-            className="mt-1 font-serif text-[46px] leading-none tracking-[-0.04em]"
-          />
-          <div className="mx-auto mt-2.5 h-px w-16 bg-[#a48a68]" />
-          <ThemeText
-            editing={editing}
-            field="hero3"
-            defaultValue="Made to last, made for every day."
-            as="p"
-            className="mx-auto mt-2.5 max-w-[240px] text-[13px] leading-4 text-[#655747]"
+            blocks={blocks}
+            storeId={storeId}
+            bg={themeBackground("banner")}
+            brandName={brandName}
           />
         </div>
-
-        <LayoutBlocks
-          editing={editing}
-          blocks={blocks}
-          storeId={storeId}
-          bg={themeBackground("banner")}
-          brandName={brandName}
-        />
       </div>
     </div>
   );
@@ -453,38 +457,40 @@ function GalleryEditFull({
           editing={editing}
         />
 
-        <div className="px-4 pt-6 text-center">
-          <ThemeText
+        <div className="@3xl:mx-auto @3xl:max-w-[1240px]">
+          <div className="px-4 pt-6 @3xl:px-8 @3xl:pt-14 text-center">
+            <ThemeText
+              editing={editing}
+              field="hero1"
+              defaultValue="Autumn selects, in full"
+              as="p"
+              className="text-[11px] @3xl:text-[13px] font-semibold uppercase tracking-[0.3em] text-[#c9a227]"
+            />
+            <ThemeText
+              editing={editing}
+              field="hero2"
+              defaultValue={brandName}
+              as="h2"
+              className="mt-2 font-serif text-[36px] @3xl:text-[61px] italic leading-none tracking-[-0.02em]"
+            />
+            <div className="mx-auto mt-3 h-px w-12 bg-[#c9a227]/60" />
+            <ThemeText
+              editing={editing}
+              field="hero3"
+              defaultValue="Fewer pieces. Finer edit."
+              as="p"
+              className="mx-auto mt-3 max-w-[230px] @3xl:max-w-[560px] text-[13px] @3xl:text-[18px] leading-4 @3xl:leading-7 text-[#c9bea6]"
+            />
+          </div>
+
+          <LayoutBlocks
             editing={editing}
-            field="hero1"
-            defaultValue="Autumn selects, in full"
-            as="p"
-            className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[#c9a227]"
-          />
-          <ThemeText
-            editing={editing}
-            field="hero2"
-            defaultValue={brandName}
-            as="h2"
-            className="mt-2 font-serif text-[36px] italic leading-none tracking-[-0.02em]"
-          />
-          <div className="mx-auto mt-3 h-px w-12 bg-[#c9a227]/60" />
-          <ThemeText
-            editing={editing}
-            field="hero3"
-            defaultValue="Fewer pieces. Finer edit."
-            as="p"
-            className="mx-auto mt-3 max-w-[230px] text-[13px] leading-4 text-[#c9bea6]"
+            blocks={blocks}
+            storeId={storeId}
+            bg={themeBackground("atelier")}
+            brandName={brandName}
           />
         </div>
-
-        <LayoutBlocks
-          editing={editing}
-          blocks={blocks}
-          storeId={storeId}
-          bg={themeBackground("atelier")}
-          brandName={brandName}
-        />
       </div>
     </div>
   );
@@ -577,35 +583,37 @@ function NeonTerminalFull({
           editing={editing}
         />
 
-        <div className="px-4 pt-6 text-center">
-          <p className="flex items-center justify-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.25em] text-[#2dd4ff]">
-            <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-[#2dd4ff]" />
-            <ThemeText editing={editing} field="hero1" defaultValue="System online" as="span" />
-          </p>
-          <ThemeText
+        <div className="@3xl:mx-auto @3xl:max-w-[1240px]">
+          <div className="px-4 pt-6 @3xl:px-8 @3xl:pt-14 text-center">
+            <p className="flex items-center justify-center gap-1.5 text-[11px] @3xl:text-[13px] font-semibold uppercase tracking-[0.25em] text-[#2dd4ff]">
+              <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-[#2dd4ff]" />
+              <ThemeText editing={editing} field="hero1" defaultValue="System online" as="span" />
+            </p>
+            <ThemeText
+              editing={editing}
+              field="hero2"
+              defaultValue={brandName}
+              as="h2"
+              className="mt-2 font-display text-[40px] @3xl:text-[68px] uppercase leading-[0.85] tracking-[-0.02em]"
+              style={{ textShadow: "0 0 18px rgba(45,212,255,0.5)" }}
+            />
+            <ThemeText
+              editing={editing}
+              field="hero3"
+              defaultValue="Style, compiled."
+              as="p"
+              className="mx-auto mt-2.5 max-w-[230px] @3xl:max-w-[560px] text-[13px] @3xl:text-[18px] leading-4 @3xl:leading-7 text-[#8fd9e8]"
+            />
+          </div>
+
+          <LayoutBlocks
             editing={editing}
-            field="hero2"
-            defaultValue={brandName}
-            as="h2"
-            className="mt-2 font-display text-[40px] uppercase leading-[0.85] tracking-[-0.02em]"
-            style={{ textShadow: "0 0 18px rgba(45,212,255,0.5)" }}
-          />
-          <ThemeText
-            editing={editing}
-            field="hero3"
-            defaultValue="Style, compiled."
-            as="p"
-            className="mx-auto mt-2.5 max-w-[230px] text-[13px] leading-4 text-[#8fd9e8]"
+            blocks={blocks}
+            storeId={storeId}
+            bg={themeBackground("circuit")}
+            brandName={brandName}
           />
         </div>
-
-        <LayoutBlocks
-          editing={editing}
-          blocks={blocks}
-          storeId={storeId}
-          bg={themeBackground("circuit")}
-          brandName={brandName}
-        />
       </div>
     </div>
   );
@@ -696,37 +704,39 @@ function VerdantNoirFull({
           editing={editing}
         />
 
-        <div className="px-4 pt-6">
-          <ThemeText
+        <div className="@3xl:mx-auto @3xl:max-w-[1240px]">
+          <div className="px-4 pt-6 @3xl:px-8 @3xl:pt-14">
+            <ThemeText
+              editing={editing}
+              field="hero1"
+              defaultValue="Grown, not manufactured"
+              as="p"
+              className="text-[11px] @3xl:text-[13px] font-semibold uppercase tracking-[0.25em] text-[#7fcf9a]"
+            />
+            <ThemeText
+              editing={editing}
+              field="hero2"
+              defaultValue={brandName}
+              as="h2"
+              className="mt-1 font-serif text-[38px] @3xl:text-[65px] leading-[0.9] tracking-[-0.03em]"
+            />
+            <ThemeText
+              editing={editing}
+              field="hero3"
+              defaultValue="Quiet colour for slow living."
+              as="p"
+              className="mt-2 text-[13px] @3xl:text-[18px] leading-4 @3xl:leading-7 text-[#c3d6ca]"
+            />
+          </div>
+
+          <LayoutBlocks
             editing={editing}
-            field="hero1"
-            defaultValue="Grown, not manufactured"
-            as="p"
-            className="text-[11px] font-semibold uppercase tracking-[0.25em] text-[#7fcf9a]"
-          />
-          <ThemeText
-            editing={editing}
-            field="hero2"
-            defaultValue={brandName}
-            as="h2"
-            className="mt-1 font-serif text-[38px] leading-[0.9] tracking-[-0.03em]"
-          />
-          <ThemeText
-            editing={editing}
-            field="hero3"
-            defaultValue="Quiet colour for slow living."
-            as="p"
-            className="mt-2 text-[13px] leading-4 text-[#c3d6ca]"
+            blocks={blocks}
+            storeId={storeId}
+            bg={themeBackground("verdant")}
+            brandName={brandName}
           />
         </div>
-
-        <LayoutBlocks
-          editing={editing}
-          blocks={blocks}
-          storeId={storeId}
-          bg={themeBackground("verdant")}
-          brandName={brandName}
-        />
       </div>
     </div>
   );
@@ -819,38 +829,40 @@ function MonochromeFull({
           editing={editing}
         />
 
-        <div className="px-4 pt-6 text-center">
-          <ThemeText
+        <div className="@3xl:mx-auto @3xl:max-w-[1240px]">
+          <div className="px-4 pt-6 @3xl:px-8 @3xl:pt-14 text-center">
+            <ThemeText
+              editing={editing}
+              field="hero1"
+              defaultValue="No colour to distract you"
+              as="p"
+              className="text-[11px] @3xl:text-[13px] font-semibold uppercase tracking-[0.25em] text-[#5a5a5a]"
+            />
+            <ThemeText
+              editing={editing}
+              field="hero2"
+              defaultValue={brandName}
+              as="h2"
+              className="mt-1 font-display text-[34px] @3xl:text-[58px] uppercase leading-[0.9] tracking-[-0.02em]"
+            />
+            <div className="mx-auto mt-2.5 h-px w-14 bg-[#111111]" />
+            <ThemeText
+              editing={editing}
+              field="hero3"
+              defaultValue="Two colours. Every shape."
+              as="p"
+              className="mx-auto mt-2.5 max-w-[230px] @3xl:max-w-[560px] text-[13px] @3xl:text-[18px] leading-4 @3xl:leading-7 text-[#5a5a5a]"
+            />
+          </div>
+
+          <LayoutBlocks
             editing={editing}
-            field="hero1"
-            defaultValue="No colour to distract you"
-            as="p"
-            className="text-[11px] font-semibold uppercase tracking-[0.25em] text-[#5a5a5a]"
-          />
-          <ThemeText
-            editing={editing}
-            field="hero2"
-            defaultValue={brandName}
-            as="h2"
-            className="mt-1 font-display text-[34px] uppercase leading-[0.9] tracking-[-0.02em]"
-          />
-          <div className="mx-auto mt-2.5 h-px w-14 bg-[#111111]" />
-          <ThemeText
-            editing={editing}
-            field="hero3"
-            defaultValue="Two colours. Every shape."
-            as="p"
-            className="mx-auto mt-2.5 max-w-[230px] text-[13px] leading-4 text-[#5a5a5a]"
+            blocks={blocks}
+            storeId={storeId}
+            bg={themeBackground("monochrome")}
+            brandName={brandName}
           />
         </div>
-
-        <LayoutBlocks
-          editing={editing}
-          blocks={blocks}
-          storeId={storeId}
-          bg={themeBackground("monochrome")}
-          brandName={brandName}
-        />
       </div>
     </div>
   );
@@ -941,38 +953,40 @@ function GildedFull({
           editing={editing}
         />
 
-        <div className="px-4 pt-6 text-center">
-          <ThemeText
+        <div className="@3xl:mx-auto @3xl:max-w-[1240px]">
+          <div className="px-4 pt-6 @3xl:px-8 @3xl:pt-14 text-center">
+            <ThemeText
+              editing={editing}
+              field="hero1"
+              defaultValue="Opulence, quietly worn"
+              as="p"
+              className="text-[11px] @3xl:text-[13px] font-semibold uppercase tracking-[0.3em] text-[#d4af37]"
+            />
+            <ThemeText
+              editing={editing}
+              field="hero2"
+              defaultValue={brandName}
+              as="h2"
+              className="mt-2 font-serif text-[36px] @3xl:text-[61px] leading-none tracking-[-0.02em]"
+            />
+            <div className="mx-auto mt-3 h-px w-12 bg-[#d4af37]/60" />
+            <ThemeText
+              editing={editing}
+              field="hero3"
+              defaultValue="Gold is a finish, not a shortcut."
+              as="p"
+              className="mx-auto mt-3 max-w-[230px] @3xl:max-w-[560px] text-[13px] @3xl:text-[18px] leading-4 @3xl:leading-7 text-[#d8cbaa]"
+            />
+          </div>
+
+          <LayoutBlocks
             editing={editing}
-            field="hero1"
-            defaultValue="Opulence, quietly worn"
-            as="p"
-            className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[#d4af37]"
-          />
-          <ThemeText
-            editing={editing}
-            field="hero2"
-            defaultValue={brandName}
-            as="h2"
-            className="mt-2 font-serif text-[36px] leading-none tracking-[-0.02em]"
-          />
-          <div className="mx-auto mt-3 h-px w-12 bg-[#d4af37]/60" />
-          <ThemeText
-            editing={editing}
-            field="hero3"
-            defaultValue="Gold is a finish, not a shortcut."
-            as="p"
-            className="mx-auto mt-3 max-w-[230px] text-[13px] leading-4 text-[#d8cbaa]"
+            blocks={blocks}
+            storeId={storeId}
+            bg={themeBackground("gilded")}
+            brandName={brandName}
           />
         </div>
-
-        <LayoutBlocks
-          editing={editing}
-          blocks={blocks}
-          storeId={storeId}
-          bg={themeBackground("gilded")}
-          brandName={brandName}
-        />
       </div>
     </div>
   );
@@ -1063,37 +1077,39 @@ function ObsidianFull({
           editing={editing}
         />
 
-        <div className="px-4 pt-6">
-          <ThemeText
+        <div className="@3xl:mx-auto @3xl:max-w-[1240px]">
+          <div className="px-4 pt-6 @3xl:px-8 @3xl:pt-14">
+            <ThemeText
+              editing={editing}
+              field="hero1"
+              defaultValue="Nothing extra"
+              as="p"
+              className="text-[11px] @3xl:text-[13px] font-semibold uppercase tracking-[0.3em] text-[#7a7a7a]"
+            />
+            <ThemeText
+              editing={editing}
+              field="hero2"
+              defaultValue={brandName}
+              as="h2"
+              className="mt-1 font-display text-[40px] @3xl:text-[68px] uppercase leading-[0.85] tracking-[-0.03em]"
+            />
+            <ThemeText
+              editing={editing}
+              field="hero3"
+              defaultValue="One colour. Every silhouette."
+              as="p"
+              className="mt-2 text-[13px] @3xl:text-[18px] uppercase tracking-[0.08em] text-[#8a8a8a]"
+            />
+          </div>
+
+          <LayoutBlocks
             editing={editing}
-            field="hero1"
-            defaultValue="Nothing extra"
-            as="p"
-            className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[#7a7a7a]"
-          />
-          <ThemeText
-            editing={editing}
-            field="hero2"
-            defaultValue={brandName}
-            as="h2"
-            className="mt-1 font-display text-[40px] uppercase leading-[0.85] tracking-[-0.03em]"
-          />
-          <ThemeText
-            editing={editing}
-            field="hero3"
-            defaultValue="One colour. Every silhouette."
-            as="p"
-            className="mt-2 text-[13px] uppercase tracking-[0.08em] text-[#8a8a8a]"
+            blocks={blocks}
+            storeId={storeId}
+            bg={themeBackground("obsidian")}
+            brandName={brandName}
           />
         </div>
-
-        <LayoutBlocks
-          editing={editing}
-          blocks={blocks}
-          storeId={storeId}
-          bg={themeBackground("obsidian")}
-          brandName={brandName}
-        />
       </div>
     </div>
   );
