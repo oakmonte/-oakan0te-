@@ -6,6 +6,7 @@ import { POSTS_NEEDED, type StoreSetupStatus } from "@/hooks/use-store-setup-sta
 import { LocationsListSheet } from "@/components/store/LocationsListSheet";
 import { isInstallablePhone } from "@/lib/platform";
 import { isStandalone } from "@/lib/standalone";
+import { startSetupPostGoal } from "@/lib/setup-post-goal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { payoutStepState, plainStepState, type StepState } from "@/lib/setup-step-state";
 
@@ -217,7 +218,10 @@ export function SetupChecklist({ status }: { status: StoreSetupStatus }) {
       icon: Clapperboard,
       done: (postCount ?? 0) >= POSTS_NEEDED,
       state: plainStepState((postCount ?? 0) >= POSTS_NEEDED),
-      go: () => navigate({ to: "/create" }),
+      go: () => {
+        startSetupPostGoal();
+        navigate({ to: "/create" });
+      },
     },
     {
       key: "theme",

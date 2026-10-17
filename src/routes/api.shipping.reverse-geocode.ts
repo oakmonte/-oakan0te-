@@ -18,6 +18,26 @@ function limited(key: string) {
   return recent.length > 10;
 }
 
+async function osmPostcode(lat: number, lng: number): Promise<string | null> {
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&lat=${lat}&lon=${lng}`,
+      {
+        headers: {
+          Accept: "application/json",
+          "User-Agent": "Oakmonte/1.0 (https://oakmonte.store)",
+        },
+        signal: AbortSignal.timeout(2500),
+      },
+    );
+    if (!res.ok) return null;
+    const data = (await res.json()) as { address?: { postcode?: string } };
+    return data.address?.postcode || null;
+  } catch {
+    return null;
+  }
+}
+
 export const Route = createFileRoute("/api/shipping/reverse-geocode")({
   server: {
     handlers: {
@@ -47,6 +67,9 @@ export const Route = createFileRoute("/api/shipping/reverse-geocode")({
         // OpenStreetMap lookup below stays as the fallback.
         const google = await reverseGeocodeGoogle(lat, lng).catch(() => null);
         if (google) {
+          // Google often has no postal code for the pin; OpenStreetMap
+          // sometimes does, so ask it for just that before giving up.
+          if (!google.postalCode) google.postalCode = (await osmPostcode(lat, lng)) ?? "";
           return Response.json(
             {
               address: google.formatted || null,
