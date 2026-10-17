@@ -188,10 +188,14 @@ function SellersLanding() {
           <span className="wordmark-tagline">CREATED TO CREATE.</span>
         </a>
         <nav className={menuOpen ? "nav-links is-open" : "nav-links"}>
+          {/* Phone menu only: the desktop header shows Log in beside Start selling. */}
+          <Link className="nav-menu-login" to="/sign-in" onClick={() => setMenuOpen(false)}>
+            Log in
+          </Link>
+          {/* Hidden while this page markets to sellers only. Restore when ready.
           <a href="#sellers" onClick={() => setMenuOpen(false)}>
             For sellers
           </a>
-          {/* Hidden while this page markets to sellers only. Restore when ready.
           <Link to="/creators" onClick={() => setMenuOpen(false)}>
             Creators
           </Link>
@@ -228,8 +232,11 @@ function SellersLanding() {
             <em>Remarkable.</em>
           </h1>
           <p>
-            Oakmonte gives honest sellers a fully customizable storefront and every tool and
-            resource they need to set themselves apart — at whatever scale they choose to sell.
+            Get a website that actually optimises your business.
+            <br />
+            At whatever scale you sell at.
+            <br />
+            From automatic deliveries to in-web messaging... we got you.
           </p>
           <div className="hero-buttons">
             <Link className="pill-button pill-button-acid no-shine" to="/set-up-store">
@@ -574,7 +581,8 @@ const CSS = `
    (they are all nudged down 19px to meet the wordmark). translate, not
    transform, so the hover lift above still composes with it. */
 @media (min-width:801px){.oak-sellers .nav-actions .pill-button{padding:10px 20px;translate:0 7px}}
-.oak-sellers .nav-login{display:inline-block;transform:translateY(19px)}
+.oak-sellers .nav-login{display:inline-block;transform:translateY(7px)}
+.oak-sellers .nav-menu-login{display:none}
 .oak-sellers .pill-button{display:inline-flex;align-items:center;justify-content:center;gap:11px;border-radius:999px;padding:14px 20px;font-size:12px;font-weight:800;transition:transform var(--duration-fast) var(--ease-out),box-shadow var(--duration-fast) var(--ease-out),background var(--duration-fast) var(--ease-out);position:relative;overflow:hidden}
 .oak-sellers .pill-button::after{content:'';position:absolute;inset:0;width:35%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.42),transparent);transform:translateX(-140%);animation:oakSellersShimmer 5s 2s ease-in-out infinite}
 @media (hover:hover) and (pointer:fine){
@@ -605,7 +613,7 @@ const CSS = `
 .oak-sellers .hero-buttons .pill-button{padding:19px 32px;font-size:15px;gap:12px;min-height:58px}
 .oak-sellers .text-link{display:inline-flex;align-items:center;gap:8px;font:11px 'DM Mono',monospace;transition:color var(--duration-fast) var(--ease-out)}
 .oak-sellers .hero-link{color:#344054}
-.oak-sellers .hero-side-note{position:absolute;right:7vw;bottom:calc(min(30.7vw,436px) + 131px);z-index:1;display:flex;flex-direction:column;gap:16px;color:#667085;font:10px 'DM Mono',monospace}
+.oak-sellers .hero-side-note{position:absolute;right:7vw;top:112px;z-index:1;display:flex;flex-direction:column;gap:16px;color:#667085;font:10px 'DM Mono',monospace}
 .oak-sellers .hero-side-note strong{color:#111827;font:600 24px/1.2 Georgia,serif;letter-spacing:-.05em}
 
 .oak-sellers .ticker-section{display:flex;align-items:center;gap:40px;padding:20px 0;overflow:hidden;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
@@ -753,6 +761,7 @@ const CSS = `
   .oak-sellers .wordmark-tagline{display:none}
   .oak-sellers .nav-links{display:none;position:absolute;left:0;right:0;top:76px;padding:25px 5vw;margin:0;flex-direction:column;gap:22px;background:#fff}
   .oak-sellers .nav-links.is-open{display:flex}
+  .oak-sellers .nav-menu-login{display:block}
   .oak-sellers .nav-login{display:none}
   .oak-sellers .menu-button{display:block}
   .oak-sellers .hero{min-height:720px;padding:0 7vw 30px}
