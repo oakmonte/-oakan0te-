@@ -4,7 +4,7 @@ import { canonicalLink } from "@/lib/seo";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { isStandalone } from "@/lib/standalone";
 import { supabase } from "@/lib/integrations/my-supabase/client";
-import { Check, ChevronDown, Menu, X } from "lucide-react";
+import { Check, ChevronDown } from "lucide-react";
 import logoO from "@/assets/logo-o.png";
 
 export const Route = createFileRoute("/")({
@@ -280,6 +280,7 @@ function SellersLanding() {
           <Link className="pill-button pill-button-light" to="/set-up-store">
             Start selling
           </Link>
+          {/* Phone menu: hidden; Log in is in the hero. Restore with the Menu/X imports.
           <button
             className="menu-button"
             type="button"
@@ -287,7 +288,7 @@ function SellersLanding() {
             aria-label={menuOpen ? "Close menu" : "Open menu"}
           >
             {menuOpen ? <X size={19} /> : <Menu size={19} />}
-          </button>
+          </button> */}
         </div>
       </header>
 
