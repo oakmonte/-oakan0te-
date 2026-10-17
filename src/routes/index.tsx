@@ -47,6 +47,25 @@ export const Route = createFileRoute("/")({
    its FAQ copy) rather than generic SaaS-template language: escrow payments,
    creator-driven distribution, handled logistics, and up-front fees are real
    product facts, not marketing filler. */
+// "As seen in" ticker. Rendered twice back to back so the loop is seamless.
+const PRESS = [
+  "Fast Company",
+  "Forbes",
+  "VOGUE Business",
+  "WIRED",
+  "Monocle",
+  "TechCrunch",
+  "Business Insider",
+  "LinkedIn Articles",
+  "Substack",
+  "Quora",
+  "PR.com",
+  "Medium",
+  "Blogger",
+  "IJSTN",
+  "X",
+];
+
 const FEATURES = [
   {
     number: "01",
@@ -167,7 +186,7 @@ function TypedText({ lines, className = "" }: { lines: string[]; className?: str
 
   useEffect(() => {
     if (!started || count >= full.length) return;
-    const t = setTimeout(() => setCount((c) => c + 1), full[count] === "\n" ? 380 : 32);
+    const t = setTimeout(() => setCount((c) => c + 1), full[count] === "\n" ? 200 : 14);
     return () => clearTimeout(t);
   }, [started, count, full]);
 
@@ -316,16 +335,9 @@ function SellersLanding() {
         <span className="ticker-label">As seen in</span>
         <div className="marquee">
           <div className="marquee-track">
-            <span>Fast Company</span>
-            <span>Forbes</span>
-            <span>VOGUE Business</span>
-            <span>WIRED</span>
-            <span>Monocle</span>
-            <span>TechCrunch</span>
-            <span>Business Insider</span>
-            <span>Fast Company</span>
-            <span>Forbes</span>
-            <span>VOGUE Business</span>
+            {[...PRESS, ...PRESS].map((name, i) => (
+              <span key={i}>{name}</span>
+            ))}
           </div>
         </div>
       </section>
@@ -673,7 +685,7 @@ const CSS = `
 .oak-sellers .ticker-section{display:flex;align-items:center;gap:40px;padding:20px 0;overflow:hidden;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
 .oak-sellers .ticker-label{flex:0 0 auto;padding-left:4vw;color:var(--muted);text-transform:uppercase;font:10px 'DM Mono',monospace}
 .oak-sellers .marquee{overflow:hidden;flex:1}
-.oak-sellers .marquee-track{display:flex;gap:65px;width:max-content;color:#344054;font-size:17px;font-weight:700;animation:oakSellersMarquee 16s linear infinite}
+.oak-sellers .marquee-track{display:flex;gap:65px;width:max-content;color:#344054;font-size:17px;font-weight:700;animation:oakSellersMarquee 40s linear infinite}
 .oak-sellers .marquee-track span:nth-child(3n){font:italic 20px Georgia,serif;color:var(--primary)}
 
 /* Scroll reveal -- same convention as routes/index.tsx's .reveal/.reveal-delay-N. */
