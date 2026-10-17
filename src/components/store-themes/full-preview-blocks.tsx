@@ -359,6 +359,10 @@ export function CatalogTile({
   const jumpingRef = useRef(false);
   const primedRef = useRef(false);
   const settleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // The slide the strip last came to rest on (a slides[] index, so 1 is the
+  // first real photo). A gesture may move at most one slide from here: see the
+  // clamp in handleScroll.
+  const restRef = useRef(1);
 
   // [last, ...photos, first]. Swiping off either end lands on a slide showing
   // the identical picture, which is then silently re-pointed at the real one
@@ -392,6 +396,7 @@ export function CatalogTile({
     if (w === 0) return;
     const raw = Math.round(el.scrollLeft / w);
     const target = raw === 0 ? total : raw === total + 1 ? 1 : null;
+    restRef.current = target ?? raw;
     if (target === null) return;
     jumpingRef.current = true;
     el.scrollLeft = target * w;
@@ -405,6 +410,19 @@ export function CatalogTile({
     if (!el || jumpingRef.current) return;
     const w = el.clientWidth;
     if (w === 0) return;
+    // One photo per swipe, however hard the flick. scroll-snap-stop: always
+    // (on the slides) is meant to guarantee that, but iOS Safari lets momentum
+    // carry past it, so a fast swipe skipped photos. Hold the strip within one
+    // slide of where it came to rest; the clamp's own scroll event lands inside
+    // the window and does nothing further. restRef moves only when the strip
+    // settles (settleLoop), so the window is fixed for the whole gesture,
+    // momentum included, and it applies to a trackpad or wheel the same way.
+    if (loop) {
+      const min = (restRef.current - 1) * w;
+      const max = (restRef.current + 1) * w;
+      if (el.scrollLeft > max || el.scrollLeft < min)
+        el.scrollLeft = clamp(el.scrollLeft, min, max);
+    }
     const raw = Math.round(el.scrollLeft / w);
     const real = loop ? (raw - 1 + total) % total : clamp(raw, 0, total - 1);
     // Functional + equality-guarded: onScroll fires on nearly every frame of a
