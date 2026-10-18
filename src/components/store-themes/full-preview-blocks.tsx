@@ -35,6 +35,7 @@ import { SalesLockedNotice } from "./SalesLockedNotice";
 import { LiveStorefrontContext } from "./live-storefront";
 import { CollectionPage } from "./CollectionPage";
 import { ProductPage } from "./ProductPage";
+import { useProductTileMenu } from "./ProductTileMenu";
 import { readStorefrontLook, type StorefrontLook } from "./storefront-look";
 import { readableTextColor } from "./colors";
 import { alpha, isDark } from "./theme-spec";
@@ -332,11 +333,16 @@ export function CatalogTile({
   editing,
   onTap,
   onOpen,
+  onMenu,
 }: {
   tile: PreviewTile;
   mode: "collections" | "products";
   /** Collections: opens the collection's own page (the glass button). */
   onOpen?: () => void;
+  /** Products: the glass button opens the tile menu (Add to cart / See related
+   *  content / Make offer), given the button's box so it can sit beside it.
+   *  Only the live storefront passes it; previews leave the button inert. */
+  onMenu?: (tile: PreviewTile, anchor: DOMRect) => void;
   textColor: string;
   mutedColor: string;
   tileBg: string;
@@ -494,9 +500,12 @@ export function CatalogTile({
           <button
             type="button"
             aria-label={mode === "collections" ? `Open ${tile.title}` : `More about ${tile.title}`}
+            aria-haspopup={mode === "products" && onMenu ? "menu" : undefined}
             onClick={(e) => {
               e.stopPropagation();
-              onOpen?.();
+              if (mode === "products" && onMenu)
+                onMenu(tile, e.currentTarget.getBoundingClientRect());
+              else onOpen?.();
             }}
             className={`absolute bottom-2 right-2 flex h-[36px] w-[36px] items-center justify-center rounded-full text-white ${GLASS_RIM}`}
             style={glassClear}
@@ -1309,6 +1318,8 @@ export function CollectionsGrid({
       look: readStorefrontLook(rootRef.current, { textColor, mutedColor, tileBg, accent }),
     });
   }
+  // The "..." menu on every product tile (grid and collection page alike).
+  const tileMenu = useProductTileMenu((t) => openProduct(t));
   // The seller's phone column count (1 or 2) still decides how dense the grid
   // is on a wide screen: 3 then 4 across, or 2 then 3 for the big-tile choice.
   const gridClass = `mt-2.5 grid gap-1.5 @3xl:mt-5 @3xl:gap-4 ${
@@ -1391,6 +1402,7 @@ export function CollectionsGrid({
               editing={editing}
               onTap={kind === "collections" ? () => openCollection(tile) : () => openProduct(tile)}
               onOpen={kind === "collections" ? () => openCollection(tile) : undefined}
+              onMenu={live ? tileMenu.open : undefined}
             />
           ))}
         </div>
@@ -1417,6 +1429,7 @@ export function CollectionsGrid({
                 tileBg={opened.look.tileBg}
                 accent={opened.look.accent}
                 onTap={() => openProduct(tile)}
+                onMenu={live ? tileMenu.open : undefined}
               />
             )}
           />
@@ -1430,6 +1443,7 @@ export function CollectionsGrid({
           />
         )}
         {salesLocked && <SalesLockedNotice onClose={() => setSalesLocked(false)} />}
+        {tileMenu.element}
       </div>
     );
   }
