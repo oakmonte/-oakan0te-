@@ -10,7 +10,7 @@ import { PhoneFrame } from "./PhoneFrame";
 
 // When each beat starts (ms from the top of the loop). Beats overlap on
 // purpose: each piece starts while the one before is still moving.
-const BEATS = [300, 550, 800, 1150, 1500, 1850, 3300];
+const BEATS = [300, 300, 650, 1000, 1350, 1700];
 const LOOP_MS = 7800;
 const LAST = BEATS.length;
 
@@ -85,7 +85,7 @@ export function DashboardDemo() {
           <small>adaeze.oakmonte.store</small>
         </div>
       </div>
-      <div className={`sp-pills dd-in${on(2)}`}>
+      <div className={`sp-pills dd-in${on(1)}`}>
         <span>Share link</span>
         <span>Edit store</span>
       </div>
@@ -123,9 +123,7 @@ export function DashboardDemo() {
         <div className="sp-title">Quick actions</div>
         <div className="sp-actions">
           {ACTIONS.map((a) => (
-            <span key={a} className={a === "Orders" && beat >= 7 ? "dd-tap" : undefined}>
-              {a}
-            </span>
+            <span key={a}>{a}</span>
           ))}
         </div>
       </div>
