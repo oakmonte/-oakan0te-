@@ -401,9 +401,15 @@ export function CatalogTile({
     const w = el.clientWidth;
     if (w === 0) return;
     const raw = Math.round(el.scrollLeft / w);
-    const target = raw === 0 ? total : raw === total + 1 ? 1 : null;
+    const target = loop ? (raw === 0 ? total : raw === total + 1 ? 1 : null) : null;
     restRef.current = target ?? raw;
-    if (target === null) return;
+    if (target === null) {
+      // Never rest between two photos. Setting scrollLeft mid-swipe (the clamp
+      // in handleScroll) can cut the browser's own snap short and leave the
+      // strip parked half on one photo, half on the next; finish it here.
+      if (Math.abs(el.scrollLeft - raw * w) > 1) el.scrollTo({ left: raw * w, behavior: "smooth" });
+      return;
+    }
     jumpingRef.current = true;
     el.scrollLeft = target * w;
     requestAnimationFrame(() => {
@@ -434,7 +440,6 @@ export function CatalogTile({
     // Functional + equality-guarded: onScroll fires on nearly every frame of a
     // swipe, but the slide only actually changes a handful of times.
     setIndex((i) => (i === real ? i : real));
-    if (!loop) return;
     // Debounced rather than run per-event: the wrap has to happen after
     // momentum stops, or it would yank the strip mid-flick.
     if (settleRef.current) clearTimeout(settleRef.current);
