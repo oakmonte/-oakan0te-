@@ -100,6 +100,8 @@ export function StorefrontFeed({
 
   const items = activePost?.tags ?? [];
   const [salesLocked, setSalesLocked] = useState(false);
+  // A row tapped in Listed items: its full product page, over the feed.
+  const [opened, setOpened] = useState<(typeof items)[number] | null>(null);
 
   return (
     <div ref={containerRef} className="relative h-full w-full overflow-hidden bg-black text-white">
@@ -184,7 +186,7 @@ export function StorefrontFeed({
               </div>
             ) : (
               <div className={`h-full w-full ${wide ? "" : "pt-14"}`}>
-                <ListedItemsPage items={items} />
+                <ListedItemsPage items={items} onOpen={setOpened} />
               </div>
             )}
           </div>
@@ -224,6 +226,22 @@ export function StorefrontFeed({
         </div>
       )}
       {salesLocked && <SalesLockedNotice onClose={() => setSalesLocked(false)} />}
+      {opened && (
+        <ProductPage
+          key={opened.id}
+          tile={{
+            id: opened.id,
+            title: opened.title,
+            photos: opened.image ? [{ url: opened.image, variant: 0 }] : [],
+            variantCount: 1,
+            price: opened.price,
+            compareAtPrice: null,
+          }}
+          look={FEED_LOOK}
+          onClose={() => setOpened(null)}
+          onAction={() => setSalesLocked(true)}
+        />
+      )}
     </div>
   );
 }
