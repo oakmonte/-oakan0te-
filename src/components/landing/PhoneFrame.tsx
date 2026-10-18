@@ -1,9 +1,17 @@
 import { useLayoutEffect, useRef, useState, type ReactNode, type Ref } from "react";
 
 /** The iPhone the landing demos play in: thin frame, Dynamic Island, status
- *  bar, home indicator. On desktop it scales down so the whole phone fits in
- *  the window with no scrolling; on phones it renders at full size. Styled by
- *  the .iph* rules in routes/index.tsx. */
+ *  bar, home indicator. Styled by the .iph* rules in routes/index.tsx. */
+
+// iPhone 17 Pro Max: a 1320 x 2868 px screen, i.e. 440 x 956 points -- the
+// canvas iOS apps are laid out on. Every demo is designed on exactly this
+// screen, whatever it shows; the whole phone is then scaled to fit.
+export const SCREEN_W = 440;
+export const SCREEN_H = 956;
+const BEZEL = 6;
+const PHONE_W = SCREEN_W + BEZEL * 2;
+const PHONE_H = SCREEN_H + BEZEL * 2;
+
 export function PhoneFrame({
   ref,
   label,
@@ -13,18 +21,18 @@ export function PhoneFrame({
   label: string;
   children: ReactNode;
 }) {
-  const inner = useRef<HTMLDivElement | null>(null);
-  const [fit, setFit] = useState<{ scale: number; height: number } | null>(null);
+  const outer = useRef<HTMLDivElement | null>(null);
+  const [scale, setScale] = useState<number | null>(null);
 
   useLayoutEffect(() => {
-    const el = inner.current;
+    const el = outer.current;
     if (!el) return;
     const measure = () => {
-      const natural = el.offsetHeight;
-      const desktop = window.innerWidth > 800;
-      // Room under the fixed header, with a little air above and below.
-      const scale = desktop ? Math.min(1, (window.innerHeight - 140) / natural) : 1;
-      setFit({ scale, height: natural * scale });
+      const byWidth = el.clientWidth / PHONE_W;
+      // On desktop the whole phone fits under the fixed header, no scrolling.
+      const byHeight =
+        window.innerWidth > 800 ? (window.innerHeight - 140) / PHONE_H : Number.POSITIVE_INFINITY;
+      setScale(Math.min(1, byWidth, byHeight));
     };
     measure();
     const ro = new ResizeObserver(measure);
@@ -36,28 +44,43 @@ export function PhoneFrame({
     };
   }, []);
 
+  const setRefs = (node: HTMLDivElement | null) => {
+    outer.current = node;
+    if (typeof ref === "function") ref(node);
+    else if (ref) (ref as { current: HTMLDivElement | null }).current = node;
+  };
+
   return (
-    <div ref={ref} className="iph-fit" aria-label={label} style={{ height: fit?.height }}>
+    <div
+      ref={setRefs}
+      className="iph-fit"
+      aria-label={label}
+      style={{ height: scale === null ? undefined : PHONE_H * scale }}
+    >
       <div
-        ref={inner}
         className="iph"
-        style={fit && fit.scale < 1 ? { transform: `scale(${fit.scale})` } : undefined}
+        style={{
+          width: PHONE_W,
+          height: PHONE_H,
+          transform: scale === null ? undefined : `scale(${scale})`,
+          visibility: scale === null ? "hidden" : undefined,
+        }}
       >
         <div className="iph-screen" aria-hidden="true">
           <div className="iph-status">
             <span className="iph-time">9:41</span>
             <span className="iph-island" />
             <span className="iph-icons">
-              <svg width="17" height="11" viewBox="0 0 17 11">
+              <svg width="18" height="12" viewBox="0 0 17 11">
                 <rect x="0" y="7" width="3" height="4" rx="1" />
                 <rect x="4.5" y="5" width="3" height="6" rx="1" />
                 <rect x="9" y="2.5" width="3" height="8.5" rx="1" />
                 <rect x="13.5" y="0" width="3" height="11" rx="1" />
               </svg>
-              <svg width="15" height="11" viewBox="0 0 15 11">
+              <svg width="16" height="12" viewBox="0 0 15 11">
                 <path d="M7.5 2.3c2.1 0 4 .8 5.4 2.1l1.1-1.1A9.1 9.1 0 0 0 7.5.7 9.1 9.1 0 0 0 1 3.3l1.1 1.1A7.6 7.6 0 0 1 7.5 2.3Zm0 3.2c1.2 0 2.3.4 3.1 1.2l1.1-1.1a6 6 0 0 0-8.4 0l1.1 1.1c.8-.8 1.9-1.2 3.1-1.2Zm0 3.2c-.5 0-.9.2-1.2.5L7.5 10.4l1.2-1.2c-.3-.3-.7-.5-1.2-.5Z" />
               </svg>
-              <svg width="25" height="12" viewBox="0 0 25 12">
+              <svg width="27" height="13" viewBox="0 0 25 12">
                 <rect
                   x=".5"
                   y=".5"
