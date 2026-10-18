@@ -4,8 +4,11 @@ import { canonicalLink } from "@/lib/seo";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { isStandalone } from "@/lib/standalone";
 import { supabase } from "@/lib/integrations/my-supabase/client";
-import { ArrowUpRight, Check, ChevronDown, Menu, X } from "lucide-react";
+import { Check, ChevronDown } from "lucide-react";
 import logoO from "@/assets/logo-o.png";
+import { DashboardDemo } from "@/components/landing/DashboardDemo";
+import { DeliveryDemo } from "@/components/landing/DeliveryDemo";
+import { MessagingDemo } from "@/components/landing/MessagingDemo";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -47,6 +50,18 @@ export const Route = createFileRoute("/")({
    its FAQ copy) rather than generic SaaS-template language: escrow payments,
    creator-driven distribution, handled logistics, and up-front fees are real
    product facts, not marketing filler. */
+// "As seen in" ticker. Rendered twice back to back so the loop is seamless.
+const PRESS = [
+  "LinkedIn Articles",
+  "Substack",
+  "Quora",
+  "PR.com",
+  "Medium",
+  "Blogger",
+  "IJSTN",
+  "X",
+];
+
 const FEATURES = [
   {
     number: "01",
@@ -136,6 +151,57 @@ function useReveal<T extends HTMLElement>() {
   return { ref, className: `reveal${inView ? " in-view" : ""}` };
 }
 
+/** Types its lines out once it scrolls into view. The full text is laid out
+ *  invisibly underneath, so nothing below jumps as it types, and screen
+ *  readers get the whole sentence at once. Reduced motion shows it all. */
+function TypedText({ lines, className = "" }: { lines: string[]; className?: string }) {
+  const ref = useRef<HTMLParagraphElement | null>(null);
+  const full = lines.join("\n");
+  const [count, setCount] = useState(0);
+  const [started, setStarted] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setCount(full.length);
+      return;
+    }
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setStarted(true);
+          io.disconnect();
+        }
+      },
+      { threshold: 0.4 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [full]);
+
+  useEffect(() => {
+    if (!started || count >= full.length) return;
+    const t = setTimeout(() => setCount((c) => c + 1), full[count] === "\n" ? 300 : 22);
+    return () => clearTimeout(t);
+  }, [started, count, full]);
+
+  const render = (text: string) =>
+    text.split("\n").flatMap((line, i) => (i ? [<br key={i} />, line] : [line]));
+
+  return (
+    <p ref={ref} className={`typed ${className}`} aria-label={lines.join(" ")}>
+      <span className="typed-ghost" aria-hidden="true">
+        {render(full)}
+      </span>
+      <span className="typed-live" aria-hidden="true">
+        {render(full.slice(0, count))}
+        {count < full.length && <span className="typed-caret" />}
+      </span>
+    </p>
+  );
+}
+
 function Reveal({
   children,
   delay = 0,
@@ -208,8 +274,9 @@ function SellersLanding() {
             Log in
           </Link>
           <Link className="pill-button pill-button-light" to="/set-up-store">
-            Start selling <ArrowUpRight size={15} />
+            Start selling
           </Link>
+          {/* Phone menu: hidden; Log in is in the hero. Restore with the Menu/X imports.
           <button
             className="menu-button"
             type="button"
@@ -217,7 +284,7 @@ function SellersLanding() {
             aria-label={menuOpen ? "Close menu" : "Open menu"}
           >
             {menuOpen ? <X size={19} /> : <Menu size={19} />}
-          </button>
+          </button> */}
         </div>
       </header>
 
@@ -232,18 +299,20 @@ function SellersLanding() {
             <em>Remarkable.</em>
           </h1>
           <p>
-            Get a website that actually optimises your business.
+            Get an online store that actually optimises your business.
             <br />
             At whatever scale you sell at.
+            <span className="hero-gap" />
+            From automatic deliveries to in-web messaging,
             <br />
-            From automatic deliveries to in-web messaging... we got you.
+            We got you.
           </p>
           <div className="hero-buttons">
-            <Link className="pill-button pill-button-acid no-shine" to="/set-up-store">
-              Get your free website <ArrowUpRight size={20} />
+            <Link className="pill-button pill-button-acid" to="/set-up-store">
+              Get your free website
             </Link>
             <Link className="text-link hero-link" to="/sign-in">
-              Login <ArrowUpRight size={15} />
+              Login
             </Link>
           </div>
         </div>
@@ -263,16 +332,9 @@ function SellersLanding() {
         <span className="ticker-label">As seen in</span>
         <div className="marquee">
           <div className="marquee-track">
-            <span>Fast Company</span>
-            <span>Forbes</span>
-            <span>VOGUE Business</span>
-            <span>WIRED</span>
-            <span>Monocle</span>
-            <span>TechCrunch</span>
-            <span>Business Insider</span>
-            <span>Fast Company</span>
-            <span>Forbes</span>
-            <span>VOGUE Business</span>
+            {[...PRESS, ...PRESS].map((name, i) => (
+              <span key={i}>{name}</span>
+            ))}
           </div>
         </div>
       </section>
@@ -281,15 +343,17 @@ function SellersLanding() {
         <Reveal>
           <div className="section-kicker">Oakmonte / A better way to begin</div>
           <h2>
-            Not a marketplace.
+            Just another website provider.
             <br />
-            <em>A point of view.</em>
+            <em>Till your eyes open.</em>
           </h2>
-          <p>
-            We believe some realities of starting a brand kills creativity.
-            <br />
-            We absorb those headaches so you stay creative and focus on what matters.
-          </p>
+          <TypedText
+            className="manifesto-typed"
+            lines={[
+              "We believe some realities of starting a brand kills creativity.",
+              "We absorb those headaches so you stay creative and focus on what matters.",
+            ]}
+          />
         </Reveal>
         <Reveal delay={1} className="manifesto-sign">
           OAKMONTE
@@ -352,16 +416,17 @@ function SellersLanding() {
           {/* Hidden while this page markets to sellers only. Restore when ready.
           <div className="feature-more">
             <Link className="pill-button pill-button-acid" to="/creators">
-              See more about creators <ArrowUpRight size={15} />
+              See more about creators
             </Link>
           </div> */}
         </Reveal>
       </section>
 
       <section className="studio-section">
+        {/* Dashboard phone mock: removed, to be replaced by the three live demos.
         <Reveal className="studio-phone">
-          {/* A picture of the real seller dashboard (store/dashboard): same
-              sections, labels and order. Sample store and figures. */}
+          {/ * A picture of the real seller dashboard (store/dashboard): same
+              sections, labels and order. Sample store and figures. * /}
           <div className="sp-screen">
             <div className="sp-id">
               <span className="sp-logo">A</span>
@@ -419,7 +484,8 @@ function SellersLanding() {
               <span>Discounts</span>
             </div>
           </div>
-        </Reveal>
+        </Reveal> */}
+        <DashboardDemo />
         <Reveal delay={1} className="studio-copy">
           <div className="section-kicker">02 / Seller Studio</div>
           <h2>
@@ -432,8 +498,40 @@ function SellersLanding() {
             tools stitched together to run your store.
           </p>
           <Link className="text-link" to="/set-up-store">
-            Enter the studio <ArrowUpRight size={15} />
+            Enter the studio
           </Link>
+        </Reveal>
+      </section>
+
+      <section className="studio-section demo-flip">
+        <Reveal className="studio-copy">
+          <div className="section-kicker">03 / Deliveries</div>
+          <h2>
+            Orders ship.
+            <br />
+            <em>You get paid.</em>
+          </h2>
+          <p>
+            Your customer pays for delivery at checkout. One tap books the courier, the rider is
+            tracked to their door, and your money lands the moment it's delivered.
+          </p>
+        </Reveal>
+        <DeliveryDemo />
+      </section>
+
+      <section className="studio-section">
+        <MessagingDemo />
+        <Reveal delay={1} className="studio-copy">
+          <div className="section-kicker">04 / Messaging</div>
+          <h2>
+            Talk to buyers.
+            <br />
+            <em>Close the sale.</em>
+          </h2>
+          <p>
+            Customers message you straight from your store. Answer their questions, send them the
+            exact piece, and watch the order come in, without leaving Oakmonte.
+          </p>
         </Reveal>
       </section>
 
@@ -451,7 +549,7 @@ function SellersLanding() {
             first run.
           </p>
           <Link className="pill-button pill-button-dark" to="/set-up-store">
-            Meet the makers <ArrowUpRight size={16} />
+            Meet the makers
           </Link>
         </Reveal>
         <Reveal delay={1} className="manufacturer-list">
@@ -503,7 +601,7 @@ function SellersLanding() {
             ))}
           </ul>
           <Link className="pill-button pill-button-acid" to="/set-up-store">
-            Start selling free <ArrowUpRight size={16} />
+            Start selling free
           </Link>
         </Reveal>
       </section>
@@ -517,7 +615,7 @@ function SellersLanding() {
             <em>big move.</em>
           </h2>
           <Link className="pill-button pill-button-acid" to="/set-up-store">
-            Claim your free store <ArrowUpRight size={16} />
+            Claim your free store
           </Link>
         </Reveal>
         <div className="footer-bottom">
@@ -525,7 +623,7 @@ function SellersLanding() {
             <img className="wordmark-logo" src={logoO} alt="Oakmonte" />
             <span className="wordmark-word">akmonte</span>
           </a>
-          <span>© 2026 Oakmonte Commerce, Inc.</span>
+          <span>© 2026 Oakmonte Multi-Global LTD</span>
           <span>
             <Link to="/privacy">Privacy</Link> · <Link to="/terms">Terms</Link>
           </span>
@@ -584,24 +682,23 @@ const CSS = `
 .oak-sellers .nav-login{display:inline-block;transform:translateY(7px)}
 .oak-sellers .nav-menu-login{display:none}
 .oak-sellers .pill-button{display:inline-flex;align-items:center;justify-content:center;gap:11px;border-radius:999px;padding:14px 20px;font-size:12px;font-weight:800;transition:transform var(--duration-fast) var(--ease-out),box-shadow var(--duration-fast) var(--ease-out),background var(--duration-fast) var(--ease-out);position:relative;overflow:hidden}
-.oak-sellers .pill-button::after{content:'';position:absolute;inset:0;width:35%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.42),transparent);transform:translateX(-140%);animation:oakSellersShimmer 5s 2s ease-in-out infinite}
 @media (hover:hover) and (pointer:fine){
   .oak-sellers .pill-button:hover{transform:translateY(-4px) scale(1.025);box-shadow:0 14px 28px rgba(20,85,217,.2)}
 }
 .oak-sellers .pill-button:active{transform:scale(.97);transition-duration:var(--duration-quick)}
 .oak-sellers .pill-button-light{background:#111827;color:#fff}
-.oak-sellers .pill-button.no-shine::after{display:none}
 .oak-sellers .pill-button-acid{background:var(--accent-blue);color:#fff}
 .oak-sellers .pill-button-dark{background:#111827;color:#fff}
 .oak-sellers .feature-more{margin-top:32px}
 .oak-sellers .menu-button{display:none;background:none;border:0;cursor:pointer;padding:5px}
 
-.oak-sellers .hero{min-height:750px;height:100vh;position:relative;display:flex;align-items:flex-end;padding:0 7vw 4vw;overflow:hidden;background:linear-gradient(120deg,#fff 0%,#f4f7fb 52%,#eaf1ff 100%)}
+.oak-sellers .hero{min-height:max(750px,100vh);position:relative;display:flex;align-items:flex-end;padding:150px 7vw 4vw;overflow:hidden;background:linear-gradient(120deg,#fff 0%,#f4f7fb 52%,#eaf1ff 100%)}
 .oak-sellers .hero-grid{position:absolute;inset:0;opacity:.5;background-image:linear-gradient(rgba(20,85,217,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(20,85,217,.08) 1px,transparent 1px);background-size:88px 88px;mask-image:linear-gradient(90deg,black,transparent 75%);animation:oakSellersGridPulse 8s ease-in-out infinite}
 .oak-sellers .hero-orbit{position:absolute;border:1px solid rgba(20,85,217,.22);border-radius:50%;transform:rotate(-25deg);animation:oakSellersDrift 13s ease-in-out infinite alternate}
 .oak-sellers .hero-orbit::after{content:'';position:absolute;width:10px;height:10px;border-radius:50%;background:var(--primary);right:12%;top:8%;box-shadow:0 0 0 8px rgba(20,85,217,.08),0 0 24px rgba(20,85,217,.4);animation:oakSellersPulseRing 3s ease-in-out infinite}
 .oak-sellers .orbit-one{width:780px;height:430px;right:-80px;top:160px}
 .oak-sellers .orbit-two{width:580px;height:260px;right:30px;top:245px;border-color:rgba(17,24,39,.13);animation-duration:17s;animation-direction:alternate-reverse}
+.oak-sellers .hero-gap{display:block;height:14px}
 .oak-sellers .hero-copy{position:relative;z-index:1;max-width:740px;animation:oakSellersRise 1s ease both}
 .oak-sellers .section-kicker{color:var(--primary);text-transform:uppercase;letter-spacing:.06em;font:10px 'DM Mono',monospace}
 .oak-sellers .studio-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--primary);margin-right:8px;box-shadow:0 0 14px rgba(20,85,217,.55);animation:oakSellersBlink 2s ease-in-out infinite}
@@ -619,7 +716,7 @@ const CSS = `
 .oak-sellers .ticker-section{display:flex;align-items:center;gap:40px;padding:20px 0;overflow:hidden;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
 .oak-sellers .ticker-label{flex:0 0 auto;padding-left:4vw;color:var(--muted);text-transform:uppercase;font:10px 'DM Mono',monospace}
 .oak-sellers .marquee{overflow:hidden;flex:1}
-.oak-sellers .marquee-track{display:flex;gap:65px;width:max-content;color:#344054;font-size:17px;font-weight:700;animation:oakSellersMarquee 16s linear infinite}
+.oak-sellers .marquee-track{display:flex;gap:65px;width:max-content;color:#344054;font-size:17px;font-weight:700;animation:oakSellersMarquee 28s linear infinite}
 .oak-sellers .marquee-track span:nth-child(3n){font:italic 20px Georgia,serif;color:var(--primary)}
 
 /* Scroll reveal -- same convention as routes/index.tsx's .reveal/.reveal-delay-N. */
@@ -633,6 +730,11 @@ const CSS = `
 .oak-sellers .manifesto .section-kicker{color:#7ba2ff}
 .oak-sellers .manifesto h2{margin:28px 0;font-size:clamp(56px,9vw,126px);line-height:.88;letter-spacing:-.1em;font-weight:600}
 .oak-sellers .manifesto p{max-width:430px;margin-left:40%;color:#c4cad5;line-height:1.6}
+.oak-sellers .manifesto .manifesto-typed{margin-top:110px}
+.oak-sellers .typed{position:relative}
+.oak-sellers .typed-ghost{visibility:hidden}
+.oak-sellers .typed-live{position:absolute;inset:0}
+.oak-sellers .typed-caret{display:inline-block;width:2px;height:1.05em;margin-left:2px;vertical-align:-.15em;background:#7ba2ff;animation:oakSellersBlink 1s steps(1) infinite}
 .oak-sellers .manifesto-sign{margin-top:120px;color:#7ba2ff;font:12px/1.3 'DM Mono',monospace}
 .oak-sellers .manifesto-sign span{font-size:9px;color:#98a2b3}
 
@@ -665,8 +767,16 @@ const CSS = `
 .oak-sellers .feature-panel-inner p{max-width:440px;margin:0;padding:0 32px 24px 72px;color:var(--muted);font-size:13px;line-height:1.6}
 
 .oak-sellers .studio-section{display:grid;grid-template-columns:1.1fr .9fr;align-items:center;gap:9vw;padding:120px 7vw;background:var(--paper)}
-.oak-sellers .studio-phone{justify-self:center;width:min(100%,340px);padding:12px;border-radius:46px;background:#111827;box-shadow:0 30px 90px rgba(20,85,217,.18);animation:oakSellersFloatCard 5s ease-in-out infinite}
-.oak-sellers .sp-screen{display:flex;flex-direction:column;gap:14px;max-height:640px;overflow:hidden;border-radius:36px;background:#fff;padding:30px 18px 22px;font-family:Inter,system-ui,sans-serif;color:#111827}
+.oak-sellers .iph-fit{position:relative;justify-self:center;align-self:center;width:min(100%,390px)}
+.oak-sellers .iph{position:absolute;left:50%;top:0;margin-left:-226px;padding:6px;border-radius:66px;background:#1b1d22;box-shadow:inset 0 0 0 1.5px #3a3d44,0 30px 80px rgba(20,85,217,.16);transform-origin:top center;box-sizing:border-box}
+.oak-sellers .iph-screen{position:relative;display:flex;flex-direction:column;width:440px;height:956px;overflow:hidden;border-radius:60px;background:#fff;font-family:Inter,system-ui,sans-serif;color:#111827}
+.oak-sellers .iph-status{position:relative;display:flex;align-items:center;justify-content:space-between;height:62px;flex:none;padding:6px 34px 0 46px}
+.oak-sellers .iph-time{font-size:17px;font-weight:600;letter-spacing:-.01em}
+.oak-sellers .iph-island{position:absolute;left:50%;top:14px;width:126px;height:37px;margin-left:-63px;border-radius:999px;background:#000}
+.oak-sellers .iph-icons{display:flex;align-items:center;gap:5px;fill:#111827;stroke:#111827}
+.oak-sellers .iph-icons svg:first-child,.oak-sellers .iph-icons svg:nth-child(2){stroke:none}
+.oak-sellers .iph-body{flex:1;min-height:0;display:flex;flex-direction:column;gap:16px;padding:14px 22px 40px;overflow:hidden}
+.oak-sellers .iph-home{position:absolute;left:50%;bottom:9px;width:150px;height:5px;margin-left:-75px;border-radius:999px;background:#111827}
 .oak-sellers .sp-id{display:flex;align-items:center;gap:12px}
 .oak-sellers .sp-id b{display:block;font-size:17px;font-weight:700;letter-spacing:-.02em}
 .oak-sellers .sp-id small{display:block;margin-top:2px;font-size:12px;color:#667085}
@@ -684,6 +794,66 @@ const CSS = `
 .oak-sellers .sp-tiles b{display:block;margin-top:6px;font-size:18px;font-weight:700;letter-spacing:-.02em}
 .oak-sellers .sp-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .oak-sellers .sp-actions span{display:grid;place-items:center;min-height:52px;padding:6px;border:1px solid #eaecf0;border-radius:16px;font-size:10.5px;font-weight:600;text-align:center;line-height:1.25}
+.oak-sellers .dd-in{opacity:0;transform:translateY(12px);transition:opacity 450ms var(--ease-out),transform 450ms var(--ease-out)}
+.oak-sellers .dd-in.is-on{opacity:1;transform:none}
+.oak-sellers .dd-bars i{animation:none;transform:scaleY(0);transition:transform 600ms var(--ease-out)}
+.oak-sellers .dd-bars.is-on i{transform:scaleY(1)}
+.oak-sellers .sp-actions span{transition:transform 160ms var(--ease-out),background 200ms ease,color 200ms ease,border-color 200ms ease}
+.oak-sellers .sp-actions .dd-tap{border-color:var(--accent-blue);animation:oakSellersDemoTap 700ms var(--ease-out)}
+@keyframes oakSellersDemoTap{0%{transform:scale(1)}30%{transform:scale(.92);box-shadow:0 0 0 0 rgba(31,79,255,.45)}100%{transform:scale(1);box-shadow:0 0 0 14px rgba(31,79,255,0)}}
+.oak-sellers .demo-flip{grid-template-columns:.9fr 1.1fr;background:#fff}
+.oak-sellers .dl-order{display:flex;align-items:center;gap:10px;border:1px solid #eaecf0;border-radius:18px;padding:12px}
+.oak-sellers .dl-thumb{display:grid;place-items:center;width:42px;height:42px;flex:none;border-radius:12px;background:#eaf1ff;color:var(--accent-blue)}
+.oak-sellers .dl-order-text{min-width:0;flex:1}
+.oak-sellers .dl-order-text small{display:block;font-size:10.5px;font-weight:600;color:#12b76a}
+.oak-sellers .dl-order-text b{display:block;margin-top:2px;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.oak-sellers .dl-order-text span{display:block;font-size:11px;color:#667085}
+.oak-sellers .dl-order strong{font-size:13px;font-weight:700}
+.oak-sellers .dl-book{display:flex;align-items:center;justify-content:center;gap:7px;height:40px;border-radius:999px;background:#111827;color:#fff;font-size:12.5px;font-weight:600;transition:background 250ms ease,color 250ms ease}
+.oak-sellers .dl-book.is-done{background:#ecfdf3;color:#067647}
+.oak-sellers .dl-book.dd-tap{animation:oakSellersDemoTap 700ms var(--ease-out)}
+.oak-sellers .dl-map{position:relative;height:120px;border-radius:18px;overflow:hidden;background:linear-gradient(135deg,#f2f6ff,#eef2f6);background-image:linear-gradient(#e4e9f2 1px,transparent 1px),linear-gradient(90deg,#e4e9f2 1px,transparent 1px);background-size:22px 22px}
+.oak-sellers .dl-map svg{position:absolute;inset:0;width:100%;height:100%}
+.oak-sellers .dl-route{fill:none;stroke:var(--accent-blue);stroke-width:3;stroke-linecap:round;stroke-dasharray:400;stroke-dashoffset:400;transition:stroke-dashoffset 1100ms var(--ease-out)}
+.oak-sellers .dl-route.is-on{stroke-dashoffset:0}
+.oak-sellers .dl-rider{fill:#111827;stroke:#fff;stroke-width:3}
+.oak-sellers .dl-pin{position:absolute;display:grid;place-items:center;width:24px;height:24px;border-radius:999px;background:#fff;box-shadow:0 2px 8px rgba(17,24,39,.15);color:var(--accent-blue)}
+.oak-sellers .dl-pin-a{left:calc(24 / 280 * 100% - 12px);top:calc(92 / 120 * 100% - 12px)}
+.oak-sellers .dl-pin-b{left:calc(256 / 280 * 100% - 12px);top:calc(24 / 120 * 100% - 12px);color:#12b76a}
+.oak-sellers .dl-steps{display:flex;flex-direction:column;gap:10px;padding:2px 4px}
+.oak-sellers .dl-step{display:flex;align-items:flex-start;gap:10px}
+.oak-sellers .dl-step b{display:block;font-size:12.5px;font-weight:600}
+.oak-sellers .dl-step small{display:block;font-size:11px;color:#667085}
+.oak-sellers .dl-dot{display:grid;place-items:center;width:18px;height:18px;flex:none;margin-top:1px;border-radius:999px;background:var(--accent-blue);color:#fff}
+.oak-sellers .dl-dot.is-done{background:#12b76a}
+.oak-sellers .dl-paid{display:flex;align-items:center;gap:10px;border-radius:18px;background:#ecfdf3;padding:12px}
+.oak-sellers .dl-paid-icon{display:grid;place-items:center;width:32px;height:32px;flex:none;border-radius:999px;background:#12b76a;color:#fff}
+.oak-sellers .dl-paid b{display:block;font-size:13px;font-weight:700;color:#054f31}
+.oak-sellers .dl-paid small{display:block;font-size:11px;color:#067647}
+.oak-sellers .ms-head{display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid #eaecf0}
+.oak-sellers .ms-head b{display:block;font-size:14px;font-weight:600}
+.oak-sellers .ms-head small{display:block;font-size:11px;color:#12b76a}
+.oak-sellers .ms-avatar{display:grid;place-items:center;width:34px;height:34px;border-radius:999px;background:#fde7d4;color:#b54708;font-weight:700;font-size:14px}
+.oak-sellers .ms-thread{flex:1;display:flex;flex-direction:column;gap:9px}
+.oak-sellers .ms-row{display:flex}
+.oak-sellers .ms-me{justify-content:flex-end}
+.oak-sellers .ms-bubble{max-width:78%;margin:0;padding:9px 13px;border-radius:18px;font-size:13px;line-height:1.35}
+.oak-sellers .ms-them .ms-bubble{background:#f2f4f7;color:#111827;border-bottom-left-radius:6px}
+.oak-sellers .ms-me .ms-bubble{background:var(--accent-blue);color:#fff;border-bottom-right-radius:6px}
+.oak-sellers .ms-typing{display:flex;gap:4px;padding:12px 14px}
+.oak-sellers .ms-typing i{width:6px;height:6px;border-radius:999px;background:rgba(255,255,255,.85);animation:oakSellersBlink 1s ease-in-out infinite}
+.oak-sellers .ms-typing i:nth-child(2){animation-delay:.15s}
+.oak-sellers .ms-typing i:nth-child(3){animation-delay:.3s}
+.oak-sellers .ms-card{display:flex;align-items:center;gap:10px;width:78%;padding:9px;border:1px solid #eaecf0;border-radius:16px;background:#fff}
+.oak-sellers .ms-card b{display:block;font-size:12.5px;font-weight:600}
+.oak-sellers .ms-card small{display:block;font-size:11px;color:#667085}
+.oak-sellers .ms-card-img{display:grid;place-items:center;width:38px;height:38px;flex:none;border-radius:10px;background:#eaf1ff;color:var(--accent-blue)}
+.oak-sellers .ms-card-buy{width:86%}
+.oak-sellers .ms-buy{margin-left:auto;padding:6px 12px;border-radius:999px;background:#111827;color:#fff;font-size:11.5px;font-weight:600}
+.oak-sellers .ms-ticks{align-self:flex-end;font-size:10.5px;color:#98a2b3;transition:color 300ms ease}
+.oak-sellers .ms-ticks.is-read{color:var(--accent-blue)}
+.oak-sellers .ms-order{align-self:center;margin-top:6px;padding:7px 12px;border-radius:999px;background:#ecfdf3;color:#067647;font-size:11.5px;font-weight:600}
+.oak-sellers .ms-input{display:flex;align-items:center;height:40px;padding:0 14px;border-radius:999px;background:#f2f4f7;font-size:13px;color:#98a2b3}
 .oak-sellers .studio-card{border:1px solid #b7c9ed;background:#fff;box-shadow:0 30px 90px rgba(20,85,217,.12);animation:oakSellersFloatCard 5s ease-in-out infinite}
 .oak-sellers .studio-top{display:flex;align-items:center;padding:18px 22px;border-bottom:1px solid var(--border);font:11px 'DM Mono',monospace}
 .oak-sellers .studio-status{margin-left:auto;color:var(--primary);font-size:9px}
@@ -764,13 +934,15 @@ const CSS = `
   .oak-sellers .nav-menu-login{display:block}
   .oak-sellers .nav-login{display:none}
   .oak-sellers .menu-button{display:block}
-  .oak-sellers .hero{min-height:720px;padding:0 7vw 30px}
+  .oak-sellers .hero{min-height:max(720px,100vh);padding:130px 7vw 30px}
+  .oak-sellers .hero-copy p{font-size:14px}
   .oak-sellers .hero h1{font-size:clamp(58px,18vw,125px)}
   .oak-sellers .hero-side-note{right:7vw;top:145px;bottom:auto}
   .oak-sellers .ticker-section{gap:20px}
   .oak-sellers .ticker-label{padding-left:5vw}
   .oak-sellers .manifesto{padding:100px 7vw}
   .oak-sellers .manifesto p{margin-left:0}
+  .oak-sellers .manifesto .manifesto-typed{margin-top:70px}
   .oak-sellers .manifesto-sign{margin-top:70px}
   .oak-sellers .steps-section{padding:70px 7vw}
   .oak-sellers .features-section,.oak-sellers .studio-section,.oak-sellers .manufacturer-section{display:flex;flex-direction:column;gap:55px;padding:85px 7vw}

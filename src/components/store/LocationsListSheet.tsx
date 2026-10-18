@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { recall, remember } from "@/lib/remembered";
 import { X, MapPin, Plus, ChevronRight, BadgeCheck } from "lucide-react";
 import { PageSheet } from "@/components/PageSheet";
 import { supabase } from "@/lib/integrations/my-supabase/client";
@@ -78,8 +79,15 @@ export function LocationsListSheet({
     };
   }, [editing]);
 
+  // Whatever's on screen (fetched, or after an edit) is what shows next time.
+  useEffect(() => {
+    if (rows) remember(`locations:${storeId}`, rows);
+  }, [storeId, rows]);
+
   useEffect(() => {
     let cancelled = false;
+    const cached = recall<Row[]>(`locations:${storeId}`);
+    if (cached) setRows(cached);
     supabase
       .from("store_locations")
       .select(
@@ -91,7 +99,8 @@ export function LocationsListSheet({
         if (cancelled) return;
         if (error) {
           console.error("LocationsListSheet: failed to load locations", error);
-          setRows([]);
+          // Offline or a blip: keep the remembered list rather than blanking it.
+          setRows((prev) => prev ?? []);
           return;
         }
         setRows(

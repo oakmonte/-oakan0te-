@@ -1,8 +1,19 @@
 import { useCallback, useEffect, useState } from "react";
+import { recall, remember } from "@/lib/remembered";
 import { authedFetch } from "@/lib/authed-fetch";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { hasInstalledApp } from "@/lib/installed-app";
 import { useSession } from "@/hooks/use-session";
+
+type RememberedSetup = {
+  payoutSet: boolean;
+  payoutStatus: string | null;
+  locationCount: number | null;
+  productCount: number | null;
+  postCount: number | null;
+  themeIdSet: boolean;
+  onboardedAt: string | null;
+};
 
 /** Published posts the "Post content" step needs before it counts as done. */
 export const POSTS_NEEDED = 2;
@@ -95,6 +106,26 @@ export function useStoreSetupStatus(storeId: string | null): StoreSetupStatus {
   const [failed, setFailed] = useState(false);
   // Bumped by retry(); every fetch below depends on it.
   const [attempt, setAttempt] = useState(0);
+  const [fromCache, setFromCache] = useState(false);
+
+  // The last answers for this store, at once (and offline), so the store home
+  // opens on the dashboard instead of a skeleton; the fetches below refresh
+  // every field. In an effect, not useState: this screen is server-rendered.
+  useEffect(() => {
+    if (!storeId) return;
+    const c = recall<RememberedSetup>(`setup:${storeId}`);
+    if (!c) return setFromCache(false);
+    setFromCache(true);
+    setPayoutSet(c.payoutSet);
+    setPayoutStatus(c.payoutStatus);
+    setPayoutLoaded(true);
+    setLocationCount(c.locationCount);
+    setProductCount(c.productCount);
+    setPostCount(c.postCount);
+    setThemeIdSet(c.themeIdSet);
+    setThemeLoaded(true);
+    setOnboardedAt(c.onboardedAt);
+  }, [storeId]);
 
   useEffect(() => {
     // Guarded on storeId like the other three, so a caller that passes null to
@@ -239,6 +270,31 @@ export function useStoreSetupStatus(storeId: string | null): StoreSetupStatus {
     postCount === null ||
     !themeLoaded;
 
+  useEffect(() => {
+    if (!storeId || loading || failed) return;
+    const snapshot: RememberedSetup = {
+      payoutSet,
+      payoutStatus,
+      locationCount,
+      productCount,
+      postCount,
+      themeIdSet,
+      onboardedAt,
+    };
+    remember(`setup:${storeId}`, snapshot);
+  }, [
+    storeId,
+    loading,
+    failed,
+    payoutSet,
+    payoutStatus,
+    locationCount,
+    productCount,
+    postCount,
+    themeIdSet,
+    onboardedAt,
+  ]);
+
   const retry = useCallback(() => {
     setFailed(false);
     setAttempt((a) => a + 1);
@@ -306,7 +362,9 @@ export function useStoreSetupStatus(storeId: string | null): StoreSetupStatus {
     nextStepLabel,
     setLocationCount,
     onboardedAt,
-    failed,
+    // With remembered answers on screen (offline, a blip) a failed refresh
+    // isn't worth a retry screen; the remembered dashboard stays up.
+    failed: failed && !fromCache,
     retry,
   };
 }
