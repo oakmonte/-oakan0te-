@@ -767,9 +767,9 @@ const CSS = `
 .oak-sellers .feature-panel-inner p{max-width:440px;margin:0;padding:0 32px 24px 72px;color:var(--muted);font-size:13px;line-height:1.6}
 
 .oak-sellers .studio-section{display:grid;grid-template-columns:1.1fr .9fr;align-items:center;gap:9vw;padding:120px 7vw;background:var(--paper)}
-.oak-sellers .iph-fit{justify-self:center;align-self:center;width:min(100%,340px,calc((100svh - 96px) * 440 / 956))}
-.oak-sellers .iph{width:100%;padding:5px;border-radius:52px;background:#1b1d22;box-shadow:inset 0 0 0 1.5px #3a3d44,0 30px 80px rgba(20,85,217,.16);box-sizing:border-box}
-.oak-sellers .iph-screen{position:relative;display:flex;flex-direction:column;width:100%;aspect-ratio:440/956;overflow:hidden;border-radius:47px;background:#fff;font-family:Inter,system-ui,sans-serif;color:#111827}
+.oak-sellers .iph-fit{justify-self:center;align-self:center;flex:none}
+.oak-sellers .iph{padding:5px;border-radius:52px;transform-origin:top left;background:#1b1d22;box-shadow:inset 0 0 0 1.5px #3a3d44,0 30px 80px rgba(20,85,217,.16);box-sizing:border-box}
+.oak-sellers .iph-screen{position:relative;display:flex;flex-direction:column;width:100%;height:100%;overflow:hidden;border-radius:47px;background:#fff;font-family:Inter,system-ui,sans-serif;color:#111827}
 .oak-sellers .iph-status{position:relative;display:flex;align-items:center;justify-content:space-between;height:50px;flex:none;padding:4px 26px 0 34px}
 .oak-sellers .iph-time{font-size:15px;font-weight:600;letter-spacing:-.01em}
 .oak-sellers .iph-island{position:absolute;left:50%;top:11px;width:98px;height:29px;margin-left:-49px;border-radius:999px;background:#000}

@@ -1,12 +1,20 @@
-import type { ReactNode, Ref } from "react";
+import { useLayoutEffect, useState, type ReactNode, type Ref } from "react";
 
 /** The iPhone the landing demos play in: thin frame, Dynamic Island, status
  *  bar, home indicator. Styled by the .iph* rules in routes/index.tsx. */
 
-// Shaped like an iPhone 17 Pro Max (440 x 956 pt screen), with content at
-// its normal size. The phone is shortened to fit the window under the header
-// (CSS max-height), so the bottom of a long demo may be cut off -- by design:
-// one look shows the demo, and the content stays readable.
+// Shaped like an iPhone 17 Pro Max (440 x 956 pt screen, ratio 1 : 2.17).
+// Every demo is laid out on the same fixed canvas, SCREEN_W wide, with its
+// content at normal size; the whole phone then scales down only as far as it
+// must to fit under the header, and never below MIN_SCALE so text stays
+// readable (a very short window scrolls a little instead).
+const SCREEN_W = 340;
+const SCREEN_H = Math.round((SCREEN_W * 956) / 440);
+const BEZEL = 5;
+const PHONE_W = SCREEN_W + BEZEL * 2;
+const PHONE_H = SCREEN_H + BEZEL * 2;
+const MIN_SCALE = 0.8;
+
 export function PhoneFrame({
   ref,
   label,
@@ -16,9 +24,30 @@ export function PhoneFrame({
   label: string;
   children: ReactNode;
 }) {
+  const [scale, setScale] = useState(1);
+
+  useLayoutEffect(() => {
+    const measure = () => {
+      const room = window.innerHeight - (window.innerWidth > 800 ? 120 : 100);
+      const byWidth = (window.innerWidth - 32) / PHONE_W;
+      setScale(Math.max(MIN_SCALE, Math.min(1, room / PHONE_H, byWidth)));
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, []);
+
   return (
-    <div ref={ref} className="iph-fit" aria-label={label}>
-      <div className="iph">
+    <div
+      ref={ref}
+      className="iph-fit"
+      aria-label={label}
+      style={{ width: PHONE_W * scale, height: PHONE_H * scale }}
+    >
+      <div
+        className="iph"
+        style={{ width: PHONE_W, height: PHONE_H, transform: `scale(${scale})` }}
+      >
         <div className="iph-screen" aria-hidden="true">
           <div className="iph-status">
             <span className="iph-time">9:41</span>
