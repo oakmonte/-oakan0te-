@@ -7,8 +7,8 @@ import { PhoneFrame } from "./PhoneFrame";
  *  and the order comes in, all in the chat. Sample conversation. Plays only
  *  while on screen; reduced motion shows the last frame. */
 
-const BEATS = [400, 1600, 2700, 3700, 5000, 6200, 7600, 8800];
-const LOOP_MS = 12000;
+const BEATS = [260, 1040, 1760, 2400, 3250, 4030, 4940, 5720];
+const LOOP_MS = 7800;
 const LAST = BEATS.length;
 
 export function MessagingDemo() {

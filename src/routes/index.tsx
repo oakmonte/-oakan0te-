@@ -794,9 +794,9 @@ const CSS = `
 .oak-sellers .sp-tiles b{display:block;margin-top:6px;font-size:18px;font-weight:700;letter-spacing:-.02em}
 .oak-sellers .sp-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .oak-sellers .sp-actions span{display:grid;place-items:center;min-height:52px;padding:6px;border:1px solid #eaecf0;border-radius:16px;font-size:10.5px;font-weight:600;text-align:center;line-height:1.25}
-.oak-sellers .dd-in{opacity:0;transform:translateY(12px);transition:opacity 450ms var(--ease-out),transform 450ms var(--ease-out)}
+.oak-sellers .dd-in{opacity:0;transform:translateY(12px);transition:opacity 300ms var(--ease-out),transform 300ms var(--ease-out)}
 .oak-sellers .dd-in.is-on{opacity:1;transform:none}
-.oak-sellers .dd-bars i{animation:none;transform:scaleY(0);transition:transform 600ms var(--ease-out)}
+.oak-sellers .dd-bars i{animation:none;transform:scaleY(0);transition:transform 400ms var(--ease-out)}
 .oak-sellers .dd-bars.is-on i{transform:scaleY(1)}
 .oak-sellers .sp-actions span{transition:transform 160ms var(--ease-out),background 200ms ease,color 200ms ease,border-color 200ms ease}
 .oak-sellers .sp-actions .dd-tap{border-color:var(--accent-blue);animation:oakSellersDemoTap 700ms var(--ease-out)}
@@ -814,7 +814,7 @@ const CSS = `
 .oak-sellers .dl-book.dd-tap{animation:oakSellersDemoTap 700ms var(--ease-out)}
 .oak-sellers .dl-map{position:relative;height:160px;border-radius:18px;overflow:hidden;background:linear-gradient(135deg,#f2f6ff,#eef2f6);background-image:linear-gradient(#e4e9f2 1px,transparent 1px),linear-gradient(90deg,#e4e9f2 1px,transparent 1px);background-size:22px 22px}
 .oak-sellers .dl-map svg{position:absolute;inset:0;width:100%;height:100%}
-.oak-sellers .dl-route{fill:none;stroke:var(--accent-blue);stroke-width:3;stroke-linecap:round;stroke-dasharray:400;stroke-dashoffset:400;transition:stroke-dashoffset 1100ms var(--ease-out)}
+.oak-sellers .dl-route{fill:none;stroke:var(--accent-blue);stroke-width:3;stroke-linecap:round;stroke-dasharray:400;stroke-dashoffset:400;transition:stroke-dashoffset 700ms var(--ease-out)}
 .oak-sellers .dl-route.is-on{stroke-dashoffset:0}
 .oak-sellers .dl-rider{fill:#111827;stroke:#fff;stroke-width:3}
 .oak-sellers .dl-pin{position:absolute;display:grid;place-items:center;width:24px;height:24px;border-radius:999px;background:#fff;box-shadow:0 2px 8px rgba(17,24,39,.15);color:var(--accent-blue)}

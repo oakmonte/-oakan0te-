@@ -9,11 +9,11 @@ import { PhoneFrame } from "./PhoneFrame";
  *  Styled by the sp-* / dd-* rules in routes/index.tsx's stylesheet. */
 
 // When each beat starts (ms from the top of the loop).
-const BEATS = [300, 900, 1500, 2600, 3800, 5000, 6400];
-const LOOP_MS = 9500;
+const BEATS = [200, 580, 980, 1690, 2470, 3250, 4160];
+const LOOP_MS = 6200;
 const LAST = BEATS.length;
 
-function useCountUp(target: number, run: boolean, instant: boolean, ms = 1100) {
+function useCountUp(target: number, run: boolean, instant: boolean, ms = 720) {
   const [v, setV] = useState(0);
   useEffect(() => {
     if (!run) return setV(0);
@@ -71,9 +71,9 @@ export function DashboardDemo() {
 
   const on = (n: number) => (beat >= n ? " is-on" : "");
   const revenue = useCountUp(1284500, beat >= 4, reduced);
-  const products = useCountUp(42, beat >= 5, reduced, 800);
-  const orders = useCountUp(184, beat >= 5, reduced, 900);
-  const customers = useCountUp(126, beat >= 5, reduced, 900);
+  const products = useCountUp(42, beat >= 5, reduced, 520);
+  const orders = useCountUp(184, beat >= 5, reduced, 600);
+  const customers = useCountUp(126, beat >= 5, reduced, 600);
 
   return (
     <PhoneFrame ref={ref} label="The Oakmonte seller dashboard">
@@ -95,7 +95,7 @@ export function DashboardDemo() {
           <strong>{naira(revenue)}</strong>
           <div className={`chart dd-bars${on(3)}`}>
             {[30, 45, 35, 58, 49, 74, 61, 80, 72, 95].map((h, i) => (
-              <i key={i} style={{ height: `${h}%`, transitionDelay: `${i * 70}ms` }} />
+              <i key={i} style={{ height: `${h}%`, transitionDelay: `${i * 45}ms` }} />
             ))}
           </div>
         </div>

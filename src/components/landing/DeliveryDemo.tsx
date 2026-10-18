@@ -9,8 +9,8 @@ import { Check, MapPin, Package, Truck } from "lucide-react";
  *  delivery (payouts.server.ts: 95.5% of the items total). Sample order.
  *  Plays only while on screen; reduced motion shows the last frame. */
 
-const BEATS = [300, 1500, 2300, 3300, 4600, 6200, 7800, 9000];
-const LOOP_MS = 12500;
+const BEATS = [200, 980, 1500, 2140, 2990, 4030, 5070, 5850];
+const LOOP_MS = 8100;
 const LAST = BEATS.length;
 
 const STEPS = [
@@ -134,7 +134,7 @@ function Rider() {
   }, []);
   return (
     <circle r="7" className="dl-rider">
-      <animateMotion ref={anim} begin="indefinite" dur="3.2s" fill="freeze">
+      <animateMotion ref={anim} begin="indefinite" dur="2.1s" fill="freeze">
         <mpath href="#dl-route" />
       </animateMotion>
     </circle>

@@ -19,7 +19,7 @@ export function BagPlus({ size = 24, className }: { size?: number; className?: s
     >
       {/* Handle, then the basket: down the left side, along the bottom, up
           the right side, and back in along the top towards the plus. */}
-      <path d="M1.8 3.2h3l4.1 14.1h10.3l2.8-9.2h-2.3" />
+      <path d="M1.5 3.2h3l4.1 14.1h10.6l3.3-9.2h-2.3" />
       <path d="M14 4.6v7M10.5 8.1h7" />
       <circle cx="9.2" cy="21.2" r="1.5" fill="currentColor" stroke="none" />
       <circle cx="17.6" cy="21.2" r="1.5" fill="currentColor" stroke="none" />
