@@ -7,8 +7,10 @@ import { PhoneFrame } from "./PhoneFrame";
  *  and the order comes in, all in the chat. Sample conversation. Plays only
  *  while on screen; reduced motion shows the last frame. */
 
-const BEATS = [260, 1040, 1760, 2400, 3250, 4030, 4940, 5720];
-const LOOP_MS = 7800;
+// Overlapping on purpose: the product card follows the reply before it has
+// settled, the order note arrives as the buyer's message lands.
+const BEATS = [400, 1300, 2100, 2450, 3100, 3400, 4300, 4700];
+const LOOP_MS = 8400;
 const LAST = BEATS.length;
 
 export function MessagingDemo() {

@@ -8,12 +8,13 @@ import { PhoneFrame } from "./PhoneFrame";
  *  figures. Plays only while on screen; reduced motion shows the last frame.
  *  Styled by the sp-* / dd-* rules in routes/index.tsx's stylesheet. */
 
-// When each beat starts (ms from the top of the loop).
-const BEATS = [200, 580, 980, 1690, 2470, 3250, 4160];
-const LOOP_MS = 6200;
+// When each beat starts (ms from the top of the loop). Beats overlap on
+// purpose: each piece starts while the one before is still moving.
+const BEATS = [300, 550, 800, 1150, 1500, 1850, 3300];
+const LOOP_MS = 7800;
 const LAST = BEATS.length;
 
-function useCountUp(target: number, run: boolean, instant: boolean, ms = 720) {
+function useCountUp(target: number, run: boolean, instant: boolean, ms = 1300) {
   const [v, setV] = useState(0);
   useEffect(() => {
     if (!run) return setV(0);
@@ -71,9 +72,9 @@ export function DashboardDemo() {
 
   const on = (n: number) => (beat >= n ? " is-on" : "");
   const revenue = useCountUp(1284500, beat >= 4, reduced);
-  const products = useCountUp(42, beat >= 5, reduced, 520);
-  const orders = useCountUp(184, beat >= 5, reduced, 600);
-  const customers = useCountUp(126, beat >= 5, reduced, 600);
+  const products = useCountUp(42, beat >= 5, reduced, 900);
+  const orders = useCountUp(184, beat >= 5, reduced, 1000);
+  const customers = useCountUp(126, beat >= 5, reduced, 1000);
 
   return (
     <PhoneFrame ref={ref} label="The Oakmonte seller dashboard">
@@ -95,7 +96,7 @@ export function DashboardDemo() {
           <strong>{naira(revenue)}</strong>
           <div className={`chart dd-bars${on(3)}`}>
             {[30, 45, 35, 58, 49, 74, 61, 80, 72, 95].map((h, i) => (
-              <i key={i} style={{ height: `${h}%`, transitionDelay: `${i * 45}ms` }} />
+              <i key={i} style={{ height: `${h}%`, transitionDelay: `${i * 70}ms` }} />
             ))}
           </div>
         </div>
