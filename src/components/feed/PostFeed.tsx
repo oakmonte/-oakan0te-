@@ -1,5 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import {
+  lazy,
+  Suspense,
   useCallback,
   useEffect,
   useRef,
@@ -8,7 +10,14 @@ import {
   type ReactNode,
   type RefObject,
 } from "react";
+import { useOneTimeHint } from "@/hooks/use-one-time-hint";
 import { createPortal } from "react-dom";
+
+// Fetched on the first tap of the share plane: the sheet plus the offline
+// download engine behind it are ~18 KB that most sessions never open.
+const PostShareSheet = lazy(() =>
+  import("@/components/feed/PostShareSheet").then((m) => ({ default: m.PostShareSheet })),
+);
 import { AnimatePresence, animate, motion, useMotionValue, useTransform } from "framer-motion";
 import {
   Heart,
@@ -25,6 +34,7 @@ import {
   Link2,
   MapPin,
   Music,
+  ChevronUp,
   Forward,
 } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
@@ -570,6 +580,7 @@ export function PostFeed({
               />
             ))}
           </div>
+          {scope.type === "author" && posts.length > 1 && <ScrollHint scroller={containerRef} />}
         </motion.div>
       </div>
     );
@@ -586,6 +597,44 @@ export function PostFeed({
     return createPortal(body, document.body);
   }
   return <>{body}</>;
+}
+
+/** First visit to a store's feed: a floating up-arrow and "Swipe up to see
+ *  more", so a buyer knows the feed scrolls. Once per device
+ *  (useOneTimeHint), gone the moment they scroll or after a few seconds. */
+function ScrollHint({ scroller }: { scroller: RefObject<HTMLDivElement | null> }) {
+  const [visible, dismiss] = useOneTimeHint("storefront-feed-scroll");
+  useEffect(() => {
+    const el = scroller.current;
+    if (!visible || !el) return;
+    el.addEventListener("scroll", dismiss, { once: true, passive: true });
+    return () => el.removeEventListener("scroll", dismiss);
+  }, [visible, dismiss, scroller]);
+  return (
+    <AnimatePresence>
+      {visible && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.3 }}
+          className="pointer-events-none absolute inset-x-0 bottom-[30%] z-10 flex flex-col items-center gap-2 text-white"
+          aria-live="polite"
+        >
+          <motion.span
+            animate={{ y: [0, -14, 0] }}
+            transition={{ duration: 1.3, repeat: Infinity, ease: "easeInOut" }}
+            className="grid h-12 w-12 place-items-center rounded-full bg-black/35 backdrop-blur-sm"
+          >
+            <ChevronUp size={28} strokeWidth={2.4} />
+          </motion.span>
+          <span className="rounded-full bg-black/35 px-3 py-1 text-[13px] font-medium backdrop-blur-sm">
+            Swipe up to see more
+          </span>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
 }
 
 /** One item in the action rail: the icon, and the count beneath it.
@@ -962,6 +1011,9 @@ function FeedPostCard({
   const [burst, setBurst] = useState(0);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
+  // "never" until the first tap, so the lazy sheet isn't fetched for a post
+  // nobody shares; after that it stays mounted and animates open/closed.
+  const [share, setShare] = useState<"never" | "open" | "closed">("never");
   const { toast: bagToast, showBagToast } = useBagToast();
   const { banner: lockedBanner, showLocked } = useLockedBanner();
   // Local so linking a product updates the chips under the caption straight
@@ -1036,7 +1088,9 @@ function FeedPostCard({
   const isOwnerView = isOwnPost && isProfileViewer;
   // The profile viewer shows each post at its own aspect ratio; Explore's
   // feed fills the screen. See the backdrop below.
-  const fitContain = isProfileViewer;
+  // The storefront feed too: a seller's post shown whole, never cropped at
+  // the edges (cropping loses what's at the edge and blows up what's left).
+  const fitContain = isProfileViewer || storefront;
   // Where the rail and caption bottom out. Both share it so the last rail
   // button lines up with the last line of the caption, as on TikTok. Against
   // the safe-area inset rather than a bare number: installed on an iPhone the
@@ -1508,12 +1562,7 @@ function FeedPostCard({
               <MoreHorizontal size={28} />
             </RailAction>
           ) : (
-            <RailAction
-              label="Share"
-              onPress={
-                storefront && SHARING_LOCKED ? () => showLocked("Sharing unavailable") : undefined
-              }
-            >
+            <RailAction label="Share" onPress={() => setShare("open")}>
               <Forward size={28} />
             </RailAction>
           )}
@@ -1591,6 +1640,27 @@ function FeedPostCard({
       />
 
       <CommentSheet open={commentsOpen} onClose={() => setCommentsOpen(false)} />
+      {/* Copy link + save for offline. Every carousel item goes to the
+          offline cache, not just what's on screen. */}
+      {!isOwnerView && share !== "never" && (
+        <Suspense fallback={null}>
+          <PostShareSheet
+            open={share === "open"}
+            onClose={() => setShare("closed")}
+            linksLocked={storefront && SHARING_LOCKED}
+            ownerId={post.user_id}
+            post={{
+              postId: post.id,
+              caption: post.caption,
+              author: { displayName: post.authorDisplayName, username: post.authorUsername },
+              media: post.media,
+              posterUrl: backdropUrl,
+              audioUrl: post.audio_url,
+              audioLabel: post.audio_attribution ?? post.audio_name,
+            }}
+          />
+        </Suspense>
+      )}
       {bagToast}
       {lockedBanner}
       {isOwnerView && (

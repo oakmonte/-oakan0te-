@@ -26,7 +26,14 @@
 const ASSETS = "oak-assets-v1";
 const PAGES = "oak-pages-v1";
 const FONTS = "oak-fonts-v1";
-const KNOWN = [ASSETS, PAGES, FONTS];
+// The Offline videos page, pinned (never trimmed, kept through sign-out) so it
+// opens on a cold start with no connection.
+const SHELL = "oak-shell-v1";
+// Saved posts' media, written and read by the page (lib/offline-videos.ts).
+// This worker never touches it except to leave it alone on activate.
+const OFFLINE_MEDIA = "oak-offline-v1";
+const SHELL_PATH = "/offline-videos";
+const KNOWN = [ASSETS, PAGES, FONTS, SHELL, OFFLINE_MEDIA];
 
 const MAX_ASSETS = 400;
 const MAX_PAGES = 40;
@@ -76,6 +83,11 @@ self.addEventListener("message", (event) => {
   }
   // Sign-out: forget saved pages so the next person on this phone doesn't
   // open the last one's screens offline.
+  // Someone saved a post for offline (or opened Offline videos): pin that page
+  // and the files it needs.
+  if (data.type === "oak-prime-offline-shell") {
+    event.waitUntil(pinShell(Array.isArray(data.assets) ? data.assets : []));
+  }
   if (data.type === "oak-clear-pages") {
     event.waitUntil(caches.delete(PAGES));
   }
@@ -139,7 +151,10 @@ async function page(event, url) {
   })();
   event.waitUntil(network.catch(() => {}));
 
-  const saved = await cache.match(key);
+  let saved = await cache.match(key);
+  if (!saved && url.pathname === SHELL_PATH) {
+    saved = await (await caches.open(SHELL)).match(SHELL_PATH);
+  }
   if (!saved) {
     try {
       return await network;
@@ -168,6 +183,30 @@ async function networkOrOffline(event) {
 
 function isHtml(res) {
   return (res.headers.get("content-type") || "").includes("text/html");
+}
+
+async function pinShell(assets) {
+  // The page as this release serves it, plus every file it names (its route
+  // chunk, CSS, preloads). Without those, a release that landed after the
+  // last visit leaves a pinned page whose code was never downloaded, and it
+  // fails offline with "Failed to fetch dynamically imported module".
+  let named = [];
+  try {
+    const res = await fetch(SHELL_PATH, { credentials: "same-origin" });
+    if (res.ok && isHtml(res)) {
+      const html = await res.clone().text();
+      named = [...html.matchAll(/["'(](\/assets\/[^"'()\s?#]+)/g)].map((m) => m[1]);
+      await (await caches.open(SHELL)).put(SHELL_PATH, res.clone());
+      // Also the saved-pages copy, so an older saved copy can't win.
+      await (await caches.open(PAGES)).put(self.location.origin + SHELL_PATH, res);
+    }
+  } catch {
+    // Offline right now: the page saves itself the next time it's opened online.
+  }
+  const urls = [...new Set([...named, ...assets])].map(
+    (a) => new URL(a, self.location.origin).href,
+  );
+  await prime(urls);
 }
 
 async function prime(urls) {
