@@ -19,10 +19,10 @@ export function BagPlus({ size = 24, className }: { size?: number; className?: s
     >
       {/* Handle, then the basket: down the left side, along the bottom, and
           up the right side towards the plus. */}
-      <path d="M2 4h2.4l3.1 11.2h10.4l2.3-7.4" />
-      <path d="M15.5 2.4v6.2M12.4 5.5h6.2" />
-      <circle cx="8.6" cy="19.6" r="1.5" fill="currentColor" stroke="none" />
-      <circle cx="16.9" cy="19.6" r="1.5" fill="currentColor" stroke="none" />
+      <path d="M2 3.2h2.6l4.3 14.1h10.3l2.4-9.6" />
+      <path d="M14 4.6v7M10.5 8.1h7" />
+      <circle cx="9.2" cy="21.2" r="1.5" fill="currentColor" stroke="none" />
+      <circle cx="17.6" cy="21.2" r="1.5" fill="currentColor" stroke="none" />
     </svg>
   );
 }
