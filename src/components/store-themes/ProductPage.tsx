@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useStorefrontPage } from "./live-storefront";
 import { createPortal } from "react-dom";
 import { useNavigate } from "@tanstack/react-router";
 // ShieldCheck belongs to the buyer-protection note that is commented out below.
@@ -206,6 +207,8 @@ export function ProductPage({
     return () => clearTimeout(t);
   }, []);
   useOverlayHistory(!embedded && armed && !closing, close);
+  // On the live storefront the bottom bar stays over this page.
+  useStorefrontPage(!embedded && !closing, close);
 
   const variants = data?.variants ?? [];
   const variant = variants.find((v) => v.id === variantId) ?? variants[0];
@@ -313,7 +316,7 @@ export function ProductPage({
             )}
 
             <div
-              className={`mx-auto max-w-[520px] pb-[calc(env(safe-area-inset-bottom)+2rem)] ${d("md:max-w-[1200px] md:px-8 md:pt-4")}`}
+              className={`mx-auto max-w-[520px] ${embedded ? "pb-[calc(env(safe-area-inset-bottom)+2rem)]" : "pb-[calc(env(safe-area-inset-bottom)+6.5rem)] md:pb-[calc(env(safe-area-inset-bottom)+2rem)]"} ${d("md:max-w-[1200px] md:px-8 md:pt-4")}`}
             >
               {/* md: photos on the left, details pinned on the right. */}
               <div

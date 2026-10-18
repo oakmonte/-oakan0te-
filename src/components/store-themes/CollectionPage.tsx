@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useStorefrontPage } from "./live-storefront";
 import { createPortal } from "react-dom";
 import { ChevronLeft } from "lucide-react";
 import { GLASS_RIM, glassClear } from "@/lib/liquid-glass";
@@ -62,6 +63,8 @@ export function CollectionPage({
   );
   // The phone's back gesture / browser back closes the page, like any page.
   useOverlayHistory(!closing, close);
+  // On the live storefront the bottom bar stays over this page.
+  useStorefrontPage(!closing, close);
 
   const pageStyle: CSSProperties = {
     background: look.background,
@@ -128,7 +131,7 @@ export function CollectionPage({
             )}
           </div>
 
-          <div className="px-3 pt-3 pb-[calc(env(safe-area-inset-bottom)+32px)]">
+          <div className="px-3 pt-3 pb-[calc(env(safe-area-inset-bottom)+104px)] md:pb-[calc(env(safe-area-inset-bottom)+32px)]">
             {products === null ? (
               <div className="grid grid-cols-2 gap-1.5">
                 {Array.from({ length: 4 }, (_, i) => (

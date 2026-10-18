@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { LiveStorefrontContext, StorefrontSearchContext } from "./live-storefront";
+import {
+  LiveStorefrontContext,
+  StorefrontPagesContext,
+  StorefrontSearchContext,
+} from "./live-storefront";
 import { usePaintChrome } from "@/lib/paint-chrome";
 import { StorefrontNav, type StorefrontTab } from "./StorefrontNav";
 import { StorefrontFeed } from "./StorefrontFeed";
@@ -1189,6 +1193,22 @@ export function PublicStorefront({
   // The storefront (Shop) is what a visitor lands on; Home, the store's
   // content feed, is one tap away.
   const [tab, setTab] = useState<StorefrontTab>("shop");
+  // Product and collection pages open over the shop (see StorefrontPagesContext).
+  const pageClosers = useRef(new Set<() => void>());
+  const [openPages, setOpenPages] = useState(0);
+  const pagesValue = useMemo(
+    () => ({
+      register: (close: () => void) => {
+        pageClosers.current.add(close);
+        setOpenPages(pageClosers.current.size);
+        return () => {
+          pageClosers.current.delete(close);
+          setOpenPages(pageClosers.current.size);
+        };
+      },
+    }),
+    [],
+  );
   // A chat opened from the Messages tab has its own composer at the bottom.
   const [threadOpen, setThreadOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -1348,12 +1368,14 @@ export function PublicStorefront({
             style={{ background }}
           >
             <LiveStorefrontContext.Provider value={true}>
-              <FullPreview
-                themeId={themeId}
-                editing={editing}
-                storeId={storeId}
-                brandName={brandName}
-              />
+              <StorefrontPagesContext.Provider value={pagesValue}>
+                <FullPreview
+                  themeId={themeId}
+                  editing={editing}
+                  storeId={storeId}
+                  brandName={brandName}
+                />
+              </StorefrontPagesContext.Provider>
             </LiveStorefrontContext.Provider>
           </div>
         )}
@@ -1361,7 +1383,14 @@ export function PublicStorefront({
           <StorefrontNav
             storeId={storeId}
             active={tab}
+            overPage={openPages > 0}
             onSelect={(next) => {
+              // Over a product or collection page, any tab closes it; Shop
+              // just returns to the shop underneath, where it was.
+              if (openPages > 0) {
+                [...pageClosers.current].forEach((close) => close());
+                if (next === "shop") return;
+              }
               setTab(next);
               rootRef.current?.scrollIntoView({ block: "start" });
             }}

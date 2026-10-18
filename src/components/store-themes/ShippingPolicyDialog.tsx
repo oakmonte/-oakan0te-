@@ -28,7 +28,7 @@ export function ShippingPolicyDialog({
   if (typeof document === "undefined") return null;
   return createPortal(
     <div
-      className="fixed inset-0 z-[90] flex items-center justify-center bg-black/55 px-5 animate-in fade-in duration-200"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/55 px-5 animate-in fade-in duration-200"
       onClick={onClose}
     >
       <div

@@ -24,6 +24,7 @@ export type StorefrontTab = "shop" | "home" | "messages";
 export function StorefrontNav({
   storeId,
   active,
+  overPage = false,
   onSelect,
   preview,
   brandName,
@@ -34,6 +35,9 @@ export function StorefrontNav({
   /** Shop is the storefront page, Home the store's content feed, Messages
    *  the one contact a buyer needs (StorefrontMessages). */
   active: StorefrontTab;
+  /** A product or collection page is open: the bar sits above it (those
+   *  pages are z-80/90; dialogs and notices over them are higher still). */
+  overPage?: boolean;
   onSelect: (tab: StorefrontTab) => void;
   preview: boolean;
   /** The desktop bar's brand mark, and the colour it sits on (the page's own
@@ -212,7 +216,7 @@ export function StorefrontNav({
       </header>
 
       <nav
-        className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 px-4 md:hidden"
+        className={`pointer-events-none fixed inset-x-0 bottom-0 flex items-center justify-between gap-3 px-4 md:hidden ${overPage ? "z-[91]" : "z-40"}`}
         style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 12px)" }}
       >
         {preview ? (
