@@ -9,11 +9,14 @@ import { useLayoutEffect, useState, type ReactNode, type Ref } from "react";
 // must to fit under the header, and never below MIN_SCALE so text stays
 // readable (a very short window scrolls a little instead).
 const SCREEN_W = 340;
-const SCREEN_H = Math.round((SCREEN_W * 956) / 440);
+const SCREEN_H = 720;
+// The size the fit is worked out from, so a taller screen doesn't shrink the
+// content: the phone just grows taller at the same scale.
+const FIT_H = 650;
 const BEZEL = 5;
 const PHONE_W = SCREEN_W + BEZEL * 2;
 const PHONE_H = SCREEN_H + BEZEL * 2;
-const MIN_SCALE = 0.8;
+const MIN_SCALE = 0.55;
 
 export function PhoneFrame({
   ref,
@@ -28,9 +31,9 @@ export function PhoneFrame({
 
   useLayoutEffect(() => {
     const measure = () => {
-      const room = window.innerHeight - (window.innerWidth > 800 ? 120 : 100);
+      const room = window.innerHeight - (window.innerWidth > 800 ? 170 : 150);
       const byWidth = (window.innerWidth - 32) / PHONE_W;
-      setScale(Math.max(MIN_SCALE, Math.min(1, room / PHONE_H, byWidth)));
+      setScale(Math.max(MIN_SCALE, Math.min(1, room / FIT_H, byWidth)));
     };
     measure();
     window.addEventListener("resize", measure);
