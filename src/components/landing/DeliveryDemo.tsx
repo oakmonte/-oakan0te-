@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { PhoneFrame } from "./PhoneFrame";
 import { Check, MapPin, Package, Truck } from "lucide-react";
 
 /** Landing demo 2: an order, from landing to paid out, on a loop. Follows the
@@ -49,79 +50,77 @@ export function DeliveryDemo() {
   const booked = beat >= 3;
 
   return (
-    <div ref={ref} className="studio-phone dd" aria-label="An order being delivered automatically">
-      <div className="sp-screen" aria-hidden="true">
-        <div className="sp-title">Orders</div>
+    <PhoneFrame ref={ref} label="An order being delivered automatically">
+      <div className="sp-title">Orders</div>
 
-        <div className={`dl-order dd-in${on(1)}`}>
-          <span className="dl-thumb">
-            <Package size={18} />
-          </span>
-          <div className="dl-order-text">
-            <small>New order · paid</small>
-            <b>Ankara wrap dress · Size 12</b>
-            <span>Tolu A. · Lekki Phase 1</span>
-          </div>
-          <strong>₦45,000</strong>
+      <div className={`dl-order dd-in${on(1)}`}>
+        <span className="dl-thumb">
+          <Package size={18} />
+        </span>
+        <div className="dl-order-text">
+          <small>New order · paid</small>
+          <b>Ankara wrap dress · Size 12</b>
+          <span>Tolu A. · Lekki Phase 1</span>
         </div>
+        <strong>₦45,000</strong>
+      </div>
 
-        <div className={`dd-in${on(1)}`}>
-          <span className={`dl-book${beat === 2 ? " dd-tap" : ""}${booked ? " is-done" : ""}`}>
-            {booked ? (
-              <>
-                <Check size={14} strokeWidth={3} /> Courier booked · pickup 2–4pm
-              </>
-            ) : (
-              <>
-                <Truck size={14} /> Book courier
-              </>
-            )}
-          </span>
-        </div>
+      <div className={`dd-in${on(1)}`}>
+        <span className={`dl-book${beat === 2 ? " dd-tap" : ""}${booked ? " is-done" : ""}`}>
+          {booked ? (
+            <>
+              <Check size={14} strokeWidth={3} /> Courier booked · pickup 2–4pm
+            </>
+          ) : (
+            <>
+              <Truck size={14} /> Book courier
+            </>
+          )}
+        </span>
+      </div>
 
-        <div className={`dl-map dd-in${on(4)}`}>
-          <svg viewBox="0 0 280 120" preserveAspectRatio="none">
-            <path
-              id="dl-route"
-              className={`dl-route${on(4)}`}
-              d="M24 92 C 80 92, 90 30, 150 44 S 230 70, 256 24"
-            />
-            {beat >= 5 && !reduced && <Rider />}
-            {reduced && <circle r="7" cx="256" cy="24" className="dl-rider" />}
-          </svg>
-          <span className="dl-pin dl-pin-a">
-            <MapPin size={14} />
-          </span>
-          <span className="dl-pin dl-pin-b">
-            <MapPin size={14} />
-          </span>
-        </div>
+      <div className={`dl-map dd-in${on(4)}`}>
+        <svg viewBox="0 0 280 120" preserveAspectRatio="none">
+          <path
+            id="dl-route"
+            className={`dl-route${on(4)}`}
+            d="M24 92 C 80 92, 90 30, 150 44 S 230 70, 256 24"
+          />
+          {beat >= 5 && !reduced && <Rider />}
+          {reduced && <circle r="7" cx="256" cy="24" className="dl-rider" />}
+        </svg>
+        <span className="dl-pin dl-pin-a">
+          <MapPin size={14} />
+        </span>
+        <span className="dl-pin dl-pin-b">
+          <MapPin size={14} />
+        </span>
+      </div>
 
-        <div className="dl-steps">
-          {STEPS.map((s) => (
-            <div key={s.label} className={`dl-step dd-in${on(s.at)}`}>
-              <span className={`dl-dot${s.at === 7 && beat >= 7 ? " is-done" : ""}`}>
-                <Check size={10} strokeWidth={3.5} />
-              </span>
-              <div>
-                <b>{s.label}</b>
-                <small>{s.sub}</small>
-              </div>
+      <div className="dl-steps">
+        {STEPS.map((s) => (
+          <div key={s.label} className={`dl-step dd-in${on(s.at)}`}>
+            <span className={`dl-dot${s.at === 7 && beat >= 7 ? " is-done" : ""}`}>
+              <Check size={10} strokeWidth={3.5} />
+            </span>
+            <div>
+              <b>{s.label}</b>
+              <small>{s.sub}</small>
             </div>
-          ))}
-        </div>
-
-        <div className={`dl-paid dd-in${on(8)}`}>
-          <span className="dl-paid-icon">
-            <Check size={16} strokeWidth={3} />
-          </span>
-          <div>
-            <b>₦42,975 sent to your bank</b>
-            <small>Released the moment it was delivered</small>
           </div>
+        ))}
+      </div>
+
+      <div className={`dl-paid dd-in${on(8)}`}>
+        <span className="dl-paid-icon">
+          <Check size={16} strokeWidth={3} />
+        </span>
+        <div>
+          <b>₦42,975 sent to your bank</b>
+          <small>Released the moment it was delivered</small>
         </div>
       </div>
-    </div>
+    </PhoneFrame>
   );
 }
 

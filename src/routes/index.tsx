@@ -8,6 +8,7 @@ import { Check, ChevronDown } from "lucide-react";
 import logoO from "@/assets/logo-o.png";
 import { DashboardDemo } from "@/components/landing/DashboardDemo";
 import { DeliveryDemo } from "@/components/landing/DeliveryDemo";
+import { MessagingDemo } from "@/components/landing/MessagingDemo";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -518,6 +519,22 @@ function SellersLanding() {
         <DeliveryDemo />
       </section>
 
+      <section className="studio-section">
+        <MessagingDemo />
+        <Reveal delay={1} className="studio-copy">
+          <div className="section-kicker">04 / Messaging</div>
+          <h2>
+            Talk to buyers.
+            <br />
+            <em>Close the sale.</em>
+          </h2>
+          <p>
+            Customers message you straight from your store. Answer their questions, send them the
+            exact piece, and watch the order come in, without leaving Oakmonte.
+          </p>
+        </Reveal>
+      </section>
+
       <section className="manufacturer-section" id="manufacturers">
         <Reveal>
           <div className="section-kicker">03 / Oakmonte Manufacturers</div>
@@ -750,8 +767,16 @@ const CSS = `
 .oak-sellers .feature-panel-inner p{max-width:440px;margin:0;padding:0 32px 24px 72px;color:var(--muted);font-size:13px;line-height:1.6}
 
 .oak-sellers .studio-section{display:grid;grid-template-columns:1.1fr .9fr;align-items:center;gap:9vw;padding:120px 7vw;background:var(--paper)}
-.oak-sellers .studio-phone{justify-self:center;width:min(100%,340px);padding:12px;border-radius:46px;background:#111827;box-shadow:0 30px 90px rgba(20,85,217,.18);animation:oakSellersFloatCard 5s ease-in-out infinite}
-.oak-sellers .sp-screen{display:flex;flex-direction:column;gap:14px;border-radius:36px;background:#fff;padding:30px 18px 22px;font-family:Inter,system-ui,sans-serif;color:#111827}
+.oak-sellers .iph-fit{justify-self:center;align-self:center;width:min(100%,330px)}
+.oak-sellers .iph{width:100%;padding:6px;border-radius:54px;background:#1b1d22;box-shadow:inset 0 0 0 1.5px #3a3d44,0 30px 80px rgba(20,85,217,.16);transform-origin:top center}
+.oak-sellers .iph-screen{position:relative;overflow:hidden;border-radius:48px;background:#fff;font-family:Inter,system-ui,sans-serif;color:#111827}
+.oak-sellers .iph-status{position:relative;display:flex;align-items:center;justify-content:space-between;height:50px;padding:0 28px 0 34px}
+.oak-sellers .iph-time{font-size:15px;font-weight:600;letter-spacing:-.01em}
+.oak-sellers .iph-island{position:absolute;left:50%;top:11px;width:104px;height:30px;margin-left:-52px;border-radius:999px;background:#000}
+.oak-sellers .iph-icons{display:flex;align-items:center;gap:5px;fill:#111827;stroke:#111827}
+.oak-sellers .iph-icons svg:first-child,.oak-sellers .iph-icons svg:nth-child(2){stroke:none}
+.oak-sellers .iph-body{display:flex;flex-direction:column;gap:14px;padding:8px 18px 34px}
+.oak-sellers .iph-home{position:absolute;left:50%;bottom:8px;width:120px;height:5px;margin-left:-60px;border-radius:999px;background:#111827}
 .oak-sellers .sp-id{display:flex;align-items:center;gap:12px}
 .oak-sellers .sp-id b{display:block;font-size:17px;font-weight:700;letter-spacing:-.02em}
 .oak-sellers .sp-id small{display:block;margin-top:2px;font-size:12px;color:#667085}
@@ -769,7 +794,6 @@ const CSS = `
 .oak-sellers .sp-tiles b{display:block;margin-top:6px;font-size:18px;font-weight:700;letter-spacing:-.02em}
 .oak-sellers .sp-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .oak-sellers .sp-actions span{display:grid;place-items:center;min-height:52px;padding:6px;border:1px solid #eaecf0;border-radius:16px;font-size:10.5px;font-weight:600;text-align:center;line-height:1.25}
-.oak-sellers .studio-phone.dd{animation:none}
 .oak-sellers .dd-in{opacity:0;transform:translateY(12px);transition:opacity 450ms var(--ease-out),transform 450ms var(--ease-out)}
 .oak-sellers .dd-in.is-on{opacity:1;transform:none}
 .oak-sellers .dd-bars i{animation:none;transform:scaleY(0);transition:transform 600ms var(--ease-out)}
@@ -806,6 +830,30 @@ const CSS = `
 .oak-sellers .dl-paid-icon{display:grid;place-items:center;width:32px;height:32px;flex:none;border-radius:999px;background:#12b76a;color:#fff}
 .oak-sellers .dl-paid b{display:block;font-size:13px;font-weight:700;color:#054f31}
 .oak-sellers .dl-paid small{display:block;font-size:11px;color:#067647}
+.oak-sellers .ms-head{display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid #eaecf0}
+.oak-sellers .ms-head b{display:block;font-size:14px;font-weight:600}
+.oak-sellers .ms-head small{display:block;font-size:11px;color:#12b76a}
+.oak-sellers .ms-avatar{display:grid;place-items:center;width:34px;height:34px;border-radius:999px;background:#fde7d4;color:#b54708;font-weight:700;font-size:14px}
+.oak-sellers .ms-thread{display:flex;flex-direction:column;gap:8px;min-height:390px}
+.oak-sellers .ms-row{display:flex}
+.oak-sellers .ms-me{justify-content:flex-end}
+.oak-sellers .ms-bubble{max-width:78%;margin:0;padding:9px 13px;border-radius:18px;font-size:13px;line-height:1.35}
+.oak-sellers .ms-them .ms-bubble{background:#f2f4f7;color:#111827;border-bottom-left-radius:6px}
+.oak-sellers .ms-me .ms-bubble{background:var(--accent-blue);color:#fff;border-bottom-right-radius:6px}
+.oak-sellers .ms-typing{display:flex;gap:4px;padding:12px 14px}
+.oak-sellers .ms-typing i{width:6px;height:6px;border-radius:999px;background:rgba(255,255,255,.85);animation:oakSellersBlink 1s ease-in-out infinite}
+.oak-sellers .ms-typing i:nth-child(2){animation-delay:.15s}
+.oak-sellers .ms-typing i:nth-child(3){animation-delay:.3s}
+.oak-sellers .ms-card{display:flex;align-items:center;gap:10px;width:78%;padding:9px;border:1px solid #eaecf0;border-radius:16px;background:#fff}
+.oak-sellers .ms-card b{display:block;font-size:12.5px;font-weight:600}
+.oak-sellers .ms-card small{display:block;font-size:11px;color:#667085}
+.oak-sellers .ms-card-img{display:grid;place-items:center;width:38px;height:38px;flex:none;border-radius:10px;background:#eaf1ff;color:var(--accent-blue)}
+.oak-sellers .ms-card-buy{width:86%}
+.oak-sellers .ms-buy{margin-left:auto;padding:6px 12px;border-radius:999px;background:#111827;color:#fff;font-size:11.5px;font-weight:600}
+.oak-sellers .ms-ticks{align-self:flex-end;font-size:10.5px;color:#98a2b3;transition:color 300ms ease}
+.oak-sellers .ms-ticks.is-read{color:var(--accent-blue)}
+.oak-sellers .ms-order{align-self:center;margin-top:6px;padding:7px 12px;border-radius:999px;background:#ecfdf3;color:#067647;font-size:11.5px;font-weight:600}
+.oak-sellers .ms-input{display:flex;align-items:center;height:40px;padding:0 14px;border-radius:999px;background:#f2f4f7;font-size:13px;color:#98a2b3}
 .oak-sellers .studio-card{border:1px solid #b7c9ed;background:#fff;box-shadow:0 30px 90px rgba(20,85,217,.12);animation:oakSellersFloatCard 5s ease-in-out infinite}
 .oak-sellers .studio-top{display:flex;align-items:center;padding:18px 22px;border-bottom:1px solid var(--border);font:11px 'DM Mono',monospace}
 .oak-sellers .studio-status{margin-left:auto;color:var(--primary);font-size:9px}

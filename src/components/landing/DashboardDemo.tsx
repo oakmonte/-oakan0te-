@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { PhoneFrame } from "./PhoneFrame";
 
 /** Landing demo 1: the seller dashboard building itself, on a loop. Drawn in
  *  code from the real dashboard's sections, labels and order
@@ -75,60 +76,58 @@ export function DashboardDemo() {
   const customers = useCountUp(126, beat >= 5, reduced, 900);
 
   return (
-    <div ref={ref} className="studio-phone dd" aria-label="The Oakmonte seller dashboard">
-      <div className="sp-screen" aria-hidden="true">
-        <div className={`sp-id dd-in${on(1)}`}>
-          <span className="sp-logo">A</span>
-          <div>
-            <b>Adaeze Atelier</b>
-            <small>adaeze.oakmonte.store</small>
-          </div>
+    <PhoneFrame ref={ref} label="The Oakmonte seller dashboard">
+      <div className={`sp-id dd-in${on(1)}`}>
+        <span className="sp-logo">A</span>
+        <div>
+          <b>Adaeze Atelier</b>
+          <small>adaeze.oakmonte.store</small>
         </div>
-        <div className={`sp-pills dd-in${on(2)}`}>
-          <span>Share link</span>
-          <span>Edit store</span>
-        </div>
-        <div className={`dd-in${on(3)}`}>
-          <div className="sp-title">Sales analytics</div>
-          <div className="sp-chart">
-            <small>This month</small>
-            <strong>{naira(revenue)}</strong>
-            <div className={`chart dd-bars${on(3)}`}>
-              {[30, 45, 35, 58, 49, 74, 61, 80, 72, 95].map((h, i) => (
-                <i key={i} style={{ height: `${h}%`, transitionDelay: `${i * 70}ms` }} />
-              ))}
-            </div>
-          </div>
-        </div>
-        <div className={`sp-tiles dd-in${on(5)}`}>
-          <div>
-            <small>Products listed</small>
-            <b>{products}</b>
-          </div>
-          <div>
-            <small>Orders</small>
-            <b>{orders}</b>
-          </div>
-          <div>
-            <small>Net revenue</small>
-            <b>₦{(revenue / 1_000_000).toFixed(1)}M</b>
-          </div>
-          <div>
-            <small>Customers</small>
-            <b>{customers}</b>
-          </div>
-        </div>
-        <div className={`dd-in${on(6)}`}>
-          <div className="sp-title">Quick actions</div>
-          <div className="sp-actions">
-            {ACTIONS.map((a) => (
-              <span key={a} className={a === "Orders" && beat >= 7 ? "dd-tap" : undefined}>
-                {a}
-              </span>
+      </div>
+      <div className={`sp-pills dd-in${on(2)}`}>
+        <span>Share link</span>
+        <span>Edit store</span>
+      </div>
+      <div className={`dd-in${on(3)}`}>
+        <div className="sp-title">Sales analytics</div>
+        <div className="sp-chart">
+          <small>This month</small>
+          <strong>{naira(revenue)}</strong>
+          <div className={`chart dd-bars${on(3)}`}>
+            {[30, 45, 35, 58, 49, 74, 61, 80, 72, 95].map((h, i) => (
+              <i key={i} style={{ height: `${h}%`, transitionDelay: `${i * 70}ms` }} />
             ))}
           </div>
         </div>
       </div>
-    </div>
+      <div className={`sp-tiles dd-in${on(5)}`}>
+        <div>
+          <small>Products listed</small>
+          <b>{products}</b>
+        </div>
+        <div>
+          <small>Orders</small>
+          <b>{orders}</b>
+        </div>
+        <div>
+          <small>Net revenue</small>
+          <b>₦{(revenue / 1_000_000).toFixed(1)}M</b>
+        </div>
+        <div>
+          <small>Customers</small>
+          <b>{customers}</b>
+        </div>
+      </div>
+      <div className={`dd-in${on(6)}`}>
+        <div className="sp-title">Quick actions</div>
+        <div className="sp-actions">
+          {ACTIONS.map((a) => (
+            <span key={a} className={a === "Orders" && beat >= 7 ? "dd-tap" : undefined}>
+              {a}
+            </span>
+          ))}
+        </div>
+      </div>
+    </PhoneFrame>
   );
 }
