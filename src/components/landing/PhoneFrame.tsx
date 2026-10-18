@@ -1,17 +1,12 @@
-import { useLayoutEffect, useRef, useState, type ReactNode, type Ref } from "react";
+import type { ReactNode, Ref } from "react";
 
 /** The iPhone the landing demos play in: thin frame, Dynamic Island, status
  *  bar, home indicator. Styled by the .iph* rules in routes/index.tsx. */
 
-// iPhone 17 Pro Max: a 1320 x 2868 px screen, i.e. 440 x 956 points -- the
-// canvas iOS apps are laid out on. Every demo is designed on exactly this
-// screen, whatever it shows; the whole phone is then scaled to fit.
-export const SCREEN_W = 440;
-export const SCREEN_H = 956;
-const BEZEL = 6;
-const PHONE_W = SCREEN_W + BEZEL * 2;
-const PHONE_H = SCREEN_H + BEZEL * 2;
-
+// Shaped like an iPhone 17 Pro Max (440 x 956 pt screen), with content at
+// its normal size. The phone is shortened to fit the window under the header
+// (CSS max-height), so the bottom of a long demo may be cut off -- by design:
+// one look shows the demo, and the content stays readable.
 export function PhoneFrame({
   ref,
   label,
@@ -21,52 +16,9 @@ export function PhoneFrame({
   label: string;
   children: ReactNode;
 }) {
-  const outer = useRef<HTMLDivElement | null>(null);
-  const [scale, setScale] = useState<number | null>(null);
-
-  useLayoutEffect(() => {
-    const el = outer.current;
-    if (!el) return;
-    const measure = () => {
-      const byWidth = el.clientWidth / PHONE_W;
-      // The whole phone fits under the fixed header, on any screen: one look
-      // shows the whole demo, no scrolling. Header plus a little air.
-      const room = window.innerHeight - (window.innerWidth > 800 ? 140 : 120);
-      const byHeight = room / PHONE_H;
-      setScale(Math.min(1, byWidth, byHeight));
-    };
-    measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(el);
-    window.addEventListener("resize", measure);
-    return () => {
-      ro.disconnect();
-      window.removeEventListener("resize", measure);
-    };
-  }, []);
-
-  const setRefs = (node: HTMLDivElement | null) => {
-    outer.current = node;
-    if (typeof ref === "function") ref(node);
-    else if (ref) (ref as { current: HTMLDivElement | null }).current = node;
-  };
-
   return (
-    <div
-      ref={setRefs}
-      className="iph-fit"
-      aria-label={label}
-      style={{ height: scale === null ? undefined : PHONE_H * scale }}
-    >
-      <div
-        className="iph"
-        style={{
-          width: PHONE_W,
-          height: PHONE_H,
-          transform: scale === null ? undefined : `scale(${scale})`,
-          visibility: scale === null ? "hidden" : undefined,
-        }}
-      >
+    <div ref={ref} className="iph-fit" aria-label={label}>
+      <div className="iph">
         <div className="iph-screen" aria-hidden="true">
           <div className="iph-status">
             <span className="iph-time">9:41</span>
