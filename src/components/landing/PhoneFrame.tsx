@@ -29,9 +29,10 @@ export function PhoneFrame({
     if (!el) return;
     const measure = () => {
       const byWidth = el.clientWidth / PHONE_W;
-      // On desktop the whole phone fits under the fixed header, no scrolling.
-      const byHeight =
-        window.innerWidth > 800 ? (window.innerHeight - 140) / PHONE_H : Number.POSITIVE_INFINITY;
+      // The whole phone fits under the fixed header, on any screen: one look
+      // shows the whole demo, no scrolling. Header plus a little air.
+      const room = window.innerHeight - (window.innerWidth > 800 ? 140 : 120);
+      const byHeight = room / PHONE_H;
       setScale(Math.min(1, byWidth, byHeight));
     };
     measure();
