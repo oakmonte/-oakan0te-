@@ -161,7 +161,6 @@ export function PricingSheet({
           </p>
         </div>
 
-
         {/* Always shown, whichever way the toggle is: the customer's number is
             the one a seller most wants to check. With fees passed on it's the
             price plus fees; without, it's simply the price itself. */}
