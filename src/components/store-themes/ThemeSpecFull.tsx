@@ -209,58 +209,67 @@ export function ThemeSpecFull({
           ink={spec.ink}
           editing={editing}
         />
+        {/* The banner runs edge to edge on a wide storefront; everything below
+            it sits in a centred column up to 1240px (@3xl). */}
         <HeroSlideshow
           images={editing?.slideshowImages ?? HERO_SLIDESHOW_IMAGES}
           ink={spec.ink}
           editing={editing}
         />
 
-        <div className={`px-4 pt-6 ${spec.heroAlign === "center" ? "text-center" : ""}`}>
-          <ThemeText
-            editing={editing}
-            field="hero1"
-            defaultValue={spec.copy.eyebrow}
-            as="p"
-            className="text-[11px] font-semibold uppercase tracking-[0.25em]"
-            style={{ color: accentInk, fontFamily: bodyFamily }}
-          />
-          <ThemeText
-            editing={editing}
-            field="hero2"
-            defaultValue={brandName}
-            as="h2"
-            className={`mt-1.5 leading-[0.9] ${spec.heroUppercase ? "uppercase" : ""}`}
-            style={{
-              fontSize: spec.heroSize,
-              fontFamily: headingFamily,
-              letterSpacing: "-0.02em",
-            }}
-          />
-          {spec.rule && (
-            <div
-              className={`mt-3 h-px w-14 ${spec.heroAlign === "center" ? "mx-auto" : ""}`}
-              style={{ background: alpha(spec.accent, 0.7) }}
+        <div className="@3xl:mx-auto @3xl:max-w-[1240px]">
+          <div
+            className={`px-4 pt-6 @3xl:px-8 @3xl:pt-14 ${spec.heroAlign === "center" ? "text-center" : ""}`}
+          >
+            <ThemeText
+              editing={editing}
+              field="hero1"
+              defaultValue={spec.copy.eyebrow}
+              as="p"
+              className="text-[11px] font-semibold uppercase tracking-[0.25em] @3xl:text-[13px]"
+              style={{ color: accentInk, fontFamily: bodyFamily }}
             />
-          )}
-          <ThemeText
+            <ThemeText
+              editing={editing}
+              field="hero2"
+              defaultValue={brandName}
+              as="h2"
+              // --hs scales the theme's own heroSize on a wide screen, so each
+              // theme keeps its ratio (a 36px theme stays smaller than a 60px
+              // one) instead of every title being set to one desktop size.
+              className={`mt-1.5 leading-[0.9] @3xl:mt-3 @3xl:[--hs:1.7] ${spec.heroUppercase ? "uppercase" : ""}`}
+              style={{
+                fontSize: `calc(${spec.heroSize}px * var(--hs, 1))`,
+                fontFamily: headingFamily,
+                letterSpacing: "-0.02em",
+              }}
+            />
+            {spec.rule && (
+              <div
+                className={`mt-3 h-px w-14 ${spec.heroAlign === "center" ? "mx-auto" : ""}`}
+                style={{ background: alpha(spec.accent, 0.7) }}
+              />
+            )}
+            <ThemeText
+              editing={editing}
+              field="hero3"
+              defaultValue={spec.copy.sub}
+              as="p"
+              className={`mt-2.5 max-w-[240px] text-[13px] leading-[1.4] @3xl:mt-4 @3xl:max-w-[560px] @3xl:text-[18px] ${
+                spec.heroAlign === "center" ? "mx-auto" : ""
+              }`}
+              style={{ color: muted, fontFamily: bodyFamily }}
+            />
+          </div>
+
+          <LayoutBlocks
             editing={editing}
-            field="hero3"
-            defaultValue={spec.copy.sub}
-            as="p"
-            className={`mt-2.5 max-w-[240px] text-[13px] leading-[1.4] ${
-              spec.heroAlign === "center" ? "mx-auto" : ""
-            }`}
-            style={{ color: muted, fontFamily: bodyFamily }}
+            blocks={blocks}
+            storeId={storeId}
+            bg={spec.bg}
+            brandName={brandName}
           />
         </div>
-
-        <LayoutBlocks
-          editing={editing}
-          blocks={blocks}
-          storeId={storeId}
-          bg={spec.bg}
-          brandName={brandName}
-        />
       </div>
     </div>
   );

@@ -53,7 +53,10 @@ export type FeedScope =
   | { type: "user"; userId: string; status: "published" | "draft" }
   /** One account's published posts as a feed rather than a profile viewer:
    *  the storefront's Home tab. */
-  | { type: "author"; userId: string };
+  | { type: "author"; userId: string }
+  /** The published posts that link one product: a storefront tile's
+   *  "See related content". */
+  | { type: "product"; productId: string };
 
 export type TaggedProduct = {
   id: string;
@@ -108,6 +111,7 @@ function scopeKey(scope: FeedScope): string {
   if (scope.type === "for-you") return "for-you";
   if (scope.type === "following") return `following:${scope.viewerId}`;
   if (scope.type === "author") return `author:${scope.userId}`;
+  if (scope.type === "product") return `product:${scope.productId}`;
   return `user:${scope.userId}:${scope.status}`;
 }
 
@@ -167,7 +171,15 @@ async function fetchFeed(scope: FeedScope, viewerId: string | null): Promise<Fee
     )
     .order("created_at", { ascending: false });
 
-  if (scope.type === "user") {
+  if (scope.type === "product") {
+    const { data: tagged } = await supabase
+      .from("post_product_tags")
+      .select("post_id")
+      .eq("product_id", scope.productId);
+    const taggedIds = (tagged ?? []).map((r) => r.post_id);
+    if (taggedIds.length === 0) return [];
+    query = query.in("id", taggedIds).eq("status", "published").limit(FEED_LIMIT);
+  } else if (scope.type === "user") {
     // No limit for a single profile's grid — PostsGrid renders every post it
     // finds, and capping here meant tapping anything past the cap scrolled to
     // a post that wasn't in the feed and silently landed on the first one.
@@ -515,7 +527,9 @@ export function PostFeed({
             ? "Follow people to see their posts here."
             : scope.type === "author"
               ? "No posted content yet."
-              : "Nothing to show yet."}
+              : scope.type === "product"
+                ? "No videos link this product yet."
+                : "Nothing to show yet."}
         </p>
       </div>
     );
@@ -547,7 +561,7 @@ export function PostFeed({
                 post={post}
                 viewerId={viewerId}
                 isProfileViewer={scope.type === "user"}
-                storefront={scope.type === "author"}
+                storefront={scope.type === "author" || scope.type === "product"}
                 storePicture={storePicture ?? null}
                 overNav={mode === "embedded"}
                 asStore={asStore}

@@ -35,6 +35,7 @@ import { SalesLockedNotice } from "./SalesLockedNotice";
 import { LiveStorefrontContext } from "./live-storefront";
 import { CollectionPage } from "./CollectionPage";
 import { ProductPage } from "./ProductPage";
+import { useProductTileMenu } from "./ProductTileMenu";
 import { readStorefrontLook, type StorefrontLook } from "./storefront-look";
 import { readableTextColor } from "./colors";
 import { alpha, isDark } from "./theme-spec";
@@ -332,11 +333,16 @@ export function CatalogTile({
   editing,
   onTap,
   onOpen,
+  onMenu,
 }: {
   tile: PreviewTile;
   mode: "collections" | "products";
   /** Collections: opens the collection's own page (the glass button). */
   onOpen?: () => void;
+  /** Products: the glass button opens the tile menu (Add to cart / See related
+   *  content / Make offer), given the button's box so it can sit beside it.
+   *  Only the live storefront passes it; previews leave the button inert. */
+  onMenu?: (tile: PreviewTile, anchor: DOMRect) => void;
   textColor: string;
   mutedColor: string;
   tileBg: string;
@@ -359,6 +365,10 @@ export function CatalogTile({
   const jumpingRef = useRef(false);
   const primedRef = useRef(false);
   const settleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // The slide the strip last came to rest on (a slides[] index, so 1 is the
+  // first real photo). A gesture may move at most one slide from here: see the
+  // clamp in handleScroll.
+  const restRef = useRef(1);
 
   // [last, ...photos, first]. Swiping off either end lands on a slide showing
   // the identical picture, which is then silently re-pointed at the real one
@@ -392,6 +402,7 @@ export function CatalogTile({
     if (w === 0) return;
     const raw = Math.round(el.scrollLeft / w);
     const target = raw === 0 ? total : raw === total + 1 ? 1 : null;
+    restRef.current = target ?? raw;
     if (target === null) return;
     jumpingRef.current = true;
     el.scrollLeft = target * w;
@@ -405,6 +416,19 @@ export function CatalogTile({
     if (!el || jumpingRef.current) return;
     const w = el.clientWidth;
     if (w === 0) return;
+    // One photo per swipe, however hard the flick. scroll-snap-stop: always
+    // (on the slides) is meant to guarantee that, but iOS Safari lets momentum
+    // carry past it, so a fast swipe skipped photos. Hold the strip within one
+    // slide of where it came to rest; the clamp's own scroll event lands inside
+    // the window and does nothing further. restRef moves only when the strip
+    // settles (settleLoop), so the window is fixed for the whole gesture,
+    // momentum included, and it applies to a trackpad or wheel the same way.
+    if (loop) {
+      const min = (restRef.current - 1) * w;
+      const max = (restRef.current + 1) * w;
+      if (el.scrollLeft > max || el.scrollLeft < min)
+        el.scrollLeft = clamp(el.scrollLeft, min, max);
+    }
     const raw = Math.round(el.scrollLeft / w);
     const real = loop ? (raw - 1 + total) % total : clamp(raw, 0, total - 1);
     // Functional + equality-guarded: onScroll fires on nearly every frame of a
@@ -476,9 +500,12 @@ export function CatalogTile({
           <button
             type="button"
             aria-label={mode === "collections" ? `Open ${tile.title}` : `More about ${tile.title}`}
+            aria-haspopup={mode === "products" && onMenu ? "menu" : undefined}
             onClick={(e) => {
               e.stopPropagation();
-              onOpen?.();
+              if (mode === "products" && onMenu)
+                onMenu(tile, e.currentTarget.getBoundingClientRect());
+              else onOpen?.();
             }}
             className={`absolute bottom-2 right-2 flex h-[36px] w-[36px] items-center justify-center rounded-full text-white ${GLASS_RIM}`}
             style={glassClear}
@@ -490,11 +517,17 @@ export function CatalogTile({
 
       <div className="flex items-end justify-between gap-1.5">
         <button type="button" onClick={onTap} className="min-w-0 flex-1 text-left">
-          <p className="truncate text-[13px] font-medium" style={{ color: textColor }}>
+          <p
+            className="truncate text-[13px] font-medium @3xl:text-[15px]"
+            style={{ color: textColor }}
+          >
             {tile.title}
           </p>
           {mode === "products" && tile.price != null && (
-            <p className="flex items-baseline gap-1 text-[11px]" style={{ color: mutedColor }}>
+            <p
+              className="flex items-baseline gap-1 text-[11px] @3xl:text-[13px]"
+              style={{ color: mutedColor }}
+            >
               <span>₦{tile.price.toLocaleString()}</span>
               {tile.compareAtPrice != null && tile.compareAtPrice > tile.price && (
                 // No extra fade: the strikethrough already says "old price",
@@ -658,7 +691,10 @@ export function PhoneHeader({
 
   return (
     <>
-      <div className="flex items-start justify-between gap-3 px-4 py-3">
+      {/* @3xl:hidden -- on a wide live storefront the logo and icons move to
+          StorefrontNav's top bar. Only fires inside PublicStorefront's
+          @container; the editor's phone frame has none. */}
+      <div className="flex items-start justify-between gap-3 px-4 py-3 @3xl:hidden">
         <div className="min-w-0">
           {logoMode === "text" ? (
             textLogo
@@ -728,7 +764,7 @@ export function PhoneHeader({
         {lockedBanner}
       </div>
       {live && searchOpen && (
-        <div className="px-4 pb-3">
+        <div className="px-4 pb-3 @3xl:hidden">
           <div
             className="flex h-11 items-center gap-2 rounded-xl border px-3"
             style={{ borderColor: mutedColor, color: ink ?? "#fff" }}
@@ -893,7 +929,11 @@ function HeroSlideshowInner({
     <div className="relative w-full">
       <div
         ref={cropBoxRef}
-        className="relative w-full overflow-hidden"
+        // @3xl: a wide, short banner (2:1, never taller than 640px or 72% of the screen) instead of
+        // the phone's tall 4:5 frame, which at laptop width would be a page
+        // tall. The trailing ! beats the seller's inline aspect-ratio; photos
+        // are object-cover, so they re-crop into it.
+        className="relative w-full overflow-hidden @3xl:aspect-[2/1]! @3xl:max-h-[min(640px,72vh)]"
         style={{ aspectRatio: activeRatio }}
       >
         <div
@@ -926,14 +966,23 @@ function HeroSlideshowInner({
           </button>
         )}
 
-        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-1 px-6 text-center [text-shadow:0_2px_10px_rgba(0,0,0,0.6)]">
+        {/* @3xl: headline bottom-left over a soft scrim and much larger, the
+            way a shop's banner reads on a laptop. The scrim only exists when
+            the seller has written something to sit on it. */}
+        <div
+          className={`pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-1 px-6 text-center [text-shadow:0_2px_10px_rgba(0,0,0,0.6)] @3xl:items-start @3xl:justify-end @3xl:gap-2 @3xl:px-12 @3xl:pb-12 @3xl:text-left ${
+            editing?.text?.overlayLine1 || editing?.text?.overlayLine2
+              ? "@3xl:bg-gradient-to-t @3xl:from-black/45 @3xl:via-transparent @3xl:to-transparent"
+              : ""
+          }`}
+        >
           <div className="pointer-events-auto w-full">
             <ThemeText
               editing={editing}
               field="overlayLine1"
               placeholder={isEditing ? "Add a headline" : undefined}
               as="p"
-              className="text-[30px] font-display uppercase leading-[0.9] text-white"
+              className="text-[30px] font-display uppercase leading-[0.9] text-white @3xl:max-w-[760px] @3xl:text-[64px]"
             />
           </div>
           <div className="pointer-events-auto w-full">
@@ -942,7 +991,7 @@ function HeroSlideshowInner({
               field="overlayLine2"
               placeholder={isEditing ? "Add a tagline" : undefined}
               as="p"
-              className="text-[13px] font-medium text-white/85"
+              className="text-[13px] font-medium text-white/85 @3xl:text-[19px]"
             />
           </div>
         </div>
@@ -1269,7 +1318,15 @@ export function CollectionsGrid({
       look: readStorefrontLook(rootRef.current, { textColor, mutedColor, tileBg, accent }),
     });
   }
-  const gridClass = `mt-2.5 grid gap-1.5 ${columns === 1 ? "grid-cols-1" : "grid-cols-2"}`;
+  // The "..." menu on every product tile (grid and collection page alike).
+  const tileMenu = useProductTileMenu((t) => openProduct(t));
+  // The seller's phone column count (1 or 2) still decides how dense the grid
+  // is on a wide screen: 3 then 4 across, or 2 then 3 for the big-tile choice.
+  const gridClass = `mt-2.5 grid gap-1.5 @3xl:mt-5 @3xl:gap-4 ${
+    columns === 1
+      ? "grid-cols-1 @3xl:grid-cols-2 @5xl:grid-cols-3"
+      : "grid-cols-2 @3xl:grid-cols-3 @5xl:grid-cols-4"
+  }`;
 
   function handleTileTap() {
     if (editing?.isEditing) editing.onTileTapBlocked();
@@ -1297,7 +1354,7 @@ export function CollectionsGrid({
         data-storefront-section={title.toLowerCase()}
         className="flex items-center justify-between gap-2"
       >
-        <span className="text-[15px] font-semibold" style={{ color: textColor }}>
+        <span className="text-[15px] font-semibold @3xl:text-[24px]" style={{ color: textColor }}>
           {title}
         </span>
         {showToggle && editing ? (
@@ -1330,7 +1387,7 @@ export function CollectionsGrid({
       ) : null;
     }
     return (
-      <div key={kind} className="mt-5 px-4">
+      <div key={kind} className="mt-5 px-4 @3xl:mt-14 @3xl:px-8">
         {header(kind === "collections" ? "Collections" : "Products")}
         <div className={gridClass}>
           {tiles.map((tile) => (
@@ -1345,6 +1402,7 @@ export function CollectionsGrid({
               editing={editing}
               onTap={kind === "collections" ? () => openCollection(tile) : () => openProduct(tile)}
               onOpen={kind === "collections" ? () => openCollection(tile) : undefined}
+              onMenu={live ? tileMenu.open : undefined}
             />
           ))}
         </div>
@@ -1371,6 +1429,7 @@ export function CollectionsGrid({
                 tileBg={opened.look.tileBg}
                 accent={opened.look.accent}
                 onTap={() => openProduct(tile)}
+                onMenu={live ? tileMenu.open : undefined}
               />
             )}
           />
@@ -1384,13 +1443,14 @@ export function CollectionsGrid({
           />
         )}
         {salesLocked && <SalesLockedNotice onClose={() => setSalesLocked(false)} />}
+        {tileMenu.element}
       </div>
     );
   }
 
   return (
     <>
-      <div className="mt-5 px-4">
+      <div className="mt-5 px-4 @3xl:mt-14 @3xl:px-8">
         {header("Collections")}
         <div className={gridClass}>
           {fallbackItems.map((it, i) => (
@@ -1417,7 +1477,7 @@ export function CollectionsGrid({
           ))}
         </div>
       </div>
-      <div className="mt-5 px-4">
+      <div className="mt-5 px-4 @3xl:mt-14 @3xl:px-8">
         {header("Products")}
         <div className={gridClass}>
           {/* One photo, so no dots and no variant counter — but the glass
@@ -1501,7 +1561,7 @@ export function PromoBanner({
 
   return (
     <div
-      className="relative mx-4 mt-5 rounded-2xl p-3.5"
+      className="relative mx-4 mt-5 rounded-2xl p-3.5 @3xl:mx-8 @3xl:mt-10 @3xl:p-6"
       style={{ background: cardBg, border: `1px solid ${accent}55` }}
     >
       {editing?.isEditing && (
@@ -1704,7 +1764,10 @@ function StoreFooter({
   const muted = dark ? "rgba(255,255,255,0.6)" : "rgba(17,17,17,0.55)";
   const line = dark ? "rgba(255,255,255,0.12)" : "rgba(17,17,17,0.1)";
   return (
-    <footer className="mx-5 mt-10 border-t pb-12 pt-10" style={{ borderColor: line }}>
+    <footer
+      className="mx-5 mt-10 border-t pb-12 pt-10 @3xl:mx-8 @3xl:mt-24 @3xl:pt-14"
+      style={{ borderColor: line }}
+    >
       <p
         className="text-[22px] font-bold uppercase leading-tight tracking-tight"
         style={{ color: ink }}
