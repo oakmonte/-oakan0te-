@@ -9,8 +9,10 @@ import { Check, MapPin, Package, Truck } from "lucide-react";
  *  delivery (payouts.server.ts: 95.5% of the items total). Sample order.
  *  Plays only while on screen; reduced motion shows the last frame. */
 
-const BEATS = [200, 980, 1500, 2140, 2990, 4030, 5070, 5850];
-const LOOP_MS = 8100;
+// Overlapping on purpose: the route draws while the booking settles, the
+// rider sets off as it finishes, and the payout lands as the rider arrives.
+const BEATS = [300, 1100, 1450, 1750, 2300, 3300, 4900, 5250];
+const LOOP_MS = 8800;
 const LAST = BEATS.length;
 
 const STEPS = [
@@ -134,7 +136,7 @@ function Rider() {
   }, []);
   return (
     <circle r="7" className="dl-rider">
-      <animateMotion ref={anim} begin="indefinite" dur="2.1s" fill="freeze">
+      <animateMotion ref={anim} begin="indefinite" dur="2.6s" fill="freeze">
         <mpath href="#dl-route" />
       </animateMotion>
     </circle>
