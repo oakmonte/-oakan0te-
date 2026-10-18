@@ -5,3 +5,8 @@
 /** The Wardrobe tab on profiles (shown as "Gallery" on Artist stores), backed
  *  by `store_pieces` and /create/store-piece. */
 export const WARDROBE_ENABLED = false;
+
+/** "Save for offline" in a post's share sheet and the /offline-videos page
+ *  behind it (lib/offline-videos.ts). Parked: storefront buyers get "Save
+ *  video" (watermarked, to their gallery) instead. */
+export const OFFLINE_VIDEOS_ENABLED = false;

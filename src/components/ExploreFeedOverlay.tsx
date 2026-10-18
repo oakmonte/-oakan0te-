@@ -169,7 +169,14 @@ export function ExploreFeedOverlay({
  *  half of the post viewer's link-products rail. Swiping here from For you is
  *  how a post becomes shoppable, so this list is only ever about ONE post: the
  *  one that was filling the screen when you swiped away from it. */
-export function ListedItemsPage({ items }: { items: TaggedProduct[] }) {
+export function ListedItemsPage({
+  items,
+  onOpen,
+}: {
+  items: TaggedProduct[];
+  /** Tapping a row anywhere but its buttons opens that product. */
+  onOpen?: (item: TaggedProduct) => void;
+}) {
   const [salesLocked, setSalesLocked] = useState(false);
   const navigate = useNavigate();
   const { user } = useSession();
@@ -204,7 +211,10 @@ export function ListedItemsPage({ items }: { items: TaggedProduct[] }) {
               ease: [0.23, 1, 0.32, 1],
               delay: Math.min(i, 8) * 0.04,
             }}
-            className="flex gap-3 px-3 py-3"
+            onClick={onOpen ? () => onOpen(item) : undefined}
+            role={onOpen ? "button" : undefined}
+            aria-label={onOpen ? `Open ${item.title}` : undefined}
+            className={`flex gap-3 px-3 py-3 ${onOpen ? "cursor-pointer active:bg-white/[0.04]" : ""}`}
           >
             <div className="relative h-[124px] w-[124px] shrink-0 overflow-hidden rounded-[10px] bg-white">
               {item.image ? (
@@ -231,7 +241,8 @@ export function ListedItemsPage({ items }: { items: TaggedProduct[] }) {
                   {item.title}
                 </p>
               </div>
-              <div className="flex items-center gap-1.5">
+              {/* The buttons act on their own; a tap on them isn't a tap on the row. */}
+              <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
                 <button
                   type="button"
                   onClick={() =>

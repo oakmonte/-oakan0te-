@@ -43,6 +43,9 @@ export function surfaceForPathname(pathname: string): Surface {
   // Personal profiles too (not /store-profile/*, the public storefront, which
   // paints its own theme colours).
   if (pathname.startsWith("/profile/")) return "social";
+  // Offline videos is opened from the profile menu and is written in the same
+  // chat-* tokens, so it follows the phone too.
+  if (pathname === "/offline-videos") return "social";
   // A buyer's orders: the list and one order's page (written in chat-*
   // tokens). Exact "/orders", and "/order/" with its slash, so neither
   // sweeps in a future route that merely shares the letters.
