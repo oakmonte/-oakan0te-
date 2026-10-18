@@ -1,7 +1,8 @@
 // "Save video" from a storefront post: the video, re-encoded on the phone with
 // an Oakmonte watermark (wordmark + the store's name under it), handed to the
-// phone's own save flow. TikTok-style: the mark sits top-left for the first
-// half and bottom-right for the second, so cropping one corner doesn't remove it.
+// phone's own save flow. TikTok-style: small, on the left a little below the
+// middle for the first half, then on the right lower down, so cropping one
+// side doesn't remove it.
 //
 // Websites can't write to the gallery directly. iPhone: the share sheet's
 // "Save Video" puts it in Photos. Android: the share sheet, or a download the
@@ -30,11 +31,11 @@ function drawMark(
   h: number,
   logo: ImageBitmap | null,
   storeName: string,
-  corner: "top-left" | "bottom-right",
+  side: "left" | "right",
 ) {
   const unit = Math.min(w, h);
-  const word = Math.round(unit * 0.052);
-  const sub = Math.round(unit * 0.034);
+  const word = Math.round(unit * 0.036);
+  const sub = Math.round(unit * 0.025);
   const pad = Math.round(unit * 0.045);
   const logoH = Math.round(word * 1.25);
   const logoW = logo ? Math.round((logo.width / logo.height) * logoH) : 0;
@@ -47,8 +48,8 @@ function drawMark(
   const blockW = Math.max(logoW + wordW, subW);
   const blockH = logoH + sub * 1.4;
 
-  const x = corner === "top-left" ? pad : w - pad - blockW;
-  const y = corner === "top-left" ? pad * 1.6 : h - pad * 2.2 - blockH;
+  const x = side === "left" ? pad : w - pad - blockW;
+  const y = Math.round(h * (side === "left" ? 0.6 : 0.72)) - blockH / 2;
 
   ctx.globalAlpha = 0.9;
   ctx.shadowColor = "rgba(0,0,0,0.45)";
@@ -107,8 +108,8 @@ export async function watermarkVideo(
         }
         if (!ctx) return sample;
         sample.drawWithFit(ctx, { fit: "fill" });
-        const corner = sample.timestamp < duration / 2 ? "top-left" : "bottom-right";
-        drawMark(ctx, w, h, logo, storeName, corner);
+        const side = sample.timestamp < duration / 2 ? "left" : "right";
+        drawMark(ctx, w, h, logo, storeName, side);
         return canvas;
       },
     },

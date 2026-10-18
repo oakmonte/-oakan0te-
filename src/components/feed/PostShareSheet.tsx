@@ -336,7 +336,7 @@ function SaveVideoRow({
           icon={Loader2}
           iconClassName="animate-spin"
           label={`Preparing video… ${Math.round(state.fraction * 100)}%`}
-          sub="Adding the Oakmonte mark"
+          sub="Saving to gallery"
         />
       );
     case "ready":
