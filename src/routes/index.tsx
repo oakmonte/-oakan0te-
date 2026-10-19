@@ -823,6 +823,10 @@ const CSS = `
 .oak-sellers .sp-tiles div{border:1px solid #eaecf0;border-radius:18px;padding:12px}
 .oak-sellers .sp-tiles small{display:block;font-size:11px;font-weight:500;color:#667085}
 .oak-sellers .sp-tiles b{display:block;margin-top:6px;font-size:18px;font-weight:700;letter-spacing:-.02em}
+.oak-sellers .sp-nav{position:absolute;left:50%;bottom:22px;z-index:2;display:flex;align-items:center;width:270px;height:52px;margin-left:-135px;padding:4px;border-radius:999px}
+.oak-sellers .sp-nav-lens{position:absolute;top:4px;left:4px;width:52px;height:44px;border-radius:999px}
+.oak-sellers .sp-nav img{position:relative;flex:1;width:22px;height:22px;object-fit:contain;filter:brightness(0);opacity:.55}
+.oak-sellers .sp-nav img.is-on{opacity:1;transform:scale(1.15) translateY(-1px)}
 .oak-sellers .sp-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .oak-sellers .sp-actions span{display:grid;place-items:center;min-height:52px;padding:6px;border:1px solid #eaecf0;border-radius:16px;font-size:10.5px;font-weight:600;text-align:center;line-height:1.25}
 .oak-sellers .dd-in{opacity:0;transform:translateY(12px);transition:opacity 550ms var(--ease-out),transform 550ms var(--ease-out)}
