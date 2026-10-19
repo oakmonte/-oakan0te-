@@ -64,9 +64,13 @@ export function WheelField({
 
   return (
     <div
-      onPointerDown={engage}
-      onWheel={engage}
-      onKeyDown={engage}
+      // Capture phase, and touch as well as pointer: the picker cancels its
+      // own touch events, so listen before it gets them.
+      onPointerDownCapture={engage}
+      onTouchStartCapture={engage}
+      onMouseDownCapture={engage}
+      onWheelCapture={engage}
+      onKeyDownCapture={engage}
       className={`${WHEEL_WIDTH_CLASS} transition-opacity duration-300 ${engaged ? "opacity-100" : "opacity-50"}`}
     >
       <WheelPickerWrapper className="h-[168px] rounded-2xl border border-brand-text/15">

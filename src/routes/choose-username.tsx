@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { getDisplayNameFromUser } from "@/lib/auth";
 import { readIntent, type Intent } from "@/lib/onboarding-state";
@@ -77,6 +77,7 @@ function ChooseUsernamePage() {
   const [intent, setIntentState] = useState<Intent | null>(null);
   usePrefetchNextStep(intent, "/choose-username");
   const [availability, setAvailability] = useState<Availability>("idle");
+  const dobRef = useRef<HTMLDivElement | null>(null);
 
   const thisYear = new Date().getFullYear();
   // 31 on a 30-day month would be an impossible date, so the day wheel's range
@@ -181,7 +182,10 @@ function ChooseUsernamePage() {
     }
 
     if (!dobEngaged) {
-      setError("Scroll to your date of birth.");
+      // The wheel can sit below the fold with the keyboard up, so bring it to
+      // the middle of the screen rather than leave Continue looking dead.
+      setError("Scroll the wheel to your date of birth.");
+      dobRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
     const dob = `${dobYear}-${pad(dobMonth)}-${pad(dayShown)}`;
@@ -365,38 +369,43 @@ function ChooseUsernamePage() {
           <span className="h-px flex-1 bg-brand-text/15" />
         </div>
 
-        <WheelField
-          engaged={dobEngaged}
-          onEngage={() => {
-            setDobDay(dayShown);
-            setDobEngaged(true);
-          }}
-          columns={[
-            {
-              min: 1,
-              max: dayCount,
-              value: dayShown,
-              onChange: setDobDay,
-            },
-            {
-              min: 1,
-              max: 12,
-              labels: MONTHS,
-              value: dobMonth,
-              onChange: setDobMonth,
-            },
-            {
-              min: MIN_YEAR,
-              max: thisYear,
-              value: dobYear,
-              onChange: setDobYear,
-            },
-          ]}
-        />
+        <div ref={dobRef}>
+          <WheelField
+            engaged={dobEngaged}
+            onEngage={() => {
+              setDobDay(dayShown);
+              setDobEngaged(true);
+            }}
+            columns={[
+              {
+                min: 1,
+                max: dayCount,
+                value: dayShown,
+                onChange: setDobDay,
+              },
+              {
+                min: 1,
+                max: 12,
+                labels: MONTHS,
+                value: dobMonth,
+                onChange: setDobMonth,
+              },
+              {
+                min: MIN_YEAR,
+                max: thisYear,
+                value: dobYear,
+                onChange: setDobYear,
+              },
+            ]}
+          />
+        </div>
         <p className="text-center text-[11px] text-brand-text/50">
           Only used to confirm your age. It&rsquo;s never shown on your profile.
         </p>
 
+        {/* Above the button: below it, the message landed under the iPad's
+            browser toolbar and Continue read as doing nothing. */}
+        <FormError>{error}</FormError>
         <button
           type="submit"
           disabled={
@@ -410,7 +419,6 @@ function ChooseUsernamePage() {
         >
           {loading ? "Saving…" : "Continue"}
         </button>
-        <FormError>{error}</FormError>
       </form>
     </OnboardingShell>
   );
