@@ -96,6 +96,11 @@ const FEATURES = [
     title: "The operations, handled.",
     copy: "Delivery, tracked riders, website hosting — we absorb the pain points so you can focus on the product. Need a manufacturer too? We can connect you with one.",
   },
+  {
+    number: "05",
+    title: "Post intuitive content on your website.",
+    copy: "Your website has a feed section your customers can scroll endlessly, buying the products linked to each piece of content as they go.",
+  },
 ];
 
 // The same honest, verifiable facts routes/index.tsx already stands behind
@@ -415,7 +420,7 @@ function SellersLanding() {
             <br />
             <em>does for you.</em>
           </h2>
-          <p>Four concrete reasons sellers pick Oakmonte over building alone.</p>
+          <p>Five concrete reasons sellers pick Oakmonte over building alone.</p>
         </Reveal>
         <Reveal delay={1} className="feature-list">
           {FEATURES.map((feature, index) => {
