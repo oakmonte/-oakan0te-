@@ -115,6 +115,10 @@ const INCLUDED = [
   "Personal, customizable storefront",
   "30+ premium store templates",
   "Unlimited products and collections",
+  "Unlimited content posting",
+  "Unlimited in-web messaging",
+  "Automatic deliveries",
+  "Delivery tracking",
   "Escrow-protected payments on every sale",
   "Seller Studio — orders, products, customers, signals",
   "Growth insights and analytics",
@@ -756,7 +760,7 @@ const CSS = `
 .oak-sellers .manifesto p{max-width:430px;margin-left:40%;color:#c4cad5;line-height:1.6}
 .oak-sellers .manifesto .manifesto-typed{margin-top:110px}
 .oak-sellers .manifesto .manifesto-typed.manifesto-centre{margin:0 auto;max-width:560px;text-align:center;font-size:clamp(18px,2vw,24px)}
-.oak-sellers .manifesto .manifesto-title{margin:0 0 48px;text-align:center}
+.oak-sellers .manifesto .manifesto-title{margin:0 0 48px;text-align:center;word-spacing:.18em}
 .oak-sellers .manifesto .manifesto-credit{margin:28px auto 0;text-align:center;color:#7ba2ff;font-size:15px}
 .oak-sellers .typed{position:relative}
 .oak-sellers .typed-ghost{visibility:hidden}
