@@ -511,7 +511,7 @@ function SellersLanding() {
         </Reveal> */}
         <DashboardDemo />
         <Reveal delay={1} className="studio-copy">
-          <div className="section-kicker">02 / Seller Studio</div>
+          {/* <div className="section-kicker">02 / Seller Studio</div> */}
           <h2>
             Run the shop.
             <br />
@@ -529,7 +529,7 @@ function SellersLanding() {
 
       <section className="studio-section demo-flip">
         <Reveal className="studio-copy">
-          <div className="section-kicker">03 / Deliveries</div>
+          {/* <div className="section-kicker">03 / Deliveries</div> */}
           <h2>
             Orders ship.
             <br />
@@ -546,7 +546,7 @@ function SellersLanding() {
       <section className="studio-section">
         <MessagingDemo />
         <Reveal delay={1} className="studio-copy">
-          <div className="section-kicker">04 / Messaging</div>
+          {/* <div className="section-kicker">04 / Messaging</div> */}
           <h2>
             Talk to buyers.
             <br />
@@ -561,7 +561,7 @@ function SellersLanding() {
 
       <section className="manufacturer-section" id="manufacturers">
         <Reveal>
-          <div className="section-kicker">03 / Oakmonte Manufacturers</div>
+          {/* <div className="section-kicker">03 / Oakmonte Manufacturers</div> */}
           <h2>
             Make the thing
             <br />
@@ -593,7 +593,7 @@ function SellersLanding() {
       </section>
 
       <section className="stats-section">
-        <Reveal className="section-kicker">The Oakmonte signal</Reveal>
+        {/* <Reveal className="section-kicker">The Oakmonte signal</Reveal> */}
         <div className="stats-grid">
           {STATS.map((stat, index) => (
             <Reveal key={stat.label} delay={(index % 4) as 0 | 1 | 2 | 3}>
@@ -632,7 +632,7 @@ function SellersLanding() {
 
       <footer className="site-footer">
         <Reveal className="footer-cta">
-          <div className="section-kicker">For the particular</div>
+          {/* <div className="section-kicker">For the particular</div> */}
           <h2>
             Your next
             <br />
@@ -907,6 +907,19 @@ const CSS = `
 .oak-sellers .ms-typed{display:block;color:#111827;line-height:1.35}
 .oak-sellers .ms-caret{display:inline-block;width:1.5px;height:17px;margin-left:1px;vertical-align:-3px;background:var(--accent-blue);animation:oakSellersCaret 1s steps(1) infinite}
 @keyframes oakSellersCaret{50%{opacity:0}}
+.oak-sellers .kb{flex:none;height:0;margin:0 -18px -30px;overflow:hidden;transition:height 320ms var(--ease-out)}
+.oak-sellers .kb.is-open{height:222px}
+.oak-sellers .kb-inner{height:222px;padding:9px 3px 0;background:#d2d5db;font-family:-apple-system,'SF Pro Text',Inter,system-ui,sans-serif}
+.oak-sellers .kb-row{display:flex;justify-content:center;gap:5px;margin-bottom:11px}
+.oak-sellers .kb-key{position:relative;display:grid;place-items:center;flex:none;width:28.9px;height:40px;border-radius:5px;background:#fff;box-shadow:0 1px 0 rgba(0,0,0,.3);color:#111827;font-size:19px;font-weight:400}
+.oak-sellers .kb-mod{width:40px;background:#abb0bc;font-size:16px}
+.oak-sellers .kb-row .kb-mod:first-child{margin-right:9px}
+.oak-sellers .kb-row .kb-mod:last-child{margin-left:9px}
+.oak-sellers .kb-wide{width:74px;font-size:14px}
+.oak-sellers .kb-row .kb-wide{margin:0}
+.oak-sellers .kb-space{flex:1;font-size:14px;color:#111827}
+.oak-sellers .kb-key.is-hit{z-index:1;transform:translateY(-8px) scale(1.3);box-shadow:0 4px 10px rgba(0,0,0,.22)}
+.oak-sellers .kb-space.is-hit,.oak-sellers .kb-wide.is-hit{transform:none;background:#e4e6ea}
 .oak-sellers .studio-card{border:1px solid #b7c9ed;background:#fff;box-shadow:0 30px 90px rgba(20,85,217,.12);animation:oakSellersFloatCard 5s ease-in-out infinite}
 .oak-sellers .studio-top{display:flex;align-items:center;padding:18px 22px;border-bottom:1px solid var(--border);font:11px 'DM Mono',monospace}
 .oak-sellers .studio-status{margin-left:auto;color:var(--primary);font-size:9px}
