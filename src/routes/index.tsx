@@ -364,7 +364,7 @@ function SellersLanding() {
             <br />
             <em>Till your eyes open.</em>
           </h2> */}
-          <h3 className="manifesto-title">Why we do this</h3>
+          <h2 className="manifesto-title">Why we do this</h2>
           <TypedText
             className="manifesto-typed manifesto-centre"
             lines={[
@@ -718,6 +718,10 @@ const CSS = `
 .oak-sellers .hero-orbit::after{content:'';position:absolute;width:10px;height:10px;border-radius:50%;background:var(--primary);right:12%;top:8%;box-shadow:0 0 0 8px rgba(20,85,217,.08),0 0 24px rgba(20,85,217,.4);animation:oakSellersPulseRing 3s ease-in-out infinite}
 .oak-sellers .orbit-one{width:780px;height:430px;right:-80px;top:160px}
 .oak-sellers .orbit-two{width:580px;height:260px;right:30px;top:245px;border-color:rgba(17,24,39,.13);animation-duration:17s;animation-direction:alternate-reverse}
+@media (min-width:801px){
+  .oak-sellers .orbit-one{width:1400px;height:770px;right:-260px;top:40px}
+  .oak-sellers .orbit-two{width:1040px;height:470px;right:-60px;top:190px}
+}
 .oak-sellers .hero-gap{display:block;height:14px}
 .oak-sellers .hero-copy{position:relative;z-index:1;max-width:740px;animation:oakSellersRise 1s ease both}
 .oak-sellers .section-kicker{color:var(--primary);text-transform:uppercase;letter-spacing:.06em;font:10px 'DM Mono',monospace}
@@ -752,7 +756,7 @@ const CSS = `
 .oak-sellers .manifesto p{max-width:430px;margin-left:40%;color:#c4cad5;line-height:1.6}
 .oak-sellers .manifesto .manifesto-typed{margin-top:110px}
 .oak-sellers .manifesto .manifesto-typed.manifesto-centre{margin:0 auto;max-width:560px;text-align:center;font-size:clamp(18px,2vw,24px)}
-.oak-sellers .manifesto .manifesto-title{margin:0 0 28px;text-align:center;font-size:clamp(24px,3vw,36px);font-weight:700;letter-spacing:-.02em;color:#fff}
+.oak-sellers .manifesto .manifesto-title{margin:0 0 48px;text-align:center}
 .oak-sellers .manifesto .manifesto-credit{margin:28px auto 0;text-align:center;color:#7ba2ff;font-size:15px}
 .oak-sellers .typed{position:relative}
 .oak-sellers .typed-ghost{visibility:hidden}
