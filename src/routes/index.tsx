@@ -342,7 +342,7 @@ function SellersLanding() {
         </div>
         <div className="hero-side-note">
           <strong>
-            THE tool
+            The tool
             <br />
             for
             <br />
@@ -565,7 +565,7 @@ function SellersLanding() {
             <em>Close the sale.</em>
           </h2>
           <p>
-            1. Buyers message you directly in your website.
+            1. Buyers message you <b>directly in your website.</b>
             <br />
             2. You negotiate or answer questions.
             <br />
