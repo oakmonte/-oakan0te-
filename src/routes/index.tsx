@@ -357,20 +357,20 @@ function SellersLanding() {
 
       <section className="manifesto" id="why">
         <Reveal>
-          {/* Just the quote for now. Kicker, typed line and sign hidden; restore when needed.
-          <div className="section-kicker">Oakmonte / A better way to begin</div> */}
+          {/* Just the typed quote, centred, for now. Kicker, headline and sign hidden; restore when needed.
+          <div className="section-kicker">Oakmonte / A better way to begin</div>
           <h2>
             Just another website provider.
             <br />
             <em>Till your eyes open.</em>
-          </h2>
-          {/* <TypedText
-            className="manifesto-typed"
+          </h2> */}
+          <TypedText
+            className="manifesto-typed manifesto-centre"
             lines={[
               "We believe some realities of starting a brand kills creativity.",
               "We absorb those headaches so you stay creative and focus on what matters.",
             ]}
-          /> */}
+          />
         </Reveal>
         {/* <Reveal delay={1} className="manifesto-sign">
           OAKMONTE
@@ -749,6 +749,7 @@ const CSS = `
 .oak-sellers .manifesto h2{margin:28px 0;font-size:clamp(56px,9vw,126px);line-height:.88;letter-spacing:-.1em;font-weight:600}
 .oak-sellers .manifesto p{max-width:430px;margin-left:40%;color:#c4cad5;line-height:1.6}
 .oak-sellers .manifesto .manifesto-typed{margin-top:110px}
+.oak-sellers .manifesto .manifesto-typed.manifesto-centre{margin:0 auto;max-width:560px;text-align:center;font-size:clamp(18px,2vw,24px)}
 .oak-sellers .typed{position:relative}
 .oak-sellers .typed-ghost{visibility:hidden}
 .oak-sellers .typed-live{position:absolute;inset:0}
@@ -961,6 +962,7 @@ const CSS = `
   .oak-sellers .manifesto{padding:100px 7vw}
   .oak-sellers .manifesto p{margin-left:0}
   .oak-sellers .manifesto .manifesto-typed{margin-top:70px}
+  .oak-sellers .manifesto .manifesto-typed.manifesto-centre{margin:0 auto}
   .oak-sellers .manifesto-sign{margin-top:70px}
   .oak-sellers .steps-section{padding:70px 7vw}
   .oak-sellers .features-section,.oak-sellers .studio-section,.oak-sellers .manufacturer-section{display:flex;flex-direction:column;gap:55px;padding:85px 7vw}
