@@ -883,7 +883,7 @@ const CSS = `
 .oak-sellers .ms-head b{display:block;font-size:16px;font-weight:600}
 .oak-sellers .ms-head small{display:block;font-size:12px;color:#12b76a}
 .oak-sellers .ms-avatar{display:grid;place-items:center;width:42px;height:42px;border-radius:999px;background:#fde7d4;color:#b54708;font-weight:700;font-size:16px}
-.oak-sellers .ms-thread{flex:1;display:flex;flex-direction:column;gap:12px;padding-top:4px}
+.oak-sellers .ms-thread{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;gap:12px;padding-top:4px}
 .oak-sellers .ms-row{display:flex}
 .oak-sellers .ms-me{justify-content:flex-end}
 .oak-sellers .ms-bubble{max-width:80%;margin:0;padding:11px 15px;border-radius:20px;font-size:14.5px;line-height:1.38}
@@ -902,7 +902,7 @@ const CSS = `
 .oak-sellers .ms-ticks{align-self:flex-end;font-size:11.5px;color:#98a2b3;transition:color 300ms ease}
 .oak-sellers .ms-ticks.is-read{color:var(--accent-blue)}
 .oak-sellers .ms-order{align-self:center;margin-top:8px;padding:9px 14px;border-radius:999px;background:#ecfdf3;color:#067647;font-size:13px;font-weight:600}
-.oak-sellers .ms-input{display:flex;align-items:center;height:48px;padding:0 16px;border-radius:999px;background:#f2f4f7;font-size:14.5px;color:#98a2b3}
+.oak-sellers .ms-input{flex:none;display:flex;align-items:center;height:48px;padding:0 16px;border-radius:999px;background:#f2f4f7;font-size:14.5px;color:#98a2b3}
 .oak-sellers .ms-input.is-typing{height:auto;min-height:48px;padding:12px 16px;border-radius:24px;background:#fff;box-shadow:inset 0 0 0 1.5px var(--accent-blue)}
 .oak-sellers .ms-typed{display:block;color:#111827;line-height:1.35}
 .oak-sellers .ms-caret{display:inline-block;width:1.5px;height:17px;margin-left:1px;vertical-align:-3px;background:var(--accent-blue);animation:oakSellersCaret 1s steps(1) infinite}
