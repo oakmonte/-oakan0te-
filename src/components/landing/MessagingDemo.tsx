@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, Package } from "lucide-react";
 import { PhoneFrame } from "./PhoneFrame";
 import { DemoNav, NAV_MESSAGES, NAV_STORE } from "./DemoNav";
+import { ACTIONS } from "./demo-data";
 
 /** Landing demo 3: in-app messaging from the seller's side, on a loop. It
  *  starts on the store home, the bottom bar slides to Messages, the seller
@@ -102,6 +103,22 @@ export function MessagingDemo() {
             <div>
               <small>Orders</small>
               <b>184</b>
+            </div>
+            <div>
+              <small>Net revenue</small>
+              <b>₦1.3M</b>
+            </div>
+            <div>
+              <small>Customers</small>
+              <b>126</b>
+            </div>
+          </div>
+          <div>
+            <div className="sp-title">Quick actions</div>
+            <div className="sp-actions">
+              {ACTIONS.map((a) => (
+                <span key={a}>{a}</span>
+              ))}
             </div>
           </div>
         </div>
