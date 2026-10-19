@@ -226,6 +226,22 @@ function Reveal({
 function SellersLanding() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [openFeature, setOpenFeature] = useState(0);
+  // Scrolling through the features opens each one as its title reaches the
+  // middle of the screen; a tap still opens or closes any of them.
+  useEffect(() => {
+    const triggers = document.querySelectorAll<HTMLElement>(".oak-sellers [data-feature]");
+    if (!triggers.length) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting) setOpenFeature(Number((e.target as HTMLElement).dataset.feature));
+        }
+      },
+      { rootMargin: "-40% 0px -50% 0px" },
+    );
+    triggers.forEach((t) => io.observe(t));
+    return () => io.disconnect();
+  }, []);
   const navigate = useNavigate();
   // The installed app is the product, never the sales pitch. iOS saves
   // whatever page Add to Home Screen was tapped on (it doesn't reliably honour
@@ -341,25 +357,26 @@ function SellersLanding() {
 
       <section className="manifesto" id="why">
         <Reveal>
-          <div className="section-kicker">Oakmonte / A better way to begin</div>
+          {/* Just the quote for now. Kicker, typed line and sign hidden; restore when needed.
+          <div className="section-kicker">Oakmonte / A better way to begin</div> */}
           <h2>
             Just another website provider.
             <br />
             <em>Till your eyes open.</em>
           </h2>
-          <TypedText
+          {/* <TypedText
             className="manifesto-typed"
             lines={[
               "We believe some realities of starting a brand kills creativity.",
               "We absorb those headaches so you stay creative and focus on what matters.",
             ]}
-          />
+          /> */}
         </Reveal>
-        <Reveal delay={1} className="manifesto-sign">
+        {/* <Reveal delay={1} className="manifesto-sign">
           OAKMONTE
           <br />
           <span>CREATED TO CREATE.</span>
-        </Reveal>
+        </Reveal> */}
       </section>
 
       {/* Steps: hidden for now. Restore when needed.
@@ -397,6 +414,7 @@ function SellersLanding() {
               <div className={isOpen ? "feature-row is-open" : "feature-row"} key={feature.number}>
                 <button
                   type="button"
+                  data-feature={index}
                   className="feature-trigger"
                   aria-expanded={isOpen}
                   onClick={() => setOpenFeature(isOpen ? -1 : index)}
