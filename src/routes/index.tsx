@@ -324,7 +324,7 @@ function SellersLanding() {
             <br />
             <em>creatives.</em>
           </strong>
-          <span>EST. 2026</span>
+          {/* <span>EST. 2026</span> */}
         </div>
       </section>
 
