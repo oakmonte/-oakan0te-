@@ -180,6 +180,10 @@ function ChooseUsernamePage() {
       setError(formatProblem);
       return;
     }
+    if (availability === "taken") {
+      setError("That handle is taken. Try another.");
+      return;
+    }
 
     if (!dobEngaged) {
       // The wheel can sit below the fold with the keyboard up, so bring it to
@@ -312,7 +316,7 @@ function ChooseUsernamePage() {
           <p
             id="username-hint"
             className={`text-[11px] px-2 text-left ${
-              availability === "taken" ? "text-red-500" : "text-brand-text/50"
+              problem || availability === "taken" ? "text-red-500" : "text-brand-text/50"
             }`}
           >
             {problem ??
@@ -408,13 +412,9 @@ function ChooseUsernamePage() {
         <FormError>{error}</FormError>
         <button
           type="submit"
-          disabled={
-            loading ||
-            !displayName.trim() ||
-            !username ||
-            Boolean(problem) ||
-            availability === "taken"
-          }
+          // Only locked while saving. A dimmed button for a reserved or taken
+          // handle gave no reason on the button itself; tapping now says why.
+          disabled={loading}
           className="w-full rounded-full bg-brand-accent text-brand-bg py-3.5 text-sm font-medium uppercase tracking-widest hover:bg-brand-accent/90 hover:scale-[1.01] transition-all duration-300 disabled:opacity-40"
         >
           {loading ? "Saving…" : "Continue"}
