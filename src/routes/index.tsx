@@ -517,9 +517,9 @@ function SellersLanding() {
         <Reveal delay={1} className="studio-copy">
           {/* <div className="section-kicker">02 / Seller Studio</div> */}
           <h2>
-            Run the shop.
+            Run your store
             <br />
-            <em>Keep the spark.</em>
+            <em>with ease.</em>
           </h2>
           <p>
             Products, orders, customers and real-time signals in one screen — not four different
