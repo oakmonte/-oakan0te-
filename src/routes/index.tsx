@@ -198,9 +198,13 @@ function TypedText({ lines, className = "" }: { lines: string[]; className?: str
       <span className="typed-ghost" aria-hidden="true">
         {render(full)}
       </span>
+      {/* The untyped rest is laid out too, just invisible, so every word is
+          already on the line it ends up on and types in place -- it never
+          starts at a line's end and jumps down once it's too long. */}
       <span className="typed-live" aria-hidden="true">
         {render(full.slice(0, count))}
         {count < full.length && <span className="typed-caret" />}
+        <span className="typed-rest">{render(full.slice(count))}</span>
       </span>
     </p>
   );
@@ -765,7 +769,8 @@ const CSS = `
 .oak-sellers .typed{position:relative}
 .oak-sellers .typed-ghost{visibility:hidden}
 .oak-sellers .typed-live{position:absolute;inset:0}
-.oak-sellers .typed-caret{display:inline-block;width:2px;height:1.05em;margin-left:2px;vertical-align:-.15em;background:#7ba2ff;animation:oakSellersBlink 1s steps(1) infinite}
+.oak-sellers .typed-rest{visibility:hidden}
+.oak-sellers .typed-caret{display:inline-block;width:2px;height:1.05em;margin:-.3em -2px -.3em 0;vertical-align:-.15em;background:#7ba2ff;animation:oakSellersBlink 1s steps(1) infinite}
 .oak-sellers .manifesto-sign{margin-top:120px;color:#7ba2ff;font:12px/1.3 'DM Mono',monospace}
 .oak-sellers .manifesto-sign span{font-size:9px;color:#98a2b3}
 
@@ -813,14 +818,14 @@ const CSS = `
 .oak-sellers .sp-id small{display:block;margin-top:2px;font-size:12px;color:#667085}
 .oak-sellers .sp-logo{display:grid;place-items:center;width:48px;height:48px;border-radius:999px;background:#eaf1ff;color:var(--accent-blue);font:400 22px Georgia,serif}
 .oak-sellers .sp-pills{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.oak-sellers .sp-pills span{display:grid;place-items:center;height:38px;border:1px solid #d0d5dd;border-radius:999px;font-size:12px;font-weight:600}
+.oak-sellers .sp-pills span{display:grid;place-items:center;height:38px;border:1px solid #b8bfcb;border-radius:999px;font-size:12px;font-weight:600}
 .oak-sellers .sp-title{margin-top:4px;font-size:14px;font-weight:600;letter-spacing:-.02em}
-.oak-sellers .sp-chart{border:1px solid #eaecf0;border-radius:20px;padding:14px 14px 0}
+.oak-sellers .sp-chart{border:1px solid #d0d5dd;border-radius:20px;padding:14px 14px 0}
 .oak-sellers .sp-chart small{font-size:11px;color:#667085}
 .oak-sellers .sp-chart strong{display:block;margin-top:4px;font-size:24px;font-weight:700;letter-spacing:-.03em}
 .oak-sellers .sp-chart .chart{height:64px;margin:12px 0 0;gap:6px;border-bottom:0}
 .oak-sellers .sp-tiles{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.oak-sellers .sp-tiles div{border:1px solid #eaecf0;border-radius:18px;padding:12px}
+.oak-sellers .sp-tiles div{border:1px solid #d0d5dd;border-radius:18px;padding:12px}
 .oak-sellers .sp-tiles small{display:block;font-size:11px;font-weight:500;color:#667085}
 .oak-sellers .sp-tiles b{display:block;margin-top:6px;font-size:18px;font-weight:700;letter-spacing:-.02em}
 .oak-sellers .sp-nav{position:absolute;left:50%;bottom:22px;z-index:2;display:flex;align-items:center;width:270px;height:52px;margin-left:-135px;padding:4px;border-radius:999px}
@@ -842,7 +847,7 @@ const CSS = `
 .oak-sellers .md-row .ms-avatar.alt2{background:#ecfdf3;color:#067647}
 @media (prefers-reduced-motion:reduce){.oak-sellers .md-screen{animation:none}}
 .oak-sellers .sp-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.oak-sellers .sp-actions span{display:grid;place-items:center;min-height:52px;padding:6px;border:1px solid #eaecf0;border-radius:16px;font-size:10.5px;font-weight:600;text-align:center;line-height:1.25}
+.oak-sellers .sp-actions span{display:grid;place-items:center;min-height:52px;padding:6px;border:1px solid #d0d5dd;border-radius:16px;font-size:10.5px;font-weight:600;text-align:center;line-height:1.25}
 .oak-sellers .dd-in{opacity:0;transform:translateY(12px);transition:opacity 550ms var(--ease-out),transform 550ms var(--ease-out)}
 .oak-sellers .dd-in.is-on{opacity:1;transform:none}
 .oak-sellers .dd-bars i{animation:none;transform:scaleY(0);transition:transform 700ms var(--ease-out)}
@@ -851,7 +856,7 @@ const CSS = `
 .oak-sellers .sp-actions .dd-tap{border-color:var(--accent-blue);animation:oakSellersDemoTap 700ms var(--ease-out)}
 @keyframes oakSellersDemoTap{0%{transform:scale(1)}30%{transform:scale(.92);box-shadow:0 0 0 0 rgba(31,79,255,.45)}100%{transform:scale(1);box-shadow:0 0 0 14px rgba(31,79,255,0)}}
 .oak-sellers .demo-flip{grid-template-columns:.9fr 1.1fr;background:#fff}
-.oak-sellers .dl-order{display:flex;align-items:center;gap:12px;border:1px solid #eaecf0;border-radius:20px;padding:16px}
+.oak-sellers .dl-order{display:flex;align-items:center;gap:12px;border:1px solid #d0d5dd;border-radius:20px;padding:16px}
 .oak-sellers .dl-thumb{display:grid;place-items:center;width:50px;height:50px;flex:none;border-radius:14px;background:#eaf1ff;color:var(--accent-blue)}
 .oak-sellers .dl-order-text{min-width:0;flex:1}
 .oak-sellers .dl-order-text small{display:block;font-size:11.5px;font-weight:600;color:#12b76a}
@@ -893,7 +898,7 @@ const CSS = `
 .oak-sellers .ms-typing i{width:6px;height:6px;border-radius:999px;background:rgba(255,255,255,.85);animation:oakSellersBlink 1s ease-in-out infinite}
 .oak-sellers .ms-typing i:nth-child(2){animation-delay:.15s}
 .oak-sellers .ms-typing i:nth-child(3){animation-delay:.3s}
-.oak-sellers .ms-card{display:flex;align-items:center;gap:12px;width:80%;padding:11px;border:1px solid #eaecf0;border-radius:18px;background:#fff}
+.oak-sellers .ms-card{display:flex;align-items:center;gap:12px;width:80%;padding:11px;border:1px solid #d0d5dd;border-radius:18px;background:#fff}
 .oak-sellers .ms-card b{display:block;font-size:14px;font-weight:600}
 .oak-sellers .ms-card small{display:block;margin-top:1px;font-size:12px;color:#667085}
 .oak-sellers .ms-card-img{display:grid;place-items:center;width:46px;height:46px;flex:none;border-radius:12px;background:#eaf1ff;color:var(--accent-blue)}
