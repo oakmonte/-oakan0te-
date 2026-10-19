@@ -364,6 +364,7 @@ function SellersLanding() {
             <br />
             <em>Till your eyes open.</em>
           </h2> */}
+          <h3 className="manifesto-title">Why we do this</h3>
           <TypedText
             className="manifesto-typed manifesto-centre"
             lines={[
@@ -371,6 +372,7 @@ function SellersLanding() {
               "We absorb those headaches so you stay creative and focus on what matters.",
             ]}
           />
+          <p className="manifesto-credit">- The Oakmonte Team</p>
         </Reveal>
         {/* <Reveal delay={1} className="manifesto-sign">
           OAKMONTE
@@ -750,6 +752,8 @@ const CSS = `
 .oak-sellers .manifesto p{max-width:430px;margin-left:40%;color:#c4cad5;line-height:1.6}
 .oak-sellers .manifesto .manifesto-typed{margin-top:110px}
 .oak-sellers .manifesto .manifesto-typed.manifesto-centre{margin:0 auto;max-width:560px;text-align:center;font-size:clamp(18px,2vw,24px)}
+.oak-sellers .manifesto .manifesto-title{margin:0 0 28px;text-align:center;font-size:clamp(24px,3vw,36px);font-weight:700;letter-spacing:-.02em;color:#fff}
+.oak-sellers .manifesto .manifesto-credit{margin:28px auto 0;text-align:center;color:#7ba2ff;font-size:15px}
 .oak-sellers .typed{position:relative}
 .oak-sellers .typed-ghost{visibility:hidden}
 .oak-sellers .typed-live{position:absolute;inset:0}
