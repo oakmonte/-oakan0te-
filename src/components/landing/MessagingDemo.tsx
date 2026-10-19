@@ -21,8 +21,12 @@ const T_CHAT = 2700;
 // Chat beats, from the moment the chat opens. Overlapping on purpose: the
 // product card follows the reply before it has settled, the order note
 // arrives as the buyer's message lands.
-const CHAT_BEATS = [300, 1560, 2680, 3170, 4080, 4500, 5760, 6320];
-const LOOP_MS = 14000;
+// Beat 2 is the seller typing the reply into the message box, a letter at a
+// time (TYPE_MS each); beat 3 sends it.
+const CHAT_BEATS = [300, 1560, 3400, 3890, 4800, 5220, 6480, 7040];
+const LOOP_MS = 14700;
+const REPLY = "Yes! Size 12 is in stock. Here it is";
+const TYPE_MS = 45;
 const LAST = CHAT_BEATS.length;
 
 type Stage = "home" | "nav" | "inbox" | "tap" | "chat";
@@ -34,6 +38,7 @@ export function MessagingDemo() {
   const [stage, setStage] = useState<Stage>("home");
   const [beat, setBeat] = useState(0);
   const [loop, setLoop] = useState(0);
+  const [typed, setTyped] = useState(0);
 
   useEffect(() => {
     setReduced(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
@@ -66,6 +71,13 @@ export function MessagingDemo() {
     ];
     return () => timers.forEach(clearTimeout);
   }, [visible, reduced, loop]);
+
+  // Fill the message box while the seller types; it empties when it sends.
+  useEffect(() => {
+    if (beat !== 2) return setTyped(0);
+    const id = setInterval(() => setTyped((n) => Math.min(n + 1, REPLY.length)), TYPE_MS);
+    return () => clearInterval(id);
+  }, [beat]);
 
   const on = (n: number) => (beat >= n ? " is-on" : "");
   const read = beat >= 6;
@@ -179,18 +191,8 @@ export function MessagingDemo() {
               <p className="ms-bubble">Hi! Do you have this in a size 12?</p>
             </div>
 
-            {beat === 2 && (
-              <div className="ms-row ms-me">
-                <p className="ms-bubble ms-typing">
-                  <i />
-                  <i />
-                  <i />
-                </p>
-              </div>
-            )}
-
             <div className={`ms-row ms-me dd-in${on(3)}`}>
-              <p className="ms-bubble">Yes! Size 12 is in stock. Here it is</p>
+              <p className="ms-bubble">{REPLY}</p>
             </div>
             <div className={`ms-row ms-me dd-in${on(4)}`}>
               <div className="ms-card ms-card-buy">
@@ -214,8 +216,15 @@ export function MessagingDemo() {
             <div className={`ms-order dd-in${on(8)}`}>New order · ₦45,000 · {CUSTOMER}</div>
           </div>
 
-          <div className="ms-input">
-            <span>Message…</span>
+          <div className={`ms-input${beat === 2 ? " is-typing" : ""}`}>
+            {beat === 2 ? (
+              <span className="ms-typed">
+                {REPLY.slice(0, typed)}
+                <i className="ms-caret" />
+              </span>
+            ) : (
+              <span>Message…</span>
+            )}
           </div>
         </div>
       )}
