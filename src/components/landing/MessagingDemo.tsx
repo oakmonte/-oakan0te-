@@ -3,6 +3,7 @@ import { ChevronLeft, Package } from "lucide-react";
 import { PhoneFrame } from "./PhoneFrame";
 import { DemoNav, NAV_MESSAGES, NAV_STORE } from "./DemoNav";
 import { ACTIONS } from "./demo-data";
+import { DemoKeyboard } from "./DemoKeyboard";
 
 /** Landing demo 3: in-app messaging from the seller's side, on a loop. It
  *  starts on the store home, the bottom bar slides to Messages, the seller
@@ -21,12 +22,14 @@ const T_CHAT = 2700;
 // Chat beats, from the moment the chat opens. Overlapping on purpose: the
 // product card follows the reply before it has settled, the order note
 // arrives as the buyer's message lands.
-// Beat 2 is the seller typing the reply into the message box, a letter at a
-// time (TYPE_MS each); beat 3 sends it.
+// Beat 2 is the seller typing the reply: the keyboard slides up, then the
+// message box fills a letter at a time (TYPE_MS each); beat 3 sends it.
 const CHAT_BEATS = [300, 1560, 3400, 3890, 4800, 5220, 6480, 7040];
 const LOOP_MS = 14700;
 const REPLY = "Yes! Size 12 is in stock. Here it is";
-const TYPE_MS = 45;
+const TYPE_MS = 40;
+// Typing starts once the keyboard is up.
+const KEYBOARD_MS = 320;
 const LAST = CHAT_BEATS.length;
 
 type Stage = "home" | "nav" | "inbox" | "tap" | "chat";
@@ -75,8 +78,14 @@ export function MessagingDemo() {
   // Fill the message box while the seller types; it empties when it sends.
   useEffect(() => {
     if (beat !== 2) return setTyped(0);
-    const id = setInterval(() => setTyped((n) => Math.min(n + 1, REPLY.length)), TYPE_MS);
-    return () => clearInterval(id);
+    let id: ReturnType<typeof setInterval> | undefined;
+    const start = setTimeout(() => {
+      id = setInterval(() => setTyped((n) => Math.min(n + 1, REPLY.length)), TYPE_MS);
+    }, KEYBOARD_MS);
+    return () => {
+      clearTimeout(start);
+      clearInterval(id);
+    };
   }, [beat]);
 
   const on = (n: number) => (beat >= n ? " is-on" : "");
@@ -226,6 +235,10 @@ export function MessagingDemo() {
               <span>Message…</span>
             )}
           </div>
+          <DemoKeyboard
+            open={beat === 2}
+            pressed={beat === 2 && typed > 0 && typed < REPLY.length ? REPLY[typed - 1] : null}
+          />
         </div>
       )}
 
