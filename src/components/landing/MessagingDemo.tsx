@@ -9,8 +9,8 @@ import { PhoneFrame } from "./PhoneFrame";
 
 // Overlapping on purpose: the product card follows the reply before it has
 // settled, the order note arrives as the buyer's message lands.
-const BEATS = [400, 1300, 2100, 2450, 3100, 3400, 4300, 4700];
-const LOOP_MS = 8400;
+const BEATS = [560, 1820, 2940, 3430, 4340, 4760, 6020, 6580];
+const LOOP_MS = 11800;
 const LAST = BEATS.length;
 
 export function MessagingDemo() {
