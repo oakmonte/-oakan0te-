@@ -11,8 +11,8 @@ import { Check, MapPin, Package, Truck } from "lucide-react";
 
 // Overlapping on purpose: the route draws while the booking settles, the
 // rider sets off as it finishes, and the payout lands as the rider arrives.
-const BEATS = [300, 1100, 1450, 1750, 2300, 3300, 4900, 5250];
-const LOOP_MS = 8800;
+const BEATS = [420, 1540, 2030, 2450, 3220, 4620, 6860, 7350];
+const LOOP_MS = 12300;
 const LAST = BEATS.length;
 
 const STEPS = [
@@ -136,7 +136,7 @@ function Rider() {
   }, []);
   return (
     <circle r="7" className="dl-rider">
-      <animateMotion ref={anim} begin="indefinite" dur="2.6s" fill="freeze">
+      <animateMotion ref={anim} begin="indefinite" dur="3.6s" fill="freeze">
         <mpath href="#dl-route" />
       </animateMotion>
     </circle>
