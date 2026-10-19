@@ -17,6 +17,9 @@ const BEZEL = 5;
 const PHONE_W = SCREEN_W + BEZEL * 2;
 const PHONE_H = SCREEN_H + BEZEL * 2;
 const MIN_SCALE = 0.55;
+// On a phone the demo sits a size down, so it reads closer to its title.
+// One factor on the whole transform keeps every demo in proportion.
+const MOBILE_FACTOR = 0.85;
 
 export function PhoneFrame({
   ref,
@@ -33,7 +36,8 @@ export function PhoneFrame({
     const measure = () => {
       const room = window.innerHeight - (window.innerWidth > 800 ? 170 : 150);
       const byWidth = (window.innerWidth - 32) / PHONE_W;
-      setScale(Math.max(MIN_SCALE, Math.min(1, room / FIT_H, byWidth)));
+      const fit = Math.max(MIN_SCALE, Math.min(1, room / FIT_H, byWidth));
+      setScale(window.innerWidth > 800 ? fit : fit * MOBILE_FACTOR);
     };
     measure();
     window.addEventListener("resize", measure);
