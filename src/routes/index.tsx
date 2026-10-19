@@ -824,9 +824,23 @@ const CSS = `
 .oak-sellers .sp-tiles small{display:block;font-size:11px;font-weight:500;color:#667085}
 .oak-sellers .sp-tiles b{display:block;margin-top:6px;font-size:18px;font-weight:700;letter-spacing:-.02em}
 .oak-sellers .sp-nav{position:absolute;left:50%;bottom:22px;z-index:2;display:flex;align-items:center;width:270px;height:52px;margin-left:-135px;padding:4px;border-radius:999px}
-.oak-sellers .sp-nav-lens{position:absolute;top:4px;left:4px;width:52px;height:44px;border-radius:999px}
+.oak-sellers .sp-nav-lens{position:absolute;top:4px;left:4px;width:calc((100% - 8px) / 5);height:44px;border-radius:999px;transition:transform 520ms cubic-bezier(.34,1.25,.64,1)}
 .oak-sellers .sp-nav img{position:relative;flex:1;width:22px;height:22px;object-fit:contain;filter:brightness(0);opacity:.55}
 .oak-sellers .sp-nav img.is-on{opacity:1;transform:scale(1.15) translateY(-1px)}
+.oak-sellers .sp-nav img{transition:opacity 300ms ease,transform 400ms cubic-bezier(.34,1.25,.64,1)}
+.oak-sellers .md-screen{display:flex;flex-direction:column;gap:14px;flex:1;min-height:0;animation:oakSellersScreenIn 380ms var(--ease-out) both}
+.oak-sellers .md-screen.md-still{animation:none}
+@keyframes oakSellersScreenIn{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:none}}
+.oak-sellers .md-inbox-title{font-size:24px;font-weight:700;letter-spacing:-.03em}
+.oak-sellers .md-row{display:flex;align-items:center;gap:12px;padding:10px;margin:0 -10px;border-radius:16px;transition:background 200ms ease,transform 160ms var(--ease-out)}
+.oak-sellers .md-row.is-tap{background:#f2f4f7;transform:scale(.97)}
+.oak-sellers .md-row b{display:block;font-size:14.5px;font-weight:600}
+.oak-sellers .md-row small{display:block;margin-top:2px;font-size:12.5px;color:#667085;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px}
+.oak-sellers .md-row > div{flex:1;min-width:0}
+.oak-sellers .md-row em{width:9px;height:9px;border-radius:999px;background:var(--accent-blue)}
+.oak-sellers .md-row .ms-avatar.alt{background:#eaf1ff;color:var(--accent-blue)}
+.oak-sellers .md-row .ms-avatar.alt2{background:#ecfdf3;color:#067647}
+@media (prefers-reduced-motion:reduce){.oak-sellers .md-screen{animation:none}}
 .oak-sellers .sp-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .oak-sellers .sp-actions span{display:grid;place-items:center;min-height:52px;padding:6px;border:1px solid #eaecf0;border-radius:16px;font-size:10.5px;font-weight:600;text-align:center;line-height:1.25}
 .oak-sellers .dd-in{opacity:0;transform:translateY(12px);transition:opacity 550ms var(--ease-out),transform 550ms var(--ease-out)}
