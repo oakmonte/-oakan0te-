@@ -521,9 +521,9 @@ function SellersLanding() {
             Products, orders, customers and real-time signals in one screen — not four different
             tools stitched together to run your store.
           </p>
-          <Link className="text-link" to="/set-up-store">
+          {/* <Link className="text-link" to="/set-up-store">
             Enter the studio
-          </Link>
+          </Link> */}
         </Reveal>
       </section>
 
@@ -531,9 +531,9 @@ function SellersLanding() {
         <Reveal className="studio-copy">
           {/* <div className="section-kicker">03 / Deliveries</div> */}
           <h2>
-            Orders ship.
+            No more stress.
             <br />
-            <em>You get paid.</em>
+            <em>Automatic deliveries and payment.</em>
           </h2>
           <p>
             Your customer pays for delivery at checkout. One tap books the courier, the rider is
