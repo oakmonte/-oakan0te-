@@ -322,22 +322,96 @@ export function needsPassword(user: User | null): boolean {
  *  so a passkey-first Google account is offered a QR code and nothing usable.
  *  That is Apple's boundary, not ours. The answer is a passkey on our own
  *  origin, where WebAuthn works — see registerPasskey/signInWithPasskey. */
-export async function signInWithGoogle() {
-  if (isStandalone()) {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: callbackUrl(), skipBrowserRedirect: true },
+/*
+ *  Google returns to OUR /auth/callback, not to Supabase's server, so its
+ *  account picker says "to continue to oakmonte.store" instead of naming the
+ *  Supabase project. The callback hands Google's ID token to Supabase
+ *  (signInWithIdToken); the account is the same one the old redirect made.
+ *  Every origin it runs on needs `<origin>/auth/callback` listed under the
+ *  OAuth client's Authorized redirect URIs in Google Cloud, or Google answers
+ *  redirect_uri_mismatch.
+ *
+ *  Still a same-tab navigation, so everything above about the installed app
+ *  holds. The nonce and state go in localStorage, not sessionStorage, for the
+ *  same reason PKCE's verifier does: the iOS sheet shares the jar, not the tab.
+ *
+ *  The token comes back in the URL fragment. It is bound to a nonce only this
+ *  browser holds, so it is no use to anyone reading it off history, and the
+ *  callback strips it from the URL before doing anything else. */
+// Public: it is in every Google sign-in URL. Same client Supabase's Google
+// provider is configured with, which is what lets Supabase accept its tokens.
+const GOOGLE_CLIENT_ID = "636975265244-5up1etkvuba1bum6a8k9a3ih2h0iereb.apps.googleusercontent.com";
+const GOOGLE_PENDING_KEY = "oak-google-pending";
+
+function randomToken() {
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function sha256Hex(value: string) {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+export async function signInWithGoogle(): Promise<{ error: Error | null }> {
+  try {
+    const nonce = randomToken();
+    const state = randomToken();
+    localStorage.setItem(GOOGLE_PENDING_KEY, JSON.stringify({ nonce, state }));
+    const params = new URLSearchParams({
+      client_id: GOOGLE_CLIENT_ID,
+      redirect_uri: callbackUrl(),
+      response_type: "id_token",
+      scope: "openid email profile",
+      // Google gets the hash; Supabase gets the raw nonce and checks the two.
+      nonce: await sha256Hex(nonce),
+      state,
+      prompt: "select_account",
     });
-    if (error) return { data, error };
     // Same tab, same storage jar. Not window.open -- see above.
-    if (data?.url) window.location.assign(data.url);
-    return { data, error: null };
+    window.location.assign(`https://accounts.google.com/o/oauth2/v2/auth?${params}`);
+    return { error: null };
+  } catch {
+    return { error: new Error("Couldn't start Google sign-in. Please try again.") };
+  }
+}
+
+/** /auth/callback's half of signInWithGoogle. Returns null when the URL isn't
+ *  a Google return at all, so the callback carries on as before (Apple, email
+ *  links). */
+export async function finishGoogleSignIn(): Promise<{ error: string | null } | null> {
+  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  const token = hash.get("id_token");
+  const googleError = hash.get("error");
+  if (!token && !googleError) return null;
+  // Off the URL before anything else, so the token never sits in history.
+  window.history.replaceState(null, "", window.location.pathname);
+
+  let pending: { nonce?: string; state?: string } = {};
+  try {
+    pending = JSON.parse(localStorage.getItem(GOOGLE_PENDING_KEY) ?? "{}");
+    localStorage.removeItem(GOOGLE_PENDING_KEY);
+  } catch {
+    // Storage blocked: the state check below fails and says so.
   }
 
-  return supabase.auth.signInWithOAuth({
+  if (googleError) {
+    return {
+      error:
+        googleError === "access_denied"
+          ? "Google sign-in was cancelled."
+          : "Google sign-in didn't complete. Please try again.",
+    };
+  }
+  if (!pending.nonce || !pending.state || hash.get("state") !== pending.state) {
+    return { error: "That sign-in link expired. Please try again." };
+  }
+  const { error } = await supabase.auth.signInWithIdToken({
     provider: "google",
-    options: { redirectTo: callbackUrl() },
+    token: token!,
+    nonce: pending.nonce,
   });
+  return { error: error ? "Could not complete sign-in. Please try again." : null };
 }
 
 /** Apple sign-in ships dark until the Apple Developer Program account exists

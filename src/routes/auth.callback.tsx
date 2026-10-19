@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
-import { clearOAuthAttempts, resolvePostAuthRedirect } from "@/lib/auth";
+import { clearOAuthAttempts, finishGoogleSignIn, resolvePostAuthRedirect } from "@/lib/auth";
 
 export const Route = createFileRoute("/auth/callback")({
   head: () => ({ meta: [{ title: "Signing you in — Oakmonte" }] }),
@@ -30,6 +30,14 @@ function AuthCallback() {
     };
 
     (async () => {
+      // A Google return carries an ID token rather than a code; hand it to
+      // Supabase first (see signInWithGoogle).
+      const google = await finishGoogleSignIn();
+      if (cancelled) return;
+      if (google?.error) {
+        setError(google.error);
+        return;
+      }
       // Give supabase-js a tick to hydrate session from URL
       for (let i = 0; i < 30; i++) {
         const { data } = await supabase.auth.getSession();
