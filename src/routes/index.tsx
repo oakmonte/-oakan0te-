@@ -548,7 +548,7 @@ function SellersLanding() {
         <Reveal delay={1} className="studio-copy">
           {/* <div className="section-kicker">04 / Messaging</div> */}
           <h2>
-            Talk to buyers.
+            Talk to buyers directly.
             <br />
             <em>Close the sale.</em>
           </h2>
