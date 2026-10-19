@@ -540,8 +540,13 @@ function SellersLanding() {
             <em>Automatic deliveries and payment.</em>
           </h2>
           <p>
-            Your customer pays for delivery at checkout. One tap books the courier, the rider is
-            tracked to their door, and your money lands the moment it's delivered.
+            Your customer pays.
+            <br />
+            The rider gets it from your store or warehouse.
+            <br />
+            The rider gives it to the buyer.
+            <br />
+            You get your money.
           </p>
         </Reveal>
         <DeliveryDemo />
@@ -557,8 +562,11 @@ function SellersLanding() {
             <em>Close the sale.</em>
           </h2>
           <p>
-            Customers message you straight from your store. Answer their questions, send them the
-            exact piece, and watch the order come in, without leaving Oakmonte.
+            Buyers message you directly in your website.
+            <br />
+            You negotiate or answer questions.
+            <br />
+            Close the sale.
           </p>
         </Reveal>
       </section>
