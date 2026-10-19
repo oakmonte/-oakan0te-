@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { PhoneFrame } from "./PhoneFrame";
+import { ACTIONS } from "./demo-data";
 import { DemoNav, NAV_STORE } from "./DemoNav";
 
 /** Landing demo 1: the seller dashboard building itself, on a loop. Drawn in
@@ -34,15 +35,6 @@ function useCountUp(target: number, run: boolean, instant: boolean, ms = 1300) {
 }
 
 const naira = (n: number) => `₦${n.toLocaleString("en-NG")}`;
-
-const ACTIONS = [
-  "Add product",
-  "Import products",
-  "Pickup locations",
-  "Collections",
-  "Orders",
-  "Discounts",
-];
 
 export function DashboardDemo() {
   const ref = useRef<HTMLDivElement | null>(null);
