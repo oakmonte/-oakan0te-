@@ -342,7 +342,7 @@ function SellersLanding() {
         </div>
         <div className="hero-side-note">
           <strong>
-            The tool
+            THE tool
             <br />
             for
             <br />
@@ -522,8 +522,11 @@ function SellersLanding() {
             <em>with ease.</em>
           </h2>
           <p>
-            Products, orders, customers and real-time signals in one screen — not four different
-            tools stitched together to run your store.
+            1. Powerful tools simplified so you don't stress.
+            <br />
+            2. Get an advantage over your competitors.
+            <br />
+            3. Preserve your creative flow.
           </p>
           {/* <Link className="text-link" to="/set-up-store">
             Enter the studio
@@ -540,13 +543,13 @@ function SellersLanding() {
             <em>Automatic deliveries and payment.</em>
           </h2>
           <p>
-            Your customer pays.
+            1. Your customer pays.
             <br />
-            The rider gets it from your store or warehouse.
+            2. The rider gets it from your store or warehouse.
             <br />
-            The rider gives it to the buyer.
+            3. The rider gives it to the buyer.
             <br />
-            You get your money.
+            4. You get your money.
           </p>
         </Reveal>
         <DeliveryDemo />
@@ -562,11 +565,11 @@ function SellersLanding() {
             <em>Close the sale.</em>
           </h2>
           <p>
-            Buyers message you directly in your website.
+            1. Buyers message you directly in your website.
             <br />
-            You negotiate or answer questions.
+            2. You negotiate or answer questions.
             <br />
-            Close the sale.
+            3. Close the sale.
           </p>
         </Reveal>
       </section>
@@ -791,6 +794,7 @@ const CSS = `
 .oak-sellers .features-section{display:grid;grid-template-columns:.9fr 1.1fr;gap:9vw;padding:130px 7vw}
 .oak-sellers .feature-intro h2,.oak-sellers .studio-copy h2,.oak-sellers .manufacturer-section h2,.oak-sellers .free-panel h2{margin:27px 0;font-size:clamp(49px,7vw,95px);line-height:.9;letter-spacing:-.09em;font-weight:600}
 .oak-sellers .feature-intro p,.oak-sellers .studio-copy p,.oak-sellers .manufacturer-section p,.oak-sellers .free-panel p{max-width:360px;color:var(--muted);line-height:1.6;font-size:14px}
+.oak-sellers .studio-copy p{color:#1f2937;font-weight:500}
 .oak-sellers .feature-list{border-top:1px solid var(--border)}
 .oak-sellers .feature-row{border-bottom:1px solid var(--border)}
 .oak-sellers .feature-trigger{width:100%;display:flex;align-items:center;gap:20px;text-align:left;padding:28px 0;border:0;background:none;cursor:pointer;transition:padding var(--duration-fast) var(--ease-out),background var(--duration-fast) var(--ease-out)}
