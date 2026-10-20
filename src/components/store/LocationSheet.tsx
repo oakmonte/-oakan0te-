@@ -30,6 +30,7 @@ import {
 import { PageSheet } from "@/components/PageSheet";
 import { AddressAutocomplete, type PickedAddress } from "@/components/AddressAutocomplete";
 import { authedFetch } from "@/lib/authed-fetch";
+import { addressAt, getPosition } from "@/lib/current-location";
 import { LocationListPicker, type LocationListItem } from "./LocationListPicker";
 
 export type StoreLocationValues = {
@@ -49,25 +50,6 @@ export type StoreLocationValues = {
    *  it was never checked (older rows, or Shipbubble was down at save). */
   verifiedAddress: string | null;
 };
-
-// GPS pin -> address through the server (api.shipping.reverse-geocode, the
-// same lookup checkout uses): it can send the identifying User-Agent the free
-// geocoder asks for, and returns street and postal code as well.
-async function reverseGeocode(lat: number, lng: number) {
-  const res = await authedFetch("/api/shipping/reverse-geocode", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ lat, lng }),
-  });
-  if (!res.ok) return null;
-  return (await res.json().catch(() => null)) as {
-    line1?: string | null;
-    city?: string | null;
-    state?: string | null;
-    country?: string | null;
-    postalCode?: string | null;
-  } | null;
-}
 
 /** Full-screen sheet for adding or editing one of the store's pickup/dispatch
  *  locations. Opens straight to the manual address form, and a beat later
@@ -231,12 +213,14 @@ export function LocationSheet({
     setLocated(false);
     setLocating(true);
     setLocateError("");
-    navigator.geolocation.getCurrentPosition(
+    // Same lookup checkout uses (lib/current-location): quick on laptops too,
+    // and fills the postal code the way a typed address does.
+    getPosition().then(
       async (pos) => {
         const { latitude, longitude } = pos.coords;
         setLat(latitude);
         setLng(longitude);
-        const geocoded = await reverseGeocode(latitude, longitude).catch(() => null);
+        const geocoded = await addressAt(latitude, longitude).catch(() => null);
         // Fills only what's still empty -- never overwrites what the seller typed.
         if (geocoded?.country && !country) {
           const matchedCountryCode = countryCodeForName(geocoded.country);
@@ -258,15 +242,14 @@ export function LocationSheet({
         setLocating(false);
         setLocated(true);
       },
-      (err) => {
+      (err: GeolocationPositionError) => {
         setLocating(false);
         setLocateError(
-          err.code === err.PERMISSION_DENIED
+          err?.code === 1
             ? "Location access was denied — you can still fill this in by hand."
             : "Couldn't get your location — you can still fill this in by hand.",
         );
       },
-      { enableHighAccuracy: true, timeout: 10000 },
     );
   }
 

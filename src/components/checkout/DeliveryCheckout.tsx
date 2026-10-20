@@ -11,6 +11,7 @@ import {
 } from "@/lib/region-data";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { authedFetch } from "@/lib/authed-fetch";
+import { addressAt, getPosition } from "@/lib/current-location";
 import { ListPicker } from "./ListPicker";
 
 /** What is being bought, in the shape /api/shipping/rates and /api/orders read
@@ -34,20 +35,6 @@ type Validated = {
   lat: number | null;
   lng: number | null;
 };
-
-// A quick, coarse fix first (network/cached position answers in about a
-// second), the way maps apps do it. enableHighAccuracy waits for a GPS lock,
-// which is what makes "use my location" crawl on Android. A street address
-// only needs the coarse fix; Shipbubble validates the text anyway.
-function getPosition(): Promise<GeolocationPosition> {
-  return new Promise((resolve, reject) => {
-    navigator.geolocation.getCurrentPosition(resolve, reject, {
-      enableHighAccuracy: false,
-      maximumAge: 10 * 60 * 1000,
-      timeout: 8000,
-    });
-  });
-}
 
 // "12" or "Lekki" alone isn't an address a rider can use: it needs at least two
 // spaced words, one with letters. A house number is common but not universal,
@@ -167,18 +154,7 @@ export function DeliveryCheckout({
       const pos = await getPosition();
       const { latitude: lat, longitude: lng } = pos.coords;
       setCoords({ lat, lng });
-      const res = await authedFetch("/api/shipping/reverse-geocode", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lat, lng }),
-      });
-      const body = (await res.json().catch(() => null)) as {
-        line1?: string | null;
-        city?: string | null;
-        state?: string | null;
-        country?: string | null;
-        postalCode?: string | null;
-      } | null;
+      const body = await addressAt(lat, lng).catch(() => null);
       if (!body || (!body.line1 && !body.city && !body.state)) {
         setError("Got your location but no street name. Fill in your address below.");
       } else {

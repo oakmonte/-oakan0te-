@@ -1,57 +1,10 @@
 import { useEffect, useRef, useState, type InputHTMLAttributes } from "react";
 import { MapPin } from "lucide-react";
-import { authedFetch } from "@/lib/authed-fetch";
-import { requestAutocomplete, requestPlaceAddress } from "@/lib/places-google";
-
-// Public, referrer-restricted key: lets the phone ask Google directly instead
-// of going through our server in Washington (~1s saved per keystroke from
-// Nigeria). Absent, or if a direct call fails, the server route is used.
-const BROWSER_KEY = import.meta.env.VITE_GOOGLE_PLACES_BROWSER_KEY as string | undefined;
+import { BROWSER_KEY, fetchAddress, fetchSuggestions, newToken } from "@/lib/places-client";
 
 // Answers already fetched, per country + text: backspacing or retyping is
 // instant. Module-level so it survives the form closing and reopening.
 const suggestionCache = new Map<string, Suggestion[]>();
-
-async function fetchSuggestions(
-  q: string,
-  sessionToken: string,
-  regionCode: string | undefined,
-  signal: AbortSignal,
-): Promise<Suggestion[]> {
-  if (BROWSER_KEY) {
-    try {
-      return await requestAutocomplete(BROWSER_KEY, q, sessionToken, regionCode ?? null, signal);
-    } catch (err) {
-      if (signal.aborted) throw err;
-      // Fall through to the server route.
-    }
-  }
-  const res = await authedFetch("/api/places/autocomplete", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ input: q, sessionToken, regionCode }),
-    signal,
-  });
-  const body = (await res.json().catch(() => null)) as { suggestions?: Suggestion[] } | null;
-  return body?.suggestions ?? [];
-}
-
-async function fetchAddress(placeId: string, sessionToken: string): Promise<PickedAddress | null> {
-  if (BROWSER_KEY) {
-    try {
-      return await requestPlaceAddress(BROWSER_KEY, placeId, sessionToken);
-    } catch {
-      // Fall through to the server route.
-    }
-  }
-  const res = await authedFetch("/api/places/autocomplete", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ placeId, sessionToken }),
-  }).catch(() => null);
-  const body = (await res?.json().catch(() => null)) as { address?: PickedAddress | null } | null;
-  return body?.address ?? null;
-}
 
 export type PickedAddress = {
   line1: string;
@@ -77,12 +30,6 @@ function warmUp() {
   link.href = "https://places.googleapis.com";
   link.crossOrigin = "anonymous";
   document.head.appendChild(link);
-}
-
-function newToken() {
-  return typeof crypto !== "undefined" && "randomUUID" in crypto
-    ? crypto.randomUUID()
-    : String(Math.random()).slice(2);
 }
 
 /** Address line 1 with real address suggestions as you type (Google Places,
