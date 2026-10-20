@@ -137,3 +137,87 @@ export function addressFrom(get: (type: string) => string, formatted: string, na
     "";
   return { line1, city, state, country, postalCode };
 }
+
+const kmBetween = (a: [number, number], b: [number, number]) => {
+  const rad = Math.PI / 180;
+  const dLat = (b[0] - a[0]) * rad;
+  const dLng = (b[1] - a[1]) * rad;
+  const h =
+    Math.sin(dLat / 2) ** 2 + Math.cos(a[0] * rad) * Math.cos(b[0] * rad) * Math.sin(dLng / 2) ** 2;
+  return 12_742 * Math.asin(Math.sqrt(h));
+};
+
+/** First postal code among a Places (New) search's results within 5 km of
+ *  the pin. Null on any failure, logged so a miss says why. */
+async function searchPostalCode(
+  key: string,
+  method: "searchText" | "searchNearby",
+  request: Record<string, unknown>,
+  pin: [number, number],
+) {
+  try {
+    const res = await fetch(`https://places.googleapis.com/v1/places:${method}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Goog-Api-Key": key,
+        "X-Goog-FieldMask": "places.addressComponents,places.location",
+      },
+      body: JSON.stringify(request),
+      signal: AbortSignal.timeout(4000),
+    });
+    if (!res.ok) {
+      console.warn(`Places ${method} failed:`, res.status, await res.text().catch(() => ""));
+      return null;
+    }
+    const body = (await res.json().catch(() => null)) as {
+      places?: {
+        addressComponents?: Component[];
+        location?: { latitude?: number; longitude?: number };
+      }[];
+    } | null;
+    const places = body?.places ?? [];
+    for (const p of places) {
+      const { latitude, longitude } = p.location ?? {};
+      if (latitude != null && longitude != null && kmBetween(pin, [latitude, longitude]) > 5) {
+        continue;
+      }
+      const code = p.addressComponents?.find((c) => c.types?.includes("postal_code"))?.longText;
+      if (code) return code;
+    }
+    console.warn(`Places ${method}: no postal code among ${places.length} places`);
+    return null;
+  } catch (err) {
+    console.warn(`Places ${method} error:`, err);
+    return null;
+  }
+}
+
+/** Postal code near a GPS pin from Places, for when reverse geocoding has
+ *  none (most Nigerian results): the place Geocoding named, searched by its
+ *  address, then whatever sits closest to the pin. */
+export async function requestPostalCodeNear(
+  key: string,
+  lat: number,
+  lng: number,
+  address: string | null,
+) {
+  const pin: [number, number] = [lat, lng];
+  const near = { center: { latitude: lat, longitude: lng }, radius: 500 };
+  return (
+    (address
+      ? await searchPostalCode(
+          key,
+          "searchText",
+          { textQuery: address, locationBias: { circle: near }, maxResultCount: 5 },
+          pin,
+        )
+      : null) ??
+    (await searchPostalCode(
+      key,
+      "searchNearby",
+      { locationRestriction: { circle: near }, rankPreference: "DISTANCE", maxResultCount: 20 },
+      pin,
+    ))
+  );
+}
