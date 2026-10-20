@@ -42,7 +42,9 @@ function NewCollection() {
   // Starts as a draft, same as a new product -- saving one asks first (see
   // DraftWarningDialog), so nobody ends up with an invisible collection
   // without knowing it.
-  const [status, setStatus] = useState<"draft" | "active">("draft");
+  // Active by default, like a new product: a collection someone just built
+  // is usually meant to be seen.
+  const [status, setStatus] = useState<"draft" | "active">("active");
   const [draftWarningOpen, setDraftWarningOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
