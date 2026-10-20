@@ -1,3 +1,4 @@
+import { MAX_VARIANT_PHOTOS } from "@/lib/media-limits";
 import { useRef, useState } from "react";
 import { PageSheet } from "@/components/PageSheet";
 import type { WeightEstimate } from "@/lib/weight-estimate";
@@ -772,7 +773,9 @@ function VariantImagePopover({
 
   function addUrls(urls: string[]) {
     if (urls.length === 0) return;
-    setImages((prev) => [...prev, ...urls.filter((u) => !prev.includes(u))]);
+    setImages((prev) =>
+      [...prev, ...urls.filter((u) => !prev.includes(u))].slice(0, MAX_VARIANT_PHOTOS),
+    );
   }
 
   // Uploads run in the background (background-upload.ts) and survive this
@@ -780,7 +783,9 @@ function VariantImagePopover({
   // longer risks saving a blob: preview url onto the variant; see
   // onUploadStarted above for how the eventual real url still lands.
   function uploadFiles(files: File[]) {
-    for (const file of files) {
+    // Only as many as fit: a file past the cap is never uploaded at all.
+    const room = Math.max(0, MAX_VARIANT_PHOTOS - images.length);
+    for (const file of files.slice(0, room)) {
       const { id, previewUrl } = startBackgroundUpload(file, "product-image", "variant photo");
       addUrls([previewUrl]);
       onUploadStarted?.(id, previewUrl);
@@ -842,6 +847,7 @@ function VariantImagePopover({
           )}
 
           <ImageGallery
+            max={MAX_VARIANT_PHOTOS}
             images={images}
             onReorder={setImages}
             onRemove={(url) => setImages((prev) => prev.filter((u) => u !== url))}

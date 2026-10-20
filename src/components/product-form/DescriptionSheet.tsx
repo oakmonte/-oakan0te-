@@ -1,3 +1,4 @@
+import { MAX_DESCRIPTION_CHARS } from "@/lib/media-limits";
 import { useEffect, useRef, useState } from "react";
 import { useVisibleViewport } from "@/hooks/use-visible-viewport";
 import { PageSheet } from "@/components/PageSheet";
@@ -337,9 +338,17 @@ export function DescriptionSheet({
     setFormats((f) => ({ ...f, bold: next }));
   }
 
+  // Characters typed so far, for the counter and the cap.
+  const [chars, setChars] = useState(0);
+  useEffect(() => {
+    setChars(editorRef.current?.textContent?.length ?? 0);
+  }, []);
+  const overLimit = chars > MAX_DESCRIPTION_CHARS;
+
   function handleSave() {
     const el = editorRef.current;
     const text = el?.textContent ?? "";
+    if (text.length > MAX_DESCRIPTION_CHARS) return;
     const found = findBlockedContent(text);
     if (found.length > 0) {
       setPolicyError(blockedContentMessage(found));
@@ -371,11 +380,25 @@ export function DescriptionSheet({
         <span className="font-semibold text-[15px] absolute left-1/2 -translate-x-1/2">
           Description
         </span>
-        <button onClick={handleSave} type="button" className="text-sm font-medium text-black">
+        <button
+          onClick={handleSave}
+          type="button"
+          disabled={overLimit}
+          className="text-sm font-medium text-black disabled:text-gray-300"
+        >
           Save
         </button>
       </div>
 
+      <p
+        className={`shrink-0 px-4 pt-2 text-right text-xs tabular-nums ${
+          overLimit ? "text-red-500" : "text-gray-400"
+        }`}
+      >
+        {overLimit
+          ? `${(chars - MAX_DESCRIPTION_CHARS).toLocaleString()} over the ${MAX_DESCRIPTION_CHARS.toLocaleString()}-character limit`
+          : `${chars.toLocaleString()} / ${MAX_DESCRIPTION_CHARS.toLocaleString()}`}
+      </p>
       {policyError && (
         <p className="shrink-0 px-4 py-2 text-xs text-red-500 bg-red-50 border-b border-red-100">
           {policyError}
@@ -387,6 +410,7 @@ export function DescriptionSheet({
         contentEditable
         suppressContentEditableWarning
         onInput={() => {
+          setChars(editorRef.current?.textContent?.length ?? 0);
           setFormats(readFormats());
           setPolicyError(null);
           keepCaretAboveToolbar();
