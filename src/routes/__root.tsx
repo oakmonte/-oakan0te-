@@ -187,7 +187,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: appCss,
       },
-      { rel: "icon", type: "image/png", href: "/favicon.png" },
+      { rel: "icon", type: "image/png", sizes: "192x192", href: "/favicon.png" },
       { rel: "manifest", href: "/manifest.webmanifest" },
       // iOS ignores the manifest's icons entirely and reads this instead.
       { rel: "apple-touch-icon", href: "/icons/apple-touch-icon.png" },
