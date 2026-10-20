@@ -221,14 +221,14 @@ function NameYourStorePage() {
           value={brandName}
           onChange={(e) => setBrandName(e.target.value)}
           placeholder={isBrand ? "My Brand" : "My Store"}
-          aria-describedby="handle-preview"
           className="w-full rounded-full border border-brand-text/25 bg-transparent px-5 py-3.5 text-sm placeholder:text-brand-text/40 focus:outline-none focus:border-brand-accent transition-colors"
         />
-        {/* The handle used to be derived silently, so a name of only symbols
-            became "store-x7k2p9" without the user ever seeing it. */}
+        {/* Store-link preview, hidden on Diadem's call. It was added because
+            the handle used to be derived silently, so a name of only symbols
+            became "store-x7k2p9" without the user ever seeing it.
         <p id="handle-preview" className="text-[11px] text-brand-text/50 px-2 text-left">
           Your {noun} link: oakmonte.store/shop/{brandName.trim() ? handle : `your-${noun}`}
-        </p>
+        </p> */}
 
         <label htmlFor="business-email" className="sr-only">
           {isBrand ? "Brand email" : "Store email"} (optional)
