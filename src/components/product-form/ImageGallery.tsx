@@ -15,6 +15,7 @@ export function ImageGallery({
   onAddTap,
   uploading,
   addButtonRef,
+  max,
 }: {
   images: string[];
   onReorder: (next: string[]) => void;
@@ -22,6 +23,8 @@ export function ImageGallery({
   onAddTap: () => void;
   uploading?: boolean;
   addButtonRef?: React.RefObject<HTMLButtonElement | null>;
+  /** At this many photos the + tile goes and a note says so. */
+  max?: number;
 }) {
   const [focusedIndex, setFocusedIndex] = useState(0);
   const bigRef = useRef<HTMLDivElement>(null);
@@ -100,8 +103,12 @@ export function ImageGallery({
         onAddTap={onAddTap}
         uploading={uploading}
         addButtonRef={addButtonRef}
+        full={max != null && images.length >= max}
       />
 
+      {max != null && images.length >= max && (
+        <p className="text-xs text-gray-500 mt-1.5">That's the most: {max} photos.</p>
+      )}
       {images.length > 1 && (
         <p className="text-xs text-gray-400 mt-1.5">Long-press and drag a photo to reorder</p>
       )}
@@ -117,6 +124,7 @@ function ThumbStrip({
   onAddTap,
   uploading,
   addButtonRef,
+  full,
 }: {
   images: string[];
   onFocus: (i: number) => void;
@@ -125,6 +133,7 @@ function ThumbStrip({
   onAddTap: () => void;
   uploading?: boolean;
   addButtonRef?: React.RefObject<HTMLButtonElement | null>;
+  full?: boolean;
 }) {
   const [dragUrl, setDragUrl] = useState<string | null>(null);
   const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -370,7 +379,7 @@ function ThumbStrip({
           </button>
         </div>
       ))}
-      <AddTile ref={addButtonRef} onClick={onAddTap} uploading={uploading} />
+      {!full && <AddTile ref={addButtonRef} onClick={onAddTap} uploading={uploading} />}
     </div>
   );
 }

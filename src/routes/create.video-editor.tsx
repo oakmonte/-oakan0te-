@@ -1,3 +1,4 @@
+import { MAX_VIDEO_EDITOR_CLIPS } from "@/lib/media-limits";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -372,9 +373,21 @@ function VideoEditor() {
 
   /* ---------------- adding media ---------------- */
 
+  // Read inside addClips without making it change on every edit.
+  const clipCount = useRef(clips.length);
+  clipCount.current = clips.length;
   const addClips = useCallback(
     (created: Clip[]) => {
       if (created.length === 0) return;
+      const room = Math.max(0, MAX_VIDEO_EDITOR_CLIPS - clipCount.current);
+      if (created.length > room) {
+        setErrorIsExport(false);
+        setError(
+          `A video can have up to ${MAX_VIDEO_EDITOR_CLIPS} clips, so the extras were left out.`,
+        );
+        created = created.slice(0, room);
+        if (created.length === 0) return;
+      }
       push();
       setClips((prev) => [...prev, ...created]);
     },

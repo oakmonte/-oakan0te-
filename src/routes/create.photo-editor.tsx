@@ -1,3 +1,5 @@
+import { MAX_CAROUSEL_ITEMS } from "@/lib/media-limits";
+import { acceptedFiles } from "@/hooks/use-file-picker";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
@@ -354,6 +356,14 @@ function PhotoEditor() {
 
   function addPhotos(items: { blob?: Blob; url: string; remote: boolean; kind?: PhotoKind }[]) {
     if (items.length === 0) return;
+    // A post holds MAX_CAROUSEL_ITEMS; the server refuses more, after every
+    // file has uploaded, so stop here instead.
+    const room = Math.max(0, MAX_CAROUSEL_ITEMS - photos.length);
+    if (items.length > room) {
+      setError(`A post can hold up to ${MAX_CAROUSEL_ITEMS} photos, so the extras were left out.`);
+      items = items.slice(0, room);
+      if (items.length === 0) return;
+    }
     const created: EditPhoto[] = items.map((it) => ({
       id: newPhotoId(),
       kind: it.kind ?? "photo",
@@ -368,7 +378,7 @@ function PhotoEditor() {
 
   async function handleDeviceFiles(files: FileList | null) {
     if (!files) return;
-    const picked = Array.from(files);
+    const picked = acceptedFiles(files, "image/*,image/heic,image/heif,video/*");
     if (fileInputRef.current) fileInputRef.current.value = "";
     setError(null);
 

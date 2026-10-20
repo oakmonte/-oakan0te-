@@ -1,3 +1,4 @@
+import { MAX_PRODUCT_PHOTOS } from "@/lib/media-limits";
 import { useEffect, useRef, useState } from "react";
 import { ImageGallery } from "./ImageGallery";
 import { DraftImagePickerSheet } from "./DraftImagePickerSheet";
@@ -75,7 +76,8 @@ export function MediaSection({
 
   function addUrls(urls: string[]) {
     if (urls.length === 0) return;
-    applyImages([...images, ...urls.filter((u) => !images.includes(u))]);
+    const fresh = urls.filter((u) => !images.includes(u));
+    applyImages([...images, ...fresh.slice(0, Math.max(0, MAX_PRODUCT_PHOTOS - images.length))]);
   }
 
   // Uploads run in the background (background-upload.ts) and survive this
@@ -91,7 +93,9 @@ export function MediaSection({
     // kept only the last one: each call overwrote the previous call's
     // pending update rather than building on it. One batched addUrls call
     // adds every preview from this pick at once.
-    const started = files.map((file) => ({
+    // Only as many as fit: a file past the cap is never uploaded at all.
+    const room = Math.max(0, MAX_PRODUCT_PHOTOS - imagesRef.current.length);
+    const started = files.slice(0, room).map((file) => ({
       file,
       ...startBackgroundUpload(file, "product-image", "product photo"),
     }));
@@ -133,6 +137,7 @@ export function MediaSection({
       {filePicker.node}
 
       <ImageGallery
+        max={MAX_PRODUCT_PHOTOS}
         images={images}
         onReorder={applyImages}
         onRemove={(url) => applyImages(images.filter((u) => u !== url))}

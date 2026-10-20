@@ -1,3 +1,4 @@
+import { MAX_CAROUSEL_ITEMS } from "@/lib/media-limits";
 import { createFileRoute } from "@tanstack/react-router";
 import { getRequestUser } from "@/lib/server-auth";
 import { isOwnPostMediaUrl } from "@/lib/post-media-url";
@@ -41,7 +42,7 @@ import { isOwnPostMediaUrl } from "@/lib/post-media-url";
  * post_media exists. See the migration for the expand/contract plan.
  */
 
-const MAX_ITEMS = 10;
+const MAX_ITEMS = MAX_CAROUSEL_ITEMS;
 const MAX_AUDIO_NAME_LENGTH = 120;
 
 /** Bunny serves what it is given, so the stored extension is what decides

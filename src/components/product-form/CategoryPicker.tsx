@@ -185,10 +185,15 @@ export function CategoryPicker({
       className="sheet-column bg-white flex flex-col animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
     >
       <div className="sticky top-0 z-20 shrink-0 bg-white/95 backdrop-blur border-b border-gray-200 px-4 h-14 flex items-center gap-3">
-        <button onClick={goBack} className="p-2 -ml-2" type="button" aria-label="Back">
-          <ChevronLeft size={24} className="text-gray-950" />
+        <button
+          onClick={goBack}
+          className="-ml-1 grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gray-100 transition-transform duration-150 active:scale-95 active:bg-gray-200"
+          type="button"
+          aria-label="Back"
+        >
+          <ChevronLeft size={22} className="text-gray-950" />
         </button>
-        <span className="font-semibold text-[16px] text-gray-950 flex-1 text-center -ml-8">
+        <span className="font-semibold text-[16px] text-gray-950 flex-1 text-center -ml-12">
           {current.name}
         </span>
       </div>

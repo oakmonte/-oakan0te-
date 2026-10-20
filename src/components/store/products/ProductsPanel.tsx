@@ -318,6 +318,14 @@ export function ProductsPanel({ checklist }: { checklist?: boolean }) {
         </div>
       </div>
 
+      {/* How many products this view holds: the store's total on All, the
+          filter's or search's count otherwise. */}
+      {!listLoading && products.length > 0 && (
+        <p className="-mt-3 mb-3 text-[13px] text-sd-ink-muted">
+          {products.length} product{products.length === 1 ? "" : "s"}
+        </p>
+      )}
+
       {listLoading ? (
         <div className="text-[14px] text-sd-ink-faint text-center py-12">Loading…</div>
       ) : products.length === 0 ? (
