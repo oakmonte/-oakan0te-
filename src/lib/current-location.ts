@@ -7,6 +7,8 @@ import { requestPostalCodeNear } from "@/lib/places-google";
 export type HereAddress = {
   address: string | null;
   line1: string | null;
+  /** The exact building, when line 1 is the place it's inside. */
+  line2?: string | null;
   city: string | null;
   state: string | null;
   country: string | null;

@@ -43,6 +43,8 @@ async function osmPostcode(lat: number, lng: number): Promise<string | null> {
 type Geocoded = {
   address: string | null;
   line1: string | null;
+  /** The exact building, when line 1 is the place it's inside. */
+  line2?: string | null;
   city: string | null;
   state: string | null;
   country: string | null;
@@ -54,7 +56,9 @@ type Geocoded = {
 // storage at 30 days, so older rows are treated as missing and overwritten.
 // Not in the generated types yet, hence the loose client.
 const CACHE_DAYS = 30;
-const cacheKey = (lat: number, lng: number) => `${lat.toFixed(4)},${lng.toFixed(4)}`;
+// The v2 prefix retired rows saved before line 1 stopped naming inner
+// buildings ("Esther Hall G Wing" instead of the campus it's in).
+const cacheKey = (lat: number, lng: number) => `v2:${lat.toFixed(4)},${lng.toFixed(4)}`;
 const cacheTable = () => (supabaseAdmin as unknown as SupabaseClient).from("geocode_cache");
 
 async function cached(key: string): Promise<Geocoded | null> {
@@ -95,6 +99,7 @@ async function lookup(lat: number, lng: number): Promise<Geocoded | null> {
     return {
       address: google.formatted || null,
       line1: google.line1 || null,
+      line2: google.landmark || null,
       city: google.city || null,
       state: google.state || null,
       country: google.country || null,
