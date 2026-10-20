@@ -11,7 +11,7 @@ export const Route = createFileRoute("/store/collections")({
 
 function StoreCollections() {
   return (
-    <div className="px-4 py-5 pb-24 md:mx-auto md:max-w-xl">
+    <div className="px-4 py-5 pb-24">
       {/* CollectionsPanel itself has no heading -- when it's embedded as a
           tab on /store/products, the tab label already says "Collections".
           A direct visit here (QuickActions, an old bookmark) has no tab bar

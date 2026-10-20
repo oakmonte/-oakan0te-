@@ -38,8 +38,7 @@ function StoreProducts() {
   const indicatorX = useTransform(pagerX, (v) => (pageWidth ? (-v / pageWidth) * slotWidth : 0));
 
   return (
-    // Desktop: the same ~36rem column as the product-form sheets; phones full width.
-    <div className="pt-5 pb-24 md:mx-auto md:max-w-xl">
+    <div className="pt-5 pb-24">
       {/* Sticks under the dashboard's 56px header; the panels' own filters
           stick under this, so only the lists scroll. */}
       <div className="sticky top-14 z-20 flex border-b border-sd-line bg-sd-bg px-4">
