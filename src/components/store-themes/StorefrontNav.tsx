@@ -91,7 +91,9 @@ export function StorefrontNav({
       {/* Fixed rather than in the flow so one component serves every tab;
           PublicStorefront leaves a matching 64px spacer under it. */}
       <header
-        className="fixed inset-x-0 top-0 z-40 hidden border-b backdrop-blur-md md:block"
+        // Switched off 2026-10-20: desktop uses the phone layout's glass pill
+        // (below, wider) instead. Put md:block back to bring the bar back.
+        className="fixed inset-x-0 top-0 z-40 hidden border-b backdrop-blur-md"
         style={{ background: barBg, borderColor: line, color: ink }}
       >
         <div className="mx-auto flex h-16 max-w-[1240px] items-center gap-6 px-8">
@@ -216,7 +218,7 @@ export function StorefrontNav({
       </header>
 
       <nav
-        className={`pointer-events-none fixed inset-x-0 bottom-0 flex items-center justify-between gap-3 px-4 md:hidden ${overPage ? "z-[91]" : "z-40"}`}
+        className={`pointer-events-none fixed inset-x-0 bottom-0 flex items-center justify-between gap-3 px-4 md:mx-auto md:max-w-[760px] ${overPage ? "z-[91]" : "z-40"}`}
         style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 12px)" }}
       >
         {preview ? (
@@ -244,7 +246,8 @@ export function StorefrontNav({
               onClick={() => onSelect(key)}
               aria-label={label}
               aria-current={active === key ? "page" : undefined}
-              className="relative grid h-full w-[62px] place-items-center"
+              // Wider tabs on a laptop: same pill, more room per tab.
+              className="relative grid h-full w-[62px] place-items-center md:w-[104px]"
             >
               {active === key && (
                 <motion.span

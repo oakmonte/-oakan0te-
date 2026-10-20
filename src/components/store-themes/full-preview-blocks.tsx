@@ -702,10 +702,11 @@ export function PhoneHeader({
 
   return (
     <>
-      {/* @3xl:hidden -- on a wide live storefront the logo and icons move to
-          StorefrontNav's top bar. Only fires inside PublicStorefront's
-          @container; the editor's phone frame has none. */}
-      <div className="flex items-start justify-between gap-3 px-4 py-3 @3xl:hidden">
+      {/* Every width now: the desktop top bar is switched off (Diadem prefers
+          the phone layout, the glass pill at the bottom just wider), so the
+          logo and icons stay here. On a wide storefront they sit in the same
+          centred 1240px column as the rest of the page. */}
+      <div className="flex items-start justify-between gap-3 px-4 py-3 @3xl:mx-auto @3xl:max-w-[1240px] @3xl:px-8">
         <div className="min-w-0">
           {logoMode === "text" ? (
             textLogo
@@ -775,7 +776,7 @@ export function PhoneHeader({
         {lockedBanner}
       </div>
       {live && searchOpen && (
-        <div className="px-4 pb-3 @3xl:hidden">
+        <div className="px-4 pb-3 @3xl:mx-auto @3xl:max-w-[1240px] @3xl:px-8">
           <div
             className="flex h-11 items-center gap-2 rounded-xl border px-3"
             style={{ borderColor: mutedColor, color: ink ?? "#fff" }}

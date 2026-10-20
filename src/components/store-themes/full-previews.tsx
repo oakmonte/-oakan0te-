@@ -1343,7 +1343,8 @@ export function PublicStorefront({
         {preview && <AnonymousBuyerBanner anonymous={buyer.anonymous} />}
         {/* From md up the nav is a fixed top bar (StorefrontNav), so every tab
           starts 64px down. Phones have no bar here: the pill sits at the bottom. */}
-        {!threadOpen && <div aria-hidden="true" className="hidden h-16 md:block" />}
+        {/* The top bar's spacer -- off with the bar (StorefrontNav). */}
+        {!threadOpen && <div aria-hidden="true" className="hidden h-16" />}
         {tab === "messages" ? (
           <div className="bg-chat-bg" style={{ minHeight: "100dvh" }}>
             <StorefrontMessages storeId={storeId} onThreadOpenChange={setThreadOpen} />
@@ -1353,7 +1354,7 @@ export function PublicStorefront({
           // sheet's height inside the website's storefront sheet. From md up the
           // 64px top bar (and its spacer) sits above, so the feed is that much
           // shorter: one screen minus the bar.
-          <div className="h-dvh max-h-full md:h-[calc(100dvh-4rem)]">
+          <div className="h-dvh max-h-full">
             <StorefrontFeed ownerId={ownerId} storePicture={storeLogo} />
           </div>
         ) : (
