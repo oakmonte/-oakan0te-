@@ -39,13 +39,13 @@ export function DetailsSection({
         onChange={(e) => setTitle(e.target.value)}
         placeholder="Product title"
         autoFocus
-        className="w-full text-[28px] leading-tight font-semibold text-gray-900 placeholder:text-gray-600 outline-none pt-3 pb-6 border-b border-gray-100"
+        className="w-full text-[28px] leading-tight font-semibold text-gray-900 placeholder:text-gray-600 outline-none pt-3 pb-6 border-b border-gray-300"
       />
 
       <button
         type="button"
         onClick={onOpenDescription}
-        className="w-full flex items-center justify-between py-4 border-b border-gray-100 text-left"
+        className="w-full flex items-center justify-between py-4 border-b border-gray-300 text-left"
       >
         <span className="flex items-center gap-3 text-[15px] text-gray-900">
           {hasDescription ? (
@@ -61,7 +61,7 @@ export function DetailsSection({
       <button
         type="button"
         onClick={onOpenCategoryPicker}
-        className={`w-full flex items-center justify-between py-4 ${showPrice ? "border-b border-gray-100" : ""}`}
+        className={`w-full flex items-center justify-between py-4 ${showPrice ? "border-b border-gray-300" : ""}`}
       >
         <span className="flex items-center gap-3 text-[15px] text-gray-900">
           {categoryLabel ? (

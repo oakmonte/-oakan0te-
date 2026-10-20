@@ -239,7 +239,7 @@ function NewCollection() {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Collection title"
-            className="w-full text-[28px] leading-tight font-semibold text-sd-ink placeholder:text-sd-ink-muted outline-none pt-3 pb-6 border-b border-sd-line"
+            className="w-full text-[28px] leading-tight font-semibold text-sd-ink placeholder:text-sd-ink-muted outline-none pt-3 pb-6 border-b border-sd-ink/25"
           />
 
           <button
