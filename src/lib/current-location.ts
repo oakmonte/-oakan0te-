@@ -13,7 +13,20 @@ export type HereAddress = {
   state: string | null;
   country: string | null;
   postalCode: string | null;
+  /** Named places around the pin, for the person to pick from. */
+  nearby?: NearbyPlace[];
 };
+
+export type NearbyPlace = { placeId: string; name: string; secondary: string };
+
+/** A nearby place picked from the list as line 1: Places gives a point of
+ *  interest's street address without its name ("KM 10 Idiroko Rd"), and the
+ *  name is what a rider looks for ("Covenant University, KM 10 Idiroko Rd"). */
+export function placeLine1(name: string, line1: string) {
+  return line1.toLowerCase().includes(name.toLowerCase())
+    ? line1
+    : [name, line1].filter(Boolean).join(", ");
+}
 
 /** The device's most precise position, without waiting for precision that
  *  isn't coming. Watches the precise (GPS) reading and keeps the best one;

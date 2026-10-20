@@ -11,7 +11,14 @@ import {
 } from "@/lib/region-data";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { authedFetch } from "@/lib/authed-fetch";
-import { addressAt, getPosition, locationErrorMessage } from "@/lib/current-location";
+import {
+  addressAt,
+  getPosition,
+  locationErrorMessage,
+  placeLine1,
+  type NearbyPlace,
+} from "@/lib/current-location";
+import { NearbyPlacesPicker } from "@/components/NearbyPlacesPicker";
 import { ListPicker } from "./ListPicker";
 
 /** What is being bought, in the shape /api/shipping/rates and /api/orders read
@@ -72,6 +79,12 @@ export function DeliveryCheckout({
   const [phone, setPhone] = useState("");
   const [addressLine, setAddressLine] = useState("");
   const [addressLine2, setAddressLine2] = useState("");
+  // After locating: places around the pin to pick from, the spot the
+  // lookup named (it moves to line 2 on a pick), and the line 2 filled
+  // automatically (so a pick never overwrites what the buyer typed).
+  const [nearby, setNearby] = useState<NearbyPlace[]>([]);
+  const [spot, setSpot] = useState("");
+  const [autoLine2, setAutoLine2] = useState("");
   const [country, setCountry] = useState("Nigeria");
   const [countryCode, setCountryCode] = useState(() => countryCodeForName("Nigeria"));
   const [stateName, setStateName] = useState("");
@@ -143,6 +156,18 @@ export function DeliveryCheckout({
     if (a.lat != null && a.lng != null) setCoords({ lat: a.lat, lng: a.lng });
   }
 
+  // A place picked from the nearby list: its address on line 1, the precise
+  // spot on line 2, and the GPS pin kept rather than the place's own point.
+  function pickNearby(a: PickedAddress, p: NearbyPlace) {
+    const line1 = placeLine1(p.name, a.line1);
+    applyPicked({ ...a, line1, lat: null, lng: null });
+    if (!addressLine2.trim() || addressLine2 === autoLine2) {
+      const line2 = spot && !line1.includes(spot) ? spot : "";
+      setAddressLine2(line2);
+      setAutoLine2(line2);
+    }
+  }
+
   async function locateMe() {
     if (!("geolocation" in navigator)) {
       setError("Location isn't available on this device. Type your address instead.");
@@ -167,7 +192,12 @@ export function DeliveryCheckout({
           setStateCode(match?.code ?? "");
         }
         if (body.line1) setAddressLine(body.line1);
-        if (body.line2) setAddressLine2(body.line2);
+        if (body.line2) {
+          setAddressLine2(body.line2);
+          setAutoLine2(body.line2);
+        }
+        setNearby(body.nearby ?? []);
+        setSpot(body.line1 ?? "");
         if (body.city) setCity(body.city);
         if (body.postalCode) setPostalCode(body.postalCode);
         if (!body.line1) setError("Check the details below and add your street and house number.");
@@ -380,6 +410,7 @@ export function DeliveryCheckout({
             <LocateFixed size={18} />
             {locating ? "Finding you…" : "Use my current location"}
           </button>
+          {nearby.length > 0 && <NearbyPlacesPicker places={nearby} onPick={pickNearby} />}
           <AddressAutocomplete
             className={`${field} w-full ${bad(!addressLineOk(addressLine))}`}
             placeholder="Address line 1"
