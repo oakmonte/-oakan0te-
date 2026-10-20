@@ -1,3 +1,4 @@
+import { StatusToggle } from "@/components/product-form/StatusPicker";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { NECESSITIES_ENABLED, TAGS_ENABLED } from "@/lib/product-form-flags";
 import { sellerEntryFromCharged } from "@/lib/pricing-fees";
@@ -1371,30 +1372,7 @@ function EditProduct() {
 
       <div className="mx-4 mt-4 rounded-3xl border border-gray-300 bg-white p-4">
         <p className="text-[15px] font-semibold text-sd-ink mb-3">Product Status</p>
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={() => setStatus("active")}
-            className={`flex-1 text-center rounded-xl py-3.5 text-sm font-medium border oak-motion-surface ${
-              status === "active"
-                ? "border-sd-ink bg-sd-elevated text-sd-ink"
-                : "border-sd-line text-sd-ink-muted"
-            }`}
-          >
-            Active
-          </button>
-          <button
-            type="button"
-            onClick={() => setStatus("draft")}
-            className={`flex-1 text-center rounded-xl py-3.5 text-sm font-medium border oak-motion-surface ${
-              status === "draft"
-                ? "border-sd-ink bg-sd-elevated text-sd-ink"
-                : "border-sd-line text-sd-ink-muted"
-            }`}
-          >
-            Inactive
-          </button>
-        </div>
+        <StatusToggle value={status} onChange={setStatus} />
       </div>
 
       <div className="px-4 pt-4">
@@ -1402,7 +1380,7 @@ function EditProduct() {
           type="button"
           onClick={handleSave}
           disabled={saving || !storeId}
-          className="w-full bg-sd-ink text-sd-bg text-sm font-semibold rounded-full py-4 disabled:opacity-50 oak-motion-control active:scale-[0.98]"
+          className="mx-auto block w-full md:max-w-sm bg-sd-ink text-sd-bg text-sm font-semibold rounded-full py-3.5 disabled:opacity-50 oak-motion-control active:scale-[0.98]"
         >
           {saving ? "Saving…" : "Save changes"}
         </button>
