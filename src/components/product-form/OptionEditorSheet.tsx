@@ -634,7 +634,7 @@ export function OptionEditorSheet({
   return (
     <PageSheet
       onClose={onClose}
-      className="bg-white flex flex-col animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
+      className="sheet-column bg-white flex flex-col animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
     >
       <div className="sticky top-0 z-20 shrink-0 z-10 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
         <button onClick={onClose} type="button" className="text-sm text-gray-500">
@@ -654,7 +654,7 @@ export function OptionEditorSheet({
       <div className="flex-1 overflow-y-auto px-4 py-5">
         {/* A readable column on a wide screen, not cards and buttons stretched
             edge to edge. */}
-        <div className="md:max-w-xl md:mx-auto">
+        <div>
           <input
             ref={nameInputRef}
             value={name}

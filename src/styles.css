@@ -1244,3 +1244,15 @@ body.oak-page-sheet-open [data-app-root] {
     animation: none;
   }
 }
+
+/* Full-screen product-form and location sheets on a wide screen: content,
+   header controls and footers line up in one centred ~36rem column, while
+   the sheet's background and the header's divider still span the screen.
+   Padding rather than max-width, so the scroll area stays full width (the
+   wheel works over the margins). Phones never reach this; overlays inside a
+   sheet (.fixed/.absolute) are left alone. */
+@media (min-width: 768px) {
+  .sheet-column > :not(.fixed):not(.absolute) {
+    padding-inline: max(1rem, calc((100% - 36rem) / 2));
+  }
+}

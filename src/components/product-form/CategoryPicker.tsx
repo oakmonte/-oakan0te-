@@ -182,7 +182,7 @@ export function CategoryPicker({
   return (
     <PageSheet
       onClose={goBack}
-      className="bg-white flex flex-col animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
+      className="sheet-column bg-white flex flex-col animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
     >
       <div className="sticky top-0 z-20 shrink-0 bg-white/95 backdrop-blur border-b border-gray-200 px-4 h-14 flex items-center gap-3">
         <button onClick={goBack} className="p-2 -ml-2" type="button" aria-label="Back">
@@ -315,7 +315,7 @@ function CreateCategorySheet({
   return (
     <PageSheet
       onClose={onCancel}
-      className="bg-white flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-[var(--duration-fast)] ease-[var(--ease-smooth-out)]"
+      className="sheet-column bg-white flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-[var(--duration-fast)] ease-[var(--ease-smooth-out)]"
     >
       <div className="sticky top-0 z-20 shrink-0 border-b border-gray-200 px-4 h-14 flex items-center">
         <button type="button" onClick={onCancel} className="text-[15px] text-gray-700 py-2 pr-2">
