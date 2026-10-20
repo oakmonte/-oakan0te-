@@ -127,7 +127,7 @@
     --sd-surface: #ffffff;
     --sd-elevated: #f7f8fa;
     --sd-soft: #f4f5f7;
-    --sd-line: rgba(10, 10, 10, 0.1);
+    --sd-line: rgba(10, 10, 10, 0.18);
     /* The landing page's 2px black card border. Reserved for ONE surface (the
        Total sales hero) -- see the note in the dashboard components. */
     --sd-line-strong: #0a0a0a;
@@ -188,10 +188,10 @@
       --sd-surface: #101215;
       --sd-elevated: #1c1e22;
       --sd-soft: #2a2d33;
-      --sd-line: rgba(255, 255, 255, 0.12);
+      --sd-line: rgba(255, 255, 255, 0.3);
       /* A 2px #0A0A0A border is invisible on black, so the hero keeps its
          weight here through a lighter edge AND a lifted surface. */
-      --sd-line-strong: rgba(255, 255, 255, 0.22);
+      --sd-line-strong: rgba(255, 255, 255, 0.5);
       --sd-hero-bg: #1c1e22;
       --sd-card-dark: #1c1e22;
 
