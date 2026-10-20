@@ -143,54 +143,59 @@ export function StorefrontFeed({
             storePicture={storePicture}
           />
         </div>
-        <div
-          className={`h-full [&_.overflow-y-auto]:touch-pan-y ${
-            wide ? "flex flex-col border-l border-white/10 pl-8" : ""
-          }`}
-          style={wide ? { width: "min(420px, 34vw)" } : { width: `${100 / TABS.length}%` }}
-        >
-          {wide && (
-            <p className="shrink-0 pb-3 pt-6 text-[15px] font-semibold text-white/90">
-              Listed items
-            </p>
-          )}
-          <div className={wide ? "min-h-0 flex-1" : "h-full w-full"}>
-            {items.length === 0 ? (
-              <div className="flex h-full w-full items-center justify-center px-10 text-center">
-                <p className="text-[15px] font-semibold text-white/70">No linked products</p>
-              </div>
-            ) : items.length === 1 ? (
-              // One linked piece: its product page, right here. The list is
-              // for posts that link several.
-              <div className={`h-full w-full ${wide ? "" : "pt-14"}`}>
-                <ProductPage
-                  key={items[0].id}
-                  embedded
-                  // Wide: the panel is always on screen, so "on screen" can't be
-                  // what triggers the sales-locked notice -- it would pop up
-                  // over every video that links one piece. Buy and Make Offer
-                  // still show it when pressed.
-                  visible={!wide && tab === "listed-items"}
-                  tile={{
-                    id: items[0].id,
-                    title: items[0].title,
-                    photos: items[0].image ? [{ url: items[0].image, variant: 0 }] : [],
-                    variantCount: 1,
-                    price: items[0].price,
-                    compareAtPrice: null,
-                  }}
-                  look={FEED_LOOK}
-                  onClose={() => setTab("for-you")}
-                  onAction={() => setSalesLocked(true)}
-                />
-              </div>
-            ) : (
-              <div className={`h-full w-full ${wide ? "" : "pt-14"}`}>
-                <ListedItemsPage items={items} onOpen={setOpened} />
-              </div>
+        {/* Wide, with no post on screen yet (a store with no posts): no
+            Listed items panel -- an empty player beside an empty panel read as
+            a broken page. */}
+        {(!wide || activePost) && (
+          <div
+            className={`h-full [&_.overflow-y-auto]:touch-pan-y ${
+              wide ? "flex flex-col border-l border-white/10 pl-8" : ""
+            }`}
+            style={wide ? { width: "min(420px, 34vw)" } : { width: `${100 / TABS.length}%` }}
+          >
+            {wide && (
+              <p className="shrink-0 pb-3 pt-6 text-[15px] font-semibold text-white/90">
+                Listed items
+              </p>
             )}
+            <div className={wide ? "min-h-0 flex-1" : "h-full w-full"}>
+              {items.length === 0 ? (
+                <div className="flex h-full w-full items-center justify-center px-10 text-center">
+                  <p className="text-[15px] font-semibold text-white/70">No linked products</p>
+                </div>
+              ) : items.length === 1 ? (
+                // One linked piece: its product page, right here. The list is
+                // for posts that link several.
+                <div className={`h-full w-full ${wide ? "" : "pt-14"}`}>
+                  <ProductPage
+                    key={items[0].id}
+                    embedded
+                    // Wide: the panel is always on screen, so "on screen" can't be
+                    // what triggers the sales-locked notice -- it would pop up
+                    // over every video that links one piece. Buy and Make Offer
+                    // still show it when pressed.
+                    visible={!wide && tab === "listed-items"}
+                    tile={{
+                      id: items[0].id,
+                      title: items[0].title,
+                      photos: items[0].image ? [{ url: items[0].image, variant: 0 }] : [],
+                      variantCount: 1,
+                      price: items[0].price,
+                      compareAtPrice: null,
+                    }}
+                    look={FEED_LOOK}
+                    onClose={() => setTab("for-you")}
+                    onAction={() => setSalesLocked(true)}
+                  />
+                </div>
+              ) : (
+                <div className={`h-full w-full ${wide ? "" : "pt-14"}`}>
+                  <ListedItemsPage items={items} onOpen={setOpened} />
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </motion.div>
       {!wide && (
         <div
