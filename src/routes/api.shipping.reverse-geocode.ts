@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { getRequestUser } from "@/lib/server-auth";
 import { reverseGeocodeGoogle } from "@/lib/places.server";
+import { supabaseAdmin } from "@/lib/integrations/my-supabase/client.server";
 
 // "Use my current location" at checkout: turns coordinates into a readable
 // address. Server-side so the browser never calls Nominatim itself (their
@@ -38,6 +40,90 @@ async function osmPostcode(lat: number, lng: number): Promise<string | null> {
   }
 }
 
+type Geocoded = {
+  address: string | null;
+  line1: string | null;
+  city: string | null;
+  state: string | null;
+  country: string | null;
+  postalCode: string | null;
+};
+
+// Remembered lookups (geocode_cache): 4 decimals is a ~11 m square, close
+// enough that the street and postal code don't change. Google's terms cap
+// storage at 30 days, so older rows are treated as missing and overwritten.
+// Not in the generated types yet, hence the loose client.
+const CACHE_DAYS = 30;
+const cacheKey = (lat: number, lng: number) => `${lat.toFixed(4)},${lng.toFixed(4)}`;
+const cacheTable = () => (supabaseAdmin as unknown as SupabaseClient).from("geocode_cache");
+
+async function cached(key: string): Promise<Geocoded | null> {
+  const since = new Date(Date.now() - CACHE_DAYS * 86_400_000).toISOString();
+  const { data } = await cacheTable()
+    .select("result")
+    .eq("key", key)
+    .gte("created_at", since)
+    .maybeSingle()
+    .then(
+      (r) => r,
+      () => ({ data: null }),
+    );
+  return (data?.result as Geocoded | undefined) ?? null;
+}
+
+async function remember(key: string, result: Geocoded) {
+  // A failed write only costs the next tap a fresh lookup.
+  await cacheTable()
+    .upsert({ key, result, created_at: new Date().toISOString() })
+    .then(
+      ({ error }) => error && console.error("geocode cache write:", error.message),
+      () => {},
+    );
+}
+
+async function lookup(lat: number, lng: number): Promise<Geocoded | null> {
+  // Google first (much better on Nigerian streets); the free
+  // OpenStreetMap lookup below stays as the fallback.
+  const google = await reverseGeocodeGoogle(lat, lng).catch(() => null);
+  if (google) {
+    // Google often has no postal code for the pin; OpenStreetMap
+    // sometimes does, so ask it for just that before giving up.
+    if (!google.postalCode) google.postalCode = (await osmPostcode(lat, lng)) ?? "";
+    return {
+      address: google.formatted || null,
+      line1: google.line1 || null,
+      city: google.city || null,
+      state: google.state || null,
+      country: google.country || null,
+      postalCode: google.postalCode || null,
+    };
+  }
+  const res = await fetch(
+    `https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&lat=${lat}&lon=${lng}`,
+    {
+      headers: {
+        Accept: "application/json",
+        "User-Agent": "Oakmonte/1.0 (https://oakmonte.store)",
+      },
+    },
+  );
+  if (!res.ok) return null;
+  const data = (await res.json()) as {
+    display_name?: string;
+    address?: Record<string, string>;
+  };
+  const a = data.address ?? {};
+  const line1 = [a.house_number, a.road].filter(Boolean).join(" ");
+  return {
+    address: data.display_name ?? null,
+    line1: line1 || null,
+    city: a.city || a.town || a.village || a.suburb || a.county || null,
+    state: a.state || null,
+    country: a.country || null,
+    postalCode: a.postcode || null,
+  };
+}
+
 export const Route = createFileRoute("/api/shipping/reverse-geocode")({
   server: {
     handlers: {
@@ -63,52 +149,13 @@ export const Route = createFileRoute("/api/shipping/reverse-geocode")({
           return Response.json({ error: "Bad coordinates" }, { status: 400 });
         }
 
-        // Google first (much better on Nigerian streets); the free
-        // OpenStreetMap lookup below stays as the fallback.
-        const google = await reverseGeocodeGoogle(lat, lng).catch(() => null);
-        if (google) {
-          // Google often has no postal code for the pin; OpenStreetMap
-          // sometimes does, so ask it for just that before giving up.
-          if (!google.postalCode) google.postalCode = (await osmPostcode(lat, lng)) ?? "";
-          return Response.json(
-            {
-              address: google.formatted || null,
-              line1: google.line1 || null,
-              city: google.city || null,
-              state: google.state || null,
-              country: google.country || null,
-              postalCode: google.postalCode || null,
-            },
-            { headers: NO_STORE },
-          );
-        }
-        const res = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&lat=${lat}&lon=${lng}`,
-          {
-            headers: {
-              Accept: "application/json",
-              "User-Agent": "Oakmonte/1.0 (https://oakmonte.store)",
-            },
-          },
-        );
-        if (!res.ok) return Response.json({ address: null }, { headers: NO_STORE });
-        const data = (await res.json()) as {
-          display_name?: string;
-          address?: Record<string, string>;
-        };
-        const a = data.address ?? {};
-        const line1 = [a.house_number, a.road].filter(Boolean).join(" ");
-        return Response.json(
-          {
-            address: data.display_name ?? null,
-            line1: line1 || null,
-            city: a.city || a.town || a.village || a.suburb || a.county || null,
-            state: a.state || null,
-            country: a.country || null,
-            postalCode: a.postcode || null,
-          },
-          { headers: NO_STORE },
-        );
+        const key = cacheKey(lat, lng);
+        const hit = await cached(key);
+        if (hit) return Response.json(hit, { headers: NO_STORE });
+        const result = await lookup(lat, lng).catch(() => null);
+        if (!result) return Response.json({ address: null }, { headers: NO_STORE });
+        if (result.address) await remember(key, result);
+        return Response.json(result, { headers: NO_STORE });
       },
     },
   },
