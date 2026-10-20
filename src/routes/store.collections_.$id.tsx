@@ -266,7 +266,13 @@ function CollectionDetail() {
         </div>
       </div>
 
-      <div className="mx-4 mt-4 overflow-hidden rounded-2xl border border-sd-ink/25 bg-sd-surface">
+      {/* On a wide screen the photo card is a centred block rather than a
+          full-width strip, the same as the product form. */}
+      <div
+        className={`mx-4 mt-4 overflow-hidden rounded-2xl border border-sd-ink/25 bg-sd-surface md:mx-auto md:w-full md:max-w-md ${
+          collection.image_url ? "" : "md:h-[260px] md:flex md:flex-col md:justify-center"
+        }`}
+      >
         <MediaSection
           mainImageUrl={collection.image_url ?? ""}
           onChange={(url) => setCollection((c) => (c ? { ...c, image_url: url || null } : c))}

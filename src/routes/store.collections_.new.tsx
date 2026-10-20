@@ -217,7 +217,13 @@ function NewCollection() {
         </p>
       )}
 
-      <div className="mx-4 mt-4 rounded-2xl border border-sd-ink/25 bg-sd-surface overflow-hidden">
+      {/* On a wide screen the photo card is a centred block rather than a
+          full-width strip, the same as the product form. */}
+      <div
+        className={`mx-4 mt-4 rounded-2xl border border-sd-ink/25 bg-sd-surface overflow-hidden md:mx-auto md:w-full md:max-w-md ${
+          imageUrl ? "" : "md:h-[260px] md:flex md:flex-col md:justify-center"
+        }`}
+      >
         <MediaSection
           mainImageUrl={imageUrl}
           onChange={setImageUrl}
