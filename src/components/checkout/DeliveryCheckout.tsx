@@ -11,7 +11,7 @@ import {
 } from "@/lib/region-data";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { authedFetch } from "@/lib/authed-fetch";
-import { addressAt, getPosition } from "@/lib/current-location";
+import { addressAt, getPosition, locationErrorMessage } from "@/lib/current-location";
 import { ListPicker } from "./ListPicker";
 
 /** What is being bought, in the shape /api/shipping/rates and /api/orders read
@@ -172,12 +172,7 @@ export function DeliveryCheckout({
         if (!body.line1) setError("Check the details below and add your street and house number.");
       }
     } catch (e) {
-      const denied = (e as GeolocationPositionError)?.code === 1;
-      setError(
-        denied
-          ? "Location access was denied. Type your address instead."
-          : "Couldn't get your location. Type your address instead.",
-      );
+      setError(locationErrorMessage(e));
     } finally {
       setLocating(false);
     }
