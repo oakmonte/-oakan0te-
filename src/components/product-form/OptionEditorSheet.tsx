@@ -652,115 +652,118 @@ export function OptionEditorSheet({
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-5">
-        <input
-          ref={nameInputRef}
-          value={name}
-          onChange={(e) => renameName(e.target.value)}
-          placeholder="Option name e.g size, colour... etc"
-          autoFocus={!initialName}
-          className="w-full text-lg font-medium text-gray-900 border border-gray-400 rounded-xl px-4 py-4 outline-none focus:border-gray-400 mb-3"
-        />
-        <div className="flex flex-wrap gap-2">
-          {allPills.map((p) => {
-            // Tapping an already-defined name now *edits* it rather than being
-            // blocked, so the only hard stop is the option cap itself.
-            const disabled =
-              (nameLocked && p !== name) || (atCap && !definedNames.includes(p) && p !== name);
-            // Black fill means values are actually saved for this name — not
-            // just that it's the one currently open. Being open with nothing
-            // confirmed yet only gets a blue outline, so the seller can tell
-            // "editing" apart from "done" at a glance.
-            const isConfirmed = confirmedByName[p] ?? false;
-            const isActive = name === p && !isConfirmed;
-            return (
-              <button
-                key={p}
-                type="button"
-                disabled={disabled}
-                onClick={() => selectName(p)}
-                className={`px-3 py-1.5 rounded-full text-sm border ${
-                  isConfirmed
-                    ? "bg-black text-white border-black"
-                    : isActive
-                      ? "bg-white text-gray-900 border-blue-500"
-                      : disabled
-                        ? "bg-white text-gray-300 border-gray-100"
-                        : "bg-white text-gray-700 border-gray-400"
-                }`}
-              >
-                {p}
-              </button>
-            );
-          })}
-        </div>
+        {/* A readable column on a wide screen, not cards and buttons stretched
+            edge to edge. */}
+        <div className="md:max-w-xl md:mx-auto">
+          <input
+            ref={nameInputRef}
+            value={name}
+            onChange={(e) => renameName(e.target.value)}
+            placeholder="Option name e.g size, colour... etc"
+            autoFocus={!initialName}
+            className="w-full text-lg font-medium text-gray-900 border border-gray-400 rounded-xl px-4 py-4 outline-none focus:border-gray-400 mb-3"
+          />
+          <div className="flex flex-wrap gap-2">
+            {allPills.map((p) => {
+              // Tapping an already-defined name now *edits* it rather than being
+              // blocked, so the only hard stop is the option cap itself.
+              const disabled =
+                (nameLocked && p !== name) || (atCap && !definedNames.includes(p) && p !== name);
+              // Black fill means values are actually saved for this name — not
+              // just that it's the one currently open. Being open with nothing
+              // confirmed yet only gets a blue outline, so the seller can tell
+              // "editing" apart from "done" at a glance.
+              const isConfirmed = confirmedByName[p] ?? false;
+              const isActive = name === p && !isConfirmed;
+              return (
+                <button
+                  key={p}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => selectName(p)}
+                  className={`px-3 py-1.5 rounded-full text-sm border ${
+                    isConfirmed
+                      ? "bg-black text-white border-black"
+                      : isActive
+                        ? "bg-white text-gray-900 border-blue-500"
+                        : disabled
+                          ? "bg-white text-gray-300 border-gray-100"
+                          : "bg-white text-gray-700 border-gray-400"
+                  }`}
+                >
+                  {p}
+                </button>
+              );
+            })}
+          </div>
 
-        {name && (
-          <>
-            {/* Hard break between naming the option and choosing its values. */}
-            <div className="-mx-4 h-2 bg-gray-50 my-6" />
+          {name && (
+            <>
+              {/* Hard break between naming the option and choosing its values. */}
+              <div className="-mx-4 h-2 bg-gray-50 my-6" />
 
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-[15px] font-semibold text-gray-900">Values</p>
-              {values.length > 0 && (
-                <span className="text-xs text-gray-400">{values.length} selected</span>
-              )}
-            </div>
-
-            {chosen.length > 0 && (
-              <div className="flex flex-col gap-2 mb-3">
-                {chosen.map((v) => (
-                  <ValueRow
-                    key={v}
-                    label={v}
-                    selected
-                    swatch={isColorOption ? <ColorSwatch name={v} /> : null}
-                    onToggle={() => toggleValue(v)}
-                    onRemove={() => removeValue(v)}
-                  />
-                ))}
-
-                {/* Demarcation between what's chosen and what's still pickable — also
-                  the checkpoint a seller must clear before switching option names. */}
-                {hasChosen && (
-                  <div className="flex items-center gap-2 pt-1 pb-4">
-                    <button
-                      type="button"
-                      onClick={confirmValues}
-                      className="flex-1 bg-black text-white text-sm font-medium rounded-lg py-2.5"
-                    >
-                      {confirmed ? <Check size={16} className="mx-auto" /> : "Save"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={cancelValues}
-                      className="flex-1 border border-gray-400 text-sm font-medium text-gray-600 rounded-lg py-2.5"
-                    >
-                      Cancel
-                    </button>
-                  </div>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-[15px] font-semibold text-gray-900">Values</p>
+                {values.length > 0 && (
+                  <span className="text-xs text-gray-400">{values.length} selected</span>
                 )}
               </div>
-            )}
 
-            {isWeightVolume ? (
-              <>
-                {systems && (
-                  <div className="mb-3">
-                    <SystemMenu
-                      activeSystem={activeSystem}
-                      systemKeys={systemKeys}
-                      locked={systemsLocked}
-                      typeName="unit"
-                      open={systemMenuOpen}
-                      onToggle={() => setSystemMenuOpen((v) => !v)}
-                      onSelect={(key) => {
-                        setSelectedSystems((prev) => ({ ...prev, [name]: key }));
-                        setSystemMenuOpen(false);
-                      }}
+              {chosen.length > 0 && (
+                <div className="flex flex-col gap-2 mb-3">
+                  {chosen.map((v) => (
+                    <ValueRow
+                      key={v}
+                      label={v}
+                      selected
+                      swatch={isColorOption ? <ColorSwatch name={v} /> : null}
+                      onToggle={() => toggleValue(v)}
+                      onRemove={() => removeValue(v)}
                     />
-                  </div>
-                )}
-                {/* Digits only, unit appended as a fixed suffix rather than
+                  ))}
+
+                  {/* Demarcation between what's chosen and what's still pickable — also
+                  the checkpoint a seller must clear before switching option names. */}
+                  {hasChosen && (
+                    <div className="flex items-center gap-2 pt-1 pb-8 mb-8 border-b border-gray-300">
+                      <button
+                        type="button"
+                        onClick={confirmValues}
+                        className="flex-1 bg-black text-white text-sm font-medium rounded-lg py-2.5"
+                      >
+                        {confirmed ? <Check size={16} className="mx-auto" /> : "Save"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={cancelValues}
+                        className="flex-1 border border-gray-400 text-sm font-medium text-gray-600 rounded-lg py-2.5"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {isWeightVolume ? (
+                <>
+                  {systems && (
+                    <div className="mb-3">
+                      <SystemMenu
+                        activeSystem={activeSystem}
+                        systemKeys={systemKeys}
+                        locked={systemsLocked}
+                        typeName="unit"
+                        open={systemMenuOpen}
+                        onToggle={() => setSystemMenuOpen((v) => !v)}
+                        onSelect={(key) => {
+                          setSelectedSystems((prev) => ({ ...prev, [name]: key }));
+                          setSystemMenuOpen(false);
+                        }}
+                      />
+                    </div>
+                  )}
+                  {/* Digits only, unit appended as a fixed suffix rather than
                     live-mutated inside the input -- avoids cursor-position
                     fights while still reading as "275 g" as they type. The
                     Enter button below (not an icon inside the box) is how
@@ -768,117 +771,118 @@ export function OptionEditorSheet({
                     has no working Enter/Go key at all, so the keydown
                     handler below is a bonus for keyboards that do send one,
                     never the only way in. */}
-                <div className="flex items-center border border-gray-400 rounded-xl px-4 py-4 focus-within:border-gray-400">
+                  <div className="flex items-center border border-gray-400 rounded-xl px-4 py-4 focus-within:border-gray-400">
+                    <input
+                      value={numericDraft}
+                      onChange={(e) => {
+                        const digitsOnly = e.target.value.replace(/[^0-9.]/g, "");
+                        // Collapse to at most one decimal point -- a stray
+                        // second dot (easy to fat-finger on a decimal keypad)
+                        // would otherwise sit in the field looking normal.
+                        const firstDot = digitsOnly.indexOf(".");
+                        setNumericDraft(
+                          firstDot === -1
+                            ? digitsOnly
+                            : digitsOnly.slice(0, firstDot + 1) +
+                                digitsOnly.slice(firstDot + 1).replace(/\./g, ""),
+                        );
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          addNumericPoolValue();
+                        }
+                      }}
+                      inputMode="decimal"
+                      placeholder={`Write in the specific ${UNIT_LABEL_PLURAL[activeSystem] ?? activeSystem}`}
+                      className="flex-1 min-w-0 text-base outline-none bg-transparent"
+                    />
+                    {numericDraft && (
+                      <span className="text-base text-gray-400 shrink-0 ml-1">
+                        {UNIT_SUFFIX[activeSystem] ?? activeSystem}
+                      </span>
+                    )}
+                  </div>
+                  {numericDraft.trim() && (
+                    <button
+                      type="button"
+                      onClick={addNumericPoolValue}
+                      className="mt-2 w-full bg-black text-white text-sm font-medium rounded-xl py-3"
+                    >
+                      Enter
+                    </button>
+                  )}
+                </>
+              ) : (
+                <>
                   <input
-                    value={numericDraft}
-                    onChange={(e) => {
-                      const digitsOnly = e.target.value.replace(/[^0-9.]/g, "");
-                      // Collapse to at most one decimal point -- a stray
-                      // second dot (easy to fat-finger on a decimal keypad)
-                      // would otherwise sit in the field looking normal.
-                      const firstDot = digitsOnly.indexOf(".");
-                      setNumericDraft(
-                        firstDot === -1
-                          ? digitsOnly
-                          : digitsOnly.slice(0, firstDot + 1) +
-                              digitsOnly.slice(firstDot + 1).replace(/\./g, ""),
-                      );
-                    }}
+                    value={valueDraft}
+                    onChange={(e) => setValueDraft(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         e.preventDefault();
-                        addNumericPoolValue();
+                        createValue();
                       }
                     }}
-                    inputMode="decimal"
-                    placeholder={`Write in the specific ${UNIT_LABEL_PLURAL[activeSystem] ?? activeSystem}`}
-                    className="flex-1 min-w-0 text-base outline-none bg-transparent"
+                    placeholder="Add or search a value"
+                    className="w-full text-[17px] border border-gray-500 rounded-2xl px-5 py-[22px] outline-none focus:border-gray-500"
                   />
-                  {numericDraft && (
-                    <span className="text-base text-gray-400 shrink-0 ml-1">
-                      {UNIT_SUFFIX[activeSystem] ?? activeSystem}
-                    </span>
+                  {systems && (
+                    <div className="mt-5 mb-1">
+                      <SystemMenu
+                        activeSystem={activeSystem}
+                        systemKeys={systemKeys}
+                        locked={systemsLocked}
+                        typeName={isWeightVolume ? "unit" : `${name.toLowerCase()} type`}
+                        open={systemMenuOpen}
+                        onToggle={() => setSystemMenuOpen((v) => !v)}
+                        onSelect={(key) => {
+                          setSelectedSystems((prev) => ({ ...prev, [name]: key }));
+                          setSystemMenuOpen(false);
+                        }}
+                      />
+                    </div>
                   )}
-                </div>
-                {numericDraft.trim() && (
+                </>
+              )}
+
+              <div className="flex flex-col gap-2 mt-3">
+                {canCreate && (
                   <button
                     type="button"
-                    onClick={addNumericPoolValue}
-                    className="mt-2 w-full bg-black text-white text-sm font-medium rounded-xl py-3"
+                    onClick={createValue}
+                    className="w-full flex items-center gap-3 border border-dashed border-gray-500 rounded-xl px-4 py-3.5 text-left"
                   >
-                    Enter
+                    <Plus size={18} className="text-gray-400 shrink-0" />
+                    <span className="text-[15px] text-gray-900">
+                      Add “<span className="font-medium">{query}</span>”
+                    </span>
                   </button>
                 )}
-              </>
-            ) : (
-              <>
-                <input
-                  value={valueDraft}
-                  onChange={(e) => setValueDraft(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      createValue();
-                    }
-                  }}
-                  placeholder="Add or search a value"
-                  className="w-full text-[17px] border border-gray-500 rounded-2xl px-5 py-[22px] outline-none focus:border-gray-500"
-                />
-                {systems && (
-                  <div className="mt-5 mb-1">
-                    <SystemMenu
-                      activeSystem={activeSystem}
-                      systemKeys={systemKeys}
-                      locked={systemsLocked}
-                      typeName={isWeightVolume ? "unit" : `${name.toLowerCase()} type`}
-                      open={systemMenuOpen}
-                      onToggle={() => setSystemMenuOpen((v) => !v)}
-                      onSelect={(key) => {
-                        setSelectedSystems((prev) => ({ ...prev, [name]: key }));
-                        setSystemMenuOpen(false);
-                      }}
-                    />
-                  </div>
+
+                {remaining.map((v) => (
+                  <ValueRow
+                    key={v}
+                    label={v}
+                    selected={false}
+                    swatch={isColorOption ? <ColorSwatch name={v} /> : null}
+                    onToggle={() => toggleValue(v)}
+                  />
+                ))}
+
+                {!canCreate && remaining.length === 0 && (
+                  <p className="text-sm text-gray-400 py-6 text-center">
+                    {query
+                      ? "No values match your search."
+                      : pool.length === 0 && chosen.length === 0
+                        ? "Type a value above to add your first one."
+                        : "You've added every preset value."}
+                  </p>
                 )}
-              </>
-            )}
-
-            <div className="flex flex-col gap-2 mt-3">
-              {canCreate && (
-                <button
-                  type="button"
-                  onClick={createValue}
-                  className="w-full flex items-center gap-3 border border-dashed border-gray-500 rounded-xl px-4 py-3.5 text-left"
-                >
-                  <Plus size={18} className="text-gray-400 shrink-0" />
-                  <span className="text-[15px] text-gray-900">
-                    Add “<span className="font-medium">{query}</span>”
-                  </span>
-                </button>
-              )}
-
-              {remaining.map((v) => (
-                <ValueRow
-                  key={v}
-                  label={v}
-                  selected={false}
-                  swatch={isColorOption ? <ColorSwatch name={v} /> : null}
-                  onToggle={() => toggleValue(v)}
-                />
-              ))}
-
-              {!canCreate && remaining.length === 0 && (
-                <p className="text-sm text-gray-400 py-6 text-center">
-                  {query
-                    ? "No values match your search."
-                    : pool.length === 0 && chosen.length === 0
-                      ? "Type a value above to add your first one."
-                      : "You've added every preset value."}
-                </p>
-              )}
-            </div>
-          </>
-        )}
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </PageSheet>
   );
