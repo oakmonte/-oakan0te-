@@ -5,6 +5,7 @@ import { useActiveStore, type OwnedStoreSummary } from "@/hooks/use-own-store";
 import { useFilePicker } from "@/hooks/use-file-picker";
 import { startBackgroundUpload, onBackgroundUploadDone } from "@/lib/background-upload";
 import { saveStoreLogoUrl, type StoreLogo } from "@/lib/store-logo";
+import { LogoEditor } from "@/components/store/LogoEditor";
 
 /** The top of the dashboard: who this store is, and the three things a seller
  *  most often wants to do with it.
@@ -31,6 +32,8 @@ export function IdentityBlock({
   const { stores, setActiveId } = useActiveStore();
   const [switcherOpen, setSwitcherOpen] = useState(false);
   const [logoNote, setLogoNote] = useState<string | null>(null);
+  // Picked, waiting in LogoEditor (crop + frame) before upload.
+  const [editFile, setEditFile] = useState<File | null>(null);
   const { node: fileInput, pick } = useFilePicker("image/*");
   const switcherRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -69,7 +72,10 @@ export function IdentityBlock({
       return;
     }
     const file = await pick();
-    if (!file) return;
+    if (file) setEditFile(file);
+  }
+
+  function uploadLogo(file: File) {
     setLogoNote(null);
     const previous = logoUrl;
     // The background uploader rather than local state: an upload owned by a
@@ -102,6 +108,16 @@ export function IdentityBlock({
   return (
     <header className="flex flex-col gap-4">
       {fileInput}
+      {editFile && (
+        <LogoEditor
+          file={editFile}
+          onCancel={() => setEditFile(null)}
+          onDone={(framed) => {
+            setEditFile(null);
+            uploadLogo(framed);
+          }}
+        />
+      )}
 
       <div className="flex items-center gap-3.5">
         {/* The whole 72px avatar is the button. The badge is decoration: a 28px

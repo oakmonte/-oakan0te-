@@ -4,6 +4,7 @@ import { Camera, Store, X } from "lucide-react";
 import { useOverlayHistory } from "@/hooks/use-overlay-history";
 import { startBackgroundUpload, onBackgroundUploadDone } from "@/lib/background-upload";
 import { saveStoreLogoUrl } from "@/lib/store-logo";
+import { LogoEditor } from "@/components/store/LogoEditor";
 
 /** The store's picture, full screen. The owner can change it from here.
  *
@@ -28,6 +29,8 @@ export function StoreLogoViewer({
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [note, setNote] = useState<string | null>(null);
+  // Picked, waiting in LogoEditor (crop + frame) before upload.
+  const [editFile, setEditFile] = useState<File | null>(null);
   useOverlayHistory(true, onClose);
 
   function pick(file: File) {
@@ -85,6 +88,16 @@ export function StoreLogoViewer({
       {canEdit && (
         <div className="px-6" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 28px)" }}>
           {note && <p className="mb-3 text-center text-[13.5px] text-red-400">{note}</p>}
+          {editFile && (
+            <LogoEditor
+              file={editFile}
+              onCancel={() => setEditFile(null)}
+              onDone={(framed) => {
+                setEditFile(null);
+                pick(framed);
+              }}
+            />
+          )}
           <input
             ref={inputRef}
             type="file"
@@ -93,7 +106,7 @@ export function StoreLogoViewer({
             onChange={(e) => {
               const file = e.target.files?.[0];
               e.target.value = "";
-              if (file) pick(file);
+              if (file) setEditFile(file);
             }}
           />
           <button
