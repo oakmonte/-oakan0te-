@@ -96,6 +96,11 @@ function ErrorComponent({ error: thrown, reset }: { error: unknown; reset: () =>
   );
 }
 
+// Reloads at most once every 30 s, so a page that's genuinely offline doesn't
+// loop. vite:preloadError is Vite's event for a route chunk (or its CSS) that
+// failed to load.
+const LOAD_FAILURE_RELOAD = `(function(){function r(){try{var k="oak-load-reload",t=+sessionStorage.getItem(k)||0;if(Date.now()-t<30000)return false;sessionStorage.setItem(k,String(Date.now()))}catch(e){return false}location.reload();return true}document.addEventListener("error",function(e){var t=e.target;if(t&&t.tagName==="LINK"&&t.rel==="stylesheet")r()},true);window.addEventListener("vite:preloadError",function(e){if(r())e.preventDefault()})})();`;
+
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   head: () => ({
     meta: [
@@ -274,6 +279,10 @@ function RootShell({ children }: { children: ReactNode }) {
             of them back the black status strip above a white screen that was
             fixed on 2026-09-16. Those routes, and the root's #000000 default
             for the dark screens, keep working exactly as before. */}
+        {/* Before any stylesheet: a page whose CSS or code fails to load
+            (a deploy replaced those files, or the connection dropped
+            mid-load) reloads once instead of sitting there as bare HTML. */}
+        <script dangerouslySetInnerHTML={{ __html: LOAD_FAILURE_RELOAD }} />
         {surface === "store" && (
           <>
             <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />

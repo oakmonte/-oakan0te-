@@ -140,16 +140,26 @@ async function cacheFirst(request, cacheName, max) {
 async function page(event, url) {
   const cache = await caches.open(PAGES);
   const key = url.origin + url.pathname + url.search;
+  let copy = null;
   const network = (async () => {
     const preloaded = await event.preloadResponse;
     const res = preloaded || (await fetch(event.request));
     if (res.ok && !res.redirected && isHtml(res)) {
+      copy = res.clone();
       await cache.put(key, res.clone());
       trim(cache, MAX_PAGES);
     }
     return res;
   })();
-  event.waitUntil(network.catch(() => {}));
+  // A saved page is only any use with its stylesheets: after a deploy the old
+  // ones are gone from the server, so a saved copy shown on a slow connection
+  // rendered as bare, unstyled HTML. Save them alongside the page.
+  event.waitUntil(
+    network
+      .then(() => copy && copy.text())
+      .then((html) => html && prime(stylesheetsIn(html)))
+      .catch(() => {}),
+  );
 
   let saved = await cache.match(key);
   if (!saved && url.pathname === SHELL_PATH) {
@@ -179,6 +189,12 @@ async function networkOrOffline(event) {
   } catch {
     return offlinePage();
   }
+}
+
+function stylesheetsIn(html) {
+  return [...html.matchAll(/["'(](\/assets\/[^"'()\s?#]+\.css)/g)].map(
+    (m) => new URL(m[1], self.location.origin).href,
+  );
 }
 
 function isHtml(res) {
