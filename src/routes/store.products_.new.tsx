@@ -553,7 +553,13 @@ function NewProduct() {
       {error && <p className="px-4 pt-3 text-sm text-sd-danger-ink">{error}</p>}
 
       {/* Photos get their own card, apart from the fields below. */}
-      <div className="mx-4 mt-4 rounded-3xl border border-gray-300 bg-white overflow-hidden">
+      {/* On a wide screen the photo card is a centred square-ish block rather
+          than a full-width strip; square outright while it's still empty. */}
+      <div
+        className={`mx-4 mt-4 rounded-3xl border border-gray-300 bg-white overflow-hidden md:mx-auto md:w-full md:max-w-md ${
+          mainImageUrl ? "" : "md:aspect-square md:flex md:flex-col md:justify-center"
+        }`}
+      >
         <MediaSection
           mainImageUrl={mainImageUrl}
           onChange={setMainImageUrl}
