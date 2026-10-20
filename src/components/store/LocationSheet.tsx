@@ -30,7 +30,7 @@ import {
 import { PageSheet } from "@/components/PageSheet";
 import { AddressAutocomplete, type PickedAddress } from "@/components/AddressAutocomplete";
 import { authedFetch } from "@/lib/authed-fetch";
-import { addressAt, getPosition } from "@/lib/current-location";
+import { addressAt, getPosition, locationErrorMessage } from "@/lib/current-location";
 import { LocationListPicker, type LocationListItem } from "./LocationListPicker";
 
 export type StoreLocationValues = {
@@ -242,13 +242,9 @@ export function LocationSheet({
         setLocating(false);
         setLocated(true);
       },
-      (err: GeolocationPositionError) => {
+      (err: unknown) => {
         setLocating(false);
-        setLocateError(
-          err?.code === 1
-            ? "Location access was denied — you can still fill this in by hand."
-            : "Couldn't get your location — you can still fill this in by hand.",
-        );
+        setLocateError(locationErrorMessage(err));
       },
     );
   }

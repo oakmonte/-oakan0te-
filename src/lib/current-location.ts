@@ -18,7 +18,9 @@ export type HereAddress = {
  *  seconds -- which on a laptop (no GPS, Wi-Fi only) is right after its first
  *  answer, where a one-shot precise request used to sit out its whole
  *  timeout. A coarse reading is asked for alongside, used only if the precise
- *  one fails or never arrives (indoors, GPS off). */
+ *  one fails or never arrives (indoors, GPS off) -- or, on a computer, shortly
+ *  after it lands: with no GPS, the "precise" reading is the same Wi-Fi fix,
+ *  just slower (Windows can take ~10 s), so waiting buys no accuracy. */
 export function getPosition(): Promise<GeolocationPosition> {
   return new Promise((resolve, reject) => {
     if (typeof navigator === "undefined" || !("geolocation" in navigator)) {
@@ -26,6 +28,11 @@ export function getPosition(): Promise<GeolocationPosition> {
       return;
     }
     const geo = navigator.geolocation;
+    // Phones and tablets have GPS; iPadOS reports itself as a Mac with touch.
+    const ua = navigator.userAgent;
+    const hasGps =
+      /Android|iPhone|iPad|iPod|Mobile/i.test(ua) ||
+      (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
     let precise: GeolocationPosition | null = null;
     let coarse: GeolocationPosition | null = null;
     let preciseFailed = false;
@@ -73,6 +80,7 @@ export function getPosition(): Promise<GeolocationPosition> {
         if (done) return;
         coarse = pos;
         if (preciseFailed) finish();
+        else if (!hasGps && !precise) settle = setTimeout(finish, 1500);
       },
       (err) => {
         if (done) return;
@@ -83,6 +91,18 @@ export function getPosition(): Promise<GeolocationPosition> {
       { enableHighAccuracy: false, maximumAge: 60_000, timeout: 12_000 },
     );
   });
+}
+
+/** What to tell someone when getPosition fails. */
+export function locationErrorMessage(err: unknown) {
+  const code = (err as { code?: number } | null)?.code;
+  if (code === 1) {
+    return "Location is blocked for this site. Allow it from the icon by the address bar, or fill this in by hand.";
+  }
+  if (code === 3) return "Finding your location took too long. Try again, or fill this in by hand.";
+  // POSITION_UNAVAILABLE: offline (a computer looks itself up from nearby
+  // Wi-Fi, online) or the device's own location setting is off.
+  return "Couldn't find your location. Check your internet connection and that Location is on in your device settings, then try again.";
 }
 
 const km = (a: [number, number], b: [number, number]) => {
