@@ -178,7 +178,7 @@ export function CollectionsPanel() {
           </button>
         </div>
       ) : (
-        <div className="flex flex-col gap-3 animate-in fade-in duration-300">
+        <div className="flex flex-col gap-3 animate-in fade-in duration-300 md:mx-auto md:max-w-xl">
           {shown.length === 0 && (
             <p className="text-[15px] text-sd-ink-faint text-center py-12">
               No {filter.toLowerCase()} collections.

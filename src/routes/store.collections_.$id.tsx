@@ -102,7 +102,37 @@ function CollectionDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [photosKey, collection?.id, storeId, id]);
 
-  // Saved on tap, like Add products below -- this page has no Save button.
+  // Save: everything here already saves as it changes, but a page without a
+  // Save button left sellers unsure anything had stuck. This stores what's
+  // still pending (a name being typed, photos inside their 400ms wait) and
+  // goes back.
+  const [saving, setSaving] = useState(false);
+  async function handleSave() {
+    if (!collection || !storeId || saving) return;
+    if (photos.some((u) => u.startsWith("blob:"))) {
+      setPhotosError("A photo is still uploading — give it a moment, then save.");
+      return;
+    }
+    setSaving(true);
+    await saveTitle();
+    if (photosKey !== savedPhotosKey.current) {
+      const [cover, ...rest] = photos;
+      const { error } = await supabase
+        .from("collections")
+        .update({ image_url: cover ?? null, additional_image_urls: rest.length > 0 ? rest : null })
+        .eq("id", id)
+        .eq("store_id", storeId);
+      if (error) {
+        setSaving(false);
+        setPhotosError("Couldn't save the photos — try again.");
+        return;
+      }
+      savedPhotosKey.current = photosKey;
+    }
+    navigate({ to: returnTo });
+  }
+
+  // Saved on tap, like Add products below.
   // Optimistic, rolled back if the write fails.
   async function handleStatusChange(next: "draft" | "active") {
     if (!collection || !storeId || collection.status === next) return;
@@ -240,32 +270,6 @@ function CollectionDetail() {
         <span className="w-6" />
       </div>
 
-      <div className="px-4 py-4 flex items-center gap-3 border-b-8 border-sd-line/50">
-        <div className="w-14 h-14 rounded-xl bg-sd-soft flex items-center justify-center overflow-hidden shrink-0">
-          {collection.image_url ? (
-            <img src={collection.image_url} alt="" className="w-full h-full object-cover" />
-          ) : (
-            <ImageIcon size={20} className="text-sd-ink-faint" />
-          )}
-        </div>
-        <div className="min-w-0 flex-1">
-          <input
-            value={titleDraft ?? collection.title}
-            onChange={(e) => setTitleDraft(e.target.value)}
-            onBlur={() => void saveTitle()}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") e.currentTarget.blur();
-            }}
-            aria-label="Collection name"
-            maxLength={80}
-            className="w-full bg-transparent text-lg font-semibold text-sd-ink outline-none border-b border-dashed border-sd-line focus:border-sd-ink pb-0.5"
-          />
-          <p className="text-xs text-sd-ink-muted">
-            {products?.length ?? 0} product{(products?.length ?? 0) === 1 ? "" : "s"}
-          </p>
-        </div>
-      </div>
-
       {/* On a wide screen the photo card is a centred block rather than a
           full-width strip, the same as the product form. */}
       <div
@@ -283,8 +287,27 @@ function CollectionDetail() {
           noDivider
         />
       </div>
-      {titleError && <p className="mx-4 mt-2 text-sm text-sd-danger-ink">{titleError}</p>}
       {photosError && <p className="mx-4 mt-2 text-sm text-sd-danger-ink">{photosError}</p>}
+
+      {/* The name, in its own card like the new-collection form. Saved when
+          the field loses focus (and by Save below). */}
+      <div className="mx-4 mt-4 rounded-2xl border border-sd-ink/25 bg-sd-surface px-4 py-4">
+        <label htmlFor="collection-name" className="text-xs font-medium text-sd-ink-muted">
+          Collection name
+        </label>
+        <input
+          id="collection-name"
+          value={titleDraft ?? collection.title}
+          onChange={(e) => setTitleDraft(e.target.value)}
+          onBlur={() => void saveTitle()}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") e.currentTarget.blur();
+          }}
+          maxLength={80}
+          className="mt-1 w-full bg-transparent text-[22px] font-semibold leading-tight text-sd-ink outline-none"
+        />
+      </div>
+      {titleError && <p className="mx-4 mt-2 text-sm text-sd-danger-ink">{titleError}</p>}
 
       <div className="px-4 pt-4">
         <StatusPicker
@@ -300,44 +323,66 @@ function CollectionDetail() {
         )}
       </div>
 
-      <div className="px-4 py-4">
-        <button
-          type="button"
-          onClick={() => setProductsSheetOpen(true)}
-          className="w-full flex items-center justify-center gap-2 border border-sd-line rounded-xl py-3 text-sm font-medium text-sd-ink oak-motion-control active:scale-[0.99]"
-        >
-          <Plus size={16} />
-          Add products
-        </button>
+      {/* The products in it: a titled card, rows split by lines, with a compact
+          Add button in its header instead of a full-width bar. */}
+      <div className="mx-4 mt-4 overflow-hidden rounded-2xl border border-sd-ink/25 bg-sd-surface">
+        <div className="flex items-center justify-between px-4 py-3.5">
+          <p className="text-[15px] font-semibold text-sd-ink">
+            Products
+            {products && products.length > 0 && (
+              <span className="ml-1.5 font-normal text-sd-ink-muted">{products.length}</span>
+            )}
+          </p>
+          <button
+            type="button"
+            onClick={() => setProductsSheetOpen(true)}
+            className="flex items-center gap-1.5 rounded-full border border-sd-ink/25 px-3.5 py-2 text-[13px] font-medium text-sd-ink oak-motion-control active:scale-[0.97]"
+          >
+            <Plus size={15} />
+            Add products
+          </button>
+        </div>
+        {products === null ? (
+          <div className="border-t border-sd-line py-10 text-center text-sm text-sd-ink-faint">
+            Loading…
+          </div>
+        ) : products.length === 0 ? (
+          <div className="border-t border-sd-line py-10 text-center text-sm text-sd-ink-faint animate-in fade-in duration-300">
+            No products in this collection yet.
+          </div>
+        ) : (
+          <div className="divide-y divide-sd-line border-t border-sd-line animate-in fade-in duration-300">
+            {products.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => navigate({ to: "/store/products/$id", params: { id: p.id } })}
+                className="flex w-full items-center gap-3 px-4 py-3 text-left active:bg-sd-soft"
+              >
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-sd-soft">
+                  {p.main_image_url ? (
+                    <img src={p.main_image_url} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <ImageIcon size={16} className="text-sd-ink-faint" />
+                  )}
+                </span>
+                <span className="truncate text-sm font-medium">{p.title ?? "Untitled"}</span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
-      {products === null ? (
-        <div className="text-sm text-sd-ink-faint text-center py-12">Loading…</div>
-      ) : products.length === 0 ? (
-        <div className="text-sm text-sd-ink-faint text-center py-12 animate-in fade-in duration-300">
-          No products in this collection yet.
-        </div>
-      ) : (
-        <div className="px-4 flex flex-col gap-3 animate-in fade-in duration-300">
-          {products.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              onClick={() => navigate({ to: "/store/products/$id", params: { id: p.id } })}
-              className="w-full flex items-center gap-3 border border-sd-line rounded-xl p-3 text-left oak-motion-control active:scale-[0.99]"
-            >
-              <span className="w-12 h-12 rounded-lg bg-sd-soft flex items-center justify-center overflow-hidden shrink-0">
-                {p.main_image_url ? (
-                  <img src={p.main_image_url} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <ImageIcon size={16} className="text-sd-ink-faint" />
-                )}
-              </span>
-              <span className="text-sm font-medium truncate">{p.title ?? "Untitled"}</span>
-            </button>
-          ))}
-        </div>
-      )}
+      <div className="px-4 pt-6">
+        <button
+          type="button"
+          onClick={() => void handleSave()}
+          disabled={saving}
+          className="mx-auto block w-full md:max-w-sm bg-sd-ink text-sd-bg text-sm font-semibold rounded-full py-3.5 disabled:opacity-50 oak-motion-control active:scale-[0.98]"
+        >
+          {saving ? "Saving…" : "Save"}
+        </button>
+      </div>
 
       {productsSheetOpen && storeId && (
         <ProductsSheet
