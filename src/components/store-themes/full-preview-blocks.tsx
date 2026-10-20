@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import productPlaceholder from "@/assets/Store theme placeholder images/Products and collection image placeholder.jpg";
 import { ThemeText } from "./EditableText";
+import { LogoEditor } from "@/components/store/LogoEditor";
 import { MAX_SLIDESHOW_IMAGES, type CropPosition, type ThemeEditingProps } from "./edit-types";
 import { formatCommunityCount, useStoreCommunityCounts } from "./useStoreCommunityCounts";
 import { useStorefrontCatalog, type PreviewTile, type TilePhoto } from "./storefront-catalog";
@@ -596,6 +597,8 @@ export function PhoneHeader({
   const live = useContext(LiveCtx) && !editing?.isEditing;
   const search = useContext(StorefrontSearchContext);
   const [searchOpen, setSearchOpen] = useState(false);
+  // A picked logo goes through LogoEditor (crop + frame) before upload.
+  const [logoFile, setLogoFile] = useState<File | null>(null);
   const { banner: lockedBanner, showLocked } = useLockedBanner();
   const navigate = useStorefrontNavigate();
   const logo = editing?.logoImage;
@@ -610,7 +613,7 @@ export function PhoneHeader({
 
   function handleFile(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (file) editing?.onLogoChange(file);
+    if (file) setLogoFile(file);
     e.target.value = "";
   }
 
@@ -640,17 +643,20 @@ export function PhoneHeader({
   // 56px tall with a 44px image (was 40 / 28 -- too small to read a real
   // logo). object-contain with a width cap rather than a cropped square, so
   // a wide wordmark shows whole instead of losing its ends.
+  // A logo is shown as-is, no chip around it: LogoEditor bakes its frame
+  // (shape, corners, background) into the picture. The chip is only the
+  // placeholder for a store with no logo yet.
   const imageChip = (
     <div
-      className={`relative flex h-14 min-w-14 items-center justify-center rounded-2xl px-1.5 ${chipClass}`}
-      style={chipStyle}
+      className={
+        logo
+          ? "relative flex h-14 items-center"
+          : `relative flex h-14 min-w-14 items-center justify-center rounded-2xl px-1.5 ${chipClass}`
+      }
+      style={logo ? undefined : chipStyle}
     >
       {logo ? (
-        <img
-          src={logo}
-          alt=""
-          className="h-11 w-auto min-w-11 max-w-[160px] rounded-lg object-contain"
-        />
+        <img src={logo} alt="" className="h-12 w-auto max-w-[200px] object-contain" />
       ) : (
         <span className="px-2 text-[20px] font-bold">{brandInitial}</span>
       )}
@@ -664,6 +670,16 @@ export function PhoneHeader({
 
   return (
     <>
+      {logoFile && (
+        <LogoEditor
+          file={logoFile}
+          onCancel={() => setLogoFile(null)}
+          onDone={(framed) => {
+            setLogoFile(null);
+            editing?.onLogoChange(framed);
+          }}
+        />
+      )}
       <div className="flex items-start justify-between gap-3 px-4 py-3">
         <div className="min-w-0">
           {logoMode === "text" ? (
