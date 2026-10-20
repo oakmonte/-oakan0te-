@@ -58,7 +58,7 @@ type Geocoded = {
 const CACHE_DAYS = 30;
 // The v2 prefix retired rows saved before line 1 stopped naming inner
 // buildings ("Esther Hall G Wing" instead of the campus it's in).
-const cacheKey = (lat: number, lng: number) => `v2:${lat.toFixed(4)},${lng.toFixed(4)}`;
+const cacheKey = (lat: number, lng: number) => `v3:${lat.toFixed(4)},${lng.toFixed(4)}`;
 const cacheTable = () => (supabaseAdmin as unknown as SupabaseClient).from("geocode_cache");
 
 async function cached(key: string): Promise<Geocoded | null> {
