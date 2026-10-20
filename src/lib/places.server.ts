@@ -102,5 +102,44 @@ export async function reverseGeocodeGoogle(lat: number, lng: number) {
         .flatMap((r) => r.address_components ?? [])
         .find((c) => c.types?.includes("postal_code"))?.long_name ?? "";
   }
+  // Geocoding still often has none where Places does (a typed-and-picked
+  // suggestion always comes back with one), so ask Places for the nearest
+  // places that carry a postal code.
+  if (!address.postalCode) address.postalCode = (await nearbyPostalCode(key, lat, lng)) ?? "";
   return { ...address, formatted: best.formatted_address ?? "" };
+}
+
+/** Postal code of the closest Places entries to the pin. Null on any failure;
+ *  the route still has the OpenStreetMap lookup after this. */
+async function nearbyPostalCode(key: string, lat: number, lng: number) {
+  try {
+    const res = await fetch("https://places.googleapis.com/v1/places:searchNearby", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Goog-Api-Key": key,
+        "X-Goog-FieldMask": "places.addressComponents",
+      },
+      body: JSON.stringify({
+        maxResultCount: 10,
+        rankPreference: "DISTANCE",
+        locationRestriction: { circle: { center: { latitude: lat, longitude: lng }, radius: 300 } },
+      }),
+      signal: AbortSignal.timeout(2500),
+    });
+    if (!res.ok) {
+      console.error("Places nearby failed:", res.status, await res.text().catch(() => ""));
+      return null;
+    }
+    const body = (await res.json().catch(() => null)) as {
+      places?: { addressComponents?: { longText?: string; types?: string[] }[] }[];
+    } | null;
+    return (
+      body?.places
+        ?.flatMap((p) => p.addressComponents ?? [])
+        .find((c) => c.types?.includes("postal_code"))?.longText ?? null
+    );
+  } catch {
+    return null;
+  }
 }
