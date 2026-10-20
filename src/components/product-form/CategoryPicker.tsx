@@ -291,6 +291,9 @@ function CreateCategorySheet({
 }) {
   const [name, setName] = useState(initialName);
   const [parent, setParent] = useState<CategoryNode | null>(initialParent);
+  // "Custom": belongs under none of the branches, so nothing branch-specific
+  // (like sizes) gets asked.
+  const [custom, setCustom] = useState(false);
   // The screen the seller came from stays on offer even when it's deeper
   // than the home branches (e.g. Tops, Jewelry).
   const parents =
@@ -298,14 +301,15 @@ function CreateCategorySheet({
       ? [initialParent, ...HOME_BRANCHES]
       : HOME_BRANCHES;
   const trimmed = name.trim();
-  const canSave = trimmed.length > 0 && parent !== null;
+  const canSave = trimmed.length > 0 && (parent !== null || custom);
 
   function save() {
-    if (!trimmed || !parent) return;
+    if (!canSave) return;
     // Typing a name that already exists picks the real category instead of
     // making a duplicate custom one.
     const existing = findCategoryByName(trimmed);
-    onCreate(existing ?? [...pathTo(parent), customCategoryNode(trimmed)]);
+    const branch = custom || !parent ? [] : pathTo(parent);
+    onCreate(existing ?? [...branch, customCategoryNode(trimmed)]);
   }
 
   return (
@@ -352,12 +356,15 @@ function CreateCategorySheet({
         </p>
         <div className="flex flex-col gap-2">
           {parents.map((p) => {
-            const selected = parent?.id === p.id;
+            const selected = !custom && parent?.id === p.id;
             return (
               <button
                 key={p.id}
                 type="button"
-                onClick={() => setParent(p)}
+                onClick={() => {
+                  setParent(p);
+                  setCustom(false);
+                }}
                 className={`${CARD} ${
                   selected
                     ? "bg-gray-50 border-black ring-1 ring-black"
@@ -375,6 +382,24 @@ function CreateCategorySheet({
               </button>
             );
           })}
+          <button
+            type="button"
+            onClick={() => setCustom(true)}
+            className={`${CARD} ${
+              custom
+                ? "bg-gray-50 border-black ring-1 ring-black"
+                : "bg-gray-50 border-gray-300 active:bg-gray-200"
+            }`}
+          >
+            <span className="flex-1 text-[16px] font-medium text-gray-950">Custom</span>
+            {custom ? (
+              <span className="w-5 h-5 rounded-full bg-black flex items-center justify-center shrink-0">
+                <Check size={13} strokeWidth={3} className="text-white" />
+              </span>
+            ) : (
+              <Radio />
+            )}
+          </button>
         </div>
       </div>
     </PageSheet>

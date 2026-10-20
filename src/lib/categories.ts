@@ -966,6 +966,9 @@ export const ROOT_CATEGORY: CategoryNode = {
 // drives necessities (e.g. Size for Clothing). Never part of ROOT_CATEGORY.
 const CUSTOM_PREFIX = "custom:";
 export const CUSTOM_CATEGORY_SEPARATOR = " › ";
+// A custom category the seller put under no branch at all ("Custom" in
+// New category): stored as "Custom › Waka" so it survives a reload too.
+const CUSTOM_ROOT_NAME = "Custom";
 
 export function customCategoryNode(name: string): CategoryNode {
   return { id: `${CUSTOM_PREFIX}${name.trim().toLowerCase()}`, name: name.trim() };
@@ -1000,9 +1003,8 @@ export function productTypeForPath(path: CategoryNode[]): string | null {
   const last = path.at(-1);
   if (!last) return null;
   const parent = path.at(-2);
-  return isCustomCategory(last) && parent
-    ? `${parent.name}${CUSTOM_CATEGORY_SEPARATOR}${last.name}`
-    : last.name;
+  if (!isCustomCategory(last)) return last.name;
+  return `${parent?.name ?? CUSTOM_ROOT_NAME}${CUSTOM_CATEGORY_SEPARATOR}${last.name}`;
 }
 
 // Inverse of productTypeForPath. Anything else unresolvable (a stale or
@@ -1013,7 +1015,10 @@ export function categoryPathFromProductType(productType: string): CategoryNode[]
   if (exact) return exact;
   const at = productType.indexOf(CUSTOM_CATEGORY_SEPARATOR);
   if (at === -1) return null;
-  const parent = findCategoryByName(productType.slice(0, at));
   const custom = productType.slice(at + CUSTOM_CATEGORY_SEPARATOR.length).trim();
+  if (productType.slice(0, at) === CUSTOM_ROOT_NAME) {
+    return custom ? [customCategoryNode(custom)] : null;
+  }
+  const parent = findCategoryByName(productType.slice(0, at));
   return parent && custom ? [...parent, customCategoryNode(custom)] : null;
 }
