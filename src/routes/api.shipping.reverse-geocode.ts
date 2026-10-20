@@ -68,7 +68,10 @@ async function cached(key: string): Promise<Geocoded | null> {
       (r) => r,
       () => ({ data: null }),
     );
-  return (data?.result as Geocoded | undefined) ?? null;
+  const hit = (data?.result as Geocoded | undefined) ?? null;
+  // A remembered miss on the postal code gets another go instead of being
+  // served for a month; the fresh lookup overwrites it.
+  return hit?.postalCode ? hit : null;
 }
 
 async function remember(key: string, result: Geocoded) {
@@ -154,7 +157,7 @@ export const Route = createFileRoute("/api/shipping/reverse-geocode")({
         if (hit) return Response.json(hit, { headers: NO_STORE });
         const result = await lookup(lat, lng).catch(() => null);
         if (!result) return Response.json({ address: null }, { headers: NO_STORE });
-        if (result.address) await remember(key, result);
+        if (result.address && result.postalCode) await remember(key, result);
         return Response.json(result, { headers: NO_STORE });
       },
     },
