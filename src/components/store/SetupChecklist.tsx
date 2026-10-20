@@ -293,7 +293,7 @@ export function SetupChecklist({ status }: { status: StoreSetupStatus }) {
               <div
                 key={i}
                 aria-hidden="true"
-                className="flex items-start gap-3 border border-sd-ink/30 rounded-2xl p-4"
+                className="flex items-start gap-3 border border-sd-line rounded-2xl p-4"
               >
                 <Skeleton className="w-5 h-5 rounded-full shrink-0 mt-0.5" />
                 <Skeleton className="w-[34px] h-[34px] rounded-full shrink-0" />
@@ -308,7 +308,7 @@ export function SetupChecklist({ status }: { status: StoreSetupStatus }) {
                 key={step.label}
                 type="button"
                 onClick={() => handleStepTap(i)}
-                className="flex items-start gap-3 border border-sd-ink/30 rounded-2xl p-4 hover:bg-sd-elevated active:scale-[0.99] active:bg-sd-elevated oak-motion-control text-left"
+                className="flex items-start gap-3 border border-sd-line rounded-2xl p-4 hover:bg-sd-elevated active:scale-[0.99] active:bg-sd-elevated oak-motion-control text-left"
               >
                 <StepNumber n={i + 1} />
                 <div className="p-2 rounded-full bg-sd-soft relative">
