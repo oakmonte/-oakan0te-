@@ -1,7 +1,8 @@
 // "Use my current location", shared by checkout and the store's pickup
 // locations: a GPS pin -> the address fields, on any phone, laptop or browser.
 import { authedFetch } from "@/lib/authed-fetch";
-import { fetchAddress, fetchSuggestions, newToken } from "@/lib/places-client";
+import { BROWSER_KEY, fetchAddress, fetchSuggestions, newToken } from "@/lib/places-client";
+import { requestPostalCodeNear } from "@/lib/places-google";
 
 export type HereAddress = {
   address: string | null;
@@ -105,31 +106,37 @@ export function locationErrorMessage(err: unknown) {
   return "Couldn't find your location. Check your internet connection and that Location is on in your device settings, then try again.";
 }
 
-const km = (a: [number, number], b: [number, number]) => {
-  const rad = Math.PI / 180;
-  const dLat = (b[0] - a[0]) * rad;
-  const dLng = (b[1] - a[1]) * rad;
-  const h =
-    Math.sin(dLat / 2) ** 2 + Math.cos(a[0] * rad) * Math.cos(b[0] * rad) * Math.sin(dLng / 2) ** 2;
-  return 12_742 * Math.asin(Math.sqrt(h));
-};
-
-/** Postal code for an address Google already named, found the way a typed
- *  address finds one: suggestions for the text, then the picked place's
- *  details. Reverse geocoding often has no postal code in Nigeria; place
- *  details nearly always do. Only accepts a place near the pin. */
+/** Postal code for the address at a pin, from Places in the browser (its
+ *  key is the one typed suggestions already use, so it's known to work):
+ *  a search for the address and the places nearest the pin, then a typed-style
+ *  suggestion lookup on the short form of the address ("Covenant University,
+ *  Idi-Iroko Road" -- autocomplete matches nothing on the full formatted line). */
 async function postalCodeFor(address: string, lat: number, lng: number) {
+  if (BROWSER_KEY) {
+    const code = await requestPostalCodeNear(BROWSER_KEY, lat, lng, address);
+    if (code) return code;
+  }
+  const short = address.split(",").slice(0, 2).join(",").trim();
   const token = newToken();
-  const signal = AbortSignal.timeout(5000);
-  const suggestions = await fetchSuggestions(address, token, undefined, signal).catch(() => []);
-  for (const s of suggestions.slice(0, 2)) {
+  const suggestions = await fetchSuggestions(
+    short,
+    token,
+    undefined,
+    AbortSignal.timeout(5000),
+  ).catch(() => []);
+  for (const s of suggestions.slice(0, 3)) {
     const place = await fetchAddress(s.placeId, token).catch(() => null);
     if (!place?.postalCode) continue;
-    if (place.lat != null && place.lng != null && km([lat, lng], [place.lat, place.lng]) > 5) {
+    if (
+      place.lat != null &&
+      place.lng != null &&
+      Math.hypot(place.lat - lat, place.lng - lng) > 0.05
+    ) {
       continue;
     }
     return place.postalCode;
   }
+  console.warn("Current location: no postal code found for", short);
   return null;
 }
 
