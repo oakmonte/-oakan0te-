@@ -18,6 +18,8 @@ import {
 import { useAfterShotContext } from "@/lib/after-shot-context";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
 import { useSession } from "@/hooks/use-session";
+import { useActiveStore } from "@/hooks/use-own-store";
+import { inSetupPostGoal } from "@/lib/setup-post-goal";
 import { startPostUpload } from "@/lib/post-upload";
 import { discardVideoEditorSession } from "@/lib/video-editor-session";
 import { discardStudioSession } from "@/lib/studio/session";
@@ -71,6 +73,7 @@ function PublishPage() {
   const media = output ?? source;
   const setPublished = output ? setOutput : setMedia;
   const { user } = useSession();
+  const { store } = useActiveStore();
 
   const [caption, setCaption] = useState("");
   const [location, setLocation] = useState("");
@@ -211,9 +214,22 @@ function PublishPage() {
       // someone has to re-derive later.
       if (media.audio?.blob) URL.revokeObjectURL(media.audio.url);
 
-      navigate({ to: "/home", replace: true });
+      // Not the storefront preview (a store mid-setup shows "isn't ready
+      // yet" there). Setting up: back to the dashboard and its checklist.
+      // Otherwise: the store's profile, where the new post shows up. The
+      // upload carries on behind either (PostUploadToast).
+      if (inSetupPostGoal() || !store?.store_username) {
+        navigate({ to: "/store", replace: true });
+      } else {
+        navigate({
+          to: "/store-profile/$storeUsername",
+          params: { storeUsername: store.store_username },
+          replace: true,
+        });
+      }
     },
     [
+      store?.store_username,
       user,
       submitting,
       media,
@@ -385,7 +401,8 @@ function PublishPage() {
         {/* Linked products. "Link", not "tag": these are what a viewer finds
             in Listed items when they swipe on the post, which is a connection
             to something buyable rather than a label on a picture. */}
-        <div className="mt-5">
+        {/* Desktop: a compact row, not a bar across the whole page. */}
+        <div className="mt-5 md:mx-auto md:max-w-md">
           <button
             type="button"
             onClick={() => setTagPickerOpen(true)}

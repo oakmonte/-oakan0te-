@@ -142,7 +142,7 @@ function useSetupPostNudge(landedPostId: string | null) {
         }}
         className="mt-3 h-10 w-full rounded-full bg-white text-[14px] font-semibold text-black transition-transform active:scale-[0.97]"
       >
-        {done ? "Back to setup" : "Post another"}
+        {done ? "Back to setup" : count === 1 ? "Post second content" : "Post another"}
       </button>
     </div>
   );
