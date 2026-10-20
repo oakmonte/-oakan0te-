@@ -322,6 +322,12 @@ function CarouselDots({ total, index }: { total: number; index: number }) {
 // Each slide carries its own crop position (keyed by url, since a seller can
 // reorder photos) rather than one position for the whole tile: photo 2 framed
 // by photo 1's focal point is almost always wrong.
+// The endless strip (clones at both ends, scrollLeft re-pointed once a swipe
+// settles) glitched on phones: the jump fought momentum and snapping, so the
+// strip stuttered or yanked mid-swipe. Switched off 2026-10-20 for a plain
+// strip that stops at the first and last photo, like Instagram's.
+const ENDLESS_TILE_STRIP = false;
+
 export function CatalogTile({
   tile,
   mode,
@@ -350,7 +356,7 @@ export function CatalogTile({
   const photos: TilePhoto[] =
     tile.photos.length > 0 ? tile.photos : [{ url: productPlaceholder, variant: 0 }];
   const total = photos.length;
-  const loop = total > 1;
+  const loop = ENDLESS_TILE_STRIP && total > 1;
 
   const [index, setIndex] = useState(0);
   const scrollerRef = useRef<HTMLDivElement>(null);

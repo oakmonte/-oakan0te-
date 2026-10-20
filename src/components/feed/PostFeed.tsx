@@ -31,6 +31,7 @@ import {
   Play,
   Loader2,
   ChevronLeft,
+  ChevronRight,
   Link2,
   MapPin,
   Music,
@@ -762,64 +763,101 @@ function PostCarousel({
     });
   }, [index, playing, activeVideoRef]);
 
+  // A mouse can't swipe: on a computer (hover + fine pointer) arrows step
+  // through the photos. Phones never see them and keep the swipe.
+  const step = (dir: -1 | 1) => {
+    const el = scrollerRef.current;
+    if (el) el.scrollBy({ left: dir * el.clientWidth, behavior: "smooth" });
+  };
+  const arrow =
+    "absolute top-1/2 z-10 hidden h-9 w-9 -translate-y-1/2 place-items-center rounded-full bg-black/45 text-white backdrop-blur transition-[transform,background-color] duration-150 hover:bg-black/60 active:scale-95 [@media(hover:hover)_and_(pointer:fine)]:grid";
+
   return (
-    <div
-      ref={scrollerRef}
-      data-post-carousel
-      onScroll={handleScroll}
-      onPointerDown={tap.onPointerDown}
-      onPointerUp={tap.onPointerUp}
-      onTouchStart={(e) => {
-        const el = e.currentTarget;
-        pastEndStart.current = {
-          x: e.touches[0].clientX,
-          y: e.touches[0].clientY,
-          atEnd: el.scrollLeft >= el.scrollWidth - el.clientWidth - 2,
-        };
-      }}
-      onTouchEnd={(e) => {
-        const start = pastEndStart.current;
-        pastEndStart.current = null;
-        if (!start?.atEnd || !onSwipePastEnd) return;
-        const dx = e.changedTouches[0].clientX - start.x;
-        const dy = e.changedTouches[0].clientY - start.y;
-        if (dx < -60 && Math.abs(dx) > Math.abs(dy) * 1.5) onSwipePastEnd();
-      }}
-      className="no-scrollbar absolute inset-0 flex overflow-x-auto overflow-y-hidden"
-      style={{ scrollSnapType: "x mandatory", overscrollBehaviorX: "contain" }}
-    >
-      {media.map((item, i) => (
-        <div
-          key={`${item.url}-${i}`}
-          className="relative h-full w-full shrink-0"
-          style={{ scrollSnapAlign: "start", scrollSnapStop: "always" }}
+    <>
+      <div
+        ref={scrollerRef}
+        data-post-carousel
+        onScroll={handleScroll}
+        onPointerDown={tap.onPointerDown}
+        onPointerUp={tap.onPointerUp}
+        onTouchStart={(e) => {
+          const el = e.currentTarget;
+          pastEndStart.current = {
+            x: e.touches[0].clientX,
+            y: e.touches[0].clientY,
+            atEnd: el.scrollLeft >= el.scrollWidth - el.clientWidth - 2,
+          };
+        }}
+        onTouchEnd={(e) => {
+          const start = pastEndStart.current;
+          pastEndStart.current = null;
+          if (!start?.atEnd || !onSwipePastEnd) return;
+          const dx = e.changedTouches[0].clientX - start.x;
+          const dy = e.changedTouches[0].clientY - start.y;
+          if (dx < -60 && Math.abs(dx) > Math.abs(dy) * 1.5) onSwipePastEnd();
+        }}
+        className="no-scrollbar absolute inset-0 flex overflow-x-auto overflow-y-hidden"
+        style={{ scrollSnapType: "x mandatory", overscrollBehaviorX: "contain" }}
+      >
+        {media.map((item, i) => (
+          <div
+            key={`${item.url}-${i}`}
+            className="relative h-full w-full shrink-0"
+            style={{ scrollSnapAlign: "start", scrollSnapStop: "always" }}
+          >
+            {item.type === "video" ? (
+              <CarouselVideo
+                item={item}
+                fit={fit}
+                active={i === index && playing}
+                videoRef={(el) => {
+                  videoRefs.current[i] = el;
+                }}
+              />
+            ) : (
+              <img
+                src={item.url}
+                alt=""
+                draggable={false}
+                // The first two are worth fetching now (the one on screen and
+                // the one a swipe reveals); the rest load as they come up.
+                loading={i < 2 ? "eager" : "lazy"}
+                className={`h-full w-full select-none ${fit}`}
+                // Uncovered by the tap layer now, so a long press would open
+                // iOS's image preview / Android's "Download image" menu.
+                style={{ WebkitTouchCallout: "none" }}
+              />
+            )}
+          </div>
+        ))}
+      </div>
+      {index > 0 && (
+        <button
+          type="button"
+          aria-label="Previous photo"
+          onClick={(e) => {
+            e.stopPropagation();
+            step(-1);
+          }}
+          className={`${arrow} left-3`}
         >
-          {item.type === "video" ? (
-            <CarouselVideo
-              item={item}
-              fit={fit}
-              active={i === index && playing}
-              videoRef={(el) => {
-                videoRefs.current[i] = el;
-              }}
-            />
-          ) : (
-            <img
-              src={item.url}
-              alt=""
-              draggable={false}
-              // The first two are worth fetching now (the one on screen and
-              // the one a swipe reveals); the rest load as they come up.
-              loading={i < 2 ? "eager" : "lazy"}
-              className={`h-full w-full select-none ${fit}`}
-              // Uncovered by the tap layer now, so a long press would open
-              // iOS's image preview / Android's "Download image" menu.
-              style={{ WebkitTouchCallout: "none" }}
-            />
-          )}
-        </div>
-      ))}
-    </div>
+          <ChevronLeft size={20} />
+        </button>
+      )}
+      {index < media.length - 1 && (
+        <button
+          type="button"
+          aria-label="Next photo"
+          onClick={(e) => {
+            e.stopPropagation();
+            step(1);
+          }}
+          className={`${arrow} right-3`}
+        >
+          <ChevronRight size={20} />
+        </button>
+      )}
+    </>
   );
 }
 
