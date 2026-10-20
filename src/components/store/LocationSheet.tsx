@@ -30,7 +30,14 @@ import {
 import { PageSheet } from "@/components/PageSheet";
 import { AddressAutocomplete, type PickedAddress } from "@/components/AddressAutocomplete";
 import { authedFetch } from "@/lib/authed-fetch";
-import { addressAt, getPosition, locationErrorMessage } from "@/lib/current-location";
+import {
+  addressAt,
+  getPosition,
+  locationErrorMessage,
+  placeLine1,
+  type NearbyPlace,
+} from "@/lib/current-location";
+import { NearbyPlacesPicker } from "@/components/NearbyPlacesPicker";
 import { LocationListPicker, type LocationListItem } from "./LocationListPicker";
 
 export type StoreLocationValues = {
@@ -120,6 +127,12 @@ export function LocationSheet({
   const [promptVisible, setPromptVisible] = useState(false);
   const [locating, setLocating] = useState(false);
   const [located, setLocated] = useState(false);
+  // After locating: places around the pin to pick from, the spot the
+  // lookup named (it moves to line 2 when a place is picked), and the
+  // line 2 this sheet filled itself (so a pick never overwrites typing).
+  const [nearby, setNearby] = useState<NearbyPlace[]>([]);
+  const [spot, setSpot] = useState("");
+  const [autoLine2, setAutoLine2] = useState("");
   const [locateError, setLocateError] = useState("");
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -205,6 +218,18 @@ export function LocationSheet({
     }
   }
 
+  // A place picked from the nearby list: its address on line 1, the precise
+  // spot the lookup found on line 2. The GPS pin stays (applyPicked keeps it).
+  function pickNearby(a: PickedAddress, p: NearbyPlace) {
+    const line1 = placeLine1(p.name, a.line1);
+    applyPicked({ ...a, line1 });
+    if (!addressLine2.trim() || addressLine2 === autoLine2) {
+      const line2 = spot && !line1.includes(spot) ? spot : "";
+      setAddressLine2(line2);
+      setAutoLine2(line2);
+    }
+  }
+
   function useCurrentLocation() {
     if (!("geolocation" in navigator)) {
       setLocateError("Location isn't available on this device.");
@@ -237,7 +262,12 @@ export function LocationSheet({
           }
         }
         if (geocoded?.line1 && !addressLine) setAddressLine(geocoded.line1);
-        if (geocoded?.line2 && !addressLine2) setAddressLine2(geocoded.line2);
+        if (geocoded?.line2 && !addressLine2) {
+          setAddressLine2(geocoded.line2);
+          setAutoLine2(geocoded.line2);
+        }
+        setNearby(geocoded?.nearby ?? []);
+        setSpot(geocoded?.line1 ?? "");
         if (geocoded?.city && !city) setCity(geocoded.city);
         if (geocoded?.postalCode && !postalCode) setPostalCode(geocoded.postalCode);
         setLocating(false);
@@ -397,6 +427,11 @@ export function LocationSheet({
                   )}
                 </button>
               </div>
+              {located && nearby.length > 0 && (
+                <div className="mt-4">
+                  <NearbyPlacesPicker tone="dashboard" places={nearby} onPick={pickNearby} />
+                </div>
+              )}
             </div>
           </div>
         )}

@@ -127,7 +127,7 @@ export async function reverseGeocodeGoogle(lat: number, lng: number) {
   // it ("2 Center Circle" is a road inside Covenant University), never the
   // place itself. That place goes on line 1 -- it's what a rider can find from
   // the street -- and the precise spot moves to line 2.
-  const enclosure = await enclosingPlace(key, lat, lng);
+  const enclosure = DETECT_ENCLOSURE ? await enclosingPlace(key, lat, lng) : null;
   if (enclosure) {
     const spot = [landmark, address.line1].filter(Boolean).join(", ");
     const ep = enclosure.addressComponents ?? [];
@@ -165,6 +165,10 @@ export async function reverseGeocodeGoogle(lat: number, lng: number) {
     formatted,
   };
 }
+
+// Switched off 2026-10-20 in favour of letting the person pick from the
+// places nearby (nearbyPlaces below), the way delivery and ride apps do it.
+const DETECT_ENCLOSURE = false;
 
 // Places that contain other addresses: a pin inside one belongs to it.
 // Hotels, churches and mosques are left out: they sit on ordinary streets
@@ -245,4 +249,69 @@ async function enclosingPlace(key: string, lat: number, lng: number) {
     console.warn("Places enclosing search error:", err);
     return null;
   }
+}
+
+export type NearbyPlace = { placeId: string; name: string; secondary: string };
+
+async function searchNearbyPlaces(
+  key: string,
+  lat: number,
+  lng: number,
+  rankPreference: "DISTANCE" | "POPULARITY",
+  radius: number,
+  maxResultCount: number,
+): Promise<NearbyPlace[]> {
+  try {
+    const res = await fetch("https://places.googleapis.com/v1/places:searchNearby", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Goog-Api-Key": key,
+        "X-Goog-FieldMask": "places.id,places.displayName,places.shortFormattedAddress",
+      },
+      body: JSON.stringify({
+        locationRestriction: { circle: { center: { latitude: lat, longitude: lng }, radius } },
+        rankPreference,
+        maxResultCount,
+      }),
+      signal: AbortSignal.timeout(3000),
+    });
+    if (!res.ok) {
+      console.warn("Places nearby list failed:", res.status, await res.text().catch(() => ""));
+      return [];
+    }
+    const body = (await res.json().catch(() => null)) as {
+      places?: { id?: string; displayName?: { text?: string }; shortFormattedAddress?: string }[];
+    } | null;
+    return (body?.places ?? []).flatMap((p) =>
+      p.id && p.displayName?.text
+        ? [{ placeId: p.id, name: p.displayName.text, secondary: p.shortFormattedAddress ?? "" }]
+        : [],
+    );
+  } catch (err) {
+    console.warn("Places nearby list error:", err);
+    return [];
+  }
+}
+
+/** Named places around a GPS pin for the person to pick from after "use my
+ *  current location" -- the common pattern (Uber, Bolt, Glovo): the closest
+ *  few, plus the well-known ones a little further out, which is where a big
+ *  campus, estate or market shows up (its own point can be far from the pin).
+ *  Picking one fills the address the way a typed suggestion does. */
+export async function nearbyPlaces(lat: number, lng: number): Promise<NearbyPlace[]> {
+  const key = KEY();
+  if (!key) return [];
+  const [closest, known] = await Promise.all([
+    searchNearbyPlaces(key, lat, lng, "DISTANCE", 300, 6),
+    searchNearbyPlaces(key, lat, lng, "POPULARITY", 1500, 4),
+  ]);
+  const seen = new Set<string>();
+  const out: NearbyPlace[] = [];
+  for (const p of [...closest.slice(0, 3), ...known, ...closest.slice(3)]) {
+    if (seen.has(p.placeId)) continue;
+    seen.add(p.placeId);
+    out.push(p);
+  }
+  return out.slice(0, 7);
 }

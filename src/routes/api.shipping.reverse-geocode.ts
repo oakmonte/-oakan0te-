@@ -1,7 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getRequestUser } from "@/lib/server-auth";
-import { postalCodeNear, reverseGeocodeGoogle } from "@/lib/places.server";
+import {
+  nearbyPlaces,
+  postalCodeNear,
+  reverseGeocodeGoogle,
+  type NearbyPlace,
+} from "@/lib/places.server";
 import { supabaseAdmin } from "@/lib/integrations/my-supabase/client.server";
 
 // "Use my current location" at checkout: turns coordinates into a readable
@@ -49,6 +54,8 @@ type Geocoded = {
   state: string | null;
   country: string | null;
   postalCode: string | null;
+  /** Named places around the pin, for the person to pick from. */
+  nearby?: NearbyPlace[];
 };
 
 // Remembered lookups (geocode_cache): 4 decimals is a ~11 m square, close
@@ -58,7 +65,7 @@ type Geocoded = {
 const CACHE_DAYS = 30;
 // The v2 prefix retired rows saved before line 1 stopped naming inner
 // buildings ("Esther Hall G Wing" instead of the campus it's in).
-const cacheKey = (lat: number, lng: number) => `v3:${lat.toFixed(4)},${lng.toFixed(4)}`;
+const cacheKey = (lat: number, lng: number) => `v4:${lat.toFixed(4)},${lng.toFixed(4)}`;
 const cacheTable = () => (supabaseAdmin as unknown as SupabaseClient).from("geocode_cache");
 
 async function cached(key: string): Promise<Geocoded | null> {
@@ -168,7 +175,11 @@ export const Route = createFileRoute("/api/shipping/reverse-geocode")({
         const key = cacheKey(lat, lng);
         const hit = await cached(key);
         if (hit) return Response.json(hit, { headers: NO_STORE });
-        const result = await lookup(lat, lng).catch(() => null);
+        const [result, nearby] = await Promise.all([
+          lookup(lat, lng).catch(() => null),
+          nearbyPlaces(lat, lng).catch(() => []),
+        ]);
+        if (result) result.nearby = nearby;
         if (!result) return Response.json({ address: null }, { headers: NO_STORE });
         if (result.address && result.postalCode) await remember(key, result);
         return Response.json(result, { headers: NO_STORE });
