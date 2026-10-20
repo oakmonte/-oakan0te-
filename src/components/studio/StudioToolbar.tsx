@@ -11,7 +11,6 @@ import {
   SlidersHorizontal,
   Sparkles,
   SquarePen,
-  Tag,
   Trash2,
   Type,
   Unlink,
@@ -58,7 +57,10 @@ export function PrimaryToolbar({ onPick }: { onPick: (tool: PrimaryTool) => void
         icon={<StickerIcon size={18} />}
         onClick={() => onPick("sticker")}
       />
+      {/* Product tag switched off 2026-10-20 (Diadem): products are linked when
+          posting, not pinned on the video. Restore with Tag in the import.
       <ToolButton label="Product tag" icon={<Tag size={18} />} onClick={() => onPick("tags")} />
+      */}
       <ToolButton label="Canvas" icon={<Crop size={18} />} onClick={() => onPick("canvas")} />
       <ToolButton label="Cover" icon={<ImageIcon size={18} />} onClick={() => onPick("cover")} />
     </div>
