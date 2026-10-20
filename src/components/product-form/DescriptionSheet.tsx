@@ -352,7 +352,7 @@ export function DescriptionSheet({
   return (
     <PageSheet
       onClose={onClose}
-      className="bg-white flex flex-col animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
+      className="sheet-column bg-white flex flex-col animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
     >
       <style>{`
         .oak-description-editor:empty:before {

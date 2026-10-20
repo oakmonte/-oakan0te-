@@ -244,7 +244,7 @@ export function VariantCombinationsSheet({
   }
 
   return (
-    <PageSheet onClose={onBack} className="bg-white flex flex-col">
+    <PageSheet onClose={onBack} className="sheet-column bg-white flex flex-col">
       <div className="sticky top-0 z-20 shrink-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
         <button
           onClick={onBack}
@@ -822,78 +822,81 @@ function VariantImagePopover({
       className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center px-6 animate-in fade-in duration-200"
       onClick={onClose}
     >
+      {/* Done sits below the card, outside it, so it's always in reach
+          however far the card's photos scroll. */}
       <div
-        className="bg-white rounded-2xl p-4 w-full max-w-xs max-h-[85dvh] overflow-y-auto overscroll-contain animate-in fade-in zoom-in-95 duration-200 ease-out"
+        className="w-full max-w-xs flex flex-col gap-3 animate-in fade-in zoom-in-95 duration-200 ease-out"
         onClick={(e) => e.stopPropagation()}
       >
-        {filePicker.node}
-        <div className="flex items-center justify-between mb-3">
-          <p className="text-sm font-semibold text-gray-900">{title}</p>
-          <button type="button" onClick={onClose} className="p-1 -mr-1">
-            <X size={18} className="text-gray-400" />
-          </button>
-        </div>
-
-        {baseImages.length > 0 && (
-          <p className="text-xs font-medium text-gray-500 mb-1.5">This image</p>
-        )}
-
-        <ImageGallery
-          images={images}
-          onReorder={setImages}
-          onRemove={(url) => setImages((prev) => prev.filter((u) => u !== url))}
-          onAddTap={openSourceSheet}
-          addButtonRef={addButtonRef}
-        />
-
-        {baseImages.length > 0 && (
-          <div className="mt-4 pt-3 border-t border-gray-100">
-            <p className="text-xs font-medium text-gray-500 mb-1.5">From your product photos</p>
-            <div className="flex gap-2 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
-              {baseImages.map((url) => {
-                const selected = images.includes(url);
-                return (
-                  <button
-                    key={url}
-                    type="button"
-                    onClick={() => toggleBaseImage(url)}
-                    aria-label={selected ? "Remove from variant" : "Add to variant"}
-                    className="relative w-12 h-12 shrink-0 rounded-lg bg-gray-100 overflow-hidden transition-transform duration-150 active:scale-90"
-                  >
-                    <img src={url} alt="" className="w-full h-full object-cover" />
-                    <span
-                      className={`absolute inset-0 bg-black/40 flex items-center justify-center transition-opacity duration-150 ${
-                        selected ? "opacity-100" : "opacity-0"
-                      }`}
-                    >
-                      <Check size={16} className="text-white" />
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-            <p className="mt-1.5 text-xs text-gray-400">Tap to select</p>
+        <div className="bg-white rounded-2xl p-4 max-h-[calc(85dvh-4rem)] overflow-y-auto overscroll-contain">
+          {filePicker.node}
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm font-semibold text-gray-900">{title}</p>
+            <button type="button" onClick={onClose} className="p-1 -mr-1">
+              <X size={18} className="text-gray-400" />
+            </button>
           </div>
-        )}
 
+          {baseImages.length > 0 && (
+            <p className="text-xs font-medium text-gray-500 mb-1.5">This image</p>
+          )}
+
+          <ImageGallery
+            images={images}
+            onReorder={setImages}
+            onRemove={(url) => setImages((prev) => prev.filter((u) => u !== url))}
+            onAddTap={openSourceSheet}
+            addButtonRef={addButtonRef}
+          />
+
+          {baseImages.length > 0 && (
+            <div className="mt-4 pt-3 border-t border-gray-100">
+              <p className="text-xs font-medium text-gray-500 mb-1.5">From your product photos</p>
+              <div className="flex gap-2 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+                {baseImages.map((url) => {
+                  const selected = images.includes(url);
+                  return (
+                    <button
+                      key={url}
+                      type="button"
+                      onClick={() => toggleBaseImage(url)}
+                      aria-label={selected ? "Remove from variant" : "Add to variant"}
+                      className="relative w-12 h-12 shrink-0 rounded-lg bg-gray-100 overflow-hidden transition-transform duration-150 active:scale-90"
+                    >
+                      <img src={url} alt="" className="w-full h-full object-cover" />
+                      <span
+                        className={`absolute inset-0 bg-black/40 flex items-center justify-center transition-opacity duration-150 ${
+                          selected ? "opacity-100" : "opacity-0"
+                        }`}
+                      >
+                        <Check size={16} className="text-white" />
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="mt-1.5 text-xs text-gray-400">Tap to select</p>
+            </div>
+          )}
+
+          {sourceSheetOpen && (
+            <ImageSourceSheet
+              anchorRect={anchorRect}
+              onSelect={handleSource}
+              onClose={() => setSourceSheetOpen(false)}
+            />
+          )}
+          {draftsOpen && (
+            <DraftImagePickerSheet onSelect={handlePicked} onClose={() => setDraftsOpen(false)} />
+          )}
+        </div>
         <button
           type="button"
           onClick={() => onDone(images[0] ?? "", images.slice(1))}
-          className="w-full bg-black text-white text-sm font-medium rounded-lg py-2.5 mt-3"
+          className="w-full bg-white text-gray-950 text-[15px] font-semibold rounded-full py-3.5 shadow-lg active:scale-[0.98] transition-transform duration-150"
         >
           Done
         </button>
-
-        {sourceSheetOpen && (
-          <ImageSourceSheet
-            anchorRect={anchorRect}
-            onSelect={handleSource}
-            onClose={() => setSourceSheetOpen(false)}
-          />
-        )}
-        {draftsOpen && (
-          <DraftImagePickerSheet onSelect={handlePicked} onClose={() => setDraftsOpen(false)} />
-        )}
       </div>
     </div>
   );
