@@ -103,43 +103,61 @@ export async function reverseGeocodeGoogle(lat: number, lng: number) {
         .find((c) => c.types?.includes("postal_code"))?.long_name ?? "";
   }
   // Geocoding still often has none where Places does (a typed-and-picked
-  // suggestion always comes back with one), so ask Places for the nearest
-  // places that carry a postal code.
-  if (!address.postalCode) address.postalCode = (await nearbyPostalCode(key, lat, lng)) ?? "";
+  // suggestion always comes back with one), so ask Places: first for the
+  // address Geocoding just named -- the same lookup a typed suggestion makes --
+  // then for whatever sits closest to the pin.
+  if (!address.postalCode) {
+    const near = { center: { latitude: lat, longitude: lng }, radius: 500 };
+    address.postalCode =
+      (best.formatted_address
+        ? await placesPostalCode(key, "searchText", {
+            textQuery: best.formatted_address,
+            locationBias: { circle: near },
+            maxResultCount: 5,
+          })
+        : null) ??
+      (await placesPostalCode(key, "searchNearby", {
+        locationRestriction: { circle: near },
+        rankPreference: "DISTANCE",
+        maxResultCount: 20,
+      })) ??
+      "";
+  }
   return { ...address, formatted: best.formatted_address ?? "" };
 }
 
-/** Postal code of the closest Places entries to the pin. Null on any failure;
- *  the route still has the OpenStreetMap lookup after this. */
-async function nearbyPostalCode(key: string, lat: number, lng: number) {
+/** First postal code among a Places (New) search's results. Null on any
+ *  failure; the route still has the OpenStreetMap lookup after this. */
+async function placesPostalCode(
+  key: string,
+  method: "searchText" | "searchNearby",
+  request: Record<string, unknown>,
+) {
   try {
-    const res = await fetch("https://places.googleapis.com/v1/places:searchNearby", {
+    const res = await fetch(`https://places.googleapis.com/v1/places:${method}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "X-Goog-Api-Key": key,
         "X-Goog-FieldMask": "places.addressComponents",
       },
-      body: JSON.stringify({
-        maxResultCount: 10,
-        rankPreference: "DISTANCE",
-        locationRestriction: { circle: { center: { latitude: lat, longitude: lng }, radius: 300 } },
-      }),
+      body: JSON.stringify(request),
       signal: AbortSignal.timeout(2500),
     });
     if (!res.ok) {
-      console.error("Places nearby failed:", res.status, await res.text().catch(() => ""));
+      console.error(`Places ${method} failed:`, res.status, await res.text().catch(() => ""));
       return null;
     }
     const body = (await res.json().catch(() => null)) as {
       places?: { addressComponents?: { longText?: string; types?: string[] }[] }[];
     } | null;
-    return (
-      body?.places
-        ?.flatMap((p) => p.addressComponents ?? [])
-        .find((c) => c.types?.includes("postal_code"))?.longText ?? null
-    );
-  } catch {
+    const code = body?.places
+      ?.flatMap((p) => p.addressComponents ?? [])
+      .find((c) => c.types?.includes("postal_code"))?.longText;
+    if (!code) console.warn(`Places ${method}: no postal code in`, body?.places?.length ?? 0);
+    return code || null;
+  } catch (err) {
+    console.error(`Places ${method} error:`, err);
     return null;
   }
 }
