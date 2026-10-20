@@ -105,6 +105,14 @@ describe("custom categories", () => {
     expect(isCustomCategory(back?.at(-1))).toBe(true);
   });
 
+  test("a custom category under no branch round-trips as Custom", () => {
+    const stored = productTypeForPath([customCategoryNode("Waka")]);
+    expect(stored).toBe("Custom › Waka");
+    const back = categoryPathFromProductType(stored!);
+    expect(back?.map((n) => n.name)).toEqual(["Waka"]);
+    expect(isCustomCategory(back?.at(-1))).toBe(true);
+  });
+
   test("a custom item under Clothing still gets asked for Size", () => {
     const path = categoryPathFromProductType("Clothing › Aso oke robe")!;
     expect(paramsForCategory(path, "variant")).toContain("Size");

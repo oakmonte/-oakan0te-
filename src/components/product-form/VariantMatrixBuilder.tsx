@@ -150,32 +150,33 @@ export function VariantMatrixBuilder({
 
   return (
     <div className={noDivider ? "" : "border-b-8 border-gray-50"}>
-      <p className="px-4 pt-4 text-[15px] font-semibold text-gray-900">Variants</p>
-
-      <div className="px-4">
+      {/* The whole card is one tap target, heading included -- tapping
+          "Variants" itself used to do nothing. */}
+      <button
+        type="button"
+        onClick={() => {
+          if (options.length === 0) {
+            // The list opens underneath, so saving the editor just reveals
+            // it instead of swapping one sheet for another.
+            setWizardStep("list");
+            setEditingIndex(0);
+          } else {
+            setWizardStep("list");
+          }
+        }}
+        className="w-full px-4 pt-4 text-left"
+      >
+        <span className="block text-[15px] font-semibold text-gray-900">Variants</span>
         {options.length === 0 ? (
-          <button
-            type="button"
-            onClick={() => {
-              // The list opens underneath, so saving the editor just reveals
-              // it instead of swapping one sheet for another.
-              setWizardStep("list");
-              setEditingIndex(0);
-            }}
-            className="w-full flex items-center justify-between py-4 border-b border-gray-100 text-left"
-          >
+          <span className="w-full flex items-center justify-between py-4 border-b border-gray-100">
             <span className="flex items-center gap-3 text-[15px] text-gray-900">
               <Plus size={18} className="text-gray-400" />
               Add options (color, size, material, etc.)
             </span>
             <ChevronRight size={16} className="text-gray-300" />
-          </button>
+          </span>
         ) : (
-          <button
-            type="button"
-            onClick={() => setWizardStep("list")}
-            className="w-full flex items-center justify-between py-4 border-b border-gray-100 text-left"
-          >
+          <span className="w-full flex items-center justify-between py-4 border-b border-gray-100">
             <span className="flex flex-col items-start gap-0.5 min-w-0">
               <span className="text-[15px] text-gray-900 truncate">
                 {options.map((o) => o.name || "Untitled option").join(" / ")}
@@ -185,9 +186,9 @@ export function VariantMatrixBuilder({
               </span>
             </span>
             <ChevronRight size={16} className="text-gray-300 shrink-0" />
-          </button>
+          </span>
         )}
-      </div>
+      </button>
 
       {(wizardStep === "list" || wizardStep === "combinations") && (
         <VariantListSheet
