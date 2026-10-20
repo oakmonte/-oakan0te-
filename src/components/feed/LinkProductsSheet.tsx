@@ -520,7 +520,9 @@ function OwnProductList({
   }
 
   return (
-    <div className="flex flex-col">
+    // Outlined cards, in a centred column on desktop (the search above stays
+    // full width).
+    <div className="flex flex-col gap-2 md:mx-auto md:w-full md:max-w-xl">
       {products.map((p) => {
         const isLinked = linkedIds.has(p.id);
         return (
@@ -529,7 +531,9 @@ function OwnProductList({
             type="button"
             onClick={() => onToggle(p)}
             aria-pressed={isLinked}
-            className="flex items-center gap-3 py-2.5 text-left active:opacity-70"
+            className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors active:opacity-70 ${
+              isLinked ? "border-white/70" : "border-white/25"
+            }`}
           >
             <img
               src={p.image ?? "https://placehold.co/48x48"}
