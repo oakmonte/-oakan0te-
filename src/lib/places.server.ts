@@ -59,6 +59,14 @@ export async function placeAddress(
   });
 }
 
+/** Postal code near a pin from Places with the server key, for an address
+ *  that came from elsewhere (OpenStreetMap, when Geocoding failed). */
+export async function postalCodeNear(lat: number, lng: number, address: string | null) {
+  const key = KEY();
+  if (!key) return null;
+  return requestPostalCodeNear(key, lat, lng, address);
+}
+
 /** GPS pin -> address with Google's Geocoding API (needs "Geocoding API"
  *  enabled on the key). Null when there's no key or Google has nothing, so
  *  the caller can fall back. Prefers a precise street-level result over the

@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getRequestUser } from "@/lib/server-auth";
-import { reverseGeocodeGoogle } from "@/lib/places.server";
+import { postalCodeNear, reverseGeocodeGoogle } from "@/lib/places.server";
 import { supabaseAdmin } from "@/lib/integrations/my-supabase/client.server";
 
 // "Use my current location" at checkout: turns coordinates into a readable
@@ -112,18 +112,26 @@ async function lookup(lat: number, lng: number): Promise<Geocoded | null> {
   );
   if (!res.ok) return null;
   const data = (await res.json()) as {
+    name?: string;
     display_name?: string;
     address?: Record<string, string>;
   };
   const a = data.address ?? {};
-  const line1 = [a.house_number, a.road].filter(Boolean).join(" ");
+  const street = [a.house_number, a.road].filter(Boolean).join(" ");
+  // The named place too ("Covenant University, Idi-Iroko Road"), not just
+  // the road it's on.
+  const line1 = [data.name !== a.road ? data.name : "", street].filter(Boolean).join(", ");
+  // OpenStreetMap rarely has Nigerian postal codes; Places usually does, and
+  // the server key works for Places even when Geocoding fails on it.
+  const postalCode =
+    a.postcode || (await postalCodeNear(lat, lng, data.display_name ?? null).catch(() => null));
   return {
     address: data.display_name ?? null,
     line1: line1 || null,
     city: a.city || a.town || a.village || a.suburb || a.county || null,
     state: a.state || null,
     country: a.country || null,
-    postalCode: a.postcode || null,
+    postalCode: postalCode || null,
   };
 }
 
