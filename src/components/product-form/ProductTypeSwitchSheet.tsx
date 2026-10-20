@@ -41,7 +41,7 @@ export function ProductTypeSwitchSheet({
             key={opt.type}
             onClick={() => onSelect(opt.type)}
             type="button"
-            className="w-full flex items-center justify-between border border-gray-100 rounded-xl p-4 mb-3 text-left last:mb-0 oak-motion-control"
+            className="w-full flex items-center justify-between border-[1.5px] border-gray-900 rounded-xl p-4 mb-3 text-left last:mb-0 oak-motion-control"
           >
             <span>
               <span className="block text-[15px] font-medium text-gray-900">{opt.title}</span>

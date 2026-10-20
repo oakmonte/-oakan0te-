@@ -25,7 +25,7 @@ export function CreateProductTypeModal({
         <button
           onClick={() => onSelect("regular")}
           type="button"
-          className="w-full flex items-center gap-3 border border-gray-300 rounded-xl p-4 mb-3 text-left oak-motion-control active:scale-[0.99]"
+          className="w-full flex items-center gap-3 border-[1.5px] border-gray-900 rounded-xl p-4 mb-3 text-left oak-motion-control active:scale-[0.99]"
         >
           <span className="p-2 rounded-lg bg-gray-100 text-gray-700 shrink-0">
             <Package size={20} />
@@ -42,7 +42,7 @@ export function CreateProductTypeModal({
         <button
           onClick={() => onSelect("variant")}
           type="button"
-          className="w-full flex items-center gap-3 border border-gray-300 rounded-xl p-4 text-left oak-motion-control active:scale-[0.99]"
+          className="w-full flex items-center gap-3 border-[1.5px] border-gray-900 rounded-xl p-4 text-left oak-motion-control active:scale-[0.99]"
         >
           <span className="p-2 rounded-lg bg-amber-50 text-amber-600 shrink-0">
             <Boxes size={20} />
