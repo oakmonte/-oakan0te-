@@ -117,10 +117,34 @@ export async function reverseGeocodeGoogle(lat: number, lng: number) {
   const inner = results
     .slice(0, results.indexOf(best))
     .find((r) => !onStreet(r) && r.types?.some((t) => named.includes(t)));
-  const landmark = inner?.formatted_address?.split(",")[0]?.trim() ?? "";
+  let landmark = inner?.formatted_address?.split(",")[0]?.trim() ?? "";
   const parts = best.address_components ?? [];
   const get = (type: string) => parts.find((c) => c.types?.includes(type))?.long_name ?? "";
   const address = addressFrom(get, best.formatted_address ?? "", "");
+  let formatted = best.formatted_address ?? "";
+
+  // Inside a campus, estate, hospital or mall, Geocoding names the spot within
+  // it ("2 Center Circle" is a road inside Covenant University), never the
+  // place itself. That place goes on line 1 -- it's what a rider can find from
+  // the street -- and the precise spot moves to line 2.
+  const enclosure = await enclosingPlace(key, lat, lng);
+  if (enclosure) {
+    const spot = [landmark, address.line1].filter(Boolean).join(", ");
+    const ep = enclosure.addressComponents ?? [];
+    const eget = (type: string) => ep.find((c) => c.types?.includes(type))?.longText ?? "";
+    const name = enclosure.displayName?.text ?? "";
+    const efmt = enclosure.formattedAddress ?? "";
+    const e = addressFrom(eget, efmt, name);
+    address.line1 = e.line1.toLowerCase().includes(name.toLowerCase())
+      ? e.line1
+      : [name, e.line1].filter(Boolean).join(", ");
+    address.city = e.city || address.city;
+    address.state = e.state || address.state;
+    address.country = e.country || address.country;
+    address.postalCode = e.postalCode || address.postalCode;
+    landmark = spot;
+    formatted = efmt.toLowerCase().includes(name.toLowerCase()) ? efmt : `${name}, ${efmt}`;
+  }
   // The street-level result often has no postal code (most Nigerian ones
   // don't); the area-level results for the same pin frequently do.
   if (!address.postalCode) {
@@ -138,6 +162,87 @@ export async function reverseGeocodeGoogle(lat: number, lng: number) {
   return {
     ...address,
     landmark: landmark && !address.line1.includes(landmark) ? landmark : "",
-    formatted: best.formatted_address ?? "",
+    formatted,
   };
+}
+
+// Places that contain other addresses: a pin inside one belongs to it.
+// Hotels, churches and mosques are left out: they sit on ordinary streets
+// everywhere, and a neighbour's house would be labelled as one.
+// Places (New) Table A types only -- an unknown type fails the whole request.
+const ENCLOSING_TYPES = [
+  "university",
+  "school",
+  "primary_school",
+  "secondary_school",
+  "hospital",
+  "shopping_mall",
+  "airport",
+  "stadium",
+  "apartment_complex",
+  "condominium_complex",
+  "housing_complex",
+];
+
+type EnclosingPlace = {
+  displayName?: { text?: string };
+  formattedAddress?: string;
+  addressComponents?: { longText?: string; types?: string[] }[];
+  viewport?: {
+    low?: { latitude?: number; longitude?: number };
+    high?: { latitude?: number; longitude?: number };
+  };
+};
+
+/** The smallest campus/estate/hospital/mall-type place whose area (Google's
+ *  viewport for it) contains the pin, or null. A shop or house nearby has a
+ *  tiny viewport the pin isn't in, so ordinary street addresses are left
+ *  alone. */
+async function enclosingPlace(key: string, lat: number, lng: number) {
+  try {
+    const res = await fetch("https://places.googleapis.com/v1/places:searchNearby", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Goog-Api-Key": key,
+        "X-Goog-FieldMask":
+          "places.displayName,places.formattedAddress,places.addressComponents,places.viewport",
+      },
+      body: JSON.stringify({
+        includedTypes: ENCLOSING_TYPES,
+        locationRestriction: {
+          circle: { center: { latitude: lat, longitude: lng }, radius: 1500 },
+        },
+        rankPreference: "DISTANCE",
+        maxResultCount: 20,
+      }),
+      signal: AbortSignal.timeout(3000),
+    });
+    if (!res.ok) {
+      console.warn("Places enclosing search failed:", res.status, await res.text().catch(() => ""));
+      return null;
+    }
+    const body = (await res.json().catch(() => null)) as { places?: EnclosingPlace[] } | null;
+    let best: EnclosingPlace | null = null;
+    let bestArea = Infinity;
+    for (const p of body?.places ?? []) {
+      const lo = p.viewport?.low;
+      const hi = p.viewport?.high;
+      if (lo?.latitude == null || lo.longitude == null || hi?.latitude == null) continue;
+      if (hi.longitude == null || !p.displayName?.text) continue;
+      const inside =
+        lat >= lo.latitude && lat <= hi.latitude && lng >= lo.longitude && lng <= hi.longitude;
+      // Bigger than the ~300 m box Google gives any point-like place (that
+      // box would swallow the houses next door), smaller than a town.
+      const area = (hi.latitude - lo.latitude) * (hi.longitude - lo.longitude);
+      if (inside && area > 0.000012 && area < 0.001 && area < bestArea) {
+        best = p;
+        bestArea = area;
+      }
+    }
+    return best;
+  } catch (err) {
+    console.warn("Places enclosing search error:", err);
+    return null;
+  }
 }
