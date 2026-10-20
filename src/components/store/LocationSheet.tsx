@@ -237,6 +237,7 @@ export function LocationSheet({
           }
         }
         if (geocoded?.line1 && !addressLine) setAddressLine(geocoded.line1);
+        if (geocoded?.line2 && !addressLine2) setAddressLine2(geocoded.line2);
         if (geocoded?.city && !city) setCity(geocoded.city);
         if (geocoded?.postalCode && !postalCode) setPostalCode(geocoded.postalCode);
         setLocating(false);

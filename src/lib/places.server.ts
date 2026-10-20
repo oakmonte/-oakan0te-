@@ -77,14 +77,15 @@ export async function reverseGeocodeGoogle(lat: number, lng: number) {
   const res = await fetch(
     `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${key}`,
   );
+  type GeoResult = {
+    formatted_address?: string;
+    types?: string[];
+    address_components?: { long_name?: string; types?: string[] }[];
+  };
   const body = (await res.json().catch(() => null)) as {
     status?: string;
     error_message?: string;
-    results?: {
-      formatted_address?: string;
-      types?: string[];
-      address_components?: { long_name?: string; types?: string[] }[];
-    }[];
+    results?: GeoResult[];
   } | null;
   if (!res.ok || body?.status !== "OK" || !body.results?.length) {
     if (body?.status !== "ZERO_RESULTS") {
@@ -97,9 +98,26 @@ export async function reverseGeocodeGoogle(lat: number, lng: number) {
     }
     return null;
   }
+  // The most precise result that sits on a real street. A building with no
+  // street of its own is a block inside a campus or estate ("Esther Hall G
+  // Wing, Ota" for a pin in Covenant University's library); the address a
+  // rider needs is the place it's inside ("Covenant University, Idiroko Rd").
   const precise = ["street_address", "premise", "subpremise", "route", "establishment"];
+  const named = ["street_address", "premise", "subpremise", "establishment"];
+  const results = body.results;
+  const onStreet = (r: GeoResult) =>
+    !!r.address_components?.some((c) => c.types?.includes("route"));
   const best =
-    body.results.find((r) => r.types?.some((t) => precise.includes(t))) ?? body.results[0];
+    results.find((r) => onStreet(r) && r.types?.some((t) => named.includes(t))) ??
+    results.find((r) => r.types?.includes("route")) ??
+    results.find((r) => r.types?.some((t) => precise.includes(t))) ??
+    results[0];
+  // The building that was passed over, kept for address line 2 so the rider
+  // still finds the exact block (the GPS pin is saved separately too).
+  const inner = results
+    .slice(0, results.indexOf(best))
+    .find((r) => !onStreet(r) && r.types?.some((t) => named.includes(t)));
+  const landmark = inner?.formatted_address?.split(",")[0]?.trim() ?? "";
   const parts = best.address_components ?? [];
   const get = (type: string) => parts.find((c) => c.types?.includes(type))?.long_name ?? "";
   const address = addressFrom(get, best.formatted_address ?? "", "");
@@ -117,5 +135,9 @@ export async function reverseGeocodeGoogle(lat: number, lng: number) {
     address.postalCode =
       (await requestPostalCodeNear(key, lat, lng, best.formatted_address ?? null)) ?? "";
   }
-  return { ...address, formatted: best.formatted_address ?? "" };
+  return {
+    ...address,
+    landmark: landmark && !address.line1.includes(landmark) ? landmark : "",
+    formatted: best.formatted_address ?? "",
+  };
 }

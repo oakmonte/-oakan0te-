@@ -61,10 +61,16 @@ export function AddressAutocomplete({
   const token = useRef(newToken());
   // Set when a pick fills the input, so that change doesn't search again.
   const picked = useRef(false);
+  // Only typing searches. A value filled in from outside ("use my current
+  // location", a restored draft) used to pop the list open over the form.
+  const typed = useRef(false);
 
   useEffect(() => {
-    if (picked.current) {
+    const fromTyping = typed.current;
+    typed.current = false;
+    if (picked.current || !fromTyping) {
       picked.current = false;
+      setSuggestions([]);
       return;
     }
     const q = value.trim();
@@ -119,6 +125,7 @@ export function AddressAutocomplete({
         className={className}
         value={value}
         onChange={(e) => {
+          typed.current = true;
           onChange(e.target.value);
           setOpen(true);
         }}

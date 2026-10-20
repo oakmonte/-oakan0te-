@@ -167,6 +167,7 @@ export function DeliveryCheckout({
           setStateCode(match?.code ?? "");
         }
         if (body.line1) setAddressLine(body.line1);
+        if (body.line2) setAddressLine2(body.line2);
         if (body.city) setCity(body.city);
         if (body.postalCode) setPostalCode(body.postalCode);
         if (!body.line1) setError("Check the details below and add your street and house number.");
