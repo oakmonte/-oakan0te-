@@ -346,6 +346,10 @@ function StudioTimeline({
     moved: boolean;
     /** A swap has been asked for and not rendered yet. */
     swapPending: boolean;
+    /** A mouse: dragging a clip reorders at once (see moveClipPress). */
+    mouse: boolean;
+    /** Starts the reorder: what the long-press timer runs. */
+    arm: () => void;
   } | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState(0);
@@ -386,9 +390,11 @@ function StudioTimeline({
   const startClipPress = useCallback(
     (clip: VideoClip) => (e: ReactPointerEvent) => {
       const target = e.currentTarget as HTMLElement;
-      const timer = window.setTimeout(() => {
+      const arm = () => {
         const press = pressRef.current;
-        if (!press || press.moved) return;
+        if (!press || press.moved || press.active) return;
+        if (press.timer !== null) window.clearTimeout(press.timer);
+        press.timer = null;
         press.active = true;
         // Capture only once the hold has actually armed a reorder. Capturing on
         // pointerdown would steal every scrub that merely began on a clip.
@@ -413,7 +419,8 @@ function StudioTimeline({
         setDraggingId(clip.id);
         beginHistoryGroup();
         navigator.vibrate?.(8);
-      }, LONG_PRESS_MS);
+      };
+      const timer = window.setTimeout(arm, LONG_PRESS_MS);
       pressRef.current = {
         clipId: clip.id,
         startX: e.clientX,
@@ -423,6 +430,8 @@ function StudioTimeline({
         active: false,
         moved: false,
         swapPending: false,
+        mouse: e.pointerType === "mouse",
+        arm,
       };
     },
     [beginHistoryGroup],
@@ -441,6 +450,14 @@ function StudioTimeline({
           Math.abs(e.clientX - press.startX) > TAP_SLOP ||
           Math.abs(e.clientY - press.startY) > TAP_SLOP
         ) {
+          // A mouse can't scrub by dragging (the strip scrolls with the wheel
+          // or trackpad), and people expect to click-and-drag a clip, not hold
+          // still first -- so a drag that starts on a clip IS the reorder.
+          if (press.mouse) {
+            press.arm();
+            if (press.active) stepSquares();
+            return;
+          }
           press.moved = true;
           if (press.timer !== null) window.clearTimeout(press.timer);
           press.timer = null;
