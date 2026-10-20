@@ -94,7 +94,7 @@ function ProductsNewcomer() {
             <Upload size={18} />
           </div>
           <div>
-            <p className="text-sm font-medium">Upload from anywhere else</p>
+            <p className="text-sm font-medium">Import from anywhere else</p>
             <p className="text-xs text-sd-ink-muted mt-0.5">
               Bring in a CSV from any other platform.
             </p>

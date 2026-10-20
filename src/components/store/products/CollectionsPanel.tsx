@@ -25,7 +25,7 @@ type CollectionRow = {
   count: number;
 };
 
-// Collections have no import source, so there's no Uploaded filter here.
+// Collections have no import source, so there's no Imported filter here.
 const FILTERS = ["All", "Active", "Inactive"] as const;
 
 export function CollectionsPanel() {

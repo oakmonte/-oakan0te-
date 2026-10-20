@@ -510,7 +510,7 @@ function ProductsUpload() {
               <Upload size={18} />
             </div>
             <div>
-              <p className="text-sm font-medium">Upload from anywhere else</p>
+              <p className="text-sm font-medium">Import from anywhere else</p>
               <p className="text-xs text-sd-ink-muted mt-0.5">
                 Any CSV — we'll match the columns automatically.
               </p>

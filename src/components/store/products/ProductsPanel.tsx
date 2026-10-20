@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { recall, remember } from "@/lib/remembered";
-import { Search, Plus, Upload, Check, Trash2, X } from "lucide-react";
+import { Search, Plus, Download, Check, Trash2, X } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useNavigate } from "@tanstack/react-router";
 import { CreateProductTypeModal } from "@/components/product-form/CreateProductTypeModal";
@@ -18,14 +18,14 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-// "Uploaded" isn't a status like the other three — it's every product whose
+// "Imported" (was "Uploaded", renamed after a seller tapped it meaning to list a product) isn't a status like the other three — it's every product whose
 // source_platform isn't "manual" (csv/shopify/bumpa import), regardless of
 // draft/active. Filtered separately below rather than folded into the status
 // column.
 // "Collection" isn't a filter on its own: tapping it lays the store's
 // collections out beside it, and picking one shows that collection's products.
 // "Inactive" is the label for the "draft" status in the database.
-const TABS = ["All", "Active", "Inactive", "Uploaded", "Collection"] as const;
+const TABS = ["All", "Active", "Inactive", "Imported", "Collection"] as const;
 
 type ProductRow = {
   id: string;
@@ -120,7 +120,7 @@ export function ProductsPanel({ checklist }: { checklist?: boolean }) {
       .eq("store_id", storeId)
       .order("created_at", { ascending: false });
 
-    if (activeTab === "Uploaded") query = query.not("source_platform", "eq", "manual");
+    if (activeTab === "Imported") query = query.not("source_platform", "eq", "manual");
     else if (activeTab === "Collection") {
       if (!collectionId) {
         setProducts([]);
@@ -268,7 +268,7 @@ export function ProductsPanel({ checklist }: { checklist?: boolean }) {
             aria-label="Import products"
             className="oak-tap grid h-11 w-11 shrink-0 place-items-center rounded-full bg-sd-soft text-sd-ink oak-motion-control active:scale-90"
           >
-            <Upload size={18} />
+            <Download size={18} />
           </button>
           <button
             onClick={() => setCreateTypeOpen(true)}
