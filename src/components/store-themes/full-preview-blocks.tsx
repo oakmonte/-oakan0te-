@@ -638,8 +638,21 @@ export function PhoneHeader({
   const live = useContext(LiveCtx) && !editing?.isEditing;
   const search = useContext(StorefrontSearchContext);
   const [searchOpen, setSearchOpen] = useState(false);
-  // A picked logo goes through LogoEditor (crop + frame) before upload.
-  const [logoFile, setLogoFile] = useState<File | null>(null);
+  // Tapping the logo in edit mode opens LogoEditor on the current logo (or
+  // empty, for a store with none): reframe it, or Change photo from inside.
+  // Never straight to the gallery.
+  const [logoEditor, setLogoEditor] = useState<{ file: File | null } | null>(null);
+  async function openLogoEditor() {
+    if (!logo) return setLogoEditor({ file: null });
+    try {
+      // The CDN sends Access-Control-Allow-Origin: *, so the picture comes
+      // back as a blob the editor can draw and export.
+      const blob = await (await fetch(logo)).blob();
+      setLogoEditor({ file: new File([blob], "logo", { type: blob.type }) });
+    } catch {
+      setLogoEditor({ file: null });
+    }
+  }
   const { banner: lockedBanner, showLocked } = useLockedBanner();
   const navigate = useStorefrontNavigate();
   // Stuck: the page has scrolled past the header's own spot, so it now sits
@@ -663,12 +676,6 @@ export function PhoneHeader({
   const chipClass = lightGround
     ? "border"
     : "border border-white/15 bg-black/25 text-white backdrop-blur-md";
-
-  function handleFile(e: ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (file) setLogoFile(file);
-    e.target.value = "";
-  }
 
   // Shrink-to-fit with a cap, same shape as imageChip's own min-w-10 below —
   // not a stretch-to-fill box. A short brand name doesn't sit in an oversized
@@ -723,12 +730,12 @@ export function PhoneHeader({
 
   return (
     <>
-      {logoFile && (
+      {logoEditor && (
         <LogoEditor
-          file={logoFile}
-          onCancel={() => setLogoFile(null)}
+          file={logoEditor.file}
+          onCancel={() => setLogoEditor(null)}
           onDone={(framed) => {
-            setLogoFile(null);
+            setLogoEditor(null);
             editing?.onLogoChange(framed);
           }}
         />
@@ -760,10 +767,14 @@ export function PhoneHeader({
             {logoMode === "text" ? (
               textLogo
             ) : editing?.isEditing ? (
-              <label className="cursor-pointer">
+              <button
+                type="button"
+                aria-label="Edit store logo"
+                onClick={() => void openLogoEditor()}
+                className="cursor-pointer text-left"
+              >
                 {imageChip}
-                <input type="file" accept="image/*" className="hidden" onChange={handleFile} />
-              </label>
+              </button>
             ) : (
               imageChip
             )}
@@ -917,8 +928,8 @@ function DesktopHeroToggle({
  *
  *  Live, the cards turn in a ring: they stand around a circle facing out and
  *  the circle rotates, the front card at full size and the rest going round
- *  behind it. Hovering holds it still. It turns in edit mode too (hover to
- *  crop or remove a card); under reduced motion or with one photo it's a
+ *  behind it. It never pauses live; in edit mode it turns too and holds
+ *  while the pointer is on a card (to crop or remove it); under reduced motion or with one photo it's a
  *  still, scrollable row with arrows instead. */
 function DesktopHeroCards({
   images,
@@ -1002,27 +1013,33 @@ function DesktopHeroCards({
       className="relative pt-5 pb-2 @3xl:pt-8 @3xl:pb-4"
       style={ink ? { color: ink } : undefined}
     >
-      <div className="mb-4 flex flex-wrap items-end justify-between gap-3 px-5 @3xl:mb-6 @3xl:gap-6 @3xl:px-12">
-        {(hasHeadline || isEditing) && (
-          <div className="min-w-0 max-w-[760px]">
-            <ThemeText
-              editing={editing}
-              field="overlayLine1"
-              placeholder={isEditing ? "Add a headline" : undefined}
-              as="p"
-              className="font-display text-[32px] uppercase leading-[0.92] @3xl:text-[56px]"
-            />
-            <ThemeText
-              editing={editing}
-              field="overlayLine2"
-              placeholder={isEditing ? "Add a tagline" : undefined}
-              as="p"
-              className="mt-2 text-[14px] font-medium opacity-70 @3xl:text-[18px]"
-            />
-          </div>
-        )}
-        <DesktopHeroToggle editing={editing} className="ml-auto shrink-0" />
-      </div>
+      {/* Nothing to show above a turning ring for a visitor: the headline is
+          over it. */}
+      {(isEditing || (!moving && hasHeadline)) && (
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-3 px-5 @3xl:mb-6 @3xl:gap-6 @3xl:px-12">
+          {/* With the ring turning, the headline sits over its front instead
+            (below); here it heads the still row. */}
+          {!moving && (hasHeadline || isEditing) && (
+            <div className="min-w-0 max-w-[760px]">
+              <ThemeText
+                editing={editing}
+                field="overlayLine1"
+                placeholder={isEditing ? "Add a headline" : undefined}
+                as="p"
+                className="font-display text-[32px] uppercase leading-[0.92] @3xl:text-[56px]"
+              />
+              <ThemeText
+                editing={editing}
+                field="overlayLine2"
+                placeholder={isEditing ? "Add a tagline" : undefined}
+                as="p"
+                className="mt-2 text-[14px] font-medium opacity-70 @3xl:text-[18px]"
+              />
+            </div>
+          )}
+          <DesktopHeroToggle editing={editing} className="ml-auto shrink-0" />
+        </div>
+      )}
 
       {moving && isEditing && images.length < MAX_SLIDESHOW_IMAGES && (
         <div className="-mb-2 flex justify-center px-5">
@@ -1043,8 +1060,37 @@ function DesktopHeroCards({
         <div
           className="oak-hero-ringwrap relative overflow-hidden py-8 [--h:340px] @3xl:py-10 @3xl:[--h:min(600px,64vh)]"
           style={{ perspective: "2400px" }}
+          // Live it never stops (a pause under a resting cursor read as the
+          // ring stalling at random); editing, it holds while the pointer is
+          // on a card, so the card can be cropped or removed.
+          data-editing={isEditing || undefined}
         >
           <style>{HERO_CARD_MOTION_CSS}</style>
+          {(hasHeadline || isEditing) && (
+            // Layered over the front of the ring like a magazine cover: white
+            // with a soft shadow so it reads over any photo. Lets pointer
+            // events through to the cards except on the text itself.
+            <div className="pointer-events-none absolute inset-x-0 bottom-14 z-20 flex flex-col items-center px-6 text-center text-white [text-shadow:0_2px_18px_rgba(0,0,0,0.55)] @3xl:bottom-20">
+              <div className="pointer-events-auto w-full max-w-[900px]">
+                <ThemeText
+                  editing={editing}
+                  field="overlayLine1"
+                  placeholder={isEditing ? "Add a headline" : undefined}
+                  as="p"
+                  className="font-display text-[40px] uppercase leading-[0.9] @3xl:text-[96px]"
+                />
+              </div>
+              <div className="pointer-events-auto mt-2 w-full max-w-[600px] @3xl:mt-3">
+                <ThemeText
+                  editing={editing}
+                  field="overlayLine2"
+                  placeholder={isEditing ? "Add a tagline" : undefined}
+                  as="p"
+                  className="text-[14px] font-medium text-white/90 @3xl:text-[20px]"
+                />
+              </div>
+            </div>
+          )}
           <div
             className="relative mx-auto"
             style={{
@@ -1158,7 +1204,7 @@ function DesktopHeroCards({
 const HERO_CARD_MOTION_CSS = `
 @keyframes oakHeroRing { from { transform: rotateY(0deg); } to { transform: rotateY(-360deg); } }
 .oak-hero-ring { animation: oakHeroRing linear infinite; will-change: transform; }
-.oak-hero-ringwrap:hover .oak-hero-ring { animation-play-state: paused; }
+.oak-hero-ringwrap[data-editing] .oak-hero-ring:has(> div:hover) { animation-play-state: paused; }
 `;
 
 /** While the live storefront's search bar has text, the slideshow steps

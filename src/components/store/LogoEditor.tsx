@@ -41,12 +41,17 @@ export function LogoEditor({
   onCancel,
   onDone,
 }: {
-  file: File;
+  /** The picture to frame: the store's current logo when re-framing, or
+   *  null to start empty (the Choose photo button inside picks one). */
+  file: File | null;
   onCancel: () => void;
   /** The framed logo, as a PNG file ready for the normal upload path. */
   onDone: (file: File) => void;
 }) {
+  // What's being framed; Change photo swaps it without leaving the editor.
+  const [current, setCurrent] = useState<File | null>(file);
   const [src, setSrc] = useState<string | null>(null);
+  const pickerRef = useRef<HTMLInputElement>(null);
   const [natural, setNatural] = useState<{ w: number; h: number } | null>(null);
   const [stage, setStage] = useState(300);
   const [shape, setShape] = useState<Shape>("rounded");
@@ -62,10 +67,21 @@ export function LogoEditor({
   const gesture = useRef<{ dist: number; zoom: number } | null>(null);
 
   useEffect(() => {
-    const url = URL.createObjectURL(file);
+    if (!current) return setSrc(null);
+    const url = URL.createObjectURL(current);
     setSrc(url);
     return () => URL.revokeObjectURL(url);
-  }, [file]);
+  }, [current]);
+
+  function pickPhoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const next = e.target.files?.[0];
+    e.target.value = "";
+    if (!next) return;
+    setNatural(null);
+    setFailed(false);
+    setOffset({ x: 0, y: 0 });
+    setCurrent(next);
+  }
 
   useEffect(() => {
     const measure = () => setStage(Math.min(window.innerWidth - 48, 340));
@@ -127,7 +143,7 @@ export function LogoEditor({
     // An SVG is almost always a logo drawn on nothing: it starts As is, so
     // its own shape shows. A wordmark (much wider than tall) starts Wide and
     // whole; anything squarer starts Rounded, filling the frame.
-    if (file.type === "image/svg+xml") {
+    if (current?.type === "image/svg+xml") {
       setShape("free");
       setZoom(1);
     } else if (w / h >= 2) {
@@ -272,7 +288,15 @@ export function LogoEditor({
           onPointerCancel={onPointerUp}
           onWheel={(e) => applyZoom(zoom * (e.deltaY < 0 ? 1.08 : 1 / 1.08))}
         >
-          {failed ? (
+          {!current ? (
+            <button
+              type="button"
+              onClick={() => pickerRef.current?.click()}
+              className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-white/40 px-8 py-10 text-[14px] font-semibold text-white/80"
+            >
+              Choose a photo
+            </button>
+          ) : failed ? (
             <p className="px-8 text-center text-sm text-white/60">
               This picture can&rsquo;t be opened here. Try a different one.
             </p>
@@ -307,6 +331,23 @@ export function LogoEditor({
           className="mx-auto w-full max-w-md px-5"
           style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 24px)" }}
         >
+          {/* A new picture from the gallery, framed right here. */}
+          <input
+            ref={pickerRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={pickPhoto}
+          />
+          {current && (
+            <button
+              type="button"
+              onClick={() => pickerRef.current?.click()}
+              className="mb-4 flex h-11 w-full items-center justify-center rounded-full bg-white/10 text-[15px] font-semibold text-white hover:bg-white/15"
+            >
+              Change photo
+            </button>
+          )}
           <input
             type="range"
             min={MIN_ZOOM}
