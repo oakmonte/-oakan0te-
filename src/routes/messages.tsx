@@ -686,7 +686,7 @@ export function MessagesView({
                   transition={{ type: "spring", stiffness: 420, damping: 38 }}
                 >
                   {!showArchived && (folder === "offers" || folder === "orders") ? (
-                    <TabPreview tab={folder} />
+                    <TabPreview tab={folder} buyer={!!sellerOnly && !viewingOwnStore} />
                   ) : loading ? (
                     <ConversationSkeleton />
                   ) : inbox.status === "error" ? (
