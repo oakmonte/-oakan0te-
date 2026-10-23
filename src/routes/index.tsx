@@ -160,14 +160,15 @@ function useReveal<T extends HTMLElement>() {
   return { ref, className: `reveal${inView ? " in-view" : ""}` };
 }
 
-/** Types its lines out once it scrolls into view. The full text is laid out
- *  invisibly underneath, so nothing below jumps as it types, and screen
- *  readers get the whole sentence at once. Reduced motion shows it all. */
+/** Types its lines out as the page scrolls: nothing typed while its top is
+ *  below 90% of the screen, all of it once the top reaches 40%, and scrolling
+ *  back up un-types it. The full text is laid out invisibly underneath, so
+ *  nothing below jumps as it types, and screen readers get the whole sentence
+ *  at once. Reduced motion shows it all. */
 function TypedText({ lines, className = "" }: { lines: string[]; className?: string }) {
   const ref = useRef<HTMLParagraphElement | null>(null);
   const full = lines.join("\n");
   const [count, setCount] = useState(0);
-  const [started, setStarted] = useState(false);
 
   useEffect(() => {
     const el = ref.current;
@@ -176,24 +177,26 @@ function TypedText({ lines, className = "" }: { lines: string[]; className?: str
       setCount(full.length);
       return;
     }
-    const io = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setStarted(true);
-          io.disconnect();
-        }
-      },
-      { threshold: 0.4 },
-    );
-    io.observe(el);
-    return () => io.disconnect();
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      const vh = window.innerHeight;
+      const top = el.getBoundingClientRect().top;
+      const progress = Math.min(1, Math.max(0, (vh * 0.9 - top) / (vh * 0.5)));
+      setCount(Math.round(progress * full.length));
+    };
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      cancelAnimationFrame(frame);
+    };
   }, [full]);
-
-  useEffect(() => {
-    if (!started || count >= full.length) return;
-    const t = setTimeout(() => setCount((c) => c + 1), full[count] === "\n" ? 300 : 22);
-    return () => clearTimeout(t);
-  }, [started, count, full]);
 
   const render = (text: string) =>
     text.split("\n").flatMap((line, i) => (i ? [<br key={i} />, line] : [line]));
