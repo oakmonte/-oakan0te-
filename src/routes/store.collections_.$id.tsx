@@ -16,6 +16,7 @@ import { ProductsSheet } from "@/components/product-form/ProductsSheet";
 import { CollectionActionsSheet } from "@/components/product-form/CollectionActionsSheet";
 import { StatusPicker } from "@/components/product-form/StatusPicker";
 import { MediaSection } from "@/components/product-form/MediaSection";
+import { DesktopPanel } from "@/components/store/DesktopPanel";
 
 export const Route = createFileRoute("/store/collections_/$id")({
   component: CollectionDetail,
@@ -269,142 +270,144 @@ function CollectionDetail() {
         <span className="font-semibold text-[15px] truncate max-w-[45%]">{collection.title}</span>
         <span className="w-6" />
       </div>
-
-      {/* On a wide screen the photo card is a centred block rather than a
+      {/* Desktop: the form in the outlined panel, under the sticky bar. */}
+      <DesktopPanel narrow>
+        {/* On a wide screen the photo card is a centred block rather than a
           full-width strip, the same as the product form. */}
-      <div
-        className={`mx-4 mt-4 overflow-hidden rounded-2xl border border-sd-ink/25 bg-sd-surface md:mx-auto md:w-full md:max-w-md ${
-          collection.image_url ? "" : "md:h-[260px] md:flex md:flex-col md:justify-center"
-        }`}
-      >
-        <MediaSection
-          mainImageUrl={collection.image_url ?? ""}
-          onChange={(url) => setCollection((c) => (c ? { ...c, image_url: url || null } : c))}
-          additionalImageUrls={collection.additional_image_urls ?? []}
-          onAdditionalChange={(urls) =>
-            setCollection((c) => (c ? { ...c, additional_image_urls: urls } : c))
-          }
-          noDivider
-        />
-      </div>
-      {photosError && <p className="mx-4 mt-2 text-sm text-sd-danger-ink">{photosError}</p>}
+        <div
+          className={`mx-4 mt-4 overflow-hidden rounded-2xl border border-sd-ink/25 bg-sd-surface ${
+            collection.image_url ? "" : "md:h-[260px] md:flex md:flex-col md:justify-center"
+          }`}
+        >
+          <MediaSection
+            mainImageUrl={collection.image_url ?? ""}
+            onChange={(url) => setCollection((c) => (c ? { ...c, image_url: url || null } : c))}
+            additionalImageUrls={collection.additional_image_urls ?? []}
+            onAdditionalChange={(urls) =>
+              setCollection((c) => (c ? { ...c, additional_image_urls: urls } : c))
+            }
+            noDivider
+          />
+        </div>
+        {photosError && <p className="mx-4 mt-2 text-sm text-sd-danger-ink">{photosError}</p>}
 
-      {/* The name, in its own card like the new-collection form. Saved when
+        {/* The name, in its own card like the new-collection form. Saved when
           the field loses focus (and by Save below). */}
-      <div className="mx-4 mt-4 rounded-2xl border border-sd-ink/25 bg-sd-surface px-4 py-4">
-        <label htmlFor="collection-name" className="text-xs font-medium text-sd-ink-muted">
-          Collection name
-        </label>
-        <input
-          id="collection-name"
-          value={titleDraft ?? collection.title}
-          onChange={(e) => setTitleDraft(e.target.value)}
-          onBlur={() => void saveTitle()}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") e.currentTarget.blur();
-          }}
-          maxLength={80}
-          className="mt-1 w-full bg-transparent text-[22px] font-semibold leading-tight text-sd-ink outline-none"
-        />
-      </div>
-      {titleError && <p className="mx-4 mt-2 text-sm text-sd-danger-ink">{titleError}</p>}
+        <div className="mx-4 mt-4 rounded-2xl border border-sd-ink/25 bg-sd-surface px-4 py-4">
+          <label htmlFor="collection-name" className="text-xs font-medium text-sd-ink-muted">
+            Collection name
+          </label>
+          <input
+            id="collection-name"
+            value={titleDraft ?? collection.title}
+            onChange={(e) => setTitleDraft(e.target.value)}
+            onBlur={() => void saveTitle()}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") e.currentTarget.blur();
+            }}
+            maxLength={80}
+            className="mt-1 w-full bg-transparent text-[22px] font-semibold leading-tight text-sd-ink outline-none"
+          />
+        </div>
+        {titleError && <p className="mx-4 mt-2 text-sm text-sd-danger-ink">{titleError}</p>}
 
-      <div className="px-4 pt-4">
-        <StatusPicker
-          label="Collection Status"
-          value={collection.status === "draft" ? "draft" : "active"}
-          onChange={handleStatusChange}
-        />
-        {statusError && <p className="mt-2 text-sm text-sd-danger-ink">{statusError}</p>}
-        {collection.status === "draft" && (
-          <p className="mt-2 text-[13px] text-sd-ink-faint">
-            Inactive collections don't show on your storefront.
-          </p>
-        )}
-      </div>
+        <div className="px-4 pt-4">
+          <StatusPicker
+            label="Collection Status"
+            value={collection.status === "draft" ? "draft" : "active"}
+            onChange={handleStatusChange}
+          />
+          {statusError && <p className="mt-2 text-sm text-sd-danger-ink">{statusError}</p>}
+          {collection.status === "draft" && (
+            <p className="mt-2 text-[13px] text-sd-ink-faint">
+              Inactive collections don't show on your storefront.
+            </p>
+          )}
+        </div>
 
-      {/* The products in it: a titled card, rows split by lines, with a compact
+        {/* The products in it: a titled card, rows split by lines, with a compact
           Add button in its header instead of a full-width bar. */}
-      <div className="mx-4 mt-4 overflow-hidden rounded-2xl border border-sd-ink/25 bg-sd-surface">
-        <div className="flex items-center justify-between px-4 py-3.5">
-          <p className="text-[15px] font-semibold text-sd-ink">
-            Products
-            {products && products.length > 0 && (
-              <span className="ml-1.5 font-normal text-sd-ink-muted">{products.length}</span>
-            )}
-          </p>
+        <div className="mx-4 mt-4 overflow-hidden rounded-2xl border border-sd-ink/25 bg-sd-surface">
+          <div className="flex items-center justify-between px-4 py-3.5">
+            <p className="text-[15px] font-semibold text-sd-ink">
+              Products
+              {products && products.length > 0 && (
+                <span className="ml-1.5 font-normal text-sd-ink-muted">{products.length}</span>
+              )}
+            </p>
+            <button
+              type="button"
+              onClick={() => setProductsSheetOpen(true)}
+              className="flex items-center gap-1.5 rounded-full border border-sd-ink/25 px-3.5 py-2 text-[13px] font-medium text-sd-ink oak-motion-control active:scale-[0.97]"
+            >
+              <Plus size={15} />
+              Add products
+            </button>
+          </div>
+          {products === null ? (
+            <div className="border-t border-sd-line py-10 text-center text-sm text-sd-ink-faint">
+              Loading…
+            </div>
+          ) : products.length === 0 ? (
+            <div className="border-t border-sd-line py-10 text-center text-sm text-sd-ink-faint animate-in fade-in duration-300">
+              No products in this collection yet.
+            </div>
+          ) : (
+            <div className="divide-y divide-sd-line border-t border-sd-line animate-in fade-in duration-300">
+              {products.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => navigate({ to: "/store/products/$id", params: { id: p.id } })}
+                  className="flex w-full items-center gap-3 px-4 py-3 text-left active:bg-sd-soft"
+                >
+                  <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-sd-soft">
+                    {p.main_image_url ? (
+                      <img src={p.main_image_url} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <ImageIcon size={16} className="text-sd-ink-faint" />
+                    )}
+                  </span>
+                  <span className="truncate text-sm font-medium">{p.title ?? "Untitled"}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="px-4 pt-6">
           <button
             type="button"
-            onClick={() => setProductsSheetOpen(true)}
-            className="flex items-center gap-1.5 rounded-full border border-sd-ink/25 px-3.5 py-2 text-[13px] font-medium text-sd-ink oak-motion-control active:scale-[0.97]"
+            onClick={() => void handleSave()}
+            disabled={saving}
+            className="mx-auto block w-full md:max-w-sm bg-sd-ink text-sd-bg text-sm font-semibold rounded-full py-3.5 disabled:opacity-50 oak-motion-control active:scale-[0.98]"
           >
-            <Plus size={15} />
-            Add products
+            {saving ? "Saving…" : "Save"}
           </button>
         </div>
-        {products === null ? (
-          <div className="border-t border-sd-line py-10 text-center text-sm text-sd-ink-faint">
-            Loading…
-          </div>
-        ) : products.length === 0 ? (
-          <div className="border-t border-sd-line py-10 text-center text-sm text-sd-ink-faint animate-in fade-in duration-300">
-            No products in this collection yet.
-          </div>
-        ) : (
-          <div className="divide-y divide-sd-line border-t border-sd-line animate-in fade-in duration-300">
-            {products.map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => navigate({ to: "/store/products/$id", params: { id: p.id } })}
-                className="flex w-full items-center gap-3 px-4 py-3 text-left active:bg-sd-soft"
-              >
-                <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-sd-soft">
-                  {p.main_image_url ? (
-                    <img src={p.main_image_url} alt="" className="h-full w-full object-cover" />
-                  ) : (
-                    <ImageIcon size={16} className="text-sd-ink-faint" />
-                  )}
-                </span>
-                <span className="truncate text-sm font-medium">{p.title ?? "Untitled"}</span>
-              </button>
-            ))}
-          </div>
+
+        {productsSheetOpen && storeId && (
+          <ProductsSheet
+            storeId={storeId}
+            selectedIds={(products ?? []).map((p) => p.id)}
+            onDone={handleApplyProducts}
+            onClose={() => setProductsSheetOpen(false)}
+            onCreateNew={() => {
+              setPendingNewCollectionId(id);
+              navigate({ to: "/store/products/new" });
+            }}
+          />
         )}
-      </div>
 
-      <div className="px-4 pt-6">
-        <button
-          type="button"
-          onClick={() => void handleSave()}
-          disabled={saving}
-          className="mx-auto block w-full md:max-w-sm bg-sd-ink text-sd-bg text-sm font-semibold rounded-full py-3.5 disabled:opacity-50 oak-motion-control active:scale-[0.98]"
-        >
-          {saving ? "Saving…" : "Save"}
-        </button>
-      </div>
-
-      {productsSheetOpen && storeId && (
-        <ProductsSheet
-          storeId={storeId}
-          selectedIds={(products ?? []).map((p) => p.id)}
-          onDone={handleApplyProducts}
-          onClose={() => setProductsSheetOpen(false)}
-          onCreateNew={() => {
-            setPendingNewCollectionId(id);
-            navigate({ to: "/store/products/new" });
-          }}
-        />
-      )}
-
-      {actionsSheetOpen && (
-        <CollectionActionsSheet
-          productCount={products?.length ?? 0}
-          onClose={() => setActionsSheetOpen(false)}
-          onDeleteOnly={() => handleDelete(false)}
-          onDeleteWithProducts={() => handleDelete(true)}
-        />
-      )}
+        {actionsSheetOpen && (
+          <CollectionActionsSheet
+            productCount={products?.length ?? 0}
+            onClose={() => setActionsSheetOpen(false)}
+            onDeleteOnly={() => handleDelete(false)}
+            onDeleteWithProducts={() => handleDelete(true)}
+          />
+        )}
+      </DesktopPanel>
     </div>
   );
 }

@@ -75,6 +75,7 @@ import {
 import { useActiveStoreId } from "@/hooks/use-own-store";
 import { useStoreHeader } from "@/hooks/use-store-header";
 import { Spinner } from "@/components/spinner";
+import { DesktopPanel } from "@/components/store/DesktopPanel";
 
 export const Route = createFileRoute("/store/products_/$id")({
   // See store.products_.new.tsx: carried so a save returns to the checklist's list.
@@ -1076,315 +1077,317 @@ function EditProduct() {
           <ChevronDown size={14} className="text-sd-ink-faint" />
         </button>
       </div>
+      {/* Desktop: the form in the outlined panel, under the sticky bar. */}
+      <DesktopPanel narrow>
+        {showRestoredBanner && (
+          <div className="mx-4 mt-3 flex items-center justify-between gap-3 rounded-xl bg-sd-elevated px-3 py-2.5">
+            <p className="text-xs text-sd-ink-muted">
+              Restored your unsaved progress from last time.
+            </p>
+            <button
+              type="button"
+              onClick={() => setShowRestoredBanner(false)}
+              className="text-xs font-medium text-sd-ink shrink-0"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
 
-      {showRestoredBanner && (
-        <div className="mx-4 mt-3 flex items-center justify-between gap-3 rounded-xl bg-sd-elevated px-3 py-2.5">
-          <p className="text-xs text-sd-ink-muted">
-            Restored your unsaved progress from last time.
-          </p>
-          <button
-            type="button"
-            onClick={() => setShowRestoredBanner(false)}
-            className="text-xs font-medium text-sd-ink shrink-0"
-          >
-            Dismiss
-          </button>
-        </div>
-      )}
+        {error && <p className="px-4 pt-3 text-sm text-sd-danger-ink">{error}</p>}
 
-      {error && <p className="px-4 pt-3 text-sm text-sd-danger-ink">{error}</p>}
-
-      {/* On a wide screen the photo card is a centred square-ish block rather
+        {/* On a wide screen the photo card is a centred square-ish block rather
           than a full-width strip. */}
-      <div
-        className={`mx-4 mt-4 rounded-3xl border border-gray-300 bg-white overflow-hidden md:mx-auto md:w-full md:max-w-md ${
-          mainImageUrl ? "" : "md:h-[260px] md:flex md:flex-col md:justify-center"
-        }`}
-      >
-        <MediaSection
-          mainImageUrl={mainImageUrl}
-          onChange={setMainImageUrl}
-          additionalImageUrls={regularAdditionalImageUrls ?? []}
-          onAdditionalChange={(urls) =>
-            setRegularAdditionalImageUrls(urls.length > 0 ? urls : null)
-          }
-          noDivider
-        />
-      </div>
+        <div
+          className={`mx-4 mt-4 rounded-3xl border border-gray-300 bg-white overflow-hidden ${
+            mainImageUrl ? "" : "md:h-[260px] md:flex md:flex-col md:justify-center"
+          }`}
+        >
+          <MediaSection
+            mainImageUrl={mainImageUrl}
+            onChange={setMainImageUrl}
+            additionalImageUrls={regularAdditionalImageUrls ?? []}
+            onAdditionalChange={(urls) =>
+              setRegularAdditionalImageUrls(urls.length > 0 ? urls : null)
+            }
+            noDivider
+          />
+        </div>
 
-      <div className="mx-4 mt-4 mb-4 rounded-3xl border border-gray-300 bg-white overflow-hidden">
-        <DetailsSection
-          noDivider
-          title={title}
-          setTitle={setTitle}
-          descriptionShort={descriptionShort}
-          onOpenDescription={() => setDescriptionSheetOpen(true)}
-          categoryPath={categoryPath}
-          onOpenCategoryPicker={() => setCategoryPickerOpen(true)}
-          price={price}
-          compareAtPrice={compareAtPrice}
-          onOpenPriceSheet={() => setPriceSheetOpen(true)}
-          showPrice={kind === "regular"}
-        />
-      </div>
+        <div className="mx-4 mt-4 mb-4 rounded-3xl border border-gray-300 bg-white overflow-hidden">
+          <DetailsSection
+            noDivider
+            title={title}
+            setTitle={setTitle}
+            descriptionShort={descriptionShort}
+            onOpenDescription={() => setDescriptionSheetOpen(true)}
+            categoryPath={categoryPath}
+            onOpenCategoryPicker={() => setCategoryPickerOpen(true)}
+            price={price}
+            compareAtPrice={compareAtPrice}
+            onOpenPriceSheet={() => setPriceSheetOpen(true)}
+            showPrice={kind === "regular"}
+          />
+        </div>
 
-      {/* Stock and organise, as cards -- same layout as the new-product page. */}
-      {(kind === "regular" || storeId) && (
-        <div className="mx-4 rounded-3xl border border-gray-300 bg-white overflow-hidden">
-          {kind === "regular" ? (
-            <InventorySection
-              available={regularStockQty}
-              locationCount={Object.keys(regularLocationQuantities).length}
-              onOpen={() => setInventorySheetOpen(true)}
-              noDivider
-            />
-          ) : (
-            storeId && (
-              <VariantMatrixBuilder
-                options={options}
-                setOptions={setOptions}
-                rows={rows}
-                setRows={setRows}
-                mainImageUrl={mainImageUrl}
-                additionalImageUrls={regularAdditionalImageUrls ?? []}
-                passFeesToBuyer={passFeesToBuyer}
-                onChangePassFeesToBuyer={setPassFeesToBuyer}
-                storeId={storeId}
-                onCreateLocation={handleCreateLocation}
-                estimateWeightForRow={estimateWeightForRow}
-                initialInventoryContext={initialVariantInventoryContext}
-                initialNewLocationId={initialNewLocationId}
-                onInventoryContextConsumed={() => setInitialVariantInventoryContext(null)}
+        {/* Stock and organise, as cards -- same layout as the new-product page. */}
+        {(kind === "regular" || storeId) && (
+          <div className="mx-4 rounded-3xl border border-gray-300 bg-white overflow-hidden">
+            {kind === "regular" ? (
+              <InventorySection
+                available={regularStockQty}
+                locationCount={Object.keys(regularLocationQuantities).length}
+                onOpen={() => setInventorySheetOpen(true)}
                 noDivider
               />
-            )
+            ) : (
+              storeId && (
+                <VariantMatrixBuilder
+                  options={options}
+                  setOptions={setOptions}
+                  rows={rows}
+                  setRows={setRows}
+                  mainImageUrl={mainImageUrl}
+                  additionalImageUrls={regularAdditionalImageUrls ?? []}
+                  passFeesToBuyer={passFeesToBuyer}
+                  onChangePassFeesToBuyer={setPassFeesToBuyer}
+                  storeId={storeId}
+                  onCreateLocation={handleCreateLocation}
+                  estimateWeightForRow={estimateWeightForRow}
+                  initialInventoryContext={initialVariantInventoryContext}
+                  initialNewLocationId={initialNewLocationId}
+                  onInventoryContextConsumed={() => setInitialVariantInventoryContext(null)}
+                  noDivider
+                />
+              )
+            )}
+          </div>
+        )}
+
+        <div className="mx-4 mt-4 rounded-3xl border border-gray-300 bg-white overflow-hidden divide-y divide-gray-100">
+          <button
+            type="button"
+            onClick={() => setCollectionsSheetOpen(true)}
+            className="w-full flex items-center justify-between px-4 py-4 text-left"
+          >
+            <span className="flex items-center gap-3 text-[15px] text-sd-ink">
+              <Tag size={18} className="text-sd-ink-faint" />
+              Collections
+            </span>
+            <span className="flex items-center gap-2">
+              {collectionIds.length > 0 && (
+                <span className="text-xs text-sd-ink-faint">{collectionIds.length} selected</span>
+              )}
+              <ChevronRight size={16} className="text-sd-ink-faint" />
+            </span>
+          </button>
+          {/* Off for now -- see product-form-flags.ts. */}
+          {TAGS_ENABLED && (
+            <StubRow
+              icon={<Hash size={18} />}
+              label="Tags"
+              isLast
+              onClick={() => setTagsSheetOpen(true)}
+            />
+          )}
+          {NECESSITIES_ENABLED && (
+            <StubRow
+              icon={<ListChecks size={18} />}
+              label="Necessities"
+              isLast
+              onClick={() => setNecessitiesSheetOpen(true)}
+            />
           )}
         </div>
-      )}
 
-      <div className="mx-4 mt-4 rounded-3xl border border-gray-300 bg-white overflow-hidden divide-y divide-gray-100">
-        <button
-          type="button"
-          onClick={() => setCollectionsSheetOpen(true)}
-          className="w-full flex items-center justify-between px-4 py-4 text-left"
-        >
-          <span className="flex items-center gap-3 text-[15px] text-sd-ink">
-            <Tag size={18} className="text-sd-ink-faint" />
-            Collections
-          </span>
-          <span className="flex items-center gap-2">
-            {collectionIds.length > 0 && (
-              <span className="text-xs text-sd-ink-faint">{collectionIds.length} selected</span>
-            )}
-            <ChevronRight size={16} className="text-sd-ink-faint" />
-          </span>
-        </button>
-        {/* Off for now -- see product-form-flags.ts. */}
-        {TAGS_ENABLED && (
-          <StubRow
-            icon={<Hash size={18} />}
-            label="Tags"
-            isLast
-            onClick={() => setTagsSheetOpen(true)}
+        {categoryPickerOpen && (
+          <CategoryPicker
+            onSelect={(path) => {
+              setCategoryPath(path);
+              setCategoryPickerOpen(false);
+            }}
+            onClose={() => setCategoryPickerOpen(false)}
           />
         )}
-        {NECESSITIES_ENABLED && (
-          <StubRow
-            icon={<ListChecks size={18} />}
-            label="Necessities"
-            isLast
-            onClick={() => setNecessitiesSheetOpen(true)}
+
+        {priceSheetOpen && (
+          <PricingSheet
+            price={price}
+            compareAtPrice={compareAtPrice}
+            costPrice={costPrice}
+            onChangePrice={setPrice}
+            onChangeCompareAtPrice={setCompareAtPrice}
+            onChangeCostPrice={setCostPrice}
+            passFeesToBuyer={passFeesToBuyer}
+            onChangePassFeesToBuyer={setPassFeesToBuyer}
+            onClose={() => setPriceSheetOpen(false)}
           />
         )}
-      </div>
 
-      {categoryPickerOpen && (
-        <CategoryPicker
-          onSelect={(path) => {
-            setCategoryPath(path);
-            setCategoryPickerOpen(false);
-          }}
-          onClose={() => setCategoryPickerOpen(false)}
-        />
-      )}
+        {inventorySheetOpen && storeId && (
+          <InventorySheet
+            storeId={storeId}
+            initial={{
+              continueSellingOutOfStock: regularContinueSellingOutOfStock,
+              locationQuantities: regularLocationQuantities,
+              sku: regularSku,
+              barcodes: regularBarcodes,
+            }}
+            initialLocationsPickerOpen={!!initialNewLocationId}
+            onCreateLocation={(current) => handleCreateLocation(undefined, current)}
+            onSave={(values: InventoryValues) => {
+              setRegularContinueSellingOutOfStock(values.continueSellingOutOfStock);
+              setRegularLocationQuantities(values.locationQuantities);
+              setRegularSku(values.sku);
+              setRegularBarcodes(values.barcodes);
+              setInventorySheetOpen(false);
+            }}
+          />
+        )}
 
-      {priceSheetOpen && (
-        <PricingSheet
-          price={price}
-          compareAtPrice={compareAtPrice}
-          costPrice={costPrice}
-          onChangePrice={setPrice}
-          onChangeCompareAtPrice={setCompareAtPrice}
-          onChangeCostPrice={setCostPrice}
-          passFeesToBuyer={passFeesToBuyer}
-          onChangePassFeesToBuyer={setPassFeesToBuyer}
-          onClose={() => setPriceSheetOpen(false)}
-        />
-      )}
+        {typeSwitchOpen && (
+          <ProductTypeSwitchSheet
+            current={kind}
+            onSelect={handleTypeSwitch}
+            onClose={() => setTypeSwitchOpen(false)}
+          />
+        )}
 
-      {inventorySheetOpen && storeId && (
-        <InventorySheet
-          storeId={storeId}
-          initial={{
-            continueSellingOutOfStock: regularContinueSellingOutOfStock,
-            locationQuantities: regularLocationQuantities,
-            sku: regularSku,
-            barcodes: regularBarcodes,
-          }}
-          initialLocationsPickerOpen={!!initialNewLocationId}
-          onCreateLocation={(current) => handleCreateLocation(undefined, current)}
-          onSave={(values: InventoryValues) => {
-            setRegularContinueSellingOutOfStock(values.continueSellingOutOfStock);
-            setRegularLocationQuantities(values.locationQuantities);
-            setRegularSku(values.sku);
-            setRegularBarcodes(values.barcodes);
-            setInventorySheetOpen(false);
-          }}
-        />
-      )}
+        {actionsSheetOpen && (
+          <ProductActionsSheet
+            onClose={() => setActionsSheetOpen(false)}
+            onDelete={handleDeleteProduct}
+          />
+        )}
 
-      {typeSwitchOpen && (
-        <ProductTypeSwitchSheet
-          current={kind}
-          onSelect={handleTypeSwitch}
-          onClose={() => setTypeSwitchOpen(false)}
-        />
-      )}
+        {descriptionSheetOpen && (
+          <DescriptionSheet
+            value={descriptionShort}
+            onSave={(html) => {
+              setDescriptionShort(html);
+              setDescriptionSheetOpen(false);
+            }}
+            onClose={() => setDescriptionSheetOpen(false)}
+          />
+        )}
 
-      {actionsSheetOpen && (
-        <ProductActionsSheet
-          onClose={() => setActionsSheetOpen(false)}
-          onDelete={handleDeleteProduct}
-        />
-      )}
+        {collectionsSheetOpen && storeId && (
+          <CollectionsSheet
+            storeId={storeId}
+            selectedIds={collectionIds}
+            onDone={(ids) => {
+              setCollectionIds(ids);
+              setCollectionsSheetOpen(false);
+            }}
+            onClose={() => setCollectionsSheetOpen(false)}
+            onCreateNew={handleCreateCollection}
+            currentProductId={productId}
+          />
+        )}
 
-      {descriptionSheetOpen && (
-        <DescriptionSheet
-          value={descriptionShort}
-          onSave={(html) => {
-            setDescriptionShort(html);
-            setDescriptionSheetOpen(false);
-          }}
-          onClose={() => setDescriptionSheetOpen(false)}
-        />
-      )}
+        {tagsSheetOpen && storeId && (
+          <TagsSheet
+            storeId={storeId}
+            selectedIds={tagIds}
+            onToggle={toggleTag}
+            onClose={() => setTagsSheetOpen(false)}
+          />
+        )}
 
-      {collectionsSheetOpen && storeId && (
-        <CollectionsSheet
-          storeId={storeId}
-          selectedIds={collectionIds}
-          onDone={(ids) => {
-            setCollectionIds(ids);
-            setCollectionsSheetOpen(false);
-          }}
-          onClose={() => setCollectionsSheetOpen(false)}
-          onCreateNew={handleCreateCollection}
-          currentProductId={productId}
-        />
-      )}
+        {necessitiesSheetOpen && (
+          <NecessitiesSheet
+            categoryPath={categoryPath}
+            kind={kind}
+            options={options}
+            onChangeOptions={setOptions}
+            material={material}
+            onChangeMaterial={setMaterial}
+            sizeMeasurements={sizeMeasurements}
+            onChangeSizeMeasurements={setSizeMeasurements}
+            manualSize={manualSize}
+            onChangeManualSize={setManualSize}
+            rows={rows}
+            onChangeRows={setRows}
+            estimateWeightForRow={estimateWeightForRow}
+            regularWeightGrams={regularWeightGrams}
+            regularWeightEstimate={regularWeightEstimate}
+            onChangeRegularWeightGrams={setRegularWeightGrams}
+            linkedPostIds={linkedPostIds}
+            onChangeLinkedPostIds={setLinkedPostIds}
+            regularColors={regularColors}
+            onChangeRegularColors={setRegularColors}
+            onClose={() => setNecessitiesSheetOpen(false)}
+          />
+        )}
 
-      {tagsSheetOpen && storeId && (
-        <TagsSheet
-          storeId={storeId}
-          selectedIds={tagIds}
-          onToggle={toggleTag}
-          onClose={() => setTagsSheetOpen(false)}
-        />
-      )}
+        {draftWarningOpen && (
+          <DraftWarningDialog
+            onPublish={() => {
+              setDraftWarningOpen(false);
+              setStatus("active");
+              writeProduct("active");
+            }}
+            onKeepDraft={() => {
+              setDraftWarningOpen(false);
+              writeProduct("draft");
+            }}
+            onCancel={() => setDraftWarningOpen(false)}
+          />
+        )}
 
-      {necessitiesSheetOpen && (
-        <NecessitiesSheet
-          categoryPath={categoryPath}
-          kind={kind}
-          options={options}
-          onChangeOptions={setOptions}
-          material={material}
-          onChangeMaterial={setMaterial}
-          sizeMeasurements={sizeMeasurements}
-          onChangeSizeMeasurements={setSizeMeasurements}
-          manualSize={manualSize}
-          onChangeManualSize={setManualSize}
-          rows={rows}
-          onChangeRows={setRows}
-          estimateWeightForRow={estimateWeightForRow}
-          regularWeightGrams={regularWeightGrams}
-          regularWeightEstimate={regularWeightEstimate}
-          onChangeRegularWeightGrams={setRegularWeightGrams}
-          linkedPostIds={linkedPostIds}
-          onChangeLinkedPostIds={setLinkedPostIds}
-          regularColors={regularColors}
-          onChangeRegularColors={setRegularColors}
-          onClose={() => setNecessitiesSheetOpen(false)}
-        />
-      )}
+        {necessitiesWarningOpen && (
+          <NecessitiesWarningDialog
+            reviewLabel={categoryPath.length === 0 ? "Pick a category" : "Review necessities"}
+            onReview={() => {
+              setNecessitiesWarningOpen(false);
+              if (categoryPath.length === 0) setCategoryPickerOpen(true);
+              else setNecessitiesSheetOpen(true);
+            }}
+            onSaveAnyway={() => {
+              setNecessitiesWarningOpen(false);
+              saveIfNoVariantLoss();
+            }}
+            onCancel={() => setNecessitiesWarningOpen(false)}
+          />
+        )}
 
-      {draftWarningOpen && (
-        <DraftWarningDialog
-          onPublish={() => {
-            setDraftWarningOpen(false);
-            setStatus("active");
-            writeProduct("active");
-          }}
-          onKeepDraft={() => {
-            setDraftWarningOpen(false);
-            writeProduct("draft");
-          }}
-          onCancel={() => setDraftWarningOpen(false)}
-        />
-      )}
-
-      {necessitiesWarningOpen && (
-        <NecessitiesWarningDialog
-          reviewLabel={categoryPath.length === 0 ? "Pick a category" : "Review necessities"}
-          onReview={() => {
-            setNecessitiesWarningOpen(false);
-            if (categoryPath.length === 0) setCategoryPickerOpen(true);
-            else setNecessitiesSheetOpen(true);
-          }}
-          onSaveAnyway={() => {
-            setNecessitiesWarningOpen(false);
-            saveIfNoVariantLoss();
-          }}
-          onCancel={() => setNecessitiesWarningOpen(false)}
-        />
-      )}
-
-      <AlertDialog
-        open={variantLossWarning !== null}
-        onOpenChange={(open) => !open && setVariantLossWarning(null)}
-      >
-        <AlertDialogContent className="max-w-[92vw] rounded-2xl">
-          <AlertDialogHeader>
-            <AlertDialogTitle>{variantLossDialog?.title}</AlertDialogTitle>
-            <AlertDialogDescription>{variantLossDialog?.description}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-full">Go back</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmSaveDespiteVariantLoss}
-              className="bg-sd-ink text-sd-bg rounded-full"
-            >
-              Delete and save
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <div className="mx-4 mt-4 rounded-3xl border border-gray-300 bg-white p-4">
-        <p className="text-[15px] font-semibold text-sd-ink mb-3">Product Status</p>
-        <StatusToggle value={status} onChange={setStatus} />
-      </div>
-
-      <div className="px-4 pt-4">
-        <button
-          type="button"
-          onClick={handleSave}
-          disabled={saving || !storeId}
-          className="mx-auto block w-full md:max-w-sm bg-sd-ink text-sd-bg text-sm font-semibold rounded-full py-3.5 disabled:opacity-50 oak-motion-control active:scale-[0.98]"
+        <AlertDialog
+          open={variantLossWarning !== null}
+          onOpenChange={(open) => !open && setVariantLossWarning(null)}
         >
-          {saving ? "Saving…" : "Save changes"}
-        </button>
-      </div>
+          <AlertDialogContent className="max-w-[92vw] rounded-2xl">
+            <AlertDialogHeader>
+              <AlertDialogTitle>{variantLossDialog?.title}</AlertDialogTitle>
+              <AlertDialogDescription>{variantLossDialog?.description}</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="rounded-full">Go back</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={confirmSaveDespiteVariantLoss}
+                className="bg-sd-ink text-sd-bg rounded-full"
+              >
+                Delete and save
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <div className="mx-4 mt-4 rounded-3xl border border-gray-300 bg-white p-4">
+          <p className="text-[15px] font-semibold text-sd-ink mb-3">Product Status</p>
+          <StatusToggle value={status} onChange={setStatus} />
+        </div>
+
+        <div className="px-4 pt-4">
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving || !storeId}
+            className="mx-auto block w-full md:max-w-sm bg-sd-ink text-sd-bg text-sm font-semibold rounded-full py-3.5 disabled:opacity-50 oak-motion-control active:scale-[0.98]"
+          >
+            {saving ? "Saving…" : "Save changes"}
+          </button>
+        </div>
+      </DesktopPanel>
     </div>
   );
 }

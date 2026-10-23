@@ -321,7 +321,7 @@ export function ProductsPanel({ checklist }: { checklist?: boolean }) {
       {/* How many products this view holds: the store's total on All, the
           filter's or search's count otherwise. */}
       {!listLoading && products.length > 0 && (
-        <p className="-mt-3 mb-3 text-[13px] text-sd-ink-muted md:mx-auto md:max-w-xl">
+        <p className="-mt-3 mb-3 text-[13px] text-sd-ink-muted">
           {products.length} product{products.length === 1 ? "" : "s"}
         </p>
       )}
@@ -359,7 +359,7 @@ export function ProductsPanel({ checklist }: { checklist?: boolean }) {
           </div>
         )
       ) : (
-        <div className="flex flex-col gap-3 animate-in fade-in duration-300 md:mx-auto md:max-w-xl">
+        <div className="flex flex-col gap-3 animate-in fade-in duration-300 md:grid md:grid-cols-2">
           {products.map((p) => (
             <ProductListRow
               key={p.id}

@@ -16,6 +16,7 @@ import {
 } from "@/lib/product-draft-handoff";
 import { useActiveStoreId } from "@/hooks/use-own-store";
 import { hasPendingUploads } from "@/lib/background-upload";
+import { DesktopPanel } from "@/components/store/DesktopPanel";
 
 export const Route = createFileRoute("/store/collections_/new")({
   component: NewCollection,
@@ -212,116 +213,118 @@ function NewCollection() {
           Save
         </button>
       </div>
+      {/* Desktop: the form in the outlined panel, under the sticky bar. */}
+      <DesktopPanel narrow>
+        {error && (
+          <p className="px-4 pt-3 text-sm text-sd-danger-ink animate-in fade-in slide-in-from-top-1 duration-200">
+            {error}
+          </p>
+        )}
 
-      {error && (
-        <p className="px-4 pt-3 text-sm text-sd-danger-ink animate-in fade-in slide-in-from-top-1 duration-200">
-          {error}
-        </p>
-      )}
-
-      {/* On a wide screen the photo card is a centred block rather than a
+        {/* On a wide screen the photo card is a centred block rather than a
           full-width strip, the same as the product form. */}
-      <div
-        className={`mx-4 mt-4 rounded-2xl border border-sd-ink/25 bg-sd-surface overflow-hidden md:mx-auto md:w-full md:max-w-md ${
-          imageUrl ? "" : "md:h-[260px] md:flex md:flex-col md:justify-center"
-        }`}
-      >
-        <MediaSection
-          mainImageUrl={imageUrl}
-          onChange={setImageUrl}
-          additionalImageUrls={additionalImageUrls}
-          onAdditionalChange={setAdditionalImageUrls}
-          noDivider
-        />
-      </div>
-
-      <div className="mx-4 mt-3 rounded-2xl border border-sd-ink/25 bg-sd-surface overflow-hidden">
-        <div className="px-4 py-4">
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Collection title"
-            className="w-full text-[28px] leading-tight font-semibold text-sd-ink placeholder:text-sd-ink-muted outline-none pt-3 pb-6 border-b border-sd-ink/25"
+        <div
+          className={`mx-4 mt-4 rounded-2xl border border-sd-ink/25 bg-sd-surface overflow-hidden ${
+            imageUrl ? "" : "md:h-[260px] md:flex md:flex-col md:justify-center"
+          }`}
+        >
+          <MediaSection
+            mainImageUrl={imageUrl}
+            onChange={setImageUrl}
+            additionalImageUrls={additionalImageUrls}
+            onAdditionalChange={setAdditionalImageUrls}
+            noDivider
           />
+        </div>
 
+        <div className="mx-4 mt-3 rounded-2xl border border-sd-ink/25 bg-sd-surface overflow-hidden">
+          <div className="px-4 py-4">
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Collection title"
+              className="w-full text-[28px] leading-tight font-semibold text-sd-ink placeholder:text-sd-ink-muted outline-none pt-3 pb-6 border-b border-sd-ink/25"
+            />
+
+            <button
+              type="button"
+              onClick={() => setDescriptionSheetOpen(true)}
+              className="w-full flex items-center justify-between py-4 text-left"
+            >
+              <span className="flex items-center gap-3 text-[15px] text-sd-ink">
+                {hasDescription ? (
+                  <Check size={18} className="text-sd-ink" />
+                ) : (
+                  <Plus size={18} className="text-sd-ink-faint" />
+                )}
+                {hasDescription ? "Description" : "Add description"}
+              </span>
+              <ChevronRight size={16} className="text-sd-ink-faint shrink-0" />
+            </button>
+          </div>
+        </div>
+
+        <div className="mx-4 mt-3 rounded-2xl border border-sd-ink/25 bg-sd-surface overflow-hidden">
           <button
             type="button"
-            onClick={() => setDescriptionSheetOpen(true)}
-            className="w-full flex items-center justify-between py-4 text-left"
+            onClick={() => setProductsSheetOpen(true)}
+            className="w-full flex items-center justify-between px-4 py-4 text-left"
           >
-            <span className="flex items-center gap-3 text-[15px] text-sd-ink">
-              {hasDescription ? (
-                <Check size={18} className="text-sd-ink" />
-              ) : (
-                <Plus size={18} className="text-sd-ink-faint" />
+            <span className="text-[15px] text-sd-ink">Products</span>
+            <span className="flex items-center gap-1 shrink-0">
+              {productIds.length > 0 && (
+                <span className="text-xs text-sd-ink-faint">{productIds.length} selected</span>
               )}
-              {hasDescription ? "Description" : "Add description"}
+              <ChevronRight size={16} className="text-sd-ink-faint" />
             </span>
-            <ChevronRight size={16} className="text-sd-ink-faint shrink-0" />
           </button>
         </div>
-      </div>
 
-      <div className="mx-4 mt-3 rounded-2xl border border-sd-ink/25 bg-sd-surface overflow-hidden">
-        <button
-          type="button"
-          onClick={() => setProductsSheetOpen(true)}
-          className="w-full flex items-center justify-between px-4 py-4 text-left"
-        >
-          <span className="text-[15px] text-sd-ink">Products</span>
-          <span className="flex items-center gap-1 shrink-0">
-            {productIds.length > 0 && (
-              <span className="text-xs text-sd-ink-faint">{productIds.length} selected</span>
-            )}
-            <ChevronRight size={16} className="text-sd-ink-faint" />
-          </span>
-        </button>
-      </div>
+        <div className="mx-4 mt-3">
+          <StatusPicker label="Collection Status" value={status} onChange={setStatus} />
+        </div>
 
-      <div className="mx-4 mt-3">
-        <StatusPicker label="Collection Status" value={status} onChange={setStatus} />
-      </div>
+        {draftWarningOpen && (
+          <DraftWarningDialog
+            noun="collection"
+            onPublish={() => {
+              setDraftWarningOpen(false);
+              setStatus("active");
+              void handleSave("active");
+            }}
+            onKeepDraft={() => {
+              setDraftWarningOpen(false);
+              void handleSave("draft");
+            }}
+            onCancel={() => setDraftWarningOpen(false)}
+          />
+        )}
 
-      {draftWarningOpen && (
-        <DraftWarningDialog
-          noun="collection"
-          onPublish={() => {
-            setDraftWarningOpen(false);
-            setStatus("active");
-            void handleSave("active");
-          }}
-          onKeepDraft={() => {
-            setDraftWarningOpen(false);
-            void handleSave("draft");
-          }}
-          onCancel={() => setDraftWarningOpen(false)}
-        />
-      )}
+        {descriptionSheetOpen && (
+          <DescriptionSheet
+            value={description}
+            placeholder="Describe your collection and try to answer questions you know your customers will ask."
+            onSave={(html) => {
+              setDescription(html);
+              setDescriptionSheetOpen(false);
+            }}
+            onClose={() => setDescriptionSheetOpen(false)}
+          />
+        )}
 
-      {descriptionSheetOpen && (
-        <DescriptionSheet
-          value={description}
-          placeholder="Describe your collection and try to answer questions you know your customers will ask."
-          onSave={(html) => {
-            setDescription(html);
-            setDescriptionSheetOpen(false);
-          }}
-          onClose={() => setDescriptionSheetOpen(false)}
-        />
-      )}
-
-      {productsSheetOpen && storeId && (
-        <ProductsSheet
-          storeId={storeId}
-          selectedIds={productIds}
-          onDone={(ids) => {
-            setProductIds(ids);
-            setProductsSheetOpen(false);
-          }}
-          onClose={() => setProductsSheetOpen(false)}
-          excludeId={editingProductId}
-        />
-      )}
+        {productsSheetOpen && storeId && (
+          <ProductsSheet
+            storeId={storeId}
+            selectedIds={productIds}
+            onDone={(ids) => {
+              setProductIds(ids);
+              setProductsSheetOpen(false);
+            }}
+            onClose={() => setProductsSheetOpen(false)}
+            excludeId={editingProductId}
+          />
+        )}
+      </DesktopPanel>
     </div>
   );
 }

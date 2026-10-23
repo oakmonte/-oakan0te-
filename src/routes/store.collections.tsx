@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { CollectionsPanel } from "@/components/store/products/CollectionsPanel";
+import { DesktopPanel } from "@/components/store/DesktopPanel";
 
 // Collections moved into a tab on /store/products (see store.products.tsx).
 // This route stays alive -- deep links and QuickActions' "Collections" tile
@@ -11,13 +12,15 @@ export const Route = createFileRoute("/store/collections")({
 
 function StoreCollections() {
   return (
-    <div className="px-4 py-5 pb-24">
-      {/* CollectionsPanel itself has no heading -- when it's embedded as a
+    <DesktopPanel>
+      <div className="px-4 py-5 pb-24 md:px-0 md:pt-0 md:pb-8">
+        {/* CollectionsPanel itself has no heading -- when it's embedded as a
           tab on /store/products, the tab label already says "Collections".
           A direct visit here (QuickActions, an old bookmark) has no tab bar
           to say that, so this standalone route supplies its own. */}
-      <h1 className="text-lg font-semibold text-sd-ink mb-4">Collections</h1>
-      <CollectionsPanel />
-    </div>
+        <h1 className="text-lg font-semibold text-sd-ink mb-4">Collections</h1>
+        <CollectionsPanel />
+      </div>
+    </DesktopPanel>
   );
 }

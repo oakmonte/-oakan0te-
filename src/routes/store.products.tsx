@@ -6,6 +6,7 @@ import { ProductsPanel } from "@/components/store/products/ProductsPanel";
 import { CollectionsPanel } from "@/components/store/products/CollectionsPanel";
 import { DropsPanel } from "@/components/store/products/DropsPanel";
 import { DROPS_ENABLED } from "@/lib/drops";
+import { DesktopPanel } from "@/components/store/DesktopPanel";
 
 const TOP_TABS = ["Products", "Collections", "Drops"] as const;
 type TopTab = (typeof TOP_TABS)[number];
@@ -38,67 +39,69 @@ function StoreProducts() {
   const indicatorX = useTransform(pagerX, (v) => (pageWidth ? (-v / pageWidth) * slotWidth : 0));
 
   return (
-    <div className="pt-5 pb-24">
-      {/* Sticks under the dashboard's 56px header; the panels' own filters
+    <DesktopPanel>
+      <div className="pt-5 pb-24 md:pt-0 md:pb-8">
+        {/* Sticks under the dashboard's 56px header; the panels' own filters
           stick under this, so only the lists scroll. */}
-      <div className="sticky top-14 z-20 flex border-b border-sd-line bg-sd-bg px-4">
-        <motion.span
-          aria-hidden
-          className="absolute bottom-0 h-[2.5px] rounded-full bg-sd-ink"
-          style={{ width: slotWidth ? slotWidth - 8 : 0, left: 4, x: indicatorX }}
-        />
-        {TOP_TABS.map((t) => (
-          <button
-            key={t}
-            type="button"
-            onClick={() => setTopTab(t)}
-            aria-current={topTab === t ? "page" : undefined}
-            className={`oak-tap flex-1 py-3 text-center text-[15px] transition-colors duration-200 ${
-              topTab === t ? "font-semibold text-sd-ink" : "font-medium text-sd-ink-muted"
-            }`}
-          >
-            {t}
-          </button>
-        ))}
-      </div>
+        <div className="sticky top-14 z-20 flex border-b border-sd-line bg-sd-bg px-4">
+          <motion.span
+            aria-hidden
+            className="absolute bottom-0 h-[2.5px] rounded-full bg-sd-ink"
+            style={{ width: slotWidth ? slotWidth - 8 : 0, left: 4, x: indicatorX }}
+          />
+          {TOP_TABS.map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => setTopTab(t)}
+              aria-current={topTab === t ? "page" : undefined}
+              className={`oak-tap flex-1 py-3 text-center text-[15px] transition-colors duration-200 ${
+                topTab === t ? "font-semibold text-sd-ink" : "font-medium text-sd-ink-muted"
+              }`}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
 
-      <TabPager
-        index={activeIndex}
-        count={TOP_TABS.length}
-        onIndexChange={(next) => setTopTab(TOP_TABS[next])}
-        x={pagerX}
-        onPageWidth={setPageWidth}
-        // Without this, the drag surface is only as tall as the active tab's
-        // own content -- an empty or single-item list leaves most of the
-        // screen un-swipeable below it. Roughly the header (56px) + this
-        // page's own top padding and tab strip (~68px) + its bottom padding
-        // (96px) subtracted from the viewport, so the pager reaches close to
-        // the screen edge on any tab regardless of how little it holds.
-        minHeight="calc(100dvh - 220px)"
-      >
-        {TOP_TABS.map((t) => (
-          <div key={t} className="px-4 pt-5">
-            {t === "Products" ? (
-              <ProductsPanel checklist={checklist} />
-            ) : t === "Collections" ? (
-              <CollectionsPanel />
-            ) : DROPS_ENABLED ? (
-              <DropsPanel />
-            ) : (
-              // Built, but off until sellers can take payment -- see
-              // DROPS_ENABLED in src/lib/drops.ts.
-              <div className="flex flex-col items-center gap-2 py-16 text-center animate-in fade-in duration-300">
-                <p className="text-[17px] font-semibold text-sd-ink">
-                  Drops will be available soon
-                </p>
-                <p className="max-w-[280px] text-[14px] leading-relaxed text-sd-ink-faint">
-                  You'll be able to group collections and products into a timed drop.
-                </p>
-              </div>
-            )}
-          </div>
-        ))}
-      </TabPager>
-    </div>
+        <TabPager
+          index={activeIndex}
+          count={TOP_TABS.length}
+          onIndexChange={(next) => setTopTab(TOP_TABS[next])}
+          x={pagerX}
+          onPageWidth={setPageWidth}
+          // Without this, the drag surface is only as tall as the active tab's
+          // own content -- an empty or single-item list leaves most of the
+          // screen un-swipeable below it. Roughly the header (56px) + this
+          // page's own top padding and tab strip (~68px) + its bottom padding
+          // (96px) subtracted from the viewport, so the pager reaches close to
+          // the screen edge on any tab regardless of how little it holds.
+          minHeight="calc(100dvh - 220px)"
+        >
+          {TOP_TABS.map((t) => (
+            <div key={t} className="px-4 pt-5">
+              {t === "Products" ? (
+                <ProductsPanel checklist={checklist} />
+              ) : t === "Collections" ? (
+                <CollectionsPanel />
+              ) : DROPS_ENABLED ? (
+                <DropsPanel />
+              ) : (
+                // Built, but off until sellers can take payment -- see
+                // DROPS_ENABLED in src/lib/drops.ts.
+                <div className="flex flex-col items-center gap-2 py-16 text-center animate-in fade-in duration-300">
+                  <p className="text-[17px] font-semibold text-sd-ink">
+                    Drops will be available soon
+                  </p>
+                  <p className="max-w-[280px] text-[14px] leading-relaxed text-sd-ink-faint">
+                    You'll be able to group collections and products into a timed drop.
+                  </p>
+                </div>
+              )}
+            </div>
+          ))}
+        </TabPager>
+      </div>
+    </DesktopPanel>
   );
 }
