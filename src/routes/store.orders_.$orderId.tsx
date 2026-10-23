@@ -9,6 +9,7 @@ import { authedFetch } from "@/lib/authed-fetch";
 import { formatOrderTime, nairaFromKobo } from "@/lib/order-format";
 import { orderRef, type RefundState, type TimelineStep } from "@/lib/order-status";
 import { DesktopPanel } from "@/components/store/DesktopPanel";
+import { useHideStoreNav } from "@/components/store/store-nav";
 
 // One order, from the seller's side: what to send, where, the money, what has
 // happened so far, and the two things they can still do while it's paid and
@@ -77,6 +78,8 @@ function StoreOrderPage() {
   const { orderId } = Route.useParams();
   // undefined = loading, null = not this store's (or not real).
   const [order, setOrder] = useState<Detail | null | undefined>(undefined);
+  // The Book courier / Decline bar takes the bottom of the screen.
+  useHideStoreNav(!!order && (order.canShip || order.canDecline));
   const [loadError, setLoadError] = useState(false);
   const [shipping, setShipping] = useState(false);
   const [actionError, setActionError] = useState("");

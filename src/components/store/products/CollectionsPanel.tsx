@@ -16,6 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useHideStoreNav } from "@/components/store/store-nav";
 
 type CollectionRow = {
   id: string;
@@ -35,6 +36,8 @@ export function CollectionsPanel() {
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>("All");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const selectMode = selectedIds.size > 0;
+  // The select bar takes the bottom of the screen while it's up.
+  useHideStoreNav(selectMode);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");

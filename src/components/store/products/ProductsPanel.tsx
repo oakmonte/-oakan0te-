@@ -17,6 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useHideStoreNav } from "@/components/store/store-nav";
 
 // "Imported" (was "Uploaded", renamed after a seller tapped it meaning to list a product) isn't a status like the other three — it's every product whose
 // source_platform isn't "manual" (csv/shopify/bumpa import), regardless of
@@ -96,6 +97,8 @@ export function ProductsPanel({ checklist }: { checklist?: boolean }) {
   const [createTypeOpen, setCreateTypeOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const selectMode = selectedIds.size > 0;
+  // The select bar takes the bottom of the screen while it's up.
+  useHideStoreNav(selectMode);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");

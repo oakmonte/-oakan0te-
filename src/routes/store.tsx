@@ -20,6 +20,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { StoreHeaderProvider } from "@/context/store-header-provider";
 import { useStoreHeader } from "@/hooks/use-store-header";
 import { useLockedBanner } from "@/components/LockedBanner";
+import { StoreNavHideContext } from "@/components/store/store-nav";
 
 export const Route = createFileRoute("/store")({
   // theme-color is NOT declared here any more. The dashboard needs a different
@@ -107,6 +108,13 @@ function StoreLayoutInner() {
   // happens after the navigation, so neither problem can arise. The backdrop
   // and the X still close it directly — those really are dismissals in place.
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  // Pages with a bottom bar of their own hide the nav while it's up
+  // (useHideStoreNav); a count, so overlapping asks can't reshow it early.
+  const [navHiders, setNavHiders] = useState(0);
+  const hideNav = useCallback(() => {
+    setNavHiders((n) => n + 1);
+    return () => setNavHiders((n) => n - 1);
+  }, []);
   useEffect(() => {
     setDrawerOpen(false);
   }, [pathname]);
@@ -152,13 +160,16 @@ function StoreLayoutInner() {
         <div className="flex items-center justify-end min-w-[28px]">{rightAction}</div>
       </div>
 
-      {/* The dashboard's main screen is the Store tab, so it carries the tab
-          bar; screens deeper in /store/* don't, like any tab's inner pages. */}
-      <div className={pathname === "/store" ? "pt-14 pb-28" : "pt-14"}>
-        <Outlet />
+      {/* The tab bar on every /store page, so the rest of the app is always
+          one tap away -- except while the drawer or a page's own bottom bar
+          is up. pb-28 keeps the end of each page clear of it. */}
+      <div className="pt-14 pb-28">
+        <StoreNavHideContext.Provider value={hideNav}>
+          <Outlet />
+        </StoreNavHideContext.Provider>
       </div>
       {lockedBanner}
-      {pathname === "/store" && !drawerOpen && (
+      {!drawerOpen && navHiders === 0 && (
         <BottomNav active="store" ownUsername={username ?? undefined} />
       )}
 
