@@ -40,16 +40,19 @@ export function QuickActions({ onOpenLocations }: { onOpenLocations: () => void 
   return (
     <section aria-labelledby="sd-quick">
       <SectionTitle id="sd-quick">Quick actions</SectionTitle>
-      <div className="mt-3 grid grid-cols-3 gap-2">
+      {/* Six across on a wide screen at a fixed height: the phone's square-ish
+          tiles, stretched to a third of a 1000px panel, were ~300px tall
+          boxes with a small icon pinned to the top. */}
+      <div className="mt-3 grid grid-cols-3 gap-2 md:grid-cols-6 md:gap-3">
         {actions.map(({ label, icon: Icon, run }) => (
           <button
             key={label}
             type="button"
             onClick={run}
-            // Top-aligned, with the label given room for two lines. Centred,
-            // "Import catalogue" and "Pickup locations" wrap at 360px and their
-            // icons sat visibly higher than their single-line neighbours.
-            className="flex aspect-[1/0.92] flex-col items-center justify-start gap-2 rounded-xl border border-sd-line bg-sd-surface px-1 pt-4 text-center oak-motion-control active:scale-[0.96]"
+            // Centred in the tile. The label always reserves two lines
+            // (min-h), so "Pickup locations" wrapping at 360px doesn't lift
+            // its icon above its single-line neighbours'.
+            className="flex aspect-[1/0.8] flex-col items-center justify-center gap-1.5 rounded-xl border border-sd-line bg-sd-surface px-1 text-center oak-motion-control active:scale-[0.96] md:aspect-auto md:h-[104px]"
           >
             <Icon size={20} className="text-sd-ink" />
             <span className="min-h-[2.5em] text-[12px] font-semibold leading-tight text-sd-ink">
