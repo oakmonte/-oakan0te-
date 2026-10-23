@@ -2087,7 +2087,9 @@ export function ThemePreviewSheet({
       {/* No page scroll here: the frame is sized to the space it has
           (previewFrame), so the whole storefront is on screen and only the
           storefront inside it scrolls. */}
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col px-2 py-3 sm:px-6 sm:py-5">
+      {/* Phones: no bottom padding, so the preview runs to the bottom edge of
+          the screen like a sheet instead of stopping short above a gap. */}
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col px-2 pt-3 sm:px-6 sm:py-5">
         <div className="mx-auto mb-3 flex w-full max-w-[430px] shrink-0 items-center justify-between gap-2 sm:hidden">
           {mode === "view" ? (
             <>
@@ -2141,7 +2143,9 @@ export function ThemePreviewSheet({
         <div ref={stageRef} className="flex min-h-0 w-full flex-1 justify-center">
           <div
             className={`relative shrink-0 overflow-hidden border-[3px] border-neutral-900 bg-neutral-900 shadow-[0_30px_80px_rgba(0,0,0,0.55)] ${
-              device === "desktop" ? "rounded-2xl" : "rounded-[2.5rem]"
+              device === "desktop"
+                ? "rounded-2xl"
+                : "rounded-t-[2.5rem] border-b-0 sm:rounded-b-[2.5rem] sm:border-b-[3px]"
             }`}
             // zoom, not transform: layout follows it, so the frame takes only
             // its drawn size, and fixed pieces inside aren't re-anchored to it.
