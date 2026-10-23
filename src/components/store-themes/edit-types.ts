@@ -13,6 +13,12 @@ export const REMOVABLE_BLOCK_LABELS: Record<RemovableBlockId, string> = {
 
 export const MAX_SLIDESHOW_IMAGES = 10;
 
+/** How the hero slideshow shows on a wide (desktop) storefront. "cards":
+ *  the photos as a row of floating portrait cards, whole, uncropped. "banner":
+ *  one wide 2:1 strip, which crops a portrait model photo to a band across
+ *  the middle. Phones always get the tall single-photo slideshow. */
+export type DesktopHero = "cards" | "banner";
+
 export type TextFieldId =
   | "hero1"
   | "hero2"
@@ -82,6 +88,7 @@ export type ThemeEditState = {
   // handful of items doesn't get its grid covered. Persisted
   // (store_theme_customizations.sticky_bottom, nullable for the same reason).
   stickyBottom: boolean | null;
+  desktopHero: DesktopHero;
 };
 
 export function createInitialEditState(): ThemeEditState {
@@ -102,6 +109,9 @@ export function createInitialEditState(): ThemeEditState {
     hiddenBlocks: [],
     columns: 2,
     stickyBottom: null,
+    // Cards: fashion photos are portrait, and a 2:1 banner crops the model
+    // to her midriff.
+    desktopHero: "cards",
   };
 }
 
@@ -137,4 +147,7 @@ export type ThemeEditingProps = {
   onTileTapBlocked: () => void;
   /** The seller's choice, or null for "not chosen" -- see ThemeEditState. */
   stickyBottom: boolean | null;
+  desktopHero: DesktopHero;
+  /** Absent where the hero style can't be changed (the live storefront). */
+  onDesktopHeroChange?: (hero: DesktopHero) => void;
 };

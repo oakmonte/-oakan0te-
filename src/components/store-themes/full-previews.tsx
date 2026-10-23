@@ -1314,6 +1314,7 @@ export function PublicStorefront({
     onColumnsChange: noop,
     onTileTapBlocked: noop,
     stickyBottom: state.stickyBottom,
+    desktopHero: state.desktopHero,
   };
 
   // The theme's own background, not a color invented for this wrapper — same
@@ -1408,27 +1409,23 @@ export function PublicStorefront({
   );
 }
 
-/** The storefront width each preview device lays out at. The frame is a
- *  @container, so DESKTOP_W lands past @5xl and shows the real wide layout,
- *  while PHONE_W stays a phone even on a laptop. */
+/** The widest a phone preview gets, and the narrowest storefront that still
+ *  lays out as desktop (@5xl, 64rem). The frame is a @container, so its width
+ *  -- not the window's -- decides which layout the storefront shows. */
 const PHONE_W = 430;
-const DESKTOP_W = 1280;
-// A phone frame is shrunk until it's at least this tall in layout pixels, so
-// a short laptop screen gets a smaller phone rather than a letterbox.
-const PHONE_MIN_H = 780;
+const DESKTOP_MIN_W = 1024;
 
-/** Sizes the preview frame to the space it has, so the whole frame is on
- *  screen with no page scroll: `w`/`h` are layout pixels, drawn at `zoom`. */
+/** Sizes the preview frame to the space beside the controls. Always the full
+ *  height, and never scaled down when it fits: a phone is shown at 100%, and
+ *  desktop takes every pixel of width it has. Only a screen too narrow for a
+ *  desktop layout (a phone previewing Desktop) zooms out to show it whole.
+ *  `w`/`h` are layout pixels, drawn at `zoom`. */
 function previewFrame(device: "phone" | "desktop", availW: number, availH: number) {
   if (!availW || !availH) return { w: PHONE_W, h: 600, zoom: 1 };
-  if (device === "desktop") {
-    const zoom = Math.min(1, availW / DESKTOP_W);
-    return { w: DESKTOP_W, h: availH / zoom, zoom };
-  }
-  // A phone narrower than the frame just fills the width, as before.
-  if (availW < PHONE_W) return { w: availW, h: availH, zoom: 1 };
-  const zoom = Math.max(0.6, Math.min(1, availH / PHONE_MIN_H, availW / PHONE_W));
-  return { w: PHONE_W, h: availH / zoom, zoom };
+  if (device === "phone") return { w: Math.min(PHONE_W, availW), h: availH, zoom: 1 };
+  if (availW >= DESKTOP_MIN_W) return { w: availW, h: availH, zoom: 1 };
+  const zoom = availW / DESKTOP_MIN_W;
+  return { w: DESKTOP_MIN_W, h: availH / zoom, zoom };
 }
 
 export function ThemePreviewSheet({
@@ -1859,21 +1856,178 @@ export function ThemePreviewSheet({
         flashHint("Edit these from the Products page", 2500);
       },
       stickyBottom: state.stickyBottom,
+      desktopHero: state.desktopHero,
+      onDesktopHeroChange: (hero) => {
+        mutate((s) => ({ ...s, desktopHero: hero }));
+      },
     }),
     [mode, state, flashHint, savedLoading],
   );
 
-  return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-neutral-950 animate-in fade-in duration-250 ease-out">
-      <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/10 bg-neutral-950/95 px-4 py-3.5 backdrop-blur">
+  const closeButton = (
+    <button
+      type="button"
+      onClick={() => guardLeave("close")}
+      aria-label="Close preview"
+      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white/60 hover:bg-white/10 hover:text-white"
+    >
+      <X size={22} />
+    </button>
+  );
+  const useThemeButton = (extra: string) => (
+    <button
+      type="button"
+      onClick={() => guardLeave("select")}
+      className={`h-11 shrink-0 rounded-full px-4 text-[14px] font-semibold whitespace-nowrap ${extra}`}
+      style={{
+        background: isSelected ? "rgba(255,255,255,0.12)" : theme.accent,
+        // Black text was fixed, so on a dark accent (Porcelain, Navy
+        // Linen, Monochrome's near-black) the main button read as blank.
+        color: isSelected ? "#fff" : readableTextColor(theme.accent),
+      }}
+    >
+      {isSelected ? "Selected" : "Use this theme"}
+    </button>
+  );
+  // Phone / Desktop. Icon-only in the phone toolbar, where the edit controls
+  // already fill the row; labelled in the side rail.
+  const deviceToggle = (labelled: boolean) => (
+    <div
+      role="radiogroup"
+      aria-label="Preview size"
+      className={`flex shrink-0 rounded-full bg-white/10 p-1 ${labelled ? "w-full" : ""}`}
+    >
+      {(
+        [
+          ["phone", Smartphone, "Phone"],
+          ["desktop", Monitor, "Desktop"],
+        ] as const
+      ).map(([value, Icon, label]) => (
         <button
+          key={value}
           type="button"
-          onClick={() => guardLeave("close")}
-          aria-label="Close preview"
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white/60 hover:bg-white/10 hover:text-white"
+          role="radio"
+          aria-checked={device === value}
+          aria-label={label}
+          onClick={() => setDevice(value)}
+          className={`flex h-9 flex-1 items-center justify-center gap-1.5 rounded-full text-[14px] font-semibold transition-colors ${
+            labelled ? "px-3" : "w-10"
+          } ${device === value ? "bg-white text-neutral-900" : "text-white/60 hover:text-white"}`}
         >
-          <X size={22} />
+          <Icon size={16} />
+          {labelled && label}
         </button>
+      ))}
+    </div>
+  );
+  const layoutMenu = (trigger: ReactNode, side: "bottom" | "right") => (
+    <Popover>
+      <PopoverTrigger asChild>{trigger}</PopoverTrigger>
+      <PopoverContent
+        align={side === "right" ? "start" : "end"}
+        side={side}
+        className="w-64 border-white/10 bg-neutral-900 p-2 text-white"
+      >
+        {state.hiddenBlocks.some((b) => !RETIRED_BLOCKS.includes(b)) && (
+          <div className="mb-1 border-b border-white/10 pb-1.5">
+            <p className="px-3 pb-1 pt-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/40">
+              Hidden sections
+            </p>
+            {state.hiddenBlocks
+              .filter((b) => !RETIRED_BLOCKS.includes(b))
+              .map((block) => (
+                <button
+                  key={block}
+                  type="button"
+                  onClick={() => editingProps.onRestoreBlock(block)}
+                  className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left hover:bg-white/10"
+                >
+                  <span className="text-[14px] font-medium text-white">
+                    {REMOVABLE_BLOCK_LABELS[block]}
+                  </span>
+                  <Plus size={16} className="shrink-0 text-white/60" />
+                </button>
+              ))}
+          </div>
+        )}
+        {pickableLayouts().map((preset) => (
+          <button
+            key={preset.id}
+            type="button"
+            onClick={() => editingProps.onLayoutChange(preset.id)}
+            className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left hover:bg-white/10"
+          >
+            <span>
+              <span className="block text-[14px] font-medium text-white">{preset.name}</span>
+              <span className="block text-[12px] text-white/50">{preset.hint}</span>
+            </span>
+            {sameLiveOrder(state.layoutId, preset.id) && (
+              <CheckIcon size={16} className="shrink-0 text-white/80" />
+            )}
+          </button>
+        ))}
+      </PopoverContent>
+    </Popover>
+  );
+  const undoRedo = (
+    <>
+      <button
+        type="button"
+        onClick={handleUndo}
+        disabled={history.length === 0}
+        aria-label="Undo last edit"
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/10 text-white/70 hover:bg-white/15 hover:text-white disabled:pointer-events-none disabled:opacity-30"
+      >
+        {/* Undo2, not ArrowLeft — the view-mode Back button in the phone
+            toolbar is an ArrowLeft, and the two read as one. */}
+        <Undo2 size={20} strokeWidth={1.8} />
+      </button>
+      <button
+        type="button"
+        onClick={handleRedo}
+        disabled={future.length === 0}
+        aria-label="Redo last undone edit"
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/10 text-white/70 hover:bg-white/15 hover:text-white disabled:pointer-events-none disabled:opacity-30"
+      >
+        <Redo2 size={20} strokeWidth={1.8} />
+      </button>
+    </>
+  );
+  const saveButton = (extra: string) => (
+    <button
+      type="button"
+      onClick={() => handleSave()}
+      disabled={pendingUploadIds.size > 0 || savedLoading}
+      className={`h-11 shrink-0 rounded-full bg-white px-5 text-[15px] font-semibold text-neutral-900 hover:bg-white/90 disabled:opacity-50 ${extra}`}
+    >
+      {loadFailed
+        ? "Couldn't load"
+        : savedLoading
+          ? "Loading…"
+          : pendingUploadIds.size > 0
+            ? "Uploading…"
+            : "Save"}
+    </button>
+  );
+  const editButton = (extra: string) => (
+    <button
+      type="button"
+      onClick={enterEdit}
+      className={`flex items-center justify-center gap-2 rounded-full bg-white/10 px-5 py-3 text-[16px] font-semibold text-white/80 hover:bg-white/15 hover:text-white ${extra}`}
+    >
+      <Pencil size={18} />
+      Edit
+    </button>
+  );
+
+  return (
+    // Laptop and up: the controls are a rail BESIDE the storefront, not a
+    // stack of bars above it, so the store gets the whole height at its real
+    // size -- a preview shrunk to make room for its own buttons is one nobody
+    // can judge or edit. Phones keep a header and a one-row toolbar.
+    <div className="fixed inset-0 z-50 flex flex-col bg-neutral-950 animate-in fade-in duration-250 ease-out sm:flex-row">
+      <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/10 bg-neutral-950/95 px-4 py-3.5 backdrop-blur sm:hidden">
+        {closeButton}
         {/* min-w-0 + truncate: a 33-character tracked eyebrow wrapped to two
             or three lines on a 360px phone and made the whole bar jump. */}
         <div className="min-w-0 flex-1 px-2 text-center">
@@ -1882,52 +2036,53 @@ export function ThemePreviewSheet({
             {theme.eyebrow}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => guardLeave("select")}
-          className="h-11 shrink-0 rounded-full px-4 text-[14px] font-semibold whitespace-nowrap"
-          style={{
-            background: isSelected ? "rgba(255,255,255,0.12)" : theme.accent,
-            // Black text was fixed, so on a dark accent (Porcelain, Navy
-            // Linen, Monochrome's near-black) the main button read as blank.
-            color: isSelected ? "#fff" : readableTextColor(theme.accent),
-          }}
-        >
-          {isSelected ? "Selected" : "Use this theme"}
-        </button>
+        {useThemeButton("")}
       </div>
 
-      {/* No page scroll here: the frame is sized to the space left under the
-          toolbar (previewFrame), so the whole storefront is on screen and
-          only the storefront inside it scrolls. */}
-      <div className="flex min-h-0 flex-1 flex-col items-center px-2 py-4 sm:py-6">
-        <div
-          role="radiogroup"
-          aria-label="Preview size"
-          className="mb-3 flex shrink-0 rounded-full bg-white/10 p-1"
-        >
-          {(
-            [
-              ["phone", Smartphone, "Phone"],
-              ["desktop", Monitor, "Desktop"],
-            ] as const
-          ).map(([value, Icon, label]) => (
-            <button
-              key={value}
-              type="button"
-              role="radio"
-              aria-checked={device === value}
-              onClick={() => setDevice(value)}
-              className={`flex h-9 items-center gap-1.5 rounded-full px-4 text-[14px] font-semibold transition-colors ${
-                device === value ? "bg-white text-neutral-900" : "text-white/60 hover:text-white"
-              }`}
-            >
-              <Icon size={16} />
-              {label}
-            </button>
-          ))}
+      <aside className="hidden w-60 shrink-0 flex-col gap-4 overflow-y-auto border-r border-white/10 px-4 py-4 sm:flex">
+        <div className="flex items-start gap-1">
+          {closeButton}
+          <div className="min-w-0 pt-1">
+            <p className="text-[18px] font-semibold leading-tight text-white">{theme.name}</p>
+            <p className="mt-1 text-[10.5px] uppercase leading-snug tracking-[0.14em] text-white/40">
+              {theme.eyebrow}
+            </p>
+          </div>
         </div>
-        <div className="flex w-full max-w-[430px] shrink-0 items-center justify-between pb-3">
+        {useThemeButton("w-full")}
+        <div className="h-px shrink-0 bg-white/10" />
+        <p className="-mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/40">
+          Preview on
+        </p>
+        {deviceToggle(true)}
+        <div className="h-px shrink-0 bg-white/10" />
+        {mode === "view" ? (
+          editButton("w-full")
+        ) : (
+          <div className="flex flex-col gap-2">
+            {saveButton("w-full")}
+            <div className="flex gap-2">
+              {undoRedo}
+              {layoutMenu(
+                <button
+                  type="button"
+                  className="flex h-11 flex-1 items-center justify-center gap-2 rounded-full bg-white/10 text-[15px] font-semibold text-white/80 hover:bg-white/15 hover:text-white"
+                >
+                  <LayoutGrid size={17} />
+                  Layout
+                </button>,
+                "right",
+              )}
+            </div>
+          </div>
+        )}
+      </aside>
+
+      {/* No page scroll here: the frame is sized to the space it has
+          (previewFrame), so the whole storefront is on screen and only the
+          storefront inside it scrolls. */}
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col px-2 py-3 sm:px-6 sm:py-5">
+        <div className="mx-auto mb-3 flex w-full max-w-[430px] shrink-0 items-center justify-between gap-2 sm:hidden">
           {mode === "view" ? (
             <>
               <button
@@ -1938,109 +2093,26 @@ export function ThemePreviewSheet({
               >
                 <ArrowLeft size={20} strokeWidth={1.8} />
               </button>
-              <button
-                type="button"
-                onClick={enterEdit}
-                className="flex items-center gap-2 rounded-full bg-white/10 px-5 py-3 text-[16px] font-semibold text-white/80 hover:bg-white/15 hover:text-white"
-              >
-                <Pencil size={18} />
-                Edit
-              </button>
+              {deviceToggle(false)}
+              {editButton("")}
             </>
           ) : (
             <>
               <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => handleSave()}
-                  disabled={pendingUploadIds.size > 0 || savedLoading}
-                  className="h-11 rounded-full bg-white px-5 text-[15px] font-semibold text-neutral-900 hover:bg-white/90 disabled:opacity-50"
-                >
-                  {loadFailed
-                    ? "Couldn't load"
-                    : savedLoading
-                      ? "Loading…"
-                      : pendingUploadIds.size > 0
-                        ? "Uploading…"
-                        : "Save"}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleUndo}
-                  disabled={history.length === 0}
-                  aria-label="Undo last edit"
-                  className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white/70 hover:bg-white/15 hover:text-white disabled:pointer-events-none disabled:opacity-30"
-                >
-                  {/* Undo2, not ArrowLeft — the view-mode Back button in this
-                      same spot is an ArrowLeft, and the two read as one. */}
-                  <Undo2 size={20} strokeWidth={1.8} />
-                </button>
-                <button
-                  type="button"
-                  onClick={handleRedo}
-                  disabled={future.length === 0}
-                  aria-label="Redo last undone edit"
-                  className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white/70 hover:bg-white/15 hover:text-white disabled:pointer-events-none disabled:opacity-30"
-                >
-                  <Redo2 size={20} strokeWidth={1.8} />
-                </button>
+                {saveButton("")}
+                {undoRedo}
               </div>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <button
-                    type="button"
-                    className="flex items-center gap-2 rounded-full bg-white/10 px-5 py-3 text-[16px] font-semibold text-white/80 hover:bg-white/15 hover:text-white"
-                  >
-                    <LayoutGrid size={18} />
-                    Layout
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent
-                  align="end"
-                  className="w-64 border-white/10 bg-neutral-900 p-2 text-white"
+              {deviceToggle(false)}
+              {layoutMenu(
+                <button
+                  type="button"
+                  aria-label="Layout"
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/10 text-white/80 hover:bg-white/15 hover:text-white"
                 >
-                  {state.hiddenBlocks.some((b) => !RETIRED_BLOCKS.includes(b)) && (
-                    <div className="mb-1 border-b border-white/10 pb-1.5">
-                      <p className="px-3 pb-1 pt-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/40">
-                        Hidden sections
-                      </p>
-                      {state.hiddenBlocks
-                        .filter((b) => !RETIRED_BLOCKS.includes(b))
-                        .map((block) => (
-                          <button
-                            key={block}
-                            type="button"
-                            onClick={() => editingProps.onRestoreBlock(block)}
-                            className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left hover:bg-white/10"
-                          >
-                            <span className="text-[14px] font-medium text-white">
-                              {REMOVABLE_BLOCK_LABELS[block]}
-                            </span>
-                            <Plus size={16} className="shrink-0 text-white/60" />
-                          </button>
-                        ))}
-                    </div>
-                  )}
-                  {pickableLayouts().map((preset) => (
-                    <button
-                      key={preset.id}
-                      type="button"
-                      onClick={() => editingProps.onLayoutChange(preset.id)}
-                      className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left hover:bg-white/10"
-                    >
-                      <span>
-                        <span className="block text-[14px] font-medium text-white">
-                          {preset.name}
-                        </span>
-                        <span className="block text-[12px] text-white/50">{preset.hint}</span>
-                      </span>
-                      {sameLiveOrder(state.layoutId, preset.id) && (
-                        <CheckIcon size={16} className="shrink-0 text-white/80" />
-                      )}
-                    </button>
-                  ))}
-                </PopoverContent>
-              </Popover>
+                  <LayoutGrid size={18} />
+                </button>,
+                "bottom",
+              )}
             </>
           )}
         </div>

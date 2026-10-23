@@ -27,6 +27,8 @@ type Variant = {
   stock_qty: number | null;
   continue_selling_out_of_stock: boolean;
   option1_name: string | null;
+  option2_name: string | null;
+  option3_name: string | null;
   option1_value: string | null;
   option2_value: string | null;
   option3_value: string | null;
@@ -48,7 +50,7 @@ async function loadProduct(productId: string): Promise<ProductData | null> {
   const { data, error } = await supabase
     .from("products")
     .select(
-      "title, description_long, description_short, store_id, product_variants(id, price, compare_at_price, stock_qty, continue_selling_out_of_stock, option1_name, option1_value, option2_value, option3_value, main_image_url, additional_image_urls)",
+      "title, description_long, description_short, store_id, product_variants(id, price, compare_at_price, stock_qty, continue_selling_out_of_stock, option1_name, option2_name, option3_name, option1_value, option2_value, option3_value, main_image_url, additional_image_urls)",
     )
     .eq("id", productId)
     .eq("status", "active")
@@ -99,6 +101,41 @@ function descriptionLines(description: string): string[] {
     .split("\n")
     .map((line) => line.replace(/^\s*[-•*]\s*/, "").trim())
     .filter(Boolean);
+}
+
+const OPTION_SLOTS = [1, 2, 3] as const;
+type OptionSlot = (typeof OPTION_SLOTS)[number];
+const valueOf = (v: Variant, k: OptionSlot) => v[`option${k}_value`]?.trim() || null;
+
+/** The product's options (Size, Colour, Material...) with each one's values,
+ *  in the order the variants list them -- one row per option, each value
+ *  once. The picker used to draw a chip per VARIANT labelled with its first
+ *  option only, so three colours of an XS showed as XS, XS, XS. */
+function optionsOf(variants: Variant[]) {
+  return OPTION_SLOTS.flatMap((k) => {
+    const values = [...new Set(variants.map((v) => valueOf(v, k)).filter((x): x is string => !!x))];
+    if (values.length === 0) return [];
+    const name = variants.find((v) => v[`option${k}_name`])?.[`option${k}_name`] ?? "Option";
+    return [{ slot: k, name, values }];
+  });
+}
+
+/** The variant to switch to when `value` is picked for option `k`: the one
+ *  that keeps every other choice, else the closest in-stock match. */
+function pickVariant(
+  variants: Variant[],
+  current: Variant | undefined,
+  k: OptionSlot,
+  value: string,
+) {
+  const withValue = variants.filter((v) => valueOf(v, k) === value);
+  const keeps = (v: Variant) =>
+    OPTION_SLOTS.filter((o) => o !== k).filter(
+      (o) => current && valueOf(v, o) === valueOf(current, o),
+    ).length;
+  return [...withValue].sort(
+    (a, b) => keeps(b) - keeps(a) || Number(inStock(b)) - Number(inStock(a)),
+  )[0];
 }
 
 function inStock(v: Variant) {
@@ -212,8 +249,8 @@ export function ProductPage({
 
   const variants = data?.variants ?? [];
   const variant = variants.find((v) => v.id === variantId) ?? variants[0];
-  const sizeName = variants.find((v) => v.option1_name)?.option1_name ?? null;
-  const hasChoice = variants.length > 1 && !!sizeName;
+  const options = optionsOf(variants);
+  const hasChoice = variants.length > 1 && options.length > 0;
 
   // The selected variant's photos; fall back to the tile's own photos.
   const urls = variant
@@ -374,39 +411,45 @@ export function ProductPage({
                     {data?.title ?? tile.title}
                   </h1>
 
-                  {hasChoice && (
-                    <div className="mt-3">
-                      <p className="text-[14px]" style={{ color: look.mutedColor }}>
-                        {sizeName}
-                      </p>
-                      <div className="mt-1.5 flex flex-wrap gap-2">
-                        {variants.map((v) => {
-                          const active = v.id === variant?.id;
-                          const out = !inStock(v);
-                          return (
-                            <button
-                              key={v.id}
-                              type="button"
-                              onClick={() => {
-                                setVariantId(v.id);
-                                setPhotoIdx(0);
-                              }}
-                              className="rounded-full border px-3.5 py-1.5 text-[14px]"
-                              style={{
-                                borderColor: look.textColor,
-                                background: active ? look.textColor : "transparent",
-                                color: active ? look.background || "#000" : look.textColor,
-                                opacity: out ? 0.4 : 1,
-                                textDecoration: out ? "line-through" : undefined,
-                              }}
-                            >
-                              {v.option1_value}
-                            </button>
-                          );
-                        })}
+                  {hasChoice &&
+                    options.map((opt) => (
+                      <div key={opt.slot} className="mt-3">
+                        <p className="text-[14px]" style={{ color: look.mutedColor }}>
+                          {opt.name}
+                        </p>
+                        <div className="mt-1.5 flex flex-wrap gap-2">
+                          {opt.values.map((value) => {
+                            const active = !!variant && valueOf(variant, opt.slot) === value;
+                            const target = pickVariant(variants, variant, opt.slot, value);
+                            // Struck through when picking it can only land on
+                            // a sold-out variant.
+                            const out = !target || !inStock(target);
+                            return (
+                              <button
+                                key={value}
+                                type="button"
+                                aria-pressed={active}
+                                onClick={() => {
+                                  if (!target) return;
+                                  setVariantId(target.id);
+                                  setPhotoIdx(0);
+                                }}
+                                className="rounded-full border px-3.5 py-1.5 text-[14px]"
+                                style={{
+                                  borderColor: look.textColor,
+                                  background: active ? look.textColor : "transparent",
+                                  color: active ? look.background || "#000" : look.textColor,
+                                  opacity: out && !active ? 0.4 : 1,
+                                  textDecoration: out ? "line-through" : undefined,
+                                }}
+                              >
+                                {value}
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    ))}
 
                   <p className={`mt-3 text-[17px] ${d("md:mt-4 md:text-[22px]")}`}>
                     {price != null ? `₦${price.toLocaleString()}` : ""}

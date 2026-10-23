@@ -3,6 +3,7 @@ import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useActiveStoreId } from "@/hooks/use-own-store";
 import type { LayoutId } from "./layout-presets";
 import type {
+  DesktopHero,
   RemovableBlockId,
   ThemeEditState,
   ThemeTextEdits,
@@ -32,6 +33,18 @@ export type SavedThemeCustomization = Omit<
 // storeId is optional — omit it for the editor (the seller's own active
 // store, from session); pass it explicitly to read a specific store's
 // customization for public/read-only rendering (see PublicStorefront).
+// desktopHero rides inside the `text` jsonb under a key no TextFieldId uses,
+// rather than in a column of its own: a new column needs a migration AND
+// regenerated types before the upsert below can name it, and a deploy that
+// names a column the database doesn't have yet fails every save. The jsonb
+// takes it today. Move it to a column when the types are next regenerated.
+const DESKTOP_HERO_KEY = "_desktopHero";
+
+function splitText(raw: unknown): { text: ThemeTextEdits; desktopHero: DesktopHero } {
+  const { [DESKTOP_HERO_KEY]: hero, ...text } = (raw ?? {}) as Record<string, string>;
+  return { text: text as ThemeTextEdits, desktopHero: hero === "banner" ? "banner" : "cards" };
+}
+
 export function useThemeCustomization(themeId: ThemeId, storeIdOverride?: string | null) {
   const { storeId: activeStoreId, loading: activeStoreLoading } = useActiveStoreId();
   const storeId = storeIdOverride ?? activeStoreId;
@@ -77,7 +90,7 @@ export function useThemeCustomization(themeId: ThemeId, storeIdOverride?: string
               logoMode: data.logo_mode as "image" | "text",
               logoImage: data.logo_image_url,
               slideshowImages: data.slideshow_image_urls ?? [],
-              text: (data.text ?? {}) as ThemeTextEdits,
+              ...splitText(data.text),
               textFonts: (data.text_fonts ?? {}) as ThemeTextFonts,
               hiddenBlocks: (data.hidden_blocks ?? []) as RemovableBlockId[],
               stickyBottom: data.sticky_bottom,
@@ -106,7 +119,7 @@ export function useThemeCustomization(themeId: ThemeId, storeIdOverride?: string
           logo_mode: state.logoMode,
           logo_image_url: state.logoImage,
           slideshow_image_urls: state.slideshowImages,
-          text: state.text,
+          text: { ...state.text, [DESKTOP_HERO_KEY]: state.desktopHero },
           text_fonts: state.textFonts,
           hidden_blocks: state.hiddenBlocks,
           sticky_bottom: state.stickyBottom,
