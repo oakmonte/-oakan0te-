@@ -13,10 +13,10 @@ export const REMOVABLE_BLOCK_LABELS: Record<RemovableBlockId, string> = {
 
 export const MAX_SLIDESHOW_IMAGES = 10;
 
-/** How the hero slideshow shows on a wide (desktop) storefront. "cards":
- *  the photos as a row of floating portrait cards, whole, uncropped. "banner":
- *  one wide 2:1 strip, which crops a portrait model photo to a band across
- *  the middle. Phones always get the tall single-photo slideshow. */
+/** The hero's style, the seller's pick in edit mode. "banner": the regular
+ *  slideshow (tall 4:5 on a phone, a wide 2:1 strip on desktop) -- the
+ *  default. "cards": the photos as a row of floating portrait cards, whole and
+ *  uncropped, gliding and swaying. (The name predates cards on phones.) */
 export type DesktopHero = "cards" | "banner";
 
 export type TextFieldId =
@@ -109,9 +109,8 @@ export function createInitialEditState(): ThemeEditState {
     hiddenBlocks: [],
     columns: 2,
     stickyBottom: null,
-    // Cards: fashion photos are portrait, and a 2:1 banner crops the model
-    // to her midriff.
-    desktopHero: "cards",
+    // The regular slideshow: floating cards are offered, never imposed.
+    desktopHero: "banner",
   };
 }
 

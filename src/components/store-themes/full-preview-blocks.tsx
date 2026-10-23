@@ -836,9 +836,9 @@ const DEFAULT_ASPECT_RATIO = 4 / 5;
 const MIN_SLIDESHOW_ASPECT = 0.5;
 const MAX_SLIDESHOW_ASPECT = 1.91;
 
-/** Banner / Cards, for the desktop hero. Only drawn on a wide storefront
- *  (@3xl) in edit mode -- phones have one hero style, so the choice would
- *  change nothing there. */
+/** Slideshow / Floating cards: the seller's pick for the hero, in edit mode
+ *  only. The regular slideshow is the default -- cards are offered, never
+ *  imposed. */
 function DesktopHeroToggle({
   editing,
   className = "",
@@ -851,13 +851,13 @@ function DesktopHeroToggle({
   return (
     <div
       role="radiogroup"
-      aria-label="Desktop banner style"
-      className={`z-10 hidden items-center gap-1 rounded-full bg-black/70 p-1 text-white ring-1 ring-white/15 backdrop-blur @3xl:flex ${className}`}
+      aria-label="Hero style"
+      className={`z-10 flex items-center gap-1 rounded-full bg-black/70 p-1 text-white ring-1 ring-white/15 backdrop-blur ${className}`}
     >
       {(
         [
-          ["cards", GalleryHorizontal, "Cards"],
-          ["banner", RectangleHorizontal, "Banner"],
+          ["banner", RectangleHorizontal, "Slideshow"],
+          ["cards", GalleryHorizontal, "Floating cards"],
         ] as const
       ).map(([value, Icon, label]) => (
         <button
@@ -892,14 +892,12 @@ function DesktopHeroToggle({
 function DesktopHeroCards({
   images,
   ratio,
-  intervalMs,
   ink,
   editing,
   onAddPhotos,
 }: {
   images: string[];
   ratio: number;
-  intervalMs: number;
   ink?: string;
   editing?: ThemeEditingProps;
   onAddPhotos: () => void;
@@ -930,7 +928,17 @@ function DesktopHeroCards({
     setEdges((e) => (e.start === start && e.end === end ? e : { start, end }));
   };
 
-  useEffect(readEdges, [images.length]);
+  // On every size change too: the strip can mount at zero width (switching
+  // the preview from Phone to Desktop), and edges read then say "at the end",
+  // which left the Next arrow disabled for good.
+  useEffect(() => {
+    readEdges();
+    const el = stripRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(readEdges);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [images.length]);
 
   const arrow = (dir: 1 | -1) => (
     <button
@@ -947,8 +955,11 @@ function DesktopHeroCards({
   );
 
   return (
-    <div className="relative hidden pt-8 pb-4 @3xl:block" style={ink ? { color: ink } : undefined}>
-      <div className="mb-6 flex items-end justify-between gap-6 px-12">
+    <div
+      className="relative pt-5 pb-2 @3xl:pt-8 @3xl:pb-4"
+      style={ink ? { color: ink } : undefined}
+    >
+      <div className="mb-4 flex flex-wrap items-end justify-between gap-3 px-5 @3xl:mb-6 @3xl:gap-6 @3xl:px-12">
         {(hasHeadline || isEditing) && (
           <div className="min-w-0 max-w-[760px]">
             <ThemeText
@@ -956,14 +967,14 @@ function DesktopHeroCards({
               field="overlayLine1"
               placeholder={isEditing ? "Add a headline" : undefined}
               as="p"
-              className="font-display text-[56px] uppercase leading-[0.92]"
+              className="font-display text-[32px] uppercase leading-[0.92] @3xl:text-[56px]"
             />
             <ThemeText
               editing={editing}
               field="overlayLine2"
               placeholder={isEditing ? "Add a tagline" : undefined}
               as="p"
-              className="mt-2 text-[18px] font-medium opacity-70"
+              className="mt-2 text-[14px] font-medium opacity-70 @3xl:text-[18px]"
             />
           </div>
         )}
@@ -986,11 +997,11 @@ function DesktopHeroCards({
                 <div
                   key={i}
                   aria-hidden={i >= images.length || undefined}
-                  className="shrink-0 pr-8"
-                  style={{ paddingTop: n % 2 ? 44 : 4 }}
+                  className="shrink-0 pr-5 @3xl:pr-8"
+                  style={{ paddingTop: n % 2 ? 36 : 4 }}
                 >
                   <div
-                    className="oak-hero-sway h-[min(500px,56vh)] overflow-hidden rounded-[28px] shadow-[0_30px_60px_-24px_rgba(0,0,0,0.55)]"
+                    className="oak-hero-sway h-[min(380px,52vh)] overflow-hidden rounded-[22px] @3xl:h-[min(500px,56vh)] @3xl:rounded-[28px] shadow-[0_30px_60px_-24px_rgba(0,0,0,0.55)]"
                     style={
                       {
                         aspectRatio: ratio,
@@ -1016,13 +1027,13 @@ function DesktopHeroCards({
           <div
             ref={stripRef}
             onScroll={readEdges}
-            className="flex snap-x snap-mandatory items-start gap-5 overflow-x-auto scroll-px-12 px-12 pt-2 pb-12 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            className="flex snap-x snap-mandatory items-start gap-4 overflow-x-auto scroll-px-5 px-5 pt-2 pb-10 @3xl:gap-5 @3xl:scroll-px-12 @3xl:px-12 @3xl:pb-12 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           >
             {images.map((src, i) => (
               <div
                 key={src}
                 data-hero-card
-                className={`group/card relative h-[min(520px,60vh)] shrink-0 snap-start overflow-hidden rounded-[28px] shadow-[0_28px_60px_-24px_rgba(0,0,0,0.5)] transition-transform duration-500 ease-out hover:-translate-y-1.5 ${
+                className={`group/card relative h-[min(380px,52vh)] shrink-0 snap-start overflow-hidden rounded-[22px] @3xl:h-[min(520px,60vh)] @3xl:rounded-[28px] shadow-[0_28px_60px_-24px_rgba(0,0,0,0.5)] transition-transform duration-500 ease-out hover:-translate-y-1.5 ${
                   i % 2 ? "mt-10" : ""
                 }`}
                 style={{ aspectRatio: ratio }}
@@ -1049,7 +1060,7 @@ function DesktopHeroCards({
               <button
                 type="button"
                 onClick={onAddPhotos}
-                className={`flex h-[min(520px,60vh)] shrink-0 snap-start flex-col items-center justify-center gap-2 rounded-[28px] border-2 border-dashed border-current px-6 text-center opacity-50 transition-opacity hover:opacity-80 ${
+                className={`flex h-[min(380px,52vh)] shrink-0 snap-start flex-col @3xl:h-[min(520px,60vh)] items-center justify-center gap-2 rounded-[28px] border-2 border-dashed border-current px-6 text-center opacity-50 transition-opacity hover:opacity-80 ${
                   images.length % 2 ? "mt-10" : ""
                 }`}
                 style={{ aspectRatio: ratio }}
@@ -1131,12 +1142,41 @@ function HeroSlideshowInner({
     e.target.value = "";
   }
 
+  // The seller's pick; the regular slideshow unless they chose cards.
+  const cards = editing?.desktopHero === "cards";
+
+  // Cards draw their own empty state (the "Add photos" card, with the
+  // headline fields and the style toggle still there).
+  if (images.length === 0 && cards) {
+    if (!isEditing) return null;
+    return (
+      <>
+        <DesktopHeroCards
+          images={images}
+          ratio={editing?.slideshowAspectRatio ?? DEFAULT_ASPECT_RATIO}
+          ink={ink}
+          editing={editing}
+          onAddPhotos={() => fileInputRef.current?.click()}
+        />
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={handleFiles}
+        />
+      </>
+    );
+  }
+
   if (images.length === 0) {
     if (!isEditing) return null;
     return (
-      <div className="mx-4 mt-3">
+      <div className="mx-4 mt-3 flex flex-col items-start gap-2">
+        <DesktopHeroToggle editing={editing} />
         <label
-          className="flex aspect-[4/5] w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed px-6 text-center"
+          className="flex aspect-[4/5] w-full cursor-pointer @3xl:aspect-auto @3xl:h-[320px] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed px-6 text-center"
           style={{
             color: ink ? alpha(ink, 0.65) : "rgba(255,255,255,0.6)",
             borderColor: ink ? alpha(ink, 0.3) : "rgba(255,255,255,0.3)",
@@ -1201,23 +1241,18 @@ function HeroSlideshowInner({
     }
   }
 
-  // Desktop shows the photos as floating cards unless the seller chose the
-  // wide banner; the banner below then hides at @3xl.
-  const cards = (editing?.desktopHero ?? "cards") === "cards";
-
   return (
     <>
       {cards && (
         <DesktopHeroCards
           images={images}
           ratio={activeRatio}
-          intervalMs={intervalMs}
           ink={ink}
           editing={editing}
           onAddPhotos={() => fileInputRef.current?.click()}
         />
       )}
-      <div className={`relative w-full ${cards ? "@3xl:hidden" : ""}`}>
+      <div className={`relative w-full ${cards ? "hidden" : ""}`}>
         <div
           ref={cropBoxRef}
           // @3xl: a wide, short banner (2:1, never taller than 640px or 72% of the screen) instead of
@@ -1387,7 +1422,7 @@ function HeroSlideshowInner({
             // pill grabs. A full-width grab strip overlapping the frame's
             // bottom edge swallowed taps meant for the thumbnails, the "+" and
             // the reposition handle right above it.
-            className="pointer-events-none relative z-20 -mt-4 flex h-11 items-center justify-center"
+            className="pointer-events-none relative z-20 -mt-4 flex h-11 items-center justify-center @3xl:hidden"
           >
             <span
               onPointerDown={handleResizeStart}

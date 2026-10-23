@@ -1413,7 +1413,10 @@ export function PublicStorefront({
  *  lays out as desktop (@5xl, 64rem). The frame is a @container, so its width
  *  -- not the window's -- decides which layout the storefront shows. */
 const PHONE_W = 430;
-const DESKTOP_MIN_W = 1024;
+// 1024 for the storefront itself, plus the frame's 3px borders and room for a
+// classic (Windows) scrollbar inside it: at exactly 1024 the @container came
+// out ~1003px and the desktop grid fell back to 3 columns.
+const DESKTOP_MIN_W = 1024 + 6 + 17;
 
 /** Sizes the preview frame to the space beside the controls. Always the full
  *  height, and never scaled down when it fits: a phone is shown at 100%, and
@@ -2116,6 +2119,22 @@ export function ThemePreviewSheet({
             </>
           )}
         </div>
+        {/* Desktop squeezed onto a small screen: everything in the frame is
+            drawn at a fraction of its size, too small to tap or edit. Say so
+            rather than let a seller fight 15px controls. */}
+        {mode === "edit" && device === "desktop" && frame.zoom < 0.8 && (
+          <p className="mx-auto mb-3 max-w-[430px] shrink-0 rounded-xl bg-white/10 px-4 py-2.5 text-center text-[13px] leading-snug text-white/80">
+            Desktop is shrunk to fit this screen.{" "}
+            <button
+              type="button"
+              onClick={() => setDevice("phone")}
+              className="font-semibold text-white underline underline-offset-2"
+            >
+              Edit on Phone
+            </button>{" "}
+            or on a bigger screen.
+          </p>
+        )}
         <div ref={stageRef} className="flex min-h-0 w-full flex-1 justify-center">
           <div
             className={`relative shrink-0 overflow-hidden border-[3px] border-neutral-900 bg-neutral-900 shadow-[0_30px_80px_rgba(0,0,0,0.55)] ${

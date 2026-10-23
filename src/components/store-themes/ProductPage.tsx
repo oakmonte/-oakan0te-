@@ -421,9 +421,12 @@ export function ProductPage({
                           {opt.values.map((value) => {
                             const active = !!variant && valueOf(variant, opt.slot) === value;
                             const target = pickVariant(variants, variant, opt.slot, value);
-                            // Struck through when picking it can only land on
-                            // a sold-out variant.
-                            const out = !target || !inStock(target);
+                            // Struck through only when every variant with this
+                            // value is sold out -- not just the one matching
+                            // the other current choices.
+                            const out = !variants.some(
+                              (v) => valueOf(v, opt.slot) === value && inStock(v),
+                            );
                             return (
                               <button
                                 key={value}
