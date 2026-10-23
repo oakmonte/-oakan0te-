@@ -76,6 +76,8 @@ const FALLBACK_FPS = 30;
 // larger would just be scaled down again on upload (post-media-upload.ts).
 const TARGET_LONG_EDGE = 1280;
 const MIN_LONG_EDGE = 480;
+// The long edge for the second try after a failed encode.
+const RETRY_LONG_EDGE = 854;
 
 const NEUTRAL_TRANSFORM: LayerTransform = { opacity: 1, scale: 1, offsetX: 0 };
 
@@ -86,6 +88,8 @@ const NEUTRAL_TRANSFORM: LayerTransform = { opacity: 1, scale: 1, offsetX: 0 };
 export function outputSize(
   project: StudioProject,
   sources: SourceMap,
+  /** A lower ceiling for the long edge -- the retry after a failed encode. */
+  maxLongEdge = TARGET_LONG_EDGE,
 ): { width: number; height: number } {
   const aspect = findAspect(project.aspectId).ratio;
   let longest = 0;
@@ -95,7 +99,8 @@ export function outputSize(
   }
   // Never upscale past what the footage actually holds — a 480p clip blown up to
   // 1280 is a bigger file with no more detail in it.
-  const edge = Math.max(MIN_LONG_EDGE, Math.min(TARGET_LONG_EDGE, longest || TARGET_LONG_EDGE));
+  const cap = Math.min(TARGET_LONG_EDGE, maxLongEdge);
+  const edge = Math.max(Math.min(MIN_LONG_EDGE, cap), Math.min(cap, longest || cap));
   let width: number;
   let height: number;
   if (aspect >= 1) {
@@ -484,7 +489,17 @@ export async function exportTimeline(
   }
 
   try {
-    return await encodeTimeline(project, sources, onProgress);
+    try {
+      return await encodeTimeline(project, sources, onProgress);
+    } catch (first) {
+      // Some phone and tablet hardware encoders (Android especially) reject a
+      // size or profile outright -- which used to end in "Couldn't make your
+      // video" for any edited timeline. Try once more at a smaller size before
+      // giving up: a slightly softer video beats no video.
+      console.warn("Studio: encode failed, retrying at a smaller size", first);
+      onProgress?.(0);
+      return await encodeTimeline(project, sources, onProgress, RETRY_LONG_EDGE);
+    }
   } catch (err) {
     // A single clip with nothing baked into it only reaches the full encode
     // because its shape differs from the chosen aspect (an iPhone screen
@@ -517,9 +532,10 @@ async function encodeTimeline(
   project: StudioProject,
   sources: SourceMap,
   onProgress?: ExportProgress,
+  maxLongEdge?: number,
 ): Promise<Blob> {
   const duration = projectDuration(project);
-  const { width, height } = outputSize(project, sources);
+  const { width, height } = outputSize(project, sources, maxLongEdge);
   const fps = timelineFps(project, sources);
   const { frames, transitions } = planFrames(project, duration, fps);
 

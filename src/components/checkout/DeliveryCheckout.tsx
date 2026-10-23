@@ -105,6 +105,25 @@ export function DeliveryCheckout({
   const [chosen, setChosen] = useState<string | null>(null);
   const [placing, setPlacing] = useState(false);
   const [placeError, setPlaceError] = useState("");
+  // Asked once, up front: buying can be switched on before the payment key is
+  // in, and a buyer should hear "not yet" before typing an address, not after.
+  const [notOpen, setNotOpen] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/checkout/status")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((s: { payments?: boolean } | null) => {
+        if (!cancelled && s && s.payments === false)
+          setNotOpen(
+            "Payments open soon. This store can't take payment just yet — check back shortly.",
+          );
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  const blocked = blockedReason ?? notOpen;
 
   // Effects compare by value, not identity: callers build `lines` inline.
   const linesKey = JSON.stringify(lines);
@@ -309,7 +328,7 @@ export function DeliveryCheckout({
     .join(", ");
   const bad = (cond: boolean) => (showErrors && cond ? "!border-red-400/70" : "");
   async function placeOrder() {
-    if (!validated || !pick || blockedReason) return;
+    if (!validated || !pick || blocked) return;
     setPlaceError("");
     setPlacing(true);
     // Stays "placing" once the order exists: the page is on its way out, and a
@@ -359,6 +378,14 @@ export function DeliveryCheckout({
 
   return (
     <>
+      {notOpen && (
+        <p
+          role="status"
+          className="mt-6 rounded-2xl border border-white/15 bg-white/[0.06] px-4 py-3 text-[14px] leading-snug text-white/80"
+        >
+          {notOpen}
+        </p>
+      )}
       {!validated && (
         <div className="mt-6 flex flex-col gap-3">
           <h2 className="text-[20px] font-semibold">Where should we deliver?</h2>
@@ -571,13 +598,13 @@ export function DeliveryCheckout({
           )}
           <button
             type="button"
-            disabled={!pick || !requestToken || placing || !!blockedReason}
+            disabled={!pick || !requestToken || placing || !!blocked}
             onClick={() => void placeOrder()}
             className="mt-1 h-14 rounded-2xl bg-white text-[17px] font-semibold text-black disabled:opacity-40"
           >
             {placing ? "Placing order…" : "Place order and pay"}
           </button>
-          {blockedReason && <p className="text-[14px] text-white/60">{blockedReason}</p>}
+          {blocked && <p className="text-[14px] text-white/60">{blocked}</p>}
           {placeError && <p className="text-[14px] text-red-400">{placeError}</p>}
         </div>
       )}

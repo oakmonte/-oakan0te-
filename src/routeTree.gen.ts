@@ -83,6 +83,7 @@ import { Route as ApiAccountDeleteRouteImport } from './routes/api.account.delet
 import { Route as ApiBumpaConnectRouteImport } from './routes/api.bumpa.connect'
 import { Route as ApiChatInboxRouteImport } from './routes/api.chat.inbox'
 import { Route as ApiChatMessagesRouteImport } from './routes/api.chat.messages'
+import { Route as ApiCheckoutStatusRouteImport } from './routes/api.checkout.status'
 import { Route as ApiImportCsvRouteImport } from './routes/api.import.csv'
 import { Route as ApiImportStartRouteImport } from './routes/api.import.start'
 import { Route as ApiImportStatusRouteImport } from './routes/api.import.status'
@@ -499,6 +500,11 @@ const ApiChatMessagesRoute = ApiChatMessagesRouteImport.update({
   path: '/api/chat/messages',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCheckoutStatusRoute = ApiCheckoutStatusRouteImport.update({
+  id: '/api/checkout/status',
+  path: '/api/checkout/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiImportCsvRoute = ApiImportCsvRouteImport.update({
   id: '/api/import/csv',
   path: '/api/import/csv',
@@ -800,6 +806,7 @@ export interface FileRoutesByFullPath {
   '/api/bumpa/connect': typeof ApiBumpaConnectRoute
   '/api/chat/inbox': typeof ApiChatInboxRoute
   '/api/chat/messages': typeof ApiChatMessagesRoute
+  '/api/checkout/status': typeof ApiCheckoutStatusRoute
   '/api/import/csv': typeof ApiImportCsvRoute
   '/api/import/start': typeof ApiImportStartRoute
   '/api/import/status': typeof ApiImportStatusRoute
@@ -917,6 +924,7 @@ export interface FileRoutesByTo {
   '/api/bumpa/connect': typeof ApiBumpaConnectRoute
   '/api/chat/inbox': typeof ApiChatInboxRoute
   '/api/chat/messages': typeof ApiChatMessagesRoute
+  '/api/checkout/status': typeof ApiCheckoutStatusRoute
   '/api/import/csv': typeof ApiImportCsvRoute
   '/api/import/start': typeof ApiImportStartRoute
   '/api/import/status': typeof ApiImportStatusRoute
@@ -1038,6 +1046,7 @@ export interface FileRoutesById {
   '/api/bumpa/connect': typeof ApiBumpaConnectRoute
   '/api/chat/inbox': typeof ApiChatInboxRoute
   '/api/chat/messages': typeof ApiChatMessagesRoute
+  '/api/checkout/status': typeof ApiCheckoutStatusRoute
   '/api/import/csv': typeof ApiImportCsvRoute
   '/api/import/start': typeof ApiImportStartRoute
   '/api/import/status': typeof ApiImportStatusRoute
@@ -1160,6 +1169,7 @@ export interface FileRouteTypes {
     | '/api/bumpa/connect'
     | '/api/chat/inbox'
     | '/api/chat/messages'
+    | '/api/checkout/status'
     | '/api/import/csv'
     | '/api/import/start'
     | '/api/import/status'
@@ -1277,6 +1287,7 @@ export interface FileRouteTypes {
     | '/api/bumpa/connect'
     | '/api/chat/inbox'
     | '/api/chat/messages'
+    | '/api/checkout/status'
     | '/api/import/csv'
     | '/api/import/start'
     | '/api/import/status'
@@ -1397,6 +1408,7 @@ export interface FileRouteTypes {
     | '/api/bumpa/connect'
     | '/api/chat/inbox'
     | '/api/chat/messages'
+    | '/api/checkout/status'
     | '/api/import/csv'
     | '/api/import/start'
     | '/api/import/status'
@@ -1500,6 +1512,7 @@ export interface RootRouteChildren {
   ApiBumpaConnectRoute: typeof ApiBumpaConnectRoute
   ApiChatInboxRoute: typeof ApiChatInboxRoute
   ApiChatMessagesRoute: typeof ApiChatMessagesRoute
+  ApiCheckoutStatusRoute: typeof ApiCheckoutStatusRoute
   ApiImportCsvRoute: typeof ApiImportCsvRoute
   ApiImportStartRoute: typeof ApiImportStartRoute
   ApiImportStatusRoute: typeof ApiImportStatusRoute
@@ -2046,6 +2059,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiChatMessagesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/checkout/status': {
+      id: '/api/checkout/status'
+      path: '/api/checkout/status'
+      fullPath: '/api/checkout/status'
+      preLoaderRoute: typeof ApiCheckoutStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/import/csv': {
       id: '/api/import/csv'
       path: '/api/import/csv'
@@ -2548,6 +2568,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiBumpaConnectRoute: ApiBumpaConnectRoute,
   ApiChatInboxRoute: ApiChatInboxRoute,
   ApiChatMessagesRoute: ApiChatMessagesRoute,
+  ApiCheckoutStatusRoute: ApiCheckoutStatusRoute,
   ApiImportCsvRoute: ApiImportCsvRoute,
   ApiImportStartRoute: ApiImportStartRoute,
   ApiImportStatusRoute: ApiImportStatusRoute,

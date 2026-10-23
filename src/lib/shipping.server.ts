@@ -33,6 +33,12 @@ export class ShippingError extends Error {
 }
 
 export async function shipbubble(path: string, init?: RequestInit) {
+  // No key yet (buying switched on ahead of the live Shipbubble account): a
+  // plain answer instead of Shipbubble's "unauthorized" reaching the buyer.
+  // 503, not 502, so the order and quote routes pass the message through.
+  if (!process.env.SHIPBUBBLE_API_KEY) {
+    throw new ShippingError("Delivery opens soon. This store can't book couriers just yet.", 503);
+  }
   const res = await fetch(`${BASE}${path}`, {
     ...init,
     headers: {

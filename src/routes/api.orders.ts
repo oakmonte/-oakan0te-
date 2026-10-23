@@ -39,6 +39,20 @@ export const Route = createFileRoute("/api/orders")({
 
         const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
         if (!body) return json({ error: "Bad request" }, 400);
+        // Buying can be switched on (VITE_LAUNCH_UNLOCKED) before the payment
+        // key is in. Without it an order was still written and the buyer sent
+        // to an order page with nothing to pay -- a dead order on both sides.
+        // Refuse before anything is created, and say why.
+        if (!paystackConfigured()) {
+          return json(
+            {
+              error:
+                "Payments open soon. This store can't take payment just yet — check back shortly.",
+              code: "payments_unavailable",
+            },
+            503,
+          );
+        }
 
         const parsed = parseOrderLines(body);
         const serviceCode = str(body.serviceCode, 120);

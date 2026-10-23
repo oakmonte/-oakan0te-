@@ -153,8 +153,12 @@ export async function exportVideo(
   const sourceHeight = videoTrack.displayHeight;
   const hasCrop = !!crop && !isCropNoop(crop);
   const cropPx = hasCrop ? pixelCrop(crop!, sourceWidth, sourceHeight) : null;
-  const width = cropPx?.w ?? sourceWidth;
-  const height = cropPx?.h ?? sourceHeight;
+  // Even, always: H.264 encoders (Android's especially) reject an odd width or
+  // height outright, and a crop lands on odd numbers easily -- which surfaced
+  // as "Couldn't make your video". Dropping at most one edge pixel row or
+  // column is invisible. The Studio exporter has the same rule (outputSize).
+  const width = evenFloor(cropPx?.w ?? sourceWidth);
+  const height = evenFloor(cropPx?.h ?? sourceHeight);
 
   const canvas = document.createElement("canvas");
   canvas.width = width;
@@ -320,6 +324,11 @@ function compileGradeWithAdjust(
 // generation of compression on the one asset the listing is judged by. The
 // pipeline's rule is one pass from the untouched capture; when this screen adds
 // nothing, the honest number of passes is zero.
+function evenFloor(n: number): number {
+  const whole = Math.floor(n);
+  return Math.max(2, whole - (whole % 2));
+}
+
 export async function exportComposite(
   media: CapturedMedia,
   filter: CameraFilter,
