@@ -915,10 +915,9 @@ function DesktopHeroToggle({
  *  at the seller's own frame shape, instead of one wide banner that crops a
  *  standing model to a band across her middle.
  *
- *  Live, the cards never stop: the row glides past endlessly (the photos twice
- *  over, so the loop has no seam) while each card sways on its own slight tilt,
- *  out of step with its neighbours, like prints pinned up on a line. Hovering
- *  holds it still. In edit mode, under reduced motion, or with one photo, it's
+ *  Live, the cards turn in a ring: they stand around a circle facing out and
+ *  the circle rotates, the front card at full size and the rest going round
+ *  behind it. Hovering holds it still. In edit mode, under reduced motion, or with one photo, it's
  *  a still, scrollable row with arrows instead, so a card can be grabbed. */
 function DesktopHeroCards({
   images,
@@ -943,6 +942,16 @@ function DesktopHeroCards({
     setReduced(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   }, []);
   const moving = !isEditing && !reduced && images.length > 1;
+  // The ring wants at least seven cards to read as a circle, so a short set
+  // of photos goes round more than once.
+  const ringCards = images.length
+    ? Array.from({ length: Math.max(7, images.length) }, (_, i) => images[i % images.length])
+    : [];
+  // Radius, in card heights: the circle whose sides are the cards' widths,
+  // plus room between them.
+  const ringRadius = ringCards.length
+    ? ((ratio * 0.5) / Math.tan(Math.PI / ringCards.length)) * 1.16
+    : 0;
 
   const step = (dir: 1 | -1) => {
     const el = stripRef.current;
@@ -1013,39 +1022,46 @@ function DesktopHeroCards({
       </div>
 
       {moving ? (
-        <div className="relative overflow-hidden pt-4 pb-16 [mask-image:linear-gradient(90deg,transparent,#000_5%,#000_95%,transparent)]">
+        // A ring: the cards stand around a circle facing out, and the circle
+        // turns. --h is the card height; the card width and the ring's radius
+        // are both multiples of it, so the ring scales as one piece.
+        <div
+          className="oak-hero-ringwrap relative overflow-hidden py-8 [--h:340px] [mask-image:linear-gradient(90deg,transparent,#000_8%,#000_92%,transparent)] @3xl:py-10 @3xl:[--h:min(600px,64vh)]"
+          style={{ perspective: "2400px" }}
+        >
           <style>{HERO_CARD_MOTION_CSS}</style>
-          {/* Each card carries its own right padding, not a flex gap: the
-              track is then exactly two identical halves, and sliding it by
-              -50% lands the second copy where the first began. */}
           <div
-            className="oak-hero-marquee flex w-max items-start"
-            style={{ animationDuration: `${images.length * 7}s` }}
+            className="relative mx-auto"
+            style={{
+              width: `calc(var(--h) * ${ratio})`,
+              height: "var(--h)",
+              transformStyle: "preserve-3d",
+              // Back by one radius, so the card at the front sits at its own
+              // size and the rest go round behind it.
+              transform: `translateZ(calc(var(--h) * ${-ringRadius}))`,
+            }}
           >
-            {[...images, ...images].map((src, i) => {
-              const n = i % images.length;
-              return (
+            <div
+              className="oak-hero-ring absolute inset-0"
+              style={{
+                transformStyle: "preserve-3d",
+                animationDuration: `${ringCards.length * 4.5}s`,
+              }}
+            >
+              {ringCards.map((src, i) => (
                 <div
                   key={i}
                   aria-hidden={i >= images.length || undefined}
-                  className="shrink-0 pr-5 @3xl:pr-8"
-                  style={{ paddingTop: n % 2 ? 36 : 4 }}
+                  className="absolute inset-0 overflow-hidden rounded-[22px] shadow-[0_30px_60px_-24px_rgba(0,0,0,0.55)] @3xl:rounded-[28px]"
+                  style={{
+                    transform: `rotateY(${(i * 360) / ringCards.length}deg) translateZ(calc(var(--h) * ${ringRadius}))`,
+                    backfaceVisibility: "hidden",
+                  }}
                 >
-                  <div
-                    className="oak-hero-sway h-[min(380px,52vh)] overflow-hidden rounded-[22px] @3xl:h-[min(640px,70vh)] @3xl:rounded-[28px] shadow-[0_30px_60px_-24px_rgba(0,0,0,0.55)]"
-                    style={
-                      {
-                        aspectRatio: ratio,
-                        "--r": `${HERO_CARD_TILTS[n % HERO_CARD_TILTS.length]}deg`,
-                        animationDelay: `${-n * 1.7}s`,
-                      } as CSSProperties
-                    }
-                  >
-                    <CroppableImage src={src} position={editing?.slideshowCrops[src]} />
-                  </div>
+                  <CroppableImage src={src} position={editing?.slideshowCrops[src]} />
                 </div>
-              );
-            })}
+              ))}
+            </div>
           </div>
         </div>
       ) : (
@@ -1108,19 +1124,10 @@ function DesktopHeroCards({
   );
 }
 
-// Small, uneven tilts: alternating signs read as hand-placed, equal ones as a
-// fan. The sway swings each card through to a little past the other side.
-const HERO_CARD_TILTS = [-3, 2.2, -1.6, 3.2, -2.4, 1.4];
-
 const HERO_CARD_MOTION_CSS = `
-@keyframes oakHeroMarquee { to { transform: translateX(-50%); } }
-@keyframes oakHeroSway {
-  0%, 100% { transform: rotate(var(--r)) translateY(0); }
-  50% { transform: rotate(calc(var(--r) * -0.7)) translateY(-12px); }
-}
-.oak-hero-marquee { animation: oakHeroMarquee linear infinite; will-change: transform; }
-.oak-hero-sway { animation: oakHeroSway 6.5s ease-in-out infinite; transform-origin: 50% 85%; }
-.oak-hero-marquee:hover, .oak-hero-marquee:hover .oak-hero-sway { animation-play-state: paused; }
+@keyframes oakHeroRing { from { transform: rotateY(0deg); } to { transform: rotateY(-360deg); } }
+.oak-hero-ring { animation: oakHeroRing linear infinite; will-change: transform; }
+.oak-hero-ringwrap:hover .oak-hero-ring { animation-play-state: paused; }
 `;
 
 /** While the live storefront's search bar has text, the slideshow steps
