@@ -64,7 +64,10 @@ function CartPage() {
       className="min-h-screen bg-chat-bg pb-[calc(env(safe-area-inset-bottom)+7rem)] text-chat-text"
       style={{ fontFamily: "'SF Pro', system-ui, sans-serif" }}
     >
-      <div className="mx-auto w-full max-w-[560px]">
+      {/* Desktop: the same outlined panel as the seller dashboard (DesktopPanel),
+          in this page's chat tokens. overflow-clip, not hidden, so the header
+          still sticks while the page scrolls. */}
+      <div className="mx-auto w-full max-w-[560px] md:mt-6 md:max-w-[720px] md:overflow-clip md:rounded-[28px] md:border md:border-chat-border md:shadow-[0_24px_60px_-30px_rgba(0,0,0,0.35)]">
         <header className="sticky top-0 z-20 bg-chat-bg/90 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
           <div className="flex h-[56px] items-center gap-2 px-4">
             {/* The bag is a shopper's page, reached from a storefront, so it
