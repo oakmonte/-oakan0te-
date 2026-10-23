@@ -86,6 +86,9 @@ export type ActivePost = {
   authorUsername: string | null;
   /** A still of it, for a caller's blurred backdrop (the storefront feed). */
   backdrop?: string | null;
+  /** Its media's width / height, once known -- so a caller can shape its
+   *  frame to the post rather than letterbox it. */
+  aspect?: number | null;
 };
 
 type FeedPost = Pick<
@@ -1031,6 +1034,8 @@ function FeedPostCard({
   const navigate = useNavigate();
   const cardRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  // The post's own shape, read off the media as it loads.
+  const [aspect, setAspect] = useState<number | null>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   // Every video in this feed is muted, so a post's chosen sound is the only
   // audio the app ever produces — and the first one is therefore the one
@@ -1164,8 +1169,14 @@ function FeedPostCard({
 
   useEffect(() => {
     if (onScreen)
-      onActive({ id: post.id, tags, authorUsername: post.authorUsername, backdrop: backdropUrl });
-  }, [onScreen, post.id, tags, onActive, post.authorUsername, backdropUrl]);
+      onActive({
+        id: post.id,
+        tags,
+        authorUsername: post.authorUsername,
+        backdrop: backdropUrl,
+        aspect,
+      });
+  }, [onScreen, post.id, tags, onActive, post.authorUsername, backdropUrl, aspect]);
 
   useEffect(() => {
     const v = videoRef.current;
@@ -1401,12 +1412,24 @@ function FeedPostCard({
             disablePictureInPicture
             disableRemotePlayback
             preload="metadata"
+            onLoadedMetadata={(e) => {
+              const v = e.currentTarget;
+              if (v.videoWidth && v.videoHeight) setAspect(v.videoWidth / v.videoHeight);
+            }}
             className={`absolute inset-0 w-full h-full ${mediaFit}`}
           />
           {singleVideoBuffering && <BufferingSpinner />}
         </>
       ) : (
-        <img src={post.media_url} alt="" className={`absolute inset-0 w-full h-full ${mediaFit}`} />
+        <img
+          src={post.media_url}
+          alt=""
+          onLoad={(e) => {
+            const i = e.currentTarget;
+            if (i.naturalWidth && i.naturalHeight) setAspect(i.naturalWidth / i.naturalHeight);
+          }}
+          className={`absolute inset-0 w-full h-full ${mediaFit}`}
+        />
       )}
 
       {/* Scrims so the rail and caption stay readable over a bright post —

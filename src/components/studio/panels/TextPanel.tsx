@@ -71,7 +71,17 @@ export function TextPanel({
           that isn't allowed, so the gate is Done rather than the keystroke —
           fixing a typo must never be the thing that's blocked. Delete is right
           there in the same sheet if they'd rather drop it. */}
-      <StudioSheet title="Text" onDone={onDone} doneDisabled={blocked.length > 0}>
+      <StudioSheet
+        title="Text"
+        // ✓ places what's typed in the add box, the same as Enter. It used to
+        // only close the sheet, so the caption just vanished.
+        onDone={() => {
+          const value = draft.trim();
+          if (!text && value && blocked.length === 0) onAdd(value);
+          onDone();
+        }}
+        doneDisabled={blocked.length > 0}
+      >
         {!text ? (
           <div className="pb-2">
             <textarea

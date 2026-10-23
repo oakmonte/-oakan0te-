@@ -34,7 +34,7 @@ const SETTLE = { type: "spring", stiffness: 420, damping: 40 } as const;
  *  horizontal drags (direction-locked), so a vertical swipe never nudges it
  *  sideways and a sideways one never scrolls.
  *
- *  The pager lives in a column never wider than 9:16 of the screen's height.
+ *  The pager lives in a column shaped like the post on screen (full height).
  *  On a phone that's the whole screen; on a laptop it's a phone-shaped column
  *  in the middle, on a blurred wash of the post you're watching rather than a
  *  page of black -- never the post and its products side by side. */
@@ -63,9 +63,13 @@ export function StorefrontFeed({
     return () => ro.disconnect();
   }, []);
 
-  // The column, and so each page: the full width on a phone, 9:16 of the
-  // height on anything wider than that.
-  const width = screen.h ? Math.min(screen.w, Math.round((screen.h * 9) / 16)) : screen.w;
+  // The column, and so each page, takes the shape of the post on screen: a
+  // landscape video gets a wide player, a square photo a square one, a tall
+  // screen recording a narrow one -- never letterboxed in a fixed 9:16. Full
+  // height, capped by the screen's width (so on a phone it's the whole
+  // screen), and within sane bounds while the media is still loading.
+  const aspect = Math.min(1.9, Math.max(0.45, activePost?.aspect ?? 9 / 16));
+  const width = screen.h ? Math.min(screen.w, Math.round(screen.h * aspect)) : screen.w;
   const framed = width > 0 && width < screen.w;
 
   // Settle on the current page whenever it (or the width) changes.
@@ -133,7 +137,8 @@ export function StorefrontFeed({
         className={`relative mx-auto h-full overflow-hidden bg-black ${
           framed ? "shadow-[0_0_80px_rgba(0,0,0,0.6)] ring-1 ring-white/10" : ""
         }`}
-        style={{ width: width || "100%" }}
+        // Eases from one post's shape to the next as the feed scrolls.
+        style={{ width: width || "100%", transition: "width 350ms cubic-bezier(0.2, 0, 0, 1)" }}
       >
         <motion.div
           drag="x"
