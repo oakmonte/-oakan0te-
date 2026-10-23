@@ -8,6 +8,7 @@ import { fetchStoreLogo, type StoreLogo } from "@/lib/store-logo";
 import { IdentityBlock } from "./IdentityBlock";
 import { QuickActions } from "./QuickActions";
 import { NextSteps, SalesAnalytics, StatTiles, WhatsNew } from "./sections";
+import { DesktopPanel } from "@/components/store/DesktopPanel";
 
 /** The seller dashboard: what /store shows once setup is finished.
  *
@@ -81,27 +82,29 @@ function DashboardForStore({
     // 300 is the least legible text on a phone -- which on this page is exactly
     // the explanatory text. Section rhythm is gap-8 between groups; the sales
     // hero, its chart and the tiles are one subject and sit closer together.
-    <div className="flex flex-col gap-8 px-4 pb-[calc(env(safe-area-inset-bottom)+2.5rem)] pt-5 font-normal">
-      <IdentityBlock store={store} logo={logo} onLogoChange={onLogoChange} onShare={share} />
-      <WhatsNew />
-      <NextSteps />
-      <div className="flex flex-col gap-6">
-        {/* Re-enable <TotalSales onShare={share} /> (and its import) once sellers can take orders. */}
-        <SalesAnalytics />
-        <StatTiles productCount={productCount} payoutVerified={payoutStatus === "verified"} />
+    <DesktopPanel>
+      <div className="flex flex-col gap-8 px-4 pb-[calc(env(safe-area-inset-bottom)+2.5rem)] pt-5 font-normal md:px-0 md:pt-0">
+        <IdentityBlock store={store} logo={logo} onLogoChange={onLogoChange} onShare={share} />
+        <WhatsNew />
+        <NextSteps />
+        <div className="flex flex-col gap-6">
+          {/* Re-enable <TotalSales onShare={share} /> (and its import) once sellers can take orders. */}
+          <SalesAnalytics />
+          <StatTiles productCount={productCount} payoutVerified={payoutStatus === "verified"} />
+        </div>
+        <QuickActions onOpenLocations={() => setLocationsOpen(true)} />
+
+        {locationsOpen && (
+          <LocationsListSheet storeId={store.id} onClose={() => setLocationsOpen(false)} />
+        )}
+
+        <ComingSoonBanner
+          open={shareComingSoonOpen}
+          onClose={() => setShareComingSoonOpen(false)}
+          message={`Sharing your store link will be available after official launch. You'll get a free storefront link — ${store.store_username}.oakmonte.store.`}
+        />
       </div>
-      <QuickActions onOpenLocations={() => setLocationsOpen(true)} />
-
-      {locationsOpen && (
-        <LocationsListSheet storeId={store.id} onClose={() => setLocationsOpen(false)} />
-      )}
-
-      <ComingSoonBanner
-        open={shareComingSoonOpen}
-        onClose={() => setShareComingSoonOpen(false)}
-        message={`Sharing your store link will be available after official launch. You'll get a free storefront link — ${store.store_username}.oakmonte.store.`}
-      />
-    </div>
+    </DesktopPanel>
   );
 }
 

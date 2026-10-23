@@ -37,9 +37,11 @@ export function SectionTitle({ id, children }: { id: string; children: ReactNode
  *  pan vertically, which is right for a JS-driven carousel and silently kills
  *  the sideways swipe of a native one. `py-1` keeps focus rings from being
  *  clipped by the scroll container. */
-export function SnapRow({ children }: { children: ReactNode }) {
+export function SnapRow({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
-    <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain scroll-px-4 px-4 py-1">
+    <div
+      className={`-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain scroll-px-4 px-4 py-1 ${className}`}
+    >
       {children}
     </div>
   );
@@ -158,7 +160,7 @@ const NEXT_STEPS = [
  *  section, at which point they should join those rather than replace them. */
 export function NextSteps() {
   const cls =
-    "oak-tap flex w-[248px] shrink-0 snap-start flex-col items-start rounded-2xl border border-sd-line bg-sd-surface p-4 text-left oak-motion-control active:scale-[0.98]";
+    "oak-tap flex w-[248px] shrink-0 snap-start flex-col items-start rounded-2xl md:w-auto border border-sd-line bg-sd-surface p-4 text-left oak-motion-control active:scale-[0.98]";
   const body = (s: (typeof NEXT_STEPS)[number]) => (
     <>
       <span className="grid h-9 w-9 place-items-center rounded-full bg-sd-soft">
@@ -176,7 +178,8 @@ export function NextSteps() {
     <section aria-labelledby="sd-attention">
       <SectionTitle id="sd-attention">Needs attention</SectionTitle>
       <div className="mt-3">
-        <SnapRow>
+        {/* Wide screen: the three share the row, so nothing scrolls sideways. */}
+        <SnapRow className="md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0">
           <Link to="/create" className={cls}>
             {body(create)}
           </Link>
