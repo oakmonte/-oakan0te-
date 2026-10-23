@@ -71,4 +71,13 @@ export const THEME_COLORS: Record<ThemeId, string[]> = {
 
   "electric-lime": ["lime", "green", "neon", "yellow", "black"],
   "tangerine-pop": ["orange", "tangerine", "peach", "white"],
+
+  adire: ["indigo", "blue", "navy", "white", "grey"],
+  "ankara-sun": ["orange", "cream", "yellow", "brown", "bright"],
+  "kente-gold": ["black", "gold", "golden", "yellow", "mustard"],
+  harmattan: ["sand", "beige", "tan", "gold", "cream", "brown", "neutral"],
+  "lagos-night": ["black", "cyan", "blue", "neon", "electric blue"],
+  "raw-denim": ["denim", "blue", "navy", "grey", "indigo"],
+  chrome: ["silver", "grey", "chrome", "metallic", "white"],
+  "olive-grove": ["olive", "green", "khaki", "cream", "stone"],
 };

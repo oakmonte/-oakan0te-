@@ -55,7 +55,15 @@ export type ThemeId =
   | "porcelain"
   | "charcoal-rose"
   | "electric-lime"
-  | "tangerine-pop";
+  | "tangerine-pop"
+  | "adire"
+  | "ankara-sun"
+  | "kente-gold"
+  | "harmattan"
+  | "lagos-night"
+  | "raw-denim"
+  | "chrome"
+  | "olive-grove";
 
 export type Theme = {
   id: ThemeId;
