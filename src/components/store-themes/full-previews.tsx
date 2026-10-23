@@ -81,6 +81,7 @@ import { startBackgroundUpload, onBackgroundUploadDone } from "@/lib/background-
 import { saveStoreLogoUrl } from "@/lib/store-logo";
 import { prefetchStoreFeed } from "@/components/feed/PostFeed";
 import { useSession } from "@/hooks/use-session";
+import { useHideStoreNav } from "@/components/store/store-nav";
 
 function noop() {}
 
@@ -1492,6 +1493,8 @@ export function ThemePreviewSheet({
   // bug. Same failure .oak-locked-viewport exists for on the camera routes;
   // this hook is the variant that also restores the grid's scroll position.
   useBodyScrollLock(true);
+  // A full-screen sheet: the dashboard's bottom nav would sit on top of it.
+  useHideStoreNav(true);
   // `current` + `history` live in one state object on purpose: a setState
   // updater must be pure (React/StrictMode double-invokes it in dev to catch
   // exactly this), so `mutate` can't call a second setState from inside the

@@ -917,8 +917,9 @@ function DesktopHeroToggle({
  *
  *  Live, the cards turn in a ring: they stand around a circle facing out and
  *  the circle rotates, the front card at full size and the rest going round
- *  behind it. Hovering holds it still. In edit mode, under reduced motion, or with one photo, it's
- *  a still, scrollable row with arrows instead, so a card can be grabbed. */
+ *  behind it. Hovering holds it still. It turns in edit mode too (hover to
+ *  crop or remove a card); under reduced motion or with one photo it's a
+ *  still, scrollable row with arrows instead. */
 function DesktopHeroCards({
   images,
   ratio,
@@ -941,7 +942,9 @@ function DesktopHeroCards({
   useEffect(() => {
     setReduced(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   }, []);
-  const moving = !isEditing && !reduced && images.length > 1;
+  // Turning in edit mode too, so the seller sees the ring as they build it;
+  // hovering holds it still to crop or remove a card.
+  const moving = !reduced && images.length > 1;
   // The ring wants at least seven cards to read as a circle, so a short set
   // of photos goes round more than once.
   const ringCards = images.length
@@ -1021,12 +1024,24 @@ function DesktopHeroCards({
         <DesktopHeroToggle editing={editing} className="ml-auto shrink-0" />
       </div>
 
+      {moving && isEditing && images.length < MAX_SLIDESHOW_IMAGES && (
+        <div className="-mb-2 flex justify-center px-5">
+          <button
+            type="button"
+            onClick={onAddPhotos}
+            className="flex h-10 items-center gap-2 rounded-full border border-dashed border-current px-4 text-[13px] font-medium opacity-60 transition-opacity hover:opacity-90"
+          >
+            <Plus size={16} />
+            Add photos
+          </button>
+        </div>
+      )}
       {moving ? (
         // A ring: the cards stand around a circle facing out, and the circle
         // turns. --h is the card height; the card width and the ring's radius
         // are both multiples of it, so the ring scales as one piece.
         <div
-          className="oak-hero-ringwrap relative overflow-hidden py-8 [--h:340px] [mask-image:linear-gradient(90deg,transparent,#000_8%,#000_92%,transparent)] @3xl:py-10 @3xl:[--h:min(600px,64vh)]"
+          className="oak-hero-ringwrap relative overflow-hidden py-8 [--h:340px] @3xl:py-10 @3xl:[--h:min(600px,64vh)]"
           style={{ perspective: "2400px" }}
         >
           <style>{HERO_CARD_MOTION_CSS}</style>
@@ -1058,7 +1073,23 @@ function DesktopHeroCards({
                     backfaceVisibility: "hidden",
                   }}
                 >
-                  <CroppableImage src={src} position={editing?.slideshowCrops[src]} />
+                  <CroppableImage
+                    src={src}
+                    editable={isEditing}
+                    position={editing?.slideshowCrops[src]}
+                    onPositionChange={(pos) => editing?.onSlideshowCropChange(src, pos)}
+                  />
+                  {isEditing && (
+                    <button
+                      type="button"
+                      aria-label="Remove photo"
+                      // A repeated card removes the photo it repeats.
+                      onClick={() => editing?.onRemoveSlideshowImage(i % images.length)}
+                      className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white/85 ring-1 ring-white/15 hover:bg-black/80 hover:text-white"
+                    >
+                      <Minus size={15} strokeWidth={2.5} />
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
