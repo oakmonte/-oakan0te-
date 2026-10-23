@@ -40,6 +40,9 @@ type Props = {
   /** Pops back to the inbox, taking every sheet open above the thread with it. */
   onBack: () => void;
   onToast: (message: string) => void;
+  /** Desktop: the right-hand pane of the two-pane Messages page, filling its
+   *  box, instead of a full-screen layer sliding over the inbox. */
+  docked?: boolean;
 };
 
 // Drafts survive leaving and re-opening a chat for the session, like every
@@ -66,6 +69,7 @@ export function ChatThread({
   onPatchChat,
   onBack,
   onToast,
+  docked = false,
 }: Props) {
   const viewport = useVisibleViewport(true);
   const scroller = useRef<HTMLDivElement>(null);
@@ -650,14 +654,24 @@ export function ChatThread({
 
   return (
     <motion.div
-      className="fixed inset-x-0 z-40 flex justify-center bg-chat-bg"
-      style={{ top: viewport.top, height: viewport.height || "100dvh" }}
-      initial={{ x: "100%" }}
-      animate={{ x: 0 }}
-      exit={{ x: "100%" }}
-      transition={{ type: "spring", stiffness: 380, damping: 40 }}
+      className={
+        docked
+          ? "relative flex h-full min-h-0 justify-center bg-chat-bg"
+          : "fixed inset-x-0 z-40 flex justify-center bg-chat-bg"
+      }
+      style={docked ? undefined : { top: viewport.top, height: viewport.height || "100dvh" }}
+      initial={docked ? { opacity: 0 } : { x: "100%" }}
+      animate={docked ? { opacity: 1 } : { x: 0 }}
+      exit={docked ? { opacity: 0 } : { x: "100%" }}
+      transition={docked ? { duration: 0.15 } : { type: "spring", stiffness: 380, damping: 40 }}
     >
-      <div className="flex h-full w-full max-w-[560px] flex-col pt-[env(safe-area-inset-top)] md:border-x md:border-chat-border">
+      <div
+        className={
+          docked
+            ? "flex h-full w-full flex-col"
+            : "flex h-full w-full max-w-[560px] flex-col pt-[env(safe-area-inset-top)] md:border-x md:border-chat-border"
+        }
+      >
         {selecting ? (
           <header className="relative z-30 flex h-[60px] shrink-0 items-center gap-1 border-b border-chat-border px-1.5">
             <div

@@ -61,6 +61,20 @@ const FOLDERS: { key: Folder; label: string }[] = [
   { key: "orders", label: "Orders" },
 ];
 
+/** md and up, the two-pane Messages layout. False on the server and until
+ *  mounted, so the first paint is the phone layout. */
+function useIsDesktop(): boolean {
+  const [desktop, setDesktop] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)");
+    const sync = () => setDesktop(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+  return desktop;
+}
+
 /** A storefront's Messages tab: the same page, listing only the
  *  conversation with that store's seller (no Support, no Me). */
 export type SellerOnly = {
@@ -109,8 +123,12 @@ export function MessagesView({
   // Safari's keyboard pushed around. A storefront's Messages keeps the
   // in-place chat, because its buyer sign-in only exists while the
   // storefront is on screen.
-  const routed = !sellerOnly;
-  const [localOpenId, setOpenId] = useState<string | null>(null);
+  // Desktop: the inbox and the open chat side by side on one page, so a chat
+  // opens in the right-hand pane (local state, like the storefront's) rather
+  // than as a page of its own. A /messages/$chatId link opens in that pane.
+  const desktop = useIsDesktop() && !sellerOnly;
+  const routed = !sellerOnly && !desktop;
+  const [localOpenId, setOpenId] = useState<string | null>(routeChatId ?? null);
   const openId = routed ? (routeChatId ?? null) : localOpenId;
   const threadPage = routed && !!routeChatId;
   const threadIndex = useRef(0);
@@ -518,165 +536,210 @@ export function MessagesView({
       onTouchEnd={onTouchEnd}
       onTouchCancel={() => (touchStart.current = null)}
     >
-      {!threadPage && (
-        <div className="mx-auto w-full max-w-[560px] md:border-x md:border-chat-border">
-          {/* ---------- header ---------- */}
-          <header className="sticky top-0 z-20 bg-chat-bg/90 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
-            <div className="flex h-[56px] items-center gap-2 px-4">
-              {showArchived ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => window.history.back()}
-                    aria-label="Back to chats"
-                    className="-ml-2 flex h-12 w-12 items-center justify-center rounded-full active:bg-chat-text/10"
-                  >
-                    <ChevronLeft size={30} />
-                  </button>
-                  <h1 className="flex-1 text-[20px] font-bold">Archived</h1>
-                </>
-              ) : (
-                <>
-                  <h1 className="flex-1 text-[28px] font-bold tracking-[-0.02em]">Messages</h1>
-                </>
-              )}
-            </div>
-            {/* A store's Messages has one contact: nothing to search. */}
-            {!signedOut && !sellerOnly && (
-              <div className="px-4 pb-2">
-                <div className="flex h-10 items-center gap-2 rounded-[12px] bg-chat-soft px-3 text-chat-muted">
-                  <Search size={18} strokeWidth={2.2} />
-                  <input
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
-                    placeholder="Search"
-                    aria-label="Search chats"
-                    className="min-w-0 flex-1 bg-transparent text-[16px] text-chat-text outline-none placeholder:text-chat-muted"
-                  />
-                  {query && (
+      <div
+        className={
+          desktop
+            ? "mx-auto mt-5 grid h-[calc(100dvh-8.5rem)] w-[calc(100%-3rem)] max-w-[1180px] grid-cols-[minmax(320px,380px)_1fr] overflow-hidden rounded-[28px] border border-chat-border shadow-[0_24px_60px_-30px_rgba(0,0,0,0.6)]"
+            : "contents"
+        }
+      >
+        {!threadPage && (
+          <div
+            className={
+              desktop
+                ? "min-h-0 overflow-y-auto border-r border-chat-border pb-6"
+                : "mx-auto w-full max-w-[560px] md:border-x md:border-chat-border"
+            }
+          >
+            {/* ---------- header ---------- */}
+            <header className="sticky top-0 z-20 bg-chat-bg/90 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
+              <div className="flex h-[56px] items-center gap-2 px-4">
+                {showArchived ? (
+                  <>
                     <button
                       type="button"
-                      aria-label="Clear search"
-                      onClick={() => setQuery("")}
-                      className="flex h-6 w-6 items-center justify-center rounded-full bg-chat-text/20 text-chat-bg"
+                      onClick={() => window.history.back()}
+                      aria-label="Back to chats"
+                      className="-ml-2 flex h-12 w-12 items-center justify-center rounded-full active:bg-chat-text/10"
                     >
-                      <X size={13} strokeWidth={3} />
+                      <ChevronLeft size={30} />
                     </button>
-                  )}
-                </div>
+                    <h1 className="flex-1 text-[20px] font-bold">Archived</h1>
+                  </>
+                ) : (
+                  <>
+                    <h1 className="flex-1 text-[28px] font-bold tracking-[-0.02em]">Messages</h1>
+                  </>
+                )}
               </div>
-            )}
-          </header>
+              {/* A store's Messages has one contact: nothing to search. */}
+              {!signedOut && !sellerOnly && (
+                <div className="px-4 pb-2">
+                  <div className="flex h-10 items-center gap-2 rounded-[12px] bg-chat-soft px-3 text-chat-muted">
+                    <Search size={18} strokeWidth={2.2} />
+                    <input
+                      value={query}
+                      onChange={(event) => setQuery(event.target.value)}
+                      placeholder="Search"
+                      aria-label="Search chats"
+                      className="min-w-0 flex-1 bg-transparent text-[16px] text-chat-text outline-none placeholder:text-chat-muted"
+                    />
+                    {query && (
+                      <button
+                        type="button"
+                        aria-label="Clear search"
+                        onClick={() => setQuery("")}
+                        className="flex h-6 w-6 items-center justify-center rounded-full bg-chat-text/20 text-chat-bg"
+                      >
+                        <X size={13} strokeWidth={3} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </header>
 
-          {signedOut ? (
-            <div className="flex flex-col items-center px-10 pt-20 text-center">
-              <Avatar kind="support" name="Oakmonte" size={72} />
-              <p className="mt-5 text-[20px] font-bold">Your messages live here</p>
-              <p className="mt-2 text-[14.5px] text-chat-muted">
-                Sign in to chat with sellers and buyers, share photos and send voice notes.
-              </p>
-              <Link
-                to="/sign-in"
-                className="mt-6 flex h-12 items-center rounded-full bg-chat-text px-8 text-[16px] font-semibold text-chat-inverse active:scale-[0.98]"
-              >
-                Sign in
-              </Link>
-            </div>
-          ) : (
-            <>
-              {!showArchived && (
-                <>
-                  {!sellerOnly && rail.length > 0 && !needle && folder === "all" && (
+            {signedOut ? (
+              <div className="flex flex-col items-center px-10 pt-20 text-center">
+                <Avatar kind="support" name="Oakmonte" size={72} />
+                <p className="mt-5 text-[20px] font-bold">Your messages live here</p>
+                <p className="mt-2 text-[14.5px] text-chat-muted">
+                  Sign in to chat with sellers and buyers, share photos and send voice notes.
+                </p>
+                <Link
+                  to="/sign-in"
+                  className="mt-6 flex h-12 items-center rounded-full bg-chat-text px-8 text-[16px] font-semibold text-chat-inverse active:scale-[0.98]"
+                >
+                  Sign in
+                </Link>
+              </div>
+            ) : (
+              <>
+                {!showArchived && (
+                  <>
+                    {!sellerOnly && rail.length > 0 && !needle && folder === "all" && (
+                      <div
+                        data-swipe-owner
+                        className="flex gap-3 overflow-x-auto px-4 pb-1 pt-2 no-scrollbar"
+                      >
+                        {rail.map((chat) => (
+                          <button
+                            key={chat.id}
+                            type="button"
+                            onClick={() => openThread(chat)}
+                            className="flex w-[66px] shrink-0 flex-col items-center gap-1.5 active:opacity-70"
+                          >
+                            <Avatar
+                              kind="direct"
+                              name={chat.title}
+                              src={chat.peer?.avatarUrl}
+                              seed={chat.peer?.id}
+                              size={62}
+                              online={isOnline(chat.peerLastActiveAt)}
+                            />
+                            <span className="w-full truncate text-center text-[12px] text-chat-muted">
+                              {chat.title.split(" ")[0]}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
                     <div
                       data-swipe-owner
-                      className="flex gap-3 overflow-x-auto px-4 pb-1 pt-2 no-scrollbar"
+                      className="flex gap-2 overflow-x-auto px-4 pb-2 pt-2 no-scrollbar"
+                      role="tablist"
                     >
-                      {rail.map((chat) => (
+                      {FOLDERS.map(({ key, label }) => (
                         <button
-                          key={chat.id}
+                          key={key}
                           type="button"
-                          onClick={() => openThread(chat)}
-                          className="flex w-[66px] shrink-0 flex-col items-center gap-1.5 active:opacity-70"
+                          role="tab"
+                          aria-selected={folder === key}
+                          onClick={() => switchFolder(key)}
+                          className={`flex h-10 shrink-0 items-center gap-1.5 rounded-full px-[18px] text-[15px] font-semibold transition-colors ${
+                            folder === key
+                              ? "bg-chat-text text-chat-inverse"
+                              : "bg-chat-soft text-chat-text"
+                          }`}
                         >
-                          <Avatar
-                            kind="direct"
-                            name={chat.title}
-                            src={chat.peer?.avatarUrl}
-                            seed={chat.peer?.id}
-                            size={62}
-                            online={isOnline(chat.peerLastActiveAt)}
-                          />
-                          <span className="w-full truncate text-center text-[12px] text-chat-muted">
-                            {chat.title.split(" ")[0]}
-                          </span>
+                          {label}
+                          {key === "unread" && unreadCount > 0 && (
+                            <span
+                              className={`rounded-full px-1.5 text-[11.5px] ${
+                                folder === key ? "bg-chat-inverse/20" : "bg-chat-accent text-white"
+                              }`}
+                            >
+                              {unreadCount}
+                            </span>
+                          )}
                         </button>
                       ))}
                     </div>
-                  )}
-
-                  <div
-                    data-swipe-owner
-                    className="flex gap-2 overflow-x-auto px-4 pb-2 pt-2 no-scrollbar"
-                    role="tablist"
-                  >
-                    {FOLDERS.map(({ key, label }) => (
-                      <button
-                        key={key}
-                        type="button"
-                        role="tab"
-                        aria-selected={folder === key}
-                        onClick={() => switchFolder(key)}
-                        className={`flex h-10 shrink-0 items-center gap-1.5 rounded-full px-[18px] text-[15px] font-semibold transition-colors ${
-                          folder === key
-                            ? "bg-chat-text text-chat-inverse"
-                            : "bg-chat-soft text-chat-text"
-                        }`}
-                      >
-                        {label}
-                        {key === "unread" && unreadCount > 0 && (
-                          <span
-                            className={`rounded-full px-1.5 text-[11.5px] ${
-                              folder === key ? "bg-chat-inverse/20" : "bg-chat-accent text-white"
-                            }`}
-                          >
-                            {unreadCount}
-                          </span>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-
-              <motion.div
-                key={showArchived ? "archived" : folder}
-                initial={{ x: folderDirection * 28, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                transition={{ type: "spring", stiffness: 420, damping: 38 }}
-              >
-                {!showArchived && (folder === "offers" || folder === "orders") ? (
-                  <TabPreview tab={folder} />
-                ) : loading ? (
-                  <ConversationSkeleton />
-                ) : inbox.status === "error" ? (
-                  <div className="px-10 pt-16 text-center">
-                    <p className="text-[16px] font-semibold">Couldn't load your chats</p>
-                    <button
-                      type="button"
-                      onClick={() => void inbox.reload()}
-                      className="mt-4 h-10 rounded-full bg-chat-soft px-5 text-[14px] font-semibold active:scale-95"
-                    >
-                      Try again
-                    </button>
-                  </div>
-                ) : (
-                  list
+                  </>
                 )}
-              </motion.div>
-            </>
-          )}
-        </div>
-      )}
+
+                <motion.div
+                  key={showArchived ? "archived" : folder}
+                  initial={{ x: folderDirection * 28, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  transition={{ type: "spring", stiffness: 420, damping: 38 }}
+                >
+                  {!showArchived && (folder === "offers" || folder === "orders") ? (
+                    <TabPreview tab={folder} />
+                  ) : loading ? (
+                    <ConversationSkeleton />
+                  ) : inbox.status === "error" ? (
+                    <div className="px-10 pt-16 text-center">
+                      <p className="text-[16px] font-semibold">Couldn't load your chats</p>
+                      <button
+                        type="button"
+                        onClick={() => void inbox.reload()}
+                        className="mt-4 h-10 rounded-full bg-chat-soft px-5 text-[14px] font-semibold active:scale-95"
+                      >
+                        Try again
+                      </button>
+                    </div>
+                  ) : (
+                    list
+                  )}
+                </motion.div>
+              </>
+            )}
+          </div>
+        )}
+
+        {desktop && (
+          <div className="min-h-0">
+            <AnimatePresence mode="wait">
+              {openChat && me ? (
+                <ChatThread
+                  key={openChat.id}
+                  docked
+                  chat={openChat}
+                  me={me}
+                  thread={thread}
+                  typing={inbox.typingIn(openChat.id)}
+                  otherUnread={otherUnread}
+                  chats={inbox.chats}
+                  inbox={inbox.actions}
+                  onPatchChat={(changes) => inbox.patch(openChat.id, changes)}
+                  onBack={backToInbox}
+                  onToast={report}
+                />
+              ) : (
+                <div className="flex h-full flex-col items-center justify-center px-10 text-center">
+                  <Avatar kind="support" name="Oakmonte" size={64} />
+                  <p className="mt-5 text-[19px] font-bold">Pick a chat</p>
+                  <p className="mt-1.5 max-w-[300px] text-[14px] text-chat-muted">
+                    Choose a conversation on the left. Buyers&apos; messages land here too.
+                  </p>
+                </div>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
+      </div>
 
       <NewChatSheet
         open={newChatOpen}
@@ -735,7 +798,7 @@ export function MessagesView({
       />
 
       <AnimatePresence>
-        {openChat && me && (
+        {!desktop && openChat && me && (
           <ChatThread
             key={openChat.id}
             chat={openChat}
@@ -770,7 +833,9 @@ export function MessagesView({
         )}
       </AnimatePresence>
 
-      {!openId && !sellerOnly && <BottomNav active="messages" ownUsername={ownUsername} />}
+      {(!openId || desktop) && !sellerOnly && (
+        <BottomNav active="messages" ownUsername={ownUsername} />
+      )}
     </div>
   );
 }
