@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { Clapperboard, HandCoins, ShoppingBag } from "lucide-react";
+import { Clapperboard, HandCoins, ShoppingBag, X } from "lucide-react";
 import { PostFeed } from "@/components/feed/PostFeed";
 import { useBagToast } from "@/components/cart/BagToast";
 import { useLockedBanner } from "@/components/LockedBanner";
@@ -186,8 +186,9 @@ function TileMenu({
   );
 }
 
-/** The posts that link one product, as a full-screen feed with a back button
- *  and swipe-back. PostFeed's own standalone mode sits under the product and
+/** The posts that link one product, in a pop-up over the storefront (a sheet
+ *  on a phone, a centred card on a laptop), closed by its X, a tap outside
+ *  or swipe-back. PostFeed's own standalone mode sits under the product and
  *  collection pages, so it is hosted here in embedded mode on a higher layer;
  *  on a laptop it is held to a phone-shaped column. */
 function RelatedContent({ productId, onClose }: { productId: string; onClose: () => void }) {
@@ -202,14 +203,36 @@ function RelatedContent({ productId, onClose }: { productId: string; onClose: ()
 
   if (typeof document === "undefined") return null;
   return createPortal(
-    <div className="fixed inset-0 z-[95] bg-black" role="dialog" aria-label="Related content">
-      <div className="mx-auto h-full w-full md:max-w-[480px]">
-        <PostFeed
-          mode="embedded"
-          scope={{ type: "product", productId }}
-          onClose={onClose}
-          storePicture={null}
-        />
+    // A pop-up over the storefront, not a trip to a feed page: the store stays
+    // visible (dimmed) behind it, a tap outside closes it. A sheet rising from
+    // the bottom on a phone; a centred, phone-shaped card on a laptop.
+    <div
+      className="fixed inset-0 z-[95] flex items-end justify-center bg-black/55 backdrop-blur-sm animate-in fade-in duration-200 md:items-center"
+      onClick={onClose}
+    >
+      <div
+        role="dialog"
+        aria-label="Related content"
+        onClick={(e) => e.stopPropagation()}
+        className="relative h-[88dvh] w-full overflow-hidden rounded-t-[28px] bg-black shadow-2xl ring-1 ring-white/10 animate-in slide-in-from-bottom-6 duration-300 md:h-[min(86dvh,860px)] md:w-auto md:aspect-[9/16] md:rounded-[28px] md:zoom-in-95 md:slide-in-from-bottom-0"
+      >
+        {/* Just the X: PostFeed gets no onClose here, so it draws no back arrow
+            of its own to collide with it. */}
+        <div className="pointer-events-none absolute right-0 top-0 z-30 p-3.5">
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close related content"
+            className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur hover:bg-white/25"
+          >
+            <X size={18} />
+          </button>
+        </div>
+        {/* 9:16 at most, as in the storefront feed, so the side buttons sit on
+            the post rather than out at the sheet edge on a wide screen. */}
+        <div className="mx-auto aspect-[9/16] h-full max-w-full">
+          <PostFeed mode="embedded" scope={{ type: "product", productId }} storePicture={null} />
+        </div>
       </div>
     </div>,
     document.body,

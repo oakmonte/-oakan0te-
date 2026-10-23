@@ -24,37 +24,20 @@ const TABS: Tab[] = ["for-you", "listed-items"];
 // Same settle as the app's other pagers: quick, no bounce.
 const SETTLE = { type: "spring", stiffness: 420, damping: 40 } as const;
 
-// Laptop and tablet widths, the same 768px the rest of the desktop storefront
-// switches at (StorefrontNav's top bar, ProductPage).
-const WIDE_QUERY = "(min-width: 768px)";
-
-function useIsWide(): boolean {
-  const [wide, setWide] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia(WIDE_QUERY);
-    const sync = () => setWide(mq.matches);
-    sync();
-    mq.addEventListener("change", sync);
-    return () => mq.removeEventListener("change", sync);
-  }, []);
-  return wide;
-}
-
-/** The storefront's Home tab: the store's own posts as a full-screen feed,
- *  with For you and Listed items at the top. Listed items is whatever's
- *  linked to the post you were just watching.
+/** The storefront's Home tab: the store's own posts as a feed, with For you
+ *  and Listed items at the top. Listed items is whatever's linked to the post
+ *  you were just watching.
  *
- *  On a phone, a two-page pager: both pages sit side by side and the track
- *  follows the finger left/right, then settles on one. Up/down is the feed's
- *  own native scroll -- the track only claims horizontal drags
- *  (direction-locked), so a vertical swipe never nudges it sideways and a
- *  sideways one never scrolls.
+ *  One page at a time at every width: a two-page pager whose track follows
+ *  the finger (or a trackpad's two-finger swipe) left/right, then settles on
+ *  one. Up/down is the feed's own native scroll -- the track only claims
+ *  horizontal drags (direction-locked), so a vertical swipe never nudges it
+ *  sideways and a sideways one never scrolls.
  *
- *  On a laptop (md and up) there is nothing to swipe between: the video sits
- *  in a centred, phone-shaped player and the Listed items for the post you are
- *  watching stay open in a panel beside it, so the tab labels and the drag go
- *  away. Scrolling the player (wheel, trackpad, arrow keys) moves between
- *  posts. */
+ *  The pager lives in a column never wider than 9:16 of the screen's height.
+ *  On a phone that's the whole screen; on a laptop it's a phone-shaped column
+ *  in the middle, on a blurred wash of the post you're watching rather than a
+ *  page of black -- never the post and its products side by side. */
 export function StorefrontFeed({
   ownerId,
   storePicture,
@@ -66,28 +49,31 @@ export function StorefrontFeed({
   // Held here so Listed items knows which post you were just on.
   const [activePost, setActivePost] = useState<ActivePost | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState(0);
+  const [screen, setScreen] = useState({ w: 0, h: 0 });
   const x = useMotionValue(0);
   const index = TABS.indexOf(tab);
-  const wide = useIsWide();
 
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    const measure = () => setWidth(el.clientWidth);
+    const measure = () => setScreen({ w: el.clientWidth, h: el.clientHeight });
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
 
-  // Settle on the current page whenever it (or the width) changes. The phone
-  // pager only: a wide layout shows both panes and never moves the track.
+  // The column, and so each page: the full width on a phone, 9:16 of the
+  // height on anything wider than that.
+  const width = screen.h ? Math.min(screen.w, Math.round((screen.h * 9) / 16)) : screen.w;
+  const framed = width > 0 && width < screen.w;
+
+  // Settle on the current page whenever it (or the width) changes.
   useEffect(() => {
-    if (!width || wide) return;
+    if (!width) return;
     const controls = animate(x, -index * width, SETTLE);
     return () => controls.stop();
-  }, [index, width, x, wide]);
+  }, [index, width, x]);
 
   function handleDragEnd(_: unknown, info: PanInfo) {
     // A flick counts as much as a long drag.
@@ -98,106 +84,125 @@ export function StorefrontFeed({
     else setTab(TABS[clamped]);
   }
 
+  // A two-finger sideways swipe on a trackpad arrives as wheel events, not a
+  // pointer drag, so the pager never saw it. Sum the sideways scroll and turn
+  // the page once it's clearly a swipe; then ignore the rest of that gesture's
+  // momentum.
+  const wheelRef = useRef({ sum: 0, lockedUntil: 0 });
+  function handleWheel(e: React.WheelEvent) {
+    if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
+    const w = wheelRef.current;
+    const now = performance.now();
+    if (now < w.lockedUntil) return;
+    w.sum += e.deltaX;
+    if (Math.abs(w.sum) < 60) return;
+    const next = Math.max(0, Math.min(TABS.length - 1, index + (w.sum > 0 ? 1 : -1)));
+    w.sum = 0;
+    w.lockedUntil = now + 700;
+    if (next !== index) setTab(TABS[next]);
+  }
+
   const items = activePost?.tags ?? [];
   const [salesLocked, setSalesLocked] = useState(false);
   // A row tapped in Listed items: its full product page, over the feed.
   const [opened, setOpened] = useState<(typeof items)[number] | null>(null);
 
   return (
-    <div ref={containerRef} className="relative h-full w-full overflow-hidden bg-black text-white">
-      <motion.div
-        drag={wide ? false : "x"}
-        dragDirectionLock
-        dragConstraints={{ left: -(TABS.length - 1) * width, right: 0 }}
-        dragElastic={0.12}
-        dragMomentum={false}
-        onDragEnd={handleDragEnd}
-        className={wide ? "flex h-full justify-center gap-10 px-8" : "flex h-full"}
-        style={wide ? undefined : { x, width: `${TABS.length * 100}%`, touchAction: "pan-y" }}
-      >
-        {/* [&_.overflow-y-auto]:touch-pan-y on both panes: each holds a vertical
-            scroller (the feed, the Listed items list, an embedded product
-            page), and a touch's allowed gestures only inherit up to the nearest
-            scroller -- so the track's own pan-y never reached the video, and the
-            browser claimed a sideways drag as a pan and cancelled the pager's
-            drag (drag="x" runs on pointer events, which stop at that point).
-            pan-y on the scrollers themselves leaves horizontal drags to the
-            pager; vertical scrolling is untouched, and a nested horizontal
-            scroller (a post's photo carousel) is its own scroller, so it keeps
-            its swipe. */}
+    <div
+      ref={containerRef}
+      onWheel={handleWheel}
+      className="relative h-full w-full overflow-hidden bg-black text-white"
+    >
+      {/* The post on screen, blurred and dimmed, filling the screen around
+          the column. Keyed so a new post fades in. */}
+      {framed && activePost?.backdrop && (
         <div
-          className="h-full [&_.overflow-y-auto]:touch-pan-y"
-          // Wide: a phone-shaped player, 9:16 of the height it has (a 64px bar
-          // above), never wider than 480px.
-          style={
-            wide
-              ? { width: "min(calc((100dvh - 4rem) * 9 / 16), 480px)" }
-              : { width: `${100 / TABS.length}%` }
-          }
+          key={activePost.backdrop}
+          className="pointer-events-none absolute inset-0 animate-in fade-in duration-700"
+          aria-hidden
         >
-          <PostFeed
-            mode="embedded"
-            scope={{ type: "author", userId: ownerId }}
-            onActivePost={setActivePost}
-            onSwipePastEnd={() => setTab("listed-items")}
-            storePicture={storePicture}
+          <img
+            src={activePost.backdrop}
+            alt=""
+            className="absolute inset-0 h-full w-full scale-125 object-cover opacity-60 blur-3xl"
           />
+          <div className="absolute inset-0 bg-black/45" />
         </div>
-        {/* Wide, with no post on screen yet (a store with no posts): no
-            Listed items panel -- an empty player beside an empty panel read as
-            a broken page. */}
-        {(!wide || activePost) && (
+      )}
+      <div
+        className={`relative mx-auto h-full overflow-hidden bg-black ${
+          framed ? "shadow-[0_0_80px_rgba(0,0,0,0.6)] ring-1 ring-white/10" : ""
+        }`}
+        style={{ width: width || "100%" }}
+      >
+        <motion.div
+          drag="x"
+          dragDirectionLock
+          dragConstraints={{ left: -(TABS.length - 1) * width, right: 0 }}
+          dragElastic={0.12}
+          dragMomentum={false}
+          onDragEnd={handleDragEnd}
+          className="flex h-full"
+          style={{ x, width: `${TABS.length * 100}%`, touchAction: "pan-y" }}
+        >
+          {/* [&_.overflow-y-auto]:touch-pan-y on both panes: each holds a
+              vertical scroller (the feed, the Listed items list, an embedded
+              product page), and a touch's allowed gestures only inherit up to
+              the nearest scroller -- so the track's own pan-y never reached the
+              video, and the browser claimed a sideways drag as a pan and
+              cancelled the pager's drag (drag="x" runs on pointer events,
+              which stop at that point). pan-y on the scrollers themselves
+              leaves horizontal drags to the pager; vertical scrolling is
+              untouched, and a nested horizontal scroller (a post's photo
+              carousel) is its own scroller, so it keeps its swipe. */}
           <div
-            className={`h-full [&_.overflow-y-auto]:touch-pan-y ${
-              wide ? "flex flex-col border-l border-white/10 pl-8" : ""
-            }`}
-            style={wide ? { width: "min(420px, 34vw)" } : { width: `${100 / TABS.length}%` }}
+            className="h-full [&_.overflow-y-auto]:touch-pan-y"
+            style={{ width: `${100 / TABS.length}%` }}
           >
-            {wide && (
-              <p className="shrink-0 pb-3 pt-6 text-[15px] font-semibold text-white/90">
-                Listed items
-              </p>
-            )}
-            <div className={wide ? "min-h-0 flex-1" : "h-full w-full"}>
-              {items.length === 0 ? (
-                <div className="flex h-full w-full items-center justify-center px-10 text-center">
-                  <p className="text-[15px] font-semibold text-white/70">No linked products</p>
-                </div>
-              ) : items.length === 1 ? (
-                // One linked piece: its product page, right here. The list is
-                // for posts that link several.
-                <div className={`h-full w-full ${wide ? "" : "pt-14"}`}>
-                  <ProductPage
-                    key={items[0].id}
-                    embedded
-                    // Wide: the panel is always on screen, so "on screen" can't be
-                    // what triggers the sales-locked notice -- it would pop up
-                    // over every video that links one piece. Buy and Make Offer
-                    // still show it when pressed.
-                    visible={!wide && tab === "listed-items"}
-                    tile={{
-                      id: items[0].id,
-                      title: items[0].title,
-                      photos: items[0].image ? [{ url: items[0].image, variant: 0 }] : [],
-                      variantCount: 1,
-                      price: items[0].price,
-                      compareAtPrice: null,
-                    }}
-                    look={FEED_LOOK}
-                    onClose={() => setTab("for-you")}
-                    onAction={() => setSalesLocked(true)}
-                  />
-                </div>
-              ) : (
-                <div className={`h-full w-full ${wide ? "" : "pt-14"}`}>
-                  <ListedItemsPage items={items} onOpen={setOpened} />
-                </div>
-              )}
-            </div>
+            <PostFeed
+              mode="embedded"
+              scope={{ type: "author", userId: ownerId }}
+              onActivePost={setActivePost}
+              onSwipePastEnd={() => setTab("listed-items")}
+              storePicture={storePicture}
+            />
           </div>
-        )}
-      </motion.div>
-      {!wide && (
+          <div
+            className="h-full [&_.overflow-y-auto]:touch-pan-y"
+            style={{ width: `${100 / TABS.length}%` }}
+          >
+            {items.length === 0 ? (
+              <div className="flex h-full w-full items-center justify-center px-10 text-center">
+                <p className="text-[15px] font-semibold text-white/70">No linked products</p>
+              </div>
+            ) : items.length === 1 ? (
+              // One linked piece: its product page, right here. The list is
+              // for posts that link several.
+              <div className="h-full w-full pt-14">
+                <ProductPage
+                  key={items[0].id}
+                  embedded
+                  visible={tab === "listed-items"}
+                  tile={{
+                    id: items[0].id,
+                    title: items[0].title,
+                    photos: items[0].image ? [{ url: items[0].image, variant: 0 }] : [],
+                    variantCount: 1,
+                    price: items[0].price,
+                    compareAtPrice: null,
+                  }}
+                  look={FEED_LOOK}
+                  onClose={() => setTab("for-you")}
+                  onAction={() => setSalesLocked(true)}
+                />
+              </div>
+            ) : (
+              <div className="h-full w-full pt-14">
+                <ListedItemsPage items={items} onOpen={setOpened} />
+              </div>
+            )}
+          </div>
+        </motion.div>
         <div
           // The fade keeps the white labels readable over a pale video.
           className="absolute inset-x-0 top-0 z-30 flex justify-center gap-6 bg-gradient-to-b from-black/45 to-transparent pb-6 text-[14px] font-medium text-white/70"
@@ -229,7 +234,7 @@ export function StorefrontFeed({
             </button>
           ))}
         </div>
-      )}
+      </div>
       {salesLocked && <SalesLockedNotice onClose={() => setSalesLocked(false)} />}
       {opened && (
         <ProductPage

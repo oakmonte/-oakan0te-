@@ -3,7 +3,8 @@ import { createPortal } from "react-dom";
 import { Check } from "lucide-react";
 
 /** Full-screen step between picking a store logo and uploading it: choose a
- *  frame (circle, rounded, square, or wide for a wordmark), drag and zoom the
+ *  frame (circle, rounded, square, wide for a wordmark, or "as is" -- no frame,
+ *  the logo's own outline, for SVGs and transparent cut-outs), drag and zoom the
  *  picture inside it, set how round the corners are and what fills behind
  *  it. The result is baked into a transparent PNG, so the logo looks the way
  *  its owner framed it everywhere it appears -- the storefront header shows
@@ -12,7 +13,7 @@ import { Check } from "lucide-react";
  *  Hand-rolled like AvatarCropper (one gesture surface, one canvas draw);
  *  bunfig's release-age guard makes a crop dependency a conversation. */
 
-type Shape = "circle" | "rounded" | "square" | "wide";
+type Shape = "circle" | "rounded" | "square" | "wide" | "free";
 type Pt = { x: number; y: number };
 
 const SHAPES: { id: Shape; label: string }[] = [
@@ -20,6 +21,9 @@ const SHAPES: { id: Shape; label: string }[] = [
   { id: "rounded", label: "Rounded" },
   { id: "square", label: "Square" },
   { id: "wide", label: "Wide" },
+  // No container: the frame takes the picture's own proportions with square
+  // corners, so a transparent PNG or an SVG keeps its own outline.
+  { id: "free", label: "As is" },
 ];
 const WIDE_RATIO = 2.5;
 const MIN_ZOOM = 0.4;
@@ -76,10 +80,20 @@ export function LogoEditor({
   }, []);
 
   // The frame on screen.
-  const fw = stage;
-  const fh = shape === "wide" ? Math.round(stage / WIDE_RATIO) : stage;
+  const aspect = natural ? natural.w / natural.h : 1;
+  const fw = shape === "free" && aspect < 1 ? Math.round(stage * aspect) : stage;
+  const fh =
+    shape === "wide"
+      ? Math.round(stage / WIDE_RATIO)
+      : shape === "free" && aspect >= 1
+        ? Math.round(stage / aspect)
+        : stage;
   const radius =
-    shape === "circle" ? Math.min(fw, fh) / 2 : shape === "square" ? 0 : corners * Math.min(fw, fh);
+    shape === "circle"
+      ? Math.min(fw, fh) / 2
+      : shape === "square" || shape === "free"
+        ? 0
+        : corners * Math.min(fw, fh);
 
   // Zoom 1 = the whole picture fits inside the frame ("contain").
   const base = natural ? Math.min(fw / natural.w, fh / natural.h) : 1;
@@ -104,13 +118,19 @@ export function LogoEditor({
   function chooseShape(next: Shape) {
     setShape(next);
     setOffset({ x: 0, y: 0 });
+    // As is: the whole picture, edge to edge in its own outline.
+    if (next === "free") setZoom(1);
   }
 
   function onLoad(w: number, h: number) {
     setNatural({ w, h });
-    // A wordmark (much wider than tall) starts Wide and whole; anything
-    // squarer starts Rounded, filling the frame.
-    if (w / h >= 2) {
+    // An SVG is almost always a logo drawn on nothing: it starts As is, so
+    // its own shape shows. A wordmark (much wider than tall) starts Wide and
+    // whole; anything squarer starts Rounded, filling the frame.
+    if (file.type === "image/svg+xml") {
+      setShape("free");
+      setZoom(1);
+    } else if (w / h >= 2) {
       setShape("wide");
       setZoom(1);
     } else {
@@ -316,7 +336,7 @@ export function LogoEditor({
           </div>
 
           <p className="mt-6 text-[13px] font-semibold text-white/80">Frame</p>
-          <div className="mt-2 grid grid-cols-4 gap-2">
+          <div className="mt-2 grid grid-cols-5 gap-2">
             {SHAPES.map((s) => (
               <button
                 key={s.id}
@@ -328,7 +348,7 @@ export function LogoEditor({
                 }`}
               >
                 <span
-                  className="block border-2 border-current"
+                  className={`block border-2 border-current ${s.id === "free" ? "border-dashed" : ""}`}
                   style={{
                     width: s.id === "wide" ? 34 : 22,
                     height: s.id === "wide" ? 14 : 22,

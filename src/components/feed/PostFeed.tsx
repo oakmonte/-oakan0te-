@@ -84,6 +84,8 @@ export type ActivePost = {
   tags: TaggedProduct[];
   /** Who posted it, for Explore's Profile tab. */
   authorUsername: string | null;
+  /** A still of it, for a caller's blurred backdrop (the storefront feed). */
+  backdrop?: string | null;
 };
 
 type FeedPost = Pick<
@@ -1161,8 +1163,9 @@ function FeedPostCard({
   }, []);
 
   useEffect(() => {
-    if (onScreen) onActive({ id: post.id, tags, authorUsername: post.authorUsername });
-  }, [onScreen, post.id, tags, onActive, post.authorUsername]);
+    if (onScreen)
+      onActive({ id: post.id, tags, authorUsername: post.authorUsername, backdrop: backdropUrl });
+  }, [onScreen, post.id, tags, onActive, post.authorUsername, backdropUrl]);
 
   useEffect(() => {
     const v = videoRef.current;
