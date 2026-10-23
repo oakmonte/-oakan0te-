@@ -145,13 +145,13 @@ export function CollectionsPanel() {
       )}
 
       {hasCollections && (
-        <div className="flex items-center gap-5 mb-6 border-b border-sd-line text-[14px] overflow-x-auto">
+        <div className="flex items-center gap-1 mb-6 border-b border-sd-line text-[14px] overflow-x-auto">
           {FILTERS.map((f) => (
             <button
               key={f}
               type="button"
               onClick={() => setFilter(f)}
-              className={`oak-tap shrink-0 pb-3 -mb-px border-b-2 font-medium transition-colors duration-200 ${filter === f ? "border-sd-ink font-semibold text-sd-ink" : "border-transparent text-sd-ink-muted"}`}
+              className={`oak-tap flex-1 whitespace-nowrap px-1 text-center pb-3 -mb-px border-b-2 font-medium transition-colors duration-200 ${filter === f ? "border-sd-ink font-semibold text-sd-ink" : "border-transparent text-sd-ink-muted"}`}
             >
               {f}
             </button>

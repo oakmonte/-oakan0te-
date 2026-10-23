@@ -282,7 +282,8 @@ export function ProductsPanel({ checklist }: { checklist?: boolean }) {
           </button>
         </div>
 
-        <div className="flex items-center gap-5 mb-6 border-b border-sd-line text-[14px] overflow-x-auto">
+        {/* Evenly spread across the width, like the tabs above. */}
+        <div className="flex items-center gap-1 mb-6 border-b border-sd-line text-[14px] overflow-x-auto">
           {TABS.map((tab) => (
             <button
               key={tab}
@@ -293,14 +294,17 @@ export function ProductsPanel({ checklist }: { checklist?: boolean }) {
                 if (tab === "Collection" && !collectionId)
                   setCollectionId(collections[0]?.id ?? null);
               }}
-              className={`oak-tap shrink-0 pb-3 -mb-px border-b-2 font-medium transition-colors duration-200 ${activeTab === tab ? "border-sd-ink font-semibold text-sd-ink" : "border-transparent text-sd-ink-muted"}`}
+              className={`oak-tap flex-1 whitespace-nowrap px-1 text-center pb-3 -mb-px border-b-2 font-medium transition-colors duration-200 ${activeTab === tab ? "border-sd-ink font-semibold text-sd-ink" : "border-transparent text-sd-ink-muted"}`}
             >
               {tab}
             </button>
           ))}
-          {activeTab === "Collection" &&
-            (collections.length === 0 ? (
-              <span className="shrink-0 pb-3 text-sd-ink-faint animate-in fade-in slide-in-from-left-2 duration-200">
+        </div>
+        {/* The store's collections, on their own row under the filters. */}
+        {activeTab === "Collection" && (
+          <div className="-mt-3 mb-5 flex items-center gap-2 overflow-x-auto">
+            {collections.length === 0 ? (
+              <span className="shrink-0 pb-2 text-[13px] text-sd-ink-faint animate-in fade-in slide-in-from-left-2 duration-200">
                 No collections yet
               </span>
             ) : (
@@ -317,8 +321,9 @@ export function ProductsPanel({ checklist }: { checklist?: boolean }) {
                   {c.title}
                 </button>
               ))
-            ))}
-        </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* How many products this view holds: the store's total on All, the
