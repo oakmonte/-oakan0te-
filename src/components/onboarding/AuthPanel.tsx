@@ -2,7 +2,8 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
   APPLE_SIGN_IN_ENABLED,
-  checkEmailRegistered,
+  checkEmailSignInMethods,
+  type EmailSignInMethods,
   clearOAuthAttempts,
   markOAuthStarted,
   takeOAuthFailure,
@@ -68,6 +69,9 @@ function AuthPanelInner({ intent, title, subtitle, defaultMode = "code" }: Props
   const [notice, setNotice] = useState<string | null>(null);
   const [checkingSession, setCheckingSession] = useState(true);
   const [emailStatus, setEmailStatus] = useState<EmailStatus>("idle");
+  // How the registered account signs in, so it's only asked for a password it
+  // actually has. null until the check below says "registered".
+  const [signInMethods, setSignInMethods] = useState<EmailSignInMethods>(null);
   // Apple/Google round trips that came back without a sign-in, this tab.
   const [oauthFail, setOauthFail] = useState<{ fails: number; provider: string | null }>({
     fails: 0,
@@ -105,7 +109,8 @@ function AuthPanelInner({ intent, title, subtitle, defaultMode = "code" }: Props
   // been sent/submitted. Powers the "you already have an account, sign in
   // instead" banner on the onboarding pages and the "no account with that
   // email yet" banner on /sign-in — an explicit, accepted enumeration
-  // trade-off (see the is_email_registered migration and checkEmailRegistered).
+  // trade-off (see the is_email_registered / email_sign_in_methods migrations
+  // and checkEmailSignInMethods).
   useEffect(() => {
     const trimmed = email.trim();
     if (sent || !EMAIL_RE.test(trimmed)) {
@@ -115,13 +120,14 @@ function AuthPanelInner({ intent, title, subtitle, defaultMode = "code" }: Props
     let cancelled = false;
     setEmailStatus("checking");
     const t = setTimeout(async () => {
-      const { data, error: rpcError } = await checkEmailRegistered(trimmed);
+      const { data, error: rpcError } = await checkEmailSignInMethods(trimmed);
       if (cancelled) return;
       if (rpcError) {
         console.error("AuthPanel: email registration check failed", rpcError);
         setEmailStatus("idle");
         return;
       }
+      setSignInMethods(data);
       setEmailStatus(data ? "registered" : "unregistered");
     }, 500);
     return () => {
@@ -265,6 +271,37 @@ function AuthPanelInner({ intent, title, subtitle, defaultMode = "code" }: Props
         </>
       )}
     </button>
+  );
+
+  // Unknown (check pending or failed) reads as "has a password": the old
+  // banner, never a wrong "you have no password".
+  const hasPassword = signInMethods?.hasPassword ?? true;
+  const oauthNames = (signInMethods?.providers ?? [])
+    .map((p) => (p === "google" ? "Google" : p === "apple" ? "Apple" : null))
+    .filter((p) => p !== null);
+  const noPasswordHint = (
+    <>
+      {oauthNames.length > 0
+        ? `You signed up with ${oauthNames.join(" and ")}, so there's no password yet. Continue with ${oauthNames[0]} above, or`
+        : "This account doesn't have a password yet."}{" "}
+      {mode === "password" ? (
+        <button
+          type="button"
+          onClick={() => {
+            setMode("code");
+            setError(null);
+          }}
+          className="font-medium text-[#2151F5] underline underline-offset-2"
+        >
+          {oauthNames.length > 0 ? "email yourself a code" : "Email yourself a code"}
+        </button>
+      ) : oauthNames.length > 0 ? (
+        "email yourself a code below"
+      ) : (
+        "Email yourself a code below"
+      )}{" "}
+      and you&apos;ll set one after.
+    </>
   );
 
   const providerButtons = APPLE_SIGN_IN_ENABLED ? (
@@ -551,7 +588,23 @@ function AuthPanelInner({ intent, title, subtitle, defaultMode = "code" }: Props
               someone — steer them to sign in rather than let them quietly
               re-authenticate into their existing account through what still
               reads as a signup screen. */}
-          {intent !== null && emailStatus === "registered" && (
+          {intent !== null && emailStatus === "registered" && !hasPassword && (
+            <div className="mb-4 rounded-xl border border-[#2151F5]/20 bg-[#2151F5]/5 px-4 py-3 text-xs text-[#0A0A0A]/70">
+              {noPasswordHint}
+            </div>
+          )}
+          {/* Password form, but this account has none to type: an OAuth-only
+              or code-only account. A code signs them in, and the post-auth
+              redirect (needsPassword) then has them create one. */}
+          {intent === null &&
+            mode === "password" &&
+            emailStatus === "registered" &&
+            !hasPassword && (
+              <div className="mb-4 rounded-xl border border-[#2151F5]/20 bg-[#2151F5]/5 px-4 py-3 text-xs text-[#0A0A0A]/70">
+                {noPasswordHint}
+              </div>
+            )}
+          {intent !== null && emailStatus === "registered" && hasPassword && (
             <div className="mb-4 rounded-xl border border-[#2151F5]/20 bg-[#2151F5]/5 px-4 py-3 text-xs text-[#0A0A0A]/70">
               You already have an account with this email.
               {mode !== "password" && (

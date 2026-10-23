@@ -474,6 +474,37 @@ export async function checkEmailRegistered(email: string) {
   return supabase.rpc("is_email_registered", { check_email: email });
 }
 
+/** How an existing account signs in: `null` when the email has no account.
+ *  `providers` are its OAuth sign-ins (google, apple), never "email". */
+export type EmailSignInMethods = { hasPassword: boolean; providers: string[] } | null;
+
+/** The email_sign_in_methods RPC (20261023120000), so AuthPanel only asks for
+ *  a password when the account has one. Until that migration is applied --
+ *  and if the call fails for any other reason -- it falls back to
+ *  is_email_registered and assumes a password, which is the old behaviour. */
+export async function checkEmailSignInMethods(
+  email: string,
+): Promise<{ data: EmailSignInMethods; error: unknown }> {
+  // Cast: the RPC isn't in the generated types until they're regenerated
+  // after the migration (types.ts is generated -- never hand-edited).
+  const { data, error } = await supabase.rpc(
+    "email_sign_in_methods" as never,
+    {
+      check_email: email,
+    } as never,
+  );
+  if (!error) {
+    const raw = data as { has_password?: boolean; providers?: string[] } | null;
+    return {
+      data: raw ? { hasPassword: raw.has_password === true, providers: raw.providers ?? [] } : null,
+      error: null,
+    };
+  }
+  const fallback = await checkEmailRegistered(email);
+  if (fallback.error) return { data: null, error: fallback.error };
+  return { data: fallback.data ? { hasPassword: true, providers: [] } : null, error: null };
+}
+
 export async function verifyEmailCode(email: string, token: string) {
   return supabase.auth.verifyOtp({ email, token, type: "email" });
 }
