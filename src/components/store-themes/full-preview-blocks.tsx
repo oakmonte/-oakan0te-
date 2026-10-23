@@ -882,9 +882,13 @@ function DesktopHeroToggle({
 
 /** The desktop hero as a row of floating portrait cards: every photo whole,
  *  at the seller's own frame shape, instead of one wide banner that crops a
- *  standing model to a band across her middle. The row drifts on by itself,
- *  pauses under the mouse, and has arrows for mouse users; cards sit at two
- *  heights so the row reads as a spread, not a filmstrip. */
+ *  standing model to a band across her middle.
+ *
+ *  Live, the cards never stop: the row glides past endlessly (the photos twice
+ *  over, so the loop has no seam) while each card sways on its own slight tilt,
+ *  out of step with its neighbours, like prints pinned up on a line. Hovering
+ *  holds it still. In edit mode, under reduced motion, or with one photo, it's
+ *  a still, scrollable row with arrows instead, so a card can be grabbed. */
 function DesktopHeroCards({
   images,
   ratio,
@@ -905,6 +909,11 @@ function DesktopHeroCards({
   const [edges, setEdges] = useState({ start: true, end: false });
   const isEditing = editing?.isEditing ?? false;
   const hasHeadline = !!(editing?.text?.overlayLine1 || editing?.text?.overlayLine2);
+  const [reduced, setReduced] = useState(false);
+  useEffect(() => {
+    setReduced(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  }, []);
+  const moving = !isEditing && !reduced && images.length > 1;
 
   const step = (dir: 1 | -1) => {
     const el = stripRef.current;
@@ -922,22 +931,6 @@ function DesktopHeroCards({
   };
 
   useEffect(readEdges, [images.length]);
-
-  // Drifts one card along, slower than the phone slideshow since several
-  // photos are already on screen, and back to the start once it runs out.
-  useEffect(() => {
-    if (isEditing || hovered || images.length < 2) return;
-    const id = setInterval(() => {
-      const el = stripRef.current;
-      if (!el) return;
-      if (el.scrollLeft + el.clientWidth >= el.scrollWidth - 4) {
-        el.scrollTo({ left: 0, behavior: "smooth" });
-      } else {
-        step(1);
-      }
-    }, intervalMs * 1.5);
-    return () => clearInterval(id);
-  }, [isEditing, hovered, images.length, intervalMs]);
 
   const arrow = (dir: 1 | -1) => (
     <button
@@ -977,63 +970,116 @@ function DesktopHeroCards({
         <DesktopHeroToggle editing={editing} className="ml-auto shrink-0" />
       </div>
 
-      <div
-        className="relative"
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-      >
-        {arrow(-1)}
-        <div
-          ref={stripRef}
-          onScroll={readEdges}
-          className="flex snap-x snap-mandatory items-start gap-5 overflow-x-auto scroll-px-12 px-12 pt-2 pb-12 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-        >
-          {images.map((src, i) => (
-            <div
-              key={src}
-              data-hero-card
-              className={`group/card relative h-[min(520px,60vh)] shrink-0 snap-start overflow-hidden rounded-[28px] shadow-[0_28px_60px_-24px_rgba(0,0,0,0.5)] transition-transform duration-500 ease-out hover:-translate-y-1.5 ${
-                i % 2 ? "mt-10" : ""
-              }`}
-              style={{ aspectRatio: ratio }}
-            >
-              <CroppableImage
-                src={src}
-                editable={isEditing}
-                position={editing?.slideshowCrops[src]}
-                onPositionChange={(pos) => editing?.onSlideshowCropChange(src, pos)}
-              />
-              {isEditing && (
-                <button
-                  type="button"
-                  aria-label="Remove photo"
-                  onClick={() => editing?.onRemoveSlideshowImage(i)}
-                  className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white/85 ring-1 ring-white/15 hover:bg-black/80 hover:text-white"
+      {moving ? (
+        <div className="relative overflow-hidden pt-4 pb-16 [mask-image:linear-gradient(90deg,transparent,#000_5%,#000_95%,transparent)]">
+          <style>{HERO_CARD_MOTION_CSS}</style>
+          {/* Each card carries its own right padding, not a flex gap: the
+              track is then exactly two identical halves, and sliding it by
+              -50% lands the second copy where the first began. */}
+          <div
+            className="oak-hero-marquee flex w-max items-start"
+            style={{ animationDuration: `${images.length * 7}s` }}
+          >
+            {[...images, ...images].map((src, i) => {
+              const n = i % images.length;
+              return (
+                <div
+                  key={i}
+                  aria-hidden={i >= images.length || undefined}
+                  className="shrink-0 pr-8"
+                  style={{ paddingTop: n % 2 ? 44 : 4 }}
                 >
-                  <Minus size={15} strokeWidth={2.5} />
-                </button>
-              )}
-            </div>
-          ))}
-          {isEditing && images.length < MAX_SLIDESHOW_IMAGES && (
-            <button
-              type="button"
-              onClick={onAddPhotos}
-              className={`flex h-[min(520px,60vh)] shrink-0 snap-start flex-col items-center justify-center gap-2 rounded-[28px] border-2 border-dashed border-current px-6 text-center opacity-50 transition-opacity hover:opacity-80 ${
-                images.length % 2 ? "mt-10" : ""
-              }`}
-              style={{ aspectRatio: ratio }}
-            >
-              <Plus size={24} />
-              <span className="text-[14px] font-medium">Add photos</span>
-            </button>
-          )}
+                  <div
+                    className="oak-hero-sway h-[min(500px,56vh)] overflow-hidden rounded-[28px] shadow-[0_30px_60px_-24px_rgba(0,0,0,0.55)]"
+                    style={
+                      {
+                        aspectRatio: ratio,
+                        "--r": `${HERO_CARD_TILTS[n % HERO_CARD_TILTS.length]}deg`,
+                        animationDelay: `${-n * 1.7}s`,
+                      } as CSSProperties
+                    }
+                  >
+                    <CroppableImage src={src} position={editing?.slideshowCrops[src]} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
-        {arrow(1)}
-      </div>
+      ) : (
+        <div
+          className="relative"
+          onMouseEnter={() => setHovered(true)}
+          onMouseLeave={() => setHovered(false)}
+        >
+          {arrow(-1)}
+          <div
+            ref={stripRef}
+            onScroll={readEdges}
+            className="flex snap-x snap-mandatory items-start gap-5 overflow-x-auto scroll-px-12 px-12 pt-2 pb-12 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
+            {images.map((src, i) => (
+              <div
+                key={src}
+                data-hero-card
+                className={`group/card relative h-[min(520px,60vh)] shrink-0 snap-start overflow-hidden rounded-[28px] shadow-[0_28px_60px_-24px_rgba(0,0,0,0.5)] transition-transform duration-500 ease-out hover:-translate-y-1.5 ${
+                  i % 2 ? "mt-10" : ""
+                }`}
+                style={{ aspectRatio: ratio }}
+              >
+                <CroppableImage
+                  src={src}
+                  editable={isEditing}
+                  position={editing?.slideshowCrops[src]}
+                  onPositionChange={(pos) => editing?.onSlideshowCropChange(src, pos)}
+                />
+                {isEditing && (
+                  <button
+                    type="button"
+                    aria-label="Remove photo"
+                    onClick={() => editing?.onRemoveSlideshowImage(i)}
+                    className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white/85 ring-1 ring-white/15 hover:bg-black/80 hover:text-white"
+                  >
+                    <Minus size={15} strokeWidth={2.5} />
+                  </button>
+                )}
+              </div>
+            ))}
+            {isEditing && images.length < MAX_SLIDESHOW_IMAGES && (
+              <button
+                type="button"
+                onClick={onAddPhotos}
+                className={`flex h-[min(520px,60vh)] shrink-0 snap-start flex-col items-center justify-center gap-2 rounded-[28px] border-2 border-dashed border-current px-6 text-center opacity-50 transition-opacity hover:opacity-80 ${
+                  images.length % 2 ? "mt-10" : ""
+                }`}
+                style={{ aspectRatio: ratio }}
+              >
+                <Plus size={24} />
+                <span className="text-[14px] font-medium">Add photos</span>
+              </button>
+            )}
+          </div>
+          {arrow(1)}
+        </div>
+      )}
     </div>
   );
 }
+
+// Small, uneven tilts: alternating signs read as hand-placed, equal ones as a
+// fan. The sway swings each card through to a little past the other side.
+const HERO_CARD_TILTS = [-3, 2.2, -1.6, 3.2, -2.4, 1.4];
+
+const HERO_CARD_MOTION_CSS = `
+@keyframes oakHeroMarquee { to { transform: translateX(-50%); } }
+@keyframes oakHeroSway {
+  0%, 100% { transform: rotate(var(--r)) translateY(0); }
+  50% { transform: rotate(calc(var(--r) * -0.7)) translateY(-12px); }
+}
+.oak-hero-marquee { animation: oakHeroMarquee linear infinite; will-change: transform; }
+.oak-hero-sway { animation: oakHeroSway 6.5s ease-in-out infinite; transform-origin: 50% 85%; }
+.oak-hero-marquee:hover, .oak-hero-marquee:hover .oak-hero-sway { animation-play-state: paused; }
+`;
 
 /** While the live storefront's search bar has text, the slideshow steps
  *  aside so the filtered products sit right under the search bar. */
