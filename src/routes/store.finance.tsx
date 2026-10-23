@@ -13,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { DesktopPanel } from "@/components/store/DesktopPanel";
 
 type PayoutAccount = {
   bank_name: string;
@@ -141,134 +142,140 @@ function FinancePage() {
   }
 
   return (
-    <div className="px-4 py-6">
-      <h1 className="text-lg font-semibold mb-1">Finance</h1>
-      <p className="text-sm text-sd-ink-muted mb-6">
-        Where your payouts go once your store starts selling.
-      </p>
+    <DesktopPanel>
+      <div className="px-4 py-6 md:px-0 md:pt-0">
+        <h1 className="text-lg font-semibold mb-1">Finance</h1>
+        <p className="text-sm text-sd-ink-muted mb-6">
+          Where your payouts go once your store starts selling.
+        </p>
 
-      {account === undefined && (
-        <div className="border border-sd-line rounded-2xl h-32 bg-sd-elevated animate-pulse" />
-      )}
+        {account === undefined && (
+          <div className="border border-sd-line rounded-2xl h-32 bg-sd-elevated animate-pulse" />
+        )}
 
-      {account === null && (
-        <button
-          type="button"
-          onClick={() => setSheetOpen(true)}
-          className="w-full flex flex-col items-center gap-3 border border-dashed border-sd-line rounded-2xl p-8 text-center oak-motion-control animate-in fade-in duration-300"
-        >
-          <div className="p-3 rounded-full bg-sd-soft">
-            <Landmark size={20} className="text-sd-ink-muted" />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-sd-ink">Add your payout account</p>
-            <p className="text-xs text-sd-ink-muted mt-0.5">So we know where to send your money.</p>
-          </div>
-        </button>
-      )}
-
-      {account && (
-        <button
-          type="button"
-          onClick={() => setSheetOpen(true)}
-          className="w-full text-left bg-sd-card-dark text-white rounded-2xl p-5 flex flex-col gap-5 oak-motion-control animate-in fade-in duration-300"
-        >
-          <div className="flex items-center justify-between">
-            <div className="p-2 rounded-full bg-white/10">
-              <Landmark size={18} />
+        {account === null && (
+          <button
+            type="button"
+            onClick={() => setSheetOpen(true)}
+            className="w-full flex flex-col items-center gap-3 border border-dashed border-sd-line rounded-2xl p-8 text-center oak-motion-control animate-in fade-in duration-300"
+          >
+            <div className="p-3 rounded-full bg-sd-soft">
+              <Landmark size={20} className="text-sd-ink-muted" />
             </div>
-            {/* Derived, not hardcoded. This badge used to say "Pending
+            <div>
+              <p className="text-sm font-medium text-sd-ink">Add your payout account</p>
+              <p className="text-xs text-sd-ink-muted mt-0.5">
+                So we know where to send your money.
+              </p>
+            </div>
+          </button>
+        )}
+
+        {account && (
+          <button
+            type="button"
+            onClick={() => setSheetOpen(true)}
+            className="w-full text-left bg-sd-card-dark text-white rounded-2xl p-5 flex flex-col gap-5 oak-motion-control animate-in fade-in duration-300"
+          >
+            <div className="flex items-center justify-between">
+              <div className="p-2 rounded-full bg-white/10">
+                <Landmark size={18} />
+              </div>
+              {/* Derived, not hardcoded. This badge used to say "Pending
                 verification" unconditionally while the copy below promised it
                 would "flip to Verified automatically" -- a promise nothing in
                 the component could have kept. It now reads the same rule the
                 setup checklist's status mark does, so the two screens cannot
                 disagree about the same account. */}
-            {payoutStepState(true, account.status) === "done" ? (
-              <span className="flex items-center gap-1.5 text-[11px] font-medium bg-emerald-400/15 text-emerald-300 rounded-full px-2.5 py-1">
-                <Check size={11} />
-                Verified
-              </span>
-            ) : (
-              <span className="flex items-center gap-1.5 text-[11px] font-medium bg-amber-400/15 text-amber-300 rounded-full px-2.5 py-1">
-                <Clock size={11} />
-                Pending verification
-              </span>
-            )}
-          </div>
-          <div>
-            <p className="text-lg font-mono tracking-wider">
-              {maskAccountNumber(account.account_number)}
-            </p>
-            {account.account_name && (
-              <p className="text-sm font-medium mt-1">{account.account_name}</p>
-            )}
-            <p className="text-sm text-white/70 mt-1">{account.bank_name}</p>
-          </div>
-        </button>
-      )}
-
-      {account && payoutStepState(true, account.status) !== "done" && (
-        <p className="text-xs text-sd-ink-faint mt-4 animate-in fade-in duration-300">
-          Pending verification
-        </p>
-      )}
-
-      {sheetOpen && (
-        <PayoutAccountSheet
-          initial={
-            account ? { bankName: account.bank_name, accountNumber: account.account_number } : null
-          }
-          onSave={handleSave}
-          onClose={() => setSheetOpen(false)}
-        />
-      )}
-
-      {checklist && (
-        <div className="mt-8">
-          <button
-            type="button"
-            onClick={handleNext}
-            disabled={nextBusy}
-            className="w-full bg-sd-ink text-sd-bg text-sm font-semibold rounded-full py-4 oak-motion-control active:scale-[0.98] disabled:opacity-60"
-          >
-            Next
+              {payoutStepState(true, account.status) === "done" ? (
+                <span className="flex items-center gap-1.5 text-[11px] font-medium bg-emerald-400/15 text-emerald-300 rounded-full px-2.5 py-1">
+                  <Check size={11} />
+                  Verified
+                </span>
+              ) : (
+                <span className="flex items-center gap-1.5 text-[11px] font-medium bg-amber-400/15 text-amber-300 rounded-full px-2.5 py-1">
+                  <Clock size={11} />
+                  Pending verification
+                </span>
+              )}
+            </div>
+            <div>
+              <p className="text-lg font-mono tracking-wider">
+                {maskAccountNumber(account.account_number)}
+              </p>
+              {account.account_name && (
+                <p className="text-sm font-medium mt-1">{account.account_name}</p>
+              )}
+              <p className="text-sm text-white/70 mt-1">{account.bank_name}</p>
+            </div>
           </button>
-        </div>
-      )}
+        )}
 
-      <Dialog open={skipPromptOpen} onOpenChange={setSkipPromptOpen}>
-        <DialogContent className="w-[calc(100%-32px)] max-w-sm gap-7 rounded-[28px] border-sd-line bg-sd-surface px-6 pb-7 pt-8 text-sd-ink">
-          <DialogHeader className="text-left">
-            <DialogTitle className="text-[22px] leading-tight">Add a payout account?</DialogTitle>
-            <DialogDescription className="pt-2 text-[15px] leading-relaxed text-sd-ink-muted">
-              You won&apos;t be able to receive payouts until you add one. You can always come back
-              to this later.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-col gap-3">
+        {account && payoutStepState(true, account.status) !== "done" && (
+          <p className="text-xs text-sd-ink-faint mt-4 animate-in fade-in duration-300">
+            Pending verification
+          </p>
+        )}
+
+        {sheetOpen && (
+          <PayoutAccountSheet
+            initial={
+              account
+                ? { bankName: account.bank_name, accountNumber: account.account_number }
+                : null
+            }
+            onSave={handleSave}
+            onClose={() => setSheetOpen(false)}
+          />
+        )}
+
+        {checklist && (
+          <div className="mt-8">
             <button
               type="button"
-              onClick={() => {
-                setSkipPromptOpen(false);
-                setSheetOpen(true);
-              }}
-              className="w-full rounded-2xl bg-sd-ink py-[18px] text-[17px] font-semibold text-sd-bg oak-motion-control active:scale-[0.98]"
+              onClick={handleNext}
+              disabled={nextBusy}
+              className="w-full bg-sd-ink text-sd-bg text-sm font-semibold rounded-full py-4 oak-motion-control active:scale-[0.98] disabled:opacity-60"
             >
-              Add payout account
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setSkipPromptOpen(false);
-                navigate({ to: "/store" });
-              }}
-              className="w-full rounded-2xl border border-sd-line py-[18px] text-[17px] font-medium text-sd-ink oak-motion-control active:scale-[0.98]"
-            >
-              Continue anyway
+              Next
             </button>
           </div>
-        </DialogContent>
-      </Dialog>
-    </div>
+        )}
+
+        <Dialog open={skipPromptOpen} onOpenChange={setSkipPromptOpen}>
+          <DialogContent className="w-[calc(100%-32px)] max-w-sm gap-7 rounded-[28px] border-sd-line bg-sd-surface px-6 pb-7 pt-8 text-sd-ink">
+            <DialogHeader className="text-left">
+              <DialogTitle className="text-[22px] leading-tight">Add a payout account?</DialogTitle>
+              <DialogDescription className="pt-2 text-[15px] leading-relaxed text-sd-ink-muted">
+                You won&apos;t be able to receive payouts until you add one. You can always come
+                back to this later.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-col gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setSkipPromptOpen(false);
+                  setSheetOpen(true);
+                }}
+                className="w-full rounded-2xl bg-sd-ink py-[18px] text-[17px] font-semibold text-sd-bg oak-motion-control active:scale-[0.98]"
+              >
+                Add payout account
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setSkipPromptOpen(false);
+                  navigate({ to: "/store" });
+                }}
+                className="w-full rounded-2xl border border-sd-line py-[18px] text-[17px] font-medium text-sd-ink oak-motion-control active:scale-[0.98]"
+              >
+                Continue anyway
+              </button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </DesktopPanel>
   );
 }

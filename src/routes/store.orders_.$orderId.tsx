@@ -8,6 +8,7 @@ import { useOverlayHistory } from "@/hooks/use-overlay-history";
 import { authedFetch } from "@/lib/authed-fetch";
 import { formatOrderTime, nairaFromKobo } from "@/lib/order-format";
 import { orderRef, type RefundState, type TimelineStep } from "@/lib/order-status";
+import { DesktopPanel } from "@/components/store/DesktopPanel";
 
 // One order, from the seller's side: what to send, where, the money, what has
 // happened so far, and the two things they can still do while it's paid and
@@ -219,211 +220,212 @@ function StoreOrderPage() {
   return (
     <div className="min-h-dvh bg-sd-bg">
       {header}
-
-      <div
-        className={`flex flex-col gap-3 px-4 pt-4 ${
-          actions
-            ? "pb-[calc(env(safe-area-inset-bottom)+9rem)]"
-            : "pb-[calc(env(safe-area-inset-bottom)+2.5rem)]"
-        }`}
-      >
-        {notice && (
-          <p
-            role="status"
-            className="rounded-2xl bg-sd-soft px-4 py-3 text-[14px] text-sd-ink animate-in fade-in duration-300"
-          >
-            {notice}
-          </p>
-        )}
-
-        <Section>
-          <div className="flex items-center gap-2">
-            <StatusChip status={order.status} side="seller" />
-            <span className="text-[12.5px] text-sd-ink-muted">
-              Placed {formatOrderTime(order.createdAt)}
-            </span>
-          </div>
-          <p className="mt-3 text-[22px] font-semibold leading-tight tracking-[-0.01em] text-sd-ink">
-            {headline?.title ?? order.status}
-          </p>
-          {headline && (
-            <p className="mt-1 text-[14px] leading-relaxed text-sd-ink-muted">
-              {headline.note(order)}
-            </p>
-          )}
-          {order.trackingUrl && (
-            <a
-              href={order.trackingUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-2 inline-flex h-10 items-center text-[14px] font-semibold text-sd-ink underline underline-offset-2"
+      <DesktopPanel narrow>
+        <div
+          className={`flex flex-col gap-3 px-4 pt-4 ${
+            actions
+              ? "pb-[calc(env(safe-area-inset-bottom)+9rem)]"
+              : "pb-[calc(env(safe-area-inset-bottom)+2.5rem)]"
+          }`}
+        >
+          {notice && (
+            <p
+              role="status"
+              className="rounded-2xl bg-sd-soft px-4 py-3 text-[14px] text-sd-ink animate-in fade-in duration-300"
             >
-              Track delivery
-            </a>
-          )}
-        </Section>
-
-        {closed && (
-          <Section title="Why it closed">
-            <p className="text-[15px] leading-relaxed text-sd-ink">
-              {order.declineReason ?? "No reason was recorded."}
+              {notice}
             </p>
-            {order.refund !== "none" && (
-              <div className="mt-3 border-t border-sd-line pt-3">
-                <p className="text-[14px] font-semibold text-sd-ink">
-                  {order.refund === "refunded" ? "Refunded" : "Refund pending"}
-                </p>
-                <p className="mt-0.5 text-[13.5px] leading-relaxed text-sd-ink-muted">
-                  {order.refund === "refunded"
-                    ? `The buyer's ${nairaFromKobo(order.payment?.amountKobo ?? order.totalKobo)} went back through Paystack. It can take a few working days to reach them.`
-                    : `The buyer's ${nairaFromKobo(order.payment?.amountKobo ?? order.totalKobo)} hasn't gone back yet. Oakmonte is sending it by hand.`}
-                </p>
-                {order.refund === "owed" && order.refundNote && (
-                  <p className="mt-1 text-[12.5px] text-sd-ink-faint">{order.refundNote}</p>
-                )}
-              </div>
+          )}
+
+          <Section>
+            <div className="flex items-center gap-2">
+              <StatusChip status={order.status} side="seller" />
+              <span className="text-[12.5px] text-sd-ink-muted">
+                Placed {formatOrderTime(order.createdAt)}
+              </span>
+            </div>
+            <p className="mt-3 text-[22px] font-semibold leading-tight tracking-[-0.01em] text-sd-ink">
+              {headline?.title ?? order.status}
+            </p>
+            {headline && (
+              <p className="mt-1 text-[14px] leading-relaxed text-sd-ink-muted">
+                {headline.note(order)}
+              </p>
             )}
-          </Section>
-        )}
-
-        <Section title="Timeline">
-          <OrderTimeline steps={order.timeline} side="seller" />
-        </Section>
-
-        <Section title={`Items (${itemCount})`}>
-          <div className="flex flex-col gap-3">
-            {order.items.map((it, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <span className="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-sd-soft">
-                  {it.image_url && (
-                    <img src={it.image_url} alt="" className="h-full w-full object-cover" />
-                  )}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-[14.5px] text-sd-ink">{it.title}</p>
-                  <p className="truncate text-[12.5px] text-sd-ink-muted">
-                    {[it.variant_label, `Qty ${it.quantity}`].filter(Boolean).join(" · ")}
-                  </p>
-                </div>
-                <p className="text-[14.5px] tabular-nums text-sd-ink">
-                  {nairaFromKobo(it.unit_price_kobo * it.quantity)}
-                </p>
-              </div>
-            ))}
-          </div>
-        </Section>
-
-        <Section title="Payment">
-          <Row label="Items" value={nairaFromKobo(order.itemsKobo)} />
-          <Row
-            label={`Delivery${order.courierName ? ` · ${order.courierName}` : ""}`}
-            value={nairaFromKobo(order.deliveryKobo)}
-          />
-          {order.platformFeeKobo > 0 && (
-            <Row label="Oakmonte fee" value={`−${nairaFromKobo(order.platformFeeKobo)}`} />
-          )}
-          <div className="mt-2 flex justify-between border-t border-sd-line pt-3 text-[15px] font-semibold text-sd-ink">
-            <span>Paid by the buyer</span>
-            <span className="tabular-nums">{nairaFromKobo(order.totalKobo)}</span>
-          </div>
-          <p className="mt-2 text-[12.5px] text-sd-ink-muted">{paymentLine(order)}</p>
-        </Section>
-
-        <Section title="Deliver to">
-          <p className="text-[15px] font-semibold text-sd-ink">{order.shipTo.name || "—"}</p>
-          {order.shipTo.address && (
-            <p className="mt-0.5 text-[14px] leading-relaxed text-sd-ink-muted">
-              {order.shipTo.address}
-            </p>
-          )}
-          <div className="mt-3 flex flex-wrap gap-2">
-            {order.shipTo.phone && (
+            {order.trackingUrl && (
               <a
-                href={`tel:${order.shipTo.phone.replace(/[^\d+]/g, "")}`}
-                className="oak-tap flex h-10 items-center gap-1.5 rounded-full bg-sd-soft px-4 text-[13.5px] font-medium text-sd-ink"
+                href={order.trackingUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-2 inline-flex h-10 items-center text-[14px] font-semibold text-sd-ink underline underline-offset-2"
               >
-                <Phone size={15} />
-                {order.shipTo.phone}
+                Track delivery
               </a>
             )}
-            {order.shipTo.address && <CopyButton text={order.shipTo.address} />}
-            {order.buyerUsername && (
-              <Link
-                to="/messages"
-                search={{ to: order.buyerUsername }}
-                className="oak-tap flex h-10 items-center gap-1.5 rounded-full bg-sd-soft px-4 text-[13.5px] font-medium text-sd-ink"
-              >
-                <MessageCircle size={15} />
-                Message buyer
-              </Link>
-            )}
-          </div>
-          {order.isGuest && (
-            <p className="mt-3 text-[12.5px] text-sd-ink-muted">
-              Checked out as a guest, so there's no Oakmonte account to message. Call or text the
-              number above.
-            </p>
-          )}
-        </Section>
+          </Section>
 
-        {(order.courierName || order.shipbubbleOrderId) && (
-          <Section title="Delivery">
-            {order.courierName && <Row label="Courier" value={order.courierName} />}
-            {order.shipbubbleOrderId && <Row label="Shipment" value={order.shipbubbleOrderId} />}
-            {!order.shipbubbleOrderId && order.status === "paid" && (
-              <p className="mt-1 text-[12.5px] text-sd-ink-muted">
-                The buyer picked this courier at checkout. Booking uses the same quote.
+          {closed && (
+            <Section title="Why it closed">
+              <p className="text-[15px] leading-relaxed text-sd-ink">
+                {order.declineReason ?? "No reason was recorded."}
+              </p>
+              {order.refund !== "none" && (
+                <div className="mt-3 border-t border-sd-line pt-3">
+                  <p className="text-[14px] font-semibold text-sd-ink">
+                    {order.refund === "refunded" ? "Refunded" : "Refund pending"}
+                  </p>
+                  <p className="mt-0.5 text-[13.5px] leading-relaxed text-sd-ink-muted">
+                    {order.refund === "refunded"
+                      ? `The buyer's ${nairaFromKobo(order.payment?.amountKobo ?? order.totalKobo)} went back through Paystack. It can take a few working days to reach them.`
+                      : `The buyer's ${nairaFromKobo(order.payment?.amountKobo ?? order.totalKobo)} hasn't gone back yet. Oakmonte is sending it by hand.`}
+                  </p>
+                  {order.refund === "owed" && order.refundNote && (
+                    <p className="mt-1 text-[12.5px] text-sd-ink-faint">{order.refundNote}</p>
+                  )}
+                </div>
+              )}
+            </Section>
+          )}
+
+          <Section title="Timeline">
+            <OrderTimeline steps={order.timeline} side="seller" />
+          </Section>
+
+          <Section title={`Items (${itemCount})`}>
+            <div className="flex flex-col gap-3">
+              {order.items.map((it, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <span className="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-sd-soft">
+                    {it.image_url && (
+                      <img src={it.image_url} alt="" className="h-full w-full object-cover" />
+                    )}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[14.5px] text-sd-ink">{it.title}</p>
+                    <p className="truncate text-[12.5px] text-sd-ink-muted">
+                      {[it.variant_label, `Qty ${it.quantity}`].filter(Boolean).join(" · ")}
+                    </p>
+                  </div>
+                  <p className="text-[14.5px] tabular-nums text-sd-ink">
+                    {nairaFromKobo(it.unit_price_kobo * it.quantity)}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </Section>
+
+          <Section title="Payment">
+            <Row label="Items" value={nairaFromKobo(order.itemsKobo)} />
+            <Row
+              label={`Delivery${order.courierName ? ` · ${order.courierName}` : ""}`}
+              value={nairaFromKobo(order.deliveryKobo)}
+            />
+            {order.platformFeeKobo > 0 && (
+              <Row label="Oakmonte fee" value={`−${nairaFromKobo(order.platformFeeKobo)}`} />
+            )}
+            <div className="mt-2 flex justify-between border-t border-sd-line pt-3 text-[15px] font-semibold text-sd-ink">
+              <span>Paid by the buyer</span>
+              <span className="tabular-nums">{nairaFromKobo(order.totalKobo)}</span>
+            </div>
+            <p className="mt-2 text-[12.5px] text-sd-ink-muted">{paymentLine(order)}</p>
+          </Section>
+
+          <Section title="Deliver to">
+            <p className="text-[15px] font-semibold text-sd-ink">{order.shipTo.name || "—"}</p>
+            {order.shipTo.address && (
+              <p className="mt-0.5 text-[14px] leading-relaxed text-sd-ink-muted">
+                {order.shipTo.address}
+              </p>
+            )}
+            <div className="mt-3 flex flex-wrap gap-2">
+              {order.shipTo.phone && (
+                <a
+                  href={`tel:${order.shipTo.phone.replace(/[^\d+]/g, "")}`}
+                  className="oak-tap flex h-10 items-center gap-1.5 rounded-full bg-sd-soft px-4 text-[13.5px] font-medium text-sd-ink"
+                >
+                  <Phone size={15} />
+                  {order.shipTo.phone}
+                </a>
+              )}
+              {order.shipTo.address && <CopyButton text={order.shipTo.address} />}
+              {order.buyerUsername && (
+                <Link
+                  to="/messages"
+                  search={{ to: order.buyerUsername }}
+                  className="oak-tap flex h-10 items-center gap-1.5 rounded-full bg-sd-soft px-4 text-[13.5px] font-medium text-sd-ink"
+                >
+                  <MessageCircle size={15} />
+                  Message buyer
+                </Link>
+              )}
+            </div>
+            {order.isGuest && (
+              <p className="mt-3 text-[12.5px] text-sd-ink-muted">
+                Checked out as a guest, so there's no Oakmonte account to message. Call or text the
+                number above.
               </p>
             )}
           </Section>
-        )}
-      </div>
 
-      {actions && (
-        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-sd-line bg-sd-surface/95 px-4 pt-3 backdrop-blur oak-safe-bottom">
-          {actionError && (
-            <p className="mb-2 text-center text-[13px] text-sd-danger-ink">{actionError}</p>
+          {(order.courierName || order.shipbubbleOrderId) && (
+            <Section title="Delivery">
+              {order.courierName && <Row label="Courier" value={order.courierName} />}
+              {order.shipbubbleOrderId && <Row label="Shipment" value={order.shipbubbleOrderId} />}
+              {!order.shipbubbleOrderId && order.status === "paid" && (
+                <p className="mt-1 text-[12.5px] text-sd-ink-muted">
+                  The buyer picked this courier at checkout. Booking uses the same quote.
+                </p>
+              )}
+            </Section>
           )}
-          {order.shipBlockedReason && (
-            <p className="mb-2 text-center text-[13px] text-sd-ink-muted">
-              {order.shipBlockedReason}
-            </p>
-          )}
-          <div className="flex gap-2">
-            {order.canDecline && (
+        </div>
+
+        {actions && (
+          <div className="fixed inset-x-0 bottom-0 z-30 border-t border-sd-line bg-sd-surface/95 px-4 pt-3 backdrop-blur oak-safe-bottom">
+            {actionError && (
+              <p className="mb-2 text-center text-[13px] text-sd-danger-ink">{actionError}</p>
+            )}
+            {order.shipBlockedReason && (
+              <p className="mb-2 text-center text-[13px] text-sd-ink-muted">
+                {order.shipBlockedReason}
+              </p>
+            )}
+            <div className="flex gap-2">
+              {order.canDecline && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActionError("");
+                    setDeclineOpen(true);
+                  }}
+                  disabled={shipping}
+                  className="oak-tap h-12 shrink-0 rounded-full border border-sd-line px-5 text-[15px] font-semibold text-sd-danger-ink oak-motion-control active:scale-[0.98] disabled:opacity-50"
+                >
+                  Decline
+                </button>
+              )}
               <button
                 type="button"
-                onClick={() => {
-                  setActionError("");
-                  setDeclineOpen(true);
-                }}
-                disabled={shipping}
-                className="oak-tap h-12 shrink-0 rounded-full border border-sd-line px-5 text-[15px] font-semibold text-sd-danger-ink oak-motion-control active:scale-[0.98] disabled:opacity-50"
+                onClick={() => void ship()}
+                disabled={!order.canShip || shipping}
+                className="oak-tap h-12 min-w-0 flex-1 rounded-full bg-sd-ink text-[15px] font-semibold text-sd-bg oak-motion-control active:scale-[0.98] disabled:opacity-40"
               >
-                Decline
+                {shipping ? "Booking courier…" : "Book courier and ship"}
               </button>
-            )}
-            <button
-              type="button"
-              onClick={() => void ship()}
-              disabled={!order.canShip || shipping}
-              className="oak-tap h-12 min-w-0 flex-1 rounded-full bg-sd-ink text-[15px] font-semibold text-sd-bg oak-motion-control active:scale-[0.98] disabled:opacity-40"
-            >
-              {shipping ? "Booking courier…" : "Book courier and ship"}
-            </button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {declineOpen && order.declineRefund && (
-        <DeclineOrderSheet
-          totalKobo={order.payment?.amountKobo ?? order.totalKobo}
-          itemCount={itemCount}
-          refundMode={order.declineRefund}
-          onConfirm={decline}
-          onClose={closeDecline}
-        />
-      )}
+        {declineOpen && order.declineRefund && (
+          <DeclineOrderSheet
+            totalKobo={order.payment?.amountKobo ?? order.totalKobo}
+            itemCount={itemCount}
+            refundMode={order.declineRefund}
+            onConfirm={decline}
+            onClose={closeDecline}
+          />
+        )}
+      </DesktopPanel>
     </div>
   );
 }

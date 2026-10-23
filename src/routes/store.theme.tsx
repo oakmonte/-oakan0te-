@@ -1,5 +1,6 @@
 import { StoreThemeSelector } from "@/components/store-theme-selector";
 import { createFileRoute } from "@tanstack/react-router";
+import { DesktopPanel } from "@/components/store/DesktopPanel";
 
 export const Route = createFileRoute("/store/theme")({
   validateSearch: (search: Record<string, unknown>): { checklist?: boolean } => ({
@@ -9,5 +10,9 @@ export const Route = createFileRoute("/store/theme")({
 });
 
 function StoreTheme() {
-  return <StoreThemeSelector />;
+  return (
+    <DesktopPanel>
+      <StoreThemeSelector />
+    </DesktopPanel>
+  );
 }

@@ -6,6 +6,7 @@ import { authedFetch } from "@/lib/authed-fetch";
 import { useActiveStoreId } from "@/hooks/use-own-store";
 import { Spinner } from "@/components/spinner";
 import { csvFileProblem } from "@/lib/csv-file-check";
+import { DesktopPanel } from "@/components/store/DesktopPanel";
 
 export const Route = createFileRoute("/store/products_/upload")({
   component: ProductsUpload,
@@ -316,212 +317,213 @@ function ProductsUpload() {
           Import products
         </span>
       </div>
+      <DesktopPanel narrow>
+        {job && <JobBanner job={job} onDismiss={() => setJob(null)} />}
+        {error && (
+          <p className="px-4 pt-3 text-sm text-sd-danger-ink animate-in fade-in slide-in-from-top-1 duration-200">
+            {error}
+          </p>
+        )}
 
-      {job && <JobBanner job={job} onDismiss={() => setJob(null)} />}
-      {error && (
-        <p className="px-4 pt-3 text-sm text-sd-danger-ink animate-in fade-in slide-in-from-top-1 duration-200">
-          {error}
-        </p>
-      )}
+        <div className="px-4 py-6">
+          <p className="text-sm text-sd-ink-muted mb-6">
+            Bring in products you already have listed somewhere else.
+          </p>
 
-      <div className="px-4 py-6">
-        <p className="text-sm text-sd-ink-muted mb-6">
-          Bring in products you already have listed somewhere else.
-        </p>
+          <div className="flex flex-col gap-3">
+            {/* Shopify */}
+            <div className="border border-sd-line rounded-2xl overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setOpenSection((v) => (v === "shopify" ? null : "shopify"))}
+                className="w-full flex items-center gap-3 p-4 text-left oak-motion-control"
+              >
+                <div className="p-2 rounded-full bg-sd-soft">
+                  <ShoppingBag size={18} />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">Shopify</p>
+                  <p className="text-xs text-sd-ink-muted mt-0.5">
+                    Connect your store or upload a CSV.
+                  </p>
+                </div>
+                <ChevronDown
+                  size={16}
+                  className={`text-sd-ink-faint transition-transform duration-200 ${openSection === "shopify" ? "rotate-180" : ""}`}
+                />
+              </button>
+              {openSection === "shopify" && (
+                <div className="border-t border-sd-line px-4 py-4 flex flex-col gap-3 animate-in fade-in slide-in-from-top-2 duration-200 ease-out">
+                  <OptionCard>
+                    <OptionLabel>Connect directly</OptionLabel>
+                    <label className="flex flex-col gap-1">
+                      <span className="text-xs text-sd-ink-faint">Shop domain</span>
+                      <input
+                        value={shopDomain}
+                        onChange={(e) => setShopDomain(e.target.value)}
+                        placeholder="mystore or mystore.myshopify.com"
+                        autoCapitalize="none"
+                        autoCorrect="off"
+                        className="text-base border border-sd-line rounded-lg px-3 py-2.5 outline-none focus:border-sd-ink-faint"
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      onClick={connectShopify}
+                      disabled={busy || !shopDomain.trim()}
+                      className="mt-2 w-full bg-sd-ink text-sd-bg text-sm font-medium rounded-lg py-2.5 disabled:opacity-40 oak-motion-control active:scale-[0.98]"
+                    >
+                      Connect Shopify
+                    </button>
+                    {connected.shopify && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => startImport("shopify")}
+                          disabled={busy}
+                          className="mt-2 w-full border border-sd-line rounded-lg py-2.5 text-sm font-medium text-sd-ink disabled:opacity-40 oak-motion-control"
+                        >
+                          Import my Shopify products
+                        </button>
+                        <p className="text-[11px] text-sd-ink-muted mt-1.5 flex items-center gap-1">
+                          <Check size={12} /> Connected. Tap import to bring products in.
+                        </p>
+                      </>
+                    )}
+                  </OptionCard>
+                  <OrDivider />
+                  <OptionCard>
+                    <OptionLabel>Upload a CSV</OptionLabel>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const file = await shopifyPicker.pick();
+                        if (file) uploadCsv(file, "csv", "shopify");
+                      }}
+                      disabled={busy}
+                      className="w-full text-left border border-sd-line rounded-lg px-3 py-2.5 text-sm text-sd-ink font-medium oak-motion-control disabled:opacity-40"
+                    >
+                      Upload Shopify CSV export
+                    </button>
+                    <p className="text-[11px] text-sd-ink-faint mt-1.5">
+                      From Shopify admin: Products → Export.
+                    </p>
+                  </OptionCard>
+                </div>
+              )}
+            </div>
 
-        <div className="flex flex-col gap-3">
-          {/* Shopify */}
-          <div className="border border-sd-line rounded-2xl overflow-hidden">
-            <button
-              type="button"
-              onClick={() => setOpenSection((v) => (v === "shopify" ? null : "shopify"))}
-              className="w-full flex items-center gap-3 p-4 text-left oak-motion-control"
-            >
-              <div className="p-2 rounded-full bg-sd-soft">
-                <ShoppingBag size={18} />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium">Shopify</p>
-                <p className="text-xs text-sd-ink-muted mt-0.5">
-                  Connect your store or upload a CSV.
-                </p>
-              </div>
-              <ChevronDown
-                size={16}
-                className={`text-sd-ink-faint transition-transform duration-200 ${openSection === "shopify" ? "rotate-180" : ""}`}
-              />
-            </button>
-            {openSection === "shopify" && (
-              <div className="border-t border-sd-line px-4 py-4 flex flex-col gap-3 animate-in fade-in slide-in-from-top-2 duration-200 ease-out">
-                <OptionCard>
-                  <OptionLabel>Connect directly</OptionLabel>
-                  <label className="flex flex-col gap-1">
-                    <span className="text-xs text-sd-ink-faint">Shop domain</span>
-                    <input
-                      value={shopDomain}
-                      onChange={(e) => setShopDomain(e.target.value)}
-                      placeholder="mystore or mystore.myshopify.com"
-                      autoCapitalize="none"
-                      autoCorrect="off"
-                      className="text-base border border-sd-line rounded-lg px-3 py-2.5 outline-none focus:border-sd-ink-faint"
-                    />
-                  </label>
-                  <button
-                    type="button"
-                    onClick={connectShopify}
-                    disabled={busy || !shopDomain.trim()}
-                    className="mt-2 w-full bg-sd-ink text-sd-bg text-sm font-medium rounded-lg py-2.5 disabled:opacity-40 oak-motion-control active:scale-[0.98]"
-                  >
-                    Connect Shopify
-                  </button>
-                  {connected.shopify && (
-                    <>
+            {/* Bumpa */}
+            <div className="border border-sd-line rounded-2xl overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setOpenSection((v) => (v === "bumpa" ? null : "bumpa"))}
+                className="w-full flex items-center gap-3 p-4 text-left oak-motion-control"
+              >
+                <div className="p-2 rounded-full bg-sd-soft">
+                  <Store size={18} />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">Bumpa</p>
+                  <p className="text-xs text-sd-ink-muted mt-0.5">
+                    Connect your store or upload a CSV.
+                  </p>
+                </div>
+                <ChevronDown
+                  size={16}
+                  className={`text-sd-ink-faint transition-transform duration-200 ${openSection === "bumpa" ? "rotate-180" : ""}`}
+                />
+              </button>
+              {openSection === "bumpa" && (
+                <div className="border-t border-sd-line px-4 py-4 flex flex-col gap-3 animate-in fade-in slide-in-from-top-2 duration-200 ease-out">
+                  <OptionCard>
+                    <OptionLabel>Connect directly</OptionLabel>
+                    <label className="flex flex-col gap-1">
+                      <span className="text-xs text-sd-ink-faint">Bumpa API key</span>
+                      <input
+                        value={bumpaKey}
+                        onChange={(e) => setBumpaKey(e.target.value)}
+                        placeholder="Paste your API key"
+                        type="password"
+                        autoCapitalize="none"
+                        autoCorrect="off"
+                        className="text-base border border-sd-line rounded-lg px-3 py-2.5 outline-none focus:border-sd-ink-faint"
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      onClick={connectBumpa}
+                      disabled={busy || !bumpaKey.trim()}
+                      className="mt-2 w-full bg-sd-ink text-sd-bg text-sm font-medium rounded-lg py-2.5 disabled:opacity-40 oak-motion-control active:scale-[0.98]"
+                    >
+                      Connect Bumpa
+                    </button>
+                    {connected.bumpa && (
                       <button
                         type="button"
-                        onClick={() => startImport("shopify")}
+                        onClick={() => startImport("bumpa-api")}
                         disabled={busy}
                         className="mt-2 w-full border border-sd-line rounded-lg py-2.5 text-sm font-medium text-sd-ink disabled:opacity-40 oak-motion-control"
                       >
-                        Import my Shopify products
+                        Import my Bumpa products
                       </button>
+                    )}
+                    {connected.bumpa ? (
                       <p className="text-[11px] text-sd-ink-muted mt-1.5 flex items-center gap-1">
                         <Check size={12} /> Connected. Tap import to bring products in.
                       </p>
-                    </>
-                  )}
-                </OptionCard>
-                <OrDivider />
-                <OptionCard>
-                  <OptionLabel>Upload a CSV</OptionLabel>
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      const file = await shopifyPicker.pick();
-                      if (file) uploadCsv(file, "csv", "shopify");
-                    }}
-                    disabled={busy}
-                    className="w-full text-left border border-sd-line rounded-lg px-3 py-2.5 text-sm text-sd-ink font-medium oak-motion-control disabled:opacity-40"
-                  >
-                    Upload Shopify CSV export
-                  </button>
-                  <p className="text-[11px] text-sd-ink-faint mt-1.5">
-                    From Shopify admin: Products → Export.
-                  </p>
-                </OptionCard>
-              </div>
-            )}
-          </div>
-
-          {/* Bumpa */}
-          <div className="border border-sd-line rounded-2xl overflow-hidden">
-            <button
-              type="button"
-              onClick={() => setOpenSection((v) => (v === "bumpa" ? null : "bumpa"))}
-              className="w-full flex items-center gap-3 p-4 text-left oak-motion-control"
-            >
-              <div className="p-2 rounded-full bg-sd-soft">
-                <Store size={18} />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium">Bumpa</p>
-                <p className="text-xs text-sd-ink-muted mt-0.5">
-                  Connect your store or upload a CSV.
-                </p>
-              </div>
-              <ChevronDown
-                size={16}
-                className={`text-sd-ink-faint transition-transform duration-200 ${openSection === "bumpa" ? "rotate-180" : ""}`}
-              />
-            </button>
-            {openSection === "bumpa" && (
-              <div className="border-t border-sd-line px-4 py-4 flex flex-col gap-3 animate-in fade-in slide-in-from-top-2 duration-200 ease-out">
-                <OptionCard>
-                  <OptionLabel>Connect directly</OptionLabel>
-                  <label className="flex flex-col gap-1">
-                    <span className="text-xs text-sd-ink-faint">Bumpa API key</span>
-                    <input
-                      value={bumpaKey}
-                      onChange={(e) => setBumpaKey(e.target.value)}
-                      placeholder="Paste your API key"
-                      type="password"
-                      autoCapitalize="none"
-                      autoCorrect="off"
-                      className="text-base border border-sd-line rounded-lg px-3 py-2.5 outline-none focus:border-sd-ink-faint"
-                    />
-                  </label>
-                  <button
-                    type="button"
-                    onClick={connectBumpa}
-                    disabled={busy || !bumpaKey.trim()}
-                    className="mt-2 w-full bg-sd-ink text-sd-bg text-sm font-medium rounded-lg py-2.5 disabled:opacity-40 oak-motion-control active:scale-[0.98]"
-                  >
-                    Connect Bumpa
-                  </button>
-                  {connected.bumpa && (
+                    ) : (
+                      <p className="text-[11px] text-sd-ink-faint mt-1.5">
+                        Found in your Bumpa dashboard under API settings.
+                      </p>
+                    )}
+                  </OptionCard>
+                  <OrDivider />
+                  <OptionCard>
+                    <OptionLabel>Upload a CSV</OptionLabel>
                     <button
                       type="button"
-                      onClick={() => startImport("bumpa-api")}
+                      onClick={async () => {
+                        const file = await bumpaPicker.pick();
+                        if (file) uploadCsv(file, "bumpa");
+                      }}
                       disabled={busy}
-                      className="mt-2 w-full border border-sd-line rounded-lg py-2.5 text-sm font-medium text-sd-ink disabled:opacity-40 oak-motion-control"
+                      className="w-full text-left border border-sd-line rounded-lg px-3 py-2.5 text-sm text-sd-ink font-medium oak-motion-control disabled:opacity-40"
                     >
-                      Import my Bumpa products
+                      Upload Bumpa CSV export
                     </button>
-                  )}
-                  {connected.bumpa ? (
-                    <p className="text-[11px] text-sd-ink-muted mt-1.5 flex items-center gap-1">
-                      <Check size={12} /> Connected. Tap import to bring products in.
-                    </p>
-                  ) : (
-                    <p className="text-[11px] text-sd-ink-faint mt-1.5">
-                      Found in your Bumpa dashboard under API settings.
-                    </p>
-                  )}
-                </OptionCard>
-                <OrDivider />
-                <OptionCard>
-                  <OptionLabel>Upload a CSV</OptionLabel>
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      const file = await bumpaPicker.pick();
-                      if (file) uploadCsv(file, "bumpa");
-                    }}
-                    disabled={busy}
-                    className="w-full text-left border border-sd-line rounded-lg px-3 py-2.5 text-sm text-sd-ink font-medium oak-motion-control disabled:opacity-40"
-                  >
-                    Upload Bumpa CSV export
-                  </button>
-                </OptionCard>
+                  </OptionCard>
+                </div>
+              )}
+            </div>
+
+            {/* Universal CSV */}
+            <button
+              type="button"
+              onClick={async () => {
+                const file = await universalPicker.pick();
+                if (file) uploadCsv(file, "csv");
+              }}
+              disabled={busy}
+              className="flex items-center gap-3 border border-sd-line rounded-2xl p-4 text-left oak-motion-control disabled:opacity-40"
+            >
+              <div className="p-2 rounded-full bg-sd-soft">
+                <Upload size={18} />
               </div>
-            )}
+              <div>
+                <p className="text-sm font-medium">Import from anywhere else</p>
+                <p className="text-xs text-sd-ink-muted mt-0.5">
+                  Any CSV — we'll match the columns automatically.
+                </p>
+              </div>
+            </button>
           </div>
-
-          {/* Universal CSV */}
-          <button
-            type="button"
-            onClick={async () => {
-              const file = await universalPicker.pick();
-              if (file) uploadCsv(file, "csv");
-            }}
-            disabled={busy}
-            className="flex items-center gap-3 border border-sd-line rounded-2xl p-4 text-left oak-motion-control disabled:opacity-40"
-          >
-            <div className="p-2 rounded-full bg-sd-soft">
-              <Upload size={18} />
-            </div>
-            <div>
-              <p className="text-sm font-medium">Import from anywhere else</p>
-              <p className="text-xs text-sd-ink-muted mt-0.5">
-                Any CSV — we'll match the columns automatically.
-              </p>
-            </div>
-          </button>
         </div>
-      </div>
 
-      {shopifyPicker.node}
-      {bumpaPicker.node}
-      {universalPicker.node}
+        {shopifyPicker.node}
+        {bumpaPicker.node}
+        {universalPicker.node}
+      </DesktopPanel>
     </div>
   );
 }

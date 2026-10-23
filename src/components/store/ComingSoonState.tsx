@@ -1,4 +1,5 @@
 import { LucideIcon } from "lucide-react";
+import { DesktopPanel } from "./DesktopPanel";
 
 /** The empty state for dashboard screens that have no data source yet --
  *  Orders, Customers, Growth, Discounts, Content.
@@ -18,16 +19,18 @@ export function ComingSoonState({
   description: string;
 }) {
   return (
-    <div className="flex flex-col items-center gap-3 px-4 py-16 text-center animate-in fade-in duration-300">
-      <div className="rounded-full bg-sd-soft p-3">
-        <Icon size={20} className="text-sd-ink-faint" />
+    <DesktopPanel className="md:pb-8">
+      <div className="flex flex-col items-center gap-3 px-4 py-16 text-center animate-in fade-in duration-300">
+        <div className="rounded-full bg-sd-soft p-3">
+          <Icon size={20} className="text-sd-ink-faint" />
+        </div>
+        <div>
+          <p className="sd-editorial text-[18px] leading-snug text-sd-ink">{title}</p>
+          <p className="mt-1.5 max-w-[260px] text-[13px] leading-relaxed text-sd-ink-muted">
+            {description}
+          </p>
+        </div>
       </div>
-      <div>
-        <p className="sd-editorial text-[18px] leading-snug text-sd-ink">{title}</p>
-        <p className="mt-1.5 max-w-[260px] text-[13px] leading-relaxed text-sd-ink-muted">
-          {description}
-        </p>
-      </div>
-    </div>
+    </DesktopPanel>
   );
 }

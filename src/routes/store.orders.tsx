@@ -12,6 +12,7 @@ import {
   type RefundState,
   type SellerTab,
 } from "@/lib/order-status";
+import { DesktopPanel } from "@/components/store/DesktopPanel";
 
 export const Route = createFileRoute("/store/orders")({
   // The tab lives in the URL so coming back from an order lands on the tab it
@@ -146,92 +147,94 @@ function OrdersPage() {
   const activeIndex = SELLER_TABS.findIndex((t) => t.key === tab);
 
   return (
-    <div className="pb-[calc(env(safe-area-inset-bottom)+2.5rem)] pt-5 font-normal">
-      <h1 className="sd-editorial px-4 text-[26px] leading-[1.1] tracking-[-0.02em] text-sd-ink">
-        Orders
-      </h1>
+    <DesktopPanel>
+      <div className="pb-[calc(env(safe-area-inset-bottom)+2.5rem)] pt-5 font-normal md:px-0 md:pt-0">
+        <h1 className="sd-editorial px-4 text-[26px] leading-[1.1] tracking-[-0.02em] text-sd-ink">
+          Orders
+        </h1>
 
-      <div
-        role="tablist"
-        aria-label="Order status"
-        className="sticky top-14 z-20 mt-3 flex border-b border-sd-line bg-sd-bg px-2"
-      >
-        <span
-          aria-hidden
-          className="absolute bottom-0 left-2 h-[2.5px] rounded-full bg-sd-ink transition-transform duration-300 ease-[var(--ease-smooth-out)]"
-          style={{
-            width: `calc((100% - 1rem) / ${SELLER_TABS.length})`,
-            transform: `translateX(${activeIndex * 100}%)`,
-          }}
-        />
-        {SELLER_TABS.map((t) => {
-          const active = t.key === tab;
-          return (
-            <button
-              key={t.key}
-              type="button"
-              role="tab"
-              aria-selected={active}
-              onClick={() => selectTab(t.key)}
-              className={`oak-tap flex h-12 min-w-0 flex-1 items-center justify-center gap-1.5 text-[14px] transition-colors duration-200 ${
-                active ? "font-semibold text-sd-ink" : "font-medium text-sd-ink-muted"
-              }`}
-            >
-              <span className="truncate">{t.label}</span>
-              {t.key === "to_ship" && !!toShipCount && (
-                <span className="grid h-5 min-w-5 place-items-center rounded-full bg-sd-ink px-1.5 text-[11px] font-bold tabular-nums text-sd-bg">
-                  {toShipCount > 99 ? "99+" : toShipCount}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
+        <div
+          role="tablist"
+          aria-label="Order status"
+          className="sticky top-14 z-20 mt-3 flex border-b border-sd-line bg-sd-bg px-2"
+        >
+          <span
+            aria-hidden
+            className="absolute bottom-0 left-2 h-[2.5px] rounded-full bg-sd-ink transition-transform duration-300 ease-[var(--ease-smooth-out)]"
+            style={{
+              width: `calc((100% - 1rem) / ${SELLER_TABS.length})`,
+              transform: `translateX(${activeIndex * 100}%)`,
+            }}
+          />
+          {SELLER_TABS.map((t) => {
+            const active = t.key === tab;
+            return (
+              <button
+                key={t.key}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => selectTab(t.key)}
+                className={`oak-tap flex h-12 min-w-0 flex-1 items-center justify-center gap-1.5 text-[14px] transition-colors duration-200 ${
+                  active ? "font-semibold text-sd-ink" : "font-medium text-sd-ink-muted"
+                }`}
+              >
+                <span className="truncate">{t.label}</span>
+                {t.key === "to_ship" && !!toShipCount && (
+                  <span className="grid h-5 min-w-5 place-items-center rounded-full bg-sd-ink px-1.5 text-[11px] font-bold tabular-nums text-sd-bg">
+                    {toShipCount > 99 ? "99+" : toShipCount}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
 
-      <div className="px-4 pt-4">
-        {current === undefined && error ? (
-          <div className="flex flex-col items-center gap-3 py-16 text-center">
-            <p className="text-[14px] text-sd-ink-muted">{error}</p>
-            <button
-              type="button"
-              onClick={() => void load(tab)}
-              className="oak-tap h-11 rounded-full bg-sd-soft px-6 text-[14px] font-semibold text-sd-ink oak-motion-control active:scale-[0.98]"
-            >
-              Try again
-            </button>
-          </div>
-        ) : current === undefined ? (
-          <ListSkeleton />
-        ) : current.orders.length === 0 ? (
-          <ComingSoonState {...EMPTY[tab]} />
-        ) : (
-          <>
-            <ul className="flex flex-col gap-3 animate-in fade-in duration-300">
-              {current.orders.map((o) => (
-                <OrderCard
-                  key={o.id}
-                  order={o}
-                  busy={busy === o.id}
-                  shipError={shipError?.id === o.id ? shipError.message : null}
-                  onShip={() => void ship(o.id)}
-                />
-              ))}
-            </ul>
-            {current.nextBefore && (
+        <div className="px-4 pt-4">
+          {current === undefined && error ? (
+            <div className="flex flex-col items-center gap-3 py-16 text-center">
+              <p className="text-[14px] text-sd-ink-muted">{error}</p>
               <button
                 type="button"
-                onClick={() => void loadMore()}
-                disabled={loadingMore}
-                className="oak-tap mt-4 h-11 w-full rounded-full border border-sd-line text-[14px] font-medium text-sd-ink oak-motion-control active:scale-[0.99] disabled:opacity-50"
+                onClick={() => void load(tab)}
+                className="oak-tap h-11 rounded-full bg-sd-soft px-6 text-[14px] font-semibold text-sd-ink oak-motion-control active:scale-[0.98]"
               >
-                {loadingMore ? "Loading…" : "Show older orders"}
+                Try again
               </button>
-            )}
-            {error && <p className="mt-3 text-center text-[13px] text-sd-danger-ink">{error}</p>}
-          </>
-        )}
+            </div>
+          ) : current === undefined ? (
+            <ListSkeleton />
+          ) : current.orders.length === 0 ? (
+            <ComingSoonState {...EMPTY[tab]} />
+          ) : (
+            <>
+              <ul className="flex flex-col gap-3 animate-in fade-in duration-300">
+                {current.orders.map((o) => (
+                  <OrderCard
+                    key={o.id}
+                    order={o}
+                    busy={busy === o.id}
+                    shipError={shipError?.id === o.id ? shipError.message : null}
+                    onShip={() => void ship(o.id)}
+                  />
+                ))}
+              </ul>
+              {current.nextBefore && (
+                <button
+                  type="button"
+                  onClick={() => void loadMore()}
+                  disabled={loadingMore}
+                  className="oak-tap mt-4 h-11 w-full rounded-full border border-sd-line text-[14px] font-medium text-sd-ink oak-motion-control active:scale-[0.99] disabled:opacity-50"
+                >
+                  {loadingMore ? "Loading…" : "Show older orders"}
+                </button>
+              )}
+              {error && <p className="mt-3 text-center text-[13px] text-sd-danger-ink">{error}</p>}
+            </>
+          )}
+        </div>
       </div>
-    </div>
+    </DesktopPanel>
   );
 }
 
