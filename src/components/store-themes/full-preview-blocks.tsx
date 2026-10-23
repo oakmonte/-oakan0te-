@@ -642,6 +642,18 @@ export function PhoneHeader({
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const { banner: lockedBanner, showLocked } = useLockedBanner();
   const navigate = useStorefrontNavigate();
+  // Stuck: the page has scrolled past the header's own spot, so it now sits
+  // over the photos and products and needs a ground of its own. At the top it
+  // stays clear, over the theme's own hero background.
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const [stuck, setStuck] = useState(false);
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([e]) => setStuck(!e.isIntersecting));
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
   const logo = editing?.logoImage;
   const logoMode = editing?.logoMode ?? "image";
   const lightGround = ink != null && isDark(ink);
@@ -725,94 +737,113 @@ export function PhoneHeader({
           the phone layout, the glass pill at the bottom just wider), so the
           logo and icons stay here. On a wide storefront they sit in the same
           centred 1240px column as the rest of the page. */}
-      <div className="flex items-start justify-between gap-3 px-4 py-3 @3xl:mx-auto @3xl:max-w-[1240px] @3xl:px-8">
-        <div className="min-w-0">
-          {logoMode === "text" ? (
-            textLogo
-          ) : editing?.isEditing ? (
-            <label className="cursor-pointer">
-              {imageChip}
-              <input type="file" accept="image/*" className="hidden" onChange={handleFile} />
-            </label>
-          ) : (
-            imageChip
-          )}
-          {editing?.isEditing && (
-            <LogoModeSwitch mode={logoMode} onChange={(m) => editing.onLogoModeChange(m)} />
-          )}
-        </div>
-        <div
-          // Centred on the logo beside it: (56 - 20) / 2 for the image chip,
-          // (40 - 20) / 2 for the text one.
-          className={`flex shrink-0 items-center gap-5 ${logoMode === "text" ? "pt-2.5" : "pt-[18px]"}`}
-          style={{ color: mutedColor }}
-        >
-          {live ? (
-            <>
-              <button
-                type="button"
-                aria-label="Search products"
-                onClick={() => {
-                  setSearchOpen((v) => !v);
-                  if (searchOpen) search?.setQuery("");
-                }}
-                className="active:scale-90 transition-transform duration-150"
-              >
-                {/* Filled while the search bar is open: a state shown by shape, not
-                    colour, so it reads on every theme. */}
-                <Search size={20} strokeWidth={1.8} fill={searchOpen ? "currentColor" : "none"} />
-              </button>
-              <button
-                type="button"
-                aria-label="Cart"
-                onClick={() =>
-                  SALES_LOCKED ? showLocked("Carts unavailable") : void navigate({ to: "/cart" })
-                }
-                className="active:scale-90 transition-transform duration-150"
-              >
-                <ShoppingBag size={20} strokeWidth={1.8} />
-              </button>
-              <button
-                type="button"
-                aria-label="Share"
-                onClick={() => {
-                  if (SHARING_LOCKED) return showLocked("Sharing unavailable");
-                  void navigator.share?.({ url: window.location.href }).catch(() => {});
-                }}
-                className="active:scale-90 transition-transform duration-150"
-              >
-                <Share2 size={20} strokeWidth={1.8} />
-              </button>
-            </>
-          ) : (
-            <>
-              <Search size={20} strokeWidth={1.8} />
-              <ShoppingBag size={20} strokeWidth={1.8} />
-              <Share2 size={20} strokeWidth={1.8} />
-            </>
-          )}
-        </div>
-        {lockedBanner}
-      </div>
-      {live && searchOpen && (
-        <div className="px-4 pb-3 @3xl:mx-auto @3xl:max-w-[1240px] @3xl:px-8">
-          <div
-            className="flex h-11 items-center gap-2 rounded-xl border px-3"
-            style={{ borderColor: mutedColor, color: ink ?? "#fff" }}
-          >
-            <Search size={18} strokeWidth={2} style={{ color: mutedColor }} />
-            <input
-              autoFocus
-              value={search?.query ?? ""}
-              onChange={(e) => search?.setQuery(e.target.value)}
-              placeholder="Search this store"
-              aria-label="Search this store"
-              className="min-w-0 flex-1 bg-transparent text-[16px] outline-none"
-              style={{ color: ink ?? "#fff" }}
-            />
+      <div ref={sentinelRef} aria-hidden="true" className="h-0" />
+      {/* Sticks to the top of the screen while the store scrolls under it:
+          frosted in the theme's own light or dark once it's over content. */}
+      <div
+        className={`sticky top-0 z-30 transition-[background-color,box-shadow,backdrop-filter] duration-300 ${
+          stuck ? "backdrop-blur-xl" : ""
+        }`}
+        style={
+          stuck
+            ? {
+                background: lightGround ? "rgba(255,255,255,0.72)" : "rgba(10,10,12,0.55)",
+                boxShadow: lightGround
+                  ? "0 1px 0 rgba(0,0,0,0.06), 0 8px 24px -16px rgba(0,0,0,0.25)"
+                  : "0 1px 0 rgba(255,255,255,0.08), 0 8px 24px -16px rgba(0,0,0,0.6)",
+              }
+            : undefined
+        }
+      >
+        <div className="flex items-start justify-between gap-3 px-4 py-3 @3xl:mx-auto @3xl:max-w-[1240px] @3xl:px-8">
+          <div className="min-w-0">
+            {logoMode === "text" ? (
+              textLogo
+            ) : editing?.isEditing ? (
+              <label className="cursor-pointer">
+                {imageChip}
+                <input type="file" accept="image/*" className="hidden" onChange={handleFile} />
+              </label>
+            ) : (
+              imageChip
+            )}
+            {editing?.isEditing && (
+              <LogoModeSwitch mode={logoMode} onChange={(m) => editing.onLogoModeChange(m)} />
+            )}
           </div>
+          <div
+            // Centred on the logo beside it: (56 - 20) / 2 for the image chip,
+            // (40 - 20) / 2 for the text one.
+            className={`flex shrink-0 items-center gap-5 ${logoMode === "text" ? "pt-2.5" : "pt-[18px]"}`}
+            style={{ color: mutedColor }}
+          >
+            {live ? (
+              <>
+                <button
+                  type="button"
+                  aria-label="Search products"
+                  onClick={() => {
+                    setSearchOpen((v) => !v);
+                    if (searchOpen) search?.setQuery("");
+                  }}
+                  className="active:scale-90 transition-transform duration-150"
+                >
+                  {/* Filled while the search bar is open: a state shown by shape, not
+                    colour, so it reads on every theme. */}
+                  <Search size={20} strokeWidth={1.8} fill={searchOpen ? "currentColor" : "none"} />
+                </button>
+                <button
+                  type="button"
+                  aria-label="Cart"
+                  onClick={() =>
+                    SALES_LOCKED ? showLocked("Carts unavailable") : void navigate({ to: "/cart" })
+                  }
+                  className="active:scale-90 transition-transform duration-150"
+                >
+                  <ShoppingBag size={20} strokeWidth={1.8} />
+                </button>
+                <button
+                  type="button"
+                  aria-label="Share"
+                  onClick={() => {
+                    if (SHARING_LOCKED) return showLocked("Sharing unavailable");
+                    void navigator.share?.({ url: window.location.href }).catch(() => {});
+                  }}
+                  className="active:scale-90 transition-transform duration-150"
+                >
+                  <Share2 size={20} strokeWidth={1.8} />
+                </button>
+              </>
+            ) : (
+              <>
+                <Search size={20} strokeWidth={1.8} />
+                <ShoppingBag size={20} strokeWidth={1.8} />
+                <Share2 size={20} strokeWidth={1.8} />
+              </>
+            )}
+          </div>
+          {lockedBanner}
         </div>
-      )}
+        {live && searchOpen && (
+          <div className="px-4 pb-3 @3xl:mx-auto @3xl:max-w-[1240px] @3xl:px-8">
+            <div
+              className="flex h-11 items-center gap-2 rounded-xl border px-3"
+              style={{ borderColor: mutedColor, color: ink ?? "#fff" }}
+            >
+              <Search size={18} strokeWidth={2} style={{ color: mutedColor }} />
+              <input
+                autoFocus
+                value={search?.query ?? ""}
+                onChange={(e) => search?.setQuery(e.target.value)}
+                placeholder="Search this store"
+                aria-label="Search this store"
+                className="min-w-0 flex-1 bg-transparent text-[16px] outline-none"
+                style={{ color: ink ?? "#fff" }}
+              />
+            </div>
+          </div>
+        )}
+      </div>
     </>
   );
 }
@@ -1001,7 +1032,7 @@ function DesktopHeroCards({
                   style={{ paddingTop: n % 2 ? 36 : 4 }}
                 >
                   <div
-                    className="oak-hero-sway h-[min(380px,52vh)] overflow-hidden rounded-[22px] @3xl:h-[min(500px,56vh)] @3xl:rounded-[28px] shadow-[0_30px_60px_-24px_rgba(0,0,0,0.55)]"
+                    className="oak-hero-sway h-[min(380px,52vh)] overflow-hidden rounded-[22px] @3xl:h-[min(640px,70vh)] @3xl:rounded-[28px] shadow-[0_30px_60px_-24px_rgba(0,0,0,0.55)]"
                     style={
                       {
                         aspectRatio: ratio,
@@ -1033,7 +1064,7 @@ function DesktopHeroCards({
               <div
                 key={src}
                 data-hero-card
-                className={`group/card relative h-[min(380px,52vh)] shrink-0 snap-start overflow-hidden rounded-[22px] @3xl:h-[min(520px,60vh)] @3xl:rounded-[28px] shadow-[0_28px_60px_-24px_rgba(0,0,0,0.5)] transition-transform duration-500 ease-out hover:-translate-y-1.5 ${
+                className={`group/card relative h-[min(380px,52vh)] shrink-0 snap-start overflow-hidden rounded-[22px] @3xl:h-[min(640px,70vh)] @3xl:rounded-[28px] shadow-[0_28px_60px_-24px_rgba(0,0,0,0.5)] transition-transform duration-500 ease-out hover:-translate-y-1.5 ${
                   i % 2 ? "mt-10" : ""
                 }`}
                 style={{ aspectRatio: ratio }}
@@ -1060,7 +1091,7 @@ function DesktopHeroCards({
               <button
                 type="button"
                 onClick={onAddPhotos}
-                className={`flex h-[min(380px,52vh)] shrink-0 snap-start flex-col @3xl:h-[min(520px,60vh)] items-center justify-center gap-2 rounded-[28px] border-2 border-dashed border-current px-6 text-center opacity-50 transition-opacity hover:opacity-80 ${
+                className={`flex h-[min(380px,52vh)] shrink-0 snap-start flex-col @3xl:h-[min(640px,70vh)] items-center justify-center gap-2 rounded-[28px] border-2 border-dashed border-current px-6 text-center opacity-50 transition-opacity hover:opacity-80 ${
                   images.length % 2 ? "mt-10" : ""
                 }`}
                 style={{ aspectRatio: ratio }}
@@ -1255,11 +1286,11 @@ function HeroSlideshowInner({
       <div className={`relative w-full ${cards ? "hidden" : ""}`}>
         <div
           ref={cropBoxRef}
-          // @3xl: a wide, short banner (2:1, never taller than 640px or 72% of the screen) instead of
+          // @3xl: a tall banner (4:3, filling the screen under the sticky header, up to 900px) instead of
           // the phone's tall 4:5 frame, which at laptop width would be a page
           // tall. The trailing ! beats the seller's inline aspect-ratio; photos
           // are object-cover, so they re-crop into it.
-          className="relative w-full overflow-hidden @3xl:aspect-[2/1]! @3xl:max-h-[min(640px,72vh)]"
+          className="relative w-full overflow-hidden @3xl:aspect-[4/3]! @3xl:max-h-[min(900px,calc(100vh-88px))]"
           style={{ aspectRatio: activeRatio }}
         >
           <div
