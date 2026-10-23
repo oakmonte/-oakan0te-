@@ -471,7 +471,7 @@ export function CatalogTile({
           ref={attachScroller}
           onScroll={handleScroll}
           role="group"
-          aria-label={loop ? `${tile.title} — ${total} photos, swipe to see more` : tile.title}
+          aria-label={total > 1 ? `${tile.title} — ${total} photos, swipe to see more` : tile.title}
           className="flex h-full w-full snap-x snap-mandatory overflow-x-auto overflow-y-hidden overscroll-x-contain"
         >
           {slides.map((photo, i) => (
@@ -502,7 +502,7 @@ export function CatalogTile({
           ))}
         </div>
 
-        {loop && <CarouselDots total={total} index={index} />}
+        {total > 1 && <CarouselDots total={total} index={index} />}
 
         {/* Never in edit mode — the crop handle lives in this same corner,
             and the seller needs that far more than a shopper control while

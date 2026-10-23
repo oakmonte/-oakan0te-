@@ -34,6 +34,8 @@ import {
   X,
   Zap,
   Cpu,
+  Monitor,
+  Smartphone,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { THEMES, type Theme, type ThemeId } from "./types";
@@ -1406,6 +1408,29 @@ export function PublicStorefront({
   );
 }
 
+/** The storefront width each preview device lays out at. The frame is a
+ *  @container, so DESKTOP_W lands past @5xl and shows the real wide layout,
+ *  while PHONE_W stays a phone even on a laptop. */
+const PHONE_W = 430;
+const DESKTOP_W = 1280;
+// A phone frame is shrunk until it's at least this tall in layout pixels, so
+// a short laptop screen gets a smaller phone rather than a letterbox.
+const PHONE_MIN_H = 780;
+
+/** Sizes the preview frame to the space it has, so the whole frame is on
+ *  screen with no page scroll: `w`/`h` are layout pixels, drawn at `zoom`. */
+function previewFrame(device: "phone" | "desktop", availW: number, availH: number) {
+  if (!availW || !availH) return { w: PHONE_W, h: 600, zoom: 1 };
+  if (device === "desktop") {
+    const zoom = Math.min(1, availW / DESKTOP_W);
+    return { w: DESKTOP_W, h: availH / zoom, zoom };
+  }
+  // A phone narrower than the frame just fills the width, as before.
+  if (availW < PHONE_W) return { w: availW, h: availH, zoom: 1 };
+  const zoom = Math.max(0.6, Math.min(1, availH / PHONE_MIN_H, availW / PHONE_W));
+  return { w: PHONE_W, h: availH / zoom, zoom };
+}
+
 export function ThemePreviewSheet({
   theme,
   isSelected,
@@ -1447,6 +1472,19 @@ export function ThemePreviewSheet({
   // of time before useActiveStore resolves.
   const brandName = store?.brand_name ?? theme.demoBrand;
   const [mode, setMode] = useState<"view" | "edit">(initialMode);
+  const [device, setDevice] = useState<"phone" | "desktop">("phone");
+  const stageRef = useRef<HTMLDivElement | null>(null);
+  const [stage, setStage] = useState({ w: 0, h: 0 });
+  useEffect(() => {
+    const el = stageRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([e]) =>
+      setStage({ w: e.contentRect.width, h: e.contentRect.height }),
+    );
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const frame = previewFrame(device, stage.w, stage.h);
   // The theme grid underneath this sheet is a long scrolling page. Left
   // scrollable, iOS scrolls IT to bring a focused field clear of the
   // keyboard, which drags every fixed layer (this sheet included) away from
@@ -1859,7 +1897,36 @@ export function ThemePreviewSheet({
         </button>
       </div>
 
-      <div className="flex flex-1 flex-col items-center overflow-y-auto px-2 py-8 sm:py-12">
+      {/* No page scroll here: the frame is sized to the space left under the
+          toolbar (previewFrame), so the whole storefront is on screen and
+          only the storefront inside it scrolls. */}
+      <div className="flex min-h-0 flex-1 flex-col items-center px-2 py-4 sm:py-6">
+        <div
+          role="radiogroup"
+          aria-label="Preview size"
+          className="mb-3 flex shrink-0 rounded-full bg-white/10 p-1"
+        >
+          {(
+            [
+              ["phone", Smartphone, "Phone"],
+              ["desktop", Monitor, "Desktop"],
+            ] as const
+          ).map(([value, Icon, label]) => (
+            <button
+              key={value}
+              type="button"
+              role="radio"
+              aria-checked={device === value}
+              onClick={() => setDevice(value)}
+              className={`flex h-9 items-center gap-1.5 rounded-full px-4 text-[14px] font-semibold transition-colors ${
+                device === value ? "bg-white text-neutral-900" : "text-white/60 hover:text-white"
+              }`}
+            >
+              <Icon size={16} />
+              {label}
+            </button>
+          ))}
+        </div>
         <div className="flex w-full max-w-[430px] shrink-0 items-center justify-between pb-3">
           {mode === "view" ? (
             <>
@@ -1977,8 +2044,16 @@ export function ThemePreviewSheet({
             </>
           )}
         </div>
-        <div className="relative w-full max-w-[430px] shrink-0 overflow-hidden rounded-[2.5rem] border-[3px] border-neutral-900 bg-neutral-900 shadow-[0_30px_80px_rgba(0,0,0,0.55)]">
-          {/* overflow-y-auto alone makes the x axis scrollable too, and edit
+        <div ref={stageRef} className="flex min-h-0 w-full flex-1 justify-center">
+          <div
+            className={`relative shrink-0 overflow-hidden border-[3px] border-neutral-900 bg-neutral-900 shadow-[0_30px_80px_rgba(0,0,0,0.55)] ${
+              device === "desktop" ? "rounded-2xl" : "rounded-[2.5rem]"
+            }`}
+            // zoom, not transform: layout follows it, so the frame takes only
+            // its drawn size, and fixed pieces inside aren't re-anchored to it.
+            style={{ width: frame.w, height: frame.h, zoom: frame.zoom }}
+          >
+            {/* overflow-y-auto alone makes the x axis scrollable too, and edit
               mode carries things that poke past the frame's right edge (the
               remove dots, counter-scaled fields), so the whole storefront
               could be dragged sideways — and iOS scrolled it sideways on its
@@ -1987,23 +2062,27 @@ export function ThemePreviewSheet({
               a scroll container computes to hidden, which is still
               programmatically scrollable, and that is exactly what focus
               does. */}
-          <div className="max-h-[82vh] overflow-y-auto">
-            <div className="overflow-x-clip">
-              <FullPreview
-                themeId={theme.id}
-                editing={editingProps}
-                storeId={storeId}
-                brandName={brandName}
-              />
+            <div className="h-full overflow-y-auto">
+              {/* @container: the storefront's wide layout answers to this
+                frame's width, so Desktop shows the real laptop layout and
+                Phone stays a phone on a laptop. */}
+              <div className="@container overflow-x-clip">
+                <FullPreview
+                  themeId={theme.id}
+                  editing={editingProps}
+                  storeId={storeId}
+                  brandName={brandName}
+                />
+              </div>
             </div>
+            {hint && (
+              // w-max + a cap: a bare left-1/2 box is only half the frame
+              // wide, so longer hints broke into a lumpy two-line pill.
+              <div className="pointer-events-none absolute bottom-4 left-1/2 w-max max-w-[calc(100%-2rem)] -translate-x-1/2 rounded-2xl bg-black/80 px-4 py-2 text-center text-[13px] leading-snug text-white backdrop-blur">
+                {hint}
+              </div>
+            )}
           </div>
-          {hint && (
-            // w-max + a cap: a bare left-1/2 box is only half the frame
-            // wide, so longer hints broke into a lumpy two-line pill.
-            <div className="pointer-events-none absolute bottom-4 left-1/2 w-max max-w-[calc(100%-2rem)] -translate-x-1/2 rounded-2xl bg-black/80 px-4 py-2 text-center text-[13px] leading-snug text-white backdrop-blur">
-              {hint}
-            </div>
-          )}
         </div>
       </div>
 
