@@ -1,5 +1,5 @@
 import { MAX_VARIANT_PHOTOS } from "@/lib/media-limits";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PageSheet } from "@/components/PageSheet";
 import type { WeightEstimate } from "@/lib/weight-estimate";
 import { Check, ChevronLeft, ImageIcon, X, ChevronRight } from "lucide-react";
@@ -139,6 +139,18 @@ export function VariantCombinationsSheet({
   // shows the product's cover on the storefront, which is easy to miss.
   const missingImageCount = selected.filter((r) => !r.mainImageUrl.trim()).length;
   const [noImagesWarningOpen, setNoImagesWarningOpen] = useState(false);
+  // "Add photos" in that warning: the empty photo buttons blink for a moment
+  // (oak-photo-blink) and the first one scrolls into view, so it's obvious
+  // where to tap. A counter, so a second tap restarts the blink.
+  const [photoHint, setPhotoHint] = useState(0);
+  useEffect(() => {
+    if (!photoHint) return;
+    document
+      .querySelector<HTMLElement>('[data-variant-photo-empty="true"]')
+      ?.scrollIntoView({ block: "center", behavior: "smooth" });
+    const t = window.setTimeout(() => setPhotoHint(0), 2900);
+    return () => window.clearTimeout(t);
+  }, [photoHint]);
   // An empty locationQuantities isn't "the seller deliberately chose no
   // locations" -- InventorySheet's X button commits the same as Save (its
   // no-locations guard's only way out is "Continue anyway"), so a seller
@@ -352,15 +364,23 @@ export function VariantCombinationsSheet({
             <button
               type="button"
               onClick={() => setBulkOpen((v) => !v)}
+              aria-expanded={bulkOpen}
               className="flex items-center gap-2 whitespace-nowrap active:scale-[0.97] transition-transform duration-150"
             >
               {/* Sized off the screen width so a narrow phone shrinks the
                   row rather than wrapping it onto two lines. */}
               <span className="flex items-center gap-0.5 text-[clamp(9px,2.85vw,13px)] text-gray-600">
                 Set parameters for all variants at once
-                <ChevronRight className="size-[1.1em] text-gray-400" />
+                <ChevronRight
+                  className={`size-[1.1em] text-gray-400 transition-transform duration-200 ${bulkOpen ? "rotate-90" : ""}`}
+                />
               </span>
-              <span className="text-[clamp(10px,3.1vw,14px)] font-medium text-gray-900 border border-gray-400 rounded-full px-[clamp(10px,3.2vw,16px)] py-[clamp(6px,2.2vw,10px)]">
+              {/* Filled black while the Apply to all card is open below it. */}
+              <span
+                className={`text-[clamp(10px,3.1vw,14px)] font-medium border rounded-full px-[clamp(10px,3.2vw,16px)] py-[clamp(6px,2.2vw,10px)] transition-colors duration-200 ${
+                  bulkOpen ? "bg-black text-white border-black" : "text-gray-900 border-gray-400"
+                }`}
+              >
                 Apply to all
               </span>
             </button>
@@ -466,7 +486,12 @@ export function VariantCombinationsSheet({
                     type="button"
                     onClick={() => setImagePickerKey(row.key)}
                     aria-label="Set variant image"
-                    className="w-10 h-10 rounded-lg bg-gray-100 border border-gray-400 flex items-center justify-center overflow-hidden shrink-0 transition-transform duration-150 active:scale-90"
+                    data-variant-photo-empty={!row.mainImageUrl}
+                    // Restarts the blink on every tap of Add photos.
+                    data-hint={photoHint}
+                    className={`w-10 h-10 rounded-lg bg-gray-100 border border-gray-400 flex items-center justify-center overflow-hidden shrink-0 transition-transform duration-150 active:scale-90 ${
+                      !row.mainImageUrl && photoHint ? "oak-photo-blink" : ""
+                    }`}
                   >
                     {row.mainImageUrl ? (
                       <img src={row.mainImageUrl} alt="" className="w-full h-full object-cover" />
@@ -716,7 +741,10 @@ export function VariantCombinationsSheet({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="flex flex-col gap-2">
-            <AlertDialogCancel className="m-0 h-12 rounded-full border-0 bg-black text-[15px] font-semibold text-white hover:bg-black hover:text-white">
+            <AlertDialogCancel
+              onClick={() => setPhotoHint((n) => n + 1)}
+              className="m-0 h-12 rounded-full border-0 bg-black text-[15px] font-semibold text-white hover:bg-black hover:text-white"
+            >
               Add photos
             </AlertDialogCancel>
             <AlertDialogAction

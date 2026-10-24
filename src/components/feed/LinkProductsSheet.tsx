@@ -126,13 +126,14 @@ export function LinkProductsSheet({
         setCollections((data ?? []).map((c) => ({ id: c.id, title: c.title })));
         setMembership(map);
       });
-    // Active products only. A draft isn't on the storefront, so linking one
-    // would put a product on a post that a shopper can't open or buy.
+    // Every product, drafts included -- but only an active one can be linked:
+    // a draft isn't on the storefront, so a shopper couldn't open or buy it.
+    // Drafts are listed (greyed, last) rather than hidden, because a seller
+    // whose product silently isn't there can't tell why.
     supabase
       .from("products")
       .select("id, title, status, product_variants(price, main_image_url)")
       .in("store_id", storeIds)
-      .eq("status", "active")
       .order("created_at", { ascending: false })
       .then(({ data, error }) => {
         if (cancelled) return;
@@ -142,13 +143,15 @@ export function LinkProductsSheet({
           return;
         }
         setProducts(
-          (data ?? []).map((p) => ({
-            id: p.id,
-            title: p.title ?? "Untitled",
-            status: p.status,
-            price: p.product_variants[0]?.price ?? null,
-            image: p.product_variants[0]?.main_image_url ?? null,
-          })),
+          [...(data ?? [])]
+            .sort((a, b) => Number(b.status === "active") - Number(a.status === "active"))
+            .map((p) => ({
+              id: p.id,
+              title: p.title ?? "Untitled",
+              status: p.status,
+              price: p.product_variants[0]?.price ?? null,
+              image: p.product_variants[0]?.main_image_url ?? null,
+            })),
         );
       });
     return () => {
@@ -271,7 +274,7 @@ export function LinkProductsSheet({
     <>
       <AnimatePresence>
         {open && (
-          <div className="fixed inset-0 z-[90] flex flex-col justify-end">
+          <div className="fixed inset-0 z-[90] flex flex-col justify-end md:items-center md:justify-center">
             <motion.div
               className="absolute inset-0 bg-black/40"
               initial={{ opacity: 0 }}
@@ -280,8 +283,7 @@ export function LinkProductsSheet({
               onClick={onClose}
             />
             <motion.div
-              className="relative flex flex-col rounded-t-[14px] bg-[#1c1c1e] text-white"
-              style={{ height: "78vh" }}
+              className="relative flex h-[78vh] flex-col rounded-t-[14px] bg-[#1c1c1e] text-white md:h-[min(80vh,720px)] md:w-[min(760px,92vw)] md:rounded-[24px] md:border md:border-white/20 md:shadow-[0_30px_80px_rgba(0,0,0,0.6)]"
               initial={{ y: "100%" }}
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
@@ -522,28 +524,42 @@ function OwnProductList({
   return (
     // Outlined cards, in a centred column on desktop (the search above stays
     // full width).
-    <div className="flex flex-col gap-2 md:mx-auto md:w-full md:max-w-xl">
+    <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2">
       {products.map((p) => {
         const isLinked = linkedIds.has(p.id);
+        const draft = p.status !== "active";
         return (
           <button
             key={p.id}
             type="button"
-            onClick={() => onToggle(p)}
+            onClick={() => !draft && onToggle(p)}
+            disabled={draft}
             aria-pressed={isLinked}
-            className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors active:opacity-70 ${
-              isLinked ? "border-white/70" : "border-white/25"
+            className={`flex items-center gap-3 rounded-2xl border p-3 text-left transition-colors active:opacity-70 disabled:active:opacity-100 ${
+              draft
+                ? "border-white/15 opacity-50"
+                : isLinked
+                  ? "border-white bg-white/[0.06]"
+                  : "border-white/30 hover:border-white/60"
             }`}
           >
-            <img
-              src={p.image ?? "https://placehold.co/48x48"}
-              alt=""
-              className="h-12 w-12 shrink-0 rounded-lg bg-white/10 object-cover"
-            />
+            {p.image ? (
+              <img
+                src={p.image}
+                alt=""
+                className="h-16 w-16 shrink-0 rounded-xl bg-white/10 object-cover"
+              />
+            ) : (
+              <span className="h-16 w-16 shrink-0 rounded-xl bg-white/10" />
+            )}
             <div className="min-w-0 flex-1">
-              <p className="truncate text-[13px] font-medium">{p.title}</p>
-              <p className="text-[12px] text-white/45">
-                {p.price != null ? `₦${p.price.toLocaleString()}` : "No price"}
+              <p className="truncate text-[14px] font-semibold">{p.title}</p>
+              <p className="mt-0.5 text-[12.5px] text-white/55">
+                {draft
+                  ? "Draft · set it to Active to link it"
+                  : p.price != null
+                    ? `₦${p.price.toLocaleString()}`
+                    : "No price"}
               </p>
             </div>
             <span

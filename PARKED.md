@@ -14,7 +14,7 @@ When you park something new, add it here in the same commit.
 | Identifiers (SKU, barcodes) | `IDENTIFIERS_ENABLED`, `src/lib/features.ts` | The Identifiers card on every inventory page, plain product and each variant. SKUs and barcodes already saved are kept. |
 | Wardrobe / Gallery | `WARDROBE_ENABLED`, `src/lib/features.ts` | The Wardrobe tab on profiles ("Gallery" on Artist stores) and /create/store-piece. |
 | Offline videos | `OFFLINE_VIDEOS_ENABLED`, `src/lib/features.ts` | "Save for offline" in a post's share sheet and the /offline-videos page. |
-| Necessities | `NECESSITIES_ENABLED`, `src/lib/product-form-flags.ts` | Material, colours, weight, size chart and linked content on the product form. |
+| Necessities | `NECESSITIES_ENABLED`, `src/lib/product-form-flags.ts` | Material, colours, weight, size chart and linked content on the product form, and the Weight page's "Estimate weight" button. |
 | Product tags | `TAGS_ENABLED`, `src/lib/product-form-flags.ts` | Tags on the product form. |
 | Follower count and community footer | `RETIRED_BLOCKS`, `src/components/store-themes/layout-presets.ts` | Remove `"stats"` / `"footer"` from the list to bring those storefront blocks back to every theme. |
 

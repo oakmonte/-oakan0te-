@@ -80,4 +80,6 @@ export const THEME_COLORS: Record<ThemeId, string[]> = {
   "raw-denim": ["denim", "blue", "navy", "grey", "indigo"],
   chrome: ["silver", "grey", "chrome", "metallic", "white"],
   "olive-grove": ["olive", "green", "khaki", "cream", "stone"],
+  paper: ["white", "red", "orange", "black"],
+  "linen-white": ["white", "tan", "beige", "brown", "cream"],
 };

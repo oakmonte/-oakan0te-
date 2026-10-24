@@ -2,6 +2,7 @@ import { useState } from "react";
 import { PageSheet } from "@/components/PageSheet";
 import { X } from "lucide-react";
 import type { WeightEstimate } from "@/lib/weight-estimate";
+import { NECESSITIES_ENABLED } from "@/lib/product-form-flags";
 
 /** Per-SKU shipping weight editor -- same split as InventorySheet (a
  *  "regular" product's single implicit variant vs. each row in the variant
@@ -83,17 +84,23 @@ export function WeightSheet({
           />
           <span className="text-sm text-gray-400">g</span>
         </div>
-        <button
-          type="button"
-          onClick={applyEstimate}
-          className="mt-3 text-xs font-medium text-gray-900 border border-gray-500 rounded-full px-3 py-1.5 oak-motion-control"
-        >
-          Estimate weight
-        </button>
-        {blocked && (
-          <p className="text-xs text-gray-500 mt-2.5 leading-relaxed animate-in fade-in slide-in-from-top-1 duration-200">
-            {blocked}
-          </p>
+        {/* Estimates from the size chart and material, both parked with the
+            rest of Necessities (NECESSITIES_ENABLED, see PARKED.md). */}
+        {NECESSITIES_ENABLED && (
+          <>
+            <button
+              type="button"
+              onClick={applyEstimate}
+              className="mt-3 text-xs font-medium text-gray-900 border border-gray-500 rounded-full px-3 py-1.5 oak-motion-control"
+            >
+              Estimate weight
+            </button>
+            {blocked && (
+              <p className="text-xs text-gray-500 mt-2.5 leading-relaxed animate-in fade-in slide-in-from-top-1 duration-200">
+                {blocked}
+              </p>
+            )}
+          </>
         )}
         {isEstimate && (
           <p className="text-xs text-gray-400 mt-2">

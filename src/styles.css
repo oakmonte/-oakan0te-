@@ -1272,3 +1272,26 @@ body.oak-page-sheet-open [data-app-root] {
   }
 }
 
+
+/* "Add photos" from the no-variant-photos warning: the empty photo buttons
+   pulse a few times so the seller sees where to tap. */
+@keyframes oak-photo-blink {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.85);
+    transform: scale(1.08);
+  }
+}
+.oak-photo-blink {
+  animation: oak-photo-blink 0.7s ease-in-out 4;
+}
+@media (prefers-reduced-motion: reduce) {
+  .oak-photo-blink {
+    animation: none;
+    box-shadow: 0 0 0 3px #000;
+  }
+}

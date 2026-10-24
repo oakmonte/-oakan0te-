@@ -12,8 +12,8 @@ test("an empty query returns the whole catalogue, in order, nothing matched", ()
   expect(all.every((m) => m.matched.length === 0)).toBe(true);
 });
 
-test("the catalogue is 58 themes and every one has colour keywords", () => {
-  expect(THEMES).toHaveLength(58);
+test("the catalogue is 60 themes and every one has colour keywords", () => {
+  expect(THEMES).toHaveLength(60);
   for (const t of THEMES) expect(t.colors.length).toBeGreaterThan(0);
 });
 

@@ -54,7 +54,7 @@ const DEFAULT_TICKED_LOCATIONS = 3;
  *  side-trip below); "Edit locations" here is otherwise selection-only. */
 // Each section of the page is its own outlined, rounded card on a soft ground,
 // instead of bare content split by grey bars.
-const CARD = "rounded-2xl border border-gray-300 bg-white p-4";
+const CARD = "rounded-2xl border border-gray-400 bg-white p-4";
 
 export function InventorySheet({
   productLabel,
@@ -199,7 +199,7 @@ export function InventorySheet({
       onClose={handleSave}
       className="sheet-column bg-white flex flex-col animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
     >
-      <div className="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-gray-300 px-4 pt-4 pb-3 flex flex-col items-center shrink-0 relative">
+      <div className="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-gray-400 px-4 pt-4 pb-3 flex flex-col items-center shrink-0 relative">
         <button
           // Commits, doesn't discard: BarcodesSheet and "Edit locations" both
           // now apply on their own X/Save (the seller sees "3 barcodes" the
@@ -225,6 +225,7 @@ export function InventorySheet({
           </span>
           <Switch
             size="lg"
+            className="data-[state=unchecked]:bg-gray-300 ring-1 ring-gray-400"
             checked={continueSellingOutOfStock}
             onCheckedChange={setContinueSellingOutOfStock}
           />
@@ -245,7 +246,7 @@ export function InventorySheet({
                     value={sku}
                     onChange={(e) => setSku(e.target.value)}
                     placeholder="Optional"
-                    className="h-12 text-base bg-white border border-gray-300 rounded-xl px-3.5 outline-none transition-colors duration-150 focus:border-gray-500"
+                    className="h-12 text-base bg-white border border-gray-400 rounded-xl px-3.5 outline-none transition-colors duration-150 focus:border-gray-500"
                   />
                 </label>
                 <button
@@ -254,7 +255,7 @@ export function InventorySheet({
                   className="flex flex-col gap-1.5 text-left transition-transform duration-150 active:scale-[0.99]"
                 >
                   <span className="text-[13px] font-medium text-gray-600">Barcode</span>
-                  <span className="flex h-12 items-center justify-between bg-white border border-gray-300 rounded-xl px-3.5">
+                  <span className="flex h-12 items-center justify-between bg-white border border-gray-400 rounded-xl px-3.5">
                     <span
                       className={`text-base truncate ${barcodes.length > 0 ? "text-gray-900" : "text-gray-400"}`}
                     >
@@ -293,7 +294,7 @@ export function InventorySheet({
             <button
               type="button"
               onClick={() => setLocationsPickerOpen(true)}
-              className="text-xs font-medium text-gray-700 border border-gray-300 rounded-full px-3.5 py-2 transition-transform duration-150 active:scale-95"
+              className="text-xs font-medium text-gray-700 border border-gray-400 rounded-full px-3.5 py-2 transition-transform duration-150 active:scale-95"
             >
               Edit locations
             </button>
@@ -316,14 +317,14 @@ export function InventorySheet({
               {selectedLocations.map((loc) => (
                 <div
                   key={loc.id}
-                  className="flex items-center justify-between gap-3 rounded-xl border border-gray-300 bg-white px-3.5 py-3 animate-in fade-in slide-in-from-top-1 duration-200"
+                  className="flex items-center justify-between gap-3 rounded-xl border border-gray-400 bg-white px-3.5 py-3 animate-in fade-in slide-in-from-top-1 duration-200"
                 >
                   <span className="text-[15px] text-gray-900">{loc.name}</span>
                   <div className="flex items-center gap-3">
                     <button
                       type="button"
                       onClick={() => setQuantity(loc.id, (locationQuantities[loc.id] ?? 0) - 1)}
-                      className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 transition-transform duration-150 active:scale-90"
+                      className="w-8 h-8 rounded-full bg-gray-100 border border-gray-400 flex items-center justify-center text-gray-600 transition-transform duration-150 active:scale-90"
                     >
                       −
                     </button>
@@ -337,12 +338,12 @@ export function InventorySheet({
                       }
                       onFocus={(e) => e.target.select()}
                       aria-label={`${loc.name} quantity`}
-                      className="w-12 text-center text-[15px] font-medium bg-gray-100 rounded-full py-1 outline-none transition-shadow duration-150 focus:ring-1 focus:ring-gray-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      className="w-12 text-center text-[15px] font-medium bg-gray-100 border border-gray-400 rounded-full py-1 outline-none transition-shadow duration-150 focus:ring-1 focus:ring-gray-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
                     <button
                       type="button"
                       onClick={() => setQuantity(loc.id, (locationQuantities[loc.id] ?? 0) + 1)}
-                      className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 transition-transform duration-150 active:scale-90"
+                      className="w-8 h-8 rounded-full bg-gray-100 border border-gray-400 flex items-center justify-center text-gray-600 transition-transform duration-150 active:scale-90"
                     >
                       +
                     </button>
@@ -377,7 +378,7 @@ export function InventorySheet({
         />
       )}
 
-      <div className="sticky bottom-0 z-20 px-4 pt-3 oak-safe-bottom border-t border-gray-300 bg-white shrink-0">
+      <div className="sticky bottom-0 z-20 px-4 pt-3 oak-safe-bottom border-t border-gray-400 bg-white shrink-0">
         <button
           type="button"
           onClick={handleSave}
@@ -437,7 +438,7 @@ function InventoryLocationsPicker({
       onClose={onClose}
       className="sheet-column bg-white flex flex-col animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
     >
-      <div className="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-gray-300 px-4 h-14 flex items-center justify-between shrink-0">
+      <div className="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-gray-400 px-4 h-14 flex items-center justify-between shrink-0">
         <button
           onClick={onClose}
           className="p-1 -ml-1 transition-transform duration-150 active:scale-90"
@@ -478,11 +479,11 @@ function InventoryLocationsPicker({
                 key={loc.id}
                 type="button"
                 onClick={() => onToggle(loc.id)}
-                className="w-full flex items-center gap-3 px-4 py-3.5 border-b border-gray-300 text-left transition-colors duration-150 active:bg-gray-50"
+                className="w-full flex items-center gap-3 px-4 py-3.5 border-b border-gray-400 text-left transition-colors duration-150 active:bg-gray-50"
               >
                 <span
                   className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition-colors duration-150 ${
-                    checked ? "bg-black border-black" : "border-gray-300 bg-white"
+                    checked ? "bg-black border-black" : "border-gray-400 bg-white"
                   }`}
                 >
                   {checked && <Check size={13} className="text-white oak-motion-pop" />}
@@ -495,7 +496,7 @@ function InventoryLocationsPicker({
       </div>
 
       {locations.length > 0 && (
-        <div className="sticky bottom-0 z-20 px-4 pt-3 oak-safe-bottom border-t border-gray-300 bg-white shrink-0">
+        <div className="sticky bottom-0 z-20 px-4 pt-3 oak-safe-bottom border-t border-gray-400 bg-white shrink-0">
           <button
             type="button"
             onClick={onClose}

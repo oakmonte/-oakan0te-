@@ -15,7 +15,7 @@ function StepNumber({ n }: { n: number }) {
   // circles down the left edge competed with the status marks, which are the
   // thing on this screen actually carrying information.
   return (
-    <span className="w-5 h-5 rounded-full bg-sd-soft text-sd-ink-muted text-[11px] font-medium flex items-center justify-center shrink-0 mt-0.5">
+    <span className="w-5 h-5 rounded-full bg-sd-soft text-sd-ink ring-1 ring-sd-line text-[11px] font-semibold flex items-center justify-center shrink-0 mt-0.5">
       {n}
     </span>
   );

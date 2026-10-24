@@ -63,7 +63,9 @@ export type ThemeId =
   | "lagos-night"
   | "raw-denim"
   | "chrome"
-  | "olive-grove";
+  | "olive-grove"
+  | "paper"
+  | "linen-white";
 
 export type Theme = {
   id: ThemeId;
@@ -195,11 +197,15 @@ const ALL_THEMES: Theme[] = [
   colors: [...THEME_COLORS[theme.id], isDark(theme.background) ? "dark" : "light"],
 }));
 
-// Where a theme sits in the picker. Ice leads and Motion Grid is third (a
-// product decision, 2026-10-10); everything else keeps catalogue order.
+// Where a theme sits in the picker. The white themes lead (Diadem,
+// 2026-10-24), then Ice, with Motion Grid two after it (2026-10-10);
+// everything else keeps catalogue order.
 const PINNED: { id: ThemeId; index: number }[] = [
-  { id: "ice", index: 0 },
-  { id: "motion", index: 2 },
+  { id: "paper", index: 0 },
+  { id: "linen-white", index: 1 },
+  { id: "porcelain", index: 2 },
+  { id: "ice", index: 3 },
+  { id: "motion", index: 5 },
 ];
 
 export const THEMES: Theme[] = (() => {
