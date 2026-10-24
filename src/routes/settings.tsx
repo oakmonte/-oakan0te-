@@ -53,14 +53,14 @@ function SettingsPage() {
 
   return (
     <div className="min-h-screen bg-black text-white" style={{ fontFamily: SF_PRO }}>
-      <div className="flex items-center justify-center relative px-6 pt-4 pb-4">
+      <div className="flex items-center justify-center relative px-6 pt-4 pb-4 md:pt-8 md:pb-6">
         {/* `to: ".."` used to resolve to `/` — the marketing landing page —
             because these are flat top-level routes, not nested ones. */}
         <BackButton className="absolute left-6" />
-        <h1 className="text-[16px] font-bold">Settings &amp; Privacy</h1>
+        <h1 className="text-[16px] font-bold md:text-[22px]">Settings &amp; Privacy</h1>
       </div>
 
-      <main className="px-4 pt-2 pb-16 max-w-md mx-auto space-y-7">
+      <main className="px-4 pt-2 pb-16 max-w-md mx-auto space-y-7 md:max-w-[520px] md:[zoom:1.3]">
         <Section title="Account">
           <Panel>
             <FieldRow label="Email">

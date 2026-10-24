@@ -379,6 +379,13 @@ function CreatePage() {
   // other capture (photo, or a video whose filter is matrix-only) never
   // touches this; it stays false and navigates on immediately.
   const [isGradingVideo, setIsGradingVideo] = useState(false);
+  // From the moment a photo is taken or a recording is let go until the edit
+  // page takes over: encoding a frame (or finalising a clip) is slow on a phone
+  // or tablet, and a shutter that just sits there reads as "did it work?". The
+  // shutter bounces and spins through it instead, and ignores taps.
+  const [finishing, setFinishing] = useState(false);
+  // A finger is down on the shutter: it shrinks under the thumb at once.
+  const [shutterPressed, setShutterPressed] = useState(false);
   const [gradingProgress, setGradingProgress] = useState(0);
 
   // --- Multi-cell layout capture ---
@@ -762,6 +769,7 @@ function CreatePage() {
       console.warn("Camera not ready yet", video.readyState, video.videoWidth);
       return;
     }
+    setFinishing(true);
     const { sx, sy, sw, sh } = applyZoomToCrop(
       getCropRect(video.videoWidth, video.videoHeight, RATIO_ASPECT[ratio]),
       cssZoomScale,
@@ -769,7 +777,10 @@ function CreatePage() {
     canvas.width = sw;
     canvas.height = sh;
     const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    if (!ctx) {
+      setFinishing(false);
+      return;
+    }
 
     if (facing === "user") {
       ctx.translate(canvas.width, 0);
@@ -782,7 +793,10 @@ function CreatePage() {
 
     canvas.toBlob(
       (blob) => {
-        if (!blob) return;
+        if (!blob) {
+          setFinishing(false);
+          return;
+        }
         const url = URL.createObjectURL(blob);
         setPendingCapture({ type: "photo", blob, url });
         navigate({ to: "/create/after-shot" });
@@ -1252,6 +1266,7 @@ function CreatePage() {
     if (!recorder || recorder.state === "inactive") return;
     const wait = MIN_RECORD_MS - (performance.now() - recordStartedAtRef.current);
     // The UI lets go at once either way; only the recorder is held open.
+    setFinishing(true);
     setIsRecording(false);
     setRecordingLocked(false);
     if (wait > 0) {
@@ -1453,6 +1468,7 @@ function CreatePage() {
   }, [isRecording, endHold, stopRecording]);
 
   const handleCaptureTap = useCallback(() => {
+    if (finishing) return;
     // Swallow the click that closes a hold. Keyboard activation still reaches
     // here, because it never went through the pointer handlers.
     if (suppressClickRef.current) {
@@ -1471,7 +1487,7 @@ function CreatePage() {
     }
     if (timer > 0) startCountdown("photo");
     else performCapture("photo");
-  }, [capturePhase, isRecording, timer, performCapture, startCountdown, stopRecording]);
+  }, [finishing, capturePhase, isRecording, timer, performCapture, startCountdown, stopRecording]);
 
   return (
     <div
@@ -1481,6 +1497,8 @@ function CreatePage() {
     >
       <style>{`
         .oak-filter-strip::-webkit-scrollbar { display: none; }
+        @keyframes oak-shutter-pop { 0% { transform: scale(0.9); } 35% { transform: scale(1.14); } 65% { transform: scale(0.96); } 100% { transform: scale(1); } }
+        @keyframes oak-shutter-spin { to { transform: rotate(360deg); } }
         @keyframes oak-record-progress { from { stroke-dashoffset: 100; } to { stroke-dashoffset: 0; } }
         @keyframes oak-fade-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
         .oak-filter-strip {
@@ -1955,15 +1973,53 @@ function CreatePage() {
               // Handed over to the recording ring outside the strip, which
               // can grow past the strip's box without being clipped by it.
               opacity: isRecording ? 0 : 1,
-              transition: "opacity 120ms ease-out",
+              transform: shutterPressed && !finishing ? "scale(0.9)" : "scale(1)",
+              transition: "opacity 120ms ease-out, transform 110ms ease-out",
+              animation: finishing ? "oak-shutter-pop 420ms ease-out" : undefined,
             }}
           ></div>
+          {finishing && (
+            // Still working: an arc circling the ring until the edit page opens.
+            <svg
+              className="pointer-events-none absolute"
+              style={{
+                top: 0,
+                left: 0,
+                width: CAPTURE_SIZE,
+                height: CAPTURE_SIZE,
+                animation: "oak-shutter-spin 0.8s linear infinite",
+              }}
+              viewBox="0 0 100 100"
+              aria-label="Saving"
+              role="status"
+            >
+              <circle
+                cx="50"
+                cy="50"
+                r="47"
+                fill="none"
+                stroke="#ffffff"
+                strokeWidth="6"
+                strokeLinecap="round"
+                strokeDasharray="70 230"
+              />
+            </svg>
+          )}
           <button
             onClick={handleCaptureTap}
-            onPointerDown={handleShutterDown}
+            onPointerDown={(e) => {
+              setShutterPressed(true);
+              handleShutterDown(e);
+            }}
             onPointerMove={handleShutterMove}
-            onPointerUp={endHold}
-            onPointerCancel={handleShutterCancel}
+            onPointerUp={() => {
+              setShutterPressed(false);
+              endHold();
+            }}
+            onPointerCancel={() => {
+              setShutterPressed(false);
+              handleShutterCancel();
+            }}
             onContextMenu={(e) => e.preventDefault()}
             aria-label={isRecording ? "Stop recording" : "Take photo, or hold to record video"}
             className="absolute rounded-full pointer-events-auto"
@@ -1978,6 +2034,7 @@ function CreatePage() {
               WebkitUserSelect: "none",
               userSelect: "none",
               WebkitTouchCallout: "none",
+              pointerEvents: finishing ? "none" : undefined,
             }}
           />
         </div>

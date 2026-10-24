@@ -61,12 +61,12 @@ const FOLDERS: { key: Folder; label: string }[] = [
   { key: "orders", label: "Orders" },
 ];
 
-/** md and up, the two-pane Messages layout. False on the server and until
+/** lg (1024px) and up, the two-pane Messages layout; a portrait tablet keeps the one-column list. False on the server and until
  *  mounted, so the first paint is the phone layout. */
 function useIsDesktop(): boolean {
   const [desktop, setDesktop] = useState(false);
   useEffect(() => {
-    const mq = window.matchMedia("(min-width: 768px)");
+    const mq = window.matchMedia("(min-width: 1024px)");
     const sync = () => setDesktop(mq.matches);
     sync();
     mq.addEventListener("change", sync);
@@ -562,7 +562,7 @@ export function MessagesView({
             className={
               desktop
                 ? "min-h-0 overflow-y-auto border-r border-chat-border pb-6"
-                : "mx-auto w-full max-w-[560px] md:border-x md:border-chat-border"
+                : "mx-auto w-full max-w-[560px] md:max-w-[680px] md:border-x md:border-chat-border"
             }
           >
             {/* ---------- header ---------- */}
