@@ -26,13 +26,14 @@ const TABS: Tab[] = ["for-you", "listed-items"];
 const SIDE_BY_SIDE_MIN = 900;
 // At or under this width the feed fills the whole box instead of taking the post's shape.
 const PHONE_MAX_W = 640;
-const PANEL_W = 400;
-const ARROWS_W = 112;
+const PANEL_W = 460;
+const ARROWS_W = 96;
 const GAP = 16;
-// The side-by-side cards float: room above, and below for the bottom nav.
-const PAD_TOP = 20;
-const PAD_BOTTOM = 82;
+// The side-by-side cards run to the bottom of the screen, behind the floating nav.
+const PAD_TOP = 14;
+const PAD_BOTTOM = 0;
 const PANEL_TITLE_H = 40;
+const FRAME_ASPECT = 9 / 16;
 
 // Same settle as the app's other pagers: quick, no bounce.
 const SETTLE = { type: "spring", stiffness: 420, damping: 40 } as const;
@@ -80,12 +81,10 @@ export function StorefrontFeed({
     return () => ro.disconnect();
   }, []);
 
-  // The column, and so each page, takes the shape of the post on screen: a
-  // landscape video gets a wide player, a square photo a square one, a tall
-  // screen recording a narrow one -- never letterboxed in a fixed 9:16. Full
-  // height, capped by the screen's width (so on a phone it's the whole
-  // screen), and within sane bounds while the media is still loading.
-  const aspect = Math.min(1.9, Math.max(0.45, activePost?.aspect ?? 9 / 16));
+  // The frame is always the same phone shape (9:16), full height; a post of any
+  // other shape sits whole inside it, on its own blurred backdrop, rather than
+  // the frame stretching to fit the post.
+  const aspect = FRAME_ASPECT;
   // Wide enough for the post and its products side by side.
   const wide = screen.w >= SIDE_BY_SIDE_MIN;
   const sideW = wide ? PANEL_W + ARROWS_W + GAP * 2 : 0;
@@ -203,23 +202,9 @@ export function StorefrontFeed({
     return (
       <div
         ref={containerRef}
-        className="relative flex h-full w-full items-start justify-center overflow-hidden bg-black text-white"
+        className="relative flex h-full w-full items-start justify-center overflow-hidden bg-[#1c1c1e] text-white"
         style={{ gap: GAP, paddingTop: PAD_TOP }}
       >
-        {activePost?.backdrop && (
-          <div
-            key={activePost.backdrop}
-            className="pointer-events-none absolute inset-0 animate-in fade-in duration-700"
-            aria-hidden
-          >
-            <img
-              src={activePost.backdrop}
-              alt=""
-              className="absolute inset-0 h-full w-full scale-125 object-cover opacity-60 blur-3xl"
-            />
-            <div className="absolute inset-0 bg-black/45" />
-          </div>
-        )}
         <div
           className="relative flex shrink-0 flex-col"
           style={{
@@ -288,24 +273,10 @@ export function StorefrontFeed({
     <div
       ref={containerRef}
       onWheel={handleWheel}
-      className="relative h-full w-full overflow-hidden bg-black text-white"
+      className="relative h-full w-full overflow-hidden bg-[#1c1c1e] text-white"
     >
       {/* The post on screen, blurred and dimmed, filling the screen around
           the column. Keyed so a new post fades in. */}
-      {framed && activePost?.backdrop && (
-        <div
-          key={activePost.backdrop}
-          className="pointer-events-none absolute inset-0 animate-in fade-in duration-700"
-          aria-hidden
-        >
-          <img
-            src={activePost.backdrop}
-            alt=""
-            className="absolute inset-0 h-full w-full scale-125 object-cover opacity-60 blur-3xl"
-          />
-          <div className="absolute inset-0 bg-black/45" />
-        </div>
-      )}
       <div
         className={`relative mx-auto h-full overflow-hidden bg-black ${
           framed ? "shadow-[0_0_80px_rgba(0,0,0,0.6)] ring-1 ring-white/10" : ""

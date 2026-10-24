@@ -1062,6 +1062,9 @@ function FeedPostCard({
   const videoRef = useRef<HTMLVideoElement>(null);
   // The post's own shape, read off the media as it loads.
   const [aspect, setAspect] = useState<number | null>(null);
+  // A post shown whole in a box of a different shape leaves empty bands at its
+  // sides; the rail and caption shift in by that much so they sit ON the post.
+  const [sideInset, setSideInset] = useState(0);
   const audioRef = useRef<HTMLAudioElement>(null);
   // Every video in this feed is muted, so a post's chosen sound is the only
   // audio the app ever produces — and the first one is therefore the one
@@ -1171,6 +1174,21 @@ function FeedPostCard({
   // on top of it, so the storefront feed lifts its chrome further.
   const chromeBottom = `calc(env(safe-area-inset-bottom) + ${storefront ? 150 : overNav ? 88 : 20}px)`;
   const mediaFit = fitContain ? "object-contain" : "object-cover";
+  useEffect(() => {
+    const el = cardRef.current;
+    if (!el || !fitContain || railOutside || !aspect) {
+      setSideInset(0);
+      return;
+    }
+    const measure = () => {
+      const mediaW = Math.min(el.clientWidth, el.clientHeight * aspect);
+      setSideInset(Math.max(0, Math.round((el.clientWidth - mediaW) / 2)));
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [fitContain, railOutside, aspect]);
   const firstMedia = post.media[0];
   const backdropUrl =
     post.thumbnail_url ??
@@ -1525,8 +1543,8 @@ function FeedPostCard({
       </AnimatePresence>
 
       <div
-        className="absolute right-1.5 flex flex-col items-center text-white"
-        style={{ bottom: chromeBottom }}
+        className="absolute flex flex-col items-center text-white"
+        style={{ bottom: chromeBottom, right: 6 + sideInset }}
       >
         {/* Avatar always sits above the action rail, in line with it — only
             the follow +/check badge is conditional on not being your own post.
@@ -1657,8 +1675,12 @@ function FeedPostCard({
       </div>
 
       <div
-        className="absolute left-4"
-        style={{ bottom: chromeBottom, right: railOutside ? RAIL_OUTSIDE_W + 16 : 72 }}
+        className="absolute"
+        style={{
+          bottom: chromeBottom,
+          left: 16 + sideInset,
+          right: (railOutside ? RAIL_OUTSIDE_W + 16 : 72) + sideInset,
+        }}
       >
         {isCarousel && <CarouselDots index={slide} total={post.media.length} />}
         {SOCIAL && (
