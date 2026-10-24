@@ -77,7 +77,7 @@ export function ImageGallery({
     <div>
       <div
         ref={bigRef}
-        className="w-full aspect-square rounded-xl overflow-x-auto flex snap-x snap-mandatory bg-gray-100"
+        className="mx-auto w-[72%] max-w-[340px] aspect-square rounded-xl overflow-x-auto flex snap-x snap-mandatory bg-gray-100"
         style={{ scrollbarWidth: "none" }}
         onScroll={(e) => {
           const el = e.currentTarget;

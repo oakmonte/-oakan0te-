@@ -1,4 +1,5 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
+import { ListSkeleton } from "@/components/store/ListSkeleton";
 import { useActiveStoreId } from "@/hooks/use-own-store";
 import { DROPS_ENABLED } from "@/lib/drops";
 import { DropForm } from "@/components/store/drops/DropForm";
@@ -13,7 +14,7 @@ export const Route = createFileRoute("/store/drops_/new")({
 
 function NewDrop() {
   const { storeId, loading } = useActiveStoreId();
-  if (loading) return <div className="px-4 py-8 text-sm text-sd-ink-faint">Loading…</div>;
+  if (loading) return <ListSkeleton />;
   if (!storeId)
     return (
       <div className="px-4 py-8 text-sm text-sd-ink-faint">No store found on this account.</div>

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { recall, remember } from "@/lib/remembered";
+import { recall, remember, rememberedKeys } from "@/lib/remembered";
 import { authedFetch } from "@/lib/authed-fetch";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { hasInstalledApp } from "@/lib/installed-app";
@@ -14,6 +14,19 @@ type RememberedSetup = {
   themeIdSet: boolean;
   onboardedAt: string | null;
 };
+
+/** Called the moment a payout account saves: the setup checklist's remembered
+ *  answers are updated at once, so going back to the dashboard shows the step
+ *  as saved ("Pending verification") straight away instead of the unsaved card
+ *  until /api/store/payout answers. The fetch then confirms it in the
+ *  background. (The payout endpoint works from the session's store, so every
+ *  remembered store of this account is updated.) */
+export function markPayoutSaved(status: string | null) {
+  for (const key of rememberedKeys("setup:")) {
+    const c = recall<RememberedSetup>(key);
+    if (c) remember(key, { ...c, payoutSet: true, payoutStatus: status });
+  }
+}
 
 /** Published posts the "Post content" step needs before it counts as done. */
 export const POSTS_NEEDED = 2;

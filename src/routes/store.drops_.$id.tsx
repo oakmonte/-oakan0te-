@@ -1,4 +1,5 @@
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import { ListSkeleton } from "@/components/store/ListSkeleton";
 import { useEffect, useState } from "react";
 import { Trash2 } from "lucide-react";
 import { useActiveStoreId } from "@/hooks/use-own-store";
@@ -43,8 +44,7 @@ function EditDrop() {
     };
   }, [id, storeId]);
 
-  if (loading || (storeId && initial === undefined))
-    return <div className="px-4 py-8 text-sm text-sd-ink-faint">Loading…</div>;
+  if (loading || (storeId && initial === undefined)) return <ListSkeleton />;
   if (!storeId || !initial)
     return <div className="px-4 py-8 text-sm text-sd-ink-faint">Drop not found.</div>;
 

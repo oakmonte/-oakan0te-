@@ -1,4 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
+import { ListSkeleton } from "@/components/store/ListSkeleton";
 import { useEffect, useState } from "react";
 import { Plus, ImageIcon, Check, Trash2, X } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
@@ -86,7 +87,7 @@ export function DropsPanel() {
     setSelectedIds(new Set());
   }
 
-  if (storeLoading) return <div className="px-4 py-8 text-sm text-sd-ink-faint">Loading…</div>;
+  if (storeLoading) return <ListSkeleton />;
   if (!storeId)
     return (
       <div className="px-4 py-8 text-sm text-sd-ink-faint">No store found on this account.</div>
@@ -119,7 +120,7 @@ export function DropsPanel() {
       )}
 
       {drops === null ? (
-        <div className="text-[14px] text-sd-ink-faint text-center py-12">Loading…</div>
+        <ListSkeleton />
       ) : drops.length === 0 ? (
         <div className="flex flex-col items-center gap-4 py-12 animate-in fade-in duration-300">
           <p className="text-[15px] text-sd-ink-faint text-center">No drops yet.</p>

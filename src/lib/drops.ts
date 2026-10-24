@@ -1,11 +1,9 @@
 import { supabase } from "@/lib/integrations/my-supabase/client";
 
-// Drops are built but switched off until sellers can actually take payment:
-// a timed drop announcing products nobody can buy yet is worse than none.
-// While false, the Drops tab says "available soon", /store/drops/* redirects to the
-// products list, and no storefront shows a drop banner. Flip to true to
-// launch -- nothing else needs to change.
-export const DROPS_ENABLED = false;
+// Drops: switched on 2026-10-24 (Diadem) to work on them. Set false to park
+// them again: the Drops tab then says "available soon", /store/drops/*
+// redirects to the products list, and no storefront shows a drop banner.
+export const DROPS_ENABLED = true;
 
 // Mirrors deleteCollection in src/lib/collections.ts, minus the "with
 // products" variant -- a drop is only ever a lens over existing

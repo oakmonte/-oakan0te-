@@ -43,3 +43,17 @@ export function forgetRemembered() {
     // nothing to clear
   }
 }
+
+/** The keys (without the prefix) of everything remembered under `prefix`. */
+export function rememberedKeys(prefix: string): string[] {
+  const keys: string[] = [];
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k?.startsWith(PREFIX + prefix)) keys.push(k.slice(PREFIX.length));
+    }
+  } catch {
+    // Blocked storage: nothing remembered.
+  }
+  return keys;
+}

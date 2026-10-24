@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { markPayoutSaved } from "@/hooks/use-store-setup-status";
 import { useHideStoreNav } from "@/components/store/store-nav";
 import { useEffect, useState } from "react";
 import { Landmark, Clock, Check } from "lucide-react";
@@ -141,6 +142,7 @@ function FinancePage() {
     }
 
     setAccount(body.account ?? null);
+    markPayoutSaved(body.account?.status ?? "pending");
     setSheetOpen(false);
   }
 

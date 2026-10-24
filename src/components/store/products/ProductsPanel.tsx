@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { ListSkeleton } from "@/components/store/ListSkeleton";
 import { recall, remember } from "@/lib/remembered";
 import { Search, Plus, Download, Check, Trash2, X } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
@@ -231,7 +232,7 @@ export function ProductsPanel({ checklist }: { checklist?: boolean }) {
     }
   }
 
-  if (storeLoading) return <div className="px-4 py-8 text-sm text-sd-ink-faint">Loading…</div>;
+  if (storeLoading) return <ListSkeleton />;
   if (!storeId)
     return (
       <div className="px-4 py-8 text-sm text-sd-ink-faint">No store found on this account.</div>
@@ -335,7 +336,7 @@ export function ProductsPanel({ checklist }: { checklist?: boolean }) {
       )}
 
       {listLoading ? (
-        <div className="text-[14px] text-sd-ink-faint text-center py-12">Loading…</div>
+        <ListSkeleton />
       ) : products.length === 0 ? (
         activeTab === "All" && !search.trim() ? (
           // Genuinely nothing listed yet (not just this tab/search coming up

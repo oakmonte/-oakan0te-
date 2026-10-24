@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { ListSkeleton } from "@/components/store/ListSkeleton";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronLeft, ImageIcon, MoreHorizontal, Plus } from "lucide-react";
 import { BackButton } from "@/components/BackButton";
@@ -252,8 +253,7 @@ function CollectionDetail() {
     }
   }
 
-  if (collection === undefined)
-    return <div className="px-4 py-8 text-sm text-sd-ink-faint">Loading…</div>;
+  if (collection === undefined) return <ListSkeleton />;
   if (collection === null)
     return <div className="px-4 py-8 text-sm text-sd-ink-faint">Collection not found.</div>;
 
@@ -345,9 +345,7 @@ function CollectionDetail() {
             </button>
           </div>
           {products === null ? (
-            <div className="border-t border-sd-line py-10 text-center text-sm text-sd-ink-faint">
-              Loading…
-            </div>
+            <ListSkeleton rows={3} />
           ) : products.length === 0 ? (
             <div className="border-t border-sd-line py-10 text-center text-sm text-sd-ink-faint animate-in fade-in duration-300">
               No products in this collection yet.

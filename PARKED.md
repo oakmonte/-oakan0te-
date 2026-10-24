@@ -16,7 +16,6 @@ When you park something new, add it here in the same commit.
 | Offline videos | `OFFLINE_VIDEOS_ENABLED`, `src/lib/features.ts` | "Save for offline" in a post's share sheet and the /offline-videos page. |
 | Necessities | `NECESSITIES_ENABLED`, `src/lib/product-form-flags.ts` | Material, colours, weight, size chart and linked content on the product form. |
 | Product tags | `TAGS_ENABLED`, `src/lib/product-form-flags.ts` | Tags on the product form. |
-| Drops | `DROPS_ENABLED`, `src/lib/drops.ts` | The Drops tab, /store/drops/*, and the storefront's drop banner. Wait until sellers can take payment. |
 | Follower count and community footer | `RETIRED_BLOCKS`, `src/components/store-themes/layout-presets.ts` | Remove `"stats"` / `"footer"` from the list to bring those storefront blocks back to every theme. |
 
 ## Commented out (uncomment the block)
