@@ -1,4 +1,4 @@
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useRouter } from "@tanstack/react-router";
 import { Palette, Wallet, Package, MapPin, Smartphone, Clapperboard, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useActiveStoreId } from "@/hooks/use-own-store";
@@ -92,7 +92,17 @@ function StatusLabel({ state }: { state: StepState }) {
  *  after the first had already resolved. */
 export function SetupChecklist({ status }: { status: StoreSetupStatus }) {
   const navigate = useNavigate();
+  const router = useRouter();
   const { storeId } = useActiveStoreId();
+  // "Post content" opens the camera, the app's heaviest chunk: start fetching
+  // it in the background as soon as the checklist is up (once the page has
+  // settled), so the tap opens it at once instead of after a download.
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      void router.preloadRoute({ to: "/create" }).catch(() => {});
+    }, 600);
+    return () => window.clearTimeout(id);
+  }, [router]);
   // Raw stores.theme_id (via themeIdSet below), not useStoreTheme()'s value —
   // that hook defaults an unset theme_id to "motion" client-side (see
   // store-profile page's own comment on this), so it's never null and can't
