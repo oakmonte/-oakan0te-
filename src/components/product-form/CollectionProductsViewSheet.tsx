@@ -62,7 +62,7 @@ export function CollectionProductsViewSheet({
       onClose={onClose}
       className="sheet-column bg-white flex flex-col animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
     >
-      <div className="sticky top-0 z-20 shrink-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
+      <div className="sticky top-0 z-20 shrink-0 bg-white/95 backdrop-blur border-b border-gray-300 px-4 h-14 flex items-center justify-between">
         <button
           onClick={onClose}
           className="text-sm text-gray-500 flex items-center gap-0.5 -ml-1"
@@ -88,7 +88,7 @@ export function CollectionProductsViewSheet({
           {products.map((p) => (
             <div
               key={p.id}
-              className="w-full flex items-center gap-3 border border-gray-100 rounded-xl p-3"
+              className="w-full flex items-center gap-3 border border-gray-300 rounded-xl p-3"
             >
               <span className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
                 {p.main_image_url ? (

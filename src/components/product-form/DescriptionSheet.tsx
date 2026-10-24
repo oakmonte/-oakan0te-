@@ -373,7 +373,7 @@ export function DescriptionSheet({
         .oak-description-editor a { color: #2563EB; text-decoration: underline; }
       `}</style>
 
-      <div className="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
+      <div className="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-gray-300 px-4 h-14 flex items-center justify-between">
         <button onClick={onClose} type="button" className="text-sm text-gray-500">
           Cancel
         </button>
@@ -425,7 +425,7 @@ export function DescriptionSheet({
           slides, so a tap never moves the button next to it. */}
       <div
         ref={toolbarRef}
-        className={`fixed inset-x-0 bottom-0 z-30 border-t border-gray-100 bg-white/95 backdrop-blur px-2 pt-1.5 transition-opacity duration-150 ${
+        className={`fixed inset-x-0 bottom-0 z-30 border-t border-gray-300 bg-white/95 backdrop-blur px-2 pt-1.5 transition-opacity duration-150 ${
           scrolling ? "opacity-0 pointer-events-none" : "opacity-100"
         }`}
         style={{

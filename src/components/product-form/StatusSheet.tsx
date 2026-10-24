@@ -20,7 +20,7 @@ export function StatusSheet({
             key={s}
             type="button"
             onClick={() => onSelect(s)}
-            className="w-full flex items-center justify-between py-3 border-b border-gray-50 last:border-0 oak-motion-control"
+            className="w-full flex items-center justify-between py-3 border-b border-gray-300 last:border-0 oak-motion-control"
           >
             <span className="text-[15px] text-gray-900">
               {s === "active" ? "Active" : "Inactive"}

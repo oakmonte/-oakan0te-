@@ -75,7 +75,7 @@ export function MaterialSheet({
       onClose={onClose}
       className="sheet-column bg-white flex flex-col animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
     >
-      <div className="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between shrink-0">
+      <div className="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-gray-300 px-4 h-14 flex items-center justify-between shrink-0">
         <button onClick={onClose} type="button" className="p-1 -ml-1">
           <X size={20} className="text-gray-500" />
         </button>
@@ -93,7 +93,7 @@ export function MaterialSheet({
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-4">
-        <div className="flex items-center gap-2 rounded-xl border border-gray-200 px-3.5 py-3 focus-within:border-gray-400">
+        <div className="flex items-center gap-2 rounded-xl border border-gray-300 px-3.5 py-3 focus-within:border-gray-400">
           <Search size={16} className="text-gray-400 shrink-0" />
           <input
             value={query}

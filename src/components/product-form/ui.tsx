@@ -21,7 +21,7 @@ export function TextField({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="text-base border border-gray-200 rounded-lg px-2 py-2 outline-none"
+        className="text-base border border-gray-300 rounded-lg px-2 py-2 outline-none"
       />
     </label>
   );
@@ -47,7 +47,7 @@ export function StubRow({
       type="button"
       onClick={onClick}
       className={`w-full flex items-center justify-between px-4 py-4 ${
-        isLast ? "" : "border-b-8 border-gray-50"
+        isLast ? "" : "border-b-8 border-gray-300"
       }`}
     >
       <span className="flex items-center gap-3 text-[15px] text-gray-900">
@@ -75,7 +75,7 @@ export function ExpandRow({
   children: React.ReactNode;
 }) {
   return (
-    <div className="border-b-8 border-gray-50">
+    <div className="border-b-8 border-gray-300">
       <button
         type="button"
         onClick={onToggle}

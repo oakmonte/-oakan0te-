@@ -84,7 +84,7 @@ export function TagsSheet({
       onClose={onClose}
       className="sheet-column bg-white flex flex-col animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
     >
-      <div className="sticky top-0 z-20 shrink-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
+      <div className="sticky top-0 z-20 shrink-0 bg-white/95 backdrop-blur border-b border-gray-300 px-4 h-14 flex items-center justify-between">
         <button onClick={onClose} type="button" className="p-1 -ml-1">
           <X size={20} className="text-gray-500" />
         </button>
@@ -124,7 +124,7 @@ export function TagsSheet({
             type="button"
             onClick={createTag}
             disabled={creating}
-            className="w-full flex items-center gap-3 px-4 py-3 border-b border-gray-50 text-left"
+            className="w-full flex items-center gap-3 px-4 py-3 border-b border-gray-300 text-left"
           >
             <span className="w-5 h-5 rounded-md border border-dashed border-gray-300 shrink-0" />
             <span className="text-[15px] text-gray-900">
@@ -142,7 +142,7 @@ export function TagsSheet({
                 type="button"
                 onClick={() => onToggle(t.id)}
                 aria-label={`${isSelected ? "Deselect" : "Select"} ${t.title}`}
-                className="w-full flex items-center gap-3 px-4 py-3 border-b border-gray-50 text-left"
+                className="w-full flex items-center gap-3 px-4 py-3 border-b border-gray-300 text-left"
               >
                 <span
                   className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition-colors duration-200 ${
@@ -193,13 +193,13 @@ export function TagsSheet({
             className="bg-white rounded-2xl w-full max-w-xs overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-[var(--duration-fast)] ease-[var(--ease-smooth-out)]"
             onClick={(e) => e.stopPropagation()}
           >
-            <p className="text-center text-sm font-semibold text-gray-900 py-3 border-b border-gray-100">
+            <p className="text-center text-sm font-semibold text-gray-900 py-3 border-b border-gray-300">
               Actions
             </p>
             <button
               type="button"
               onClick={selectAll}
-              className="w-full px-4 py-3.5 text-[15px] text-gray-900 text-center border-b border-gray-100"
+              className="w-full px-4 py-3.5 text-[15px] text-gray-900 text-center border-b border-gray-300"
             >
               Select all
             </button>
@@ -207,7 +207,7 @@ export function TagsSheet({
               type="button"
               onClick={clearAll}
               disabled={selectedIds.length === 0}
-              className="w-full px-4 py-3.5 text-[15px] text-gray-900 text-center border-b border-gray-100 disabled:text-gray-300"
+              className="w-full px-4 py-3.5 text-[15px] text-gray-900 text-center border-b border-gray-300 disabled:text-gray-300"
             >
               Deselect all
             </button>

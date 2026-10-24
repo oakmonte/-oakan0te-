@@ -110,7 +110,11 @@ export function StorefrontFeed({
     const scroller = Array.from(feedRef.current?.querySelectorAll<HTMLElement>("div") ?? []).find(
       (el) => el.style.scrollSnapType === "y mandatory",
     );
-    scroller?.scrollBy({ top: dir * scroller.clientHeight, behavior: "smooth" });
+    if (!scroller) return;
+    // Endless both ways: up from the first post jumps (invisibly) to its copy
+    // further down, so the arrow carries on to the last post.
+    if (dir === -1 && scroller.scrollTop < 2) scroller.scrollTop = scroller.scrollHeight / 2;
+    scroller.scrollBy({ top: dir * scroller.clientHeight, behavior: "smooth" });
   }
 
   // Settle on the current page whenever it (or the width) changes.
@@ -223,6 +227,7 @@ export function StorefrontFeed({
             <PostFeed
               mode="embedded"
               scope={{ type: "author", userId: ownerId }}
+              loop
               onActivePost={setActivePost}
               storePicture={storePicture}
               railOutside
@@ -311,6 +316,7 @@ export function StorefrontFeed({
             <PostFeed
               mode="embedded"
               scope={{ type: "author", userId: ownerId }}
+              loop
               onActivePost={setActivePost}
               onSwipePastEnd={() => setTab("listed-items")}
               storePicture={storePicture}

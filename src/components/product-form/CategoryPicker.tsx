@@ -210,7 +210,7 @@ function CategoryLevel({
       onClose={onBack}
       className="sheet-column bg-white flex flex-col animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
     >
-      <div className="sticky top-0 z-20 shrink-0 bg-white/95 backdrop-blur border-b border-gray-200 px-4 h-14 flex items-center gap-3">
+      <div className="sticky top-0 z-20 shrink-0 bg-white/95 backdrop-blur border-b border-gray-300 px-4 h-14 flex items-center gap-3">
         <button
           onClick={onBack}
           className="-ml-1 grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gray-100 transition-transform duration-150 active:scale-95 active:bg-gray-200"
@@ -219,7 +219,7 @@ function CategoryLevel({
         >
           <ChevronLeft size={22} className="text-gray-950" />
         </button>
-        <span className="font-semibold text-[16px] text-gray-950 flex-1 text-center -ml-12">
+        <span className="pointer-events-none font-semibold text-[16px] text-gray-950 flex-1 text-center -ml-12">
           {current.name}
         </span>
       </div>
@@ -348,7 +348,7 @@ function CreateCategorySheet({
       onClose={onCancel}
       className="sheet-column bg-white flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-[var(--duration-fast)] ease-[var(--ease-smooth-out)]"
     >
-      <div className="sticky top-0 z-20 shrink-0 border-b border-gray-200 px-4 h-14 flex items-center">
+      <div className="sticky top-0 z-20 shrink-0 border-b border-gray-300 px-4 h-14 flex items-center">
         <button type="button" onClick={onCancel} className="text-[15px] text-gray-700 py-2 pr-2">
           Cancel
         </button>

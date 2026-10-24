@@ -38,7 +38,7 @@ export function NecessitiesWarningDialog({
           <button
             type="button"
             onClick={onReview}
-            className="w-full text-center rounded-xl py-3.5 text-sm font-medium border border-gray-200 text-gray-900"
+            className="w-full text-center rounded-xl py-3.5 text-sm font-medium border border-gray-300 text-gray-900"
           >
             {reviewLabel}
           </button>

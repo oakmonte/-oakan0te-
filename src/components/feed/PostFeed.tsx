@@ -315,6 +315,7 @@ export function PostFeed({
   onSwipePastEnd,
   storePicture,
   railOutside = false,
+  loop = false,
 }: {
   scope: FeedScope;
   /** A storefront's feed shows the store's picture on the rail, not the
@@ -332,6 +333,10 @@ export function PostFeed({
    *  own, instead of over it. The post is drawn rounded, RAIL_OUTSIDE_W short
    *  of the feed's width. */
   railOutside?: boolean;
+  /** Endless: past the last post the feed carries on from the first. The posts
+   *  are drawn twice and the scroll is moved back by one copy, invisibly, the
+   *  moment it reaches the second copy -- the snap points line up exactly. */
+  loop?: boolean;
   /** Called with whichever post is currently filling the screen, including on
    *  every scroll to a new one. Explore uses it to keep its Listed items tab
    *  pointed at the post you were just looking at. */
@@ -374,6 +379,8 @@ export function PostFeed({
       ?.querySelector(`[data-post-id="${initialPostId}"]`)
       ?.scrollIntoView({ block: "start" });
   }, [initialPostId, posts]);
+
+  const looping = loop && !!posts && posts.length > 1;
 
   // `relative` on the embedded shell matters: the inner layers are
   // `absolute inset-0`, and embedded mode has no `fixed` to position against.
@@ -576,10 +583,19 @@ export function PostFeed({
             ref={containerRef}
             className="h-full w-full overflow-y-auto"
             style={{ scrollSnapType: "y mandatory" }}
+            onScroll={
+              looping
+                ? (e) => {
+                    const el = e.currentTarget;
+                    const copy = posts.length * el.clientHeight;
+                    if (el.scrollTop >= copy - 1) el.scrollTop -= copy;
+                  }
+                : undefined
+            }
           >
-            {posts.map((post) => (
+            {(looping ? [...posts, ...posts] : posts).map((post, i) => (
               <FeedPostCard
-                key={post.id}
+                key={i < posts.length ? post.id : `${post.id}-again`}
                 post={post}
                 viewerId={viewerId}
                 isProfileViewer={scope.type === "user"}

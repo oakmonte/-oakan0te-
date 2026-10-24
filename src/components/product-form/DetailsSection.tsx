@@ -33,7 +33,7 @@ export function DetailsSection({
   const hasDescription = descriptionShort.trim().length > 0;
 
   return (
-    <div className={`px-4 py-4 ${noDivider ? "" : "border-b-8 border-gray-50"}`}>
+    <div className={`px-4 py-4 ${noDivider ? "" : "border-b-8 border-gray-300"}`}>
       <input
         value={title}
         onChange={(e) => setTitle(e.target.value)}

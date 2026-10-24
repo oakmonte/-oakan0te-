@@ -10,3 +10,8 @@ export const WARDROBE_ENABLED = false;
  *  behind it (lib/offline-videos.ts). Parked: storefront buyers get "Save
  *  video" (watermarked, to their gallery) instead. */
 export const OFFLINE_VIDEOS_ENABLED = false;
+
+/** The Identifiers card (SKU and barcodes) on every inventory page -- a plain
+ *  product and each variant alike. Parked to keep listing simple; existing
+ *  SKUs and barcodes are kept and still saved, just not shown. */
+export const IDENTIFIERS_ENABLED = false;

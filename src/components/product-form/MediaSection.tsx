@@ -133,7 +133,7 @@ export function MediaSection({
   }
 
   return (
-    <div className={`px-4 py-5 ${noDivider ? "" : "border-b-8 border-gray-50"}`}>
+    <div className={`px-4 py-5 ${noDivider ? "" : "border-b-8 border-gray-300"}`}>
       {filePicker.node}
 
       <ImageGallery

@@ -354,7 +354,9 @@ export function ProductPage({
               >
                 <div>
                   <div
-                    className={`mx-3 overflow-hidden rounded-3xl ${d("md:mx-0 md:rounded-2xl")}`}
+                    // Listed items (embedded): a smaller photo, so the name, price and buy
+                    // buttons sit higher in the panel.
+                    className={`${embedded ? "mx-auto w-[78%]" : "mx-3"} overflow-hidden rounded-3xl ${d("md:mx-0 md:rounded-2xl")}`}
                     style={{ background: look.tileBg }}
                   >
                     {photos.length > 0 ? (

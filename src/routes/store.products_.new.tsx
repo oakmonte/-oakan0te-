@@ -519,7 +519,7 @@ function NewProduct() {
 
   return (
     <div className="min-h-dvh bg-gray-50 pb-10">
-      <div className="sticky top-14 z-20 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
+      <div className="sticky top-14 z-20 bg-white/95 backdrop-blur border-b border-gray-300 px-4 h-14 flex items-center justify-between">
         <BackButton
           icon="chevron"
           size={18}
@@ -573,7 +573,7 @@ function NewProduct() {
         </div>
 
         {/* Basic info: title, description, category, price -- one card. */}
-        <div className="mx-4 mt-4 rounded-3xl border border-gray-300 bg-white overflow-hidden divide-y divide-gray-100">
+        <div className="mx-4 mt-4 rounded-3xl border border-gray-300 bg-white overflow-hidden divide-y divide-gray-300">
           <DetailsSection
             title={title}
             setTitle={setTitle}
@@ -640,7 +640,7 @@ function NewProduct() {
         {/* Organize: everything that tags this listing rather than describing
           it -- grouped the same way iOS groups a settings list, one thin
           divider per row instead of the page's usual thick section gap. */}
-        <div className="mx-4 mt-4 rounded-3xl border border-gray-300 bg-white overflow-hidden divide-y divide-gray-100">
+        <div className="mx-4 mt-4 rounded-3xl border border-gray-300 bg-white overflow-hidden divide-y divide-gray-300">
           {!(initialNewCollectionId && !handoffDraft) && (
             <button
               type="button"
@@ -649,7 +649,9 @@ function NewProduct() {
             >
               <span className="flex items-center gap-3 text-[15px] text-sd-ink">
                 <Tag size={18} className="text-sd-ink-faint" />
-                Collections
+                <span>
+                  Collections <span className="text-sd-ink-faint">(optional)</span>
+                </span>
               </span>
               <span className="flex items-center gap-2">
                 {collectionIds.length > 0 && (

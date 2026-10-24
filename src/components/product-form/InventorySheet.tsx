@@ -3,9 +3,10 @@ import { PageSheet } from "@/components/PageSheet";
 import { X, ChevronLeft, ChevronRight, Check, Plus } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/lib/integrations/my-supabase/client";
+import { IDENTIFIERS_ENABLED } from "@/lib/features";
 import { Code128Barcode } from "./Code128Barcode";
 import { BarcodesSheet } from "./BarcodesSheet";
-import type { BarcodeEntry } from "@/lib/barcode-types";
+import { BARCODE_TYPE_LABELS, type BarcodeEntry } from "@/lib/barcode-types";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -198,7 +199,7 @@ export function InventorySheet({
       onClose={handleSave}
       className="sheet-column bg-white flex flex-col animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
     >
-      <div className="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-gray-100 px-4 pt-4 pb-3 flex flex-col items-center shrink-0 relative">
+      <div className="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-gray-300 px-4 pt-4 pb-3 flex flex-col items-center shrink-0 relative">
         <button
           // Commits, doesn't discard: BarcodesSheet and "Edit locations" both
           // now apply on their own X/Save (the seller sees "3 barcodes" the
@@ -229,7 +230,8 @@ export function InventorySheet({
           />
         </div>
 
-        {!hideIdentifiers && (
+        {/* Parked: IDENTIFIERS_ENABLED in lib/features.ts. */}
+        {IDENTIFIERS_ENABLED && !hideIdentifiers && (
           <>
             <div className={CARD}>
               <span className="flex items-baseline gap-1.5">
@@ -266,12 +268,21 @@ export function InventorySheet({
                   </span>
                 </button>
               </div>
-              {barcodes[0]?.value.trim() && (
-                <Code128Barcode
-                  value={barcodes[0].value.trim()}
-                  className="mt-3 animate-in fade-in slide-in-from-top-1 duration-200"
-                />
-              )}
+              {/* Every barcode gets its own scannable preview, labelled with its
+                  kind, not just the first -- the field above says "3 barcodes". */}
+              {barcodes
+                .filter((b) => b.value.trim())
+                .map((b, i) => (
+                  <div
+                    key={`${i}-${b.value}`}
+                    className="mt-3 animate-in fade-in slide-in-from-top-1 duration-200"
+                  >
+                    <span className="mb-1 block text-xs font-medium text-gray-500">
+                      {BARCODE_TYPE_LABELS[b.type]}
+                    </span>
+                    <Code128Barcode value={b.value.trim()} />
+                  </div>
+                ))}
             </div>
           </>
         )}
@@ -366,7 +377,7 @@ export function InventorySheet({
         />
       )}
 
-      <div className="sticky bottom-0 z-20 px-4 pt-3 oak-safe-bottom border-t border-gray-100 bg-white shrink-0">
+      <div className="sticky bottom-0 z-20 px-4 pt-3 oak-safe-bottom border-t border-gray-300 bg-white shrink-0">
         <button
           type="button"
           onClick={handleSave}
@@ -426,7 +437,7 @@ function InventoryLocationsPicker({
       onClose={onClose}
       className="sheet-column bg-white flex flex-col animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
     >
-      <div className="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between shrink-0">
+      <div className="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-gray-300 px-4 h-14 flex items-center justify-between shrink-0">
         <button
           onClick={onClose}
           className="p-1 -ml-1 transition-transform duration-150 active:scale-90"
@@ -467,7 +478,7 @@ function InventoryLocationsPicker({
                 key={loc.id}
                 type="button"
                 onClick={() => onToggle(loc.id)}
-                className="w-full flex items-center gap-3 px-4 py-3.5 border-b border-gray-50 text-left transition-colors duration-150 active:bg-gray-50"
+                className="w-full flex items-center gap-3 px-4 py-3.5 border-b border-gray-300 text-left transition-colors duration-150 active:bg-gray-50"
               >
                 <span
                   className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition-colors duration-150 ${
@@ -484,7 +495,7 @@ function InventoryLocationsPicker({
       </div>
 
       {locations.length > 0 && (
-        <div className="sticky bottom-0 z-20 px-4 pt-3 oak-safe-bottom border-t border-gray-100 bg-white shrink-0">
+        <div className="sticky bottom-0 z-20 px-4 pt-3 oak-safe-bottom border-t border-gray-300 bg-white shrink-0">
           <button
             type="button"
             onClick={onClose}

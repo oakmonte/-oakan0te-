@@ -23,7 +23,7 @@ export function InventorySection({
       type="button"
       onClick={onOpen}
       className={`w-full flex items-center justify-between px-4 py-4 text-left ${
-        noDivider ? "" : "border-b-8 border-gray-50"
+        noDivider ? "" : "border-b-8 border-gray-300"
       }`}
     >
       <div>

@@ -59,7 +59,7 @@ export function CollectionActionsSheet({
                 type="button"
                 onClick={() => handleConfirm(onDeleteOnly)}
                 disabled={deleting}
-                className="w-full text-center rounded-xl py-3.5 text-sm font-medium border border-gray-200 text-gray-900 disabled:opacity-50"
+                className="w-full text-center rounded-xl py-3.5 text-sm font-medium border border-gray-300 text-gray-900 disabled:opacity-50"
               >
                 {deleting ? "Deleting…" : "Delete collection only"}
               </button>
@@ -98,7 +98,7 @@ export function CollectionActionsSheet({
             <button
               type="button"
               onClick={() => setConfirming(true)}
-              className="w-full flex items-center gap-3 border border-gray-100 rounded-xl p-4 text-left oak-motion-control"
+              className="w-full flex items-center gap-3 border border-gray-300 rounded-xl p-4 text-left oak-motion-control"
             >
               <Trash2 size={18} className="text-red-500 shrink-0" />
               <span className="text-[15px] font-medium text-red-600">Delete collection</span>

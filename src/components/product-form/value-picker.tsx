@@ -65,7 +65,7 @@ export function SystemMenu({
           >
             {/* Greyed-out choices with no reason read as broken. */}
             {locked && (
-              <p className="px-3 pt-3 pb-2 text-xs leading-relaxed text-gray-500 border-b border-gray-100">
+              <p className="px-3 pt-3 pb-2 text-xs leading-relaxed text-gray-500 border-b border-gray-300">
                 You can only use one {typeName} at a time. To switch, unselect your{" "}
                 <span className="font-medium text-gray-700">{activeSystem}</span> values first.
               </p>
@@ -78,7 +78,7 @@ export function SystemMenu({
                   type="button"
                   disabled={disabled}
                   onClick={() => onSelect(key)}
-                  className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 text-sm text-left ${
+                  className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 text-sm text-left transition-colors duration-150 enabled:hover:bg-gray-100 enabled:hover:text-gray-950 enabled:active:bg-gray-200 ${
                     key === activeSystem
                       ? "text-gray-900 font-medium"
                       : disabled

@@ -60,13 +60,20 @@ export function BarcodesSheet({
       onClose={handleClose}
       className="sheet-column bg-white flex flex-col animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
     >
-      <div className="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-gray-100 px-4 pt-4 pb-3 flex flex-col items-center shrink-0 relative">
+      <div className="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-gray-300 px-4 pt-4 pb-3 flex flex-col items-center shrink-0 relative">
         <button
           onClick={handleClose}
           type="button"
           className="absolute left-4 top-4 p-1.5 rounded-full bg-gray-100 transition-transform duration-150 active:scale-90"
         >
           <X size={16} className="text-gray-600" />
+        </button>
+        <button
+          onClick={handleClose}
+          type="button"
+          className="absolute right-4 top-3 rounded-full bg-black px-4 py-2 text-[14px] font-semibold text-white transition-transform duration-150 active:scale-95"
+        >
+          Save
         </button>
         <span className="font-semibold text-[16px] text-gray-900">Barcodes</span>
         {productLabel && <span className="text-xs text-gray-400 mt-0.5">{productLabel}</span>}
@@ -78,7 +85,7 @@ export function BarcodesSheet({
             key={i}
             className="flex items-center gap-2 animate-in fade-in slide-in-from-top-1 duration-200"
           >
-            <div className="flex-1 flex items-center gap-2 border border-gray-200 rounded-xl px-4 py-3.5 transition-colors duration-150 focus-within:border-gray-400 min-w-0">
+            <div className="flex-1 flex items-center gap-2 border border-gray-300 rounded-xl px-4 py-3.5 transition-colors duration-150 focus-within:border-gray-400 min-w-0">
               <input
                 value={row.value}
                 onChange={(e) => updateValue(i, e.target.value)}
@@ -99,7 +106,7 @@ export function BarcodesSheet({
               <button
                 type="button"
                 onClick={() => setOpenTypeIndex(openTypeIndex === i ? null : i)}
-                className="flex items-center gap-1 border border-gray-200 rounded-xl pl-3.5 pr-2.5 py-3.5 text-[15px] text-gray-900 transition-transform duration-150 active:scale-[0.97]"
+                className="flex items-center gap-1 border border-gray-300 rounded-xl pl-3.5 pr-2.5 py-3.5 text-[15px] text-gray-900 transition-transform duration-150 active:scale-[0.97]"
               >
                 {BARCODE_TYPE_LABELS[row.type]}
                 <ChevronsUpDown size={14} className="text-gray-400" />
@@ -113,7 +120,7 @@ export function BarcodesSheet({
                     onClick={() => setOpenTypeIndex(null)}
                     className="fixed inset-0 z-10 cursor-default"
                   />
-                  <div className="absolute right-0 top-full mt-1 z-20 w-36 bg-white rounded-2xl shadow-lg border border-gray-100 py-1.5 origin-top-right animate-in fade-in zoom-in-95 duration-150">
+                  <div className="absolute right-0 top-full mt-1 z-20 w-36 bg-white rounded-2xl shadow-lg border border-gray-300 py-1.5 origin-top-right animate-in fade-in zoom-in-95 duration-150">
                     {BARCODE_TYPES.map((t) => (
                       <button
                         key={t}

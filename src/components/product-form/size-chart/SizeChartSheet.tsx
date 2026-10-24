@@ -249,7 +249,7 @@ export function SizeChartSheet({
       onClose={onClose}
       className="sheet-column bg-white flex flex-col animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
     >
-      <div className="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between shrink-0">
+      <div className="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-gray-300 px-4 h-14 flex items-center justify-between shrink-0">
         <button onClick={onClose} type="button" className="p-1 -ml-1">
           <X size={20} className="text-gray-500" />
         </button>
@@ -315,7 +315,7 @@ export function SizeChartSheet({
                 <div
                   key={line.key}
                   className={`flex items-center justify-between gap-3 border rounded-xl px-4 py-3 transition-colors duration-150 ${
-                    focusedKey === line.key ? "border-gray-900" : "border-gray-100"
+                    focusedKey === line.key ? "border-gray-900" : "border-gray-300"
                   }`}
                 >
                   <button
@@ -367,12 +367,12 @@ export function SizeChartSheet({
       </div>
 
       {(isVariantMode || pickedSize) && (
-        <div className="sticky bottom-0 z-20 px-4 pt-3 oak-safe-bottom border-t border-gray-100 bg-white shrink-0 flex gap-3">
+        <div className="sticky bottom-0 z-20 px-4 pt-3 oak-safe-bottom border-t border-gray-300 bg-white shrink-0 flex gap-3">
           {isVariantMode && index > 0 && (
             <button
               type="button"
               onClick={handleBack}
-              className="px-5 rounded-full border border-gray-200 text-sm font-medium text-gray-700 oak-motion-control"
+              className="px-5 rounded-full border border-gray-300 text-sm font-medium text-gray-700 oak-motion-control"
             >
               <ChevronLeft size={18} />
             </button>
@@ -423,7 +423,7 @@ export function SizePicker({
         <button
           type="button"
           onClick={() => setSystemMenuOpen((v) => !v)}
-          className="flex items-center gap-1 text-xs text-gray-500 border border-gray-200 rounded-full px-3 py-1.5"
+          className="flex items-center gap-1 text-xs text-gray-500 border border-gray-300 rounded-full px-3 py-1.5"
         >
           {system}
           <ChevronDown size={13} className="text-gray-400" />
@@ -436,7 +436,7 @@ export function SizePicker({
               onClick={() => setSystemMenuOpen(false)}
               className="fixed inset-0 z-10 cursor-default"
             />
-            <div className="absolute right-0 top-9 z-20 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden min-w-28">
+            <div className="absolute right-0 top-9 z-20 bg-white border border-gray-300 rounded-xl shadow-lg overflow-hidden min-w-28">
               {Object.keys(systems).map((key) => (
                 <button
                   key={key}
@@ -464,7 +464,7 @@ export function SizePicker({
             key={v}
             type="button"
             onClick={() => onPick(v)}
-            className="w-full flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3.5 text-left oak-motion-control"
+            className="w-full flex items-center gap-3 rounded-xl border border-gray-300 bg-white px-4 py-3.5 text-left oak-motion-control"
           >
             <span className="text-[15px] text-gray-900 truncate">{v}</span>
             <span className="ml-auto w-5 h-5 rounded-full border border-gray-300 shrink-0" />

@@ -2,7 +2,7 @@ import { Store as StoreIcon, Tag } from "lucide-react";
 
 export function PublishingSection() {
   return (
-    <div className="px-4 py-4 border-b-8 border-gray-50">
+    <div className="px-4 py-4 border-b-8 border-gray-300">
       <div className="flex items-center justify-between mb-1">
         <span className="text-[15px] font-semibold text-gray-900">Publishing</span>
         <span className="text-sm text-blue-600 font-medium">Edit</span>

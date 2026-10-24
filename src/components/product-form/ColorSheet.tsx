@@ -65,7 +65,7 @@ export function ColorSheet({
       onClose={onClose}
       className="sheet-column bg-white flex flex-col animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
     >
-      <div className="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between shrink-0">
+      <div className="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-gray-300 px-4 h-14 flex items-center justify-between shrink-0">
         <button onClick={onClose} type="button" className="p-1 -ml-1">
           <X size={20} className="text-gray-500" />
         </button>
@@ -90,7 +90,7 @@ export function ColorSheet({
             }
           }}
           placeholder="Add or search a colour"
-          className="w-full rounded-xl border border-gray-200 px-4 py-4 text-base outline-none focus:border-gray-400"
+          className="w-full rounded-xl border border-gray-300 px-4 py-4 text-base outline-none focus:border-gray-400"
         />
 
         <p className="text-xs text-gray-400 mt-2">

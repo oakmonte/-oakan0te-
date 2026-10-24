@@ -207,7 +207,7 @@ export function NecessitiesSheet({
       onClose={onClose}
       className="sheet-column bg-white flex flex-col animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
     >
-      <div className="sticky top-0 z-20 shrink-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
+      <div className="sticky top-0 z-20 shrink-0 bg-white/95 backdrop-blur border-b border-gray-300 px-4 h-14 flex items-center justify-between">
         <button onClick={onClose} type="button" className="p-1 -ml-1">
           <X size={20} className="text-gray-500" />
         </button>
@@ -276,7 +276,7 @@ export function NecessitiesSheet({
                 type="button"
                 aria-label={p}
                 onClick={onTap}
-                className="w-full flex items-center justify-between px-4 py-4 border-b border-gray-50 text-left oak-motion-control"
+                className="w-full flex items-center justify-between px-4 py-4 border-b border-gray-300 text-left oak-motion-control"
               >
                 <span className="flex items-center gap-3">
                   <span

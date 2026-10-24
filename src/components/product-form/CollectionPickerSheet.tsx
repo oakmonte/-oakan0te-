@@ -55,7 +55,7 @@ export function CollectionPickerSheet({
       onClose={onClose}
       className="sheet-column bg-white flex flex-col animate-in fade-in slide-in-from-bottom-6 duration-300 ease-out"
     >
-      <div className="sticky top-0 z-20 shrink-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
+      <div className="sticky top-0 z-20 shrink-0 bg-white/95 backdrop-blur border-b border-gray-300 px-4 h-14 flex items-center justify-between">
         <button onClick={onClose} type="button" className="p-1 -ml-1">
           <X size={20} className="text-gray-500" />
         </button>
@@ -94,7 +94,7 @@ export function CollectionPickerSheet({
                   type="button"
                   onClick={() => setSelected(isSelected ? null : c.id)}
                   aria-label={`${isSelected ? "Deselect" : "Select"} ${c.title}`}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-left border-b border-gray-50"
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left border-b border-gray-300"
                 >
                   <span
                     className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition-colors duration-200 ${

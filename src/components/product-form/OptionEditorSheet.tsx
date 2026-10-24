@@ -636,7 +636,7 @@ export function OptionEditorSheet({
       onClose={onClose}
       className="sheet-column bg-white flex flex-col animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
     >
-      <div className="sticky top-0 z-20 shrink-0 z-10 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
+      <div className="sticky top-0 z-20 shrink-0 z-10 bg-white/95 backdrop-blur border-b border-gray-300 px-4 h-14 flex items-center justify-between">
         <button onClick={onClose} type="button" className="text-sm text-gray-500">
           Cancel
         </button>
@@ -687,7 +687,7 @@ export function OptionEditorSheet({
                       : isActive
                         ? "bg-white text-gray-900 border-blue-500"
                         : disabled
-                          ? "bg-white text-gray-300 border-gray-100"
+                          ? "bg-white text-gray-300 border-gray-300"
                           : "bg-white text-gray-700 border-gray-400"
                   }`}
                 >

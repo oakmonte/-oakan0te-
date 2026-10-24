@@ -159,7 +159,7 @@ export function ManualSizeOnlySheet({
       onClose={onClose}
       className="sheet-column bg-white flex flex-col animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
     >
-      <div className="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between shrink-0">
+      <div className="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-gray-300 px-4 h-14 flex items-center justify-between shrink-0">
         <button onClick={onClose} type="button" className="p-1 -ml-1">
           <X size={20} className="text-gray-500" />
         </button>
@@ -223,7 +223,7 @@ export function ManualSizeOnlySheet({
                 {currentEntries.map(([label, cm]) => (
                   <div
                     key={label}
-                    className="flex items-center justify-between gap-3 border border-gray-100 rounded-xl px-4 py-3"
+                    className="flex items-center justify-between gap-3 border border-gray-300 rounded-xl px-4 py-3"
                   >
                     <span className="text-[15px] text-gray-900 truncate">{label}</span>
                     <div className="flex items-center gap-2 shrink-0">
@@ -251,7 +251,7 @@ export function ManualSizeOnlySheet({
                   value={labelDraft}
                   onChange={(e) => setLabelDraft(e.target.value)}
                   placeholder={presetLabels.length > 0 ? "e.g. Hem width" : "e.g. Length"}
-                  className="text-[15px] border border-gray-200 rounded-lg px-3 py-2.5 outline-none focus:border-gray-400"
+                  className="text-[15px] border border-gray-300 rounded-lg px-3 py-2.5 outline-none focus:border-gray-400"
                 />
               </label>
               <label className="w-24 flex flex-col gap-1">
@@ -261,7 +261,7 @@ export function ManualSizeOnlySheet({
                   onChange={(e) => setValueDraft(e.target.value.replace(/[^0-9.]/g, ""))}
                   inputMode="decimal"
                   placeholder="0"
-                  className="text-[15px] border border-gray-200 rounded-lg px-3 py-2.5 outline-none focus:border-gray-400"
+                  className="text-[15px] border border-gray-300 rounded-lg px-3 py-2.5 outline-none focus:border-gray-400"
                 />
               </label>
               <button
@@ -286,12 +286,12 @@ export function ManualSizeOnlySheet({
       </div>
 
       {(isVariantMode || pickedSize) && (
-        <div className="sticky bottom-0 z-20 px-4 pt-3 oak-safe-bottom border-t border-gray-100 bg-white shrink-0 flex gap-3">
+        <div className="sticky bottom-0 z-20 px-4 pt-3 oak-safe-bottom border-t border-gray-300 bg-white shrink-0 flex gap-3">
           {isVariantMode && index > 0 && (
             <button
               type="button"
               onClick={handleBack}
-              className="px-5 rounded-full border border-gray-200 text-sm font-medium text-gray-700 oak-motion-control"
+              className="px-5 rounded-full border border-gray-300 text-sm font-medium text-gray-700 oak-motion-control"
             >
               <ChevronLeft size={18} />
             </button>
@@ -326,7 +326,7 @@ function PresetRow({
 }) {
   const [draft, setDraft] = useState(cm === undefined ? "" : String(cm));
   return (
-    <label className="flex items-center justify-between gap-3 border border-gray-200 rounded-xl pl-4 pr-2 py-2">
+    <label className="flex items-center justify-between gap-3 border border-gray-300 rounded-xl pl-4 pr-2 py-2">
       <span className="text-[15px] text-gray-900 truncate">{label}</span>
       <span className="flex items-center gap-1.5 shrink-0">
         <input
@@ -338,7 +338,7 @@ function PresetRow({
           }}
           inputMode="decimal"
           placeholder="0"
-          className="w-20 text-right text-base text-gray-900 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-gray-400"
+          className="w-20 text-right text-base text-gray-900 bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-gray-400"
         />
         <span className="text-sm text-gray-500 w-6">cm</span>
       </span>

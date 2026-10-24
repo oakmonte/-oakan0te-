@@ -51,7 +51,9 @@ export function LocationListPicker({
         <button onClick={onClose} className="p-1 -ml-1" type="button">
           <ChevronLeft size={22} />
         </button>
-        <span className="font-semibold text-[15px] flex-1 text-center -ml-6">{title}</span>
+        <span className="pointer-events-none font-semibold text-[15px] flex-1 text-center -ml-6">
+          {title}
+        </span>
       </div>
 
       <div className="px-4 pt-3 pb-2 shrink-0">

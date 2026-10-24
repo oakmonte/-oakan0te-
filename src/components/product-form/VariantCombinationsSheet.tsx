@@ -246,7 +246,7 @@ export function VariantCombinationsSheet({
 
   return (
     <PageSheet onClose={onBack} className="sheet-column bg-white flex flex-col">
-      <div className="sticky top-0 z-20 shrink-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between">
+      <div className="sticky top-0 z-20 shrink-0 bg-white/95 backdrop-blur border-b border-gray-300 px-4 h-14 flex items-center justify-between">
         <button
           onClick={onBack}
           type="button"
@@ -296,7 +296,7 @@ export function VariantCombinationsSheet({
         {/* Overview table — one column per option, scrolls sideways rather than
             squeezing every option into the phone's width. */}
         {optionNames.length > 0 && (
-          <div className="mt-3 overflow-x-auto border-y border-gray-100">
+          <div className="mt-3 overflow-x-auto border-y border-gray-300">
             <table className="min-w-full text-left">
               <thead className="bg-gray-50">
                 <tr>
@@ -313,7 +313,7 @@ export function VariantCombinationsSheet({
               </thead>
               <tbody>
                 {rows.map((row) => (
-                  <tr key={row.key} className="border-t border-gray-100">
+                  <tr key={row.key} className="border-t border-gray-300">
                     <td className="px-4 py-3">
                       <button
                         type="button"
@@ -378,7 +378,7 @@ export function VariantCombinationsSheet({
             // "a variant row you fill once", not a different control -- the
             // grey fill is the only thing marking it as the template rather
             // than a real one.
-            <div className="border border-gray-400 rounded-xl p-3 mb-3 bg-gray-100 [&_.border-gray-200]:border-gray-500 [&_.text-gray-400]:text-gray-700 [&_.text-gray-500]:text-gray-800">
+            <div className="border border-gray-400 rounded-xl p-3 mb-3 bg-gray-100 [&_.border-gray-300]:border-gray-500 [&_.text-gray-400]:text-gray-700 [&_.text-gray-500]:text-gray-800">
               <div className="flex items-start justify-between gap-2 mb-2">
                 <p className="text-sm font-medium text-gray-900">Apply to all</p>
                 <button
@@ -408,7 +408,7 @@ export function VariantCombinationsSheet({
                   <button
                     type="button"
                     onClick={() => setBulkInventoryOpen(true)}
-                    className="text-base border border-gray-200 rounded-lg px-2 py-2 text-left"
+                    className="text-base border border-gray-300 rounded-lg px-2 py-2 text-left"
                   >
                     {hasBulkInventoryPick ? stockTotal(bulkInventory!) : "Not set"}
                   </button>
@@ -455,7 +455,7 @@ export function VariantCombinationsSheet({
             {selected.map((row) => (
               <div
                 key={row.key}
-                className="border border-gray-300 rounded-xl p-3 [&_.border-gray-200]:border-gray-300 [&_.text-gray-400]:text-gray-600"
+                className="border border-gray-300 rounded-xl p-3 [&_.border-gray-300]:border-gray-300 [&_.text-gray-400]:text-gray-600"
               >
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <p className="min-w-0 text-sm font-medium text-gray-900">
@@ -489,7 +489,7 @@ export function VariantCombinationsSheet({
                     <button
                       type="button"
                       onClick={() => setInventoryKey(row.key)}
-                      className="text-base border border-gray-200 rounded-lg px-2 py-2 text-left"
+                      className="text-base border border-gray-300 rounded-lg px-2 py-2 text-left"
                     >
                       {stockTotal(row)}
                     </button>
@@ -513,7 +513,7 @@ export function VariantCombinationsSheet({
                       <button
                         type="button"
                         onClick={() => setWeightKey(row.key)}
-                        className="text-base border border-gray-200 rounded-lg px-2 py-2 text-left"
+                        className="text-base border border-gray-300 rounded-lg px-2 py-2 text-left"
                       >
                         {row.weightGrams != null ? `${row.weightGrams} g` : "—"}
                       </button>
@@ -856,7 +856,7 @@ function VariantImagePopover({
           />
 
           {baseImages.length > 0 && (
-            <div className="mt-4 pt-3 border-t border-gray-100">
+            <div className="mt-4 pt-3 border-t border-gray-300">
               <p className="text-xs font-medium text-gray-500 mb-1.5">From your product photos</p>
               <div className="flex gap-2 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
                 {baseImages.map((url) => {
@@ -930,7 +930,7 @@ function PriceMiniButton({
         type="button"
         onClick={onOpen}
         className={`text-base border rounded-lg px-2 py-2 text-left ${
-          error ? "border-red-300" : "border-gray-200"
+          error ? "border-red-300" : "border-gray-300"
         }`}
       >
         {value.trim() ? `₦${displayPriceWithCommas(value)}` : "—"}
@@ -948,7 +948,7 @@ function LockedField({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col gap-1">
       <span className="text-xs text-gray-400">{label}</span>
-      <div className="text-base border border-gray-100 bg-gray-50 text-gray-500 rounded-lg px-2 py-2 truncate">
+      <div className="text-base border border-gray-300 bg-gray-50 text-gray-500 rounded-lg px-2 py-2 truncate">
         {value}
       </div>
     </div>
@@ -983,7 +983,7 @@ function MiniField({
         onChange={(e) => onChange(isPrice ? cleanPriceDigits(e.target.value) : e.target.value)}
         onBlur={isPrice ? () => value && onChange(padPriceOnBlur(value)) : undefined}
         className={`text-base border rounded-lg px-2 py-2 outline-none ${
-          error ? "border-red-300" : "border-gray-200"
+          error ? "border-red-300" : "border-gray-300"
         }`}
       />
     </label>

@@ -149,7 +149,7 @@ export function VariantMatrixBuilder({
   const selectedCount = rows.filter((r) => r.selected).length;
 
   return (
-    <div className={noDivider ? "" : "border-b-8 border-gray-50"}>
+    <div className={noDivider ? "" : "border-b-8 border-gray-300"}>
       {/* The whole card is one tap target, heading included -- tapping
           "Variants" itself used to do nothing. */}
       <button
@@ -168,7 +168,7 @@ export function VariantMatrixBuilder({
       >
         <span className="block text-[15px] font-semibold text-gray-900">Variants</span>
         {options.length === 0 ? (
-          <span className="w-full flex items-center justify-between py-4 border-b border-gray-100">
+          <span className="w-full flex items-center justify-between py-4 border-b border-gray-300">
             <span className="flex items-center gap-3 text-[15px] text-gray-900">
               <Plus size={18} className="text-gray-400" />
               Add options (color, size, material, etc.)
@@ -176,7 +176,7 @@ export function VariantMatrixBuilder({
             <ChevronRight size={16} className="text-gray-300" />
           </span>
         ) : (
-          <span className="w-full flex items-center justify-between py-4 border-b border-gray-100">
+          <span className="w-full flex items-center justify-between py-4 border-b border-gray-300">
             <span className="flex flex-col items-start gap-0.5 min-w-0">
               <span className="text-[15px] text-gray-900 truncate">
                 {options.map((o) => o.name || "Untitled option").join(" / ")}

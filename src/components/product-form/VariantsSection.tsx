@@ -29,7 +29,7 @@ export function VariantsSection({
   setMaterial: (v: string) => void;
 }) {
   return (
-    <div className="border-b-8 border-gray-50">
+    <div className="border-b-8 border-gray-300">
       <p className="px-4 pt-4 text-[15px] font-semibold text-gray-900">Variants</p>
       <button
         type="button"

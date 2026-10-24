@@ -36,7 +36,7 @@ export function VariantListSheet({
 
   return (
     <PageSheet onClose={onBack} className="sheet-column bg-white flex flex-col">
-      <div className="sticky top-0 z-20 shrink-0 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center">
+      <div className="sticky top-0 z-20 shrink-0 bg-white/95 backdrop-blur border-b border-gray-300 px-4 h-14 flex items-center">
         <button
           onClick={onBack}
           type="button"
@@ -55,7 +55,7 @@ export function VariantListSheet({
           {options.map((opt, i) => (
             <div
               key={i}
-              className="flex items-center justify-between gap-3 rounded-xl border border-gray-200 px-4 py-3.5"
+              className="flex items-center justify-between gap-3 rounded-xl border border-gray-300 px-4 py-3.5"
             >
               <div className="min-w-0">
                 <p className="text-[15px] font-semibold text-gray-900 truncate">
@@ -101,7 +101,7 @@ export function VariantListSheet({
         </div>
       </div>
 
-      <div className="sticky bottom-0 z-20 shrink-0 bg-white/95 backdrop-blur border-t border-gray-100 px-4 pt-3 oak-safe-bottom">
+      <div className="sticky bottom-0 z-20 shrink-0 bg-white/95 backdrop-blur border-t border-gray-300 px-4 pt-3 oak-safe-bottom">
         <button
           type="button"
           onClick={onContinue}

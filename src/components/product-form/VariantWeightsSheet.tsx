@@ -42,7 +42,7 @@ export function VariantWeightsSheet({
       onClose={onClose}
       className="sheet-column bg-white flex flex-col animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
     >
-      <div className="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-gray-100 px-4 h-14 flex items-center justify-between shrink-0">
+      <div className="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-gray-300 px-4 h-14 flex items-center justify-between shrink-0">
         <button onClick={onClose} type="button" className="p-1 -ml-1">
           <X size={20} className="text-gray-500" />
         </button>
@@ -68,7 +68,7 @@ export function VariantWeightsSheet({
                 key={row.key}
                 type="button"
                 onClick={() => setEditingKey(row.key)}
-                className="w-full flex items-center justify-between px-4 py-4 border-b border-gray-50 text-left oak-motion-control"
+                className="w-full flex items-center justify-between px-4 py-4 border-b border-gray-300 text-left oak-motion-control"
               >
                 <span className="flex min-w-0 pr-3 text-[15px] text-gray-900">
                   <VariantName options={row.options} />

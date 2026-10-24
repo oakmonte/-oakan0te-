@@ -32,7 +32,8 @@ Never push it to main. Something meant for both goes to main first, then merges 
 sellers-only. If main ever reverts something sellers-only keeps, revert the revert on
 sellers-only after merging.
 
-**Parked features** (built, hidden to keep things simple) are switches in `src/lib/features.ts`:
+**Parked features** (built, hidden to keep things simple) are listed in `PARKED.md` -- add to it
+whenever you park something. Most are switches in `src/lib/features.ts`:
 Wardrobe/Gallery (`WARDROBE_ENABLED`) is off. Park the next one there too, as a switch, not by
 deleting or commenting out code.
 
