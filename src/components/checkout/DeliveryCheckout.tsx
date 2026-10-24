@@ -374,14 +374,14 @@ export function DeliveryCheckout({
     subtotal == null ? null : serverItemsKobo != null ? serverItemsKobo / 100 : subtotal;
 
   const field =
-    "w-full rounded-2xl border border-white/15 bg-white/[0.06] px-4 py-3.5 text-[16px] text-white outline-none placeholder:text-white/35 focus:border-white/40";
+    "w-full rounded-2xl border border-white/35 bg-white/[0.06] px-4 py-3.5 text-[16px] text-white outline-none placeholder:text-white/35 focus:border-white/40";
 
   return (
     <>
       {notOpen && (
         <p
           role="status"
-          className="mt-6 rounded-2xl border border-white/15 bg-white/[0.06] px-4 py-3 text-[14px] leading-snug text-white/80"
+          className="mt-6 rounded-2xl border border-white/35 bg-white/[0.06] px-4 py-3 text-[14px] leading-snug text-white/80"
         >
           {notOpen}
         </p>
@@ -432,7 +432,7 @@ export function DeliveryCheckout({
             type="button"
             onClick={() => void locateMe()}
             disabled={locating}
-            className="flex h-12 items-center justify-center gap-2 rounded-2xl border border-white/20 text-[15px] disabled:opacity-60"
+            className="flex h-12 items-center justify-center gap-2 rounded-2xl border border-white/40 text-[15px] disabled:opacity-60"
           >
             <LocateFixed size={18} />
             {locating ? "Finding you…" : "Use my current location"}
@@ -547,7 +547,7 @@ export function DeliveryCheckout({
           <button
             type="button"
             onClick={() => setValidated(null)}
-            className="h-12 rounded-2xl border border-white/20 text-[15px]"
+            className="h-12 rounded-2xl border border-white/40 text-[15px]"
           >
             Change address
           </button>
@@ -568,7 +568,7 @@ export function DeliveryCheckout({
                     className={`flex items-center justify-between rounded-2xl border px-4 py-3.5 text-left ${
                       chosen === c.serviceCode
                         ? "border-white bg-white/10"
-                        : "border-white/15 bg-white/[0.04]"
+                        : "border-white/35 bg-white/[0.04]"
                     }`}
                   >
                     <span>
@@ -590,7 +590,7 @@ export function DeliveryCheckout({
                 <span>Delivery ({pick.name})</span>
                 <span>₦{pick.price.toLocaleString()}</span>
               </div>
-              <div className="mt-1 flex justify-between border-t border-white/10 pt-2 font-semibold">
+              <div className="mt-1 flex justify-between border-t border-white/30 pt-2 font-semibold">
                 <span>Total</span>
                 <span>₦{(itemsTotal + pick.price).toLocaleString()}</span>
               </div>

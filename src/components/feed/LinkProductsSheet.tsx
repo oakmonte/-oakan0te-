@@ -657,7 +657,7 @@ function StoreProducts({ store }: { store: FakeStore }) {
           </div>
           <span
             aria-hidden
-            className="h-[22px] w-[22px] shrink-0 rounded-full border border-white/20"
+            className="h-[22px] w-[22px] shrink-0 rounded-full border border-white/40"
           />
         </div>
       ))}

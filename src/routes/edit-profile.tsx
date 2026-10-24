@@ -302,7 +302,7 @@ function EditProfilePage() {
             <img
               src={avatarUrl || "https://placehold.co/110x110"}
               alt="Profile"
-              className={`w-[90px] h-[90px] rounded-full object-cover border border-white/10 transition-opacity ${
+              className={`w-[90px] h-[90px] rounded-full object-cover border border-white/30 transition-opacity ${
                 uploading ? "opacity-50" : ""
               }`}
             />
@@ -323,7 +323,7 @@ function EditProfilePage() {
         </label>
 
         {/* Name + Username block */}
-        <div className="mx-4 rounded-2xl bg-white/[0.06] divide-y divide-white/10 overflow-hidden">
+        <div className="mx-4 rounded-2xl bg-white/[0.06] divide-y divide-white/30 overflow-hidden">
           <FieldRow label="Name">
             <input
               value={displayName}

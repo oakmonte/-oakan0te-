@@ -117,7 +117,7 @@ export function ColorSheet({
               selected={color === value}
               swatch={
                 <span
-                  className="w-5 h-5 rounded-full border border-black/10 shrink-0"
+                  className="w-5 h-5 rounded-full border border-black/25 shrink-0"
                   style={{ background: colorSwatchStyle(color) }}
                 />
               }

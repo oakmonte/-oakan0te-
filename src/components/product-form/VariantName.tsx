@@ -14,7 +14,7 @@ export function VariantName({ options }: { options: VariantOptionValue[] }) {
       {color && (
         <span
           aria-hidden="true"
-          className="h-4 w-4 shrink-0 rounded-full border border-black/10"
+          className="h-4 w-4 shrink-0 rounded-full border border-black/25"
           style={{ background: colorSwatchStyle(color) }}
         />
       )}

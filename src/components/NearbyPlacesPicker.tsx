@@ -22,10 +22,10 @@ export function NearbyPlacesPicker({
   const token = useRef(newToken());
   if (places.length === 0) return null;
 
-  const box = tone === "dark" ? "border-white/15" : "border-sd-line";
+  const box = tone === "dark" ? "border-white/35" : "border-sd-line";
   const muted = tone === "dark" ? "text-white/50" : "text-sd-ink-muted";
   const row = tone === "dark" ? "active:bg-white/10" : "active:bg-sd-elevated";
-  const divider = tone === "dark" ? "divide-white/10" : "divide-sd-line";
+  const divider = tone === "dark" ? "divide-white/30" : "divide-sd-line";
 
   async function choose(p: NearbyPlace) {
     if (loading) return;

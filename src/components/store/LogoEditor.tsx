@@ -385,7 +385,7 @@ export function LogoEditor({
                 onClick={() => chooseShape(s.id)}
                 aria-pressed={shape === s.id}
                 className={`flex flex-col items-center gap-2 rounded-xl border py-3 text-[12px] transition-colors active:scale-[0.97] ${
-                  shape === s.id ? "border-white bg-white/10" : "border-white/20 text-white/70"
+                  shape === s.id ? "border-white bg-white/10" : "border-white/40 text-white/70"
                 }`}
               >
                 <span
@@ -428,7 +428,7 @@ export function LogoEditor({
                 onClick={() => setBackground(b.id)}
                 aria-pressed={background === b.id}
                 className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-[13px] ${
-                  background === b.id ? "border-white bg-white/10" : "border-white/20 text-white/70"
+                  background === b.id ? "border-white bg-white/10" : "border-white/40 text-white/70"
                 }`}
               >
                 <span
@@ -449,7 +449,7 @@ export function LogoEditor({
               className={`flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 text-[13px] ${
                 !BACKGROUNDS.some((b) => b.id === background)
                   ? "border-white bg-white/10"
-                  : "border-white/20 text-white/70"
+                  : "border-white/40 text-white/70"
               }`}
             >
               <span
@@ -476,7 +476,7 @@ export function LogoEditor({
             {(["#f4f4f5", "#0f0f10"] as const).map((ground) => (
               <div
                 key={ground}
-                className="flex h-16 items-center rounded-xl border border-white/10 px-3"
+                className="flex h-16 items-center rounded-xl border border-white/30 px-3"
                 style={{ background: ground }}
               >
                 {natural && framed(previewScale)}

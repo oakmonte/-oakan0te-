@@ -215,7 +215,7 @@ export function CommentSheet({
               </div>
 
               <div
-                className="flex items-center gap-2 border-t border-white/10 px-3 py-2.5"
+                className="flex items-center gap-2 border-t border-white/30 px-3 py-2.5"
                 style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 10px)" }}
               >
                 <div className="h-8 w-8 shrink-0 rounded-full bg-white/15" />

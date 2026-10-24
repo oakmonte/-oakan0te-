@@ -510,7 +510,7 @@ function StoreProfilePage() {
       >
         <div className="absolute inset-0 bg-black/40" onClick={() => setMenuOpen(false)} />
         <div
-          className={`absolute right-0 top-0 h-full w-[280px] bg-black border-l border-white/10 px-5 py-6 transition-transform duration-300 ease-out ${
+          className={`absolute right-0 top-0 h-full w-[280px] bg-black border-l border-white/30 px-5 py-6 transition-transform duration-300 ease-out ${
             menuOpen ? "translate-x-0" : "translate-x-full"
           }`}
         >
@@ -533,7 +533,7 @@ function StoreProfilePage() {
       >
         <div className="absolute inset-0 bg-black/40" onClick={() => setSwitchOpen(false)} />
         <div
-          className={`absolute inset-x-0 bottom-0 min-h-[28vh] rounded-t-[28px] bg-black border-t border-white/10 transition-transform duration-300 ease-out ${
+          className={`absolute inset-x-0 bottom-0 min-h-[28vh] rounded-t-[28px] bg-black border-t border-white/30 transition-transform duration-300 ease-out ${
             switchOpen ? "translate-y-0" : "translate-y-full"
           }`}
           style={{ paddingBottom: "env(safe-area-inset-bottom)" }}

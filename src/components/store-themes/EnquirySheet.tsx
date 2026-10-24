@@ -87,7 +87,7 @@ export function EnquirySheet({
         </div>
 
         {/* The piece being asked about, exactly as the seller will see it. */}
-        <div className="mt-3 overflow-hidden rounded-2xl border border-black/10">
+        <div className="mt-3 overflow-hidden rounded-2xl border border-black/25">
           {product.images.length > 0 && (
             <div className="flex snap-x snap-mandatory overflow-x-auto no-scrollbar">
               {product.images.map((src) => (

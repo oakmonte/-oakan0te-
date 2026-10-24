@@ -179,7 +179,7 @@ function StoreLayoutInner() {
             className="absolute inset-0 bg-black/50 animate-in fade-in duration-200"
             onClick={() => setDrawerOpen(false)}
           />
-          <div className="absolute left-0 top-0 bottom-0 w-72 bg-black text-white border-r border-white/10 px-2 py-4 flex flex-col animate-in slide-in-from-left duration-[400ms] ease-[cubic-bezier(0.22,1,0.36,1)]">
+          <div className="absolute left-0 top-0 bottom-0 w-72 bg-black text-white border-r border-white/30 px-2 py-4 flex flex-col animate-in slide-in-from-left duration-[400ms] ease-[cubic-bezier(0.22,1,0.36,1)]">
             <div className="flex items-center justify-between px-3 mb-4">
               <span className="text-sm text-gray-400">Menu</span>
               <button
@@ -221,7 +221,7 @@ function StoreLayoutInner() {
                 two stores could not switch from Products or Finance. Rendered
                 only when there is something to switch between. */}
             {stores.length > 1 && (
-              <div className="shrink-0 mt-3 pt-3 border-t border-white/10">
+              <div className="shrink-0 mt-3 pt-3 border-t border-white/30">
                 <p className="px-3 pb-1 text-[11px] font-bold uppercase tracking-[0.08em] text-gray-500">
                   Your stores
                 </p>
@@ -249,7 +249,7 @@ function StoreLayoutInner() {
                 the installed app, where this panel runs to the physical edge. */}
             {/* Right after the list at a fixed gap, not pinned to the panel's
                 bottom edge (where the tab bar sat on top of it). */}
-            <div className="shrink-0 mt-3 pt-3 border-t border-white/10 oak-safe-bottom">
+            <div className="shrink-0 mt-3 pt-3 border-t border-white/30 oak-safe-bottom">
               {/* Sellers-only: the rest of Oakmonte (the shopper side) isn't
                   open yet, so this only says so. */}
               <button

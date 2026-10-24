@@ -47,7 +47,7 @@ export function ShippingPolicyDialog({
           <X size={22} strokeWidth={1.5} />
         </button>
 
-        <div className="mx-auto flex h-[88px] w-[88px] items-center justify-center overflow-hidden rounded-full border border-black/10">
+        <div className="mx-auto flex h-[88px] w-[88px] items-center justify-center overflow-hidden rounded-full border border-black/25">
           {logoUrl ? (
             <img src={logoUrl} alt="" className="h-full w-full object-cover" />
           ) : (
@@ -60,11 +60,11 @@ export function ShippingPolicyDialog({
         </p>
         <h2 className="mt-2 text-[22px] font-medium leading-tight">{brandName} Shipping Policy</h2>
 
-        <div className="mt-6 border-t border-black/10" />
+        <div className="mt-6 border-t border-black/25" />
         <p className="max-h-[45dvh] overflow-y-auto whitespace-pre-line py-6 text-left text-[15px] leading-relaxed text-black/65">
           {policy}
         </p>
-        <div className="border-t border-black/10" />
+        <div className="border-t border-black/25" />
 
         <button
           type="button"

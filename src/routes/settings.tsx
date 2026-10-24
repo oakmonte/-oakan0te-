@@ -119,7 +119,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function Panel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl bg-white/[0.06] divide-y divide-white/10 overflow-hidden">
+    <div className="rounded-2xl bg-white/[0.06] divide-y divide-white/30 overflow-hidden">
       {children}
     </div>
   );
@@ -364,7 +364,7 @@ function StoreSection() {
 }
 
 const inputClass =
-  "w-full rounded-xl border border-white/15 bg-white/[0.04] px-4 py-3.5 text-[14px] text-white placeholder:text-white/30 focus:outline-none focus:border-white/40 transition-colors";
+  "w-full rounded-xl border border-white/35 bg-white/[0.04] px-4 py-3.5 text-[14px] text-white placeholder:text-white/30 focus:outline-none focus:border-white/40 transition-colors";
 
 function PasswordRow({ email, hasPassword }: { email: string | null; hasPassword: boolean }) {
   const [open, setOpen] = useState(false);
@@ -572,7 +572,7 @@ function PasswordRow({ email, hasPassword }: { email: string | null; hasPassword
               reset();
               setOpen(false);
             }}
-            className="flex-1 rounded-full border border-white/20 py-3 text-[13px] font-medium uppercase tracking-widest text-white/70 hover:border-white/40 transition-colors"
+            className="flex-1 rounded-full border border-white/40 py-3 text-[13px] font-medium uppercase tracking-widest text-white/70 hover:border-white/40 transition-colors"
           >
             Cancel
           </button>
@@ -697,7 +697,7 @@ function DeleteAccountSection({
             setConfirmText("");
             setError(null);
           }}
-          className="flex-1 rounded-full border border-white/20 py-3 text-[13px] font-medium uppercase tracking-widest text-white/70 hover:border-white/40 transition-colors"
+          className="flex-1 rounded-full border border-white/40 py-3 text-[13px] font-medium uppercase tracking-widest text-white/70 hover:border-white/40 transition-colors"
         >
           Cancel
         </button>

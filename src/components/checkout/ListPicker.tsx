@@ -44,7 +44,7 @@ export function ListPicker({
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder={`Search ${title.toLowerCase()}`}
-          className="w-full rounded-2xl border border-white/15 bg-white/[0.06] px-4 py-3 text-[16px] outline-none placeholder:text-white/35"
+          className="w-full rounded-2xl border border-white/35 bg-white/[0.06] px-4 py-3 text-[16px] outline-none placeholder:text-white/35"
         />
       </div>
       <div className="flex-1 overflow-y-auto">
@@ -52,7 +52,7 @@ export function ListPicker({
           <button
             type="button"
             onClick={() => onSelect({ code: "", name: q.trim() })}
-            className="w-full border-b border-white/10 px-4 py-3.5 text-left text-[16px]"
+            className="w-full border-b border-white/30 px-4 py-3.5 text-left text-[16px]"
           >
             Use &ldquo;{q.trim()}&rdquo;
           </button>
@@ -62,7 +62,7 @@ export function ListPicker({
             key={i.code + i.name}
             type="button"
             onClick={() => onSelect(i)}
-            className="w-full border-b border-white/10 px-4 py-3.5 text-left text-[16px]"
+            className="w-full border-b border-white/30 px-4 py-3.5 text-left text-[16px]"
           >
             {i.name}
           </button>

@@ -48,7 +48,7 @@ export function ImageSourceSheet({
             type="button"
             onClick={() => onSelect(key)}
             className={`w-full flex items-center gap-3 px-4 py-3.5 text-left active:bg-white/10 transition-colors duration-100 ${
-              i > 0 ? "border-t border-white/15" : ""
+              i > 0 ? "border-t border-white/35" : ""
             }`}
           >
             <Icon size={18} className="text-white shrink-0" />

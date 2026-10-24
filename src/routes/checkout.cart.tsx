@@ -99,7 +99,7 @@ function CartCheckoutPage() {
         <p className="px-1 pb-1 text-[13px] text-white/55">
           {count} {count === 1 ? "piece" : "pieces"} from {lines[0].storeName}
         </p>
-        <ul className="divide-y divide-white/10">
+        <ul className="divide-y divide-white/30">
           {lines.map((l, i) => {
             const total = subtotalOf([l]);
             const status = statuses[i];
@@ -139,7 +139,7 @@ function CartCheckoutPage() {
         </ul>
       </div>
       {problem && (
-        <div className="mt-3 rounded-2xl border border-white/15 p-4 text-[14px] leading-snug text-white/75">
+        <div className="mt-3 rounded-2xl border border-white/35 p-4 text-[14px] leading-snug text-white/75">
           Something in this order changed since you added it.{" "}
           <button
             type="button"
