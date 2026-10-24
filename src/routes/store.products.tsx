@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useHideStoreNav } from "@/components/store/store-nav";
 import { useState } from "react";
 import { motion, useMotionValue, useTransform } from "framer-motion";
 import { TabPager } from "@/components/profile/TabPager";
@@ -21,6 +22,8 @@ export const Route = createFileRoute("/store/products")({
 
 function StoreProducts() {
   const { checklist, tab } = Route.useSearch();
+  // Arrived from the setup checklist: a focused step, no nav bar.
+  useHideStoreNav(!!checklist);
   // Only read as the *initial* tab -- the New/Edit Drop and New Collection
   // forms land back here via ?tab=Drops/Collections so the seller doesn't
   // reappear on Products after finishing something in another tab. Once

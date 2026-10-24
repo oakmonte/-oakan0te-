@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useHideStoreNav } from "@/components/store/store-nav";
 import { recall, remember } from "@/lib/remembered";
 import { X, MapPin, Plus, ChevronRight, BadgeCheck } from "lucide-react";
 import { PageSheet } from "@/components/PageSheet";
@@ -46,6 +47,8 @@ export function LocationsListSheet({
    *  dead end back to "just close it" the way it did before. */
   fromChecklist?: boolean;
 }) {
+  // A full-screen sheet with its own Save bar: the bottom nav steps aside.
+  useHideStoreNav(true);
   const [rows, setRows] = useState<Row[] | null>(null);
   const [editing, setEditing] = useState<StoreLocationValues | null | "new">(null);
   // How many variant-stock rows sit at the location currently being edited --

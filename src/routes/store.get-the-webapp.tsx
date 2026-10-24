@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useHideStoreNav } from "@/components/store/store-nav";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { Check, Download, MoreVertical, Play, Share, Smartphone } from "lucide-react";
 import { isIOS } from "@/lib/platform";
@@ -28,6 +29,8 @@ function Step({ n, children }: { n: number; children: React.ReactNode }) {
 function GetTheWebappPage() {
   const navigate = useNavigate();
   const { checklist } = Route.useSearch();
+  // Arrived from the setup checklist: a focused step, no nav bar.
+  useHideStoreNav(!!checklist);
 
   // Both read `navigator` / a media query, so both are set from an effect
   // rather than a useState initialiser -- see the note on isInstallablePhone.

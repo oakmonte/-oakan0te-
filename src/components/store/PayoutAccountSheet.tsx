@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useHideStoreNav } from "@/components/store/store-nav";
 import { Check, Plus, Search, X } from "lucide-react";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
 
@@ -299,6 +300,8 @@ export function PayoutAccountSheet({
   onSave: (values: PayoutFormValues) => Promise<void>;
   onClose: () => void;
 }) {
+  // A full-screen sheet with its own Save bar: the bottom nav steps aside.
+  useHideStoreNav(true);
   useLockedViewport();
 
   const [bankName, setBankName] = useState(initial?.bankName ?? "");

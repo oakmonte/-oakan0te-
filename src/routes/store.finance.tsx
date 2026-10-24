@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useHideStoreNav } from "@/components/store/store-nav";
 import { useEffect, useState } from "react";
 import { Landmark, Clock, Check } from "lucide-react";
 import { PayoutAccountSheet } from "@/components/store/PayoutAccountSheet";
@@ -37,6 +38,8 @@ export const Route = createFileRoute("/store/finance")({
 function FinancePage() {
   const navigate = useNavigate();
   const { checklist } = Route.useSearch();
+  // Arrived from the setup checklist: a focused step, no nav bar.
+  useHideStoreNav(!!checklist);
   // undefined = still loading, null = no account saved yet
   const [account, setAccount] = useState<PayoutAccount | null | undefined>(undefined);
   const [sheetOpen, setSheetOpen] = useState(false);
