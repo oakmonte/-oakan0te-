@@ -1245,14 +1245,30 @@ body.oak-page-sheet-open [data-app-root] {
   }
 }
 
-/* Full-screen product-form and location sheets on a wide screen: content,
-   header controls and footers line up in one centred ~36rem column, while
-   the sheet's background and the header's divider still span the screen.
-   Padding rather than max-width, so the scroll area stays full width (the
-   wheel works over the margins). Phones never reach this; overlays inside a
-   sheet (.fixed/.absolute) are left alone. */
+/* Full-screen product-form and location sheets on a wide screen: one
+   outlined, rounded card centred on a soft ground, instead of the content
+   simply narrowed on an edge-to-edge white page. The card holds the header,
+   body and footer (sticky still works inside -- overflow: clip makes no
+   scroll container). Phones never reach this; overlays inside a sheet
+   (.fixed/.absolute) are left alone. */
 @media (min-width: 768px) {
+  .sheet-column {
+    max-width: 44rem;
+    margin: 1.5rem auto;
+    min-height: calc(100dvh - 3rem) !important;
+    border: 1px solid #c4c8cf;
+    border-radius: 28px;
+    overflow: clip;
+    box-shadow: 0 24px 60px -30px rgba(0, 0, 0, 0.25);
+  }
   .sheet-column > :not(.fixed):not(.absolute) {
-    padding-inline: max(1rem, calc((100% - 36rem) / 2));
+    padding-inline: 1.5rem;
+  }
+  body.oak-page-sheet-open:has(.sheet-column.bg-white) {
+    background: #f3f4f6;
+  }
+  body.oak-page-sheet-open:has(.sheet-column.bg-sd-surface) {
+    background: var(--sd-bg);
   }
 }
+
