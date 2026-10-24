@@ -784,7 +784,7 @@ export function PhoneHeader({
             // Centred on the logo beside it: (56 - 24) / 2 for the image chip,
             // (40 - 24) / 2 for the text one.
             className={`flex shrink-0 items-center gap-5 ${logoMode === "text" ? "pt-2" : "pt-4"}`}
-            style={{ color: mutedColor }}
+            style={{ color: ink ? alpha(ink, isDark(ink) ? 0.88 : 1) : mutedColor }}
           >
             {live ? (
               <>
@@ -799,7 +799,7 @@ export function PhoneHeader({
                 >
                   {/* Filled while the search bar is open: a state shown by shape, not
                     colour, so it reads on every theme. */}
-                  <Search size={24} strokeWidth={2.4} fill={searchOpen ? "currentColor" : "none"} />
+                  <Search size={24} strokeWidth={2} fill={searchOpen ? "currentColor" : "none"} />
                 </button>
                 <button
                   type="button"
@@ -807,7 +807,7 @@ export function PhoneHeader({
                   onClick={() => void navigate({ to: "/cart" })}
                   className="active:scale-90 transition-transform duration-150"
                 >
-                  <ShoppingBag size={24} strokeWidth={2.4} />
+                  <ShoppingBag size={24} strokeWidth={2} />
                 </button>
                 <button
                   type="button"
@@ -817,14 +817,14 @@ export function PhoneHeader({
                   }}
                   className="active:scale-90 transition-transform duration-150"
                 >
-                  <Share2 size={24} strokeWidth={2.4} />
+                  <Share2 size={24} strokeWidth={2} />
                 </button>
               </>
             ) : (
               <>
-                <Search size={24} strokeWidth={2.4} />
-                <ShoppingBag size={24} strokeWidth={2.4} />
-                <Share2 size={24} strokeWidth={2.4} />
+                <Search size={24} strokeWidth={2} />
+                <ShoppingBag size={24} strokeWidth={2} />
+                <Share2 size={24} strokeWidth={2} />
               </>
             )}
           </div>

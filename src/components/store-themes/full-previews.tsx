@@ -200,6 +200,7 @@ function MotionGridFull({
       <div className="relative">
         <PhoneHeader
           mutedColor="rgba(255,255,255,0.7)"
+          ink="#ffffff"
           brandInitial={brandName.charAt(0).toUpperCase()}
           defaultLogoText={brandName}
           editing={editing}
@@ -455,6 +456,7 @@ function GalleryEditFull({
       <div className="relative">
         <PhoneHeader
           mutedColor="rgba(243,237,226,0.55)"
+          ink="#f3ede2"
           brandInitial={brandName.charAt(0).toUpperCase()}
           defaultLogoText={brandName}
           editing={editing}
@@ -581,6 +583,7 @@ function NeonTerminalFull({
       <div className="relative">
         <PhoneHeader
           mutedColor="rgba(234,252,255,0.6)"
+          ink="#eafcff"
           brandInitial={brandName.charAt(0).toUpperCase()}
           defaultLogoText={brandName}
           editing={editing}
@@ -702,6 +705,7 @@ function VerdantNoirFull({
       <div className="relative">
         <PhoneHeader
           mutedColor="rgba(234,242,236,0.6)"
+          ink="#eaf2ec"
           brandInitial={brandName.charAt(0).toUpperCase()}
           defaultLogoText={brandName}
           editing={editing}
@@ -951,6 +955,7 @@ function GildedFull({
       <div className="relative">
         <PhoneHeader
           mutedColor="rgba(243,236,220,0.55)"
+          ink="#f3ecdc"
           brandInitial={brandName.charAt(0).toUpperCase()}
           defaultLogoText={brandName}
           editing={editing}
@@ -1075,6 +1080,7 @@ function ObsidianFull({
       <div className="relative">
         <PhoneHeader
           mutedColor="rgba(230,230,230,0.55)"
+          ink="#e6e6e6"
           brandInitial={brandName.charAt(0).toUpperCase()}
           defaultLogoText={brandName}
           editing={editing}

@@ -170,7 +170,7 @@ export function StorefrontNav({
               }}
               className={iconBtn}
             >
-              <Search size={23} strokeWidth={2.4} fill={searchOpen ? "currentColor" : "none"} />
+              <Search size={23} strokeWidth={2} fill={searchOpen ? "currentColor" : "none"} />
             </button>
             <button
               type="button"
@@ -178,7 +178,7 @@ export function StorefrontNav({
               onClick={() => void navigate({ to: "/cart" })}
               className={iconBtn}
             >
-              <ShoppingBag size={23} strokeWidth={2.4} />
+              <ShoppingBag size={23} strokeWidth={2} />
             </button>
             <button
               type="button"
@@ -188,17 +188,17 @@ export function StorefrontNav({
               }}
               className={iconBtn}
             >
-              <Share2 size={23} strokeWidth={2.4} />
+              <Share2 size={23} strokeWidth={2} />
             </button>
             {preview && storeUsername ? (
-              <Link
-                to="/shop/$storeUsername"
-                params={{ storeUsername }}
+              <button
+                type="button"
+                onClick={() => showLocked("Website visit not yet authorised")}
                 aria-label="Open website"
                 className={iconBtn}
               >
-                <ExternalLink size={23} strokeWidth={2.4} />
-              </Link>
+                <ExternalLink size={23} strokeWidth={2} />
+              </button>
             ) : null}
           </div>
         </div>
@@ -258,15 +258,15 @@ export function StorefrontNav({
         </div>
 
         {preview && storeUsername ? (
-          <Link
-            to="/shop/$storeUsername"
-            params={{ storeUsername }}
+          <button
+            type="button"
+            onClick={() => showLocked("Website visit not yet authorised")}
             aria-label="Open website"
             className={`${GLASS_RIM} ${round}`}
             style={glassLight}
           >
             <ExternalLink size={22} strokeWidth={2.3} />
-          </Link>
+          </button>
         ) : (
           <span className="w-[52px]" />
         )}

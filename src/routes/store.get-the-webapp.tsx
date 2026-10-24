@@ -16,11 +16,11 @@ export const Route = createFileRoute("/store/get-the-webapp")({
 
 function Step({ n, children }: { n: number; children: React.ReactNode }) {
   return (
-    <li className="flex items-start gap-3">
-      <span className="w-5 h-5 rounded-full bg-sd-ink text-sd-bg text-[11px] font-medium flex items-center justify-center shrink-0 mt-0.5">
+    <li className="flex items-start gap-4">
+      <span className="w-9 h-9 rounded-full bg-sd-ink text-sd-bg text-[16px] font-semibold flex items-center justify-center shrink-0">
         {n}
       </span>
-      <span className="text-sm text-sd-ink leading-relaxed">{children}</span>
+      <span className="text-[19px] text-sd-ink leading-snug pt-1">{children}</span>
     </li>
   );
 }
@@ -107,19 +107,19 @@ function GetTheWebappPage() {
         )}
 
         {!canInstall && (
-          <div className="border border-sd-line rounded-2xl p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <Smartphone size={16} className="text-sd-ink-muted" />
-              <p className="text-sm font-medium text-sd-ink">
+          <div className="border border-sd-line rounded-3xl p-6">
+            <div className="flex items-center gap-2.5 mb-6">
+              <Smartphone size={22} className="text-sd-ink-muted" />
+              <p className="text-[18px] font-semibold text-sd-ink">
                 {ios ? "On iPhone or iPad" : "In your browser menu"}
               </p>
             </div>
-            <ol className="flex flex-col gap-3">
+            <ol className="flex flex-col gap-6">
               {ios ? (
                 <>
                   <Step n={1}>
-                    Tap the <Share size={13} className="inline -mt-0.5 mx-0.5" /> share button at
-                    the top or bottom of the screen.
+                    Tap the <Share size={20} className="inline -mt-1 mx-0.5" /> share button at the
+                    top or bottom of the screen.
                   </Step>
                   <Step n={2}>
                     Scroll down and tap <span className="font-medium">Add to Home Screen</span>.
@@ -132,8 +132,8 @@ function GetTheWebappPage() {
               ) : (
                 <>
                   <Step n={1}>
-                    Tap the <MoreVertical size={13} className="inline -mt-0.5 mx-0.5" /> menu in
-                    your browser&rsquo;s toolbar.
+                    Tap the <MoreVertical size={20} className="inline -mt-1 mx-0.5" /> menu in your
+                    browser&rsquo;s toolbar.
                   </Step>
                   <Step n={2}>
                     Tap <span className="font-medium">Install app</span>, or{" "}

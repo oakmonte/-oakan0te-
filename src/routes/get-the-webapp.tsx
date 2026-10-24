@@ -50,11 +50,11 @@ export const Route = createFileRoute("/get-the-webapp")({
 
 function Step({ n, children }: { n: number; children: React.ReactNode }) {
   return (
-    <li className="flex items-start gap-3">
-      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-text text-[11px] font-medium text-brand-bg">
+    <li className="flex items-start gap-4">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-text text-[16px] font-semibold text-brand-bg">
         {n}
       </span>
-      <span className="text-sm leading-relaxed">{children}</span>
+      <span className="pt-1 text-[19px] leading-snug">{children}</span>
     </li>
   );
 }
@@ -163,19 +163,19 @@ function GetTheWebappInner() {
                 {installing ? "Opening…" : "Add Oakmonte to my home screen"}
               </button>
             ) : (
-              <div className="rounded-2xl border border-brand-text/15 p-5">
-                <div className="mb-4 flex items-center gap-2">
-                  <Smartphone size={16} className="text-brand-text/60" />
-                  <p className="text-sm font-medium">
+              <div className="rounded-3xl border border-brand-text/15 p-6">
+                <div className="mb-6 flex items-center gap-2.5">
+                  <Smartphone size={22} className="text-brand-text/60" />
+                  <p className="text-[18px] font-semibold">
                     {ios ? "On iPhone or iPad" : "In your browser menu"}
                   </p>
                 </div>
-                <ol className="flex flex-col gap-3">
+                <ol className="flex flex-col gap-6">
                   {ios ? (
                     <>
                       <Step n={1}>
-                        Tap the <Share size={13} className="mx-0.5 -mt-0.5 inline" /> share button
-                        at the top or bottom of the screen.
+                        Tap the <Share size={20} className="mx-0.5 -mt-1 inline" /> share button at
+                        the top or bottom of the screen.
                       </Step>
                       <Step n={2}>
                         Scroll down and tap <span className="font-medium">Add to Home Screen</span>.
@@ -188,7 +188,7 @@ function GetTheWebappInner() {
                   ) : (
                     <>
                       <Step n={1}>
-                        Tap the <MoreVertical size={13} className="mx-0.5 -mt-0.5 inline" /> menu in
+                        Tap the <MoreVertical size={20} className="mx-0.5 -mt-1 inline" /> menu in
                         your browser&rsquo;s toolbar.
                       </Step>
                       <Step n={2}>
