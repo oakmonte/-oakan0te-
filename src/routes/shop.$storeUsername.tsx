@@ -12,6 +12,9 @@ export const Route = createFileRoute("/shop/$storeUsername")({
   component: ShopPage,
 });
 
+/** The storefront a buyer last had open (read by the cart). */
+export const LAST_STORE_KEY = "oakmonte:last-store";
+
 function ShopPage() {
   const { storeUsername } = useParams({ from: "/shop/$storeUsername" });
   // undefined while loading, null when there's no such store.
@@ -26,7 +29,16 @@ function ShopPage() {
       .eq("store_username", storeUsername)
       .maybeSingle()
       .then(({ data }) => {
-        if (!cancelled) setStoreId(data?.id ?? null);
+        if (cancelled) return;
+        setStoreId(data?.id ?? null);
+        // So the cart's "Start shopping" can send a buyer back to this store.
+        if (data?.id) {
+          try {
+            localStorage.setItem(LAST_STORE_KEY, storeUsername);
+          } catch {
+            // Storage blocked: the cart falls back to going back.
+          }
+        }
       });
     return () => {
       cancelled = true;

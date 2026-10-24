@@ -100,7 +100,19 @@ function CartPage() {
               </p>
               <button
                 type="button"
-                onClick={() => goRoot({ to: "/home" })}
+                onClick={() => {
+                  // Back to the store they were shopping in, not the Oakmonte app.
+                  let store: string | null = null;
+                  try {
+                    store = localStorage.getItem("oakmonte:last-store");
+                  } catch {
+                    // Storage blocked: fall through to going back.
+                  }
+                  if (store)
+                    void navigate({ to: "/shop/$storeUsername", params: { storeUsername: store } });
+                  else if (window.history.length > 1) window.history.back();
+                  else goRoot({ to: "/home" });
+                }}
                 className="mt-6 flex h-12 items-center rounded-full bg-chat-text px-8 text-[16px] font-semibold text-chat-inverse active:scale-[0.98]"
               >
                 Start shopping

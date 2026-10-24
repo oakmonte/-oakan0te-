@@ -163,7 +163,7 @@ function FinancePage() {
               <Landmark size={20} className="text-sd-ink-muted" />
             </div>
             <div>
-              <p className="text-sm font-medium text-sd-ink">Add your payout account</p>
+              <p className="text-sm font-medium text-sd-ink">Give us your bank account</p>
               <p className="text-xs text-sd-ink-muted mt-0.5">
                 So we know where to send your money.
               </p>
