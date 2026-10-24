@@ -24,12 +24,14 @@ const TABS: Tab[] = ["for-you", "listed-items"];
 // The side-by-side layout: from this container width, a products panel this
 // wide beside the post, with a slim column of arrows between them.
 const SIDE_BY_SIDE_MIN = 900;
+// At or under this width the feed fills the whole box instead of taking the post's shape.
+const PHONE_MAX_W = 640;
 const PANEL_W = 400;
-const ARROWS_W = 56;
+const ARROWS_W = 112;
 const GAP = 16;
 // The side-by-side cards float: room above, and below for the bottom nav.
 const PAD_TOP = 20;
-const PAD_BOTTOM = 100;
+const PAD_BOTTOM = 82;
 const PANEL_TITLE_H = 40;
 
 // Same settle as the app's other pagers: quick, no bounce.
@@ -91,7 +93,17 @@ export function StorefrontFeed({
   const availH = wide ? screen.h - PAD_TOP - PAD_BOTTOM : screen.h;
   // Wide: the post plus the strip of buttons beside it.
   const railW = wide ? RAIL_OUTSIDE_W : 0;
-  const width = screen.h ? Math.min(room - railW, Math.round(availH * aspect)) + railW : room;
+  // The post's card sits under its title, level with the products card.
+  const cardH = wide ? availH - PANEL_TITLE_H : availH;
+  // A phone-sized box (a phone, or the editor's phone frame) is filled edge to
+  // edge: the post sits whole inside it, on its own blurred backdrop. A wider
+  // one is shaped to the post.
+  const phoneSized = !wide && screen.w <= PHONE_MAX_W;
+  const width = phoneSized
+    ? screen.w
+    : screen.h
+      ? Math.min(room - railW, Math.round(cardH * aspect)) + railW
+      : room;
   const framed = width > 0 && width < screen.w;
   const feedRef = useRef<HTMLDivElement>(null);
   // The arrows between the two: one post up or down, as the feed's own swipe.
@@ -209,21 +221,28 @@ export function StorefrontFeed({
           </div>
         )}
         <div
-          ref={feedRef}
-          className="relative shrink-0"
+          className="relative flex shrink-0 flex-col"
           style={{
             width: width || undefined,
             height: availH,
             transition: "width 350ms cubic-bezier(0.2, 0, 0, 1)",
           }}
         >
-          <PostFeed
-            mode="embedded"
-            scope={{ type: "author", userId: ownerId }}
-            onActivePost={setActivePost}
-            storePicture={storePicture}
-            railOutside
-          />
+          <p
+            className="flex items-center px-2 text-[20px] font-bold tracking-tight"
+            style={{ height: PANEL_TITLE_H }}
+          >
+            For you
+          </p>
+          <div ref={feedRef} className="relative min-h-0 flex-1">
+            <PostFeed
+              mode="embedded"
+              scope={{ type: "author", userId: ownerId }}
+              onActivePost={setActivePost}
+              storePicture={storePicture}
+              railOutside
+            />
+          </div>
         </div>
         <div
           className="relative z-10 flex shrink-0 flex-col items-center justify-center gap-3"
@@ -251,7 +270,7 @@ export function StorefrontFeed({
           style={{ width: PANEL_W, height: availH }}
         >
           <p
-            className="flex items-center px-2 text-[17px] font-semibold tracking-tight"
+            className="flex items-center px-2 text-[20px] font-bold tracking-tight"
             style={{ height: PANEL_TITLE_H }}
           >
             Listed items

@@ -560,9 +560,11 @@ export function PostFeed({
       // Transforming the scroller itself (what this used to do) fights
       // scroll-snap and leaves the snap points offset mid-gesture.
       <div className={shellClass}>
-        <motion.div className="absolute inset-0 bg-black" style={{ opacity: backdropOpacity }} />
+        {!railOutside && (
+          <motion.div className="absolute inset-0 bg-black" style={{ opacity: backdropOpacity }} />
+        )}
         <motion.div
-          className="absolute inset-0 overflow-hidden bg-black"
+          className={`absolute inset-0 overflow-hidden ${railOutside ? "" : "bg-black"}`}
           style={{
             x: dismissX,
             scale: dismissScale,
