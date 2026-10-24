@@ -18,15 +18,11 @@ Three versions:
 1. **`oakmonte-master-piece`** (branch; tag `master-piece-2026-10-09`) — the full platform, kept
    safe. Low priority. Finished lane work (discounts, insights, activity — not offline videos)
    is merged in there too.
-2. **`sellers-only`** = **Vercel production** (since 2026-10-17), with buying locked: Production
-   has no `VITE_LAUNCH_UNLOCKED`. **`sellers-only-test`** is the same code with buying unlocked
-   (a Preview env scoped to that branch: the switch plus Paystack test / Shipbubble sandbox
-   keys) at `oakmonte-git-sellers-only-test-sudo-50b8.vercel.app`. Test checkout there.
+2. **`sellers-only`** = **Vercel production** (since 2026-10-17), buying open (the launch locks
+   were removed 2026-10-24). Checkout refuses politely until `PAYSTACK_SECRET_KEY` and
+   `SHIPBUBBLE_API_KEY` are set. **`sellers-only-test`** is the same code with Paystack test /
+   Shipbubble sandbox keys at `oakmonte-git-sellers-only-test-sudo-50b8.vercel.app`.
 3. **`main` / `sellers-only-locked`**: the older locked code, now only previews.
-
-Launch locks (Buy Now, the preview's Open website) live in `src/lib/launch-locks.ts`: locked
-by default, unlocked only by `VITE_LAUNCH_UNLOCKED=true`. Launch day = add it (and live keys)
-to Production; no code change.
 
 **Branch flow: main -> sellers-only, never back.** `main` and `sellers-only-locked` stay
 identical. `sellers-only` gets every main change (merge `origin/main` into it often) **plus**

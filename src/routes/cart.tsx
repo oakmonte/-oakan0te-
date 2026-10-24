@@ -14,8 +14,6 @@ import {
   useCartReady,
   type LineStatus,
 } from "@/lib/cart";
-import { SALES_LOCKED } from "@/lib/launch-locks";
-import { SalesLockedNotice } from "@/components/store-themes/SalesLockedNotice";
 
 export const Route = createFileRoute("/cart")({
   // No theme-color here: /cart is on the "social" surface (lib/surface.ts),
@@ -47,7 +45,6 @@ function blockedReason(statuses: LineStatus[], failed: boolean): string | null {
 // The "social" surface, like /home and /messages: chat-* tokens follow the
 // phone's light/dark setting.
 function CartPage() {
-  const [salesLocked, setSalesLocked] = useState(false);
   const navigate = useNavigate();
   const goRoot = useGoRoot();
   const { user, loading: sessionLoading } = useSession();
@@ -190,9 +187,7 @@ function CartPage() {
                       type="button"
                       disabled={!!reason}
                       onClick={() =>
-                        SALES_LOCKED
-                          ? setSalesLocked(true)
-                          : void navigate({ to: "/checkout/cart", search: { store: g.storeId } })
+                        void navigate({ to: "/checkout/cart", search: { store: g.storeId } })
                       }
                       className="mt-3 h-12 w-full rounded-full bg-chat-text text-[16px] font-semibold text-chat-inverse active:scale-[0.98] disabled:opacity-40 disabled:active:scale-100"
                     >
@@ -214,7 +209,6 @@ function CartPage() {
           </>
         )}
       </div>
-      {salesLocked && <SalesLockedNotice onClose={() => setSalesLocked(false)} />}
     </div>
   );
 }

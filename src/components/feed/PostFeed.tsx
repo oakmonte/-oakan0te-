@@ -48,7 +48,6 @@ import { useBagToast } from "@/components/cart/BagToast";
 import { addProductsToCart } from "@/lib/cart-quote";
 import { claimMediaSession, releaseMediaSession } from "@/lib/media-session";
 import { useLockedBanner } from "@/components/LockedBanner";
-import { SALES_LOCKED, SHARING_LOCKED } from "@/lib/launch-locks";
 import { BagPlus } from "@/components/icons/BagPlus";
 
 // Bare icons over the media — no chip behind them and no drop shadow either.
@@ -315,6 +314,7 @@ export function PostFeed({
   onActivePost,
   onSwipePastEnd,
   storePicture,
+  railOutside = false,
 }: {
   scope: FeedScope;
   /** A storefront's feed shows the store's picture on the rail, not the
@@ -328,6 +328,10 @@ export function PostFeed({
    *  add-to-cart: a store is a seller identity, it doesn't buy. Browsing as
    *  yourself this stays false everywhere — you can buy from your own store. */
   asStore?: boolean;
+  /** Wide screens: the side buttons sit beside the post, in a strip of their
+   *  own, instead of over it. The post is drawn rounded, RAIL_OUTSIDE_W short
+   *  of the feed's width. */
+  railOutside?: boolean;
   /** Called with whichever post is currently filling the screen, including on
    *  every scroll to a new one. Explore uses it to keep its Listed items tab
    *  pointed at the post you were just looking at. */
@@ -376,7 +380,7 @@ export function PostFeed({
   const shellClass =
     mode === "standalone"
       ? "fixed inset-0 z-[70] bg-black"
-      : "relative w-full h-full bg-black overflow-hidden";
+      : `relative w-full h-full overflow-hidden ${railOutside ? "" : "bg-black"}`;
 
   // Swipe RIGHT to dismiss.
   //
@@ -580,6 +584,7 @@ export function PostFeed({
                 storefront={scope.type === "author" || scope.type === "product"}
                 storePicture={storePicture ?? null}
                 overNav={mode === "embedded"}
+                railOutside={railOutside}
                 asStore={asStore}
                 onActive={handleActive}
                 onSwipePastEnd={onSwipePastEnd}
@@ -946,6 +951,23 @@ function CarouselDots({ index, total }: { index: number; total: number }) {
   );
 }
 
+/** Width of the side-button strip when it sits beside the post. */
+export const RAIL_OUTSIDE_W = 76;
+
+/** The post's picture layers. Normally just the card's own; with the rail
+ *  outside they're a rounded box that stops short of the strip. */
+function MediaBox({ outside, children }: { outside: boolean; children: ReactNode }) {
+  if (!outside) return <>{children}</>;
+  return (
+    <div
+      className="absolute inset-y-0 left-0 overflow-hidden rounded-[32px] bg-neutral-950 shadow-[0_24px_80px_rgba(0,0,0,0.6)] ring-1 ring-white/10"
+      style={{ right: RAIL_OUTSIDE_W }}
+    >
+      {children}
+    </div>
+  );
+}
+
 function RailAction({
   label,
   count,
@@ -1007,10 +1029,12 @@ function FeedPostCard({
   storefront,
   storePicture,
   overNav,
+  railOutside,
   asStore,
   onActive,
   onSwipePastEnd,
 }: {
+  railOutside: boolean;
   post: FeedPost;
   /** A storefront's Home feed (the "author" scope): the social actions go. */
   storefront: boolean;
@@ -1369,78 +1393,80 @@ function FeedPostCard({
     <div
       ref={cardRef}
       data-post-id={post.id}
-      className="relative w-full h-full bg-neutral-950 text-white"
+      className={`relative w-full h-full text-white ${railOutside ? "" : "bg-neutral-950"}`}
       style={{ scrollSnapAlign: "start" }}
     >
-      {/* Profile viewer only: the post keeps its own shape (contained, never
+      <MediaBox outside={railOutside}>
+        {/* Profile viewer only: the post keeps its own shape (contained, never
           cropped) and the space around it is filled with a blurred, dimmed
           copy of the post — TikTok's treatment for media that isn't 9:16 —
           rather than flat black bars. Explore stays edge-to-edge cover. A
           still is enough for the backdrop; a second playing video per card
           would double the decode work for something nobody looks at. */}
-      {fitContain && backdropUrl && (
-        <div className="absolute inset-0 overflow-hidden" aria-hidden>
-          <img
-            src={backdropUrl}
-            alt=""
-            loading="lazy"
-            className="absolute inset-0 w-full h-full object-cover scale-125 blur-2xl opacity-70"
-          />
-          <div className="absolute inset-0 bg-black/35" />
-        </div>
-      )}
+        {fitContain && backdropUrl && (
+          <div className="absolute inset-0 overflow-hidden" aria-hidden>
+            <img
+              src={backdropUrl}
+              alt=""
+              loading="lazy"
+              className="absolute inset-0 w-full h-full object-cover scale-125 blur-2xl opacity-70"
+            />
+            <div className="absolute inset-0 bg-black/35" />
+          </div>
+        )}
 
-      {isCarousel ? (
-        <PostCarousel
-          media={post.media}
-          fit={mediaFit}
-          playing={onScreen && !userPaused}
-          tap={tapHandlers}
-          onIndexChange={setSlide}
-          activeVideoRef={carouselVideoRef}
-          onSwipePastEnd={onSwipePastEnd}
-        />
-      ) : isVideo ? (
-        <>
-          <video
-            ref={videoRef}
+        {isCarousel ? (
+          <PostCarousel
+            media={post.media}
+            fit={mediaFit}
+            playing={onScreen && !userPaused}
+            tap={tapHandlers}
+            onIndexChange={setSlide}
+            activeVideoRef={carouselVideoRef}
+            onSwipePastEnd={onSwipePastEnd}
+          />
+        ) : isVideo ? (
+          <>
+            <video
+              ref={videoRef}
+              src={post.media_url}
+              poster={post.thumbnail_url ?? undefined}
+              loop
+              muted
+              playsInline
+              disablePictureInPicture
+              disableRemotePlayback
+              preload="metadata"
+              onLoadedMetadata={(e) => {
+                const v = e.currentTarget;
+                if (v.videoWidth && v.videoHeight) setAspect(v.videoWidth / v.videoHeight);
+              }}
+              className={`absolute inset-0 w-full h-full ${mediaFit}`}
+            />
+            {singleVideoBuffering && <BufferingSpinner />}
+          </>
+        ) : (
+          <img
             src={post.media_url}
-            poster={post.thumbnail_url ?? undefined}
-            loop
-            muted
-            playsInline
-            disablePictureInPicture
-            disableRemotePlayback
-            preload="metadata"
-            onLoadedMetadata={(e) => {
-              const v = e.currentTarget;
-              if (v.videoWidth && v.videoHeight) setAspect(v.videoWidth / v.videoHeight);
+            alt=""
+            onLoad={(e) => {
+              const i = e.currentTarget;
+              if (i.naturalWidth && i.naturalHeight) setAspect(i.naturalWidth / i.naturalHeight);
             }}
             className={`absolute inset-0 w-full h-full ${mediaFit}`}
           />
-          {singleVideoBuffering && <BufferingSpinner />}
-        </>
-      ) : (
-        <img
-          src={post.media_url}
-          alt=""
-          onLoad={(e) => {
-            const i = e.currentTarget;
-            if (i.naturalWidth && i.naturalHeight) setAspect(i.naturalWidth / i.naturalHeight);
-          }}
-          className={`absolute inset-0 w-full h-full ${mediaFit}`}
-        />
-      )}
+        )}
 
-      {/* Scrims so the rail and caption stay readable over a bright post —
+        {/* Scrims so the rail and caption stay readable over a bright post —
           and, on a contained post, so the media's edge fades into the
           backdrop instead of ending on a hard line under the caption. */}
-      {fitContain && (
-        <>
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/45 to-transparent" />
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[45%] bg-gradient-to-t from-black/70 via-black/25 to-transparent" />
-        </>
-      )}
+        {fitContain && (
+          <>
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/45 to-transparent" />
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[45%] bg-gradient-to-t from-black/70 via-black/25 to-transparent" />
+          </>
+        )}
+      </MediaBox>
 
       {/* The post's sound. Looped, because a track is almost always longer or
           shorter than the pictures it plays over and neither end should be a
@@ -1596,12 +1622,7 @@ function FeedPostCard({
               from it. The bag is local to the device (lib/cart.ts), so this
               works signed out too. */}
           {!asStore && (
-            <RailAction
-              label="Add tagged items to cart"
-              onPress={() =>
-                SALES_LOCKED ? showLocked("Add to cart is unavailable") : void addTaggedToBag()
-              }
-            >
+            <RailAction label="Add tagged items to cart" onPress={() => void addTaggedToBag()}>
               <BagPlus size={28} />
             </RailAction>
           )}
@@ -1633,7 +1654,10 @@ function FeedPostCard({
         </div>
       </div>
 
-      <div className="absolute left-4 right-[72px]" style={{ bottom: chromeBottom }}>
+      <div
+        className="absolute left-4"
+        style={{ bottom: chromeBottom, right: railOutside ? RAIL_OUTSIDE_W + 16 : 72 }}
+      >
         {isCarousel && <CarouselDots index={slide} total={post.media.length} />}
         {SOCIAL && (
           <p className="text-[14px] font-semibold truncate text-white">
@@ -1711,7 +1735,6 @@ function FeedPostCard({
           <PostShareSheet
             open={share === "open"}
             onClose={() => setShare("closed")}
-            linksLocked={storefront && SHARING_LOCKED}
             ownerId={post.user_id}
             post={{
               postId: post.id,

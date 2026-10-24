@@ -8,7 +8,6 @@ import { useBack } from "@/hooks/use-back";
 import shopIcon from "@/assets/Store.svg";
 import homeIcon from "@/assets/Home.svg";
 import messagesIcon from "@/assets/messages.svg";
-import { SALES_LOCKED, SHARING_LOCKED, WEBSITE_VISITS_LOCKED } from "@/lib/launch-locks";
 import { useLockedBanner } from "@/components/LockedBanner";
 import { StorefrontSearchContext } from "./live-storefront";
 import { isDark } from "./theme-spec";
@@ -84,7 +83,7 @@ export function StorefrontNav({
   const muted = dark ? "rgba(255,255,255,0.62)" : "rgba(17,17,17,0.58)";
   const line = dark ? "rgba(255,255,255,0.12)" : "rgba(17,17,17,0.1)";
   const iconBtn =
-    "grid h-10 w-10 place-items-center rounded-full transition-opacity hover:opacity-70";
+    "grid h-12 w-12 place-items-center rounded-full transition-opacity hover:opacity-70";
 
   return (
     <>
@@ -171,46 +170,34 @@ export function StorefrontNav({
               }}
               className={iconBtn}
             >
-              <Search size={19} strokeWidth={1.8} fill={searchOpen ? "currentColor" : "none"} />
+              <Search size={23} strokeWidth={2.4} fill={searchOpen ? "currentColor" : "none"} />
             </button>
             <button
               type="button"
               aria-label="Cart"
-              onClick={() =>
-                SALES_LOCKED ? showLocked("Carts unavailable") : void navigate({ to: "/cart" })
-              }
+              onClick={() => void navigate({ to: "/cart" })}
               className={iconBtn}
             >
-              <ShoppingBag size={19} strokeWidth={1.8} />
+              <ShoppingBag size={23} strokeWidth={2.4} />
             </button>
             <button
               type="button"
               aria-label="Share"
               onClick={() => {
-                if (SHARING_LOCKED) return showLocked("Sharing unavailable");
                 void navigator.share?.({ url: window.location.href }).catch(() => {});
               }}
               className={iconBtn}
             >
-              <Share2 size={19} strokeWidth={1.8} />
+              <Share2 size={23} strokeWidth={2.4} />
             </button>
-            {preview && WEBSITE_VISITS_LOCKED ? (
-              <button
-                type="button"
-                onClick={() => showLocked("Website visits are not available for now")}
-                aria-label="Open website"
-                className={iconBtn}
-              >
-                <ExternalLink size={19} strokeWidth={1.8} />
-              </button>
-            ) : preview && storeUsername ? (
+            {preview && storeUsername ? (
               <Link
                 to="/shop/$storeUsername"
                 params={{ storeUsername }}
                 aria-label="Open website"
                 className={iconBtn}
               >
-                <ExternalLink size={19} strokeWidth={1.8} />
+                <ExternalLink size={23} strokeWidth={2.4} />
               </Link>
             ) : null}
           </div>
@@ -270,17 +257,7 @@ export function StorefrontNav({
           ))}
         </div>
 
-        {preview && WEBSITE_VISITS_LOCKED ? (
-          <button
-            type="button"
-            onClick={() => showLocked("Website visits are not available for now")}
-            aria-label="Open website"
-            className={`${GLASS_RIM} ${round}`}
-            style={glassLight}
-          >
-            <ExternalLink size={22} strokeWidth={2.3} />
-          </button>
-        ) : preview && storeUsername ? (
+        {preview && storeUsername ? (
           <Link
             to="/shop/$storeUsername"
             params={{ storeUsername }}

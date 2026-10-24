@@ -4,7 +4,6 @@ import { supabase } from "@/lib/integrations/my-supabase/client";
 import { ProductPage } from "@/components/store-themes/ProductPage";
 import { CatalogTile } from "@/components/store-themes/full-preview-blocks";
 import { GRID_COLS } from "@/lib/grid-columns";
-import { SalesLockedNotice } from "@/components/store-themes/SalesLockedNotice";
 import type { PreviewTile } from "@/components/store-themes/storefront-catalog";
 import { readStorefrontLook, type StorefrontLook } from "@/components/store-themes/storefront-look";
 
@@ -114,7 +113,6 @@ function Shelf({
 export function ShopFeed() {
   const rootRef = useRef<HTMLDivElement>(null);
   const [opened, setOpened] = useState<{ item: ShopProduct; look: StorefrontLook } | null>(null);
-  const [locked, setLocked] = useState(false);
   const { data: products, isPending } = useQuery({
     queryKey: ["home-shop-products"],
     queryFn: fetchShopProducts,
@@ -195,14 +193,8 @@ export function ShopFeed() {
       )}
 
       {opened && (
-        <ProductPage
-          tile={opened.item.tile}
-          look={opened.look}
-          onClose={() => setOpened(null)}
-          onAction={() => setLocked(true)}
-        />
+        <ProductPage tile={opened.item.tile} look={opened.look} onClose={() => setOpened(null)} />
       )}
-      {locked && <SalesLockedNotice onClose={() => setLocked(false)} />}
     </div>
   );
 }

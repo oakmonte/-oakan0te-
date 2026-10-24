@@ -210,7 +210,7 @@ function MotionGridFull({
         />
 
         <div className="@3xl:mx-auto @3xl:max-w-[1240px]">
-          <div className="px-4 pt-6 @3xl:px-8 @3xl:pt-14">
+          <div data-hero className="px-4 pt-6 @3xl:px-8 @3xl:pt-14">
             <ThemeText
               editing={editing}
               field="hero1"
@@ -340,7 +340,7 @@ function ImmersiveBannerFull({
         />
 
         <div className="@3xl:mx-auto @3xl:max-w-[1240px]">
-          <div className="px-4 pt-4 @3xl:px-8 @3xl:pt-14 text-center">
+          <div data-hero className="px-4 pt-4 @3xl:px-8 @3xl:pt-14 text-center">
             <ThemeText
               editing={editing}
               field="hero1"
@@ -465,7 +465,7 @@ function GalleryEditFull({
         />
 
         <div className="@3xl:mx-auto @3xl:max-w-[1240px]">
-          <div className="px-4 pt-6 @3xl:px-8 @3xl:pt-14 text-center">
+          <div data-hero className="px-4 pt-6 @3xl:px-8 @3xl:pt-14 text-center">
             <ThemeText
               editing={editing}
               field="hero1"
@@ -591,7 +591,7 @@ function NeonTerminalFull({
         />
 
         <div className="@3xl:mx-auto @3xl:max-w-[1240px]">
-          <div className="px-4 pt-6 @3xl:px-8 @3xl:pt-14 text-center">
+          <div data-hero className="px-4 pt-6 @3xl:px-8 @3xl:pt-14 text-center">
             <p className="flex items-center justify-center gap-1.5 text-[11px] @3xl:text-[13px] font-semibold uppercase tracking-[0.25em] text-[#2dd4ff]">
               <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-[#2dd4ff]" />
               <ThemeText editing={editing} field="hero1" defaultValue="System online" as="span" />
@@ -712,7 +712,7 @@ function VerdantNoirFull({
         />
 
         <div className="@3xl:mx-auto @3xl:max-w-[1240px]">
-          <div className="px-4 pt-6 @3xl:px-8 @3xl:pt-14">
+          <div data-hero className="px-4 pt-6 @3xl:px-8 @3xl:pt-14">
             <ThemeText
               editing={editing}
               field="hero1"
@@ -837,7 +837,7 @@ function MonochromeFull({
         />
 
         <div className="@3xl:mx-auto @3xl:max-w-[1240px]">
-          <div className="px-4 pt-6 @3xl:px-8 @3xl:pt-14 text-center">
+          <div data-hero className="px-4 pt-6 @3xl:px-8 @3xl:pt-14 text-center">
             <ThemeText
               editing={editing}
               field="hero1"
@@ -961,7 +961,7 @@ function GildedFull({
         />
 
         <div className="@3xl:mx-auto @3xl:max-w-[1240px]">
-          <div className="px-4 pt-6 @3xl:px-8 @3xl:pt-14 text-center">
+          <div data-hero className="px-4 pt-6 @3xl:px-8 @3xl:pt-14 text-center">
             <ThemeText
               editing={editing}
               field="hero1"
@@ -1085,7 +1085,7 @@ function ObsidianFull({
         />
 
         <div className="@3xl:mx-auto @3xl:max-w-[1240px]">
-          <div className="px-4 pt-6 @3xl:px-8 @3xl:pt-14">
+          <div data-hero className="px-4 pt-6 @3xl:px-8 @3xl:pt-14">
             <ThemeText
               editing={editing}
               field="hero1"
@@ -1369,7 +1369,10 @@ export function PublicStorefront({
           // portaled to <body>, because a container also contains fixed children.
           <div
             ref={rootRef}
-            className="@container min-h-full overflow-x-clip pb-28"
+            // While the buyer searches, the store's name and slogan step aside
+            // so the matching products sit right under the search bar.
+            data-searching={searchQuery.trim() ? "" : undefined}
+            className="@container min-h-full overflow-x-clip pb-28 data-[searching]:[&_[data-hero]]:hidden"
             style={{ background }}
           >
             <LiveStorefrontContext.Provider value={true}>

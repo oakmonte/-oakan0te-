@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useActiveStore, type OwnedStoreSummary } from "@/hooks/use-own-store";
 import { LocationsListSheet } from "@/components/store/LocationsListSheet";
-import { ComingSoonBanner } from "@/components/ComingSoonBanner";
-import { SHARING_LOCKED } from "@/lib/launch-locks";
 import { toast } from "sonner";
 import { fetchStoreLogo, type StoreLogo } from "@/lib/store-logo";
 import { IdentityBlock } from "./IdentityBlock";
@@ -48,7 +46,6 @@ function DashboardForStore({
 }) {
   const [logo, setLogo] = useState<StoreLogo | undefined>(undefined);
   const [locationsOpen, setLocationsOpen] = useState(false);
-  const [shareComingSoonOpen, setShareComingSoonOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -64,11 +61,9 @@ function DashboardForStore({
     setLogo((prev) => ({ canSaveOwnLogo: prev?.canSaveOwnLogo ?? true, url }));
   }, []);
 
-  // Sharing a store link is held back until official launch (SHARING_LOCKED):
-  // locked builds say so. Unlocked, it opens the phone's share sheet with the
-  // storefront link, or copies it where there is no share sheet.
+  // Opens the phone's share sheet with the storefront link, or copies it where
+  // there is no share sheet.
   function share() {
-    if (SHARING_LOCKED) return setShareComingSoonOpen(true);
     const url = `${window.location.origin}/shop/${store.store_username}`;
     if (navigator.share) {
       void navigator.share({ title: store.store_username, url }).catch(() => {});
@@ -97,12 +92,6 @@ function DashboardForStore({
         {locationsOpen && (
           <LocationsListSheet storeId={store.id} onClose={() => setLocationsOpen(false)} />
         )}
-
-        <ComingSoonBanner
-          open={shareComingSoonOpen}
-          onClose={() => setShareComingSoonOpen(false)}
-          message={`Sharing your store link will be available after official launch. You'll get a free storefront link — ${store.store_username}.oakmonte.store.`}
-        />
       </div>
     </DesktopPanel>
   );

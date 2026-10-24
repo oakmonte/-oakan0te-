@@ -14,7 +14,7 @@ import type { PreviewTile } from "./storefront-catalog";
 import type { StorefrontLook } from "./storefront-look";
 import { EnquirySheet } from "./EnquirySheet";
 import { useStorefrontChat } from "@/lib/buyer-session";
-import { SALES_LOCKED } from "@/lib/launch-locks";
+import { useLockedBanner } from "@/components/LockedBanner";
 
 const PUSH = "cubic-bezier(0.32, 0.72, 0, 1)";
 const OPEN_MS = 380;
@@ -146,19 +146,17 @@ function inStock(v: Variant) {
  *  price, the buy actions, the buyer-protection note, description and the
  *  seller. Pushes in from the right like CollectionPage. Buy Now goes to
  *  checkout and Add to Bag fills the bag; Make Offer isn't built yet, so it
- *  calls onAction (the storefront's notice). */
+ *  says so. */
 export function ProductPage({
   tile,
   look,
   onClose,
-  onAction,
   embedded = false,
   visible = true,
 }: {
   tile: PreviewTile;
   look: StorefrontLook;
   onClose: () => void;
-  onAction: () => void;
   /** Drawn inside a host pane (a store feed's Listed items with one linked
    *  piece) instead of sliding over the screen: no back button, no claim on
    *  the phone's back gesture. */
@@ -191,14 +189,7 @@ export function ProductPage({
   // On a store's website the message button opens an enquiry about this
   // piece (EnquirySheet); anywhere else it falls back to plain Messages.
   const storefrontChat = useStorefrontChat();
-  // Until launch, say up front that this can't be bought yet, so nobody
-  // reads the buttons as live (lib/launch-locks.ts). Once per opening.
-  const announcedLock = useRef(false);
-  useEffect(() => {
-    if (!SALES_LOCKED || !visible || announcedLock.current) return;
-    announcedLock.current = true;
-    onAction();
-  }, [onAction, visible]);
+  const { banner: offerBanner, showLocked } = useLockedBanner();
   const [enquiryOpen, setEnquiryOpen] = useState(false);
   const [shown, setShown] = useState(false);
   const [closing, setClosing] = useState(false);
@@ -369,8 +360,8 @@ export function ProductPage({
                     {photos.length > 0 ? (
                       <div
                         // md: no swiping with a mouse, so every photo is laid out
-                        // as a grid instead of a strip; the first spans both columns.
-                        className={`flex snap-x snap-mandatory overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${d("md:grid md:grid-cols-2 md:gap-1.5 md:overflow-visible md:snap-none")}`}
+                        // as one column stacked top to bottom instead of a strip.
+                        className={`flex snap-x snap-mandatory overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${d("md:flex-col md:gap-1.5 md:overflow-visible md:snap-none")}`}
                         onScroll={(e) => {
                           const el = e.currentTarget;
                           setPhotoIdx(Math.round(el.scrollLeft / el.clientWidth));
@@ -381,7 +372,7 @@ export function ProductPage({
                             key={u + i}
                             src={u}
                             alt={i === 0 ? tile.title : ""}
-                            className={`aspect-[4/5] w-full shrink-0 snap-center object-cover ${d("md:first:col-span-2")}`}
+                            className={`aspect-[4/5] w-full shrink-0 snap-center object-cover`}
                           />
                         ))}
                       </div>
@@ -471,9 +462,7 @@ export function ProductPage({
                       <button
                         type="button"
                         disabled={soldOut}
-                        // Until Paystack is live: the same "Sales are still locked
-                        // until full launch" notice as on main (lib/launch-locks.ts).
-                        onClick={SALES_LOCKED ? onAction : () => void buyNow()}
+                        onClick={() => void buyNow()}
                         className="h-14 min-w-0 flex-1 rounded-2xl text-[18px] font-semibold disabled:opacity-40"
                         style={btn}
                       >
@@ -500,7 +489,7 @@ export function ProductPage({
                     </div>
                     <button
                       type="button"
-                      onClick={onAction}
+                      onClick={() => showLocked("Offers are coming soon")}
                       className="h-14 rounded-2xl text-[16px] font-semibold"
                       style={btn}
                     >
@@ -624,6 +613,7 @@ export function ProductPage({
           document.body,
         )}
       {bagToast}
+      {offerBanner}
       {enquiryOpen && data && (
         <EnquirySheet
           product={{

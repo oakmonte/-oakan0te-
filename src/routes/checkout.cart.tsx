@@ -15,14 +15,8 @@ import {
   useCartReady,
   type CartItem,
 } from "@/lib/cart";
-import { SALES_LOCKED } from "@/lib/launch-locks";
 
 export const Route = createFileRoute("/checkout/cart")({
-  // Until launch there's no checkout to reach, even by typing the address
-  // (lib/launch-locks.ts).
-  beforeLoad: () => {
-    if (SALES_LOCKED) throw redirect({ to: "/cart" });
-  },
   validateSearch: (s: Record<string, unknown>): { store?: string } => ({
     store: typeof s.store === "string" && s.store ? s.store : undefined,
   }),

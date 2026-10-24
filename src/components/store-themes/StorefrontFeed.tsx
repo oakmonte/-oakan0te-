@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { animate, motion, useMotionValue, type PanInfo } from "framer-motion";
-import { PostFeed, type ActivePost } from "@/components/feed/PostFeed";
+import { PostFeed, RAIL_OUTSIDE_W, type ActivePost } from "@/components/feed/PostFeed";
 import { ListedItemsPage } from "@/components/ExploreFeedOverlay";
 import { ProductPage } from "./ProductPage";
-import { SalesLockedNotice } from "./SalesLockedNotice";
 import type { StorefrontLook } from "./storefront-look";
 
 type Tab = "for-you" | "listed-items";
@@ -21,6 +21,17 @@ const FEED_LOOK: StorefrontLook = {
 };
 const TABS: Tab[] = ["for-you", "listed-items"];
 
+// The side-by-side layout: from this container width, a products panel this
+// wide beside the post, with a slim column of arrows between them.
+const SIDE_BY_SIDE_MIN = 900;
+const PANEL_W = 400;
+const ARROWS_W = 56;
+const GAP = 16;
+// The side-by-side cards float: room above, and below for the bottom nav.
+const PAD_TOP = 20;
+const PAD_BOTTOM = 100;
+const PANEL_TITLE_H = 40;
+
 // Same settle as the app's other pagers: quick, no bounce.
 const SETTLE = { type: "spring", stiffness: 420, damping: 40 } as const;
 
@@ -37,7 +48,11 @@ const SETTLE = { type: "spring", stiffness: 420, damping: 40 } as const;
  *  The pager lives in a column shaped like the post on screen (full height).
  *  On a phone that's the whole screen; on a laptop it's a phone-shaped column
  *  in the middle, on a blurred wash of the post you're watching rather than a
- *  page of black -- never the post and its products side by side. */
+ *  page of black.
+ *
+ *  On a wide screen (a laptop) it's TikTok's layout instead: the post on the
+ *  left, its linked products beside it, and up/down arrows between. The panel
+ *  follows the post on screen, so scrolling the feed changes the products. */
 export function StorefrontFeed({
   ownerId,
   storePicture,
@@ -69,15 +84,30 @@ export function StorefrontFeed({
   // height, capped by the screen's width (so on a phone it's the whole
   // screen), and within sane bounds while the media is still loading.
   const aspect = Math.min(1.9, Math.max(0.45, activePost?.aspect ?? 9 / 16));
-  const width = screen.h ? Math.min(screen.w, Math.round(screen.h * aspect)) : screen.w;
+  // Wide enough for the post and its products side by side.
+  const wide = screen.w >= SIDE_BY_SIDE_MIN;
+  const sideW = wide ? PANEL_W + ARROWS_W + GAP * 2 : 0;
+  const room = screen.w - sideW;
+  const availH = wide ? screen.h - PAD_TOP - PAD_BOTTOM : screen.h;
+  // Wide: the post plus the strip of buttons beside it.
+  const railW = wide ? RAIL_OUTSIDE_W : 0;
+  const width = screen.h ? Math.min(room - railW, Math.round(availH * aspect)) + railW : room;
   const framed = width > 0 && width < screen.w;
+  const feedRef = useRef<HTMLDivElement>(null);
+  // The arrows between the two: one post up or down, as the feed's own swipe.
+  function pageFeed(dir: 1 | -1) {
+    const scroller = Array.from(feedRef.current?.querySelectorAll<HTMLElement>("div") ?? []).find(
+      (el) => el.style.scrollSnapType === "y mandatory",
+    );
+    scroller?.scrollBy({ top: dir * scroller.clientHeight, behavior: "smooth" });
+  }
 
   // Settle on the current page whenever it (or the width) changes.
   useEffect(() => {
-    if (!width) return;
+    if (!width || wide) return;
     const controls = animate(x, -index * width, SETTLE);
     return () => controls.stop();
-  }, [index, width, x]);
+  }, [index, width, x, wide]);
 
   function handleDragEnd(_: unknown, info: PanInfo) {
     // A flick counts as much as a long drag.
@@ -94,7 +124,7 @@ export function StorefrontFeed({
   // momentum.
   const wheelRef = useRef({ sum: 0, lockedUntil: 0 });
   function handleWheel(e: React.WheelEvent) {
-    if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
+    if (wide || Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
     const w = wheelRef.current;
     const now = performance.now();
     if (now < w.lockedUntil) return;
@@ -107,9 +137,133 @@ export function StorefrontFeed({
   }
 
   const items = activePost?.tags ?? [];
-  const [salesLocked, setSalesLocked] = useState(false);
   // A row tapped in Listed items: its full product page, over the feed.
   const [opened, setOpened] = useState<(typeof items)[number] | null>(null);
+
+  const listedPane =
+    items.length === 0 ? (
+      <div className="flex h-full w-full items-center justify-center px-10 text-center">
+        <p className="text-[15px] font-semibold text-white/70">No linked products</p>
+      </div>
+    ) : items.length === 1 ? (
+      // One linked piece: its product page, right here. The list is for posts
+      // that link several.
+      <div className={`h-full w-full ${wide ? "" : "pt-14"}`}>
+        <ProductPage
+          key={items[0].id}
+          embedded
+          visible={wide || tab === "listed-items"}
+          tile={{
+            id: items[0].id,
+            title: items[0].title,
+            photos: items[0].image ? [{ url: items[0].image, variant: 0 }] : [],
+            variantCount: 1,
+            price: items[0].price,
+            compareAtPrice: null,
+          }}
+          look={FEED_LOOK}
+          onClose={() => setTab("for-you")}
+        />
+      </div>
+    ) : (
+      <div className={`h-full w-full ${wide ? "" : "pt-14"}`}>
+        <ListedItemsPage items={items} onOpen={setOpened} />
+      </div>
+    );
+
+  const openedPage = opened && (
+    <ProductPage
+      key={opened.id}
+      tile={{
+        id: opened.id,
+        title: opened.title,
+        photos: opened.image ? [{ url: opened.image, variant: 0 }] : [],
+        variantCount: 1,
+        price: opened.price,
+        compareAtPrice: null,
+      }}
+      look={FEED_LOOK}
+      onClose={() => setOpened(null)}
+    />
+  );
+
+  if (wide) {
+    return (
+      <div
+        ref={containerRef}
+        className="relative flex h-full w-full items-start justify-center overflow-hidden bg-black text-white"
+        style={{ gap: GAP, paddingTop: PAD_TOP }}
+      >
+        {activePost?.backdrop && (
+          <div
+            key={activePost.backdrop}
+            className="pointer-events-none absolute inset-0 animate-in fade-in duration-700"
+            aria-hidden
+          >
+            <img
+              src={activePost.backdrop}
+              alt=""
+              className="absolute inset-0 h-full w-full scale-125 object-cover opacity-60 blur-3xl"
+            />
+            <div className="absolute inset-0 bg-black/45" />
+          </div>
+        )}
+        <div
+          ref={feedRef}
+          className="relative shrink-0"
+          style={{
+            width: width || undefined,
+            height: availH,
+            transition: "width 350ms cubic-bezier(0.2, 0, 0, 1)",
+          }}
+        >
+          <PostFeed
+            mode="embedded"
+            scope={{ type: "author", userId: ownerId }}
+            onActivePost={setActivePost}
+            storePicture={storePicture}
+            railOutside
+          />
+        </div>
+        <div
+          className="relative z-10 flex shrink-0 flex-col items-center justify-center gap-3"
+          style={{ width: ARROWS_W, height: availH }}
+        >
+          {(
+            [
+              [-1, ChevronUp, "Previous post"],
+              [1, ChevronDown, "Next post"],
+            ] as const
+          ).map(([dir, Icon, label]) => (
+            <button
+              key={label}
+              type="button"
+              aria-label={label}
+              onClick={() => pageFeed(dir)}
+              className="flex h-12 w-12 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur transition-colors hover:bg-white/25 active:scale-95"
+            >
+              <Icon size={22} />
+            </button>
+          ))}
+        </div>
+        <div
+          className="relative z-10 flex shrink-0 flex-col"
+          style={{ width: PANEL_W, height: availH }}
+        >
+          <p
+            className="flex items-center px-2 text-[17px] font-semibold tracking-tight"
+            style={{ height: PANEL_TITLE_H }}
+          >
+            Listed items
+          </p>
+          <div className="min-h-0 flex-1 overflow-hidden rounded-[32px] bg-black/70 shadow-[0_24px_80px_rgba(0,0,0,0.5)] ring-1 ring-white/10 backdrop-blur-xl [&_.overflow-y-auto]:overscroll-contain">
+            {listedPane}
+          </div>
+        </div>
+        {openedPage}
+      </div>
+    );
+  }
 
   return (
     <div
@@ -176,41 +330,12 @@ export function StorefrontFeed({
             className="h-full [&_.overflow-y-auto]:touch-pan-y"
             style={{ width: `${100 / TABS.length}%` }}
           >
-            {items.length === 0 ? (
-              <div className="flex h-full w-full items-center justify-center px-10 text-center">
-                <p className="text-[15px] font-semibold text-white/70">No linked products</p>
-              </div>
-            ) : items.length === 1 ? (
-              // One linked piece: its product page, right here. The list is
-              // for posts that link several.
-              <div className="h-full w-full pt-14">
-                <ProductPage
-                  key={items[0].id}
-                  embedded
-                  visible={tab === "listed-items"}
-                  tile={{
-                    id: items[0].id,
-                    title: items[0].title,
-                    photos: items[0].image ? [{ url: items[0].image, variant: 0 }] : [],
-                    variantCount: 1,
-                    price: items[0].price,
-                    compareAtPrice: null,
-                  }}
-                  look={FEED_LOOK}
-                  onClose={() => setTab("for-you")}
-                  onAction={() => setSalesLocked(true)}
-                />
-              </div>
-            ) : (
-              <div className="h-full w-full pt-14">
-                <ListedItemsPage items={items} onOpen={setOpened} />
-              </div>
-            )}
+            {listedPane}
           </div>
         </motion.div>
         <div
           // The fade keeps the white labels readable over a pale video.
-          className="absolute inset-x-0 top-0 z-30 flex justify-center gap-6 bg-gradient-to-b from-black/45 to-transparent pb-6 text-[14px] font-medium text-white/70"
+          className="absolute inset-x-0 top-0 z-30 flex justify-center gap-12 bg-gradient-to-b from-black/45 to-transparent pb-6 text-[14px] font-medium text-white/70"
           // After the track in the DOM and on its own compositing layer: iOS
           // Safari paints a playing <video> inside a transformed layer over
           // earlier siblings regardless of z-index, which hid these labels on
@@ -240,23 +365,7 @@ export function StorefrontFeed({
           ))}
         </div>
       </div>
-      {salesLocked && <SalesLockedNotice onClose={() => setSalesLocked(false)} />}
-      {opened && (
-        <ProductPage
-          key={opened.id}
-          tile={{
-            id: opened.id,
-            title: opened.title,
-            photos: opened.image ? [{ url: opened.image, variant: 0 }] : [],
-            variantCount: 1,
-            price: opened.price,
-            compareAtPrice: null,
-          }}
-          look={FEED_LOOK}
-          onClose={() => setOpened(null)}
-          onAction={() => setSalesLocked(true)}
-        />
-      )}
+      {openedPage}
     </div>
   );
 }

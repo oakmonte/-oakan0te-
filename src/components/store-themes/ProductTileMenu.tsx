@@ -1,14 +1,12 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { Clapperboard, HandCoins, ShoppingBag, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Clapperboard, HandCoins, ShoppingBag, X } from "lucide-react";
 import { PostFeed } from "@/components/feed/PostFeed";
 import { useBagToast } from "@/components/cart/BagToast";
 import { useLockedBanner } from "@/components/LockedBanner";
 import { useOverlayHistory } from "@/hooks/use-overlay-history";
 import { addProductsToCart, loadFreshProducts } from "@/lib/cart-quote";
-import { SALES_LOCKED } from "@/lib/launch-locks";
 import { GLASS_RIM, glassDark } from "@/lib/liquid-glass";
-import { SalesLockedNotice } from "./SalesLockedNotice";
 import type { PreviewTile } from "./storefront-catalog";
 
 const MENU_WIDTH = 232;
@@ -31,22 +29,17 @@ const EDGE = 8;
  *    product page (`onOpenProduct`) so the buyer picks the size.
  *  - See related content: the store's posts that link this product, in a
  *    full-screen viewer.
- *  - Make offer: the same "not available yet" notice the product page shows. */
+ *  - Make offer: says offers are coming soon, as the product page does. */
 export function useProductTileMenu(onOpenProduct: (tile: PreviewTile) => void): {
   open: (tile: PreviewTile, anchor: DOMRect) => void;
   element: ReactNode;
 } {
   const [menu, setMenu] = useState<{ tile: PreviewTile; anchor: DOMRect } | null>(null);
-  const [relatedId, setRelatedId] = useState<string | null>(null);
-  const [offerLocked, setOfferLocked] = useState(false);
+  const [related, setRelated] = useState<{ id: string; anchor: DOMRect } | null>(null);
   const { toast: bagToast, showBagToast } = useBagToast();
   const { banner: lockedBanner, showLocked } = useLockedBanner();
 
   async function addToCart(tile: PreviewTile) {
-    if (SALES_LOCKED) {
-      showLocked("Add to cart is unavailable");
-      return;
-    }
     try {
       const fresh = await loadFreshProducts([tile.id]);
       const product = fresh.get(tile.id);
@@ -96,12 +89,17 @@ export function useProductTileMenu(onOpenProduct: (tile: PreviewTile) => void): 
           anchor={menu.anchor}
           onClose={() => setMenu(null)}
           onAddToCart={() => void addToCart(menu.tile)}
-          onRelated={() => setRelatedId(menu.tile.id)}
-          onMakeOffer={() => setOfferLocked(true)}
+          onRelated={() => setRelated({ id: menu.tile.id, anchor: menu.anchor })}
+          onMakeOffer={() => showLocked("Offers are coming soon")}
         />
       )}
-      {relatedId && <RelatedContent productId={relatedId} onClose={() => setRelatedId(null)} />}
-      {offerLocked && <SalesLockedNotice onClose={() => setOfferLocked(false)} />}
+      {related && (
+        <RelatedContent
+          productId={related.id}
+          anchor={related.anchor}
+          onClose={() => setRelated(null)}
+        />
+      )}
       {bagToast}
       {lockedBanner}
     </>
@@ -191,7 +189,15 @@ function TileMenu({
  *  or swipe-back. PostFeed's own standalone mode sits under the product and
  *  collection pages, so it is hosted here in embedded mode on a higher layer;
  *  on a laptop it is held to a phone-shaped column. */
-function RelatedContent({ productId, onClose }: { productId: string; onClose: () => void }) {
+function RelatedContent({
+  productId,
+  anchor,
+  onClose,
+}: {
+  productId: string;
+  anchor: DOMRect;
+  onClose: () => void;
+}) {
   // Armed a beat after mount, as in ProductPage: under StrictMode (dev) the
   // history hook's effect runs twice and its own cleanup would close this at once.
   const [armed, setArmed] = useState(false);
@@ -201,24 +207,81 @@ function RelatedContent({ productId, onClose }: { productId: string; onClose: ()
   }, []);
   useOverlayHistory(armed, onClose);
 
+  // More than one post: the feed scrolls vertically (swipe or wheel), and the
+  // arrows page it for a mouse. Shown only when there is somewhere to go.
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [pager, setPager] = useState({ prev: false, next: false });
+  useEffect(() => {
+    const card = cardRef.current;
+    if (!card) return;
+    const scroller = () =>
+      Array.from(card.querySelectorAll<HTMLElement>("div")).find(
+        (el) => el.style.scrollSnapType === "y mandatory",
+      ) ?? null;
+    const sync = () => {
+      const el = scroller();
+      if (!el) return;
+      setPager({
+        prev: el.scrollTop > 8,
+        next: el.scrollTop + el.clientHeight < el.scrollHeight - 8,
+      });
+    };
+    sync();
+    // The posts load after mount, so watch for the list growing too.
+    const mo = new MutationObserver(sync);
+    mo.observe(card, { childList: true, subtree: true });
+    const el = scroller();
+    el?.addEventListener("scroll", sync, { passive: true });
+    const poll = setInterval(() => {
+      const next = scroller();
+      if (next && next !== el) {
+        next.addEventListener("scroll", sync, { passive: true });
+      }
+      sync();
+    }, 600);
+    return () => {
+      mo.disconnect();
+      el?.removeEventListener("scroll", sync);
+      clearInterval(poll);
+    };
+  }, []);
+  function page(dir: 1 | -1) {
+    const el = Array.from(cardRef.current?.querySelectorAll<HTMLElement>("div") ?? []).find(
+      (e) => e.style.scrollSnapType === "y mandatory",
+    );
+    el?.scrollBy({ top: dir * el.clientHeight, behavior: "smooth" });
+  }
+
   if (typeof document === "undefined") return null;
+
+  // Beside the tile it was opened from: to its right, else its left, a phone-
+  // shaped card level with it. Where neither side has room (a phone), centred.
+  const M = 12;
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const height = Math.min(vh - M * 2, 620);
+  const width = Math.round((height * 9) / 16);
+  let left = anchor.right + M;
+  if (left + width > vw - M) left = anchor.left - M - width;
+  if (left < M) left = Math.round((vw - width) / 2);
+  const top = Math.min(Math.max(anchor.top, M), vh - height - M);
+
   return createPortal(
-    // A pop-up over the storefront, not a trip to a feed page: the store stays
-    // visible (dimmed) behind it, a tap outside closes it. A sheet rising from
-    // the bottom on a phone; a centred, phone-shaped card on a laptop.
     <div
-      className="fixed inset-0 z-[95] flex items-end justify-center bg-black/55 backdrop-blur-sm animate-in fade-in duration-200 md:items-center"
+      className="fixed inset-0 z-[95] bg-black/20 animate-in fade-in duration-150"
       onClick={onClose}
     >
       <div
+        ref={cardRef}
         role="dialog"
         aria-label="Related content"
         onClick={(e) => e.stopPropagation()}
-        className="relative h-[88dvh] w-full overflow-hidden rounded-t-[28px] bg-black shadow-2xl ring-1 ring-white/10 animate-in slide-in-from-bottom-6 duration-300 md:h-[min(86dvh,860px)] md:w-auto md:aspect-[9/16] md:rounded-[28px] md:zoom-in-95 md:slide-in-from-bottom-0"
+        className="absolute overflow-hidden rounded-[24px] bg-black shadow-2xl ring-1 ring-white/10 animate-in fade-in zoom-in-95 duration-200"
+        style={{ left, top, width, height }}
       >
         {/* Just the X: PostFeed gets no onClose here, so it draws no back arrow
             of its own to collide with it. */}
-        <div className="pointer-events-none absolute right-0 top-0 z-30 p-3.5">
+        <div className="pointer-events-none absolute right-0 top-0 z-30 p-3">
           <button
             type="button"
             onClick={onClose}
@@ -228,11 +291,26 @@ function RelatedContent({ productId, onClose }: { productId: string; onClose: ()
             <X size={18} />
           </button>
         </div>
-        {/* 9:16 at most, as in the storefront feed, so the side buttons sit on
-            the post rather than out at the sheet edge on a wide screen. */}
-        <div className="mx-auto aspect-[9/16] h-full max-w-full">
-          <PostFeed mode="embedded" scope={{ type: "product", productId }} storePicture={null} />
-        </div>
+        {(pager.prev || pager.next) && (
+          <div className="absolute left-3 top-1/2 z-30 flex -translate-y-1/2 flex-col gap-2">
+            {[
+              { dir: -1 as const, on: pager.prev, Icon: ChevronUp, label: "Previous" },
+              { dir: 1 as const, on: pager.next, Icon: ChevronDown, label: "Next" },
+            ].map(({ dir, on, Icon, label }) => (
+              <button
+                key={label}
+                type="button"
+                aria-label={label}
+                disabled={!on}
+                onClick={() => page(dir)}
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur hover:bg-white/25 disabled:opacity-30"
+              >
+                <Icon size={18} />
+              </button>
+            ))}
+          </div>
+        )}
+        <PostFeed mode="embedded" scope={{ type: "product", productId }} storePicture={null} />
       </div>
     </div>,
     document.body,

@@ -33,7 +33,7 @@ const CURSOR_SETTLE_MS = 520;
 const ANIMATION_MS = SENTENCE_END_MS + PERIOD_FADE_MS + CURSOR_SETTLE_MS;
 
 function WelcomePage() {
-  const { userId } = useRequireSession();
+  const { userId, explain } = useRequireSession({ explainSignIn: true });
   const navigate = useNavigate();
   const router = useRouter();
   const [username, setUsername] = useState<string | null>(null);
@@ -110,6 +110,33 @@ function WelcomePage() {
     // Sellers-only: the app opens on the store dashboard (the Home tab).
     navigate({ to: "/store", replace: true });
   }, [loaded, typedOut, username, navigate]);
+
+  // The installed app's first launch: signed out, so say this is the same
+  // account and store before the sign-in, not a fresh start.
+  if (explain) {
+    return (
+      <div className="flex min-h-dvh flex-col items-center justify-center bg-brand-bg px-6 text-center text-brand-text">
+        <div className="mb-10 flex items-baseline justify-center">
+          <img src={logoO} alt="" className="h-16 w-auto translate-y-1.5" />
+          <span className="text-[36px] font-normal leading-none tracking-tight">akmonte</span>
+        </div>
+        <h1 className="max-w-[18ch] text-[26px] font-semibold leading-tight tracking-tight">
+          Log in to continue from where you started
+        </h1>
+        <p className="mt-3 max-w-[30ch] text-[15px] leading-relaxed text-brand-text/60">
+          Your store, products and orders are all still here. Log in with the same account and
+          you're right back.
+        </p>
+        <button
+          type="button"
+          onClick={() => navigate({ to: "/sign-in", replace: true })}
+          className="mt-8 h-14 w-full max-w-sm rounded-full bg-brand-accent text-[16px] font-medium text-brand-bg transition-transform active:scale-[0.98]"
+        >
+          Log in
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-dvh bg-brand-bg text-brand-text flex flex-col items-center justify-center px-6">

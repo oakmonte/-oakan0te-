@@ -219,6 +219,7 @@ export function ThemeSpecFull({
 
         <div className="@3xl:mx-auto @3xl:max-w-[1240px]">
           <div
+            data-hero
             className={`px-4 pt-6 @3xl:px-8 @3xl:pt-14 ${spec.heroAlign === "center" ? "text-center" : ""}`}
           >
             <ThemeText

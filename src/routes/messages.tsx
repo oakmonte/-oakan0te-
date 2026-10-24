@@ -126,7 +126,20 @@ export function MessagesView({
   // Desktop: the inbox and the open chat side by side on one page, so a chat
   // opens in the right-hand pane (local state, like the storefront's) rather
   // than as a page of its own. A /messages/$chatId link opens in that pane.
-  const desktop = useIsDesktop() && !sellerOnly;
+  // A storefront's Messages gets the same two panes, but only when its own box is
+  // wide: it also renders inside the theme preview's phone frame, on a wide screen.
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [wideBox, setWideBox] = useState(false);
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el) return;
+    const measure = () => setWideBox(el.clientWidth >= 900);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const desktop = useIsDesktop() && (!sellerOnly || wideBox);
   const routed = !sellerOnly && !desktop;
   const [localOpenId, setOpenId] = useState<string | null>(routeChatId ?? null);
   const openId = routed ? (routeChatId ?? null) : localOpenId;
@@ -531,6 +544,7 @@ export function MessagesView({
 
   return (
     <div
+      ref={rootRef}
       className="min-h-screen bg-chat-bg pb-28 text-chat-text"
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
@@ -539,7 +553,7 @@ export function MessagesView({
       <div
         className={
           desktop
-            ? "mx-auto mt-5 grid h-[calc(100dvh-8.5rem)] w-[calc(100%-3rem)] max-w-[1180px] grid-cols-[minmax(320px,380px)_1fr] overflow-hidden rounded-[28px] border border-chat-border shadow-[0_24px_60px_-30px_rgba(0,0,0,0.6)]"
+            ? "grid h-[calc(100dvh-7rem)] w-full grid-cols-[minmax(340px,420px)_1fr] overflow-hidden"
             : "contents"
         }
       >
@@ -647,7 +661,7 @@ export function MessagesView({
 
                     <div
                       data-swipe-owner
-                      className="flex gap-2 overflow-x-auto px-4 pb-2 pt-2 no-scrollbar"
+                      className="mx-4 mt-1 flex border-b border-chat-border"
                       role="tablist"
                     >
                       {FOLDERS.map(({ key, label }) => (
@@ -657,21 +671,22 @@ export function MessagesView({
                           role="tab"
                           aria-selected={folder === key}
                           onClick={() => switchFolder(key)}
-                          className={`flex h-10 shrink-0 items-center gap-1.5 rounded-full px-[18px] text-[15px] font-semibold transition-colors ${
-                            folder === key
-                              ? "bg-chat-text text-chat-inverse"
-                              : "bg-chat-soft text-chat-text"
+                          className={`relative flex h-11 flex-1 items-center justify-center gap-1.5 text-[15px] font-semibold transition-colors ${
+                            folder === key ? "text-chat-text" : "text-chat-muted"
                           }`}
                         >
                           {label}
                           {key === "unread" && unreadCount > 0 && (
-                            <span
-                              className={`rounded-full px-1.5 text-[11.5px] ${
-                                folder === key ? "bg-chat-inverse/20" : "bg-chat-accent text-white"
-                              }`}
-                            >
+                            <span className="rounded-full bg-chat-accent px-1.5 text-[11.5px] text-white">
                               {unreadCount}
                             </span>
+                          )}
+                          {folder === key && (
+                            <motion.span
+                              layoutId="messages-tab-line"
+                              className="absolute -bottom-px left-1/2 h-[3px] w-7 -translate-x-1/2 rounded-full bg-chat-text"
+                              transition={{ type: "spring", stiffness: 500, damping: 38 }}
+                            />
                           )}
                         </button>
                       ))}
@@ -732,7 +747,9 @@ export function MessagesView({
                   <Avatar kind="support" name="Oakmonte" size={64} />
                   <p className="mt-5 text-[19px] font-bold">Pick a chat</p>
                   <p className="mt-1.5 max-w-[300px] text-[14px] text-chat-muted">
-                    Choose a conversation on the left. Buyers&apos; messages land here too.
+                    {sellerOnly
+                      ? "Choose a conversation on the left."
+                      : "Choose a conversation on the left. Buyers' messages land here too."}
                   </p>
                 </div>
               )}

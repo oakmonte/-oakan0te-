@@ -80,7 +80,6 @@ export function PostShareSheet({
   onClose,
   post,
   ownerId,
-  linksLocked = false,
 }: {
   open: boolean;
   onClose: () => void;
@@ -97,9 +96,8 @@ export function PostShareSheet({
   const save = useOfflineSave(post.postId);
   const [copy, setCopy] = useState<CopyState>("idle");
   const copyTimer = useRef<number | null>(null);
-  const url = linksLocked ? null : shareUrlFor(post.author.username);
-  const canNativeShare =
-    !linksLocked && typeof navigator !== "undefined" && typeof navigator.share === "function";
+  const url = shareUrlFor(post.author.username);
+  const canNativeShare = typeof navigator !== "undefined" && typeof navigator.share === "function";
 
   // Each opening starts clean: "Link copied" from last time is stale news.
   useEffect(() => {
@@ -156,13 +154,7 @@ export function PostShareSheet({
       <Row
         icon={Link2}
         label="Copy link"
-        sub={
-          linksLocked
-            ? "Sharing links opens at launch"
-            : url
-              ? profileNote(post.author.username)
-              : "This account has no public link yet"
-        }
+        sub={url ? profileNote(post.author.username) : "This account has no public link yet"}
         disabled={!url}
         onPress={handleCopy}
       />

@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion, type PanInfo } from "framer-motion";
 import { useNavigate } from "@tanstack/react-router";
 import { useLockedBanner } from "@/components/LockedBanner";
+import { addProductsToCart } from "@/lib/cart-quote";
 import { GLASS_RIM, glassClear } from "@/lib/liquid-glass";
 import { ChevronLeft, Search, ShoppingBag } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
@@ -10,8 +11,6 @@ import { useDarkOverlay } from "@/lib/dark-overlay";
 import { ProfileView } from "@/routes/profile.$username";
 import { useSession } from "@/hooks/use-session";
 import { BagPlus } from "@/components/icons/BagPlus";
-import { SALES_LOCKED } from "@/lib/launch-locks";
-import { SalesLockedNotice } from "@/components/store-themes/SalesLockedNotice";
 
 // "listed-left" is the same Listed items page, parked to the LEFT of Following so
 // both feeds have it one swipe away (Following swipes right into it, For you
@@ -177,7 +176,6 @@ export function ListedItemsPage({
   /** Tapping a row anywhere but its buttons opens that product. */
   onOpen?: (item: TaggedProduct) => void;
 }) {
-  const [salesLocked, setSalesLocked] = useState(false);
   const navigate = useNavigate();
   const { user } = useSession();
   const reduceMotion = useReducedMotion();
@@ -246,12 +244,10 @@ export function ListedItemsPage({
                 <button
                   type="button"
                   onClick={() =>
-                    SALES_LOCKED
-                      ? setSalesLocked(true)
-                      : void navigate({
-                          to: "/checkout/$productId",
-                          params: { productId: item.id },
-                        })
+                    void navigate({
+                      to: "/checkout/$productId",
+                      params: { productId: item.id },
+                    })
                   }
                   className="h-9 rounded-full bg-white px-3.5 text-[12px] font-semibold text-black transition-transform duration-150 ease-out active:scale-[0.96]"
                 >
@@ -274,7 +270,11 @@ export function ListedItemsPage({
                 <button
                   type="button"
                   aria-label="Add to bag"
-                  onClick={() => showLocked("Add to cart is unavailable")}
+                  onClick={() =>
+                    void addProductsToCart([item.id]).then((r) =>
+                      showLocked(r.added > 0 ? "Added to your bag" : "Couldn't add this"),
+                    )
+                  }
                   className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-black transition-transform duration-150 ease-out active:scale-[0.92]"
                 >
                   <BagPlus size={17} />
@@ -285,7 +285,6 @@ export function ListedItemsPage({
         ))}
       </ul>
       {banner}
-      {salesLocked && <SalesLockedNotice onClose={() => setSalesLocked(false)} />}
     </div>
   );
 }

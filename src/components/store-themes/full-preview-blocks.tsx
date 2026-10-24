@@ -35,7 +35,6 @@ import { LogoEditor } from "@/components/store/LogoEditor";
 import { MAX_SLIDESHOW_IMAGES, type CropPosition, type ThemeEditingProps } from "./edit-types";
 import { formatCommunityCount, useStoreCommunityCounts } from "./useStoreCommunityCounts";
 import { useStorefrontCatalog, type PreviewTile, type TilePhoto } from "./storefront-catalog";
-import { SalesLockedNotice } from "./SalesLockedNotice";
 import { LiveStorefrontContext } from "./live-storefront";
 import { CollectionPage } from "./CollectionPage";
 import { ProductPage } from "./ProductPage";
@@ -56,7 +55,6 @@ import { useStoreCatalogReadiness } from "@/hooks/use-store-catalog-readiness";
 import { useStoreShippingPolicy } from "@/hooks/use-store-shipping-policy";
 import { ShippingPolicyDialog } from "./ShippingPolicyDialog";
 import { StorefrontSearchContext, LiveStorefrontContext as LiveCtx } from "./live-storefront";
-import { SALES_LOCKED, SHARING_LOCKED } from "@/lib/launch-locks";
 import { useLockedBanner } from "@/components/LockedBanner";
 import { useNavigate as useStorefrontNavigate } from "@tanstack/react-router";
 
@@ -783,9 +781,9 @@ export function PhoneHeader({
             )}
           </div>
           <div
-            // Centred on the logo beside it: (56 - 20) / 2 for the image chip,
-            // (40 - 20) / 2 for the text one.
-            className={`flex shrink-0 items-center gap-5 ${logoMode === "text" ? "pt-2.5" : "pt-[18px]"}`}
+            // Centred on the logo beside it: (56 - 24) / 2 for the image chip,
+            // (40 - 24) / 2 for the text one.
+            className={`flex shrink-0 items-center gap-5 ${logoMode === "text" ? "pt-2" : "pt-4"}`}
             style={{ color: mutedColor }}
           >
             {live ? (
@@ -801,35 +799,32 @@ export function PhoneHeader({
                 >
                   {/* Filled while the search bar is open: a state shown by shape, not
                     colour, so it reads on every theme. */}
-                  <Search size={20} strokeWidth={1.8} fill={searchOpen ? "currentColor" : "none"} />
+                  <Search size={24} strokeWidth={2.4} fill={searchOpen ? "currentColor" : "none"} />
                 </button>
                 <button
                   type="button"
                   aria-label="Cart"
-                  onClick={() =>
-                    SALES_LOCKED ? showLocked("Carts unavailable") : void navigate({ to: "/cart" })
-                  }
+                  onClick={() => void navigate({ to: "/cart" })}
                   className="active:scale-90 transition-transform duration-150"
                 >
-                  <ShoppingBag size={20} strokeWidth={1.8} />
+                  <ShoppingBag size={24} strokeWidth={2.4} />
                 </button>
                 <button
                   type="button"
                   aria-label="Share"
                   onClick={() => {
-                    if (SHARING_LOCKED) return showLocked("Sharing unavailable");
                     void navigator.share?.({ url: window.location.href }).catch(() => {});
                   }}
                   className="active:scale-90 transition-transform duration-150"
                 >
-                  <Share2 size={20} strokeWidth={1.8} />
+                  <Share2 size={24} strokeWidth={2.4} />
                 </button>
               </>
             ) : (
               <>
-                <Search size={20} strokeWidth={1.8} />
-                <ShoppingBag size={20} strokeWidth={1.8} />
-                <Share2 size={20} strokeWidth={1.8} />
+                <Search size={24} strokeWidth={2.4} />
+                <ShoppingBag size={24} strokeWidth={2.4} />
+                <Share2 size={24} strokeWidth={2.4} />
               </>
             )}
           </div>
@@ -1737,7 +1732,6 @@ export function CollectionsGrid({
   const rootRef = useRef<HTMLDivElement>(null);
   const [opened, setOpened] = useState<{ tile: PreviewTile; look: StorefrontLook } | null>(null);
   // Checkout isn't open before launch: a product tap explains that instead.
-  const [salesLocked, setSalesLocked] = useState(false);
   const live = useContext(LiveStorefrontContext);
   const [openedProduct, setOpenedProduct] = useState<{
     tile: PreviewTile;
@@ -1886,10 +1880,8 @@ export function CollectionsGrid({
             tile={openedProduct.tile}
             look={openedProduct.look}
             onClose={() => setOpenedProduct(null)}
-            onAction={() => setSalesLocked(true)}
           />
         )}
-        {salesLocked && <SalesLockedNotice onClose={() => setSalesLocked(false)} />}
         {tileMenu.element}
       </div>
     );
@@ -2229,8 +2221,17 @@ function StoreFooter({
           href="https://oakmonte.store"
           target="_blank"
           rel="noopener"
-          className="inline-block text-[12px] font-medium uppercase tracking-[0.12em] underline decoration-1 underline-offset-4"
-          style={{ color: muted }}
+          // On hover the link fills with the page's text colour and its text takes
+          // the page colour: a swap that reads on any background, light or dark,
+          // where a mere colour change can land on the background's own.
+          className="-mx-2.5 inline-block rounded-full px-2.5 py-1 text-[12px] font-medium uppercase tracking-[0.12em] text-[var(--c)] underline decoration-1 underline-offset-4 transition-colors duration-150 hover:bg-[var(--hbg)] hover:text-[var(--htext)] hover:no-underline"
+          style={
+            {
+              "--c": muted,
+              "--hbg": ink,
+              "--htext": dark ? "#111111" : "#ffffff",
+            } as React.CSSProperties
+          }
         >
           Built with Oakmonte
         </a>
