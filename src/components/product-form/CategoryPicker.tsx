@@ -98,6 +98,11 @@ function OptionRow({
   );
 }
 
+/** Drilling into a category stacks the next page over the last, one PageSheet
+ *  per level, so every level owns a history step: the header arrow, the back
+ *  gesture and the edge swipe all go up exactly ONE level. (One sheet that
+ *  swapped its content on a single history step left the phone's back gesture
+ *  with nothing to pop, so it jumped out of the picker from any depth.) */
 export function CategoryPicker({
   onSelect,
   onClose,
@@ -106,16 +111,66 @@ export function CategoryPicker({
   onClose: () => void;
 }) {
   const [stack, setStack] = useState<CategoryNode[]>([ROOT_CATEGORY]);
+  const [creating, setCreating] = useState<{ name: string; parent: CategoryNode | null } | null>(
+    null,
+  );
+
+  return (
+    <>
+      {stack.map((node, depth) => (
+        <CategoryLevel
+          key={`${depth}-${node.id}`}
+          node={node}
+          depth={depth}
+          stack={stack}
+          onBack={() => (depth === 0 ? onClose() : setStack((prev) => prev.slice(0, depth)))}
+          onOpen={(child) => setStack((prev) => [...prev.slice(0, depth + 1), child])}
+          onJump={(entry) => setStack([ROOT_CATEGORY, ...entry.pathNodes])}
+          onSelect={onSelect}
+          onCreate={(name) => setCreating({ name, parent: depth > 0 ? node : null })}
+        />
+      ))}
+      {creating && (
+        <CreateCategorySheet
+          initialName={creating.name}
+          initialParent={creating.parent}
+          onCancel={() => setCreating(null)}
+          onCreate={onSelect}
+        />
+      )}
+    </>
+  );
+}
+
+function CategoryLevel({
+  node: current,
+  depth,
+  stack,
+  onBack,
+  onOpen,
+  onJump,
+  onSelect,
+  onCreate,
+}: {
+  node: CategoryNode;
+  depth: number;
+  stack: CategoryNode[];
+  onBack: () => void;
+  onOpen: (child: CategoryNode) => void;
+  onJump: (entry: FlatEntry) => void;
+  onSelect: (path: CategoryNode[]) => void;
+  onCreate: (name: string) => void;
+}) {
   const [search, setSearch] = useState("");
-  const [creating, setCreating] = useState(false);
-  const current = stack[stack.length - 1];
   const visibleChildren = current.children ?? [];
+  // The path down to (and including) this level, without the invisible root.
+  const here = stack.slice(1, depth + 1);
 
   const searchResults = useMemo(() => {
     // Tokenized so multi-word queries (e.g. "kids tee") require every word to
     // appear somewhere in the entry's breadcrumb, in any order — not just one
     // contiguous substring.
-    const tokens = search.trim().toLowerCase().split(/\s+/).map(normalize).filter(Boolean);
+    const tokens = search.trim().toLowerCase().split(/s+/).map(normalize).filter(Boolean);
     if (tokens.length === 0) return null;
 
     const scored: { entry: FlatEntry; score: number }[] = [];
@@ -138,55 +193,26 @@ export function CategoryPicker({
     return scored.map((s) => s.entry);
   }, [search]);
 
-  function goBack() {
-    if (stack.length === 1) {
-      onClose();
-      return;
-    }
-    setStack((prev) => prev.slice(0, -1));
-    setSearch("");
-  }
-
   function handleRowTap(node: CategoryNode) {
-    if (hasKids(node)) {
-      setStack((prev) => [...prev, node]);
-      setSearch("");
-    } else {
-      onSelect([...stack.slice(1), node]);
-    }
+    if (hasKids(node)) onOpen(node);
+    else onSelect([...here, node]);
   }
 
   function handleSearchResultTap(entry: FlatEntry) {
-    if (hasKids(entry.node)) {
-      // Jump straight to that node's screen so its own children/self-select are usable.
-      setStack([ROOT_CATEGORY, ...entry.pathNodes]);
-      setSearch("");
-    } else {
-      onSelect(entry.pathNodes);
-    }
+    if (hasKids(entry.node)) onJump(entry);
+    else onSelect(entry.pathNodes);
   }
 
   const query = search.trim();
 
-  if (creating) {
-    return (
-      <CreateCategorySheet
-        initialName={query}
-        initialParent={stack.length > 1 ? current : null}
-        onCancel={() => setCreating(false)}
-        onCreate={onSelect}
-      />
-    );
-  }
-
   return (
     <PageSheet
-      onClose={goBack}
+      onClose={onBack}
       className="sheet-column bg-white flex flex-col animate-in fade-in slide-in-from-bottom-6 duration-[var(--duration-slow)] ease-[var(--ease-smooth-out)]"
     >
       <div className="sticky top-0 z-20 shrink-0 bg-white/95 backdrop-blur border-b border-gray-200 px-4 h-14 flex items-center gap-3">
         <button
-          onClick={goBack}
+          onClick={onBack}
           className="-ml-1 grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gray-100 transition-transform duration-150 active:scale-95 active:bg-gray-200"
           type="button"
           aria-label="Back"
@@ -230,16 +256,16 @@ export function CategoryPicker({
                 onClick={() => handleSearchResultTap(entry)}
               />
             ))}
-            <CreateCard title={`Add “${query}” as a category`} onClick={() => setCreating(true)} />
+            <CreateCard title={`Add “${query}” as a category`} onClick={() => onCreate(query)} />
           </>
         ) : (
           <>
-            {stack.length > 1 && (
+            {depth > 0 && (
               <OptionRow
                 title={<span className="font-semibold">All {current.name}</span>}
                 subtitle="If nothing below fits exactly"
                 branch={false}
-                onClick={() => onSelect([...stack.slice(1), current])}
+                onClick={() => onSelect(here)}
               />
             )}
             {visibleChildren.map((child) => (
@@ -250,8 +276,8 @@ export function CategoryPicker({
                 onClick={() => handleRowTap(child)}
               />
             ))}
-            {stack.length > 1 && (
-              <CreateCard title="Can’t find your category?" onClick={() => setCreating(true)} />
+            {depth > 0 && (
+              <CreateCard title="Can’t find your category?" onClick={() => onCreate("")} />
             )}
           </>
         )}

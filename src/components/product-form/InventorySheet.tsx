@@ -51,6 +51,10 @@ const DEFAULT_TICKED_LOCATIONS = 3;
  *  everything at once. Locations themselves can only be created or edited
  *  from the store's Pickup locations screen (or the "Add pickup location"
  *  side-trip below); "Edit locations" here is otherwise selection-only. */
+// Each section of the page is its own outlined, rounded card on a soft ground,
+// instead of bare content split by grey bars.
+const CARD = "rounded-2xl border border-gray-300 bg-white p-4";
+
 export function InventorySheet({
   productLabel,
   storeId,
@@ -213,9 +217,11 @@ export function InventorySheet({
         {productLabel && <span className="text-xs text-gray-400 mt-0.5">{productLabel}</span>}
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-5 flex flex-col gap-3 [&>*]:shrink-0">
-        <div className="flex items-center justify-between py-1">
-          <span className="text-[15px] text-gray-900">Continue selling when out of stock</span>
+      <div className="flex-1 overflow-y-auto bg-gray-50 px-4 py-5 flex flex-col gap-4 [&>*]:shrink-0">
+        <div className={CARD + " flex items-center justify-between gap-4"}>
+          <span className="text-[15px] font-medium text-gray-900">
+            Continue selling when out of stock
+          </span>
           <Switch
             size="lg"
             checked={continueSellingOutOfStock}
@@ -225,30 +231,28 @@ export function InventorySheet({
 
         {!hideIdentifiers && (
           <>
-            <div className="-mx-4 h-2 bg-gray-50 mt-2" />
-
-            <div className="pt-2">
+            <div className={CARD}>
               <span className="flex items-baseline gap-1.5">
                 <span className="text-[15px] font-semibold text-gray-900">Identifiers</span>
                 <span className="text-xs text-gray-400 font-normal">Optional</span>
               </span>
-              <div className="grid grid-cols-2 gap-2 mt-2">
-                <label className="flex flex-col gap-1">
-                  <span className="text-xs text-gray-400">SKU</span>
+              <div className="mt-4 flex flex-col gap-4">
+                <label className="flex flex-col gap-1.5">
+                  <span className="text-[13px] font-medium text-gray-600">SKU</span>
                   <input
                     value={sku}
                     onChange={(e) => setSku(e.target.value)}
                     placeholder="Optional"
-                    className="text-base border border-gray-200 rounded-lg px-2 py-2 outline-none transition-colors duration-150 focus:border-gray-400"
+                    className="h-12 text-base bg-white border border-gray-300 rounded-xl px-3.5 outline-none transition-colors duration-150 focus:border-gray-500"
                   />
                 </label>
                 <button
                   type="button"
                   onClick={() => setBarcodesSheetOpen(true)}
-                  className="flex flex-col gap-1 text-left transition-transform duration-150 active:scale-[0.98]"
+                  className="flex flex-col gap-1.5 text-left transition-transform duration-150 active:scale-[0.99]"
                 >
-                  <span className="text-xs text-gray-400">Barcode</span>
-                  <span className="flex items-center justify-between border border-gray-200 rounded-lg px-2 py-2">
+                  <span className="text-[13px] font-medium text-gray-600">Barcode</span>
+                  <span className="flex h-12 items-center justify-between bg-white border border-gray-300 rounded-xl px-3.5">
                     <span
                       className={`text-base truncate ${barcodes.length > 0 ? "text-gray-900" : "text-gray-400"}`}
                     >
@@ -258,7 +262,7 @@ export function InventorySheet({
                           ? barcodes[0].value
                           : `${barcodes.length} barcodes`}
                     </span>
-                    <ChevronRight size={14} className="text-gray-300 shrink-0" />
+                    <ChevronRight size={16} className="text-gray-400 shrink-0" />
                   </span>
                 </button>
               </div>
@@ -272,20 +276,18 @@ export function InventorySheet({
           </>
         )}
 
-        <div className="-mx-4 h-2 bg-gray-50 mt-2" />
-
-        <div className="pt-2">
+        <div className={CARD}>
           <div className="flex items-center justify-between mb-1">
             <span className="text-[15px] font-semibold text-gray-900">Quantity</span>
             <button
               type="button"
               onClick={() => setLocationsPickerOpen(true)}
-              className="text-xs font-medium text-gray-600 border border-gray-200 rounded-full px-3 py-1.5 transition-transform duration-150 active:scale-95"
+              className="text-xs font-medium text-gray-700 border border-gray-300 rounded-full px-3.5 py-2 transition-transform duration-150 active:scale-95"
             >
               Edit locations
             </button>
           </div>
-          <p className="text-xs text-gray-400 mb-4">
+          <p className="text-xs text-gray-500 mb-4">
             {total} available · {selectedLocations.length} location
             {selectedLocations.length === 1 ? "" : "s"}
           </p>
@@ -295,15 +297,15 @@ export function InventorySheet({
               No locations picked yet — tap "Edit locations" to choose where this is stocked.
             </p>
           ) : (
-            <div className="flex flex-col">
-              <div className="flex items-center justify-between pb-2 border-b border-gray-100">
-                <span className="text-xs text-gray-400">Locations</span>
-                <span className="text-xs text-gray-400">Available</span>
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between px-1">
+                <span className="text-xs text-gray-500">Locations</span>
+                <span className="text-xs text-gray-500">Available</span>
               </div>
               {selectedLocations.map((loc) => (
                 <div
                   key={loc.id}
-                  className="flex items-center justify-between py-3 border-b border-gray-50 animate-in fade-in slide-in-from-top-1 duration-200"
+                  className="flex items-center justify-between gap-3 rounded-xl border border-gray-300 bg-white px-3.5 py-3 animate-in fade-in slide-in-from-top-1 duration-200"
                 >
                   <span className="text-[15px] text-gray-900">{loc.name}</span>
                   <div className="flex items-center gap-3">
