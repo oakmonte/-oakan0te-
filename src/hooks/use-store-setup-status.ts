@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import {
+  getLastLandedAt,
+  getPendingPostsSnapshot,
+  subscribePostUpload,
+  type PendingPost,
+} from "@/lib/post-upload";
 import { recall, remember, rememberedKeys } from "@/lib/remembered";
 import { authedFetch } from "@/lib/authed-fetch";
 import { supabase } from "@/lib/integrations/my-supabase/client";
@@ -27,6 +33,8 @@ export function markPayoutSaved(status: string | null) {
     if (c) remember(key, { ...c, payoutSet: true, payoutStatus: status });
   }
 }
+
+const NO_PENDING: PendingPost[] = [];
 
 /** Published posts the "Post content" step needs before it counts as done. */
 export const POSTS_NEEDED = 2;
@@ -113,6 +121,17 @@ export function useStoreSetupStatus(storeId: string | null): StoreSetupStatus {
   const [locationCount, setLocationCount] = useState<number | null>(null);
   const [productCount, setProductCount] = useState<number | null>(null);
   const [postCount, setPostCount] = useState<number | null>(null);
+  // When postCount was last read from the database (ms epoch).
+  const [postCountAt, setPostCountAt] = useState(0);
+  // Posts on their way (post-upload.ts). Pressing Post sends the seller
+  // straight back here while the upload carries on, so "Post content" counts
+  // a post the moment it's sent instead of after the upload lands.
+  const pendingPosts = useSyncExternalStore(
+    subscribePostUpload,
+    getPendingPostsSnapshot,
+    () => NO_PENDING,
+  );
+  const lastLandedAt = useSyncExternalStore(subscribePostUpload, getLastLandedAt, () => 0);
   const [themeIdSet, setThemeIdSet] = useState(false);
   const [themeLoaded, setThemeLoaded] = useState(false);
   const [onboardedAt, setOnboardedAt] = useState<string | null>(null);
@@ -232,6 +251,7 @@ export function useStoreSetupStatus(storeId: string | null): StoreSetupStatus {
       .eq("user_id", user.id)
       .eq("status", "published")
       .then(({ count, error }) => {
+        // (Re-run below whenever an upload lands -- lastLandedAt.)
         if (cancelled) return;
         if (error) {
           console.error("useStoreSetupStatus: failed to load post count", error);
@@ -239,11 +259,12 @@ export function useStoreSetupStatus(storeId: string | null): StoreSetupStatus {
           return;
         }
         setPostCount(count ?? 0);
+        setPostCountAt(Date.now());
       });
     return () => {
       cancelled = true;
     };
-  }, [storeId, user, attempt]);
+  }, [storeId, user, attempt, lastLandedAt]);
 
   useEffect(() => {
     if (!storeId) return;
@@ -313,7 +334,13 @@ export function useStoreSetupStatus(storeId: string | null): StoreSetupStatus {
     setAttempt((a) => a + 1);
   }, []);
 
-  const postsDone = (postCount ?? 0) >= POSTS_NEEDED;
+  // Published posts still uploading, plus any that landed after the count
+  // above was read (the refetch for them is on its way).
+  const inFlight = pendingPosts.filter(
+    (j) => j.kind === "published" && (j.postId === null || lastLandedAt > postCountAt),
+  ).length;
+  const shownPostCount = postCount === null ? null : postCount + inFlight;
+  const postsDone = (shownPostCount ?? 0) >= POSTS_NEEDED;
   const complete =
     !loading && payoutSet && !!locationCount && !!productCount && postsDone && themeIdSet;
 
@@ -368,7 +395,7 @@ export function useStoreSetupStatus(storeId: string | null): StoreSetupStatus {
     payoutStatus,
     locationCount,
     productCount,
-    postCount,
+    postCount: shownPostCount,
     themeIdSet,
     installedApp: hasInstalledApp(user),
     complete,

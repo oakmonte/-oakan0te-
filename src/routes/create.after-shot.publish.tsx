@@ -29,6 +29,16 @@ import { blockedContentMessage, findBlockedContent } from "@/lib/content-policy"
 import CameraPanel from "@/components/camera/CameraPanel";
 import { LinkProductsSheet } from "@/components/feed/LinkProductsSheet";
 import { useLockedBanner } from "@/components/LockedBanner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/create/after-shot/publish")({
   // Overrides root's #000000 theme-color, the same way store.tsx does for the
@@ -243,6 +253,15 @@ function PublishPage() {
       blockedCaption,
     ],
   );
+
+  // Posting with no product linked: a shopper watching it has nothing to buy,
+  // which on a store's feed is almost always an oversight. Ask once; drafts
+  // aren't asked (they're not live yet).
+  const [noProductsOpen, setNoProductsOpen] = useState(false);
+  const requestPost = () => {
+    if (taggedProducts.length === 0) setNoProductsOpen(true);
+    else publish("published");
+  };
 
   const activeVisibility = VISIBILITY_OPTIONS.find((v) => v.id === visibility)!;
 
@@ -476,7 +495,7 @@ function PublishPage() {
         </button>
         <button
           type="button"
-          onClick={() => publish("published")}
+          onClick={requestPost}
           disabled={submitting || blockedCaption.length > 0}
           className="oak-motion-control flex-[1.3] rounded-full py-3.5 text-[14px] font-bold disabled:opacity-50 active:scale-[0.98]"
           style={{ background: "#000", color: "#fff" }}
@@ -517,6 +536,32 @@ function PublishPage() {
         onChange={setTaggedProducts}
       />
       {lockedBanner}
+
+      <AlertDialog open={noProductsOpen} onOpenChange={setNoProductsOpen}>
+        <AlertDialogContent className="max-w-[92vw] rounded-2xl sm:max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle>No product linked</AlertDialogTitle>
+            <AlertDialogDescription>
+              Shoppers watching this post won't have anything to buy from it. Link the pieces it
+              shows?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col gap-2 sm:flex-col">
+            <AlertDialogAction
+              onClick={() => setTagPickerOpen(true)}
+              className="h-12 rounded-full bg-black text-[15px] font-semibold text-white hover:bg-black"
+            >
+              Link products
+            </AlertDialogAction>
+            <AlertDialogCancel
+              onClick={() => publish("published")}
+              className="m-0 h-11 rounded-full border border-gray-400 bg-white text-gray-900 hover:bg-white"
+            >
+              Post anyway
+            </AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
