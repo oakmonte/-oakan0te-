@@ -1,3 +1,4 @@
+import { BLANK_IMAGE } from "@/lib/blank-image";
 import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState, type FormEvent } from "react";
@@ -300,7 +301,7 @@ function EditProfilePage() {
         <label className="flex flex-col items-center gap-2 mt-2 mb-6 cursor-pointer">
           <span className="relative">
             <img
-              src={avatarUrl || "https://placehold.co/110x110"}
+              src={avatarUrl || BLANK_IMAGE}
               alt="Profile"
               className={`w-[90px] h-[90px] rounded-full object-cover border border-white/30 transition-opacity ${
                 uploading ? "opacity-50" : ""

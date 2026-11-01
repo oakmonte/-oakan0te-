@@ -1,3 +1,4 @@
+import { BLANK_IMAGE } from "@/lib/blank-image";
 import { useNavigate } from "@tanstack/react-router";
 import {
   lazy,
@@ -1747,7 +1748,7 @@ function FeedPostCard({
                 style={{ background: "rgba(255,255,255,0.1)" }}
               >
                 <img
-                  src={t.image ?? "https://placehold.co/32x32"}
+                  src={t.image ?? BLANK_IMAGE}
                   alt=""
                   className="w-6 h-6 rounded-full object-cover"
                 />

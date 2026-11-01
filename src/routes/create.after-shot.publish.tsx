@@ -1,3 +1,4 @@
+import { BLANK_IMAGE } from "@/lib/blank-image";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { LucideIcon } from "lucide-react";
@@ -447,7 +448,7 @@ function PublishPage() {
                   className="oak-motion-pop shrink-0 flex items-center gap-2 rounded-full bg-gray-100 pl-1 pr-2.5 py-1"
                 >
                   <img
-                    src={p.image ?? "https://placehold.co/40x40"}
+                    src={p.image ?? BLANK_IMAGE}
                     alt=""
                     className="w-6 h-6 rounded-full object-cover"
                   />

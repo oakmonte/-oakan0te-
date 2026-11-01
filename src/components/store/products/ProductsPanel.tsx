@@ -1,3 +1,4 @@
+import { BLANK_IMAGE } from "@/lib/blank-image";
 import { useState, useEffect, useCallback } from "react";
 import { ListSkeleton } from "@/components/store/ListSkeleton";
 import { recall, remember } from "@/lib/remembered";
@@ -504,7 +505,7 @@ function ProductListRow({
         </span>
       )}
       <img
-        src={v?.main_image_url ?? "https://placehold.co/64x64"}
+        src={v?.main_image_url ?? BLANK_IMAGE}
         className="w-14 h-14 rounded-xl object-cover bg-sd-soft shrink-0"
         alt=""
       />
