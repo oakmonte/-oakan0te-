@@ -112,10 +112,17 @@ export function DeliveryCheckout({
     let cancelled = false;
     fetch("/api/checkout/status")
       .then((r) => (r.ok ? r.json() : null))
-      .then((s: { payments?: boolean } | null) => {
-        if (!cancelled && s && s.payments === false)
+      .then((s: { payments?: boolean; delivery?: boolean } | null) => {
+        if (cancelled || !s) return;
+        // Delivery is checked too: without the courier key the quote step
+        // fails, so the buyer would still have typed a whole address for nothing.
+        if (s.payments === false)
           setNotOpen(
             "Payments open soon. This store can't take payment just yet — check back shortly.",
+          );
+        else if (s.delivery === false)
+          setNotOpen(
+            "Delivery opens soon. This store can't book delivery just yet — check back shortly.",
           );
       })
       .catch(() => {});
