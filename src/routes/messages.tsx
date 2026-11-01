@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
+import { OffersList } from "@/components/messages/OffersList";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Archive, ChevronLeft, MessageCircleOff, Search, X } from "lucide-react";
@@ -701,7 +702,11 @@ export function MessagesView({
                   transition={{ type: "spring", stiffness: 420, damping: 38 }}
                 >
                   {!showArchived && (folder === "offers" || folder === "orders") ? (
-                    <TabPreview tab={folder} buyer={!!sellerOnly && !viewingOwnStore} />
+                    folder === "offers" ? (
+                      <OffersList buyer={!!sellerOnly && !viewingOwnStore} />
+                    ) : (
+                      <TabPreview tab={folder} buyer={!!sellerOnly && !viewingOwnStore} />
+                    )
                   ) : loading ? (
                     <ConversationSkeleton />
                   ) : inbox.status === "error" ? (

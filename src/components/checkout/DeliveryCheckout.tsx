@@ -57,12 +57,15 @@ function addressLineOk(v: string) {
  *  the order. The page above it owns the summary of what's being bought. */
 export function DeliveryCheckout({
   lines,
+  offerId,
   subtotal,
   subtotalLabel,
   blockedReason,
   onOrderCreated,
 }: {
   lines: CheckoutLines;
+  /** An accepted offer: the order is charged its agreed price. */
+  offerId?: string;
   /** Naira, the page's own reading of the items. Null hides the totals (the
    *  summary hasn't loaded). Replaced by the server's figure once rates come
    *  back, since that is the one the order is charged. */
@@ -347,6 +350,7 @@ export function DeliveryCheckout({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...lines,
+          offerId,
           serviceCode: pick.serviceCode,
           addressCode: validated.addressCode,
           name: name.trim(),
@@ -378,7 +382,11 @@ export function DeliveryCheckout({
 
   const pick = couriers?.find((c) => c.serviceCode === chosen) ?? null;
   const itemsTotal =
-    subtotal == null ? null : serverItemsKobo != null ? serverItemsKobo / 100 : subtotal;
+    subtotal == null
+      ? null
+      : serverItemsKobo != null && !offerId
+        ? serverItemsKobo / 100
+        : subtotal;
 
   const field =
     "w-full rounded-2xl border border-white/35 bg-white/[0.06] px-4 py-3.5 text-[16px] text-white outline-none placeholder:text-white/35 focus:border-white/40";

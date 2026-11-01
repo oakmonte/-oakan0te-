@@ -45,6 +45,7 @@ import { Route as TermsRouteImport } from './routes/terms'
 import { Route as WelcomeRouteImport } from './routes/welcome'
 import { Route as WhatsYourStyleRouteImport } from './routes/whats-your-style'
 import { Route as WhereDidYouHearAboutUsRouteImport } from './routes/where-did-you-hear-about-us'
+import { Route as ApiOffersRouteImport } from './routes/api.offers'
 import { Route as ApiOrdersRouteImport } from './routes/api.orders'
 import { Route as ApiPostMediaRouteImport } from './routes/api.post-media'
 import { Route as ApiPostVideoRouteImport } from './routes/api.post-video'
@@ -90,6 +91,7 @@ import { Route as ApiImportStartRouteImport } from './routes/api.import.start'
 import { Route as ApiImportStatusRouteImport } from './routes/api.import.status'
 import { Route as ApiInstagramCallbackRouteImport } from './routes/api.instagram.callback'
 import { Route as ApiInstagramConnectRouteImport } from './routes/api.instagram.connect'
+import { Route as ApiOffersOfferIdRouteImport } from './routes/api.offers.$offerId'
 import { Route as ApiOrdersOrderIdRouteImport } from './routes/api.orders.$orderId'
 import { Route as ApiOrdersMineRouteImport } from './routes/api.orders.mine'
 import { Route as ApiPaystackWebhookRouteImport } from './routes/api.paystack.webhook'
@@ -105,6 +107,7 @@ import { Route as ApiShopifyInstallRouteImport } from './routes/api.shopify.inst
 import { Route as ApiStorePiecesUploadImageRouteImport } from './routes/api.store-pieces.upload-image'
 import { Route as ApiStoreThemeUploadImageRouteImport } from './routes/api.store-theme.upload-image'
 import { Route as ApiStoreConnectionsRouteImport } from './routes/api.store.connections'
+import { Route as ApiStoreOffersRouteImport } from './routes/api.store.offers'
 import { Route as ApiStoreOrdersRouteImport } from './routes/api.store.orders'
 import { Route as ApiStorePayoutRouteImport } from './routes/api.store.payout'
 import { Route as ApiSupportMessagesMineRouteImport } from './routes/api.support-messages.mine'
@@ -127,6 +130,7 @@ import { Route as StoreProductsNewcomerRouteImport } from './routes/store.produc
 import { Route as StoreProductsUploadRouteImport } from './routes/store.products_.upload'
 import { Route as ApiOrdersOrderIdReceivedRouteImport } from './routes/api.orders.$orderId.received'
 import { Route as ApiStoreLocationsVerifyRouteImport } from './routes/api.store.locations.verify'
+import { Route as ApiStoreOffersOfferIdRouteImport } from './routes/api.store.offers.$offerId'
 import { Route as ApiStoreOrdersOrderIdRouteImport } from './routes/api.store.orders.$orderId'
 import { Route as ApiStoreOrdersOrderIdDeclineRouteImport } from './routes/api.store.orders.$orderId.decline'
 import { Route as ApiStoreOrdersOrderIdShipRouteImport } from './routes/api.store.orders.$orderId.ship'
@@ -309,6 +313,11 @@ const WhatsYourStyleRoute = WhatsYourStyleRouteImport.update({
 const WhereDidYouHearAboutUsRoute = WhereDidYouHearAboutUsRouteImport.update({
   id: '/where-did-you-hear-about-us',
   path: '/where-did-you-hear-about-us',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiOffersRoute = ApiOffersRouteImport.update({
+  id: '/api/offers',
+  path: '/api/offers',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiOrdersRoute = ApiOrdersRouteImport.update({
@@ -537,6 +546,11 @@ const ApiInstagramConnectRoute = ApiInstagramConnectRouteImport.update({
   path: '/api/instagram/connect',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiOffersOfferIdRoute = ApiOffersOfferIdRouteImport.update({
+  id: '/$offerId',
+  path: '/$offerId',
+  getParentRoute: () => ApiOffersRoute,
+} as any)
 const ApiOrdersOrderIdRoute = ApiOrdersOrderIdRouteImport.update({
   id: '/$orderId',
   path: '/$orderId',
@@ -613,6 +627,11 @@ const ApiStoreThemeUploadImageRoute =
 const ApiStoreConnectionsRoute = ApiStoreConnectionsRouteImport.update({
   id: '/api/store/connections',
   path: '/api/store/connections',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiStoreOffersRoute = ApiStoreOffersRouteImport.update({
+  id: '/api/store/offers',
+  path: '/api/store/offers',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiStoreOrdersRoute = ApiStoreOrdersRouteImport.update({
@@ -726,6 +745,11 @@ const ApiStoreLocationsVerifyRoute = ApiStoreLocationsVerifyRouteImport.update({
   path: '/api/store/locations/verify',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiStoreOffersOfferIdRoute = ApiStoreOffersOfferIdRouteImport.update({
+  id: '/$offerId',
+  path: '/$offerId',
+  getParentRoute: () => ApiStoreOffersRoute,
+} as any)
 const ApiStoreOrdersOrderIdRoute = ApiStoreOrdersOrderIdRouteImport.update({
   id: '/$orderId',
   path: '/$orderId',
@@ -781,6 +805,7 @@ export interface FileRoutesByFullPath {
   '/welcome': typeof WelcomeRoute
   '/whats-your-style': typeof WhatsYourStyleRoute
   '/where-did-you-hear-about-us': typeof WhereDidYouHearAboutUsRoute
+  '/api/offers': typeof ApiOffersRouteWithChildren
   '/api/orders': typeof ApiOrdersRouteWithChildren
   '/api/post-media': typeof ApiPostMediaRoute
   '/api/post-video': typeof ApiPostVideoRoute
@@ -826,6 +851,7 @@ export interface FileRoutesByFullPath {
   '/api/import/status': typeof ApiImportStatusRoute
   '/api/instagram/callback': typeof ApiInstagramCallbackRoute
   '/api/instagram/connect': typeof ApiInstagramConnectRoute
+  '/api/offers/$offerId': typeof ApiOffersOfferIdRoute
   '/api/orders/$orderId': typeof ApiOrdersOrderIdRouteWithChildren
   '/api/orders/mine': typeof ApiOrdersMineRoute
   '/api/paystack/webhook': typeof ApiPaystackWebhookRoute
@@ -841,6 +867,7 @@ export interface FileRoutesByFullPath {
   '/api/store-pieces/upload-image': typeof ApiStorePiecesUploadImageRoute
   '/api/store-theme/upload-image': typeof ApiStoreThemeUploadImageRoute
   '/api/store/connections': typeof ApiStoreConnectionsRoute
+  '/api/store/offers': typeof ApiStoreOffersRouteWithChildren
   '/api/store/orders': typeof ApiStoreOrdersRouteWithChildren
   '/api/store/payout': typeof ApiStorePayoutRoute
   '/api/support-messages/mine': typeof ApiSupportMessagesMineRoute
@@ -863,6 +890,7 @@ export interface FileRoutesByFullPath {
   '/store/playlists/': typeof StorePlaylistsIndexRoute
   '/api/orders/$orderId/received': typeof ApiOrdersOrderIdReceivedRoute
   '/api/store/locations/verify': typeof ApiStoreLocationsVerifyRoute
+  '/api/store/offers/$offerId': typeof ApiStoreOffersOfferIdRoute
   '/api/store/orders/$orderId': typeof ApiStoreOrdersOrderIdRouteWithChildren
   '/api/store/orders/$orderId/decline': typeof ApiStoreOrdersOrderIdDeclineRoute
   '/api/store/orders/$orderId/ship': typeof ApiStoreOrdersOrderIdShipRoute
@@ -902,6 +930,7 @@ export interface FileRoutesByTo {
   '/welcome': typeof WelcomeRoute
   '/whats-your-style': typeof WhatsYourStyleRoute
   '/where-did-you-hear-about-us': typeof WhereDidYouHearAboutUsRoute
+  '/api/offers': typeof ApiOffersRouteWithChildren
   '/api/orders': typeof ApiOrdersRouteWithChildren
   '/api/post-media': typeof ApiPostMediaRoute
   '/api/post-video': typeof ApiPostVideoRoute
@@ -946,6 +975,7 @@ export interface FileRoutesByTo {
   '/api/import/status': typeof ApiImportStatusRoute
   '/api/instagram/callback': typeof ApiInstagramCallbackRoute
   '/api/instagram/connect': typeof ApiInstagramConnectRoute
+  '/api/offers/$offerId': typeof ApiOffersOfferIdRoute
   '/api/orders/$orderId': typeof ApiOrdersOrderIdRouteWithChildren
   '/api/orders/mine': typeof ApiOrdersMineRoute
   '/api/paystack/webhook': typeof ApiPaystackWebhookRoute
@@ -961,6 +991,7 @@ export interface FileRoutesByTo {
   '/api/store-pieces/upload-image': typeof ApiStorePiecesUploadImageRoute
   '/api/store-theme/upload-image': typeof ApiStoreThemeUploadImageRoute
   '/api/store/connections': typeof ApiStoreConnectionsRoute
+  '/api/store/offers': typeof ApiStoreOffersRouteWithChildren
   '/api/store/orders': typeof ApiStoreOrdersRouteWithChildren
   '/api/store/payout': typeof ApiStorePayoutRoute
   '/api/support-messages/mine': typeof ApiSupportMessagesMineRoute
@@ -983,6 +1014,7 @@ export interface FileRoutesByTo {
   '/store/playlists': typeof StorePlaylistsIndexRoute
   '/api/orders/$orderId/received': typeof ApiOrdersOrderIdReceivedRoute
   '/api/store/locations/verify': typeof ApiStoreLocationsVerifyRoute
+  '/api/store/offers/$offerId': typeof ApiStoreOffersOfferIdRoute
   '/api/store/orders/$orderId': typeof ApiStoreOrdersOrderIdRouteWithChildren
   '/api/store/orders/$orderId/decline': typeof ApiStoreOrdersOrderIdDeclineRoute
   '/api/store/orders/$orderId/ship': typeof ApiStoreOrdersOrderIdShipRoute
@@ -1025,6 +1057,7 @@ export interface FileRoutesById {
   '/welcome': typeof WelcomeRoute
   '/whats-your-style': typeof WhatsYourStyleRoute
   '/where-did-you-hear-about-us': typeof WhereDidYouHearAboutUsRoute
+  '/api/offers': typeof ApiOffersRouteWithChildren
   '/api/orders': typeof ApiOrdersRouteWithChildren
   '/api/post-media': typeof ApiPostMediaRoute
   '/api/post-video': typeof ApiPostVideoRoute
@@ -1070,6 +1103,7 @@ export interface FileRoutesById {
   '/api/import/status': typeof ApiImportStatusRoute
   '/api/instagram/callback': typeof ApiInstagramCallbackRoute
   '/api/instagram/connect': typeof ApiInstagramConnectRoute
+  '/api/offers/$offerId': typeof ApiOffersOfferIdRoute
   '/api/orders/$orderId': typeof ApiOrdersOrderIdRouteWithChildren
   '/api/orders/mine': typeof ApiOrdersMineRoute
   '/api/paystack/webhook': typeof ApiPaystackWebhookRoute
@@ -1085,6 +1119,7 @@ export interface FileRoutesById {
   '/api/store-pieces/upload-image': typeof ApiStorePiecesUploadImageRoute
   '/api/store-theme/upload-image': typeof ApiStoreThemeUploadImageRoute
   '/api/store/connections': typeof ApiStoreConnectionsRoute
+  '/api/store/offers': typeof ApiStoreOffersRouteWithChildren
   '/api/store/orders': typeof ApiStoreOrdersRouteWithChildren
   '/api/store/payout': typeof ApiStorePayoutRoute
   '/api/support-messages/mine': typeof ApiSupportMessagesMineRoute
@@ -1107,6 +1142,7 @@ export interface FileRoutesById {
   '/store/playlists/': typeof StorePlaylistsIndexRoute
   '/api/orders/$orderId/received': typeof ApiOrdersOrderIdReceivedRoute
   '/api/store/locations/verify': typeof ApiStoreLocationsVerifyRoute
+  '/api/store/offers/$offerId': typeof ApiStoreOffersOfferIdRoute
   '/api/store/orders/$orderId': typeof ApiStoreOrdersOrderIdRouteWithChildren
   '/api/store/orders/$orderId/decline': typeof ApiStoreOrdersOrderIdDeclineRoute
   '/api/store/orders/$orderId/ship': typeof ApiStoreOrdersOrderIdShipRoute
@@ -1150,6 +1186,7 @@ export interface FileRouteTypes {
     | '/welcome'
     | '/whats-your-style'
     | '/where-did-you-hear-about-us'
+    | '/api/offers'
     | '/api/orders'
     | '/api/post-media'
     | '/api/post-video'
@@ -1195,6 +1232,7 @@ export interface FileRouteTypes {
     | '/api/import/status'
     | '/api/instagram/callback'
     | '/api/instagram/connect'
+    | '/api/offers/$offerId'
     | '/api/orders/$orderId'
     | '/api/orders/mine'
     | '/api/paystack/webhook'
@@ -1210,6 +1248,7 @@ export interface FileRouteTypes {
     | '/api/store-pieces/upload-image'
     | '/api/store-theme/upload-image'
     | '/api/store/connections'
+    | '/api/store/offers'
     | '/api/store/orders'
     | '/api/store/payout'
     | '/api/support-messages/mine'
@@ -1232,6 +1271,7 @@ export interface FileRouteTypes {
     | '/store/playlists/'
     | '/api/orders/$orderId/received'
     | '/api/store/locations/verify'
+    | '/api/store/offers/$offerId'
     | '/api/store/orders/$orderId'
     | '/api/store/orders/$orderId/decline'
     | '/api/store/orders/$orderId/ship'
@@ -1271,6 +1311,7 @@ export interface FileRouteTypes {
     | '/welcome'
     | '/whats-your-style'
     | '/where-did-you-hear-about-us'
+    | '/api/offers'
     | '/api/orders'
     | '/api/post-media'
     | '/api/post-video'
@@ -1315,6 +1356,7 @@ export interface FileRouteTypes {
     | '/api/import/status'
     | '/api/instagram/callback'
     | '/api/instagram/connect'
+    | '/api/offers/$offerId'
     | '/api/orders/$orderId'
     | '/api/orders/mine'
     | '/api/paystack/webhook'
@@ -1330,6 +1372,7 @@ export interface FileRouteTypes {
     | '/api/store-pieces/upload-image'
     | '/api/store-theme/upload-image'
     | '/api/store/connections'
+    | '/api/store/offers'
     | '/api/store/orders'
     | '/api/store/payout'
     | '/api/support-messages/mine'
@@ -1352,6 +1395,7 @@ export interface FileRouteTypes {
     | '/store/playlists'
     | '/api/orders/$orderId/received'
     | '/api/store/locations/verify'
+    | '/api/store/offers/$offerId'
     | '/api/store/orders/$orderId'
     | '/api/store/orders/$orderId/decline'
     | '/api/store/orders/$orderId/ship'
@@ -1393,6 +1437,7 @@ export interface FileRouteTypes {
     | '/welcome'
     | '/whats-your-style'
     | '/where-did-you-hear-about-us'
+    | '/api/offers'
     | '/api/orders'
     | '/api/post-media'
     | '/api/post-video'
@@ -1438,6 +1483,7 @@ export interface FileRouteTypes {
     | '/api/import/status'
     | '/api/instagram/callback'
     | '/api/instagram/connect'
+    | '/api/offers/$offerId'
     | '/api/orders/$orderId'
     | '/api/orders/mine'
     | '/api/paystack/webhook'
@@ -1453,6 +1499,7 @@ export interface FileRouteTypes {
     | '/api/store-pieces/upload-image'
     | '/api/store-theme/upload-image'
     | '/api/store/connections'
+    | '/api/store/offers'
     | '/api/store/orders'
     | '/api/store/payout'
     | '/api/support-messages/mine'
@@ -1475,6 +1522,7 @@ export interface FileRouteTypes {
     | '/store/playlists/'
     | '/api/orders/$orderId/received'
     | '/api/store/locations/verify'
+    | '/api/store/offers/$offerId'
     | '/api/store/orders/$orderId'
     | '/api/store/orders/$orderId/decline'
     | '/api/store/orders/$orderId/ship'
@@ -1517,6 +1565,7 @@ export interface RootRouteChildren {
   WelcomeRoute: typeof WelcomeRoute
   WhatsYourStyleRoute: typeof WhatsYourStyleRoute
   WhereDidYouHearAboutUsRoute: typeof WhereDidYouHearAboutUsRoute
+  ApiOffersRoute: typeof ApiOffersRouteWithChildren
   ApiOrdersRoute: typeof ApiOrdersRouteWithChildren
   ApiPostMediaRoute: typeof ApiPostMediaRoute
   ApiPostVideoRoute: typeof ApiPostVideoRoute
@@ -1557,6 +1606,7 @@ export interface RootRouteChildren {
   ApiStorePiecesUploadImageRoute: typeof ApiStorePiecesUploadImageRoute
   ApiStoreThemeUploadImageRoute: typeof ApiStoreThemeUploadImageRoute
   ApiStoreConnectionsRoute: typeof ApiStoreConnectionsRoute
+  ApiStoreOffersRoute: typeof ApiStoreOffersRouteWithChildren
   ApiStoreOrdersRoute: typeof ApiStoreOrdersRouteWithChildren
   ApiStorePayoutRoute: typeof ApiStorePayoutRoute
   ApiSupportMessagesMineRoute: typeof ApiSupportMessagesMineRoute
@@ -1817,6 +1867,13 @@ declare module '@tanstack/react-router' {
       path: '/where-did-you-hear-about-us'
       fullPath: '/where-did-you-hear-about-us'
       preLoaderRoute: typeof WhereDidYouHearAboutUsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/offers': {
+      id: '/api/offers'
+      path: '/api/offers'
+      fullPath: '/api/offers'
+      preLoaderRoute: typeof ApiOffersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/orders': {
@@ -2134,6 +2191,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiInstagramConnectRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/offers/$offerId': {
+      id: '/api/offers/$offerId'
+      path: '/$offerId'
+      fullPath: '/api/offers/$offerId'
+      preLoaderRoute: typeof ApiOffersOfferIdRouteImport
+      parentRoute: typeof ApiOffersRoute
+    }
     '/api/orders/$orderId': {
       id: '/api/orders/$orderId'
       path: '/$orderId'
@@ -2237,6 +2301,13 @@ declare module '@tanstack/react-router' {
       path: '/api/store/connections'
       fullPath: '/api/store/connections'
       preLoaderRoute: typeof ApiStoreConnectionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/store/offers': {
+      id: '/api/store/offers'
+      path: '/api/store/offers'
+      fullPath: '/api/store/offers'
+      preLoaderRoute: typeof ApiStoreOffersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/store/orders': {
@@ -2393,6 +2464,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiStoreLocationsVerifyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/store/offers/$offerId': {
+      id: '/api/store/offers/$offerId'
+      path: '/$offerId'
+      fullPath: '/api/store/offers/$offerId'
+      preLoaderRoute: typeof ApiStoreOffersOfferIdRouteImport
+      parentRoute: typeof ApiStoreOffersRoute
+    }
     '/api/store/orders/$orderId': {
       id: '/api/store/orders/$orderId'
       path: '/$orderId'
@@ -2510,6 +2588,18 @@ const StoreRouteChildren: StoreRouteChildren = {
 
 const StoreRouteWithChildren = StoreRoute._addFileChildren(StoreRouteChildren)
 
+interface ApiOffersRouteChildren {
+  ApiOffersOfferIdRoute: typeof ApiOffersOfferIdRoute
+}
+
+const ApiOffersRouteChildren: ApiOffersRouteChildren = {
+  ApiOffersOfferIdRoute: ApiOffersOfferIdRoute,
+}
+
+const ApiOffersRouteWithChildren = ApiOffersRoute._addFileChildren(
+  ApiOffersRouteChildren,
+)
+
 interface ApiOrdersOrderIdRouteChildren {
   ApiOrdersOrderIdReceivedRoute: typeof ApiOrdersOrderIdReceivedRoute
 }
@@ -2533,6 +2623,18 @@ const ApiOrdersRouteChildren: ApiOrdersRouteChildren = {
 
 const ApiOrdersRouteWithChildren = ApiOrdersRoute._addFileChildren(
   ApiOrdersRouteChildren,
+)
+
+interface ApiStoreOffersRouteChildren {
+  ApiStoreOffersOfferIdRoute: typeof ApiStoreOffersOfferIdRoute
+}
+
+const ApiStoreOffersRouteChildren: ApiStoreOffersRouteChildren = {
+  ApiStoreOffersOfferIdRoute: ApiStoreOffersOfferIdRoute,
+}
+
+const ApiStoreOffersRouteWithChildren = ApiStoreOffersRoute._addFileChildren(
+  ApiStoreOffersRouteChildren,
 )
 
 interface ApiStoreOrdersOrderIdRouteChildren {
@@ -2599,6 +2701,7 @@ const rootRouteChildren: RootRouteChildren = {
   WelcomeRoute: WelcomeRoute,
   WhatsYourStyleRoute: WhatsYourStyleRoute,
   WhereDidYouHearAboutUsRoute: WhereDidYouHearAboutUsRoute,
+  ApiOffersRoute: ApiOffersRouteWithChildren,
   ApiOrdersRoute: ApiOrdersRouteWithChildren,
   ApiPostMediaRoute: ApiPostMediaRoute,
   ApiPostVideoRoute: ApiPostVideoRoute,
@@ -2639,6 +2742,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiStorePiecesUploadImageRoute: ApiStorePiecesUploadImageRoute,
   ApiStoreThemeUploadImageRoute: ApiStoreThemeUploadImageRoute,
   ApiStoreConnectionsRoute: ApiStoreConnectionsRoute,
+  ApiStoreOffersRoute: ApiStoreOffersRouteWithChildren,
   ApiStoreOrdersRoute: ApiStoreOrdersRouteWithChildren,
   ApiStorePayoutRoute: ApiStorePayoutRoute,
   ApiSupportMessagesMineRoute: ApiSupportMessagesMineRoute,

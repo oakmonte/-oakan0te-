@@ -15,3 +15,8 @@ export const OFFLINE_VIDEOS_ENABLED = false;
  *  product and each variant alike. Parked to keep listing simple; existing
  *  SKUs and barcodes are kept and still saved, just not shown. */
 export const IDENTIFIERS_ENABLED = false;
+
+/** "Make offer" on the product page and a product tile's menu: the buyer names
+ *  a price, the seller accepts or counters in Messages -> Offers, and checkout
+ *  charges the agreed price (lib/offers.server.ts). */
+export const OFFERS_ENABLED = true;

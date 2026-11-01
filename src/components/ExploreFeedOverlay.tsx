@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { OFFERS_ENABLED } from "@/lib/features";
 import { motion, AnimatePresence, useReducedMotion, type PanInfo } from "framer-motion";
 import { useNavigate } from "@tanstack/react-router";
 import { useLockedBanner } from "@/components/LockedBanner";
@@ -253,20 +254,16 @@ export function ListedItemsPage({
                 >
                   Buy Now
                 </button>
-                <button
-                  type="button"
-                  // Offers are a signed-in conversation with the seller; the
-                  // offer flow itself isn't built yet, so this goes to sign-in
-                  // for guests and says so honestly for everyone else.
-                  onClick={() =>
-                    user
-                      ? showLocked("Offers open soon. Message the seller meanwhile.")
-                      : void navigate({ to: "/sign-in" })
-                  }
-                  className="h-9 rounded-full bg-white/12 px-3.5 text-[12px] font-semibold text-white ring-1 ring-white/15 transition-transform duration-150 ease-out active:scale-[0.96]"
-                >
-                  Make Offer
-                </button>
+                {OFFERS_ENABLED && (
+                  <button
+                    type="button"
+                    // The offer is made on the piece's own page (OfferSheet).
+                    onClick={() => onOpen?.(item)}
+                    className="h-9 rounded-full bg-white/12 px-3.5 text-[12px] font-semibold text-white ring-1 ring-white/15 transition-transform duration-150 ease-out active:scale-[0.96]"
+                  >
+                    Make Offer
+                  </button>
+                )}
                 <button
                   type="button"
                   aria-label="Add to bag"

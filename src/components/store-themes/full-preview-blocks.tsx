@@ -2221,15 +2221,13 @@ function StoreFooter({
           href="https://oakmonte.store"
           target="_blank"
           rel="noopener"
-          // On hover the link fills with the page's text colour and its text takes
-          // the page colour: a swap that reads on any background, light or dark,
-          // where a mere colour change can land on the background's own.
-          className="-mx-2.5 inline-block rounded-full px-2.5 py-1 text-[12px] font-medium uppercase tracking-[0.12em] text-[var(--c)] underline decoration-1 underline-offset-4 transition-colors duration-150 hover:bg-[var(--hbg)] hover:text-[var(--htext)] hover:no-underline"
+          // On hover it lifts a little, slowly, and takes the page's full text colour --
+          // the same ink the store name uses, so it reads on any background.
+          className="inline-block text-[12px] font-medium uppercase tracking-[0.12em] text-[var(--c)] underline decoration-1 underline-offset-4 transition-[transform,color] duration-500 ease-out hover:-translate-y-1 hover:text-[var(--hc)]"
           style={
             {
               "--c": muted,
-              "--hbg": ink,
-              "--htext": dark ? "#111111" : "#ffffff",
+              "--hc": ink,
             } as React.CSSProperties
           }
         >

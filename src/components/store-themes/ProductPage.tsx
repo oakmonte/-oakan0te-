@@ -1,4 +1,8 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { OfferSheet } from "./OfferSheet";
+import { normalizeOptionName } from "@/lib/necessities";
+import { colorSwatchStyle } from "@/lib/color-options";
+import { OFFERS_ENABLED } from "@/lib/features";
 import { useStorefrontPage } from "./live-storefront";
 import { createPortal } from "react-dom";
 import { useNavigate } from "@tanstack/react-router";
@@ -145,8 +149,8 @@ function inStock(v: Variant) {
 /** A storefront product opened as its own page: photos, name, size picker,
  *  price, the buy actions, the buyer-protection note, description and the
  *  seller. Pushes in from the right like CollectionPage. Buy Now goes to
- *  checkout and Add to Bag fills the bag; Make Offer isn't built yet, so it
- *  says so. */
+ *  checkout and Add to Bag fills the bag; Make Offer is hidden until it's built
+ *  (OFFERS_ENABLED). */
 export function ProductPage({
   tile,
   look,
@@ -191,6 +195,7 @@ export function ProductPage({
   const storefrontChat = useStorefrontChat();
   const { banner: offerBanner, showLocked } = useLockedBanner();
   const [enquiryOpen, setEnquiryOpen] = useState(false);
+  const [offerOpen, setOfferOpen] = useState(false);
   const [shown, setShown] = useState(false);
   const [closing, setClosing] = useState(false);
   const [data, setData] = useState<ProductData | null | undefined>(undefined);
@@ -439,7 +444,20 @@ export function ProductPage({
                                   textDecoration: out ? "line-through" : undefined,
                                 }}
                               >
-                                {value}
+                                {/* A colour shows its colour, not just its name:
+                                    not everyone knows what "Sienna" looks like. */}
+                                {normalizeOptionName(opt.name) === "color" ? (
+                                  <span className="inline-flex items-center gap-2">
+                                    <span
+                                      aria-hidden="true"
+                                      className="h-4 w-4 shrink-0 rounded-full border border-black/25"
+                                      style={{ background: colorSwatchStyle(value) }}
+                                    />
+                                    {value}
+                                  </span>
+                                ) : (
+                                  value
+                                )}
                               </button>
                             );
                           })}
@@ -489,19 +507,23 @@ export function ProductPage({
                         </button>
                       )}
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => showLocked("Offers are coming soon")}
-                      className="h-14 rounded-2xl text-[16px] font-semibold"
-                      style={btn}
-                    >
-                      Make Offer
-                    </button>
+                    {OFFERS_ENABLED && (
+                      <button
+                        type="button"
+                        disabled={soldOut || !variant?.price}
+                        onClick={() => setOfferOpen(true)}
+                        className="h-14 rounded-2xl text-[16px] font-semibold disabled:opacity-40"
+                        style={btn}
+                      >
+                        Make Offer
+                      </button>
+                    )}
                     <button
                       type="button"
                       disabled={soldOut || !data || !variant?.price}
                       onClick={addToBag}
-                      className="h-14 rounded-2xl text-[16px] font-semibold disabled:opacity-40"
+                      // The whole row when Make Offer is hidden (OFFERS_ENABLED).
+                      className={`h-14 rounded-2xl text-[16px] font-semibold disabled:opacity-40 ${OFFERS_ENABLED ? "" : "col-span-2"}`}
                       style={btn}
                     >
                       Add to Bag
@@ -616,6 +638,26 @@ export function ProductPage({
         )}
       {bagToast}
       {offerBanner}
+      {offerOpen && data && variant?.price != null && (
+        <OfferSheet
+          product={{
+            id: tile.id,
+            variantId: variant.id,
+            title: data.title,
+            variantLabel: variantLabelOf(variant, variants.length),
+            price: variant.price,
+            image: photos[0] ?? null,
+          }}
+          onClose={() => setOfferOpen(false)}
+          onSent={() => {
+            setOfferOpen(false);
+            if (storefrontChat) {
+              storefrontChat.openMessages();
+              close();
+            } else showLocked("Offer sent. The answer shows in Messages → Offers.");
+          }}
+        />
+      )}
       {enquiryOpen && data && (
         <EnquirySheet
           product={{

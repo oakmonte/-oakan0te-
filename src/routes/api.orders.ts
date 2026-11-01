@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { agreedPriceFor, offersTable } from "@/lib/offers.server";
 import { supabaseAdmin } from "@/lib/integrations/my-supabase/client.server";
 import { getRequestUser } from "@/lib/server-auth";
 import { fetchRates, ShippingError } from "@/lib/shipping.server";
@@ -83,6 +84,26 @@ export const Route = createFileRoute("/api/orders")({
           const shortfall = stockProblem(items, parsed.legacy);
           if (shortfall) return json({ error: shortfall }, 409);
 
+          // Buying at an accepted offer (Make Offer): one piece, at the price the
+          // buyer and seller agreed, never anyone else's or a different variant.
+          const offerId = str(body.offerId, 60);
+          if (offerId) {
+            const only = parsed.lines.length === 1 ? parsed.lines[0] : null;
+            const agreedKobo = only
+              ? await agreedPriceFor({
+                  offerId,
+                  buyerId: user?.id ?? null,
+                  productId: only.productId,
+                  variantId: items[0]?.variantId ?? only.variantId,
+                })
+              : null;
+            if (!agreedKobo || items.length !== 1) {
+              return json({ error: "That offer can't be used. Open it again from Messages." }, 409);
+            }
+            items[0].unitPrice = agreedKobo / 100;
+            items[0].quantity = 1;
+          }
+
           const itemsKobo = itemsTotalKobo(items);
           const deliveryKobo = Math.round(courier.price * 100);
           const totalKobo = itemsKobo + deliveryKobo;
@@ -118,6 +139,13 @@ export const Route = createFileRoute("/api/orders")({
           if (orderErr || !order) {
             console.error("order insert failed", orderErr);
             return json({ error: "Couldn't create your order. Try again." }, 500);
+          }
+          // Tie the offer to this order, so paying for it marks the offer used.
+          if (offerId) {
+            await offersTable()
+              .update({ order_id: order.id, updated_at: new Date().toISOString() })
+              .eq("id", offerId)
+              .eq("status", "accepted");
           }
 
           const { error: itemErr } = await supabaseAdmin.from("order_items").insert(

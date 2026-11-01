@@ -1,3 +1,4 @@
+import { markOfferUsed } from "@/lib/offers.server";
 import { supabaseAdmin } from "@/lib/integrations/my-supabase/client.server";
 
 // Settles an order from a confirmed Paystack payment. Called from the signed
@@ -41,6 +42,8 @@ export async function settlePaystackPayment(input: {
     .update({ status: "paid", updated_at: new Date().toISOString() })
     .eq("id", payment.order_id)
     .eq("status", "awaiting_payment");
+  // Bought at an agreed offer price: that offer can't be used again.
+  await markOfferUsed(payment.order_id);
 
   // Take the unit(s) out of stock now that it is paid.
   const { data: items } = await supabaseAdmin

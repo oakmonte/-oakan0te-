@@ -31,5 +31,4 @@ When you park something new, add it here in the same commit.
 
 | What | Where |
 | --- | --- |
-| Make Offer | Product page and the product tile's ⋯ menu say "Offers are coming soon". |
 | Website visit from the theme preview | The preview's Open website button says "Website visit not yet authorised". |

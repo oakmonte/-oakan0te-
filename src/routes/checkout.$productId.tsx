@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { authedFetch } from "@/lib/authed-fetch";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ChevronLeft } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
@@ -6,8 +7,10 @@ import { CheckoutShell } from "@/components/checkout/CheckoutShell";
 import { DeliveryCheckout } from "@/components/checkout/DeliveryCheckout";
 
 export const Route = createFileRoute("/checkout/$productId")({
-  validateSearch: (s: Record<string, unknown>): { variant?: string } => ({
+  validateSearch: (s: Record<string, unknown>): { variant?: string; offer?: string } => ({
     variant: typeof s.variant === "string" && s.variant ? s.variant : undefined,
+    // An accepted offer (Messages -> Offers): checkout charges its agreed price.
+    offer: typeof s.offer === "string" && s.offer ? s.offer : undefined,
   }),
   head: () => ({ meta: [{ title: "Checkout — Oakmonte" }] }),
   component: CheckoutPage,
@@ -42,13 +45,29 @@ async function loadSummary(productId: string, variantId?: string): Promise<Summa
 // payment steps are DeliveryCheckout, shared with the bag's checkout.
 function CheckoutPage() {
   const { productId } = Route.useParams();
-  const { variant } = Route.useSearch();
+  const { variant, offer } = Route.useSearch();
   const navigate = useNavigate();
   const [summary, setSummary] = useState<Summary | null | undefined>(undefined);
 
   useEffect(() => {
-    void loadSummary(productId, variant).then(setSummary);
-  }, [productId, variant]);
+    void loadSummary(productId, variant).then(async (s) => {
+      // The agreed price, for show. The server re-checks the offer and charges
+      // its price whatever this page says.
+      if (s && offer) {
+        try {
+          const res = await authedFetch("/api/offers");
+          const body = (await res.json()) as {
+            offers?: { id: string; agreed: number | null; status: string }[];
+          };
+          const o = body.offers?.find((x) => x.id === offer && x.status === "accepted");
+          if (o?.agreed != null) s = { ...s, price: o.agreed };
+        } catch {
+          // Shows the list price; the order still uses the offer's.
+        }
+      }
+      setSummary(s);
+    });
+  }, [productId, variant, offer]);
 
   function back() {
     if (window.history.length > 1) window.history.back();
@@ -88,6 +107,7 @@ function CheckoutPage() {
 
       <DeliveryCheckout
         lines={{ productId, variantId: variant }}
+        offerId={offer}
         subtotal={summary?.price ?? null}
         subtotalLabel="Item"
       />

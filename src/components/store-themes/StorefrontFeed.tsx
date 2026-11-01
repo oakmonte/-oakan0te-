@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
-import { animate, motion, useMotionValue, type PanInfo } from "framer-motion";
+import { animate, motion, useDragControls, useMotionValue, type PanInfo } from "framer-motion";
 import { PostFeed, RAIL_OUTSIDE_W, type ActivePost } from "@/components/feed/PostFeed";
 import { ListedItemsPage } from "@/components/ExploreFeedOverlay";
 import { ProductPage } from "./ProductPage";
@@ -137,9 +137,13 @@ export function StorefrontFeed({
   // pointer drag, so the pager never saw it. Sum the sideways scroll and turn
   // the page once it's clearly a swipe; then ignore the rest of that gesture's
   // momentum.
+  const dragControls = useDragControls();
   const wheelRef = useRef({ sum: 0, lockedUntil: 0 });
   function handleWheel(e: React.WheelEvent) {
     if (wide || Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
+    // A sideways swipe over a post's photo carousel turns its photos; only
+    // once the carousel can't go further does the swipe change tab.
+    if (canScrollSideways(e.target, Math.sign(e.deltaX), e.currentTarget)) return;
     const w = wheelRef.current;
     const now = performance.now();
     if (now < w.lockedUntil) return;
@@ -292,6 +296,13 @@ export function StorefrontFeed({
         <motion.div
           drag="x"
           dragDirectionLock
+          // Started by hand (onPointerDown below), so a drag that begins on a
+          // post's photo carousel turns the photos instead of the page.
+          dragListener={false}
+          dragControls={dragControls}
+          onPointerDown={(e) => {
+            if (!inSidewaysScroller(e.target, e.currentTarget)) dragControls.start(e);
+          }}
           dragConstraints={{ left: -(TABS.length - 1) * width, right: 0 }}
           dragElastic={0.12}
           dragMomentum={false}
@@ -364,4 +375,31 @@ export function StorefrontFeed({
       {openedPage}
     </div>
   );
+}
+
+/** The nearest element between `target` and `stop` that scrolls sideways
+ *  (a post's photo carousel), or null. */
+function sidewaysScroller(target: EventTarget | null, stop: Element): HTMLElement | null {
+  for (
+    let el = target instanceof Element ? target : null;
+    el && el !== stop;
+    el = el.parentElement
+  ) {
+    if (!(el instanceof HTMLElement)) continue;
+    const ox = getComputedStyle(el).overflowX;
+    if ((ox === "auto" || ox === "scroll") && el.scrollWidth > el.clientWidth + 1) return el;
+  }
+  return null;
+}
+
+/** Whether a drag starting here belongs to a sideways scroller. */
+function inSidewaysScroller(target: EventTarget | null, stop: Element): boolean {
+  return sidewaysScroller(target, stop) !== null;
+}
+
+/** Whether that scroller can still move in direction `dir` (1 = right). */
+function canScrollSideways(target: EventTarget | null, dir: number, stop: Element): boolean {
+  const el = sidewaysScroller(target, stop);
+  if (!el || dir === 0) return false;
+  return dir > 0 ? el.scrollLeft + el.clientWidth < el.scrollWidth - 1 : el.scrollLeft > 0;
 }
