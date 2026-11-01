@@ -175,7 +175,8 @@ anonymous accounts get the `authenticated` role, so any write policy a buyer-sid
 must exclude them (`auth.jwt() ->> 'is_anonymous'`) where they shouldn't act (offers, stores).
 The direct-messages and read-receipts migrations are applied; follow-ups (regenerate types, a
 two-account tick check) are in POSTPONED §1.4.
-Message bodies, third-party tokens and payout account numbers are encrypted at the app layer (not
-E2E); the rollout order (key → relax migration → deploy → backfill → require migration) is
-POSTPONED §1.5. Never
-write those columns without `encryptField`, and never read message bodies from the browser.
+Third-party tokens (Shopify, Bumpa, Instagram) are encrypted at the app layer with `encryptField`;
+never write those columns without it. **Message bodies and payout account numbers are deliberately
+stored as plain text** (Diadem, 2026-11-01: staff need to read them) -- don't re-add encryption to
+them, and never apply `20260930130000_require_encrypted_columns.sql` (see POSTPONED §1.5). They stay
+protected by RLS and server-only routes: never read message bodies or payout numbers from the browser.

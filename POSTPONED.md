@@ -75,33 +75,22 @@ receipts off neither side turns blue. Contract later: drop
 `conversation_members.last_delivered_at` / `last_active_at` once no deployed client predates the
 migration.
 
-### 1.5 Encrypted secrets · code done, rollout pending
+### 1.5 Encryption · tokens only (decided 2026-11-01)
 
-Message bodies (DMs and support), Shopify/Bumpa/Instagram tokens and payout account numbers are
-encrypted by the app before they're written (`src/lib/field-encryption.server.ts`, AES-256-GCM).
-It isn't end-to-end: the server holds the key. Bodies now travel only through `api.chat.*` and
-`api.support-messages.*`, which query **as the caller**, so RLS is still the authorization
-boundary. Rollout, in this order:
+Shopify/Bumpa/Instagram tokens are encrypted by the app before they're written
+(`src/lib/field-encryption.server.ts`, AES-256-GCM, key in `DATA_ENCRYPTION_KEY`, which is set in
+Vercel). **Message bodies and payout account numbers are not**, on purpose: encryption for them was
+removed in `2c40866a` (2026-10-04), and Diadem confirmed on 2026-11-01 that staff need to read them.
+They're protected by RLS and server-only routes instead.
 
-1. `openssl rand -base64 32` → `DATA_ENCRYPTION_KEY` in Vercel (Production + Preview) and locally.
-   Keep a copy somewhere safe: **lose the key and every encrypted value is gone for good.**
-2. Apply `20260930120000_relax_encrypted_column_lengths.sql`. It only lifts the plaintext
-   length checks, so it's safe with the old code too; skip it and long messages fail once
-   bodies are ciphertext.
-3. Deploy. Reads handle both plaintext and ciphertext; writes refuse to run without the key.
-4. `bun scripts/encrypt-existing-secrets.ts` (dry run), then `--write`.
-5. Apply `20260930130000_require_encrypted_columns.sql`, which refuses plaintext from then on.
-   It fails if any plaintext is left; if so, re-run step 4 and apply it again.
-
-Staff now see ciphertext in the dashboard, so support threads are read through
-`GET /api/support-messages/staff?user_id=`, which uses the same secret as the reply route.
-Rotation: put the new key in `DATA_ENCRYPTION_KEY` and the old one in `DATA_ENCRYPTION_KEYS_OLD`
-(comma-separated), then re-run the backfill once it can re-encrypt (it only converts plaintext
-today). The import worker, once it exists, decrypts with `decryptField(value, fieldContext.*)`.
-
-Not covered: chat media files (the private `chat-media` bucket), `message_reports.details`,
-`store_payout_accounts.account_name` (nothing writes it yet), and the legacy
-`stores.shopify_access_token` column (nothing writes it; the backfill reports any rows left).
+- **Never apply `20260930130000_require_encrypted_columns.sql`.** It requires ciphertext in
+  `messages`, `support_messages` and `store_payout_accounts`, so every new message and bank
+  account save would fail.
+- Don't run `scripts/encrypt-existing-secrets.ts --write` over those tables either.
+- A few old message rows are still ciphertext from before the removal; `decryptField` reads both,
+  so keep using it wherever bodies are read.
+- Rotation (tokens): new key in `DATA_ENCRYPTION_KEY`, old one in `DATA_ENCRYPTION_KEYS_OLD`
+  (comma-separated). Lose the key and the encrypted tokens are gone for good.
 
 ---
 
@@ -138,7 +127,7 @@ Traps that will cost real time if not known when this resumes:
 - **Domains field ≠ Return URLs field**, different formats: `lzyflkrqexxuyxyudvbw.supabase.co`
   (no protocol) vs. the full callback URL. Register only the callback that exists today —
   Apple rejects any `redirect_uri` it doesn't already know, so a future custom-domain move
-  needs the new callback added *alongside* the old one before activating, not instead of it.
+  needs the new callback added _alongside_ the old one before activating, not instead of it.
 - **The client secret expires at 6 months and fails silently for everyone.** Record the real
   expiry the day it's generated and calendar a reminder two weeks out.
 - Costs ~₦43,900/yr (Nigeria-tier pricing, not the $99 US price).
@@ -185,8 +174,8 @@ across every route — not worth it before launch, worth knowing.
 ### 3.3 `payoutSet` answers for the wrong store when a seller has two
 
 `use-store-setup-status.ts`'s payout signal comes from `/api/store/payout`, which resolves to
-the seller's *oldest* store (`requireOwnStore`) while the hook's other signals are scoped to
-whichever store is *active*. A two-store seller's checklist can show store A's payout account
+the seller's _oldest_ store (`requireOwnStore`) while the hook's other signals are scoped to
+whichever store is _active_. A two-store seller's checklist can show store A's payout account
 as store B's. Harmless today — `stores` has no unique constraint on `owner_id`, so two-store
 sellers are possible but rare. Fix: pass the active `storeId` and switch the handler to
 `requireStoreAccess`. Touches an `api.*` route and server auth — wants a review, not a
@@ -207,8 +196,11 @@ breach — nothing republishes without its credit, which is what makes it safe t
 
 ## Decided against — don't reintroduce
 
+- **Encrypting message bodies and payout account numbers.** Removed 2026-10-04 (`2c40866a`);
+  confirmed 2026-11-01: staff need to read them. Tokens stay encrypted (§1.5).
+
 - **Sellers uploading their own audio file to a post.** Removed 2026-09-11, four days after
-  shipping. Oakmonte would be *hosting and distributing* the track under a post selling
+  shipping. Oakmonte would be _hosting and distributing_ the track under a post selling
   something — commercial distribution we hold no licence for, with no takedown process to
   back it up. Use the sound catalogue (`sound-providers/`) instead; if voiceover or
   brand-owned audio comes back, build it as in-app recording, not a file picker.

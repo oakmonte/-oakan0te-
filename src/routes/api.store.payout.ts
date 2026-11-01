@@ -52,6 +52,31 @@ export const Route = createFileRoute("/api/store/payout")({
           return Response.json({ error: "Could not load payout account" }, { status: 500 });
         }
 
+        // An account saved while Paystack couldn't answer (before the live key,
+        // an outage) stays "pending" with nothing to re-check it. Try again
+        // whenever its seller loads it: a match verifies it now; no answer
+        // leaves it as it was, to try next time.
+        if (data && data.status === "pending" && paystackConfigured()) {
+          const bankCode = await bankCodeFor(data.bank_name);
+          const accountName = bankCode
+            ? await resolveAccountName(data.account_number, bankCode)
+            : null;
+          if (accountName) {
+            const { data: verified, error: updateError } = await supabase
+              .from("store_payout_accounts")
+              .update({
+                account_name: accountName,
+                status: "verified",
+                updated_at: new Date().toISOString(),
+              })
+              .eq("store_id", auth.value.storeId)
+              .select("bank_name, account_number, account_name, status")
+              .single();
+            if (!updateError) return privateJson({ account: verified });
+            console.error("payout re-verify failed", updateError);
+          }
+        }
+
         return privateJson({ account: data });
       },
       POST: async ({ request }: { request: Request }) => {
