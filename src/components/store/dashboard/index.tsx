@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { storefrontUrl } from "@/lib/store-host";
 import { useActiveStore, type OwnedStoreSummary } from "@/hooks/use-own-store";
 import { LocationsListSheet } from "@/components/store/LocationsListSheet";
 import { toast } from "sonner";
@@ -64,7 +65,7 @@ function DashboardForStore({
   // Opens the phone's share sheet with the storefront link, or copies it where
   // there is no share sheet.
   function share() {
-    const url = `${window.location.origin}/shop/${store.store_username}`;
+    const url = storefrontUrl(store.store_username, window.location.origin);
     if (navigator.share) {
       void navigator.share({ title: store.store_username, url }).catch(() => {});
     } else {

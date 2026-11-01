@@ -84,6 +84,7 @@ import { Route as ApiBumpaConnectRouteImport } from './routes/api.bumpa.connect'
 import { Route as ApiChatInboxRouteImport } from './routes/api.chat.inbox'
 import { Route as ApiChatMessagesRouteImport } from './routes/api.chat.messages'
 import { Route as ApiCheckoutStatusRouteImport } from './routes/api.checkout.status'
+import { Route as ApiCronReleasePayoutsRouteImport } from './routes/api.cron.release-payouts'
 import { Route as ApiImportCsvRouteImport } from './routes/api.import.csv'
 import { Route as ApiImportStartRouteImport } from './routes/api.import.start'
 import { Route as ApiImportStatusRouteImport } from './routes/api.import.status'
@@ -124,6 +125,7 @@ import { Route as StoreProductsIdRouteImport } from './routes/store.products_.$i
 import { Route as StoreProductsNewRouteImport } from './routes/store.products_.new'
 import { Route as StoreProductsNewcomerRouteImport } from './routes/store.products_.newcomer'
 import { Route as StoreProductsUploadRouteImport } from './routes/store.products_.upload'
+import { Route as ApiOrdersOrderIdReceivedRouteImport } from './routes/api.orders.$orderId.received'
 import { Route as ApiStoreLocationsVerifyRouteImport } from './routes/api.store.locations.verify'
 import { Route as ApiStoreOrdersOrderIdRouteImport } from './routes/api.store.orders.$orderId'
 import { Route as ApiStoreOrdersOrderIdDeclineRouteImport } from './routes/api.store.orders.$orderId.decline'
@@ -505,6 +507,11 @@ const ApiCheckoutStatusRoute = ApiCheckoutStatusRouteImport.update({
   path: '/api/checkout/status',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCronReleasePayoutsRoute = ApiCronReleasePayoutsRouteImport.update({
+  id: '/api/cron/release-payouts',
+  path: '/api/cron/release-payouts',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiImportCsvRoute = ApiImportCsvRouteImport.update({
   id: '/api/import/csv',
   path: '/api/import/csv',
@@ -708,6 +715,12 @@ const StoreProductsUploadRoute = StoreProductsUploadRouteImport.update({
   path: '/products/upload',
   getParentRoute: () => StoreRoute,
 } as any)
+const ApiOrdersOrderIdReceivedRoute =
+  ApiOrdersOrderIdReceivedRouteImport.update({
+    id: '/received',
+    path: '/received',
+    getParentRoute: () => ApiOrdersOrderIdRoute,
+  } as any)
 const ApiStoreLocationsVerifyRoute = ApiStoreLocationsVerifyRouteImport.update({
   id: '/api/store/locations/verify',
   path: '/api/store/locations/verify',
@@ -807,12 +820,13 @@ export interface FileRoutesByFullPath {
   '/api/chat/inbox': typeof ApiChatInboxRoute
   '/api/chat/messages': typeof ApiChatMessagesRoute
   '/api/checkout/status': typeof ApiCheckoutStatusRoute
+  '/api/cron/release-payouts': typeof ApiCronReleasePayoutsRoute
   '/api/import/csv': typeof ApiImportCsvRoute
   '/api/import/start': typeof ApiImportStartRoute
   '/api/import/status': typeof ApiImportStatusRoute
   '/api/instagram/callback': typeof ApiInstagramCallbackRoute
   '/api/instagram/connect': typeof ApiInstagramConnectRoute
-  '/api/orders/$orderId': typeof ApiOrdersOrderIdRoute
+  '/api/orders/$orderId': typeof ApiOrdersOrderIdRouteWithChildren
   '/api/orders/mine': typeof ApiOrdersMineRoute
   '/api/paystack/webhook': typeof ApiPaystackWebhookRoute
   '/api/places/autocomplete': typeof ApiPlacesAutocompleteRoute
@@ -847,6 +861,7 @@ export interface FileRoutesByFullPath {
   '/store/products/upload': typeof StoreProductsUploadRoute
   '/create/after-shot/': typeof CreateAfterShotIndexRoute
   '/store/playlists/': typeof StorePlaylistsIndexRoute
+  '/api/orders/$orderId/received': typeof ApiOrdersOrderIdReceivedRoute
   '/api/store/locations/verify': typeof ApiStoreLocationsVerifyRoute
   '/api/store/orders/$orderId': typeof ApiStoreOrdersOrderIdRouteWithChildren
   '/api/store/orders/$orderId/decline': typeof ApiStoreOrdersOrderIdDeclineRoute
@@ -925,12 +940,13 @@ export interface FileRoutesByTo {
   '/api/chat/inbox': typeof ApiChatInboxRoute
   '/api/chat/messages': typeof ApiChatMessagesRoute
   '/api/checkout/status': typeof ApiCheckoutStatusRoute
+  '/api/cron/release-payouts': typeof ApiCronReleasePayoutsRoute
   '/api/import/csv': typeof ApiImportCsvRoute
   '/api/import/start': typeof ApiImportStartRoute
   '/api/import/status': typeof ApiImportStatusRoute
   '/api/instagram/callback': typeof ApiInstagramCallbackRoute
   '/api/instagram/connect': typeof ApiInstagramConnectRoute
-  '/api/orders/$orderId': typeof ApiOrdersOrderIdRoute
+  '/api/orders/$orderId': typeof ApiOrdersOrderIdRouteWithChildren
   '/api/orders/mine': typeof ApiOrdersMineRoute
   '/api/paystack/webhook': typeof ApiPaystackWebhookRoute
   '/api/places/autocomplete': typeof ApiPlacesAutocompleteRoute
@@ -965,6 +981,7 @@ export interface FileRoutesByTo {
   '/store/products/upload': typeof StoreProductsUploadRoute
   '/create/after-shot': typeof CreateAfterShotIndexRoute
   '/store/playlists': typeof StorePlaylistsIndexRoute
+  '/api/orders/$orderId/received': typeof ApiOrdersOrderIdReceivedRoute
   '/api/store/locations/verify': typeof ApiStoreLocationsVerifyRoute
   '/api/store/orders/$orderId': typeof ApiStoreOrdersOrderIdRouteWithChildren
   '/api/store/orders/$orderId/decline': typeof ApiStoreOrdersOrderIdDeclineRoute
@@ -1047,12 +1064,13 @@ export interface FileRoutesById {
   '/api/chat/inbox': typeof ApiChatInboxRoute
   '/api/chat/messages': typeof ApiChatMessagesRoute
   '/api/checkout/status': typeof ApiCheckoutStatusRoute
+  '/api/cron/release-payouts': typeof ApiCronReleasePayoutsRoute
   '/api/import/csv': typeof ApiImportCsvRoute
   '/api/import/start': typeof ApiImportStartRoute
   '/api/import/status': typeof ApiImportStatusRoute
   '/api/instagram/callback': typeof ApiInstagramCallbackRoute
   '/api/instagram/connect': typeof ApiInstagramConnectRoute
-  '/api/orders/$orderId': typeof ApiOrdersOrderIdRoute
+  '/api/orders/$orderId': typeof ApiOrdersOrderIdRouteWithChildren
   '/api/orders/mine': typeof ApiOrdersMineRoute
   '/api/paystack/webhook': typeof ApiPaystackWebhookRoute
   '/api/places/autocomplete': typeof ApiPlacesAutocompleteRoute
@@ -1087,6 +1105,7 @@ export interface FileRoutesById {
   '/store/products_/upload': typeof StoreProductsUploadRoute
   '/create/after-shot/': typeof CreateAfterShotIndexRoute
   '/store/playlists/': typeof StorePlaylistsIndexRoute
+  '/api/orders/$orderId/received': typeof ApiOrdersOrderIdReceivedRoute
   '/api/store/locations/verify': typeof ApiStoreLocationsVerifyRoute
   '/api/store/orders/$orderId': typeof ApiStoreOrdersOrderIdRouteWithChildren
   '/api/store/orders/$orderId/decline': typeof ApiStoreOrdersOrderIdDeclineRoute
@@ -1170,6 +1189,7 @@ export interface FileRouteTypes {
     | '/api/chat/inbox'
     | '/api/chat/messages'
     | '/api/checkout/status'
+    | '/api/cron/release-payouts'
     | '/api/import/csv'
     | '/api/import/start'
     | '/api/import/status'
@@ -1210,6 +1230,7 @@ export interface FileRouteTypes {
     | '/store/products/upload'
     | '/create/after-shot/'
     | '/store/playlists/'
+    | '/api/orders/$orderId/received'
     | '/api/store/locations/verify'
     | '/api/store/orders/$orderId'
     | '/api/store/orders/$orderId/decline'
@@ -1288,6 +1309,7 @@ export interface FileRouteTypes {
     | '/api/chat/inbox'
     | '/api/chat/messages'
     | '/api/checkout/status'
+    | '/api/cron/release-payouts'
     | '/api/import/csv'
     | '/api/import/start'
     | '/api/import/status'
@@ -1328,6 +1350,7 @@ export interface FileRouteTypes {
     | '/store/products/upload'
     | '/create/after-shot'
     | '/store/playlists'
+    | '/api/orders/$orderId/received'
     | '/api/store/locations/verify'
     | '/api/store/orders/$orderId'
     | '/api/store/orders/$orderId/decline'
@@ -1409,6 +1432,7 @@ export interface FileRouteTypes {
     | '/api/chat/inbox'
     | '/api/chat/messages'
     | '/api/checkout/status'
+    | '/api/cron/release-payouts'
     | '/api/import/csv'
     | '/api/import/start'
     | '/api/import/status'
@@ -1449,6 +1473,7 @@ export interface FileRouteTypes {
     | '/store/products_/upload'
     | '/create/after-shot/'
     | '/store/playlists/'
+    | '/api/orders/$orderId/received'
     | '/api/store/locations/verify'
     | '/api/store/orders/$orderId'
     | '/api/store/orders/$orderId/decline'
@@ -1513,6 +1538,7 @@ export interface RootRouteChildren {
   ApiChatInboxRoute: typeof ApiChatInboxRoute
   ApiChatMessagesRoute: typeof ApiChatMessagesRoute
   ApiCheckoutStatusRoute: typeof ApiCheckoutStatusRoute
+  ApiCronReleasePayoutsRoute: typeof ApiCronReleasePayoutsRoute
   ApiImportCsvRoute: typeof ApiImportCsvRoute
   ApiImportStartRoute: typeof ApiImportStartRoute
   ApiImportStatusRoute: typeof ApiImportStatusRoute
@@ -2066,6 +2092,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiCheckoutStatusRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/cron/release-payouts': {
+      id: '/api/cron/release-payouts'
+      path: '/api/cron/release-payouts'
+      fullPath: '/api/cron/release-payouts'
+      preLoaderRoute: typeof ApiCronReleasePayoutsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/import/csv': {
       id: '/api/import/csv'
       path: '/api/import/csv'
@@ -2346,6 +2379,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StoreProductsUploadRouteImport
       parentRoute: typeof StoreRoute
     }
+    '/api/orders/$orderId/received': {
+      id: '/api/orders/$orderId/received'
+      path: '/received'
+      fullPath: '/api/orders/$orderId/received'
+      preLoaderRoute: typeof ApiOrdersOrderIdReceivedRouteImport
+      parentRoute: typeof ApiOrdersOrderIdRoute
+    }
     '/api/store/locations/verify': {
       id: '/api/store/locations/verify'
       path: '/api/store/locations/verify'
@@ -2470,13 +2510,24 @@ const StoreRouteChildren: StoreRouteChildren = {
 
 const StoreRouteWithChildren = StoreRoute._addFileChildren(StoreRouteChildren)
 
+interface ApiOrdersOrderIdRouteChildren {
+  ApiOrdersOrderIdReceivedRoute: typeof ApiOrdersOrderIdReceivedRoute
+}
+
+const ApiOrdersOrderIdRouteChildren: ApiOrdersOrderIdRouteChildren = {
+  ApiOrdersOrderIdReceivedRoute: ApiOrdersOrderIdReceivedRoute,
+}
+
+const ApiOrdersOrderIdRouteWithChildren =
+  ApiOrdersOrderIdRoute._addFileChildren(ApiOrdersOrderIdRouteChildren)
+
 interface ApiOrdersRouteChildren {
-  ApiOrdersOrderIdRoute: typeof ApiOrdersOrderIdRoute
+  ApiOrdersOrderIdRoute: typeof ApiOrdersOrderIdRouteWithChildren
   ApiOrdersMineRoute: typeof ApiOrdersMineRoute
 }
 
 const ApiOrdersRouteChildren: ApiOrdersRouteChildren = {
-  ApiOrdersOrderIdRoute: ApiOrdersOrderIdRoute,
+  ApiOrdersOrderIdRoute: ApiOrdersOrderIdRouteWithChildren,
   ApiOrdersMineRoute: ApiOrdersMineRoute,
 }
 
@@ -2569,6 +2620,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiChatInboxRoute: ApiChatInboxRoute,
   ApiChatMessagesRoute: ApiChatMessagesRoute,
   ApiCheckoutStatusRoute: ApiCheckoutStatusRoute,
+  ApiCronReleasePayoutsRoute: ApiCronReleasePayoutsRoute,
   ApiImportCsvRoute: ApiImportCsvRoute,
   ApiImportStartRoute: ApiImportStartRoute,
   ApiImportStatusRoute: ApiImportStatusRoute,

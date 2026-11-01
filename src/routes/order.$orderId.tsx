@@ -55,7 +55,10 @@ const STATUS: Record<string, { title: string; note: string }> = {
     title: "Payment received",
     note: "The seller is getting your order ready to hand to the courier.",
   },
-  shipped: { title: "On its way", note: "Your order is with the courier." },
+  shipped: {
+    title: "On its way",
+    note: "Your order is with the courier. Once it reaches you, tap I've received it below.",
+  },
   delivered: { title: "Delivered", note: "Your order has arrived. Enjoy it." },
   declined: { title: "Declined", note: "The seller couldn't fulfil this order." },
   cancelled: { title: "Cancelled", note: "This order was cancelled." },
@@ -110,6 +113,31 @@ function OrderPage() {
   }, [orderId, t, userId, sessionLoading, attempt]);
 
   const status = order ? (STATUS[order.status] ?? { title: order.status, note: "" }) : null;
+
+  // "I've received it": marks the order delivered, which pays the seller
+  // (delivery-release.server.ts). Without a tap it's released automatically
+  // a week after shipping.
+  const [confirming, setConfirming] = useState(false);
+  const [confirmError, setConfirmError] = useState<string | null>(null);
+  async function confirmReceived() {
+    setConfirming(true);
+    setConfirmError(null);
+    try {
+      const res = await authedFetch(
+        `/api/orders/${orderId}/received${t ? `?t=${encodeURIComponent(t)}` : ""}`,
+        { method: "POST" },
+      );
+      if (!res.ok) {
+        const body = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(body.error ?? "Couldn't update your order. Try again.");
+      }
+      setAttempt((a) => a + 1);
+    } catch (err) {
+      setConfirmError(err instanceof Error ? err.message : "Couldn't update your order.");
+    } finally {
+      setConfirming(false);
+    }
+  }
 
   return (
     <div className="min-h-dvh bg-chat-bg pb-[calc(env(safe-area-inset-bottom)+2rem)] text-chat-text">
@@ -201,6 +229,21 @@ function OrderPage() {
                   >
                     Track your delivery
                   </a>
+                )}
+                {order.status === "shipped" && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => void confirmReceived()}
+                      disabled={confirming}
+                      className="mt-3 flex h-11 w-full items-center justify-center rounded-full border border-chat-border text-[15px] font-semibold active:scale-[0.98] disabled:opacity-50"
+                    >
+                      {confirming ? "Updating…" : "I've received it"}
+                    </button>
+                    {confirmError && (
+                      <p className="mt-2 text-center text-[13px] text-chat-muted">{confirmError}</p>
+                    )}
+                  </>
                 )}
               </Card>
 

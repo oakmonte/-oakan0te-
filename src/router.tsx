@@ -1,6 +1,7 @@
 import { QueryClient } from "@tanstack/react-query";
 import { createRouter } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
+import { rewriteStoreHostIn, rewriteStoreHostOut } from "./lib/store-host";
 
 export const getRouter = () => {
   const queryClient = new QueryClient();
@@ -22,6 +23,12 @@ export const getRouter = () => {
     // If page transitions come back, they need a per-call-site opt-in on real
     // pathname changes only, and a direction set synchronously before the
     // navigation -- not a global default.
+    // reazy.oakmonte.store is the reazy storefront (lib/store-host.ts). Runs on
+    // the server and in the browser, so both read the same page.
+    rewrite: {
+      input: ({ url }) => rewriteStoreHostIn(url),
+      output: ({ url }) => rewriteStoreHostOut(url),
+    },
     defaultPreload: "intent",
     defaultPreloadStaleTime: 0,
   });
