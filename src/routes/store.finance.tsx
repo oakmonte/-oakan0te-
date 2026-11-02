@@ -114,7 +114,7 @@ function FinancePage() {
     navigate({ to: "/store" });
   }
 
-  async function handleSave(values: { bankName: string; accountNumber: string }) {
+  async function handleSave(values: { bankName: string; accountNumber: string; force?: boolean }) {
     const res = await authedFetch("/api/store/payout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -125,7 +125,7 @@ function FinancePage() {
     // as text in that case so the seller gets a status code rather than a
     // parser exception swallowed by the caller.
     const raw = await res.text();
-    let body: { account?: PayoutAccount; error?: string } = {};
+    let body: { account?: PayoutAccount; error?: string; code?: string } = {};
     try {
       body = JSON.parse(raw);
     } catch {
@@ -134,11 +134,14 @@ function FinancePage() {
 
     if (!res.ok) {
       // 401 is its own message: the fix is to sign in again, not to retry.
-      throw new Error(
+      const err = new Error(
         res.status === 401
           ? "Your session has expired — sign in again and retry."
           : (body.error ?? `Could not save your payout account (${res.status}).`),
-      );
+      ) as Error & { code?: string };
+      // "account_not_found" lets the sheet offer Continue anyway.
+      err.code = body.code;
+      throw err;
     }
 
     setAccount(body.account ?? null);

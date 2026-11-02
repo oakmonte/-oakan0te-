@@ -86,6 +86,10 @@ export const Route = createFileRoute("/api/store/payout")({
         let body: {
           bankName?: string;
           accountNumber?: string;
+          /** "Continue anyway": save it unverified ("pending"). Payouts only
+           *  ever go to a verified account, so nothing is paid until it checks
+           *  out; GET re-checks pending accounts with Paystack. */
+          force?: boolean;
         };
         try {
           body = await request.json();
@@ -118,9 +122,12 @@ export const Route = createFileRoute("/api/store/payout")({
           const bankCode = await bankCodeFor(bankName);
           if (bankCode) {
             accountName = await resolveAccountName(accountNumber, bankCode);
-            if (!accountName) {
+            if (!accountName && body.force !== true) {
               return Response.json(
-                { error: `We couldn't find that account number at ${bankName}. Check both.` },
+                {
+                  error: `We couldn't find that account number at ${bankName}. Check both.`,
+                  code: "account_not_found",
+                },
                 { status: 400 },
               );
             }

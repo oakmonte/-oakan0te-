@@ -289,7 +289,7 @@ function bankMatches(bank: string, query: string): boolean {
   return (BANK_ALIASES[bank] ?? []).some((alias) => alias.toLowerCase().includes(query));
 }
 
-type PayoutFormValues = { bankName: string; accountNumber: string };
+type PayoutFormValues = { bankName: string; accountNumber: string; force?: boolean };
 
 export function PayoutAccountSheet({
   initial,
@@ -312,6 +312,9 @@ export function PayoutAccountSheet({
   // stayed open, and the seller was left to guess whether their bank details
   // had been stored. Silence is the worst possible answer for this screen.
   const [saveError, setSaveError] = useState<string | null>(null);
+  // Paystack couldn't find the account: the seller may save it anyway, as
+  // pending -- it's verified before any payout goes to it.
+  const [unverified, setUnverified] = useState(false);
   // Once a bank is picked the list collapses to just that row — tapping the
   // search bar again is the only way back into the full list, so re-picking
   // doesn't mean scrolling past every bank a second time.
@@ -333,17 +336,19 @@ export function PayoutAccountSheet({
     setListOpen(false);
   }
 
-  async function handleSave() {
+  async function handleSave(force = false) {
     if (!valid) {
       setShowErrors(true);
       return;
     }
     setSaving(true);
     setSaveError(null);
+    setUnverified(false);
     try {
-      await onSave({ bankName: bankName.trim(), accountNumber: accountNumber.trim() });
+      await onSave({ bankName: bankName.trim(), accountNumber: accountNumber.trim(), force });
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : "Could not save your payout account.");
+      setUnverified((err as { code?: string } | null)?.code === "account_not_found");
     } finally {
       setSaving(false);
     }
@@ -433,16 +438,28 @@ export function PayoutAccountSheet({
         </div>
 
         <p className="text-[13px] leading-relaxed text-sd-ink-muted">
-          Kept private and encrypted — used only to send your payouts, never shared or shown to
-          buyers.
+          Kept private — used only to send your payouts, never shared or shown to buyers.
         </p>
       </div>
 
       <div className="px-4 pt-3 oak-safe-bottom border-t border-sd-line bg-sd-surface shrink-0">
         {saveError && <p className="text-xs text-sd-danger-ink mb-2 text-center">{saveError}</p>}
+        {unverified && (
+          <button
+            type="button"
+            onClick={() => void handleSave(true)}
+            disabled={saving}
+            className="mb-2 w-full rounded-full border border-sd-line py-3.5 text-[15px] font-semibold text-sd-ink oak-motion-control active:scale-[0.98] disabled:opacity-50"
+          >
+            Continue anyway
+            <span className="block text-[12px] font-normal text-sd-ink-muted">
+              We&apos;ll verify it before your first payout
+            </span>
+          </button>
+        )}
         <button
           type="button"
-          onClick={handleSave}
+          onClick={() => void handleSave()}
           disabled={saving}
           className="w-full bg-sd-ink text-sd-bg text-[17px] font-semibold rounded-full py-4 oak-motion-control active:scale-[0.98] disabled:opacity-50"
         >
