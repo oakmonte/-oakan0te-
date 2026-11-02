@@ -1315,3 +1315,13 @@ body.oak-page-sheet-open [data-app-root] {
     animation: none;
   }
 }
+
+/* /showcase: the tap that opens a product -- a ring that lands and fades. */
+@keyframes oak-showcase-tap {
+  0% { transform: scale(1.4); opacity: 0; }
+  30% { transform: scale(0.9); opacity: 1; }
+  100% { transform: scale(1.2); opacity: 0; }
+}
+.oak-showcase-tap {
+  animation: oak-showcase-tap 0.9s ease-out forwards;
+}
