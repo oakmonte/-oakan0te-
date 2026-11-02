@@ -13,6 +13,7 @@ import {
 import { HERO_SLIDESHOW_IMAGES } from "@/components/store-themes/hero-placeholders";
 import { GLASS_RIM, glassLens, glassLight } from "@/lib/liquid-glass";
 import { clearShowcase } from "@/lib/showcase-handoff";
+import { Share2, ShoppingBag } from "lucide-react";
 import shopIcon from "@/assets/Store.svg";
 import homeIcon from "@/assets/Home.svg";
 import messagesIcon from "@/assets/messages.svg";
@@ -31,13 +32,14 @@ export const Route = createFileRoute("/showcase")({
 /** How each phone moves, so the three don't all do the same thing:
  *  shop   -- glides down to a product, taps it, and its page slides in;
  *  cards  -- the floating-cards hero, its 3D ring turning, the phone at rest;
- *  float  -- the hero slideshow, the phone drifting with a slight 3D tilt. */
+ *  float  -- the hero slideshow, the phone drifting with a slight 3D tilt,
+ *            now and then tapping Home to show the store's video feed. */
 type Motion = "shop" | "cards" | "float";
 
-/** Three looks as unlike each other as the catalogue has: bright white and
- *  modern, dark streetwear, warm editorial. The middle one is in front. */
+/** Three looks as unlike each other as the catalogue has: cool light blue,
+ *  dark streetwear, warm editorial. The middle one is in front. */
 const SHOWN: { id: ThemeId; motion: Motion; hero: DesktopHero }[] = [
-  { id: "paper", motion: "shop", hero: "banner" },
+  { id: "ice", motion: "shop", hero: "banner" },
   { id: "motion", motion: "cards", hero: "cards" },
   { id: "banner", motion: "float", hero: "banner" },
 ];
@@ -50,6 +52,14 @@ const GAP = 28;
 const FAN_BELOW = 760;
 
 const noop = () => {};
+
+/** The feed demo's posts: a caption and the piece each one links. */
+const FEED_POSTS = [
+  { caption: "New drop is live. Tap the bag to shop the look.", piece: "Linen Shirt" },
+  { caption: "Behind the scenes from this week's shoot.", piece: "Wide Trousers" },
+  { caption: "Styled three ways. Which one is yours?", piece: "Cropped Jacket" },
+  { caption: "Back in stock in every size.", piece: "Day Tote" },
+];
 
 /** View-only storefront settings, like the live storefront builds: the
  *  theme's placeholder photos, and which hero to show. */
@@ -209,6 +219,38 @@ function PhonePreview({
   const editing = useMemo(() => viewOnly(hero), [hero]);
   const [demo, setDemo] = useState<Demo>({ tap: null, product: null });
   const [pageIn, setPageIn] = useState(false);
+  // "float": the nav's active tab (0 store, 1 feed), the feed post on screen,
+  // and a tap ring on the nav.
+  const [tab, setTab] = useState(0);
+  const [post, setPost] = useState(0);
+  const [navTap, setNavTap] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (motion !== "float") return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    const at = (ms: number, fn: () => void) => timers.push(setTimeout(fn, ms));
+    const SWIPES = 3;
+    const cycle = () => {
+      // 4s on the store, tap Home, swipe through posts, tap Store, repeat.
+      at(4000, () => setNavTap(1));
+      at(4500, () => {
+        setTab(1);
+        setPost(0);
+      });
+      at(5000, () => setNavTap(null));
+      for (let n = 1; n <= SWIPES; n++) at(4500 + n * 2400, () => setPost(n));
+      const back = 4500 + (SWIPES + 1) * 2400;
+      at(back, () => setNavTap(0));
+      at(back + 500, () => setTab(0));
+      at(back + 1000, () => {
+        setNavTap(null);
+        cycle();
+      });
+    };
+    cycle();
+    return () => timers.forEach(clearTimeout);
+  }, [motion]);
 
   // "shop": scroll to the first product, tap it, open its page, close, repeat.
   useEffect(() => {
@@ -346,6 +388,52 @@ function PhonePreview({
         </div>
       )}
 
+      {/* The store's video feed (the Home tab): full-screen posts, swiped up one
+          after another, with the linked-product rail and the feed's own tabs. */}
+      {motion === "float" && (
+        <div
+          className="pointer-events-none absolute inset-0 z-30 overflow-hidden bg-black transition-opacity duration-300"
+          style={{ opacity: tab === 1 ? 1 : 0 }}
+          aria-hidden="true"
+        >
+          <div
+            className="h-full transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]"
+            style={{ transform: `translateY(-${post * PHONE_H}px)` }}
+          >
+            {FEED_POSTS.map((p, i) => (
+              <div key={i} className="relative" style={{ height: PHONE_H }}>
+                <img
+                  src={HERO_SLIDESHOW_IMAGES[i % HERO_SLIDESHOW_IMAGES.length]}
+                  alt=""
+                  className="h-full w-full object-cover"
+                />
+                <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/70 to-transparent" />
+                {/* Rail: store picture, add to bag, share. */}
+                <div className="absolute bottom-[150px] right-3 flex flex-col items-center gap-6 text-white">
+                  <span className="grid h-12 w-12 place-items-center rounded-full border-2 border-white bg-white/20 text-[18px] font-bold">
+                    {brandName.charAt(0).toUpperCase()}
+                  </span>
+                  <ShoppingBag size={30} strokeWidth={2} />
+                  <Share2 size={28} strokeWidth={2} />
+                </div>
+                {/* Caption and the linked piece. */}
+                <div className="absolute bottom-[150px] left-4 right-20 text-white">
+                  <p className="text-[16px] font-semibold">{brandName}</p>
+                  <p className="mt-1 text-[14px] leading-snug text-white/85">{p.caption}</p>
+                  <span className="mt-3 inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1.5 text-[13px] font-semibold backdrop-blur">
+                    <ShoppingBag size={14} /> {p.piece}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="absolute inset-x-0 top-0 flex justify-center gap-10 bg-gradient-to-b from-black/45 to-transparent pb-6 pt-5 text-[15px] font-medium text-white/70">
+            <span className="font-semibold text-white underline underline-offset-4">For you</span>
+            <span>Listed items</span>
+          </div>
+        </div>
+      )}
+
       {/* The storefront's own nav: store, feed, messages. */}
       <div className="pointer-events-none absolute inset-x-0 bottom-6 z-40 flex justify-center">
         <div
@@ -354,8 +442,11 @@ function PhonePreview({
         >
           {[shopIcon, homeIcon, messagesIcon].map((icon, i) => (
             <span key={icon} className="relative grid h-full w-[62px] place-items-center">
-              {i === 0 && (
+              {i === tab && (
                 <span className={`${GLASS_RIM} absolute inset-0 rounded-full`} style={glassLens} />
+              )}
+              {navTap === i && (
+                <span className="oak-showcase-tap absolute h-14 w-14 rounded-full border-4 border-black/70 bg-black/10" />
               )}
               <img
                 src={icon}
@@ -365,7 +456,7 @@ function PhonePreview({
                   width: 25,
                   height: 25,
                   filter: "brightness(0)",
-                  opacity: i === 0 ? 1 : 0.55,
+                  opacity: i === tab ? 1 : 0.55,
                 }}
               />
             </span>
