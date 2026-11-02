@@ -256,7 +256,7 @@ function ChooseUsernamePage() {
   if (checking) return <OnboardingChecking />;
 
   const fieldClass =
-    "w-full min-w-0 rounded-full border border-brand-text/25 bg-transparent px-4 py-3.5 text-sm placeholder:text-brand-text/40 focus:outline-none focus:border-brand-accent transition-colors";
+    "w-full min-w-0 rounded-full border border-brand-text/60 bg-transparent px-4 py-3.5 text-sm placeholder:text-brand-text/40 focus:outline-none focus:border-brand-accent transition-colors";
 
   return (
     <OnboardingShell
@@ -288,7 +288,7 @@ function ChooseUsernamePage() {
             <label htmlFor="username" className="sr-only">
               Handle
             </label>
-            <div className="flex w-full min-w-0 items-center rounded-full border border-brand-text/25 pl-4 pr-3 transition-colors focus-within:border-brand-accent">
+            <div className="flex w-full min-w-0 items-center rounded-full border border-brand-text/60 pl-4 pr-3 transition-colors focus-within:border-brand-accent">
               <span aria-hidden="true" className="text-sm text-brand-text/50">
                 @
               </span>
@@ -356,7 +356,7 @@ function ChooseUsernamePage() {
                 } ${
                   gender === option
                     ? "border-brand-accent bg-brand-accent text-brand-bg"
-                    : "border-brand-text/25 text-brand-text/80 hover:border-brand-text/50"
+                    : "border-brand-text/60 text-brand-text/80 hover:border-brand-text/80"
                 }`}
               >
                 {option === "prefer not to say" ? "Prefer not to say" : option}
