@@ -138,6 +138,7 @@ export function MediaSection({
 
       <ImageGallery
         max={MAX_PRODUCT_PHOTOS}
+        fullNote="You can still add photos to each variant."
         images={images}
         onReorder={applyImages}
         onRemove={(url) => applyImages(images.filter((u) => u !== url))}

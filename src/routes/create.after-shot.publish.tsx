@@ -573,7 +573,7 @@ function PublishPage() {
  *  a local blob the browser can already scrub, and one frame does not justify
  *  spinning up the full demuxer. Capturing is a canvas read, which is safe
  *  here for the same reason — the blob is same-origin, so the canvas never
- *  gets tainted. */
+ *  gets tainted. Or the seller uploads an image of their own instead. */
 function CoverPickerSheet({
   url,
   onPick,
@@ -587,6 +587,34 @@ function CoverPickerSheet({
   const [duration, setDuration] = useState(0);
   const [at, setAt] = useState(0);
   const [saving, setSaving] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  // An uploaded cover, redrawn as a JPEG no longer than 1440px on its long
+  // side: a phone photo can be 10MB+, far more than a feed thumbnail needs.
+  const pickImage = useCallback(
+    async (file: File) => {
+      if (saving) return;
+      setSaving(true);
+      try {
+        const bitmap = await createImageBitmap(file);
+        const scale = Math.min(1, 1440 / Math.max(bitmap.width, bitmap.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(bitmap.width * scale);
+        canvas.height = Math.round(bitmap.height * scale);
+        canvas.getContext("2d")?.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+        bitmap.close();
+        const blob = await new Promise<Blob | null>((done) =>
+          canvas.toBlob(done, "image/jpeg", 0.9),
+        );
+        if (blob) onPick({ blob, url: URL.createObjectURL(blob) });
+      } catch {
+        // Not an image the browser can read: stay on the frame picker.
+      } finally {
+        setSaving(false);
+      }
+    },
+    [onPick, saving],
+  );
 
   const capture = useCallback(() => {
     const video = videoRef.current;
@@ -639,10 +667,7 @@ function CoverPickerSheet({
         />
       </div>
 
-      <div
-        className="flex items-center gap-3 px-6 pt-4"
-        style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 24px)" }}
-      >
+      <div className="flex items-center gap-3 px-6 py-4">
         <span className="text-[12px] tabular-nums text-white/60">{at.toFixed(1)}s</span>
         <input
           type="range"
@@ -657,6 +682,30 @@ function CoverPickerSheet({
           }}
           aria-label="Cover frame"
           className="oak-adjust-range flex-1"
+        />
+      </div>
+      <div
+        className="flex justify-center px-6"
+        style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 20px)" }}
+      >
+        <button
+          type="button"
+          onClick={() => fileRef.current?.click()}
+          disabled={saving}
+          className="oak-motion-control flex items-center gap-2 rounded-full bg-white/15 px-5 py-2.5 text-[14px] font-semibold active:scale-95 disabled:opacity-40"
+        >
+          <ImageIcon size={16} /> Upload an image
+        </button>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            e.target.value = "";
+            if (file) void pickImage(file);
+          }}
         />
       </div>
     </div>

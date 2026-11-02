@@ -624,7 +624,18 @@ function CreatePage() {
   // paint. This is what actually fixes the width bug — there's no longer a
   // JS measurement step that can race against hydration/load timing.
   const targetAspect = RATIO_ASPECT[ratio];
-  const isFullBleedRatio = ratio === "9:16"; // your default/story ratio already fills the screen edge-to-edge
+  // On a phone 9:16 already fills the screen edge-to-edge. On a wide screen
+  // (desktop) every ratio is a framed box, so the shape being shot shows here
+  // and not only once it reaches after-shot.
+  const [wideScreen, setWideScreen] = useState(false);
+  useEffect(() => {
+    const query = window.matchMedia("(orientation: landscape)");
+    const sync = () => setWideScreen(query.matches);
+    sync();
+    query.addEventListener("change", sync);
+    return () => query.removeEventListener("change", sync);
+  }, []);
+  const isFullBleedRatio = ratio === "9:16" && !wideScreen;
 
   const activeLayout = CAMERA_LAYOUTS.find((l) => l.id === selectedLayoutId) ?? CAMERA_LAYOUTS[0];
 
@@ -1535,7 +1546,10 @@ function CreatePage() {
           right: 0,
           top: "50%",
           transform: "translateY(-50%)",
-          width: "100%",
+          // Never taller than the screen: at 100% width a 9:16 box on a
+          // desktop ran far past the window and showed as a landscape strip.
+          width: `min(100%, calc(100dvh * ${targetAspect}))`,
+          marginInline: "auto",
           aspectRatio: String(targetAspect),
           borderRadius: isFullBleedRatio ? 0 : 20,
           boxShadow: isFullBleedRatio ? "none" : "0 12px 40px rgba(0,0,0,0.55)",

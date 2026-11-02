@@ -35,6 +35,7 @@ export function LocationsListSheet({
   onClose,
   onCountChange,
   fromChecklist = false,
+  onSkip,
 }: {
   storeId: string;
   onClose: () => void;
@@ -46,6 +47,8 @@ export function LocationsListSheet({
    *  button matching those other steps', so this step doesn't feel like a
    *  dead end back to "just close it" the way it did before. */
   fromChecklist?: boolean;
+  /** Setup checklist only: "Skip for now", offered while no location is saved. */
+  onSkip?: () => void;
 }) {
   // A full-screen sheet with its own Save bar: the bottom nav steps aside.
   useHideStoreNav(true);
@@ -268,6 +271,15 @@ export function LocationsListSheet({
           >
             Next
           </button>
+          {onSkip && rows?.length === 0 && (
+            <button
+              type="button"
+              onClick={onSkip}
+              className="mt-1 w-full py-3 text-sm font-semibold text-sd-ink-muted oak-motion-control active:scale-[0.98]"
+            >
+              Skip for now
+            </button>
+          )}
         </div>
       )}
 

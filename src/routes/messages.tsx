@@ -17,7 +17,7 @@ import { ConfirmDialog } from "@/components/messages/Sheet";
 import { Avatar } from "@/components/messages/Avatar";
 import { afterOverlayClose } from "@/components/messages/after-overlay-close";
 import * as api from "@/lib/chat/api";
-import { useInbox } from "@/lib/chat/use-inbox";
+import { PENDING_SELF_CHAT_ID, useInbox } from "@/lib/chat/use-inbox";
 import { useSupportThread, useThread } from "@/lib/chat/use-thread";
 import { isOnline, isUnread, type Chat } from "@/lib/chat/model";
 
@@ -110,6 +110,7 @@ export function MessagesView({
   const navigate = useNavigate();
 
   const inbox = useInbox(me, sessionLoading);
+  const reloadInbox = inbox.reload;
   const [folder, setFolder] = useState<Folder>("all");
   const [folderDirection, setFolderDirection] = useState<1 | -1>(1);
   const [query, setQuery] = useState("");
@@ -208,6 +209,17 @@ export function MessagesView({
 
   const openThread = useCallback(
     (chat: Chat) => {
+      // The stand-in "Me" row: create the conversation, then open the real one.
+      if (chat.id === PENDING_SELF_CHAT_ID) {
+        void api
+          .startSelfConversation()
+          .then((id) => {
+            openThread({ ...chat, id });
+            void reloadInbox();
+          })
+          .catch((reason: Error) => report(reason.message));
+        return;
+      }
       if (routed) {
         // Handed to the chat page so a brand-new chat (not in the inbox yet)
         // has something to show while the inbox catches up.
@@ -218,9 +230,11 @@ export function MessagesView({
       inboxScroll.current = window.scrollY;
       // The entry useOverlayHistory is about to push for the thread.
       threadIndex.current = readIndex(window.history.state) + 1;
+      // Kept so a chat not in the inbox yet (a just-created "Me") can render.
+      openingChats.set(chat.id, chat);
       setOpenId(chat.id);
     },
-    [routed, navigate],
+    [routed, navigate, reloadInbox, report],
   );
 
   /** Back to the inbox in ONE history step, however many sheets are stacked

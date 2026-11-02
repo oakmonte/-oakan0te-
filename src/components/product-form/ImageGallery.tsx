@@ -16,6 +16,7 @@ export function ImageGallery({
   uploading,
   addButtonRef,
   max,
+  fullNote,
 }: {
   images: string[];
   onReorder: (next: string[]) => void;
@@ -25,6 +26,8 @@ export function ImageGallery({
   addButtonRef?: React.RefObject<HTMLButtonElement | null>;
   /** At this many photos the + tile goes and a note says so. */
   max?: number;
+  /** Added to that note, e.g. where else photos can go. */
+  fullNote?: string;
 }) {
   const [focusedIndex, setFocusedIndex] = useState(0);
   const bigRef = useRef<HTMLDivElement>(null);
@@ -107,7 +110,9 @@ export function ImageGallery({
       />
 
       {max != null && images.length >= max && (
-        <p className="text-xs text-gray-500 mt-1.5">That's the most: {max} photos.</p>
+        <p className="text-xs text-gray-500 mt-1.5">
+          That&apos;s the most: {max} photos.{fullNote ? ` ${fullNote}` : ""}
+        </p>
       )}
       {images.length > 1 && (
         <p className="text-xs text-gray-400 mt-1.5">Long-press and drag a photo to reorder</p>

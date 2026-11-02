@@ -117,6 +117,8 @@ export function SetupChecklist({ status }: { status: StoreSetupStatus }) {
     themeIdSet,
     installedApp,
     setLocationCount,
+    locationsSkipped,
+    skipLocations,
   } = status;
   const [locationsSheetOpen, setLocationsSheetOpen] = useState(false);
   // Both read `navigator` / a media query, so both are set from an effect and
@@ -182,9 +184,11 @@ export function SetupChecklist({ status }: { status: StoreSetupStatus }) {
       label: "Pickup locations",
       description: locationCount
         ? `${locationCount} location${locationCount === 1 ? "" : "s"} saved — tap to manage.`
-        : "Add every store or warehouse riders can collect orders from.",
+        : locationsSkipped
+          ? "Skipped for now. Add one before your first delivery, so couriers can price it."
+          : "Add every store or warehouse riders can collect orders from.",
       icon: MapPin,
-      done: !!locationCount,
+      done: !!locationCount || locationsSkipped,
       state: plainStepState(!!locationCount),
       go: () => setLocationsSheetOpen(true),
     },
@@ -340,6 +344,10 @@ export function SetupChecklist({ status }: { status: StoreSetupStatus }) {
           onClose={() => setLocationsSheetOpen(false)}
           onCountChange={setLocationCount}
           fromChecklist
+          onSkip={() => {
+            skipLocations();
+            setLocationsSheetOpen(false);
+          }}
         />
       )}
 

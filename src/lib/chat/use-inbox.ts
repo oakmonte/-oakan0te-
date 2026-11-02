@@ -53,6 +53,20 @@ function supportChat(last: SupportMessageRow | null, me: string | null): Chat {
   };
 }
 
+/** "Me" before its conversation has come back from the server. Support is
+ *  built here and shows at once; Me is a real conversation, and a prefetched
+ *  inbox from before it existed (or a first load, which has to create it)
+ *  left the row popping in a beat after Support. This stands in until the
+ *  real row lands; opening it creates the conversation first (messages.tsx). */
+export const PENDING_SELF_CHAT_ID = "self:pending";
+const pendingSelfChat: Chat = {
+  ...supportChat(null, null),
+  id: PENDING_SELF_CHAT_ID,
+  kind: "self",
+  title: "Me",
+  verified: false,
+};
+
 /** The last inbox each account loaded, kept for the life of the tab. Opening
  *  Messages again shows it at once and refreshes behind it, instead of a
  *  loading screen and a fresh server round-trip every visit. */
@@ -384,7 +398,11 @@ export function useInbox(me: string | null, sessionLoading: boolean) {
   const typingIn = useCallback((id: string) => (typing[id] ?? 0) > Date.now(), [typing]);
 
   return {
-    chats: sortChats(chats),
+    chats: sortChats(
+      status === "ready" && !chats.some((chat) => chat.kind === "self")
+        ? [pendingSelfChat, ...chats]
+        : chats,
+    ),
     support,
     status,
     reload: load,

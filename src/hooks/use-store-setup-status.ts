@@ -94,6 +94,11 @@ export type StoreSetupStatus = {
   // pickup-locations sheet reporting its own list length) and wants to
   // reflect that immediately rather than wait on a refetch.
   setLocationCount: (count: number) => void;
+  // "Skip for now" on the pickup-locations step: setup can finish without one.
+  // Kept on this device only -- once setup completes, onboarded_at latches
+  // and the step is never asked about again.
+  locationsSkipped: boolean;
+  skipLocations: () => void;
   // Null until the store's first-ever completion is stamped (see the effect
   // below). store.index.tsx forks on `complete || onboardedAt` so graduating
   // to the dashboard is one-way -- see stores.onboarded_at's migration
@@ -119,6 +124,7 @@ export function useStoreSetupStatus(storeId: string | null): StoreSetupStatus {
   const [payoutStatus, setPayoutStatus] = useState<string | null>(null);
   const [payoutLoaded, setPayoutLoaded] = useState(false);
   const [locationCount, setLocationCount] = useState<number | null>(null);
+  const [locationsSkipped, setLocationsSkipped] = useState(false);
   const [productCount, setProductCount] = useState<number | null>(null);
   const [postCount, setPostCount] = useState<number | null>(null);
   // When postCount was last read from the database (ms epoch).
@@ -145,6 +151,7 @@ export function useStoreSetupStatus(storeId: string | null): StoreSetupStatus {
   // every field. In an effect, not useState: this screen is server-rendered.
   useEffect(() => {
     if (!storeId) return;
+    setLocationsSkipped(recall<boolean>(`locations-skipped:${storeId}`) === true);
     const c = recall<RememberedSetup>(`setup:${storeId}`);
     if (!c) return setFromCache(false);
     setFromCache(true);
@@ -341,8 +348,14 @@ export function useStoreSetupStatus(storeId: string | null): StoreSetupStatus {
   ).length;
   const shownPostCount = postCount === null ? null : postCount + inFlight;
   const postsDone = (shownPostCount ?? 0) >= POSTS_NEEDED;
+  const skipLocations = useCallback(() => {
+    if (!storeId) return;
+    remember(`locations-skipped:${storeId}`, true);
+    setLocationsSkipped(true);
+  }, [storeId]);
+  const locationsDone = !!locationCount || locationsSkipped;
   const complete =
-    !loading && payoutSet && !!locationCount && !!productCount && postsDone && themeIdSet;
+    !loading && payoutSet && locationsDone && !!productCount && postsDone && themeIdSet;
 
   // Stamps the one-way graduation the instant this store first finishes
   // setup. Gated on `themeLoaded` (not just `complete`) so this never fires
@@ -379,7 +392,7 @@ export function useStoreSetupStatus(storeId: string | null): StoreSetupStatus {
     ? null
     : !payoutSet
       ? "Get your money"
-      : !locationCount
+      : !locationsDone
         ? "Add a pickup location"
         : !productCount
           ? "List your first product"
@@ -401,6 +414,8 @@ export function useStoreSetupStatus(storeId: string | null): StoreSetupStatus {
     complete,
     nextStepLabel,
     setLocationCount,
+    locationsSkipped,
+    skipLocations,
     onboardedAt,
     // With remembered answers on screen (offline, a blip) a failed refresh
     // isn't worth a retry screen; the remembered dashboard stays up.
