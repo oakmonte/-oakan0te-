@@ -15,6 +15,10 @@ import { GLASS_RIM, glassLens, glassLight } from "@/lib/liquid-glass";
 import { clearShowcase } from "@/lib/showcase-handoff";
 import { Share2, ShoppingBag } from "lucide-react";
 import shopIcon from "@/assets/Store.svg";
+import streetwearPhoto from "@/assets/streetwear-summerstyle.jpeg";
+import storyPhoto from "@/assets/fashion-story.jpg";
+import editorialPhoto from "@/assets/hero-editorial.jpg";
+import povPhoto from "@/assets/female-first-person-pov.jpg";
 import homeIcon from "@/assets/Home.svg";
 import messagesIcon from "@/assets/messages.svg";
 
@@ -30,16 +34,16 @@ export const Route = createFileRoute("/showcase")({
 });
 
 /** How each phone moves, so the three don't all do the same thing:
- *  shop   -- glides down to a product, taps it, and its page slides in;
+ *  chat   -- taps Messages: a buyer asks, the store answers, an offer is agreed;
  *  cards  -- the floating-cards hero, its 3D ring turning, the phone at rest;
  *  float  -- the hero slideshow, the phone drifting with a slight 3D tilt,
  *            now and then tapping Home to show the store's video feed. */
-type Motion = "shop" | "cards" | "float";
+type Motion = "chat" | "cards" | "float";
 
 /** Three looks as unlike each other as the catalogue has: cool light blue,
  *  dark streetwear, warm editorial. The middle one is in front. */
 const SHOWN: { id: ThemeId; motion: Motion; hero: DesktopHero }[] = [
-  { id: "ice", motion: "shop", hero: "banner" },
+  { id: "ice", motion: "chat", hero: "banner" },
   { id: "motion", motion: "cards", hero: "cards" },
   { id: "banner", motion: "float", hero: "banner" },
 ];
@@ -55,10 +59,30 @@ const noop = () => {};
 
 /** The feed demo's posts: a caption and the piece each one links. */
 const FEED_POSTS = [
-  { caption: "New drop is live. Tap the bag to shop the look.", piece: "Linen Shirt" },
-  { caption: "Behind the scenes from this week's shoot.", piece: "Wide Trousers" },
-  { caption: "Styled three ways. Which one is yours?", piece: "Cropped Jacket" },
-  { caption: "Back in stock in every size.", piece: "Day Tote" },
+  {
+    image: streetwearPhoto,
+    caption: "New drop is live. Tap the bag to shop the look.",
+    piece: "Summer Set",
+  },
+  {
+    image: storyPhoto,
+    caption: "Behind the scenes from this week's shoot.",
+    piece: "Wide Trousers",
+  },
+  {
+    image: editorialPhoto,
+    caption: "Styled three ways. Which one is yours?",
+    piece: "Cropped Jacket",
+  },
+  { image: povPhoto, caption: "Back in stock in every size.", piece: "Day Tote" },
+];
+
+/** The chat demo: a buyer asks, the store answers, an offer is agreed. */
+const CHAT: { from: "buyer" | "store"; text?: string; offer?: string; list?: string }[] = [
+  { from: "buyer", text: "Hi! Is the cropped jacket still available in M?" },
+  { from: "store", text: "Yes, M and L are both in stock 🙌" },
+  { from: "buyer", offer: "₦38,000", list: "₦45,000" },
+  { from: "store", text: "Deal! Tap Buy whenever you're ready." },
 ];
 
 /** View-only storefront settings, like the live storefront builds: the
@@ -184,7 +208,7 @@ function ShowcasePage() {
         <button
           type="button"
           onClick={() => navigate({ to: "/store", replace: true })}
-          className="mx-auto flex h-14 w-full max-w-sm items-center justify-center rounded-full bg-brand-accent text-[16px] font-semibold text-brand-bg transition-transform active:scale-[0.98]"
+          className="mx-auto flex h-14 w-full max-w-sm items-center justify-center rounded-full bg-brand-accent text-[16px] font-semibold text-brand-bg shadow-[0_6px_16px_-8px_rgba(0,0,0,0.35)] transition-[transform,box-shadow] duration-300 ease-out hover:-translate-y-1 hover:shadow-[0_18px_32px_-12px_rgba(0,0,0,0.45)] active:translate-y-0 active:scale-[0.98]"
         >
           Finish set up
         </button>
@@ -192,13 +216,6 @@ function ShowcasePage() {
     </div>
   );
 }
-
-type Demo = {
-  /** Where the tap lands, in the frame's own pixels. */
-  tap: { x: number; y: number } | null;
-  /** The product page sliding in over the store. */
-  product: { image: string; title: string; price: string } | null;
-};
 
 /** One storefront in a phone frame, with the storefront's store / feed /
  *  messages pill at the bottom, moving its own way (see Motion). */
@@ -217,13 +234,39 @@ function PhonePreview({
 }) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const editing = useMemo(() => viewOnly(hero), [hero]);
-  const [demo, setDemo] = useState<Demo>({ tap: null, product: null });
-  const [pageIn, setPageIn] = useState(false);
-  // "float": the nav's active tab (0 store, 1 feed), the feed post on screen,
-  // and a tap ring on the nav.
+  // The nav's active tab (0 store, 1 feed, 2 messages), a tap ring on the nav,
+  // the feed post on screen ("float") and how far the chat has got ("chat").
   const [tab, setTab] = useState(0);
   const [post, setPost] = useState(0);
   const [navTap, setNavTap] = useState<number | null>(null);
+  const [chatStep, setChatStep] = useState(0);
+
+  // "chat": 4s on the store, tap Messages, the conversation plays out a
+  // bubble at a time, tap Store, repeat.
+  useEffect(() => {
+    if (motion !== "chat") return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    const at = (ms: number, fn: () => void) => timers.push(setTimeout(fn, ms));
+    const cycle = () => {
+      at(4000, () => setNavTap(2));
+      at(4500, () => {
+        setTab(2);
+        setChatStep(0);
+      });
+      at(5000, () => setNavTap(null));
+      CHAT.forEach((_, i) => at(5600 + i * 1700, () => setChatStep(i + 1)));
+      const back = 5600 + CHAT.length * 1700 + 2200;
+      at(back, () => setNavTap(0));
+      at(back + 500, () => setTab(0));
+      at(back + 1000, () => {
+        setNavTap(null);
+        cycle();
+      });
+    };
+    cycle();
+    return () => timers.forEach(clearTimeout);
+  }, [motion]);
 
   useEffect(() => {
     if (motion !== "float") return;
@@ -252,82 +295,6 @@ function PhonePreview({
     return () => timers.forEach(clearTimeout);
   }, [motion]);
 
-  // "shop": scroll to the first product, tap it, open its page, close, repeat.
-  useEffect(() => {
-    const el = scrollerRef.current;
-    if (!el || motion !== "shop") return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    let raf = 0;
-    let cancelled = false;
-    const timers: ReturnType<typeof setTimeout>[] = [];
-    const later = (ms: number, fn: () => void) => timers.push(setTimeout(fn, ms));
-
-    const glide = (to: number, ms: number) =>
-      new Promise<void>((done) => {
-        const from = el.scrollTop;
-        let start = 0;
-        const step = (t: number) => {
-          if (cancelled) return;
-          if (!start) start = t;
-          const x = Math.min(1, (t - start) / ms);
-          el.scrollTop = from + (to - from) * (0.5 - 0.5 * Math.cos(x * Math.PI));
-          if (x < 1) raf = requestAnimationFrame(step);
-          else done();
-        };
-        raf = requestAnimationFrame(step);
-      });
-
-    // The first real product photo below the hero.
-    const findTile = () => {
-      const frameTop = el.getBoundingClientRect().top;
-      return [...el.querySelectorAll("img")].find((img) => {
-        const r = img.getBoundingClientRect();
-        return r.height > 60 && r.top - frameTop + el.scrollTop > el.clientHeight * 0.85;
-      });
-    };
-
-    const run = async () => {
-      if (cancelled) return;
-      await new Promise((r) => later(1200, () => r(null)));
-      const img = findTile();
-      if (!img || cancelled) return later(1500, run);
-      const box = img.getBoundingClientRect();
-      const frame = el.getBoundingClientRect();
-      // getBoundingClientRect is in screen pixels (after zoom); the frame's own
-      // pixels are those divided by the zoom.
-      const z = frame.width / el.clientWidth || 1;
-      const imgTop = (box.top - frame.top) / z + el.scrollTop;
-      await glide(Math.max(0, imgTop - 160), 2600);
-      if (cancelled) return;
-      const now = img.getBoundingClientRect();
-      const tile = img.closest("button, a, article, li, div") as HTMLElement | null;
-      const lines = (tile?.parentElement?.innerText ?? "").split("\n").map((l) => l.trim());
-      setDemo({
-        tap: {
-          x: (now.left - frame.left + now.width / 2) / z,
-          y: (now.top - frame.top + now.height / 2) / z,
-        },
-        product: {
-          image: img.currentSrc || img.src,
-          title: lines.find((l) => l && !l.includes("₦") && l.length < 40) ?? "New piece",
-          price: lines.find((l) => l.includes("₦")) ?? "",
-        },
-      });
-      later(700, () => setPageIn(true));
-      later(4200, () => setPageIn(false));
-      later(4700, () => setDemo({ tap: null, product: null }));
-      later(5000, () => {
-        void glide(0, 1800).then(() => later(1500, run));
-      });
-    };
-    void run();
-    return () => {
-      cancelled = true;
-      cancelAnimationFrame(raf);
-      timers.forEach(clearTimeout);
-    };
-  }, [motion]);
-
   return (
     <div
       className={`relative overflow-hidden rounded-[2.5rem] border-[3px] border-neutral-900 bg-neutral-900 shadow-[0_24px_60px_-20px_rgba(0,0,0,0.45)] ${
@@ -347,43 +314,50 @@ function PhonePreview({
         </div>
       </div>
 
-      {/* The tap: a ring that lands and fades. */}
-      {demo.tap && (
-        <span
-          className="oak-showcase-tap pointer-events-none absolute z-20 h-16 w-16 rounded-full border-4 border-white bg-white/30"
-          style={{ left: demo.tap.x - 32, top: demo.tap.y - 32 }}
-          aria-hidden="true"
-        />
-      )}
-
-      {/* The product page, sliding in from the right like the real one. */}
-      {demo.product && (
+      {/* The store's Messages (the third tab): a buyer's chat with the store,
+          a bubble at a time, ending in an agreed offer. */}
+      {motion === "chat" && (
         <div
-          className="pointer-events-none absolute inset-0 z-30 flex flex-col bg-white text-[#111] transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]"
-          style={{ transform: pageIn ? "translateX(0)" : "translateX(100%)" }}
+          className="pointer-events-none absolute inset-0 z-30 flex flex-col bg-black text-white transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]"
+          style={{ transform: tab === 2 ? "translateX(0)" : "translateX(100%)" }}
           aria-hidden="true"
         >
-          <img
-            src={demo.product.image}
-            alt=""
-            className="mx-auto mt-14 aspect-[4/5] w-[78%] rounded-3xl object-cover"
-          />
-          <div className="px-6 pt-5">
-            <p className="text-[24px] font-medium leading-tight">{demo.product.title}</p>
-            <p className="mt-1 text-[20px]">{demo.product.price}</p>
-            <div className="mt-5 flex gap-2.5">
-              <span className="flex h-14 flex-1 items-center justify-center rounded-2xl bg-[#111] text-[18px] font-semibold text-white">
-                Buy Now
-              </span>
+          <div className="flex items-center gap-3 border-b border-white/15 px-5 pb-3 pt-6">
+            <span className="grid h-11 w-11 place-items-center rounded-full bg-white/15 text-[17px] font-bold">
+              {brandName.charAt(0).toUpperCase()}
+            </span>
+            <div>
+              <p className="text-[17px] font-semibold">{brandName}</p>
+              <p className="text-[13px] text-white/60">Usually replies within an hour</p>
             </div>
-            <div className="mt-2.5 grid grid-cols-2 gap-2.5">
-              <span className="flex h-14 items-center justify-center rounded-2xl bg-[#111] text-[16px] font-semibold text-white">
-                Make Offer
-              </span>
-              <span className="flex h-14 items-center justify-center rounded-2xl bg-[#111] text-[16px] font-semibold text-white">
-                Add to Bag
-              </span>
-            </div>
+          </div>
+          <div className="flex flex-1 flex-col gap-3 px-4 pt-5">
+            {CHAT.slice(0, chatStep).map((m, i) =>
+              m.offer ? (
+                <div
+                  key={i}
+                  className="animate-in fade-in slide-in-from-bottom-2 self-end w-[75%] rounded-2xl border border-white/25 bg-white/10 p-3 duration-300"
+                >
+                  <p className="text-[12px] uppercase tracking-[0.12em] text-white/60">Offer</p>
+                  <p className="mt-1 text-[20px] font-semibold">
+                    {m.offer}{" "}
+                    <span className="text-[14px] text-white/50 line-through">{m.list}</span>
+                  </p>
+                  <p className="mt-1 text-[13px] font-semibold text-emerald-400">Accepted</p>
+                </div>
+              ) : (
+                <p
+                  key={i}
+                  className={`animate-in fade-in slide-in-from-bottom-2 max-w-[78%] rounded-3xl px-4 py-2.5 text-[15px] leading-snug duration-300 ${
+                    m.from === "buyer"
+                      ? "self-end rounded-br-md bg-[#0EA5E9]"
+                      : "self-start rounded-bl-md bg-white/15"
+                  }`}
+                >
+                  {m.text}
+                </p>
+              ),
+            )}
           </div>
         </div>
       )}
@@ -402,11 +376,7 @@ function PhonePreview({
           >
             {FEED_POSTS.map((p, i) => (
               <div key={i} className="relative" style={{ height: PHONE_H }}>
-                <img
-                  src={HERO_SLIDESHOW_IMAGES[i % HERO_SLIDESHOW_IMAGES.length]}
-                  alt=""
-                  className="h-full w-full object-cover"
-                />
+                <img src={p.image} alt="" className="h-full w-full object-cover" />
                 <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/70 to-transparent" />
                 {/* Rail: store picture, add to bag, share. */}
                 <div className="absolute bottom-[150px] right-3 flex flex-col items-center gap-6 text-white">
