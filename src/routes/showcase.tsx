@@ -52,6 +52,10 @@ const PHONE_H = 780;
 const GAP = 28;
 /** Below this width the three fan out, overlapping, instead of a row. */
 const FAN_BELOW = 760;
+/** How far each side phone sits from the middle, in phone-widths, and how many
+ *  phone-widths the whole fan takes (sides, tilt and all). */
+const FAN_OFFSET = 0.86;
+const FAN_SPAN = 2.98;
 
 const noop = () => {};
 
@@ -151,9 +155,12 @@ function ShowcasePage() {
   const fan = vw > 0 && vw < FAN_BELOW;
   // A row: all three fit across the screen. A fan: one phone's size, with the
   // other two tucked behind it.
+  // The fan spans about FAN_SPAN phone-widths (the side phones, their tilt and
+  // the gaps), kept inside the screen with a margin either side.
   const scale = fan
-    ? Math.min(0.4, (vw - 48) / (PHONE_W * 2.4))
+    ? Math.min(0.4, (vw - 40) / (PHONE_W * FAN_SPAN))
     : Math.min(0.5, (vw - 96 - GAP * 2) / (PHONE_W * 3));
+  const phoneW = PHONE_W * scale;
 
   return (
     <div className="flex min-h-dvh flex-col overflow-x-clip bg-brand-bg text-brand-text">
@@ -179,7 +186,11 @@ function ShowcasePage() {
               ? {
                   position: "absolute" as const,
                   left: "50%",
-                  transform: `translateX(calc(-50% + ${side * 64}%)) rotate(${side * 7}deg) scale(${side === 0 ? 1 : 0.88})`,
+                  // In pixels from the phone itself, so the side phones sit at the
+                  // same distance either way (a % would follow the caption too).
+                  width: phoneW,
+                  marginLeft: -phoneW / 2 + side * phoneW * FAN_OFFSET,
+                  transform: `rotate(${side * 7}deg) scale(${side === 0 ? 1 : 0.88})`,
                   zIndex: side === 0 ? 2 : 1,
                   transformOrigin: "bottom center",
                 }
@@ -191,6 +202,8 @@ function ShowcasePage() {
                   brandName={brandName}
                   scale={scale}
                   motion={motion}
+                  // In the fan the phones keep one shared angle, so no drift of its own.
+                  drift={!fan}
                   hero={hero}
                 />
                 <figcaption className={`mt-3 text-center ${fan && side !== 0 ? "invisible" : ""}`}>
@@ -226,12 +239,15 @@ function PhonePreview({
   scale,
   motion,
   hero,
+  drift,
 }: {
   themeId: ThemeId;
   brandName: string;
   scale: number;
   motion: Motion;
   hero: DesktopHero;
+  /** The float phone drifts and tilts (oak-phone-float). */
+  drift: boolean;
 }) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const editing = useMemo(() => viewOnly(hero), [hero]);
@@ -330,7 +346,7 @@ function PhonePreview({
   return (
     <div
       className={`relative overflow-hidden rounded-[2.5rem] border-[3px] border-neutral-900 bg-neutral-900 shadow-[0_24px_60px_-20px_rgba(0,0,0,0.45)] ${
-        motion === "float" ? "oak-phone-float" : ""
+        motion === "float" && drift ? "oak-phone-float" : ""
       }`}
       // zoom, not transform: the frame takes only its drawn size.
       style={{ width: PHONE_W, height: PHONE_H, zoom: scale }}
