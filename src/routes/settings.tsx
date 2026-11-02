@@ -46,7 +46,7 @@ function SettingsPage() {
         className="min-h-screen bg-black text-white flex items-center justify-center"
         style={{ fontFamily: SF_PRO }}
       >
-        <span className="text-[14px] text-white/50">One moment…</span>
+        <span className="text-[14px] text-white/75">One moment…</span>
       </div>
     );
   }
@@ -64,7 +64,7 @@ function SettingsPage() {
         <Section title="Account">
           <Panel>
             <FieldRow label="Email">
-              <span className="text-[14px] text-white/50 truncate">{email ?? "—"}</span>
+              <span className="text-[14px] text-white/75 truncate">{email ?? "—"}</span>
             </FieldRow>
             <PasswordRow email={email} hasPassword={hasPassword} />
           </Panel>
@@ -93,7 +93,7 @@ function SettingsPage() {
             await signOut();
             navigate({ to: "/", replace: true });
           }}
-          className="w-full rounded-2xl bg-white/[0.06] py-3.5 text-[14px] font-semibold text-white text-center transition-colors duration-150 active:bg-white/[0.1]"
+          className="w-full rounded-2xl bg-white/[0.1] py-3.5 text-[14px] font-semibold text-white text-center transition-colors duration-150 active:bg-white/[0.1]"
         >
           Sign out
         </button>
@@ -111,7 +111,7 @@ function SettingsPage() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
-      <div className="text-[11px] uppercase tracking-wide text-white/40 mb-2 px-1">{title}</div>
+      <div className="text-[11px] uppercase tracking-wide text-white/65 mb-2 px-1">{title}</div>
       {children}
     </div>
   );
@@ -119,7 +119,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function Panel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl bg-white/[0.06] divide-y divide-white/30 overflow-hidden">
+    <div className="rounded-2xl border border-white/25 bg-white/[0.08] divide-y divide-white/20 overflow-hidden">
       {children}
     </div>
   );
@@ -128,7 +128,7 @@ function Panel({ children }: { children: React.ReactNode }) {
 function FieldRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between px-4 py-3.5 gap-3">
-      <span className="text-[14px] text-white/70 shrink-0">{label}</span>
+      <span className="text-[14px] text-white/90 shrink-0">{label}</span>
       {children}
     </div>
   );
@@ -142,7 +142,7 @@ function NavRow({ label, onClick }: { label: string; onClick: () => void }) {
       className="w-full flex items-center justify-between px-4 py-3.5 text-left"
     >
       <span className="text-[14px]">{label}</span>
-      <ChevronRight size={16} className="text-white/30 shrink-0" />
+      <ChevronRight size={16} className="text-white/60 shrink-0" />
     </button>
   );
 }
@@ -218,9 +218,9 @@ function MessagesSection({ userId }: { userId: string }) {
     <Section title="Messages">
       <Panel>
         <div className="flex items-center justify-between gap-3 px-4 py-3.5">
-          <span className="text-[14px] text-white/70">
+          <span className="text-[14px] text-white/90">
             Read receipts
-            <span className="block text-[12px] text-white/40 mt-0.5">
+            <span className="block text-[12px] text-white/65 mt-0.5">
               If you turn this off, people won't see when you've read their messages, and you won't
               see when they've read yours. Delivered ticks still show.
             </span>
@@ -310,9 +310,9 @@ function StoreSection() {
     <Section title="Store">
       <Panel>
         <div className="flex items-center justify-between gap-3 px-4 py-3.5">
-          <span className="text-[14px] text-white/70">
+          <span className="text-[14px] text-white/90">
             I offer custom orders
-            <span className="block text-[12px] text-white/40 mt-0.5">
+            <span className="block text-[12px] text-white/65 mt-0.5">
               Lets shoppers know you take made-to-order requests.
             </span>
           </span>
@@ -324,9 +324,9 @@ function StoreSection() {
           />
         </div>
         <div className="px-4 py-3.5">
-          <span className="text-[14px] text-white/70">
+          <span className="text-[14px] text-white/90">
             Shipping policy
-            <span className="block text-[12px] text-white/40 mt-0.5">
+            <span className="block text-[12px] text-white/65 mt-0.5">
               Shown to shoppers from the bottom of your website. Leave it empty to hide it.
             </span>
           </span>
@@ -341,7 +341,7 @@ function StoreSection() {
             className={`${inputClass} mt-3 resize-none leading-relaxed`}
           />
           <div className="mt-2 flex items-center justify-between gap-3">
-            <span className="text-[12px] text-white/40">
+            <span className="text-[12px] text-white/65">
               {policyState === "saved"
                 ? "Saved"
                 : policyState === "error"
@@ -364,7 +364,7 @@ function StoreSection() {
 }
 
 const inputClass =
-  "w-full rounded-xl border border-white/35 bg-white/[0.04] px-4 py-3.5 text-[14px] text-white placeholder:text-white/30 focus:outline-none focus:border-white/40 transition-colors";
+  "w-full rounded-xl border border-white/45 bg-white/[0.08] px-4 py-3.5 text-[14px] text-white placeholder:text-white/50 focus:outline-none focus:border-white/40 transition-colors";
 
 function PasswordRow({ email, hasPassword }: { email: string | null; hasPassword: boolean }) {
   const [open, setOpen] = useState(false);
@@ -453,14 +453,14 @@ function PasswordRow({ email, hasPassword }: { email: string | null; hasPassword
   if (done) {
     return (
       <div className="px-4 py-3.5">
-        <p className="text-[14px] text-white/70">Password {hasPassword ? "changed" : "set"}.</p>
+        <p className="text-[14px] text-white/90">Password {hasPassword ? "changed" : "set"}.</p>
         <button
           type="button"
           onClick={() => {
             reset();
             setOpen(false);
           }}
-          className="mt-2 text-[11px] uppercase tracking-widest text-white/40 hover:text-white transition-colors"
+          className="mt-2 text-[11px] uppercase tracking-widest text-white/65 hover:text-white transition-colors"
         >
           Done
         </button>
@@ -472,9 +472,9 @@ function PasswordRow({ email, hasPassword }: { email: string | null; hasPassword
     <div className="px-4 py-4">
       <form onSubmit={handleSubmit} className="space-y-3">
         {!hasPassword && email && (
-          <p className="px-1 text-[12px] leading-relaxed text-white/50">
+          <p className="px-1 text-[12px] leading-relaxed text-white/75">
             Set a password to sign in with just your email and password, alongside Apple or Google.
-            Your email for sign-in is <span className="text-white/80">{email}</span>.
+            Your email for sign-in is <span className="text-white/95">{email}</span>.
           </p>
         )}
         {hasPassword && (
@@ -526,12 +526,12 @@ function PasswordRow({ email, hasPassword }: { email: string | null; hasPassword
                   }`}
                 />
               ))}
-              <span className="ml-2 text-[10px] uppercase tracking-widest text-white/40">
+              <span className="ml-2 text-[10px] uppercase tracking-widest text-white/65">
                 {verdict.label}
               </span>
             </div>
             {verdict.problems.length > 0 && (
-              <p className="mt-1.5 text-[11px] text-white/40">
+              <p className="mt-1.5 text-[11px] text-white/65">
                 Needs {verdict.problems.join(", ")}.
               </p>
             )}
@@ -552,10 +552,10 @@ function PasswordRow({ email, hasPassword }: { email: string | null; hasPassword
           className={inputClass}
         />
         {confirm && password !== confirm && (
-          <p className="px-1 text-[11px] text-white/40">Those two passwords don't match yet.</p>
+          <p className="px-1 text-[11px] text-white/65">Those two passwords don't match yet.</p>
         )}
 
-        <label className="flex items-center gap-2 text-[12px] text-white/50 px-1 py-1 cursor-pointer">
+        <label className="flex items-center gap-2 text-[12px] text-white/75 px-1 py-1 cursor-pointer">
           <input
             type="checkbox"
             checked={show}
@@ -572,7 +572,7 @@ function PasswordRow({ email, hasPassword }: { email: string | null; hasPassword
               reset();
               setOpen(false);
             }}
-            className="flex-1 rounded-full border border-white/40 py-3 text-[13px] font-medium uppercase tracking-widest text-white/70 hover:border-white/40 transition-colors"
+            className="flex-1 rounded-full border border-white/40 py-3 text-[13px] font-medium uppercase tracking-widest text-white/90 hover:border-white/40 transition-colors"
           >
             Cancel
           </button>
@@ -654,7 +654,7 @@ function DeleteAccountSection({
 
   return (
     <div className="px-4 py-4 space-y-3">
-      <p className="text-[13px] text-white/60 leading-relaxed">
+      <p className="text-[13px] text-white/80 leading-relaxed">
         This permanently deletes your profile, store, products and posts. This can&apos;t be undone.
       </p>
 
@@ -697,7 +697,7 @@ function DeleteAccountSection({
             setConfirmText("");
             setError(null);
           }}
-          className="flex-1 rounded-full border border-white/40 py-3 text-[13px] font-medium uppercase tracking-widest text-white/70 hover:border-white/40 transition-colors"
+          className="flex-1 rounded-full border border-white/40 py-3 text-[13px] font-medium uppercase tracking-widest text-white/90 hover:border-white/40 transition-colors"
         >
           Cancel
         </button>
