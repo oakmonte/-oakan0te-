@@ -206,12 +206,16 @@ function ShowcasePage() {
                   drift={!fan}
                   hero={hero}
                 />
-                <figcaption className={`mt-3 text-center ${fan && side !== 0 ? "invisible" : ""}`}>
-                  <p className="text-[14px] font-semibold">{theme.name}</p>
-                  <p className="text-[11px] uppercase tracking-[0.12em] text-brand-text/50">
-                    {theme.eyebrow}
-                  </p>
-                </figcaption>
+                {/* In the fan only the front phone has a caption: a side phone's box is
+                    just the phone, so both turn about the same point. */}
+                {(!fan || side === 0) && (
+                  <figcaption className="mt-3 text-center">
+                    <p className="text-[14px] font-semibold">{theme.name}</p>
+                    <p className="text-[11px] uppercase tracking-[0.12em] text-brand-text/50">
+                      {theme.eyebrow}
+                    </p>
+                  </figcaption>
+                )}
               </figure>
             );
           })}
