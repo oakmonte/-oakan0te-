@@ -1295,3 +1295,23 @@ body.oak-page-sheet-open [data-app-root] {
     box-shadow: 0 0 0 3px #000;
   }
 }
+
+/* /showcase: one of the three phones drifts and tilts gently instead of
+   scrolling (the other two glide and flick), so each look moves its own way. */
+@keyframes oak-phone-float {
+  0%,
+  100% {
+    transform: perspective(1400px) translateY(0) rotateY(-6deg) rotateX(2deg);
+  }
+  50% {
+    transform: perspective(1400px) translateY(-18px) rotateY(6deg) rotateX(-1deg);
+  }
+}
+.oak-phone-float {
+  animation: oak-phone-float 7s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .oak-phone-float {
+    animation: none;
+  }
+}
