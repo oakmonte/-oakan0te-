@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
+import { showcaseQueued } from "@/lib/showcase-handoff";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import logoO from "@/assets/logo-o.png";
@@ -40,6 +41,8 @@ function WelcomePage() {
   const [loaded, setLoaded] = useState(false);
   const [typedOut, setTypedOut] = useState(false);
   const hasNavigated = useRef(false);
+  // Straight from onboarding's Finish: the storefront showcase comes next.
+  const [toShowcase] = useState(showcaseQueued);
 
   const handleTypedOut = useCallback(() => setTypedOut(true), []);
 
@@ -76,10 +79,10 @@ function WelcomePage() {
   useEffect(() => {
     if (!username) return;
     const id = window.setTimeout(() => {
-      void router.preloadRoute({ to: "/store" }).catch(() => {});
+      void router.preloadRoute({ to: toShowcase ? "/showcase" : "/store" }).catch(() => {});
     }, 0);
     return () => window.clearTimeout(id);
-  }, [router, username]);
+  }, [router, username, toShowcase]);
 
   useEffect(() => {
     if (!loaded || hasNavigated.current) return;
@@ -108,8 +111,8 @@ function WelcomePage() {
     // checklist right after the payout step, where it reads as part of setting
     // up a business -- see needsPasskeyForInstall in src/lib/auth.ts.
     // Sellers-only: the app opens on the store dashboard (the Home tab).
-    navigate({ to: "/store", replace: true });
-  }, [loaded, typedOut, username, navigate]);
+    navigate({ to: toShowcase ? "/showcase" : "/store", replace: true });
+  }, [loaded, typedOut, username, navigate, toShowcase]);
 
   // The installed app's first launch: signed out, so say this is the same
   // account and store before the sign-in, not a fresh start.

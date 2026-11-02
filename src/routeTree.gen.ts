@@ -37,6 +37,7 @@ import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as SellerTypeRouteImport } from './routes/seller-type'
 import { Route as SetUpStoreRouteImport } from './routes/set-up-store'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as ShowcaseRouteImport } from './routes/showcase'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as StoreRouteImport } from './routes/store'
@@ -273,6 +274,11 @@ const SetUpStoreRoute = SetUpStoreRouteImport.update({
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ShowcaseRoute = ShowcaseRouteImport.update({
+  id: '/showcase',
+  path: '/showcase',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SignInRoute = SignInRouteImport.update({
@@ -797,6 +803,7 @@ export interface FileRoutesByFullPath {
   '/seller-type': typeof SellerTypeRoute
   '/set-up-store': typeof SetUpStoreRoute
   '/settings': typeof SettingsRoute
+  '/showcase': typeof ShowcaseRoute
   '/sign-in': typeof SignInRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/store': typeof StoreRouteWithChildren
@@ -923,6 +930,7 @@ export interface FileRoutesByTo {
   '/seller-type': typeof SellerTypeRoute
   '/set-up-store': typeof SetUpStoreRoute
   '/settings': typeof SettingsRoute
+  '/showcase': typeof ShowcaseRoute
   '/sign-in': typeof SignInRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/switching-roles': typeof SwitchingRolesRoute
@@ -1049,6 +1057,7 @@ export interface FileRoutesById {
   '/seller-type': typeof SellerTypeRoute
   '/set-up-store': typeof SetUpStoreRoute
   '/settings': typeof SettingsRoute
+  '/showcase': typeof ShowcaseRoute
   '/sign-in': typeof SignInRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/store': typeof StoreRouteWithChildren
@@ -1178,6 +1187,7 @@ export interface FileRouteTypes {
     | '/seller-type'
     | '/set-up-store'
     | '/settings'
+    | '/showcase'
     | '/sign-in'
     | '/sitemap.xml'
     | '/store'
@@ -1304,6 +1314,7 @@ export interface FileRouteTypes {
     | '/seller-type'
     | '/set-up-store'
     | '/settings'
+    | '/showcase'
     | '/sign-in'
     | '/sitemap.xml'
     | '/switching-roles'
@@ -1429,6 +1440,7 @@ export interface FileRouteTypes {
     | '/seller-type'
     | '/set-up-store'
     | '/settings'
+    | '/showcase'
     | '/sign-in'
     | '/sitemap.xml'
     | '/store'
@@ -1557,6 +1569,7 @@ export interface RootRouteChildren {
   SellerTypeRoute: typeof SellerTypeRoute
   SetUpStoreRoute: typeof SetUpStoreRoute
   SettingsRoute: typeof SettingsRoute
+  ShowcaseRoute: typeof ShowcaseRoute
   SignInRoute: typeof SignInRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   StoreRoute: typeof StoreRouteWithChildren
@@ -1811,6 +1824,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/showcase': {
+      id: '/showcase'
+      path: '/showcase'
+      fullPath: '/showcase'
+      preLoaderRoute: typeof ShowcaseRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sign-in': {
@@ -2693,6 +2713,7 @@ const rootRouteChildren: RootRouteChildren = {
   SellerTypeRoute: SellerTypeRoute,
   SetUpStoreRoute: SetUpStoreRoute,
   SettingsRoute: SettingsRoute,
+  ShowcaseRoute: ShowcaseRoute,
   SignInRoute: SignInRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   StoreRoute: StoreRouteWithChildren,

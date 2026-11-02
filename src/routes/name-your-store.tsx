@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { queueShowcase } from "@/lib/showcase-handoff";
 import { useEffect, useState, type FormEvent } from "react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { readStoreDraft, type StoreDraft } from "@/lib/onboarding-state";
@@ -109,6 +110,8 @@ function NameYourStorePage() {
           }
         });
     }
+    // Onboarding's last step: /welcome goes on to the storefront showcase.
+    queueShowcase();
     navigate({ to: nextRoute("seller", "/name-your-store"), replace: true });
   };
 
