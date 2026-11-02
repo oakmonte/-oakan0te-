@@ -1,7 +1,5 @@
 import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useRequireSession } from "@/components/onboarding/use-require-session";
-import { OnboardingChecking } from "@/components/onboarding/OnboardingShell";
 import { useActiveStore } from "@/hooks/use-own-store";
 import { FullPreview } from "@/components/store-themes/full-previews";
 import { THEMES, type ThemeId } from "@/components/store-themes/types";
@@ -77,6 +75,12 @@ const FEED_POSTS = [
   { image: povPhoto, caption: "Back in stock in every size.", piece: "Day Tote" },
 ];
 
+/** The chat demo's typing pace (ms a letter), as the landing's demo, and its
+ *  keyboard. */
+const TYPE_MS = 45;
+const KEYBOARD_H = 290;
+const KEY_ROWS = ["qwertyuiop", "asdfghjkl", "zxcvbnm"];
+
 /** The chat demo: a buyer asks, the store answers, an offer is agreed. */
 const CHAT: { from: "buyer" | "store"; text?: string; offer?: string; list?: string }[] = [
   { from: "buyer", text: "Hi! Is the cropped jacket still available in M?" },
@@ -123,7 +127,6 @@ function viewOnly(hero: DesktopHero): ThemeEditingProps {
 }
 
 function ShowcasePage() {
-  const { checking } = useRequireSession();
   const { store } = useActiveStore();
   const navigate = useNavigate();
   const router = useRouter();
@@ -141,8 +144,6 @@ function ShowcasePage() {
     return () => window.removeEventListener("resize", measure);
   }, [router]);
 
-  if (checking) return <OnboardingChecking />;
-
   const looks = SHOWN.flatMap((look) => {
     const theme = THEMES.find((t) => t.id === look.id);
     return theme ? [{ ...look, theme }] : [];
@@ -151,8 +152,8 @@ function ShowcasePage() {
   // A row: all three fit across the screen. A fan: one phone's size, with the
   // other two tucked behind it.
   const scale = fan
-    ? Math.min(0.5, (vw - 48) / (PHONE_W * 1.55))
-    : Math.min(0.6, (vw - 96 - GAP * 2) / (PHONE_W * 3));
+    ? Math.min(0.4, (vw - 48) / (PHONE_W * 2.4))
+    : Math.min(0.5, (vw - 96 - GAP * 2) / (PHONE_W * 3));
 
   return (
     <div className="flex min-h-dvh flex-col overflow-x-clip bg-brand-bg text-brand-text">
@@ -178,7 +179,7 @@ function ShowcasePage() {
               ? {
                   position: "absolute" as const,
                   left: "50%",
-                  transform: `translateX(calc(-50% + ${side * 46}%)) rotate(${side * 6}deg) scale(${side === 0 ? 1 : 0.88})`,
+                  transform: `translateX(calc(-50% + ${side * 64}%)) rotate(${side * 7}deg) scale(${side === 0 ? 1 : 0.88})`,
                   zIndex: side === 0 ? 2 : 1,
                   transformOrigin: "bottom center",
                 }
@@ -240,32 +241,63 @@ function PhonePreview({
   const [post, setPost] = useState(0);
   const [navTap, setNavTap] = useState<number | null>(null);
   const [chatStep, setChatStep] = useState(0);
+  // The buyer's message box while they type (letters so far), and the store's
+  // "typing…" dots before each of its replies -- as in the landing's demo.
+  const [draft, setDraft] = useState<string | null>(null);
+  const [storeTyping, setStoreTyping] = useState(false);
 
-  // "chat": 4s on the store, tap Messages, the conversation plays out a
-  // bubble at a time, tap Store, repeat.
+  // "chat": 4s on the store, tap Messages, then the conversation plays out --
+  // the buyer typing each line on the keyboard and sending it, the store's
+  // replies after its typing dots -- then tap Store, and again.
   useEffect(() => {
     if (motion !== "chat") return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    let cancelled = false;
     const timers: ReturnType<typeof setTimeout>[] = [];
-    const at = (ms: number, fn: () => void) => timers.push(setTimeout(fn, ms));
-    const cycle = () => {
-      at(4000, () => setNavTap(2));
-      at(4500, () => {
+    const wait = (ms: number) => new Promise<void>((done) => timers.push(setTimeout(done, ms)));
+
+    const run = async () => {
+      while (!cancelled) {
+        await wait(4000);
+        setNavTap(2);
+        await wait(500);
         setTab(2);
         setChatStep(0);
-      });
-      at(5000, () => setNavTap(null));
-      CHAT.forEach((_, i) => at(5600 + i * 1700, () => setChatStep(i + 1)));
-      const back = 5600 + CHAT.length * 1700 + 2200;
-      at(back, () => setNavTap(0));
-      at(back + 500, () => setTab(0));
-      at(back + 1000, () => {
+        await wait(500);
         setNavTap(null);
-        cycle();
-      });
+        await wait(500);
+        for (let i = 0; i < CHAT.length && !cancelled; i++) {
+          const m = CHAT[i];
+          if (m.from === "buyer" && m.text) {
+            setDraft("");
+            await wait(320); // the keyboard comes up
+            for (let n = 1; n <= m.text.length && !cancelled; n++) {
+              setDraft(m.text.slice(0, n));
+              await wait(TYPE_MS);
+            }
+            await wait(300);
+            setDraft(null);
+          } else if (m.from === "store") {
+            setStoreTyping(true);
+            await wait(1300);
+            setStoreTyping(false);
+          }
+          setChatStep(i + 1);
+          await wait(900);
+        }
+        await wait(2000);
+        setNavTap(0);
+        await wait(500);
+        setTab(0);
+        await wait(500);
+        setNavTap(null);
+      }
     };
-    cycle();
-    return () => timers.forEach(clearTimeout);
+    void run();
+    return () => {
+      cancelled = true;
+      timers.forEach(clearTimeout);
+    };
   }, [motion]);
 
   useEffect(() => {
@@ -358,6 +390,82 @@ function PhonePreview({
                 </p>
               ),
             )}
+            {storeTyping && (
+              <span className="flex self-start gap-1.5 rounded-3xl rounded-bl-md bg-white/15 px-4 py-3.5">
+                {[0, 1, 2].map((d) => (
+                  <i
+                    key={d}
+                    className="oak-typing-dot h-2 w-2 rounded-full bg-white/80"
+                    style={{ animationDelay: `${d * 0.16}s` }}
+                  />
+                ))}
+              </span>
+            )}
+          </div>
+
+          {/* The message box, filling a letter at a time while the buyer types. */}
+          <div
+            className="absolute inset-x-4 z-10 transition-[bottom] duration-300 ease-out"
+            style={{ bottom: draft !== null ? KEYBOARD_H + 12 : 100 }}
+          >
+            <div
+              className={`flex min-h-12 items-center rounded-3xl px-4 py-3 text-[15px] ${
+                draft !== null
+                  ? "bg-white text-[#111] ring-2 ring-[#0EA5E9]"
+                  : "bg-white/10 text-white/50"
+              }`}
+            >
+              {draft !== null ? (
+                <span>
+                  {draft}
+                  <i className="oak-caret ml-px inline-block h-[17px] w-[1.5px] translate-y-[3px] bg-[#0EA5E9]" />
+                </span>
+              ) : (
+                "Message…"
+              )}
+            </div>
+          </div>
+
+          {/* The keyboard: slides up while typing, the last key pressed pops. */}
+          <div
+            className="absolute inset-x-0 bottom-0 z-20 bg-[#d1d4da] px-1.5 pb-6 pt-2 transition-transform duration-300 ease-out"
+            style={{
+              height: KEYBOARD_H,
+              transform: draft !== null ? "translateY(0)" : "translateY(100%)",
+            }}
+          >
+            {KEY_ROWS.map((row, r) => (
+              <div key={r} className="mb-2.5 flex justify-center gap-1.5">
+                {[...row].map((k) => {
+                  const hit = draft ? draft[draft.length - 1]?.toLowerCase() === k : false;
+                  return (
+                    <span
+                      key={k}
+                      className={`grid h-11 w-[32px] place-items-center rounded-md text-[18px] text-[#111] shadow-[0_1px_0_rgba(0,0,0,0.3)] transition-transform duration-75 ${
+                        hit ? "-translate-y-2 scale-125 bg-white" : "bg-white"
+                      }`}
+                    >
+                      {k}
+                    </span>
+                  );
+                })}
+              </div>
+            ))}
+            <div className="flex justify-center gap-1.5">
+              <span className="grid h-11 w-20 place-items-center rounded-md bg-[#abb0ba] text-[15px] text-[#111]">
+                123
+              </span>
+              <span
+                className={`grid h-11 flex-1 place-items-center rounded-md text-[15px] text-[#111] ${
+                  draft?.endsWith(" ") ? "bg-[#e5e7eb]" : "bg-white"
+                }`}
+              >
+                space
+              </span>
+              <span className="grid h-11 w-20 place-items-center rounded-md bg-[#abb0ba] text-[15px] text-[#111]">
+                send
+              </span>
+            </div>
           </div>
         </div>
       )}
@@ -405,7 +513,14 @@ function PhonePreview({
       )}
 
       {/* The storefront's own nav: store, feed, messages. */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-6 z-40 flex justify-center">
+      <div
+        className="pointer-events-none absolute inset-x-0 bottom-6 z-40 flex justify-center transition-[opacity,transform] duration-300"
+        // Out of the way while the keyboard is up, as in a real chat.
+        style={{
+          opacity: draft !== null ? 0 : 1,
+          transform: draft !== null ? "translateY(40px)" : "none",
+        }}
+      >
         <div
           className={`${GLASS_RIM} relative flex h-[60px] items-center rounded-full p-[5px]`}
           style={glassLight}

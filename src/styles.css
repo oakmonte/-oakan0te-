@@ -1325,3 +1325,19 @@ body.oak-page-sheet-open [data-app-root] {
 .oak-showcase-tap {
   animation: oak-showcase-tap 0.9s ease-out forwards;
 }
+
+/* /showcase chat: the store's "typing" dots and the message box's caret. */
+@keyframes oak-typing-dot {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+  30% { transform: translateY(-5px); opacity: 1; }
+}
+.oak-typing-dot {
+  animation: oak-typing-dot 1s ease-in-out infinite;
+}
+@keyframes oak-caret {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+.oak-caret {
+  animation: oak-caret 1s steps(1) infinite;
+}
