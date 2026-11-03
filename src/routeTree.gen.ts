@@ -93,6 +93,7 @@ import { Route as ApiImportStartRouteImport } from './routes/api.import.start'
 import { Route as ApiImportStatusRouteImport } from './routes/api.import.status'
 import { Route as ApiInstagramCallbackRouteImport } from './routes/api.instagram.callback'
 import { Route as ApiInstagramConnectRouteImport } from './routes/api.instagram.connect'
+import { Route as ApiInstagramWebhookRouteImport } from './routes/api.instagram.webhook'
 import { Route as ApiOffersOfferIdRouteImport } from './routes/api.offers.$offerId'
 import { Route as ApiOrdersOrderIdRouteImport } from './routes/api.orders.$orderId'
 import { Route as ApiOrdersMineRouteImport } from './routes/api.orders.mine'
@@ -559,6 +560,11 @@ const ApiInstagramConnectRoute = ApiInstagramConnectRouteImport.update({
   path: '/api/instagram/connect',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiInstagramWebhookRoute = ApiInstagramWebhookRouteImport.update({
+  id: '/api/instagram/webhook',
+  path: '/api/instagram/webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiOffersOfferIdRoute = ApiOffersOfferIdRouteImport.update({
   id: '/$offerId',
   path: '/$offerId',
@@ -871,6 +877,7 @@ export interface FileRoutesByFullPath {
   '/api/import/status': typeof ApiImportStatusRoute
   '/api/instagram/callback': typeof ApiInstagramCallbackRoute
   '/api/instagram/connect': typeof ApiInstagramConnectRoute
+  '/api/instagram/webhook': typeof ApiInstagramWebhookRoute
   '/api/offers/$offerId': typeof ApiOffersOfferIdRoute
   '/api/orders/$orderId': typeof ApiOrdersOrderIdRouteWithChildren
   '/api/orders/mine': typeof ApiOrdersMineRoute
@@ -998,6 +1005,7 @@ export interface FileRoutesByTo {
   '/api/import/status': typeof ApiImportStatusRoute
   '/api/instagram/callback': typeof ApiInstagramCallbackRoute
   '/api/instagram/connect': typeof ApiInstagramConnectRoute
+  '/api/instagram/webhook': typeof ApiInstagramWebhookRoute
   '/api/offers/$offerId': typeof ApiOffersOfferIdRoute
   '/api/orders/$orderId': typeof ApiOrdersOrderIdRouteWithChildren
   '/api/orders/mine': typeof ApiOrdersMineRoute
@@ -1129,6 +1137,7 @@ export interface FileRoutesById {
   '/api/import/status': typeof ApiImportStatusRoute
   '/api/instagram/callback': typeof ApiInstagramCallbackRoute
   '/api/instagram/connect': typeof ApiInstagramConnectRoute
+  '/api/instagram/webhook': typeof ApiInstagramWebhookRoute
   '/api/offers/$offerId': typeof ApiOffersOfferIdRoute
   '/api/orders/$orderId': typeof ApiOrdersOrderIdRouteWithChildren
   '/api/orders/mine': typeof ApiOrdersMineRoute
@@ -1261,6 +1270,7 @@ export interface FileRouteTypes {
     | '/api/import/status'
     | '/api/instagram/callback'
     | '/api/instagram/connect'
+    | '/api/instagram/webhook'
     | '/api/offers/$offerId'
     | '/api/orders/$orderId'
     | '/api/orders/mine'
@@ -1388,6 +1398,7 @@ export interface FileRouteTypes {
     | '/api/import/status'
     | '/api/instagram/callback'
     | '/api/instagram/connect'
+    | '/api/instagram/webhook'
     | '/api/offers/$offerId'
     | '/api/orders/$orderId'
     | '/api/orders/mine'
@@ -1518,6 +1529,7 @@ export interface FileRouteTypes {
     | '/api/import/status'
     | '/api/instagram/callback'
     | '/api/instagram/connect'
+    | '/api/instagram/webhook'
     | '/api/offers/$offerId'
     | '/api/orders/$orderId'
     | '/api/orders/mine'
@@ -1631,6 +1643,7 @@ export interface RootRouteChildren {
   ApiImportStatusRoute: typeof ApiImportStatusRoute
   ApiInstagramCallbackRoute: typeof ApiInstagramCallbackRoute
   ApiInstagramConnectRoute: typeof ApiInstagramConnectRoute
+  ApiInstagramWebhookRoute: typeof ApiInstagramWebhookRoute
   ApiPaystackWebhookRoute: typeof ApiPaystackWebhookRoute
   ApiPlacesAutocompleteRoute: typeof ApiPlacesAutocompleteRoute
   ApiProductsUploadImageRoute: typeof ApiProductsUploadImageRoute
@@ -2244,6 +2257,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiInstagramConnectRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/instagram/webhook': {
+      id: '/api/instagram/webhook'
+      path: '/api/instagram/webhook'
+      fullPath: '/api/instagram/webhook'
+      preLoaderRoute: typeof ApiInstagramWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/offers/$offerId': {
       id: '/api/offers/$offerId'
       path: '/$offerId'
@@ -2791,6 +2811,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiImportStatusRoute: ApiImportStatusRoute,
   ApiInstagramCallbackRoute: ApiInstagramCallbackRoute,
   ApiInstagramConnectRoute: ApiInstagramConnectRoute,
+  ApiInstagramWebhookRoute: ApiInstagramWebhookRoute,
   ApiPaystackWebhookRoute: ApiPaystackWebhookRoute,
   ApiPlacesAutocompleteRoute: ApiPlacesAutocompleteRoute,
   ApiProductsUploadImageRoute: ApiProductsUploadImageRoute,
