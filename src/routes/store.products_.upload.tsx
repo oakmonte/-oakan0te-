@@ -1,6 +1,15 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { ChevronLeft, ChevronDown, ShoppingBag, Store, Upload, Check, X } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronDown,
+  Instagram,
+  ShoppingBag,
+  Store,
+  Upload,
+  Check,
+  X,
+} from "lucide-react";
 import { BackButton } from "@/components/BackButton";
 import { authedFetch } from "@/lib/authed-fetch";
 import { useActiveStoreId } from "@/hooks/use-own-store";
@@ -275,6 +284,29 @@ function ProductsUpload() {
     }
   }
 
+  async function connectInstagram() {
+    if (!storeId) {
+      setError("No store found on this account");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    try {
+      const res = await authedFetch("/api/instagram/connect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ storeId }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.url) throw new Error(data.error ?? "Could not start Instagram connect");
+      // Meta's consent screen; the callback lands back on /store/products.
+      window.location.href = data.url;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not connect Instagram");
+      setBusy(false);
+    }
+  }
+
   async function connectBumpa() {
     if (!storeId) {
       setError("No store found on this account");
@@ -496,6 +528,24 @@ function ProductsUpload() {
                 </div>
               )}
             </div>
+
+            {/* Instagram */}
+            <button
+              type="button"
+              onClick={connectInstagram}
+              disabled={busy}
+              className="w-full flex items-center gap-3 p-4 text-left border border-sd-line rounded-2xl oak-motion-control disabled:opacity-40"
+            >
+              <div className="p-2 rounded-full bg-sd-soft">
+                <Instagram size={18} />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium">Instagram</p>
+                <p className="text-xs text-sd-ink-muted mt-0.5">
+                  Connect your Instagram business account.
+                </p>
+              </div>
+            </button>
 
             {/* Universal CSV */}
             <button
