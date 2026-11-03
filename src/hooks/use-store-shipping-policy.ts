@@ -1,16 +1,22 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
+import { useStorefrontSeed } from "@/lib/storefront-seed";
 
 /** A store's shipping policy and picture, for the storefront footer's
  *  Shipping Policy pop-up. `policy` is null until loaded and stays null when
  *  the seller hasn't written one -- the footer shows no link then. */
 export function useStoreShippingPolicy(storeId: string | null) {
-  const [state, setState] = useState<{ policy: string | null; logoUrl: string | null }>({
-    policy: null,
-    logoUrl: null,
-  });
+  // A public storefront's store row came with the page (StorefrontDataContext).
+  const seed = useStorefrontSeed(storeId)?.store ?? null;
+  const seeded = seed
+    ? { policy: seed.shipping_policy?.trim() || null, logoUrl: seed.logo_url }
+    : null;
+  const [state, setState] = useState<{ policy: string | null; logoUrl: string | null }>(
+    seeded ?? { policy: null, logoUrl: null },
+  );
 
   useEffect(() => {
+    if (seed) return;
     if (!storeId) {
       setState({ policy: null, logoUrl: null });
       return;
@@ -30,7 +36,7 @@ export function useStoreShippingPolicy(storeId: string | null) {
     return () => {
       cancelled = true;
     };
-  }, [storeId]);
+  }, [storeId, seed]);
 
-  return state;
+  return seeded ?? state;
 }

@@ -569,6 +569,24 @@ export type Database = {
           },
         ]
       }
+      geocode_cache: {
+        Row: {
+          created_at: string
+          key: string
+          result: Json
+        }
+        Insert: {
+          created_at?: string
+          key: string
+          result: Json
+        }
+        Update: {
+          created_at?: string
+          key?: string
+          result?: Json
+        }
+        Relationships: []
+      }
       ig_post_files: {
         Row: {
           created_at: string
@@ -979,6 +997,83 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: true
             referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      offers: {
+        Row: {
+          agreed_kobo: number | null
+          amount_kobo: number
+          buyer_id: string
+          counter_kobo: number | null
+          created_at: string
+          id: string
+          list_price_kobo: number
+          order_id: string | null
+          product_id: string
+          status: string
+          store_id: string
+          updated_at: string
+          variant_id: string
+        }
+        Insert: {
+          agreed_kobo?: number | null
+          amount_kobo: number
+          buyer_id: string
+          counter_kobo?: number | null
+          created_at?: string
+          id?: string
+          list_price_kobo: number
+          order_id?: string | null
+          product_id: string
+          status?: string
+          store_id: string
+          updated_at?: string
+          variant_id: string
+        }
+        Update: {
+          agreed_kobo?: number | null
+          amount_kobo?: number
+          buyer_id?: string
+          counter_kobo?: number | null
+          created_at?: string
+          id?: string
+          list_price_kobo?: number
+          order_id?: string | null
+          product_id?: string
+          status?: string
+          store_id?: string
+          updated_at?: string
+          variant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offers_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offers_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offers_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offers_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
             referencedColumns: ["id"]
           },
         ]
@@ -2513,6 +2608,7 @@ export type Database = {
         Args: { object_name: string }
         Returns: string
       }
+      email_sign_in_methods: { Args: { check_email: string }; Returns: Json }
       is_conversation_blocked: { Args: { conv: string }; Returns: boolean }
       is_conversation_member: { Args: { conv: string }; Returns: boolean }
       is_email_registered: { Args: { check_email: string }; Returns: boolean }
@@ -2552,6 +2648,7 @@ export type Database = {
       }
       my_read_receipts_enabled: { Args: never; Returns: boolean }
       owns_collection: { Args: { cid: string }; Returns: boolean }
+      owns_drop: { Args: { did: string }; Returns: boolean }
       owns_location: { Args: { lid: string }; Returns: boolean }
       owns_option: { Args: { oid: string }; Returns: boolean }
       owns_product: { Args: { pid: string }; Returns: boolean }
@@ -2559,6 +2656,19 @@ export type Database = {
       owns_tag: { Args: { tid: string }; Returns: boolean }
       owns_variant: { Args: { vid: string }; Returns: boolean }
       read_receipts_enabled: { Args: { uid: string }; Returns: boolean }
+      save_product_edit: {
+        Args: {
+          p_collection_ids: string[]
+          p_measurements: Json
+          p_options: Json
+          p_post_ids: string[]
+          p_product: Json
+          p_product_id: string
+          p_tag_ids: string[]
+          p_variants: Json
+        }
+        Returns: undefined
+      }
       start_direct_conversation: {
         Args: { other_user: string }
         Returns: string

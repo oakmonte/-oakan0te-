@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/integrations/my-supabase/client";
+import type { Json } from "@/lib/integrations/my-supabase/types";
 import { grossUpForNet } from "@/lib/pricing-fees";
 import { clearAutosavedDraft } from "@/lib/product-draft-handoff";
 import { stockTotal } from "@/components/product-form/variant-stock";
@@ -6,6 +7,13 @@ import type { VariantOption, VariantRow } from "@/components/product-form/Varian
 import type { ManualSize, SizeMeasurements } from "@/lib/size-chart-config";
 import type { BarcodeEntry } from "@/lib/barcode-types";
 import { computeIsComplete, type CompletenessInput } from "@/lib/product-completeness";
+import {
+  planRegularVariantId,
+  planVariantIds,
+  type ExistingOption,
+  type ExistingVariant,
+  type PlannedOption,
+} from "@/lib/product-variant-ids";
 
 // Saving a product used to block its form page until every insert/update
 // finished — a variant product alone is 8+ sequential round trips (options,
@@ -409,52 +417,102 @@ async function runCreate(
   if (finalRes.error) throw new Error(`products: ${finalRes.error.message}`);
 }
 
+/** What the product has now, in the shape planVariantIds matches against. */
+async function loadExistingChildren(
+  productId: string,
+): Promise<{ options: ExistingOption[]; variants: ExistingVariant[] }> {
+  const [optionsRes, variantsRes] = await Promise.all([
+    supabase
+      .from("product_options")
+      .select("id, name, position, product_option_values(id, value)")
+      .eq("product_id", productId),
+    supabase
+      .from("product_variants")
+      .select(
+        "id, created_at, option1_name, option1_value, option2_name, option2_value, option3_name, option3_value, product_variant_options(option_id, value_id)",
+      )
+      .eq("product_id", productId),
+  ]);
+  if (optionsRes.error) throw new Error(`product_options: ${optionsRes.error.message}`);
+  if (variantsRes.error) throw new Error(`product_variants: ${variantsRes.error.message}`);
+
+  const options: ExistingOption[] = (optionsRes.data ?? []).map((o) => ({
+    id: o.id,
+    name: o.name,
+    position: o.position,
+    values: (o.product_option_values ?? []).map((v) => ({ id: v.id, value: v.value })),
+  }));
+  const variants: ExistingVariant[] = (variantsRes.data ?? []).map((v) => {
+    const flat: { name: string; value: string }[] = [];
+    const slots: [string | null, string | null][] = [
+      [v.option1_name, v.option1_value],
+      [v.option2_name, v.option2_value],
+      [v.option3_name, v.option3_value],
+    ];
+    for (const [name, value] of slots) {
+      if (name && value) flat.push({ name, value });
+    }
+    return {
+      id: v.id,
+      createdAt: v.created_at,
+      links: (v.product_variant_options ?? []).map((l) => ({
+        optionId: l.option_id,
+        valueId: l.value_id,
+      })),
+      flat,
+    };
+  });
+  return { options, variants };
+}
+
+function stockRows(locationQuantities: Record<string, number>) {
+  return Object.entries(locationQuantities).map(([location_id, quantity]) => ({
+    location_id,
+    quantity,
+  }));
+}
+
+function barcodeRows(entries: BarcodeEntry[]) {
+  return entries
+    .filter((b) => b.value.trim().length > 0)
+    .map((b, i) => ({ type: b.type, value: b.value.trim(), position: i }));
+}
+
+// Edits update the product's rows in place instead of deleting and
+// re-inserting them: variant ids are referenced by offers (ON DELETE CASCADE)
+// and by buyers' bags, so a rebuild wiped every open offer and turned every
+// bag line unavailable on any edit, even a title typo. Which existing row each
+// incoming one IS -- renamed and removed options included -- is decided in
+// product-variant-ids.ts; the write itself is one Postgres function
+// (save_product_edit, migration 20261103120000), so a failure part-way rolls
+// the whole save back instead of leaving the product with no variants. It
+// also finishes a half-written create (see run()): rows that exist are kept,
+// missing ones inserted.
 async function runUpdate(payload: Extract<ProductSavePayload, { mode: "update" }>) {
   const productId = payload.productId;
   const selectedRows = payload.rows.filter((r) => r.selected);
+  const existing = await loadExistingChildren(productId);
 
-  const { error: productErr } = await supabase
-    .from("products")
-    .update({
-      title: payload.title.trim(),
-      description_short: payload.descriptionShort.trim() || null,
-      product_type: payload.categoryName || null,
-      status: payload.status,
-      is_complete: computeIsComplete(completenessInput(payload)),
-      pass_fees_to_buyer: payload.passFeesToBuyer,
-      manual_size_value: payload.manualSize?.value ?? null,
-      manual_size_system: payload.manualSize?.system ?? null,
-    })
-    // handle, source_platform, external_handle and category_id are
-    // deliberately left out of this payload: handle is the public slug (a
-    // seller renaming the title must not change their product's URL), and
-    // the rest are provenance an edit here shouldn't touch.
-    .eq("id", productId);
-  if (productErr) throw new Error(productErr.message);
-
-  // Rebuild children from scratch rather than diffing them by id — same
-  // choice execute.js makes for imports, for the same reason: diffing
-  // sounds better until a seller renames or removes an option, at which
-  // point it silently strands the old rows. product_variants cascades
-  // product_variant_options; product_options cascades product_option_values.
-  const variantsDel = await supabase.from("product_variants").delete().eq("product_id", productId);
-  if (variantsDel.error) throw new Error(`product_variants: ${variantsDel.error.message}`);
-  const optionsDel = await supabase.from("product_options").delete().eq("product_id", productId);
-  if (optionsDel.error) throw new Error(`product_options: ${optionsDel.error.message}`);
+  let options: PlannedOption[] = [];
+  let variants: Json[];
 
   if (payload.kind === "regular") {
-    const regularStockQty = stockTotal({
-      locationQuantities: payload.regularLocationQuantities,
-      legacyStockQty: payload.regularLegacyStockQty,
-    });
-    const { data: variant, error: variantErr } = await supabase
-      .from("product_variants")
-      .insert({
-        product_id: productId,
+    variants = [
+      {
+        id: planRegularVariantId(existing.variants),
+        option1_name: null,
+        option1_value: null,
+        option2_name: null,
+        option2_value: null,
+        option3_name: null,
+        option3_value: null,
         price: chargedPrice(payload.price, payload.passFeesToBuyer),
         compare_at_price: payload.compareAtPrice ? Number(payload.compareAtPrice) : null,
         cost_price: payload.costPrice ? Number(payload.costPrice) : null,
-        stock_qty: regularStockQty,
+        stock_qty: stockTotal({
+          locationQuantities: payload.regularLocationQuantities,
+          legacyStockQty: payload.regularLegacyStockQty,
+        }),
         material: payload.material.trim() || null,
         colors: payload.regularColors.length > 0 ? payload.regularColors : null,
         main_image_url: payload.mainImageUrl.trim() || null,
@@ -463,45 +521,19 @@ async function runUpdate(payload: Extract<ProductSavePayload, { mode: "update" }
         material_feel: payload.regularMaterialFeel,
         weight_grams: payload.regularWeightGrams,
         additional_image_urls: payload.regularAdditionalImageUrls,
-      })
-      .select("id")
-      .single();
-    if (variantErr || !variant)
-      throw new Error(`product_variants: ${variantErr?.message ?? "insert failed"}`);
-
-    const stockPayload = Object.entries(payload.regularLocationQuantities).map(
-      ([locationId, quantity]) => ({ variant_id: variant.id, location_id: locationId, quantity }),
-    );
-    if (stockPayload.length > 0) {
-      const stockRes = await supabase.from("product_variant_stock").insert(stockPayload);
-      if (stockRes.error) throw new Error(`product_variant_stock: ${stockRes.error.message}`);
-    }
-
-    await insertBarcodes(barcodeInsertRows(variant.id, payload.regularBarcodes));
+        links: [],
+        stock: stockRows(payload.regularLocationQuantities),
+        barcodes: barcodeRows(payload.regularBarcodes),
+      },
+    ];
   } else {
     const usableOptions = payload.options.filter((o) => o.name.trim() && o.values.length > 0);
-
-    const optionIds = usableOptions.map(() => crypto.randomUUID());
-    const valueIds = new Map<string, string>();
-
-    const optionsPayload = usableOptions.map((o, i) => ({
-      id: optionIds[i],
-      product_id: productId,
-      name: o.name.trim(),
-      position: i,
-    }));
-
-    const valuesPayload = usableOptions.flatMap((o, oi) =>
-      o.values.map((v, vi) => {
-        const id = crypto.randomUUID();
-        valueIds.set(`${oi}|${v}`, id);
-        return { id, option_id: optionIds[oi], value: v, position: vi };
-      }),
-    );
-
-    const variantsPayload = selectedRows.map((r) => ({
-      id: crypto.randomUUID(),
-      product_id: productId,
+    const plan = planVariantIds(existing.options, existing.variants, usableOptions, selectedRows);
+    options = plan.options;
+    variants = selectedRows.map((r, ri) => ({
+      id: plan.variants[ri].id,
+      // The flat columns stay in sync until the contract migration drops
+      // them, so anything still reading option1_*/option2_* keeps working.
       option1_name: r.options[0]?.name ?? null,
       option1_value: r.options[0]?.value ?? null,
       option2_name: r.options[1]?.name ?? null,
@@ -517,106 +549,44 @@ async function runUpdate(payload: Extract<ProductSavePayload, { mode: "update" }
       main_image_url: r.mainImageUrl.trim() || payload.mainImageUrl.trim() || null,
       material: r.material ?? null,
       material_feel: r.materialFeel ?? null,
+      // Variant rows have no colours field; the rebuild always wrote null.
+      colors: null,
       weight_grams: r.weightGrams ?? null,
       additional_image_urls: r.additionalImageUrls ?? null,
+      links: plan.variants[ri].links.map((l) => ({ option_id: l.optionId, value_id: l.valueId })),
+      stock: stockRows(r.locationQuantities),
+      barcodes: barcodeRows(r.barcodes ?? []),
     }));
-
-    const barcodeRows = selectedRows.flatMap((r, ri) =>
-      barcodeInsertRows(variantsPayload[ri].id, r.barcodes ?? []),
-    );
-
-    const stockPayload = selectedRows.flatMap((r, ri) =>
-      Object.entries(r.locationQuantities).map(([locationId, quantity]) => ({
-        variant_id: variantsPayload[ri].id,
-        location_id: locationId,
-        quantity,
-      })),
-    );
-
-    const linksPayload = selectedRows.flatMap((r, ri) =>
-      r.options.map((o, oi) => ({
-        variant_id: variantsPayload[ri].id,
-        option_id: optionIds[oi],
-        value_id: valueIds.get(`${oi}|${o.value}`)!,
-      })),
-    );
-
-    const optionsRes = await supabase.from("product_options").insert(optionsPayload);
-    if (optionsRes.error) throw new Error(`product_options: ${optionsRes.error.message}`);
-
-    const valuesRes = await supabase.from("product_option_values").insert(valuesPayload);
-    if (valuesRes.error) throw new Error(`product_option_values: ${valuesRes.error.message}`);
-
-    const variantsRes = await supabase.from("product_variants").insert(variantsPayload);
-    if (variantsRes.error) throw new Error(`product_variants: ${variantsRes.error.message}`);
-
-    const linksRes = await supabase.from("product_variant_options").insert(linksPayload);
-    if (linksRes.error) throw new Error(`product_variant_options: ${linksRes.error.message}`);
-
-    if (stockPayload.length > 0) {
-      const stockRes = await supabase.from("product_variant_stock").insert(stockPayload);
-      if (stockRes.error) throw new Error(`product_variant_stock: ${stockRes.error.message}`);
-    }
-
-    await insertBarcodes(barcodeRows);
   }
 
-  const measurementsDel = await supabase
-    .from("product_size_measurements")
-    .delete()
-    .eq("product_id", productId);
-  if (measurementsDel.error)
-    throw new Error(`product_size_measurements: ${measurementsDel.error.message}`);
-
-  const measurementsPayload = Object.entries(payload.sizeMeasurements).flatMap(
-    ([sizeValue, byKey]) =>
-      Object.entries(byKey).map(([measurementKey, valueCm]) => ({
-        product_id: productId,
-        size_value: sizeValue,
-        measurement_key: measurementKey,
-        value_cm: valueCm,
-      })),
+  const measurements = Object.entries(payload.sizeMeasurements).flatMap(([sizeValue, byKey]) =>
+    Object.entries(byKey).map(([measurementKey, valueCm]) => ({
+      size_value: sizeValue,
+      measurement_key: measurementKey,
+      value_cm: valueCm,
+    })),
   );
-  if (measurementsPayload.length > 0) {
-    const measurementsRes = await supabase
-      .from("product_size_measurements")
-      .insert(measurementsPayload);
-    if (measurementsRes.error)
-      throw new Error(`product_size_measurements: ${measurementsRes.error.message}`);
-  }
 
-  const collectionsDel = await supabase
-    .from("product_collections")
-    .delete()
-    .eq("product_id", productId);
-  if (collectionsDel.error) throw new Error(`product_collections: ${collectionsDel.error.message}`);
-  if (payload.collectionIds.length > 0) {
-    const { error: collectionsErr } = await supabase.from("product_collections").insert(
-      payload.collectionIds.map((collectionId) => ({
-        product_id: productId,
-        collection_id: collectionId,
-      })),
-    );
-    if (collectionsErr) throw new Error(`product_collections: ${collectionsErr.message}`);
-  }
-
-  const tagsDel = await supabase.from("product_tags").delete().eq("product_id", productId);
-  if (tagsDel.error) throw new Error(`product_tags: ${tagsDel.error.message}`);
-  if (payload.tagIds.length > 0) {
-    const { error: tagsErr } = await supabase
-      .from("product_tags")
-      .insert(payload.tagIds.map((tagId) => ({ product_id: productId, tag_id: tagId })));
-    if (tagsErr) throw new Error(`product_tags: ${tagsErr.message}`);
-  }
-
-  const linksDel = await supabase.from("post_product_tags").delete().eq("product_id", productId);
-  if (linksDel.error) throw new Error(`post_product_tags: ${linksDel.error.message}`);
-  if (payload.linkedPostIds.length > 0) {
-    const { error: linksErr } = await supabase
-      .from("post_product_tags")
-      .insert(payload.linkedPostIds.map((postId) => ({ product_id: productId, post_id: postId })));
-    if (linksErr) throw new Error(`post_product_tags: ${linksErr.message}`);
-  }
+  const { error } = await supabase.rpc("save_product_edit", {
+    p_product_id: productId,
+    p_product: {
+      title: payload.title.trim(),
+      description_short: payload.descriptionShort.trim() || null,
+      product_type: payload.categoryName || null,
+      status: payload.status,
+      is_complete: computeIsComplete(completenessInput(payload)),
+      pass_fees_to_buyer: payload.passFeesToBuyer,
+      manual_size_value: payload.manualSize?.value ?? null,
+      manual_size_system: payload.manualSize?.system ?? null,
+    },
+    p_options: options,
+    p_variants: variants,
+    p_measurements: measurements,
+    p_collection_ids: payload.collectionIds,
+    p_tag_ids: payload.tagIds,
+    p_post_ids: payload.linkedPostIds,
+  });
+  if (error) throw new Error(error.message);
 }
 
 // Defense in depth: the product-form routes already block Save while
@@ -653,8 +623,8 @@ async function run(payload: ProductSavePayload) {
         // failure at any later step used to leave a real product behind — and
         // Retry, still in create mode, made a SECOND one. Promoting the retry
         // payload to an update against the row we just made is what stops
-        // that: runUpdate rebuilds every child table from scratch, which is
-        // exactly the cleanup a half-finished create needs.
+        // that: runUpdate writes the full desired state, keeping rows that exist
+        // and adding the missing ones -- the cleanup a half-finished create needs.
         pendingPayload = { ...payload, mode: "update", productId };
       });
     } else {

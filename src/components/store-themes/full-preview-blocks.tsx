@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import productPlaceholder from "@/assets/Store theme placeholder images/Products and collection image placeholder.jpg";
 import { ThemeText } from "./EditableText";
+import { cdnSrcSet, IMAGE_SIZES } from "@/lib/cdn-image";
 import { LogoEditor } from "@/components/store/LogoEditor";
 import { MAX_SLIDESHOW_IMAGES, type CropPosition, type ThemeEditingProps } from "./edit-types";
 import { formatCommunityCount, useStoreCommunityCounts } from "./useStoreCommunityCounts";
@@ -87,12 +88,23 @@ function CroppableImage({
   position,
   onPositionChange,
   editable,
+  sizes,
+  priority,
+  lazy,
 }: {
   src: string;
   alt?: string;
   position?: CropPosition;
   onPositionChange?: (position: CropPosition) => void;
   editable?: boolean;
+  /** The slot's CSS width (IMAGE_SIZES), so a resized copy is fetched
+   *  instead of the original (lib/cdn-image.ts). */
+  sizes?: string;
+  /** true: the page's main image (the first hero slide), fetched first.
+   *  false: another hero slide, fetched after it. */
+  priority?: boolean;
+  /** Below the fold: fetched only as it nears the screen. */
+  lazy?: boolean;
 }) {
   const savedPos = position ?? { x: 50, y: 50 };
   const savedScale = savedPos.scale ?? 1;
@@ -247,6 +259,16 @@ function CroppableImage({
       <img
         ref={imgRef}
         src={src}
+        // The editor shows the full original; a cropped, zoomed photo there
+        // needs every pixel.
+        srcSet={editable || !sizes ? undefined : cdnSrcSet(src)}
+        sizes={editable ? undefined : sizes}
+        loading={lazy && !priority ? "lazy" : undefined}
+        // A hero slide that isn't the first is told so (priority={false}):
+        // React 19 preloads every eager <img> it server-renders, and five
+        // full-size slides racing the first one is what slows the first.
+        fetchPriority={priority ? "high" : priority === false ? "low" : undefined}
+        decoding={priority ? undefined : "async"}
         alt={alt}
         draggable={false}
         className="h-full w-full object-cover"
@@ -493,6 +515,8 @@ export function CatalogTile({
             >
               <CroppableImage
                 src={photo.url}
+                sizes={IMAGE_SIZES.tile}
+                lazy
                 editable={isEditing}
                 position={editing?.tileCrops[`${mode}:${tile.id}:${photo.url}`]}
                 onPositionChange={(pos) =>
@@ -1116,6 +1140,7 @@ function DesktopHeroCards({
                 >
                   <CroppableImage
                     src={src}
+                    sizes={IMAGE_SIZES.heroCard}
                     editable={isEditing}
                     position={editing?.slideshowCrops[src]}
                     onPositionChange={(pos) => editing?.onSlideshowCropChange(src, pos)}
@@ -1159,6 +1184,8 @@ function DesktopHeroCards({
               >
                 <CroppableImage
                   src={src}
+                  sizes={IMAGE_SIZES.heroCard}
+                  priority={i === 0}
                   editable={isEditing}
                   position={editing?.slideshowCrops[src]}
                   onPositionChange={(pos) => editing?.onSlideshowCropChange(src, pos)}
@@ -1379,7 +1406,7 @@ function HeroSlideshowInner({
               transform: `translateX(-${index * (100 / images.length)}%)`,
             }}
           >
-            {images.map((src) => (
+            {images.map((src, i) => (
               <div
                 key={src}
                 className="h-full shrink-0"
@@ -1387,6 +1414,8 @@ function HeroSlideshowInner({
               >
                 <CroppableImage
                   src={src}
+                  sizes={IMAGE_SIZES.hero}
+                  priority={i === 0}
                   editable={isEditing}
                   position={editing?.slideshowCrops[src]}
                   onPositionChange={(pos) => editing?.onSlideshowCropChange(src, pos)}

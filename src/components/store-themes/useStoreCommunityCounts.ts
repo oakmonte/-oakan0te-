@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/integrations/my-supabase/client";
+import { useStorefrontSeed } from "@/lib/storefront-seed";
 
 export type StoreCommunityCounts = {
   /** People following the seller who owns this store. */
@@ -25,6 +26,8 @@ const EMPTY: StoreCommunityCounts = { followers: 0, wearing: 0 };
 // it (StatsRow and FooterTeaser, both rendered by every theme) share one
 // fetch instead of firing the same pair of requests twice.
 export function useStoreCommunityCounts(storeId: string | null) {
+  // A public storefront's counts came with the page (StorefrontDataContext).
+  const seeded = useStorefrontSeed(storeId)?.counts;
   const { data } = useQuery({
     queryKey: ["store-community-counts", storeId] as const,
     queryFn: async (): Promise<StoreCommunityCounts> => {
@@ -45,10 +48,10 @@ export function useStoreCommunityCounts(storeId: string | null) {
         wearing: stats?.sold_items_count ?? 0,
       };
     },
-    enabled: !!storeId,
+    enabled: !!storeId && !seeded,
     staleTime: 30_000,
   });
-  return data ?? EMPTY;
+  return seeded ?? data ?? EMPTY;
 }
 
 // 4 digits stay exact (1..9999); past that the K/M short forms keep a long

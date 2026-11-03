@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useActiveStoreId } from "@/hooks/use-own-store";
+import { useStorefrontSeed } from "@/lib/storefront-seed";
 import type { LayoutId } from "./layout-presets";
 import type {
   DesktopHero,
@@ -68,19 +69,54 @@ function joinText(state: ThemeEditState) {
   };
 }
 
+export const CUSTOMIZATION_SELECT =
+  "layout_id, logo_mode, logo_image_url, slideshow_image_urls, text, text_fonts, hidden_blocks, sticky_bottom";
+
+type CustomizationRow = {
+  layout_id: string;
+  logo_mode: string;
+  logo_image_url: string | null;
+  slideshow_image_urls: string[] | null;
+  text: unknown;
+  text_fonts: unknown;
+  hidden_blocks: string[] | null;
+  sticky_bottom: boolean | null;
+};
+
+export function parseCustomizationRow(data: CustomizationRow): SavedThemeCustomization {
+  return {
+    layoutId: data.layout_id as LayoutId,
+    logoMode: data.logo_mode as "image" | "text",
+    logoImage: data.logo_image_url,
+    slideshowImages: data.slideshow_image_urls ?? [],
+    ...splitText(data.text),
+    textFonts: (data.text_fonts ?? {}) as ThemeTextFonts,
+    hiddenBlocks: (data.hidden_blocks ?? []) as RemovableBlockId[],
+    stickyBottom: data.sticky_bottom,
+  };
+}
+
 export function useThemeCustomization(themeId: ThemeId, storeIdOverride?: string | null) {
-  const { storeId: activeStoreId, loading: activeStoreLoading } = useActiveStoreId();
+  // Only the editor (no override) needs to know which store is the seller's own.
+  const { storeId: activeStoreId, loading: activeStoreLoading } = useActiveStoreId(
+    storeIdOverride === undefined,
+  );
   const storeId = storeIdOverride ?? activeStoreId;
   const storeLoading = storeIdOverride === undefined && activeStoreLoading;
-  const [loading, setLoading] = useState(true);
-  const [saved, setSaved] = useState<SavedThemeCustomization | null>(null);
+  // A public storefront's customization came with the page -- but only for the
+  // theme it was loaded for.
+  const seed = useStorefrontSeed(storeIdOverride);
+  const seeded =
+    seed && (seed.themeSlug ?? "motion") === themeId ? { saved: seed.customization } : null;
+  const [loading, setLoading] = useState(!seeded);
+  const [saved, setSaved] = useState<SavedThemeCustomization | null>(seeded?.saved ?? null);
   // Distinct from "no saved row": a failed read means we DON'T KNOW what's
   // stored, so the editor must not offer a Save that would write defaults
   // over whatever the seller had. `saved` alone can't tell the two apart.
   const [loadFailed, setLoadFailed] = useState(false);
 
   useEffect(() => {
-    if (storeLoading) return;
+    if (storeLoading || seeded) return;
     setLoadFailed(false);
     if (!storeId) {
       setSaved(null);
@@ -94,9 +130,7 @@ export function useThemeCustomization(themeId: ThemeId, storeIdOverride?: string
     (async () => {
       const { data, error } = await supabase
         .from("store_theme_customizations")
-        .select(
-          "layout_id, logo_mode, logo_image_url, slideshow_image_urls, text, text_fonts, hidden_blocks, sticky_bottom",
-        )
+        .select(CUSTOMIZATION_SELECT)
         .eq("store_id", storeId)
         .eq("theme_slug", themeId)
         .maybeSingle();
@@ -105,27 +139,16 @@ export function useThemeCustomization(themeId: ThemeId, storeIdOverride?: string
         console.error("useThemeCustomization: load failed", error);
         setLoadFailed(true);
       }
-      setSaved(
-        !data || error
-          ? null
-          : {
-              layoutId: data.layout_id as LayoutId,
-              logoMode: data.logo_mode as "image" | "text",
-              logoImage: data.logo_image_url,
-              slideshowImages: data.slideshow_image_urls ?? [],
-              ...splitText(data.text),
-              textFonts: (data.text_fonts ?? {}) as ThemeTextFonts,
-              hiddenBlocks: (data.hidden_blocks ?? []) as RemovableBlockId[],
-              stickyBottom: data.sticky_bottom,
-            },
-      );
+      setSaved(!data || error ? null : parseCustomizationRow(data));
       setLoading(false);
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [themeId, storeId, storeLoading]);
+    // `seeded` is derived fresh each render; only whether there is one matters.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [themeId, storeId, storeLoading, !!seeded]);
 
   // Returns an error message, or null on success. It used to await the
   // upsert and discard the result, so a failed save looked exactly like a

@@ -48,6 +48,18 @@ export function createMySupabaseClient(storageKey?: string) {
   });
 }
 
+export type MySupabaseClient = ReturnType<typeof createMySupabaseClient>;
+
+/** No session, no storage, no refresh: for public reads on the server (the
+ *  storefront loader). Runs as `anon`, so it sees exactly what a signed-out
+ *  visitor's browser would -- never a private column. */
+export function createMyAnonClient(): MySupabaseClient {
+  return createClient<Database>(MY_SUPABASE_URL, MY_SUPABASE_PUBLISHABLE_KEY, {
+    global: { fetch: createSupabaseFetch(MY_SUPABASE_PUBLISHABLE_KEY) },
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+  }) as MySupabaseClient;
+}
+
 let _client: ReturnType<typeof createMySupabaseClient> | undefined;
 
 // Import like: import { supabase } from "@/integrations/my-supabase/client";

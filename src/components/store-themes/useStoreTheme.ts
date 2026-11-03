@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { useActiveStoreId } from "@/hooks/use-own-store";
+import { useStorefrontSeed } from "@/lib/storefront-seed";
 import type { ThemeId } from "./types";
 
 const DEFAULT_THEME: ThemeId = "motion";
@@ -13,7 +14,10 @@ const DEFAULT_THEME: ThemeId = "motion";
 // (from session); pass it explicitly to look up which theme a specific store
 // has picked, for public/read-only rendering (see PublicStorefront).
 export function useStoreTheme(storeIdOverride?: string | null) {
-  const { storeId: activeStoreId, loading: activeStoreLoading } = useActiveStoreId();
+  // Only the seller's own editor (no override) needs their stores looked up.
+  const { storeId: activeStoreId, loading: activeStoreLoading } = useActiveStoreId(
+    storeIdOverride === undefined,
+  );
   const storeId = storeIdOverride ?? activeStoreId;
   const storeLoading = storeIdOverride === undefined && activeStoreLoading;
   // Two separate things, and conflating them is what made the theme picker
@@ -25,12 +29,15 @@ export function useStoreTheme(storeIdOverride?: string | null) {
   //   pickedThemeId what the seller actually CHOSE. Null until they have, so
   //                 the picker can show nothing selected rather than implying
   //                 a decision they never made.
-  const [themeId, setThemeIdState] = useState<ThemeId>(DEFAULT_THEME);
-  const [pickedThemeId, setPickedThemeId] = useState<ThemeId | null>(null);
-  const [loading, setLoading] = useState(true);
+  // A public storefront's theme came with the page (StorefrontDataContext).
+  const seed = useStorefrontSeed(storeIdOverride);
+  const seededSlug = seed ? ((seed.themeSlug as ThemeId | null) ?? null) : undefined;
+  const [themeId, setThemeIdState] = useState<ThemeId>(seededSlug ?? DEFAULT_THEME);
+  const [pickedThemeId, setPickedThemeId] = useState<ThemeId | null>(seededSlug ?? null);
+  const [loading, setLoading] = useState(seededSlug === undefined);
 
   useEffect(() => {
-    if (storeLoading) return;
+    if (storeLoading || seededSlug !== undefined) return;
     if (!storeId) {
       setLoading(false);
       return;
@@ -55,7 +62,7 @@ export function useStoreTheme(storeIdOverride?: string | null) {
     return () => {
       cancelled = true;
     };
-  }, [storeId, storeLoading]);
+  }, [storeId, storeLoading, seededSlug]);
 
   const selectTheme = useCallback(
     async (id: ThemeId) => {

@@ -3,6 +3,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { ChevronLeft, ExternalLink, Search, Share2, ShoppingBag } from "lucide-react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
+import { useStorefrontSeed } from "@/lib/storefront-seed";
 import { GLASS_RIM, glassLens, glassLight } from "@/lib/liquid-glass";
 import { useBack } from "@/hooks/use-back";
 import shopIcon from "@/assets/Store.svg";
@@ -49,10 +50,13 @@ export function StorefrontNav({
   const navigate = useNavigate();
   const search = useContext(StorefrontSearchContext);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [storeUsername, setStoreUsername] = useState<string | null>(null);
+  // A public storefront already knows its handle (StorefrontDataContext).
+  const seededUsername = useStorefrontSeed(storeId)?.store.store_username ?? null;
+  const [storeUsername, setStoreUsername] = useState<string | null>(seededUsername);
   const { banner: lockedBanner, showLocked } = useLockedBanner();
 
   useEffect(() => {
+    if (seededUsername) return;
     let cancelled = false;
     void (async () => {
       const { data: store } = await supabase
@@ -65,7 +69,7 @@ export function StorefrontNav({
     return () => {
       cancelled = true;
     };
-  }, [storeId]);
+  }, [storeId, seededUsername]);
 
   const tabs: { key: StorefrontTab; label: string; icon: string }[] = [
     { key: "shop", label: "Shop", icon: shopIcon },

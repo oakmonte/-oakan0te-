@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { DROPS_ENABLED, pickLiveDrop, type LiveDrop } from "@/lib/drops";
+import { useStorefrontSeed } from "@/lib/storefront-seed";
 
 // Shared across every caller for the same store: a storefront renders the
 // drop banner once, but the editor sheet and the theme picker ask as well,
@@ -36,10 +37,16 @@ function loadDrops(storeId: string): Promise<LiveDrop[]> {
  *  banner at all, not an empty or placeholder one. Re-picks when the chosen
  *  drop ends, so a banner doesn't sit there for a drop that's over. */
 export function useStoreLiveDrop(storeId: string | null): LiveDrop | null {
-  const [drops, setDrops] = useState<LiveDrop[]>([]);
+  // A public storefront's drops came with the page (StorefrontDataContext).
+  const seeded = useStorefrontSeed(storeId)?.drops ?? null;
+  const [drops, setDrops] = useState<LiveDrop[]>(seeded ?? []);
   const [, setTick] = useState(0);
 
   useEffect(() => {
+    if (seeded) {
+      setDrops(seeded);
+      return;
+    }
     setDrops([]);
     if (!storeId || !DROPS_ENABLED) return;
     let cancelled = false;
@@ -49,7 +56,7 @@ export function useStoreLiveDrop(storeId: string | null): LiveDrop | null {
     return () => {
       cancelled = true;
     };
-  }, [storeId]);
+  }, [storeId, seeded]);
 
   const live = pickLiveDrop(drops);
 

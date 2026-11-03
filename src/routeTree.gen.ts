@@ -112,6 +112,7 @@ import { Route as ApiStoreConnectionsRouteImport } from './routes/api.store.conn
 import { Route as ApiStoreOffersRouteImport } from './routes/api.store.offers'
 import { Route as ApiStoreOrdersRouteImport } from './routes/api.store.orders'
 import { Route as ApiStorePayoutRouteImport } from './routes/api.store.payout'
+import { Route as ApiStorefrontHandleRouteImport } from './routes/api.storefront.$handle'
 import { Route as ApiSupportMessagesMineRouteImport } from './routes/api.support-messages.mine'
 import { Route as ApiSupportMessagesReplyRouteImport } from './routes/api.support-messages.reply'
 import { Route as ApiSupportMessagesStaffRouteImport } from './routes/api.support-messages.staff'
@@ -656,6 +657,11 @@ const ApiStorePayoutRoute = ApiStorePayoutRouteImport.update({
   path: '/api/store/payout',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiStorefrontHandleRoute = ApiStorefrontHandleRouteImport.update({
+  id: '/api/storefront/$handle',
+  path: '/api/storefront/$handle',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiSupportMessagesMineRoute = ApiSupportMessagesMineRouteImport.update({
   id: '/api/support-messages/mine',
   path: '/api/support-messages/mine',
@@ -884,6 +890,7 @@ export interface FileRoutesByFullPath {
   '/api/store/offers': typeof ApiStoreOffersRouteWithChildren
   '/api/store/orders': typeof ApiStoreOrdersRouteWithChildren
   '/api/store/payout': typeof ApiStorePayoutRoute
+  '/api/storefront/$handle': typeof ApiStorefrontHandleRoute
   '/api/support-messages/mine': typeof ApiSupportMessagesMineRoute
   '/api/support-messages/reply': typeof ApiSupportMessagesReplyRoute
   '/api/support-messages/staff': typeof ApiSupportMessagesStaffRoute
@@ -1010,6 +1017,7 @@ export interface FileRoutesByTo {
   '/api/store/offers': typeof ApiStoreOffersRouteWithChildren
   '/api/store/orders': typeof ApiStoreOrdersRouteWithChildren
   '/api/store/payout': typeof ApiStorePayoutRoute
+  '/api/storefront/$handle': typeof ApiStorefrontHandleRoute
   '/api/support-messages/mine': typeof ApiSupportMessagesMineRoute
   '/api/support-messages/reply': typeof ApiSupportMessagesReplyRoute
   '/api/support-messages/staff': typeof ApiSupportMessagesStaffRoute
@@ -1140,6 +1148,7 @@ export interface FileRoutesById {
   '/api/store/offers': typeof ApiStoreOffersRouteWithChildren
   '/api/store/orders': typeof ApiStoreOrdersRouteWithChildren
   '/api/store/payout': typeof ApiStorePayoutRoute
+  '/api/storefront/$handle': typeof ApiStorefrontHandleRoute
   '/api/support-messages/mine': typeof ApiSupportMessagesMineRoute
   '/api/support-messages/reply': typeof ApiSupportMessagesReplyRoute
   '/api/support-messages/staff': typeof ApiSupportMessagesStaffRoute
@@ -1271,6 +1280,7 @@ export interface FileRouteTypes {
     | '/api/store/offers'
     | '/api/store/orders'
     | '/api/store/payout'
+    | '/api/storefront/$handle'
     | '/api/support-messages/mine'
     | '/api/support-messages/reply'
     | '/api/support-messages/staff'
@@ -1397,6 +1407,7 @@ export interface FileRouteTypes {
     | '/api/store/offers'
     | '/api/store/orders'
     | '/api/store/payout'
+    | '/api/storefront/$handle'
     | '/api/support-messages/mine'
     | '/api/support-messages/reply'
     | '/api/support-messages/staff'
@@ -1526,6 +1537,7 @@ export interface FileRouteTypes {
     | '/api/store/offers'
     | '/api/store/orders'
     | '/api/store/payout'
+    | '/api/storefront/$handle'
     | '/api/support-messages/mine'
     | '/api/support-messages/reply'
     | '/api/support-messages/staff'
@@ -1635,6 +1647,7 @@ export interface RootRouteChildren {
   ApiStoreOffersRoute: typeof ApiStoreOffersRouteWithChildren
   ApiStoreOrdersRoute: typeof ApiStoreOrdersRouteWithChildren
   ApiStorePayoutRoute: typeof ApiStorePayoutRoute
+  ApiStorefrontHandleRoute: typeof ApiStorefrontHandleRoute
   ApiSupportMessagesMineRoute: typeof ApiSupportMessagesMineRoute
   ApiSupportMessagesReplyRoute: typeof ApiSupportMessagesReplyRoute
   ApiSupportMessagesStaffRoute: typeof ApiSupportMessagesStaffRoute
@@ -2364,6 +2377,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiStorePayoutRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/storefront/$handle': {
+      id: '/api/storefront/$handle'
+      path: '/api/storefront/$handle'
+      fullPath: '/api/storefront/$handle'
+      preLoaderRoute: typeof ApiStorefrontHandleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/support-messages/mine': {
       id: '/api/support-messages/mine'
       path: '/api/support-messages/mine'
@@ -2787,6 +2807,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiStoreOffersRoute: ApiStoreOffersRouteWithChildren,
   ApiStoreOrdersRoute: ApiStoreOrdersRouteWithChildren,
   ApiStorePayoutRoute: ApiStorePayoutRoute,
+  ApiStorefrontHandleRoute: ApiStorefrontHandleRoute,
   ApiSupportMessagesMineRoute: ApiSupportMessagesMineRoute,
   ApiSupportMessagesReplyRoute: ApiSupportMessagesReplyRoute,
   ApiSupportMessagesStaffRoute: ApiSupportMessagesStaffRoute,

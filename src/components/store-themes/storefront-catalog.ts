@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/integrations/my-supabase/client";
+import { supabase, type MySupabaseClient } from "@/lib/integrations/my-supabase/client";
+import { useStorefrontSeed } from "@/lib/storefront-seed";
 
 export type TilePhoto = {
   url: string;
@@ -115,19 +116,24 @@ export async function loadCollectionPage(
   };
 }
 
-async function fetchCatalog(storeId: string): Promise<StorefrontCatalog> {
+/** `client` is the server's anon client when the storefront loader calls
+ *  this (lib/storefront-data.ts); the browser's otherwise. */
+export async function fetchCatalog(
+  storeId: string,
+  client: MySupabaseClient = supabase,
+): Promise<StorefrontCatalog> {
   // Everything here feeds the PUBLIC storefront, so drafts stay out on both
   // sides. Collections are few, so all of them come back (for the count);
   // products come back as bare ids plus their collection links first, and
   // only the handful actually shown get their variants and photos.
   const [cols, prods] = await Promise.all([
-    supabase
+    client
       .from("collections")
       .select("id, title, image_url, additional_image_urls")
       .eq("store_id", storeId)
       .eq("status", "active")
       .order("created_at", { ascending: false }),
-    supabase
+    client
       .from("products")
       .select("id, product_collections(collection_id)")
       .eq("store_id", storeId)
@@ -146,7 +152,7 @@ async function fetchCatalog(storeId: string): Promise<StorefrontCatalog> {
   const shownIds = looseIds.slice(0, TILE_LIMIT);
   let products: PreviewTile[] = [];
   if (shownIds.length > 0) {
-    const { data, error } = await supabase
+    const { data, error } = await client
       .from("products")
       .select(
         "id, title, product_variants(main_image_url, additional_image_urls, price, compare_at_price)",
@@ -204,11 +210,13 @@ export function useStorefrontCatalog(storeId: string | null): {
   catalog: StorefrontCatalog | null;
   loading: boolean;
 } {
-  const [catalog, setCatalog] = useState<StorefrontCatalog | null>(null);
-  const [loadedFor, setLoadedFor] = useState<string | null>(null);
+  // A public storefront's catalog came with the page (StorefrontDataContext).
+  const seeded = useStorefrontSeed(storeId)?.catalog ?? null;
+  const [catalog, setCatalog] = useState<StorefrontCatalog | null>(seeded);
+  const [loadedFor, setLoadedFor] = useState<string | null>(seeded ? storeId : null);
 
   useEffect(() => {
-    if (!storeId) return;
+    if (!storeId || seeded) return;
     let cancelled = false;
     void loadCatalog(storeId).then((c) => {
       if (cancelled) return;
@@ -218,8 +226,8 @@ export function useStorefrontCatalog(storeId: string | null): {
     return () => {
       cancelled = true;
     };
-  }, [storeId]);
+  }, [storeId, seeded]);
 
-  const current = storeId && loadedFor === storeId ? catalog : null;
+  const current = seeded ?? (storeId && loadedFor === storeId ? catalog : null);
   return { catalog: current, loading: !!storeId && current === null };
 }

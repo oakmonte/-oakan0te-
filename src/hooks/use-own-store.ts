@@ -26,14 +26,14 @@ function writeStoredActiveId(id: string) {
 /** Every store the signed-in user owns, oldest first — the same tie-break
  *  order requireOwnStore uses server-side, so the client and server agree on
  *  which store is "the" store for an account that only has one. */
-export function useOwnStores() {
+export function useOwnStores(enabled = true) {
   const { user, loading: sessionLoading } = useSession();
   const [stores, setStores] = useState<OwnedStoreSummary[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(enabled);
 
   useEffect(() => {
     if (sessionLoading) return;
-    if (!user) {
+    if (!user || !enabled) {
       setStores([]);
       setLoading(false);
       return;
@@ -74,7 +74,7 @@ export function useOwnStores() {
     return () => {
       cancelled = true;
     };
-  }, [user, sessionLoading]);
+  }, [user, sessionLoading, enabled]);
 
   return { stores, loading };
 }
@@ -84,8 +84,8 @@ export function useOwnStores() {
  *  sessionStorage, so it's per-tab and never touches the localStorage session
  *  token) for the rest of that pick's relevance — cleared the moment it no
  *  longer names one of the account's stores. */
-export function useActiveStore() {
-  const { stores, loading } = useOwnStores();
+export function useActiveStore(enabled = true) {
+  const { stores, loading } = useOwnStores(enabled);
   const [activeId, setActiveIdState] = useState<string | null>(null);
 
   useEffect(() => {
@@ -109,9 +109,13 @@ export function useActiveStore() {
   return { store, storeId: store?.id ?? null, stores, loading, setActiveId };
 }
 
-/** Thin version of useActiveStore for call sites that only need the id — most
+/** `enabled` false skips the stores-by-owner fetch, for a hook that was handed
+ *  a store explicitly (a public storefront) and only calls this because hooks
+ *  can't be called conditionally.
+ *
+ *  Thin version of useActiveStore for call sites that only need the id — most
  *  of the dashboard's data hooks, which just want one uuid to filter by. */
-export function useActiveStoreId() {
-  const { storeId, loading } = useActiveStore();
+export function useActiveStoreId(enabled = true) {
+  const { storeId, loading } = useActiveStore(enabled);
   return { storeId, loading };
 }

@@ -82,6 +82,8 @@ import { saveStoreLogoUrl } from "@/lib/store-logo";
 import { prefetchStoreFeed } from "@/components/feed/PostFeed";
 import { useSession } from "@/hooks/use-session";
 import { useHideStoreNav } from "@/components/store/store-nav";
+import { useStorefrontSeed } from "@/lib/storefront-seed";
+import { useAfterPageLoad } from "@/hooks/use-after-page-load";
 
 function noop() {}
 
@@ -1237,12 +1239,16 @@ export function PublicStorefront({
   // fictional demo brand (District 17, terra, ...). Still just a default: a
   // seller who's typed their own headline or logo text keeps that (see
   // state.text/logoMode below), same as any other field.
-  const [brandName, setBrandName] = useState<string | null>(null);
-  const [ownerId, setOwnerId] = useState<string | null>(null);
+  // On /shop/<handle> the store row came with the page (StorefrontDataContext);
+  // the seller's Home preview has no seed and fetches it here.
+  const seed = useStorefrontSeed(storeId)?.store ?? null;
+  const [brandName, setBrandName] = useState<string | null>(seed ? seed.brand_name : null);
+  const [ownerId, setOwnerId] = useState<string | null>(seed?.owner_id ?? null);
   // The one store picture (stores.logo_url), shared by the profile, the
   // dashboard and the theme editor; the theme's own logo is only a fallback.
-  const [storeLogo, setStoreLogo] = useState<string | null>(null);
+  const [storeLogo, setStoreLogo] = useState<string | null>(seed?.logo_url ?? null);
   useEffect(() => {
+    if (seed) return;
     let cancelled = false;
     setBrandName(null);
     supabase
@@ -1260,18 +1266,22 @@ export function PublicStorefront({
     return () => {
       cancelled = true;
     };
-  }, [storeId]);
+  }, [storeId, seed]);
 
+  // Both of these are for a tap that hasn't happened yet, so they wait until
+  // the first screen (and its images) has loaded instead of competing with it
+  // on a slow connection.
+  const pageLoaded = useAfterPageLoad();
   // Who's chatting from this storefront (see buyer-session.ts). Started here,
   // before the loading return below, so it's signed in by the time anyone
   // taps Messages or a product's message button.
-  const buyer = useStorefrontBuyer(ownerId);
+  const buyer = useStorefrontBuyer(pageLoaded ? ownerId : null);
   // Start the Home feed (posts, then the first video) loading as soon as the
-  // storefront knows whose it is, so tapping Home is close to instant.
+  // page has settled, so tapping Home is close to instant.
   const { user: feedViewer } = useSession();
   useEffect(() => {
-    if (ownerId) prefetchStoreFeed(ownerId, feedViewer?.id ?? null);
-  }, [ownerId, feedViewer?.id]);
+    if (ownerId && pageLoaded) prefetchStoreFeed(ownerId, feedViewer?.id ?? null);
+  }, [ownerId, feedViewer?.id, pageLoaded]);
 
   if (themeLoading || savedLoading || brandName === null) {
     // min-h-full so the sheet holds a consistent shape while data is still
