@@ -19,6 +19,7 @@ import { Route as ChooseUsernameRouteImport } from './routes/choose-username'
 import { Route as CreateRouteImport } from './routes/create'
 import { Route as CreatePasswordRouteImport } from './routes/create-password'
 import { Route as CreatorsRouteImport } from './routes/creators'
+import { Route as DataDeletionRouteImport } from './routes/data-deletion'
 import { Route as EditProfileRouteImport } from './routes/edit-profile'
 import { Route as FindYourFitRouteImport } from './routes/find-your-fit'
 import { Route as GetTheWebappRouteImport } from './routes/get-the-webapp'
@@ -184,6 +185,11 @@ const CreatePasswordRoute = CreatePasswordRouteImport.update({
 const CreatorsRoute = CreatorsRouteImport.update({
   id: '/creators',
   path: '/creators',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DataDeletionRoute = DataDeletionRouteImport.update({
+  id: '/data-deletion',
+  path: '/data-deletion',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EditProfileRoute = EditProfileRouteImport.update({
@@ -785,6 +791,7 @@ export interface FileRoutesByFullPath {
   '/create': typeof CreateRouteWithChildren
   '/create-password': typeof CreatePasswordRoute
   '/creators': typeof CreatorsRoute
+  '/data-deletion': typeof DataDeletionRoute
   '/edit-profile': typeof EditProfileRoute
   '/find-your-fit': typeof FindYourFitRoute
   '/get-the-webapp': typeof GetTheWebappRoute
@@ -912,6 +919,7 @@ export interface FileRoutesByTo {
   '/choose-username': typeof ChooseUsernameRoute
   '/create-password': typeof CreatePasswordRoute
   '/creators': typeof CreatorsRoute
+  '/data-deletion': typeof DataDeletionRoute
   '/edit-profile': typeof EditProfileRoute
   '/find-your-fit': typeof FindYourFitRoute
   '/get-the-webapp': typeof GetTheWebappRoute
@@ -1039,6 +1047,7 @@ export interface FileRoutesById {
   '/create': typeof CreateRouteWithChildren
   '/create-password': typeof CreatePasswordRoute
   '/creators': typeof CreatorsRoute
+  '/data-deletion': typeof DataDeletionRoute
   '/edit-profile': typeof EditProfileRoute
   '/find-your-fit': typeof FindYourFitRoute
   '/get-the-webapp': typeof GetTheWebappRoute
@@ -1169,6 +1178,7 @@ export interface FileRouteTypes {
     | '/create'
     | '/create-password'
     | '/creators'
+    | '/data-deletion'
     | '/edit-profile'
     | '/find-your-fit'
     | '/get-the-webapp'
@@ -1296,6 +1306,7 @@ export interface FileRouteTypes {
     | '/choose-username'
     | '/create-password'
     | '/creators'
+    | '/data-deletion'
     | '/edit-profile'
     | '/find-your-fit'
     | '/get-the-webapp'
@@ -1422,6 +1433,7 @@ export interface FileRouteTypes {
     | '/create'
     | '/create-password'
     | '/creators'
+    | '/data-deletion'
     | '/edit-profile'
     | '/find-your-fit'
     | '/get-the-webapp'
@@ -1551,6 +1563,7 @@ export interface RootRouteChildren {
   CreateRoute: typeof CreateRouteWithChildren
   CreatePasswordRoute: typeof CreatePasswordRoute
   CreatorsRoute: typeof CreatorsRoute
+  DataDeletionRoute: typeof DataDeletionRoute
   EditProfileRoute: typeof EditProfileRoute
   FindYourFitRoute: typeof FindYourFitRoute
   GetTheWebappRoute: typeof GetTheWebappRoute
@@ -1698,6 +1711,13 @@ declare module '@tanstack/react-router' {
       path: '/creators'
       fullPath: '/creators'
       preLoaderRoute: typeof CreatorsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/data-deletion': {
+      id: '/data-deletion'
+      path: '/data-deletion'
+      fullPath: '/data-deletion'
+      preLoaderRoute: typeof DataDeletionRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/edit-profile': {
@@ -2695,6 +2715,7 @@ const rootRouteChildren: RootRouteChildren = {
   CreateRoute: CreateRouteWithChildren,
   CreatePasswordRoute: CreatePasswordRoute,
   CreatorsRoute: CreatorsRoute,
+  DataDeletionRoute: DataDeletionRoute,
   EditProfileRoute: EditProfileRoute,
   FindYourFitRoute: FindYourFitRoute,
   GetTheWebappRoute: GetTheWebappRoute,

@@ -59,15 +59,16 @@ const SECTIONS: LegalSection[] = [
             storefront design choices, and your product listings, prices and stock.
           </li>
           <li>
-            <B>Payout details (sellers):</B> bank name, account number and account name. Account
-            numbers are encrypted before we store them.
+            <B>Payout details (sellers):</B> bank name, account number and account name. Only
+            Oakmonte's servers can read them; they are never shown to buyers.
           </li>
           <li>
             <B>Content:</B> photos, videos, captions and the products you link to your posts.
           </li>
           <li>
-            <B>Messages:</B> messages you send to other members and to Oakmonte Support. Message
-            text is encrypted before we store it.
+            <B>Messages:</B> messages you send to other members and to Oakmonte Support. Only the
+            people in the conversation can see them; Oakmonte staff review messages only as our
+            Terms describe (reports, fraud, abuse or the law).
           </li>
           <li>
             <B>Orders (once checkout opens):</B> delivery address, phone number, the items you buy
@@ -304,9 +305,10 @@ const SECTIONS: LegalSection[] = [
     body: (
       <>
         <p>
-          Data is encrypted in transit. Messages, payout account numbers and connected-account
-          tokens are additionally encrypted before they are stored. Access to personal data inside
-          Oakmonte is limited to what each part of the service needs.
+          Data is encrypted in transit. Connected-account tokens are additionally encrypted before
+          they are stored, and payout account numbers and messages can only be read through
+          Oakmonte's own servers. Access to personal data inside Oakmonte is limited to what each
+          part of the service needs.
         </p>
         <p>
           No system is perfectly secure. If a data breach is likely to put your rights at risk, we
@@ -346,7 +348,7 @@ function PrivacyPage() {
         <>
           <p>
             We collect what we need to run Oakmonte: your account, what you post, your messages,
-            and, once checkout opens, your orders. Messages and bank details are encrypted.
+            and, once checkout opens, your orders. Bank details and messages are kept private.
           </p>
           <p>
             We don't sell your data, we don't run ad trackers, and we only share what's needed with

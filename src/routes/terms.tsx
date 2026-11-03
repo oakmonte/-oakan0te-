@@ -346,9 +346,9 @@ const SECTIONS: LegalSection[] = [
           device or browser settings.
         </li>
         <li>
-          Messages you send through Oakmonte are stored encrypted. We may review messages that are
-          reported to us, or where we need to in order to investigate fraud or abuse or comply with
-          the law.
+          Messages you send through Oakmonte are private to the conversation. We may review messages
+          that are reported to us, or where we need to in order to investigate fraud or abuse or
+          comply with the law.
         </li>
       </List>
     ),
