@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { encryptField, fieldContext } from "@/lib/field-encryption.server";
+import { GRAPH_BASE, GRAPH_HOST } from "@/lib/instagram-graph";
 
 /**
  * Step 2 of the Instagram connect flow.
@@ -29,6 +30,42 @@ async function hmacHex(secret: string, message: string) {
 }
 
 const APP_URL = "https://oakmonte.store";
+
+/**
+ * Which Instagram account did the seller connect? Unified login's token can
+ * be a Facebook user token or a business system-user token, and each exposes
+ * the Instagram account differently, so try each shape in turn. Ids are read
+ * as strings: Graph returns them quoted, and 17-19 digit ids lose precision
+ * as JSON numbers.
+ */
+async function findInstagramUserId(token: string): Promise<string | null> {
+  const get = async (path: string) => {
+    const res = await fetch(`${GRAPH_BASE}${path}&access_token=${encodeURIComponent(token)}`);
+    const body = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+    if (!res.ok) console.warn("Instagram account lookup failed:", path, res.status, body);
+    return res.ok ? body : null;
+  };
+  type Row = { id?: string; instagram_business_account?: { id?: string } };
+
+  // Facebook Pages the seller manages, each with its linked Instagram account.
+  const pages = await get("/me/accounts?fields=instagram_business_account");
+  const viaPage = ((pages?.data as Row[] | undefined) ?? []).find(
+    (p) => p.instagram_business_account?.id,
+  );
+  if (viaPage?.instagram_business_account?.id) return String(viaPage.instagram_business_account.id);
+
+  // Instagram accounts assigned through a business portfolio.
+  const assigned = await get("/me/assigned_instagram_accounts?fields=id");
+  const first = ((assigned?.data as Row[] | undefined) ?? [])[0];
+  if (first?.id) return String(first.id);
+
+  // "Continue with Instagram": /me may be the Instagram account itself.
+  const me = await get("/me?fields=id,username");
+  if (me?.username && me.id) return String(me.id);
+
+  console.error("Instagram callback: no Instagram account on this token", { pages, assigned, me });
+  return null;
+}
 
 function fail(reason: string) {
   return Response.redirect(
@@ -69,74 +106,62 @@ export const Route = createFileRoute("/api/instagram/callback")({
         if ((await hmacHex(secret, storeId)) !== providedSig)
           return fail("state verification failed");
 
-        // ---- exchange the code for a short-lived token ---------------------
-        const tokenRes = await fetch("https://api.instagram.com/oauth/access_token", {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({
+        // ---- exchange the code for a token (unified login) -----------------
+        // Unified login codes exchange on graph.facebook.com; the old
+        // api.instagram.com endpoint rejects them. See src/lib/instagram-graph.ts.
+        const tokenRes = await fetch(
+          `${GRAPH_BASE}/oauth/access_token?${new URLSearchParams({
             client_id: appId,
             client_secret: secret,
-            grant_type: "authorization_code",
             redirect_uri: redirectUri,
             code,
-          }),
-        });
-
-        const rawText = await tokenRes.text();
-
-        let tokenData: { access_token?: string };
-        try {
-          tokenData = JSON.parse(rawText);
-        } catch {
-          console.error("Instagram token exchange returned non-JSON:", rawText.slice(0, 300));
-          return fail("token exchange failed");
-        }
-
-        if (!tokenRes.ok || !tokenData.access_token) {
-          console.error("Instagram token exchange failed:", tokenRes.status, rawText.slice(0, 300));
-          return fail("token exchange failed");
-        }
-
-        // user_id comes back as a BARE NUMBER in this response, unlike every
-        // other Instagram id. It is 17-19 digits, so JSON.parse has already
-        // rounded it by the time we could read tokenData.user_id —
-        // 17912345678901234 becomes ...232, nothing throws, and the worker
-        // then queries media for an account that does not exist. Pull it out
-        // of the raw body as a string instead.
-        const userIdMatch = rawText.match(/"user_id":\s*"?(\d+)"?/);
-        const instagramUserId = userIdMatch?.[1] ?? null;
-
-        if (!instagramUserId) {
-          console.error("Instagram token exchange had no user_id:", rawText.slice(0, 300));
-          return fail("no Instagram user id returned");
-        }
-
-        // ---- upgrade to a long-lived (60 day) token ------------------------
-        // The short-lived token expires in an hour. The media pull happens in
-        // the worker, minutes to hours later, and re-runs weeks later — so the
-        // stored token has to be the long-lived one.
-        let accessToken = tokenData.access_token;
-        let expiresAt: string | null = null;
-
-        const longLivedRes = await fetch(
-          `https://graph.instagram.com/access_token?grant_type=ig_exchange_token&client_secret=${encodeURIComponent(secret)}&access_token=${encodeURIComponent(accessToken)}`,
+          }).toString()}`,
         );
-        const longLived = (await longLivedRes.json().catch(() => ({}))) as {
+        const tokenData = (await tokenRes.json().catch(() => ({}))) as {
           access_token?: string;
           expires_in?: number;
         };
 
-        if (longLivedRes.ok && longLived.access_token) {
-          accessToken = longLived.access_token;
-          expiresAt = new Date(Date.now() + (longLived.expires_in ?? 0) * 1000).toISOString();
-        } else {
-          // Not fatal — the short-lived token still works for about an hour, so
-          // an import queued now will succeed. It just will not survive a
-          // retry tomorrow.
-          console.warn(
-            "Instagram long-lived exchange failed, storing short-lived token",
-            longLivedRes.status,
+        if (!tokenRes.ok || !tokenData.access_token) {
+          console.error("Instagram token exchange failed:", tokenRes.status, tokenData);
+          return fail("token exchange failed");
+        }
+
+        let accessToken = tokenData.access_token;
+        let expiresIn = tokenData.expires_in ?? null;
+
+        // ---- upgrade a short-lived token -----------------------------------
+        // Unified login often returns a token that never expires (no
+        // expires_in). When it is short-lived (hours), swap it for a ~60-day
+        // one: the worker's media pull runs later and re-runs weeks later.
+        if (expiresIn !== null && expiresIn < 24 * 60 * 60) {
+          const longLivedRes = await fetch(
+            `${GRAPH_BASE}/oauth/access_token?${new URLSearchParams({
+              grant_type: "fb_exchange_token",
+              client_id: appId,
+              client_secret: secret,
+              fb_exchange_token: accessToken,
+            }).toString()}`,
           );
+          const longLived = (await longLivedRes.json().catch(() => ({}))) as {
+            access_token?: string;
+            expires_in?: number;
+          };
+          if (longLivedRes.ok && longLived.access_token) {
+            accessToken = longLived.access_token;
+            expiresIn = longLived.expires_in ?? null;
+          } else {
+            // Not fatal: the short-lived token still covers an import queued now.
+            console.warn("Instagram long-lived exchange failed", longLivedRes.status, longLived);
+          }
+        }
+        const expiresAt =
+          expiresIn !== null ? new Date(Date.now() + expiresIn * 1000).toISOString() : null;
+
+        // ---- find the seller's Instagram professional account --------------
+        const instagramUserId = await findInstagramUserId(accessToken);
+        if (!instagramUserId) {
+          return fail("no Instagram professional account found on this login");
         }
 
         const { supabaseAdmin: supabase } =
@@ -173,7 +198,9 @@ export const Route = createFileRoute("/api/instagram/callback")({
           store_id: storeId,
           platform: "instagram",
           status: "pending",
-          metadata: {},
+          // Unified login tokens only work on graph.facebook.com; the worker
+          // must call that host (not graph.instagram.com) with this token.
+          metadata: { graph_host: GRAPH_HOST },
         };
 
         const { data: job, error: jobError } = await supabase

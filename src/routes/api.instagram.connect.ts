@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { requireStoreOwner } from "@/lib/server-auth";
+import { GRAPH_VERSION } from "@/lib/instagram-graph";
 
 /**
  * Step 1 of the Instagram connect flow: redirect the seller to Instagram.
@@ -65,18 +66,23 @@ export const Route = createFileRoute("/api/instagram/connect")({
 
         const state = `${storeId}.${await hmacHex(secret, storeId)}`;
 
+        // Unified login (Facebook Login for Business with an "Instagram Login
+        // Compatible" configuration). Meta no longer offers Instagram Business
+        // Login (instagram.com/oauth/authorize) to new apps, and this app was
+        // created after that cut-off. Permissions come from the configuration,
+        // not a `scope` param — edit them on the configuration in the dashboard.
+        // The config id is not a secret; IG_CONFIG_ID overrides the default.
         const params = new URLSearchParams({
           client_id: appId,
+          config_id: process.env.IG_CONFIG_ID || "2010293486317847",
           redirect_uri: redirectUri,
           response_type: "code",
-          // Read-only access to the seller's own media. Nothing here posts,
-          // and nothing here needs to.
-          scope: "instagram_business_basic",
+          override_default_response_type: "true",
           state,
         });
 
         return Response.json({
-          url: `https://www.instagram.com/oauth/authorize?${params.toString()}`,
+          url: `https://www.facebook.com/${GRAPH_VERSION}/dialog/oauth?${params.toString()}`,
         });
       },
     },
