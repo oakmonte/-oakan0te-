@@ -2,5 +2,6 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "bun install",
   "buildCommand": "bun run build",
+  "regions": ["dub1"],
   "crons": [{ "path": "/api/cron/release-payouts", "schedule": "0 9 * * *" }]
 }
