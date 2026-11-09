@@ -56,6 +56,8 @@ const FAN_BELOW = 760;
  *  phone-widths the whole fan takes (sides, tilt and all). */
 const FAN_OFFSET = 0.86;
 const FAN_SPAN = 2.98;
+/** Height the heading, captions and Finish button take, around the phones. */
+const CHROME_H = 330;
 
 const noop = () => {};
 
@@ -136,13 +138,17 @@ function ShowcasePage() {
   const router = useRouter();
   const brandName = store?.brand_name?.trim() || "Your store";
   const [vw, setVw] = useState(0);
+  const [vh, setVh] = useState(0);
 
   // Shown now: a later pass through /welcome (an app launch) goes to the
   // dashboard. And the dashboard is where this leads, so have it ready.
   useEffect(() => {
     clearShowcase();
     void router.preloadRoute({ to: "/store" }).catch(() => {});
-    const measure = () => setVw(window.innerWidth);
+    const measure = () => {
+      setVw(window.innerWidth);
+      setVh(window.innerHeight);
+    };
     measure();
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
@@ -157,9 +163,16 @@ function ShowcasePage() {
   // other two tucked behind it.
   // The fan spans about FAN_SPAN phone-widths (the side phones, their tilt and
   // the gaps), kept inside the screen with a margin either side.
+  //
+  // Height counts too. The caps used to be fixed (0.4 fanned, 0.5 in a row),
+  // tuned for phones and laptops — an iPad mini (744 wide, under FAN_BELOW)
+  // got three 156px phones floating in an 1133px-tall screen. Now each phone
+  // grows to whatever the width AND the height leave room for, with the
+  // heading and the Finish button (CHROME_H) taken off the height first.
+  const heightFit = vh > 0 ? (vh - CHROME_H) / (PHONE_H + 70) : 1;
   const scale = fan
-    ? Math.min(0.4, (vw - 40) / (PHONE_W * FAN_SPAN))
-    : Math.min(0.5, (vw - 96 - GAP * 2) / (PHONE_W * 3));
+    ? Math.max(0.2, Math.min(0.65, (vw - 40) / (PHONE_W * FAN_SPAN), heightFit))
+    : Math.max(0.2, Math.min(0.5, (vw - 96 - GAP * 2) / (PHONE_W * 3), heightFit));
   const phoneW = PHONE_W * scale;
 
   return (
@@ -176,7 +189,10 @@ function ShowcasePage() {
 
       {vw > 0 && (
         <div
-          className={`relative mt-8 flex justify-center ${fan ? "" : "items-end"}`}
+          // my-auto: centred in whatever height is left over, rather than
+          // hanging under the heading with an empty band above Finish (tall
+          // screens — tablets — leave a lot over).
+          className={`relative my-auto pt-8 flex justify-center ${fan ? "" : "items-end"}`}
           style={{ gap: fan ? 0 : GAP, height: fan ? PHONE_H * scale + 70 : undefined }}
         >
           {looks.map(({ theme, motion, hero }, i) => {

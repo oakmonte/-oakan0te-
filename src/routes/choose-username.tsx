@@ -181,7 +181,7 @@ function ChooseUsernamePage() {
       return;
     }
     if (availability === "taken") {
-      setError("That handle is taken. Try another.");
+      setError("That username is taken. Try another.");
       return;
     }
 
@@ -261,7 +261,7 @@ function ChooseUsernamePage() {
   return (
     <OnboardingShell
       title="Tell us about you"
-      subtitle="Your display name is how you appear. Your handle is your unique @name."
+      subtitle="Your display name is how you appear. Your username is your unique @name."
       step={step}
     >
       <form onSubmit={handleSubmit} className="space-y-3 text-left" noValidate>
@@ -286,7 +286,7 @@ function ChooseUsernamePage() {
           </div>
           <div>
             <label htmlFor="username" className="sr-only">
-              Handle
+              Username
             </label>
             <div className="flex w-full min-w-0 items-center rounded-full border border-brand-text/60 pl-4 pr-3 transition-colors focus-within:border-brand-accent">
               <span aria-hidden="true" className="text-sm text-brand-text/50">
@@ -304,7 +304,7 @@ function ChooseUsernamePage() {
                 maxLength={MAX}
                 value={username}
                 onChange={(e) => setUsername(normalize(e.target.value))}
-                placeholder="handle"
+                placeholder="username"
                 aria-describedby="username-hint"
                 aria-invalid={problem ? true : undefined}
                 className="w-full min-w-0 bg-transparent py-3.5 pl-0.5 text-sm placeholder:text-brand-text/40 focus:outline-none"
@@ -323,7 +323,7 @@ function ChooseUsernamePage() {
               (availability === "checking"
                 ? "Checking availability…"
                 : availability === "taken"
-                  ? "That handle is taken."
+                  ? "That username is taken."
                   : availability === "available"
                     ? "Available."
                     : "Couldn't check that right now.")}
