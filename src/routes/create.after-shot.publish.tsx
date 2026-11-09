@@ -426,7 +426,7 @@ function PublishPage() {
           <button
             type="button"
             onClick={() => setTagPickerOpen(true)}
-            className="oak-motion-control flex items-center gap-2.5 w-full rounded-xl border border-gray-500 px-3.5 py-3 text-left active:scale-[0.99]"
+            className="oak-motion-control flex items-center gap-2.5 w-full rounded-xl border-[1.5px] border-gray-900 px-3.5 py-3 text-left active:scale-[0.99]"
           >
             <Link2 size={17} className="text-gray-400 shrink-0" />
             <span className="flex-1 text-[14px]">
@@ -436,7 +436,7 @@ function PublishPage() {
             </span>
             <span className="text-[12px] text-gray-400">Edit</span>
           </button>
-          <p className="pl-1 pt-1.5 text-[11px] text-gray-400">
+          <p className="pl-1 pt-1.5 text-[13px] text-gray-700">
             So your customers can buy at a swipe.
           </p>
 
