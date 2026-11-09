@@ -162,7 +162,7 @@ function clipIsPlain(clip: VideoClip): boolean {
     clip.volume === 1 &&
     !clip.muted &&
     !clip.audioDetached &&
-    combinedFilterCss(clip.filterId, clip.adjustments) === "none" &&
+    combinedFilterCss(clip.filterId, clip.adjustments, clip.filterIntensity) === "none" &&
     isNeutral(clip.adjustments) &&
     clip.transitionIn.kind === "none" &&
     !clip.zoom
@@ -319,7 +319,7 @@ function gradeInto(
 }
 
 function compiledFor(clip: VideoClip): CompiledFilter {
-  return compileFilter(combinedFilterCss(clip.filterId, clip.adjustments));
+  return compileFilter(combinedFilterCss(clip.filterId, clip.adjustments, clip.filterIntensity));
 }
 
 async function loadImageElement(source: StudioSource): Promise<HTMLImageElement> {

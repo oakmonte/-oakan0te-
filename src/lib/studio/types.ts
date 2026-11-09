@@ -127,6 +127,9 @@ export type VideoClip = {
    *  The video keeps playing silently and the AudioClip owns the sound. */
   audioDetached: boolean;
   filterId: string;
+  /** 0..100 strength of `filterId`, as on the after-shot screen. Absent is
+   *  full strength — only set when a grade arrives from after-shot. */
+  filterIntensity?: number;
   adjustments: Adjustments;
   /** Applies at the cut BEFORE this clip. The first clip's is always "none". */
   transitionIn: Transition;

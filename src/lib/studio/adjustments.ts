@@ -12,13 +12,16 @@
 // would silently render in the preview and vanish from the export. Vignette is
 // the deliberate exception — it is not expressible as a colour matrix at all, so
 // it is drawn (render.ts) rather than filtered, in both places.
-import { CAMERA_FILTERS } from "@/components/camera/filter-data";
+import { CAMERA_FILTERS, previewCssAtIntensity } from "@/components/camera/filter-data";
 import type { Adjustments } from "./types";
 import { NEUTRAL_ADJUSTMENTS } from "./types";
 
-export function filterCssFor(filterId: string): string {
+export function filterCssFor(filterId: string, intensity = 100): string {
   const preset = CAMERA_FILTERS.find((f) => f.id === filterId);
-  return preset && preset.previewCss !== "none" ? preset.previewCss : "";
+  if (!preset || preset.previewCss === "none" || intensity <= 0) return "";
+  // Same per-function lerp the after-shot preview uses, so a 60% filter
+  // carried in from there looks the same here and in the bake.
+  return previewCssAtIntensity(preset, intensity);
 }
 
 /** The Adjust sliders as CSS filter functions. Empty string when untouched. */
@@ -53,8 +56,14 @@ export function adjustmentsCss(a: Adjustments): string {
 
 /** Preset first, then adjustments — the same order the panels are stacked in,
  *  so nudging Warmth tweaks the graded image rather than the raw one. */
-export function combinedFilterCss(filterId: string, adjustments: Adjustments): string {
-  const combined = [filterCssFor(filterId), adjustmentsCss(adjustments)].filter(Boolean).join(" ");
+export function combinedFilterCss(
+  filterId: string,
+  adjustments: Adjustments,
+  intensity = 100,
+): string {
+  const combined = [filterCssFor(filterId, intensity), adjustmentsCss(adjustments)]
+    .filter(Boolean)
+    .join(" ");
   return combined || "none";
 }
 

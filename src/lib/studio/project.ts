@@ -331,8 +331,19 @@ function reduce(project: StudioProject, action: StudioAction): StudioProject {
 
     case "setFilter":
       return action.all
-        ? { ...project, clips: project.clips.map((c) => ({ ...c, filterId: action.filterId })) }
-        : mapClip(project, action.id, (c) => ({ ...c, filterId: action.filterId }));
+        ? {
+            ...project,
+            clips: project.clips.map((c) => ({
+              ...c,
+              filterId: action.filterId,
+              filterIntensity: undefined,
+            })),
+          }
+        : mapClip(project, action.id, (c) => ({
+            ...c,
+            filterId: action.filterId,
+            filterIntensity: undefined,
+          }));
 
     case "setAdjustments":
       return action.all

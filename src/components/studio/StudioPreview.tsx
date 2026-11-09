@@ -172,7 +172,11 @@ export default function StudioPreview({
                   className="absolute inset-0 w-full h-full"
                   style={{
                     objectFit,
-                    filter: combinedFilterCss(filterId, clip.adjustments),
+                    filter: combinedFilterCss(
+                      filterId,
+                      clip.adjustments,
+                      filterId === clip.filterId ? clip.filterIntensity : undefined,
+                    ),
                     transform: zoomCss,
                   }}
                 />
@@ -187,7 +191,11 @@ export default function StudioPreview({
                   className="absolute inset-0 w-full h-full"
                   style={{
                     objectFit,
-                    filter: combinedFilterCss(filterId, clip.adjustments),
+                    filter: combinedFilterCss(
+                      filterId,
+                      clip.adjustments,
+                      filterId === clip.filterId ? clip.filterIntensity : undefined,
+                    ),
                     transform: zoomCss,
                   }}
                 />

@@ -22,6 +22,7 @@ import { useBuildFreshness } from "../hooks/use-build-freshness";
 import { registerOfflineApp } from "@/lib/offline-app";
 import { OfflineBar } from "@/components/OfflineBar";
 import { PostUploadToast } from "../components/PostUploadToast";
+import { Toaster } from "../components/ui/sonner";
 import { ProductSaveToast } from "../components/ProductSaveToast";
 import { BackgroundUploadToast } from "../components/BackgroundUploadToast";
 import { setLastNonCreateRoute } from "../lib/last-visited-route";
@@ -441,6 +442,10 @@ function RootComponent() {
         <Outlet />
       </EdgeSwipeBack>
       <PostUploadToast />
+      {/* sonner's toast() is a no-op with no Toaster mounted — "Store link
+          copied" was silently never shown. Top-centre, clear of the notch,
+          so it doesn't collide with bottom bars and upload toasts. */}
+      <Toaster position="top-center" offset="calc(env(safe-area-inset-top) + 12px)" />
       <OfflineBar />
       <ProductSaveToast />
       <BackgroundUploadToast />

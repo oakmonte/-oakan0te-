@@ -24,14 +24,20 @@ export const Route = createFileRoute("/create/after-shot/studio")({
 // "opened it, trimmed a second, left" path at zero extra generations of
 // compression. The editor itself is components/studio/StudioEditor.tsx.
 
-/** The after-shot Adjust sliders in the studio's terms. Highlights and
- *  shadows have no studio equivalent and stay behind; everything else maps
- *  one to one. */
+/** The after-shot Adjust sliders in the studio's terms, matched by the CSS
+ *  each side actually emits (photo-adjust.ts extendedAdjustToCss vs
+ *  studio/adjustments.ts adjustmentsCss), not slider-for-slider: the two use
+ *  different scales. Exposure, highlights and shadows are all brightness
+ *  multipliers on the after-shot side, so their product becomes the studio's
+ *  one brightness. Warmth is built from different functions on each side, so
+ *  it carries over as the nearest equivalent rather than exactly. */
+const clampSlider = (v: number) => Math.max(-100, Math.min(100, Math.round(v)));
 function toStudioAdjustments(a: PhotoAdjust): Adjustments {
+  const brightness = (1 + a.exposure / 250) * (1 + a.highlights / 150) * (1 + a.shadows / 250);
   return {
-    brightness: a.exposure,
-    contrast: a.contrast,
-    saturation: a.vibrance,
+    brightness: clampSlider((brightness - 1) * 200), // studio: 1 + b/200
+    contrast: clampSlider(a.contrast * 2), // after-shot 1 + c/100, studio 1 + c/200
+    saturation: clampSlider(a.vibrance * 0.8), // after-shot 1 + v/125, studio 1 + s/100
     warmth: a.temperature,
     fade: 0,
     vignette: a.vignette,
@@ -81,6 +87,7 @@ function StudioRoute() {
           booted.project.clips = booted.project.clips.map((clip) => ({
             ...clip,
             filterId: edits.filterId,
+            filterIntensity: edits.filterIntensity,
             adjustments: toStudioAdjustments(edits.adjust),
           }));
         }
