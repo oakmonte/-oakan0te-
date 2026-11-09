@@ -181,18 +181,17 @@ sellers are possible but rare. Fix: pass the active `storeId` and switch the han
 `requireStoreAccess`. Touches an `api.*` route and server auth — wants a review, not a
 drive-by.
 
-### 3.5 Staff back-office (`/staff`) · migration NOT applied yet (2026-11-09)
+### 3.5 Staff back-office (`/staff`) · applied 2026-11-09
 
-`/staff` (support inbox, account lookup, set up a store for a client, "open as client") is built
-and gated server-side by `requireStaff()` in `src/lib/staff.server.ts` against
-`public.staff_members`. Until `20261109120000_staff_back_office.sql` is applied, every
-`/api/staff/*` call 404s and `/staff` shows "Page not found" -- fails closed. To turn it on: apply
-the migration, add each staff member with
-`insert into public.staff_members (user_id, role) values ('<auth user id>', 'admin');`, then
-regenerate `my-supabase/types.ts` and swap the `untypedTable(...)` calls in `staff.server.ts` for
-typed `.from(...)`. Audit trail: `public.staff_actions` (replies, stores created, every
-open-as-client link). Not done: PostHog (deferred by Diadem, 2026-11-09); search past the newest
-2000 support messages (the inbox groups in JS, see `api.staff.inbox.ts`).
+`/staff` (support inbox, account lookup, set up a store for a client, "open as client") is gated
+server-side by `requireStaff()` in `src/lib/staff.server.ts` against `public.staff_members`.
+`20261109120000_staff_back_office.sql` was applied 2026-11-09 via the Supabase MCP; Diadem is the
+one `admin` row. Add staff with
+`insert into public.staff_members (user_id, role) values ('<auth user id>', 'support');`.
+Audit trail: `public.staff_actions` (replies, stores created, every open-as-client link).
+Still to do: regenerate `my-supabase/types.ts` and swap the `untypedTable(...)` calls in
+`staff.server.ts` for typed `.from(...)`. Not done: PostHog (deferred by Diadem, 2026-11-09);
+the inbox only groups the newest 2000 support messages (see `api.staff.inbox.ts`).
 
 ### 3.4 A video draft loses its saved sound track
 
